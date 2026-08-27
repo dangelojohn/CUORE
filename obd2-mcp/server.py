@@ -8,6 +8,7 @@ Does NOT implement FCA/Alfa-specific actuator tests — those require MES.
 
 from __future__ import annotations
 
+import json
 import os
 import time
 from dataclasses import dataclass
@@ -429,6 +430,128 @@ def read_vin() -> str:
             pass
     vin = "".join(ascii_bytes)
     return f"VIN: {vin!r} raw: {raw!r}"
+
+
+#: Non-continuous monitors, bit position in bytes C (supported) and D
+#: (incomplete). Spark-ignition layout, ISO 15031-5.
+_NON_CONTINUOUS = (
+    (0, "Catalyst"),
+    (1, "Heated catalyst"),
+    (2, "Evaporative system"),
+    (3, "Secondary air system"),
+    (4, "A/C refrigerant"),
+    (5, "Oxygen sensor"),
+    (6, "Oxygen sensor heater"),
+    (7, "EGR system"),
+)
+
+#: Continuous monitors: byte B, supported in bits 0-2, incomplete in bits 4-6.
+_CONTINUOUS = (
+    (0, 4, "Misfire"),
+    (1, 5, "Fuel system"),
+    (2, 6, "Comprehensive components"),
+)
+
+
+def _decode_readiness(pairs: list[str], response_byte: str) -> dict | None:
+    """Decode a Mode 01 PID 01 / 41 readiness response."""
+    idx = None
+    for i in range(len(pairs) - 1):
+        if pairs[i] == response_byte and pairs[i + 1] in ("01", "41"):
+            idx = i + 2
+            break
+    if idx is None or idx + 3 >= len(pairs) + 1:
+        return None
+    try:
+        data = [int(x, 16) for x in pairs[idx:idx + 4]]
+    except ValueError:
+        return None
+    if len(data) < 4:
+        return None
+
+    a, b, c, d = data
+    spark = not (b & 0x08)
+    monitors: list[dict] = []
+    for sup_bit, inc_bit, name in _CONTINUOUS:
+        if b & (1 << sup_bit):
+            monitors.append({"monitor": name, "supported": True,
+                             "complete": not (b & (1 << inc_bit))})
+    for bit, name in _NON_CONTINUOUS:
+        if c & (1 << bit):
+            monitors.append({"monitor": name, "supported": True,
+                             "complete": not (d & (1 << bit))})
+
+    return {
+        "mil_on": bool(a & 0x80),
+        "stored_dtc_count": a & 0x7F,
+        "ignition": "spark" if spark else "compression",
+        "monitors": monitors,
+        "all_complete": all(m["complete"] for m in monitors) if monitors else None,
+    }
+
+
+@mcp.tool()
+def read_readiness() -> str:
+    """Read OBD-II readiness monitor status. Mode 01 PID 01 and PID 41.
+
+    Answers the question MultiEcuScan structurally cannot: has each emissions
+    monitor actually RUN since the last clear?
+
+    This matters because after clearing codes an ECU reports nothing until
+    each monitor re-runs, so a clean scan minutes later proves almost nothing.
+    For EVAP specifically, FCA's own TSB 18-089-19 states a road test cannot
+    confirm a small-leak repair. Readiness at least tells you whether the
+    monitor has run at all -- which is the difference between "fixed" and
+    "not yet tested".
+
+    PID 01 is status since the last clear. PID 41 is status for the current
+    drive cycle.
+    """
+    out: dict = {}
+    for pid, label in (("01", "since_clear"), ("41", "this_drive_cycle")):
+        raw = _cmd(f"01 {pid}")
+        err = adapter_error(raw)
+        if err:
+            out[label] = {"error": err, "raw": raw}
+            continue
+        decoded = _decode_readiness(_hex_pairs(raw), "41")
+        out[label] = decoded if decoded else {
+            "error": "could not decode readiness response", "raw": raw}
+
+    since = out.get("since_clear") or {}
+    evap = next((m for m in since.get("monitors", [])
+                 if m["monitor"] == "Evaporative system"), None)
+    if evap is not None:
+        out["evap_verdict"] = (
+            "EVAP monitor has COMPLETED since the last clear - a clean scan "
+            "is now meaningful for EVAP."
+            if evap["complete"] else
+            "EVAP monitor has NOT run since the last clear. Absence of an "
+            "EVAP code right now carries no information. Complete the drive "
+            "cycle before drawing any conclusion."
+        )
+    elif since.get("monitors"):
+        out["evap_verdict"] = ("This ECU does not report an evaporative "
+                               "system monitor as supported.")
+
+    counters = {}
+    for name, pid in (("warmups_since_clear", "30"),
+                      ("distance_since_clear_km", "31")):
+        raw = _cmd(f"01 {pid}")
+        if not adapter_error(raw):
+            pairs = _hex_pairs(raw)
+            if len(pairs) >= 3 and pairs[0] == "41":
+                try:
+                    vals = [int(x, 16) for x in pairs[2:]]
+                    counters[name] = (vals[0] if pid == "30"
+                                      else (vals[0] << 8) + vals[1]
+                                      if len(vals) >= 2 else vals[0])
+                except (ValueError, IndexError):
+                    pass
+    if counters:
+        out["drive_cycle_counters"] = counters
+
+    return json.dumps(out, indent=2)
 
 
 @mcp.tool()

@@ -139,14 +139,22 @@ Consistent with the motorised hypothesis: on a motor-driven ball ramp there is n
 ## Is the torque split calibratable? **Almost certainly not.** `LIKELY NO`
 No verified tool ecosystem lists a Giorgio DTCM at all — not HP Tuners (no Alfa), not PCMflash (no FCA module); StageX's only Alfa driveline entry is the 8HP TCU with DTC removal. Even if a bench read were possible you would be reverse-engineering a module with no public definition, controlling a safety-relevant driveline function, on a car whose stability control assumes a known torque distribution. **Treat as not practically available.** If ever done: `competition/off-road only`, with real risk of fighting the ESC.
 
-## ⚠️ Fluid spec, capacity, service interval — NOT CONFIRMED, and do not guess
+## Fluid spec and capacity — `LIKELY`, pending authoritative confirmation
 
-Mopar and Alfa parts catalogues, FCP Euro and ZF's own site yielded nothing. (Note: moparpartsgiant.com covers only Chrysler/Dodge/Jeep/Ram — **not Alfa Romeo in North America**.)
+| Field | Value |
+|---|---|
+| Product | **Tutela Transmission Transfer Case (Q4)** |
+| Viscosity / class | **SAE 75W, API GL5** |
+| FIAT approval | **9.55550-DA11** |
+| Capacity | **~1 L** |
 
-Two risk statements, which are not specifications:
+Sources are a specialist parts retailer plus Giulia/Stelvio forum threads — consistent with each other, but **not yet an OEM document**. Treat as `LIKELY` and confirm the Mopar/Alfa part number, exact fill quantity, service interval, and plug torque against the dealer parts counter (quoting the VIN) or official service literature before doing the job. Verification is in progress.
 
-- **Do not assume ATF, and do not assume gear oil.** Magna active transfer cases of this type typically call for a **specific low-viscosity transfer case fluid** whose friction characteristics are matched to the clutch pack. Substituting ATF or a generic 75W gear oil is a known route to clutch shudder or clutch failure. **The fluid is a functional part of the friction system, not just a lubricant.**
-- **Get the number from a source of record.** In order: (1) dealer parts counter, quoting the VIN, asking for the transfer case fluid part number and fill quantity; (2) official service info — Stellantis RMI portal or Mopar TSP, the only authoritative source for fill capacity and interval; (3) Magna, via the transfer case casting/tag number. **This is a small subscription question and it is worth paying rather than guessing.**
+**The earlier caution still stands, refined:** this *is* a 75W GL5 gear oil, but it is a **specific FIAT-approved** one. Magna active transfer cases have friction characteristics matched to the clutch pack, so **do not substitute ATF, and do not substitute a generic 75W GL5** — the approval number is the part that matters. **The fluid is a functional part of the friction system, not just a lubricant.**
+
+The rear differential is usually serviced at the same time and takes a different fluid — confirm separately.
+
+*(Note: moparpartsgiant.com covers only Chrysler/Dodge/Jeep/Ram — **not Alfa Romeo in North America** — which is why the earlier catalogue search came up empty.)*
 
 ## Failure modes — UNVERIFIED for this unit
 Generic to the architecture, offered as *what to look for*, not as reported Alfa failures: actuator motor (brush wear, water ingress at the connector, rising current draw before failure); position sensor/encoder (intermittent faults, lost learned position, drivability complaints that come and go with temperature); chain stretch and sprocket wear (whine tracking **road** speed, not engine speed); clutch pack glazing from degraded or wrong fluid. **No Alfa-specific failure-rate data was found, and none is implied.**

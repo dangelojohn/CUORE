@@ -64,3 +64,34 @@ for cmd, should_block in [("04", True), ("ATSH 7E0", True), ("2F0102", True),
 
 print("\n" + ("ALL PASS" if ok else "FAILURES PRESENT"))
 sys.exit(0 if ok else 1)
+
+# --- readiness monitor decoding -------------------------------------------
+print("\n6. readiness monitors (Mode 01 PID 01) - MES cannot do this at all")
+
+def readiness(hexstr):
+    return s._decode_readiness(s._hex_pairs(hexstr), "41")
+
+# A=0x00 (no MIL, 0 DTCs), B=0x07 all continuous supported+complete,
+# C=0x25 (catalyst|EVAP|O2 sensor supported), D=0x04 (EVAP incomplete)
+r = readiness("41010007 2504".replace(" ", ""))
+names = {m["monitor"]: m["complete"] for m in r["monitors"]}
+check("MIL off", r["mil_on"], False)
+check("spark ignition", r["ignition"], "spark")
+check("EVAP supported but INCOMPLETE", names.get("Evaporative system"), False)
+check("Catalyst complete", names.get("Catalyst"), True)
+check("O2 sensor complete", names.get("Oxygen sensor"), True)
+check("not all complete", r["all_complete"], False)
+
+# Same but D=0x00 -> everything complete
+r2 = readiness("410100072500")
+names2 = {m["monitor"]: m["complete"] for m in r2["monitors"]}
+check("EVAP complete when D bit clear", names2.get("Evaporative system"), True)
+check("all_complete true", r2["all_complete"], True)
+
+# MIL on with 5 stored codes
+r3 = readiness("41018507 2500".replace(" ", ""))
+check("MIL on", r3["mil_on"], True)
+check("5 stored DTCs", r3["stored_dtc_count"], 5)
+
+print("\n" + ("ALL PASS" if ok else "FAILURES PRESENT"))
+sys.exit(0 if ok else 1)
