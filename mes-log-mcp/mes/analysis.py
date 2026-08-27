@@ -79,17 +79,81 @@ class NetworkEvent:
             "interpretation": (
                 f"{len(self.modules_involved)} modules each report only "
                 "communication faults against other modules, with no "
-                "component-level fault of their own. That pattern is one "
-                "network or power event, not "
-                f"{len(self.modules_involved)} separate module failures. "
-                "Investigate 12V supply and the IBS battery sensor, ground "
-                "points, and the BCM (which gateways B-CAN to C-CAN) before "
-                "condemning any single module."
+                "component-level fault of their own. Every failure-type byte "
+                "here is a message-integrity class, not a component-internal "
+                "one. That pattern is one network or power event, not "
+                f"{len(self.modules_involved)} separate module failures."
             ),
+            "first_test": (
+                "Read extended DTC data (DTC EX in MES) on every code BEFORE "
+                "clearing: odometer, occurrence count, aging counter. If they "
+                "all share one odometer value and a single occurrence, the "
+                "diagnostic session itself produced them. Clearing first "
+                "destroys the only evidence that settles this."
+            ),
+            "ranked_causes_giorgio": [
+                {
+                    "cause": "corroded engine/transmission-to-body ground strap",
+                    "confidence": "documented Giorgio failure mode",
+                    "why": "13 NHTSA complaints on 2018-2019 Stelvio, several "
+                           "dealer-diagnosed at 54k-102k miles. The strap is "
+                           "exposed, with an acute 90-degree bend that "
+                           "fatigues the braid. A high-resistance strap shifts "
+                           "powertrain ground reference during any "
+                           "high-current event, pushing CAN transceivers "
+                           "outside their common-mode range for milliseconds. "
+                           "Every module on the segment faults at once, then "
+                           "recovers - which also explains codes that clear "
+                           "and do not return.",
+                    "test": "voltage-drop test the transmission-to-body strap "
+                            "and both front knuckle straps under load; target "
+                            "below 0.1 V across each path",
+                },
+                {
+                    "cause": "BCM water intrusion (recall 18V205000 / FCA U36)",
+                    "confidence": "recall covering all 12,595 MY2018 Stelvio",
+                    "why": "Water tracks down the front cowl into the "
+                           "passenger footwell where the BCM lives. The BCM "
+                           "is the B-CAN to C-CAN gateway, so corroded pins "
+                           "produce faults in BOTH directions at once - the "
+                           "BCM reporting peripherals erratic AND peripherals "
+                           "reporting the BCM missing. The recall remedy was "
+                           "a sealing kit, not a redesign, and there are "
+                           "documented cases of recurrence after it was "
+                           "performed.",
+                    "test": "pull the passenger kick panel; look for "
+                            "staining, a silt line, or green/white corrosion "
+                            "on the BCM connectors. Verify U36 and U34 were "
+                            "performed on this VIN.",
+                },
+                {
+                    "cause": "the diagnostic session itself",
+                    "confidence": "plausible and common",
+                    "why": "Putting a module into an extended UDS session "
+                           "makes many FCA modules reduce or stop normal "
+                           "broadcasts; every subscriber then logs a missing "
+                           "or erratic message. A tool that walks module by "
+                           "module through a whole-vehicle scan does this "
+                           "serially to the entire bus.",
+                    "test": "see first_test - occurrence counters settle it",
+                },
+                {
+                    "cause": "failing 12V battery or IBS sensor",
+                    "confidence": "general platform issue, weakly evidenced",
+                    "why": "Only 1 of 371 NHTSA complaints names the battery "
+                           "sensor, so IBS failure is not demonstrably "
+                           "common. Ranked below the ground strap, which "
+                           "explains the simultaneity better.",
+                    "test": "battery test, IBS connection, parasitic draw",
+                },
+            ],
             "caution": (
-                "A diagnostic session can itself provoke these codes - a "
-                "module waking mid-scan, or bus load from the adapter. Weigh "
-                "whether the codes predate the scan."
+                "Do not replace any module on the strength of a "
+                "communication cascade alone. Note also that a missing-message "
+                "code names the module that went quiet, not the module that "
+                "is faulty - on Giorgio the transfer case reporting 'no "
+                "communication with ECU' means ECM frames stopped arriving on "
+                "the shared bus, which does not implicate the transfer case."
             ),
         }
 
