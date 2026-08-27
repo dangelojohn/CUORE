@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtualenv - recreate with requirements.txt, do not commit
+.venv/
+venv/
+env/
+
+# Backups produced during development
+*.bak
+*.orig
+
+# Local secrets and machine-specific config. Never commit tokens.
+.env
+.env.*
+!.env.example
+secrets.json
+*.token
+
+# Captured vehicle data may contain a customer VIN. Kept out of the repo by
+# default; commit deliberately under data/ if a case needs to be shared.
+scratch/
+*.log
+
+# OS noise
+Thumbs.db
+desktop.ini
+.DS_Store
