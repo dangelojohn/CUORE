@@ -4,7 +4,44 @@
 
 ---
 
-# 1. ⭐ THE MOST IMPORTANT FACT: you cannot road-test this repair
+# 0. ⭐ START HERE — the cheap check FCA says to do first
+
+**STAR case `S2125000002`** (2021-06-18, NHTSA ids 10212447 / 10221288) — `CONFIRMED`, PDF retrieved.
+Applies to **P0456 / P0455 / P0441 / P1CEA** — three of which are on this car.
+
+> **Before any deep diagnosis: check the recirculation-line mid-point quick-connect for a loose connection, then re-run the wiTECH EVAP leak test.**
+
+That is a two-minute check on a documented failure point, and it precedes everything else in this document.
+
+**Related, also `CONFIRMED`:**
+- **`S2125000003`** (2021-07-29) — for **P1CEA alone**: borescope the **Ejector Tee** in the clean-air duct for flow-restricting debris.
+- **`9100325 Rev 1`** (2025-10-02) — purge control valve; check for kinked or mis-connected purge hoses at the ejector tees, purge solenoid and intake.
+
+## ⚠️ Two corrections to earlier sections of this document
+
+**1. `18-089-19` has been superseded.** The current SLVT bulletin is **`18-048-23`** (bulletin number `1804823`, NHTSA id 10236933, 2023-04-15). The substance below is unchanged — a road test still cannot confirm the repair — but cite the newer number.
+
+**2. There is no water-ingress / splash-shield EVAP bulletin.** A full-text sweep of all 287 readable FCA bulletins for these vehicles for `splash|shield|deflector|water ingress|water intrusion|moisture|flooded|debris shield` found **nothing**. The forum claim in §4 about "a TSB and additional shield" is **not supported**.
+
+What almost certainly caused that claim is the *fuel*-flooding language in the bulletin below — which is a different failure entirely.
+
+## NEW: `9100471` — the flooded-canister bulletin
+
+**`9100471`** (2025-03-17, NHTSA id 11015810, covers GU 18-24 and GA) — `CONFIRMED`, PDF retrieved. **Supersedes and extends `9100469`.**
+
+Adds a hard-to-fill diagnostic tree: check for a kinked or pinched clean-air hose between the ESIM and the EVAP air filter; a plugged EVAP filter; a kinked vapour hose tank-to-canister. Then, verbatim:
+
+> *"Check if the Vapor Canister is flooded with fuel or the Recirculation Line has fuel. If fuel is found… drop the Fuel Tank, remove the FDM Lock Ring to check if the internal Vapor Line is properly connected to the FDM Port… Replace the Vapor Canister and the ESIM."*
+
+> **So the documented flooding mode is FUEL, from a disconnected internal vapour line at the fuel delivery module port — not water.** And note the remedy replaces **both** the canister and the ESIM.
+
+This also connects to the fuel pump recall: **25V586000 / Mopar 93C replaces the fuel delivery module.** If that work is done on this car, the internal vapour line connection at the FDM port is worth verifying on reassembly.
+
+Also new: **`9100468`** references a customer-paid Mopar **Dual EVAP Filter kit** (TSB `25-009-24`) for dusty operating conditions.
+
+---
+
+# 1. ⭐ You cannot road-test this repair
 
 **TSB 18-089-19** — *"wiTECH Small Leak Verification Test (SLVT) – P0456-EVAP SYSTEM SMALL LEAK"*, nhtsaId 10169219, 1 Nov 2019, Group 18, applies to **all 2015-2020 FCA US gasoline vehicles**. **CONFIRMED — official, full PDF retrieved.**
 

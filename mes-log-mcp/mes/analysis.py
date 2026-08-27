@@ -93,38 +93,46 @@ class NetworkEvent:
             ),
             "ranked_causes_giorgio": [
                 {
-                    "cause": "corroded engine/transmission-to-body ground strap",
-                    "confidence": "documented Giorgio failure mode",
-                    "why": "13 NHTSA complaints on 2018-2019 Stelvio, several "
-                           "dealer-diagnosed at 54k-102k miles. The strap is "
-                           "exposed, with an acute 90-degree bend that "
-                           "fatigues the braid. A high-resistance strap shifts "
-                           "powertrain ground reference during any "
-                           "high-current event, pushing CAN transceivers "
-                           "outside their common-mode range for milliseconds. "
-                           "Every module on the segment faults at once, then "
-                           "recovers - which also explains codes that clear "
-                           "and do not return.",
-                    "test": "voltage-drop test the transmission-to-body strap "
-                            "and both front knuckle straps under load; target "
-                            "below 0.1 V across each path",
+                    "cause": "BCM power feed - F82 fuse in the rear PDC, and "
+                             "the BCM A901 circuit",
+                    "confidence": "FCA STAR case S1808000005, on-platform",
+                    "why": "'No Start, Multiple Modules Are Not Responding', "
+                           "2018-2020 Stelvio. FCA's instruction is explicit: "
+                           "'For GU / Stelvio inspect the F82 fuse in the "
+                           "rear PDC to the BCM A901 circuit.' A BCM that "
+                           "loses its supply drops off the bus, and every "
+                           "module gatewaying through it throws U-codes. "
+                           "This attacks the SUPPLY side, which a "
+                           "ground-strap hypothesis misses entirely.",
+                    "test": "check F82 in the rear power distribution centre "
+                            "and the BCM A901 / B+ A0 feed before anything "
+                            "else. Cheap and high-yield.",
                 },
                 {
-                    "cause": "BCM water intrusion (recall 18V205000 / FCA U36)",
-                    "confidence": "recall covering all 12,595 MY2018 Stelvio",
-                    "why": "Water tracks down the front cowl into the "
-                           "passenger footwell where the BCM lives. The BCM "
-                           "is the B-CAN to C-CAN gateway, so corroded pins "
-                           "produce faults in BOTH directions at once - the "
-                           "BCM reporting peripherals erratic AND peripherals "
-                           "reporting the BCM missing. The recall remedy was "
-                           "a sealing kit, not a redesign, and there are "
-                           "documented cases of recurrence after it was "
-                           "performed.",
-                    "test": "pull the passenger kick panel; look for "
-                            "staining, a silt line, or green/white corrosion "
-                            "on the BCM connectors. Verify U36 and U34 were "
-                            "performed on this VIN.",
+                    "cause": "inline connector XY201 and frame grounds "
+                             "G003A / G003B",
+                    "confidence": "FCA STAR case S2008000032 - the closest "
+                                  "published match to this fault pattern",
+                    "why": "'EVIC Displays Multiple Warning Messages': "
+                           "multiple warnings, multiple active DTCs across "
+                           "modules, resolved by securing a loose inline "
+                           "connector XY201 and cleaning/securing frame "
+                           "grounds G003A/G003B. NO PARTS REQUIRED. This is "
+                           "a documented FCA fix for exactly this cascade "
+                           "shape. NHTSA associates it with 2020 Stelvio, "
+                           "but the GU platform circuitry is shared.",
+                    "test": "inspect inline connector XY201 for security; "
+                            "clean and secure frame grounds G003A and G003B",
+                },
+                {
+                    "cause": "spread or backed-out connector terminals",
+                    "confidence": "FCA STAR case S1708000262 REV. A",
+                    "why": "'Check Engine Lamp Is On, Intermittent Module CAN "
+                           "Private Or LIN BUS Codes' - intermittent "
+                           "multi-module U-codes attributed to pushed-out or "
+                           "spread terminals rather than a failed module.",
+                    "test": "inspect involved connector terminals for "
+                            "pushed-out or spread pins",
                 },
                 {
                     "cause": "the diagnostic session itself",
@@ -138,13 +146,49 @@ class NetworkEvent:
                     "test": "see first_test - occurrence counters settle it",
                 },
                 {
+                    "cause": "BCM water intrusion (recall 18V205000 / FCA U36)",
+                    "confidence": "recall covering all 12,595 MY2018 Stelvio",
+                    "why": "Water tracks down the front cowl into the "
+                           "passenger footwell where the BCM lives. The BCM "
+                           "is the B-CAN to C-CAN gateway, so corroded pins "
+                           "produce faults in both directions at once. The "
+                           "remedy was a sealing kit, not a redesign, and "
+                           "recurrence after it was performed is documented.",
+                    "test": "pull the passenger kick panel; look for "
+                            "staining, a silt line, or green/white corrosion "
+                            "on the BCM connectors. Verify U36 and U34 were "
+                            "performed on this VIN.",
+                },
+                {
+                    "cause": "corroded engine/transmission-to-body ground strap",
+                    "confidence": "owner-reported pattern only - NO FCA "
+                                  "BULLETIN EXISTS",
+                    "why": "13 NHTSA complaints on 2018-2019 Stelvio describe "
+                           "this, several dealer-diagnosed at 54k-102k miles, "
+                           "and the mechanism is sound: a high-resistance "
+                           "strap shifts powertrain ground reference during a "
+                           "high-current event, pushing CAN transceivers "
+                           "outside common-mode range. BUT a full-text sweep "
+                           "of all 287 readable FCA bulletins for these "
+                           "vehicles found NOTHING describing a ground strap "
+                           "as a failing part. Ranked below the three "
+                           "documented causes above rather than first.",
+                    "test": "voltage-drop test the transmission-to-body strap "
+                            "and both front knuckle straps under load; target "
+                            "below 0.1 V across each path",
+                },
+                {
                     "cause": "failing 12V battery or IBS sensor",
                     "confidence": "general platform issue, weakly evidenced",
                     "why": "Only 1 of 371 NHTSA complaints names the battery "
-                           "sensor, so IBS failure is not demonstrably "
-                           "common. Ranked below the ground strap, which "
-                           "explains the simultaneity better.",
-                    "test": "battery test, IBS connection, parasitic draw",
+                           "sensor. FCA STAR case S1408000384 REV. J does "
+                           "give a specific test for U113E 'lost "
+                           "communication with intelligent battery': wiggle "
+                           "the IBS 2-way harness takeout and watch whether "
+                           "the code responds.",
+                    "test": "battery test, IBS connection (wiggle the 2-way "
+                            "takeout), parasitic draw. Note FCA's DO NOT "
+                            "BLIND CHARGE rule.",
                 },
             ],
             "caution": (
