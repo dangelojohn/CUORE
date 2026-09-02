@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}{{ bar.name }} — Dossier{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+{% set cp = d.current_picture %}
+
+<div class="cols wide-left">
+<div>
+
+  <h2>Current picture</h2>
+
+  {% if cp.latest_session %}
+  <div class="panel">
+    <h3>Latest session
+      <span class="mono small muted">{{ cp.latest_session.timestamp }}</span></h3>
+    <div class="mono small muted">{{ cp.latest_session.ecu }}
+      {% if cp.latest_session.odometer_km %}
+        &middot; {{ "{:,}".format(cp.latest_session.odometer_km|int) }} km{% endif %}
+      &middot; {{ cp.latest_session.file }}</div>
+
+    {% if cp.latest_session.dtcs %}
+      <div class="tw" style="margin-top:8px">
+      <table>
+        <thead><tr><th>Code</th><th>Description</th><th>Status</th><th>Failure type</th></tr></thead>
+        <tbody>
+        {% for x in cp.latest_session.dtcs %}
+          <tr>
+            <td><a class="mono" href="/v/{{ vin }}/code/{{ x.code }}">{{ x.dtc }}</a></td>
+            <td>{{ x.description }}</td>
+            <td><span class="chip {{ 'cleared' if x.status == 'cleared' else 'plain' }}">{{ x.status }}</span>
+                <div class="small muted">{{ x.status_meaning }}</div></td>
+            <td class="small muted">{{ x.failure_type.meaning if x.failure_type else "—" }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% else %}
+      <p class="muted small" style="margin-top:8px">No DTCs in this session.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if cp.last_session_with_findings %}
+  <div class="note warn">
+    <span class="lab">The latest session is not the whole story</span>
+    {{ cp.last_session_with_findings.note }}
+    ({{ cp.last_session_with_findings.timestamp }}):
+    {% for x in cp.last_session_with_findings.dtcs %}
+      <a class="mono" href="/v/{{ vin }}/code/{{ x.code }}">{{ x.dtc }}</a>{% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if cp.clear_assessment %}
+  {% set ca = cp.clear_assessment %}
+  <div class="note {{ 'alert' if ca.codes_returned_in_session or ca.codes_that_would_not_clear else 'warn' }}">
+    <span class="lab">Clearing is not fixing</span>
+    {% if ca.codes_cleared %}
+      <b>Cleared:</b> {{ ca.codes_cleared|join(", ") }}.
+    {% endif %}
+    {% if ca.codes_returned_in_session %}
+      <b>Returned in the same session:</b> {{ ca.codes_returned_in_session|join(", ") }} —
+      the fault is live and reproducing.
+    {% endif %}
+    {% if ca.codes_that_would_not_clear %}
+      <b>Refused the erase:</b> {{ ca.codes_that_would_not_clear|join(", ") }}.
+    {% endif %}
+    <p style="margin:6px 0 0">{{ ca.verdict }}</p>
+    {% if ca.next_step %}<p class="small" style="margin:6px 0 0"><b>Next:</b> {{ ca.next_step }}</p>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if cp.network_event %}
+  <div class="note alert">
+    <span class="lab">One network event, not several faults</span>
+    {{ cp.network_event.verdict if cp.network_event.verdict else cp.network_event }}
+  </div>
+  {% endif %}
+
+  {% if cp.latest_scan %}
+  <div class="panel">
+    <h3>Latest all-systems scan
+      <span class="mono small muted">{{ cp.latest_scan.timestamp }}</span>
+      <span class="chip unverifiable">unverifiable</span></h3>
+    {% if cp.latest_scan.modules_with_faults %}
+      <table>
+        {% for m in cp.latest_scan.modules_with_faults %}
+        <tr><td class="k">{{ m.module }}</td>
+            <td class="mono">{{ m.dtcs|join(", ") }}</td></tr>
+        {% endfor %}
+      </table>
+    {% else %}
+      <p class="muted small">No module reported a fault in this scan.</p>
+    {% endif %}
+    <p class="small muted" style="margin:8px 0 0">{{ cp.latest_scan.provenance }}</p>
+  </div>
+  {% endif %}
+
+  <h2>History</h2>
+  {% for bucket, label, sev in [
+        ("returned_after_clear", "Returned after a clear", "returned"),
+        ("chronic", "Chronic", "chronic"),
+        ("seen_once", "Seen once", "seen-once")] %}
+    {% if d.history[bucket] %}
+    <div class="panel tight">
+      <div style="padding:10px 14px 0"><h3 style="margin:0">{{ label }}
+        <span class="chip {{ sev }}">{{ d.history[bucket]|length }}</span></h3></div>
+      <div class="tw">
+      <table>
+        <thead><tr><th>Code</th><th>Description</th><th class="n">Sessions</th>
+                   <th>First seen</th><th>Last seen</th><th class="n">Distance</th></tr></thead>
+        <tbody>
+        {% for r in d.history[bucket] %}
+          <tr class="row-link" data-href="/v/{{ vin }}/code/{{ r.dtc.split('-')[0] }}" tabindex="0">
+            <td><a class="mono" href="/v/{{ vin }}/code/{{ r.dtc.split('-')[0] }}">{{ r.dtc }}</a></td>
+            <td>{{ r.descriptions|join(", ") }}</td>
+            <td class="n">{{ r.sessions }}</td>
+            <td class="mono small">{{ r.first_seen }}</td>
+            <td class="mono small">{{ r.last_seen }}</td>
+            <td class="n">{% if r.distance_span_km %}{{ "{:,}".format(r.distance_span_km|int) }} km{% else %}—{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+  {% if d.already_attempted %}
+  <h2>Already attempted</h2>
+  <div class="panel tight">
+    <div class="tw">
+    <table>
+      <thead><tr><th>When</th><th>Operation</th><th>Outcome</th><th>Reason</th></tr></thead>
+      <tbody>
+      {% for a in d.already_attempted %}
+        <tr>
+          <td class="mono small">{{ a.timestamp }}</td>
+          <td>{{ a.operation }}</td>
+          <td><span class="chip {{ 'returned' if a.outcome == 'FAILED TO EXECUTE' else 'ok' }}">{{ a.outcome }}</span></td>
+          <td class="small muted">{{ a.reason or "—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+  <p class="small muted">MES actuator tests on the IAW 10JA require key-on
+    engine-off. <b>“Engine running” is an interlock, not a fault.</b></p>
+  {% endif %}
+
+</div>
+<div>
+
+  <h2>Blind spots</h2>
+  <div class="panel tight blind">
+    {% for b in d.blind_spots %}
+      <div class="item">
+        <div class="q">{{ b.question }}</div>
+        <div class="why">{{ b.why_unknown }}</div>
+        <div class="fix">→ {{ b.closes_it }}</div>
+      </div>
+    {% endfor %}
+  </div>
+  <p class="small muted">These are what a log corpus structurally cannot answer.
+    Nothing above them should be read as “there are no faults”.</p>
+
+  {% if open_codes %}
+  <h2>Routing</h2>
+  <div class="panel">
+    <p class="small">Open and chronic codes on this car:</p>
+    <p class="mono">{{ open_codes|join("  ") }}</p>
+    <a class="btn" href="/v/{{ vin }}/tree">Fault tree &rarr;</a>
+    <a class="btn" href="/v/{{ vin }}/gate">Evidence gate &rarr;</a>
+  </div>
+  {% endif %}
+
+  {% if cp.freeze_frames %}
+  <h2>Freeze frames</h2>
+  {% for code, frame in cp.freeze_frames.items() %}
+    <div class="panel tight">
+      <div style="padding:10px 14px"><h3 style="margin:0" class="mono">{{ code }}</h3></div>
+      <div class="tw">
+      <table>
+        {% for k, v in frame.items() %}
+          <tr><td class="k">{{ k }}</td><td class="mono">{{ v }}</td></tr>
+        {% endfor %}
+      </table>
+      </div>
+    </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if d.tsb_matches and d.tsb_matches.per_code %}
+  <h2>Bulletins</h2>
+  {% for code, bulletins in d.tsb_matches.per_code.items() %}
+    {% for b in bulletins %}
+    <div class="panel">
+      <h3><span class="mono">{{ code }}</span> — {{ b.bulletin }}</h3>
+      <div class="small"><b>{{ b.title }}</b></div>
+      <p class="small" style="margin-top:6px">{{ b.action }}</p>
+      {% if b.caution %}<div class="note warn small" style="margin:6px 0 0">{{ b.caution }}</div>{% endif %}
+      <div class="small muted mono" style="margin-top:6px">{{ b.source }}</div>
+    </div>
+    {% endfor %}
+  {% endfor %}
+  {% if d.tsb_matches.family_findings %}
+    {% for f in d.tsb_matches.family_findings %}
+      <div class="note"><span class="lab">Family finding</span>{{ f }}</div>
+    {% endfor %}
+  {% endif %}
+  {% endif %}
+
+  <h2>Provenance</h2>
+  <div class="note"><span class="lab">How to read all of this</span>{{ d.provenance_note }}</div>
+
+</div>
+</div>
+
+{% endblock %}

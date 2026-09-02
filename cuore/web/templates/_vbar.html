@@ -1,0 +1,25 @@
+{# Sticky vehicle context. Included by every /v/ page so which car you are
+   looking at, and over what odometer span, never scrolls out of sight. #}
+<div class="vbar">
+  <div class="line1">
+    <span class="vname">{{ bar.name }}</span>
+    <span class="vin">{{ bar.vin }}</span>
+  </div>
+  <div class="facts">
+    {% if bar.odo_first is not none and bar.odo_last is not none %}
+      <span><b>{{ "{:,}".format(bar.odo_first) }}</b> &rarr;
+            <b>{{ "{:,}".format(bar.odo_last) }}</b> km{% if bar.odo_span %}
+            <span class="muted">({{ "{:,}".format(bar.odo_span) }} km span)</span>{% endif %}</span>
+    {% endif %}
+    <span><b>{{ bar.logs }}</b> logs</span>
+    {% if bar.first_log %}<span>{{ bar.first_log }} &rarr; {{ bar.last_log }}</span>{% endif %}
+    {% if bar.ecus %}<span>{{ bar.ecus|length }} ECU{{ "s" if bar.ecus|length != 1 }}</span>{% endif %}
+  </div>
+  <div class="vtabs">
+    <a href="/v/{{ bar.vin }}" {% if tab == "dossier" %}class="on"{% endif %}>Dossier</a>
+    <a href="/v/{{ bar.vin }}/codes" {% if tab == "codes" %}class="on"{% endif %}>Codes</a>
+    <a href="/v/{{ bar.vin }}/tree" {% if tab == "tree" %}class="on"{% endif %}>Fault tree</a>
+    <a href="/v/{{ bar.vin }}/gate" {% if tab == "gate" %}class="on"{% endif %}>Evidence gate</a>
+    <a href="/logs?vin={{ bar.vin }}">Logs</a>
+  </div>
+</div>

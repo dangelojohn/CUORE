@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Recordings — CUORE{% endblock %}
+{% block content %}
+
+<h1>Recordings</h1>
+<p class="lede">CSV exports from MES's graph subsystem — the only MES output
+carrying real per-sample timestamps, and therefore the only place a measured
+rate, a dropout or a threshold excursion can be computed honestly.</p>
+
+{% if data.count %}
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>Name</th><th class="n">Rows</th><th class="n">Columns</th>
+               <th class="n">Duration</th><th>Modified</th></tr></thead>
+    <tbody>
+    {% for r in data.recordings %}
+      <tr class="row-link" data-href="/recording/{{ r.name }}" tabindex="0">
+        <td><a class="mono" href="/recording/{{ r.name }}">{{ r.name }}</a></td>
+        <td class="n">{{ r.rows if r.rows is not none else "—" }}</td>
+        <td class="n">{{ r.columns if r.columns is not none else "—" }}</td>
+        <td class="n">{{ r.duration_s if r.duration_s is not none else "—" }}</td>
+        <td class="mono small muted">{{ r.modified or "—" }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% else %}
+<div class="note warn">
+  <span class="lab">No recordings yet</span>
+  {{ data.note }}
+</div>
+<div class="note">
+  <span class="lab">Why this matters</span>
+  The <span class="mono">.txt</span> session log has no per-sample timestamps
+  at all — parameter order is file order and the sample rate is unrecoverable.
+  The CSV path is the one that can answer “what was happening in the two
+  seconds before it faulted”, and it has never been used on this install.
+</div>
+{% endif %}
+
+<h2>Roots</h2>
+<div class="panel">
+  {% for r in data.roots %}<div class="mono small">{{ r }}</div>{% endfor %}
+</div>
+
+{% endblock %}

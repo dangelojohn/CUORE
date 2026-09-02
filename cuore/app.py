@@ -1,0 +1,112 @@
+"""FastAPI application factory.
+
+Two surfaces over one service layer:
+
+* ``/api/*`` -- JSON, mirroring the MCP tool surface call-for-call. This is
+  what a future PWA, the in-car node, and Claude's tool layer all talk to.
+* ``/`` -- server-rendered pages for bench use. They are a *client* of the same
+  bridge, not a parallel implementation, so the two cannot disagree.
+
+Server-rendered rather than a single-page app on purpose: no build step, no
+bundle to keep in sync, and it has to run on a Raspberry Pi.
+"""
+
+from __future__ import annotations
+
+import logging
+from contextlib import asynccontextmanager
+
+from . import __version__, bootstrap  # noqa: F401  -- bootstrap has a side effect
+
+from fastapi import FastAPI, Request  # noqa: E402
+from fastapi.responses import JSONResponse  # noqa: E402
+from fastapi.staticfiles import StaticFiles  # noqa: E402
+
+from mes.errors import MesError  # noqa: E402  -- needs bootstrap to have run
+
+from .api import logs, recordings, reference, system, vehicles  # noqa: E402
+from .config import Settings, load  # noqa: E402
+from .models import ErrorBody  # noqa: E402
+from .services.errors import BridgeError  # noqa: E402
+from .web import routes as web_routes  # noqa: E402
+
+log = logging.getLogger("cuore")
+
+DESCRIPTION = """
+Companion service over the MultiEcuScan diagnostic toolchain.
+
+Every analysis here comes from the `mes` library and is unit-tested against the
+real log corpus. Two conventions run through the whole API and are worth knowing
+before reading any payload:
+
+* **Simulation logs are excluded by default.** Most of the FES corpus is MES
+  practice data. Pass `include_simulation=true` deliberately, or not at all.
+* **SCAN provenance is `unverifiable`, never clean.** That format carries no
+  simulation marker, so claiming a SCAN is real would be a claim the file
+  cannot support.
+"""
+
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    """Build the ASGI app. Safe to call repeatedly (tests do)."""
+    settings = settings or load()
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        log.info("CUORE %s starting: profile=%s bind=%s:%s",
+                 __version__, settings.profile.value, settings.host,
+                 settings.port)
+        if settings.unguarded_lan:
+            log.warning(
+                "Bound to %s with no token set. The log corpus contains "
+                "customer VINs and is now readable by every device on this "
+                "network. Set CUORE_TOKEN.", settings.host)
+        yield
+
+    app = FastAPI(
+        title="CUORE",
+        version=__version__,
+        description=DESCRIPTION,
+        lifespan=lifespan,
+        docs_url="/api/docs",
+        redoc_url=None,
+        openapi_url="/api/openapi.json",
+    )
+    app.state.settings = settings
+
+    # --- error handling ---------------------------------------------------
+    # The bridge raises transport-neutral errors. API callers get one uniform
+    # JSON body so failure parses exactly one way; browsers get a page, because
+    # a tech who mistypes a VIN should not be handed raw JSON.
+
+    def _render_failure(request: Request, exc: Exception, status: int):
+        body = ErrorBody(error=type(exc).__name__, detail=str(exc),
+                         status=status)
+        if request.url.path.startswith("/api"):
+            return JSONResponse(status_code=status, content=body.model_dump())
+        return web_routes.error_page(request, body)
+
+    @app.exception_handler(BridgeError)
+    async def _bridge_error(request: Request, exc: BridgeError):
+        return _render_failure(request, exc, exc.status)
+
+    # Anything the library raises that the bridge did not classify is a bad
+    # request, not a server fault: these are parse and lookup failures driven
+    # by caller input, and a 500 would misreport whose problem it is.
+    @app.exception_handler(MesError)
+    async def _mes_error(request: Request, exc: MesError):
+        return _render_failure(request, exc, 400)
+
+    # --- routes -----------------------------------------------------------
+    app.include_router(system.router, prefix="/api")
+    app.include_router(vehicles.router, prefix="/api")
+    app.include_router(reference.router, prefix="/api")
+    app.include_router(recordings.router, prefix="/api")
+    app.include_router(logs.router, prefix="/api")
+    app.include_router(web_routes.router)
+
+    app.mount("/static",
+              StaticFiles(directory=str(web_routes.STATIC_DIR)),
+              name="static")
+
+    return app

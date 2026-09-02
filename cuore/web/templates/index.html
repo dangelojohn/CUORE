@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Vehicles — CUORE{% endblock %}
+{% block content %}
+
+<h1>Vehicles</h1>
+<p class="lede">Cars with a resolvable VIN and at least one non-simulated log.
+Everything else in the corpus is MES practice data and is listed separately below.</p>
+
+<div class="panel tight">
+  <div class="tw">
+    <table>
+      <thead>
+        <tr>
+          <th>Vehicle</th><th>VIN</th><th class="n">Logs</th>
+          <th class="n">Real</th><th>Seen</th><th>ECUs</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for v in vehicles %}
+        <tr class="row-link" data-href="/v/{{ v.vin }}" tabindex="0">
+          <td><a href="/v/{{ v.vin }}">{{ v.names[0] if v.names else "(unnamed)" }}</a></td>
+          <td class="mono">{{ v.vin }}</td>
+          <td class="n">{{ v.logs }}</td>
+          <td class="n">{{ v.real_logs }}</td>
+          <td class="mono small">{{ v.first_seen }} &rarr; {{ v.last_seen }}</td>
+          <td class="small">{{ v.ecus|length }}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="muted">No vehicles with real logs found in the
+          configured MES roots.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h2>Corpus</h2>
+<div class="cols two">
+  <div class="panel">
+    <table>
+      <tr><td class="k">Total logs</td><td class="n">{{ stats.total_logs }}</td></tr>
+      <tr><td class="k">Real</td><td class="n">{{ stats.real_logs }}</td></tr>
+      <tr><td class="k">Simulated</td><td class="n">{{ stats.simulated_logs }}</td></tr>
+      <tr><td class="k">Engineering sessions</td><td class="n">{{ stats.fes_logs }}</td></tr>
+      <tr><td class="k">All-systems scans</td><td class="n">{{ stats.scan_logs }}</td></tr>
+      <tr><td class="k">Distinct vehicles</td><td class="n">{{ stats.vehicles }}</td></tr>
+      <tr><td class="k">Span</td><td class="mono small">{{ stats.oldest }} &rarr; {{ stats.newest }}</td></tr>
+      <tr><td class="k">Parse failures</td>
+          <td class="n">{{ stats.parse_errors|length }}</td></tr>
+    </table>
+  </div>
+  <div class="panel">
+    <h3>Roots</h3>
+    {% for r in stats.roots %}
+      <div class="mono small">{{ r }}
+        {% if r in stats.roots_present %}<span class="chip ok">present</span>
+        {% else %}<span class="chip simulated">missing</span>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="note" style="margin-top:12px">
+      <span class="lab">Why simulation is excluded</span>
+      {{ stats.simulated_logs }} of {{ stats.fes_logs }} engineering sessions in this
+      install are MES practice data. Mixing them into a fault history is actively
+      misleading, so they are left out unless asked for. SCAN logs carry no
+      simulation marker at all, so their provenance is reported as
+      <b>unverifiable</b> rather than clean.
+    </div>
+  </div>
+</div>
+
+<h2>Everything in the corpus</h2>
+<div class="panel tight">
+  <div class="tw">
+    <table>
+      <thead><tr><th>Key</th><th class="n">Logs</th><th class="n">Real</th>
+                 <th class="n">Simulated</th><th>Names</th></tr></thead>
+      <tbody>
+      {% for v in all_vehicles %}
+        <tr>
+          <td class="mono">{{ v.key }}</td>
+          <td class="n">{{ v.logs }}</td>
+          <td class="n">{{ v.real_logs }}</td>
+          <td class="n">{{ v.simulated_logs }}</td>
+          <td class="small muted">{{ v.names|join(", ") if v.names else "—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

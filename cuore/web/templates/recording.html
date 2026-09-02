@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}{{ name }} — Recording{% endblock %}
+{% block content %}
+
+<h1 class="mono">{{ name }}</h1>
+
+<div class="cols two">
+  <div class="panel">
+    <h3>Timing</h3>
+    <table>
+      {% for k, v in (data.timing or {}).items() %}
+        <tr><td class="k">{{ k|replace("_", " ") }}</td><td class="mono">{{ v }}</td></tr>
+      {% endfor %}
+    </table>
+    {% if data.timing and data.timing.dropouts %}
+      <div class="note warn" style="margin-top:10px">
+        <span class="lab">Dropouts</span>
+        Gaps over three times the median interval. That is an adapter or
+        ECU-link stall, and it is structurally invisible in a .txt session log.
+      </div>
+    {% endif %}
+  </div>
+  <div class="panel">
+    <h3>Columns</h3>
+    <div class="tw">
+    <table>
+      <thead><tr><th>Name</th><th>Unit</th></tr></thead>
+      <tbody>
+      {% for c in data.columns or [] %}
+        <tr><td>{{ c.name if c.name is defined else c }}</td>
+            <td class="mono small muted">{{ c.unit if c.unit is defined else "" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<h2>Threshold analysis</h2>
+<form class="panel" method="get" action="/recording/{{ name }}"
+      style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+  <div style="flex:1;min-width:240px">
+    <label for="condition">Condition</label>
+    <input id="condition" name="condition" type="text" value="{{ condition }}"
+           data-search placeholder="Engine speed &gt; 3000">
+    <div class="small muted">One event per excursion, not one per sample.</div>
+  </div>
+  <button class="btn primary" type="submit">Find excursions</button>
+</form>
+
+{% if events_error %}
+  <div class="note alert"><span class="lab">Could not evaluate</span>{{ events_error }}</div>
+{% endif %}
+
+{% if events %}
+  {% if events.tag_events %}
+  <h3>Markers</h3>
+  <div class="panel tight"><div class="tw">
+  <table>
+    <thead><tr><th class="n">t</th><th>Tag</th><th>DTCs</th></tr></thead>
+    <tbody>
+    {% for t in events.tag_events %}
+      <tr><td class="n">{{ t.t if t.t is defined else "—" }}</td>
+          <td>{{ t.text if t.text is defined else t }}</td>
+          <td class="mono small">{{ t.dtcs|join(", ") if t.dtcs else "—" }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div></div>
+  {% endif %}
+
+  {% if events.threshold %}
+  <h3>Excursions</h3>
+  <div class="panel"><pre class="mono small" style="overflow-x:auto">{{ events.threshold }}</pre></div>
+  {% endif %}
+{% endif %}
+
+<h2>Preview</h2>
+<div class="panel tight"><div class="tw">
+<table>
+  {% if data.preview %}
+    <thead><tr>{% for c in data.preview[0].keys() %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for row in data.preview %}
+      <tr>{% for v in row.values() %}<td class="mono small">{{ v }}</td>{% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  {% endif %}
+</table>
+</div></div>
+
+{% endblock %}

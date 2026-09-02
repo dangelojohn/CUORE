@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ status }} — CUORE{% endblock %}
+{% block content %}
+
+<h1>{{ status }} — {{ error }}</h1>
+<div class="note alert">
+  <span class="lab">What happened</span>
+  {{ detail }}
+</div>
+
+{% if status == 404 %}
+<p class="lede">If this is a vehicle or a code you expected to find: simulation
+logs are excluded by default, and SCAN logs carry no VIN in the filename — they
+are attributed from file content instead. Both are deliberate.</p>
+{% endif %}
+
+<p><a class="btn" href="/">Vehicles</a>
+   <a class="btn" href="/logs">Log index</a></p>
+
+{% endblock %}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1 class="mono">{{ code }}</h1>
+
+{% for r in records %}
+<div class="panel">
+  <h3>{{ r.dtc }}
+    <span class="chip {{ r.severity }}">{{ r.severity }}</span></h3>
+  <p class="lede">{{ r.descriptions|join(", ") }}</p>
+
+  <div class="tw">
+  <table>
+    <tr><td class="k">Module</td><td>{{ r.modules|join(", ") }}</td></tr>
+    <tr><td class="k">Sessions</td><td class="n">{{ r.sessions }}</td></tr>
+    <tr><td class="k">First seen</td><td class="mono">{{ r.first_seen }}</td></tr>
+    <tr><td class="k">Last seen</td><td class="mono">{{ r.last_seen }}</td></tr>
+    {% if r.odometer_first_km is defined and r.odometer_first_km is not none %}
+    <tr><td class="k">Odometer</td>
+        <td class="mono">{{ "{:,}".format(r.odometer_first_km|int) }} &rarr;
+            {{ "{:,}".format(r.odometer_last_km|int) }} km
+            {% if r.distance_span_km %}
+              <b>({{ "{:,}".format(r.distance_span_km|int) }} km span)</b>
+            {% endif %}</td></tr>
+    {% endif %}
+    <tr><td class="k">Statuses seen</td><td>{{ r.statuses_seen|join(", ") }}</td></tr>
+    {% if r.assessment %}
+    <tr><td class="k">Assessment</td><td><b>{{ r.assessment }}</b></td></tr>
+    {% endif %}
+  </table>
+  </div>
+
+  <h3>Every occurrence</h3>
+  <div class="tw">
+  <table>
+    <thead><tr><th>When</th><th>Status</th><th class="n">Odometer</th><th>File</th></tr></thead>
+    <tbody>
+    {% for o in r.occurrences %}
+      <tr>
+        <td class="mono small">{{ o.timestamp }}</td>
+        <td><span class="chip plain">{{ o.status }}</span></td>
+        <td class="n">{% if o.odometer_km %}{{ "{:,.0f}".format(o.odometer_km) }} km{% else %}—{% endif %}</td>
+        <td class="mono small muted">{{ o.file }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% else %}
+  <div class="panel"><p class="muted">No record of this code in real logs.</p></div>
+{% endfor %}
+
+<h2>Freeze frames</h2>
+{% if frames.count %}
+  <p class="lede">The conditions captured when the code set. <b>A clear destroys
+  this</b>, which is why it is worth reading before offering one.</p>
+  {% for f in frames.frames %}
+    <div class="panel tight">
+      <div style="padding:10px 14px">
+        <h3 style="margin:0" class="mono">{{ f.dtc }}
+          <span class="chip plain">{{ f.status }}</span></h3>
+        <div class="small muted">{{ f.timestamp }} &middot; {{ f.ecu }} &middot;
+          <span class="mono">{{ f.file }}</span></div>
+      </div>
+      <div class="tw">
+      <table>
+        {% for k, v in f.freeze_frame.items() %}
+          <tr><td class="k">{{ k }}</td><td class="mono">{{ v }}</td></tr>
+        {% endfor %}
+      </table>
+      </div>
+    </div>
+  {% endfor %}
+{% else %}
+  <div class="panel"><p class="muted">No freeze frame captured for this code.</p></div>
+{% endif %}
+
+<p><a class="btn" href="/v/{{ vin }}/tree?codes={{ code }}">Fault tree for {{ code }} &rarr;</a>
+   <a class="btn" href="/v/{{ vin }}/gate?codes={{ code }}">Take it to the gate &rarr;</a></p>
+
+{% endblock %}

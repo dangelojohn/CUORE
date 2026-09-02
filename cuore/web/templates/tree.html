@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Fault tree — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Fault tree</h1>
+
+<form class="panel" method="get" action="/v/{{ vin }}/tree"
+      style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+  <div style="flex:1;min-width:240px">
+    <label for="codes">Codes to route on</label>
+    <input id="codes" name="codes" type="text" value="{{ codes }}" data-search
+           placeholder="P0456 P0440">
+  </div>
+  <button class="btn primary" type="submit">Route</button>
+</form>
+
+{% if result.error %}
+  <div class="note warn">
+    <span class="lab">No tree covers these codes</span>
+    {{ result.error }}
+    {% if result.available %}
+      <p style="margin:8px 0 0">Sequences that exist:</p>
+      <table>
+        {% for t in result.available %}
+        <tr><td class="k mono">{{ t.tree }}</td><td>{{ t.title }}</td>
+            <td class="mono small">{{ t.applies_to|join(" ") }}</td></tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+  </div>
+{% endif %}
+
+{% if result.ordering_note %}
+  <div class="note warn"><span class="lab">Order matters</span>{{ result.ordering_note }}</div>
+{% endif %}
+
+{% if result.vehicle_evidence %}
+  <h2>This car's own evidence</h2>
+  {% for e in result.vehicle_evidence %}
+    <div class="note good">
+      <span class="lab">Step {{ e.step }} — already answered here</span>
+      {{ e.finding }}
+      <div class="small muted mono" style="margin-top:4px">{{ e.source }}</div>
+    </div>
+  {% endfor %}
+{% endif %}
+
+{% for t in result.trees %}
+<div class="panel">
+  <h3>{{ t.title }}</h3>
+  <div class="mono small muted">{{ t.tree }} &middot; applies to {{ t.applies_to|join(", ") }}</div>
+
+  {% if t.framing %}
+  <div class="note" style="margin-top:10px">
+    <span class="lab">Framing</span>
+    <ul style="margin:0;padding-left:1.1em">
+      {% for f in t.framing %}<li>{{ f }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <h2>Sequence — cheapest first</h2>
+  {% for s in t.steps %}
+    <div class="step">
+      <div class="head">
+        <span class="id">{{ s.step }}</span>
+        <span class="title">{{ s.title }}</span>
+        <span class="cost">{{ s.cost }}</span>
+      </div>
+      <div class="body">
+        <p style="margin:4px 0"><b>Test.</b> {{ s.test }}</p>
+        <p style="margin:4px 0" class="small"><b>Tools.</b> {{ s.tools }}</p>
+        <p style="margin:4px 0" class="small"><b>Expect.</b> {{ s.expect }}</p>
+        <p style="margin:4px 0" class="small"><b>If abnormal.</b> {{ s.if_abnormal }}</p>
+        {% if s.caution %}
+          <div class="note alert small" style="margin:6px 0"><b>Caution.</b> {{ s.caution }}</div>
+        {% endif %}
+        <div class="src">{{ s.source }}</div>
+      </div>
+    </div>
+  {% endfor %}
+
+  {% if t.verification %}
+  <h2>Verification — proving the repair</h2>
+  {% for s in t.verification %}
+    <div class="step">
+      <div class="head">
+        <span class="id">{{ s.step }}</span>
+        <span class="title">{{ s.title }}</span>
+        <span class="cost">{{ s.cost }}</span>
+      </div>
+      <div class="body">
+        <p style="margin:4px 0"><b>Test.</b> {{ s.test }}</p>
+        <p style="margin:4px 0" class="small"><b>Expect.</b> {{ s.expect }}</p>
+        {% if s.caution %}
+          <div class="note alert small" style="margin:6px 0"><b>Caution.</b> {{ s.caution }}</div>
+        {% endif %}
+        <div class="src">{{ s.source }}</div>
+      </div>
+    </div>
+  {% endfor %}
+  {% endif %}
+
+  {% if t.do_not %}
+  <div class="note alert">
+    <span class="lab">Do not</span>
+    <ul style="margin:0;padding-left:1.1em">
+      {% for x in t.do_not %}<li>{{ x }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+
+{% if result.trees %}
+<p><a class="btn primary" href="/v/{{ vin }}/gate?codes={{ codes }}">Take the conclusion to the gate &rarr;</a></p>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>{% block title %}CUORE{% endblock %}</title>
+<link rel="stylesheet" href="/static/cuore.css">
+</head>
+<body>
+
+<header class="top">
+  <a class="brand" href="/">CU<span>O</span>RE</a>
+  <span class="profile" title="Which half of the system this is">{{ profile }}</span>
+  <nav>
+    <a href="/">Vehicles</a>
+    <a href="/modules">Modules</a>
+    <a href="/recordings">Recordings</a>
+    <a href="/logs">Logs</a>
+    <a href="/api/docs">API</a>
+  </nav>
+</header>
+
+{% block vehiclebar %}{% endblock %}
+
+<main>
+{% block content %}{% endblock %}
+
+<div class="foot">
+  <span>CUORE {{ version }}</span>
+  <span>profile {{ profile }}</span>
+  <span>Simulation logs excluded unless asked for</span>
+  <span><kbd>?</kbd> keys</span>
+</div>
+
+<div class="panel" id="keyhelp" hidden>
+  <h2>Keyboard</h2>
+  <table>
+    <tr><td class="k"><kbd>g</kbd> <kbd>v</kbd></td><td>Vehicles</td></tr>
+    <tr><td class="k"><kbd>g</kbd> <kbd>m</kbd></td><td>Modules</td></tr>
+    <tr><td class="k"><kbd>g</kbd> <kbd>r</kbd></td><td>Recordings</td></tr>
+    <tr><td class="k"><kbd>g</kbd> <kbd>l</kbd></td><td>Logs</td></tr>
+    <tr><td class="k"><kbd>/</kbd></td><td>Focus the filter box</td></tr>
+    <tr><td class="k"><kbd>j</kbd> <kbd>k</kbd></td><td>Move through rows</td></tr>
+    <tr><td class="k"><kbd>Enter</kbd></td><td>Open the highlighted row</td></tr>
+  </table>
+</div>
+</main>
+
+<script src="/static/cuore.js"></script>
+</body>
+</html>

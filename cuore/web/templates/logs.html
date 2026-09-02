@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Logs — CUORE{% endblock %}
+{% block content %}
+
+<h1>Log index</h1>
+<p class="lede">Newest first by session timestamp — not by filename, which
+records when MES <em>closed</em> the file rather than when the session ran.
+Provenance is a column here, never a footnote.</p>
+
+<form class="panel" method="get" action="/logs"
+      style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+  <div style="flex:1;min-width:200px">
+    <label for="vin">VIN</label>
+    <input id="vin" name="vin" type="text" value="{{ vin }}" data-search placeholder="any">
+  </div>
+  <div>
+    <label for="kind">Kind</label>
+    <select id="kind" name="kind">
+      <option value="" {% if not kind %}selected{% endif %}>any</option>
+      <option value="fes" {% if kind == "fes" %}selected{% endif %}>engineering session</option>
+      <option value="scan" {% if kind == "scan" %}selected{% endif %}>all-systems scan</option>
+    </select>
+  </div>
+  <div>
+    <label for="sim">Simulation</label>
+    <select id="sim" name="include_simulation">
+      <option value="false" {% if not include_simulation %}selected{% endif %}>excluded</option>
+      <option value="true" {% if include_simulation %}selected{% endif %}>included</option>
+    </select>
+  </div>
+  <button class="btn primary" type="submit">Filter</button>
+</form>
+
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>Session time</th><th>Kind</th><th>Provenance</th><th>Vehicle</th>
+               <th>ECU</th><th class="n">DTCs</th><th>File</th></tr></thead>
+    <tbody>
+    {% for e in data.logs %}
+      {# Provenance comes from the entry itself -- `simulation` when MES marked
+         the session, `provenance` when the format cannot say either way. Both
+         are set by the parser; re-deriving them from `kind` here would fork
+         the rule and quietly disagree with the API. #}
+      <tr>
+        <td class="mono small">{{ e.timestamp }}</td>
+        <td class="small">{{ e.kind }}</td>
+        <td>
+          {% if e.simulation %}
+            <span class="chip simulated" title="{{ e.warning }}">simulated</span>
+          {% elif e.provenance %}
+            <span class="chip unverifiable" title="{{ e.provenance }}">unverifiable</span>
+          {% else %}
+            <span class="chip real">real</span>
+          {% endif %}
+          {% if e.parse_error %}<span class="chip returned">parse error</span>{% endif %}
+        </td>
+        <td class="small">{{ e.vehicle or "—" }}</td>
+        <td class="small muted">{{ e.ecu or "—" }}</td>
+        <td class="n">{{ e.dtcs if e.dtcs is not none else "—" }}</td>
+        <td class="mono small muted">{{ e.file }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="7" class="muted">No logs match.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<p class="small muted">{{ data.count }} logs shown.
+  SCAN files carry no simulation marker of any kind, so their provenance is
+  reported as unverifiable rather than clean — silence about it would be a
+  claim the file cannot support.</p>
+
+{% endblock %}

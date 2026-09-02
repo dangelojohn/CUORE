@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Codes — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Every code this car has set</h1>
+<p class="lede">Ordered by what decides a diagnosis: returned after a clear
+first, then chronic, then the rest. First-seen and last-seen are both shown —
+a code seen once last week and one recurring across a year are different
+problems, and printing only the latest hides which is which.</p>
+
+<div class="panel" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+  <div style="flex:1;min-width:220px">
+    <label for="filter">Filter</label>
+    <input id="filter" type="search" data-search data-filter-target="#codetable"
+           placeholder="code, description, module…" autocomplete="off">
+  </div>
+  <div>
+    {% if include_simulation %}
+      <a class="btn" href="/v/{{ vin }}/codes">Exclude simulation</a>
+    {% else %}
+      <a class="btn" href="/v/{{ vin }}/codes?include_simulation=true">Include simulation</a>
+    {% endif %}
+  </div>
+  <div class="mono small muted">
+    {{ data.count }} codes over {{ data.logs_considered }} logs
+    {% if data.simulation_included %}
+      <span class="chip simulated">simulation included</span>
+    {% else %}
+      <span class="chip real">real logs only</span>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel tight">
+  <div class="tw">
+  <table id="codetable">
+    <thead>
+      <tr>
+        <th>Code</th><th>State</th><th>Description</th><th>Module</th>
+        <th class="n">Sessions</th><th>First</th><th>Last</th><th class="n">Distance</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in rows %}
+      <tr class="row-link" data-href="/v/{{ vin }}/code/{{ r.dtc.split('-')[0] }}" tabindex="0">
+        <td><a class="mono" href="/v/{{ vin }}/code/{{ r.dtc.split('-')[0] }}">{{ r.dtc }}</a></td>
+        <td><span class="chip {{ r.severity }}">{{ r.severity }}</span></td>
+        <td>{{ r.descriptions|join(", ") }}</td>
+        <td class="small muted">{{ r.modules|join(", ") }}</td>
+        <td class="n">{{ r.sessions }}</td>
+        <td class="mono small">{{ r.first_seen }}</td>
+        <td class="mono small">{{ r.last_seen }}</td>
+        <td class="n">{% if r.distance_span_km %}{{ "{:,}".format(r.distance_span_km|int) }} km{% else %}—{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="muted">No codes in the selected logs.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="note">
+  <span class="lab">Reading the state column</span>
+  <b>returned</b> — erased and set again: the fault is live and reproducing.
+  <b>chronic</b> — recurs across sessions or across meaningful distance.
+  <b>cleared</b> — erased once and not seen since, which proves nothing until
+  the relevant monitor has actually run.
+  <b>seen&#8209;once</b> — a single sighting.
+</div>
+
+{% endblock %}

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Evidence gate — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Evidence gate</h1>
+<p class="lede">Four criteria. All four have to hold before a diagnosis is
+CONFIRMED: the fault is <b>demonstrated</b>, a <b>mechanism</b> is stated, a
+corpus&#8209;verified <b>measurement</b> implicates the part, and
+<b>disconfirmation</b> was attempted. Nothing here is written to the car or to
+the corpus — this reads your history and answers one question.</p>
+
+{% if result %}
+  {% set confirmed = result.verdict == "CONFIRMED" %}
+  <div class="note {{ 'good' if confirmed else 'alert' }}">
+    <span class="lab">Verdict</span>
+    <b style="font-size:17px">{{ result.verdict }}</b>
+    <p style="margin:6px 0 0">{{ result.plain_answer }}</p>
+  </div>
+
+  <div class="panel tight">
+    <div class="tw">
+    <table>
+      <thead><tr><th>Criterion</th><th>Met</th><th>Detail</th><th>What closes it</th></tr></thead>
+      <tbody>
+      {% for name, c in result.criteria.items() %}
+        <tr>
+          <td style="text-transform:capitalize">{{ name }}</td>
+          <td><span class="chip {{ 'ok' if c.met else 'returned' }}">{{ "yes" if c.met else "no" }}</span></td>
+          <td class="small">
+            {% if c.per_code %}
+              {% for code, note in c.per_code.items() %}
+                <div><span class="mono">{{ code }}</span> — {{ note }}</div>
+              {% endfor %}
+            {% elif c.checked %}
+              {% for m in c.checked %}
+                <div><span class="chip {{ 'ok' if m.status == 'verified' else 'plain' }}">{{ m.status }}</span>
+                     {{ m.detail if m.detail else m }}</div>
+              {% endfor %}
+            {% elif c.stated %}
+              {{ c.stated }}
+            {% endif %}
+            {% if c.problems %}
+              {% for p in c.problems %}<div class="muted">{{ p }}</div>{% endfor %}
+            {% endif %}
+            {% if c.note %}<div class="muted">{{ c.note }}</div>{% endif %}
+          </td>
+          <td class="small muted">{{ c.next_test or "—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+
+  {% if result.component_warnings %}
+    {% for w in result.component_warnings %}
+      <div class="note warn"><span class="lab">Before condemning this part</span>{{ w }}</div>
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
+<form method="post" action="/v/{{ vin }}/gate">
+  <div class="panel">
+    <div class="field">
+      <label for="codes">Codes</label>
+      <input id="codes" name="codes" type="text" value="{{ form.codes }}"
+             placeholder="P0456" required>
+    </div>
+    <div class="field">
+      <label for="component">Component you are accusing</label>
+      <input id="component" name="component" type="text" value="{{ form.component }}"
+             placeholder="EVAP canister">
+    </div>
+    <div class="field">
+      <label for="mechanism">Mechanism — the causal chain in a sentence</label>
+      <textarea id="mechanism" name="mechanism"
+        placeholder="Saturated canister restricts the vent path, so the natural-vacuum test cannot pull the required depression and the ECM logs a small leak.">{{ form.mechanism }}</textarea>
+      <div class="small muted">A part name alone is a guess wearing a
+        diagnosis's clothes. Five words minimum, and they have to be a chain.</div>
+    </div>
+    <div class="field">
+      <label for="disconfirming_test">Disconfirming test — what would have exonerated the part, and what happened</label>
+      <textarea id="disconfirming_test" name="disconfirming_test"
+        placeholder="Actuated the purge valve KOEO: it responds and holds, so the valve is not the restriction.">{{ form.disconfirming_test }}</textarea>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Measurements</h3>
+    <p class="small muted">Each row is one citation. The gate verifies it
+      against this car's corpus and reports whether it could be confirmed —
+      an unverifiable citation weakens the case rather than failing the form.</p>
+
+    {% for row in rows %}
+    <div class="mrow">
+      <div>
+        <label for="m_type_{{ loop.index0 }}">Type</label>
+        <select id="m_type_{{ loop.index0 }}" name="m_type">
+          {% for t in ["actuator", "freeze_frame", "parameter", "recording_event", "manual"] %}
+            <option value="{{ t }}" {% if row.type == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Fields — fill the ones your type uses</label>
+        <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+          <input type="text" name="m_operation_{{ loop.index0 }}" value="{{ row.operation or '' }}" placeholder="actuator: operation">
+          <input type="text" name="m_code_{{ loop.index0 }}" value="{{ row.code or '' }}" placeholder="freeze_frame: code">
+          <input type="text" name="m_name_{{ loop.index0 }}" value="{{ row.name or '' }}" placeholder="parameter: name">
+          <input type="text" name="m_file_{{ loop.index0 }}" value="{{ row.file or '' }}" placeholder="file">
+          <input type="text" name="m_condition_{{ loop.index0 }}" value="{{ row.condition or '' }}" placeholder="recording_event: condition">
+          <input type="text" name="m_description_{{ loop.index0 }}" value="{{ row.description or '' }}" placeholder="manual: description">
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+
+    {# Three spare rows, always rendered. Adding rows with JavaScript would
+       make the form depend on scripting to be usable at all. #}
+    {% for i in range(rows|length, rows|length + 3) %}
+    <div class="mrow">
+      <div>
+        <label for="m_type_{{ i }}">Type</label>
+        <select id="m_type_{{ i }}" name="m_type">
+          {% for t in ["actuator", "freeze_frame", "parameter", "recording_event", "manual"] %}
+            <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Fields</label>
+        <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+          <input type="text" name="m_operation_{{ i }}" placeholder="actuator: operation">
+          <input type="text" name="m_code_{{ i }}" placeholder="freeze_frame: code">
+          <input type="text" name="m_name_{{ i }}" placeholder="parameter: name">
+          <input type="text" name="m_file_{{ i }}" placeholder="file">
+          <input type="text" name="m_condition_{{ i }}" placeholder="recording_event: condition">
+          <input type="text" name="m_description_{{ i }}" placeholder="manual: description">
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p><button class="btn primary" type="submit">Assess</button>
+     <a class="btn" href="/v/{{ vin }}/tree?codes={{ form.codes }}">Back to the tree</a></p>
+</form>
+
+{% endblock %}
