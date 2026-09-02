@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Recordings{% endblock %}
+{% block content %}
+<h1>CSV recordings</h1>
+<p class="lede">Searching: {{ roots|join(", ") }}</p>
+
+{% for r in recs %}
+<a class="card-link" href="{{ url_for('recording_detail', name=r.file) }}">
+  <div class="name">{{ r.file }}</div>
+  <div class="meta">{{ r.mtime }} ({{ r.timestamp_note }})</div>
+  {% if r.parameters %}
+    <div class="meta">{{ r.samples }} samples, {{ r.duration_s }}s &middot; {{ r.parameters|join(", ") }}</div>
+  {% elif r.parse_error %}
+    <div class="meta" style="color:var(--bad)">Parse error: {{ r.parse_error }}</div>
+  {% endif %}
+</a>
+{% else %}
+<div class="card">
+  <p class="muted">No CSV recordings found yet.</p>
+  <p>To produce one: in MES, open the <b>Graph</b> tab, add parameters, optionally enable <b>Monitor DTCs</b>, then <b>CSV Start</b> / <b>Stop</b> during a road test.</p>
+</div>
+{% endfor %}
+{% endblock %}

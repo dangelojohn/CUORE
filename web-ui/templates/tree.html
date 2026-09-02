@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Fault tree — {{ vin }}{% endblock %}
+{% block content %}
+
+<h1>Fault-isolation tree</h1>
+<p class="lede mono">{{ vin }}</p>
+
+<div class="tabs">
+  <a href="{{ url_for('vehicle', vin=vin) }}">Workup</a>
+  <a class="active" href="{{ url_for('tree', vin=vin, codes=codes) }}">Fault tree</a>
+  <a href="{{ url_for('diagnosis_verdict', vin=vin) }}">Evidence gate</a>
+</div>
+
+<form method="get" class="card">
+  <label for="codes">Codes</label>
+  <input type="text" id="codes" name="codes" value="{{ codes }}" placeholder="P0455 P0440 P0456">
+  <button type="submit">Load tree</button>
+</form>
+
+{% if result.error %}
+  <div class="card error-box">
+    {{ result.error }}
+    {% if result.available %}
+      <h3 style="color:inherit">Available trees</h3>
+      <ul>
+      {% for t in result.available %}
+        <li><b>{{ t.tree }}</b> — {{ t.title }} ({{ t.applies_to|join(", ") }})</li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+{% else %}
+
+  {% if result.ordering_note %}
+    <div class="card do-not">{{ result.ordering_note }}</div>
+  {% endif %}
+
+  {% for tree in result.trees %}
+  <div class="card">
+    <h2>{{ tree.title }}</h2>
+    <p class="muted">Applies to: {{ tree.applies_to|join(", ") }}</p>
+    {% for f in tree.framing %}<p>{{ f }}</p>{% endfor %}
+
+    <h3>Steps (cheapest first)</h3>
+    {% for s in tree.steps %}
+      <div class="step">
+        <div><span class="step-id">{{ s.step }}</span> — <b>{{ s.title }}</b> <span class="muted">({{ s.cost }})</span></div>
+        <div class="field"><b>Test:</b> {{ s.test }}</div>
+        <div class="field"><b>Tools:</b> {{ s.tools }}</div>
+        <div class="field"><b>Expect:</b> {{ s.expect }}</div>
+        <div class="field"><b>If abnormal:</b> {{ s.if_abnormal }}</div>
+        {% if s.caution %}<div class="caution">⚠ {{ s.caution }}</div>{% endif %}
+        {% for ev in result.vehicle_evidence if ev.step == s.step %}
+          <div class="evidence">✓ This car's evidence: {{ ev.finding }} <span class="muted">({{ ev.source }})</span></div>
+        {% endfor %}
+        <div class="source">Source: {{ s.source }}</div>
+      </div>
+    {% endfor %}
+
+    <h3>Verification</h3>
+    {% for s in tree.verification %}
+      <div class="step">
+        <div><span class="step-id">{{ s.step }}</span> — <b>{{ s.title }}</b></div>
+        <div class="field">{{ s.test }}</div>
+        {% if s.caution %}<div class="caution">⚠ {{ s.caution }}</div>{% endif %}
+        <div class="source">Source: {{ s.source }}</div>
+      </div>
+    {% endfor %}
+
+    <h3>Do not</h3>
+    <ul class="do-not">
+      {% for d in tree.do_not %}<li>{{ d }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+{% endif %}
+
+{% endblock %}

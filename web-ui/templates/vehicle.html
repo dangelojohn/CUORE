@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}{{ d.identity.vehicle or vin }} — Dossier{% endblock %}
+{% block content %}
+
+<h1>{{ d.identity.vehicle or "(unnamed)" }}</h1>
+<p class="lede mono">{{ vin }}</p>
+
+<div class="tabs">
+  <a class="active" href="{{ url_for('vehicle', vin=vin) }}">Workup</a>
+  <a href="{{ url_for('tree', vin=vin, codes=open_codes|join(' ')) }}">Fault tree{% if not has_tree %} (none){% endif %}</a>
+  <a href="{{ url_for('diagnosis_verdict', vin=vin) }}">Evidence gate</a>
+</div>
+
+<div class="card">
+  <h3>Identity</h3>
+  <table class="small-table">
+    <tr><td>ECUs seen</td><td>{{ d.identity.ecu_seen|join(", ") }}</td></tr>
+    <tr><td>Logs</td><td>{{ d.identity.log_count }} ({{ d.identity.first_log }} &rarr; {{ d.identity.last_log }})</td></tr>
+    <tr><td>Odometer</td><td>{{ d.identity.odometer_first_km }} km &rarr; {{ d.identity.odometer_last_km }} km</td></tr>
+  </table>
+</div>
+
+<h2>Current picture</h2>
+{% set cp = d.current_picture %}
+<div class="card">
+  <h3>Latest session — {{ cp.latest_session.timestamp }}</h3>
+  {% if cp.latest_session.dtcs %}
+    {% for dtc in cp.latest_session.dtcs %}
+      <div class="dtc-row"><span class="dtc-code">{{ dtc.dtc }}</span><span class="dtc-desc">{{ dtc.description }}</span></div>
+    {% endfor %}
+  {% else %}
+    <p class="muted">No DTCs in the latest session.</p>
+  {% endif %}
+
+  {% if cp.last_session_with_findings %}
+    <h3>Newest session with findings — {{ cp.last_session_with_findings.timestamp }}</h3>
+    <p class="muted small-table">{{ cp.last_session_with_findings.note }}</p>
+    {% for dtc in cp.last_session_with_findings.dtcs %}
+      <div class="dtc-row"><span class="dtc-code">{{ dtc.dtc }}</span><span class="dtc-desc">{{ dtc.description }}</span></div>
+    {% endfor %}
+  {% endif %}
+
+  {% if cp.clear_assessment %}
+    <h3>Clear assessment</h3>
+    <p>{{ cp.clear_assessment.verdict }}</p>
+  {% endif %}
+
+  {% if cp.freeze_frames %}
+    <h3>Freeze frames</h3>
+    {% for code, frame in cp.freeze_frames.items() %}
+      <div class="dtc-row"><span class="dtc-code">{{ code }}</span></div>
+      <div class="freeze-frame">
+        {% for k, val in frame.items() %}<span>{{ k }}: {{ val }}</span>{% endfor %}
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  {% if cp.network_event %}
+    <h3>Network event detected</h3>
+    <p class="muted small-table">{{ cp.network_event }}</p>
+  {% endif %}
+</div>
+
+<h2>History</h2>
+<div class="card">
+  {% if d.history.chronic %}
+    <h3>Chronic</h3>
+    {% for r in d.history.chronic %}
+      <p><span class="pill chronic">{{ r.dtc }}</span>{{ r.descriptions|join(", ") }} —
+      {{ r.sessions }} sessions, {{ r.first_seen }} &rarr; {{ r.last_seen }}
+      {% if r.distance_span_km %}({{ r.distance_span_km }} km span){% endif %}</p>
+    {% endfor %}
+  {% endif %}
+  {% if d.history.returned_after_clear %}
+    <h3>Returned after clear</h3>
+    {% for r in d.history.returned_after_clear %}
+      <p><span class="pill returned">{{ r.dtc }}</span>{{ r.descriptions|join(", ") }}</p>
+    {% endfor %}
+  {% endif %}
+  {% if d.history.seen_once %}
+    <h3>Seen once</h3>
+    {% for r in d.history.seen_once %}
+      <p><span class="pill once">{{ r.dtc }}</span>{{ r.descriptions|join(", ") }} — {{ r.first_seen }}</p>
+    {% endfor %}
+  {% endif %}
+</div>
+
+{% if d.tsb_matches.per_code %}
+<h2>TSB matches</h2>
+<div class="card">
+  {% for code, bulletins in d.tsb_matches.per_code.items() %}
+    <h3><span class="pill code">{{ code }}</span></h3>
+    {% for b in bulletins %}
+      <p><b>{{ b.bulletin }}</b> ({{ b.date }}) — {{ b.title }}<br>
+      <span class="muted">{{ b.action }}</span>
+      {% if b.caution %}<br><span style="color:var(--warn)">⚠ {{ b.caution }}</span>{% endif %}</p>
+    {% endfor %}
+  {% endfor %}
+  {% for f in d.tsb_matches.family_findings %}
+    <div class="do-not"><b>{{ f.family }} family</b> ({{ f.codes|join(", ") }}): {{ f.reading }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if d.already_attempted %}
+<h2>Already attempted</h2>
+<div class="card table-wrap">
+  <table class="small-table">
+    <tr><th>When</th><th>Operation</th><th>Outcome</th></tr>
+    {% for a in d.already_attempted[:15] %}
+    <tr><td>{{ a.timestamp }}</td><td>{{ a.operation }}</td><td>{{ a.outcome }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<h2>Blind spots</h2>
+<div class="card">
+  {% for b in d.blind_spots %}
+    <div class="blindspot">
+      <div class="q">{{ b.question }}</div>
+      <div class="why">{{ b.why_unknown }}</div>
+      <div class="closes">Closes it: {{ b.closes_it }}</div>
+    </div>
+  {% endfor %}
+</div>
+
+{% endblock %}

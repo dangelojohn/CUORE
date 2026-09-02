@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ name }}{% endblock %}
+{% block content %}
+<h1>{{ name }}</h1>
+<a href="{{ url_for('recordings') }}">&larr; all recordings</a>
+
+<div class="card">
+  <h3>Timing</h3>
+  <table class="small-table">
+    {% for k, v in data.timing.items() %}<tr><td>{{ k }}</td><td>{{ v }}</td></tr>{% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h3>Columns</h3>
+  <table class="small-table">
+    <tr><th>#</th><th>Name</th><th>Unit</th></tr>
+    {% for c in data.columns %}<tr><td>{{ c.index }}</td><td>{{ c.name }}</td><td>{{ c.unit }}</td></tr>{% endfor %}
+  </table>
+</div>
+
+{% if data.tag_events %}
+<div class="card">
+  <h3>Tag / DTC events</h3>
+  {% for t in data.tag_events %}
+    <p>{{ t.time_s }}s — {{ t.text }} {% if t.dtcs %}<span class="pill code">{{ t.dtcs|join(", ") }}</span>{% endif %}</p>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  <h3>Threshold query</h3>
+  <form method="get">
+    <input type="text" name="condition" value="{{ condition }}" placeholder="Fuel pressure < 250">
+    <button type="submit">Find excursions</button>
+  </form>
+  {% if crossing_error %}<p style="color:var(--bad)">{{ crossing_error }}</p>{% endif %}
+  {% if crossing %}
+    <p>{{ crossing.condition }} — {{ crossing.count }} excursion(s)</p>
+    <table class="small-table">
+      <tr><th>Enter</th><th>Exit</th><th>Duration</th><th>Extreme</th></tr>
+      {% for iv in crossing.intervals %}
+      <tr><td>{{ iv.enter_s }}s</td><td>{{ iv.exit_s }}s</td><td>{{ iv.duration_s }}s</td><td>{{ iv.extreme }}</td></tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+</div>
+
+{% if data.preview %}
+<div class="card table-wrap">
+  <h3>Preview (first rows)</h3>
+  <table class="small-table">
+    <tr><th>t</th>{% for c in data.columns %}<th>{{ c.name }}</th>{% endfor %}</tr>
+    {% for row in data.preview %}
+    <tr><td>{{ row.time_s }}</td>{% for c in data.columns %}<td>{{ row[c.name] }}</td>{% endfor %}</tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+{% if data.warnings %}
+<div class="card do-not"><ul>{% for w in data.warnings %}<li>{{ w }}</li>{% endfor %}</ul></div>
+{% endif %}
+
+{% endblock %}
