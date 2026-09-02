@@ -78,7 +78,7 @@
   <div class="panel"><p class="muted">No freeze frame captured for this code.</p></div>
 {% endif %}
 
-<p><a class="btn" href="/v/{{ vin }}/tree?codes={{ code }}">Fault tree for {{ code }} &rarr;</a>
-   <a class="btn" href="/v/{{ vin }}/gate?codes={{ code }}">Take it to the gate &rarr;</a></p>
+<p><a class="btn" href="/v/{{ vin }}/tree?codes={{ code|urlencode }}">Fault tree for {{ code }} &rarr;</a>
+   <a class="btn" href="/v/{{ vin }}/gate?codes={{ code|urlencode }}">Take it to the gate &rarr;</a></p>
 
 {% endblock %}

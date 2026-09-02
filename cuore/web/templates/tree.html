@@ -114,7 +114,7 @@
 {% endfor %}
 
 {% if result.trees %}
-<p><a class="btn primary" href="/v/{{ vin }}/gate?codes={{ codes }}">Take the conclusion to the gate &rarr;</a></p>
+<p><a class="btn primary" href="/v/{{ vin }}/gate?codes={{ codes|urlencode }}">Take the conclusion to the gate &rarr;</a></p>
 {% endif %}
 
 {% endblock %}

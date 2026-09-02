@@ -144,7 +144,7 @@ the corpus — this reads your history and answers one question.</p>
   </div>
 
   <p><button class="btn primary" type="submit">Assess</button>
-     <a class="btn" href="/v/{{ vin }}/tree?codes={{ form.codes }}">Back to the tree</a></p>
+     <a class="btn" href="/v/{{ vin }}/tree?codes={{ form.codes|urlencode }}">Back to the tree</a></p>
 </form>
 
 {% endblock %}
