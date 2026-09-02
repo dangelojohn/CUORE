@@ -1,0 +1,746 @@
+<title>CUORE Bay Tablet</title>
+<style>
+/* Committed dark: this is the bay tablet, where a white screen is a flashlight.
+   Tokens are CUORE's own (cuore/web/static/cuore.css) so the mockup and the app
+   cannot drift. Every colour is painted explicitly, so the page holds on any
+   host ground. No webfont: the drive node runs offline and a CDN face would
+   fall back silently in the car. */
+:root{
+  --bg:#101315; --surface:#171b1e; --surface-2:#1e2429; --raised:#262d33;
+  --rule:#2b3338; --rule-soft:#222a2f;
+  --ink:#e3e7ea; --ink-2:#aeb8bf; --ink-3:#79848c;
+  --accent:#e8565c; --accent-bg:#33191b;
+  --chronic:#d9a63c; --chronic-bg:#2e2513;
+  --cleared:#6aa6d8; --cleared-bg:#16242e;
+  --once:#7d888f;   --once-bg:#21282c;
+  --ok:#5fb3ac;     --ok-bg:#122a29;
+  --mono:ui-monospace,"SFMono-Regular","Cascadia Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --tap:44px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font-family:var(--sans);font-size:15px;line-height:1.45;
+  -webkit-font-smoothing:antialiased;
+}
+.phone{max-width:820px;margin:0 auto;min-height:100vh;background:var(--bg)}
+
+/* ---------- nav bar: back-title breadcrumb, Apple's orienting device ---------- */
+.nav{
+  position:sticky;top:0;z-index:20;background:var(--surface);
+  border-bottom:1px solid var(--rule);
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+  gap:8px;padding:0 6px;min-height:var(--tap);
+}
+.back{
+  display:inline-flex;align-items:center;gap:3px;min-height:var(--tap);
+  padding:0 8px;background:none;border:0;color:var(--accent);
+  font:inherit;font-size:14.5px;cursor:pointer;justify-self:start;
+  max-width:190px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+}
+.back[hidden]{display:none}
+.back .chev{font-size:19px;line-height:1;margin-top:-2px}
+.nav h1{
+  grid-column:2;margin:0;font-size:15px;font-weight:650;letter-spacing:-.01em;
+  text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  max-width:44vw;
+}
+.nav .vin{
+  grid-column:3;justify-self:end;padding-right:8px;
+  font-family:var(--mono);font-size:10.5px;color:var(--ink-3);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;
+}
+
+/* ---------- vehicle strip: never scrolls out of reach ---------- */
+.vstrip{
+  background:var(--surface-2);border-bottom:1px solid var(--rule);
+  padding:7px 16px;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline;
+  font-family:var(--mono);font-size:11px;color:var(--ink-3);
+  font-variant-numeric:tabular-nums;
+}
+.vstrip b{color:var(--ink-2);font-weight:500}
+
+main{padding:14px 0 56px}
+
+/* ---------- the call: the one thing worth reading at a glance ---------- */
+.call{
+  margin:0 12px 22px;background:var(--surface);border:1px solid var(--rule);
+  border-left:3px solid var(--chronic);border-radius:10px;overflow:hidden;
+}
+.call .body{padding:15px 16px 13px}
+.call .eyebrow{
+  font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--chronic);margin-bottom:8px;
+}
+.call h2{
+  margin:0 0 7px;font-size:21px;line-height:1.2;font-weight:680;
+  letter-spacing:-.018em;text-wrap:balance;color:var(--ink);
+}
+.call p{margin:0;font-size:14px;color:var(--ink-2);max-width:56ch}
+
+/* ---------- grouped inset lists ---------- */
+.ghead{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);padding:0 20px 6px;
+}
+.group{
+  margin:0 12px;background:var(--surface);border:1px solid var(--rule);
+  border-radius:10px;overflow:hidden;
+}
+.gfoot{
+  padding:7px 20px 0;font-size:12px;color:var(--ink-3);max-width:62ch;
+}
+.gap{height:22px}
+
+.row{
+  display:flex;align-items:center;gap:12px;width:100%;
+  min-height:var(--tap);padding:9px 14px;
+  background:none;border:0;border-top:1px solid var(--rule-soft);
+  color:var(--ink);font:inherit;text-align:left;
+}
+.row:first-child{border-top:0}
+button.row{cursor:pointer;width:100%}
+a.row{text-decoration:none;color:var(--ink)}
+button.row:active,a.row:active{background:var(--raised)}
+button.row:focus-visible,a.row:focus-visible,.back:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+a.row .val{color:var(--ok)}
+.row .lab{flex:1;min-width:0}
+.row .lab .t{display:block}
+.row .lab .s{display:block;font-size:12.5px;color:var(--ink-3);margin-top:1px}
+.row .val{
+  font-family:var(--mono);font-size:12.5px;color:var(--ink-3);
+  text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;
+}
+/* The chevron is a contract: present means there is more underneath,
+   absent means this row is everything there is. */
+.row .chev{color:var(--ink-3);font-size:19px;line-height:1;flex:none;margin-left:-4px}
+
+/* ---------- chips: state carried by label AND colour ---------- */
+.chip{
+  display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.09em;
+  text-transform:uppercase;padding:2px 6px;border-radius:3px;border:1px solid transparent;
+  white-space:nowrap;
+}
+.chip.chronic{color:var(--chronic);background:var(--chronic-bg);border-color:var(--chronic)}
+.chip.returned{color:var(--accent);background:var(--accent-bg);border-color:var(--accent)}
+.chip.cleared{color:var(--cleared);background:var(--cleared-bg)}
+.chip.once,.chip.recurring{color:var(--once);background:var(--once-bg)}
+.chip.ok{color:var(--ok);background:var(--ok-bg)}
+.chip.warn{color:var(--chronic);background:var(--chronic-bg)}
+
+/* ---------- detail bodies ---------- */
+.prose{padding:14px 16px;font-size:14px;color:var(--ink-2)}
+.prose>:first-child{margin-top:0}
+.prose>:last-child{margin-bottom:0}
+.prose p{margin:0 0 10px;max-width:62ch}
+.prose b,.prose strong{color:var(--ink);font-weight:640}
+.prose .lead{color:var(--ink);font-size:15px}
+.kv{width:100%;border-collapse:collapse;font-size:13.5px}
+.kv td{padding:8px 14px;border-top:1px solid var(--rule-soft);vertical-align:top;color:var(--ink-2)}
+.kv tr:first-child td{border-top:0}
+.kv td.k{color:var(--ink-3);white-space:nowrap;width:1%}
+.kv td.m{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.scroll{overflow-x:auto}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{
+  text-align:left;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);padding:8px 14px;
+  border-bottom:1px solid var(--rule);white-space:nowrap;background:var(--surface-2);
+}
+.tbl td{padding:8px 14px;border-top:1px solid var(--rule-soft);color:var(--ink-2);vertical-align:top}
+.tbl td.m{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.note{
+  margin:12px 16px;padding:10px 13px;border-left:3px solid var(--ink-3);
+  background:var(--surface-2);border-radius:0 6px 6px 0;font-size:13.5px;color:var(--ink-2);
+}
+.note.warn{border-left-color:var(--chronic);background:var(--chronic-bg)}
+.note.bad{border-left-color:var(--accent);background:var(--accent-bg)}
+.note.good{border-left-color:var(--ok);background:var(--ok-bg)}
+.note .l{
+  display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:4px;
+}
+.src{font-family:var(--mono);font-size:11px;color:var(--ink-3);padding:0 16px 14px}
+
+.legend{
+  margin:26px 12px 0;padding:12px 16px;border:1px dashed var(--rule);border-radius:10px;
+  font-size:12px;color:var(--ink-3);
+}
+.legend b{color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="phone">
+  <nav class="nav">
+    <button class="back" id="back" hidden><span class="chev">&#8249;</span><span id="backLabel"></span></button>
+    <h1 id="title">Stelvio</h1>
+    <span class="vin">ZASFAKPN5J7B88115</span>
+  </nav>
+  <div class="vstrip">
+    <span><b>140,883</b> km</span>
+    <span>114,117 &rarr; 140,883 <b>(26,767 km)</b></span>
+    <span><b>17</b> logs</span>
+    <span>3 ECUs</span>
+    <span>2025-09-24 &rarr; 2026-08-31</span>
+  </div>
+  <main id="main"></main>
+</div>
+
+<script>
+/* Prototype navigation only. In the real app every screen below is a URL, so
+   the browser's own back button, deep links and printing all work without this. */
+const S = {};
+
+const row = (r) => {
+  const val = r.val ? `<span class="val">${r.val}</span>` : "";
+  const chip = r.chip ? `<span class="chip ${r.chipKind||''}">${r.chip}</span>` : "";
+  const sub  = r.sub ? `<span class="s">${r.sub}</span>` : "";
+  const lab  = `<span class="lab"><span class="t">${r.label}</span>${sub}</span>`;
+  if (!r.to) return `<div class="row">${lab}${chip}${val}</div>`;
+  return `<button class="row" data-to="${r.to}">${lab}${chip}${val}<span class="chev">&#8250;</span></button>`;
+};
+const group = (g) => `
+  ${g.head ? `<div class="ghead">${g.head}</div>` : ""}
+  <div class="group">${(g.rows||[]).map(row).join("")}${g.html||""}</div>
+  ${g.foot ? `<div class="gfoot">${g.foot}</div>` : ""}
+  <div class="gap"></div>`;
+/* Every discovery ends with sources the mechanic can open and check for himself.
+   Internal analysis is cited too, but distinguished: an online link is verifiable,
+   a repo path is only traceable, and a paywalled document is neither. */
+const refGroup = (list) => {
+  const rows = list.map(r => {
+    const kindChip = r.kind === "open"    ? `<span class="chip ok">online</span>`
+                   : r.kind === "paywall" ? `<span class="chip warn">paywalled</span>`
+                   :                        `<span class="chip once">internal</span>`;
+    const inner = `<span class="lab"><span class="t">${r.label}</span>`
+                + `<span class="s">${r.note||""}</span></span>${kindChip}`;
+    return r.url
+      ? `<a class="row" href="${r.url}" target="_blank" rel="noopener noreferrer">${inner}<span class="val">${r.host||"open"} &#8599;</span></a>`
+      : `<div class="row">${inner}<span class="val">${r.host||""}</span></div>`;
+  }).join("");
+  return `<div class="ghead">Verify this</div><div class="group">${rows}</div>
+          <div class="gfoot">Nothing above asks you to take the tool's word for it.</div><div class="gap"></div>`;
+};
+
+const screen = (s, id) => (s.call ? s.call : "")
+  + (s.groups||[]).map(group).join("")
+  + (REFS[id] ? refGroup(REFS[id]) : "")
+  + (s.tail||"");
+
+/* ============================ BIBLIOGRAPHY ============================
+   Only links that were actually verified during the platform research are listed.
+   A source the mechanic cannot open is marked, not dressed up as one he can. */
+const NHTSA_COMPLAINTS = "https://api.nhtsa.gov/complaints/complaintsByVehicle?make=alfa%20romeo&model=stelvio&modelYear=2018";
+const NHTSA_RECALLS    = "https://api.nhtsa.gov/recalls/recallsByVehicle?make=alfa%20romeo&model=stelvio&modelYear=2018";
+const MOPAR_PURGE      = "https://parts.moparonlineparts.com/oem-parts/alfa-romeo-duty-cycle-purge-solenoid-68337662ac";
+const MES_SUPPORTED    = "https://www.multiecuscan.net/SupportedVehiclesList.aspx";
+
+const REFS = {
+  root: [
+    {label:"NHTSA complaints &mdash; 2018 Stelvio", note:"371 owner narratives, full text, free and unauthenticated", url:NHTSA_COMPLAINTS, host:"api.nhtsa.gov", kind:"open"},
+    {label:"NHTSA recalls &mdash; 2018 Stelvio", note:"Confirm U36, U34 and 93C against this VIN", url:NHTSA_RECALLS, host:"api.nhtsa.gov", kind:"open"},
+    {label:"docs/research/EVAP_STELVIO.md", note:"Clinical ordering and platform base rates", host:"repo", kind:"internal"},
+    {label:"Stellantis IOP service documents", note:"Primary FCA service info &mdash; subscription only", host:"paywall", kind:"paywall"},
+  ],
+  chronic: [
+    {label:"NHTSA complaints &mdash; 2018 Stelvio", note:"3 EVAP mentions across 371 narratives; weak but non-zero", url:NHTSA_COMPLAINTS, host:"api.nhtsa.gov", kind:"open"},
+    {label:"docs/research/EVAP_STELVIO.md", note:"Why several EVAP codes are one fault", host:"repo", kind:"internal"},
+    {label:"This car's own logs", note:"FESLog_2509241345 and FESLog_2608271119 &mdash; on this machine", host:"corpus", kind:"internal"},
+  ],
+  purge: [
+    {label:"Mopar &mdash; duty cycle purge solenoid 68337662AC", note:"Catalogue page, diagrams and fitment", url:MOPAR_PURGE, host:"moparonlineparts.com", kind:"open"},
+    {label:"actuator_history for this VIN", note:"The six COMPLETED runs, from this car's logs", host:"corpus", kind:"internal"},
+  ],
+  parts: [
+    {label:"Mopar &mdash; duty cycle purge solenoid 68337662AC", note:"The one number verified so far", url:MOPAR_PURGE, host:"moparonlineparts.com", kind:"open"},
+    {label:"MES supported vehicles and coverage matrix", note:"Best free architecture document for this platform", url:MES_SUPPORTED, host:"multiecuscan.net", kind:"open"},
+  ],
+  p1: [
+    {label:"Mopar catalogue &mdash; 68337662AC", note:"Verify supersession before ordering; suffix may have moved", url:MOPAR_PURGE, host:"moparonlineparts.com", kind:"open"},
+  ],
+  d1: [
+    {label:"docs/research/EVAP_STELVIO.md", note:"Canister as dominant failure on this platform", host:"repo", kind:"internal"},
+    {label:"NHTSA complaints &mdash; 2018 Stelvio", note:"Check for refuelling click-off reports", url:NHTSA_COMPLAINTS, host:"api.nhtsa.gov", kind:"open"},
+    {label:"TSB 25-009-24 &mdash; Dual EVAP filter kit", note:"Full text not freely published", host:"paywall", kind:"paywall"},
+  ],
+  d2: [
+    {label:"STAR S2125000002 (2021-06-18)", note:"Full text not freely published; summarised in the repo catalogue", host:"paywall", kind:"paywall"},
+    {label:"docs/reference/TSB_CATALOGUE.md", note:"NHTSA-derived set, captured 2026-08-27", host:"repo", kind:"internal"},
+  ],
+  d3: [
+    {label:"Mopar &mdash; duty cycle purge solenoid 68337662AC", note:"The part you would be ordering", url:MOPAR_PURGE, host:"moparonlineparts.com", kind:"open"},
+    {label:"actuator_history for this VIN", note:"Six COMPLETED runs argue against it", host:"corpus", kind:"internal"},
+  ],
+  d4: [
+    {label:"NHTSA recalls &mdash; 2018 Stelvio", note:"18V636000 (UA4) and 19V551000 (V84) are both software", url:NHTSA_RECALLS, host:"api.nhtsa.gov", kind:"open"},
+    {label:"docs/reference/TSB_CATALOGUE.md", note:"18-030-17 REV. B fixed-DTC list", host:"repo", kind:"internal"},
+  ],
+  tsb: [
+    {label:"NHTSA recalls &mdash; 2018 Stelvio", note:"Recalls are free to look up; TSBs are not", url:NHTSA_RECALLS, host:"api.nhtsa.gov", kind:"open"},
+    {label:"docs/reference/TSB_CATALOGUE.md", note:"17 bulletins, each with its source noted", host:"repo", kind:"internal"},
+  ],
+  codes: [
+    {label:"NHTSA complaints &mdash; 2018 Stelvio", note:"Symptom prevalence; useless for root cause", url:NHTSA_COMPLAINTS, host:"api.nhtsa.gov", kind:"open"},
+    {label:"docs/research/GIORGIO_PLATFORM.md", note:"Why a -2F/-86/-87 spread is one event", host:"repo", kind:"internal"},
+    {label:"MES coverage matrix", note:"Which modules sit on which bus", url:MES_SUPPORTED, host:"multiecuscan.net", kind:"open"},
+  ],
+  blind: [
+    {label:"docs/research/MES_CAPABILITY_GAPS.md", note:"Readiness, Mode $06 and Mode $0A, and what closes each", host:"repo", kind:"internal"},
+  ],
+  clear: [
+    {label:"docs/research/MES_CAPABILITY_GAPS.md", note:"Why a clean re-read after a clear proves nothing", host:"repo", kind:"internal"},
+  ],
+  e1: [
+    {label:"STAR S2125000002 (2021-06-18)", note:"Full text not freely published", host:"paywall", kind:"paywall"},
+    {label:"docs/reference/TSB_CATALOGUE.md", note:"Summarised, with the source recorded", host:"repo", kind:"internal"},
+  ],
+  t2: [
+    {label:"docs/research/EVAP_STELVIO.md", note:"Why a road test cannot verify a small-leak repair", host:"repo", kind:"internal"},
+  ],
+};
+
+/* ============================ ROOT: THE CALL ============================ */
+S.root = {
+  title: "Stelvio", back: null,
+  call: `<section class="call"><div class="body">
+      <div class="eyebrow">The call &middot; demonstrated</div>
+      <h2>Chronic EVAP small leak &mdash; not verified by the last shop</h2>
+      <p>Present across 26,455&nbsp;km. Cleared three days ago and re-read clean,
+         which proves the erase worked and nothing else.</p>
+    </div>
+    <div class="group" style="margin:0;border:0;border-top:1px solid var(--rule);border-radius:0">
+      ${row({label:"Next: E1 recirculation quick-connect", sub:"Free, two minutes, before anything is ordered", val:"free &middot; 2 min", to:"e1"})}
+    </div></section>`,
+  groups: [
+    { head: "Why",
+      rows: [
+        {label:"Chronic, not fresh",        val:"P0456 &middot; 2 sessions", to:"chronic"},
+        {label:"Last clear proved nothing", val:"3 days ago",                to:"clear"},
+        {label:"Purge valve actuates",      val:"6 tests passed",            to:"purge"},
+      ],
+      foot: "Each line is the ground for the call above. Tap for the evidence behind it." },
+    { rows: [
+        {label:"Differential",      val:"4 candidates", to:"diff"},
+        {label:"Parts",             val:"1 sourced &middot; 2 open", to:"parts"},
+        {label:"Blind spots",       val:"4 open",       to:"blind"},
+        {label:"Bulletins",         val:"3 apply",      to:"tsb"},
+        {label:"All codes",         val:"22",           to:"codes"},
+        {label:"Already attempted", val:"17 operations",to:"attempted"},
+        {label:"Logs",              val:"17",           to:"logs"},
+      ],
+      foot: "Simulation logs excluded &mdash; 54 of 80 sessions in this install are MES practice data. SCAN provenance is reported as unverifiable, never clean." },
+  ],
+  tail: `<div class="legend"><b>Reading this screen.</b> A chevron means there is more underneath;
+    no chevron means the row is everything there is. Nothing has been hidden &mdash;
+    every panel from the current dossier is one tap down instead of a scroll past.</div>`
+};
+
+/* ============================ WHY &rarr; DETAILS ============================ */
+S.chronic = {
+  title: "P0456", back: "Stelvio",
+  groups: [
+    { html: `<div class="prose">
+        <p class="lead"><b>Evaporation system leak</b> &mdash; small leak, chronic.</p>
+        <p>Seen in two sessions <b>26,455&nbsp;km apart</b>. A tool that reported only
+           &ldquo;last seen 2026-08-27&rdquo; would make this look like a fresh fault.</p>
+      </div>
+      <table class="kv">
+        <tr><td class="k">Module</td><td>Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)</td></tr>
+        <tr><td class="k">Sessions</td><td class="m">2</td></tr>
+        <tr><td class="k">Odometer</td><td class="m">114,116.9 &rarr; 140,572.6 km <b>(26,455.7 km)</b></td></tr>
+        <tr><td class="k">Statuses</td><td>stored, cleared</td></tr>
+        <tr><td class="k">Assessment</td><td><b>chronic &mdash; recurs across sessions</b></td></tr>
+      </table>` },
+    { head: "Every occurrence",
+      html: `<div class="scroll"><table class="tbl">
+        <thead><tr><th>When</th><th>Status</th><th>Odometer</th><th>File</th></tr></thead>
+        <tbody>
+          <tr><td class="m">2025-09-24 13:45</td><td><span class="chip once">stored</span></td><td class="m">114,116.9 km</td><td class="m">FESLog_2509241345</td></tr>
+          <tr><td class="m">2026-08-27 11:19</td><td><span class="chip cleared">cleared</span></td><td class="m">140,572.6 km</td><td class="m">FESLog_2608271119</td></tr>
+        </tbody></table></div>` },
+    { rows:[{label:"Freeze frame captured when it set", val:"28 parameters", to:"freeze"}] },
+  ]
+};
+
+S.clear = {
+  title: "Clear assessment", back: "Stelvio",
+  groups: [
+    { html: `<div class="note warn"><span class="l">Clearing is not fixing</span>
+        <b>Cleared: P0440-00.</b> Codes cleared and did not return before the session
+        ended. This is <b>NOT proof of repair</b>: after a clear the ECU reports nothing
+        until each monitor runs again. A clean re-read minutes later mostly proves the
+        erase worked.</div>
+      <div class="prose"><p><b>Next.</b> Complete the relevant drive cycle, then re-scan.
+        Until the monitor has run, absence of a code carries no information.</p></div>
+      <table class="kv">
+        <tr><td class="k">Cleared</td><td class="m">P0440-00</td></tr>
+        <tr><td class="k">Returned in session</td><td class="m">none</td></tr>
+        <tr><td class="k">Refused the erase</td><td class="m">none</td></tr>
+        <tr><td class="k">Re-read after clear</td><td class="m">yes</td></tr>
+        <tr><td class="k">Session</td><td class="m">2026-08-31 18:23</td></tr>
+      </table>` },
+    { head: "What would settle it",
+      rows:[
+        {label:"Readiness monitors", sub:"Have they run since the clear?", val:"not built", chip:"live", chipKind:"warn"},
+        {label:"Permanent DTCs, Mode $0A", sub:"Standing regardless of the erase", val:"not built", chip:"live", chipKind:"warn"},
+      ],
+      foot:"Both need the car connected. CUORE reports <b>live_obd: false</b> today and says so rather than implying otherwise." },
+  ]
+};
+
+S.purge = {
+  title: "Purge valve", back: "Stelvio",
+  groups: [
+    { html: `<div class="note good"><span class="l">Step E3 &mdash; already answered on this car</span>
+        The purge valve has already <b>COMPLETED 6 actuator tests</b> in this vehicle's own
+        logs &mdash; including while P0456 was stored. The valve actuates. Weight diagnosis
+        toward the vent/canister side.</div>
+      <div class="src">source: actuator_history for this VIN</div>` },
+    { head: "The six runs",
+      html: `<div class="scroll"><table class="tbl">
+        <thead><tr><th>When</th><th>Operation</th><th>Outcome</th></tr></thead>
+        <tbody>
+          <tr><td class="m">2025-10-14 21:49</td><td>Evaporation control valve</td><td><span class="chip ok">COMPLETED</span></td></tr>
+          <tr><td class="m">2025-09-24 13:45</td><td>Evaporation control valve</td><td><span class="chip ok">COMPLETED</span></td></tr>
+          <tr><td class="m">2025-09-24 13:45</td><td>Evaporation control valve</td><td><span class="chip ok">COMPLETED</span></td></tr>
+          <tr><td class="m">2025-09-24 13:45</td><td>Evaporation control valve</td><td><span class="chip ok">COMPLETED</span></td></tr>
+          <tr><td class="m">2025-09-24 13:45</td><td>Evaporation control valve</td><td><span class="chip ok">COMPLETED</span></td></tr>
+          <tr><td class="m">2025-09-24 13:45</td><td>Evaporation control valve</td><td><span class="chip ok">COMPLETED</span></td></tr>
+        </tbody></table></div>` },
+    { html:`<div class="note bad"><span class="l">Before condemning this part</span>
+        Platform evidence: the purge solenoid alone is low-yield, and owners report
+        replacing it with no resolution. Confirm it <b>fails</b> a KOEO actuator test
+        before condemning it.</div>` },
+  ]
+};
+
+/* ============================ DIFFERENTIAL ============================ */
+S.diff = {
+  title: "Differential", back: "Stelvio",
+  groups: [
+    { head: "Ranked, each with the test that separates it",
+      rows: [
+        {label:"Canister restricted or saturated", sub:"Dominant failure on this platform", val:"cheap", to:"d1"},
+        {label:"Recirculation quick-connect loose", sub:"FCA says check this first", val:"free", to:"d2"},
+        {label:"Purge valve stuck open", sub:"Weakened by this car's own evidence", val:"free", to:"d3"},
+        {label:"PCM calibration level", sub:"These codes appear in a flash fix list", val:"free to check", to:"d4"},
+      ],
+      foot:"Ranking is computed from the platform base rate, the applicable bulletins and this vehicle's own history &mdash; not generated prose." },
+  ]
+};
+const cand = (title, supports, weakens, disc, cost, src, part) => ({
+  title, back:"Differential",
+  groups:[
+    { head:"Supports", html:`<div class="prose">${supports}</div>` },
+    { head:"Weakens",  html:`<div class="prose">${weakens}</div>` },
+    { head:"Discriminator",
+      html:`<div class="note"><span class="l">The one test that separates it</span>${disc}</div>
+            <table class="kv"><tr><td class="k">Cost</td><td class="m">${cost}</td></tr></table>` },
+    part ? { head:"If it is this", rows:[part] } : null,
+    { html:`<div class="src">${src}</div>` },
+  ].filter(Boolean)
+});
+S.d1 = cand("Canister",
+  `<p>Field base rate on this platform: <b>the canister module is the dominant failure</b>.</p>
+   <p>The purge valve has passed six actuator tests here, which pushes the fault toward the vent side.</p>
+   <p>&ldquo;Pump clicks off during refuelling&rdquo;, or P2422 alongside, is close to
+      pathognomonic for a blocked or saturated canister.</p>`,
+  `<p class="lead">Nothing yet contradicts it.</p>`,
+  `Inspect the EVAP canister filter for restriction &mdash; it is behind the driver's-side
+   rear wheel liner and is a scheduled maintenance item. If dusty, Mopar Dual EVAP Filter kit per TSB 25-009-24.`,
+  "cheap", "source: docs/research/EVAP_STELVIO.md &middot; TSB 25-009-24",
+  {label:"Dual EVAP filter kit", sub:"Named in TSB 25-009-24 &mdash; number not yet verified", chip:"open", chipKind:"warn", to:"parts"});
+S.d2 = cand("Quick-connect",
+  `<p><b>STAR S2125000002 (2021-06-18)</b> names P0456/P0455/P0441/P1CEA and says to inspect
+     the recirculation-line mid-point quick-connect <b>before any parts replacement</b>.</p>
+   <p>Free, two minutes, and it explicitly precedes deep diagnosis.</p>`,
+  `<p class="lead">Nothing yet contradicts it.</p>`,
+  `Check the recirculation-line mid-point quick-connect for a loose connection.
+   Expect it fully seated and latched. If not: reseat, then re-verify.`,
+  "free &middot; 2 min", "source: STAR S2125000002");
+S.d3 = cand("Purge valve",
+  `<p>Classic candidate for P0440 with P0456 &mdash; a valve stuck open produces exactly this pair.</p>`,
+  `<p><b>Six COMPLETED actuator tests on this VIN</b>, one of them while P0456 was stored.
+      The valve responds.</p>
+   <p>Platform base rate: purge solenoid alone is <b>low-yield</b>; owners report replacing
+      it with no resolution.</p>`,
+  `Actuate KOEO and confirm it responds and holds. If it responds, it is not the restriction
+   &mdash; that is also the disconfirming test the evidence gate will ask you for.`,
+  "free", "source: actuator_history for this VIN &middot; EVAP_STELVIO.md",
+  {label:"Duty cycle purge solenoid", sub:"Mopar &mdash; do not order until it fails a KOEO test", chip:"68337662AC", chipKind:"ok", val:"catalogue &#8250;", to:"p1"});
+S.d4 = cand("PCM calibration",
+  `<p><b>18-030-17 REV. B</b> &mdash; the recurring PCM flash family lists
+     P0440/P0441/P0455/P0456 among its fixed DTCs. Check the calibration level before
+     condemning hardware.</p>`,
+  `<p>Flashing needs wiTECH plus AutoAuth, and CUORE does neither.
+      <b>Recall and campaign work is free at the dealer</b>, so this is a referral, not a job.</p>`,
+  `Read the PCM calibration level and compare against the current published level.`,
+  "free to check", "source: docs/reference/TSB_CATALOGUE.md");
+
+/* ============================ PARTS ============================
+   Part numbers are a verified-catalogue lookup, never generated. A confidently
+   wrong Mopar number costs a shop a return, a delay and a customer. Numbers
+   without a source are shown as OPEN rather than guessed at. */
+S.parts = {
+  title: "Parts", back: "Stelvio",
+  groups:[
+    { head:"Sourced",
+      rows:[
+        {label:"Duty cycle purge solenoid", sub:"Mopar &middot; verified against catalogue", chip:"68337662AC", chipKind:"ok", val:"open catalogue &#8599;", to:"p1"},
+      ],
+      foot:"Tap for fitment, supersession and the catalogue page." },
+    { head:"Not sourced",
+      rows:[
+        {label:"Dual EVAP filter kit", sub:"Named in TSB 25-009-24, number not yet verified", chip:"open", chipKind:"warn"},
+        {label:"EVAP canister", sub:"Fitment varies by build date &mdash; needs VIN lookup", chip:"open", chipKind:"warn"},
+      ],
+      foot:"These are deliberately blank. The tool will not print a part number it cannot source." },
+    { html:`<div class="note bad"><span class="l">The rule</span>
+      Part numbers are <b>looked up, never generated</b>. An LLM inventing a plausible
+      Mopar number is exactly the confident-wrong failure that costs a shop a return and a
+      customer. Same discipline as the evidence gate: cite it or leave it blank.</div>` },
+  ]
+};
+S.p1 = {
+  title: "68337662AC", back: "Parts",
+  groups:[
+    { html:`<div class="prose">
+        <p class="lead"><b>Duty cycle purge solenoid</b> &mdash; Alfa Romeo / Mopar</p>
+        <p>The EVAP purge valve. On this vehicle it has already <b>COMPLETED six actuator
+           tests</b>, so the differential currently weighs against replacing it.</p>
+      </div>
+      <table class="kv">
+        <tr><td class="k">Part number</td><td class="m">68337662AC</td></tr>
+        <tr><td class="k">Suffix</td><td class="m">AC &mdash; revision level; confirm supersession at order</td></tr>
+        <tr><td class="k">System</td><td>Evaporative emissions</td></tr>
+        <tr><td class="k">Related codes</td><td class="m">P0440 &middot; P0441 &middot; P0455 &middot; P0456</td></tr>
+      </table>
+      <div class="note warn"><span class="l">Before ordering</span>
+        The evidence gate has <b>not</b> confirmed this part on this car. Platform evidence:
+        purge solenoid alone is low-yield and owners report replacing it with no resolution.
+        Confirm it <b>fails</b> a KOEO actuator test first.</div>
+      <div style="padding:0 16px 16px">
+        <a href="https://parts.moparonlineparts.com/oem-parts/alfa-romeo-duty-cycle-purge-solenoid-68337662ac"
+           target="_blank" rel="noopener noreferrer"
+           style="display:inline-flex;align-items:center;min-height:44px;padding:0 16px;
+                  background:var(--raised);border:1px solid var(--rule);border-radius:8px;
+                  color:var(--ink);text-decoration:none;font-size:14px">
+          Open catalogue page &#8599;</a>
+      </div>
+      <div class="src">Diagrams, exploded views and fitment live on the catalogue page. In the
+        app these are fetched and cached on the bench machine so they are available at the bay.</div>` },
+  ]
+};
+
+/* ============================ STEP E1 ============================ */
+S.e1 = {
+  title: "Step E1", back: "Stelvio",
+  groups:[
+    { html:`<div class="prose">
+        <p class="lead"><b>Recirculation-line mid-point quick-connect</b></p>
+        <p><b>Test.</b> Check the recirculation-line mid-point quick-connect for a loose connection.</p>
+        <p><b>Tools.</b> Hands. Two minutes.</p>
+        <p><b>Expect.</b> Connector fully seated and latched.</p>
+        <p><b>If abnormal.</b> Reseat it; this is FCA's documented first check for exactly
+           these codes. Re-verify before doing anything else.</p>
+      </div>
+      <div class="src">STAR S2125000002 (2021-06-18) &mdash; explicitly precedes deep diagnosis for P0456/P0455/P0441/P1CEA</div>` },
+    { head:"Then",
+      rows:[
+        {label:"E2 &middot; Canister filter restriction", sub:"Behind the driver's-side rear wheel liner", val:"cheap", to:"d1"},
+      ],
+      foot:"Cheapest first. Nothing above requires a part to be ordered." },
+    { head:"Framing for this family",
+      html:`<div class="prose">
+        <p>&bull; Several EVAP codes together are <b>one system fault</b>, not several.</p>
+        <p>&bull; Large + small leak + valve code together points at the purge valve stuck open
+           or a vent-side/canister fault &mdash; not three repairs.</p>
+        <p>&bull; A standalone vent valve almost never fails (one tech: one in six years).</p>
+      </div>` },
+  ]
+};
+
+/* ============================ BLIND SPOTS ============================ */
+S.blind = {
+  title: "Blind spots", back: "Stelvio",
+  groups:[
+    { head:"What the logs structurally cannot answer",
+      rows:[
+        {label:"Has each emissions monitor run since the last clear?", sub:"MES has no OBD-II mode at all", val:"read_readiness"},
+        {label:"Is a permanent Mode $0A DTC standing?", sub:"Invisible to MES entirely", val:"read_permanent_dtcs"},
+        {label:"What did the on-board leak test measure?", sub:"Mode $06 tool not yet built", val:"send_raw"},
+        {label:"Will the EVAP monitor run on the next drive?", sub:"Needs fuel 15&ndash;85% and a cold-start window", val:"check fuel first"},
+      ],
+      foot:"Nothing above these should be read as &ldquo;there are no faults&rdquo;. The last one saves a wasted road test before you turn a wrench." },
+  ]
+};
+
+/* ============================ BULLETINS ============================ */
+S.tsb = {
+  title: "Bulletins", back: "Stelvio",
+  groups:[
+    { rows:[
+        {label:"S2125000002", sub:"Check the recirculation quick-connect first", val:"2021-06-18", to:"t1"},
+        {label:"18-048-23", sub:"Small-leak verification requires wiTECH SLVT", val:"2023-04-15", to:"t2"},
+        {label:"18-030-17 REV. B", sub:"PCM flash family lists these EVAP codes as fixed", val:"flash family", to:"t3"},
+      ],
+      foot:"Matched against every code this car has ever set &mdash; 17 bulletins considered." },
+  ]
+};
+S.t1 = { title:"S2125000002", back:"Bulletins", groups:[{ html:
+  `<div class="prose"><p class="lead"><b>EVAP leak codes &mdash; check the recirculation-line quick-connect first</b></p>
+   <p>For P0456/P0455/P0441/P1CEA: inspect the recirculation-line mid-point quick-connect
+      before any parts replacement, then re-run the EVAP leak test.</p>
+   <p><b>Applies.</b> Giulia (GA) / Stelvio (GU).</p></div>
+   <div class="src">docs/reference/TSB_CATALOGUE.md (NHTSA set, 2026-08-27)</div>`}]};
+S.t2 = { title:"18-048-23", back:"Bulletins", groups:[{ html:
+  `<div class="prose"><p class="lead"><b>EVAP small-leak verification requires wiTECH SLVT</b></p>
+   <p>A road test <b>cannot</b> confirm a small-leak repair; the wiTECH SLVT procedure is the
+      verification. Supersedes 18-089-19.</p></div>
+   <div class="note warn"><span class="l">What this means for you</span>
+     Mode $06 is the only non-dealer route to the measured leak value and the ECM's own
+     pass/fail threshold. It is <b>not built yet</b>.</div>
+   <div class="src">docs/reference/TSB_CATALOGUE.md (NHTSA set, 2026-08-27)</div>`}]};
+S.t3 = { title:"18-030-17 REV. B", back:"Bulletins", groups:[{ html:
+  `<div class="prose"><p class="lead"><b>PCM flash family fixed-DTC list includes the EVAP codes</b></p>
+   <p>The recurring PCM software updates list P0440/P0441/P0455/P0456 among fixed DTCs
+      &mdash; check the PCM calibration level before condemning hardware.</p></div>
+   <div class="note bad"><span class="l">Caution</span>
+     Flashing needs wiTECH plus AutoAuth. <b>Recall and campaign work is free at the dealer.</b></div>
+   <div class="src">docs/reference/TSB_CATALOGUE.md (NHTSA set, 2026-08-27)</div>`}]};
+
+/* ============================ ALL CODES ============================ */
+S.codes = {
+  title: "All codes", back: "Stelvio",
+  groups:[
+    { head:"Ordered by what decides a diagnosis",
+      rows:[
+        {label:"P0456-00", sub:"Evaporation system leak", chip:"chronic", chipKind:"chronic", val:"26,455 km", to:"chronic"},
+        {label:"B1040-64", sub:"Communication with Body Computer &mdash; plausibility", chip:"recurring", chipKind:"recurring", val:"2 sessions"},
+        {label:"C141C-86", sub:"Private CAN between HALF and DASM &mdash; invalid", chip:"recurring", chipKind:"recurring", val:"2 sessions"},
+        {label:"P0440-00", sub:"Evaporation control valve", chip:"cleared", chipKind:"cleared", val:"3 days ago", to:"clear"},
+        {label:"P0455-00", sub:"Evaporation system leak (large)", chip:"cleared", chipKind:"cleared", val:"1 session"},
+        {label:"B1029-64", sub:"Lost communication with Steering module", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"B102E-64", sub:"Communication with Body Computer &mdash; plausibility", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"B1176-97", sub:"Rear left window riser &mdash; obstructed or blocked", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"C1403-86", sub:"EPS electric steering &mdash; invalid", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"C1408-86", sub:"ESP control &mdash; invalid", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"C1431-86", sub:"Lateral acceleration / YAW sensors &mdash; invalid", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"U1716-2F", sub:"Electric steering &mdash; erratic", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"U2054-87", sub:"Body Computer &mdash; missing message", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"U1701-86", sub:"Engine control unit &mdash; invalid", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"P1189-00", sub:"Intake pressure sensor", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"P0098-00", sub:"Air temperature sensor", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"P00F5-00", sub:"Humidity sensor", chip:"once", chipKind:"once", val:"1 session"},
+        {label:"P105E-00", sub:"Humidity sensor", chip:"once", chipKind:"once", val:"1 session"},
+      ] },
+    { html:`<div class="note warn"><span class="l">One network event, not eleven faults</span>
+        The B/C/U codes above are all <b>bus-integrity</b> failure types &mdash;
+        <span class="chip once">-2F erratic</span> <span class="chip once">-86 invalid</span>
+        <span class="chip once">-87 missing</span> <span class="chip once">-64 plausibility</span>.
+        Every one is a module complaining that messages did not arrive as expected.
+        That is a power, ground or bus event &mdash; not eleven modules failing at once.
+        <b>B1176-97 is the exception</b>: obstructed or blocked is a real component fault.</div>` },
+  ]
+};
+
+/* ============================ ATTEMPTED ============================ */
+S.attempted = {
+  title: "Already attempted", back: "Stelvio",
+  groups:[
+    { html:`<div class="scroll"><table class="tbl">
+      <thead><tr><th>When</th><th>Operation</th><th>Outcome</th><th>Reason</th></tr></thead><tbody>
+      <tr><td class="m">2026-08-27 11:19</td><td>Fan 1st speed</td><td><span class="chip returned">FAILED</span></td><td>Engine running</td></tr>
+      <tr><td class="m">2025-10-14 21:49</td><td>Overboost counter reset</td><td><span class="chip ok">COMPLETED</span></td><td>&mdash;</td></tr>
+      <tr><td class="m">2025-10-14 21:49</td><td>Wastegate solenoid valve</td><td><span class="chip ok">COMPLETED</span></td><td>&mdash;</td></tr>
+      <tr><td class="m">2025-10-14 21:49</td><td>Turbo vacuum valve</td><td><span class="chip ok">COMPLETED</span></td><td>&mdash;</td></tr>
+      <tr><td class="m">2025-10-14 21:49</td><td>Evaporation control valve</td><td><span class="chip ok">COMPLETED</span></td><td>&mdash;</td></tr>
+      <tr><td class="m">2025-10-14 21:49</td><td>EGR solenoid valve</td><td><span class="chip ok">COMPLETED</span></td><td>&mdash;</td></tr>
+      <tr><td class="m">2025-10-14 21:49</td><td>Electronic thermostat</td><td><span class="chip returned">FAILED</span></td><td>Request out of range</td></tr>
+      <tr><td class="m">2025-10-14 21:42</td><td>Replacement of turbocharger</td><td><span class="chip ok">COMPLETED</span></td><td>&mdash;</td></tr>
+      <tr><td class="m">2025-09-24 13:45</td><td>Evaporation control valve &times;5</td><td><span class="chip ok">COMPLETED</span></td><td>&mdash;</td></tr>
+      </tbody></table></div>` },
+    { html:`<div class="note"><span class="l">Read the failures correctly</span>
+      MES actuator tests on the IAW 10JA require key-on engine-off.
+      <b>&ldquo;Engine running&rdquo; is an interlock, not a fault</b> &mdash; the ECU refused a
+      valid request on a precondition. Same for &ldquo;request out of range&rdquo;.</div>` },
+  ]
+};
+
+/* ============================ LOGS &amp; FREEZE FRAME ============================ */
+S.logs = {
+  title: "Logs", back: "Stelvio",
+  groups:[
+    { html:`<div class="scroll"><table class="tbl">
+      <thead><tr><th>Session</th><th>Kind</th><th>Provenance</th><th>ECU</th><th>DTCs</th></tr></thead><tbody>
+      <tr><td class="m">2026-08-31 18:23</td><td>fes</td><td><span class="chip ok">real</span></td><td>IAW 10JA</td><td class="m">1</td></tr>
+      <tr><td class="m">2026-08-27 11:41</td><td>scan</td><td><span class="chip warn">unverifiable</span></td><td>&mdash;</td><td class="m">0</td></tr>
+      <tr><td class="m">2026-08-27 11:31</td><td>scan</td><td><span class="chip warn">unverifiable</span></td><td>&mdash;</td><td class="m">9</td></tr>
+      <tr><td class="m">2026-08-27 11:19</td><td>fes</td><td><span class="chip ok">real</span></td><td>IAW 10JA</td><td class="m">3</td></tr>
+      <tr><td class="m">2026-06-07 10:03</td><td>scan</td><td><span class="chip warn">unverifiable</span></td><td>&mdash;</td><td class="m">2</td></tr>
+      <tr><td class="m">2025-10-14 21:49</td><td>fes</td><td><span class="chip ok">real</span></td><td>IAW 10JA</td><td class="m">0</td></tr>
+      <tr><td class="m">2025-09-24 13:45</td><td>fes</td><td><span class="chip ok">real</span></td><td>IAW 10JA</td><td class="m">6</td></tr>
+      </tbody></table></div>` },
+    { foot:"Sorted by <b>session</b> time, not filename &mdash; a MES filename records when the file was closed, not when the session ran. Seven of seventeen shown." },
+  ]
+};
+
+S.freeze = {
+  title: "Freeze frame", back: "P0456",
+  groups:[
+    { head:"P0440-00 &middot; captured 2026-08-31 18:23",
+      html:`<table class="kv">
+        <tr><td class="k">Odometer</td><td class="m">140,883.2 km</td></tr>
+        <tr><td class="k">Engine speed</td><td class="m">794 rpm</td></tr>
+        <tr><td class="k">Vehicle speed</td><td class="m">0.00 km/h</td></tr>
+        <tr><td class="k">Engine temperature</td><td class="m">64 &deg;C</td></tr>
+        <tr><td class="k">Engine oil temperature</td><td class="m">51 &deg;C</td></tr>
+        <tr><td class="k">Air temperature</td><td class="m">26 &deg;C</td></tr>
+        <tr><td class="k">Battery voltage</td><td class="m">13.9 V</td></tr>
+        <tr><td class="k">IBS battery charge</td><td class="m">67 %</td></tr>
+        <tr><td class="k">Fuel level</td><td class="m">63.92 %</td></tr>
+        <tr><td class="k">Intake pressure</td><td class="m">403 mbar</td></tr>
+        <tr><td class="k">Boost pressure</td><td class="m">998 mbar</td></tr>
+        <tr><td class="k">Atmospheric</td><td class="m">994 mbar</td></tr>
+        <tr><td class="k">Air flow rate</td><td class="m">14.75 kg/h</td></tr>
+        <tr><td class="k">Spark advance</td><td class="m">-2.625 deg</td></tr>
+        <tr><td class="k">Throttle angle</td><td class="m">2.81 deg</td></tr>
+        <tr><td class="k">Gear engaged</td><td class="m">N</td></tr>
+        <tr><td class="k">Brake pedal</td><td class="m">Pressed</td></tr>
+        <tr><td class="k">Operating time</td><td class="m">290,987 min</td></tr>
+        <tr><td class="k">Startups</td><td class="m">14,318</td></tr>
+      </table>` },
+    { html:`<div class="note good"><span class="l">Fuel level 63.92%</span>
+      Inside the 15&ndash;85% window the EVAP monitor needs. If it still reads near this on
+      the verification drive, the monitor can run.</div>
+      <div class="note bad"><span class="l">A clear destroys this</span>
+      Pull extended DTC data <b>before</b> clearing anything. It is the only evidence that
+      separates a cold-start fault from a highway one.</div>` },
+  ]
+};
+
+/* ============================ ROUTER ============================ */
+const main=document.getElementById("main"), titleEl=document.getElementById("title"),
+      backBtn=document.getElementById("back"), backLbl=document.getElementById("backLabel");
+let stack=["root"];
+function render(){
+  const id=stack[stack.length-1];
+  const s=S[id]||S.root;
+  main.innerHTML=screen(s,id);
+  titleEl.textContent=s.title;
+  if(stack.length>1){ backBtn.hidden=false; backLbl.textContent=s.back||"Back"; }
+  else backBtn.hidden=true;
+  main.scrollIntoView({block:"start"});
+  window.scrollTo(0,0);
+}
+main.addEventListener("click",e=>{
+  const b=e.target.closest("button.row[data-to]"); if(!b) return;
+  const to=b.getAttribute("data-to"); if(!S[to]) return;
+  stack.push(to); history.pushState({d:stack.length},""); render();
+});
+backBtn.addEventListener("click",()=>history.back());
+window.addEventListener("popstate",()=>{ if(stack.length>1) stack.pop(); render(); });
+history.replaceState({d:1},"");
+render();
+</script>
