@@ -148,6 +148,37 @@ clean.
 | `recording_events` | TAG/DTC events + threshold queries as excursion intervals |
 | `recording_snapshot` | post-hoc freeze frame at any second of a recording |
 
+## `obd2-mcp` — tools
+
+Live link to the adapter on the OBD port. Every tool opens the COM port for one
+operation and releases it, so MultiEcuScan can take the adapter between calls;
+MES's own status label is checked first and a connected MES blocks the open.
+Port and speed come from explicit arguments, then `OBD_PORT` / `OBD_BAUD`, then
+MES's `HKLM\SOFTWARE\Multiecuscan` Interface 0 settings. Headers stay on and
+ISO-TP frames are reassembled here, so every answer is attributed to the ECU
+that sent it. All tools return JSON and set `error` whenever a read did not
+complete, so a bus fault never reads as "no codes".
+
+| Tool | Purpose |
+|---|---|
+| `list_ports` | serial ports, with MES's configured port marked |
+| `status` | resolved port/speed and their sources, MES state, lock state, last adapter identity |
+| `mes_state` | is MES running and connected (read-only process + window-label probe) |
+| `mes_settings` | MES's registry settings: interfaces, folders, CSV separator, recent vehicles |
+| `connect` | probe: reset the adapter, read its identity, pin the protocol if the car answers; does not hold the port |
+| `disconnect` | release anything held and forget the pinned protocol |
+| `read_dtcs` / `read_pending_dtcs` / `read_permanent_dtcs` | Modes 03 / 07 / 0A, per ECU |
+| `read_pid` | Mode 01 with J1979 formulas for 32 named PIDs |
+| `read_voltage` | battery voltage at the OBD port (`ATRV`) |
+| `read_supported_pids` | Mode 01 support bitmaps per ECU |
+| `read_freeze_frame` | Mode 02 frame 0, decoded |
+| `read_vin` | Mode 09 PID 02, reassembled |
+| `read_readiness` | Mode 01 PID 01 / 41 monitors plus drive-cycle counters, with an EVAP verdict |
+| `clear_dtcs` | Mode 04: captures codes, freeze frame and readiness to a file first, refuses while moving, reads back after |
+| `send_raw` | one AT/ST/hex command; vehicle writes, adapter reconfiguration and monitor modes are gated |
+
+Adapter on this bench: Vgate vLinker FS r2 (STN1170) on COM3 at 115200.
+
 ### Configuration
 
 | Variable | Meaning |
