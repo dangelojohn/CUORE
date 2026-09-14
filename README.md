@@ -4,7 +4,7 @@ Local MCP servers and reference material for professional Alfa Romeo and
 Stellantis diagnostics, built around **MultiEcuScan (MES)** and a live OBD-II
 link.
 
-Two MCP servers, one shared knowledge base.
+Two MCP servers, a companion service, one shared knowledge base.
 
 ```
 mcp-servers/
@@ -13,11 +13,75 @@ mcp-servers/
 │   ├── mes/            the library - all parsing and analysis lives here
 │   └── tests/          corpus smoke checks
 ├── obd2-mcp/           live ELM327 / OBD-II link              (MCP server)
+├── cuore/              the companion service      (FastAPI: JSON API + UI)
+│   ├── api/            the mes surface as HTTP, mirroring the MCP tools
+│   ├── services/       mes_bridge - the only module that imports `mes`
+│   ├── web/            server-rendered bench pages
+│   └── tests/          corpus-backed smoke checks
+├── web-ui/             the earlier Flask UI - superseded by cuore/
 └── docs/
+    ├── COMPANION_APP_SPEC.md   where cuore is going: profiles, live data,
+    │                           Claude layers, safety policy
     ├── format/         reverse-engineered MES file formats
     ├── reference/      corpus baseline, module catalog, DTC data
     └── research/       platform, tuning and connectivity research
 ```
+
+### `cuore` — the companion service
+
+```
+.venv\Scripts\python.exe -m cuore --profile bench --port 5000
+```
+
+`http://127.0.0.1:5000` for the bench UI, `/api/docs` for the JSON API.
+To reach it from a phone or tablet on the shop LAN, bind wider **and set a
+token** — the corpus contains customer VINs:
+
+```
+.venv\Scripts\python.exe -m cuore --host 0.0.0.0 --token <secret>
+```
+
+One application, two deployment profiles. `bench` (this machine) owns the log
+corpus and every analysis; `drive` will run on a small in-car node and own the
+live link. Clients never assume which one they reached — they call
+`/api/capabilities` and render what that host says it can do, which is what
+keeps the live paths additive rather than a rewrite. Today `live_obd`,
+`live_can` and `drive_recorder` all report `false`.
+
+`cuore/services/mes_bridge.py` is the only module that imports `mes`, and it
+mirrors `mes-log-mcp/server.py` call-for-call so the MCP tools and the HTTP API
+cannot drift apart. `web-ui/` still runs and is left in place until every page
+has an equivalent.
+
+---
+
+## Three ways to use this at the car
+
+**1. Web UI (recommended for at-the-car use).** A phone/tablet-friendly
+Flask app that renders `workup`, `fault_tree` and `diagnosis_verdict` as
+real pages — no typing JSON. It imports `mes` directly, so every page is
+live against the current log corpus, never stale.
+
+```
+..\.venv\Scripts\python.exe web-ui\app.py
+```
+
+Then open `http://<this machine's LAN IP>:5000` from any device on the same
+network (find the IP with `ipconfig` — Wi-Fi adapter's IPv4 address).
+Pages: vehicle list → workup dossier → fault tree (auto-loads open codes,
+annotates steps with this car's own evidence) → evidence gate (a form that
+builds the `diagnosis_verdict` measurement citations for you) → CSV
+recordings.
+
+**2. Claude Code (this toolchain's other interface).** Talk through a
+diagnosis conversationally from the terminal, or from Claude Code's
+mobile/desktop app if you're away from this machine — same MCP tools, no
+extra setup, best when you want the reasoning spelled out in prose rather
+than clicking through a form.
+
+**3. Static snapshot.** For printing or texting a one-off summary of a
+vehicle's current state, ask for an Artifact checklist — a point-in-time
+HTML page (not live-connected; regenerate after new codes are pulled).
 
 ---
 
@@ -75,6 +139,14 @@ clean.
 | `failure_type` | decode the failure-type byte after the dash |
 | `actuator_history` | every actuator test and adjustment ever run, and why they failed |
 | `vehicle_report` | whole-vehicle picture with chronic faults surfaced |
+| `workup` | **the pre-work dossier**: current picture, chronic/returned/fresh history, freeze frames, TSB cross-refs, prior attempts, and the blind spots the logs cannot answer |
+| `fault_tree` | FIM-style isolation sequences (EVAP leak family, P1CEA boost purge), cheapest-first, every step sourced; VIN-annotated with the car's own evidence |
+| `diagnosis_verdict` | **the evidence gate**: refuses CONFIRMED until the fault is demonstrated, a mechanism is stated, a corpus-verified measurement implicates the part, and disconfirmation was attempted |
+| `list_recordings` | CSV recordings from the graph subsystem, with measured rate |
+| `read_recording` | one recording: columns, timing, dropouts, TAG/DTC events |
+| `recording_series` | one recorded parameter as a *timed* series with stats |
+| `recording_events` | TAG/DTC events + threshold queries as excursion intervals |
+| `recording_snapshot` | post-hoc freeze frame at any second of a recording |
 
 ### Configuration
 
@@ -82,6 +154,7 @@ clean.
 |---|---|
 | `MES_LOG_DIR` | single log directory |
 | `MES_LOG_DIRS` | several, `os.pathsep`-separated; first match wins |
+| `MES_CSV_DIR` / `MES_CSV_DIRS` | where MES's Settings "Export Folder" points, if moved off the log dir |
 
 Default: `C:\Program Files (x86)\MultiEcuScan`.
 

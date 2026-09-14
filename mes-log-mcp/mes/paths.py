@@ -181,3 +181,103 @@ def iter_log_files() -> list[Path]:
                 claimed.add(key)
                 out.append(p)
     return out
+
+
+# --- CSV recordings ---------------------------------------------------------
+#
+# The MES graph subsystem exports timestamped CSV (the only streaming-shaped
+# output MES has; the .txt session log is written at completion). No CSV has
+# ever been recorded on this install, so the filename convention is UNKNOWN --
+# which is why, unlike .txt logs, any bare "*.csv" name is accepted. The
+# security posture is unchanged: bare filename only, containment-checked
+# against the configured roots after .resolve().
+
+CSV_RE = re.compile(r"^.+\.csv$", re.IGNORECASE)
+
+
+def csv_roots() -> list[Path]:
+    """Directories searched for MES CSV recordings, in priority order.
+
+    MES writes CSV to its Settings "Export Folder", which is configured
+    independently of the log folder (both default to the install dir). So the
+    CSV roots get their own overrides -- ``MES_CSV_DIRS`` then ``MES_CSV_DIR``
+    -- and fall back to the log roots when neither is set.
+    """
+    raw = os.environ.get("MES_CSV_DIRS")
+    if raw:
+        candidates = [c.strip() for c in raw.split(os.pathsep) if c.strip()]
+    elif os.environ.get("MES_CSV_DIR"):
+        candidates = [os.environ["MES_CSV_DIR"]]
+    else:
+        return configured_roots()
+
+    roots: list[Path] = []
+    seen: set[str] = set()
+    for c in candidates:
+        try:
+            p = Path(c).resolve()
+        except (OSError, ValueError):
+            continue
+        key = str(p).lower()
+        if key not in seen:
+            seen.add(key)
+            roots.append(p)
+    return roots
+
+
+def existing_csv_roots() -> list[Path]:
+    """CSV roots that actually exist on disk."""
+    return [r for r in csv_roots() if r.is_dir()]
+
+
+def resolve_csv(name: str) -> Path:
+    """Resolve a bare ``*.csv`` filename to a real path inside a CSV root.
+
+    Same containment contract as :func:`resolve_log`: traversal-shaped names
+    are rejected before touching the filesystem, and the resolved real path
+    must sit inside a configured root.
+    """
+    _reject_traversal(name)
+    if not CSV_RE.match(name):
+        raise MesPathError(f"{name!r} is not a CSV filename")
+
+    roots = csv_roots()
+    for root in roots:
+        candidate = root / name
+        try:
+            real = candidate.resolve()
+        except (OSError, ValueError):
+            continue
+        if not _contained(real, root):
+            raise MesPathError(
+                f"refusing {name!r}: resolves to {real} which is outside {root}"
+            )
+        if real.is_file():
+            return real
+
+    searched = ", ".join(str(r) for r in roots) or "(no roots configured)"
+    raise MesNotFound(f"no CSV named {name!r} in any configured root: {searched}")
+
+
+def iter_csv_files() -> list[Path]:
+    """Every ``*.csv`` across the CSV roots; first root wins on name clashes."""
+    out: list[Path] = []
+    claimed: set[str] = set()
+    for root in existing_csv_roots():
+        try:
+            entries = list(root.iterdir())
+        except OSError:
+            continue
+        for p in entries:
+            key = p.name.lower()
+            if key in claimed:
+                continue
+            try:
+                if not p.is_file():
+                    continue
+            except OSError:
+                continue
+            if CSV_RE.match(p.name):
+                claimed.add(key)
+                out.append(p)
+    return out

@@ -23,7 +23,9 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from mes import analysis, catalog, dtc as dtc_mod, fes, modules, paths, scan
+from mes import analysis, catalog, csvlog, dtc as dtc_mod, fes, modules, paths, scan
+from mes import faulttree, verdict
+from mes import workup as workup_mod
 from mes.errors import MesError
 
 mcp = FastMCP("mes-log")
@@ -496,6 +498,194 @@ def vehicle_report(vin: str = "", vehicle: str = "") -> str:
     distinction usually decides the diagnosis.
     """
     return _guard(analysis.vehicle_summary, vin, vehicle)
+
+
+@mcp.tool()
+def workup(vin: str = "", vehicle: str = "", name: str = "") -> str:
+    """The pre-work dossier: everything the logs know about one vehicle.
+
+    One call answers "what am I looking at?" before the hood opens:
+    identity and odometer span, the current DTC picture (including the
+    newest session that actually held findings, not just a clean post-clear
+    re-read), chronic vs returned vs seen-once classification, freeze
+    frames, TSB cross-references with family findings (several EVAP codes =
+    one fault; a U-code spread = one power/bus event), everything already
+    attempted, and -- explicitly -- the blind spots the logs cannot answer
+    and which live tool closes each one.
+
+    Args:
+        name: FESLog filename. Empty anchors the current picture on the
+            newest session; naming one pins it there instead, which is how
+            you ask "what did this car look like at that capture?" without
+            a later log moving the answer.
+    """
+    return _guard(workup_mod.build, vin, vehicle, name)
+
+
+@mcp.tool()
+def fault_tree(codes: str = "", vin: str = "") -> str:
+    """Fault-isolation sequence for a DTC or code family, cheapest-first.
+
+    Every step names the exact action (MES screen, obd2 tool, or hand
+    test), the expected result, what to conclude when it is abnormal, and
+    the bulletin it was transcribed from. The parts cannon has no node.
+
+    Args:
+        codes: comma/space-separated DTCs ("P0455, P0440-00"). Empty lists
+            the available trees.
+        vin: when given, steps are annotated with this car's own log
+            evidence -- e.g. a purge valve that already actuated COMPLETED
+            while the code was stored is flagged so it is not re-tested.
+    """
+    def run():
+        import re as _re
+        toks = [t for t in _re.split(r"[,\s;]+", codes) if t.strip()]
+        if not toks:
+            return {"available": [
+                {"tree": t.key, "title": t.title,
+                 "applies_to": sorted(t.codes)}
+                for t in faulttree.TREES]}
+        return faulttree.evaluate(toks, vin=vin)
+    return _guard(run)
+
+
+@mcp.tool()
+def diagnosis_verdict(vin: str, codes: str, component: str = "",
+                      mechanism: str = "", measurements: str = "",
+                      disconfirming_test: str = "") -> str:
+    """The evidence gate: refuses "CONFIRMED" until the proof exists.
+
+    Four criteria, checked against this car's corpus where possible:
+    (1) the fault is demonstrated (chronic / returned / standing -- a code
+    seen once then cleared is not), (2) a causal mechanism is stated,
+    (3) at least one cited MEASUREMENT implicates the component (a DTC is
+    not a measurement; actuator outcomes, freeze frames, parameters and
+    recording events are verified in the logs; manual tests are recorded
+    as attested), (4) a disconfirming test was run and described. Anything
+    short returns NOT CONFIRMED with the specific missing test. The
+    condemned component is also checked against the platform do-not list.
+
+    Args:
+        codes: the DTC(s) being diagnosed ("P0455, P0456").
+        component: the part being condemned.
+        mechanism: the causal chain in a sentence, not a part name.
+        measurements: JSON array of cites, e.g.
+            [{"type":"actuator","operation":"Evaporation control valve"},
+             {"type":"freeze_frame","code":"P0456"},
+             {"type":"parameter","name":"Canister fill","file":"FESLog_..."},
+             {"type":"recording_event","file":"rec.csv","condition":"X > 5"},
+             {"type":"manual","description":"smoke test: smoke at ESIM"}]
+        disconfirming_test: the test that would have exonerated the part,
+            and its result.
+    """
+    return _guard(verdict.assess, vin, codes, component, mechanism,
+                  measurements, disconfirming_test)
+
+
+# --- CSV recordings (graph subsystem export) ------------------------------
+
+
+@mcp.tool()
+def list_recordings() -> str:
+    """CSV recordings exported by MES's graph subsystem, newest first.
+
+    These are the only MES output with real per-sample timestamps. None has
+    ever been recorded on this install: to produce one, open the Graph tab,
+    add parameters, enable "Monitor DTCs" if DTC markers are wanted, and use
+    CSV Start/Stop. The export lands in the Settings "Export Folder"
+    (currently the install directory).
+    """
+    def run():
+        recs = csvlog.list_recordings()
+        out: dict[str, Any] = {"count": len(recs), "recordings": recs,
+                               "roots": [str(r) for r in paths.csv_roots()]}
+        if not recs:
+            out["note"] = (
+                "No CSV recordings found. In MES: Graph tab -> add up to 4 "
+                "graphs x 10 parameters -> CSV Start / Stop. Set the export "
+                "folder in Settings (needs the MES dialog; the registry key "
+                "is not user-writable). Point MES_CSV_DIR here if it differs "
+                "from the log folder.")
+        return out
+    return _guard(run)
+
+
+@mcp.tool()
+def read_recording(name: str, preview_rows: int = 10) -> str:
+    """Parse one CSV recording: columns, measured timing, tag/DTC events.
+
+    Reports the measured sample rate and any dropouts (gaps over 3x the
+    median interval -- an adapter or ECU-link stall), which the .txt session
+    log structurally cannot show.
+    """
+    return _guard(lambda: csvlog.load_named(name).to_dict(
+        preview_rows=preview_rows))
+
+
+@mcp.tool()
+def recording_series(name: str, parameter: str) -> str:
+    """One recorded parameter as a timed series with statistics.
+
+    Unlike ``parameter_series`` over a .txt session, samples here carry real
+    timestamps, so the stats are physically meaningful rates and durations.
+
+    Args:
+        parameter: column name (exact or unique substring) or column index.
+    """
+    def run():
+        rec = csvlog.load_named(name)
+        series = rec.series(parameter)
+        out = series.stats()
+        out["file"] = rec.name
+        out["values"] = [
+            {"t": stamp, "value": s.display}
+            for stamp, s in zip(series.stamps, series.samples)
+        ]
+        if out.get("static"):
+            out["interpretation"] = (
+                "This value never changed across the recording - consistent "
+                "with a substituted default or modelled value rather than a "
+                "live measurement.")
+        return out
+    return _guard(run)
+
+
+@mcp.tool()
+def recording_events(name: str, condition: str = "") -> str:
+    """Post-hoc trigger analysis over a CSV recording.
+
+    With no condition, returns the recording's TAG events (operator markers
+    and, with "Monitor DTCs" enabled, DTCs) plus timing dropouts. With a
+    condition like "Engine speed > 3000" or "Fuel pressure < 250", returns
+    the intervals where it held: enter/exit time, duration and the extreme
+    value -- one event per excursion, not one per sample.
+    """
+    def run():
+        rec = csvlog.load_named(name)
+        out: dict[str, Any] = {
+            "file": rec.name,
+            "timing": rec.timing(),
+            "tag_events": [t.to_dict() for t in rec.tags],
+            "dtcs_in_tags": sorted({d for t in rec.tags for d in t.dtcs}),
+        }
+        if condition.strip():
+            out["threshold"] = rec.crossings(condition)
+        return out
+    return _guard(run)
+
+
+@mcp.tool()
+def recording_snapshot(name: str, at_seconds: float) -> str:
+    """Every recorded value at the sample nearest a given time.
+
+    The post-hoc freeze frame: after ``recording_events`` finds when a DTC
+    tag fired or a threshold tripped, this shows what everything else read
+    at that moment.
+    """
+    return _guard(lambda: {
+        "file": name,
+        **csvlog.load_named(name).snapshot(at_seconds),
+    })
 
 
 @mcp.tool()

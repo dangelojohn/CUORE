@@ -152,7 +152,7 @@ Everything in the top five is **read-only**.
 | **1** | **Readiness monitors + Mode $0A** — "is the repair verified?" | Very high | **Done** | read-only |
 | **2** | **VIN-keyed history over existing logs** | Very high | Trivial — data on disk, parser exists | read-only |
 | **3** | **Mode $06 EVAP test values and thresholds** | Very high | Easy; availability `UNCERTAIN` until tested | read-only |
-| **4** | **CSV pipeline + post-hoc trigger analysis** | High | Easy; one elevated config change | read-only |
+| **4** | **CSV pipeline + post-hoc trigger analysis** | High | **Software done** (`csvlog.py` + 5 tools, 2026-08-31); awaiting first real recording — see `docs/format/CSV_LOG_FORMAT.md` | read-only |
 | **5** | **Local knowledge base** (pinouts, TSBs, known-good) | High | Moderate, ongoing | read-only |
 | **6** | **Buy the A5 (blue) and A6 (grey) cables** | Very high | Trivial — a purchase | enables writes |
 | 7 | High-rate voltage logging for ground-strap work | Medium-high | Easy | read-only |
