@@ -1,0 +1,409 @@
+"""The operations both surfaces call: HTTP routes and MCP tools are wrappers over these.
+
+Every function returns a plain dict, opens the adapter for exactly its own
+operation through :func:`link`, and names the bus and cable it used. Errors
+are :class:`LiveError` subclasses; the surfaces decide how to render them.
+"""
+
+from __future__ import annotations
+
+import re
+from typing import Any, Optional
+
+import serial.tools.list_ports
+
+from . import capture as capture_mod
+from . import store
+from . import uds as uds_mod
+from .addressing import MODULES, by_code, on_bus
+from .buses import BUSES, CAN_C, Bus
+from .config import mes_folders, mes_interfaces, mes_registry, resolve_port
+from .errors import BadCommand
+from .framing import adapter_error, no_data
+from .obd import (decode_obd_dtcs, decode_pid, decode_readiness, decode_supported_pids,
+                  dtc_from_two_bytes, evap_verdict, resolve_pid, PIDS_BY_HEX)
+from .transport import DEFAULT_TIMEOUT, AdapterLink, Session, link
+
+_MODE03_NOTE = ("Mode 03 returns emissions-related powertrain codes only. Body, chassis and "
+                "network faults are UDS 3-byte codes; use module DTC reads for those.")
+
+
+def _bus(key: str) -> Bus:
+    bus = BUSES.get((key or "can_c").lower())
+    if bus is None:
+        raise BadCommand(f"unknown bus {key!r}; one of {list(BUSES)}")
+    return bus
+
+
+def _stamp(sess: Session, out: dict[str, Any]) -> dict[str, Any]:
+    out.setdefault("bus", sess.bus.key)
+    out.setdefault("cable", sess.link.cable)
+    return out
+
+
+def _observe(sess: Session, kind: str, out: dict[str, Any], vin: str = "") -> dict[str, Any]:
+    """Stamp and persist a result as an observation the evidence gate can cite."""
+    _stamp(sess, out)
+    v = vin or getattr(sess.link, "vin", "") or ""
+    store.record_observation(kind, out, vin=v, bus=sess.bus.key, cable=sess.link.cable)
+    return out
+
+
+# --- status and configuration -------------------------------------------------
+
+def status() -> dict[str, Any]:
+    return link().status()
+
+
+def ports() -> dict[str, Any]:
+    mes_port = (mes_registry().get("Interface 0 Port") or "").upper()
+    found = [{"device": p.device, "description": p.description, "hwid": p.hwid,
+              "mes_interface_0": p.device.upper() == mes_port}
+             for p in serial.tools.list_ports.comports()]
+    return {"ports": found, "mes_port": mes_port or None}
+
+
+def mes_settings() -> dict[str, Any]:
+    reg = mes_registry()
+    if not reg:
+        return {"error": "HKLM\\SOFTWARE\\Multiecuscan not found"}
+    return {"interfaces": mes_interfaces(reg), "folders": mes_folders(reg),
+            "last_selection": reg.get("Last Selection"),
+            "recent_vehicles": reg.get("Recent Vehicles"),
+            "ui_language": reg.get("UI Language"), "data_language": reg.get("Data Language"),
+            "all_keys": sorted(reg.keys())}
+
+
+def set_cable(cable: str) -> dict[str, Any]:
+    return link().set_cable(cable)
+
+
+def cable_state() -> dict[str, Any]:
+    return link().cable_state()
+
+
+def buses() -> dict[str, Any]:
+    st = link().cable_state()
+    return {"cable": st["cable"], "buses": st["buses"]}
+
+
+def modules(bus: Optional[str] = None) -> dict[str, Any]:
+    rows = on_bus(_bus(bus).key) if bus else list(MODULES)
+    return {"modules": [{
+        "code": m.code, "name": m.name, "bus": m.bus_key, "bus_confidence": m.bus_confidence,
+        "target": None if m.target is None else f"{m.target:02X}",
+        "request": m.request_hex, "response": m.response_hex,
+        "confidence": m.confidence.value, "usable": m.usable, "present": m.present,
+        "source": m.source, "hazard": m.hazard, "note": m.note,
+    } for m in rows]}
+
+
+# --- probe and verification --------------------------------------------------
+
+def probe(port: str = "", baud: int = 0, allow_while_mes_connected: bool = False) -> dict[str, Any]:
+    """Reset the adapter, read its identity, report vehicle power. Holds nothing."""
+    lk = link()
+    lk.identity = {}
+    with lk.session("probe", bus=CAN_C, port=port, baud=baud, passive=True,
+                    allow_while_mes_connected=allow_while_mes_connected) as sess:
+        out: dict[str, Any] = {"port": lk.port, "port_source": lk.port_source,
+                               "baud": lk.baud, "baud_source": lk.baud_source,
+                               "identity": lk.identity, "stn_chip": lk.is_stn}
+        volts = sess.cmd("ATRV", 2)
+        m = re.search(r"(\d+\.\d+)V", volts)
+        out["battery_voltage"] = float(m.group(1)) if m else None
+        out["vehicle_power_detected"] = bool(m)
+        if lk.is_stn:
+            out["protocol"] = sess.cmd("STPRS", 2)
+        if not m:
+            out["note"] = ("no vehicle voltage at the adapter: not plugged into the car or "
+                           "ignition off")
+        out["port_held"] = False
+        return _stamp(sess, out)
+
+
+def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
+               allow_while_mes_connected: bool = False) -> dict[str, Any]:
+    """Passive listen; marks the bus verified under the current cable if traffic is seen."""
+    b = _bus(bus)
+    lk = link()
+    with lk.session("verify_bus", bus=b, port=port, baud=baud, passive=True,
+                    allow_while_mes_connected=allow_while_mes_connected) as sess:
+        cap = capture_mod.listen(sess, seconds=seconds, max_frames=200)
+        ok = cap["count"] > 0 and not cap["error"]
+        if ok:
+            lk.mark_verified(b, cap["count"])
+        return _stamp(sess, {"verified": ok, "frames": cap["count"], "rate_hz": cap["rate_hz"],
+                             "ids": cap["ids"], "error": cap["error"],
+                             "note": (None if ok else
+                                      f"no traffic on {b.key} with cable {lk.cable!r}; check "
+                                      f"the cable, ignition, and the route note: "
+                                      f"{sess.route.note}")})
+
+
+def capture(bus: str, seconds: float = 2.0, max_frames: int = 500,
+            filters: Optional[list[str]] = None, include_frames: bool = True,
+            allow_while_mes_connected: bool = False) -> dict[str, Any]:
+    b = _bus(bus)
+    with link().session("capture", bus=b, passive=True,
+                        allow_while_mes_connected=allow_while_mes_connected) as sess:
+        cap = capture_mod.listen(sess, seconds=seconds, max_frames=max_frames, filters=filters)
+        if not include_frames:
+            cap["frames"] = cap["frames"][:20]
+            cap["frames_truncated"] = True
+        return _stamp(sess, cap)
+
+
+# --- legislated OBD on CAN-C -------------------------------------------------
+
+def _obd_session(purpose: str, **kw: Any):
+    return link().session(purpose, bus=CAN_C, **kw)
+
+
+def _dtc_read(sess: Session, mode: str, response_byte: str, label: str) -> dict[str, Any]:
+    sess.untarget()
+    q = sess.query(mode, response_byte)
+    out: dict[str, Any] = {"kind": label, "raw": q["raw"]}
+    if q["error"]:
+        out["error"] = (f"ADAPTER/BUS ERROR: {q['error']}. This is NOT 'no codes'; the read did "
+                        f"not complete.")
+        return _stamp(sess, out)
+    per_ecu = {hdr: decode_obd_dtcs(data) for hdr, data in q["ecus"].items()}
+    out["dtcs"] = sorted({c for codes in per_ecu.values() for c in codes})
+    out["by_ecu"] = per_ecu
+    if not q["ecus"]:
+        out["warning"] = ("no ECU answered" + (" (NO DATA)" if no_data(q["raw"]) else "") +
+                          "; with the ignition off this is expected")
+    if label == "stored" and not out["dtcs"]:
+        out["note"] = _MODE03_NOTE
+    return _observe(sess, "obd_dtcs", out)
+
+
+_KINDS = {"stored": ("03", "43"), "pending": ("07", "47"), "permanent": ("0A", "4A")}
+
+
+def obd_dtcs(kind: str = "stored", **kw: Any) -> dict[str, Any]:
+    if kind not in _KINDS:
+        raise BadCommand(f"kind must be one of {list(_KINDS)}")
+    mode, resp = _KINDS[kind]
+    with _obd_session(f"read_{kind}_dtcs", **kw) as sess:
+        return _dtc_read(sess, mode, resp, kind)
+
+
+def obd_all_dtcs(**kw: Any) -> dict[str, Any]:
+    with _obd_session("read_all_dtcs", **kw) as sess:
+        return _stamp(sess, {k: _dtc_read(sess, m, r, k) for k, (m, r) in _KINDS.items()})
+
+
+def obd_pid(pid: str, **kw: Any) -> dict[str, Any]:
+    hex_pid, spec = resolve_pid(pid)
+    with _obd_session("read_pid", **kw) as sess:
+        sess.untarget()
+        q = sess.query(f"01{hex_pid}", "41")
+        out: dict[str, Any] = {"pid": hex_pid, "name": spec.name if spec else None, "raw": q["raw"]}
+        if q["error"]:
+            out["error"] = f"ADAPTER/BUS ERROR: {q['error']}; the read did not complete"
+            return _stamp(sess, out)
+        readings = {hdr: decode_pid(hex_pid, spec, data[2:])
+                    for hdr, data in q["ecus"].items() if len(data) >= 2 and data[1] == hex_pid}
+        out["by_ecu"] = readings
+        first = next(iter(readings.values()), None)
+        if first is not None:
+            out["value"], out["unit"] = first.get("value"), first.get("unit")
+        else:
+            out["warning"] = "no ECU answered this PID"
+        return _stamp(sess, out)
+
+
+def obd_voltage(**kw: Any) -> dict[str, Any]:
+    with link().session("read_voltage", bus=CAN_C, passive=True, **kw) as sess:
+        r = sess.cmd("ATRV", 2)
+        m = re.search(r"(\d+\.\d+)V", r)
+        return _stamp(sess, {"raw": r, "volts": float(m.group(1)) if m else None,
+                             "vehicle_power_detected": bool(m)})
+
+
+def obd_supported_pids(**kw: Any) -> dict[str, Any]:
+    with _obd_session("read_supported_pids", **kw) as sess:
+        sess.untarget()
+        out: dict[str, Any] = {"by_ecu": {}, "raw": {}}
+        for base in ("00", "20", "40", "60", "80", "A0", "C0"):
+            q = sess.query(f"01{base}", "41")
+            out["raw"][base] = q["raw"]
+            if q["error"]:
+                out.setdefault("errors", {})[base] = q["error"]
+                break
+            any_next = False
+            for hdr, data in q["ecus"].items():
+                if len(data) < 6 or data[1] != base:
+                    continue
+                supported, more = decode_supported_pids(base, data[2:6])
+                out["by_ecu"].setdefault(hdr, []).extend(supported)
+                any_next = any_next or more
+            if not any_next:
+                break
+        for hdr, lst in out["by_ecu"].items():
+            out["by_ecu"][hdr] = {"count": len(lst), "pids": lst,
+                                  "known_names": [PIDS_BY_HEX[p].name for p in lst if p in PIDS_BY_HEX]}
+        return _stamp(sess, out)
+
+
+def obd_freeze_frame(pid: str = "", **kw: Any) -> dict[str, Any]:
+    hex_pid, spec = resolve_pid(pid) if pid.strip() else ("02", None)
+    with _obd_session("read_freeze_frame", **kw) as sess:
+        sess.untarget()
+        q = sess.query(f"02{hex_pid}00", "42")
+        out: dict[str, Any] = {"pid": hex_pid, "name": spec.name if spec else None, "raw": q["raw"]}
+        if q["error"]:
+            out["error"] = f"ADAPTER/BUS ERROR: {q['error']}; the read did not complete"
+            return _stamp(sess, out)
+        by_ecu: dict[str, Any] = {}
+        for hdr, data in q["ecus"].items():
+            if len(data) < 3 or data[1] != hex_pid:
+                continue
+            payload = data[3:]
+            if hex_pid == "02":
+                code = dtc_from_two_bytes(payload[0], payload[1]) if len(payload) >= 2 else None
+                by_ecu[hdr] = {"dtc": code, "bytes": payload}
+            else:
+                by_ecu[hdr] = decode_pid(hex_pid, spec, payload)
+        out["by_ecu"] = by_ecu
+        if not by_ecu:
+            out["warning"] = "no ECU returned a freeze frame (none stored, or ignition off)"
+        return _stamp(sess, out)
+
+
+def obd_vin(**kw: Any) -> dict[str, Any]:
+    with _obd_session("read_vin", **kw) as sess:
+        sess.untarget()
+        q = sess.query("0902", "49", 6)
+        out: dict[str, Any] = {"raw": q["raw"]}
+        if q["error"]:
+            out["error"] = f"ADAPTER/BUS ERROR: {q['error']}; the read did not complete"
+            return _stamp(sess, out)
+        for hdr, data in q["ecus"].items():
+            if len(data) >= 3 and data[1] == "02":
+                vin = "".join(chr(int(b, 16)) for b in data[3:] if 32 <= int(b, 16) < 127)
+                out.update({"vin": vin, "ecu": hdr, "length_ok": len(vin) == 17})
+                if len(vin) == 17:
+                    sess.link.vin = vin
+                break
+        if "vin" not in out:
+            out["warning"] = "no ECU answered Mode 09 PID 02"
+        return _stamp(sess, out)
+
+
+def readiness_in(sess: Session) -> dict[str, Any]:
+    sess.untarget()
+    out: dict[str, Any] = {}
+    for pid, label in (("01", "since_clear"), ("41", "this_drive_cycle")):
+        q = sess.query(f"01{pid}", "41")
+        if q["error"]:
+            out[label] = {"error": q["error"], "raw": q["raw"]}
+            continue
+        decoded = None
+        for hdr, data in q["ecus"].items():
+            decoded = decode_readiness(data, "41")
+            if decoded:
+                decoded["ecu"] = hdr
+                break
+        out[label] = decoded or {"error": "could not decode readiness response", "raw": q["raw"]}
+    verdict = evap_verdict(out.get("since_clear") or {})
+    if verdict:
+        out["evap_verdict"] = verdict
+    counters: dict[str, Any] = {}
+    for name, hex_pid in (("warmups_since_clear", "30"), ("distance_since_clear", "31")):
+        q = sess.query(f"01{hex_pid}", "41")
+        if q["error"]:
+            continue
+        for _hdr, data in q["ecus"].items():
+            if len(data) >= 3 and data[1] == hex_pid:
+                dec = decode_pid(hex_pid, PIDS_BY_HEX[hex_pid], data[2:])
+                if "value" in dec:
+                    counters[name] = dec["value"]
+                break
+    if counters:
+        out["drive_cycle_counters"] = counters
+    return _observe(sess, "readiness", out)
+
+
+def obd_readiness(**kw: Any) -> dict[str, Any]:
+    with _obd_session("read_readiness", **kw) as sess:
+        return readiness_in(sess)
+
+
+# --- UDS on any bus ----------------------------------------------------------
+
+def module_dtcs(code: str, vin: str = "", mask: int = 0xFF, confirm: bool = False,
+                **kw: Any) -> dict[str, Any]:
+    ecu = uds_mod.resolve_module(code, vin or None)
+    with link().session(f"module_dtcs {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
+                        **kw) as sess:
+        return _observe(sess, "module_dtcs", uds_mod.read_dtcs(sess, ecu, mask), vin)
+
+
+def module_identity(code: str, vin: str = "", confirm: bool = False, **kw: Any) -> dict[str, Any]:
+    ecu = uds_mod.resolve_module(code, vin or None)
+    with link().session(f"module_identity {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
+                        **kw) as sess:
+        out = uds_mod.identity(sess, ecu)
+        f190 = (out.get("fields") or {}).get("F190") or {}
+        if f190.get("ascii") and len(f190["ascii"]) == 17:
+            sess.link.vin = f190["ascii"]
+        return _observe(sess, "identity", out, vin)
+
+
+def module_did(code: str, did: str, vin: str = "", confirm: bool = False, **kw: Any
+               ) -> dict[str, Any]:
+    ecu = uds_mod.resolve_module(code, vin or None)
+    try:
+        did_int = int(did, 16)
+    except ValueError:
+        raise BadCommand(f"did must be hex, got {did!r}")
+    if not 0 <= did_int <= 0xFFFF:
+        raise BadCommand("did must be 0000..FFFF")
+    with link().session(f"module_did {ecu.code} {did_int:04X}", bus=_bus(ecu.bus_key),
+                        confirm=confirm, **kw) as sess:
+        return _observe(sess, "did", uds_mod.read_did(sess, ecu, did_int), vin)
+
+
+def scan_modules(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm: bool = False,
+                 **kw: Any) -> dict[str, Any]:
+    b = _bus(bus)
+    with link().session(f"scan_modules {b.key}", bus=b, confirm=confirm, **kw) as sess:
+        out = _observe(sess, "scan", uds_mod.scan_bus(sess, b, vin or None, mask), vin)
+        for mod in out.get("modules", []):
+            if "codes" in mod:
+                store.record_observation("module_dtcs", mod,
+                                         vin=vin or getattr(sess.link, "vin", ""),
+                                         bus=b.key, cable=sess.link.cable)
+        return out
+
+
+def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
+             candidates: Optional[list[str]] = None, per_target_timeout: float = 0.25,
+             stop_after: Optional[int] = None, **kw: Any) -> dict[str, Any]:
+    b = _bus(bus)
+    cands = None
+    if candidates:
+        try:
+            cands = [int(c, 16) for c in candidates]
+        except ValueError:
+            raise BadCommand("candidates must be hex target bytes")
+    with link().session(f"discover {b.key}", bus=b, confirm=confirm, **kw) as sess:
+        return _stamp(sess, uds_mod.discover(sess, b, vin_expected=vin or None,
+                                             candidates=cands,
+                                             per_target_timeout=per_target_timeout,
+                                             stop_after=stop_after))
+
+
+def observations(n: int = 50, vin: str = "", kind: str = "") -> dict[str, Any]:
+    return {"path": str(store.observations_path()),
+            "entries": store.recent_observations(n, vin=vin, kind=kind)}
+
+
+__all__ = ["observations", "status", "ports", "mes_settings", "set_cable", "cable_state", "buses", "modules",
+           "probe", "verify_bus", "capture", "obd_dtcs", "obd_all_dtcs", "obd_pid",
+           "obd_voltage", "obd_supported_pids", "obd_freeze_frame", "obd_vin",
+           "readiness_in", "obd_readiness", "module_dtcs", "module_identity", "module_did",
+           "scan_modules", "discover", "AdapterLink", "link", "DEFAULT_TIMEOUT"]

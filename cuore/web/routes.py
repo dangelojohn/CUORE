@@ -17,6 +17,8 @@ Page set:
 ``/modules``                 module registry and bus map
 ``/recordings``              CSV recordings
 ``/logs``                    the raw log index
+``/live``                    the live link: adapter, cable, buses, OBD
+``/live/module/{code}``      one module's UDS DTCs and identity, live
 ===========================  ==================================================
 """
 
@@ -25,15 +27,19 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from .. import __version__
 from ..services import cache, mes_bridge
 from ..services.errors import BridgeError
 from ..api.deps import require_token, settings_of
+from ..live import ops as live_ops
+from ..live.buses import BUSES, PIN_1_9_WARNING
+from ..live.errors import LiveError
 
 HERE = Path(__file__).resolve().parent
 TEMPLATE_DIR = HERE / "templates"
@@ -267,3 +273,169 @@ def logs(request: Request, vin: str = "", kind: str = "",
                                 include_simulation=include_simulation)
     return _page(request, "logs.html", data=data, vin=vin, kind=kind,
                  include_simulation=include_simulation)
+
+
+# --- live link --------------------------------------------------------------
+#
+# Every value below comes from cuore.live.ops, the same functions the MCP
+# tools call. This module never opens the adapter itself and never bypasses
+# the ops-layer safety gates (cable declaration, bus verification, the
+# transmit-confirmation flag) -- it only decides how to *render* what those
+# gates say, including turning a refusal into guidance instead of a 500.
+#
+# The UI adds one gate of its own, stricter than the live layer's: reading a
+# module on CAN-CH or CAN-IHS always shows a confirm checkbox here, even
+# though only CAN-CH is flagged transmit_needs_confirmation in cuore.live.buses
+# -- both carry chassis/body modules this bench UI treats as sensitive.
+
+
+def _live_snapshot() -> dict[str, Any]:
+    """The always-shown facts: adapter status, cable/bus state, module table.
+
+    Each call is independently wrapped -- one failing (say, no port
+    configured) must not blank the other two panels.
+    """
+    out: dict[str, Any] = {}
+    try:
+        out["status"] = live_ops.status()
+        out["status_error"] = None
+    except LiveError as exc:
+        out["status"] = None
+        out["status_error"] = str(exc)
+    try:
+        out["cable_data"] = live_ops.buses()
+        out["cable_error"] = None
+    except LiveError as exc:
+        out["cable_data"] = None
+        out["cable_error"] = str(exc)
+    try:
+        out["module_rows"] = live_ops.modules()["modules"]
+        out["module_error"] = None
+    except LiveError as exc:
+        out["module_rows"] = []
+        out["module_error"] = str(exc)
+    return out
+
+
+def _live_page(request: Request, **extra: Any) -> HTMLResponse:
+    ctx = _live_snapshot()
+    ctx["pin_1_9_warning"] = PIN_1_9_WARNING
+    ctx["can_ch_note"] = BUSES["can_ch"].notes
+    ctx["can_ihs_note"] = BUSES["can_ihs"].notes
+    ctx.update(extra)
+    return _page(request, "live.html", **ctx)
+
+
+@router.get("/live", response_class=HTMLResponse)
+def live_page(request: Request, cable_error: str = "") -> HTMLResponse:
+    """Adapter status, cable declaration, bus map, module table and OBD."""
+    return _live_page(request, cable_error=cable_error or None)
+
+
+@router.post("/live/cable", response_class=HTMLResponse)
+def live_set_cable(cable: str = Form(...)) -> RedirectResponse:
+    """Declare the fitted cable, then redirect back (GET/POST/redirect, no JS needed)."""
+    try:
+        live_ops.set_cable(cable)
+    except LiveError as exc:
+        return RedirectResponse(url=f"/live?cable_error={quote(str(exc))}",
+                                status_code=303)
+    return RedirectResponse(url="/live", status_code=303)
+
+
+@router.post("/live/verify", response_class=HTMLResponse)
+def live_verify(request: Request, bus: str = Form(...),
+                seconds: float = Form(default=2.0)) -> HTMLResponse:
+    """Passive listen on one bus; rendered inline rather than a redirect so
+    the frame count and IDs seen are not lost."""
+    try:
+        result = live_ops.verify_bus(bus, seconds=seconds)
+        error = None
+    except LiveError as exc:
+        result = None
+        error = str(exc)
+    return _live_page(request, verify_bus_key=bus, verify_result=result,
+                      verify_error=error)
+
+
+@router.post("/live/probe", response_class=HTMLResponse)
+def live_probe(request: Request) -> HTMLResponse:
+    """Reset the adapter and read its identity. Holds nothing afterwards."""
+    try:
+        result = live_ops.probe()
+        error = None
+    except LiveError as exc:
+        result = None
+        error = str(exc)
+    return _live_page(request, probe_result=result, probe_error=error)
+
+
+_OBD_ACTIONS: dict[str, Any] = {
+    "dtcs": live_ops.obd_all_dtcs,
+    "readiness": live_ops.obd_readiness,
+    "vin": live_ops.obd_vin,
+    "voltage": live_ops.obd_voltage,
+}
+
+
+@router.post("/live/obd/{kind}", response_class=HTMLResponse)
+def live_obd(request: Request, kind: str) -> HTMLResponse:
+    """Legislated OBD on CAN-C: DTCs, readiness, VIN or battery voltage.
+
+    These are Mode 01/02/03/07/09/0A reads, need no cable/verification gate
+    and no confirm checkbox -- CAN-C carries no chassis-safety module and the
+    live layer itself never lets a write reach the wire from here.
+    """
+    fn = _OBD_ACTIONS.get(kind)
+    if fn is None:
+        return _live_page(request, obd_kind=kind, obd_result=None,
+                          obd_error=f"unknown legislated-OBD action {kind!r}")
+    try:
+        result = fn()
+        error = None
+    except LiveError as exc:
+        result = None
+        error = str(exc)
+    return _live_page(request, obd_kind=kind, obd_result=result, obd_error=error)
+
+
+@router.get("/live/module/{code}", response_class=HTMLResponse)
+def live_module(request: Request, code: str, confirm: bool = False) -> HTMLResponse:
+    """One module's UDS DTCs and Annex C identity.
+
+    A refusal from the live layer (unverified bus, unknown module, MES
+    holding the adapter) is guidance here, not an error page -- this is the
+    single most likely outcome on a bench that has not yet declared a cable
+    or run a passive listen.
+    """
+    code = code.strip()
+    try:
+        rows = live_ops.modules()["modules"]
+    except LiveError:
+        rows = []
+    row = next((m for m in rows if m["code"].upper() == code.upper()), None)
+    bus_key = row["bus"] if row else None
+    needs_confirm = bus_key in ("can_ch", "can_ihs")
+
+    dtcs = identity = None
+    dtcs_error = identity_error = None
+    if needs_confirm and not confirm:
+        dtcs_error = identity_error = (
+            f"module {code.upper()} lives on {bus_key}, which this bench UI treats as "
+            f"sensitive (chassis/body). Tick 'confirm' and read again. This is in addition "
+            f"to whatever cuore.live itself enforces for that bus.")
+    else:
+        try:
+            dtcs = live_ops.module_dtcs(code, confirm=confirm)
+        except LiveError as exc:
+            dtcs_error = str(exc)
+        try:
+            identity = live_ops.module_identity(code, confirm=confirm)
+        except LiveError as exc:
+            identity_error = str(exc)
+
+    return _page(request, "live_module.html", code=code.upper(), confirm=confirm,
+                 row=row, bus_key=bus_key, needs_confirm=needs_confirm,
+                 dtcs=dtcs, dtcs_error=dtcs_error,
+                 identity=identity, identity_error=identity_error,
+                 pin_1_9_warning=PIN_1_9_WARNING)

@@ -48,10 +48,10 @@ _BENCH: dict[str, bool] = {
     "modules": True,
     "recordings": True,
     "log_read": True,
-    "live_obd": False,
-    "live_can": False,
+    "live_obd": True,       # lowered at runtime when no port resolves or MES holds it
+    "live_can": True,       # passive capture; lowered with live_obd
     "drive_recorder": False,
-    "actuators": False,
+    "actuators": False,     # stays False: the live layer has no write path
 }
 
 # The drive node carries no log corpus -- it holds recordings it made itself and

@@ -36,12 +36,13 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from . import analysis, faulttree, fes as fes_mod, knowledge
+from . import analysis, faulttree, fes as fes_mod, knowledge, live_obs
 from .catalog import CATALOG
 
 #: Measurement types the corpus can verify, vs those it can only record as
-#: operator attestation.
-_VERIFIABLE = {"actuator", "freeze_frame", "parameter", "recording_event"}
+#: operator attestation. ``live`` is verified against the observations the
+#: cuore live link recorded from the vehicle itself.
+_VERIFIABLE = {"actuator", "freeze_frame", "parameter", "recording_event", "live"}
 _ATTESTED = {"manual"}
 
 #: Component keywords -> the do-not warning they trip. Transcribed from the
@@ -216,10 +217,20 @@ def _verify_measurement(m: dict[str, Any], vin: str) -> dict[str, Any]:
             result.update(status="not_found", note=str(exc))
         return result
 
+    if mtype == "live":
+        verdict = live_obs.verify_live(m, vin)
+        status = verdict.pop("status", "unverified")
+        result.update(status="verified" if status == "verified" else "not_found",
+                      found=verdict if status == "verified" else None,
+                      note=verdict.get("note"))
+        if result["found"] is None:
+            result.pop("found")
+        return result
+
     result.update(status="rejected",
                   note=f"unknown measurement type {mtype!r}; use one of: "
                        "actuator, freeze_frame, parameter, recording_event, "
-                       "manual")
+                       "live, manual")
     return result
 
 

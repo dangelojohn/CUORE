@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} — Live module{% endblock %}
+{% block content %}
+
+<h1 class="mono">{{ code }}</h1>
+<p class="lede">
+  {% if row %}{{ row.name }} on <span class="mono">{{ bus_key }}</span>.
+  {% else %}Not in the module registry — the live link may still know it.{% endif %}
+  UDS reads only: ReadDTCInformation (0x19) and ReadDataByIdentifier (0x22).
+  Nothing here can write to the module.
+</p>
+
+<p><a class="btn" href="/live">&larr; Live link</a></p>
+
+{% if needs_confirm %}
+  <div class="note warn">
+    <span class="lab">{{ bus_key }} is treated as sensitive here</span>
+    This module lives on {{ bus_key }}, which carries chassis, body or safety
+    modules on this platform. This bench UI will not ask the live link to
+    read it without the confirm box checked below, on top of whatever
+    cuore.live itself enforces (bus verification, and for CAN&#8209;CH, its
+    own confirm gate).
+  </div>
+  <div class="panel">
+    <form method="get" action="/live/module/{{ code }}"
+          style="display:flex;gap:10px;align-items:center">
+      <label style="display:inline-flex;gap:6px;align-items:center;text-transform:none;font-size:13.5px;color:var(--ink)">
+        <input type="checkbox" name="confirm" value="true" style="width:auto" {% if confirm %}checked{% endif %}>
+        I understand {{ bus_key }} carries safety-relevant modules; read anyway
+      </label>
+      <button class="btn primary" type="submit">Read with confirmation</button>
+    </form>
+  </div>
+{% endif %}
+
+<h2>DTCs (0x19 02)</h2>
+{% if dtcs_error %}
+  <div class="note {{ 'warn' if 'not been verified' in dtcs_error or 'sensitive' in dtcs_error else 'alert' }}">
+    <span class="lab">{{ "Refused" if "not been verified" in dtcs_error or "requires confirm" in dtcs_error or "sensitive" in dtcs_error else "Could not read" }}</span>
+    {{ dtcs_error }}
+  </div>
+{% elif dtcs %}
+  <div class="panel">
+    {% if dtcs.error %}<div class="note alert"><span class="lab">error</span>{{ dtcs.error }}</div>{% endif %}
+    {% if dtcs.warning %}<div class="note warn"><span class="lab">warning</span>{{ dtcs.warning }}</div>{% endif %}
+    {% if dtcs.note %}<div class="note"><span class="lab">note</span>{{ dtcs.note }}</div>{% endif %}
+    {% if dtcs.nrc %}
+      <div class="note warn"><span class="lab">Negative response</span>
+        {% for h, n in dtcs.nrc.items() %}{{ h }}: {{ n }} {% endfor %}
+      </div>
+    {% endif %}
+    {% if dtcs.dtcs %}
+      <div class="tw">
+      <table>
+        <thead><tr>{% for k in dtcs.dtcs[0].keys() %}<th>{{ k }}</th>{% endfor %}</tr></thead>
+        <tbody>
+        {% for rec in dtcs.dtcs %}
+          <tr>{% for v in rec.values() %}<td class="mono small">{{ v }}</td>{% endfor %}</tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    {% elif not dtcs.error and not dtcs.warning %}
+      <p class="muted small">No DTCs reported.</p>
+    {% endif %}
+    <p class="small muted mono" style="margin-top:8px">bus {{ dtcs.bus }} &middot; cable {{ dtcs.cable }} &middot; mask {{ dtcs.mask }}</p>
+  </div>
+{% endif %}
+
+<h2>Identity (Annex C)</h2>
+{% if identity_error %}
+  <div class="note {{ 'warn' if 'not been verified' in identity_error or 'sensitive' in identity_error else 'alert' }}">
+    <span class="lab">{{ "Refused" if "not been verified" in identity_error or "requires confirm" in identity_error or "sensitive" in identity_error else "Could not read" }}</span>
+    {{ identity_error }}
+  </div>
+{% elif identity %}
+  <div class="panel">
+    {% if identity.error %}<div class="note alert"><span class="lab">error</span>{{ identity.error }}</div>{% endif %}
+    {% if identity.fields %}
+    <div class="tw">
+    <table>
+      <thead><tr><th>DID</th><th>Name</th><th>Value</th><th>NRC</th></tr></thead>
+      <tbody>
+      {% for did, f in identity.fields.items() %}
+        <tr>
+          <td class="mono">{{ did }}</td>
+          <td class="small">{{ f.name or "—" }}</td>
+          <td class="mono small">{{ f.ascii or (f.bytes|join(" ") if f.bytes else "—") }}</td>
+          <td class="small muted">{{ f.nrc or "—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+    <p class="small muted mono" style="margin-top:8px">bus {{ identity.bus }} &middot; cable {{ identity.cable }}</p>
+  </div>
+{% endif %}
+
+<div class="note warn">
+  <span class="lab">Pins 1 and 9</span>
+  {{ pin_1_9_warning }}
+</div>
+
+{% endblock %}

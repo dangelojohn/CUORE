@@ -148,36 +148,53 @@ clean.
 | `recording_events` | TAG/DTC events + threshold queries as excursion intervals |
 | `recording_snapshot` | post-hoc freeze frame at any second of a recording |
 
-## `obd2-mcp` — tools
+## `cuore/live` — the live vehicle link, and `obd2-mcp` over it
 
-Live link to the adapter on the OBD port. Every tool opens the COM port for one
-operation and releases it, so MultiEcuScan can take the adapter between calls;
-MES's own status label is checked first and a connected MES blocks the open.
-Port and speed come from explicit arguments, then `OBD_PORT` / `OBD_BAUD`, then
-MES's `HKLM\SOFTWARE\Multiecuscan` Interface 0 settings. Headers stay on and
-ISO-TP frames are reassembled here, so every answer is attributed to the ECU
-that sent it. All tools return JSON and set `error` whenever a read did not
-complete, so a bus fault never reads as "no codes".
+The adapter (a Vgate vLinker FS r2, STN1170, on COM3 at 115200) is driven by
+one package, `cuore/live`, and exposed two ways: as `/api/live/*` HTTP routes
+inside cuore and as MCP tools in `obd2-mcp/server.py`, which is now a thin
+wrapper over the same code. One process-wide link, one lock file, one MES
+interlock, so the two surfaces cannot open COM3 twice.
 
-| Tool | Purpose |
+Rules the link follows (see `docs/design/CUORE_LIVE_LINK_PLAN.md`):
+
+- **One operation, one open.** Every call opens the port, does its work and
+  releases it. MES's own status label is checked first; a connected MES blocks.
+- **Buses are declared cable states.** `set_cable none|blue_a5|grey_a6`, then
+  `verify_bus` listens passively (receive only, no ACK) before anything is
+  transmitted on that bus. CAN-CH additionally needs `confirm=True`.
+- **Addresses carry confidence.** Only confirmed 29-bit targets are used for
+  targeted UDS; the rest live in the discovery sweep until a VIN read proves
+  them, and confirmations persist per VIN.
+- **Read-only by construction.** The UDS allowlist is `10 01`, `19`, `22`, `3E`.
+  The only vehicle write anywhere is `clear_dtcs` on the MCP surface, with
+  evidence capture, a speed check and a read-back.
+- Port and speed resolve from arguments, then `CUORE_OBD_PORT`/`OBD_PORT` and
+  `CUORE_OBD_BAUD`/`OBD_BAUD`, then MES's `HKLM\SOFTWARE\Multiecuscan`.
+- Everything returns JSON with the bus and cable named and `error` set when a
+  read did not complete. State (lock, audit log, address confirmations, clear
+  evidence) lives under `%PROGRAMDATA%\cuore\`.
+
+| MCP tool / HTTP route | Purpose |
 |---|---|
-| `list_ports` | serial ports, with MES's configured port marked |
-| `status` | resolved port/speed and their sources, MES state, lock state, last adapter identity |
-| `mes_state` | is MES running and connected (read-only process + window-label probe) |
-| `mes_settings` | MES's registry settings: interfaces, folders, CSV separator, recent vehicles |
-| `connect` | probe: reset the adapter, read its identity, pin the protocol if the car answers; does not hold the port |
-| `disconnect` | release anything held and forget the pinned protocol |
-| `read_dtcs` / `read_pending_dtcs` / `read_permanent_dtcs` | Modes 03 / 07 / 0A, per ECU |
-| `read_pid` | Mode 01 with J1979 formulas for 32 named PIDs |
-| `read_voltage` | battery voltage at the OBD port (`ATRV`) |
-| `read_supported_pids` | Mode 01 support bitmaps per ECU |
-| `read_freeze_frame` | Mode 02 frame 0, decoded |
-| `read_vin` | Mode 09 PID 02, reassembled |
-| `read_readiness` | Mode 01 PID 01 / 41 monitors plus drive-cycle counters, with an EVAP verdict |
-| `clear_dtcs` | Mode 04: captures codes, freeze frame and readiness to a file first, refuses while moving, reads back after |
-| `send_raw` | one AT/ST/hex command; vehicle writes, adapter reconfiguration and monitor modes are gated |
+| `status` · `GET /api/live/status` | port, speed, sources, MES state, lock, cable, bus verification |
+| `list_ports` · `GET /api/live/ports` | serial ports, MES's marked |
+| `mes_state`, `mes_settings` · `GET /api/live/mes` | the interlock and MES's registry settings |
+| `connect` · `POST /api/live/probe` | reset, identity, vehicle power; holds nothing |
+| `set_cable` · `POST /api/live/cable` | declare the fitted cable |
+| `buses`, `modules` · `GET /api/live/buses`, `/modules` | the bus and module tables |
+| `verify_bus` · `POST /api/live/verify` | passive listen; marks the bus verified |
+| `capture` · `POST /api/live/capture` | passive raw-frame capture with optional filters |
+| `read_dtcs` / `read_pending_dtcs` / `read_permanent_dtcs` · `GET /api/live/obd/dtcs` | Modes 03 / 07 / 0A per ECU |
+| `read_pid`, `read_voltage`, `read_supported_pids`, `read_freeze_frame`, `read_vin`, `read_readiness` · `GET /api/live/obd/...` | legislated OBD, decoded |
+| `read_module_dtcs`, `read_module_identity`, `read_did` · `GET /api/live/module/{code}/...` | UDS 0x19 02, Annex C identity, 0x22 on one module |
+| `scan_modules` · `GET /api/live/scan` | UDS DTC sweep over confirmed modules on a bus |
+| `discover_modules` · `POST /api/live/discover` | `22 F190` at each candidate target; VIN reply proves the node |
+| `audit_log` · `GET /api/live/audit` | every session, cable change, discovery and capture |
+| `clear_dtcs`, `send_raw` (MCP only) | the gated write and the gated escape hatch |
 
-Adapter on this bench: Vgate vLinker FS r2 (STN1170) on COM3 at 115200.
+Tests: `cuore/tests/check_live.py` (pure functions plus a playback-stream
+end-to-end that needs no hardware) and the obd2-mcp scripts.
 
 ### Configuration
 

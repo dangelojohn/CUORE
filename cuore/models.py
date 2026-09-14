@@ -37,18 +37,18 @@ class CorpusInfo(BaseModel):
 
 
 class AdapterInfo(BaseModel):
-    """State of the OBD-II link.
+    """State of the OBD-II link, as the live layer reports it.
 
-    Always present, always ``present=False`` at P1. ``blocked_by`` exists now
-    so the P2 interlock has somewhere to say "MES holds the port" rather than
-    inventing a field later -- a client written today can already render that
-    message.
+    ``present`` means the next live call would be able to open the port: a
+    port resolved, MES is not connected, and no other process holds the lock.
+    ``blocked_by`` says who has it otherwise. The port is never held between
+    calls, so there is no "connected" state to report.
     """
 
     present: bool = False
     port: str | None = None
     blocked_by: str | None = None
-    note: str = "live link not built yet (P2)"
+    note: str = "port opened per operation"
 
 
 class Capabilities(BaseModel):
@@ -87,7 +87,7 @@ class ErrorBody(BaseModel):
 
 
 MeasurementType = Literal["actuator", "freeze_frame", "parameter",
-                          "recording_event", "manual"]
+                          "recording_event", "manual", "live"]
 
 
 class Measurement(BaseModel):
@@ -105,6 +105,10 @@ class Measurement(BaseModel):
     file: str | None = None           # parameter / recording_event
     condition: str | None = None      # recording_event
     description: str | None = None    # manual
+    kind: str | None = None           # live: dtc | permanent | readiness | module_dtc | did
+    monitor: str | None = None        # live readiness
+    ecu: str | None = None            # live did
+    did: str | None = None            # live did
 
 
 class VerdictRequest(BaseModel):

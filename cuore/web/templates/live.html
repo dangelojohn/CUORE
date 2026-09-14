@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+{% block title %}Live link — CUORE{% endblock %}
+{% block content %}
+
+<h1>Live link</h1>
+<p class="lede">The adapter, opened per operation and released the moment it
+answers — MultiEcuScan can take it back the instant a call returns. Nothing
+on this page writes to the car: legislated OBD and CAN-C module reads need no
+confirmation, and CAN-CH / CAN-IHS module reads need the confirm box below
+before this bench UI will ask the live link to try.</p>
+
+{# ---------------- adapter status ---------------- #}
+
+<h2>Adapter</h2>
+{% if status_error %}
+  <div class="note alert"><span class="lab">Could not read status</span>{{ status_error }}</div>
+{% elif status %}
+  {% if status.mes and status.mes.state == "connected" %}
+    <div class="note alert">
+      <span class="lab">MES holds the adapter</span>
+      MultiEcuScan is connected (label {{ status.mes.label }}, pid(s)
+      {{ status.mes.pids|join(", ") }}). Disconnect in MES before anything
+      here will be able to open the port.
+    </div>
+  {% endif %}
+  <div class="cols two">
+    <div class="panel">
+      <h3>Port and speed</h3>
+      <table>
+        <tr><td class="k">Port</td><td class="mono">{{ status.port or "—" }}</td></tr>
+        <tr><td class="k">Port source</td><td class="small muted">{{ status.port_source or "—" }}</td></tr>
+        <tr><td class="k">Baud</td><td class="mono">{{ status.baud or "—" }}</td></tr>
+        <tr><td class="k">Baud source</td><td class="small muted">{{ status.baud_source or "—" }}</td></tr>
+        <tr><td class="k">Adapter identity</td>
+            <td class="mono small">
+              {% if status.adapter_identity %}
+                {% for k, v in status.adapter_identity.items() %}{{ k }}={{ v }} {% endfor %}
+              {% else %}not probed yet{% endif %}
+            </td></tr>
+        <tr><td class="k">STN chip</td><td>{{ "yes" if status.is_stn else "no / unknown" }}</td></tr>
+        <tr><td class="k">Last open</td><td class="mono small">{{ status.last_open or "—" }}</td></tr>
+        <tr><td class="k">Last error</td>
+            <td class="small {{ 'muted' if not status.last_error }}">{{ status.last_error or "—" }}</td></tr>
+      </table>
+    </div>
+    <div class="panel">
+      <h3>MES and lock</h3>
+      <table>
+        <tr><td class="k">MES state</td>
+            <td><span class="chip {{ 'returned' if status.mes.state == 'connected' else 'ok' if status.mes.state == 'disconnected' else 'plain' }}">{{ status.mes.state }}</span></td></tr>
+        <tr><td class="k">MES label</td><td class="mono small">{{ status.mes.label or "—" }}</td></tr>
+        <tr><td class="k">MES pid(s)</td><td class="mono small">{{ status.mes.pids|join(", ") if status.mes.pids else "—" }}</td></tr>
+        <tr><td class="k">Lock holder</td>
+            <td class="small">
+              {% if status.lock %}
+                pid {{ status.lock.pid }} ({{ status.lock.process }}: {{ status.lock.purpose }})
+                since {{ status.lock.since }}
+                {% if status.lock.stale %}<span class="chip plain">stale</span>{% endif %}
+              {% else %}none{% endif %}
+            </td></tr>
+      </table>
+    </div>
+  </div>
+  <p class="small muted">{{ status.note }}</p>
+{% endif %}
+
+{# ---------------- cable ---------------- #}
+
+<h2>Cable</h2>
+{% if cable_error %}
+  <div class="note alert"><span class="lab">Could not set the cable</span>{{ cable_error }}</div>
+{% endif %}
+<div class="panel">
+  <form method="post" action="/live/cable"
+        style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+    {% set current_cable = cable_data.cable if cable_data else "none" %}
+    {% for c in ["none", "blue_a5", "grey_a6"] %}
+      <label style="display:inline-flex;gap:6px;align-items:center;text-transform:none;font-size:13.5px;color:var(--ink)">
+        <input type="radio" name="cable" value="{{ c }}" style="width:auto"
+               {% if c == current_cable %}checked{% endif %}>
+        {{ c }}
+      </label>
+    {% endfor %}
+    <button class="btn primary" type="submit">Declare cable</button>
+  </form>
+  <p class="small muted" style="margin:8px 0 0">Declaring a different cable
+    clears every bus verification below — verify again before transmitting.</p>
+</div>
+
+{# ---------------- buses ---------------- #}
+
+<h2>Buses</h2>
+{% if cable_error is none and not cable_data %}
+  <div class="note alert"><span class="lab">Could not read bus state</span>{{ status_error or "unknown error" }}</div>
+{% elif cable_data %}
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>Bus</th><th>Pins</th><th class="n">Bitrate</th>
+               <th>Reachable</th><th>Route</th><th>Verified</th><th>Transmit</th><th></th></tr></thead>
+    <tbody>
+    {% for b in cable_data.buses %}
+      <tr>
+        <td class="mono">{{ b.bus }}<div class="small muted">{{ b.name }}</div></td>
+        <td class="mono small">{{ b.pins|join("/") }}</td>
+        <td class="n mono">{{ b.bitrate }}</td>
+        <td><span class="chip {{ 'ok' if b.reachable_with_cable else 'returned' }}">
+              {{ "yes" if b.reachable_with_cable else "no" }}</span></td>
+        <td class="small">
+          {% if b.route %}
+            <span class="chip {{ 'ok' if b.route.status == 'confirmed' else 'plain' }}">{{ b.route.status }}</span>
+            <div class="muted" style="margin-top:3px">{{ b.route.note }}</div>
+          {% else %}<span class="muted">no route with this cable</span>{% endif %}
+        </td>
+        <td>
+          {% if b.verified %}
+            <span class="chip ok">verified</span>
+            <div class="small muted">{{ b.verified_frames }} frames &middot; {{ b.verified_at }}</div>
+          {% else %}<span class="chip plain">unverified</span>{% endif %}
+        </td>
+        <td class="small">{{ "needs confirm" if b.transmit_needs_confirmation else "—" }}</td>
+        <td>
+          {% if b.reachable_with_cable %}
+          <form method="post" action="/live/verify" style="display:flex;gap:4px;align-items:center">
+            <input type="hidden" name="bus" value="{{ b.bus }}">
+            <input type="hidden" name="seconds" value="2">
+            <button class="btn" type="submit">Verify (passive listen)</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{% if verify_result is defined and verify_bus_key %}
+  {% if verify_error %}
+    <div class="note alert">
+      <span class="lab">Verify {{ verify_bus_key }} — could not complete</span>
+      {{ verify_error }}
+    </div>
+  {% elif verify_result %}
+    <div class="note {{ 'good' if verify_result.verified else 'warn' }}">
+      <span class="lab">Verify {{ verify_bus_key }}</span>
+      <b>{{ "verified" if verify_result.verified else "no traffic seen" }}</b> —
+      {{ verify_result.frames }} frames at {{ verify_result.rate_hz }} Hz on cable
+      {{ verify_result.cable }}.
+      {% if verify_result.ids %}<div class="mono small" style="margin-top:4px">IDs: {{ verify_result.ids|join(", ") }}</div>{% endif %}
+      {% if verify_result.error %}<div class="small" style="margin-top:4px">{{ verify_result.error }}</div>{% endif %}
+      {% if verify_result.note %}<div class="small muted" style="margin-top:4px">{{ verify_result.note }}</div>{% endif %}
+    </div>
+  {% endif %}
+{% endif %}
+
+{# ---------------- probe ---------------- #}
+
+<h2>Probe</h2>
+<div class="panel">
+  <form method="post" action="/live/probe">
+    <button class="btn" type="submit">Probe adapter</button>
+    <span class="small muted">Resets the adapter and reads its identity and battery voltage. Holds nothing.</span>
+  </form>
+</div>
+{% if probe_result is defined %}
+  {% if probe_error %}
+    <div class="note alert"><span class="lab">Probe failed</span>{{ probe_error }}</div>
+  {% elif probe_result %}
+    <div class="panel">
+      <table>
+        <tr><td class="k">Port</td><td class="mono">{{ probe_result.port }} ({{ probe_result.port_source }})</td></tr>
+        <tr><td class="k">Baud</td><td class="mono">{{ probe_result.baud }} ({{ probe_result.baud_source }})</td></tr>
+        <tr><td class="k">Identity</td>
+            <td class="mono small">
+              {% for k, v in (probe_result.identity or {}).items() %}{{ k }}={{ v }} {% endfor %}
+            </td></tr>
+        <tr><td class="k">STN chip</td><td>{{ "yes" if probe_result.stn_chip else "no" }}</td></tr>
+        <tr><td class="k">Battery voltage</td>
+            <td class="mono">{{ probe_result.battery_voltage if probe_result.battery_voltage is not none else "—" }}</td></tr>
+        <tr><td class="k">Vehicle power detected</td>
+            <td><span class="chip {{ 'ok' if probe_result.vehicle_power_detected else 'returned' }}">
+                  {{ "yes" if probe_result.vehicle_power_detected else "no" }}</span></td></tr>
+        {% if probe_result.protocol %}<tr><td class="k">Protocol</td><td class="mono small">{{ probe_result.protocol }}</td></tr>{% endif %}
+      </table>
+      {% if probe_result.note %}<div class="note warn" style="margin-top:10px">{{ probe_result.note }}</div>{% endif %}
+    </div>
+  {% endif %}
+{% endif %}
+
+{# ---------------- modules ---------------- #}
+
+<h2>Modules</h2>
+{% if module_error %}
+  <div class="note alert"><span class="lab">Could not read the module table</span>{{ module_error }}</div>
+{% else %}
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>Code</th><th>Name</th><th>Bus</th><th>Target</th>
+               <th>Confidence</th><th>Usable</th></tr></thead>
+    <tbody>
+    {% for m in module_rows %}
+      <tr {% if m.usable %}class="row-link" data-href="/live/module/{{ m.code }}" tabindex="0"{% endif %}>
+        <td class="mono">
+          {% if m.usable %}<a href="/live/module/{{ m.code }}">{{ m.code }}</a>{% else %}{{ m.code }}{% endif %}
+        </td>
+        <td>{{ m.name }}</td>
+        <td class="small mono">{{ m.bus }}</td>
+        <td class="mono small">{{ m.target or "—" }}</td>
+        <td class="small">{{ m.confidence }}</td>
+        <td><span class="chip {{ 'ok' if m.usable else 'plain' }}">{{ "yes" if m.usable else "no" }}</span></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">No modules in the registry.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{# ---------------- legislated OBD ---------------- #}
+
+<h2>Legislated OBD (CAN-C)</h2>
+<div class="panel" style="display:flex;gap:10px;flex-wrap:wrap">
+  <form method="post" action="/live/obd/dtcs"><button class="btn" type="submit">Read DTCs</button></form>
+  <form method="post" action="/live/obd/readiness"><button class="btn" type="submit">Readiness</button></form>
+  <form method="post" action="/live/obd/vin"><button class="btn" type="submit">VIN</button></form>
+  <form method="post" action="/live/obd/voltage"><button class="btn" type="submit">Voltage</button></form>
+</div>
+
+{% if obd_kind is defined %}
+  {% if obd_error %}
+    <div class="note alert"><span class="lab">{{ obd_kind }} failed</span>{{ obd_error }}</div>
+  {% elif obd_result %}
+
+    {% if obd_kind == "dtcs" %}
+      {% for label in ["stored", "pending", "permanent"] %}
+        {% set r = obd_result[label] %}
+        <div class="panel">
+          <h3>{{ label }}</h3>
+          {% if r.error %}<div class="note alert"><span class="lab">error</span>{{ r.error }}</div>{% endif %}
+          {% if r.warning %}<div class="note warn"><span class="lab">warning</span>{{ r.warning }}</div>{% endif %}
+          {% if r.note %}<div class="note"><span class="lab">note</span>{{ r.note }}</div>{% endif %}
+          {% if r.dtcs %}
+            <p class="mono">{{ r.dtcs|join(", ") }}</p>
+          {% else %}
+            <p class="muted small">No {{ label }} codes.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+
+    {% elif obd_kind == "readiness" %}
+      {% for label in ["since_clear", "this_drive_cycle"] %}
+        {% set r = obd_result.get(label) %}
+        <div class="panel">
+          <h3>{{ label|replace("_", " ") }}</h3>
+          {% if not r %}
+            <p class="muted small">No data.</p>
+          {% elif r.error %}
+            <div class="note alert"><span class="lab">error</span>{{ r.error }}</div>
+          {% else %}
+            <table>
+              <tr><td class="k">MIL on</td><td>{{ "yes" if r.mil_on else "no" }}</td></tr>
+              <tr><td class="k">Stored DTC count</td><td class="n">{{ r.stored_dtc_count }}</td></tr>
+              <tr><td class="k">Ignition</td><td>{{ r.ignition }}</td></tr>
+              <tr><td class="k">All monitors complete</td>
+                  <td>{{ "yes" if r.all_complete else "no" if r.all_complete is not none else "—" }}</td></tr>
+            </table>
+            {% if r.monitors %}
+            <div class="tw" style="margin-top:8px">
+            <table>
+              <thead><tr><th>Monitor</th><th>Supported</th><th>Complete</th></tr></thead>
+              <tbody>
+              {% for mon in r.monitors %}
+                <tr><td>{{ mon.monitor }}</td>
+                    <td>{{ "yes" if mon.supported else "no" }}</td>
+                    <td><span class="chip {{ 'ok' if mon.complete else 'chronic' }}">
+                          {{ "complete" if mon.complete else "incomplete" }}</span></td></tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            </div>
+            {% endif %}
+          {% endif %}
+        </div>
+      {% endfor %}
+      {% if obd_result.evap_verdict %}
+        <div class="note"><span class="lab">EVAP verdict</span>{{ obd_result.evap_verdict }}</div>
+      {% endif %}
+      {% if obd_result.drive_cycle_counters %}
+        <div class="panel"><h3>Drive-cycle counters</h3>
+          <table>
+          {% for k, v in obd_result.drive_cycle_counters.items() %}
+            <tr><td class="k">{{ k|replace("_", " ") }}</td><td class="mono">{{ v }}</td></tr>
+          {% endfor %}
+          </table>
+        </div>
+      {% endif %}
+
+    {% elif obd_kind == "vin" %}
+      <div class="panel">
+        {% if obd_result.warning %}<div class="note warn"><span class="lab">warning</span>{{ obd_result.warning }}</div>{% endif %}
+        <table>
+          <tr><td class="k">VIN</td><td class="mono">{{ obd_result.vin or "—" }}</td></tr>
+          <tr><td class="k">ECU</td><td class="mono small">{{ obd_result.ecu or "—" }}</td></tr>
+          <tr><td class="k">Length OK</td><td>{{ obd_result.length_ok if "length_ok" in obd_result else "—" }}</td></tr>
+        </table>
+      </div>
+
+    {% elif obd_kind == "voltage" %}
+      <div class="panel">
+        <table>
+          <tr><td class="k">Volts</td><td class="mono">{{ obd_result.volts if obd_result.volts is not none else "—" }}</td></tr>
+          <tr><td class="k">Vehicle power detected</td>
+              <td><span class="chip {{ 'ok' if obd_result.vehicle_power_detected else 'returned' }}">
+                    {{ "yes" if obd_result.vehicle_power_detected else "no" }}</span></td></tr>
+        </table>
+      </div>
+    {% endif %}
+
+    <p class="small muted mono">bus {{ obd_result.bus }} &middot; cable {{ obd_result.cable }}</p>
+  {% endif %}
+{% endif %}
+
+{# ---------------- safety notes ---------------- #}
+
+<h2>Safety</h2>
+<div class="note warn">
+  <span class="lab">Pins 1 and 9</span>
+  {{ pin_1_9_warning }}
+</div>
+<div class="note alert">
+  <span class="lab">CAN-CH transmit note</span>
+  {{ can_ch_note }}
+</div>
+<div class="note">
+  <span class="lab">CAN-IHS route note</span>
+  {{ can_ihs_note }}
+</div>
+
+{% endblock %}

@@ -47,10 +47,12 @@ check("capabilities responds", caps.status_code == 200)
 body = caps.json()
 check("profile is bench", body["profile"] == "bench", str(body.get("profile")))
 check("corpus advertised", body["features"]["corpus"] is True)
-check("live_obd is False at P1", body["features"]["live_obd"] is False)
+check("live_obd is a bool", isinstance(body["features"]["live_obd"], bool))
+check("live_obd tracks adapter presence",
+      body["adapter"]["present"] == body["features"]["live_obd"],
+      f"adapter.present={body['adapter']['present']} live_obd={body['features']['live_obd']}")
 check("drive_recorder is False at P1", body["features"]["drive_recorder"] is False)
 check("actuators is False at P1", body["features"]["actuators"] is False)
-check("adapter reported absent", body["adapter"]["present"] is False)
 check("every declared feature is present in the payload",
       set(body["features"]) >= {"corpus", "workup", "fault_tree", "verdict",
                                 "live_obd", "live_can", "drive_recorder"})
@@ -94,8 +96,8 @@ if p0456:
           str(p0456.get("distance_span_km")))
     check("P0456 first seen 2025-09-24",
           p0456["first_seen"].startswith("2025-09-24"), p0456["first_seen"])
-    check("P0456 last seen 2026-08-27",
-          p0456["last_seen"].startswith("2026-08-27"), p0456["last_seen"])
+    check("P0456 last seen no earlier than the 2026-08-27 clear",
+          p0456["last_seen"] >= "2026-08-27", p0456["last_seen"])
 
 # The whole point of the clear assessment: silence after an erase is not a
 # repair. If this ever starts reading as a clean bill of health, the tool has

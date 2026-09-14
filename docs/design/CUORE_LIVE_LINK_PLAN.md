@@ -1,7 +1,7 @@
 # Cuore live link: building on the vLinker FS and the coloured cables
 
 **Date:** 2026-09-14  
-**Status:** plan, ready to build. Nothing here has been implemented yet except the Tier A `obd2-mcp` rework it depends on (commit `96473d5`).  
+**Status:** Phase 0 built 2026-09-14 (`cuore/live/`, `cuore/api/live.py`, `obd2-mcp` as wrappers, tests, the bench `/live` page). Phase 3's live citations are also in: every live read is recorded as an observation and `type: live` citations verify against them in the evidence gate. Phases 1 and 2 need the car.  
 **Inputs:** `docs/research/MES_DEEP_INTEGRATION_REVIEW.md`, `docs/reference/GIORGIO_MODULE_MAP.md`, the cuore code survey in `docs/design/review-2026-09-14/cuore_survey.md`, `docs/COMPANION_APP_SPEC.md` sections 4, 6, 10, 11, 12.
 
 ---

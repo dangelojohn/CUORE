@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends, Request
 from .. import __version__
 from ..models import AdapterInfo, Capabilities, CorpusInfo, Health
 from ..profiles import Profile, features_for
+from ..live import link as live_link
 from ..services import cache, mes_bridge
 from .deps import require_token, settings_of
 
@@ -52,12 +53,21 @@ def capabilities(request: Request) -> Capabilities:
                      "recordings", "log_read"):
             features[name] = False
 
+    # Same rule for the live link: the profile says it *can* drive an adapter,
+    # the adapter record says whether it can right now (port resolved, MES not
+    # connected, no other process holding the lock). Never advertise a live
+    # feature the next call would refuse.
+    adapter = AdapterInfo(**live_link().adapter_info())
+    if not adapter.present:
+        features["live_obd"] = False
+        features["live_can"] = False
+
     return Capabilities(
         profile=settings.profile,
         version=__version__,
         features=features,
         corpus=corpus,
-        adapter=AdapterInfo(),
+        adapter=adapter,
         lan_exposed=settings.lan_exposed,
         authenticated=bool(settings.token.strip()),
     )

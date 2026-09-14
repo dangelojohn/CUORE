@@ -4,14 +4,19 @@ MultiEcuScan implements no generic OBD-II mode at all, so it cannot answer
 "has the EVAP monitor actually run since the last clear?". That question is
 the difference between a confirmed repair and a hopeful one, which is why
 this decoder exists.
+
+This test used to import ``server as s`` and call ``s._decode_readiness`` /
+``s._hex_pairs``. obd2-mcp/server.py no longer defines those -- the parsing
+logic moved to cuore.live. Import the real functions from there instead.
 """
 
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-import server as s  # noqa: E402
+from cuore.live.framing import hex_pairs  # noqa: E402
+from cuore.live.obd import decode_readiness  # noqa: E402
 
 ok = True
 
@@ -26,7 +31,7 @@ def check(label, got, want):
 
 
 def readiness(hexstr):
-    return s._decode_readiness(s._hex_pairs(hexstr.replace(" ", "")), "41")
+    return decode_readiness(hex_pairs(hexstr.replace(" ", "")), "41")
 
 
 print("Mode 01 PID 01 readiness decoding")
