@@ -137,6 +137,21 @@ textarea:focus-visible {
   padding: 1px 6px; text-transform: uppercase; letter-spacing: .08em;
 }
 
+/* Live link status, one line, every page. Not the /live page itself, which
+   already shows this in full -- just enough here that a bus sitting
+   unverified or MES holding the port is never invisible outside it. */
+.livestrip {
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface-2);
+}
+.livestrip a {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 5px var(--pad);
+  text-decoration: none; color: var(--ink-2); font-size: 12px;
+}
+.livestrip a:hover { color: var(--ink); }
+.livestrip .mono { font-size: 11.5px; }
+
 /* Vehicle context. Sticky under the top bar so which car you are looking at
  * never scrolls away -- the single most common way to misread a dossier. */
 .vbar {

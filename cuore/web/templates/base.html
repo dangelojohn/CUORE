@@ -22,6 +22,25 @@
   </nav>
 </header>
 
+{% if live_strip %}
+<div class="livestrip" title="The live link's state — click through for the full picture">
+  <a href="/live">
+    {% if live_strip.error %}
+      <span class="chip plain">live link unavailable</span> {{ live_strip.error }}
+    {% else %}
+      <span class="chip {{ 'ok' if live_strip.mes_state != 'connected' else 'returned' }}">
+        MES {{ live_strip.mes_state or 'unknown' }}</span>
+      <span class="mono">{{ live_strip.port or 'no port' }}{% if live_strip.baud %}@{{ live_strip.baud }}{% endif %}</span>
+      <span class="chip plain">cable {{ live_strip.cable or 'none' }}</span>
+      <span class="small muted">{{ live_strip.buses_verified }}/{{ live_strip.buses_total }} buses verified</span>
+      {% if live_strip.lock_holder and live_strip.lock_holder != 'cuore' %}
+        <span class="chip returned">held by {{ live_strip.lock_holder }}</span>
+      {% endif %}
+    {% endif %}
+  </a>
+</div>
+{% endif %}
+
 {% block vehiclebar %}{% endblock %}
 
 <main>

@@ -54,11 +54,37 @@ router = APIRouter(include_in_schema=False,
 # --- helpers --------------------------------------------------------------
 
 
+def _status_strip() -> dict[str, Any]:
+    """The live link's headline state, cheap enough for every page load.
+
+    No adapter I/O happens here -- ``live_ops.status()`` only reads the
+    registry, the lock file and the MES process/window state. This is what
+    makes it safe to compute unconditionally rather than opt-in per page,
+    which is the point: MES holding the port, or a bus sitting unverified,
+    used to be invisible outside ``/live``.
+    """
+    try:
+        s = live_ops.status()
+        return {
+            "port": s.get("port"), "baud": s.get("baud"),
+            "mes_state": (s.get("mes") or {}).get("state"),
+            "cable": (s.get("cable") or {}).get("cable"),
+            "buses_verified": sum(1 for b in (s.get("cable") or {}).get("buses", [])
+                                  if b.get("verified")),
+            "buses_total": len((s.get("cable") or {}).get("buses", [])),
+            "lock_holder": (s.get("lock") or {}).get("process"),
+            "error": None,
+        }
+    except LiveError as exc:
+        return {"error": str(exc)}
+
+
 def _page(request: Request, name: str, **ctx: Any) -> HTMLResponse:
     """Render a template with the context every page needs."""
     settings = settings_of(request)
     ctx.setdefault("version", __version__)
     ctx.setdefault("profile", settings.profile.value)
+    ctx.setdefault("live_strip", _status_strip())
     return templates.TemplateResponse(request, name, ctx)
 
 
@@ -172,16 +198,32 @@ def tree(request: Request, vin: str, codes: str = "") -> HTMLResponse:
                  bar=_vehicle_bar(vin, dossier), tab="tree")
 
 
+def _live_observations_for(vin: str) -> tuple[list[dict[str, Any]], str | None]:
+    """What the live link has recorded for this VIN, newest first.
+
+    Read-only against the observation store cuore.live already writes to on
+    every live read -- nothing here opens the adapter. A gate form with
+    nothing to show just means no live session has run for this car yet.
+    """
+    try:
+        obs = live_ops.observations(n=20, vin=vin)["entries"]
+        return list(reversed(obs)), None
+    except LiveError as exc:
+        return [], str(exc)
+
+
 @router.get("/v/{vin}/gate", response_class=HTMLResponse)
 def gate_form(request: Request, vin: str, codes: str = "") -> HTMLResponse:
     """The evidence gate, empty."""
     dossier = _dossier(vin)
     if not codes.strip():
         codes = " ".join(mes_bridge.open_codes_for(dossier))
+    live_obs, live_obs_error = _live_observations_for(vin)
     return _page(request, "gate.html", vin=vin, result=None,
                  form={"codes": codes, "component": "", "mechanism": "",
                        "disconfirming_test": ""},
                  rows=[{"type": "actuator"}],
+                 live_observations=live_obs, live_observations_error=live_obs_error,
                  bar=_vehicle_bar(vin, dossier), tab="gate")
 
 
@@ -219,6 +261,21 @@ async def gate_submit(request: Request, vin: str,
             row["condition"] = field("condition")
         elif mtype == "manual" and field("description"):
             row["description"] = field("description")
+        elif mtype == "live" and field("kind"):
+            # Verified against cuore.live's own observation record, not typed
+            # in -- the fields differ by kind, so only the ones that kind
+            # actually uses get carried into the citation.
+            row["kind"] = field("kind")
+            if row["kind"] in ("dtc", "permanent", "module_dtc") and field("code"):
+                row["code"] = field("code")
+            if row["kind"] == "readiness" and field("monitor"):
+                row["monitor"] = field("monitor")
+            if row["kind"] in ("module_dtc", "did") and field("ecu"):
+                row["ecu"] = field("ecu")
+            if row["kind"] == "did" and field("did"):
+                row["did"] = field("did")
+            if len(row) <= 2:   # kind + type only -- nothing to verify against
+                continue
         else:
             continue
         rows.append(row)
@@ -229,19 +286,33 @@ async def gate_submit(request: Request, vin: str,
         disconfirming_test=disconfirming_test)
 
     dossier = _dossier(vin)
+    live_obs, live_obs_error = _live_observations_for(vin)
     return _page(request, "gate.html", vin=vin, result=result,
                  form={"codes": codes, "component": component,
                        "mechanism": mechanism,
                        "disconfirming_test": disconfirming_test},
                  rows=rows or [{"type": "actuator"}],
+                 live_observations=live_obs, live_observations_error=live_obs_error,
                  bar=_vehicle_bar(vin, dossier), tab="gate")
 
 
 @router.get("/modules", response_class=HTMLResponse)
 def modules(request: Request, domain: str = "") -> HTMLResponse:
-    """The module registry, and which OBD bus each module lives on."""
+    """The module registry, and which OBD bus each module lives on.
+
+    14 of these 126 codes are also in the live link's own module table --
+    known 29-bit address, confirmed or otherwise, on a Giorgio bus. Those
+    rows get a link straight to a live UDS read; the two tables no longer
+    just happen to describe the same parts without ever pointing at each
+    other.
+    """
     data = mes_bridge.module_registry(domain=domain)
-    return _page(request, "modules.html", data=data, domain=domain)
+    try:
+        live_codes = {m["code"].upper() for m in live_ops.modules()["modules"]}
+    except LiveError:
+        live_codes = set()
+    return _page(request, "modules.html", data=data, domain=domain,
+                 live_codes=live_codes)
 
 
 @router.get("/recordings", response_class=HTMLResponse)
@@ -322,6 +393,9 @@ def _live_page(request: Request, **extra: Any) -> HTMLResponse:
     ctx["pin_1_9_warning"] = PIN_1_9_WARNING
     ctx["can_ch_note"] = BUSES["can_ch"].notes
     ctx["can_ihs_note"] = BUSES["can_ihs"].notes
+    # This page already shows the live state in full below the fold; the
+    # header strip would only repeat it.
+    ctx["live_strip"] = None
     ctx.update(extra)
     return _page(request, "live.html", **ctx)
 
@@ -438,4 +512,4 @@ def live_module(request: Request, code: str, confirm: bool = False) -> HTMLRespo
                  row=row, bus_key=bus_key, needs_confirm=needs_confirm,
                  dtcs=dtcs, dtcs_error=dtcs_error,
                  identity=identity, identity_error=identity_error,
-                 pin_1_9_warning=PIN_1_9_WARNING)
+                 pin_1_9_warning=PIN_1_9_WARNING, live_strip=None)

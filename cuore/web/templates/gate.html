@@ -33,9 +33,12 @@ the corpus — this reads your history and answers one question.</p>
                 <div><span class="mono">{{ code }}</span> — {{ note }}</div>
               {% endfor %}
             {% elif c.checked %}
+              {# Every branch of _verify_measurement sets "note", never
+                 "detail" -- this used to fall through to the raw dict repr
+                 for every citation type, not just live ones. #}
               {% for m in c.checked %}
                 <div><span class="chip {{ 'ok' if m.status == 'verified' else 'plain' }}">{{ m.status }}</span>
-                     {{ m.detail if m.detail else m }}</div>
+                     {{ m.note or (m.cited.type ~ ' citation') }}</div>
               {% endfor %}
             {% elif c.stated %}
               {{ c.stated }}
@@ -89,15 +92,52 @@ the corpus — this reads your history and answers one question.</p>
   <div class="panel">
     <h3>Measurements</h3>
     <p class="small muted">Each row is one citation. The gate verifies it
-      against this car's corpus and reports whether it could be confirmed —
-      an unverifiable citation weakens the case rather than failing the form.</p>
+      against this car's corpus — or, for a <b>live</b> row, against what the
+      live link has actually read from this vehicle — and reports whether it
+      could be confirmed; an unverifiable citation weakens the case rather
+      than failing the form.</p>
 
-    {% for row in rows %}
-    <div class="mrow">
+    {% if live_observations %}
+    <div class="note">
+      <span class="lab">Recorded from the live link for this VIN</span>
+      <p class="small muted" style="margin:4px 0 8px">Read off a code, ECU or
+        DID below into a <b>live</b> row rather than retyping it — this is
+        exactly what was read, in the order it was read.</p>
+      <div class="tw">
+      <table>
+        <thead><tr><th>When</th><th>Kind</th><th>Bus</th><th>What it said</th></tr></thead>
+        <tbody>
+        {% for o in live_observations[:8] %}
+          <tr>
+            <td class="mono small muted">{{ o.at }}</td>
+            <td class="small">{{ o.kind }}</td>
+            <td class="small muted">{{ o.bus }}</td>
+            <td class="small mono">
+              {% if o.kind == "obd_dtcs" %}{{ o.data.kind }}: {{ o.data.dtcs|join(", ") if o.data.dtcs else "(none)" }}
+              {% elif o.kind == "module_dtcs" %}{{ o.data.ecu }}: {{ o.data.codes|join(", ") if o.data.codes else "(none)" }}
+              {% elif o.kind == "readiness" %}{{ o.data.evap_verdict or "—" }}
+              {% elif o.kind == "did" %}{{ o.data.ecu }} {{ o.data.did }} = {{ o.data.value or "—" }}
+              {% elif o.kind == "identity" %}{{ o.data.ecu }} identity read
+              {% else %}{{ o.kind }}{% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    {% elif live_observations_error %}
+      <div class="note"><span class="lab">Live link</span>{{ live_observations_error }}</div>
+    {% else %}
+      <div class="note"><span class="lab">Live link</span>No live reads recorded yet for this VIN —
+        <a href="/live">go read something</a>, then a <b>live</b> row here can cite it.</div>
+    {% endif %}
+
+    {% macro mfields(idx, row={}) %}
       <div>
-        <label for="m_type_{{ loop.index0 }}">Type</label>
-        <select id="m_type_{{ loop.index0 }}" name="m_type">
-          {% for t in ["actuator", "freeze_frame", "parameter", "recording_event", "manual"] %}
+        <label for="m_type_{{ idx }}">Type</label>
+        <select id="m_type_{{ idx }}" name="m_type">
+          {% for t in ["actuator", "freeze_frame", "parameter", "recording_event", "live", "manual"] %}
             <option value="{{ t }}" {% if row.type == t %}selected{% endif %}>{{ t }}</option>
           {% endfor %}
         </select>
@@ -105,41 +145,33 @@ the corpus — this reads your history and answers one question.</p>
       <div>
         <label>Fields — fill the ones your type uses</label>
         <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-          <input type="text" name="m_operation_{{ loop.index0 }}" value="{{ row.operation or '' }}" placeholder="actuator: operation">
-          <input type="text" name="m_code_{{ loop.index0 }}" value="{{ row.code or '' }}" placeholder="freeze_frame: code">
-          <input type="text" name="m_name_{{ loop.index0 }}" value="{{ row.name or '' }}" placeholder="parameter: name">
-          <input type="text" name="m_file_{{ loop.index0 }}" value="{{ row.file or '' }}" placeholder="file">
-          <input type="text" name="m_condition_{{ loop.index0 }}" value="{{ row.condition or '' }}" placeholder="recording_event: condition">
-          <input type="text" name="m_description_{{ loop.index0 }}" value="{{ row.description or '' }}" placeholder="manual: description">
+          <input type="text" name="m_operation_{{ idx }}" value="{{ row.operation or '' }}" placeholder="actuator: operation">
+          <input type="text" name="m_code_{{ idx }}" value="{{ row.code or '' }}" placeholder="freeze_frame / live: code">
+          <input type="text" name="m_name_{{ idx }}" value="{{ row.name or '' }}" placeholder="parameter: name">
+          <input type="text" name="m_file_{{ idx }}" value="{{ row.file or '' }}" placeholder="file">
+          <input type="text" name="m_condition_{{ idx }}" value="{{ row.condition or '' }}" placeholder="recording_event: condition">
+          <select name="m_kind_{{ idx }}">
+            <option value="" {% if not row.kind %}selected{% endif %}>live: kind…</option>
+            {% for k in ["dtc", "permanent", "readiness", "module_dtc", "did"] %}
+              <option value="{{ k }}" {% if row.kind == k %}selected{% endif %}>live: {{ k }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="m_ecu_{{ idx }}" value="{{ row.ecu or '' }}" placeholder="live: ECU (e.g. ECM)">
+          <input type="text" name="m_did_{{ idx }}" value="{{ row.did or '' }}" placeholder="live: DID (e.g. F190)">
+          <input type="text" name="m_monitor_{{ idx }}" value="{{ row.monitor or '' }}" placeholder="live: monitor name">
+          <input type="text" name="m_description_{{ idx }}" value="{{ row.description or '' }}" placeholder="manual: description">
         </div>
       </div>
-    </div>
+    {% endmacro %}
+
+    {% for row in rows %}
+    <div class="mrow">{{ mfields(loop.index0, row) }}</div>
     {% endfor %}
 
     {# Three spare rows, always rendered. Adding rows with JavaScript would
        make the form depend on scripting to be usable at all. #}
     {% for i in range(rows|length, rows|length + 3) %}
-    <div class="mrow">
-      <div>
-        <label for="m_type_{{ i }}">Type</label>
-        <select id="m_type_{{ i }}" name="m_type">
-          {% for t in ["actuator", "freeze_frame", "parameter", "recording_event", "manual"] %}
-            <option value="{{ t }}">{{ t }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div>
-        <label>Fields</label>
-        <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-          <input type="text" name="m_operation_{{ i }}" placeholder="actuator: operation">
-          <input type="text" name="m_code_{{ i }}" placeholder="freeze_frame: code">
-          <input type="text" name="m_name_{{ i }}" placeholder="parameter: name">
-          <input type="text" name="m_file_{{ i }}" placeholder="file">
-          <input type="text" name="m_condition_{{ i }}" placeholder="recording_event: condition">
-          <input type="text" name="m_description_{{ i }}" placeholder="manual: description">
-        </div>
-      </div>
-    </div>
+    <div class="mrow">{{ mfields(i) }}</div>
     {% endfor %}
   </div>
 

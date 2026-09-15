@@ -29,30 +29,32 @@ makes a scan's module list readable rather than a wall of abbreviations.</p>
   <div class="tw">
   <table id="modtable">
     <thead><tr><th>Abbrev</th><th>Name</th><th>Domain</th><th>Tier</th>
-               <th>Giorgio bus</th><th>Also known as</th></tr></thead>
+               <th>Giorgio bus</th><th>Also known as</th><th>Live</th></tr></thead>
     <tbody>
     {% if data.by_domain %}
       {% for dom, mods in data.by_domain.items() %}
         {% for m in mods %}
           <tr>
-            <td class="mono">{{ m.abbrev }}</td>
+            <td class="mono">{{ m.code }}</td>
             <td>{{ m.name }}</td>
             <td class="small muted">{{ dom }}</td>
             <td class="small muted">{{ m.tier or "—" }}</td>
-            <td class="small">{{ m.giorgio or "—" }}</td>
+            <td class="small">{{ m.on_giorgio or "—" }}</td>
             <td class="small muted mono">{{ m.aliases|join(" ") if m.aliases else "—" }}</td>
+            <td class="small">{% if m.code.upper() in live_codes %}<a href="/live/module/{{ m.code }}">read live &rarr;</a>{% else %}<span class="muted">—</span>{% endif %}</td>
           </tr>
         {% endfor %}
       {% endfor %}
     {% elif data.modules %}
       {% for m in data.modules %}
         <tr>
-          <td class="mono">{{ m.abbrev }}</td>
+          <td class="mono">{{ m.code }}</td>
           <td>{{ m.name }}</td>
           <td class="small muted">{{ domain }}</td>
           <td class="small muted">{{ m.tier or "—" }}</td>
-          <td class="small">{{ m.giorgio or "—" }}</td>
+          <td class="small">{{ m.on_giorgio or "—" }}</td>
           <td class="small muted mono">{{ m.aliases|join(" ") if m.aliases else "—" }}</td>
+          <td class="small">{% if m.code.upper() in live_codes %}<a href="/live/module/{{ m.code }}">read live &rarr;</a>{% else %}<span class="muted">—</span>{% endif %}</td>
         </tr>
       {% endfor %}
     {% endif %}

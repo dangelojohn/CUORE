@@ -106,6 +106,15 @@
       }
       collectRows();
     });
+    // A link can pre-fill the box via ?filter=... (see the live-module page's
+    // link back to the registry). Purely additive: with no query param, or
+    // with scripting off, the box just starts empty as it always did.
+    var params = new URLSearchParams(window.location.search);
+    var pre = params.get("filter");
+    if (pre) {
+      box.value = pre;
+      box.dispatchEvent(new Event("input"));
+    }
   }
 
   document.addEventListener("DOMContentLoaded", function () {
