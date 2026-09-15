@@ -35,7 +35,11 @@
   --sev-chronic:  #d9a63c;   --sev-chronic-bg:  #2e2513;
   --sev-cleared:  #6aa6d8;   --sev-cleared-bg:  #16242e;
   --sev-once:     #7d888f;   --sev-once-bg:     #21282c;
-  --ok:           #5fb3ac;   --ok-bg:           #122a29;
+  /* True green, not the teal this token used to carry -- it now sits at the
+   * same lightness/saturation the other four severities use, but reads as
+   * unambiguously "good" the way it does on this app's subject rather than
+   * being mistaken for --sev-cleared's blue. */
+  --ok:           #52b579;   --ok-bg:           #12291d;
 
   --mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", Menlo, Consolas,
           "Liberation Mono", monospace;
@@ -64,7 +68,7 @@
     --sev-chronic:  #8a5d06;  --sev-chronic-bg:  #f5e8cd;
     --sev-cleared:  #1e5b86;  --sev-cleared-bg:  #dce9f2;
     --sev-once:     #5c666d;  --sev-once-bg:     #e2e6e9;
-    --ok:           #1f5b57;  --ok-bg:           #d8e7e5;
+    --ok:           #1e6b3f;  --ok-bg:           #dcefe1;
   }
 }
 
@@ -85,7 +89,7 @@
   --sev-chronic:  #8a5d06;  --sev-chronic-bg:  #f5e8cd;
   --sev-cleared:  #1e5b86;  --sev-cleared-bg:  #dce9f2;
   --sev-once:     #5c666d;  --sev-once-bg:     #e2e6e9;
-  --ok:           #1f5b57;  --ok-bg:           #d8e7e5;
+  --ok:           #1e6b3f;  --ok-bg:           #dcefe1;
 }
 
 * { box-sizing: border-box; }
@@ -121,10 +125,19 @@ textarea:focus-visible {
   border-bottom: 1px solid var(--rule);
 }
 .top .brand {
+  display: flex; align-items: center; gap: 8px;
   font-weight: 700; letter-spacing: .06em; text-decoration: none;
   font-size: 13px; text-transform: uppercase;
 }
 .top .brand span { color: var(--accent); }
+
+/* The badge mark. An enamel-and-ring convention, not any one marque's
+ * specific charge -- a fixed palette on purpose, the way a physical pin
+ * would not recolour itself for a dark room. Origin of the idea: CUORE
+ * means heart, this app reads a car's vitals, so the charge is a pulse
+ * trace, read left to right across the two colours a workshop already
+ * uses here for "attention" and "confirmed" -- not a copied crest. */
+.brand-mark { flex: none; display: block; }
 .top nav { display: flex; gap: 14px; margin-left: auto; }
 .top nav a {
   font-size: 12.5px; color: var(--ink-3); text-decoration: none;

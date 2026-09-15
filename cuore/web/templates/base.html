@@ -10,7 +10,17 @@
 <body>
 
 <header class="top">
-  <a class="brand" href="/">CU<span>O</span>RE</a>
+  <a class="brand" href="/" aria-label="CUORE, home">
+    <svg class="brand-mark" width="26" height="26" viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="29" fill="#F4F2EC" stroke="#16265A" stroke-width="4"/>
+      <circle cx="32" cy="32" r="25.5" fill="none" stroke="#FFFFFF" stroke-width="1" opacity=".55"/>
+      <path d="M10,32 L21,32 L25,19 L29,45 L32,32" fill="none" stroke="#B3131B"
+            stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M32,32 L35,32 L38,24 L41,38 L44,32 L54,32" fill="none" stroke="#1E6B45"
+            stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    CU<span>O</span>RE
+  </a>
   <span class="profile" title="Which half of the system this is">{{ profile }}</span>
   <nav>
     <a href="/">Vehicles</a>
