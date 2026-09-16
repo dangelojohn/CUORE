@@ -52,11 +52,20 @@ def _window_texts_for_pids(pids: set[int]) -> list[str]:
     if not IS_WINDOWS or not pids:
         return []
     user32 = ctypes.windll.user32
-    # 64-bit HWNDs overflow ctypes' default c_int argument conversion.
-    user32.GetWindowTextW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int]
-    user32.GetWindowThreadProcessId.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
-    user32.EnumChildWindows.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
     WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
+    # 64-bit HWNDs overflow ctypes' default c_int argument conversion, so every
+    # HWND is declared c_void_p. The enumerator callbacks must be declared as
+    # WNDENUMPROC and NOT as c_void_p: passing a function pointer to a c_void_p
+    # parameter raises ArgumentError inside the callback, ctypes swallows it,
+    # and the walk silently returns no window text at all -- which reads as
+    # "MES state unknown" and fails the interlock open.
+    user32.GetWindowTextW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int]
+    user32.GetWindowTextW.restype = ctypes.c_int
+    user32.GetWindowThreadProcessId.argtypes = [ctypes.c_void_p,
+                                                ctypes.POINTER(ctypes.c_ulong)]
+    user32.GetWindowThreadProcessId.restype = ctypes.c_ulong
+    user32.EnumChildWindows.argtypes = [ctypes.c_void_p, WNDENUMPROC, ctypes.c_void_p]
+    user32.EnumWindows.argtypes = [WNDENUMPROC, ctypes.c_void_p]
     texts: list[str] = []
     buf = ctypes.create_unicode_buffer(512)
 
