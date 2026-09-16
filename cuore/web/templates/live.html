@@ -9,6 +9,26 @@ on this page writes to the car: legislated OBD and CAN-C module reads need no
 confirmation, and CAN-CH / CAN-IHS module reads need the confirm box below
 before this bench UI will ask the live link to try.</p>
 
+{% if active_vehicle %}
+  <div class="note" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <span class="lab">Reading against</span>
+    <a href="/v/{{ active_vehicle.vin }}">{{ active_vehicle.name }}</a>
+    <span class="mono small muted">{{ active_vehicle.vin }}</span>
+    <span class="small muted">— module reads land as observations for this VIN and
+      can confirm its addresses.</span>
+    <form method="post" action="/live/vehicle/clear" style="margin-left:auto">
+      <button class="btn" type="submit">Stop tagging this car</button>
+    </form>
+  </div>
+{% else %}
+  <div class="note">
+    <span class="lab">No active vehicle</span>
+    Live reads will not be tagged to a VIN. <a href="/">Open a vehicle's
+    dossier</a> to set one, or add <span class="mono">?vin=...</span> to any
+    live-link URL.
+  </div>
+{% endif %}
+
 {# ---------------- adapter status ---------------- #}
 
 <h2>Adapter</h2>

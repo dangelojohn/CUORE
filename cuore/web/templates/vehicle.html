@@ -168,6 +168,50 @@
   <p class="small muted">These are what a log corpus structurally cannot answer.
     Nothing above them should be read as “there are no faults”.</p>
 
+  <h2>Live</h2>
+  {% if live_panel.error %}
+    <div class="note"><span class="lab">Live link</span>{{ live_panel.error }}</div>
+  {% else %}
+    <div class="panel tight">
+      <div class="tw">
+      <table>
+        <thead><tr><th>Bus</th><th>Reachable</th><th>Verified</th></tr></thead>
+        <tbody>
+        {% for b in live_panel.buses %}
+          <tr>
+            <td class="small mono">{{ b.bus }}</td>
+            <td class="small">{% if b.reachable_with_cable %}yes{% else %}needs a different cable{% endif %}</td>
+            <td class="small"><span class="chip {{ 'ok' if b.verified else 'plain' }}">{{ 'verified' if b.verified else 'not yet' }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+    {% set live_addressed = live_panel.modules|selectattr("usable")|list %}
+    {% set live_unaddressed = live_panel.modules|rejectattr("usable")|list %}
+    {% if live_addressed %}
+      <p class="small muted" style="margin:8px 0 4px">This car's own logged ECUs the live link has a confirmed address for:</p>
+      <p>
+      {% for m in live_addressed %}
+        <a class="btn" href="/live/module/{{ m.code }}?vin={{ vin }}">{{ m.code }} &rarr;</a>
+      {% endfor %}
+      </p>
+    {% endif %}
+    {% if live_unaddressed %}
+      <p class="small muted" style="margin:8px 0 4px">Also seen in the live table, no confirmed address yet:
+        {% for m in live_unaddressed %}<span class="mono">{{ m.code }}</span>{% if not loop.last %}, {% endif %}{% endfor %} —
+        an address discovery sweep (<span class="mono">discover_modules</span> in the MCP tools, or
+        <span class="mono">POST /api/live/discover</span>) can confirm these on the car.</p>
+    {% endif %}
+    {% if not live_addressed and not live_unaddressed %}
+      <p class="small muted">None of this car's logged ECUs are in the live
+        link's table yet — see the <a href="/modules?view=live">live
+        module table</a>.</p>
+    {% endif %}
+    <p class="small muted"><a href="/live?vin={{ vin }}">Open the live link for this car &rarr;</a></p>
+  {% endif %}
+
   {% if open_codes %}
   <h2>Routing</h2>
   <div class="panel">

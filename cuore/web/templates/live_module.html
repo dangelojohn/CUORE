@@ -13,6 +13,16 @@
 <p><a class="btn" href="/live">&larr; Live link</a>
    <a class="btn" href="/modules?filter={{ code }}">Registry entry &rarr;</a></p>
 
+{% if active_vehicle %}
+  <p class="small muted">Tagging these reads for
+    <a href="/v/{{ active_vehicle.vin }}">{{ active_vehicle.name }}</a>
+    <span class="mono">{{ active_vehicle.vin }}</span>.</p>
+{% else %}
+  <p class="small muted">No active vehicle — these reads won't be tagged to a
+    VIN. <a href="/">Open a dossier</a> first, or add
+    <span class="mono">?vin=...</span> to this URL.</p>
+{% endif %}
+
 {% if needs_confirm %}
   <div class="note warn">
     <span class="lab">{{ bus_key }} is treated as sensitive here</span>

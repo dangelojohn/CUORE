@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Request, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
@@ -138,6 +138,65 @@ def _vehicle_bar(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# --- the active vehicle -----------------------------------------------------
+#
+# The seam between the corpus side of this app and the live side used to be
+# total: /v/{vin} knows a VIN, /live never did. A cookie is the whole fix --
+# visiting a vehicle's dossier makes it the vehicle any live read tags itself
+# against, until you visit a different one or clear it. Query-string ?vin=
+# always wins over the cookie, so a link from the dossier is self-contained
+# even if the cookie is stale or scripting is off.
+
+_VIN_COOKIE = "cuore_vin"
+
+
+def _set_active_vehicle(response: Response, vin: str) -> None:
+    response.set_cookie(_VIN_COOKIE, vin, max_age=60 * 60 * 24 * 30, samesite="lax")
+
+
+def _active_vehicle(request: Request, vin_param: str = "") -> str:
+    """The VIN a live read should tag itself with: query param, then cookie."""
+    return vin_param.strip() or request.cookies.get(_VIN_COOKIE, "").strip()
+
+
+def _active_vehicle_bar(vin: str) -> dict[str, Any] | None:
+    """The small "you are working on" fact, shown on the live pages. None if
+    the active VIN does not resolve to anything in the corpus -- a stale
+    cookie after a corpus root changes should not error, just stop showing."""
+    if not vin:
+        return None
+    try:
+        dossier = _dossier(vin)
+    except BridgeError:
+        return None
+    ident = dossier.get("identity", {})
+    return {"vin": vin, "name": ident.get("vehicle") or vin}
+
+
+def _match_live_modules(ecu_seen: list[str]) -> list[dict[str, Any]]:
+    """Which of this car's own logged ECUs the live link can also reach.
+
+    ``ecu_seen`` carries MES's full hardware description ("Magneti Marelli
+    IAW 10JA CF6/EOBD Injection (2.0)"); the live table's module names are
+    drawn from the same source material and match by equality or containment
+    -- checked both directions, since the live table sometimes carries a
+    trailing qualifier the corpus string does not ("Body Computer Marelli
+    (949)" vs "Body Computer Marelli (949), gateway").
+    """
+    try:
+        live_rows = live_ops.modules()["modules"]
+    except LiveError:
+        return []
+    seen_lower = [s.lower() for s in ecu_seen]
+    out = []
+    for m in live_rows:
+        name_lower = (m.get("name") or "").lower()
+        if any(name_lower == s or name_lower.startswith(s) or s in name_lower
+               for s in seen_lower):
+            out.append(m)
+    return out
+
+
 # --- pages ----------------------------------------------------------------
 
 
@@ -151,14 +210,35 @@ def index(request: Request) -> HTMLResponse:
                  stats=status)
 
 
+def _live_panel_for(vin: str, ecu_seen: list[str]) -> dict[str, Any]:
+    """The dossier's embedded live section: bus state plus this car's own
+    reachable modules, not the full 126-entry registry or the full 25-entry
+    live table -- just the intersection with what this VIN has actually
+    logged. Each matched module still carries ``usable``: being on this car
+    is not the same as having a confirmed address, and a link that will
+    only refuse is worse than no link.
+    """
+    out: dict[str, Any] = {"buses": [], "modules": [], "error": None}
+    try:
+        out["buses"] = live_ops.buses()["buses"]
+    except LiveError as exc:
+        out["error"] = str(exc)
+        return out
+    out["modules"] = _match_live_modules(ecu_seen)
+    return out
+
+
 @router.get("/v/{vin}", response_class=HTMLResponse)
 def vehicle(request: Request, vin: str) -> HTMLResponse:
     """The dossier: what am I looking at, before the hood opens."""
     dossier = _dossier(vin)
     codes = mes_bridge.open_codes_for(dossier)
-    return _page(request, "vehicle.html", vin=vin, d=dossier,
-                 bar=_vehicle_bar(vin, dossier), open_codes=codes,
-                 tab="dossier")
+    bar = _vehicle_bar(vin, dossier)
+    response = _page(request, "vehicle.html", vin=vin, d=dossier, bar=bar,
+                     open_codes=codes, live_panel=_live_panel_for(vin, bar["ecus"]),
+                     tab="dossier")
+    _set_active_vehicle(response, vin)
+    return response
 
 
 @router.get("/v/{vin}/codes", response_class=HTMLResponse)
@@ -168,9 +248,11 @@ def codes(request: Request, vin: str,
     dossier = _dossier(vin)
     data = mes_bridge.extract_dtcs(vin=vin,
                                    include_simulation=include_simulation)
-    return _page(request, "codes.html", vin=vin, rows=data["dtcs"], data=data,
-                 bar=_vehicle_bar(vin, dossier),
-                 include_simulation=include_simulation, tab="codes")
+    response = _page(request, "codes.html", vin=vin, rows=data["dtcs"], data=data,
+                     bar=_vehicle_bar(vin, dossier),
+                     include_simulation=include_simulation, tab="codes")
+    _set_active_vehicle(response, vin)
+    return response
 
 
 @router.get("/v/{vin}/code/{code}", response_class=HTMLResponse)
@@ -182,9 +264,11 @@ def code_detail(request: Request, vin: str, code: str) -> HTMLResponse:
         frames = mes_bridge.freeze_frames(code=code, vin=vin)
     except BridgeError:
         frames = {"count": 0, "frames": []}
-    return _page(request, "code.html", vin=vin, code=code.upper(),
-                 records=history["matches"], frames=frames,
-                 bar=_vehicle_bar(vin, dossier), tab="codes")
+    response = _page(request, "code.html", vin=vin, code=code.upper(),
+                     records=history["matches"], frames=frames,
+                     bar=_vehicle_bar(vin, dossier), tab="codes")
+    _set_active_vehicle(response, vin)
+    return response
 
 
 @router.get("/v/{vin}/tree", response_class=HTMLResponse)
@@ -194,8 +278,10 @@ def tree(request: Request, vin: str, codes: str = "") -> HTMLResponse:
     if not codes.strip():
         codes = " ".join(mes_bridge.open_codes_for(dossier))
     result = mes_bridge.fault_tree(codes, vin=vin)
-    return _page(request, "tree.html", vin=vin, codes=codes, result=result,
-                 bar=_vehicle_bar(vin, dossier), tab="tree")
+    response = _page(request, "tree.html", vin=vin, codes=codes, result=result,
+                     bar=_vehicle_bar(vin, dossier), tab="tree")
+    _set_active_vehicle(response, vin)
+    return response
 
 
 def _live_observations_for(vin: str) -> tuple[list[dict[str, Any]], str | None]:
@@ -219,12 +305,14 @@ def gate_form(request: Request, vin: str, codes: str = "") -> HTMLResponse:
     if not codes.strip():
         codes = " ".join(mes_bridge.open_codes_for(dossier))
     live_obs, live_obs_error = _live_observations_for(vin)
-    return _page(request, "gate.html", vin=vin, result=None,
-                 form={"codes": codes, "component": "", "mechanism": "",
-                       "disconfirming_test": ""},
-                 rows=[{"type": "actuator"}],
-                 live_observations=live_obs, live_observations_error=live_obs_error,
-                 bar=_vehicle_bar(vin, dossier), tab="gate")
+    response = _page(request, "gate.html", vin=vin, result=None,
+                     form={"codes": codes, "component": "", "mechanism": "",
+                           "disconfirming_test": ""},
+                     rows=[{"type": "actuator"}],
+                     live_observations=live_obs, live_observations_error=live_obs_error,
+                     bar=_vehicle_bar(vin, dossier), tab="gate")
+    _set_active_vehicle(response, vin)
+    return response
 
 
 @router.post("/v/{vin}/gate", response_class=HTMLResponse)
@@ -287,32 +375,55 @@ async def gate_submit(request: Request, vin: str,
 
     dossier = _dossier(vin)
     live_obs, live_obs_error = _live_observations_for(vin)
-    return _page(request, "gate.html", vin=vin, result=result,
-                 form={"codes": codes, "component": component,
-                       "mechanism": mechanism,
-                       "disconfirming_test": disconfirming_test},
-                 rows=rows or [{"type": "actuator"}],
-                 live_observations=live_obs, live_observations_error=live_obs_error,
-                 bar=_vehicle_bar(vin, dossier), tab="gate")
+    response = _page(request, "gate.html", vin=vin, result=result,
+                     form={"codes": codes, "component": component,
+                           "mechanism": mechanism,
+                           "disconfirming_test": disconfirming_test},
+                     rows=rows or [{"type": "actuator"}],
+                     live_observations=live_obs, live_observations_error=live_obs_error,
+                     bar=_vehicle_bar(vin, dossier), tab="gate")
+    _set_active_vehicle(response, vin)
+    return response
 
 
 @router.get("/modules", response_class=HTMLResponse)
-def modules(request: Request, domain: str = "") -> HTMLResponse:
+def modules(request: Request, domain: str = "", view: str = "") -> HTMLResponse:
     """The module registry, and which OBD bus each module lives on.
 
-    14 of these 126 codes are also in the live link's own module table --
-    known 29-bit address, confirmed or otherwise, on a Giorgio bus. Those
-    rows get a link straight to a live UDS read; the two tables no longer
-    just happen to describe the same parts without ever pointing at each
-    other.
+    One page, two facets over the same overlap rather than two separately
+    designed tables that happened to describe the same parts. The default
+    view is the full 126-entry reference registry; the 5 rows with a
+    confirmed live address link straight to a read, the other 20 the live
+    link knows about but cannot yet address stay plain text. ``?view=live``
+    flips to the live link's own facet -- bus, 29-bit address, confidence,
+    whether this car has actually shown up carrying it -- over its full
+    25-entry table, each enriched with its registry domain and tier rather
+    than the live table needing to duplicate them.
     """
-    data = mes_bridge.module_registry(domain=domain)
     try:
-        live_codes = {m["code"].upper() for m in live_ops.modules()["modules"]}
+        live_rows = live_ops.modules()["modules"]
     except LiveError:
-        live_codes = set()
-    return _page(request, "modules.html", data=data, domain=domain,
-                 live_codes=live_codes)
+        live_rows = []
+    # "In the live table" (25) is not "can actually be read right now" (5) --
+    # only the confirmed-address rows get a link that won't just refuse.
+    live_usable = {m["code"].upper() for m in live_rows if m["usable"]}
+    live_present = {m["code"].upper() for m in live_rows if m.get("present") == "confirmed"}
+
+    if view == "live":
+        enriched = []
+        for m in live_rows:
+            try:
+                info = mes_bridge.module_registry(abbrev=m["code"])
+            except BridgeError:
+                info = {}
+            enriched.append({**m, "domain": info.get("domain"), "tier": info.get("tier"),
+                             "aliases": info.get("aliases")})
+        data = {"view_rows": sorted(enriched, key=lambda r: r["code"])}
+    else:
+        data = mes_bridge.module_registry(domain=domain)
+
+    return _page(request, "modules.html", data=data, domain=domain, view=view,
+                 live_usable=live_usable, live_present=live_present)
 
 
 @router.get("/recordings", response_class=HTMLResponse)
@@ -388,11 +499,13 @@ def _live_snapshot() -> dict[str, Any]:
     return out
 
 
-def _live_page(request: Request, **extra: Any) -> HTMLResponse:
+def _live_page(request: Request, vin: str = "", **extra: Any) -> HTMLResponse:
+    active = _active_vehicle(request, vin)
     ctx = _live_snapshot()
     ctx["pin_1_9_warning"] = PIN_1_9_WARNING
     ctx["can_ch_note"] = BUSES["can_ch"].notes
     ctx["can_ihs_note"] = BUSES["can_ihs"].notes
+    ctx["active_vehicle"] = _active_vehicle_bar(active)
     # This page already shows the live state in full below the fold; the
     # header strip would only repeat it.
     ctx["live_strip"] = None
@@ -401,9 +514,17 @@ def _live_page(request: Request, **extra: Any) -> HTMLResponse:
 
 
 @router.get("/live", response_class=HTMLResponse)
-def live_page(request: Request, cable_error: str = "") -> HTMLResponse:
+def live_page(request: Request, cable_error: str = "", vin: str = "") -> HTMLResponse:
     """Adapter status, cable declaration, bus map, module table and OBD."""
-    return _live_page(request, cable_error=cable_error or None)
+    return _live_page(request, vin=vin, cable_error=cable_error or None)
+
+
+@router.post("/live/vehicle/clear", response_class=HTMLResponse)
+def live_clear_vehicle() -> RedirectResponse:
+    """Stop tagging live reads against a vehicle. Just the one cookie."""
+    resp = RedirectResponse(url="/live", status_code=303)
+    resp.delete_cookie(_VIN_COOKIE)
+    return resp
 
 
 @router.post("/live/cable", response_class=HTMLResponse)
@@ -474,15 +595,22 @@ def live_obd(request: Request, kind: str) -> HTMLResponse:
 
 
 @router.get("/live/module/{code}", response_class=HTMLResponse)
-def live_module(request: Request, code: str, confirm: bool = False) -> HTMLResponse:
+def live_module(request: Request, code: str, confirm: bool = False,
+                vin: str = "") -> HTMLResponse:
     """One module's UDS DTCs and Annex C identity.
 
     A refusal from the live layer (unverified bus, unknown module, MES
     holding the adapter) is guidance here, not an error page -- this is the
     single most likely outcome on a bench that has not yet declared a cable
     or run a passive listen.
+
+    Tags both reads with the active vehicle (``?vin=``, else the dossier's
+    cookie) so they land as observations the evidence gate can find and so
+    address confirmations persist per VIN, instead of every live read being
+    anonymous until a VIN happens to be read back from the wire.
     """
     code = code.strip()
+    active_vin = _active_vehicle(request, vin)
     try:
         rows = live_ops.modules()["modules"]
     except LiveError:
@@ -500,11 +628,11 @@ def live_module(request: Request, code: str, confirm: bool = False) -> HTMLRespo
             f"to whatever cuore.live itself enforces for that bus.")
     else:
         try:
-            dtcs = live_ops.module_dtcs(code, confirm=confirm)
+            dtcs = live_ops.module_dtcs(code, vin=active_vin, confirm=confirm)
         except LiveError as exc:
             dtcs_error = str(exc)
         try:
-            identity = live_ops.module_identity(code, confirm=confirm)
+            identity = live_ops.module_identity(code, vin=active_vin, confirm=confirm)
         except LiveError as exc:
             identity_error = str(exc)
 
@@ -512,4 +640,5 @@ def live_module(request: Request, code: str, confirm: bool = False) -> HTMLRespo
                  row=row, bus_key=bus_key, needs_confirm=needs_confirm,
                  dtcs=dtcs, dtcs_error=dtcs_error,
                  identity=identity, identity_error=identity_error,
-                 pin_1_9_warning=PIN_1_9_WARNING, live_strip=None)
+                 pin_1_9_warning=PIN_1_9_WARNING, live_strip=None,
+                 active_vehicle=_active_vehicle_bar(active_vin))

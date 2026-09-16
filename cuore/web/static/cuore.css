@@ -138,12 +138,27 @@ textarea:focus-visible {
  * trace, read left to right across the two colours a workshop already
  * uses here for "attention" and "confirmed" -- not a copied crest. */
 .brand-mark { flex: none; display: block; }
-.top nav { display: flex; gap: 14px; margin-left: auto; }
+.top nav { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 .top nav a {
   font-size: 12.5px; color: var(--ink-3); text-decoration: none;
   text-transform: uppercase; letter-spacing: .06em;
 }
 .top nav a:hover, .top nav a.on { color: var(--ink); }
+
+/* Two clusters, not six flat links: history (the corpus, read-only, always
+ * there) and live (the adapter, right now, needs hardware). The seam
+ * between cuore's two halves shown in the nav itself, not just implied by
+ * which page you happen to be on. */
+.navgroup { display: flex; gap: 14px; }
+.navgroup.live {
+  padding-left: 14px; border-left: 1px solid var(--rule);
+}
+.navgroup.live a { color: var(--ok); }
+.navgroup.live a:hover, .navgroup.live a.on { color: var(--ink); }
+.navutil {
+  padding-left: 14px; border-left: 1px solid var(--rule);
+  color: var(--ink-3) !important; opacity: .8;
+}
 .top .profile {
   font-family: var(--mono); font-size: 10.5px; color: var(--ink-3);
   border: 1px solid var(--rule); border-radius: var(--radius);

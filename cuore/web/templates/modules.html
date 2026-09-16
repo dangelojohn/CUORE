@@ -3,27 +3,61 @@
 {% block content %}
 
 <h1>Module registry</h1>
+{% if view == "live" %}
+<p class="lede">The 25 of these 126 codes the live link has any Giorgio bus
+data for at all — bus, target address if known, and how sure that address
+actually is until this car's own VIN confirms it. Only 5 have a confirmed
+target today; the rest are known to exist but not yet addressed, or
+addressed on evidence the doc marks unverified. Everything else about each
+one still comes from the reference registry beside it.</p>
+{% else %}
 <p class="lede">Every ECU MES can name, with the aliases it prints for each —
 alias sets, Italian node names, and the CTM collision resolved. This is what
 makes a scan's module list readable rather than a wall of abbreviations.</p>
-
-{% if data.stats %}
-<div class="panel" style="display:flex;gap:20px;flex-wrap:wrap">
-  {% for k, v in data.stats.items() %}
-    <div><div class="small muted" style="text-transform:uppercase;letter-spacing:.09em">{{ k|replace("_", " ") }}</div>
-         <div class="mono" style="font-size:18px">{{ v }}</div></div>
-  {% endfor %}
-</div>
 {% endif %}
 
 <div class="panel" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
-  <div style="flex:1;min-width:220px">
-    <label for="filter">Filter</label>
-    <input id="filter" type="search" data-search data-filter-target="#modtable"
-           placeholder="name, abbreviation, bus…" autocomplete="off">
+  <div class="vtabs" style="margin:0">
+    <a href="/modules" {% if view != "live" %}class="on"{% endif %}>Reference &middot; 126</a>
+    <a href="/modules?view=live" {% if view == "live" %}class="on"{% endif %}>Live &middot; 5 addressed</a>
   </div>
-  {% if domain %}<a class="btn" href="/modules">All domains</a>{% endif %}
+  {% if view != "live" %}
+    <div style="flex:1;min-width:220px">
+      <label for="filter">Filter</label>
+      <input id="filter" type="search" data-search data-filter-target="#modtable"
+             placeholder="name, abbreviation, bus…" autocomplete="off">
+    </div>
+    {% if domain %}<a class="btn" href="/modules">All domains</a>{% endif %}
+  {% endif %}
 </div>
+
+{% if view == "live" %}
+
+<div class="panel tight">
+  <div class="tw">
+  <table id="modtable">
+    <thead><tr><th>Code</th><th>Name</th><th>Domain</th><th>Tier</th><th>Bus</th>
+               <th>Target</th><th>Confidence</th><th>Present</th><th></th></tr></thead>
+    <tbody>
+    {% for m in data.view_rows %}
+      <tr>
+        <td class="mono">{{ m.code }}</td>
+        <td>{{ m.name }}</td>
+        <td class="small muted">{{ m.domain or "—" }}</td>
+        <td class="small muted">{{ m.tier or "—" }}</td>
+        <td class="small mono">{{ m.bus }}</td>
+        <td class="mono small">{{ m.target or "—" }}</td>
+        <td class="small"><span class="chip {{ 'ok' if m.confidence == 'confirmed' else ('cleared' if m.confidence == 'inferred' else 'plain') }}">{{ m.confidence }}</span></td>
+        <td class="small">{{ m.present }}</td>
+        <td class="small">{% if m.usable %}<a href="/live/module/{{ m.code }}">read live &rarr;</a>{% else %}<span class="muted">no address yet</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% else %}
 
 <div class="panel tight">
   <div class="tw">
@@ -41,7 +75,7 @@ makes a scan's module list readable rather than a wall of abbreviations.</p>
             <td class="small muted">{{ m.tier or "—" }}</td>
             <td class="small">{{ m.on_giorgio or "—" }}</td>
             <td class="small muted mono">{{ m.aliases|join(" ") if m.aliases else "—" }}</td>
-            <td class="small">{% if m.code.upper() in live_codes %}<a href="/live/module/{{ m.code }}">read live &rarr;</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="small">{% if m.code.upper() in live_usable %}<a href="/live/module/{{ m.code }}">read live &rarr;</a>{% elif m.code.upper() in live_present %}<span class="muted" title="On this car, but the live link has no confirmed address for it yet">on this car, no address yet</span>{% else %}<span class="muted">—</span>{% endif %}</td>
           </tr>
         {% endfor %}
       {% endfor %}
@@ -54,7 +88,7 @@ makes a scan's module list readable rather than a wall of abbreviations.</p>
           <td class="small muted">{{ m.tier or "—" }}</td>
           <td class="small">{{ m.on_giorgio or "—" }}</td>
           <td class="small muted mono">{{ m.aliases|join(" ") if m.aliases else "—" }}</td>
-          <td class="small">{% if m.code.upper() in live_codes %}<a href="/live/module/{{ m.code }}">read live &rarr;</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td class="small">{% if m.code.upper() in live_usable %}<a href="/live/module/{{ m.code }}">read live &rarr;</a>{% elif m.code.upper() in live_present %}<span class="muted" title="On this car, but the live link has no confirmed address for it yet">on this car, no address yet</span>{% else %}<span class="muted">—</span>{% endif %}</td>
         </tr>
       {% endfor %}
     {% endif %}
@@ -62,6 +96,8 @@ makes a scan's module list readable rather than a wall of abbreviations.</p>
   </table>
   </div>
 </div>
+
+{% endif %}
 
 <div class="note warn">
   <span class="lab">Reachability is physical, not a software limit</span>

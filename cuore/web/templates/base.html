@@ -23,12 +23,16 @@
   </a>
   <span class="profile" title="Which half of the system this is">{{ profile }}</span>
   <nav>
-    <a href="/">Vehicles</a>
-    <a href="/modules">Modules</a>
-    <a href="/recordings">Recordings</a>
-    <a href="/logs">Logs</a>
-    <a href="/live">Live link</a>
-    <a href="/api/docs">API</a>
+    <div class="navgroup" title="A car's log history, read from the MES corpus">
+      <a href="/">Vehicles</a>
+      <a href="/modules">Modules</a>
+      <a href="/recordings">Recordings</a>
+      <a href="/logs">Logs</a>
+    </div>
+    <div class="navgroup live" title="The adapter, right now">
+      <a href="/live">Live link</a>
+    </div>
+    <a class="navutil" href="/api/docs">API</a>
   </nav>
 </header>
 
