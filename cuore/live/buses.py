@@ -54,6 +54,15 @@ CAN_C = Bus(
             "confirmed",
             "STP 34 (or STP 33 for the legislated 11-bit 7E0/7E8 pair); STPBRR expected 500000.",
         ),
+        Route(
+            "none",
+            "33",
+            None,
+            "untested",
+            "11-bit legislated pair 7E0/7E8 at 500k. Giorgio broadcast traffic on CAN-C is "
+            "largely 11-bit, so a monitor opened 29-bit-only can report zero frames on a "
+            "perfectly healthy bus. Listened for after STP 34, never preferred for UDS.",
+        ),
     ),
     transmit_needs_confirmation=False,
     modules_seen=("ECM", "IPC", "TCM", "DTCM", "ESM", "BCM", "RFHUB", "DASM"),
@@ -165,6 +174,17 @@ def route_for(bus: Bus, cable: str) -> Route | None:
         if route.cable == cable:
             return route
     return None
+
+
+def routes_for(bus: Bus, cable: str) -> list[Route]:
+    """Every route on ``bus`` that works with ``cable``, in preference order.
+
+    A bus can be reachable under more than one adapter protocol. ``route_for``
+    returns the preferred one and is what normal operations use; this returns
+    the full candidate list, so a passive listen can try them all before
+    concluding a bus is silent.
+    """
+    return [route for route in bus.routes if route.cable == cable]
 
 
 def buses_for_cable(cable: str) -> list[Bus]:

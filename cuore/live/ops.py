@@ -16,7 +16,7 @@ from . import capture as capture_mod
 from . import store
 from . import uds as uds_mod
 from .addressing import MODULES, by_code, on_bus
-from .buses import BUSES, CAN_C, Bus
+from .buses import BUSES, CAN_C, Bus, routes_for
 from .config import mes_folders, mes_interfaces, mes_registry, resolve_port
 from .errors import BadCommand
 from .framing import adapter_error, no_data
@@ -124,21 +124,43 @@ def probe(port: str = "", baud: int = 0, allow_while_mes_connected: bool = False
 
 def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                allow_while_mes_connected: bool = False) -> dict[str, Any]:
-    """Passive listen; marks the bus verified under the current cable if traffic is seen."""
+    """Passive listen; marks the bus verified under the current cable if traffic is seen.
+
+    A bus can be reachable under more than one adapter protocol -- CAN-C
+    carries both 29-bit UDS and the 11-bit legislated pair, and a monitor
+    opened for one ID width hears nothing of the other. Every route the
+    declared cable allows is tried before reporting silence, because a healthy
+    bus reported as dead is the worst answer this tool can give.
+    """
     b = _bus(bus)
     lk = link()
-    with lk.session("verify_bus", bus=b, port=port, baud=baud, passive=True,
-                    allow_while_mes_connected=allow_while_mes_connected) as sess:
-        cap = capture_mod.listen(sess, seconds=seconds, max_frames=200)
-        ok = cap["count"] > 0 and not cap["error"]
-        if ok:
-            lk.mark_verified(b, cap["count"])
-        return _stamp(sess, {"verified": ok, "frames": cap["count"], "rate_hz": cap["rate_hz"],
-                             "ids": cap["ids"], "error": cap["error"],
-                             "note": (None if ok else
-                                      f"no traffic on {b.key} with cable {lk.cable!r}; check "
-                                      f"the cable, ignition, and the route note: "
-                                      f"{sess.route.note}")})
+    candidates: list[Any] = list(routes_for(b, lk.cable)) or [None]
+    attempts: list[dict[str, Any]] = []
+    sess = None
+    for route in candidates:
+        with lk.session("verify_bus", bus=b, port=port, baud=baud, passive=True,
+                        allow_while_mes_connected=allow_while_mes_connected,
+                        route=route) as sess:
+            cap = capture_mod.listen(sess, seconds=seconds, max_frames=200)
+            ok = cap["count"] > 0 and not cap["error"]
+            attempts.append({"stn_protocol": sess.route.stn_protocol,
+                             "header_bits": sess.header_bits,
+                             "frames": cap["count"], "error": cap["error"]})
+            if ok:
+                lk.mark_verified(b, cap["count"])
+                return _stamp(sess, {"verified": True, "frames": cap["count"],
+                                     "rate_hz": cap["rate_hz"], "ids": cap["ids"],
+                                     "error": cap["error"],
+                                     "stn_protocol": sess.route.stn_protocol,
+                                     "header_bits": sess.header_bits,
+                                     "attempts": attempts, "note": None})
+    tried = ", ".join(f"STP {a['stn_protocol']} ({a['header_bits']}-bit)" for a in attempts)
+    return _stamp(sess, {"verified": False, "frames": 0, "rate_hz": 0.0, "ids": {},
+                         "error": attempts[-1]["error"] if attempts else None,
+                         "attempts": attempts,
+                         "note": (f"no traffic on {b.key} with cable {lk.cable!r} on any route "
+                                  f"tried ({tried}); check the cable, ignition, and the route "
+                                  f"note: {sess.route.note}")})
 
 
 def capture(bus: str, seconds: float = 2.0, max_frames: int = 500,

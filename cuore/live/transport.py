@@ -241,18 +241,30 @@ class AdapterLink:
     def session(self, purpose: str, *, bus: Bus = CAN_C, port: str = "", baud: int = 0,
                 passive: bool = False, confirm: bool = False,
                 allow_while_mes_connected: bool = False,
-                stream: Optional[Stream] = None) -> Iterator[Session]:
+                stream: Optional[Stream] = None,
+                route: Optional[Route] = None) -> Iterator[Session]:
         """Open the adapter for one operation on one bus, then close it.
 
         ``passive=True`` sets receive-only mode (no CAN ACK) and skips the
         transmit policy; it is how a bus gets verified in the first place.
+
+        ``route`` overrides the preferred route for this one session, so a
+        passive listen can try a bus's other protocols. It must belong to the
+        declared cable; reachability is still decided by the cable, never by
+        the override.
         """
         with self.lock:
-            route = route_for(bus, self.cable)
-            if route is None:
+            chosen = route_for(bus, self.cable)
+            if chosen is None:
                 raise LinkUnavailable(
                     f"bus {bus.key} is not reachable with cable {self.cable!r}; declare the "
                     f"right cable first")
+            if route is not None:
+                if route.cable != self.cable:
+                    raise LinkUnavailable(
+                        f"route for cable {route.cable!r} cannot be used while cable "
+                        f"{self.cable!r} is declared")
+                chosen = route
             if not passive:
                 assert_transmit_allowed(
                     bus_key=bus.key, bus_cable_ok=True,
@@ -283,7 +295,7 @@ class AdapterLink:
                 raise LinkUnavailable(f"could not open {p}@{b} ({psrc}, {bsrc}): {e}.{hint}")
             self.port, self.baud, self.port_source, self.baud_source = p, b, psrc, bsrc
             self.last_open = datetime.now().isoformat(timespec="seconds")
-            sess = Session(self, st, bus, route, passive=passive, confirmed=confirm)
+            sess = Session(self, st, bus, chosen, passive=passive, confirmed=confirm)
             self.current = sess
             audit.record("session_open", purpose=purpose, bus=bus.key, cable=self.cable,
                          passive=passive, port=p, baud=b, stream=st.describe)
