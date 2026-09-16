@@ -35,6 +35,10 @@ from cuore.live.obd import decode_obd_dtcs  # noqa: E402
 from cuore.live.safety import classify_command, validate_command  # noqa: E402
 from cuore.live.transport import DEFAULT_TIMEOUT, link  # noqa: E402
 
+# Name this process in the advisory lock so the bench UI can show "held by
+# obd2-mcp" rather than mistaking it for itself.
+link().process = "obd2-mcp"
+
 mcp = FastMCP("obd2")
 
 
@@ -331,7 +335,10 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
 
     def body() -> dict[str, Any]:
         b = ops._bus(bus)
-        passive = kind in ("read", "adapter_state")
+        # Only pure adapter commands are passive: a read request still has to
+        # transmit on the bus, so it must pass the transmit gate and must not
+        # run under STCMM 0 (receive-only, no ACK).
+        passive = kind == "adapter_state"
         with link().session(f"send_raw {cmd}", bus=b, passive=passive, confirm=confirm,
                             allow_while_mes_connected=allow_while_mes_connected) as sess:
             raw = sess.cmd(cmd, timeout_seconds)

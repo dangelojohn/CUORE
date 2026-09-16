@@ -91,7 +91,7 @@ def recent_observations(n: int = 50, vin: str = "", kind: str = "") -> list[dict
             obj = json.loads(line)
         except ValueError:
             continue
-        if vin and obj.get("vin") not in ("", vin):
+        if vin and obj.get("vin") != vin:  # untagged reads never match a named car
             continue
         if kind and obj.get("kind") != kind:
             continue

@@ -13,6 +13,7 @@ it; changing it clears every bus verification.
 
 from __future__ import annotations
 
+import os
 import re
 import threading
 import time
@@ -30,7 +31,10 @@ from .framing import (adapter_error, looks_like_wrong_baud, negative_responses,
 from .safety import assert_transmit_allowed, validate_command
 from .stream import SerialStream, Stream
 
-DEFAULT_TIMEOUT = 4.0
+try:  # OBD_TIMEOUT is honoured for compatibility with the obd2-mcp registration
+    DEFAULT_TIMEOUT = float(os.environ.get("OBD_TIMEOUT", "4"))
+except ValueError:
+    DEFAULT_TIMEOUT = 4.0
 MIN_TIMEOUT, MAX_TIMEOUT = 0.2, 30.0
 
 #: STN preset -> ELM327 protocol number for adapters without ST commands.
@@ -123,9 +127,17 @@ class Session:
             self.cmd("ATFCSD300000", 2)
             self.cmd("ATFCSM1", 2)
         self._target = pair
+        self.link._last_target = pair
 
     def untarget(self) -> None:
-        """Back to functional/broadcast addressing for legislated OBD."""
+        """Back to functional/broadcast addressing for legislated OBD.
+
+        The adapter keeps ATSH/ATCRA across port closes, so a fresh session
+        inherits the link's last physical target and clears it here rather
+        than trusting its own (empty) memory.
+        """
+        if self._target is None:
+            self._target = getattr(self.link, "_last_target", None)
         if self._target is None:
             return
         self.cmd("ATSH18DB33F1" if self.header_bits == 29 else "ATSH7DF", 2)
@@ -133,6 +145,7 @@ class Session:
         if self.link.is_stn:
             self.cmd("STCFCPC", 2)
         self._target = None
+        self.link._last_target = None
 
     # --- UDS primitive --------------------------------------------------
 

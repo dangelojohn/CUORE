@@ -20,11 +20,27 @@ from typing import Any, Iterable, Optional
 
 
 def observations_path() -> Path:
+    """Mirror ``cuore.live.config.state_dir()``: same override, same candidates.
+
+    The writer picks the first *writable* candidate; this reader picks the
+    first candidate that already holds a file, so both sides land on the same
+    path without ``mes`` importing ``cuore``.
+    """
     env = os.environ.get("MES_LIVE_OBSERVATIONS")
     if env:
         return Path(env)
-    base = os.environ.get("PROGRAMDATA") or os.environ.get("LOCALAPPDATA") or str(Path.home())
-    return Path(base, "cuore", "observations.jsonl")
+    candidates: list[Path] = []
+    if os.environ.get("CUORE_STATE_DIR"):
+        candidates.append(Path(os.environ["CUORE_STATE_DIR"]))
+    if os.environ.get("PROGRAMDATA"):
+        candidates.append(Path(os.environ["PROGRAMDATA"], "cuore"))
+    if os.environ.get("LOCALAPPDATA"):
+        candidates.append(Path(os.environ["LOCALAPPDATA"], "cuore"))
+    candidates.append(Path.home() / ".cuore")
+    for d in candidates:
+        if (d / "observations.jsonl").exists():
+            return d / "observations.jsonl"
+    return candidates[0] / "observations.jsonl"
 
 
 def load(vin: Optional[str] = None, kind: Optional[str] = None,
@@ -47,7 +63,7 @@ def load(vin: Optional[str] = None, kind: Optional[str] = None,
             obj = json.loads(line)
         except ValueError:
             continue
-        if vin and (obj.get("vin") or "") not in ("", vin):
+        if vin and (obj.get("vin") or "") != vin:  # untagged reads never match a named car
             continue
         if kind and obj.get("kind") != kind:
             continue
@@ -87,8 +103,11 @@ def verify_live(m: dict[str, Any], vin: str) -> dict[str, Any]:
                 "note": f"no live {want} read shows {code or 'any code'} for this VIN"}
 
     if kind == "module_dtc":
+        ecu = str(m.get("ecu", "")).strip().upper()
         for obs in reversed(load(vin, "module_dtcs")):
             data = obs.get("data", {})
+            if ecu and str(data.get("ecu", "")).upper() != ecu:
+                continue
             codes = data.get("codes") or []
             if code and any(c.split("-")[0] == code.split("-")[0] for c in codes):
                 return {"status": "verified", "observation_at": obs.get("at"),

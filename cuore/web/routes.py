@@ -75,7 +75,7 @@ def _status_strip() -> dict[str, Any]:
             "lock_holder": (s.get("lock") or {}).get("process"),
             "error": None,
         }
-    except LiveError as exc:
+    except Exception as exc:  # noqa: BLE001 - a broken strip must never 500 a page
         return {"error": str(exc)}
 
 
@@ -84,7 +84,8 @@ def _page(request: Request, name: str, **ctx: Any) -> HTMLResponse:
     settings = settings_of(request)
     ctx.setdefault("version", __version__)
     ctx.setdefault("profile", settings.profile.value)
-    ctx.setdefault("live_strip", _status_strip())
+    if "live_strip" not in ctx:  # not setdefault: the strip is not free to compute
+        ctx["live_strip"] = _status_strip()
     return templates.TemplateResponse(request, name, ctx)
 
 
@@ -516,7 +517,10 @@ def _live_page(request: Request, vin: str = "", **extra: Any) -> HTMLResponse:
 @router.get("/live", response_class=HTMLResponse)
 def live_page(request: Request, cable_error: str = "", vin: str = "") -> HTMLResponse:
     """Adapter status, cable declaration, bus map, module table and OBD."""
-    return _live_page(request, vin=vin, cable_error=cable_error or None)
+    # Only override the snapshot's cable_error when the redirect carried one;
+    # passing None here would erase a real bus-state failure.
+    extra = {"cable_error": cable_error} if cable_error else {}
+    return _live_page(request, vin=vin, **extra)
 
 
 @router.post("/live/vehicle/clear", response_class=HTMLResponse)

@@ -116,7 +116,7 @@ the corpus — this reads your history and answers one question.</p>
               {% if o.kind == "obd_dtcs" %}{{ o.data.kind }}: {{ o.data.dtcs|join(", ") if o.data.dtcs else "(none)" }}
               {% elif o.kind == "module_dtcs" %}{{ o.data.ecu }}: {{ o.data.codes|join(", ") if o.data.codes else "(none)" }}
               {% elif o.kind == "readiness" %}{{ o.data.evap_verdict or "—" }}
-              {% elif o.kind == "did" %}{{ o.data.ecu }} {{ o.data.did }} = {{ o.data.value or "—" }}
+              {% elif o.kind == "did" %}{{ o.data.ecu }} {{ o.data.did }} = {{ o.data.value or o.data.ascii or (o.data.bytes|join(" ") if o.data.bytes else "—") }}
               {% elif o.kind == "identity" %}{{ o.data.ecu }} identity read
               {% else %}{{ o.kind }}{% endif %}
             </td>

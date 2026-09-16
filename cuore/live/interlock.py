@@ -52,6 +52,10 @@ def _window_texts_for_pids(pids: set[int]) -> list[str]:
     if not IS_WINDOWS or not pids:
         return []
     user32 = ctypes.windll.user32
+    # 64-bit HWNDs overflow ctypes' default c_int argument conversion.
+    user32.GetWindowTextW.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_int]
+    user32.GetWindowThreadProcessId.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    user32.EnumChildWindows.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
     WNDENUMPROC = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_void_p, ctypes.c_void_p)
     texts: list[str] = []
     buf = ctypes.create_unicode_buffer(512)
@@ -111,6 +115,9 @@ def _pid_alive(pid: int) -> bool:
         except OSError:
             return False
     kernel32 = ctypes.windll.kernel32
+    kernel32.OpenProcess.restype = ctypes.c_void_p
+    kernel32.GetExitCodeProcess.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+    kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
     handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
     if not handle:
         return False
@@ -131,7 +138,11 @@ def read_lock() -> Optional[dict[str, Any]]:
         return None
     if not isinstance(data, dict):
         return None
-    data["stale"] = not _pid_alive(int(data.get("pid", -1)))
+    try:
+        pid = int(data.get("pid") or -1)
+    except (TypeError, ValueError):
+        pid = -1
+    data["stale"] = pid < 0 or not _pid_alive(pid)
     data["path"] = str(p)
     return data
 
