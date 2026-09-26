@@ -235,8 +235,11 @@ def vehicle(request: Request, vin: str) -> HTMLResponse:
     dossier = _dossier(vin)
     codes = mes_bridge.open_codes_for(dossier)
     bar = _vehicle_bar(vin, dossier)
+    vehicle_notes = mes_bridge.notes(vin, target_kind="vehicle")["notes"]
     response = _page(request, "vehicle.html", vin=vin, d=dossier, bar=bar,
                      open_codes=codes, live_panel=_live_panel_for(vin, bar["ecus"]),
+                     notes_list=vehicle_notes, note_target_kind="vehicle",
+                     note_target_id="", note_redirect=f"/v/{vin}", note_kind_locked=True,
                      tab="dossier")
     _set_active_vehicle(response, vin)
     return response
@@ -265,8 +268,13 @@ def code_detail(request: Request, vin: str, code: str) -> HTMLResponse:
         frames = mes_bridge.freeze_frames(code=code, vin=vin)
     except BridgeError:
         frames = {"count": 0, "frames": []}
-    response = _page(request, "code.html", vin=vin, code=code.upper(),
+    code_upper = code.upper()
+    code_notes = mes_bridge.notes(vin, target_kind="code", target_id=code_upper)["notes"]
+    response = _page(request, "code.html", vin=vin, code=code_upper,
                      records=history["matches"], frames=frames,
+                     notes_list=code_notes, note_target_kind="code",
+                     note_target_id=code_upper, note_redirect=f"/v/{vin}/code/{code_upper}",
+                     note_kind_locked=True,
                      bar=_vehicle_bar(vin, dossier), tab="codes")
     _set_active_vehicle(response, vin)
     return response
@@ -279,7 +287,12 @@ def tree(request: Request, vin: str, codes: str = "") -> HTMLResponse:
     if not codes.strip():
         codes = " ".join(mes_bridge.open_codes_for(dossier))
     result = mes_bridge.fault_tree(codes, vin=vin)
+    tree_step_notes = mes_bridge.notes(vin, target_kind="tree_step")["notes"]
     response = _page(request, "tree.html", vin=vin, codes=codes, result=result,
+                     notes_list=tree_step_notes, note_target_kind="tree_step",
+                     note_target_id="",
+                     note_redirect=f"/v/{vin}/tree?codes={quote(codes)}",
+                     note_kind_locked=False,
                      bar=_vehicle_bar(vin, dossier), tab="tree")
     _set_active_vehicle(response, vin)
     return response
@@ -790,3 +803,70 @@ async def dealer_submit(request: Request, vin: str) -> HTMLResponse:
                      bar=_vehicle_bar(vin, dossier), tab="dealer")
     _set_active_vehicle(response, vin)
     return response
+
+
+# --- technician notes -------------------------------------------------------
+#
+# Context on anything cuore found that lives nowhere else -- "purge valve
+# replaced by me 2026-09-10", "this scan was taken right after a battery
+# disconnect", "smoke test done at 0.5 psi, no leak" -- and that a diagnosis
+# (and the LLM reading it) must be able to see. Same posture as the dealer
+# results store above: append-only, never touches the car or the MES corpus.
+
+
+def _safe_redirect(url: str, fallback: str) -> str:
+    """Only ever redirect somewhere inside this app -- ``redirect_to`` is a
+    hidden form field a client controls, not a trusted URL."""
+    if url.startswith("/") and not url.startswith("//"):
+        return url
+    return fallback
+
+
+@router.get("/v/{vin}/notes", response_class=HTMLResponse)
+def notes_page(request: Request, vin: str, target_kind: str = "",
+              target_id: str = "") -> HTMLResponse:
+    """Every technician note for this vehicle, with edit/hide and a filter."""
+    dossier = _dossier(vin)
+    rows = mes_bridge.notes(vin, target_kind=target_kind, target_id=target_id)["notes"]
+    response = _page(request, "notes.html", vin=vin, notes_list=rows,
+                     filter_target_kind=target_kind, filter_target_id=target_id,
+                     note_target_kind=target_kind or "vehicle",
+                     note_target_id=target_id, note_redirect=f"/v/{vin}/notes",
+                     note_kind_locked=False,
+                     bar=_vehicle_bar(vin, dossier), tab="notes")
+    _set_active_vehicle(response, vin)
+    return response
+
+
+@router.post("/v/{vin}/notes", response_class=HTMLResponse)
+async def notes_add(request: Request, vin: str) -> RedirectResponse:
+    """Record one technician note, then redirect back to wherever the add
+    form was posted from -- the dossier, a code page, the tree, or this
+    vehicle's own notes listing."""
+    form = await request.form()
+    redirect_to = _safe_redirect(str(form.get("redirect_to", "")), f"/v/{vin}/notes")
+    tags = [t.strip() for t in str(form.get("tags", "")).split(",") if t.strip()]
+    mes_bridge.add_note(vin, str(form.get("text", "")),
+                        target_kind=str(form.get("target_kind", "vehicle")),
+                        target_id=str(form.get("target_id", "")),
+                        author=str(form.get("author", "")).strip() or "technician",
+                        tags=tags)
+    return RedirectResponse(url=redirect_to, status_code=303)
+
+
+@router.post("/v/{vin}/notes/{id}/edit", response_class=HTMLResponse)
+async def notes_edit(request: Request, vin: str, id: str) -> RedirectResponse:
+    """Amend a note's text. Writes an amendment record -- never rewrites history."""
+    form = await request.form()
+    redirect_to = _safe_redirect(str(form.get("redirect_to", "")), f"/v/{vin}/notes")
+    mes_bridge.edit_note(id, str(form.get("text", "")))
+    return RedirectResponse(url=redirect_to, status_code=303)
+
+
+@router.post("/v/{vin}/notes/{id}/hide", response_class=HTMLResponse)
+async def notes_hide(request: Request, vin: str, id: str) -> RedirectResponse:
+    """Hide a note (soft delete). Writes a hide record -- never rewrites history."""
+    form = await request.form()
+    redirect_to = _safe_redirect(str(form.get("redirect_to", "")), f"/v/{vin}/notes")
+    mes_bridge.hide_note(id)
+    return RedirectResponse(url=redirect_to, status_code=303)

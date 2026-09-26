@@ -15,7 +15,7 @@ status code.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from .errors import BadRequest, NotFound
@@ -32,6 +32,7 @@ from mes import (  # noqa: E402  -- must follow the bootstrap import
     fes,
     knowledge,
     modules,
+    notes as notes_mod,
     paths,
     scan,
     verdict,
@@ -529,6 +530,46 @@ def dealer_results(vin: str) -> dict[str, Any]:
     if not vin.strip():
         raise BadRequest("a VIN is required")
     return {"vin": vin, "results": dealer_mod.load(vin)}
+
+
+# --- technician notes -------------------------------------------------------
+
+
+def add_note(vin: str, text: str, target_kind: str = "vehicle", target_id: str = "",
+            author: str = "technician", tags: Optional[list[str]] = None) -> dict[str, Any]:
+    """Record one technician note. Raises BadRequest on invalid input."""
+    if not vin.strip():
+        raise BadRequest("a VIN is required")
+    try:
+        return notes_mod.add(vin, text, target_kind, target_id=target_id,
+                             author=author, tags=tags)
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+def notes(vin: str, target_kind: str = "", target_id: str = "") -> dict[str, Any]:
+    """Notes for this VIN, oldest first, filtered by target when given."""
+    if not vin.strip():
+        raise BadRequest("a VIN is required")
+    return {"vin": vin,
+            "notes": notes_mod.load(vin, target_kind=target_kind or None,
+                                    target_id=target_id)}
+
+
+def edit_note(id: str, text: str) -> dict[str, Any]:
+    """Amend a note's text. Never rewrites history."""
+    try:
+        return notes_mod.edit(id, text)
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+def hide_note(id: str) -> dict[str, Any]:
+    """Hide a note (soft delete). Never rewrites history."""
+    try:
+        return notes_mod.hide(id)
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
 
 
 # --- reference ------------------------------------------------------------

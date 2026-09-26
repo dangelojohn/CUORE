@@ -37,15 +37,19 @@ import json
 from pathlib import Path
 from typing import Any
 
-from . import analysis, dealer as dealer_mod, faulttree, fes as fes_mod, knowledge, live_obs
+from . import (analysis, dealer as dealer_mod, faulttree, fes as fes_mod, knowledge,
+              live_obs, notes as notes_mod)
 from .catalog import CATALOG
 
 #: Measurement types the corpus can verify, vs those it can only record as
 #: operator attestation. ``live`` is verified against the observations the
 #: cuore live link recorded from the vehicle itself; ``dealer`` is verified
-#: against the technician-entered wiTECH results store.
+#: against the technician-entered wiTECH results store; ``note`` is verified
+#: against the technician notes store -- the note itself is operator-attested
+#: (like ``manual``), but pulling its text by id means the gate does not have
+#: to retype what was already written down once.
 _VERIFIABLE = {"actuator", "freeze_frame", "parameter", "recording_event", "live", "dealer"}
-_ATTESTED = {"manual"}
+_ATTESTED = {"manual", "note"}
 
 #: Component keywords -> the do-not warning they trip. Transcribed from the
 #: EVAP tree's do_not list and EVAP_STELVIO.md field evidence.
@@ -125,6 +129,22 @@ def _verify_measurement(m: dict[str, Any], vin: str) -> dict[str, Any]:
         result.update(status="rejected",
                       note="a DTC is not a measurement -- codes select the "
                            "tree, they do not convict the part")
+        return result
+
+    if mtype == "note":
+        note_id = str(m.get("id", "")).strip()
+        if not note_id:
+            result.update(status="rejected",
+                          note="note cite needs an 'id' (from add_note/notes)")
+            return result
+        match = next((n for n in notes_mod.load(vin) if n.get("id") == note_id), None)
+        if match is None:
+            result.update(status="rejected",
+                          note=f"no note with id {note_id!r} recorded for this VIN")
+            return result
+        result.update(status="attested",
+                      note=f"operator-attested via technician note ({match.get('at')}): "
+                           f"{match['text']}")
         return result
 
     if mtype in _ATTESTED:
@@ -291,7 +311,7 @@ def _verify_measurement(m: dict[str, Any], vin: str) -> dict[str, Any]:
     result.update(status="rejected",
                   note=f"unknown measurement type {mtype!r}; use one of: "
                        "actuator, freeze_frame, parameter, recording_event, "
-                       "live, dealer, manual")
+                       "live, dealer, manual, note")
     return result
 
 

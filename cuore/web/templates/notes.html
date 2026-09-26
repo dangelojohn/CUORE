@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Notes — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Technician notes</h1>
+<p class="lede">Context on anything cuore found that lives nowhere else —
+"purge valve replaced by me 2026-09-10", "this scan was taken right after a
+battery disconnect", "smoke test done at 0.5 psi, no leak". Every note here
+is also visible wherever it was filed against: the dossier, a code page, or
+the fault tree.</p>
+
+<form class="panel" method="get" action="/v/{{ vin }}/notes"
+      style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+  <div>
+    <label for="target_kind">Target kind</label>
+    <select id="target_kind" name="target_kind">
+      <option value="">(any)</option>
+      {% for k in ["vehicle", "code", "log", "observation", "dealer", "tree_step", "component"] %}
+        <option value="{{ k }}" {% if k == filter_target_kind %}selected{% endif %}>{{ k }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="flex:1;min-width:160px">
+    <label for="target_id">Target id</label>
+    <input id="target_id" name="target_id" type="text" value="{{ filter_target_id }}">
+  </div>
+  <button class="btn primary" type="submit">Filter</button>
+</form>
+
+{% include "_notes.html" %}
+
+{% endblock %}

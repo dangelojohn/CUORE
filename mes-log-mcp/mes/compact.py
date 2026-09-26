@@ -38,8 +38,21 @@ _SCAN_HEADER_KEYS = (
 
 
 def _compact_dtc(d: dict[str, Any]) -> dict[str, Any]:
-    return {"dtc": d.get("dtc"), "description": d.get("description"),
-            "status": d.get("status")}
+    out = {"dtc": d.get("dtc"), "description": d.get("description"),
+          "status": d.get("status")}
+    if d.get("notes"):
+        out["notes"] = [_compact_note(n) for n in d["notes"]]
+    return out
+
+
+def _compact_note(n: dict[str, Any]) -> dict[str, Any]:
+    """A technician note reduced to text/at/target -- notes are user content,
+    so the text is kept in full (unlike everything else this module trims)."""
+    target = n.get("target_kind", "")
+    target_id = n.get("target_id", "")
+    if target_id:
+        target = f"{target}:{target_id}"
+    return {"text": n.get("text"), "at": n.get("at"), "target": target}
 
 
 # --- analyze_scan -----------------------------------------------------------
@@ -158,6 +171,8 @@ def _compact_history_record(r: dict[str, Any]) -> dict[str, Any]:
         out["distance_span_km"] = r["distance_span_km"]
     if "assessment" in r:
         out["assessment"] = r["assessment"]
+    if r.get("notes"):
+        out["notes"] = [_compact_note(n) for n in r["notes"]]
     return out
 
 
@@ -219,6 +234,16 @@ def compact_workup(full: dict[str, Any]) -> dict[str, Any]:
     # Question and remedy only; the "why_unknown" explanation stays in detail=True.
     out["blind_spots"] = [{k: b[k] for k in ("question", "closes_it") if k in b}
                           for b in full.get("blind_spots", [])]
+
+    notes = full.get("notes") or {}
+    # Notes are user content, kept in full (text/at/target only -- see
+    # _compact_note) rather than trimmed like everything else here. On a car
+    # with no notes yet this key stays a bare {"vehicle": []}, a few bytes;
+    # the 12 KB budget check in check_compact.py is against a note-free
+    # corpus and is unaffected either way.
+    if notes.get("vehicle"):
+        out["notes"] = {"vehicle": [_compact_note(n) for n in notes["vehicle"]]}
+
     out["provenance_note"] = full.get("provenance_note", "")
     return out
 

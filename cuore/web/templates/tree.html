@@ -117,4 +117,11 @@
 <p><a class="btn primary" href="/v/{{ vin }}/gate?codes={{ codes|urlencode }}">Take the conclusion to the gate &rarr;</a></p>
 {% endif %}
 
+<h2>Notes on a tree step</h2>
+<p class="small muted">File a note against a step (target id like <span class="mono">evap-leak:E7</span>)
+  or a component (target kind <span class="mono">component</span>, target id a free-text part name
+  like <span class="mono">ESIM</span>) — a matching component note is picked up on every step that
+  names that part. Notes filed here also show up above under "This car's own evidence".</p>
+{% include "_notes.html" %}
+
 {% endblock %}

@@ -1,0 +1,80 @@
+{# Reusable technician-notes list + add form.
+
+Context expected:
+  vin                 -- required
+  notes_list          -- list of note dicts (mes_bridge.notes()["notes"])
+  note_target_kind     -- default for the add form's target_kind
+  note_target_id       -- default for the add form's target_id
+  note_redirect        -- where the add/edit/hide forms redirect back to
+  note_kind_locked      -- bool: hide the target_kind/target_id inputs and show
+                          them as fixed text instead, so a note filed from a
+                          code page or a tree step cannot be mis-filed by
+                          fat-fingering the target.
+#}
+
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>When</th><th>Note</th><th>Target</th><th>By</th><th></th></tr></thead>
+    <tbody>
+    {% for n in notes_list|reverse %}
+      <tr>
+        <td class="mono small muted">{{ n.at }}
+          {% if n.edited_at %}<div class="small muted">edited {{ n.edited_at }}</div>{% endif %}</td>
+        <td class="small">{{ n.text }}
+          {% if n.tags %}<div class="small muted">{{ n.tags|join(", ") }}</div>{% endif %}</td>
+        <td class="small mono">{{ n.target_kind }}{% if n.target_id %}:{{ n.target_id }}{% endif %}</td>
+        <td class="small muted">{{ n.author }}</td>
+        <td class="small" style="white-space:nowrap">
+          <details style="display:inline-block">
+            <summary class="btn" style="display:inline">edit</summary>
+            <form method="post" action="/v/{{ vin }}/notes/{{ n.id }}/edit"
+                  style="margin-top:6px;min-width:220px">
+              <input type="hidden" name="redirect_to" value="{{ note_redirect }}">
+              <textarea name="text" rows="2" style="width:100%" maxlength="4000">{{ n.text }}</textarea>
+              <button class="btn" type="submit">Save</button>
+            </form>
+          </details>
+          <form method="post" action="/v/{{ vin }}/notes/{{ n.id }}/hide" style="display:inline">
+            <input type="hidden" name="redirect_to" value="{{ note_redirect }}">
+            <button class="btn" type="submit"
+                    onclick="return true">Hide</button>
+          </form>
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">No notes yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Add a note</h3>
+  <form method="post" action="/v/{{ vin }}/notes">
+    <input type="hidden" name="redirect_to" value="{{ note_redirect }}">
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:6px">
+      {% if note_kind_locked %}
+        <input type="hidden" name="target_kind" value="{{ note_target_kind }}">
+        <input type="hidden" name="target_id" value="{{ note_target_id }}">
+        <div class="small muted" style="align-self:center">About:
+          <span class="mono">{{ note_target_kind }}{% if note_target_id %}:{{ note_target_id }}{% endif %}</span></div>
+      {% else %}
+        <select name="target_kind">
+          {% for k in ["vehicle", "code", "log", "observation", "dealer", "tree_step", "component"] %}
+            <option value="{{ k }}" {% if k == note_target_kind %}selected{% endif %}>{{ k }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="target_id" value="{{ note_target_id }}"
+               placeholder="target id (e.g. P0456, evap-leak:E7, ESIM)">
+      {% endif %}
+    </div>
+    <div class="field"><label for="note_text_{{ note_target_kind }}">Note</label>
+      <textarea id="note_text_{{ note_target_kind }}" name="text" rows="3" required
+                maxlength="4000" style="width:100%"
+                placeholder="e.g. purge valve replaced by me 2026-09-10"></textarea>
+    </div>
+    <p><button class="btn primary" type="submit">Add note</button></p>
+  </form>
+</div>

@@ -81,4 +81,7 @@
 <p><a class="btn" href="/v/{{ vin }}/tree?codes={{ code|urlencode }}">Fault tree for {{ code }} &rarr;</a>
    <a class="btn" href="/v/{{ vin }}/gate?codes={{ code|urlencode }}">Take it to the gate &rarr;</a></p>
 
+<h2>Notes on {{ code }}</h2>
+{% include "_notes.html" %}
+
 {% endblock %}

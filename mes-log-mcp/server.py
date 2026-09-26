@@ -25,6 +25,7 @@ from mcp.server.fastmcp import FastMCP
 
 from mes import analysis, catalog, compact, csvlog, dtc as dtc_mod, fes, modules, paths, scan
 from mes import dealer as dealer_mod
+from mes import notes as notes_mod
 from mes import faulttree, verdict
 from mes import workup as workup_mod
 from mes.errors import MesError
@@ -642,6 +643,55 @@ def record_dealer_result(vin: str, kind: str, data_json: str, note: str = "") ->
 def dealer_results(vin: str) -> str:
     """Every dealer (wiTECH) result recorded for this VIN, oldest first."""
     return _guard(lambda: {"vin": vin, "results": dealer_mod.load(vin)})
+
+
+# --- technician notes -------------------------------------------------------
+
+
+@mcp.tool()
+def add_note(vin: str, text: str, target_kind: str = "vehicle", target_id: str = "",
+            tags: str = "") -> str:
+    """Add a technician note -- context Claude and the gate must see, that lives
+    nowhere else: "purge valve replaced by me 2026-09-10", "this scan was
+    taken right after a battery disconnect", "smoke test done at 0.5 psi, no
+    leak". Append-only: use ``edit_note``/``hide_note`` to amend or retract,
+    never re-add.
+
+    Args:
+        target_kind: one of vehicle | code | log | observation | dealer |
+            tree_step | component.
+        target_id: what the note is about, shaped by target_kind --
+            a DTC (P0456 or P0456-00, matched on the base code), a MES log
+            filename, an observation or dealer result's timestamp, a fault
+            tree step (evap-leak:E7), or a free-text component name (ESIM).
+            Empty for target_kind="vehicle".
+        tags: comma-separated, optional.
+    """
+    def run():
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+        return notes_mod.add(vin, text, target_kind, target_id=target_id, tags=tag_list)
+    return _guard(run)
+
+
+@mcp.tool()
+def notes(vin: str, target_kind: str = "", target_id: str = "") -> str:
+    """Technician notes for this VIN, oldest first. Empty target_kind/target_id
+    returns every note for the vehicle; either filters."""
+    return _guard(lambda: {"vin": vin,
+                           "notes": notes_mod.load(vin, target_kind=target_kind or None,
+                                                   target_id=target_id)})
+
+
+@mcp.tool()
+def edit_note(id: str, text: str) -> str:
+    """Amend a note's text. Appends an amendment record -- never rewrites history."""
+    return _guard(lambda: notes_mod.edit(id, text))
+
+
+@mcp.tool()
+def hide_note(id: str) -> str:
+    """Hide a note (soft delete). Appends a hide record -- never rewrites history."""
+    return _guard(lambda: notes_mod.hide(id))
 
 
 # --- CSV recordings (graph subsystem export) ------------------------------

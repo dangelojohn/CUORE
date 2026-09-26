@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import analysis, fes as fes_mod, knowledge, scan as scan_mod
+from . import analysis, fes as fes_mod, knowledge, notes as notes_mod, scan as scan_mod
 from .catalog import CATALOG
 
 
@@ -300,6 +300,32 @@ def build(vin: str = "", vehicle: str = "",
                             "cold-start natural-vacuum window",
              "closes_it": "check fuel level before the verification drive"})
 
+    # --- technician notes ---------------------------------------------------
+    # Attached rather than merged: a note is context on a finding, not the
+    # finding itself, so it rides alongside current_picture/history entries as
+    # a "notes" list that only appears where a note actually exists.
+    notes_out: dict[str, Any] = {"vehicle": []}
+    if vin.strip():
+        notes_out["vehicle"] = notes_mod.load(vin, target_kind="vehicle")
+        code_notes = notes_mod.load(vin, target_kind="code")
+        if code_notes:
+            by_code: dict[str, list[dict[str, Any]]] = {}
+            for n in code_notes:
+                by_code.setdefault(knowledge.base_code(n.get("target_id", "")), []).append(n)
+            for key in ("latest_session", "last_session_with_findings"):
+                session = current.get(key)
+                if not session:
+                    continue
+                for d in session.get("dtcs", []):
+                    hits = by_code.get(knowledge.base_code(d.get("code") or d.get("dtc") or ""))
+                    if hits:
+                        d["notes"] = hits
+            for bucket in classified.values():
+                for r in bucket:
+                    hits = by_code.get(knowledge.base_code(r.get("dtc", "")))
+                    if hits:
+                        r["notes"] = hits
+
     return {
         "identity": {k: summary.get(k) for k in
                      ("vin", "vehicle", "ecu_seen", "log_count", "first_log",
@@ -309,6 +335,7 @@ def build(vin: str = "", vehicle: str = "",
         "tsb_matches": tsb,
         "already_attempted": attempted,
         "blind_spots": blind_spots,
+        "notes": notes_out,
         "provenance_note": (
             "Simulation logs excluded. SCAN provenance is unverifiable "
             "(no simulation marker exists in that format)."),

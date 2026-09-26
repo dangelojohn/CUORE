@@ -23,7 +23,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from . import fes as fes_mod, knowledge
+from . import fes as fes_mod, knowledge, notes as notes_mod
 from .catalog import CATALOG
 
 
@@ -813,6 +813,28 @@ def evaluate(codes, vin: str = "") -> dict[str, Any]:
                         f"logs ({rec.first_seen} to {rec.last_seen})."),
                     "source": "dtc_history for this VIN (C141C-86)",
                 })
+
+        # --- technician notes filed against a tree step or a component ------
+        # A note is the technician's own evidence -- "purge valve replaced by
+        # me 2026-09-10" answers step E3 as surely as an actuator log does,
+        # and a component note ("ESIM: bench tested good") applies to every
+        # step that names that part, not just one.
+        tree_step_notes = notes_mod.load(vin, target_kind="tree_step")
+        component_notes = notes_mod.load(vin, target_kind="component")
+        if tree_step_notes or component_notes:
+            for t in matched:
+                for step in tuple(t.steps) + tuple(t.verification):
+                    step_target = f"{t.key}:{step.id}".lower()
+                    for n in tree_step_notes:
+                        if (n.get("target_id") or "").strip().lower() == step_target:
+                            evidence.append({"step": step.id, "finding": n["text"],
+                                             "source": "technician note"})
+                    haystack = f"{step.title} {step.test}".lower()
+                    for n in component_notes:
+                        comp = (n.get("target_id") or "").strip().lower()
+                        if comp and comp in haystack:
+                            evidence.append({"step": step.id, "finding": n["text"],
+                                             "source": "technician note"})
 
         if evidence:
             out["vehicle_evidence"] = evidence

@@ -87,7 +87,7 @@ class ErrorBody(BaseModel):
 
 
 MeasurementType = Literal["actuator", "freeze_frame", "parameter",
-                          "recording_event", "manual", "live"]
+                          "recording_event", "manual", "live", "note"]
 
 
 class Measurement(BaseModel):
@@ -109,6 +109,7 @@ class Measurement(BaseModel):
     monitor: str | None = None        # live readiness
     ecu: str | None = None            # live did
     did: str | None = None            # live did
+    id: str | None = None             # note: the technician note's id
 
 
 class VerdictRequest(BaseModel):
