@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Service hub — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Service hub</h1>
+<p class="lede">Every service area for this vehicle, one card each — last
+service, open flags, and next due where that's known. Click through to
+record work or read the full spec/torque tables for that area.</p>
+
+<div class="cols two">
+{% for c in cards %}
+  <div class="panel">
+    <h2>{{ c.title }}</h2>
+    {% if c.last %}
+      <p class="small muted">last: {{ c.last.date }}
+        {% if c.last.odometer_km is not none %}at {{ "{:,}".format(c.last.odometer_km|round|int) }} km{% endif %}</p>
+    {% elif c.note %}
+      <p class="small muted">{{ c.note }}</p>
+    {% elif not c.mes_events %}
+      <p class="small muted">no service recorded yet.</p>
+    {% endif %}
+    {% if c.mes_events %}
+      <p class="small">{% if not c.last %}no cuore record yet. {% endif %}Logged in MES:</p>
+      <ul class="small">
+        {% for e in c.mes_events[:4] %}<li>{{ e.operation }}, {{ e.date }}{% if e.outcome %} ({{ e.outcome|lower }}){% endif %}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if c.flags %}
+      <p><span class="chip chronic">{{ c.flags|length }} open flag{{ "s" if c.flags|length != 1 }}</span></p>
+      <ul class="small">
+        {% for f in c.flags[:4] %}<li>{{ f }}</li>{% endfor %}
+        {% if c.flags|length > 4 %}<li class="muted">+{{ c.flags|length - 4 }} more</li>{% endif %}
+      </ul>
+    {% elif c.last %}
+      <p><span class="chip ok">no open flags</span></p>
+    {% endif %}
+
+    {% if c.next_due %}
+      <p class="small">next due: <b>{{ c.next_due }}</b></p>
+    {% endif %}
+
+    {% if c.top_due %}
+      <p class="small">top due:</p>
+      <ul class="small">
+        {% for t in c.top_due %}<li>{{ t }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+
+    <p>
+    {% for href, label in c.links %}
+      <a class="btn" href="{{ href }}">{{ label }}</a>
+    {% endfor %}
+    </p>
+  </div>
+{% endfor %}
+</div>
+
+{% endblock %}

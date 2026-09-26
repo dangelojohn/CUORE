@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+{% block title %}{{ section_label }} — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+{% macro conf_chip(c) -%}
+<span class="chip {{ 'ok' if c in ('CONFIRMED','CORROBORATED') else ('plain' if c == 'UNKNOWN' else 'chronic') }}">{{ c }}</span>
+{%- endmacro %}
+
+{% macro specs_table(specs) %}
+<div class="tw">
+<table>
+  <thead><tr><th>Item</th><th>Value</th><th>Confidence</th><th>Notes / source</th></tr></thead>
+  <tbody>
+  {% for s in specs %}
+    <tr>
+      <td class="k">{{ s.component }}</td>
+      <td>{{ s.value }}{% if s.unit %} {{ s.unit }}{% endif %}</td>
+      <td>{{ conf_chip(s.confidence) }}</td>
+      <td class="small muted">{{ s.notes }}
+        {% if s.source %}<br><a href="{{ s.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="muted">No specs recorded for this section.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+{% macro torques_table(torques) %}
+<div class="tw">
+<table>
+  <thead><tr><th>Fastener</th><th>Spec</th><th>Confidence</th><th>Notes / source</th></tr></thead>
+  <tbody>
+  {% for t in torques %}
+    <tr>
+      <td>{{ t.component }}
+        {% if t.single_use %} <span class="chip returned">single-use</span>{% endif %}
+        {% if t.platform_note and 'BMW' in t.platform_note %} <span class="chip chronic">cross-platform: BMW reference, not Alfa-confirmed</span>{% endif %}
+        {% if t.platform_note and 'BMW' not in t.platform_note %}<div class="small muted">{{ t.platform_note }}</div>{% endif %}
+      </td>
+      <td class="mono">{{ t.display }}{% if t.angle %} {{ t.angle }}{% endif %}</td>
+      <td>{{ conf_chip(t.confidence) }}
+        {% if t.confidence == 'UNKNOWN' %}<div class="small muted">use the service manual (TechAuthority)</div>{% endif %}</td>
+      <td class="small muted">{{ t.notes }}
+        {% if t.source %}<br><a href="{{ t.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td>
+    </tr>
+  {% else %}
+    <tr><td colspan="4" class="muted">No fasteners tagged for this section.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}
+
+<h1>{{ section_label }}</h1>
+<p class="lede">Part of the drivetrain deep-dive — see the
+<a href="/v/{{ vin }}/service-hub">service hub</a> for every section, and the
+<a href="/v/{{ vin }}/torque">torque library</a> for the whole-car fastener list.
+UNKNOWN rows stay visible on purpose; a missing spec means go to the service
+manual (TechAuthority), never a guess.</p>
+
+{% if error %}
+  <div class="note alert"><span class="lab">Not recorded</span>{{ error }}</div>
+{% endif %}
+{% if saved %}
+  <div class="note good"><span class="lab">Recorded</span>{{ section_label }} service saved to the ledger.</div>
+{% endif %}
+
+{% set last = checklist.last_service %}
+<div class="note {{ 'warn' if (last and (last.data.flags or last.data.torque_checklist.flags)) else 'plain' }}">
+  <span class="lab">Verdict</span>
+  {% if last %}
+    last {{ section_label|lower }} service {{ last.data.date }} at
+    {{ "{:,}".format(last.data.odometer_km|round|int) }} km
+    ({{ last.data.job|replace("_", " ") }}), by {{ last.data.technician }}.
+    {% if last.data.parts_replaced %}
+      Parts: {% for p in last.data.parts_replaced %}{{ p.name }} {{ p.part_no }}{% if not loop.last %}, {% endif %}{% endfor %}.
+    {% endif %}
+    {% set lflags = (last.data.flags or []) + ((last.data.torque_checklist or {}).flags or []) %}
+    {% if lflags %}
+      {% for f in lflags %}<div>{{ f }}</div>{% endfor %}
+    {% else %}
+      <div class="small muted">no open flags from the last recorded service.</div>
+    {% endif %}
+  {% else %}
+    no {{ section_label|lower }} service recorded yet for this VIN.
+  {% endif %}
+</div>
+
+{% if checklist.carried_forward_considerations %}
+<div class="panel">
+  <h2>Carried forward from last time</h2>
+  <ul>
+  {% for c in checklist.carried_forward_considerations %}
+    <li>{{ c }}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if section == "transmission" %}
+<div class="note warn">
+  <span class="lab">ZF 8HP fill / level-check window</span>
+  Fluid must be <b>30-50&deg;C (86-122&deg;F)</b> at the fill/level-check hole —
+  a temperature outside that window makes the level reading unreliable and is
+  flagged on the record. This 4th-gen 8HP requires an OEM scan-tool level-check
+  routine, not a plain plug-and-check.
+  <div class="small muted">Adaptation relearn (Fast Filling / Standard Clutch Filling via wiTECH; MES:
+  QUICK LEARN / STATIC ADAPTATION + RESET ADAPTIVE VALUES) is <b>not required</b>
+  for a routine fluid-and-filter change, and is not lost on battery disconnect.</div>
+  <div class="small muted">TSB 21-035-20 (TCM flash, 2020-05-08) applies to this VIN — shift-quality /
+  MIL fixes; PCM must also be updated to latest at completion.</div>
+</div>
+
+<div class="note {{ 'good' if live_temp.available else 'plain' }}">
+  <span class="lab">Live gearbox oil temperature (read-only)</span>
+  {% if live_temp.available %}
+    latest TCM DID 04FE read: <b>{{ live_temp.value }}</b> @ {{ live_temp.at }}
+  {% else %}
+    no live read on file yet. cuore can read gearbox oil temperature live from
+    the TCM over UDS at DID 04FE — this page only shows what has already been
+    observed; it does not trigger a live read itself.
+  {% endif %}
+</div>
+{% endif %}
+
+{% if section == "differentials" %}
+<div class="cols two">
+  <div class="panel">
+    <h2>Front differential</h2>
+    {{ specs_table(checklist.specs.front.specs) }}
+    <h3>Torques — front</h3>
+    {{ torques_table(checklist.specs.front.torques) }}
+  </div>
+  <div class="panel">
+    <h2>Rear differential</h2>
+    {{ specs_table(checklist.specs.rear.specs) }}
+    <h3>Torques — rear</h3>
+    {{ torques_table(checklist.specs.rear.torques) }}
+  </div>
+</div>
+{% else %}
+<div class="panel">
+  <h2>{{ section_label }} specification</h2>
+  {{ specs_table(checklist.specs.specs) }}
+</div>
+
+<div class="panel">
+  <h2>{{ section_label }} torques</h2>
+  {{ torques_table(checklist.specs.torques) }}
+</div>
+{% endif %}
+
+{% if checklist.specs.dtcs %}
+<div class="panel tight">
+  <h2>Related DTCs</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Code(s)</th><th>Meaning</th></tr></thead>
+    <tbody>
+    {% for code, meaning in checklist.specs.dtcs %}
+      <tr><td class="mono small">{{ code }}</td><td class="small">{{ meaning }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{% if checklist.specs.tsbs %}
+<div class="panel tight">
+  <h2>Related TSBs</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>TSB</th><th>Applies?</th><th>Summary</th></tr></thead>
+    <tbody>
+    {% for t in checklist.specs.tsbs %}
+      <tr>
+        <td class="mono small">{{ t.number }} ({{ t.date }})</td>
+        <td>{% if t.applies_to_this_car %}<span class="chip ok">applies</span>{% else %}<span class="chip plain">does not apply</span>{% endif %}</td>
+        <td class="small">{{ t.summary }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
+{% if checklist.specs.issues %}
+<div class="panel tight">
+  <h2>Known issues</h2>
+  <ul class="small">
+  {% for name, note in checklist.specs.issues %}
+    <li><b>{{ name }}</b> — {{ note }}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2>Choose a job</h2>
+  <form method="get" action="/v/{{ vin }}/drivetrain/{{ section }}">
+    <select name="job" onchange="this.form.submit()">
+      {% for j in jobs %}
+        <option value="{{ j }}" {{ "selected" if j == job }}>{{ j|replace("_", " ") }}</option>
+      {% endfor %}
+    </select>
+    <noscript><p><button class="btn" type="submit">Load job</button></p></noscript>
+  </form>
+</div>
+
+{% if steps %}
+<div class="panel">
+  <h2>Job steps — {{ job|replace("_", " ") }}</h2>
+  <ol>
+  {% for s in steps %}
+    <li>{{ s.step }}{% if s.torque_ref %} <span class="chip plain mono">{{ s.torque_ref }}</span>{% endif %}</li>
+  {% endfor %}
+  </ol>
+</div>
+{% endif %}
+
+{% if torque_rows %}
+<div class="panel">
+  <h2>Torque checklist — {{ job|replace("_", " ") }}</h2>
+  {{ torques_table(torque_rows) }}
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2>Record this service</h2>
+  <form method="post" action="/v/{{ vin }}/drivetrain/{{ section }}">
+    <input type="hidden" name="job" value="{{ job }}">
+
+    <h3>Vehicle / odometer</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <div class="field"><label for="date">Date</label>
+        <input id="date" type="date" name="date" required></div>
+      <div class="field"><label for="odometer_km">Odometer (km)</label>
+        <input id="odometer_km" type="number" step="1" name="odometer_km"
+               value="{{ current_odometer or '' }}" required></div>
+      <div class="field"><label for="technician">Technician</label>
+        <input id="technician" type="text" name="technician" required></div>
+    </div>
+
+    <h3>Fluid</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="fluid_brand" placeholder="Fluid brand">
+      <input type="text" name="fluid_spec" placeholder="Fluid spec / part number">
+      <input type="text" name="fluid_part_no" placeholder="Fluid part no">
+      <input type="number" step="0.01" name="quantity_drained_l" placeholder="Quantity drained (L)">
+      <input type="number" step="0.01" name="quantity_added_l" placeholder="Quantity added (L)">
+      {% if section == "transmission" %}
+      <input type="number" step="0.1" name="fluid_temp_c" placeholder="Fluid temp at level check (C) — 30-50 window">
+      {% else %}
+      <input type="number" step="0.1" name="fluid_temp_c" placeholder="Fluid temp at level check (C)">
+      {% endif %}
+    </div>
+
+    <h3>Fluid condition</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="fluid_color" placeholder="Colour">
+      <input type="text" name="fluid_smell" placeholder="Smell">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="fluid_debris_metal"> debris / metal on magnet</label>
+    </div>
+
+    {% if section == "transmission" %}
+    <h3>Adaptation relearn</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="adaptation_done"> adaptation relearn done</label>
+      <input type="text" name="adaptation_tool" placeholder="Tool (MES / wiTECH)">
+    </div>
+    {% endif %}
+
+    <h3>Parts replaced</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:2fr 1fr 1fr">
+      <input type="text" name="part_name" placeholder="Part (filter / pan / seal)">
+      <input type="text" name="part_no" placeholder="Part number">
+      <input type="number" step="1" name="part_qty" placeholder="Qty" value="1">
+    </div>
+
+    {% if torque_rows %}
+    <h3>Torques applied</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    {% for t in torque_rows %}
+      <div class="field"><label for="torque_{{ t.key }}">{{ t.component }} ({{ t.unit or 'Nm' }})</label>
+        <input id="torque_{{ t.key }}" type="number" step="0.1" name="torque_{{ t.key }}"
+               placeholder="{{ t.display }}"></div>
+    {% endfor %}
+    </div>
+    {% endif %}
+
+    <h3>Discoveries</h3>
+    <div class="field"><label for="leaks_found">Leaks found</label>
+      <input id="leaks_found" type="text" name="leaks_found"></div>
+    <div class="field"><label for="discoveries">Other discoveries (one per line)</label>
+      <textarea id="discoveries" name="discoveries"></textarea></div>
+    <div class="field"><label for="considerations_next">Considerations for next time (one per line)</label>
+      <textarea id="considerations_next" name="considerations_next"></textarea></div>
+
+    <p><button class="btn primary" type="submit">Record {{ section_label|lower }} service</button></p>
+  </form>
+</div>
+
+<div class="panel tight">
+  <h2>History — {{ section_label }}</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>When</th><th>Odometer</th><th>Job</th><th>Technician</th><th>Flags</th></tr></thead>
+    <tbody>
+    {% for r in checklist.history|reverse %}
+      {% set d = r.data %}
+      <tr>
+        <td class="mono small muted">{{ d.date }}
+          {% if r.amendments %}<span class="chip plain">amended x{{ r.amendments|length }}</span>{% endif %}</td>
+        <td class="n">{{ "{:,}".format(d.odometer_km|round|int) }} km</td>
+        <td class="small">{{ d.job|replace("_", " ") }}</td>
+        <td class="small">{{ d.technician }}</td>
+        <td class="small">
+          {% set hflags = (d.flags or []) + ((d.torque_checklist or {}).flags or []) %}
+          {% if hflags %}<span class="chip chronic">flags</span> {{ hflags|join("; ") }}{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">No {{ section_label|lower }} service recorded yet for this VIN.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% endblock %}
