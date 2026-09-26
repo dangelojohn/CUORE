@@ -260,3 +260,73 @@ def live_observations(n: int = Query(default=50, ge=1, le=1000), vin: str = Quer
 @router.get("/live/audit", summary="Recent audit-log entries")
 def live_audit(n: int = Query(default=50, ge=1, le=1000)) -> dict[str, Any]:
     return {"path": str(audit_mod.log_path()), "entries": audit_mod.read_recent(n)}
+
+
+@router.get("/live/actuators",
+            summary="Learned actuator-test procedures (list only; replay never over HTTP)")
+def live_actuators(vin: str = Query(default="")) -> dict[str, Any]:
+    return ops.actuators(vin)
+
+
+# --- live-data engine: channels, poll sessions, alarms, recording ---------------
+
+@router.get("/live/channels", summary="Channel registry (PID/DID/computed/battery) and presets")
+def live_channels_route() -> dict[str, Any]:
+    return ops.live_channels()
+
+
+@router.post("/live/session/start",
+            summary="Start the live-data poll session; read-only but holds the adapter")
+def live_session_start_route(channels: Optional[list[str]] = Body(default=None, embed=True),
+                             preset: str = Body(default="", embed=True),
+                             rates: Optional[dict[str, float]] = Body(default=None, embed=True)
+                             ) -> dict[str, Any]:
+    return ops.live_session_start(channels, preset=preset, rates=rates)
+
+
+@router.post("/live/session/stop", summary="Stop the live-data poll session, release the adapter")
+def live_session_stop_route() -> dict[str, Any]:
+    return ops.live_session_stop()
+
+
+@router.get("/live/session", summary="Live-data session status: channels, achieved rates, alarms")
+def live_session_status_route() -> dict[str, Any]:
+    return ops.live_session_status()
+
+
+@router.get("/live/snapshot", summary="Latest value of every channel in the running session")
+def live_snapshot_route() -> dict[str, Any]:
+    return ops.live_snapshot()
+
+
+@router.post("/live/record/start", summary="Start mirroring the live session to an MES-format CSV")
+def live_record_start_route() -> dict[str, Any]:
+    return ops.live_record_start()
+
+
+@router.post("/live/record/stop", summary="Stop the live-session CSV recording")
+def live_record_stop_route() -> dict[str, Any]:
+    return ops.live_record_stop()
+
+
+@router.post("/live/alarms", summary="Set a warn/alarm threshold on one live channel")
+def live_alarms_route(channel: str = Body(..., embed=True),
+                      warn: Optional[float] = Body(default=None, embed=True),
+                      alarm: Optional[float] = Body(default=None, embed=True),
+                      direction: str = Body(default="above", embed=True),
+                      hysteresis: float = Body(default=0.0, embed=True)) -> dict[str, Any]:
+    return ops.live_set_alarm(channel, warn=warn, alarm=alarm, direction=direction,
+                              hysteresis=hysteresis)
+
+
+@router.get("/live/stream", summary="Server-sent events: live channel samples and alarms")
+def live_stream_route():
+    import json as _json
+
+    from fastapi.responses import StreamingResponse
+
+    def gen():
+        for msg in ops.live_stream_events():
+            yield (": keepalive\n\n" if msg is None else f"data: {_json.dumps(msg)}\n\n")
+
+    return StreamingResponse(gen(), media_type="text/event-stream")

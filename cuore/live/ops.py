@@ -748,6 +748,79 @@ def coverage_reset() -> dict[str, Any]:
     return coverage.reset()
 
 
+# --- actuator tests: learned from a dealer tool, replayed under strict guards -----
+
+def learn_actuator(capture_name: str, module: str, name: str, tool: str = "MES") -> dict[str, Any]:
+    """Extract a replayable procedure for one module's actuator test from a saved capture.
+
+    ``capture_name`` is a file :func:`learn_capture` wrote, under
+    ``state_dir()/captures``. Pure offline parsing -- the adapter is never
+    opened. The module's target byte is taken from this VIN's confirmed
+    address if one is on record (``link().vin``), else the registry target.
+    """
+    import json as _json
+    from . import actuate
+    p = state_dir() / "captures" / Path(capture_name).name
+    if not p.exists():
+        raise BadCommand(f"no capture named {capture_name!r}")
+    data = _json.loads(p.read_text(encoding="utf-8"))
+    ecu = by_code(module.upper())
+    if ecu is None:
+        raise BadCommand(f"unknown module code {module!r}")
+    vin = link().vin or ""
+    target = store.confirmed_targets(vin).get(ecu.code) if vin else None
+    if target is None:
+        target = ecu.target
+    if target is None:
+        raise BadCommand(f"module {ecu.code} has no known address; run discovery first")
+    procedure = actuate.extract_procedure(data.get("transactions") or [], f"{target:02X}")
+    return actuate.save_actuator(vin, ecu.code, name, procedure, source=p.name, tool=tool)
+
+
+def actuators(vin: str = "") -> dict[str, Any]:
+    from . import actuate
+    return {"actuators": actuate.list_actuators(vin or None)}
+
+
+def run_actuator(vin: str, module: str, name: str, consent: str, max_seconds: float = 10.0,
+                 confirm: bool = False, **kw: Any) -> dict[str, Any]:
+    """Replay a learned actuator test (UDS 0x2F/0x31) on one module. Not exposed over HTTP.
+
+    Refuses unless ``consent`` is exactly ``ACTUATE <MODULE> <NAME>``, the module is not
+    safety-critical (:data:`safety.ACTUATION_BLOCKED_MODULES`, or anything on CAN-CH --
+    use MultiEcuScan or wiTECH for those), the learned procedure is replayable (no
+    SecurityAccess, no configuration/reflash/reset service), and the vehicle reads
+    engine-off and stationary (PID 0C then 0D on the legislated route; unreadable refuses
+    too). Bounded to ``max_seconds`` (hard cap 30 s); control is ALWAYS returned to the
+    ECU afterwards, even if a step fails.
+    """
+    from . import actuate
+    ecu = uds_mod.resolve_module(module, vin or None)
+    procedure = actuate.get_actuator(vin, ecu.code, name)
+    actuate.assert_actuate_allowed(ecu, procedure, consent, name)   # fail fast, before any traffic
+
+    def _reading(pid: str) -> Optional[float]:
+        try:
+            r = obd_pid(pid, **kw)
+        except LiveError:
+            return None
+        return float(r["value"]) if r.get("value") is not None else None
+
+    rpm = _reading("0C")
+    speed = _reading("0D")
+    if rpm is None or speed is None:
+        raise Refused("could not read engine RPM and vehicle speed; refusing to actuate")
+    if rpm > 0:
+        raise Refused(f"engine is running ({rpm:g} rpm); refusing to actuate")
+    if speed > 0:
+        raise Refused(f"vehicle speed reads {speed:g} km/h; refusing to actuate")
+
+    with link().session(f"actuate {ecu.code} {name}", bus=_bus(ecu.bus_key), confirm=confirm,
+                        **kw) as sess:
+        out = actuate.run_actuator(sess, ecu, procedure, consent=consent, max_seconds=max_seconds)
+        return _stamp(sess, out)
+
+
 __all__ = ["observations", "status", "ports", "mes_settings", "set_cable", "cable_state", "buses", "modules",
            "probe", "verify_bus", "capture", "obd_dtcs", "obd_all_dtcs", "obd_pid",
            "obd_voltage", "obd_supported_pids", "obd_freeze_frame", "obd_vin",
@@ -757,4 +830,153 @@ __all__ = ["observations", "status", "ports", "mes_settings", "set_cable", "cabl
            "obd_mode06", "module_dtc_detail", "module_dtc_count", "clear_module_dtcs",
            "module_read_all", "module_discover_dids",
            "learn_capture", "learn_correlate", "learn_accept", "learned_dids",
+           "learn_actuator", "actuators", "run_actuator",
            "AdapterLink", "link", "DEFAULT_TIMEOUT"]
+
+
+# --- live-data engine: channel registry, poll sessions, alarms, recording -------
+#
+# Backend for a future dashboard UI. The poller (cuore.live.poller) owns one
+# adapter session for the whole run; everything here is a thin wrapper so the
+# HTTP routes and MCP tools share the same entry points as every other
+# operation in this file.
+
+def live_channels() -> dict[str, Any]:
+    """The channel registry (every PID/DID/computed/battery channel) and presets."""
+    from . import channels as channels_mod
+    return {"channels": [c.to_dict() for c in channels_mod.available_channels()],
+            "presets": channels_mod.presets()}
+
+
+def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
+                       rates: Optional[dict[str, float]] = None) -> dict[str, Any]:
+    """Start the live-data poll session on the given channels and/or preset.
+
+    Read-only (Mode 01, UDS 0x22, ATRV only) but holds the adapter for the
+    whole session: other live operations refuse while this runs (see the
+    guard below), and this itself refuses while MultiEcuScan is connected.
+    """
+    from . import channels as channels_mod
+    from . import poller as poller_mod
+    chans = channels_mod.resolve_channels(channels, preset)
+    return poller_mod.poller().start(chans, rates=rates)
+
+
+def live_session_stop() -> dict[str, Any]:
+    """Stop the live-data poll session and release the adapter."""
+    from . import poller as poller_mod
+    return poller_mod.poller().stop()
+
+
+def live_session_status() -> dict[str, Any]:
+    """Live-data session status: channels, configured and achieved rates, alarms."""
+    from . import poller as poller_mod
+    return poller_mod.poller().status()
+
+
+def live_snapshot() -> dict[str, Any]:
+    """Latest value (and alarm state) of every channel in the running session."""
+    from . import poller as poller_mod
+    return poller_mod.poller().snapshot()
+
+
+def live_record_start() -> dict[str, Any]:
+    """Start mirroring the running live session to an MES-format CSV recording."""
+    from . import poller as poller_mod
+    return poller_mod.poller().start_recording()
+
+
+def live_record_stop() -> dict[str, Any]:
+    """Stop the live-session CSV recording."""
+    from . import poller as poller_mod
+    return poller_mod.poller().stop_recording()
+
+
+def live_set_alarm(channel: str, warn: Optional[float] = None, alarm: Optional[float] = None,
+                   direction: str = "above", hysteresis: float = 0.0) -> dict[str, Any]:
+    """Set (or replace) a warn/alarm threshold on one channel of the live session."""
+    from . import poller as poller_mod
+    return poller_mod.poller().set_alarm(channel, warn=warn, alarm=alarm, direction=direction,
+                                         hysteresis=hysteresis)
+
+
+def live_stream_subscribe() -> Any:
+    """A queue of ``{t, channel, value, unit, alarm}`` messages for the SSE route."""
+    from . import poller as poller_mod
+    return poller_mod.poller().subscribe()
+
+
+def live_stream_unsubscribe(q: Any) -> None:
+    from . import poller as poller_mod
+    poller_mod.poller().unsubscribe(q)
+
+
+def live_stream_events(max_messages: Optional[int] = None):
+    """Generator of live-session messages, or ``None`` as a keepalive placeholder.
+
+    A plain Python generator -- deliberately independent of FastAPI/ASGI --
+    so it is directly testable without an HTTP layer. The SSE route wraps
+    each yielded item into one ``data: ...`` (or ``: keepalive``) line.
+    ``max_messages`` bounds it for callers that want a finite read (tests);
+    the HTTP route leaves it unbounded and relies on the client disconnecting
+    to end iteration (handled by the ``finally`` unsubscribe below).
+    """
+    import queue as _queue
+    from . import poller as poller_mod
+    q = poller_mod.poller().subscribe()
+    n = 0
+    try:
+        while max_messages is None or n < max_messages:
+            try:
+                yield q.get(timeout=15.0)
+                n += 1
+            except _queue.Empty:
+                yield None
+    finally:
+        poller_mod.poller().unsubscribe(q)
+
+
+def _poller_active_guard() -> None:
+    """Refuse with a clear message if the live-data poller holds the adapter.
+
+    A poll session holds one :class:`~cuore.live.transport.Session` open for
+    its whole run, so any of the ordinary per-call operations below would
+    otherwise just block waiting for the adapter lock instead of failing
+    fast. Checked before the operation opens its own session.
+    """
+    from . import poller as poller_mod
+    if poller_mod.poller().holds_adapter():
+        raise Refused("a live-data poll session is running and holds the adapter; stop it "
+                      "first (live_session_stop / POST /api/live/session/stop)")
+
+
+#: Every operation here that opens its own adapter session, guarded against
+#: running while the live-data poller holds the port. Wrapping is applied
+#: below by name rather than editing each function in place.
+_POLLER_GUARDED = (
+    "probe", "verify_bus", "capture", "obd_dtcs", "obd_all_dtcs", "obd_pid", "obd_voltage",
+    "obd_supported_pids", "obd_freeze_frame", "obd_vin", "obd_readiness", "module_dtcs",
+    "module_identity", "module_did", "scan_modules", "discover", "obd_mode06",
+    "module_dtc_detail", "module_dtc_count", "module_read_all", "module_discover_dids",
+    "clear_module_dtcs", "run_actuator",
+)
+
+
+def _guard_against_poller(fn):
+    def _wrapped(*args, **kwargs):
+        _poller_active_guard()
+        return fn(*args, **kwargs)
+    _wrapped.__name__ = getattr(fn, "__name__", "wrapped")
+    _wrapped.__doc__ = getattr(fn, "__doc__", None)
+    _wrapped.__wrapped__ = fn
+    return _wrapped
+
+
+for _name in _POLLER_GUARDED:
+    globals()[_name] = _guard_against_poller(globals()[_name])
+del _name
+
+
+__all__ += ["live_channels", "live_session_start", "live_session_stop", "live_session_status",
+           "live_snapshot", "live_record_start", "live_record_stop", "live_set_alarm",
+           "live_stream_subscribe", "live_stream_unsubscribe", "live_stream_events"]

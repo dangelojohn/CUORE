@@ -139,12 +139,18 @@ CASES = [
     (server.read_all_module, ("TCM",), {}, "GET", "/api/live/module/TCM/all",
      {"include_unverified": "true", "confirm": "false"}, None),
     (server.learned_dids, ("V",), {}, "GET", "/api/live/learned", {"vin": "V"}, None),
+    (server.list_actuators, ("V",), {}, "GET", "/api/live/actuators", {"vin": "V"}, None),
     (server.learn_correlate, ("cap.json", '[{"t": 1, "label": "x", "value": "y"}]'), {}, "POST",
      "/api/live/learn/correlate", {}, {"capture": "cap.json",
                                        "marks": [{"t": 1, "label": "x", "value": "y"}]}),
     (server.verify_repair, ("P0455, P0456",), {"vin": "V", "read": False}, "GET",
      "/api/live/module/ECM/repair",
      {"codes": "P0455,P0456", "vin": "V", "read": "false", "confirm": "false"}, None),
+    (server.live_channels, (), {}, "GET", "/api/live/channels", {}, None),
+    (server.live_session_stop, (), {}, "POST", "/api/live/session/stop", {}, None),
+    (server.live_snapshot, (), {}, "GET", "/api/live/snapshot", {}, None),
+    (server.live_session_start, (), {"preset": "engine_basics"}, "POST",
+     "/api/live/session/start", {}, {"preset": "engine_basics"}),
 ]
 for fn, a, kw, method, path, query, body in CASES:
     out = run(fn, *a, **kw)

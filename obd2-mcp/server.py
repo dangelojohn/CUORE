@@ -416,6 +416,51 @@ def learned_dids(vin: str = "") -> str:
 
 
 @mcp.tool()
+def learn_actuator(capture: str, module: str, name: str, tool: str = "MES") -> str:
+    """Extract a replayable actuator-test procedure for one module from a learn_capture file.
+
+    FCA does not publish InputOutputControl/RoutineControl identifiers: this only works
+    after learn_capture recorded a real actuator test run once in MultiEcuScan or wiTECH.
+    Classifies the procedure replayable or not (no SecurityAccess, no configuration/reflash/
+    reset service) and works out its terminating request. In-process: this only parses a
+    saved capture file, it never opens the adapter.
+    """
+    return _json(lambda: ops.learn_actuator(capture, module, name, tool))
+
+
+@mcp.tool()
+def list_actuators(vin: str = "") -> str:
+    """Learned actuator-test procedures: module, name, tool, and whether they replay (and why not)."""
+    return _via("GET", "/live/actuators", lambda: ops.actuators(vin), query={"vin": vin})
+
+
+@mcp.tool()
+def run_actuator(module: str, name: str, consent: str, vin: str = "", max_seconds: float = 10.0,
+                 confirm: bool = False) -> str:
+    """Replay a learned actuator test (UDS 0x2F InputOutputControl / 0x31 RoutineControl).
+
+    MCP-only, in-process (no run route over HTTP: writes stay off HTTP by design). Refuses
+    unless consent is exactly "ACTUATE <MODULE> <NAME>" (e.g. "ACTUATE ECM EVAPORATION
+    CONTROL VALVE"), or "RUN ROUTINE <MODULE> <NAME>" when the procedure starts a module routine
+    (routine IDs are opaque and may be adaptation resets); the module is not safety-critical
+    (ABS, EPS, ORC, HALF, DASM, ESL/NBS, TVM, TCM, ESM, DTCM, RFHUB, or anything on CAN-CH --
+    use MultiEcuScan or wiTECH for those, never a replay here);
+    the learned procedure is replayable; and the vehicle reads engine-off and stationary
+    (refuses if RPM or speed cannot be read, not just if they are nonzero). Bounded to
+    max_seconds (hard cap 30 s, counting learned gaps and request timeouts). Returning control
+    to the ECU -- and the module to its default session -- is ALWAYS ATTEMPTED afterwards, even
+    if a step's response is an NRC or sending raises, and counts only if the module accepts it:
+    read "outcome", "control_returned" and "session_restored"; if either is false, switch the
+    ignition off at once. Adopts cuore's cable declaration first.
+    """
+    def body() -> Any:
+        _sync_cable()
+        return ops.run_actuator(vin, module, name, consent, max_seconds=max_seconds,
+                                confirm=confirm)
+    return _json(body)
+
+
+@mcp.tool()
 def clear_module_dtcs(code: str, consent: str, vin: str = "", confirm: bool = False,
                       override_speed_check: bool = False) -> str:
     """Clear ONE module's DTCs (UDS 0x14) after saving every code, snapshot and counter.
@@ -590,6 +635,42 @@ def coverage(action: str = "status", vin: str = "", pass_key: str = "",
         return _json(body)
     method, path, payload = routes[action]
     return _via(method, path, body, body=payload, timeout=900)
+
+
+# --- live-data engine ------------------------------------------------------
+
+@mcp.tool()
+def live_channels() -> str:
+    """Channel registry for the live-data engine: every Mode 01 PID, every catalogued
+    UDS DID for ECM/TCM/BCM/IPC/RFHUB (with confidence), computed channels (boost) and
+    battery voltage -- plus presets (engine_basics, boost, evap_job, transmission, tpms)."""
+    return _via("GET", "/live/channels", ops.live_channels)
+
+
+@mcp.tool()
+def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
+                       rates_json: str = "") -> str:
+    """Start a live-data poll session: round-robins the given channels (and/or preset) at
+    their configured rates, holding the adapter until stopped. Read-only (Mode 01, UDS
+    0x22, ATRV) but refuses other live operations while it runs, and itself refuses while
+    MultiEcuScan is connected. rates_json overrides per-channel Hz, e.g. '{"engine_rpm": 10}'.
+    """
+    rates = json.loads(rates_json) if rates_json else None
+    return _via("POST", "/live/session/start",
+                lambda: ops.live_session_start(channels, preset=preset, rates=rates),
+                body={"channels": channels, "preset": preset, "rates": rates})
+
+
+@mcp.tool()
+def live_session_stop() -> str:
+    """Stop the running live-data poll session and release the adapter."""
+    return _via("POST", "/live/session/stop", ops.live_session_stop)
+
+
+@mcp.tool()
+def live_snapshot() -> str:
+    """Latest value (and alarm state) of every channel in the running live-data session."""
+    return _via("GET", "/live/snapshot", ops.live_snapshot)
 
 
 if __name__ == "__main__":
