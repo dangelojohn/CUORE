@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Labels — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Service reminder labels</h1>
+<p class="lede">Print small, information-dense labels on Avery weatherproof
+film sheets. Geometry for each sheet is sourced from Avery where possible —
+see <a href="/api/vehicles/{{ vin }}/labels/templates" target="_blank" rel="noopener">the raw template data</a>
+or <code>docs/reference/AVERY_LABEL_TEMPLATES.md</code>. A template marked
+<span class="chip chronic">not Avery-confirmed</span> uses a computed,
+evenly-spaced placeholder layout — always print the test grid on plain paper
+first and check it against a real sheet before printing to film.</p>
+
+{% if error %}
+<div class="note alert"><span class="lab">Not shown</span>{{ error }}</div>
+{% endif %}
+
+<div class="panel">
+  <h2>Pick a label</h2>
+  <form method="get" action="/v/{{ vin }}/labels">
+    <h3>Kind &amp; template</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div class="field"><label for="kind">Label kind</label>
+        <select id="kind" name="kind" onchange="this.form.submit()">
+          {% for k in kinds %}
+          <option value="{{ k }}" {{ 'selected' if k == kind else '' }}>{{ k.replace('_',' ') }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="field"><label for="template_id">Sheet template</label>
+        <select id="template_id" name="template_id" onchange="this.form.submit()">
+          {% for t in templates_list %}
+          <option value="{{ t.id }}" {{ 'selected' if t.id == template_id else '' }}>
+            {{ t.name }} — {{ t.printer }}{{ '' if t.geometry_confirmed else ' (unconfirmed)' }}
+          </option>
+          {% endfor %}
+          <option value="custom" {{ 'selected' if template_id == 'custom' else '' }}>Custom dimensions…</option>
+        </select></div>
+      {% set tmpl = (templates_list | selectattr('id','equalto',template_id) | list | first) %}
+      {% if tmpl %}
+      <div class="small muted" style="align-self:end">
+        <span class="chip {{ 'ok' if tmpl.geometry_confirmed else 'chronic' }}">{{ tmpl.confidence }}</span>
+        {{ tmpl.cols }}×{{ tmpl.rows }} = {{ tmpl.count }} labels, {{ tmpl.label_w_in }} × {{ tmpl.label_h_in }}, {{ tmpl.material }}
+      </div>
+      {% endif %}
+    </div>
+
+    {% if template_id == 'custom' %}
+    <h3>Custom sheet dimensions (mm)</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      <input type="text" name="c_name" placeholder="Name" value="{{ q.c_name or '' }}">
+      <input type="number" step="0.1" name="c_page_w_mm" placeholder="Page width mm" value="{{ q.c_page_w_mm or 215.9 }}">
+      <input type="number" step="0.1" name="c_page_h_mm" placeholder="Page height mm" value="{{ q.c_page_h_mm or 279.4 }}">
+      <input type="number" step="0.1" name="c_label_w_mm" placeholder="Label width mm" value="{{ q.c_label_w_mm or '' }}">
+      <input type="number" step="0.1" name="c_label_h_mm" placeholder="Label height mm" value="{{ q.c_label_h_mm or '' }}">
+      <input type="number" step="1" name="c_cols" placeholder="Columns" value="{{ q.c_cols or '' }}">
+      <input type="number" step="1" name="c_rows" placeholder="Rows" value="{{ q.c_rows or '' }}">
+      <input type="number" step="0.1" name="c_margin_top_mm" placeholder="Top margin mm" value="{{ q.c_margin_top_mm or '' }}">
+      <input type="number" step="0.1" name="c_margin_left_mm" placeholder="Left margin mm" value="{{ q.c_margin_left_mm or '' }}">
+      <input type="number" step="0.1" name="c_pitch_x_mm" placeholder="Horizontal pitch mm (blank = label width)" value="{{ q.c_pitch_x_mm or '' }}">
+      <input type="number" step="0.1" name="c_pitch_y_mm" placeholder="Vertical pitch mm (blank = label height)" value="{{ q.c_pitch_y_mm or '' }}">
+    </div>
+    {% endif %}
+
+    <h3>Source record (optional — leave blank to type values below)</h3>
+    <div class="field"><label for="record_id">Record</label>
+      <select id="record_id" name="record_id" onchange="this.form.submit()">
+        <option value="">(none — enter values manually)</option>
+        {% for r in records %}
+        <option value="{{ r.id }}" {{ 'selected' if r.id == q.record_id else '' }}>
+          {{ r.data.date or r.at }} — {{ (r.data.odometer_km|round|int) if r.data.odometer_km else '?' }} km
+          {% if r.data.oil %}({{ r.data.oil.viscosity }}){% endif %}
+          {% if r.data.category %}({{ r.data.category }}){% endif %}
+        </option>
+        {% endfor %}
+      </select></div>
+
+    {% if kind == 'oil_change' %}
+    <h3>Oil change fields</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="shop_name" placeholder="Shop name" value="{{ q.shop_name or 'CUORE' }}">
+      <input type="date" name="date" value="{{ q.date or '' }}">
+      <input type="number" step="1" name="odometer_km" placeholder="Odometer km" value="{{ q.odometer_km or current_odometer or '' }}">
+      <input type="text" name="oil_viscosity" placeholder="Viscosity" value="{{ q.oil_viscosity or '' }}">
+      <input type="text" name="oil_spec" placeholder="Spec/approval" value="{{ q.oil_spec or '' }}">
+      <input type="text" name="quantity_l" placeholder="Quantity (L)" value="{{ q.quantity_l or '' }}">
+      <input type="text" name="filter_part_no" placeholder="Filter part no" value="{{ q.filter_part_no or '' }}">
+      <input type="text" name="technician" placeholder="Technician initials" value="{{ q.technician or '' }}">
+      <input type="text" name="next_due_km" placeholder="Next due km (blank = computed)" value="{{ q.next_due_km or '' }}">
+      <input type="text" name="next_due_date" placeholder="Next due date (blank = computed)" value="{{ q.next_due_date or '' }}">
+    </div>
+    {% elif kind == 'service' %}
+    <h3>Service fields</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="section" placeholder="Section (e.g. Transmission)" value="{{ q.section or '' }}">
+      <input type="date" name="date" value="{{ q.date or '' }}">
+      <input type="number" step="1" name="odometer_km" placeholder="Odometer km" value="{{ q.odometer_km or current_odometer or '' }}">
+      <input type="text" name="next_due" placeholder="Next due (free text)" value="{{ q.next_due or '' }}">
+      <input type="text" name="key_spec" placeholder="Key spec (e.g. fluid spec)" value="{{ q.key_spec or '' }}">
+      <input type="text" name="key_torque" placeholder="Key torque applied" value="{{ q.key_torque or '' }}">
+      <input type="text" name="technician" placeholder="Technician initials" value="{{ q.technician or '' }}">
+    </div>
+    <div class="field"><label for="work_done">Work done summary</label>
+      <textarea id="work_done" name="work_done">{{ q.work_done or '' }}</textarea></div>
+    {% elif kind == 'torque_tag' %}
+    <h3>Torque tag fields</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="torque_key" placeholder="Torque library key (optional lookup)" value="{{ q.torque_key or '' }}">
+      <input type="text" name="component" placeholder="Component" value="{{ q.component or '' }}">
+      <input type="text" name="torque_nm" placeholder="Torque (Nm)" value="{{ q.torque_nm or '' }}">
+      <input type="text" name="torque_lbft" placeholder="Torque (lb-ft)" value="{{ q.torque_lbft or '' }}">
+      <input type="text" name="angle" placeholder="Angle (if any)" value="{{ q.angle or '' }}">
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" name="single_use" {{ 'checked' if q.single_use else '' }}> single-use fastener</label>
+      <input type="date" name="date" value="{{ q.date or '' }}">
+      <input type="text" name="technician" placeholder="Technician initials" value="{{ q.technician or '' }}">
+    </div>
+    <p class="small muted">A torque library key looked up here (e.g. <code>wheel_lug</code>)
+    fills component/torque/angle/single-use from the confidence-graded library on
+    <a href="/v/{{ vin }}/torque">the torque page</a> — override any field above it.</p>
+    {% elif kind == 'reminder' %}
+    <h3>Reminder fields</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="vehicle" placeholder="Vehicle (blank = from workup)" value="{{ q.vehicle or '' }}">
+      <input type="text" name="job" placeholder="Job (e.g. Oil change)" value="{{ q.job or 'Oil change' }}">
+      <input type="text" name="next_due_km" placeholder="Next due km (blank = computed)" value="{{ q.next_due_km or '' }}">
+      <input type="text" name="next_due_date" placeholder="Next due date (blank = computed)" value="{{ q.next_due_date or '' }}">
+    </div>
+    {% endif %}
+
+    <h3>Sheet position, copies &amp; calibration</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      <div class="field"><label for="start_index">Start cell (0-based index)</label>
+        <input id="start_index" type="number" step="1" name="start_index" value="{{ q.start_index or 0 }}"></div>
+      <div class="field"><label for="start_row">…or start row (1-based)</label>
+        <input id="start_row" type="number" step="1" name="start_row" value="{{ q.start_row or '' }}"></div>
+      <div class="field"><label for="start_col">…and start column (1-based)</label>
+        <input id="start_col" type="number" step="1" name="start_col" value="{{ q.start_col or '' }}"></div>
+      <div class="field"><label for="copies">Copies</label>
+        <input id="copies" type="number" step="1" min="1" name="copies" value="{{ q.copies or 1 }}"></div>
+      <div class="field"><label for="offset_x_mm">Calibration offset X (mm)</label>
+        <input id="offset_x_mm" type="number" step="0.1" name="offset_x_mm" value="{{ q.offset_x_mm or 0 }}"></div>
+      <div class="field"><label for="offset_y_mm">Calibration offset Y (mm)</label>
+        <input id="offset_y_mm" type="number" step="0.1" name="offset_y_mm" value="{{ q.offset_y_mm or 0 }}"></div>
+    </div>
+
+    <h3>QR code (optional, off by default)</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" name="qr" {{ 'checked' if q.qr else '' }} onchange="this.form.submit()"> include QR code</label>
+      <input type="text" name="qr_url" placeholder="Shop LAN URL for this vehicle" value="{{ q.qr_url or '' }}">
+    </div>
+
+    <p style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn" type="submit">Update preview</button>
+      <button class="btn primary" type="submit" formaction="/v/{{ vin }}/labels.pdf" formtarget="_blank">Download PDF</button>
+      <button class="btn" type="submit" formaction="/v/{{ vin }}/labels.pdf" formtarget="_blank" name="grid" value="1">Print test grid (plain paper)</button>
+    </p>
+    <p class="small muted">The PDF opens inline so the browser's print dialog
+    can print it — choose <b>Actual size / 100%</b>, never "Fit to page",
+    or the die-cut lines on the film will not line up with the printed
+    boxes.</p>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>Preview</h2>
+  {% if preview_url %}
+  <p class="small muted">One copy of the label at the selected start cell — the exact same PDF the download button produces.</p>
+  <embed src="{{ preview_url }}" type="application/pdf" width="100%" height="500" style="border:1px solid var(--rule);border-radius:var(--radius);background:#fff">
+  {% else %}
+  <p class="small muted">Pick a kind and template above to see a preview.</p>
+  {% endif %}
+</div>
+
+{% endblock %}
