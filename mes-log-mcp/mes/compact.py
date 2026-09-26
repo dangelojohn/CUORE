@@ -216,7 +216,9 @@ def compact_workup(full: dict[str, Any]) -> dict[str, Any]:
     out["tsb_matches"] = compact_tsb
 
     out["already_attempted"] = _group_attempted(full.get("already_attempted") or [])
-    out["blind_spots"] = full.get("blind_spots", [])
+    # Question and remedy only; the "why_unknown" explanation stays in detail=True.
+    out["blind_spots"] = [{k: b[k] for k in ("question", "closes_it") if k in b}
+                          for b in full.get("blind_spots", [])]
     out["provenance_note"] = full.get("provenance_note", "")
     return out
 

@@ -178,6 +178,28 @@ EVAP_LEAK = Tree(
              "9100469",
              caution="EVAP is a low-pressure system -- over-pressurising "
                      "damages components."),
+        Step("E8", "ECM calibration check at the dealer (wiTECH flash check)",
+             "Ask a dealer to run a wiTECH ECU flash check on the VIN: is a "
+             "newer PCM calibration available than the one installed? Do this "
+             "before replacing any further part once the vent-side parts have "
+             "been replaced or smoke-tested and the codes still return.",
+             "Dealer wiTECH (MES reads the installed version but cannot see "
+             "what is available). Combine with any open recall visit.",
+             "wiTECH reports the ECM is on the latest calibration.",
+             "A newer calibration exists: flash it, clear, drive several "
+             "cycles (fuel 15-85 %, cold starts), then verify the status "
+             "bytes. The 18-0xx PCM flash family lists P0440/P0441/P0455/"
+             "P0456 among the DTCs a flash fixes; no part fixes a "
+             "calibration fault. If it is already current, the software "
+             "lead is closed: next is the ESIM-to-ECM circuit.",
+             "free with a recall/campaign visit; otherwise one PCM "
+             "reprogram (0.7 h on TSB 18-018-25's labour op)",
+             "TSB 18-030-17 REV. B and the 18-0xx flash family "
+             "(docs/reference/TSB_CATALOGUE.md); FCA flash bulletins publish "
+             "no calibration numbers, only 'the latest available software' "
+             "(TSB 18-065-22, 18-018-25), so only wiTECH can answer this",
+             caution="Flashing needs wiTECH and AutoAuth; MES and cuore "
+                     "cannot flash or look up available calibrations."),
     ),
     verification=(
         Step("V1", "Do not road-test as proof",
@@ -679,6 +701,15 @@ def evaluate(codes, vin: str = "") -> dict[str, Any]:
                 if "evaporation" in a.operation.lower():
                     if a.to_dict().get("outcome") == "COMPLETED":
                         purge_runs += 1
+        if matched and any(t.key == "evap-leak" for t in matched):
+            from . import ecm
+            ident = ecm.installed(vin)
+            evidence.append({
+                "step": "E8",
+                "finding": ("Installed: " + ecm.summary_line(ident) + ". Say to the "
+                            "dealer: " + ecm.dealer_request(vin, list(codes), ident)),
+                "source": "ECM identity from this car's MES sessions and live UDS reads",
+            })
         if purge_runs:
             evidence.append({
                 "step": "E3",

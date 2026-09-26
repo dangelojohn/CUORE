@@ -231,6 +231,15 @@ def build(vin: str = "", vehicle: str = "",
     ]
     if any(knowledge.base_code(c) in knowledge.EVAP_FAMILY
            for c in all_codes):
+        from . import ecm
+        ident = ecm.installed(vin) if vin else None
+        blind_spots.append(
+            {"question": "Is the ECM on the latest calibration?",
+             "why_unknown": ("FCA publishes no calibration numbers; the logs show "
+                             "what is installed (" + ecm.summary_line(ident) + "), "
+                             "not what is available"),
+             "closes_it": ("dealer wiTECH ECU flash check on the VIN; the exact "
+                           "request is in EVAP fault tree step E8")})
         blind_spots.append(
             {"question": "Will the EVAP monitor run on the next drive?",
              "why_unknown": "monitor needs fuel level roughly 15-85% and a "

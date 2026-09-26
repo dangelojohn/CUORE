@@ -125,6 +125,22 @@ check("no-arg lists all four trees",
           "dasm-half-private-can"})
 
 print()
+
+# --- dealer flash check (step E8) -------------------------------------------
+_evap = next(tr for tr in faulttree.TREES if tr.key == "evap-leak")
+_e8 = next((st for st in _evap.steps if st.id == "E8"), None)
+check("evap-leak has the dealer flash check as step E8", _e8 is not None)
+check("E8 cites the PCM flash family", _e8 is not None and "18-030-17" in _e8.source)
+check("E8 says FCA publishes no calibration numbers",
+      _e8 is not None and "no calibration numbers" in _e8.source)
+_ev = faulttree.evaluate(["P0455", "P0456", "P0440"], vin="ZASFAKPN5J7B88115")
+_e8ev = [e for e in _ev.get("vehicle_evidence", []) if e.get("step") == "E8"]
+check("this VIN's evaluate carries an E8 finding", bool(_e8ev), str(_ev.get("vehicle_evidence")))
+check("the E8 finding names the installed supplier software P235QB39",
+      bool(_e8ev) and "P235QB39" in _e8ev[0]["finding"], _e8ev[0]["finding"] if _e8ev else "")
+check("the E8 finding includes the dealer request with the VIN",
+      bool(_e8ev) and "wiTECH ECU flash check on VIN ZASFAKPN5J7B88115" in _e8ev[0]["finding"])
+
 if failures:
     print(f"{len(failures)} FAILURES: {failures}")
     sys.exit(1)

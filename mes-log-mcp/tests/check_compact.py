@@ -105,8 +105,11 @@ check("already_attempted is grouped, not one row per run",
 check("already_attempted groups carry kind/operation/outcome/count/first/last",
       all(set(g) == {"kind", "operation", "outcome", "count", "first", "last"}
           for g in d["already_attempted"]))
-check("blind_spots pass through unchanged",
-      d["blind_spots"] == full_workup_direct["blind_spots"])
+check("blind_spots keep every question and remedy exactly",
+      d["blind_spots"] == [{k: b[k] for k in ("question", "closes_it") if k in b}
+                           for b in full_workup_direct["blind_spots"]])
+check("the calibration blind spot survives compaction",
+      any("latest calibration" in b["question"] for b in d["blind_spots"]))
 
 print("=== compact scan ===")
 compact_scan_raw = server.analyze_scan(vin=VIN)  # detail defaults to False
