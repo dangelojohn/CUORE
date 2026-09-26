@@ -374,4 +374,11 @@ if failures:
     for f in failures:
         print(f"  - {f}")
     sys.exit(1)
+# --- regression 2026-09-26: month arithmetic never yields impossible dates ----
+from mes.service import _add_months as _am  # noqa: E402
+for _src, _n, _want in (("2026-01-31", 1, "2026-02-28"), ("2024-01-31", 1, "2024-02-29"),
+                         ("2025-12-31", 2, "2026-02-28"), ("2026-08-31", 6, "2027-02-28"),
+                         ("2026-09-15", 12, "2027-09-15"), ("2026-03-31", 1, "2026-04-30")):
+    check(f"_add_months({_src}, {_n}) == {_want}", _am(_src, _n) == _want, str(_am(_src, _n)))
+
 print("OK")

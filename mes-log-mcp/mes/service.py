@@ -983,12 +983,9 @@ def _add_months(date_s: str, months: int) -> Optional[str]:
     m0 = m - 1 + months
     y += m0 // 12
     m = m0 % 12 + 1
-    for day in (d, 28, 27, 26):
-        try:
-            return f"{y:04d}-{m:02d}-{day:02d}"
-        except ValueError:
-            continue
-    return f"{y:04d}-{m:02d}-01"
+    import calendar
+    day = min(max(d, 1), calendar.monthrange(y, m)[1])  # 31 Jan + 1 month -> 28/29 Feb
+    return f"{y:04d}-{m:02d}-{day:02d}"
 
 
 def _mes_oil_change_events(vin: str) -> list[dict[str, Any]]:
