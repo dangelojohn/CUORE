@@ -540,6 +540,111 @@ check("but not persisted", not h.get("persisted") and bool(h.get("not_persisted"
 check_eq("and the store stays empty", store.confirmed_targets(VIN), {})
 
 
+# ===========================================================================
+# 9. test reads never pass as evidence about the car
+# ===========================================================================
+
+from cuore.live import audit as audit_mod  # noqa: E402
+
+check("the audit log follows CUORE_STATE_DIR",
+      str(audit_mod.log_path()).startswith(_TMP), str(audit_mod.log_path()))
+check("observations follow CUORE_STATE_DIR",
+      str(store.observations_path()).startswith(_TMP), str(store.observations_path()))
+fake_obs = [o for o in store.recent_observations(200) if o.get("stream")]
+check("scripted reads were recorded with their stream", bool(fake_obs))
+check("no scripted read counts as from the car",
+      not any(store.is_from_car(o) for o in fake_obs),
+      str({o.get("stream") for o in fake_obs}))
+check("a serial read counts as from the car",
+      store.is_from_car({"stream": "serial COM3@115200"}))
+check("a recorded serial session counts as from the car",
+      store.is_from_car({"stream": "recording(serial COM3@115200)"}))
+check("an untagged legacy read does not", not store.is_from_car({}))
+
+
+# ===========================================================================
+# 10. silence is explained from the port voltage, not assumed to be ignition
+# ===========================================================================
+
+
+class VoltStream(MonitorStream):
+    def __init__(self, volts: str) -> None:
+        super().__init__()
+        self.volts = volts
+
+    def _reply(self, cmd: str) -> str:
+        if cmd == "ATRV":
+            return self.volts
+        return super()._reply(cmd)
+
+
+for volts, want, label in (("14.1V", "engine is running", "charging voltage"),
+                           ("12.3V", "ignition may be off", "resting voltage"),
+                           ("10.2V", "battery is low", "low voltage"),
+                           ("OK", "no vehicle voltage", "no voltage")):
+    vs = VoltStream(volts)
+    lkv = AdapterLink(stream_factory=lambda p, b, vs=vs: vs, process="check_coverage")
+    lkv.auto_verify_seconds = 0.3
+    set_link(lkv)
+    w = ops.obd_dtcs("stored").get("warning", "")
+    check(f"silence at {label} says '{want}'", want in w, w)
+    check(f"silence at {label} never blames the ignition as 'expected'",
+          "this is expected" not in w, w)
+vs = VoltStream("14.1V")
+lkv = AdapterLink(stream_factory=lambda p, b: vs, process="check_coverage")
+lkv.auto_verify_seconds = 0.3
+set_link(lkv)
+rd = ops.obd_readiness()
+check("readiness NO DATA carries the voltage explanation",
+      "engine is running" in (rd.get("since_clear") or {}).get("why", ""), str(rd)[:300])
+
+
+# ===========================================================================
+# 11. repair verification from the status byte
+# ===========================================================================
+
+from cuore.live import repair  # noqa: E402
+
+check_eq("0x4D (last night's EVAP) is failing", repair.classify_status(0x4D), "failing")
+check_eq("0x02 failed this drive is failing", repair.classify_status(0x02), "failing")
+check_eq("0x28 failed since clear, not now", repair.classify_status(0x28),
+         "failed_since_clear")
+check_eq("0x50 not run since clear", repair.classify_status(0x50), "not_run_since_clear")
+check_eq("0x40 ran since clear, not this cycle, never failed",
+         repair.classify_status(0x40), "passed_since_clear")
+
+a = repair.assess(["P0455", "P0456"], [{"code": "P0455-00", "status": 0x50},
+                                       {"code": "P0456-00", "status": 0x40}], answered=True)
+check("one test not yet run gives NOT YET KNOWN", a["verdict"].startswith("NOT YET KNOWN"),
+      a["verdict"])
+a = repair.assess(["P0455", "P0456"], [{"code": "P0455-00", "status": 0x40},
+                                       {"code": "P0456-00", "status": 0x40}], answered=True)
+check("all run and passed gives TESTS PASSED", a["verdict"].startswith("TESTS PASSED"),
+      a["verdict"])
+check("TESTS PASSED still asks for the permanent-code check", "Mode 0A" in a["verdict"])
+a = repair.assess(["P0455"], [], answered=True)
+check_eq("absent from an answered reply is likely passed", a["codes"][0]["state"],
+         "likely_passed")
+check("which is not reported as a full pass", a["verdict"].startswith("PROBABLY PASSED"))
+a = repair.assess(["P0455"], [], answered=False)
+check("no answer concludes nothing", a["verdict"].startswith("no answer"))
+check_eq("codes match with or without the failure byte",
+         repair.assess(["P0455-00"], [{"code": "P0455-00", "status": 0x4D}],
+                       answered=True)["codes"][0]["state"], "failing")
+tl = repair.timeline(["P0455"], [
+    {"at": "t1", "data": {"ecu": "ECM", "codes": ["P0455-00"],
+                          "dtcs": [{"code": "P0455-00", "status": 0x4D}]}},
+    {"at": "t2", "data": {"ecu": "ECM", "error": "CAN ERROR", "codes": None}},
+    {"at": "t3", "data": {"ecu": "TCM", "codes": [], "dtcs": []}},
+    {"at": "t4", "data": {"ecu": "ECM", "codes": ["P0455-00"],
+                          "dtcs": [{"code": "P0455-00", "status": 0x50}]}},
+], "ECM")
+check_eq("timeline keeps only clean reads of that module", [t["at"] for t in tl],
+         ["t1", "t4"])
+check_eq("timeline shows the progression", [t["states"]["P0455"] for t in tl],
+         ["failing", "not_run_since_clear"])
+
+
 print(f"checks run: {checks}")
 if failures:
     print(f"FAILURES: {len(failures)}")

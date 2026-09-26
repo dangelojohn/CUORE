@@ -114,8 +114,9 @@ def live_obd_readiness() -> dict[str, Any]:
 
 @router.get("/live/module/{code}/dtcs", summary="UDS 0x19 02 on one module")
 def live_module_dtcs(code: str, vin: str = Query(default=""), mask: int = Query(default=0xFF),
-                     confirm: bool = Query(default=False)) -> dict[str, Any]:
-    return ops.module_dtcs(code, vin=vin, mask=mask, confirm=confirm)
+                     confirm: bool = Query(default=False),
+                     detail: bool = Query(default=True)) -> dict[str, Any]:
+    return ops.module_dtcs(code, vin=vin, mask=mask, confirm=confirm, detail=detail)
 
 
 @router.get("/live/module/{code}/identity", summary="ISO 14229 Annex C identity of one module")
@@ -130,11 +131,20 @@ def live_module_did(code: str, did: str, vin: str = Query(default=""),
     return ops.module_did(code, did, vin=vin, confirm=confirm)
 
 
+@router.get("/live/module/{code}/repair",
+            summary="Repair verification: has each test re-run since the clear, and passed?")
+def live_module_repair(code: str, codes: str = Query(..., description="P0455,P0456,P0440"),
+                       vin: str = Query(default=""), read: bool = Query(default=True),
+                       confirm: bool = Query(default=False)) -> dict[str, Any]:
+    return ops.repair_status([c.strip() for c in codes.split(",")], module=code, vin=vin,
+                             read=read, confirm=confirm)
+
+
 @router.get("/live/scan", summary="UDS DTC sweep over every confirmed module on a bus")
 def live_scan(bus: str = Query(default="can_c"), vin: str = Query(default=""),
-              mask: int = Query(default=0xFF), confirm: bool = Query(default=False)
-              ) -> dict[str, Any]:
-    return ops.scan_modules(bus, vin=vin, mask=mask, confirm=confirm)
+              mask: int = Query(default=0xFF), confirm: bool = Query(default=False),
+              detail: bool = Query(default=True)) -> dict[str, Any]:
+    return ops.scan_modules(bus, vin=vin, mask=mask, confirm=confirm, detail=detail)
 
 
 @router.post("/live/discover", summary="Address discovery: 22 F190 at each candidate target")

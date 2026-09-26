@@ -48,7 +48,8 @@ def _observe(sess: Session, kind: str, out: dict[str, Any], vin: str = "") -> di
     """Stamp and persist a result as an observation the evidence gate can cite."""
     _stamp(sess, out)
     v = vin or getattr(sess.link, "vin", "") or ""
-    store.record_observation(kind, out, vin=v, bus=sess.bus.key, cable=sess.link.cable)
+    store.record_observation(kind, out, vin=v, bus=sess.bus.key, cable=sess.link.cable,
+                             stream=sess.stream.describe)
     return out
 
 
@@ -216,6 +217,32 @@ def _negative_responses(q: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _silence_reason(sess: Session) -> str:
+    """Why no ECU answered, judged from the voltage at the OBD port.
+
+    "With the ignition off this is expected" was printed on 2026-09-25 while
+    the port read 14.1 V with the engine running; the real cause was the
+    adapter's bus access. Charging voltage rules the ignition out.
+    """
+    try:
+        raw = sess.cmd("ATRV", 2)
+    except Exception:  # noqa: BLE001 -- the explanation must never fail the read
+        raw = ""
+    m = re.search(r"(\d+\.\d+)V", raw or "")
+    if not m:
+        return ("no vehicle voltage at the adapter: it is not plugged into the car, or the "
+                "car is fully off")
+    v = float(m.group(1))
+    if v >= 13.3:
+        return (f"the port reads {v:.1f} V, so the engine is running: the ignition does NOT "
+                f"explain the silence. Check the adapter's bus access: HS/MS switch on HS, "
+                f"plug fully seated, no coloured cable fitted for CAN-C")
+    if v < 11.0:
+        return f"the port reads {v:.1f} V: the battery is low enough for modules to drop out"
+    return (f"the port reads {v:.1f} V: the ignition may be off. Turn it ON and retry; if it "
+            f"is already on, check the HS/MS switch and that the plug is fully seated")
+
+
 def _dtc_read(sess: Session, mode: str, response_byte: str, label: str) -> dict[str, Any]:
     sess.untarget()
     q = sess.query(mode, response_byte)
@@ -235,7 +262,7 @@ def _dtc_read(sess: Session, mode: str, response_byte: str, label: str) -> dict[
                               "read did NOT complete.")
         else:
             out["warning"] = ("no ECU answered" + (" (NO DATA)" if no_data(q["raw"]) else "") +
-                              "; with the ignition off this is expected")
+                              "; " + _silence_reason(sess))
     if label == "stored" and not out["dtcs"]:
         out["note"] = _MODE03_NOTE
     return _observe(sess, "obd_dtcs", out)
@@ -273,7 +300,7 @@ def obd_pid(pid: str, **kw: Any) -> dict[str, Any]:
         if first is not None:
             out["value"], out["unit"] = first.get("value"), first.get("unit")
         else:
-            out["warning"] = "no ECU answered this PID"
+            out["warning"] = "no ECU answered this PID; " + _silence_reason(sess)
         return _stamp(sess, out)
 
 
@@ -351,7 +378,7 @@ def obd_vin(**kw: Any) -> dict[str, Any]:
                     sess.link.vin = vin
                 break
         if "vin" not in out:
-            out["warning"] = "no ECU answered Mode 09 PID 02"
+            out["warning"] = "no ECU answered Mode 09 PID 02; " + _silence_reason(sess)
         return _stamp(sess, out)
 
 
@@ -372,6 +399,8 @@ def readiness_in(sess: Session) -> dict[str, Any]:
         neg = _negative_responses(q) if not decoded else []
         out[label] = decoded or {"error": ("negative response: " + "; ".join(neg)) if neg
                                  else "could not decode readiness response", "raw": q["raw"]}
+        if not decoded and not neg and no_data(q["raw"]):
+            out[label]["why"] = _silence_reason(sess)
     verdict = evap_verdict(out.get("since_clear") or {})
     if verdict:
         out["evap_verdict"] = verdict
@@ -398,12 +427,46 @@ def obd_readiness(**kw: Any) -> dict[str, Any]:
 
 # --- UDS on any bus ----------------------------------------------------------
 
+def _compact_dtc_result(mod: dict[str, Any]) -> dict[str, Any]:
+    """Summarise one module's UDS DTC read for ``detail=False`` callers.
+
+    A UDS 0x19 02 reply lists every code the module TRACKS, not every code
+    that is failing -- the ECM alone tracks 278 and reports all of them. Most
+    callers only need what is wrong now, so this keeps the status/metadata
+    fields and collapses the ``dtcs`` list to active/history counts plus the
+    full records for the active codes only. :func:`coverage.classify_records`
+    already does the status-byte classification for the coverage sweep; it is
+    reused here rather than re-implemented so the two summaries never drift
+    out of sync with what the status bits mean.
+    """
+    from . import coverage
+    out = {k: mod[k] for k in
+           ("ecu", "bus", "mask", "error", "nrc", "warning", "note", "skipped")
+           if k in mod}
+    if "dtcs" not in mod:
+        return out
+    records = mod.get("dtcs") or []
+    cls = coverage.classify_records(records)
+    active_set = set(cls["active"])
+    out["active"] = cls["active"]
+    out["history"] = cls["history"]
+    out["tracked"] = cls["tracked"]
+    out["not_run_since_clear"] = cls["not_run_since_clear"]
+    out["active_records"] = [r for r in records if r.get("code") in active_set]
+    return out
+
+
 def module_dtcs(code: str, vin: str = "", mask: int = 0xFF, confirm: bool = False,
-                **kw: Any) -> dict[str, Any]:
+                detail: bool = True, **kw: Any) -> dict[str, Any]:
+    """UDS 0x19 02 on one module. ``detail=False`` summarises the DTC list --
+    see :func:`_compact_dtc_result`. The FULL result is always what gets
+    recorded as the observation; only the returned value is ever summarised.
+    """
     ecu = uds_mod.resolve_module(code, vin or None)
     with link().session(f"module_dtcs {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
                         **kw) as sess:
-        return _observe(sess, "module_dtcs", uds_mod.read_dtcs(sess, ecu, mask), vin)
+        full = _observe(sess, "module_dtcs", uds_mod.read_dtcs(sess, ecu, mask), vin)
+        return full if detail else _compact_dtc_result(full)
 
 
 def module_identity(code: str, vin: str = "", confirm: bool = False, **kw: Any) -> dict[str, Any]:
@@ -432,7 +495,12 @@ def module_did(code: str, did: str, vin: str = "", confirm: bool = False, **kw: 
 
 
 def scan_modules(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm: bool = False,
-                 **kw: Any) -> dict[str, Any]:
+                 detail: bool = True, **kw: Any) -> dict[str, Any]:
+    """UDS DTC sweep over every confirmed module on a bus. ``detail=False``
+    summarises each module's DTC list -- see :func:`_compact_dtc_result`. The
+    FULL scan, and the FULL per-module result, are what get recorded as
+    observations; only the returned value is ever summarised.
+    """
     b = _bus(bus)
     with link().session(f"scan_modules {b.key}", bus=b, confirm=confirm, **kw) as sess:
         out = _observe(sess, "scan", uds_mod.scan_bus(sess, b, vin or None, mask), vin)
@@ -440,7 +508,10 @@ def scan_modules(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm: b
             if "codes" in mod:
                 store.record_observation("module_dtcs", mod,
                                          vin=vin or getattr(sess.link, "vin", ""),
-                                         bus=b.key, cable=sess.link.cable)
+                                         bus=b.key, cable=sess.link.cable,
+                                         stream=sess.stream.describe)
+        if not detail:
+            out = {**out, "modules": [_compact_dtc_result(m) for m in out.get("modules", [])]}
         return out
 
 
@@ -464,6 +535,35 @@ def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
 def observations(n: int = 50, vin: str = "", kind: str = "") -> dict[str, Any]:
     return {"path": str(store.observations_path()),
             "entries": store.recent_observations(n, vin=vin, kind=kind)}
+
+
+# --- repair verification --------------------------------------------------------
+
+def repair_status(codes: list[str], module: str = "ECM", vin: str = "",
+                  read: bool = True, confirm: bool = False) -> dict[str, Any]:
+    """Has each named test re-run since the clear, and did it pass?
+
+    ``read=True`` reads the module now (0x19 02 FF); either way the answer
+    carries a timeline from every earlier real read of this module for this
+    VIN, so progress is visible drive by drive.
+    """
+    from datetime import datetime
+    from . import repair
+    if not [c for c in codes if c.strip()]:
+        raise BadCommand("name at least one code, e.g. P0455,P0456,P0440")
+    out: dict[str, Any] = {"module": module.upper(), "vin": vin or None}
+    if read:
+        now = module_dtcs(module, vin=vin, confirm=confirm)
+        answered = not now.get("error") and now.get("codes") is not None
+        out["read_at"] = datetime.now().isoformat(timespec="seconds")
+        out["read_problem"] = now.get("error") or now.get("warning") or None
+        out.update(repair.assess(codes, now.get("dtcs") or [], answered))
+    history = ([o for o in store.recent_observations(1000, vin=vin, kind="module_dtcs")
+                if store.is_from_car(o)] if vin else [])
+    out["timeline"] = repair.timeline(codes, history, module)
+    if not vin:
+        out["timeline_note"] = "pass vin to see earlier reads of this car"
+    return out
 
 
 # --- whole-vehicle coverage ---------------------------------------------------
@@ -506,4 +606,5 @@ __all__ = ["observations", "status", "ports", "mes_settings", "set_cable", "cabl
            "obd_voltage", "obd_supported_pids", "obd_freeze_frame", "obd_vin",
            "readiness_in", "obd_readiness", "module_dtcs", "module_identity", "module_did",
            "scan_modules", "discover", "coverage_status", "coverage_start", "coverage_run",
-           "coverage_skip", "coverage_report", "coverage_reset", "AdapterLink", "link", "DEFAULT_TIMEOUT"]
+           "coverage_skip", "coverage_report", "coverage_reset", "repair_status",
+           "AdapterLink", "link", "DEFAULT_TIMEOUT"]

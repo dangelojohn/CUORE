@@ -258,14 +258,19 @@ def read_readiness() -> str:
 # --- UDS, read-only ---------------------------------------------------------
 
 @mcp.tool()
-def read_module_dtcs(code: str, vin: str = "", mask: int = 255, confirm: bool = False) -> str:
+def read_module_dtcs(code: str, vin: str = "", mask: int = 255, confirm: bool = False,
+                     detail: bool = False) -> str:
     """UDS 0x19 02 on one module (ECM, TCM, BCM, IPC, RFHUB...). Codes in MES form P0456-00.
 
-    confirm=True is required on CAN-CH (brakes, airbag, steering).
+    confirm=True is required on CAN-CH (brakes, airbag, steering). By default
+    (detail=False) the DTC list is summarised to active codes, history codes,
+    a tracked count and the full records for the active codes only -- a
+    module like the ECM otherwise lists every one of the ~278 codes it
+    tracks, active or not. Pass detail=True for the full untouched reply.
     """
     return _via("GET", f"/live/module/{code}/dtcs",
-                lambda: ops.module_dtcs(code, vin=vin, mask=mask, confirm=confirm),
-                query={"vin": vin, "mask": mask, "confirm": confirm})
+                lambda: ops.module_dtcs(code, vin=vin, mask=mask, confirm=confirm, detail=detail),
+                query={"vin": vin, "mask": mask, "confirm": confirm, "detail": detail})
 
 
 @mcp.tool()
@@ -285,11 +290,19 @@ def read_did(code: str, did: str, vin: str = "", confirm: bool = False) -> str:
 
 
 @mcp.tool()
-def scan_modules(bus: str = "can_c", vin: str = "", mask: int = 255, confirm: bool = False) -> str:
-    """UDS DTC sweep over every confirmed module on a bus."""
+def scan_modules(bus: str = "can_c", vin: str = "", mask: int = 255, confirm: bool = False,
+                 detail: bool = False) -> str:
+    """UDS DTC sweep over every confirmed module on a bus.
+
+    By default (detail=False) each module's DTC list is summarised to active
+    codes, history codes, a tracked count and the full records for the active
+    codes only, instead of every code the module tracks. Pass detail=True for
+    the full untouched reply per module.
+    """
     return _via("GET", "/live/scan",
-                lambda: ops.scan_modules(bus, vin=vin, mask=mask, confirm=confirm),
-                query={"bus": bus, "vin": vin, "mask": mask, "confirm": confirm}, timeout=300)
+                lambda: ops.scan_modules(bus, vin=vin, mask=mask, confirm=confirm, detail=detail),
+                query={"bus": bus, "vin": vin, "mask": mask, "confirm": confirm, "detail": detail},
+                timeout=300)
 
 
 @mcp.tool()
@@ -316,6 +329,24 @@ def audit_log(n: int = 50) -> str:
     return _via("GET", "/live/audit",
                 lambda: {"path": str(audit.log_path()), "entries": audit.read_recent(n)},
                 query={"n": n})
+
+
+@mcp.tool()
+def verify_repair(codes: str, module: str = "ECM", vin: str = "", read: bool = True,
+                  confirm: bool = False) -> str:
+    """After a repair and clear: has each named test re-run, and did it pass?
+
+    Reads the module's UDS status byte for each code (codes="P0455,P0456,P0440")
+    and says per code: failing / failed since clear / not run since clear / passed
+    since clear, with an overall verdict and a timeline of every earlier real read.
+    read=False gives the timeline only, without touching the car.
+    """
+    code_list = [c.strip() for c in codes.split(",") if c.strip()]
+    return _via("GET", f"/live/module/{module}/repair",
+                lambda: ops.repair_status(code_list, module=module, vin=vin, read=read,
+                                          confirm=confirm),
+                query={"codes": ",".join(code_list), "vin": vin, "read": read,
+                       "confirm": confirm})
 
 
 # --- the two MCP-only surfaces ------------------------------------------------

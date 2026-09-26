@@ -51,7 +51,7 @@ check("every bulletin carries its source",
       all(b.to_dict().get("source") for b in knowledge.BULLETINS))
 
 print("=== workup dossier (real corpus) ===")
-d = json.loads(server.workup(vin=VIN))
+d = json.loads(server.workup(detail=True, vin=VIN))
 check("identity has odometer span",
       d["identity"]["odometer_first_km"] and d["identity"]["odometer_last_km"])
 cp = d["current_picture"]
@@ -75,7 +75,7 @@ check("EVAP fuel-window blind spot included",
       any("15-85%" in b["why_unknown"] for b in d["blind_spots"]))
 check("attempted work listed", len(d["already_attempted"]) > 0)
 
-nomatch = json.loads(server.workup(vin="NOPE123"))
+nomatch = json.loads(server.workup(detail=True, vin="NOPE123"))
 check("unknown VIN is an error, not an empty dossier", "error" in nomatch)
 
 print("=== post-clear look-behind (pinned by name, not by recency) ===")
@@ -97,7 +97,7 @@ check("the named logs are still in the corpus",
           for n in (POST_CLEAR, WITH_FINDINGS, OLDER_EMPTY,
                     EARLIER_FINDINGS)))
 
-pc = json.loads(server.workup(vin=VIN, name=POST_CLEAR))["current_picture"]
+pc = json.loads(server.workup(detail=True, vin=VIN, name=POST_CLEAR))["current_picture"]
 check("name= anchors the current picture on that session, not the newest",
       pc["latest_session"]["file"] == POST_CLEAR,
       pc["latest_session"]["file"])
@@ -115,17 +115,17 @@ check("all three freeze frames attached",
       {"P0455-00", "P0440-00", "P0456-00"},
       sorted(pc.get("freeze_frames", {})))
 
-ob = json.loads(server.workup(vin=VIN, name=OLDER_EMPTY))["current_picture"]
+ob = json.loads(server.workup(detail=True, vin=VIN, name=OLDER_EMPTY))["current_picture"]
 ol = ob.get("last_session_with_findings")
 check("look-behind reaches backwards only, never to a later session",
       ol is not None and ol["file"] == EARLIER_FINDINGS
       and ol["timestamp"] < ob["latest_session"]["timestamp"], ol)
 
 check("naming a scan is an error, not a silent fallback to the newest FES",
-      "error" in json.loads(server.workup(name="SCAN_2608271141.txt")))
+      "error" in json.loads(server.workup(detail=True, name="SCAN_2608271141.txt")))
 check("naming a log that does not exist is an error",
       "error" in json.loads(
-          server.workup(name="FESLog_9901010000_Nope.txt")))
+          server.workup(detail=True, name="FESLog_9901010000_Nope.txt")))
 
 print()
 if failures:

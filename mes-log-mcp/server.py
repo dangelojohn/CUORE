@@ -23,7 +23,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from mes import analysis, catalog, csvlog, dtc as dtc_mod, fes, modules, paths, scan
+from mes import analysis, catalog, compact, csvlog, dtc as dtc_mod, fes, modules, paths, scan
 from mes import faulttree, verdict
 from mes import workup as workup_mod
 from mes.errors import MesError
@@ -35,13 +35,25 @@ def _json(payload: Any) -> str:
     return json.dumps(payload, indent=2, ensure_ascii=False, default=str)
 
 
+def _json_compact(payload: Any) -> str:
+    """Whitespace-free JSON for compact (detail=False) tool results.
+
+    Pretty-printing with ``indent=2`` roughly doubles the size of a deeply
+    nested structure, which defeats the point of a compact view. Only the
+    formatting differs from :func:`_json`; the content is unaffected either
+    way.
+    """
+    return json.dumps(payload, ensure_ascii=False, default=str,
+                      separators=(",", ":"))
+
+
 def _error(exc: Exception) -> str:
     return _json({"error": type(exc).__name__, "message": str(exc)})
 
 
-def _guard(fn, *args, **kwargs) -> str:
+def _guard(fn, *args, serialize=_json, **kwargs) -> str:
     try:
-        return _json(fn(*args, **kwargs))
+        return serialize(fn(*args, **kwargs))
     except MesError as exc:
         return _error(exc)
     except Exception as exc:  # never take the server down over one bad log
@@ -202,7 +214,7 @@ def search_logs(pattern: str, kind: str = "", vehicle: str = "", vin: str = "",
 
 
 @mcp.tool()
-def analyze_scan(name: str = "", vin: str = "") -> str:
+def analyze_scan(name: str = "", vin: str = "", detail: bool = False) -> str:
     """Parse an all-systems SCAN log into per-module status.
 
     Deduplicates the module list, which MES repeats once per phase -- a naive
@@ -210,6 +222,12 @@ def analyze_scan(name: str = "", vin: str = "") -> str:
 
     Args:
         name: SCAN filename. Empty selects the newest matching scan.
+        detail: False (default) returns a compact summary: modules WITH
+            codes (plus a bare name list of the clean ones), post-clear
+            results only where they differ from the scan phase, clear
+            results as {module: outcome}, and priority as an ordered name
+            list -- the full form repeats every module three times over.
+            True returns the complete, unreduced structure.
     """
     def run():
         entry = catalog.resolve_or_latest(name, kind="scan", vin=vin)
@@ -224,8 +242,8 @@ def analyze_scan(name: str = "", vin: str = "") -> str:
             out["note"] = ("Scan aborted before reaching any module - the "
                            "adapter or vehicle connection failed. This file "
                            "cannot be attributed to a vehicle.")
-        return out
-    return _guard(run)
+        return out if detail else compact.compact_scan(out)
+    return _guard(run, serialize=_json if detail else _json_compact)
 
 
 @mcp.tool()
@@ -501,7 +519,7 @@ def vehicle_report(vin: str = "", vehicle: str = "") -> str:
 
 
 @mcp.tool()
-def workup(vin: str = "", vehicle: str = "", name: str = "") -> str:
+def workup(vin: str = "", vehicle: str = "", name: str = "", detail: bool = False) -> str:
     """The pre-work dossier: everything the logs know about one vehicle.
 
     One call answers "what am I looking at?" before the hood opens:
@@ -518,8 +536,18 @@ def workup(vin: str = "", vehicle: str = "", name: str = "") -> str:
             newest session; naming one pins it there instead, which is how
             you ask "what did this car look like at that capture?" without
             a later log moving the answer.
+        detail: False (default) returns a compact dossier: DTCs reduced to
+            dtc/description/status, freeze frames trimmed to odometer/engine
+            speed/vehicle speed/engine temperature/fuel level, each history
+            class collapsed to one line per code (no per-occurrence lists),
+            TSB matches reduced to bulletin + title, and already_attempted
+            grouped by (kind, operation, outcome). True returns the complete,
+            unreduced dossier.
     """
-    return _guard(workup_mod.build, vin, vehicle, name)
+    def run():
+        full = workup_mod.build(vin, vehicle, name)
+        return full if detail else compact.compact_workup(full)
+    return _guard(run, serialize=_json if detail else _json_compact)
 
 
 @mcp.tool()
@@ -699,6 +727,30 @@ def log_dir() -> str:
                               "MES_LOG_DIR"],
         }
     return _guard(run)
+
+
+# --- resources -------------------------------------------------------------
+
+
+@mcp.resource("vehicle://index")
+def vehicle_index() -> str:
+    """Every distinct vehicle in the corpus, keyed by VIN where recoverable.
+
+    The resource form of the ``vehicles`` tool, for a client that wants the
+    fleet list without an explicit tool call.
+    """
+    return _guard(lambda: {"vehicles": catalog.CATALOG.vehicles()})
+
+
+@mcp.resource("vehicle://{vin}/dossier")
+def vehicle_dossier(vin: str) -> str:
+    """The compact pre-work dossier for one vehicle, by VIN.
+
+    Same content as ``workup(vin=...)`` with ``detail=False`` -- everything
+    the logs know about the car, reduced to what fits a context window.
+    """
+    return _guard(lambda: compact.compact_workup(workup_mod.build(vin, "", "")),
+                 serialize=_json_compact)
 
 
 if __name__ == "__main__":

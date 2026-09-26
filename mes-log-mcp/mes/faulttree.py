@@ -305,7 +305,10 @@ NETWORK_CASCADE = Tree(
     key="network-cascade",
     title="BCM/RFHUB/DTCM comms cascade (U1711/U1712/U1713/U1716/U2054/"
           "U0100/B1040) -- one network event, not seven faults",
-    codes=frozenset({"U1711", "U1712", "U1713", "U1716", "U2054", "U0100",
+    # U1765 (BCM: lost communication with RF Hub) is named in no document here,
+    # but this car logged U1765-86 in SCAN_2609152048 alongside U1711/12/13 --
+    # the same lost-communication family, so it takes the same sequence.
+    codes=frozenset({"U1711", "U1712", "U1713", "U1716", "U1765", "U2054", "U0100",
                       "B1040"}),
     framing=(
         "Every code in this family is a message-integrity failure type -- "
