@@ -214,6 +214,39 @@ def build(vin: str = "", vehicle: str = "",
             row = a.to_dict()
             row["timestamp"] = entry.timestamp
             attempted.append(row)
+
+    if vin.strip():
+        from . import dealer as dealer_mod
+        for rec in dealer_mod.load(vin):
+            d = rec.get("data") or {}
+            dkind = rec.get("kind", "")
+            if dkind == "flash_check":
+                operation = f"dealer flash_check ({d.get('module', '?')})"
+                outcome = ("current" if d.get("current") else
+                          "flashed" if d.get("flashed") else
+                          "newer calibration available")
+            elif dkind == "slvt":
+                operation = "dealer SLVT (TSB 18-048-23)"
+                outcome = d.get("result", "")
+            elif dkind == "dtc_report":
+                operation = f"dealer dtc_report ({d.get('module', '?')})"
+                outcome = ", ".join(d.get("codes") or []) or "no codes reported"
+            elif dkind == "recall_status":
+                operation = f"dealer recall_status ({d.get('campaign', '?')})"
+                outcome = d.get("status", "")
+            elif dkind == "routine":
+                operation = f"dealer routine ({d.get('module', '?')}: {d.get('name', '?')})"
+                outcome = d.get("result", "")
+            else:
+                operation = f"dealer {dkind}"
+                outcome = ""
+            attempted.append({
+                "kind": "dealer",
+                "operation": operation,
+                "outcome": outcome,
+                "note": rec.get("note", ""),
+                "timestamp": rec.get("at"),
+            })
     attempted.sort(key=lambda r: r.get("timestamp") or "", reverse=True)
 
     # --- blind spots: what the logs structurally cannot answer -------------
@@ -233,13 +266,34 @@ def build(vin: str = "", vehicle: str = "",
            for c in all_codes):
         from . import ecm
         ident = ecm.installed(vin) if vin else None
-        blind_spots.append(
-            {"question": "Is the ECM on the latest calibration?",
-             "why_unknown": ("FCA publishes no calibration numbers; the logs show "
-                             "what is installed (" + ecm.summary_line(ident) + "), "
-                             "not what is available"),
-             "closes_it": ("dealer wiTECH ECU flash check on the VIN; the exact "
-                           "request is in EVAP fault tree step E8")})
+        from . import dealer as dealer_mod
+        flash = dealer_mod.latest(vin, "flash_check", module="ECM") if vin else None
+        if flash:
+            fd = flash.get("data") or {}
+            if fd.get("current"):
+                answer = (f"Answered by dealer flash check {flash.get('at')}: current "
+                          f"{fd.get('current_part')}, new {fd.get('new_part')} -- the ECM "
+                          f"is on the latest calibration (software lead closed).")
+            elif fd.get("flashed"):
+                answer = (f"Answered by dealer flash check {flash.get('at')}: current "
+                          f"{fd.get('current_part')}, new {fd.get('new_part')} -- flashed "
+                          f"to {fd.get('part_after') or fd.get('new_part')}.")
+            else:
+                answer = (f"Answered by dealer flash check {flash.get('at')}: current "
+                          f"{fd.get('current_part')}, newer calibration "
+                          f"{fd.get('new_part')} is available -- not yet flashed.")
+            blind_spots.append(
+                {"question": "Is the ECM on the latest calibration?",
+                 "why_unknown": answer,
+                 "closes_it": "already closed (technician-entered from wiTECH)"})
+        else:
+            blind_spots.append(
+                {"question": "Is the ECM on the latest calibration?",
+                 "why_unknown": ("FCA publishes no calibration numbers; the logs show "
+                                 "what is installed (" + ecm.summary_line(ident) + "), "
+                                 "not what is available"),
+                 "closes_it": ("dealer wiTECH ECU flash check on the VIN; the exact "
+                               "request is in EVAP fault tree step E8")})
         blind_spots.append(
             {"question": "Will the EVAP monitor run on the next drive?",
              "why_unknown": "monitor needs fuel level roughly 15-85% and a "

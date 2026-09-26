@@ -720,3 +720,73 @@ def live_vs_log(request: Request, vin: str, module: str = "") -> HTMLResponse:
                      tab="live_vs_log")
     _set_active_vehicle(response, vin)
     return response
+
+
+# --- dealer (wiTECH) results -------------------------------------------------
+#
+# wiTECH has no API; the owner's dealer account is read by a technician on
+# wiTECH's own screens, and the result is typed in here to become evidence
+# the gate, the fault tree and the dossier can all cite. This page writes only
+# to the dealer results store -- never to the car, never to the MES corpus.
+
+
+@router.get("/v/{vin}/dealer", response_class=HTMLResponse)
+def dealer_form(request: Request, vin: str) -> HTMLResponse:
+    """The dealer results page, with whatever has been recorded so far."""
+    dossier = _dossier(vin)
+    results = mes_bridge.dealer_results(vin)["results"]
+    response = _page(request, "dealer.html", vin=vin, results=results, error=None,
+                     bar=_vehicle_bar(vin, dossier), tab="dealer")
+    _set_active_vehicle(response, vin)
+    return response
+
+
+@router.post("/v/{vin}/dealer", response_class=HTMLResponse)
+async def dealer_submit(request: Request, vin: str) -> HTMLResponse:
+    """Record one technician-entered wiTECH result.
+
+    One shared endpoint for all five kinds, distinguished by a ``kind`` hidden
+    field on each of the page's small per-kind forms -- this keeps the page
+    working with no JavaScript, and matches how ``/gate`` handles measurement
+    rows.
+    """
+    form = await request.form()
+    kind = str(form.get("kind", "")).strip()
+    note = str(form.get("note", "")).strip()
+
+    def field(name: str) -> str:
+        return str(form.get(name, "")).strip()
+
+    data: dict[str, Any] = {}
+    if kind == "flash_check":
+        data = {"module": field("module") or "ECM",
+                "current_part": field("current_part"),
+                "new_part": field("new_part"),
+                "flashed": form.get("flashed") == "on"}
+        if field("part_after"):
+            data["part_after"] = field("part_after")
+    elif kind == "slvt":
+        data = {"result": field("result"), "detail": field("detail")}
+    elif kind == "dtc_report":
+        data = {"module": field("module"),
+                "codes": [c.strip() for c in field("codes").split(",") if c.strip()],
+                "note": field("dtc_note")}
+    elif kind == "recall_status":
+        data = {"campaign": field("campaign"), "status": field("status"),
+                "date": field("date")}
+    elif kind == "routine":
+        data = {"module": field("module"), "name": field("name"),
+                "result": field("result")}
+
+    error = None
+    try:
+        mes_bridge.dealer_record(vin, kind, data, note=note)
+    except BridgeError as exc:
+        error = str(exc)
+
+    dossier = _dossier(vin)
+    results = mes_bridge.dealer_results(vin)["results"]
+    response = _page(request, "dealer.html", vin=vin, results=results, error=error,
+                     bar=_vehicle_bar(vin, dossier), tab="dealer")
+    _set_active_vehicle(response, vin)
+    return response

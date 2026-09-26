@@ -710,6 +710,40 @@ def evaluate(codes, vin: str = "") -> dict[str, Any]:
                             "dealer: " + ecm.dealer_request(vin, list(codes), ident)),
                 "source": "ECM identity from this car's MES sessions and live UDS reads",
             })
+
+            from . import dealer as dealer_mod
+            flash = dealer_mod.latest(vin, "flash_check", module="ECM")
+            if flash:
+                fd = flash.get("data") or {}
+                when = flash.get("at", "")
+                if fd.get("current"):
+                    finding = (f"Dealer flash check {when}: current {fd.get('current_part')}, "
+                              f"new {fd.get('new_part')} -> ECM is current (software lead closed).")
+                elif fd.get("flashed"):
+                    finding = (f"Dealer flash check {when}: current {fd.get('current_part')}, "
+                              f"new {fd.get('new_part')} -> flashed to "
+                              f"{fd.get('part_after') or fd.get('new_part')}.")
+                else:
+                    finding = (f"Dealer flash check {when}: current {fd.get('current_part')}, "
+                              f"new {fd.get('new_part')} -> newer calibration available.")
+                evidence.append({
+                    "step": "E8",
+                    "finding": finding,
+                    "source": "dealer flash_check (technician-entered from wiTECH)",
+                })
+
+            slvt = dealer_mod.latest(vin, "slvt")
+            if slvt:
+                sd = slvt.get("data") or {}
+                when = slvt.get("at", "")
+                finding = f"Dealer wiTECH SLVT {when}: {str(sd.get('result', '?')).upper()}"
+                if sd.get("detail"):
+                    finding += f" -- {sd['detail']}"
+                evidence.append({
+                    "step": "V2",
+                    "finding": finding,
+                    "source": "dealer slvt (technician-entered from wiTECH)",
+                })
         if purge_runs:
             evidence.append({
                 "step": "E3",

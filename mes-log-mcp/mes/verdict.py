@@ -37,13 +37,14 @@ import json
 from pathlib import Path
 from typing import Any
 
-from . import analysis, faulttree, fes as fes_mod, knowledge, live_obs
+from . import analysis, dealer as dealer_mod, faulttree, fes as fes_mod, knowledge, live_obs
 from .catalog import CATALOG
 
 #: Measurement types the corpus can verify, vs those it can only record as
 #: operator attestation. ``live`` is verified against the observations the
-#: cuore live link recorded from the vehicle itself.
-_VERIFIABLE = {"actuator", "freeze_frame", "parameter", "recording_event", "live"}
+#: cuore live link recorded from the vehicle itself; ``dealer`` is verified
+#: against the technician-entered wiTECH results store.
+_VERIFIABLE = {"actuator", "freeze_frame", "parameter", "recording_event", "live", "dealer"}
 _ATTESTED = {"manual"}
 
 #: Component keywords -> the do-not warning they trip. Transcribed from the
@@ -259,10 +260,38 @@ def _verify_measurement(m: dict[str, Any], vin: str) -> dict[str, Any]:
             result.pop("found")
         return result
 
+    if mtype == "dealer":
+        kind = str(m.get("kind", "")).strip().lower()
+        if kind not in dealer_mod.KINDS:
+            result.update(status="rejected",
+                          note="dealer cite needs a 'kind': "
+                               + ", ".join(dealer_mod.KINDS))
+            return result
+        match = {k: v for k, v in m.items() if k not in ("type", "kind")}
+        hit = dealer_mod.latest(vin, kind, **match)
+        if hit is None:
+            result.update(status="not_found",
+                          note=f"no dealer {kind} result recorded for this VIN"
+                               + (f" matching {match}" if match else ""))
+            return result
+        data = hit.get("data") or {}
+        note = (f"dealer {kind} result recorded {hit.get('at')} "
+               "(technician-entered from wiTECH)")
+        if kind == "slvt":
+            if data.get("result") == "fail":
+                note += (" -- FAIL: the dealer's own Small Leak Verification "
+                         "Test says this system leaks")
+            elif data.get("result") == "pass":
+                note += (" -- PASS: strong disconfirmation evidence against a "
+                         "leak on this system")
+        result.update(status="verified", found={"at": hit.get("at"), **data},
+                      note=note)
+        return result
+
     result.update(status="rejected",
                   note=f"unknown measurement type {mtype!r}; use one of: "
                        "actuator, freeze_frame, parameter, recording_event, "
-                       "live, manual")
+                       "live, dealer, manual")
     return result
 
 

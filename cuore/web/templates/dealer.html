@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Dealer results — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Dealer (wiTECH) results</h1>
+<p class="lede">wiTECH has no API — the owner's dealer account gets read by a
+technician on wiTECH's own screens, and the result is typed in here so it
+becomes evidence the <a href="/v/{{ vin }}/gate">evidence gate</a>, the
+<a href="/v/{{ vin }}/tree">fault tree</a> and the dossier can all cite. This
+page writes only to the dealer results store — never to the car, never to the
+MES corpus.</p>
+
+{% if error %}
+  <div class="note alert"><span class="lab">Not recorded</span>{{ error }}</div>
+{% endif %}
+
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>When</th><th>Kind</th><th>What was recorded</th><th>Note</th></tr></thead>
+    <tbody>
+    {% for r in results|reverse %}
+      {% set d = r.data or {} %}
+      <tr>
+        <td class="mono small muted">{{ r.at }}</td>
+        <td><span class="chip plain">{{ r.kind }}</span></td>
+        <td class="small">
+          {% if r.kind == "flash_check" %}
+            <span class="mono">{{ d.module }}</span> — current {{ d.current_part }}, new {{ d.new_part }}
+            <span class="chip {{ 'ok' if d.current else 'chronic' }}">{{ "current" if d.current else ("flashed" if d.flashed else "newer available") }}</span>
+            {% if d.part_after %}<div class="muted">part after flash: {{ d.part_after }}</div>{% endif %}
+          {% elif r.kind == "slvt" %}
+            <span class="chip {{ 'ok' if d.result == 'pass' else 'returned' }}">{{ d.result }}</span> {{ d.detail }}
+          {% elif r.kind == "dtc_report" %}
+            <span class="mono">{{ d.module }}</span> — {{ d.codes|join(", ") if d.codes else "(none)" }}
+            {% if d.note %}<div class="muted">{{ d.note }}</div>{% endif %}
+          {% elif r.kind == "recall_status" %}
+            <span class="mono">{{ d.campaign }}</span>
+            <span class="chip {{ 'ok' if d.status == 'completed' else ('chronic' if d.status == 'open' else 'plain') }}">{{ d.status }}</span>
+            {{ d.date }}
+          {% elif r.kind == "routine" %}
+            <span class="mono">{{ d.module }}</span> — {{ d.name }}: {{ d.result }}
+          {% else %}
+            {{ d }}
+          {% endif %}
+        </td>
+        <td class="small muted">{{ r.note }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted">No dealer results recorded yet for this VIN.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Flash check</h3>
+  <p class="small muted">wiTECH ECU flash check — is a newer calibration available than what is installed?</p>
+  <form method="post" action="/v/{{ vin }}/dealer">
+    <input type="hidden" name="kind" value="flash_check">
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <input type="text" name="module" placeholder="module (e.g. ECM)" value="ECM">
+      <input type="text" name="current_part" placeholder="current part number" required>
+      <input type="text" name="new_part" placeholder="new/available part number" required>
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" name="flashed"> flashed today
+      </label>
+      <input type="text" name="part_after" placeholder="part number after flash (optional)">
+    </div>
+    <div class="field"><label for="note_flash">Note</label>
+      <input id="note_flash" type="text" name="note" placeholder="e.g. done during recall visit"></div>
+    <p><button class="btn primary" type="submit">Record flash check</button></p>
+  </form>
+</div>
+
+<div class="panel">
+  <h3>SLVT — Small Leak Verification Test (TSB 18-048-23)</h3>
+  <form method="post" action="/v/{{ vin }}/dealer">
+    <input type="hidden" name="kind" value="slvt">
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <select name="result">
+        <option value="pass">pass</option>
+        <option value="fail">fail</option>
+      </select>
+      <input type="text" name="detail" placeholder="detail (measured value, notes)">
+    </div>
+    <div class="field"><label for="note_slvt">Note</label>
+      <input id="note_slvt" type="text" name="note"></div>
+    <p><button class="btn primary" type="submit">Record SLVT</button></p>
+  </form>
+</div>
+
+<div class="panel">
+  <h3>DTC report</h3>
+  <p class="small muted">Codes wiTECH read directly off a module.</p>
+  <form method="post" action="/v/{{ vin }}/dealer">
+    <input type="hidden" name="kind" value="dtc_report">
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <input type="text" name="module" placeholder="module (e.g. ECM)" required>
+      <input type="text" name="codes" placeholder="codes, comma separated (e.g. P0456, P0440)">
+      <input type="text" name="dtc_note" placeholder="note">
+    </div>
+    <div class="field"><label for="note_dtc">Note</label>
+      <input id="note_dtc" type="text" name="note"></div>
+    <p><button class="btn primary" type="submit">Record DTC report</button></p>
+  </form>
+</div>
+
+<div class="panel">
+  <h3>Recall status</h3>
+  <form method="post" action="/v/{{ vin }}/dealer">
+    <input type="hidden" name="kind" value="recall_status">
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <input type="text" name="campaign" placeholder="campaign (e.g. 25V586000)" required>
+      <select name="status">
+        <option value="open">open</option>
+        <option value="completed">completed</option>
+        <option value="not_applicable">not applicable</option>
+      </select>
+      <input type="text" name="date" placeholder="date">
+    </div>
+    <div class="field"><label for="note_recall">Note</label>
+      <input id="note_recall" type="text" name="note"></div>
+    <p><button class="btn primary" type="submit">Record recall status</button></p>
+  </form>
+</div>
+
+<div class="panel">
+  <h3>Routine</h3>
+  <p class="small muted">A named dealer-tool routine — PROXI Alignment, Phonic Wheel Replacement, etc.</p>
+  <form method="post" action="/v/{{ vin }}/dealer">
+    <input type="hidden" name="kind" value="routine">
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+      <input type="text" name="module" placeholder="module (e.g. BCM)" required>
+      <input type="text" name="name" placeholder="routine name (e.g. PROXI Alignment)" required>
+      <input type="text" name="result" placeholder="result">
+    </div>
+    <div class="field"><label for="note_routine">Note</label>
+      <input id="note_routine" type="text" name="note"></div>
+    <p><button class="btn primary" type="submit">Record routine</button></p>
+  </form>
+</div>
+
+{% endblock %}

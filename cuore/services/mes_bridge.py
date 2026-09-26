@@ -25,6 +25,7 @@ from mes import (  # noqa: E402  -- must follow the bootstrap import
     catalog,
     compare,
     csvlog,
+    dealer as dealer_mod,
     dtc as dtc_mod,
     encoding,
     faulttree,
@@ -506,6 +507,28 @@ def open_codes_for(dossier: dict[str, Any]) -> list[str]:
                 codes.add(knowledge.base_code(raw))
 
     return sorted(codes)
+
+
+# --- dealer (wiTECH) results -----------------------------------------------
+
+
+def dealer_record(vin: str, kind: str, data: dict[str, Any],
+                  note: str = "") -> dict[str, Any]:
+    """Record one technician-entered wiTECH result. Raises BadRequest on
+    anything the store's per-kind validation rejects."""
+    if not vin.strip():
+        raise BadRequest("a VIN is required")
+    try:
+        return dealer_mod.record(vin, kind, data, note=note)
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+def dealer_results(vin: str) -> dict[str, Any]:
+    """Every dealer result recorded for this VIN, oldest first."""
+    if not vin.strip():
+        raise BadRequest("a VIN is required")
+    return {"vin": vin, "results": dealer_mod.load(vin)}
 
 
 # --- reference ------------------------------------------------------------

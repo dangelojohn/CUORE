@@ -11,12 +11,28 @@ import json
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
 
 from ..models import VerdictRequest
 from ..services import cache, mes_bridge
 from .deps import require_token
 
 router = APIRouter(tags=["vehicles"], dependencies=[Depends(require_token)])
+
+
+class DealerResultRequest(BaseModel):
+    """One technician-entered wiTECH result, submitted for recording.
+
+    Kept local to this router rather than in ``cuore.models``: the shape of
+    ``data`` is entirely decided by ``kind`` and validated by ``mes.dealer``,
+    so a Pydantic mirror of each kind would just be a second definition to
+    keep in step.
+    """
+
+    kind: str = Field(..., description="flash_check | slvt | dtc_report | "
+                                       "recall_status | routine")
+    data: dict[str, Any] = Field(default_factory=dict)
+    note: str = ""
 
 
 @router.get("/vehicles", summary="Every vehicle in the corpus")
@@ -145,3 +161,16 @@ def verdict(vin: str, body: VerdictRequest) -> dict[str, Any]:
         measurements=json.dumps(measurements) if measurements else "",
         disconfirming_test=body.disconfirming_test,
     )
+
+
+@router.get("/vehicles/{vin}/dealer-results", summary="Dealer (wiTECH) results")
+def dealer_results(vin: str) -> dict[str, Any]:
+    """Every technician-entered wiTECH result for this VIN, oldest first."""
+    return mes_bridge.dealer_results(vin)
+
+
+@router.post("/vehicles/{vin}/dealer-results", summary="Record a dealer (wiTECH) result")
+def record_dealer_result(vin: str, body: DealerResultRequest) -> dict[str, Any]:
+    """Record one technician-entered wiTECH result. Writes to the dealer
+    results store only -- never to the car, never to the MES corpus."""
+    return mes_bridge.dealer_record(vin, body.kind, body.data, note=body.note)

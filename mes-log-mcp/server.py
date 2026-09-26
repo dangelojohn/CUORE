@@ -24,6 +24,7 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from mes import analysis, catalog, compact, csvlog, dtc as dtc_mod, fes, modules, paths, scan
+from mes import dealer as dealer_mod
 from mes import faulttree, verdict
 from mes import workup as workup_mod
 from mes.errors import MesError
@@ -608,6 +609,39 @@ def diagnosis_verdict(vin: str, codes: str, component: str = "",
     """
     return _guard(verdict.assess, vin, codes, component, mechanism,
                   measurements, disconfirming_test)
+
+
+@mcp.tool()
+def record_dealer_result(vin: str, kind: str, data_json: str, note: str = "") -> str:
+    """Record a wiTECH (dealer-tool) result as evidence. Append-only.
+
+    wiTECH has no API -- a technician reads the result off the dealer's own
+    screens and it gets typed in here. Once recorded, ``diagnosis_verdict``
+    can cite a ``dealer`` measurement against it, and ``fault_tree``/``workup``
+    annotate the relevant step automatically.
+
+    Args:
+        kind: one of flash_check | slvt | dtc_report | recall_status | routine.
+        data_json: JSON object, shape depends on kind:
+            flash_check: {"module":"ECM","current_part":"...","new_part":"...",
+                          "flashed":false,"part_after":"..." (optional)}
+            slvt: {"result":"pass|fail","detail":"..."}
+            dtc_report: {"module":"ECM","codes":["P0456"],"note":"..."}
+            recall_status: {"campaign":"25V586000","status":"open|completed|"
+                            "not_applicable","date":"..."}
+            routine: {"module":"BCM","name":"PROXI Alignment","result":"..."}
+        note: free-text context.
+    """
+    def run():
+        data = json.loads(data_json) if data_json.strip() else {}
+        return dealer_mod.record(vin, kind, data, note=note)
+    return _guard(run)
+
+
+@mcp.tool()
+def dealer_results(vin: str) -> str:
+    """Every dealer (wiTECH) result recorded for this VIN, oldest first."""
+    return _guard(lambda: {"vin": vin, "results": dealer_mod.load(vin)})
 
 
 # --- CSV recordings (graph subsystem export) ------------------------------
