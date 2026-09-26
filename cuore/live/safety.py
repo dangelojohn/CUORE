@@ -154,7 +154,75 @@ def assert_transmit_allowed(*, bus_key: str, bus_cable_ok: bool, verified: bool,
                       f"requires confirm=True on this call")
 
 
+#: UDS services/sub-functions an actuator-test *replay* may send. Distinct
+#: from READ_ONLY_UDS: this adds 0x2F (InputOutputControlByIdentifier) and
+#: 0x31 (RoutineControl) -- what an actuator test actually is -- and allows
+#: 0x10 sub 0x03 (the extended session most actuator tests run in) alongside
+#: the default session. Never anything else: no 0x27, no 0x2E, no reflash or
+#: reset service. :mod:`actuate` applies this same allowlist at *learning*
+#: time (:func:`actuate.extract_procedure`) to decide whether a captured
+#: procedure is replayable at all; this function is the belt on the wire.
+ACTUATION_UDS: dict[int, frozenset[int] | None] = {
+    0x10: frozenset({0x01, 0x03}),   # default or extended-diagnostic session only
+    0x19: None,                      # ReadDTCInformation
+    0x22: None,                      # ReadDataByIdentifier
+    0x2F: None,                      # InputOutputControlByIdentifier
+    0x31: None,                      # RoutineControl
+    0x3E: None,                      # TesterPresent
+}
+
+#: Modules an actuator-test replay refuses outright, regardless of consent
+#: or confirm: brakes, airbag, steering, torque vectoring, the steering
+#: lock, and (via the bus check below) anything else on CAN-CH.
+ACTUATION_BLOCKED_MODULES: frozenset[str] = frozenset({
+    "ABS", "EPS", "ORC", "HALF", "DASM", "ESL", "TVM",
+    # Driveline and security: shift-by-wire / park lock (TCM, ESM), the Q4
+    # transfer case (DTCM) and the immobiliser/keyless hub (RFHUB). Actuating
+    # any of these on a parked car can release park or disable starting.
+    "TCM", "ESM", "DTCM", "RFHUB",
+})
+
+
+def assert_actuation_allowed(service: int, payload: bytes = b"") -> None:
+    """Raise :class:`Refused` unless the service is on the actuation allowlist.
+
+    This is the gate every request an actuator replay sends must pass
+    immediately before it reaches the adapter -- :meth:`Session.uds` sends
+    any service, so this is the only thing standing between a learned
+    procedure and the wire. It never loosens :data:`READ_ONLY_UDS`: a
+    0x2F/0x31 request is still refused on the read-only path in :mod:`uds`.
+    """
+    allowed = ACTUATION_UDS.get(service, "absent")
+    if allowed == "absent":
+        why = WRITE_SERVICES.get(format(service, "02X"), "not on the actuation allowlist")
+        raise Refused(f"UDS service 0x{service:02X} is not permitted during actuator replay: {why}")
+    if allowed is not None:
+        sub = payload[0] if payload else None
+        if sub is None or (sub & 0x7F) not in allowed:
+            raise Refused(f"UDS service 0x{service:02X} sub-function "
+                          f"{'none' if sub is None else format(sub, '02X')} is not permitted "
+                          f"during actuator replay; allowed: "
+                          f"{sorted(format(s, '02X') for s in allowed)}")
+
+
+def assert_actuation_module_allowed(module_code: str, bus_key: str) -> None:
+    """Raise :class:`Refused` for a module an actuator replay must never touch.
+
+    Checked before any traffic, independent of consent or confirm: this is
+    not a confirmable risk, it is a refusal.
+    """
+    code = (module_code or "").upper()
+    if code in ACTUATION_BLOCKED_MODULES or bus_key == "can_ch":
+        raise Refused(
+            f"actuator tests are refused on {code}: safety-critical (brakes, airbag, steering, "
+            f"torque vectoring, driveline/park lock, immobiliser, or the CAN-CH bus); use "
+            f"MultiEcuScan or wiTECH for this test, "
+            f"never a replay here")
+
+
 __all__ = [
     "WRITE_SERVICES", "AT_READ_ONLY", "ST_READ_ONLY", "MONITOR_COMMANDS", "READ_ONLY_UDS",
+    "ACTUATION_UDS", "ACTUATION_BLOCKED_MODULES",
     "validate_command", "classify_command", "assert_read_only_uds", "assert_transmit_allowed",
+    "assert_actuation_allowed", "assert_actuation_module_allowed",
 ]
