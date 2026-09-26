@@ -15,6 +15,7 @@ __all__ = [
     "fes",
     "scan",
     "dtc",
+    "dtc_text",
     "analysis",
     "knowledge",
     "render",

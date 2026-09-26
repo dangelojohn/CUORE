@@ -23,7 +23,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Sequence
 
-from . import modules
+from . import dtc_text, modules
 from .catalog import CATALOG, LogEntry
 from .dtc import Dtc, DtcStatus
 
@@ -286,6 +286,17 @@ class DtcRecord:
             "last_seen": self.last_seen,
             "occurrences": self.occurrences,
         }
+        if not self.descriptions:
+            # No log ever carried text for this code (every occurrence was a
+            # bare code, e.g. inside a FAILED clear block). Offer whatever
+            # MES's own shipped language files know, kept separate from
+            # ``descriptions`` (which is exclusively "what a log said") and
+            # clearly labelled. See mes/dtc_text.py: against the currently
+            # installed English.dat/English.txt this is a documented no-op.
+            module = self.modules[0] if self.modules else None
+            fallback = dtc_text.describe(self.dtc, module)
+            if fallback:
+                d["mes_description"] = fallback
         if lo is not None:
             d["odometer_first_km"] = lo
             d["odometer_last_km"] = hi

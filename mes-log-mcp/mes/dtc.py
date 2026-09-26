@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
 
+from . import dtc_text
 from .params import ParamValue
 
 #: Structural DTC pattern. Used for *validation* of an already-isolated token,
@@ -435,6 +436,19 @@ class Dtc:
             "status": self.status.value,
             "status_meaning": self.status.explanation,
         }
+        if not self.description:
+            # The log itself said nothing about this code -- e.g. a bare code
+            # inside a FAILED clear block. Fall back to whatever MES's own
+            # shipped language files know, clearly labelled as that source
+            # rather than silently passed off as log text. See
+            # mes/dtc_text.py and docs/format/MES_LANGUAGE_FILES.md: against
+            # the currently installed English.dat/English.txt this is a
+            # documented no-op (no DTC-code key exists in those files), but
+            # the fallback is real and forward-compatible.
+            fallback = dtc_text.describe(self.code, self.module or None)
+            if fallback:
+                d["description"] = fallback["text"]
+                d["description_source"] = fallback["source"]
         if self.component:
             d["component"] = self.component
         if self.failure_text:

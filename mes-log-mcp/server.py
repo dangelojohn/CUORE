@@ -23,7 +23,7 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from mes import analysis, catalog, compact, csvlog, dtc as dtc_mod, fes, modules, paths, scan
+from mes import analysis, catalog, compact, csvlog, dtc as dtc_mod, dtc_text, fes, modules, paths, scan
 from mes import dealer as dealer_mod
 from mes import notes as notes_mod
 from mes import faulttree, verdict
@@ -472,6 +472,39 @@ def failure_type(byte: str) -> str:
         if ft is None:
             return {"error": "no failure type byte given"}
         return ft.to_dict()
+    return _guard(run)
+
+
+@mcp.tool()
+def dtc_description(code: str, module: str = "") -> str:
+    """Look up a DTC's description in MES's own shipped language files.
+
+    This is a fallback for codes a log gave no text for (e.g. a bare code
+    inside a FAILED clear block), not a general DTC database: MES's shipped
+    ``English.dat``/``English.txt`` are UI/localization string tables, not a
+    code-keyed lookup, and this investigation found no DTC-code key in any of
+    the 16 language files MES ships (see
+    ``docs/format/MES_LANGUAGE_FILES.md``). Against the currently installed
+    files this will return "not found" for virtually every real code -- that
+    is the honest answer, not a bug. The mechanism is real and
+    forward-compatible: any future install or MES release that does carry a
+    code-keyed entry is picked up automatically, with the source always
+    labelled "MES English.dat".
+
+    Args:
+        code: DTC to look up, with or without the failure-type byte
+            ("P0456" or "P0456-00").
+        module: optional module/ECU name, tried as a scoped key first.
+    """
+    def run():
+        result = dtc_text.describe(code, module.strip() or None)
+        if result is None:
+            return {"error": "not found in MES's shipped language files",
+                    "code": code, "module": module or None,
+                    "note": ("no DTC-code key exists in the currently "
+                             "installed English.dat/English.txt -- see "
+                             "docs/format/MES_LANGUAGE_FILES.md")}
+        return result
     return _guard(run)
 
 

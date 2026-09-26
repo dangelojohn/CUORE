@@ -9,7 +9,12 @@
 <div class="panel">
   <h3>{{ r.dtc }}
     <span class="chip {{ r.severity }}">{{ r.severity }}</span></h3>
+  {% if r.descriptions %}
   <p class="lede">{{ r.descriptions|join(", ") }}</p>
+  {% elif r.mes_description %}
+  <p class="lede">{{ r.mes_description.text }}
+    <span class="chip plain">{{ r.mes_description.source }}</span></p>
+  {% endif %}
 
   <div class="tw">
   <table>

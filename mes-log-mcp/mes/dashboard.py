@@ -29,7 +29,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import analysis, live_obs, workup as workup_mod
+from . import analysis, dtc_text, live_obs, workup as workup_mod
 from . import fes as fes_mod
 from .catalog import CATALOG
 
@@ -102,9 +102,14 @@ def _build_code_timeline(history: dict[str, Any]) -> list[dict[str, Any]]:
     for rec in history.values():
         lo, hi = rec.odometer_span
         span = round(hi - lo, 1) if lo is not None and hi is not None and hi > lo else None
+        description = ", ".join(rec.descriptions)
+        if not description:
+            fallback = dtc_text.describe(rec.dtc, rec.modules[0] if rec.modules else None)
+            if fallback:
+                description = fallback["text"]
         rows.append({
             "code": rec.dtc,
-            "description": ", ".join(rec.descriptions),
+            "description": description,
             "module": ", ".join(rec.modules),
             "class": _severity(rec),
             "sessions": rec.session_count,

@@ -164,6 +164,9 @@ def _compact_history_record(r: dict[str, Any]) -> dict[str, Any]:
     descriptions = r.get("descriptions") or []
     if descriptions:
         out["description"] = descriptions[0]
+    elif r.get("mes_description"):
+        out["description"] = r["mes_description"]["text"]
+        out["description_source"] = r["mes_description"]["source"]
     out["sessions"] = r.get("sessions")
     out["first_seen"] = r.get("first_seen")
     out["last_seen"] = r.get("last_seen")

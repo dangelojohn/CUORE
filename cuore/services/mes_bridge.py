@@ -27,6 +27,7 @@ from mes import (  # noqa: E402  -- must follow the bootstrap import
     csvlog,
     dealer as dealer_mod,
     dtc as dtc_mod,
+    dtc_text,
     encoding,
     faulttree,
     fes,
@@ -602,6 +603,27 @@ def failure_type(byte: str) -> dict[str, Any]:
     if ft is None:
         raise NotFound(f"no failure type for '{byte}'")
     return ft.to_dict()
+
+
+def describe_dtc(code: str, module: str = "") -> dict[str, Any]:
+    """Look up a DTC's description in MES's own shipped language files.
+
+    Mirrors the ``dtc_description`` MCP tool call-for-call. This is a
+    fallback for a code no log gave text for, not a general database: MES's
+    ``English.dat``/``English.txt`` carry no DTC-code key at all (see
+    ``docs/format/MES_LANGUAGE_FILES.md``), so against the currently
+    installed files this raises :class:`NotFound` for virtually every real
+    code. The lookup itself is genuine and forward-compatible.
+    """
+    if not code.strip():
+        raise BadRequest("a DTC code is required")
+    result = dtc_text.describe(code, module.strip() or None)
+    if result is None:
+        raise NotFound(
+            f"'{code}' has no entry in MES's shipped language files -- no "
+            "DTC-code key exists in the currently installed "
+            "English.dat/English.txt (docs/format/MES_LANGUAGE_FILES.md)")
+    return result
 
 
 # --- CSV recordings -------------------------------------------------------
