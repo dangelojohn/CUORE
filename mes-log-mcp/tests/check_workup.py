@@ -57,8 +57,11 @@ check("identity has odometer span",
 cp = d["current_picture"]
 check("latest session present in the current picture",
       bool(cp.get("latest_session", {}).get("file")))
-check("clear assessment says not proof of repair",
-      "NOT proof" in cp.get("clear_assessment", {}).get("verdict", ""))
+ca = cp.get("clear_assessment")
+check("clear assessment says not proof of repair (when one applies -- the "
+      "corpus is live, so the latest session may not contain a clear at "
+      "all)",
+      ca is None or "NOT proof" in ca.get("verdict", ""))
 check("P0456 classified chronic",
       any(r["dtc"] == "P0456-00" for r in d["history"]["chronic"]))
 check("TSBs matched for the EVAP codes",

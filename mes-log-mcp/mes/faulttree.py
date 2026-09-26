@@ -301,7 +301,332 @@ P1CEA_FLOW = Tree(
 )
 
 
-TREES: tuple[Tree, ...] = (EVAP_LEAK, P1CEA_FLOW)
+NETWORK_CASCADE = Tree(
+    key="network-cascade",
+    title="BCM/RFHUB/DTCM comms cascade (U1711/U1712/U1713/U1716/U2054/"
+          "U0100/B1040) -- one network event, not seven faults",
+    codes=frozenset({"U1711", "U1712", "U1713", "U1716", "U2054", "U0100",
+                      "B1040"}),
+    framing=(
+        "Every code in this family is a message-integrity failure type -- "
+        "U-codes by definition, B1040's FTB `64` is 'plausibility' -- not a "
+        "component-internal fault (GIORGIO_PLATFORM.md section 1's FTB "
+        "table; mes/analysis.py COMMUNICATION_FTBS).",
+        "CONNECTIVITY_AND_SGW.md section 1, verbatim: the pervasive U/C "
+        "lost-communication DTCs -- BCM U1711/U1712/U1713/U1716, DTCM "
+        "U0100, DASM C1403/C1408/C1431/C141C -- 'name exactly the modules "
+        "on the unreachable buses'; recommendation there is a key-on-"
+        "engine-RUNNING rescan before chasing any of them as faults.",
+        "GIORGIO_MODULE_MAP.md Table B: whole-vehicle serial UDS sweeps "
+        "and cable re-plugs manufacture -87/-2F bystander codes -- this "
+        "car's own SCAN_2609041953 shows exactly that (DTCM U0100-87, BCM "
+        "U171x-2F, EPS U1960-83). Pull DTC EX before clearing.",
+        "This repo's own network family rule (mes/knowledge.py match_codes, "
+        "CORPUS_BASELINE.md section 7.2's proposed reporting rule, mes/"
+        "analysis.py detect_network_event): three or more modules holding "
+        "only U/C communication codes with no component-level code of "
+        "their own collapse into one network-event finding, not N module "
+        "faults.",
+        "Ranked, sourced causes on this platform, in the order mes/"
+        "knowledge.py already uses: BCM supply/fuse F82 (TSB S1808000005), "
+        "inline connector XY201 + frame grounds G003A/B (TSB S2008000032), "
+        "then spread/backed-out terminals (TSB S1708000262 REV. A).",
+    ),
+    steps=(
+        Step("N1", "Engine-running rescan before chasing any of this as real",
+             "Rescan with the engine RUNNING (not just key-on-engine-off) "
+             "and re-read the DTCs fresh.",
+             "MES full scan, engine running.",
+             "Codes do not reappear as freshly active with the engine "
+             "running.",
+             "Codes persist with the engine running: treat as a real, "
+             "recurring event and continue down this tree.",
+             "free / 5 min",
+             "CONNECTIVITY_AND_SGW.md section 1 -- 'Recommendation: do not "
+             "chase these as faults without a key-on-engine-RUNNING "
+             "rescan.'"),
+        Step("N2", "Pull DTC EX on every code BEFORE clearing anything",
+             "In MES, read extended DTC data (DTC EX) on every code in "
+             "this family: odometer, occurrence count, aging counter.",
+             "MES DTC EX screen.",
+             "Codes do not all share one identical odometer value and a "
+             "single occurrence count.",
+             "Every code shares one odometer value and one occurrence: "
+             "your own scan (or a cable re-plug) produced them. Clear and "
+             "move on -- there is nothing to repair. Do this BEFORE "
+             "clearing; clearing destroys this evidence.",
+             "free / 5 min",
+             "GIORGIO_PLATFORM.md section 1 item #3, 'the decisive test, "
+             "and it is cheap'; GIORGIO_MODULE_MAP.md Table B ('Pull DTC "
+             "EX before clearing')."),
+        Step("N3", "Read ABS directly on CAN-CH (grey A6) -- does the "
+                   "brake side agree?",
+             "Fit the grey A6 adapter cable and scan the Continental ABS "
+             "MK C1 module directly on CAN-CH for its own stored codes.",
+             "MES + grey A6 cable, CAN-CH bus.",
+             "ABS reports no fault of its own.",
+             "ABS itself holds a stored code: the brake side has a "
+             "genuine finding, and BCM's U1711/U1712 'brake system (NFR) "
+             "erratic' was reporting on a module that does have a real "
+             "problem. Diagnose the ABS-reported code itself, outside "
+             "this tree.",
+             "needs grey A6 cable / 10 min",
+             "GIORGIO_MODULE_MAP.md Table A (ABS Continental MK C1, "
+             "CAN-CH, grey A6, CONFIRMED) and Table B (CAN-CH bus "
+             "profile).",
+             caution="Listen/scan only -- GIORGIO_MODULE_MAP.md Table B: "
+                     "never transmit on CAN-CH without explicit human "
+                     "confirmation; brakes, airbag squibs and steering "
+                     "assist live here."),
+        Step("N4", "Clear once, then rescan without re-plugging anything",
+             "After N2's DTC EX read, clear the codes, then rescan "
+             "without disconnecting or reseating the OBD connector, the "
+             "grey/blue adapter, or any bus connector in between.",
+             "MES clear + rescan.",
+             "Codes stay cleared.",
+             "Codes return with nothing re-plugged and no repair "
+             "performed: this is a real, recurring network/power event, "
+             "not a scan or cable artifact. Proceed to the ranked causes "
+             "below.",
+             "free / 10 min",
+             "CORPUS_BASELINE.md section 7, 2026-08-27 timeline: this "
+             "exact sequence on this car went 11:36 SCAN (1 DTC, "
+             "U0100-87) -> cleared -> 11:41 SCAN clean across all 8 "
+             "modules, with no re-plug in between."),
+        Step("N5", "BCM power feed -- fuse F82 in the rear PDC, BCM A901 "
+                   "circuit",
+             "Inspect all BCM power feed circuits, including the "
+             "standalone 20A fuse and, on this GU/Stelvio, fuse F82 in "
+             "the rear PDC feeding the BCM A901 circuit.",
+             "Fuse box, meter.",
+             "F82 intact; A901 circuit and B+ A0 feed both in spec.",
+             "Repair the feed/fuse. A BCM that loses its supply drops off "
+             "the bus and every module gatewaying through it throws "
+             "U-codes -- matching this car's exact module list.",
+             "cheap / 20 min",
+             "TSB S1808000005 (2020-04-04), 'No Start, Multiple Modules "
+             "Are Not Responding', 2018-2020 Stelvio -- mes/knowledge.py "
+             "BULLETINS."),
+        Step("N6", "Inline connector XY201 + frame grounds G003A/G003B",
+             "Inspect inline connector XY201 for security; clean and "
+             "secure frame grounds G003A and G003B.",
+             "Hands / visual, ground cleaning.",
+             "Connector fully seated; grounds clean and tight.",
+             "Reseat/clean and re-verify (N4) before anything further -- "
+             "this is FCA's own published fix for exactly this cascade "
+             "shape, no parts required.",
+             "free / 20 min",
+             "TSB S2008000032 (2020-04-07), 'EVIC Displays Multiple "
+             "Warning Messages' -- mes/knowledge.py BULLETINS.",
+             caution="NHTSA associates this bulletin only with 2020 "
+                     "Stelvio; GU circuitry is shared but verify "
+                     "applicability."),
+        Step("N7", "Spread or backed-out connector terminals",
+             "Inspect the involved connector terminals for pushed-out or "
+             "spread terminals.",
+             "Hands / visual / terminal pick.",
+             "Terminals fully seated, no spread pins.",
+             "Reseat/repair the terminal and re-verify (N4).",
+             "free / 20 min",
+             "TSB S1708000262 REV. A (2020-11-17), 'Check Engine Lamp Is "
+             "On, Intermittent Module CAN Private Or LIN BUS Codes' -- "
+             "mes/knowledge.py BULLETINS."),
+        Step("N8", "BCM water-intrusion recall check (18V205000/U36, "
+                   "18V203000/U34)",
+             "Pull the passenger kick panel; check the BCM connectors "
+             "for staining, a silt line, or green/white corrosion. Check "
+             "the cowl drains. Verify whether recalls 18V205000 (U36, "
+             "BCM water intrusion) and 18V203000 (U34, liftgate connector "
+             "water intrusion) were performed on this VIN.",
+             "Hands / visual, VIN recall lookup.",
+             "No water staining/corrosion; recall(s) already performed, "
+             "sealing kit intact.",
+             "Water intrusion found, or the recall was never performed: "
+             "corroded BCM connector pins produce faults in both "
+             "directions because the BCM gateways CAN-C to CAN-IHS. "
+             "Perform/redo the sealing kit -- recurrence after the kit is "
+             "documented, so re-verify its integrity even if 'already "
+             "done'.",
+             "free to check; recall repair is free at the dealer",
+             "GIORGIO_PLATFORM.md section 1 item #2 -- NHTSA 18V205000/"
+             "U36 and 18V203000/U34, 12,595 vehicles, essentially the "
+             "entire MY2018 US Stelvio population."),
+        Step("N9", "Ground strap voltage-drop test (owner-reported "
+                   "pattern, NO FCA bulletin)",
+             "Voltage-drop test the engine/transmission-to-body ground "
+             "strap and both front knuckle straps under load (cranking, "
+             "cooling-fan step, ABS pump, EPS assist).",
+             "DVOM / voltage-drop test under load.",
+             "Under 0.1 V across each path; braid intact, no corrosion at "
+             "the 90-degree bend.",
+             "High-resistance strap: replace it. A shifted powertrain "
+             "ground reference during a high-current event can push CAN "
+             "transceivers outside their common-mode range for "
+             "milliseconds, producing exactly this simultaneous erratic/"
+             "invalid/missing-message pattern, then recovering cleanly.",
+             "cheap part (~$200) / 30 min test",
+             "GIORGIO_PLATFORM.md section 1 item #1 -- 13 NHTSA owner "
+             "complaints, 2018-2019 Stelvio, dealer-diagnosed at "
+             "54k-102k miles.",
+             caution="Owner-reported pattern only. A full-text sweep of "
+                     "all 287 readable FCA bulletins found NOTHING "
+                     "describing a ground strap as a failing part -- no "
+                     "FCA publication corroborates this. Rank below "
+                     "N5-N8, not above them."),
+        Step("N10", "Battery / IBS check",
+             "Battery load test; check the IBS harness connection by "
+             "wiggling the 2-way takeout while watching for a code "
+             "response; check for parasitic draw.",
+             "Battery tester, meter, MES DTC EX.",
+             "Battery and IBS test good; no parasitic draw; IBS harness "
+             "unaffected by the wiggle.",
+             "IBS wiggle test reproduces a code: the harness takeout is "
+             "the fault, per the documented U113E procedure. Weak "
+             "battery/parasitic draw: repair accordingly.",
+             "shop equipment / 20 min",
+             "TSB S1408000384 REV. J (2026-03-04), wiggle test for "
+             "U113E 'lost communication with intelligent battery'; "
+             "GIORGIO_PLATFORM.md section 1 item #4 (only 1/371 NHTSA "
+             "complaints names the IBS -- weakly evidenced generally, "
+             "ranked last).",
+             caution="DO NOT BLIND CHARGE through the sensor (TSB "
+                     "S1408000384)."),
+    ),
+    verification=(
+        Step("V1", "Confirm across more than one session, not one clean "
+                   "scan",
+             "Rescan on at least one additional, separate ignition "
+             "cycle/session after whatever was found and fixed above, "
+             "rather than trusting one immediate clean re-read.",
+             "MES rescan, separate session.",
+             "Stays clear across sessions.",
+             "Recurs: the identified cause did not address the root "
+             "event -- go back down the ranked list (N5-N10) with the "
+             "new DTC EX data.",
+             "free",
+             "CORPUS_BASELINE.md section 7 -- this car's own history "
+             "shows U1711/U1712/U1713 recurring across two widely "
+             "separated sessions (2026-06-07 and 2026-08-27) while "
+             "U0100-87 cleared once (11:36 -> 11:41 on 2026-08-27) and "
+             "has not returned since; one clean scan does not "
+             "distinguish these."),
+    ),
+    do_not=(
+        "Do not replace any module on the strength of a communication "
+        "cascade alone (GIORGIO_PLATFORM.md section 6 'professional "
+        "discipline' #1; mes/analysis.py NetworkEvent caution).",
+        "Do not clear codes before pulling DTC EX -- clearing destroys "
+        "the only evidence that this was a scan artifact (GIORGIO_"
+        "PLATFORM.md section 1 item #3).",
+        "Do not read a missing-message code as naming the faulty module "
+        "-- it names the module that went quiet, not the one that "
+        "failed; U0100 on the DTCM does not implicate the transfer case "
+        "(GIORGIO_PLATFORM.md section 3).",
+        "Do not sell the ground-strap repair as a documented FCA fix -- "
+        "no bulletin describes it; it is owner-reported only "
+        "(GIORGIO_PLATFORM.md section 1 item #1).",
+    ),
+)
+
+
+DASM_HALF_LINK = Tree(
+    key="dasm-half-private-can",
+    title="C141C / C141B -- DASM<->HALF private CAN (front radar/camera "
+          "link)",
+    codes=frozenset({"C141C", "C141B"}),
+    framing=(
+        "DASM (Bosch radar, front bumper) and HALF (Bosch MFK2 forward "
+        "camera, windshield) share a direct point-to-point private CAN "
+        "that does not transit the vehicle network (GIORGIO_PLATFORM.md "
+        "section 2).",
+        "C141C-86 (FTB `86`, signal/message invalid) means the link "
+        "delivered malformed data; a broken/dead link would instead give "
+        "FTB `87` (missing message) and would not self-clear. This car's "
+        "C141C-86 has appeared and self-cleared twice (GIORGIO_PLATFORM."
+        "md section 2; CORPUS_BASELINE.md C-codes table).",
+        "Because it is a private point-to-point link, C141C names the "
+        "link, not an end -- HALF-side or DASM-side component codes (if "
+        "any) decide which end is actually at fault, not the link code "
+        "itself (GIORGIO_PLATFORM.md section 2).",
+        "C141B does not appear in this repo's corpus, TSB catalogue or "
+        "research docs. Only the generic FTB `97` meaning ('component or "
+        "system operation obstructed or blocked', mes/dtc.py) and the "
+        "DASM<->HALF private-bus architecture above are confirmed; treat "
+        "any specific camera-obstruction causation for C141B as "
+        "inference, not a sourced finding.",
+    ),
+    steps=(
+        Step("D1", "Read HALF directly on CAN-CH (grey A6)",
+             "Fit the grey A6 adapter cable and scan the HALF forward "
+             "camera module directly on CAN-CH for its own stored "
+             "codes.",
+             "MES + grey A6 cable, CAN-CH bus.",
+             "HALF reports no fault of its own.",
+             "HALF holds its own stored code: the camera side has a "
+             "genuine finding, and that decides the private-link fault "
+             "-- C141C alone does not say which end is at fault.",
+             "needs grey A6 cable / 10 min",
+             "GIORGIO_MODULE_MAP.md Table A (HALF, Bosch MFK2, CAN-CH, "
+             "grey A6, CONFIRMED -- MES lists 'ELMA6') and GIORGIO_"
+             "PLATFORM.md section 2.",
+             caution="Listen/scan only on CAN-CH -- GIORGIO_MODULE_MAP.md "
+                     "Table B: never transmit without explicit human "
+                     "confirmation."),
+        Step("D2", "Windscreen / camera field-of-view obstruction check",
+             "Check the windscreen area ahead of the HALF camera for "
+             "dirt, film, a chip/crack in the camera's field of view, or "
+             "a disturbed/incorrectly seated camera cover.",
+             "Visual.",
+             "Clear field of view; camera cover properly seated.",
+             "Clean/clear and retest. If the cover, windscreen or front "
+             "bumper was disturbed (removed/replaced), the camera needs "
+             "recalibration -- MES has no ADJ routine for HALF, so this "
+             "needs wiTECH plus FCA static targets or a dedicated ADAS "
+             "platform (Autel IA900/MA600, Hunter, Bosch, Texa); there "
+             "is no cheap path through this toolchain.",
+             "free / 5 min inspection; recalibration is a shop job",
+             "General forward-camera diagnostic practice -- NOT sourced "
+             "to any Stelvio/Giulia-specific bulletin in this repo. The "
+             "recalibration-path claim IS sourced: MES_CAPABILITY_GAPS."
+             "md section 9 ('ADAS calibration -- the cleanest negative "
+             "here').",
+             caution="The obstruction check itself is general practice, "
+                     "not a documented bulletin for this platform -- "
+                     "flagged per house rule rather than omitted, since "
+                     "it is a legitimate free check."),
+    ),
+    verification=(
+        Step("V1", "Recheck across a session, not one immediate clean "
+                   "read",
+             "Rescan on a subsequent session/key cycle rather than "
+             "trusting one immediate clean re-read; this car's C141C-86 "
+             "has already self-cleared twice without intervention.",
+             "MES rescan.",
+             "Stays clear across at least one additional real session.",
+             "Recurs: treat as active and escalate to whichever end "
+             "(D1's finding) actually holds a component code.",
+             "free",
+             "CORPUS_BASELINE.md C-codes table (C141C-86, 2 occurrences, "
+             "2026-06-07 and 2026-08-27) and GIORGIO_PLATFORM.md "
+             "section 2."),
+    ),
+    do_not=(
+        "Do not condemn DASM or HALF from the link code alone -- C141C "
+        "only says the link carried malformed data, not which end is "
+        "faulty (GIORGIO_PLATFORM.md section 2).",
+        "Do not attempt an ADAS calibration/adjustment through MES -- "
+        "HALF has no ADJ routine in MES; recalibration after any "
+        "disturbance needs wiTECH + static targets or a dedicated ADAS "
+        "platform (MES_CAPABILITY_GAPS.md section 9).",
+        "Do not treat C141B's causation as documented -- no local "
+        "source names this code; only the generic FTB-97 meaning is "
+        "confirmed (mes/dtc.py).",
+    ),
+)
+
+
+TREES: tuple[Tree, ...] = (EVAP_LEAK, P1CEA_FLOW, NETWORK_CASCADE,
+                            DASM_HALF_LINK)
 
 
 def trees_for(codes) -> list[Tree]:
@@ -376,6 +701,51 @@ def evaluate(codes, vin: str = "") -> dict[str, Any]:
                                "pathognomonic for a blocked canister.",
                     "source": f"dtc_history {code}",
                 })
+
+        matched_keys = {t.key for t in matched}
+        if "network-cascade" in matched_keys:
+            for full in ("U1711-2F", "U1712-2F", "U1713-2F", "U1716-2F",
+                         "B1040-64", "U2054-87", "U0100-87"):
+                rec = history.get(full)
+                if not rec:
+                    continue
+                if rec.returned_after_clear:
+                    finding = (
+                        f"{full} has returned after being cleared within "
+                        f"a single session in this car's own logs (first "
+                        f"seen {rec.first_seen}, last seen {rec.last_seen}, "
+                        f"{rec.session_count} session(s)) -- treat as "
+                        "reproducing, not a one-off artifact.")
+                elif rec.session_count >= 2:
+                    finding = (
+                        f"{full} recurs across {rec.session_count} "
+                        f"separate sessions in this car's own logs "
+                        f"({rec.first_seen} to {rec.last_seen}) -- weighs "
+                        "against a single-scan artifact for this code "
+                        "specifically.")
+                else:
+                    finding = (
+                        f"{full} appears once in this car's own logs "
+                        f"({rec.first_seen}) and has not recurred since -- "
+                        "consistent with a scan/session artifact for this "
+                        "code.")
+                evidence.append({
+                    "step": "N1",
+                    "finding": finding,
+                    "source": f"dtc_history for this VIN ({full})",
+                })
+        if "dasm-half-private-can" in matched_keys:
+            rec = history.get("C141C-86")
+            if rec:
+                evidence.append({
+                    "step": "D1",
+                    "finding": (
+                        f"C141C-86 has appeared and self-cleared "
+                        f"{rec.session_count} time(s) in this car's own "
+                        f"logs ({rec.first_seen} to {rec.last_seen})."),
+                    "source": "dtc_history for this VIN (C141C-86)",
+                })
+
         if evidence:
             out["vehicle_evidence"] = evidence
     return out
