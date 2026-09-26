@@ -168,6 +168,12 @@ check_eq("discover body carries candidates and confirm", last()["body"],
          {"bus": "can_ch", "vin": "V", "confirm": True, "candidates": ["28"],
           "per_target_timeout": 0.25})
 
+out = run(server.live_session_start, preset="engine_basics", monitor_dtcs=True)
+check_eq("live_session_start with monitor_dtcs carries it and the default interval",
+         last()["body"], {"preset": "engine_basics", "monitor_dtcs": True, "dtc_interval_s": 10.0})
+check("live_session_start with monitor_dtcs was served by cuore, not in-process",
+      "served_by" not in out, str(out))
+
 os.environ["CUORE_TOKEN"] = "s3cret"
 run(server.status)
 check_eq("the token is sent as X-Cuore-Token", last()["token"], "s3cret")

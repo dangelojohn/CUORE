@@ -24,11 +24,13 @@
     </select>
     <select id="dd-replay-recording" hidden></select>
     <select id="dd-replay-speed" hidden></select>
+    <label id="dd-monitor-dtcs-wrap" hidden><input type="checkbox" id="dd-monitor-dtcs"> Monitor DTCs</label>
     <button id="dd-connect" type="button">Connect</button>
     <button id="dd-stop" type="button" hidden>Stop</button>
     <button id="dd-record" type="button">Record</button>
     <span id="dd-record-elapsed" hidden>00:00</span>
     <button id="dd-snapshot" type="button">Snapshot</button>
+    <button id="dd-mark" type="button">Mark</button>
     <button id="dd-pause-all" type="button">Pause all</button>
     <select id="dd-window-select">
       <option value="10">10 s</option>
@@ -93,6 +95,7 @@
           resize: function () {}, destroy: function () {},
           pause: function (p) { paused = !!p; }, isPaused: function () { return paused; },
           setWindow: function () {}, setCursor: function () {},
+          addMarker: function () {}, clearMarkers: function () {},
           stats: function (cid) { return { last: last[cid], min: last[cid], max: last[cid], avg: last[cid], n: pushes.length }; },
           resetStats: function () {},
           level: function () { return "ok"; },
@@ -306,6 +309,64 @@
         app.source.es.onmessage({ data: JSON.stringify({ type: "end" }) });
         var endEntry = app.alarmLog[app.alarmLog.length - 1];
         check("a replay end message is logged", endEntry.text === "replay finished", JSON.stringify(endEntry));
+        return app.source.stop();
+      });
+    })
+    .then(function () {
+      // 8. markers: manual mark and live DTC events reach the mounted widget's
+      // addMarker(), get logged, and a {"dtc": "any"} trigger fires an action.
+      return app.setSource("demo").then(function () {
+        var w1 = app.widgets["w1"];
+        var markerCalls = [];
+        var origAddMarker = w1.instance.addMarker;
+        w1.instance.addMarker = function (t, label, color) {
+          markerCalls.push([t, label, color]);
+          if (origAddMarker) return origAddMarker.apply(this, arguments);
+        };
+
+        app.addMarker("manual mark", { t: 42 });
+        check("the manual Mark action calls the mounted widget's addMarker with the label",
+              markerCalls.length === 1 && markerCalls[0][1] === "manual mark",
+              JSON.stringify(markerCalls));
+
+        var beforeLen = app.alarmLog.length;
+        app.onDtcEvent({ type: "dtc", t: 50, added: ["P0456 pending"], removed: [],
+                        stored: [], pending: ["P0456"] });
+        var dtcEntry = app.alarmLog[app.alarmLog.length - 1];
+        check("a live dtc event with an added code logs a DTC+ entry",
+              app.alarmLog.length === beforeLen + 1 && dtcEntry.text === "DTC+ P0456 pending" &&
+              dtcEntry.level === "dtc", JSON.stringify(dtcEntry));
+        check("the dtc event also calls addMarker on the mounted widget",
+              markerCalls.length === 2 && markerCalls[1][1].indexOf("P0456 pending") !== -1,
+              JSON.stringify(markerCalls));
+
+        var removedLen = app.alarmLog.length;
+        app.onDtcEvent({ type: "dtc", t: 55, added: [], removed: ["P0456 pending"],
+                        stored: [], pending: [] });
+        var clearedEntry = app.alarmLog[app.alarmLog.length - 1];
+        check("a dtc event with a removed code logs a DTC- entry",
+              app.alarmLog.length === removedLen + 1 && clearedEntry.text === "DTC- P0456 pending",
+              JSON.stringify(clearedEntry));
+
+        w1.instance.addMarker = origAddMarker;
+
+        // {"dtc": "any"} trigger fires on any added code (never on a removed one);
+        // action "mark" is purely synchronous, so this needs no fetch stubbing.
+        function dtcFireCount() {
+          return app.alarmLog.filter(function (e) { return e.level === "mark" && e.text === "dtc trigger fired"; }).length;
+        }
+        app.triggers = { rules: [{ id: "dtctrig", enabled: true, when: { dtc: "any" },
+                                  action: "mark", text: "dtc trigger fired", cooldown_s: 0 }] };
+        var before = dtcFireCount();
+        app.onDtcEvent({ type: "dtc", t: 60, added: [], removed: ["P0230 stored"],
+                        stored: [], pending: [] });
+        check("a dtc trigger does not fire on a removed (cleared) code",
+              dtcFireCount() === before);
+        app.onDtcEvent({ type: "dtc", t: 61, added: ["P0230 stored"], removed: [],
+                        stored: ["P0230"], pending: [] });
+        check("a {\"dtc\": \"any\"} trigger fires on any added code",
+              dtcFireCount() === before + 1);
+
         return app.source.stop();
       });
     })

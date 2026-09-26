@@ -31,10 +31,12 @@ sys.path.insert(0, str(_ROOT / "mes-log-mcp"))
 from cuore.live import channels as channels_mod  # noqa: E402
 from cuore.live import interlock, ops, store  # noqa: E402
 from cuore.live import poller as poller_mod  # noqa: E402
+from cuore.live import ui_store as ui_store_mod  # noqa: E402
 from cuore.live.buses import CAN_C  # noqa: E402
 from cuore.live.errors import BadCommand, LinkUnavailable, Refused  # noqa: E402
 from cuore.live.stream import Stream  # noqa: E402
 from cuore.live.transport import AdapterLink, set_link  # noqa: E402
+from cuore.services.errors import BadRequest  # noqa: E402
 
 failures: list[str] = []
 checks = 0
@@ -75,6 +77,13 @@ def wait_until(pred, timeout: float = 5.0, step: float = 0.02) -> bool:
 # ===========================================================================
 # fake adapter: legislated PIDs (single + multi), ATRV, one UDS DID
 # ===========================================================================
+
+def _encode_dtc(code: str) -> tuple[str, str]:
+    """Inverse of :func:`cuore.live.obd.dtc_from_two_bytes`: ``"P0456" -> ("04", "56")``."""
+    prefix_index = "PCBU".index(code[0])
+    high = (prefix_index << 2) | int(code[1], 16)
+    return f"{high:X}{code[2]}".upper(), code[3:5].upper()
+
 
 def _frames(header: str, payload: str) -> str:
     """Single/multi-frame ISO-TP framing, as an STN prints it with headers on."""
@@ -118,6 +127,18 @@ class LiveFakeStream(Stream):
         self.did_nodes: dict[int, dict[str, str]] = {
             0x18: {"2204FE": _frames("18DAF118", "6204FE7D")},
         }
+        #: Mode 03/07 DTC state -- mutable, so a test can change what the "car"
+        #: reports mid-poll and check that "Monitor DTCs" notices the diff.
+        self.stored_dtcs: set[str] = set()
+        self.pending_dtcs: set[str] = set()
+
+    def _dtc_reply(self, response_byte: str, codes: set[str]) -> str:
+        ordered = sorted(codes)
+        body = response_byte + f"{len(ordered):02X}"
+        for code in ordered:
+            a, b = _encode_dtc(code)
+            body += a + b
+        return _frames("7E8", body)
 
     def open(self) -> None:
         self.opens += 1
@@ -141,6 +162,10 @@ class LiveFakeStream(Stream):
             return "OK"
         if cmd.startswith(("AT", "ST")):
             return "OK"
+        if cmd == "03":
+            return self._dtc_reply("43", self.stored_dtcs)
+        if cmd == "07":
+            return self._dtc_reply("47", self.pending_dtcs)
         if cmd in self.pid_replies:
             return self.pid_replies[cmd]
         if cmd.startswith("22"):
@@ -440,6 +465,149 @@ p7.stop()
 check("after stop, ordinary ops are no longer refused for that reason",
       not raises(Refused, lambda: ops.obd_pid("0C")))
 check("stop releases the adapter lock (again)", interlock.read_lock() is None)
+
+
+# ===========================================================================
+# 10. "Monitor DTCs": Mode 03/07 diffing, SSE dtc event, TAG row, observation
+# ===========================================================================
+#
+# Driven directly through LivePoller._poll_dtcs on a manually-opened session
+# rather than through the real background-thread scheduler, so the test does
+# not have to wait out MIN_DTC_INTERVAL_S (5s minimum) twice over.
+
+fake8 = LiveFakeStream()
+lk8 = AdapterLink(stream_factory=lambda p, b: fake8, process="check_live_data")
+set_link(lk8)
+lk8.mark_verified(CAN_C, 10)
+
+p8 = poller_mod.LivePoller()
+poller_mod.set_poller(p8)
+chans8 = channels_mod.resolve_channels(["engine_rpm"])
+p8._channels = {c.id: c for c in chans8}
+p8._pid_route = ops._obd_route()
+p8._did_route = None
+p8._mode = "did"   # _poll_dtcs must switch itself into "pid" mode
+
+with lk8.session("check_dtc_monitor", bus=CAN_C) as sess8:
+    sub8 = p8.subscribe()
+    dtc_csv_path = Path(_TMP) / "dtc_monitor_test.csv"
+    rec8 = poller_mod.CsvRecorder(dtc_csv_path, chans8)
+    rec8.start()
+    p8._recorder = rec8
+
+    before_obs = len(store.recent_observations(1000, kind="live_dtc_change"))
+
+    p8._poll_dtcs(sess8)   # cycle 1: empty baseline -- must not report a "change"
+    check("the first Monitor-DTCs cycle only establishes a baseline", sub8.empty())
+    check_eq("baseline dtc state is (empty, empty)", p8._dtc_state, (set(), set()))
+
+    p8._poll_dtcs(sess8)   # cycle 2: no change -- still nothing published
+    check("a cycle with no DTC change publishes nothing", sub8.empty())
+
+    fake8.pending_dtcs = {"P0456"}
+    p8._poll_dtcs(sess8)   # cycle 3: a pending code sets
+    check("a new pending code publishes a dtc SSE message", not sub8.empty())
+    msg = sub8.get_nowait()
+    check_eq("dtc message type", msg.get("type"), "dtc")
+    check_eq("dtc message reports the added pending code", msg.get("added"), ["P0456 pending"])
+    check_eq("dtc message reports no removed codes on a set", msg.get("removed"), [])
+    check_eq("dtc message's stored list stays empty", msg.get("stored"), [])
+    check_eq("dtc message's pending list names the new code", msg.get("pending"), ["P0456"])
+    check("dtc message carries a numeric timestamp", isinstance(msg.get("t"), float), str(msg))
+
+    check_eq("a live_dtc_change observation was recorded",
+            len(store.recent_observations(1000, kind="live_dtc_change")), before_obs + 1)
+    latest_obs = store.recent_observations(1000, kind="live_dtc_change")[-1]
+    # The observation carries the session's own stream label, so a real
+    # adapter session ("serial COM3@...") counts as evidence and this fake
+    # session does not (fixed 2026-09-26: it was hardcoded to "serial").
+    check_eq("the dtc observation carries the session's own stream label",
+            latest_obs.get("stream"), fake8.describe)
+    check("a fake-session dtc observation is NOT counted as real-car evidence",
+          not store.is_from_car(latest_obs), str(latest_obs))
+    check("a serial-stream dtc observation IS counted as real-car evidence",
+          store.is_from_car({**latest_obs, "stream": "serial COM3@115200"}))
+
+    fake8.pending_dtcs = set()
+    p8._poll_dtcs(sess8)   # cycle 4: the code clears -- a "DTC-" transition
+    check("a cleared code publishes a dtc SSE message", not sub8.empty())
+    msg2 = sub8.get_nowait()
+    check_eq("dtc message reports the removed pending code", msg2.get("removed"), ["P0456 pending"])
+    check_eq("dtc message reports no added codes on a clear", msg2.get("added"), [])
+
+    rec8.stop()
+
+dtc_csv_text = dtc_csv_path.read_text(encoding="utf-8")
+check("the TAG column recorded the DTC+ transition (MES convention)",
+      "DTC+ P0456 pending" in dtc_csv_text, dtc_csv_text)
+check("the TAG column recorded the DTC- transition (MES convention)",
+      "DTC- P0456 pending" in dtc_csv_text, dtc_csv_text)
+
+
+# ===========================================================================
+# 11. safety: every request the poller ever sent is on the read-only allowlist
+# ===========================================================================
+#
+# Mode 01 (PIDs), Mode 03/07 (DTCs) and UDS 0x22 (ReadDataByIdentifier) only --
+# never Mode 04, never 0x14/0x2F/0x31/0x10. AT/ST-prefixed lines are the
+# adapter's own local configuration (addressing, protocol, filters), not a
+# request transmitted to a module, so they are not part of this allowlist.
+
+def _is_allowed_poller_request(cmd: str) -> bool:
+    if cmd.startswith(("AT", "ST")):
+        return True
+    return cmd[:2] in ("01", "03", "07") or cmd.startswith("22")
+
+
+for _label, _sent in (("multi/single-PID + DID session", fake1.sent),
+                      ("Monitor-DTCs session", fake8.sent)):
+    _bad = [c for c in _sent if not _is_allowed_poller_request(c)]
+    check(f"every request in the {_label} is Mode 01/03/07 or a UDS 0x22 read",
+          not _bad, str(_bad))
+    check(f"the {_label} actually exercised at least one real request", bool(_sent))
+
+
+# ===========================================================================
+# 12. custom channels: registry refresh (no restart) and real DID polling
+# ===========================================================================
+
+check("custom_trans_temp is not yet in the registry",
+      "custom_trans_temp" not in channels_mod.registry())
+
+ui_store_mod.save_custom_channels([
+    {"id": "custom_trans_temp", "name": "Custom trans temp", "unit": "C", "kind": "did",
+     "module": "TCM", "did": "04FE", "formula": "A-40"},
+])
+check("saving a custom channel refreshes the registry without a restart",
+      "custom_trans_temp" in channels_mod.registry())
+check_eq("the custom channel's confidence marks it user-defined",
+        channels_mod.by_id("custom_trans_temp").confidence, "USER-DEFINED")
+
+check("a custom DID channel on a non-can_c module (ABS, CAN-CH) is refused",
+      raises(BadRequest, lambda: ui_store_mod.save_custom_channels([
+          {"id": "custom_abs_bad", "name": "bad", "unit": "", "kind": "did",
+           "module": "ABS", "did": "F190", "formula": "A"},
+      ])))
+
+fake9 = LiveFakeStream()
+lk9 = AdapterLink(stream_factory=lambda p, b: fake9, process="check_live_data")
+set_link(lk9)
+lk9.mark_verified(CAN_C, 10)
+p9 = poller_mod.LivePoller()
+poller_mod.set_poller(p9)
+chans9 = channels_mod.resolve_channels(["custom_trans_temp"])
+p9.start(chans9, rates={"custom_trans_temp": 5.0})
+check("the custom DID channel is polled for real and decoded via 0x22 + its formula",
+      wait_until(lambda: p9.snapshot()["channels"]["custom_trans_temp"]["value"] == 85.0))
+p9.stop()
+
+# re-saving the same custom channel (an edit) must not collide with itself
+r_resave = ui_store_mod.save_custom_channels([
+    {"id": "custom_trans_temp", "name": "Custom trans temp (renamed)", "unit": "C",
+     "kind": "did", "module": "TCM", "did": "04FE", "formula": "A-40"},
+])
+check_eq("re-saving (editing) an existing custom channel is not a collision",
+        r_resave["channels"][0]["name"], "Custom trans temp (renamed)")
 
 
 # ===========================================================================

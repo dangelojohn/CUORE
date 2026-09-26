@@ -849,17 +849,24 @@ def live_channels() -> dict[str, Any]:
 
 
 def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
-                       rates: Optional[dict[str, float]] = None) -> dict[str, Any]:
+                       rates: Optional[dict[str, float]] = None, monitor_dtcs: bool = False,
+                       dtc_interval_s: float = 10.0) -> dict[str, Any]:
     """Start the live-data poll session on the given channels and/or preset.
 
     Read-only (Mode 01, UDS 0x22, ATRV only) but holds the adapter for the
     whole session: other live operations refuse while this runs (see the
     guard below), and this itself refuses while MultiEcuScan is connected.
+
+    ``monitor_dtcs`` (MES's "Monitor DTCs" convention): every
+    ``dtc_interval_s`` seconds (minimum 5), the poller also reads Mode 03/07
+    between channel reads and reports any change -- see
+    :meth:`cuore.live.poller.LivePoller._poll_dtcs`.
     """
     from . import channels as channels_mod
     from . import poller as poller_mod
     chans = channels_mod.resolve_channels(channels, preset)
-    return poller_mod.poller().start(chans, rates=rates)
+    return poller_mod.poller().start(chans, rates=rates, monitor_dtcs=monitor_dtcs,
+                                     dtc_interval_s=dtc_interval_s)
 
 
 def live_session_stop() -> dict[str, Any]:

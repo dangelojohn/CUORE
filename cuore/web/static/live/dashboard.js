@@ -116,6 +116,7 @@
 
   function LiveSource(app, opts) {
     this.app = app;
+    this.opts = opts || {};
     this.manageSession = !opts || opts.manageSession !== false;
     this.es = null; this._statusTimer = null;
   }
@@ -125,8 +126,10 @@
     if (this.manageSession) {
       var channels = this.app.currentPageChannelIds();
       var rates = this.app.currentPageRates();
+      var body = { channels: channels, rates: rates };
+      if (this.opts && this.opts.monitorDtcs) body.monitor_dtcs = true;
       p = this.app.api("/api/live/session/start", {
-        method: "POST", body: JSON.stringify({ channels: channels, rates: rates }),
+        method: "POST", body: JSON.stringify(body),
       }).then(function (session) { self.app.session = session; });
     }
     return p.then(function () {
@@ -139,6 +142,7 @@
   };
   LiveSource.prototype._onMessage = function (ev) {
     var msg; try { msg = JSON.parse(ev.data); } catch (e) { return; }
+    if (msg.type === "dtc") { this.app.onDtcEvent(msg); return; }
     if (msg.channel === undefined) return;
     this.app.onSample({ channel: msg.channel, t: msg.t, value: msg.value, unit: msg.unit, alarm: msg.alarm });
   };
@@ -173,6 +177,7 @@
       this.app.addMarker(msg.label || msg.text || msg.tag || "tag", { t: msg.t });
       return;
     }
+    if (msg.type === "dtc") { this.app.onDtcEvent(msg); return; }
     if (msg.type === "end") { this.app.onReplayEnd(); return; }
     if (msg.channel === undefined) return;
     this.app.onSample({ channel: msg.channel, t: msg.t, value: msg.value, unit: msg.unit, alarm: msg.alarm });
@@ -784,12 +789,15 @@
     var sourceSel = this.doc.getElementById("dd-source-select");
     var replayRec = this.doc.getElementById("dd-replay-recording");
     var replaySpeed = this.doc.getElementById("dd-replay-speed");
+    var monitorDtcsWrap = this.doc.getElementById("dd-monitor-dtcs-wrap");
     if (sourceSel) {
       sourceSel.addEventListener("change", function () {
         var kind = sourceSel.value;
         if (replayRec) replayRec.hidden = kind !== "replay";
         if (replaySpeed) replaySpeed.hidden = kind !== "replay";
+        if (monitorDtcsWrap) monitorDtcsWrap.hidden = kind !== "live";
       });
+      if (monitorDtcsWrap) monitorDtcsWrap.hidden = sourceSel.value !== "live";
     }
     if (replayRec) {
       this.api("/api/live/recordings").then(function (r) {
@@ -802,9 +810,11 @@
 
     var connectBtn = this.doc.getElementById("dd-connect");
     var stopBtn = this.doc.getElementById("dd-stop");
+    var monitorDtcsBox = this.doc.getElementById("dd-monitor-dtcs");
     if (connectBtn) connectBtn.addEventListener("click", function () {
       var kind = sourceSel ? sourceSel.value : "demo";
       var opts = kind === "replay" ? { recording: replayRec ? replayRec.value : "", speed: replaySpeed ? parseFloat(replaySpeed.value) : 1 } : {};
+      if (kind === "live" && monitorDtcsBox) opts.monitorDtcs = monitorDtcsBox.checked;
       self.setSource(kind, opts).then(function () {
         connectBtn.hidden = true; if (stopBtn) stopBtn.hidden = false;
         connectBtn.classList.add("dd-connected");
@@ -823,6 +833,10 @@
     var snapBtn = this.doc.getElementById("dd-snapshot");
     if (snapBtn) snapBtn.addEventListener("click", function () {
       self.takeSnapshot().catch(function (e) { global.alert("Snapshot failed: " + e.message); });
+    });
+    var markBtn = this.doc.getElementById("dd-mark");
+    if (markBtn) markBtn.addEventListener("click", function () {
+      self.addMarker("manual mark", { t: self.elapsed() });
     });
     var pauseBtn = this.doc.getElementById("dd-pause-all");
     if (pauseBtn) pauseBtn.addEventListener("click", function () { self.togglePauseAll(); });
@@ -1021,24 +1035,40 @@
     var errBox = el("div", { class: "dd-error" });
 
     function rowFor(rule) {
+      var when = rule.when || {};
+      var isDtc = when.dtc !== undefined;
       var enabled = el("input", { type: "checkbox" }); enabled.checked = rule.enabled !== false;
+      var kindSel = el("select", {}, [opt("channel", "Channel", !isDtc), opt("dtc", "DTC", isDtc)]);
       var chanSel = el("select", {});
-      self.allChannelChoices().forEach(function (c) { chanSel.appendChild(opt(c.id, c.name, (rule.when || {}).channel === c.id)); });
+      self.allChannelChoices().forEach(function (c) { chanSel.appendChild(opt(c.id, c.name, when.channel === c.id)); });
       var opSel = el("select", {});
-      OPS.forEach(function (o) { opSel.appendChild(opt(o, o, (rule.when || {}).op === o)); });
-      var valInput = el("input", { type: "number", value: (rule.when || {}).value != null ? rule.when.value : "" });
+      OPS.forEach(function (o) { opSel.appendChild(opt(o, o, when.op === o)); });
+      var valInput = el("input", { type: "number", value: when.value != null ? when.value : "" });
+      var dtcInput = el("input", { type: "text", placeholder: "code, or blank = any",
+        value: (isDtc && when.dtc !== "any") ? when.dtc : "" });
       var actionSel = el("select", {});
       ACTIONS.forEach(function (a) { actionSel.appendChild(opt(a, a, rule.action === a)); });
       var textInput = el("input", { type: "text", value: rule.text || "", placeholder: "text (speak/mark)" });
       var cooldown = el("input", { type: "number", value: rule.cooldown_s != null ? rule.cooldown_s : 10, style: "max-width:70px" });
       var del = el("button", { class: "btn", type: "button", text: "✕", onclick: function () { row.remove(); } });
-      var row = el("div", { class: "dd-row" }, [enabled, chanSel, opSel, valInput, actionSel, textInput, cooldown, del]);
+      function syncKind() {
+        var dtc = kindSel.value === "dtc";
+        chanSel.hidden = dtc; opSel.hidden = dtc; valInput.hidden = dtc;
+        dtcInput.hidden = !dtc;
+      }
+      kindSel.addEventListener("change", syncKind);
+      syncKind();
+      var row = el("div", { class: "dd-row" },
+        [enabled, kindSel, chanSel, opSel, valInput, dtcInput, actionSel, textInput, cooldown, del]);
       row._read = function () {
-        return {
+        var out = {
           id: rule.id || uid("rule"), enabled: enabled.checked,
-          when: { channel: chanSel.value, op: opSel.value, value: valInput.value === "" ? 0 : parseFloat(valInput.value) },
           action: actionSel.value, text: textInput.value, cooldown_s: parseFloat(cooldown.value) || 0,
         };
+        out.when = (kindSel.value === "dtc")
+          ? { dtc: dtcInput.value.trim() || "any" }
+          : { channel: chanSel.value, op: opSel.value, value: valInput.value === "" ? 0 : parseFloat(valInput.value) };
+        return out;
       };
       return row;
     }
@@ -1216,8 +1246,29 @@
   DashboardApp.prototype.addMarker = function (text, sample) {
     var entry = this.addLog(text, "mark", null, sample && sample.channel);
     entry.t = (sample && sample.t != null) ? sample.t : entry.t;
-    for (var id in this.widgets) { try { this.widgets[id].instance.setCursor(entry.t); } catch (e) {} }
+    for (var id in this.widgets) {
+      try { this.widgets[id].instance.setCursor(entry.t); } catch (e) {}
+      try { this.widgets[id].instance.addMarker(entry.t, text); } catch (e) {}
+    }
     return entry;
+  };
+
+  // A DTC transition reported by the live poller (see cuore/live/poller.py
+  // _poll_dtcs) or replayed from a recording: logged, drawn as a marker on
+  // every graph, and able to drive a trigger whose ``when`` names ``dtc``.
+  DashboardApp.prototype.onDtcEvent = function (msg) {
+    var t = (msg && msg.t != null) ? msg.t : this.elapsed();
+    var added = (msg && msg.added) || [];
+    var removed = (msg && msg.removed) || [];
+    var self = this;
+    added.forEach(function (entry) { self.addLog("DTC+ " + entry, "dtc", null, null); });
+    removed.forEach(function (entry) { self.addLog("DTC- " + entry, "dtc", null, null); });
+    var label = added.length ? ("DTC+ " + added.join(", "))
+      : (removed.length ? ("DTC- " + removed.join(", ")) : "DTC change");
+    for (var id in this.widgets) {
+      try { this.widgets[id].instance.addMarker(t, label); } catch (e) {}
+    }
+    this._evaluateDtcTriggers(added, t);
   };
 
   DashboardApp.prototype.elapsed = function () {
@@ -1287,6 +1338,27 @@
       if (last != null && now - last < cooldown) return;
       self._lastFired[rule.id] = now;
       self._runTriggerAction(rule, sample);
+    });
+  };
+
+  // Triggers whose ``when`` is {"dtc": "any"} or {"dtc": "<code>"} -- fires
+  // when any of this event's *added* codes matches (removed codes clearing
+  // never fire a dtc trigger; that is what record_stop / manual stop is for).
+  DashboardApp.prototype._evaluateDtcTriggers = function (added, t) {
+    var self = this;
+    (this.triggers.rules || []).forEach(function (rule) {
+      if (rule.enabled === false) return;
+      var when = rule.when || {};
+      if (!when.dtc) return;
+      var fire = when.dtc === "any" ? added.length > 0
+        : added.some(function (entry) { return entry.split(" ")[0] === when.dtc; });
+      if (!fire) return;
+      var now = self.now();
+      var last = self._lastFired[rule.id];
+      var cooldown = rule.cooldown_s || 0;
+      if (last != null && now - last < cooldown) return;
+      self._lastFired[rule.id] = now;
+      self._runTriggerAction(rule, { channel: null, value: null, t: t });
     });
   };
 

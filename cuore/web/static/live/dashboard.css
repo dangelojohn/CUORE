@@ -119,6 +119,7 @@
 .dd-log-row.level-warn .lv { color: var(--sev-chronic); }
 .dd-log-row.level-alarm .lv { color: var(--sev-returned); }
 .dd-log-row.level-mark .lv { color: var(--sev-cleared); }
+.dd-log-row.level-dtc .lv { color: var(--sev-returned); }
 
 dialog.dd-dialog {
   background: var(--surface); color: var(--ink); border: 1px solid var(--rule);

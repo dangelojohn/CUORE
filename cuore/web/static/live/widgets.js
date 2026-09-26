@@ -30,6 +30,11 @@
  *   - onCursor firing: implemented for line/multiline/stacked (spec calls
  *     it out for stacked explicitly; the others fire it too so a dashboard
  *     can sync any combination of graphs, not just stacked-driven ones).
+ *   - widget.addMarker(t, label, color) / widget.clearMarkers(): a vertical
+ *     dashed line + small label at time t, kept in the time buffer and
+ *     scrolling with data like a channel's own samples. Real on line,
+ *     multiline, stacked and scope (freerun view only); a no-op everywhere
+ *     else (digital/bar/dial/table/tiles/hud, and scatter -- no time axis).
  */
 (function (global) {
   "use strict";
@@ -264,6 +269,11 @@
     scheduleDraw(this);
   };
   WidgetBase.prototype.setCursor = function (t) {};
+  // No-op by default (digital/bar/dial/table/tiles/hud): markers only make
+  // sense on a time axis. GraphBase overrides these for the five graph
+  // types; ScatterWidget overrides them back to no-ops (no time axis there).
+  WidgetBase.prototype.addMarker = function (t, label, color) {};
+  WidgetBase.prototype.clearMarkers = function () {};
   WidgetBase.prototype.resize = function () { this._layout(); scheduleDraw(this); };
   WidgetBase.prototype._layout = function () {};
   WidgetBase.prototype._wireResize = function () {
@@ -489,9 +499,26 @@
     this._viewStart = null; this._viewEnd = null; // null = auto-follow
     this._hoverT = null; this._hoverX = null;
     this._dragging = false; this._dragStartX = 0; this._dragStartView = null;
+    this._markers = [];   // [{t, label, color}], kept in the time buffer like a channel
     WidgetBase.call(this, type, container, config);
   }
   GraphBase.prototype = Object.create(WidgetBase.prototype);
+
+  // A vertical dashed line + small label at time t, scrolling with the data
+  // the same way a channel's own buffer does (trimmed to the same window).
+  GraphBase.prototype.addMarker = function (t, label, color) {
+    if (!isNum(t)) t = this._latestT();
+    if (!isNum(t)) t = 0;
+    this._markers.push({ t: t, label: label || "", color: color || null });
+    var keep = Math.max(this.config.windowSec || 60, 5) * 4;
+    var cutoff = t - keep;
+    while (this._markers.length && this._markers[0].t < cutoff) this._markers.shift();
+    scheduleDraw(this);
+  };
+  GraphBase.prototype.clearMarkers = function () {
+    this._markers = [];
+    scheduleDraw(this);
+  };
 
   GraphBase.prototype._buildDom = function () {
     this.root.innerHTML = '<div class="cw-title"></div><div class="cw-graph-wrap"></div><div class="cw-legend"></div>';
@@ -687,6 +714,31 @@
     return function (v) { return h - ((v - lo) / span) * h; };
   }
 
+  // Vertical dashed line + small label per marker in view, for line/multiline/
+  // stacked/scope. ``view`` is [t0, t1] in the same time units the trace uses.
+  function drawMarkers(ctx, markers, view, w, h, defaultColor) {
+    if (!markers || !markers.length) return;
+    var span = view[1] - view[0];
+    if (!span) return;
+    ctx.save();
+    ctx.font = "10px sans-serif";
+    for (var i = 0; i < markers.length; i++) {
+      var m = markers[i];
+      if (m.t < view[0] || m.t > view[1]) continue;
+      var x = ((m.t - view[0]) / span) * w;
+      var color = m.color || defaultColor;
+      ctx.setLineDash([4, 3]);
+      ctx.strokeStyle = color;
+      ctx.beginPath(); ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, h); ctx.stroke();
+      if (m.label) {
+        ctx.setLineDash([]);
+        ctx.fillStyle = color;
+        ctx.fillText(m.label, clamp(x + 3, 0, Math.max(0, w - 4)), 10);
+      }
+    }
+    ctx.restore();
+  }
+
   // ===================================================================== LINE
 
   function LineWidget(container, config) { GraphBase.call(this, "line", container, config); }
@@ -709,6 +761,7 @@
     var yl = niceYLabels(lo, hi, h, 4);
     drawGrid(ctx, w, h, gridColor, textColor, yl, []);
     this._plotTrace(ctx, ch, view, w, h, lo, hi, ch.color || cssVar(this.root, "--ok"));
+    drawMarkers(ctx, this._markers, view, w, h, textColor);
     this._drawCursor(ctx, w, h, view);
     if (this._legendVals[0]) {
       this._legendVals[0].textContent = format(ch.last, this.config.decimals) + (ch.unit ? " " + ch.unit : "");
@@ -788,6 +841,7 @@
         this._legendVals[c].textContent = format(ch.last, this.config.decimals) + (ch.unit ? " " + ch.unit : "");
       }
     }
+    drawMarkers(ctx, this._markers, view, w, h, textColor);
     this._drawCursorMulti(ctx, w, h, view);
   };
   MultilineWidget.prototype._plotChannel = function (ctx, ch, view, w, h, range, color, normalized) {
@@ -863,6 +917,7 @@
         this._legendVals[i].textContent = format(ch.last, this.config.decimals) + (ch.unit ? " " + ch.unit : "");
       }
     }
+    drawMarkers(ctx, this._markers, view, w, h, textColor);
   };
   StackedWidget.prototype._plotLane = function (ctx, ch, view, w, h, range, color) {
     var scaleX = function (t) { return ((t - view[0]) / (view[1] - view[0])) * w; };
@@ -968,6 +1023,9 @@
     } else {
       var view = this._currentView();
       this._plotFreerun(ctx, ch, view, w, h, lo, hi, color);
+      // Markers use absolute epoch time; only meaningful against the freerun
+      // view (a triggered sweep's x-axis is relative time since the trigger).
+      drawMarkers(ctx, this._markers, view, w, h, textColor);
     }
     if (this._legendVals[0]) {
       this._legendVals[0].textContent = format(ch.last, this.config.decimals) + (ch.unit ? " " + ch.unit : "");
@@ -1001,6 +1059,10 @@
     this._lastX = null; this._lastY = null;
   }
   ScatterWidget.prototype = Object.create(GraphBase.prototype);
+  // Scatter has no time axis (it plots one channel against another), so a
+  // time-indexed marker is not applicable here -- explicit no-op, per contract.
+  ScatterWidget.prototype.addMarker = function () {};
+  ScatterWidget.prototype.clearMarkers = function () {};
 
   ScatterWidget.prototype.push = function (channelId, t, value) {
     GraphBase.prototype.push.call(this, channelId, t, value);

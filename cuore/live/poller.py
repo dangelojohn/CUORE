@@ -34,12 +34,16 @@ from .buses import CAN_C, header_bits_for_protocol, route_for
 from .channels import Channel, ComputedError, eval_expr
 from .config import state_dir
 from .errors import BadCommand, LinkUnavailable, Refused
-from .obd import PIDS_BY_HEX, decode_pid
+from .obd import PIDS_BY_HEX, decode_obd_dtcs, decode_pid
 from .transport import Session, link
 
 MIN_TICK = 0.02
 DEFAULT_RING_MINUTES = 5.0
 _MAX_MULTI_PID = 6
+#: "Monitor DTCs" (MES convention): read Mode 03/07 between channel reads,
+#: no faster than this, so it never competes meaningfully with fast channels.
+MIN_DTC_INTERVAL_S = 5.0
+DEFAULT_DTC_INTERVAL_S = 10.0
 
 
 def _parse_multi_pid(data: list[str], pids: list[str]) -> dict[str, list[str]]:
@@ -200,6 +204,12 @@ class LivePoller:
         self._pid_route = None
         self._did_route = None
         self._holding = False
+        self._monitor_dtcs = False
+        self._dtc_interval = DEFAULT_DTC_INTERVAL_S
+        #: (stored_codes, pending_codes) as of the last successful poll, or
+        #: None before the first one -- the first read only establishes a
+        #: baseline, it never reports a "change" for codes already present.
+        self._dtc_state: Optional[tuple[set[str], set[str]]] = None
 
     # --- lifecycle -----------------------------------------------------
 
@@ -218,7 +228,8 @@ class LivePoller:
         with self._lock:
             return self._holding
 
-    def start(self, channels: list[Channel], rates: Optional[dict[str, float]] = None
+    def start(self, channels: list[Channel], rates: Optional[dict[str, float]] = None,
+             monitor_dtcs: bool = False, dtc_interval_s: float = DEFAULT_DTC_INTERVAL_S
              ) -> dict[str, Any]:
         with self._lock:
             if self.is_active():
@@ -241,6 +252,9 @@ class LivePoller:
             self._pid_multi_ok = True
             self._started_at = None
             self._mode = "did"
+            self._monitor_dtcs = bool(monitor_dtcs)
+            self._dtc_interval = max(MIN_DTC_INTERVAL_S, float(dtc_interval_s))
+            self._dtc_state = None
             self._stop_event.clear()
             self._thread = threading.Thread(target=self._run, name="cuore-live-poller",
                                             daemon=True)
@@ -303,6 +317,8 @@ class LivePoller:
             "error": self._error,
             "multi_pid_supported": self._pid_multi_ok,
             "alarms": {cid: a.to_dict() for cid, a in self._alarms.items()},
+            "monitor_dtcs": self._monitor_dtcs,
+            "dtc_interval_s": self._dtc_interval,
         }
 
     def snapshot(self) -> dict[str, Any]:
@@ -391,6 +407,7 @@ class LivePoller:
                                       f"{lk.cable!r}; Mode 01 PIDs need it")
             self._pid_route, self._did_route = pid_route, did_route
             with lk.session("live_session", bus=CAN_C) as sess:
+                self._stream_desc = getattr(getattr(sess, "stream", None), "describe", "") or ""
                 self._opens += 1
                 self._mode = "did"
                 with self._lock:
@@ -398,10 +415,12 @@ class LivePoller:
                     self._holding = True
                 try:
                     next_due = {cid: 0.0 for cid in self._channels}
+                    next_dtc_due = 0.0
                     while not self._stop_event.is_set():
                         now = time.monotonic()
                         due = [cid for cid, t in next_due.items() if t <= now]
-                        if not due:
+                        dtc_due = self._monitor_dtcs and next_dtc_due <= now
+                        if not due and not dtc_due:
                             time.sleep(MIN_TICK)
                             continue
                         pid_due = [c for c in due if self._channels[c].kind == "pid"]
@@ -419,6 +438,13 @@ class LivePoller:
                             touched |= self._poll_battery(sess, batt_due)
                         if comp_due:
                             touched |= self._poll_computed(comp_due)
+                        # DTC monitoring runs only on its own (much slower) schedule,
+                        # after this tick's channel reads -- so it never displaces a
+                        # fast channel's due sample, only ever adds a bounded, rare
+                        # extra pair of requests once every dtc_interval seconds.
+                        if dtc_due:
+                            self._poll_dtcs(sess)
+                            next_dtc_due = time.monotonic() + self._dtc_interval
                         later = time.monotonic()
                         for cid in due:
                             next_due[cid] = later + 1.0 / self._rates.get(cid, 1.0)
@@ -553,6 +579,58 @@ class LivePoller:
             touched.add(cid)
         return touched
 
+    # --- "Monitor DTCs" (MES convention): Mode 03/07 between channel reads --
+
+    def _read_dtc_codes(self, sess: Session, mode: str, response_byte: str) -> Optional[set[str]]:
+        """Codes from one Mode 03/07 read, or None if the request did not complete.
+
+        Read-only OBD services only (Mode 03/07), same as everywhere else in
+        this poller -- never Mode 04, never a write.
+        """
+        q = sess.query(mode, response_byte)
+        if q["error"]:
+            return None
+        codes: set[str] = set()
+        for data in q["ecus"].values():
+            codes.update(decode_obd_dtcs(data))
+        return codes
+
+    def _poll_dtcs(self, sess: Session) -> None:
+        self._switch_mode(sess, "pid")
+        sess.untarget()
+        stored = self._read_dtc_codes(sess, "03", "43")
+        pending = self._read_dtc_codes(sess, "07", "47")
+        if stored is None or pending is None:
+            return   # adapter/bus error this cycle; try again next interval
+        prev = self._dtc_state
+        self._dtc_state = (stored, pending)
+        if prev is None:
+            return   # first read only establishes the baseline, not a "change"
+        prev_stored, prev_pending = prev
+        added = (sorted(f"{c} stored" for c in stored - prev_stored) +
+                sorted(f"{c} pending" for c in pending - prev_pending))
+        removed = (sorted(f"{c} stored" for c in prev_stored - stored) +
+                  sorted(f"{c} pending" for c in prev_pending - pending))
+        if not added and not removed:
+            return
+        t = time.time()
+        msg = {"type": "dtc", "t": t, "added": added, "removed": removed,
+              "stored": sorted(stored), "pending": sorted(pending)}
+        self._broadcast(msg)
+        with self._lock:
+            rec = self._recorder
+        if rec is not None:
+            # MES convention: one DTC transition per TAG entry, e.g. "DTC+ P0456 pending".
+            for entry in added:
+                rec.write_row(tag=f"DTC+ {entry}")
+            for entry in removed:
+                rec.write_row(tag=f"DTC- {entry}")
+        store.record_observation(
+            "live_dtc_change",
+            {"added": added, "removed": removed, "stored": sorted(stored),
+             "pending": sorted(pending)},
+            stream=getattr(getattr(sess, "stream", None), "describe", "") or "live_poller")
+
     # --- publish: ring buffer, alarms, subscribers, recorder --------------
 
     def _publish(self, cid: str, value: Any, unit: str) -> None:
@@ -583,8 +661,10 @@ class LivePoller:
         self._broadcast(msg)
 
     def _record_alarm_event(self, cid: str, level: str, value: Any) -> None:
+        # the session's real stream (e.g. "serial COM3@115200"), so a real
+        # alarm counts as a read from the car and a fake-session one does not
         store.record_observation("live_alarm", {"channel": cid, "level": level, "value": value},
-                                 stream="live_poller")
+                                 stream=getattr(self, "_stream_desc", "") or "live_poller")
         audit.record("live_alarm", channel=cid, level=level, value=value)
 
 

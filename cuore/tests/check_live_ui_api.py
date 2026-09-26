@@ -39,6 +39,7 @@ from fastapi.responses import JSONResponse  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore import bootstrap  # noqa: E402,F401  -- side effect: mes on sys.path
+from cuore.api import known_good as known_good_api  # noqa: E402
 from cuore.api import live_ui  # noqa: E402
 from cuore.live import channels as channels_mod  # noqa: E402
 from cuore.live import layouts as layouts_mod  # noqa: E402
@@ -84,6 +85,7 @@ def create_test_app() -> FastAPI:
         return JSONResponse(status_code=400, content=body.model_dump())
 
     app.include_router(live_ui.router, prefix="/api")
+    app.include_router(known_good_api.router, prefix="/api")
     return app
 
 
@@ -150,6 +152,46 @@ check("mes_parameters has a table and a multiline graph",
       {"table", "multiline"} <= {w["type"] for p in mes_params_layout["pages"]
                                  for w in p["widgets"]},
       str(mes_params_layout))
+
+# -- known-good bands wired into built-in layouts --------------------------
+
+from cuore.services import known_good_bridge  # noqa: E402
+
+engine_widgets = {w["id"]: w for p in engine_layout["pages"] for w in p["widgets"]}
+rpm_band = known_good_bridge.sourced_band("engine_rpm")
+check("engine_rpm known-good row is sourced (not UNKNOWN)", rpm_band is not None)
+check_eq("w_engine_rpm min comes from known_good", engine_widgets["w_engine_rpm"]["min"],
+        rpm_band["min"])
+check_eq("w_engine_rpm max comes from known_good", engine_widgets["w_engine_rpm"]["max"],
+        rpm_band["max"])
+check_eq("w_engine_rpm warn band comes from known_good",
+        engine_widgets["w_engine_rpm"]["warn"], rpm_band["warn"])
+check_eq("w_engine_rpm alarm band comes from known_good",
+        engine_widgets["w_engine_rpm"]["alarm"], rpm_band["alarm"])
+check_eq("w_engine_rpm carries known_good's confidence",
+        engine_widgets["w_engine_rpm"].get("confidence"), rpm_band["confidence"])
+check_eq("w_engine_rpm carries known_good's source",
+        engine_widgets["w_engine_rpm"].get("source"), rpm_band["source"])
+check("w_engine_rpm carries a note", bool(engine_widgets["w_engine_rpm"].get("note")))
+
+iat_band = known_good_bridge.sourced_band("intake_air_temp")
+check("intake_air_temp known-good row is UNKNOWN (no sourced band)", iat_band is None)
+check("w_intake_air_temp carries no confidence/source when UNKNOWN",
+      "confidence" not in engine_widgets["w_intake_air_temp"]
+      and "source" not in engine_widgets["w_intake_air_temp"])
+
+evap_widgets = {w["id"]: w for p in evap_layout["pages"] for w in p["widgets"]}
+check_eq("w_commanded_evap_purge keeps its explicit fallback min/max "
+        "(known_good is UNKNOWN for EVAP purge)",
+        (evap_widgets["w_commanded_evap_purge"]["min"],
+         evap_widgets["w_commanded_evap_purge"]["max"]), (0, 100))
+
+trans_layout = client.get("/api/live/layouts/stelvio_transmission").json()
+trans_widgets = {w["id"]: w for p in trans_layout["pages"] for w in p["widgets"]}
+tcm_band = known_good_bridge.sourced_band("tcm_04fe")
+check_eq("w_tcm_04fe min/max come from known_good",
+        (trans_widgets["w_tcm_04fe"]["min"], trans_widgets["w_tcm_04fe"]["max"]),
+        (tcm_band["min"], tcm_band["max"]))
 
 r = client.get("/api/live/layouts/no_such_layout")
 check_eq("GET unknown layout is 404", r.status_code, 404)
@@ -423,6 +465,33 @@ check_eq("trigger with an invalid action is 400",
 check_eq("duplicate trigger ids in one submission is 400",
         client.put("/api/live/triggers", json={"rules": [rule_op, rule_op]}).status_code, 400)
 
+# -- dtc triggers: {"dtc": "any"} or {"dtc": "<code>"} -------------------
+
+rule_dtc_any = {"id": "r3", "when": {"dtc": "any"}, "action": "record_start"}
+r = client.put("/api/live/triggers", json={"rules": [rule_op, rule_alarm, rule_dtc_any]})
+check_eq("PUT valid trigger rules including a {'dtc': 'any'} rule is 200", r.status_code, 200,
+        r.text)
+saved = {rr["id"]: rr for rr in r.json()["rules"]}
+check_eq("the dtc rule's when is saved as given", saved["r3"]["when"], {"dtc": "any"})
+
+rule_dtc_code = {"id": "r4", "when": {"dtc": "P0456"}, "action": "mark", "text": "P0456 set"}
+r = client.put("/api/live/triggers", json={"rules": [rule_dtc_code]})
+check_eq("PUT a trigger scoped to one DTC code is 200", r.status_code, 200, r.text)
+check_eq("a code-scoped dtc trigger's when.dtc round-trips",
+        r.json()["rules"][0]["when"], {"dtc": "P0456"})
+
+bad_dtc_empty = {"id": "bad", "when": {"dtc": ""}, "action": "beep"}
+check_eq("a trigger with an empty dtc value is 400",
+        client.put("/api/live/triggers", json={"rules": [bad_dtc_empty]}).status_code, 400)
+
+bad_dtc_type = {"id": "bad", "when": {"dtc": 123}, "action": "beep"}
+check_eq("a trigger with a non-string dtc value is 400",
+        client.put("/api/live/triggers", json={"rules": [bad_dtc_type]}).status_code, 400)
+
+bad_when_neither = {"id": "bad", "when": {}, "action": "beep"}
+check_eq("a trigger whose when names neither channel/op/value, alarm, nor dtc is 400",
+        client.put("/api/live/triggers", json={"rules": [bad_when_neither]}).status_code, 400)
+
 
 # ===========================================================================
 # 5. replay
@@ -509,10 +578,76 @@ check_eq("replay never appends to observations.jsonl",
 
 
 # ===========================================================================
+# 6. known-good endpoint
+# ===========================================================================
+
+r = client.get("/api/live/known-good")
+check_eq("GET /live/known-good (no vin) is 200", r.status_code, 200)
+kg_body = r.json()
+check("known-good response has a channels map", isinstance(kg_body.get("channels"), dict))
+check("known-good response has no vin/observed without a vin param",
+      "vin" not in kg_body and "observed" not in kg_body, str(sorted(kg_body)))
+check("known-good channels map includes engine_rpm",
+      "engine_rpm" in kg_body["channels"])
+check_eq("known-good engine_rpm confidence matches the library",
+        kg_body["channels"]["engine_rpm"]["confidence"], "SINGLE-SOURCE")
+check("known-good includes a documented UNKNOWN row (intake_air_temp)",
+      kg_body["channels"].get("intake_air_temp", {}).get("confidence") == "UNKNOWN")
+check("known-good UNKNOWN row still carries a TechAuthority note",
+      "TechAuthority" in (kg_body["channels"]["intake_air_temp"].get("notes") or ""))
+check("every known-good row's channel id exists in the channel registry",
+      all(cid in channels_mod.registry() for cid in kg_body["channels"]))
+
+def _bands_ordered(row):
+    for key in ("normal", "warn", "alarm"):
+        band = row.get(key)
+        if band is not None and band[0] > band[1]:
+            return False
+    return True
+
+check("every known-good band is ordered lo <= hi",
+      all(_bands_ordered(row) for row in kg_body["channels"].values()))
+
+r = client.get("/api/live/known-good", params={"vin": "ZASFAKPN5J7B88115"})
+check_eq("GET /live/known-good with a vin is 200", r.status_code, 200, r.text)
+kg_vin_body = r.json()
+check_eq("known-good response echoes the vin", kg_vin_body.get("vin"), "ZASFAKPN5J7B88115")
+check("known-good response includes observed_ranges when a vin is given",
+      isinstance(kg_vin_body.get("observed"), dict))
+
+
+# --- regression 2026-09-26: known-good bands must not invert widget levels ----
+from cuore.live import layouts as _lay  # noqa: E402
+_eng = _lay.get_layout("stelvio_engine") if hasattr(_lay, "get_layout") else None
+if _eng is None:
+    _eng = client.get("/api/live/layouts/stelvio_engine").json()
+_ws = {w["channels"][0]: w for p in _eng["pages"] for w in p["widgets"] if len(w.get("channels", [])) == 1}
+_rpm = _ws.get("engine_rpm")
+check("RPM widget gets no idle-only warn/alarm band (would read ALARM at idle)",
+      _rpm is not None and _rpm.get("warn") is None and _rpm.get("alarm") is None, str(_rpm))
+check("RPM widget scale is not the idle range", _rpm is not None and _rpm.get("max") != 900.0, str(_rpm))
+_ct = _ws.get("engine_coolant_temp")
+check("coolant widget keeps its one-sided 'too hot' bands",
+      _ct is not None and _ct.get("warn") and _ct["warn"][0] >= 100, str(_ct))
+
+
+# --- regression 2026-09-26: layout ids cannot escape the layouts dir ----------
+_secret = Path(os.environ["CUORE_STATE_DIR"]) / "outside_secret.json"
+_secret.write_text('{"id": "x", "name": "SECRET", "pages": []}', encoding="utf-8")
+for _bad in ("..\outside_secret", "..%5Coutside_secret", "..\..\outside_secret"):
+    _r = client.get(f"/api/live/layouts/{_bad}")
+    check(f"layout read with traversal id {_bad!r} is refused", _r.status_code in (400, 404) and "SECRET" not in _r.text,
+          f"{_r.status_code} {_r.text[:80]}")
+    _r = client.get(f"/api/live/layouts/{_bad}/export")
+    check(f"layout export with traversal id {_bad!r} is refused", _r.status_code in (400, 404) and "SECRET" not in _r.text,
+          f"{_r.status_code} {_r.text[:80]}")
+
+# ===========================================================================
 # report
 # ===========================================================================
 
 passed = checks - len(failures)
+
 print(f"{passed}/{checks} checks passed")
 if failures:
     for f in failures:

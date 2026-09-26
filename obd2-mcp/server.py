@@ -649,16 +649,28 @@ def live_channels() -> str:
 
 @mcp.tool()
 def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
-                       rates_json: str = "") -> str:
+                       rates_json: str = "", monitor_dtcs: bool = False,
+                       dtc_interval_s: float = 10.0) -> str:
     """Start a live-data poll session: round-robins the given channels (and/or preset) at
     their configured rates, holding the adapter until stopped. Read-only (Mode 01, UDS
     0x22, ATRV) but refuses other live operations while it runs, and itself refuses while
     MultiEcuScan is connected. rates_json overrides per-channel Hz, e.g. '{"engine_rpm": 10}'.
+
+    monitor_dtcs (MultiEcuScan's "Monitor DTCs" convention): every dtc_interval_s seconds
+    (minimum 5, default 10) the poller also reads Mode 03/07 between channel reads and, on
+    any change, publishes it on the live stream, writes a "DTC+/- <code> stored|pending" TAG
+    entry into any active recording, and records an observation.
     """
     rates = json.loads(rates_json) if rates_json else None
+    body: dict[str, Any] = {"channels": channels, "preset": preset, "rates": rates}
+    if monitor_dtcs:
+        body["monitor_dtcs"] = True
+        body["dtc_interval_s"] = dtc_interval_s
     return _via("POST", "/live/session/start",
-                lambda: ops.live_session_start(channels, preset=preset, rates=rates),
-                body={"channels": channels, "preset": preset, "rates": rates})
+                lambda: ops.live_session_start(channels, preset=preset, rates=rates,
+                                               monitor_dtcs=monitor_dtcs,
+                                               dtc_interval_s=dtc_interval_s),
+                body=body)
 
 
 @mcp.tool()

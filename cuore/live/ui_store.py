@@ -124,7 +124,11 @@ def validate_custom_channels(raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Validate the whole submitted list at once (ids must be unique, cycle-free)."""
     if not isinstance(raw, list):
         raise BadRequest("channels must be a list")
-    registry_ids = set(channels_mod.registry())
+    # Built-in ids only -- not the full registry, which (via load_custom_channels)
+    # now includes previously-saved custom channels too. Checking against the
+    # full registry would make re-saving (editing) an existing custom channel
+    # collide with its own earlier self.
+    registry_ids = channels_mod.builtin_channel_ids()
     seen: set[str] = set()
 
     # Pass 1: shape/id checks only, so a computed channel may forward-reference
@@ -162,8 +166,13 @@ def validate_custom_channels(raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
                                  "kind": ch["kind"]}
         if ch["kind"] == "did":
             module = ch.get("module")
-            if not isinstance(module, str) or by_code(module.upper()) is None:
+            ecu = by_code(module.upper()) if isinstance(module, str) else None
+            if ecu is None:
                 raise BadRequest(f"custom channel {cid!r}: unknown module {module!r}")
+            if ecu.bus_key != "can_c":
+                raise BadRequest(f"custom channel {cid!r}: module {module!r} is on bus "
+                                 f"{ecu.bus_key!r}; the live-data poller currently serves "
+                                 f"can_c channels only")
             did = ch.get("did")
             if not isinstance(did, str) or not _DID_RE.match(did):
                 raise BadRequest(f"custom channel {cid!r}: did must be 4 hex digits, "
@@ -190,6 +199,7 @@ def save_custom_channels(raw: list[dict[str, Any]]) -> dict[str, Any]:
     validated = validate_custom_channels(raw)
     with _LOCK:
         _save_raw(validated)
+    channels_mod.invalidate_registry()
     return {"channels": validated}
 
 
@@ -353,9 +363,15 @@ def validate_trigger_rule(rule: dict[str, Any]) -> dict[str, Any]:
         when_out = {"alarm": level}
         if channel is not None:
             when_out["channel"] = channel
+    elif "dtc" in when:
+        dtc = when.get("dtc")
+        if not isinstance(dtc, str) or not dtc.strip():
+            raise BadRequest(f"trigger {rid!r}: when.dtc must be a non-empty string "
+                             "('any' or a code like 'P0456')")
+        when_out = {"dtc": dtc.strip()}
     else:
         raise BadRequest(f"trigger {rid!r}: when must specify either "
-                         "channel/op/value or alarm")
+                         "channel/op/value, alarm, or dtc")
 
     action = rule.get("action")
     if action not in _ACTIONS:

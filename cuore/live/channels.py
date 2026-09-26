@@ -173,9 +173,25 @@ def _computed_channels() -> list[Channel]:
     ]
 
 
-def available_channels() -> list[Channel]:
-    """Every channel this project knows how to sample."""
+def _builtin_channels() -> list[Channel]:
     return _pid_channels() + _did_channels() + [_battery_channel()] + _computed_channels()
+
+
+def builtin_channel_ids() -> set[str]:
+    """Ids of every channel this project ships with -- excludes saved custom channels.
+
+    :mod:`ui_store` uses this (not :func:`registry`) to decide whether a
+    submitted custom channel id collides with something built-in -- as
+    opposed to an existing custom channel of the same id simply being
+    re-saved, which must be allowed.
+    """
+    return {c.id for c in _builtin_channels()}
+
+
+def available_channels() -> list[Channel]:
+    """Every channel this project knows how to sample, including saved custom ones."""
+    from . import ui_store  # local: ui_store imports this module; avoid a cycle at import time
+    return _builtin_channels() + ui_store.load_custom_channels()
 
 
 _REGISTRY: Optional[dict[str, Channel]] = None
@@ -186,6 +202,17 @@ def registry() -> dict[str, Channel]:
     if _REGISTRY is None:
         _REGISTRY = {c.id: c for c in available_channels()}
     return _REGISTRY
+
+
+def invalidate_registry() -> None:
+    """Force the next :func:`registry`/:func:`by_id` call to recompute.
+
+    Called after custom channels are saved so a running dashboard sees new
+    custom channels (and formula/expr edits to existing ones) without a
+    process restart.
+    """
+    global _REGISTRY
+    _REGISTRY = None
 
 
 def by_id(channel_id: str) -> Channel:
@@ -396,6 +423,7 @@ def eval_expr(expr: str, values: dict[str, float]) -> float:
     return _eval_node(_ExprParser(_tokenize_expr(text)).parse(), values)
 
 
-__all__ = ["Channel", "available_channels", "registry", "by_id", "PRESETS", "presets",
+__all__ = ["Channel", "available_channels", "registry", "invalidate_registry",
+          "builtin_channel_ids", "by_id", "PRESETS", "presets",
           "resolve_channels", "ComputedError", "eval_expr", "DID_MODULES",
           "FAST_HZ", "MED_HZ", "SLOW_HZ"]

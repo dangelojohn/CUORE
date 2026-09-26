@@ -279,9 +279,12 @@ def live_channels_route() -> dict[str, Any]:
             summary="Start the live-data poll session; read-only but holds the adapter")
 def live_session_start_route(channels: Optional[list[str]] = Body(default=None, embed=True),
                              preset: str = Body(default="", embed=True),
-                             rates: Optional[dict[str, float]] = Body(default=None, embed=True)
+                             rates: Optional[dict[str, float]] = Body(default=None, embed=True),
+                             monitor_dtcs: bool = Body(default=False, embed=True),
+                             dtc_interval_s: float = Body(default=10.0, embed=True)
                              ) -> dict[str, Any]:
-    return ops.live_session_start(channels, preset=preset, rates=rates)
+    return ops.live_session_start(channels, preset=preset, rates=rates,
+                                  monitor_dtcs=monitor_dtcs, dtc_interval_s=dtc_interval_s)
 
 
 @router.post("/live/session/stop", summary="Stop the live-data poll session, release the adapter")

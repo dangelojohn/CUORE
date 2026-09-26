@@ -239,6 +239,71 @@
   try { widgets.bar.setConfig({ warn: [15, 18], alarm: [18, 25] }); } catch (e) { setConfigThrew = true; }
   check("setConfig() does not throw", !setConfigThrew);
 
+  // ---- markers: addMarker()/clearMarkers() ----
+  var ALL_TYPES = ["digital", "bar", "dial", "line", "multiline", "stacked", "scope",
+    "scatter", "table", "tiles", "hud"];
+  for (var mi = 0; mi < ALL_TYPES.length; mi++) {
+    var mt = ALL_TYPES[mi];
+    check(mt + ".addMarker is a function", typeof widgets[mt].addMarker === "function");
+    check(mt + ".clearMarkers is a function", typeof widgets[mt].clearMarkers === "function");
+  }
+  var markerThrew = false;
+  try {
+    for (var mj = 0; mj < ALL_TYPES.length; mj++) {
+      widgets[ALL_TYPES[mj]].addMarker(t0 + 30, "sanity mark", "red");
+      widgets[ALL_TYPES[mj]].clearMarkers();
+    }
+  } catch (e) { markerThrew = true; }
+  check("addMarker()/clearMarkers() do not throw on any of the 11 widget types", !markerThrew);
+
+  // real behaviour on a graph type (line): the marker is kept, with its label/color
+  widgets.line.clearMarkers();
+  widgets.line.addMarker(t0 + 5, "brake test", "#ff0000");
+  check("line.addMarker records the marker (t/label/color)",
+        widgets.line._markers.length === 1 && widgets.line._markers[0].label === "brake test" &&
+        widgets.line._markers[0].color === "#ff0000" && widgets.line._markers[0].t === t0 + 5);
+  widgets.line.clearMarkers();
+  check("line.clearMarkers empties the marker buffer", widgets.line._markers.length === 0);
+
+  // addMarker with no explicit time falls back to the latest pushed sample time
+  // rather than throwing or storing NaN (widgets.line's latest "m" sample is t0+9999).
+  var noTimeThrew = false;
+  try { widgets.line.addMarker(undefined, "auto-t mark"); } catch (e) { noTimeThrew = true; }
+  check("addMarker() with no time argument does not throw", !noTimeThrew);
+  check("addMarker() with no time argument falls back to the latest sample time",
+        widgets.line._markers.length === 1 && widgets.line._markers[0].t === t0 + 9999);
+
+  // markers scroll with the time buffer: one far outside the kept window (relative
+  // to the newest marker/sample) is trimmed, exactly like a channel's own buffer.
+  widgets.line.clearMarkers();
+  widgets.line.addMarker(t0 - 100000, "ancient mark");
+  widgets.line.addMarker(t0 + 60, "recent mark");
+  check("an old-enough marker is trimmed out of the buffer as new ones scroll in",
+        widgets.line._markers.length === 1 && widgets.line._markers[0].label === "recent mark");
+  widgets.line.clearMarkers();
+
+  // multiline / stacked / scope also keep real markers (per the build brief);
+  // scatter is explicitly a no-op (no time axis to hang a marker on).
+  widgets.multiline.addMarker(t0 + 5, "m");
+  check("multiline.addMarker records a real marker", widgets.multiline._markers.length === 1);
+  widgets.multiline.clearMarkers();
+  widgets.stacked.addMarker(t0 + 5, "m");
+  check("stacked.addMarker records a real marker", widgets.stacked._markers.length === 1);
+  widgets.stacked.clearMarkers();
+  widgets.scope.addMarker(t0 + 5, "m");
+  check("scope.addMarker records a real marker", widgets.scope._markers.length === 1);
+  widgets.scope.clearMarkers();
+  widgets.scatter.addMarker(t0 + 5, "m");
+  check("scatter.addMarker is a no-op (scatter has no time axis)",
+        widgets.scatter._markers.length === 0);
+
+  // a marker call must not disturb push()/stats() on the same widget
+  widgets.line.addMarker(t0 + 5, "does not affect data");
+  widgets.line.push("m", t0 + 10000, 55);
+  check("pushing data after addMarker still updates stats normally",
+        widgets.line.stats("m").last === 55);
+  widgets.line.clearMarkers();
+
   // ---- destroy ----
   var hiddenArea = document.getElementById("hidden-area");
   var beforeCount = hiddenArea.querySelectorAll(".cw").length;
