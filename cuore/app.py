@@ -24,7 +24,7 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from mes.errors import MesError  # noqa: E402  -- needs bootstrap to have run
 
-from .api import live, live_ui, logs, recordings, reference, system, vehicles  # noqa: E402
+from .api import known_good, live, live_ui, logs, recordings, reference, system, vehicles  # noqa: E402
 from .config import Settings, load  # noqa: E402
 from .models import ErrorBody  # noqa: E402
 from .services.errors import BridgeError  # noqa: E402
@@ -110,6 +110,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(logs.router, prefix="/api")
     app.include_router(live.router, prefix="/api")
     app.include_router(live_ui.router, prefix="/api")
+    app.include_router(known_good.router, prefix="/api")
     app.include_router(dashboard_routes.api_router, prefix="/api")
     app.include_router(service_routes.api_router, prefix="/api")
     app.include_router(drivetrain_routes.api_router, prefix="/api")

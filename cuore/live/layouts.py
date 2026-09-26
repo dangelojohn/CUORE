@@ -18,6 +18,7 @@ import threading
 from pathlib import Path
 from typing import Any, Optional
 
+from ..services import known_good_bridge
 from ..services.errors import BadRequest, NotFound
 from . import channels as channels_mod
 from .config import state_dir
@@ -51,6 +52,11 @@ def layouts_dir() -> Path:
 
 
 def _path_for(layout_id: str) -> Path:
+    # Every path into the layouts dir goes through here, so validate here:
+    # a backslash survives URL routing and is a separator on Windows, which
+    # let GET /live/layouts/..%5C..%5C<file> read any *.json on the host.
+    if not isinstance(layout_id, str) or not _ID_RE.match(layout_id):
+        raise NotFound(f"no layout named {layout_id!r}")
     return layouts_dir() / f"{layout_id}.json"
 
 
@@ -246,17 +252,42 @@ def validate_layout(layout: dict[str, Any], *, layout_id: Optional[str] = None) 
 
 def _chan_widget(cid: str, wtype: str, *, size=(1, 1), min=None, max=None,
                  note: str = "", title: str = "") -> Optional[dict[str, Any]]:
+    """One single-channel widget, with its min/max/warn/alarm band sourced
+    from :mod:`mes.known_good` (via ``known_good_bridge``) wherever that
+    library has a row whose confidence is not UNKNOWN -- see
+    :func:`cuore.services.known_good_bridge.sourced_band`. The caller's own
+    ``min``/``max``/``note`` are the fallback for a channel that library has
+    nothing sourced for (or has documented as UNKNOWN), never overridden by
+    an UNKNOWN row's absent numbers.
+    """
     reg = channels_mod.registry()
     ch = reg.get(cid)
     if ch is None:
         return None
+    w_min, w_max, w_warn, w_alarm = min, max, None, None
+    w_note, w_confidence, w_source = note, None, None
+    band = known_good_bridge.sourced_band(cid)
+    if band is not None:
+        if band["min"] is not None:
+            w_min = band["min"]
+        if band["max"] is not None:
+            w_max = band["max"]
+        w_warn = band["warn"]
+        w_alarm = band["alarm"]
+        w_confidence = band["confidence"]
+        w_source = band["source"]
+        w_note = band["note"] or note
     w: dict[str, Any] = {"id": f"w_{cid}", "type": wtype,
                          "title": title or ch.name, "channels": [cid],
-                         "size": list(size), "min": min, "max": max,
-                         "warn": None, "alarm": None, "decimals": None,
+                         "size": list(size), "min": w_min, "max": w_max,
+                         "warn": w_warn, "alarm": w_alarm, "decimals": None,
                          "smoothing": None, "windowSec": None}
-    if note:
-        w["note"] = note
+    if w_note:
+        w["note"] = w_note
+    if w_confidence:
+        w["confidence"] = w_confidence
+    if w_source:
+        w["source"] = w_source
     return w
 
 
