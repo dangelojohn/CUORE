@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>dashboard.js self-test</title>
+</head>
+<body>
+
+<!-- The same #dd-app skeleton live_dashboard.html renders, so dashboard.js
+     is exercised against the real markup, not a simplified stand-in. -->
+<div id="dd-app" data-vin="TESTVIN">
+  <div id="dd-demo-banner" class="dd-demo-banner" hidden>DEMO DATA — not from the car</div>
+  <div class="dd-toolbar">
+    <select id="dd-layout-select"></select>
+    <button id="dd-layout-save" type="button">Save</button>
+    <button id="dd-layout-saveas" type="button">Save as</button>
+    <button id="dd-layout-export" type="button">Export</button>
+    <button id="dd-layout-import" type="button">Import</button>
+    <input type="file" id="dd-import-file" hidden>
+    <select id="dd-source-select">
+      <option value="live">Live car</option>
+      <option value="replay">Replay</option>
+      <option value="demo" selected>Demo</option>
+    </select>
+    <select id="dd-replay-recording" hidden></select>
+    <select id="dd-replay-speed" hidden></select>
+    <button id="dd-connect" type="button">Connect</button>
+    <button id="dd-stop" type="button" hidden>Stop</button>
+    <button id="dd-record" type="button">Record</button>
+    <span id="dd-record-elapsed" hidden>00:00</span>
+    <button id="dd-snapshot" type="button">Snapshot</button>
+    <button id="dd-pause-all" type="button">Pause all</button>
+    <select id="dd-window-select">
+      <option value="10">10 s</option>
+      <option value="30">30 s</option>
+      <option value="60" selected>1 min</option>
+      <option value="120">2 min</option>
+      <option value="300">5 min</option>
+      <option value="600">10 min</option>
+    </select>
+    <label><input type="checkbox" id="dd-sound"> Sound</label>
+    <button id="dd-edit-toggle" type="button">Edit layout</button>
+    <button id="dd-alarm-log-toggle" type="button">Alarms</button>
+    <button id="dd-triggers-toggle" type="button">Triggers</button>
+    <button id="dd-channels-toggle" type="button">Custom channels</button>
+    <a id="dd-hud-link" href="/v/TESTVIN/gauges/hud" target="_blank">HUD</a>
+  </div>
+  <div class="dd-pagetabs" id="dd-pagetabs"></div>
+  <div class="dd-grid" id="dd-grid"></div>
+  <div class="dd-drawer" id="dd-alarm-drawer" hidden>
+    <div class="dd-log-body"></div>
+  </div>
+  <dialog id="dd-add-widget"></dialog>
+  <dialog id="dd-widget-settings"></dialog>
+  <dialog id="dd-triggers-dialog"></dialog>
+  <dialog id="dd-channels-dialog"></dialog>
+</div>
+
+<pre id="result">running...</pre>
+
+<!-- Relative paths: this file lives in the same directory as the real
+     widgets.js/dashboard.js, so this resolves whether the page is opened
+     as file:// or served through cuore -- and, per the build brief, falls
+     back to a stub when widgets.js does not exist yet. -->
+<script src="widgets.js" onerror="window.__widgetsMissing = true"></script>
+<script>
+  if (window.__widgetsMissing || !window.CuoreWidgets) {
+    // Minimal stand-in for the real widget library (not built by this
+    // agent). Records every push() so tests can assert the data pipeline
+    // reached a mounted widget without needing real rendering.
+    window.CuoreWidgets = {
+      types: {
+        digital:   { label: "Digital",    multiChannel: false, minChannels: 1, maxChannels: 1, defaultSize: [1, 1] },
+        bar:       { label: "Bar",        multiChannel: false, minChannels: 1, maxChannels: 1, defaultSize: [1, 1] },
+        dial:      { label: "Dial",       multiChannel: false, minChannels: 1, maxChannels: 1, defaultSize: [1, 1] },
+        line:      { label: "Line",       multiChannel: false, minChannels: 1, maxChannels: 1, defaultSize: [2, 1] },
+        multiline: { label: "Multiline",  multiChannel: true,  minChannels: 1, maxChannels: 6, defaultSize: [2, 2] },
+        stacked:   { label: "Stacked",    multiChannel: true,  minChannels: 1, maxChannels: 6, defaultSize: [2, 2] },
+        scope:     { label: "Scope",      multiChannel: false, minChannels: 1, maxChannels: 1, defaultSize: [2, 1] },
+        scatter:   { label: "Scatter",    multiChannel: true,  minChannels: 2, maxChannels: 2, defaultSize: [2, 2] },
+        table:     { label: "Table",      multiChannel: true,  minChannels: 1, maxChannels: 10, defaultSize: [2, 2] },
+        tiles:     { label: "Tiles",      multiChannel: true,  minChannels: 1, maxChannels: 8, defaultSize: [2, 1] },
+        hud:       { label: "HUD",        multiChannel: false, minChannels: 1, maxChannels: 1, defaultSize: [2, 2] },
+      },
+      create: function (type, elm, config) {
+        var pushes = [];
+        var last = {};
+        var paused = false;
+        return {
+          _type: type, _config: config, _pushes: pushes,
+          push: function (cid, t, v) { pushes.push([cid, t, v]); last[cid] = v; },
+          setConfig: function (patch) { Object.assign(config, patch || {}); },
+          resize: function () {}, destroy: function () {},
+          pause: function (p) { paused = !!p; }, isPaused: function () { return paused; },
+          setWindow: function () {}, setCursor: function () {},
+          stats: function (cid) { return { last: last[cid], min: last[cid], max: last[cid], avg: last[cid], n: pushes.length }; },
+          resetStats: function () {},
+          level: function () { return "ok"; },
+          snapshot: function () {
+            var out = {};
+            (config.channels || []).forEach(function (c) { out[c.id] = { value: last[c.id], unit: c.unit, min: last[c.id], max: last[c.id], avg: last[c.id] }; });
+            return out;
+          },
+        };
+      },
+      format: function (v, d) { return (typeof v === "number") ? v.toFixed(d == null ? 1 : d) : String(v); },
+    };
+  }
+</script>
+<script src="dashboard.js"></script>
+<script>
+(function () {
+  "use strict";
+  try { localStorage.clear(); } catch (e) {}
+
+  var results = { passed: 0, failed: [] };
+  function check(label, cond, detail) {
+    if (cond) { results.passed++; }
+    else { results.failed.push(label + (detail ? " -- " + detail : "")); }
+  }
+
+  function finish() {
+    document.getElementById("result").textContent = JSON.stringify(results);
+  }
+
+  // --- fixtures ------------------------------------------------------
+
+  var LAYOUT_FULL = {
+    id: "stelvio_engine", name: "Engine", version: 1, builtin: true,
+    pages: [
+      { id: "page1", title: "Engine", widgets: [
+        { id: "w1", type: "digital", title: "RPM", channels: ["engine_rpm"], size: [1, 1] },
+      ] },
+      { id: "page2", title: "Speed", widgets: [
+        { id: "w2", type: "digital", title: "Speed", channels: ["vehicle_speed"], size: [1, 1] },
+      ] },
+    ],
+  };
+  var savedLayouts = { stelvio_engine: LAYOUT_FULL };
+  var customChannelsStore = [];
+  var fetchLog = [];
+
+  function fakeFetch(url, opts) {
+    opts = opts || {};
+    fetchLog.push({ url: url, opts: opts });
+    var method = opts.method || "GET";
+    var path = String(url).split("?")[0];
+    var status = 200, body = null;
+
+    if (path === "/api/live/channels") {
+      body = { channels: [
+        { id: "engine_rpm", name: "Engine RPM", unit: "rpm", kind: "pid", default_rate_hz: 5 },
+        { id: "vehicle_speed", name: "Vehicle Speed", unit: "km/h", kind: "pid", default_rate_hz: 5 },
+      ], presets: {} };
+    } else if (path === "/api/live/custom-channels") {
+      if (method === "PUT") { customChannelsStore = (JSON.parse(opts.body).channels || []); body = { channels: customChannelsStore }; }
+      else body = { channels: customChannelsStore };
+    } else if (path === "/api/live/layouts") {
+      if (method === "POST") { status = 200; body = JSON.parse(opts.body); }
+      else body = { layouts: Object.keys(savedLayouts).map(function (id) { return { id: id, name: savedLayouts[id].name, builtin: !!savedLayouts[id].builtin }; }) };
+    } else if (/^\/api\/live\/layouts\/[^/]+\/export$/.test(path)) {
+      body = savedLayouts[path.split("/")[4]] || {};
+    } else if (/^\/api\/live\/layouts\/[^/]+$/.test(path)) {
+      var id = decodeURIComponent(path.split("/").pop());
+      if (method === "PUT") { savedLayouts[id] = JSON.parse(opts.body); body = savedLayouts[id]; }
+      else if (method === "DELETE") { delete savedLayouts[id]; body = { deleted: id }; }
+      else body = savedLayouts[id] || null;
+      if (!body && method === "GET") status = 404;
+    } else if (path === "/api/live/triggers") {
+      body = method === "PUT" ? JSON.parse(opts.body) : { rules: [] };
+    } else if (path === "/api/live/recordings") {
+      body = { recordings: [{ id: "rec1", name: "Test recording" }] };
+    } else if (path === "/api/live/snapshots") {
+      body = { ok: true };
+    } else {
+      status = 404; body = { error: "NotFound", detail: "no fake route for " + path, status: 404 };
+    }
+    var ok = status >= 200 && status < 300;
+    return Promise.resolve({
+      ok: ok, status: status, statusText: ok ? "OK" : "Error",
+      text: function () { return Promise.resolve(JSON.stringify(body)); },
+    });
+  }
+
+  function FakeEventSource(url) {
+    this.url = url; this.onmessage = null; this.onerror = null; this.closed = false;
+    FakeEventSource.instances.push(this);
+  }
+  FakeEventSource.prototype.close = function () { this.closed = true; };
+  FakeEventSource.instances = [];
+
+  var fakeNow = 1000;
+  function now() { return fakeNow; }
+
+  // --- run -------------------------------------------------------------
+
+  var app = window.CuoreDashboard.init({
+    fetch: fakeFetch, EventSource: FakeEventSource, now: now, vin: "TESTVIN",
+  });
+
+  app.ready
+    .then(function () {
+      // 1. layout load
+      check("layout loads from GET /api/live/layouts + /layouts/{id}",
+            !!app.layout && app.layout.id === "stelvio_engine",
+            JSON.stringify(app.layout && app.layout.id));
+      check("layout load lands on its first page",
+            app.pageId === "page1", String(app.pageId));
+      check("grid mounts the first page's one widget",
+            document.querySelectorAll("#dd-grid .dd-widget").length === 1);
+
+      // 2. tab switching
+      return app.switchToPage("page2").then(function () {
+        check("switchToPage updates app.pageId", app.pageId === "page2", String(app.pageId));
+        var mounted = document.querySelectorAll("#dd-grid .dd-widget[data-widget-id='w2']");
+        check("switchToPage re-renders the grid for the new page", mounted.length === 1);
+        return app.switchToPage("page1");
+      });
+    })
+    .then(function () {
+      // 3. demo source feeding widgets
+      return app.setSource("demo").then(function () {
+        check("setSource('demo') shows the demo banner",
+              document.getElementById("dd-demo-banner").hidden === false);
+        app.source.tick();
+        var w1 = app.widgets["w1"];
+        // Assert through the public widget contract (stats()/snapshot()) so this
+        // passes against both the real widgets.js and the fallback stub -- the
+        // stub's private bookkeeping (_pushes) is not part of the contract.
+        var stats = w1 && w1.instance.stats("engine_rpm");
+        check("demo tick pushed a sample into the mounted widget",
+              !!stats && stats.n > 0, stats ? JSON.stringify(stats) : "no widget w1");
+        var snap = w1 && w1.instance.snapshot();
+        check("the pushed sample reads back for engine_rpm via widget.snapshot()",
+              !!snap && !!snap.engine_rpm && typeof snap.engine_rpm.value === "number",
+              snap ? JSON.stringify(snap) : "no snapshot");
+        return app.source.stop();
+      });
+    })
+    .then(function () {
+      // 4. trigger evaluation: crosses_above fires once, then respects cooldown
+      app.triggers = { rules: [{
+        id: "trg1", enabled: true,
+        when: { channel: "engine_rpm", op: "crosses_above", value: 1000 },
+        action: "mark", text: "rpm high", cooldown_s: 5,
+      }] };
+      function markCount() {
+        return app.alarmLog.filter(function (e) { return e.level === "mark" && e.text === "rpm high"; }).length;
+      }
+      fakeNow = 2000;
+      app.onSample({ channel: "engine_rpm", t: 0, value: 500, unit: "rpm" });
+      app.onSample({ channel: "engine_rpm", t: 1, value: 1500, unit: "rpm" });
+      check("crosses_above fires on the crossing sample", markCount() === 1, String(markCount()));
+
+      app.onSample({ channel: "engine_rpm", t: 2, value: 500, unit: "rpm" });
+      fakeNow = 2002; // 2s later -- inside the 5s cooldown
+      app.onSample({ channel: "engine_rpm", t: 3, value: 1500, unit: "rpm" });
+      check("a second crossing inside the cooldown window is suppressed", markCount() === 1, String(markCount()));
+
+      app.onSample({ channel: "engine_rpm", t: 4, value: 500, unit: "rpm" });
+      fakeNow = 2010; // past the cooldown
+      app.onSample({ channel: "engine_rpm", t: 5, value: 1500, unit: "rpm" });
+      check("a crossing after the cooldown fires again", markCount() === 2, String(markCount()));
+
+      // 5. edit: add/remove widget produces valid layout JSON
+      var before = app.exportLayoutJSON();
+      var beforeCount = before.pages[0].widgets.length;
+      var spec = app.addWidgetToPage("page1", { type: "bar", channels: ["vehicle_speed"], size: [9, 9] });
+      var afterAdd = app.exportLayoutJSON();
+      var addedRow = afterAdd.pages[0].widgets.filter(function (w) { return w.id === spec.id; })[0];
+      check("addWidgetToPage grows the page's widget list by one",
+            afterAdd.pages[0].widgets.length === beforeCount + 1);
+      check("the added widget round-trips through exportLayoutJSON with its id/type/channels",
+            !!addedRow && addedRow.type === "bar" && addedRow.channels.length === 1 && addedRow.channels[0] === "vehicle_speed");
+      check("widget size is clamped to the schema's 1-4 x 1-3 range",
+            addedRow && addedRow.size[0] >= 1 && addedRow.size[0] <= 4 && addedRow.size[1] >= 1 && addedRow.size[1] <= 3,
+            addedRow ? JSON.stringify(addedRow.size) : "missing");
+      app.removeWidgetFromPage("page1", spec.id);
+      var afterRemove = app.exportLayoutJSON();
+      check("removeWidgetFromPage shrinks the widget list back down",
+            afterRemove.pages[0].widgets.length === beforeCount);
+
+      // 6. snapshot payload carries the active source
+      return app.setSource("demo").then(function () { return app.takeSnapshot(); }).then(function () {
+        var calls = fetchLog.filter(function (l) { return String(l.url).split("?")[0] === "/api/live/snapshots"; });
+        var last = calls[calls.length - 1];
+        var payload = last ? JSON.parse(last.opts.body) : null;
+        check("snapshot POSTs to /api/live/snapshots", !!last);
+        check("snapshot payload's source field matches the active data source",
+              !!payload && payload.source === "demo", payload ? payload.source : "no payload");
+        return app.source.stop();
+      });
+    })
+    .then(function () {
+      // 7. replay: tag messages become markers/log entries, end stops cleanly
+      return app.setSource("replay", { recording: "rec1", speed: 2 }).then(function () {
+        check("replay source opens an EventSource on the recording's stream URL",
+              !!app.source.es && app.source.es.url.indexOf("/api/live/replay/rec1/stream") === 0,
+              app.source.es ? app.source.es.url : "no EventSource");
+        var beforeLen = app.alarmLog.length;
+        app.source.es.onmessage({ data: JSON.stringify({ type: "tag", t: 12.3, label: "brake test" }) });
+        var lastEntry = app.alarmLog[app.alarmLog.length - 1];
+        check("a replay tag message is logged as a marker",
+              app.alarmLog.length === beforeLen + 1 && lastEntry.text === "brake test" && lastEntry.level === "mark",
+              JSON.stringify(lastEntry));
+        app.source.es.onmessage({ data: JSON.stringify({ type: "end" }) });
+        var endEntry = app.alarmLog[app.alarmLog.length - 1];
+        check("a replay end message is logged", endEntry.text === "replay finished", JSON.stringify(endEntry));
+        return app.source.stop();
+      });
+    })
+    .catch(function (e) {
+      results.failed.push("uncaught exception in test runner: " + (e && e.stack ? e.stack : String(e)));
+    })
+    .then(finish);
+})();
+</script>
+</body>
+</html>

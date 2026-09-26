@@ -31,6 +31,7 @@ from .services.errors import BridgeError  # noqa: E402
 from .web import dashboard_routes  # noqa: E402
 from .web import drivetrain_routes  # noqa: E402
 from .web import labels_routes  # noqa: E402
+from .web import live_dashboard_routes  # noqa: E402
 from .web import routes as web_routes  # noqa: E402
 from .web import service_routes  # noqa: E402
 
@@ -118,6 +119,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(service_routes.router)
     app.include_router(drivetrain_routes.router)
     app.include_router(labels_routes.router)
+    app.include_router(live_dashboard_routes.router)
 
     app.mount("/static",
               StaticFiles(directory=str(web_routes.STATIC_DIR)),

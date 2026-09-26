@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Gauges — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/live/widgets.css">
+<link rel="stylesheet" href="/static/live/dashboard.css">
+
+<h1>Gauges</h1>
+<p class="lede">A customizable live-data dashboard: pick a layout, connect to
+the car (or replay a recording, or run on demo data), and watch it update.
+Everything here is a client of the same <code>/api/live</code> engine the
+MCP tools use -- nothing renders server-side, so it works the same whether
+the car is plugged in or not.</p>
+
+<div id="dd-app" data-vin="{{ vin }}">
+  <div id="dd-demo-banner" class="dd-demo-banner" hidden>DEMO DATA — not from the car</div>
+
+  <div class="dd-toolbar" role="toolbar" aria-label="Dashboard controls">
+    <select id="dd-layout-select" aria-label="Layout"></select>
+    <button id="dd-layout-save" class="btn" type="button">Save</button>
+    <button id="dd-layout-saveas" class="btn" type="button">Save as</button>
+    <button id="dd-layout-export" class="btn" type="button">Export</button>
+    <button id="dd-layout-import" class="btn" type="button">Import</button>
+    <input type="file" id="dd-import-file" accept="application/json" hidden>
+
+    <span class="dd-sep"></span>
+
+    <select id="dd-source-select" aria-label="Data source">
+      <option value="live">Live car</option>
+      <option value="replay">Replay</option>
+      <option value="demo" selected>Demo</option>
+    </select>
+    <select id="dd-replay-recording" aria-label="Recording" hidden></select>
+    <select id="dd-replay-speed" aria-label="Replay speed" hidden></select>
+    <button id="dd-connect" class="btn primary" type="button">Connect</button>
+    <button id="dd-stop" class="btn" type="button" hidden>Stop</button>
+
+    <span class="dd-sep"></span>
+
+    <button id="dd-record" class="btn" type="button">Record</button>
+    <span id="dd-record-elapsed" class="mono small" hidden>00:00</span>
+    <button id="dd-snapshot" class="btn" type="button">Snapshot</button>
+    <button id="dd-pause-all" class="btn" type="button">Pause all</button>
+
+    <select id="dd-window-select" aria-label="Time window">
+      <option value="10">10 s</option>
+      <option value="30">30 s</option>
+      <option value="60" selected>1 min</option>
+      <option value="120">2 min</option>
+      <option value="300">5 min</option>
+      <option value="600">10 min</option>
+    </select>
+
+    <label class="dd-check"><input type="checkbox" id="dd-sound"> Sound</label>
+
+    <span class="dd-sep"></span>
+
+    <button id="dd-edit-toggle" class="btn" type="button">Edit layout</button>
+    <button id="dd-alarm-log-toggle" class="btn" type="button">Alarms</button>
+    <button id="dd-triggers-toggle" class="btn" type="button">Triggers</button>
+    <button id="dd-channels-toggle" class="btn" type="button">Custom channels</button>
+    <a id="dd-hud-link" class="btn" href="/v/{{ vin }}/gauges/hud" target="_blank" rel="noopener">HUD</a>
+  </div>
+
+  <div class="dd-pagetabs" id="dd-pagetabs" role="tablist"></div>
+
+  <div class="dd-grid" id="dd-grid"></div>
+
+  <div class="dd-drawer" id="dd-alarm-drawer" hidden>
+    <button class="btn dd-close" type="button" onclick="document.getElementById('dd-alarm-drawer').hidden=true">Close</button>
+    <h2>Alarms &amp; markers</h2>
+    <div class="dd-log-body"></div>
+  </div>
+
+  <dialog id="dd-add-widget" class="dd-dialog"></dialog>
+  <dialog id="dd-widget-settings" class="dd-dialog"></dialog>
+  <dialog id="dd-triggers-dialog" class="dd-dialog"></dialog>
+  <dialog id="dd-channels-dialog" class="dd-dialog"></dialog>
+</div>
+
+<script src="/static/live/widgets.js"></script>
+<script src="/static/live/dashboard.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.CuoreDashboard) window.CuoreDashboard.init();
+  });
+</script>
+{% endblock %}

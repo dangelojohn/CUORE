@@ -782,7 +782,8 @@
       var range = normalized ? [0, 1] : ch.observedRange();
       var color = ch.color || ("var(" + paletteVar(c) + ")");
       var resolved = color.indexOf("var(") === 0 ? cssVar(this.root, color.slice(4, -1)) : color;
-      this._plotChannel(ctx, ch, view, w, h, range, resolved, normalized);
+      // keep traces clear of the right-axis labels (drawn in the last ~34px)
+      this._plotChannel(ctx, ch, view, rightLabels.length ? w - 34 : w, h, range, resolved, normalized);
       if (this._legendVals[c]) {
         this._legendVals[c].textContent = format(ch.last, this.config.decimals) + (ch.unit ? " " + ch.unit : "");
       }

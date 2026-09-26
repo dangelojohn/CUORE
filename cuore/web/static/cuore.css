@@ -382,3 +382,13 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
+
+/* Phones: the header nav (two link groups + API) is ~660px wide on one line,
+ * which made every page overflow a 400px screen and the browser zoom the
+ * whole page out. Let it wrap under the brand instead. */
+@media (max-width: 760px) {
+  .top { flex-wrap: wrap; row-gap: 6px; }
+  .top nav { margin-left: 0; width: 100%; flex-wrap: wrap; row-gap: 6px; gap: 10px; }
+  .navgroup { flex-wrap: wrap; gap: 10px; }
+  .navgroup.live, .navutil { padding-left: 10px; }
+}
