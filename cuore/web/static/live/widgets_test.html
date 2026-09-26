@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>CuoreWidgets self-test</title>
+<link rel="stylesheet" href="../cuore.css">
+<link rel="stylesheet" href="widgets.css">
+<style>
+  /* Off-screen but laid out (non-zero size) so canvases/ResizeObserver behave
+     exactly as they would on a real page, without being visible. */
+  #hidden-area {
+    position: fixed; left: -99999px; top: 0; width: 4000px;
+  }
+  #hidden-area .slot { width: 320px; height: 220px; display: inline-block; margin: 4px; }
+
+  /* Visible demo layout, screenshotted for a visual check of all 11 types. */
+  #demo {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    padding: 16px; max-width: 1380px;
+  }
+  #demo .cell { height: 230px; }
+  #demo .cell.tall { height: 300px; }
+  #result { white-space: pre-wrap; font-size: 12px; padding: 12px; }
+</style>
+</head>
+<body>
+<h1 style="padding:0 16px;">CuoreWidgets demo</h1>
+<div id="demo"></div>
+<h2 style="padding:0 16px;">Self-test result</h2>
+<pre id="result">running...</pre>
+<div id="hidden-area"></div>
+
+<script src="widgets.js"></script>
+<script>
+(function () {
+  "use strict";
+  var failed = [];
+  var passed = 0;
+  function check(label, cond) {
+    if (cond) { passed++; } else { failed.push(label); }
+  }
+  function approx(a, b, eps) {
+    if (a === null || b === null) return a === b;
+    eps = eps === undefined ? 0.001 : eps;
+    return Math.abs(a - b) <= eps;
+  }
+  function slot() {
+    var d = document.createElement("div");
+    d.className = "slot";
+    document.getElementById("hidden-area").appendChild(d);
+    return d;
+  }
+
+  var CW = window.CuoreWidgets;
+  check("CuoreWidgets is defined", !!CW);
+  check("CuoreWidgets.format is a function", typeof CW.format === "function");
+  check("CuoreWidgets.create is a function", typeof CW.create === "function");
+
+  // ---- format() ----
+  check("format(12.345,2) == '12.35'", CW.format(12.345, 2) === "12.35");
+  check("format(3,0) == '3'", CW.format(3, 0) === "3");
+  check("format(null) is em-dash", CW.format(null) === "—");
+  check("format(undefined) is em-dash", CW.format(undefined) === "—");
+  check("format(NaN) is em-dash", CW.format(NaN) === "—");
+  check("format(1) default decimals", CW.format(1) === "1.0");
+
+  // ---- types registry ----
+  var EXPECTED_TYPES = ["digital", "bar", "dial", "line", "multiline", "stacked",
+    "scope", "scatter", "table", "tiles", "hud"];
+  for (var ti = 0; ti < EXPECTED_TYPES.length; ti++) {
+    var tname = EXPECTED_TYPES[ti];
+    var meta = CW.types[tname];
+    check("types has " + tname, !!meta);
+    if (meta) {
+      check(tname + ".label is string", typeof meta.label === "string" && meta.label.length > 0);
+      check(tname + ".defaultSize is [w,h]", Array.isArray(meta.defaultSize) && meta.defaultSize.length === 2);
+      check(tname + ".minChannels <= maxChannels", meta.minChannels <= meta.maxChannels);
+    }
+  }
+
+  // ---- create() rejects unknown type ----
+  var threw = false;
+  try { CW.create("not-a-type", slot(), {}); } catch (e) { threw = true; }
+  check("create() throws on unknown type", threw);
+
+  // ---- instantiate every type into a hidden container ----
+  var widgets = {};
+  var configs = {
+    digital: { title: "Coolant", channels: [{ id: "c", name: "Coolant", unit: "°C" }],
+      min: -20, max: 130, warn: [105, 115], alarm: [115, 130], decimals: 1 },
+    bar: { title: "Boost", channels: [{ id: "b", name: "Boost", unit: "psi" }],
+      min: -10, max: 25, warn: [18, 21], alarm: [21, 25], orientation: "vertical" },
+    dial: { title: "RPM", channels: [{ id: "r", name: "RPM", unit: "rpm" }],
+      min: 0, max: 7000, warn: [5500, 6300], alarm: [6300, 7000], decimals: 0, smoothing: 0.3 },
+    line: { title: "MAP", channels: [{ id: "m", name: "MAP", unit: "kPa" }],
+      min: 0, max: 250, warn: [180, 210], alarm: [210, 250], windowSec: 30 },
+    multiline: { title: "Trims", channels: [
+        { id: "stft", name: "STFT", unit: "%", color: "var(--ok)" },
+        { id: "ltft", name: "LTFT", unit: "%", color: "var(--sev-cleared)" }
+      ], windowSec: 30 },
+    stacked: { title: "Engine basics", channels: [
+        { id: "rpm2", name: "RPM", unit: "rpm" },
+        { id: "tps", name: "TPS", unit: "%" },
+        { id: "load", name: "Load", unit: "%" }
+      ], windowSec: 30 },
+    scope: { title: "Knock", channels: [{ id: "k", name: "Knock", unit: "V" }],
+      windowSec: 5, trigger: 2.5, min: 0, max: 5 },
+    scatter: { title: "MAP vs RPM", channels: [
+        { id: "rpm3", name: "RPM", unit: "rpm" }, { id: "map3", name: "MAP", unit: "kPa" }
+      ], xChannel: "rpm3", yChannel: "map3", windowSec: 60 },
+    table: { title: "Parameters", channels: [
+        { id: "p1", name: "RPM", unit: "rpm" }, { id: "p2", name: "Coolant", unit: "°C" },
+        { id: "p3", name: "Fuel level", unit: "%" }
+      ], warn: [90, 95], alarm: [95, 999] },
+    tiles: { title: "TPMS", channels: [
+        { id: "fl", name: "FL", unit: "psi" }, { id: "fr", name: "FR", unit: "psi" },
+        { id: "rl", name: "RL", unit: "psi" }, { id: "rr", name: "RR", unit: "psi" }
+      ], min: 20, max: 40, warn: [20, 28], alarm: [0, 20] },
+    hud: { title: "Speed", channels: [{ id: "s", name: "Speed", unit: "km/h" }], decimals: 0 }
+  };
+
+  for (var t in configs) {
+    if (!configs.hasOwnProperty(t)) continue;
+    try {
+      widgets[t] = CW.create(t, slot(), configs[t]);
+      check("create('" + t + "') succeeded", !!widgets[t]);
+    } catch (e) {
+      failed.push("create('" + t + "') threw: " + e.message);
+    }
+  }
+
+  // ---- push synthetic data: normal values, nulls (gaps), out-of-band values ----
+  var t0 = 1000;
+  function pushSeries(widget, chId, n, fn) {
+    for (var i = 0; i < n; i++) widget.push(chId, t0 + i * 0.25, fn(i));
+  }
+
+  // digital: known values so stats() can be checked exactly
+  var digitalVals = [90, 95, 100, null, 118, 80, 102];
+  for (var i = 0; i < digitalVals.length; i++) widgets.digital.push("c", t0 + i, digitalVals[i]);
+
+  // bar: push a peak beyond alarm then settle back down, to check peak marker input
+  [5, 10, 19, 23, 15, 8].forEach(function (v, i) { widgets.bar.push("b", t0 + i, v); });
+
+  pushSeries(widgets.dial, "r", 40, function (i) { return 800 + i * 150 + (i % 5); });
+
+  pushSeries(widgets.line, "m", 60, function (i) { return 100 + 80 * Math.sin(i / 6); });
+
+  pushSeries(widgets.multiline, "stft", 50, function (i) { return Math.sin(i / 8) * 5; });
+  pushSeries(widgets.multiline, "ltft", 50, function (i) { return Math.cos(i / 8) * 3; });
+
+  pushSeries(widgets.stacked, "rpm2", 40, function (i) { return 900 + i * 20; });
+  pushSeries(widgets.stacked, "tps", 40, function (i) { return 10 + (i % 20); });
+  pushSeries(widgets.stacked, "load", 40, function (i) { return 30 + (i % 10); });
+
+  // scope: rising/falling wave to exercise the trigger
+  pushSeries(widgets.scope, "k", 200, function (i) { return 2.5 + 2 * Math.sin(i / 10); });
+
+  // scatter needs its two channels interleaved -- a real dashboard's
+  // round-robin poll loop delivers x/y updates close together in time, not
+  // one channel's whole history before the other's first sample.
+  for (var si = 0; si < 80; si++) {
+    widgets.scatter.push("rpm3", t0 + si * 0.25, 1000 + si * 30);
+    widgets.scatter.push("map3", t0 + si * 0.25, 60 + si * 1.5);
+  }
+
+  pushSeries(widgets.table, "p1", 30, function (i) { return 800 + i * 10; });
+  pushSeries(widgets.table, "p2", 30, function (i) { return 70 + i; });
+  pushSeries(widgets.table, "p3", 30, function (i) { return 96; }); // forces alarm level
+
+  widgets.tiles.push("fl", t0, 32); widgets.tiles.push("fr", t0, 31.5);
+  widgets.tiles.push("rl", t0, 19); widgets.tiles.push("rr", t0, 33); // rl forces alarm (<20)
+
+  pushSeries(widgets.hud, "s", 20, function (i) { return 40 + i; });
+
+  // ---- 2,000 samples fast, including nulls, on the line widget (perf + no throw) ----
+  var perfThrew = false;
+  var perfStart = performance.now();
+  try {
+    for (var k = 0; k < 2000; k++) {
+      widgets.line.push("m", t0 + 60 + k * 0.05, (k % 137 === 0) ? null : 120 + 60 * Math.sin(k / 40));
+    }
+  } catch (e) { perfThrew = true; }
+  var perfMs = performance.now() - perfStart;
+  check("2000 rapid pushes did not throw", !perfThrew);
+  check("2000 rapid pushes completed quickly (<1000ms)", perfMs < 1000);
+
+  // ---- stats() ----
+  var ds = widgets.digital.stats("c");
+  check("digital stats shape", "last" in ds && "min" in ds && "max" in ds && "avg" in ds && "n" in ds);
+  check("digital stats ignores null push", ds.n === 6);
+  check("digital stats.last is last non-null value", ds.last === 102);
+  check("digital stats.min correct", ds.min === 80);
+  check("digital stats.max correct", ds.max === 118);
+  var expectedAvg = (90 + 95 + 100 + 118 + 80 + 102) / 6;
+  check("digital stats.avg correct", approx(ds.avg, expectedAvg));
+
+  check("stats() on unknown channel returns n=0", widgets.digital.stats("nope").n === 0);
+
+  // ---- level() ----
+  check("digital level is ok at last=102", widgets.digital.level("c") === "ok");
+  widgets.digital.push("c", t0 + 100, 120);
+  check("digital level becomes alarm at 120", widgets.digital.level("c") === "alarm");
+  widgets.digital.push("c", t0 + 101, 108);
+  check("digital level becomes warn at 108", widgets.digital.level("c") === "warn");
+  check("table level alarm on fuel channel pinned at 96", widgets.table.level("p3") === "alarm");
+  check("tiles level alarm on RL (19 psi, alarm band 0-20)", widgets.tiles.level("rl") === "alarm");
+  check("tiles level ok on FL (32 psi)", widgets.tiles.level("fl") === "ok");
+
+  // ---- snapshot() ----
+  var snap = widgets.table.snapshot();
+  check("snapshot has one entry per channel", Object.keys(snap).length === 3);
+  check("snapshot entry shape", "value" in snap.p1 && "unit" in snap.p1 && "min" in snap.p1 && "max" in snap.p1 && "avg" in snap.p1);
+  check("snapshot value matches stats", snap.p1.value === widgets.table.stats("p1").last);
+
+  // ---- pause / isPaused ----
+  check("line not paused initially", widgets.line.isPaused() === false);
+  widgets.line.pause(true);
+  check("line reports paused", widgets.line.isPaused() === true);
+  widgets.line.pause(false);
+  check("line reports resumed", widgets.line.isPaused() === false);
+
+  // ---- setWindow ----
+  var setWindowThrew = false;
+  try { widgets.line.setWindow(15); widgets.stacked.setWindow(20); } catch (e) { setWindowThrew = true; }
+  check("setWindow() does not throw", !setWindowThrew);
+  // widget must still accept pushes and update stats after a window change
+  widgets.line.push("m", t0 + 9999, 77);
+  check("push after setWindow still updates stats", widgets.line.stats("m").last === 77);
+
+  // ---- resetStats ----
+  widgets.digital.resetStats();
+  var dsAfterReset = widgets.digital.stats("c");
+  check("resetStats clears n/min/max but keeps last", dsAfterReset.n === 0 && dsAfterReset.min === null && dsAfterReset.max === null);
+  check("resetStats keeps last known value", dsAfterReset.last === 108);
+
+  // ---- setConfig ----
+  var setConfigThrew = false;
+  try { widgets.bar.setConfig({ warn: [15, 18], alarm: [18, 25] }); } catch (e) { setConfigThrew = true; }
+  check("setConfig() does not throw", !setConfigThrew);
+
+  // ---- destroy ----
+  var hiddenArea = document.getElementById("hidden-area");
+  var beforeCount = hiddenArea.querySelectorAll(".cw").length;
+  widgets.hud.destroy();
+  var afterCount = hiddenArea.querySelectorAll(".cw").length;
+  check("destroy() removes the widget's DOM", afterCount === beforeCount - 1);
+  var destroyPushThrew = false;
+  try { widgets.hud.push("s", t0 + 1, 10); } catch (e) { destroyPushThrew = true; }
+  check("push() after destroy() does not throw", !destroyPushThrew);
+
+  // ---- build the visible demo layout (all 11 types, for the screenshot) ----
+  var demo = document.getElementById("demo");
+  function demoCell(tall) {
+    var c = document.createElement("div");
+    c.className = "cell" + (tall ? " tall" : "");
+    demo.appendChild(c);
+    return c;
+  }
+  var demoWidgets = {};
+  demoWidgets.digital = CW.create("digital", demoCell(), configs.digital);
+  demoWidgets.bar = CW.create("bar", demoCell(), configs.bar);
+  demoWidgets.dial = CW.create("dial", demoCell(), configs.dial);
+  demoWidgets.line = CW.create("line", demoCell(true), configs.line);
+  demoWidgets.multiline = CW.create("multiline", demoCell(true), configs.multiline);
+  demoWidgets.stacked = CW.create("stacked", demoCell(true), configs.stacked);
+  demoWidgets.scope = CW.create("scope", demoCell(true), configs.scope);
+  demoWidgets.scatter = CW.create("scatter", demoCell(true), configs.scatter);
+  demoWidgets.table = CW.create("table", demoCell(true), configs.table);
+  demoWidgets.tiles = CW.create("tiles", demoCell(), configs.tiles);
+  demoWidgets.hud = CW.create("hud", demoCell(), configs.hud);
+
+  function feedDemo(w, ch, n, fn) {
+    for (var i = 0; i < n; i++) w.push(ch, t0 + i * 0.3, fn(i));
+  }
+  feedDemo(demoWidgets.digital, "c", 30, function (i) { return 92 + 20 * Math.sin(i / 5); });
+  feedDemo(demoWidgets.bar, "b", 30, function (i) { return 5 + 15 * Math.abs(Math.sin(i / 6)); });
+  feedDemo(demoWidgets.dial, "r", 60, function (i) { return 3000 + 3000 * Math.sin(i / 15); });
+  feedDemo(demoWidgets.line, "m", 200, function (i) { return 100 + 90 * Math.sin(i / 12); });
+  feedDemo(demoWidgets.multiline, "stft", 200, function (i) { return 6 * Math.sin(i / 14); });
+  feedDemo(demoWidgets.multiline, "ltft", 200, function (i) { return 4 * Math.cos(i / 20); });
+  feedDemo(demoWidgets.stacked, "rpm2", 200, function (i) { return 1000 + 2500 * Math.abs(Math.sin(i / 25)); });
+  feedDemo(demoWidgets.stacked, "tps", 200, function (i) { return 20 + 20 * Math.sin(i / 10); });
+  feedDemo(demoWidgets.stacked, "load", 200, function (i) { return 40 + 30 * Math.cos(i / 18); });
+  feedDemo(demoWidgets.scope, "k", 400, function (i) { return 2.5 + 2.2 * Math.sin(i / 8); });
+  for (var di = 0; di < 150; di++) {
+    demoWidgets.scatter.push("rpm3", t0 + di * 0.3, 900 + di * 25 + 200 * Math.random());
+    demoWidgets.scatter.push("map3", t0 + di * 0.3, 55 + di * 1.1 + 15 * Math.random());
+  }
+  feedDemo(demoWidgets.table, "p1", 40, function (i) { return 900 + i * 15; });
+  feedDemo(demoWidgets.table, "p2", 40, function (i) { return 85 + Math.sin(i / 4) * 3; });
+  feedDemo(demoWidgets.table, "p3", 40, function (i) { return 60 - i * 0.3; });
+  demoWidgets.tiles.push("fl", t0, 32); demoWidgets.tiles.push("fr", t0, 32.5);
+  demoWidgets.tiles.push("rl", t0, 30); demoWidgets.tiles.push("rr", t0, 18);
+  feedDemo(demoWidgets.hud, "s", 20, function (i) { return 100 + i; });
+
+  document.getElementById("result").textContent = JSON.stringify({ passed: passed, failed: failed }, null, 2);
+})();
+</script>
+</body>
+</html>
