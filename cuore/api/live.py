@@ -140,6 +140,62 @@ def live_module_repair(code: str, codes: str = Query(..., description="P0455,P04
                              read=read, confirm=confirm)
 
 
+@router.get("/live/obd/mode06", summary="OBD Mode $06 on-board test results (EVAP summarised)")
+def live_obd_mode06(mids: str = Query(default="", description="e.g. 3C,3B; empty = discover")
+                    ) -> dict[str, Any]:
+    return ops.obd_mode06([m.strip() for m in mids.split(",") if m.strip()] or None)
+
+
+@router.get("/live/module/{code}/dtc/{dtc}", summary="One code's status, snapshots and counters")
+def live_module_dtc_detail(code: str, dtc: str, vin: str = Query(default=""),
+                           confirm: bool = Query(default=False)) -> dict[str, Any]:
+    return ops.module_dtc_detail(code, dtc, vin=vin, confirm=confirm)
+
+
+@router.get("/live/module/{code}/all", summary="Identity plus every catalogued identifier, decoded")
+def live_module_read_all(code: str, vin: str = Query(default=""),
+                         include_unverified: bool = Query(default=True),
+                         confirm: bool = Query(default=False)) -> dict[str, Any]:
+    return ops.module_read_all(code, vin=vin, include_unverified=include_unverified,
+                               confirm=confirm)
+
+
+@router.post("/live/module/{code}/discover-dids", summary="Read-only sweep for unknown identifiers")
+def live_module_discover_dids(code: str, vin: str = Body(default="", embed=True),
+                              ranges: Optional[list[str]] = Body(default=None, embed=True),
+                              max_dids: int = Body(default=2000, embed=True),
+                              confirm: bool = Body(default=False, embed=True)) -> dict[str, Any]:
+    return ops.module_discover_dids(code, vin=vin, ranges=ranges, max_dids=max_dids,
+                                    confirm=confirm)
+
+
+@router.post("/live/learn/capture", summary="Passive capture while a dealer tool reads (learning)")
+def live_learn_capture(bus: str = Body(default="can_c", embed=True),
+                       seconds: float = Body(default=20.0, embed=True)) -> dict[str, Any]:
+    return ops.learn_capture(bus, seconds=seconds)
+
+
+@router.post("/live/learn/correlate", summary="Rank identifiers against values seen in wiTECH")
+def live_learn_correlate(capture: str = Body(..., embed=True),
+                         marks: list[dict[str, Any]] = Body(..., embed=True)) -> dict[str, Any]:
+    return ops.learn_correlate(capture, marks)
+
+
+@router.post("/live/learn/accept", summary="Save a learned identifier mapping (cuore state only)")
+def live_learn_accept(vin: str = Body(..., embed=True), module: str = Body(..., embed=True),
+                      did: str = Body(..., embed=True), name: str = Body(..., embed=True),
+                      field: dict[str, Any] = Body(..., embed=True),
+                      scale: Optional[float] = Body(default=None, embed=True),
+                      offset: Optional[float] = Body(default=None, embed=True),
+                      unit: Optional[str] = Body(default=None, embed=True)) -> dict[str, Any]:
+    return ops.learn_accept(vin, module, did, name, field, scale=scale, offset=offset, unit=unit)
+
+
+@router.get("/live/learned", summary="Identifier mappings learned from dealer-tool captures")
+def live_learned(vin: str = Query(default="")) -> dict[str, Any]:
+    return ops.learned_dids(vin)
+
+
 @router.get("/live/scan", summary="UDS DTC sweep over every confirmed module on a bus")
 def live_scan(bus: str = Query(default="can_c"), vin: str = Query(default=""),
               mask: int = Query(default=0xFF), confirm: bool = Query(default=False),

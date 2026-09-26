@@ -8,6 +8,8 @@ are :class:`LiveError` subclasses; the surfaces decide how to render them.
 from __future__ import annotations
 
 import re
+from datetime import datetime
+from pathlib import Path
 from typing import Any, Optional
 
 import serial.tools.list_ports
@@ -18,7 +20,7 @@ from . import uds as uds_mod
 from .addressing import MODULES, by_code, on_bus
 from .buses import BUSES, CAN_C, Bus, routes_for
 from .config import mes_folders, mes_interfaces, mes_registry, resolve_port
-from .errors import BadCommand
+from .errors import BadCommand, LiveError, Refused
 from .framing import adapter_error, no_data
 from .obd import (decode_obd_dtcs, decode_pid, decode_readiness, decode_supported_pids,
                   dtc_from_two_bytes, evap_verdict, resolve_pid, PIDS_BY_HEX)
@@ -566,6 +568,151 @@ def repair_status(codes: list[str], module: str = "ECM", vin: str = "",
     return out
 
 
+# --- deeper reads: Mode $06, DTC detail -----------------------------------------
+
+def obd_mode06(mids: Optional[list[str]] = None, **kw: Any) -> dict[str, Any]:
+    """OBD Mode $06 on-board test results, with the EVAP tests summarised."""
+    from . import mode06
+    with _obd_session("read_mode06", **kw) as sess:
+        out = mode06.read_mode06(sess, mids=[m.upper() for m in mids] if mids else None)
+        out["evap_summary"] = mode06.evap_summary(out)
+        return _observe(sess, "mode06", out)
+
+
+def module_dtc_detail(code: str, dtc: str, vin: str = "", confirm: bool = False,
+                      **kw: Any) -> dict[str, Any]:
+    """Status, snapshot records and extended data (counters) for one code on one module."""
+    from . import dtc_detail
+    ecu = uds_mod.resolve_module(code, vin or None)
+    with link().session(f"dtc_detail {ecu.code} {dtc}", bus=_bus(ecu.bus_key), confirm=confirm,
+                        **kw) as sess:
+        return _observe(sess, "dtc_detail", dtc_detail.dtc_detail(sess, ecu, dtc), vin)
+
+
+def module_dtc_count(code: str, vin: str = "", mask: int = 0xFF, confirm: bool = False,
+                     **kw: Any) -> dict[str, Any]:
+    from . import dtc_detail
+    ecu = uds_mod.resolve_module(code, vin or None)
+    with link().session(f"dtc_count {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
+                        **kw) as sess:
+        return _stamp(sess, dtc_detail.dtc_count(sess, ecu, mask))
+
+
+def module_read_all(code: str, vin: str = "", include_unverified: bool = True,
+                    confirm: bool = False, **kw: Any) -> dict[str, Any]:
+    """Identity plus every catalogued identifier for one module, decoded where known."""
+    from . import readall
+    ecu = uds_mod.resolve_module(code, vin or None)
+    with link().session(f"read_all {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
+                        **kw) as sess:
+        return _observe(sess, "read_all", readall.read_all(sess, ecu, include_unverified), vin)
+
+
+def module_discover_dids(code: str, vin: str = "", ranges: Optional[list[str]] = None,
+                         max_dids: int = 2000, confirm: bool = False, **kw: Any
+                         ) -> dict[str, Any]:
+    """Read-only 0x22 sweep for identifiers the catalogue does not know.
+
+    ``ranges`` like ["F180-F1FF", "1000-10FF"]; default is the module's conservative set.
+    """
+    from . import readall
+    ecu = uds_mod.resolve_module(code, vin or None)
+    rng = None
+    if ranges:
+        rng = []
+        for r in ranges:
+            a, _, b = r.partition("-")
+            rng.append((int(a, 16), int(b or a, 16)))
+    with link().session(f"discover_dids {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
+                        **kw) as sess:
+        args = {"max_dids": max_dids}
+        if rng is not None:
+            args["ranges"] = rng
+        return _observe(sess, "did_discovery", readall.discover_dids(sess, ecu, **args), vin)
+
+
+# --- clearing (the one write): per module, evidence first --------------------------
+
+def clear_module_dtcs(code: str, consent: str, vin: str = "", confirm: bool = False,
+                      group: str = "FFFFFF", override_speed_check: bool = False,
+                      **kw: Any) -> dict[str, Any]:
+    """Clear one module's DTCs after capturing evidence. Not exposed over HTTP.
+
+    Refuses unless ``consent`` is exactly ``CLEAR <MODULE>``, the vehicle reads
+    stationary (or ``override_speed_check`` is set because speed cannot be read),
+    and, on CAN-CH, ``confirm`` is given.
+    """
+    from . import clear as clear_mod
+    ecu = uds_mod.resolve_module(code, vin or None)
+    clear_mod.assert_clear_allowed(ecu.code, consent, group)   # fail fast, before any traffic
+    speed = None
+    try:
+        sp = obd_pid("0D", **kw)
+        if sp.get("value") is not None:
+            speed = float(sp["value"])
+    except LiveError:
+        speed = None
+    if speed is None and not override_speed_check:
+        raise Refused("could not read vehicle speed; refusing to clear. Pass "
+                      "override_speed_check=True only if the car is stationary.")
+    if speed:
+        raise Refused(f"vehicle speed reads {speed:g} km/h; refusing to clear while moving")
+    with link().session(f"clear {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
+                        **kw) as sess:
+        out = clear_mod.clear_module(sess, ecu, consent=consent, vin=vin, group=group,
+                                     evidence_extra={"vehicle_speed_kmh": speed})
+        return _stamp(sess, out)
+
+
+# --- passive learning from a dealer tool ---------------------------------------------
+
+def learn_capture(bus: str = "can_c", seconds: float = 20.0, max_frames: int = 20000
+                  ) -> dict[str, Any]:
+    """Passive capture while wiTECH reads; saves frames and the UDS transactions found."""
+    import json as _json
+    from . import learn
+    from .config import state_dir
+    cap = capture(bus, seconds=seconds, max_frames=max_frames, include_frames=True)
+    frames = cap.get("frames") or []
+    trans = learn.uds_transactions(frames)
+    d = state_dir() / "captures"
+    d.mkdir(parents=True, exist_ok=True)
+    name = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}_{bus}.json"
+    (d / name).write_text(_json.dumps({"bus": bus, "frames": frames, "transactions": trans},
+                                      default=str), encoding="utf-8")
+    dids = sorted({(t.get("target"), t.get("did")) for t in trans if t.get("did")})
+    return {"capture": name, "frames": len(frames), "transactions": len(trans),
+            "dids_seen": [{"target": a, "did": b} for a, b in dids],
+            "error": cap.get("error")}
+
+
+def learn_correlate(capture_name: str, marks: list[dict[str, Any]]) -> dict[str, Any]:
+    """Rank identifiers whose values track what the technician saw in wiTECH."""
+    import json as _json
+    from . import learn
+    from .config import state_dir
+    p = state_dir() / "captures" / Path(capture_name).name
+    if not p.exists():
+        raise BadCommand(f"no capture named {capture_name!r}")
+    data = _json.loads(p.read_text(encoding="utf-8"))
+    series = learn.did_series(data.get("transactions") or [])
+    ranked = learn.correlate(series, marks)
+    return {"capture": p.name, "candidates": ranked[:15]}
+
+
+def learn_accept(vin: str, module_code: str, did: str, name: str, field: dict[str, Any],
+                 scale: Optional[float] = None, offset: Optional[float] = None,
+                 unit: Optional[str] = None, evidence: Optional[Any] = None) -> dict[str, Any]:
+    from . import learned
+    return learned.accept(vin, module_code, did, name, field, scale=scale, offset=offset,
+                          unit=unit, evidence=evidence)
+
+
+def learned_dids(vin: str = "") -> dict[str, Any]:
+    from . import learned
+    return {"learned": learned.learned(vin or None)}
+
+
 # --- whole-vehicle coverage ---------------------------------------------------
 
 def coverage_status() -> dict[str, Any]:
@@ -607,4 +754,7 @@ __all__ = ["observations", "status", "ports", "mes_settings", "set_cable", "cabl
            "readiness_in", "obd_readiness", "module_dtcs", "module_identity", "module_did",
            "scan_modules", "discover", "coverage_status", "coverage_start", "coverage_run",
            "coverage_skip", "coverage_report", "coverage_reset", "repair_status",
+           "obd_mode06", "module_dtc_detail", "module_dtc_count", "clear_module_dtcs",
+           "module_read_all", "module_discover_dids",
+           "learn_capture", "learn_correlate", "learn_accept", "learned_dids",
            "AdapterLink", "link", "DEFAULT_TIMEOUT"]

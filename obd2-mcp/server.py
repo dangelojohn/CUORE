@@ -349,6 +349,89 @@ def verify_repair(codes: str, module: str = "ECM", vin: str = "", read: bool = T
                        "confirm": confirm})
 
 
+@mcp.tool()
+def read_mode06(mids: str = "") -> str:
+    """OBD Mode $06: the ECM's measured on-board test results against its own limits.
+
+    Includes the EVAP leak tests (MIDs 39-3D) summarised as value vs limit, pass/fail.
+    mids="3C,3B" reads just those; empty discovers what the ECM supports.
+    """
+    mid_list = [m.strip() for m in mids.split(",") if m.strip()]
+    return _via("GET", "/live/obd/mode06", lambda: ops.obd_mode06(mid_list or None),
+                query={"mids": ",".join(mid_list)})
+
+
+@mcp.tool()
+def read_dtc_detail(code: str, dtc: str, vin: str = "", confirm: bool = False) -> str:
+    """One code on one module: status bits, snapshot records and extended data (counters)."""
+    return _via("GET", f"/live/module/{code}/dtc/{dtc}",
+                lambda: ops.module_dtc_detail(code, dtc, vin=vin, confirm=confirm),
+                query={"vin": vin, "confirm": confirm})
+
+
+@mcp.tool()
+def read_all_module(code: str, vin: str = "", include_unverified: bool = True,
+                    confirm: bool = False) -> str:
+    """Identity plus every catalogued identifier for one module (ECM, TCM, BCM, IPC, RFHUB...),
+    decoded with its formula where known; confidence shown per item."""
+    return _via("GET", f"/live/module/{code}/all",
+                lambda: ops.module_read_all(code, vin=vin, include_unverified=include_unverified,
+                                            confirm=confirm),
+                query={"vin": vin, "include_unverified": include_unverified, "confirm": confirm},
+                timeout=300)
+
+
+@mcp.tool()
+def discover_module_dids(code: str, vin: str = "", ranges: str = "", max_dids: int = 2000,
+                         confirm: bool = False) -> str:
+    """Read-only 0x22 sweep for identifiers not in the catalogue. ranges "F180-F1FF,1000-10FF"."""
+    rng = [r.strip() for r in ranges.split(",") if r.strip()] or None
+    return _via("POST", f"/live/module/{code}/discover-dids",
+                lambda: ops.module_discover_dids(code, vin=vin, ranges=rng, max_dids=max_dids,
+                                                 confirm=confirm),
+                body={"vin": vin, "ranges": rng, "max_dids": max_dids, "confirm": confirm},
+                timeout=900)
+
+
+@mcp.tool()
+def learn_capture(bus: str = "can_c", seconds: float = 20.0) -> str:
+    """Passive capture while wiTECH reads live data (splitter cable); lists identifiers seen."""
+    return _via("POST", "/live/learn/capture", lambda: ops.learn_capture(bus, seconds=seconds),
+                body={"bus": bus, "seconds": seconds}, timeout=seconds + 90)
+
+
+@mcp.tool()
+def learn_correlate(capture: str, marks_json: str) -> str:
+    """Rank identifiers against values noted in wiTECH. marks_json: [{"t":12.4,"label":"EVAP
+    switch","value":"Closed"}, ...] with t in seconds from the capture start."""
+    marks = json.loads(marks_json)
+    return _via("POST", "/live/learn/correlate", lambda: ops.learn_correlate(capture, marks),
+                body={"capture": capture, "marks": marks})
+
+
+@mcp.tool()
+def learned_dids(vin: str = "") -> str:
+    """Identifier mappings learned from dealer-tool captures."""
+    return _via("GET", "/live/learned", lambda: ops.learned_dids(vin), query={"vin": vin})
+
+
+@mcp.tool()
+def clear_module_dtcs(code: str, consent: str, vin: str = "", confirm: bool = False,
+                      override_speed_check: bool = False) -> str:
+    """Clear ONE module's DTCs (UDS 0x14) after saving every code, snapshot and counter.
+
+    DESTRUCTIVE to evidence. consent must be exactly "CLEAR <MODULE>" (e.g. "CLEAR ECM").
+    Refuses while moving; confirm=True required on CAN-CH. Reads back and flags codes that
+    return immediately (live faults). A clear is not a repair: use verify_repair later.
+    In-process by design (no write route on HTTP); adopts cuore's cable declaration first.
+    """
+    def body() -> Any:
+        _sync_cable()
+        return ops.clear_module_dtcs(code, consent, vin=vin, confirm=confirm,
+                                     override_speed_check=override_speed_check)
+    return _json(body)
+
+
 # --- the two MCP-only surfaces ------------------------------------------------
 
 @mcp.tool()
