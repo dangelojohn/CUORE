@@ -55,8 +55,19 @@ for r in service_specs.TORQUES:
                  src_short(r.get("source"))))
 for r in drivetrain_specs.TORQUES:
     r = r if isinstance(r, dict) else r.__dict__
-    val = f"{r.get('value', '')} {clean(r.get('unit', ''))}".strip()
+    nm, lbft, rng = r.get("value_nm"), r.get("value_lbft"), r.get("value_range")
+    if rng:  # a published range, e.g. 22-27 Nm
+        lo, hi = rng
+        val = f"{lo:g}-{hi:g} {clean(r.get('unit') or 'Nm')}"
+    elif nm is not None:
+        val = f"{nm:g} Nm ({lbft:g} lb-ft)" if lbft is not None else f"{nm:g} Nm"
+    else:
+        val = "UNKNOWN"
+    if r.get("angle"):
+        val += f" {r['angle']}"
     note = r.get("notes") or ""
+    if val == "UNKNOWN" and r.get("confidence") != "UNKNOWN":
+        note = "Value not sourced; the confidence grade is for the other facts in this row. " + note
     if r.get("single_use"):
         note = "SINGLE-USE bolt. " + note
     rows.append((str(r.get("section", "")).replace("_", " "), r.get("component", ""), val, note,
@@ -85,7 +96,7 @@ def half(part):
             st.append(("BACKGROUND", (0, len(d) - 1), (-1, len(d) - 1), SHADE))
             last = sec
         d.append([Paragraph(clean(comp), cell), Paragraph("<b>" + clean(val) + "</b>", cell),
-                  Paragraph(clean({"SINGLE-SOURCE": "SINGLE", "CORROBORATED": "CORROB."}.get(conf, conf)), cell),
+                  Paragraph(clean({"SINGLE-SOURCE": "SINGLE", "CORROBORATED": "CORROB.", "CONFIRMED": "CONFIRM."}.get(conf, conf)), cell),
                   Paragraph(clean(short(note)), cell)])
         if conf in CONF_BG:
             st.append(("BACKGROUND", (2, len(d) - 1), (2, len(d) - 1), CONF_BG[conf]))
@@ -106,7 +117,8 @@ tbl.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0
                          ("RIGHTPADDING", (0, 0), (-1, -1), 4)]))
 
 warn = Table([[Paragraph(
-    "<b>DRAFT - not yet independently fact-checked.</b> Values come from cuore's spec tables "
+    "<b>Fact-checked 2026-09-26</b> (fabricated suspension values withdrawn; propshaft figure from a 1970s manual "
+    "rejected). Values come from cuore's spec tables "
     "(owner's manual, ZF literature, forums and parts sources). Use the confidence column: only "
     "CONFIRMED is manufacturer data. UNKNOWN means use the FCA service manual (TechAuthority). "
     "Replace single-use bolts. Full sources: cuore torque page and docs/reference/*_SPECS.md.", cell)]],
