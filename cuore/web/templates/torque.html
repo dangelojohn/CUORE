@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Torque library — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Torque library</h1>
+<p class="lede">Every fastener this toolchain has researched a torque spec for,
+across oil service, brakes, wheels, ignition, EVAP, battery, suspension, and
+driveline (ZF 8HP / transfer case / rear differential). UNKNOWN rows stay
+visible on purpose — a missing spec should never look like "there is nothing
+to check here"; it means go to the service manual (TechAuthority).</p>
+
+<div class="panel">
+  <form method="get" action="/v/{{ vin }}/torque">
+    <div style="display:grid;gap:6px;grid-template-columns:2fr 1fr auto">
+      <input type="search" name="q" placeholder="Search (component, notes)" value="{{ q }}">
+      <select name="category">
+        <option value="">All categories</option>
+        {% for c in result.categories %}
+          <option value="{{ c }}" {{ "selected" if c == category }}>{{ result.category_labels.get(c, c) }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn primary" type="submit">Search</button>
+    </div>
+  </form>
+</div>
+
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>Fastener</th><th>Categories</th><th>Spec</th><th>Confidence</th><th>Notes</th><th>Source</th></tr></thead>
+    <tbody>
+    {% for t in result.torques %}
+      <tr>
+        <td>{{ t.component }}{% if t.single_use %} <span class="chip returned">single-use</span>{% endif %}
+          {% if t.platform_note %}<div class="small muted">{{ t.platform_note }}</div>{% endif %}</td>
+        <td class="small">{% for c in t.categories %}<span class="chip plain">{{ result.category_labels.get(c, c) }}</span> {% endfor %}</td>
+        <td class="mono">{{ t.display }}{% if t.angle %} {{ t.angle }}{% endif %}</td>
+        <td><span class="chip {{ 'ok' if t.confidence in ('CONFIRMED','CORROBORATED') else ('plain' if t.confidence == 'UNKNOWN' else 'chronic') }}">{{ t.confidence }}</span></td>
+        <td class="small muted">{{ t.notes }}</td>
+        <td class="small">{% if t.source %}<a href="{{ t.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="muted">No matching fasteners.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<p class="small muted">{{ result.count }} fastener(s) shown.
+CONFIRMED = manufacturer document. CORROBORATED = two independent
+non-manufacturer sources agree. SINGLE-SOURCE = one source found.
+UNKNOWN = nothing credible found — use the service manual (TechAuthority);
+never a guess.</p>
+
+{% endblock %}

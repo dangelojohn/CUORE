@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Service — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>General service</h1>
+<p class="lede">Brakes, tyres, filters, fluids, parts replaced, labour notes —
+anything that isn't the dedicated <a href="/v/{{ vin }}/oil-change">oil change</a>,
+<a href="/v/{{ vin }}/brakes-tires">brakes/wheels/tyres</a>, or
+<a href="/v/{{ vin }}/maintenance">routine maintenance</a> pages. Pick a
+job category to load its torque checklist below.</p>
+
+{% if error %}
+  <div class="note alert"><span class="lab">Not recorded</span>{{ error }}</div>
+{% endif %}
+{% if saved %}
+  <div class="note good"><span class="lab">Recorded</span>Service entry saved to the ledger.</div>
+{% endif %}
+
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>When</th><th>Odometer</th><th>Category</th><th>Work done</th><th>Technician</th></tr></thead>
+    <tbody>
+    {% for r in records|reverse %}
+      {% set d = r.data %}
+      <tr>
+        <td class="mono small muted">{{ d.date }}
+          {% if r.amendments %}<span class="chip plain">amended x{{ r.amendments|length }}</span>{% endif %}</td>
+        <td class="n">{{ "{:,}".format(d.odometer_km|round|int) }} km</td>
+        <td><span class="chip plain">{{ category_labels.get(d.category, d.category) }}</span></td>
+        <td class="small">{{ d.work_done }}
+          {% if d.torque_checklist.flags %}<br><span class="chip chronic">torque flags</span>
+          {{ d.torque_checklist.flags|join("; ") }}{% endif %}</td>
+        <td class="small">{{ d.technician }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">No general service recorded yet for this VIN.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Choose a job category</h2>
+  <form method="get" action="/v/{{ vin }}/service">
+    <select name="category" onchange="this.form.submit()">
+      <option value="">— select a category to load its torque checklist —</option>
+      {% for c in categories %}
+        <option value="{{ c }}" {{ "selected" if c == selected_category }}>{{ category_labels.get(c, c) }}</option>
+      {% endfor %}
+    </select>
+    <noscript><p><button class="btn" type="submit">Load checklist</button></p></noscript>
+  </form>
+</div>
+
+{% if selected_category %}
+<div class="panel">
+  <h2>Torque checklist — {{ category_labels.get(selected_category, selected_category) }}</h2>
+  {% if checklist_rows %}
+  <div class="tw">
+  <table>
+    <thead><tr><th>Fastener</th><th>Spec</th><th>Confidence</th><th>Notes</th></tr></thead>
+    <tbody>
+    {% for t in checklist_rows %}
+      <tr>
+        <td>{{ t.component }}{% if t.single_use %} <span class="chip returned">single-use</span>{% endif %}</td>
+        <td class="mono">{{ t.display }}{% if t.angle %} {{ t.angle }}{% endif %}</td>
+        <td><span class="chip {{ 'ok' if t.confidence in ('CONFIRMED','CORROBORATED') else ('plain' if t.confidence == 'UNKNOWN' else 'chronic') }}">{{ t.confidence }}</span></td>
+        <td class="small muted">{{ t.notes }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="muted">No fasteners tagged with this category.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2>Record a service entry</h2>
+  <form method="post" action="/v/{{ vin }}/service">
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <div class="field"><label for="date">Date</label>
+        <input id="date" type="date" name="date" required></div>
+      <div class="field"><label for="odometer_km">Odometer (km)</label>
+        <input id="odometer_km" type="number" step="1" name="odometer_km"
+               value="{{ current_odometer or '' }}" required></div>
+      <div class="field"><label for="category">Category</label>
+        <select id="category" name="category" required>
+          <option value="">—</option>
+          {% for c in categories %}
+            <option value="{{ c }}" {{ "selected" if c == selected_category }}>{{ category_labels.get(c, c) }}</option>
+          {% endfor %}
+        </select></div>
+      <div class="field"><label for="technician">Technician</label>
+        <input id="technician" type="text" name="technician" required></div>
+    </div>
+
+    <div class="field"><label for="work_done">Work done</label>
+      <textarea id="work_done" name="work_done" required></textarea></div>
+
+    <h3>Parts replaced</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:2fr 1fr 1fr">
+      <input type="text" name="part_name" placeholder="Part name">
+      <input type="text" name="part_no" placeholder="Part number">
+      <input type="number" step="1" name="part_qty" placeholder="Qty" value="1">
+    </div>
+    <p class="small muted">One row supported per submission from this form; use the JSON API for multiple parts in one record.</p>
+
+    <div class="field"><label for="fluids">Fluids (one per line)</label>
+      <textarea id="fluids" name="fluids"></textarea></div>
+
+    {% if checklist_rows %}
+    <h3>Torques applied — {{ category_labels.get(selected_category, selected_category) }}</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    {% for t in checklist_rows %}
+      <div class="field"><label for="torque_{{ t.key }}">{{ t.component }} ({{ t.unit or 'Nm' }})</label>
+        <input id="torque_{{ t.key }}" type="number" step="0.1" name="torque_{{ t.key }}"
+               placeholder="{{ t.display }}"></div>
+    {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="field"><label for="discoveries">Discoveries (one per line)</label>
+      <textarea id="discoveries" name="discoveries"></textarea></div>
+    <div class="field"><label for="considerations_next">Considerations for next time (one per line)</label>
+      <textarea id="considerations_next" name="considerations_next"></textarea></div>
+
+    <p><button class="btn primary" type="submit">Record service</button></p>
+  </form>
+</div>
+
+{% endblock %}

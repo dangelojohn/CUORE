@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+{% block title %}Routine maintenance — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+{% macro conf_chip(c) -%}
+<span class="chip {{ 'ok' if c in ('CONFIRMED','CORROBORATED') else ('plain' if c == 'UNKNOWN' else 'chronic') }}">{{ c }}</span>
+{%- endmacro %}
+
+{% macro status_chip(s) -%}
+{% if s == 'overdue' %}<span class="chip returned">overdue</span>
+{% elif s == 'due_soon' %}<span class="chip chronic">due soon</span>
+{% elif s == 'never_recorded' %}<span class="chip plain">never recorded</span>
+{% elif s == 'interval_unknown' %}<span class="chip plain">interval unknown</span>
+{% else %}<span class="chip ok">ok</span>{% endif %}
+{%- endmacro %}
+
+<h1>Routine maintenance</h1>
+<p class="lede">Air/cabin/fuel filters, spark plugs, ignition coils, coolant, brake fluid,
+drive belt, 12V battery, wipers, PCV, throttle body, boost hoses, washer fluid, A/C, EPS,
+and hood/door lubrication — everything that isn't the dedicated
+<a href="/v/{{ vin }}/oil-change">oil change</a> or
+<a href="/v/{{ vin }}/brakes-tires">brakes/wheels/tyres</a> pages. Any fastener named on an
+item below is also in the full <a href="/v/{{ vin }}/torque">torque library</a>. A value
+shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).</p>
+
+{% if error %}
+  <div class="note alert"><span class="lab">Not recorded</span>{{ error }}</div>
+{% endif %}
+{% if saved %}
+  <div class="note good"><span class="lab">Recorded</span>Maintenance visit saved to the ledger.</div>
+{% endif %}
+
+<div class="panel tight">
+  <h2 style="margin:12px 12px 0">Due status</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Item</th><th>Last done</th><th>Next due</th><th>Status</th><th>Confidence</th></tr></thead>
+    <tbody>
+    {% for i in checklist.due['items'] %}
+      <tr>
+        <td class="k">{{ i.label }}</td>
+        <td class="small">
+          {% if i.last_date %}{{ i.last_date }}{% if i.last_odometer_km is not none %} at {{ "{:,}".format(i.last_odometer_km|round|int) }} km{% endif %}
+          {% else %}<span class="muted">never</span>{% endif %}
+        </td>
+        <td class="small">
+          {% if i.next_due_odometer_km %}{{ "{:,}".format(i.next_due_odometer_km|round|int) }} km{% endif %}
+          {% if i.next_due_odometer_km and i.next_due_date %} / {% endif %}
+          {% if i.next_due_date %}{{ i.next_due_date }}{% endif %}
+          {% if not i.next_due_odometer_km and not i.next_due_date %}<span class="muted">UNKNOWN — {{ i.interval_note or "use the service manual (TechAuthority)" }}</span>{% endif %}
+        </td>
+        <td>{{ status_chip(i.status) }}</td>
+        <td>{{ conf_chip(i.interval_confidence) }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% if checklist.carried_forward_next_time_notes %}
+<div class="panel">
+  <h2>Carried forward from last time</h2>
+  <ul>
+  {% for c in checklist.carried_forward_next_time_notes %}
+    <li>{{ c }}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% for category, items in checklist.items_by_category.items() %}
+{% if items %}
+<div class="panel tight">
+  <h2 style="margin:12px 12px 0">{{ checklist.category_labels.get(category, category|replace("_"," ")|title) }}</h2>
+  {% for it in items %}
+  <details class="panel" style="margin:12px;box-shadow:none;border:1px solid var(--surface-2, #ddd)">
+    <summary style="cursor:pointer;font-weight:600">{{ it.label }}
+      {% set due = (checklist.due['items']|selectattr("item_key","equalto", it.key)|first) %}
+      {% if due %}{{ status_chip(due.status) }}{% endif %}
+    </summary>
+
+    <p class="small muted">Interval:
+      {% if it.interval_miles or it.interval_km %}{{ it.interval_miles or "?" }} mi
+        ({{ "{:,}".format(it.interval_km) if it.interval_km else "?" }} km){% endif %}
+      {% if it.interval_months %}{% if it.interval_miles or it.interval_km %} or {% endif %}{{ it.interval_months }} months{% endif %}
+      {% if not it.interval_miles and not it.interval_km and not it.interval_months %}
+        UNKNOWN — {{ it.interval_note or "use the service manual (TechAuthority)" }}
+      {% endif %}
+      {{ conf_chip(it.interval_confidence) }}
+      {% if it.interval_source %}<a href="{{ it.interval_source }}" target="_blank" rel="noopener">source</a>{% endif %}
+    </p>
+
+    {% if it.parts %}
+    <h3>Parts</h3>
+    <div class="tw">
+    <table>
+      <thead><tr><th>Part</th><th>Part number</th><th>Confidence</th><th>Notes / source</th></tr></thead>
+      <tbody>
+      {% for p in it.parts %}
+        <tr>
+          <td>{{ p.name or "UNKNOWN" }}</td>
+          <td class="mono">{{ p.part_number or "UNKNOWN — use the service manual (TechAuthority)" }}</td>
+          <td>{{ conf_chip(p.confidence) }}</td>
+          <td class="small muted">{{ p.notes }}
+            {% if p.source %}<br><a href="{{ p.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+
+    {% if it.fluid %}
+    <h3>Fluid</h3>
+    <p class="small">{{ it.fluid.spec or "UNKNOWN — use the service manual (TechAuthority)" }}
+      {% if it.fluid.capacity %}— {{ it.fluid.capacity }} {{ it.fluid.unit or "" }}{% endif %}
+      {{ conf_chip(it.fluid.confidence) }}
+      {% if it.fluid.source %}<a href="{{ it.fluid.source }}" target="_blank" rel="noopener">source</a>{% endif %}</p>
+    {% if it.fluid.notes %}<p class="small muted">{{ it.fluid.notes }}</p>{% endif %}
+    {% endif %}
+
+    {% if it.torque_keys %}
+    <p class="small muted">Torques: {{ it.torque_keys|join(", ") }} — see the
+      <a href="/v/{{ vin }}/torque">torque library</a> for specs.</p>
+    {% endif %}
+
+    {% if it.procedure %}
+    <h3>Procedure</h3>
+    <ol class="small">{% for s in it.procedure %}<li>{{ s }}</li>{% endfor %}</ol>
+    {% endif %}
+
+    {% if it.checks %}
+    <h3>Checks</h3>
+    <ul class="small">{% for c in it.checks %}<li>{{ c }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if it.post_service %}
+    <h3>Post-service</h3>
+    <ul class="small">{% for s in it.post_service %}<li>{{ s }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    {% if it.notes %}<p class="small muted">{{ it.notes }}</p>{% endif %}
+
+    {% if due and due.last_date %}
+    <p class="small muted">Last recorded: {{ due.last_date }}
+      {% if due.last_odometer_km is not none %}at {{ "{:,}".format(due.last_odometer_km|round|int) }} km{% endif %}</p>
+    {% endif %}
+  </details>
+  {% endfor %}
+</div>
+{% endif %}
+{% endfor %}
+
+<div class="panel">
+  <h2>Choose items for this visit</h2>
+  <p class="small muted">Check the items you're working on, then load their fields below.</p>
+  <form method="get" action="/v/{{ vin }}/maintenance">
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))">
+    {% for category, items in checklist.items_by_category.items() %}
+      {% for it in items %}
+      <label style="display:flex;align-items:center;gap:6px">
+        <input type="checkbox" name="items" value="{{ it.key }}" {{ "checked" if it.key in selected_items }}>
+        {{ it.label }}
+      </label>
+      {% endfor %}
+    {% endfor %}
+    </div>
+    <p><button class="btn" type="submit">Load fields for checked items</button></p>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>Record this maintenance visit</h2>
+  {% if not selected_items %}
+    <p class="muted">Pick at least one item above, then load its fields, before recording.</p>
+  {% endif %}
+  <form method="post" action="/v/{{ vin }}/maintenance">
+    {% for key in selected_items %}<input type="hidden" name="selected_items" value="{{ key }}">{% endfor %}
+
+    <h3>Vehicle / odometer</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <div class="field"><label for="date">Date</label>
+        <input id="date" type="date" name="date" required></div>
+      <div class="field"><label for="odometer_km">Odometer (km)</label>
+        <input id="odometer_km" type="number" step="1" name="odometer_km"
+               value="{{ current_odometer or '' }}" required></div>
+      <div class="field"><label for="technician">Technician</label>
+        <input id="technician" type="text" name="technician" required></div>
+    </div>
+
+    {% for key in selected_items %}
+      {% set it = (all_items|selectattr("key","equalto", key)|first) %}
+      <h3>{{ it.label if it else key }}</h3>
+      <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+        <label style="display:flex;align-items:center;gap:6px">
+          <input type="checkbox" name="record_item_{{ key }}" checked> include this item in the record</label>
+        <div class="field"><label for="action_{{ key }}">Action</label>
+          <select id="action_{{ key }}" name="action_{{ key }}">
+            {% for a in actions %}<option value="{{ a }}">{{ a|replace("_"," ") }}</option>{% endfor %}
+          </select></div>
+        <input type="text" name="part_brand_{{ key }}" placeholder="Part brand">
+        <input type="text" name="part_number_{{ key }}" placeholder="Part number">
+        <input type="text" name="fluid_brand_{{ key }}" placeholder="Fluid brand">
+        <input type="text" name="fluid_amount_{{ key }}" placeholder="Fluid amount">
+      </div>
+      <div class="field"><label for="condition_notes_{{ key }}">Condition notes</label>
+        <textarea id="condition_notes_{{ key }}" name="condition_notes_{{ key }}"></textarea></div>
+      <p class="small muted">Measurements (e.g. battery voltage, coolant freeze point, brake fluid moisture %) — up to 3, label + value:</p>
+      <div style="display:grid;gap:6px;grid-template-columns:repeat(3,1fr)">
+      {% for i in (1,2,3) %}
+        <input type="text" name="measure_label_{{ key }}_{{ i }}" placeholder="Measurement">
+        <input type="text" name="measure_value_{{ key }}_{{ i }}" placeholder="Value">
+      {% endfor %}
+      </div>
+    {% endfor %}
+
+    {% if torque_rows %}
+    <h3>Torques applied</h3>
+    <p class="small muted">Enter the actual value used, in the unit shown. A missing, out-of-spec, or
+    UNKNOWN-spec entry is flagged on the record and on this page.</p>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    {% for t in torque_rows %}
+      <div class="field"><label for="torque_{{ t.key }}">{{ t.component }} ({{ t.unit or 'Nm' }})</label>
+        <input id="torque_{{ t.key }}" type="number" step="0.1" name="torque_{{ t.key }}"
+               placeholder="{{ t.display }}"></div>
+    {% endfor %}
+    </div>
+    {% endif %}
+
+    <h3>Discoveries</h3>
+    <div class="field"><label for="discoveries">Discoveries (one per line)</label>
+      <textarea id="discoveries" name="discoveries"></textarea></div>
+
+    <h3>Post-service steps done</h3>
+    <div class="field"><label for="post_service_done">One per line — must match the post-service step text above exactly to clear its flag</label>
+      <textarea id="post_service_done" name="post_service_done"></textarea></div>
+
+    <h3>Notes for next time</h3>
+    <div class="field"><label for="next_time_notes">One per line — carried forward automatically to the next maintenance page</label>
+      <textarea id="next_time_notes" name="next_time_notes"></textarea></div>
+
+    <p><button class="btn primary" type="submit" {{ "disabled" if not selected_items }}>Record maintenance visit</button></p>
+  </form>
+</div>
+
+{% if checklist.last_maintenance %}
+<div class="panel">
+  <h2>Last maintenance visit</h2>
+  {% set last = checklist.last_maintenance.data %}
+  <p class="small muted">{{ checklist.last_maintenance.at }} — {{ last.date }} at
+  {{ "{:,}".format(last.odometer_km|round|int) }} km, by {{ last.technician }}.</p>
+  <ul class="small">
+  {% for it in last['items'] %}
+    <li>{{ it.item_key|replace("_"," ") }}: {{ it.action|replace("_"," ") }}
+      {% if it.part_number %}— {{ it.part_brand }} {{ it.part_number }}{% endif %}
+      {% if it.condition_notes %}— {{ it.condition_notes }}{% endif %}</li>
+  {% endfor %}
+  </ul>
+  {% if last.flags %}
+    <p><span class="chip chronic">flags</span> {{ last.flags|join("; ") }}</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

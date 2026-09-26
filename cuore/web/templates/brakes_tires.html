@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}Brakes, wheels & tyres — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Brakes, wheels &amp; tyres</h1>
+<p class="lede">Corner-by-corner record: pads, rotors, tyres, TPMS, rotation/
+balance/alignment, and the EPB service-mode step the rear brakes need. Specs
+below are sourced and confidence-graded; see the full
+<a href="/v/{{ vin }}/torque">torque library</a> for every fastener.</p>
+
+{% if error %}
+  <div class="note alert"><span class="lab">Not recorded</span>{{ error }}</div>
+{% endif %}
+{% if saved %}
+  <div class="note good"><span class="lab">Recorded</span>Brakes/wheels/tyres service saved to the ledger.</div>
+{% endif %}
+
+{% if checklist.last_service and checklist.last_service.data.flags %}
+<div class="note warn">
+  <span class="lab">Verdict — from the last recorded service</span>
+  {% for f in checklist.last_service.data.flags %}
+    <div>{{ f }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if checklist.carried_forward_considerations %}
+<div class="panel">
+  <h2>Carried forward from last time</h2>
+  <ul>
+  {% for c in checklist.carried_forward_considerations %}
+    <li>{{ c }}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="note {{ 'good' if tpms.available else 'plain' }}">
+  <span class="lab">Live TPMS (read-only)</span>
+  {% if tpms.available %}
+    latest RFHUB DID reads on file:
+    {% for corner, obs in tpms.corners.items() %}
+      <span class="chip plain">{{ corner }}: {{ obs.value }} @ {{ obs.at }}</span>
+    {% endfor %}
+  {% else %}
+    no live TPMS observation on file yet. cuore can read live TPMS
+    pressure/temperature from the RFHUB module over UDS at DIDs
+    40B1-40B4 (one per corner) — this page only displays what has
+    already been observed; it does not trigger a live read itself.
+  {% endif %}
+</div>
+
+<div class="panel">
+  <h2>Brake / tyre specification</h2>
+  {% set b = checklist.specs.brake %}
+  <div class="tw">
+  <table>
+    <thead><tr><th>Item</th><th>Value</th><th>Confidence</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Pad minimum, front</td><td>{{ b.pad_min_mm.front.value if b.pad_min_mm.front.value else "UNKNOWN" }}{% if b.pad_min_mm.front.value %} mm{% endif %}</td>
+        <td><span class="chip {{ 'plain' if b.pad_min_mm.front.confidence == 'UNKNOWN' else 'ok' }}">{{ b.pad_min_mm.front.confidence }}</span></td>
+        <td class="small muted">{{ b.pad_min_mm.front.notes }}</td></tr>
+      <tr><td class="k">Pad minimum, rear</td><td>{{ b.pad_min_mm.rear.value if b.pad_min_mm.rear.value else "UNKNOWN" }}{% if b.pad_min_mm.rear.value %} mm{% endif %}</td>
+        <td><span class="chip {{ 'plain' if b.pad_min_mm.rear.confidence == 'UNKNOWN' else 'ok' }}">{{ b.pad_min_mm.rear.confidence }}</span></td>
+        <td class="small muted">{{ b.pad_min_mm.rear.notes }}</td></tr>
+      <tr><td class="k">Rotor minimum, front</td><td>{{ b.rotor_min_mm.front.value }} mm</td>
+        <td><span class="chip chronic">{{ b.rotor_min_mm.front.confidence }}</span></td>
+        <td class="small muted">{{ b.rotor_min_mm.front.notes }}</td></tr>
+      <tr><td class="k">Rotor minimum, rear</td><td>UNKNOWN</td>
+        <td><span class="chip plain">{{ b.rotor_min_mm.rear.confidence }}</span></td>
+        <td class="small muted">{{ b.rotor_min_mm.rear.notes }}</td></tr>
+      <tr><td class="k">Brake fluid</td><td>{{ b.fluid_spec.value }}</td>
+        <td><span class="chip chronic">{{ b.fluid_spec.confidence }}</span></td>
+        <td class="small muted">{{ b.fluid_spec.notes }}</td></tr>
+      <tr><td class="k">Fluid change interval</td><td>{{ b.fluid_change_interval.months }} months</td>
+        <td><span class="chip chronic">{{ b.fluid_change_interval.confidence }}</span></td>
+        <td class="small muted">{{ b.fluid_change_interval.notes }}</td></tr>
+      <tr><td class="k">OE tyre, 18" base</td><td>{{ b.oe_tire_size.base_18in.value }}</td>
+        <td><span class="chip ok">{{ b.oe_tire_size.base_18in.confidence }}</span></td>
+        <td class="small muted">{{ b.oe_tire_size.base_18in.notes }}</td></tr>
+      <tr><td class="k">Tyre pressure, front</td><td>{{ b.tire_pressure_kpa.front.psi }} psi ({{ b.tire_pressure_kpa.front.value }} kPa)</td>
+        <td><span class="chip chronic">{{ b.tire_pressure_kpa.front.confidence }}</span></td>
+        <td class="small muted">{{ b.tire_pressure_kpa.front.notes }}</td></tr>
+      <tr><td class="k">Tyre pressure, rear</td><td>{{ b.tire_pressure_kpa.rear.psi }} psi ({{ b.tire_pressure_kpa.rear.value }} kPa)</td>
+        <td><span class="chip chronic">{{ b.tire_pressure_kpa.rear.confidence }}</span></td>
+        <td class="small muted">{{ b.tire_pressure_kpa.rear.notes }}</td></tr>
+      <tr><td class="k">Rotation pattern</td><td class="small">{{ b.rotation_pattern.value }}</td>
+        <td><span class="chip chronic">{{ b.rotation_pattern.confidence }}</span></td>
+        <td class="small muted">{{ b.rotation_pattern.notes }}</td></tr>
+      <tr><td class="k">EPB service mode</td><td class="small">{{ b.epb_service_mode.note }}</td>
+        <td><span class="chip chronic">{{ b.epb_service_mode.confidence }}</span></td>
+        <td class="small muted">Put the rear EPB into service mode before rear pad/caliper work.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Torque checklist for this job</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Fastener</th><th>Spec</th><th>Confidence</th><th>Notes</th></tr></thead>
+    <tbody>
+    {% for t in checklist.torque_checklist %}
+      <tr>
+        <td>{{ t.component }}{% if t.single_use %} <span class="chip returned">single-use</span>{% endif %}</td>
+        <td class="mono">{{ t.display }}{% if t.angle %} {{ t.angle }}{% endif %}</td>
+        <td><span class="chip {{ 'ok' if t.confidence in ('CONFIRMED','CORROBORATED') else ('plain' if t.confidence == 'UNKNOWN' else 'chronic') }}">{{ t.confidence }}</span></td>
+        <td class="small muted">{{ t.notes }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Record this service</h2>
+  <form method="post" action="/v/{{ vin }}/brakes-tires">
+
+    <h3>Vehicle / odometer</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <div class="field"><label for="date">Date</label>
+        <input id="date" type="date" name="date" required></div>
+      <div class="field"><label for="odometer_km">Odometer (km)</label>
+        <input id="odometer_km" type="number" step="1" name="odometer_km"
+               value="{{ current_odometer or '' }}" required></div>
+      <div class="field"><label for="technician">Technician</label>
+        <input id="technician" type="text" name="technician" required></div>
+    </div>
+
+    <h3>Electric parking brake (rear)</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="epb_used"> EPB put into service mode before rear work</label>
+      <input type="text" name="epb_tool" placeholder="Tool used (MES / wiTECH / infotainment menu)">
+    </div>
+
+    <h3>Corners</h3>
+    <div class="cols two">
+    {% for c in corners %}
+      <div class="panel">
+        <h3>{{ c }}</h3>
+        <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr))">
+          <input type="number" step="0.1" name="{{ c }}_pad_inner" placeholder="Pad inner (mm)">
+          <input type="number" step="0.1" name="{{ c }}_pad_outer" placeholder="Pad outer (mm)">
+          <input type="number" step="0.1" name="{{ c }}_rotor_thickness" placeholder="Rotor thickness (mm)">
+          <input type="number" step="0.1" name="{{ c }}_rotor_runout" placeholder="Rotor runout (mm)">
+          <input type="text" name="{{ c }}_rotor_condition" placeholder="Rotor condition">
+          <input type="text" name="{{ c }}_caliper_condition" placeholder="Caliper condition">
+          <input type="text" name="{{ c }}_slider_condition" placeholder="Slider condition">
+          <input type="text" name="{{ c }}_boot_condition" placeholder="Boot condition">
+          <input type="text" name="{{ c }}_hose_condition" placeholder="Hose condition">
+          <input type="text" name="{{ c }}_tyre_brand" placeholder="Tyre brand">
+          <input type="text" name="{{ c }}_tyre_model" placeholder="Tyre model">
+          <input type="text" name="{{ c }}_tyre_size" placeholder="Tyre size">
+          <input type="text" name="{{ c }}_tyre_lsi" placeholder="Load/speed index">
+          <input type="text" name="{{ c }}_tyre_dot" placeholder="DOT date code">
+          <input type="number" step="0.1" name="{{ c }}_tread_inside" placeholder="Tread inside (mm)">
+          <input type="number" step="0.1" name="{{ c }}_tread_middle" placeholder="Tread middle (mm)">
+          <input type="number" step="0.1" name="{{ c }}_tread_outside" placeholder="Tread outside (mm)">
+          <input type="number" step="1" name="{{ c }}_pressure_found" placeholder="Pressure found (kPa)">
+          <input type="number" step="1" name="{{ c }}_pressure_set" placeholder="Pressure set (kPa)">
+          <input type="text" name="{{ c }}_wheel_condition" placeholder="Wheel condition">
+          <input type="text" name="{{ c }}_damage_notes" placeholder="Damage / wear notes">
+          <input type="text" name="{{ c }}_tpms_id" placeholder="TPMS sensor ID">
+          <input type="number" step="1" name="{{ c }}_tpms_pressure" placeholder="TPMS pressure (kPa)">
+          <input type="number" step="0.1" name="{{ c }}_tpms_temp" placeholder="TPMS temp (C)">
+          <input type="number" step="0.1" name="{{ c }}_lug_torque" placeholder="Lug torque applied (Nm)">
+        </div>
+      </div>
+    {% endfor %}
+    </div>
+
+    <h3>Fluid</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="fluid_type" placeholder="Fluid type" value="{{ checklist.specs.brake.fluid_spec.value }}">
+      <input type="text" name="fluid_moisture_result" placeholder="Moisture/boiling-point test result">
+      <input type="number" step="1" name="fluid_boiling_point" placeholder="Boiling point (C)">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="fluid_replaced"> fluid replaced</label>
+    </div>
+
+    <h3>Rotation / balance / alignment</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="rotation_done"> rotation done</label>
+      <input type="text" name="rotation_pattern" placeholder="Pattern used">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="balance_done"> balance done</label>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="alignment_done"> alignment done</label>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="alignment_needed"> alignment needed</label>
+    </div>
+
+    <h3>Torques applied</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    {% for t in checklist.torque_checklist %}
+      <div class="field"><label for="torque_{{ t.key }}">{{ t.component }} ({{ t.unit or 'Nm' }})</label>
+        <input id="torque_{{ t.key }}" type="number" step="0.1" name="torque_{{ t.key }}"
+               placeholder="{{ t.display }}"></div>
+    {% endfor %}
+    </div>
+
+    <h3>Discoveries &amp; considerations</h3>
+    <div class="field"><label for="discoveries">Discoveries (one per line)</label>
+      <textarea id="discoveries" name="discoveries"></textarea></div>
+    <div class="field"><label for="considerations_next">Considerations for next time (one per line)</label>
+      <textarea id="considerations_next" name="considerations_next"></textarea></div>
+
+    <p><button class="btn primary" type="submit">Record brakes/wheels/tyres service</button></p>
+  </form>
+</div>
+
+{% endblock %}

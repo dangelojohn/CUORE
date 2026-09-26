@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Oil change — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Oil change</h1>
+<p class="lede">Specs below are sourced and confidence-graded (see
+<a href="/v/{{ vin }}/torque">the full torque library</a> for every fastener,
+not just this job's). Recording a change here updates when the next one is
+due and carries this visit's "considerations for next time" forward to the
+next one automatically.</p>
+
+{% set nd = checklist.next_due %}
+<div class="note {{ 'good' if nd.known else 'warn' }}">
+  <span class="lab">Next oil change</span>
+  {% if nd.known %}
+    due at <b>{{ "{:,}".format(nd.next_due_odometer_km|round|int) if nd.next_due_odometer_km else "unknown" }} km</b>
+    {% if nd.next_due_date %}or <b>{{ nd.next_due_date }}</b>{% endif %}
+    (whichever comes first) — from the last change on {{ nd.last_oil_change_at }}
+    at {{ "{:,}".format(nd.last_oil_change_odometer_km|round|int) }} km.
+  {% else %}
+    unknown — {{ nd.reason }}
+  {% endif %}
+  {% if nd.mes_corroboration %}
+    <div class="small muted">MES also shows {{ nd.mes_corroboration|length }}
+    "Oil change" adjustment event(s) logged, as corroboration.</div>
+  {% endif %}
+</div>
+
+{% if error %}
+  <div class="note alert"><span class="lab">Not recorded</span>{{ error }}</div>
+{% endif %}
+{% if saved %}
+  <div class="note good"><span class="lab">Recorded</span>Oil change saved to the ledger.</div>
+{% endif %}
+
+{% if checklist.carried_forward_considerations %}
+<div class="panel">
+  <h2>Carried forward from last time</h2>
+  <ul>
+  {% for c in checklist.carried_forward_considerations %}
+    <li>{{ c }}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if checklist.open_codes_worth_noting %}
+<div class="panel">
+  <h2>Open codes worth noting</h2>
+  <p class="small muted">Read-only from the MES workup — not blocking, just visible before you're under the car.</p>
+  <ul>
+  {% for c in checklist.open_codes_worth_noting %}
+    <li class="mono">{{ c.code or c.dtc }} {% if c.note %}<span class="muted">— {{ c.note }}</span>{% endif %}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="panel">
+  <h2>Oil specification</h2>
+  {% set oil = checklist.specs.oil %}
+  <table>
+    <thead><tr><th>Item</th><th>Value</th><th>Confidence</th><th>Source</th></tr></thead>
+    <tbody>
+      <tr><td class="k">Viscosity</td><td>{{ oil.viscosity.value }}</td>
+        <td><span class="chip {{ 'ok' if oil.viscosity.confidence in ('CONFIRMED','CORROBORATED') else 'chronic' }}">{{ oil.viscosity.confidence }}</span></td>
+        <td class="small">{% if oil.viscosity.source %}<a href="{{ oil.viscosity.source }}" target="_blank" rel="noopener">source</a>{% endif %}
+          {% if oil.viscosity.platform_note %}<div class="muted">{{ oil.viscosity.platform_note }}</div>{% endif %}</td></tr>
+      <tr><td class="k">Spec / approval</td><td>{{ oil.spec_approval.value }}</td>
+        <td><span class="chip {{ 'ok' if oil.spec_approval.confidence in ('CONFIRMED','CORROBORATED') else 'chronic' }}">{{ oil.spec_approval.confidence }}</span></td>
+        <td class="small">{% if oil.spec_approval.source %}<a href="{{ oil.spec_approval.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td></tr>
+      <tr><td class="k">Capacity (with filter)</td><td>{{ oil.capacity_with_filter_qt.value }} qt ({{ oil.capacity_with_filter_qt.value_l }} L)</td>
+        <td><span class="chip {{ 'ok' if oil.capacity_with_filter_qt.confidence in ('CONFIRMED','CORROBORATED') else 'chronic' }}">{{ oil.capacity_with_filter_qt.confidence }}</span></td>
+        <td class="small">{% if oil.capacity_with_filter_qt.source %}<a href="{{ oil.capacity_with_filter_qt.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td></tr>
+      <tr><td class="k">Interval</td><td>{{ checklist.specs.interval.miles }} mi / {{ checklist.specs.interval.months }} mo, whichever first</td>
+        <td><span class="chip ok">{{ checklist.specs.interval.confidence }}</span></td>
+        <td class="small">{% if checklist.specs.interval.source %}<a href="{{ checklist.specs.interval.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td></tr>
+      <tr><td class="k">Oil-life reminder</td><td class="small">{{ checklist.specs.interval.oil_life_system.behavior }}</td>
+        <td><span class="chip plain">{{ checklist.specs.interval.oil_life_system.confidence }}</span></td>
+        <td class="small"></td></tr>
+      {% for f in checklist.specs.filters %}
+      <tr><td class="k">Filter{% if not loop.first %} (alt){% endif %}</td><td>{{ f.brand }} {{ f.part_no or "" }}</td>
+        <td><span class="chip {{ 'ok' if f.confidence in ('CONFIRMED','CORROBORATED') else ('plain' if f.confidence == 'UNKNOWN' else 'chronic') }}">{{ f.confidence }}</span></td>
+        <td class="small">{% if f.source %}<a href="{{ f.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td></tr>
+      {% endfor %}
+      <tr><td class="k">Drain plug washer</td><td>{{ checklist.specs.drain_plug_washer.part_no or "UNKNOWN" }}</td>
+        <td><span class="chip plain">{{ checklist.specs.drain_plug_washer.confidence }}</span></td>
+        <td class="small"></td></tr>
+    </tbody>
+  </table>
+  <p class="small muted">
+  {{ oil.viscosity.notes }}
+  </p>
+</div>
+
+<div class="panel">
+  <h2>Torque checklist for this job</h2>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Fastener</th><th>Spec</th><th>Confidence</th><th>Notes</th></tr></thead>
+    <tbody>
+    {% for t in checklist.torque_checklist %}
+      <tr>
+        <td>{{ t.component }}{% if t.single_use %} <span class="chip returned">single-use</span>{% endif %}</td>
+        <td class="mono">{{ t.display }}{% if t.angle %} {{ t.angle }}{% endif %}</td>
+        <td><span class="chip {{ 'ok' if t.confidence in ('CONFIRMED','CORROBORATED') else ('plain' if t.confidence == 'UNKNOWN' else 'chronic') }}">{{ t.confidence }}</span></td>
+        <td class="small muted">{{ t.notes }}
+          {% if t.source %}<br><a href="{{ t.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Record this oil change</h2>
+  <form method="post" action="/v/{{ vin }}/oil-change">
+
+    <h3>Vehicle / odometer</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <div class="field"><label for="date">Date</label>
+        <input id="date" type="date" name="date" required></div>
+      <div class="field"><label for="odometer_km">Odometer (km)</label>
+        <input id="odometer_km" type="number" step="1" name="odometer_km"
+               value="{{ current_odometer or '' }}" required></div>
+      <div class="field"><label for="technician">Technician</label>
+        <input id="technician" type="text" name="technician" required></div>
+    </div>
+
+    <h3>Oil</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="oil_brand" placeholder="Brand (e.g. Mopar)" required>
+      <input type="text" name="oil_product" placeholder="Product name">
+      <input type="text" name="oil_viscosity" placeholder="Viscosity (e.g. 0W-30)"
+             value="{{ oil.viscosity.value }}" required>
+      <input type="text" name="oil_spec" placeholder="Spec/approval used"
+             value="{{ oil.spec_approval.value }}">
+      <input type="number" step="0.1" name="quantity_added_l" placeholder="Quantity added (L)" required>
+    </div>
+
+    <h3>Filter</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="filter_brand" placeholder="Filter brand">
+      <input type="text" name="filter_part_no" placeholder="Filter part number" required>
+    </div>
+
+    <h3>Drain &amp; condition</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="drained_color" placeholder="Colour">
+      <input type="text" name="drained_smell" placeholder="Smell">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="drained_metal"> metal found</label>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="fuel_dilution_suspected"> fuel dilution suspected</label>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="coolant_suspected"> coolant suspected</label>
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="drain_plug_washer_replaced"> drain plug washer replaced</label>
+    </div>
+    <div class="field"><label for="drained_condition_notes">Condition notes</label>
+      <textarea id="drained_condition_notes" name="drained_condition_notes"></textarea></div>
+
+    <h3>Torques applied</h3>
+    <p class="small muted">Enter the actual value used, in the unit shown above. A missing, out-of-spec, or
+    UNKNOWN-spec entry is flagged on the record and on this page.</p>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+    {% for t in checklist.torque_checklist %}
+      <div class="field"><label for="torque_{{ t.key }}">{{ t.component }} ({{ t.unit or 'Nm' }})</label>
+        <input id="torque_{{ t.key }}" type="number" step="0.1" name="torque_{{ t.key }}"
+               placeholder="{{ t.display }}"></div>
+    {% endfor %}
+    </div>
+
+    <h3>Reset &amp; sampling</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="reset_done"> oil-life reminder reset</label>
+      <input type="text" name="reset_method" placeholder="Reset method (MES / wiTECH / cluster)">
+      <label style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="sample_taken"> oil sample taken</label>
+    </div>
+
+    <h3>Discoveries</h3>
+    <div class="field"><label for="leaks_found">Leaks found</label>
+      <input id="leaks_found" type="text" name="leaks_found"></div>
+    <div class="field"><label for="discoveries">Other discoveries (one per line)</label>
+      <textarea id="discoveries" name="discoveries"></textarea></div>
+
+    <h3>Considerations for next time</h3>
+    <div class="field"><label for="considerations_next">One per line — carried forward automatically to the next oil-change page</label>
+      <textarea id="considerations_next" name="considerations_next"></textarea></div>
+
+    <p><button class="btn primary" type="submit">Record oil change</button></p>
+  </form>
+</div>
+
+{% if checklist.last_oil_change %}
+<div class="panel">
+  <h2>Last oil change</h2>
+  {% set last = checklist.last_oil_change.data %}
+  <p class="small muted">{{ checklist.last_oil_change.at }} — {{ last.date }} at
+  {{ "{:,}".format(last.odometer_km|round|int) }} km, by {{ last.technician }}.
+  {{ last.oil.brand }} {{ last.oil.product }} {{ last.oil.viscosity }}, filter
+  {{ last.filter.brand }} {{ last.filter.part_no }}.
+  {% if last.torque_checklist.flags %}
+    <br><span class="chip chronic">torque flags</span>
+    {{ last.torque_checklist.flags|join("; ") }}
+  {% endif %}
+  </p>
+</div>
+{% endif %}
+
+{% endblock %}
