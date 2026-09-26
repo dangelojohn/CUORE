@@ -11,6 +11,8 @@ import time
 from typing import Any, Optional
 
 from . import audit, store
+from . import identify
+from .identify import IDENTITY_DIDS
 from .addressing import ANNEX_C, DIDS, ECUAddress, Confidence, address_pair, by_code, on_bus, sweep_candidates
 from .buses import Bus
 from .obd import decode_uds_dtc_block
@@ -146,16 +148,37 @@ def resolve_module(code: str, vin: Optional[str] = None) -> ECUAddress:
     return _with_target(ecu, target)
 
 
+def _ascii(data: list[str]) -> str:
+    return "".join(chr(int(b, 16)) for b in data if 32 <= int(b, 16) < 127).strip()
+
+
+def _did_reply(q: dict[str, Any], did: str) -> tuple[Optional[list[str]], Optional[int]]:
+    """(positive payload after the echoed DID, NRC byte) from one query."""
+    for data in q["ecus"].values():
+        if len(data) >= 3 and data[1] + data[2] == did:
+            return data[3:], None
+    for data in (q.get("all_ecus") or {}).values():
+        if len(data) >= 3 and data[0].upper() == "7F" and data[1].upper() == "22":
+            return None, int(data[2], 16)
+    return None, None
+
+
 def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
              candidates: Optional[list[int]] = None, per_target_timeout: float = 0.25,
              stop_after: Optional[int] = None) -> dict[str, Any]:
-    """``22 F190`` at every candidate target; a VIN reply is proof of a live node.
+    """``22 F190`` at every candidate target; any reply is proof of a live node.
 
-    Hits are matched to registry modules by the VIN and, when available, the
-    part numbers; confirmed matches are persisted per VIN so the sweep runs
-    once. Read-only by construction.
+    A positive VIN reply and a negative response (``7F 22 xx``) both prove a
+    node lives at that address; only silence does not. Each live node is then
+    named two ways: by address, when the registry already lists that target
+    on this bus, and by identity, reading the Annex C DIDs and matching them
+    to the hardware/software numbers Table A recorded from MES (see
+    :mod:`identify`). An identity match is what turns an "address unknown"
+    module into a confirmed one. Confirmed matches persist per VIN so the
+    sweep runs once. Read-only by construction.
     """
     targets = candidates if candidates is not None else sweep_candidates(bus.key)
+    bus_modules = on_bus(bus.key)
     hits: list[dict[str, Any]] = []
     started = time.monotonic()
     tried = 0
@@ -169,23 +192,51 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
             if q["error"] in ("BUS ERROR", "CAN ERROR", "OUT OF MEMORY"):
                 break
             continue
-        data = next(iter(q["ecus"].values()), None)
-        if not data or len(data) < 3 or data[1] + data[2] != "F190":
+        payload, nrc = _did_reply(q, "F190")
+        if payload is None and nrc is None:
             continue
-        vin = "".join(chr(int(b, 16)) for b in data[3:] if 32 <= int(b, 16) < 127)
+        vin = _ascii(payload) if payload else ""
         hit: dict[str, Any] = {"target": f"{ta:02X}", "request": req_hex, "response": resp_hex,
-                               "vin": vin, "vin_matches": (vin == vin_expected) if vin_expected else None}
-        known = [m for m in on_bus(bus.key) if m.target == ta]
+                               "vin": vin or None,
+                               "vin_nrc": None if nrc is None else nrc_text(nrc),
+                               "vin_matches": (vin == vin_expected) if (vin_expected and vin)
+                               else None}
+        known = [m for m in bus_modules if m.target == ta]
         if known:
             hit["registry_match"] = known[0].code
-        part = sess.query("22F187", "62", per_target_timeout)
-        pdata = next(iter(part["ecus"].values()), None)
-        if pdata and len(pdata) > 3:
-            hit["spare_part"] = "".join(chr(int(b, 16)) for b in pdata[3:] if 32 <= int(b, 16) < 127)
+        fields: dict[str, Optional[str]] = {}
+        for did in IDENTITY_DIDS:
+            dq = sess.query(f"22{did:04X}", "62", per_target_timeout)
+            dp, _ = _did_reply(dq, f"{did:04X}")
+            if dp:
+                fields[f"{did:04X}"] = _ascii(dp)
+        hit["identity"] = fields
+        ident = identify.match(fields, bus_modules)
+        hit["identity_match"] = ident
+        named = hit.get("registry_match")
+        if ident.get("matched"):
+            if named and named != ident["matched"]:
+                hit["conflict"] = (f"address says {named}, identity says {ident['matched']}; "
+                                   f"nothing persisted")
+                named = None
+            else:
+                named = ident["matched"]
+                hit["matched_by"] = "address+identity" if hit.get("registry_match") else "identity"
+        elif named:
+            hit["matched_by"] = "address"
+        hit["module"] = named
+        if "F187" in fields:
+            hit["spare_part"] = fields["F187"]
+        # Persist only with proof it is this car: its VIN at that address, or,
+        # where the node refuses F190, both Table A numbers matching.
+        this_car = bool(vin_expected) and (
+            vin == vin_expected or (not vin and ident.get("score", 0) >= 2))
+        if named and this_car and "conflict" not in hit:
+            store.confirm_target(vin_expected, named, ta,
+                                 source=f"discover ({hit.get('matched_by')})")
+            hit["persisted"] = True
         hits.append(hit)
-        if vin_expected and vin == vin_expected and hit.get("registry_match"):
-            store.confirm_target(vin, hit["registry_match"], ta, source="discover")
-        if stop_after and len([h for h in hits if "vin" in h]) >= stop_after:
+        if stop_after and len([h for h in hits if h.get("module")]) >= stop_after:
             break
     sess.untarget()
     audit.record("discover", bus=bus.key, tried=tried, hits=len(hits))

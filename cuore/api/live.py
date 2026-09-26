@@ -148,6 +148,43 @@ def live_discover(bus: str = Body(default="can_c", embed=True),
                         per_target_timeout=per_target_timeout, stop_after=stop_after)
 
 
+@router.get("/live/coverage", summary="Whole-vehicle coverage session: passes, next step, report")
+def live_coverage() -> dict[str, Any]:
+    return ops.coverage_status()
+
+
+@router.post("/live/coverage/start", summary="Start a coverage session for one VIN")
+def live_coverage_start(vin: str = Body(..., embed=True),
+                        engine_running: Optional[bool] = Body(default=None, embed=True)
+                        ) -> dict[str, Any]:
+    return ops.coverage_start(vin, engine_running=engine_running)
+
+
+@router.post("/live/coverage/run", summary="Run one pass: verify, discover, read codes")
+def live_coverage_run(key: str = Body(..., embed=True),
+                      confirm: bool = Body(default=False, embed=True),
+                      seconds: float = Body(default=3.0, embed=True),
+                      discover: Optional[bool] = Body(default=None, embed=True)
+                      ) -> dict[str, Any]:
+    return ops.coverage_run(key, confirm=confirm, seconds=seconds, discover=discover)
+
+
+@router.post("/live/coverage/skip", summary="Skip a pass (not the baseline)")
+def live_coverage_skip(key: str = Body(..., embed=True),
+                       reason: str = Body(default="", embed=True)) -> dict[str, Any]:
+    return ops.coverage_skip(key, reason)
+
+
+@router.get("/live/coverage/report", summary="Merged whole-car report with bystander diff")
+def live_coverage_report() -> dict[str, Any]:
+    return ops.coverage_report()
+
+
+@router.post("/live/coverage/reset", summary="Discard the coverage session")
+def live_coverage_reset() -> dict[str, Any]:
+    return ops.coverage_reset()
+
+
 @router.get("/live/observations", summary="What the car said, for the evidence gate to cite")
 def live_observations(n: int = Query(default=50, ge=1, le=1000), vin: str = Query(default=""),
                       kind: str = Query(default="")) -> dict[str, Any]:

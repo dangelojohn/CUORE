@@ -25,7 +25,7 @@ from . import audit, interlock
 from .addressing import ECUAddress
 from .buses import CABLES, CAN_C, BUSES, Bus, Route, header_bits_for_protocol, route_for
 from .config import default_cable, resolve_baud, resolve_port
-from .errors import AdapterFault, BadCommand, LinkUnavailable
+from .errors import AdapterFault, BadCommand, LinkUnavailable, Refused
 from .framing import (adapter_error, looks_like_wrong_baud, negative_responses,
                       payloads_for, reassemble)
 from .safety import assert_transmit_allowed, validate_command
@@ -138,11 +138,15 @@ class Session:
         """
         if self._target is None:
             self._target = getattr(self.link, "_last_target", None)
-        if self._target is None:
-            return
+        # Always restate the functional header: the adapter remembers the last
+        # ATSH across port closes and protocol switches, and a process restart
+        # forgets what that was.
         self.cmd("ATSH18DB33F1" if self.header_bits == 29 else "ATSH7DF", 2)
         self.cmd("ATCRA", 2)
         if self.link.is_stn:
+            # ATCRA on an STN is a pass filter; a bare ATCRA does not reliably
+            # remove it, and it survives port closes. Clear every filter.
+            self.cmd("STFAC", 2)
             self.cmd("STCFCPC", 2)
         self._target = None
         self.link._last_target = None
@@ -196,7 +200,14 @@ class AdapterLink:
         self.baud_source = ""
         self.last_open: Optional[str] = None
         self.last_error: Optional[str] = None
-        self.verified: dict[str, dict[str, Any]] = {}   # bus_key -> {cable, frames, at}
+        self.verified: dict[str, dict[str, Any]] = {}   # bus_key -> {cable, frames, at, ts}
+        # Auto-verify: a transmit session on an unverified (or stale) bus runs
+        # the passive listen itself instead of refusing. Off with
+        # CUORE_AUTO_VERIFY=0; the proof window is CUORE_VERIFY_TTL seconds.
+        self.auto_verify: bool = os.environ.get("CUORE_AUTO_VERIFY", "1") != "0"
+        self.verify_ttl: float = float(os.environ.get("CUORE_VERIFY_TTL", "600"))
+        self.verifier: Optional[Callable[..., dict[str, Any]]] = None
+        self.last_auto_verify: Optional[dict[str, Any]] = None
         self.vin: str = ""                               # last VIN the car reported
         self.current: Optional[Session] = None
 
@@ -218,7 +229,7 @@ class AdapterLink:
         buses = []
         for key, bus in BUSES.items():
             route = route_for(bus, self.cable)
-            ver = self.verified.get(key)
+            ver = self.verified.get(key) if self.is_verified(bus) else None
             buses.append({
                 "bus": key, "name": bus.name, "pins": list(bus.pins), "bitrate": bus.bitrate,
                 "reachable_with_cable": route is not None,
@@ -233,7 +244,45 @@ class AdapterLink:
 
     def mark_verified(self, bus: Bus, frames: int) -> None:
         self.verified[bus.key] = {"cable": self.cable, "frames": frames,
-                                  "at": datetime.now().isoformat(timespec="seconds")}
+                                  "at": datetime.now().isoformat(timespec="seconds"),
+                                  "ts": time.monotonic()}
+
+    def is_verified(self, bus: Bus) -> bool:
+        """Verified under the declared cable, and recently enough to trust.
+
+        A proof older than ``verify_ttl`` is treated as absent: an adapter
+        can lose the bus without the port noticing (a moved HS/MS switch, a
+        half-seated plug), and a stale flag then turns every read into a
+        confident-looking NO DATA.
+        """
+        ver = self.verified.get(bus.key)
+        if not ver or ver.get("cable") != self.cable:
+            return False
+        ts = ver.get("ts")
+        return ts is None or self.verify_ttl <= 0 or time.monotonic() - ts <= self.verify_ttl
+
+    def _auto_verify(self, bus: Bus, allow_while_mes_connected: bool) -> None:
+        """Run the passive listen for a transmit session that lacks a fresh proof."""
+        verifier = self.verifier
+        if verifier is None:
+            from . import ops  # late: ops imports this module
+            verifier = ops.verify_bus
+        result = verifier(bus.key, seconds=self.auto_verify_seconds,
+                          allow_while_mes_connected=allow_while_mes_connected)
+        self.last_auto_verify = {"bus": bus.key, "verified": bool(result.get("verified")),
+                                 "frames": result.get("frames"),
+                                 "stn_protocol": result.get("stn_protocol"),
+                                 "error": result.get("error"),
+                                 "at": datetime.now().isoformat(timespec="seconds")}
+        audit.record("auto_verify", **self.last_auto_verify)
+        if not result.get("verified"):
+            raise Refused(
+                f"bus {bus.key} is silent: an automatic passive listen under cable "
+                f"{self.cable!r} heard no traffic, so nothing was sent. Check the cable is "
+                f"fitted and declared, the adapter's HS/MS switch, that it is fully seated, "
+                f"and the ignition. Listen detail: {result.get('note') or result.get('error')}")
+
+    auto_verify_seconds: float = 2.0
 
     # --- sessions -------------------------------------------------------
 
@@ -265,10 +314,19 @@ class AdapterLink:
                         f"route for cable {route.cable!r} cannot be used while cable "
                         f"{self.cable!r} is declared")
                 chosen = route
+            auto: Optional[dict[str, Any]] = None
             if not passive:
+                if bus.transmit_needs_confirmation and not confirm:
+                    # Refuse before listening: consent comes first on CAN-CH.
+                    assert_transmit_allowed(
+                        bus_key=bus.key, bus_cable_ok=True, verified=True,
+                        needs_confirmation=True, confirmed=False)
+                if not self.is_verified(bus) and self.auto_verify and stream is None:
+                    self._auto_verify(bus, allow_while_mes_connected)
+                    auto = self.last_auto_verify
                 assert_transmit_allowed(
                     bus_key=bus.key, bus_cable_ok=True,
-                    verified=bus.key in self.verified,
+                    verified=self.is_verified(bus),
                     needs_confirmation=bus.transmit_needs_confirmation, confirmed=confirm)
             p, psrc = resolve_port(port)
             b, bsrc = resolve_baud(baud)
@@ -296,6 +354,7 @@ class AdapterLink:
             self.port, self.baud, self.port_source, self.baud_source = p, b, psrc, bsrc
             self.last_open = datetime.now().isoformat(timespec="seconds")
             sess = Session(self, st, bus, chosen, passive=passive, confirmed=confirm)
+            sess.auto_verified = auto
             self.current = sess
             audit.record("session_open", purpose=purpose, bus=bus.key, cable=self.cable,
                          passive=passive, port=p, baud=b, stream=st.describe)
@@ -334,8 +393,9 @@ class AdapterLink:
             sess.cmd(f"STP {route.stn_protocol}", 2)
             if route.bitrate_override:
                 sess.cmd(f"STPBR {route.bitrate_override}", 2)
-            if sess.passive:
-                sess.cmd("STCMM 0", 2)
+            # STCMM persists across port closes; a passive listen must not
+            # leave the next request session in receive-only (no-ACK) mode.
+            sess.cmd("STCMM 0" if sess.passive else "STCMM 1", 2)
         else:
             elm = _ELM_EQUIVALENT.get(route.stn_protocol)
             if elm is None or route.bitrate_override:

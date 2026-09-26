@@ -646,3 +646,65 @@ def live_module(request: Request, code: str, confirm: bool = False,
                  identity=identity, identity_error=identity_error,
                  pin_1_9_warning=PIN_1_9_WARNING, live_strip=None,
                  active_vehicle=_active_vehicle_bar(active_vin))
+
+
+# --- whole-car coverage --------------------------------------------------------
+
+def _coverage_page(request: Request, error: str = "", refused: bool = False,
+                   vin: str = "") -> HTMLResponse:
+    from ..live import coverage as cov
+    from ..live.buses import CABLES
+    try:
+        st = live_ops.coverage_status()
+        cable = live_ops.cable_state()["cable"]
+    except LiveError as exc:
+        st, cable, error = {"active": False, "passes": []}, "unknown", str(exc)
+    return _page(request, "coverage.html", st=st, cable=cable, cables=CABLES,
+                 pass_by_key=cov.PASS_BY_KEY, error=error, refused=refused,
+                 vin=vin or _active_vehicle(request))
+
+
+def _coverage_do(request: Request, fn: Any) -> HTMLResponse:
+    from ..live.errors import Refused
+    try:
+        fn()
+    except Refused as exc:
+        return _coverage_page(request, error=str(exc), refused=True)
+    except LiveError as exc:
+        return _coverage_page(request, error=str(exc))
+    return RedirectResponse(url="/coverage", status_code=303)
+
+
+@router.get("/coverage", response_class=HTMLResponse)
+def coverage_page(request: Request, vin: str = "") -> HTMLResponse:
+    """Guided three-pass, three-bus scan with the bystander diff."""
+    return _coverage_page(request, vin=vin)
+
+
+@router.post("/coverage/start", response_class=HTMLResponse)
+def coverage_start(request: Request, vin: str = Form(...),
+                   engine_running: bool = Form(default=False)) -> HTMLResponse:
+    return _coverage_do(request, lambda: live_ops.coverage_start(vin.strip(),
+                                                                 engine_running=engine_running))
+
+
+@router.post("/coverage/cable", response_class=HTMLResponse)
+def coverage_cable(request: Request, cable: str = Form(...)) -> HTMLResponse:
+    return _coverage_do(request, lambda: live_ops.set_cable(cable))
+
+
+@router.post("/coverage/run", response_class=HTMLResponse)
+def coverage_run(request: Request, key: str = Form(...),
+                 confirm: bool = Form(default=False)) -> HTMLResponse:
+    return _coverage_do(request, lambda: live_ops.coverage_run(key, confirm=confirm))
+
+
+@router.post("/coverage/skip", response_class=HTMLResponse)
+def coverage_skip(request: Request, key: str = Form(...),
+                  reason: str = Form(default="")) -> HTMLResponse:
+    return _coverage_do(request, lambda: live_ops.coverage_skip(key, reason))
+
+
+@router.post("/coverage/reset", response_class=HTMLResponse)
+def coverage_reset(request: Request) -> HTMLResponse:
+    return _coverage_do(request, live_ops.coverage_reset)

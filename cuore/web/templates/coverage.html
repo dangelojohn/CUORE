@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Whole-car coverage{% endblock %}
+{% block content %}
+
+<h1>Whole-car coverage</h1>
+<p class="lede">
+  Reads every bus in turn: the main bus with no cable, the chassis bus through
+  the grey cable, the body bus through the blue cable, then the main bus again.
+  The last read is compared with the first, so codes planted by re-plugging a
+  cable are flagged instead of chased. Read-only throughout. Nothing is cleared.
+</p>
+
+{% if error %}
+  <div class="note {{ 'warn' if refused else 'alert' }}">
+    <span class="lab">{{ "Refused" if refused else "Could not run" }}</span>{{ error }}
+  </div>
+{% endif %}
+
+<div class="panel">
+  <p class="small">Declared cable: <span class="mono">{{ cable }}</span>
+    {% if st.active and st.next %} · next pass needs
+      <span class="mono">{{ pass_by_key[st.next].cable }}</span>{% endif %}</p>
+  <form method="post" action="/coverage/cable" style="display:flex;gap:8px;flex-wrap:wrap">
+    {% for c in cables %}
+      <button class="btn{{ ' primary' if st.active and st.next and pass_by_key[st.next].cable == c and cable != c else '' }}"
+              name="cable" value="{{ c }}" type="submit">Declare {{ c }}</button>
+    {% endfor %}
+  </form>
+</div>
+
+{% if not st.active %}
+  <div class="panel">
+    <form method="post" action="/coverage/start" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <input name="vin" value="{{ vin }}" placeholder="17-character VIN" class="mono" style="min-width:16em">
+      <label style="display:inline-flex;gap:6px;align-items:center;text-transform:none;font-size:13.5px;color:var(--ink)">
+        <input type="checkbox" name="engine_running" value="true" style="width:auto"> Engine running
+      </label>
+      <button class="btn primary" type="submit">Start coverage session</button>
+    </form>
+  </div>
+{% else %}
+  <p class="small muted">Session {{ st.session }} for <span class="mono">{{ st.vin }}</span>
+    {% if st.engine_running %}· engine running{% elif st.engine_running == false %}· engine off{% endif %}</p>
+
+  {% for p in st.passes %}
+  <div class="panel">
+    <h2 style="margin-top:0">{{ loop.index }}. {{ p.title }}
+      <span class="chip {{ {'done':'ok','silent':'returned','skipped':'plain','pending':'plain','running':'chronic'}[p.status] }}">{{ p.status }}</span></h2>
+    <p class="small muted">{{ p.bus_name }} · cable <span class="mono">{{ p.cable }}</span>{% if p.at %} · {{ p.at }}{% endif %}</p>
+    {% if p.reading %}<div class="note warn"><span class="lab">bus silent</span>{{ p.reading }}</div>{% endif %}
+    {% if p.reason %}<p class="small">Skipped: {{ p.reason }}</p>{% endif %}
+    {% if p.status == 'pending' %}
+      <ul class="small">{% for line in p.checklist %}<li>{{ line }}</li>{% endfor %}</ul>
+      {% if st.next == p.key %}
+      <form method="post" action="/coverage/run" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input type="hidden" name="key" value="{{ p.key }}">
+        {% if p.bus == 'can_ch' %}
+        <label style="display:inline-flex;gap:6px;align-items:center;text-transform:none;font-size:13.5px;color:var(--ink)">
+          <input type="checkbox" name="confirm" value="true" style="width:auto">
+          I understand this bus carries brakes, airbags and steering; read anyway
+        </label>
+        {% endif %}
+        <button class="btn primary" type="submit">Run this pass</button>
+      </form>
+      {% endif %}
+      {% if p.key != 'c_first' %}
+      <form method="post" action="/coverage/skip" style="display:flex;gap:8px;margin-top:8px">
+        <input type="hidden" name="key" value="{{ p.key }}">
+        <input name="reason" placeholder="Why skip (e.g. cable not on hand)" style="min-width:14em">
+        <button class="btn" type="submit">Skip</button>
+      </form>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  {% set r = st.report %}
+  <h2>Result</h2>
+  <p>
+    <strong>{{ r.coverage.read }} of {{ r.coverage.fitted_modules }}</strong>
+    modules known to be fitted have been read live ({{ r.coverage.percent }}%).
+    {% if r.coverage.found_beyond_table_a %}Also answered, not previously seen on this car:
+      <span class="mono">{{ r.coverage.found_beyond_table_a|join(", ") }}</span>.{% endif %}
+  </p>
+
+  {% if r.bystanders is not none %}
+    {% if r.bystanders %}
+      <div class="note warn"><span class="lab">Changed between first and last main-bus read</span>
+        <ul class="small">
+        {% for b in r.bystanders %}
+          <li><span class="mono">{{ b.module }}</span>:
+            {% if b.appeared %}appeared <span class="mono">{{ b.appeared|join(", ") }}</span>. {% endif %}
+            {% if b.gone %}gone <span class="mono">{{ b.gone|join(", ") }}</span>. {% endif %}
+            {{ b.reading }}</li>
+        {% endfor %}
+        </ul></div>
+    {% else %}
+      <div class="note"><span class="lab">No bystanders</span>The main bus read the same before and after the cable changes.</div>
+    {% endif %}
+  {% elif r.bystander_note %}
+    <p class="small muted">{{ r.bystander_note }}</p>
+  {% endif %}
+
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr><th>Module</th><th>Name</th><th>Bus</th><th>Address</th><th>Status</th><th>Active faults</th><th>History</th></tr></thead>
+    <tbody>
+    {% for m in r.modules %}
+      <tr>
+        <td class="mono"><a href="/live/module/{{ m.code }}?vin={{ r.vin }}">{{ m.code }}</a></td>
+        <td class="small">{{ m.name }}{% if m.present != 'confirmed' %} <span class="muted">(unconfirmed on this car)</span>{% endif %}</td>
+        <td class="mono small">{{ m.bus }}</td>
+        <td class="mono small">{{ m.address or "—" }}{% if m.address_source == 'this car' %} <span class="muted">found</span>{% endif %}</td>
+        <td><span class="chip {{ {'read':'ok','bus_silent':'returned','no_answer':'returned','no_address':'chronic','not_found':'plain','skipped':'plain','not_reached':'plain'}.get(m.status,'plain') }}">{{ m.status|replace('_',' ') }}</span>
+          {% if m.detail %}<div class="small muted">{{ m.detail }}</div>{% endif %}</td>
+        <td class="mono small">{{ (m.active or [])|join(", ") }}</td>
+        <td class="mono small">{{ (m.history or [])|join(", ") }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+
+  <form method="post" action="/coverage/reset" style="margin-top:14px">
+    <button class="btn" type="submit">Discard this session</button>
+  </form>
+{% endif %}
+
+{% endblock %}

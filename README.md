@@ -48,6 +48,16 @@ live link. Clients never assume which one they reached — they call
 keeps the live paths additive rather than a rewrite. Today `live_obd`,
 `live_can` and `drive_recorder` all report `false`.
 
+**Whole-car coverage** (`/coverage`, `/api/live/coverage`, obd2 MCP tool
+`coverage`) reads all three buses as one tracked session: CAN-C with no cable
+as the baseline, CAN-CH through the grey A6, CAN-IHS through the blue A5, then
+CAN-C again. The final read is diffed against the baseline so codes planted by
+cable re-plugs are reported as bystanders. Address discovery now names nodes at
+unknown addresses by matching their identity DIDs to the Table A hardware and
+software numbers (`cuore/live/identify.py`), and counts a negative response as
+a live node. Only status-byte faults (failed, pending, confirmed) are reported
+as active. Checks: `cuore/tests/check_coverage.py`.
+
 `cuore/services/mes_bridge.py` is the only module that imports `mes`, and it
 mirrors `mes-log-mcp/server.py` call-for-call so the MCP tools and the HTTP API
 cannot drift apart. `web-ui/` still runs and is left in place until every page

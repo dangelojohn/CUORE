@@ -22,9 +22,14 @@ _FILTER_SPELLINGS = ("STFPA", "STFAP")   # rev F, then the 2010 legacy spelling
 
 def _add_filters(sess: Session, filters: list[str]) -> Optional[str]:
     """Add pass filters, learning which spelling this firmware accepts."""
-    if not filters or not sess.link.is_stn:
+    if not sess.link.is_stn:
         return None
+    # Always clear: pass filters (including the one ATCRA installs for a
+    # targeted UDS session) persist across port closes, and an unfiltered
+    # listen on a filtered adapter reports a dead bus.
     sess.cmd("STFAC", 2)
+    if not filters:
+        return None
     spelling = None
     for f in filters:
         pattern, _, mask = f.partition(",")

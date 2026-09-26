@@ -38,6 +38,9 @@ def _bus(key: str) -> Bus:
 def _stamp(sess: Session, out: dict[str, Any]) -> dict[str, Any]:
     out.setdefault("bus", sess.bus.key)
     out.setdefault("cable", sess.link.cable)
+    auto = getattr(sess, "auto_verified", None)
+    if auto:
+        out.setdefault("auto_verified", auto)
     return out
 
 
@@ -142,10 +145,15 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                         allow_while_mes_connected=allow_while_mes_connected,
                         route=route) as sess:
             cap = capture_mod.listen(sess, seconds=seconds, max_frames=200)
-            ok = cap["count"] > 0 and not cap["error"]
+            # "DATA ERROR" is the adapter's per-frame annotation for one frame
+            # whose payload did not validate; with parsed frames beside it the
+            # bus is demonstrably alive, so it is reported but does not veto.
+            fatal = cap["error"] and not (cap["error"] == "DATA ERROR" and cap["count"] > 0)
+            ok = cap["count"] > 0 and not fatal
             attempts.append({"stn_protocol": sess.route.stn_protocol,
                              "header_bits": sess.header_bits,
-                             "frames": cap["count"], "error": cap["error"]})
+                             "frames": cap["count"], "error": cap["error"],
+                             "ids": cap["ids"]})
             if ok:
                 lk.mark_verified(b, cap["count"])
                 return _stamp(sess, {"verified": True, "frames": cap["count"],
@@ -178,8 +186,34 @@ def capture(bus: str, seconds: float = 2.0, max_frames: int = 500,
 
 # --- legislated OBD on CAN-C -------------------------------------------------
 
+def _obd_route() -> Any:
+    """The 11-bit legislated route on CAN-C, when the cable allows one.
+
+    Giorgio ECMs serve Modes 01/03/07/0A only on the 11-bit 7DF/7E8 pair; the
+    29-bit UDS address answers every legislated request with NRC 0x11
+    (serviceNotSupported), which read as silence until 2026-09-25.
+    """
+    for route in routes_for(CAN_C, link().cable):
+        if route.stn_protocol == "33":
+            return route
+    return None
+
+
 def _obd_session(purpose: str, **kw: Any):
+    kw.setdefault("route", _obd_route())
     return link().session(purpose, bus=CAN_C, **kw)
+
+
+def _negative_responses(q: dict[str, Any]) -> list[str]:
+    """Human-readable NRC lines for every ECU that answered 7F."""
+    from .uds import NRC_TEXT as NRC  # local: keep the OBD path free of the UDS client
+    lines: list[str] = []
+    for hdr, data in (q.get("all_ecus") or {}).items():
+        if len(data) >= 3 and data[0].upper() == "7F":
+            nrc = int(data[2], 16)
+            lines.append(f"ECU {hdr} answered NRC 0x{nrc:02X} "
+                         f"({NRC.get(nrc, 'unknown')}) to service {data[1]}")
+    return lines
 
 
 def _dtc_read(sess: Session, mode: str, response_byte: str, label: str) -> dict[str, Any]:
@@ -194,8 +228,14 @@ def _dtc_read(sess: Session, mode: str, response_byte: str, label: str) -> dict[
     out["dtcs"] = sorted({c for codes in per_ecu.values() for c in codes})
     out["by_ecu"] = per_ecu
     if not q["ecus"]:
-        out["warning"] = ("no ECU answered" + (" (NO DATA)" if no_data(q["raw"]) else "") +
-                          "; with the ignition off this is expected")
+        neg = _negative_responses(q)
+        if neg:
+            out["warning"] = ("negative response, not silence: " + "; ".join(neg) +
+                              ". The service is refused on this route/session, so the "
+                              "read did NOT complete.")
+        else:
+            out["warning"] = ("no ECU answered" + (" (NO DATA)" if no_data(q["raw"]) else "") +
+                              "; with the ignition off this is expected")
     if label == "stored" and not out["dtcs"]:
         out["note"] = _MODE03_NOTE
     return _observe(sess, "obd_dtcs", out)
@@ -329,7 +369,9 @@ def readiness_in(sess: Session) -> dict[str, Any]:
             if decoded:
                 decoded["ecu"] = hdr
                 break
-        out[label] = decoded or {"error": "could not decode readiness response", "raw": q["raw"]}
+        neg = _negative_responses(q) if not decoded else []
+        out[label] = decoded or {"error": ("negative response: " + "; ".join(neg)) if neg
+                                 else "could not decode readiness response", "raw": q["raw"]}
     verdict = evap_verdict(out.get("since_clear") or {})
     if verdict:
         out["evap_verdict"] = verdict
@@ -424,8 +466,44 @@ def observations(n: int = 50, vin: str = "", kind: str = "") -> dict[str, Any]:
             "entries": store.recent_observations(n, vin=vin, kind=kind)}
 
 
+# --- whole-vehicle coverage ---------------------------------------------------
+
+def coverage_status() -> dict[str, Any]:
+    from . import coverage
+    return coverage.status()
+
+
+def coverage_start(vin: str, engine_running: Optional[bool] = None) -> dict[str, Any]:
+    from . import coverage
+    return coverage.start(vin, engine_running=engine_running)
+
+
+def coverage_run(key: str, confirm: bool = False, seconds: float = 3.0,
+                 discover: Optional[bool] = None) -> dict[str, Any]:
+    import sys
+    from . import coverage
+    return coverage.run_pass(key, ops=sys.modules[__name__], confirm=confirm,
+                             seconds=seconds, discover=discover)
+
+
+def coverage_skip(key: str, reason: str = "") -> dict[str, Any]:
+    from . import coverage
+    return coverage.skip_pass(key, reason)
+
+
+def coverage_report() -> dict[str, Any]:
+    from . import coverage
+    return coverage.report()
+
+
+def coverage_reset() -> dict[str, Any]:
+    from . import coverage
+    return coverage.reset()
+
+
 __all__ = ["observations", "status", "ports", "mes_settings", "set_cable", "cable_state", "buses", "modules",
            "probe", "verify_bus", "capture", "obd_dtcs", "obd_all_dtcs", "obd_pid",
            "obd_voltage", "obd_supported_pids", "obd_freeze_frame", "obd_vin",
            "readiness_in", "obd_readiness", "module_dtcs", "module_identity", "module_did",
-           "scan_modules", "discover", "AdapterLink", "link", "DEFAULT_TIMEOUT"]
+           "scan_modules", "discover", "coverage_status", "coverage_start", "coverage_run",
+           "coverage_skip", "coverage_report", "coverage_reset", "AdapterLink", "link", "DEFAULT_TIMEOUT"]

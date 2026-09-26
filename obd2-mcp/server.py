@@ -8,8 +8,18 @@ and adds the two things that belong on the MCP surface rather than in HTTP:
 * ``clear_dtcs`` with evidence capture, a speed check and a read-back. It is
   the only vehicle write anywhere in the toolchain.
 
-Both surfaces share one process-wide link, one lock file, one interlock, so
-running this server and cuore together cannot open COM3 twice.
+Since 2026-09-25 cuore owns the adapter. Every read tool here is a request
+to cuore's HTTP API (``cuore_client``), which is started automatically if it
+is not running, so the cable declaration, bus verification and code in force
+are cuore's, one set of them. Only when cuore cannot be reached at all does a
+tool run the same code in-process (``served_by`` says so). The two writes
+stay in-process by design (there is no write route on HTTP) and adopt cuore's
+cable declaration before opening the adapter. The lock file still keeps the
+two processes from opening COM3 at once.
+
+Reads verify their own bus: a request on an unverified or stale bus runs the
+passive listen first and proceeds if the bus is live (``auto_verified`` in the
+result), or refuses with the reason if it is silent.
 """
 
 from __future__ import annotations
@@ -22,10 +32,12 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
 from cuore.live import ops  # noqa: E402
+import cuore_client  # noqa: E402  -- sibling module; this directory is on sys.path
 from cuore.live import audit  # noqa: E402
 from cuore.live.buses import CAN_C  # noqa: E402
 from cuore.live.config import state_dir  # noqa: E402
@@ -51,19 +63,60 @@ def _json(fn: Callable[[], Any]) -> str:
         return json.dumps({"error": f"{type(e).__name__}: {e}"}, indent=2)
 
 
+def _via(method: str, path: str, local: Callable[[], Any], *,
+         query: Optional[dict[str, Any]] = None, body: Optional[dict[str, Any]] = None,
+         timeout: float = 120.0) -> str:
+    """Serve a tool from cuore, the adapter's one owner.
+
+    Falls back to ``local`` (in-process, same code) only when cuore cannot be
+    reached at all, so there is still exactly one owner. A timeout is not a
+    reason to fall back: the request may still be running in cuore, and
+    repeating it here would transmit twice.
+    """
+    try:
+        return json.dumps(cuore_client.call(method, path, query=query, body=body,
+                                            timeout=timeout), indent=2)
+    except cuore_client.CuoreTimeout as e:
+        return json.dumps({"error": str(e), "kind": "Timeout"}, indent=2)
+    except cuore_client.CuoreUnavailable as e:
+        if os.environ.get("CUORE_FALLBACK", "1") == "0":
+            return json.dumps({"error": str(e), "kind": "CuoreUnavailable"}, indent=2)
+        out = json.loads(_json(local))
+        if isinstance(out, dict):
+            out["served_by"] = f"in-process fallback ({e})"
+        return json.dumps(out, indent=2)
+
+
+def _sync_cable() -> Optional[str]:
+    """Adopt cuore's cable declaration before an in-process write.
+
+    Writes stay off HTTP by design, so clear_dtcs and send_raw still open the
+    adapter here; they must not disagree with cuore about which cable is
+    fitted. Returns the cable adopted, or None if cuore was unreachable.
+    """
+    try:
+        st = cuore_client.call("GET", "/live/status", timeout=10)
+    except (cuore_client.CuoreUnavailable, cuore_client.CuoreTimeout):
+        return None
+    cable = ((st or {}).get("cable") or {}).get("cable") if isinstance(st, dict) else None
+    if cable and cable != link().cable:
+        link().set_cable(cable)
+    return cable
+
+
 # --- configuration and status ---------------------------------------------
 
 @mcp.tool()
 def list_ports() -> str:
     """Serial ports on this machine, with MES's configured port marked."""
-    return _json(ops.ports)
+    return _via("GET", "/live/ports", ops.ports)
 
 
 @mcp.tool()
 def status() -> str:
     """Port and speed in force and their sources, MES state, lock state, declared cable,
     bus verification, and the last adapter identity. The port is never held between calls."""
-    return _json(ops.status)
+    return _via("GET", "/live/status", ops.status)
 
 
 @mcp.tool()
@@ -76,7 +129,7 @@ def mes_state() -> str:
 @mcp.tool()
 def mes_settings() -> str:
     """MultiEcuScan's own settings from the registry: interfaces, folders, CSV separator."""
-    return _json(ops.mes_settings)
+    return _via("GET", "/live/mes", ops.mes_settings)
 
 
 @mcp.tool()
@@ -85,8 +138,10 @@ def connect(port: str = "", baud: int = 0, allow_while_mes_connected: bool = Fal
 
     Port falls back to OBD_PORT / CUORE_OBD_PORT, then MES's Interface 0; baud likewise.
     """
-    return _json(lambda: ops.probe(port=port, baud=baud,
-                                   allow_while_mes_connected=allow_while_mes_connected))
+    return _via("POST", "/live/probe", lambda: ops.probe(port=port, baud=baud,
+                allow_while_mes_connected=allow_while_mes_connected),
+                query={"port": port, "baud": baud or None,
+                       "allow_while_mes_connected": allow_while_mes_connected})
 
 
 @mcp.tool()
@@ -103,25 +158,29 @@ def set_cable(cable: str) -> str:
 
     Clears every bus verification; run verify_bus before transmitting on a bus.
     """
-    return _json(lambda: ops.set_cable(cable))
+    return _via("POST", "/live/cable", lambda: ops.set_cable(cable), body={"cable": cable})
 
 
 @mcp.tool()
 def buses() -> str:
     """The three Giorgio buses, their reachability under the declared cable, and verification."""
-    return _json(ops.buses)
+    return _via("GET", "/live/buses", ops.buses)
 
 
 @mcp.tool()
 def modules(bus: str = "") -> str:
     """The module table: bus, 29-bit address, confidence, presence on this car."""
-    return _json(lambda: ops.modules(bus or None))
+    return _via("GET", "/live/modules", lambda: ops.modules(bus or None), query={"bus": bus})
 
 
 @mcp.tool()
 def verify_bus(bus: str = "can_c", seconds: float = 2.0) -> str:
-    """Passive listen (receive only, no ACK). Marks the bus verified if traffic is seen."""
-    return _json(lambda: ops.verify_bus(bus, seconds=seconds))
+    """Passive listen (receive only, no ACK). Marks the bus verified if traffic is seen.
+
+    Optional: reads run this automatically when the bus has no fresh proof.
+    """
+    return _via("POST", "/live/verify", lambda: ops.verify_bus(bus, seconds=seconds),
+                body={"bus": bus, "seconds": seconds})
 
 
 @mcp.tool()
@@ -131,8 +190,12 @@ def capture(bus: str = "can_c", seconds: float = 2.0, max_frames: int = 500,
 
     filters: pass filters like "7E8,7FF" or "18DAF110,1FFFFFFF".
     """
-    return _json(lambda: ops.capture(bus, seconds=seconds, max_frames=max_frames,
-                                     filters=filters, include_frames=include_frames))
+    return _via("POST", "/live/capture",
+                lambda: ops.capture(bus, seconds=seconds, max_frames=max_frames,
+                                    filters=filters, include_frames=include_frames),
+                body={"bus": bus, "seconds": seconds, "max_frames": max_frames,
+                      "filters": filters, "include_frames": include_frames},
+                timeout=seconds + 60)
 
 
 # --- legislated OBD reads ---------------------------------------------------
@@ -140,55 +203,56 @@ def capture(bus: str = "can_c", seconds: float = 2.0, max_frames: int = 500,
 @mcp.tool()
 def read_dtcs() -> str:
     """Stored (confirmed) codes. Mode 03. Per ECU, JSON."""
-    return _json(lambda: ops.obd_dtcs("stored"))
+    return _via("GET", "/live/obd/dtcs", lambda: ops.obd_dtcs("stored"), query={"kind": "stored"})
 
 
 @mcp.tool()
 def read_pending_dtcs() -> str:
     """Pending codes. Mode 07."""
-    return _json(lambda: ops.obd_dtcs("pending"))
+    return _via("GET", "/live/obd/dtcs", lambda: ops.obd_dtcs("pending"), query={"kind": "pending"})
 
 
 @mcp.tool()
 def read_permanent_dtcs() -> str:
     """Permanent codes. Mode 0A."""
-    return _json(lambda: ops.obd_dtcs("permanent"))
+    return _via("GET", "/live/obd/dtcs", lambda: ops.obd_dtcs("permanent"),
+                query={"kind": "permanent"})
 
 
 @mcp.tool()
 def read_pid(pid: str) -> str:
     """Live Mode 01 PID, decoded. Hex like "0C" or a name like engine_rpm."""
-    return _json(lambda: ops.obd_pid(pid))
+    return _via("GET", f"/live/obd/pid/{pid}", lambda: ops.obd_pid(pid))
 
 
 @mcp.tool()
 def read_voltage() -> str:
     """Battery voltage at the OBD port (ATRV)."""
-    return _json(ops.obd_voltage)
+    return _via("GET", "/live/obd/voltage", ops.obd_voltage)
 
 
 @mcp.tool()
 def read_supported_pids() -> str:
     """Which Mode 01 PIDs each ECU supports."""
-    return _json(ops.obd_supported_pids)
+    return _via("GET", "/live/obd/supported", ops.obd_supported_pids)
 
 
 @mcp.tool()
 def read_freeze_frame(pid: str = "") -> str:
     """Mode 02 freeze frame. Empty pid reads the DTC that set it."""
-    return _json(lambda: ops.obd_freeze_frame(pid))
+    return _via("GET", "/live/obd/freeze", lambda: ops.obd_freeze_frame(pid), query={"pid": pid})
 
 
 @mcp.tool()
 def read_vin() -> str:
     """VIN via Mode 09 PID 02."""
-    return _json(ops.obd_vin)
+    return _via("GET", "/live/obd/vin", ops.obd_vin)
 
 
 @mcp.tool()
 def read_readiness() -> str:
     """Readiness monitors since clear and this drive cycle, counters, EVAP verdict."""
-    return _json(ops.obd_readiness)
+    return _via("GET", "/live/obd/readiness", ops.obd_readiness)
 
 
 # --- UDS, read-only ---------------------------------------------------------
@@ -199,44 +263,59 @@ def read_module_dtcs(code: str, vin: str = "", mask: int = 255, confirm: bool = 
 
     confirm=True is required on CAN-CH (brakes, airbag, steering).
     """
-    return _json(lambda: ops.module_dtcs(code, vin=vin, mask=mask, confirm=confirm))
+    return _via("GET", f"/live/module/{code}/dtcs",
+                lambda: ops.module_dtcs(code, vin=vin, mask=mask, confirm=confirm),
+                query={"vin": vin, "mask": mask, "confirm": confirm})
 
 
 @mcp.tool()
 def read_module_identity(code: str, vin: str = "", confirm: bool = False) -> str:
     """ISO 14229 Annex C identity of one module: VIN, part and software numbers."""
-    return _json(lambda: ops.module_identity(code, vin=vin, confirm=confirm))
+    return _via("GET", f"/live/module/{code}/identity",
+                lambda: ops.module_identity(code, vin=vin, confirm=confirm),
+                query={"vin": vin, "confirm": confirm})
 
 
 @mcp.tool()
 def read_did(code: str, did: str, vin: str = "", confirm: bool = False) -> str:
     """UDS 0x22 ReadDataByIdentifier on one module. did is hex, e.g. F190 or 195A."""
-    return _json(lambda: ops.module_did(code, did, vin=vin, confirm=confirm))
+    return _via("GET", f"/live/module/{code}/did/{did}",
+                lambda: ops.module_did(code, did, vin=vin, confirm=confirm),
+                query={"vin": vin, "confirm": confirm})
 
 
 @mcp.tool()
 def scan_modules(bus: str = "can_c", vin: str = "", mask: int = 255, confirm: bool = False) -> str:
     """UDS DTC sweep over every confirmed module on a bus."""
-    return _json(lambda: ops.scan_modules(bus, vin=vin, mask=mask, confirm=confirm))
+    return _via("GET", "/live/scan",
+                lambda: ops.scan_modules(bus, vin=vin, mask=mask, confirm=confirm),
+                query={"bus": bus, "vin": vin, "mask": mask, "confirm": confirm}, timeout=300)
 
 
 @mcp.tool()
 def discover_modules(bus: str = "can_c", vin: str = "", confirm: bool = False,
                      candidates: Optional[list[str]] = None, per_target_timeout: float = 0.25,
                      stop_after: Optional[int] = None) -> str:
-    """Address discovery: send 22 F190 at each candidate target byte; a VIN reply proves the node.
-
-    Pass vin to persist confirmations for this car. candidates are hex target bytes.
+    """Address discovery: 22 F190 at each candidate target byte. Any reply, positive or
+    negative, proves a node; its Annex C identity is matched to this car's Table A
+    hardware/software numbers to name it. Pass vin to persist confirmations for this car.
+    candidates are hex target bytes.
     """
-    return _json(lambda: ops.discover(bus, vin=vin, confirm=confirm, candidates=candidates,
-                                      per_target_timeout=per_target_timeout,
-                                      stop_after=stop_after))
+    return _via("POST", "/live/discover",
+                lambda: ops.discover(bus, vin=vin, confirm=confirm, candidates=candidates,
+                                     per_target_timeout=per_target_timeout,
+                                     stop_after=stop_after),
+                body={"bus": bus, "vin": vin, "confirm": confirm, "candidates": candidates,
+                      "per_target_timeout": per_target_timeout, "stop_after": stop_after},
+                timeout=600)
 
 
 @mcp.tool()
 def audit_log(n: int = 50) -> str:
     """Recent audit-log entries: every session, cable declaration, discovery and capture."""
-    return _json(lambda: {"path": str(audit.log_path()), "entries": audit.read_recent(n)})
+    return _via("GET", "/live/audit",
+                lambda: {"path": str(audit.log_path()), "entries": audit.read_recent(n)},
+                query={"n": n})
 
 
 # --- the two MCP-only surfaces ------------------------------------------------
@@ -253,6 +332,7 @@ def clear_dtcs(confirm: bool = False, override_speed_check: bool = False) -> str
                                       "evidence and resets readiness monitors"}, indent=2)
 
     def body() -> dict[str, Any]:
+        _sync_cable()
         lk = link()
         with lk.session("clear_dtcs", bus=CAN_C) as sess:
             sess.untarget()
@@ -334,6 +414,7 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
                                              "lasts only for this call"}, indent=2)
 
     def body() -> dict[str, Any]:
+        _sync_cable()
         b = ops._bus(bus)
         # Only pure adapter commands are passive: a read request still has to
         # transmit on the bus, so it must pass the transmit gate and must not
@@ -352,6 +433,49 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
             return out
 
     return _json(body)
+
+
+@mcp.tool()
+def coverage(action: str = "status", vin: str = "", pass_key: str = "",
+             confirm: bool = False, reason: str = "",
+             engine_running: Optional[bool] = None) -> str:
+    """Whole-vehicle coverage across CAN-C, grey A6 (CAN-CH) and blue A5 (CAN-IHS).
+
+    action: "status" | "start" (needs vin) | "run" (needs pass_key) | "skip"
+    (needs pass_key) | "report" | "reset". Passes, in order: c_first (baseline,
+    no cable), ch (grey), ihs (blue), c_final (re-read, no cable). The final
+    re-read is diffed against the baseline so codes set by cable re-plugs are
+    reported as bystanders. The ch pass transmits on the brakes/airbag bus and
+    needs confirm=True. Read-only throughout; nothing is cleared.
+    """
+    routes = {
+        "status": ("GET", "/live/coverage", None),
+        "start": ("POST", "/live/coverage/start",
+                  {"vin": vin, "engine_running": engine_running}),
+        "run": ("POST", "/live/coverage/run", {"key": pass_key, "confirm": confirm}),
+        "skip": ("POST", "/live/coverage/skip", {"key": pass_key, "reason": reason}),
+        "report": ("GET", "/live/coverage/report", None),
+        "reset": ("POST", "/live/coverage/reset", None),
+    }
+
+    def body() -> Any:
+        if action == "status":
+            return ops.coverage_status()
+        if action == "start":
+            return ops.coverage_start(vin, engine_running=engine_running)
+        if action == "run":
+            return ops.coverage_run(pass_key, confirm=confirm)
+        if action == "skip":
+            return ops.coverage_skip(pass_key, reason)
+        if action == "report":
+            return ops.coverage_report()
+        if action == "reset":
+            return ops.coverage_reset()
+        return {"error": f"unknown action {action!r}"}
+    if action not in routes:
+        return _json(body)
+    method, path, payload = routes[action]
+    return _via(method, path, body, body=payload, timeout=900)
 
 
 if __name__ == "__main__":
