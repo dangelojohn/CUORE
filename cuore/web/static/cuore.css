@@ -240,9 +240,18 @@ p { margin: 0 0 10px; max-width: 76ch; }
 .panel > :last-child { margin-bottom: 0; }
 .panel.tight { padding: 0; }
 
-.cols { display: grid; gap: 12px; }
-@media (min-width: 900px) { .cols.two { grid-template-columns: 1fr 1fr; } }
-@media (min-width: 900px) { .cols.wide-left { grid-template-columns: 3fr 2fr; } }
+/* minmax(0, 1fr), not a bare auto column: a grid track's automatic minimum
+ * is its items' min-content, and that reaches straight through a nested
+ * .tw scroll wrapper (the overflow-reset only protects a box that is
+ * itself the grid item, not one nested inside it) -- a single unbreakable
+ * table cell anywhere in a .cols column was enough to stretch the whole
+ * column, and every sibling panel with it, off the right edge of a phone
+ * screen. Pinning the track minimum to 0 makes the column fill its
+ * container instead, so a wide table goes back to scrolling inside its
+ * own .tw the way it does everywhere else in this app. */
+.cols { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 900px) { .cols.two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (min-width: 900px) { .cols.wide-left { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
 
 /* ---------- tables ---------- */
 

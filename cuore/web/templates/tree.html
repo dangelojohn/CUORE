@@ -21,12 +21,14 @@
     {{ result.error }}
     {% if result.available %}
       <p style="margin:8px 0 0">Sequences that exist:</p>
+      <div class="tw">
       <table>
         {% for t in result.available %}
         <tr><td class="k mono">{{ t.tree }}</td><td>{{ t.title }}</td>
             <td class="mono small">{{ t.applies_to|join(" ") }}</td></tr>
         {% endfor %}
       </table>
+      </div>
     {% endif %}
   </div>
 {% endif %}

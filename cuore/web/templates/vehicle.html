@@ -85,12 +85,14 @@
       <span class="mono small muted">{{ cp.latest_scan.timestamp }}</span>
       <span class="chip unverifiable">unverifiable</span></h3>
     {% if cp.latest_scan.modules_with_faults %}
+      <div class="tw">
       <table>
         {% for m in cp.latest_scan.modules_with_faults %}
         <tr><td class="k">{{ m.module }}</td>
             <td class="mono">{{ m.dtcs|join(", ") }}</td></tr>
         {% endfor %}
       </table>
+      </div>
     {% else %}
       <p class="muted small">No module reported a fault in this scan.</p>
     {% endif %}
