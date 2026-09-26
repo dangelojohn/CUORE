@@ -1,8 +1,9 @@
 """Smoke checks for the fault-isolation trees.
 
 The real corpus is the fixture for the VIN-annotation checks: this Stelvio's
-logs demonstrably contain six COMPLETED purge-valve actuations, so the
-evidence hook must find them and say so.
+logs demonstrably contain several COMPLETED purge-valve actuations (the exact
+count grows as the corpus does -- do not hardcode it), so the evidence hook
+must find them and say so.
 """
 
 import json
@@ -52,24 +53,76 @@ check("P1CEA routes to its own tree",
 both = faulttree.evaluate(["P0456", "P1CEA"])
 check("both trees + ordering note when leak and flow codes coexist",
       len(both["trees"]) == 2 and "ordering_note" in both)
-miss = faulttree.evaluate(["U0100"])
+miss = faulttree.evaluate(["P0300"])
 check("uncovered code errors and lists what exists",
       "error" in miss and miss["available"])
+
+print("=== network cascade tree ===")
+net_codes = ["U1711-2F", "U1712-2F", "U1713-2F", "U1716-2F", "U2054-87",
+             "U0100-87", "B1040-64"]
+for c in net_codes:
+    check(f"{c} routes to the network-cascade tree",
+          [t.key for t in faulttree.trees_for([c])] == ["network-cascade"],
+          c)
+network = faulttree.NETWORK_CASCADE
+check("network tree's first step is a verification, not a repair",
+      "rescan" in network.steps[0].test.lower()
+      and "replace" not in network.steps[0].if_abnormal.lower())
+check("network tree pulls DTC EX before any clearing step",
+      any("dtc ex" in s.test.lower() for s in network.steps[:3]))
+check("network tree reads the brake module on CAN-CH before parts work",
+      any("grey a6" in s.test.lower() and "abs" in s.test.lower()
+          for s in network.steps[:3]))
+check("network tree follows knowledge.py's own supply->ground->terminal "
+      "order",
+      [s.id for s in network.steps if "S1808000005" in s.source
+       or "S2008000032" in s.source or "S1708000262" in s.source] ==
+      ["N5", "N6", "N7"])
+
+print("=== DASM/HALF private-CAN tree ===")
+check("C141C routes to the dasm-half tree",
+      [t.key for t in faulttree.trees_for(["C141C-86"])]
+      == ["dasm-half-private-can"])
+check("C141B routes to the dasm-half tree (code itself unsourced, flagged "
+      "in framing)",
+      [t.key for t in faulttree.trees_for(["C141B-97"])]
+      == ["dasm-half-private-can"])
+dasm_half = faulttree.DASM_HALF_LINK
+check("dasm-half tree's general-practice step is clearly labelled as such",
+      any("not sourced" in s.source.lower() for s in dasm_half.steps))
+
+print("=== sourcing hygiene across all trees ===")
+check("no step source is empty or a TODO placeholder",
+      all(s.source.strip() and "todo" not in s.source.lower()
+          for t in faulttree.TREES for s in t.steps + t.verification))
 
 print("=== VIN evidence annotation (real corpus) ===")
 d = json.loads(server.fault_tree(codes="P0455 P0440-00 P0456", vin=VIN))
 ev = d.get("vehicle_evidence", [])
 check("purge-valve history found and attached to E3",
-      any(e["step"] == "E3" and "COMPLETED 6" in e["finding"] for e in ev), ev)
+      any(e["step"] == "E3" and "COMPLETED" in e["finding"]
+          and "actuator test" in e["finding"] for e in ev), ev)
 check("no evidence block without a VIN",
       "vehicle_evidence" not in json.loads(
           server.fault_tree(codes="P0456")))
 
+dn = json.loads(server.fault_tree(
+    codes="U1711-2F U1712-2F U1713-2F U0100-87", vin=VIN))
+evn = dn.get("vehicle_evidence", [])
+check("network-cascade VIN evidence attached to N1",
+      any(e["step"] == "N1" for e in evn), evn)
+
+dd = json.loads(server.fault_tree(codes="C141C-86", vin=VIN))
+evd = dd.get("vehicle_evidence", [])
+check("dasm-half VIN evidence attached to D1",
+      any(e["step"] == "D1" for e in evd), evd)
+
 print("=== server listing ===")
 l = json.loads(server.fault_tree())
-check("no-arg lists both trees",
+check("no-arg lists all four trees",
       {t["tree"] for t in l["available"]}
-      == {"evap-leak", "p1cea-boost-purge"})
+      == {"evap-leak", "p1cea-boost-purge", "network-cascade",
+          "dasm-half-private-can"})
 
 print()
 if failures:
