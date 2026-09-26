@@ -231,10 +231,16 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
         # where the node refuses F190, both Table A numbers matching.
         this_car = bool(vin_expected) and (
             vin == vin_expected or (not vin and ident.get("score", 0) >= 2))
-        if named and this_car and "conflict" not in hit:
+        # Named by address, or by an identity strong enough to trust.
+        trusted = (hit.get("matched_by") in ("address", "address+identity")
+                   or bool(ident.get("strong")))
+        if named and this_car and trusted and "conflict" not in hit:
             store.confirm_target(vin_expected, named, ta,
                                  source=f"discover ({hit.get('matched_by')})")
             hit["persisted"] = True
+        elif named and this_car and not trusted:
+            hit["not_persisted"] = ("identity rests on one partial match; read the module's "
+                                    "identity before trusting this address")
         hits.append(hit)
         if stop_after and len([h for h in hits if h.get("module")]) >= stop_after:
             break

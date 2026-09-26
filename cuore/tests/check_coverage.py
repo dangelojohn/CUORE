@@ -481,6 +481,65 @@ check_eq("cable_state shows a stale proof as unverified",
          [b["verified"] for b in lk3.cable_state()["buses"] if b["bus"] == "can_c"], [False])
 
 
+# ===========================================================================
+# 8. review fixes: no double passes, no persisting a weak identity
+# ===========================================================================
+
+import threading as _th  # noqa: E402
+
+coverage.reset()
+coverage.start(VIN)
+fo3 = FakeOps()
+fo3.scans["can_c"] = [{"ecu": "ECM", "codes": [], "dtcs": []}]
+coverage.run_pass("c_first", ops=fo3)
+check("a finished pass cannot be re-run",
+      raises(Refused, lambda: coverage.run_pass("c_first", ops=fo3)))
+
+gate_open, release = _th.Event(), _th.Event()
+
+
+class SlowOps(FakeOps):
+    def verify_bus(self, bus, seconds=2.0):
+        gate_open.set()
+        release.wait(5)
+        return super().verify_bus(bus, seconds)
+
+
+slow = SlowOps()
+slow.cable = "grey_a6"
+worker = _th.Thread(target=lambda: coverage.run_pass("ch", ops=slow, confirm=True))
+worker.start()
+gate_open.wait(5)
+check("a second pass is refused while one is running",
+      raises(Refused, lambda: coverage.run_pass("ch", ops=slow, confirm=True)))
+release.set()
+worker.join(5)
+check_eq("the running pass still stored its result",
+         coverage.current()["passes"]["ch"]["status"], "done")
+check_eq("the bus was swept once", len([c for c in slow.calls if c[0] == "verify"]), 1)
+coverage.reset()
+
+m = identify.match({"F192": "XMRR1EVO14FX"}, addressing.on_bus("can_c"))
+check_eq("a lone partial match still names a candidate", m.get("matched"), "DASM")
+check_eq("but is not strong", m.get("strong"), False)
+m = identify.match({"F192": "MRR1evo14F"}, addressing.on_bus("can_c"))
+check_eq("one exact match is strong", m.get("strong"), True)
+
+store.path().unlink(missing_ok=True)
+weak = BusStream({0x7E: {"22F190": "62F190" + _ascii_hex(VIN),
+                         "22F192": "62F192" + _ascii_hex("XMRR1EVO14FX")}})
+lk5 = AdapterLink(stream_factory=lambda p, b: weak, process="check_coverage")
+set_link(lk5)
+lk5.mark_verified(CAN_C, 10)
+with lk5.session("weak-id", bus=CAN_C) as sess:
+    res = uds_mod.discover(sess, CAN_C, vin_expected=VIN, candidates=[0x7E],
+                           per_target_timeout=0.2)
+h = res["hits"][0]
+check_eq("weak identity with this car's VIN is still reported", h.get("module"), "DASM")
+check("but not persisted", not h.get("persisted") and bool(h.get("not_persisted")), str(h))
+check_eq("and the store stays empty", store.confirmed_targets(VIN), {})
+
+
 print(f"checks run: {checks}")
 if failures:
     print(f"FAILURES: {len(failures)}")

@@ -55,7 +55,10 @@ def match(fields: dict[str, Optional[str]],
     A module scores one point per Table A number found in any field
     (exact or containment, both normalised). The result is ``matched`` only
     when exactly one module has the top score; a tie is reported as
-    ``ambiguous`` with the candidates, never resolved by guessing.
+    ``ambiguous`` with the candidates, never resolved by guessing. ``strong``
+    is set when two numbers match or one matches exactly; a lone partial
+    (containment) hit can be a shared part-number prefix and is never enough
+    to persist an address on its own.
     """
     seen = {did: normalise(val) for did, val in fields.items() if normalise(val)}
     scored: list[tuple[int, ECUAddress, list[dict[str, str]]]] = []
@@ -65,7 +68,7 @@ def match(fields: dict[str, Optional[str]],
             for did, got in seen.items():
                 if tok == got or (len(got) >= MIN_TOKEN and (tok in got or got in tok)):
                     evidence.append({"registry_field": field, "registry_value": tok,
-                                     "did": did, "reported": got})
+                                     "did": did, "reported": got, "exact": tok == got})
                     break
         if evidence:
             scored.append((len(evidence), module, evidence))
@@ -78,7 +81,8 @@ def match(fields: dict[str, Optional[str]],
         return {"matched": None, "ambiguous": [s[1].code for s in leaders],
                 "reason": "several modules share the matched numbers"}
     score, module, evidence = leaders[0]
-    return {"matched": module.code, "score": score, "evidence": evidence}
+    strong = score >= 2 or all(e["exact"] for e in evidence)
+    return {"matched": module.code, "score": score, "strong": strong, "evidence": evidence}
 
 
 __all__ = ["IDENTITY_DIDS", "MIN_TOKEN", "normalise", "registry_tokens", "match"]

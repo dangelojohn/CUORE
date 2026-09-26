@@ -19,6 +19,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.parse
@@ -27,6 +28,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 REPO = Path(__file__).resolve().parents[1]
+_START_LOCK = threading.Lock()
 
 
 class CuoreUnavailable(Exception):
@@ -106,18 +108,31 @@ def _spawn() -> None:
     if os.name == "nt":
         flags = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
     log_dir = Path(os.environ.get("PROGRAMDATA", str(REPO))) / "cuore"
+    log: Any = subprocess.DEVNULL
     try:
         log_dir.mkdir(parents=True, exist_ok=True)
         log = open(log_dir / "cuore-autostart.log", "ab")
     except OSError:
-        log = subprocess.DEVNULL  # type: ignore[assignment]
-    subprocess.Popen([str(py), "-m", "cuore", "--profile", "bench", "--port", port],
-                     cwd=str(REPO), stdout=log, stderr=log, stdin=subprocess.DEVNULL,
-                     creationflags=flags, close_fds=True)
+        pass
+    try:
+        subprocess.Popen([str(py), "-m", "cuore", "--profile", "bench", "--port", port],
+                         cwd=str(REPO), stdout=log, stderr=log, stdin=subprocess.DEVNULL,
+                         creationflags=flags, close_fds=True)
+    finally:
+        if log is not subprocess.DEVNULL:
+            log.close()  # the child holds its own handle
 
 
 def ensure_server(wait: float = 20.0) -> dict[str, Any]:
-    """Make sure cuore answers; start it when local and allowed."""
+    """Make sure cuore answers; start it when local and allowed.
+
+    Serialised: concurrent tool calls that all find cuore down start it once.
+    """
+    with _START_LOCK:
+        return _ensure_server_locked(wait)
+
+
+def _ensure_server_locked(wait: float) -> dict[str, Any]:
     if ping():
         return {"running": True, "started": False}
     if os.environ.get("CUORE_AUTOSTART", "1") == "0" or not _is_local(base_url()):
@@ -138,7 +153,13 @@ def call(method: str, path: str, *, query: Optional[dict[str, Any]] = None,
     try:
         return _request(method, path, query, body, timeout)
     except (urllib.error.URLError, ConnectionError, OSError) as e:
-        if isinstance(e, TimeoutError) or "timed out" in str(e):
+        # A read timeout surfaces bare (TimeoutError / socket.timeout): the
+        # request reached cuore and may still be running, so it is never
+        # retried. A connect failure, timeout included, arrives wrapped in
+        # URLError: nothing was sent, so starting cuore and retrying cannot
+        # transmit twice.
+        if isinstance(e, TimeoutError) or (not isinstance(e, urllib.error.URLError)
+                                           and "timed out" in str(e)):
             raise CuoreTimeout(f"cuore did not finish {path} within {timeout:.0f} s; it may "
                                f"still be running there, so it was not retried") from e
         ensure_server()

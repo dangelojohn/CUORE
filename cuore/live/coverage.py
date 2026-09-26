@@ -40,6 +40,9 @@ from .config import state_dir
 from .errors import BadCommand, Refused
 
 _LOCK = threading.Lock()
+#: Held for the whole of a pass. A double-click must not sweep a bus twice
+#: (on CAN-CH that is the brakes and airbag bus) or lose one result.
+_RUN_LOCK = threading.Lock()
 
 #: UDS status bits that mean "this is a fault now": testFailed, pendingDTC,
 #: confirmedDTC. ``testFailedSinceLastClear`` alone is history.
@@ -223,7 +226,21 @@ def run_pass(key: str, *, ops: Any, confirm: bool = False, seconds: float = 3.0,
     p = PASS_BY_KEY.get(key)
     if p is None:
         raise BadCommand(f"unknown pass {key!r}; one of {list(PASS_BY_KEY)}")
+    if not _RUN_LOCK.acquire(blocking=False):
+        raise Refused("a coverage pass is already running; wait for it to finish")
+    try:
+        return _run_pass_locked(p, ops=ops, confirm=confirm, seconds=seconds,
+                                discover=discover, per_target_timeout=per_target_timeout)
+    finally:
+        _RUN_LOCK.release()
+
+
+def _run_pass_locked(p: Pass, *, ops: Any, confirm: bool, seconds: float,
+                     discover: Optional[bool], per_target_timeout: float) -> dict[str, Any]:
     sess = _require()
+    if sess["passes"][p.key]["status"] != "pending":
+        raise Refused(f"pass {p.key!r} is already {sess['passes'][p.key]['status']}; "
+                      f"discard the session to run it again")
     _gate(sess, p, ops.cable_state()["cable"])
     vin = sess["vin"]
     rec: dict[str, Any] = {"status": "running", "at": _now(), "bus": p.bus, "cable": p.cable}
