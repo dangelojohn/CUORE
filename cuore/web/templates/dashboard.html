@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+{% set s = d.summary %}
+
+<h1>Dashboard</h1>
+<p class="lede">Verdict first: what this car has, how long it has had it, and
+what has already been tried — before the drill-down.</p>
+
+<div class="panel" style="display:flex;gap:10px;flex-wrap:wrap">
+  <div style="flex:1;min-width:130px">
+    <div class="small muted">Odometer</div>
+    <div class="mono" style="font-size:1.3em">
+      {% if s.odometer_last_km is not none %}{{ "{:,}".format(s.odometer_last_km|int) }} km{% else %}—{% endif %}
+    </div>
+    {% if s.odometer_first_km is not none and s.odometer_last_km is not none %}
+      <div class="small muted">since {{ "{:,}".format(s.odometer_first_km|int) }} km</div>
+    {% endif %}
+  </div>
+  <div style="flex:1;min-width:130px">
+    <div class="small muted">Standing codes</div>
+    <div class="mono" style="font-size:1.3em">
+      <span class="chip {{ 'returned' if s.open_codes_count else 'ok' }}">{{ s.open_codes_count }}</span>
+    </div>
+    {% if s.newest_session_after_clear %}
+      <div class="small" style="color:var(--sev-returned)">newest read came after a clear
+        ({{ s.newest_session_after_clear.cleared_at }}): tests not re-run yet, so 0 means
+        nothing. Before the clear:
+        <span class="mono">{{ s.newest_session_after_clear.findings_before|join(", ") }}</span></div>
+    {% else %}
+      <div class="small muted">in the newest session</div>
+    {% endif %}
+  </div>
+  <div style="flex:1;min-width:130px">
+    <div class="small muted">Chronic codes</div>
+    <div class="mono" style="font-size:1.3em">
+      <span class="chip {{ 'chronic' if s.chronic_count else 'plain' }}">{{ s.chronic_count }}</span>
+    </div>
+    <div class="small muted">recur across sessions / distance</div>
+  </div>
+  <div style="flex:1;min-width:130px">
+    <div class="small muted">Logs</div>
+    <div class="mono" style="font-size:1.3em">{{ s.log_count }}</div>
+  </div>
+  <div style="flex:1;min-width:160px">
+    <div class="small muted">Last read</div>
+    <div class="mono small">{{ s.last_scan_date or "—" }}</div>
+  </div>
+</div>
+
+<h2>Code timeline</h2>
+<p class="small muted" style="margin-top:-6px">Every occurrence, dated and
+odometer-tagged where the source carries one. Dashed lines mark a repair,
+dealer result or clear from the ledger below.</p>
+<div class="panel tight" style="padding:10px">
+  {{ charts.code_timeline|safe }}
+</div>
+<h2 class="small" style="text-transform:uppercase;letter-spacing:.04em;margin-top:18px">Last 90 days</h2>
+<p class="small muted">The same timeline, zoomed to where most of the recent work happened.</p>
+<div class="panel">
+  {{ charts.code_timeline_recent|safe }}
+</div>
+
+<div class="cols two">
+<div class="panel tight" style="padding:10px">
+  <h3 style="margin:0 0 4px">Odometer</h3>
+  {{ charts.odometer|safe }}
+</div>
+<div class="panel tight" style="padding:10px">
+  <h3 style="margin:0 0 4px">DTCs by module</h3>
+  {{ charts.modules|safe }}
+</div>
+</div>
+
+<h2>Codes</h2>
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead>
+      <tr><th>Code</th><th>Class</th><th>Description</th><th>Module</th>
+          <th class="n">Sessions</th><th>First</th><th>Last</th><th class="n">Distance</th></tr>
+    </thead>
+    <tbody>
+    {% for r in d.code_timeline %}
+      <tr class="row-link" data-href="/v/{{ vin }}/code/{{ r.code.split('-')[0] }}" tabindex="0">
+        <td><a class="mono" href="/v/{{ vin }}/code/{{ r.code.split('-')[0] }}">{{ r.code }}</a></td>
+        <td><span class="chip {{ r['class'] }}">{{ r['class'] }}</span></td>
+        <td>{{ r.description }}</td>
+        <td class="small muted">{{ r.module }}</td>
+        <td class="n">{{ r.sessions }}</td>
+        <td class="mono small">{{ r.first_seen }}</td>
+        <td class="mono small">{{ r.last_seen }}</td>
+        <td class="n">{% if r.distance_span_km %}{{ "{:,}".format(r.distance_span_km|int) }} km{% else %}—{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="muted">No codes for this vehicle.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<h2>Repairs &amp; tests</h2>
+<p class="small muted" style="margin-top:-6px">Actuators and adjustments,
+dealer (wiTECH) results, clears (from the logs and the live link), and notes
+— one chronological ledger.</p>
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>When</th><th>Kind</th><th>What</th><th>Result</th><th>Source</th></tr></thead>
+    <tbody>
+    {% for r in d.repairs_and_tests %}
+      <tr>
+        <td class="mono small">{{ r.at }}</td>
+        <td><span class="chip plain">{{ r.kind }}</span></td>
+        <td>{{ r.what }}</td>
+        <td class="small">{{ r.result }}</td>
+        <td class="small muted">{{ r.source }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Nothing recorded yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<h2>Live status</h2>
+{% if d.live_status.as_of %}
+<p class="small muted" style="margin-top:-6px">As of {{ d.live_status.as_of }} — real serial reads only.</p>
+{% endif %}
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>Module</th><th>Tracked</th><th>Active now</th><th>Last read</th></tr></thead>
+    <tbody>
+    {% for m in d.live_status.modules %}
+      <tr>
+        <td class="mono">{{ m.ecu }}</td>
+        <td class="n">{{ m.tracked_count }}</td>
+        <td>
+          {% if m.active %}
+            {% for a in m.active %}
+              <span class="chip returned mono">{{ a.code }}</span>
+              {%- if a.mil_requested %} <span class="chip plain">MIL</span>{% endif %}
+            {% endfor %}
+          {% else %}
+            <span class="chip ok">none</span>
+          {% endif %}
+        </td>
+        <td class="mono small">{{ m.at }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted">No real live reads recorded for this VIN yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% if d.live_status.mode06_evap %}
+  <div class="note" style="margin:10px 14px 14px">
+    <span class="lab">Mode $06 EVAP — {{ d.live_status.mode06_evap.at }}</span>
+    {% for line in d.live_status.mode06_evap.summary %}
+      <div class="small mono">{{ line }}</div>
+    {% else %}
+      <div class="small muted">No EVAP OBDMID results in the latest read.</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<h2>Modules</h2>
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>Module</th><th class="n">Codes</th><th>Last read</th><th>Active now</th></tr></thead>
+    <tbody>
+    {% for m in d.modules %}
+      <tr>
+        <td>{{ m.module }} <span class="small muted mono">{{ m.abbrev }}</span></td>
+        <td class="n">{{ m.dtc_count }}</td>
+        <td class="mono small">{{ m.last_read or "—" }}
+          {% if m.last_read_source %}<span class="small muted">({{ m.last_read_source }})</span>{% endif %}</td>
+        <td>
+          {% if m.active_now is none %}<span class="chip plain">unknown</span>
+          {% elif m.active_now %}<span class="chip returned">active</span>
+          {% else %}<span class="chip ok">clear</span>{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="muted">No modules with DTCs in the logs.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% endblock %}
