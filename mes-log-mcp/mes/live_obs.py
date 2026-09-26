@@ -43,9 +43,29 @@ def observations_path() -> Path:
     return candidates[0] / "observations.jsonl"
 
 
+#: UDS status bits that mean "failing now": testFailed, pendingDTC,
+#: confirmedDTC. A module lists every code it tracks (the ECM listed 278 on
+#: 2026-09-25, 275 of them at 0x40 "not run this cycle"); presence in the
+#: list is not a fault.
+ACTIVE_MASK = 0x01 | 0x04 | 0x08
+
+
+def from_car(entry: dict[str, Any]) -> bool:
+    """Only reads from a real serial link are evidence about a vehicle.
+
+    Mirrors ``cuore.live.store.is_from_car``. Test suites and replays wrote
+    scripted reads into the real store until 2026-09-26; those carry a
+    ``scripted`` / ``playback`` stream or none at all, and never count.
+    """
+    s = str(entry.get("stream") or "")
+    return s.startswith("serial") or s.startswith("recording(serial")
+
+
 def load(vin: Optional[str] = None, kind: Optional[str] = None,
-         limit: int = 5000) -> list[dict[str, Any]]:
-    """Observations newest-last, filtered by VIN and kind when given."""
+         limit: int = 5000, from_car_only: bool = True) -> list[dict[str, Any]]:
+    """Observations newest-last, filtered by VIN and kind when given.
+
+    Only real-link reads unless ``from_car_only`` is False."""
     p = observations_path()
     if not p.exists():
         return []
@@ -66,6 +86,8 @@ def load(vin: Optional[str] = None, kind: Optional[str] = None,
         if vin and (obj.get("vin") or "") != vin:  # untagged reads never match a named car
             continue
         if kind and obj.get("kind") != kind:
+            continue
+        if from_car_only and not from_car(obj):
             continue
         out.append(obj)
     return out
@@ -104,15 +126,15 @@ def verify_live(m: dict[str, Any], vin: str) -> dict[str, Any]:
 
     if kind == "module_dtc":
         ecu = str(m.get("ecu", "")).strip().upper()
-        for obs in reversed(load(vin, "module_dtcs")):
-            data = obs.get("data", {})
-            if ecu and str(data.get("ecu", "")).upper() != ecu:
-                continue
-            codes = data.get("codes") or []
-            if code and any(c.split("-")[0] == code.split("-")[0] for c in codes):
-                return {"status": "verified", "observation_at": obs.get("at"),
-                        "note": f"{code} read live from {data.get('ecu')} via UDS"}
-        return {"status": "unverified", "note": f"no live UDS read shows {code}"}
+        st = active_status(vin, code, ecu)
+        if st is None:
+            return {"status": "unverified", "note": f"no live UDS read shows {code}"}
+        if not st["active"]:
+            return {"status": "unverified", "observation_at": st["at"],
+                    "note": (f"{code} is only tracked by {st['ecu']} (status {st['status']}), "
+                             f"not failing: a listed code is not a fault")}
+        return {"status": "verified", "observation_at": st["at"],
+                "note": f"{code} failing live on {st['ecu']} (status {st['status']})"}
 
     if kind == "readiness":
         monitor = str(m.get("monitor", "Evaporative system"))
@@ -143,4 +165,22 @@ def verify_live(m: dict[str, Any], vin: str) -> dict[str, Any]:
             "note": "live citation needs kind: dtc | permanent | readiness | module_dtc | did"}
 
 
-__all__ = ["observations_path", "load", "newest", "verify_live"]
+def active_status(vin: str, code: str, ecu: str = "") -> Optional[dict[str, Any]]:
+    """The newest real UDS read of ``code`` for this VIN: status and whether active."""
+    base = code.upper().split("-")[0]
+    for obs in reversed(load(vin, "module_dtcs")):
+        data = obs.get("data", {})
+        if ecu and str(data.get("ecu", "")).upper() != ecu:
+            continue
+        if data.get("error") or data.get("codes") is None:
+            continue
+        for rec in data.get("dtcs") or []:
+            if str(rec.get("code", "")).upper().split("-")[0] == base:
+                s = int(rec.get("status") or 0)
+                return {"at": obs.get("at"), "ecu": data.get("ecu"), "code": rec.get("code"),
+                        "status": f"0x{s:02X}", "active": bool(s & ACTIVE_MASK)}
+    return None
+
+
+__all__ = ["observations_path", "load", "newest", "verify_live", "from_car",
+           "active_status", "ACTIVE_MASK"]

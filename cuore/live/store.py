@@ -65,16 +65,28 @@ def observations_path() -> Path:
 
 
 def record_observation(kind: str, data: dict[str, Any], *, vin: str = "",
-                       bus: str = "", cable: str = "") -> None:
-    """Append one observation. Never raises; the read itself must not fail on I/O."""
+                       bus: str = "", cable: str = "", stream: str = "") -> None:
+    """Append one observation. Never raises; the read itself must not fail on I/O.
+
+    ``stream`` names what produced it (``serial COM3@115200``, ``scripted``,
+    ``playback ...``). Only serial observations are evidence about a car;
+    anything else is a test or a replay and :func:`is_from_car` says so.
+    """
     entry = {"at": datetime.now().isoformat(timespec="seconds"), "kind": kind,
-             "vin": vin or "", "bus": bus, "cable": cable, "data": data}
+             "vin": vin or "", "bus": bus, "cable": cable, "stream": stream,
+             "data": data}
     try:
         with _LOCK:
             with observations_path().open("a", encoding="utf-8") as f:
                 f.write(json.dumps(entry, default=str) + "\n")
     except OSError:
         pass
+
+
+def is_from_car(entry: dict[str, Any]) -> bool:
+    """True only for an observation read from a real serial link."""
+    s = str(entry.get("stream") or "")
+    return s.startswith("serial") or s.startswith("recording(serial")
 
 
 def recent_observations(n: int = 50, vin: str = "", kind: str = "") -> list[dict[str, Any]]:
@@ -100,4 +112,4 @@ def recent_observations(n: int = 50, vin: str = "", kind: str = "") -> list[dict
 
 
 __all__ = ["path", "confirmed_targets", "confirm_target", "all_confirmations",
-           "observations_path", "record_observation", "recent_observations"]
+           "observations_path", "record_observation", "recent_observations", "is_from_car"]

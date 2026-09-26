@@ -34,6 +34,7 @@ criteria pass.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from . import analysis, faulttree, fes as fes_mod, knowledge, live_obs
@@ -64,6 +65,28 @@ _COMPONENT_WARNINGS = (
      "is at fault before ordering -- replacing the canister for an ESIM "
      "fault is a bulletin-warned error."),
 )
+
+
+def _last_clear(vin: str) -> str | None:
+    """Timestamp ("YYYY-MM-DD HH:MM:SS") of the newest MES session that cleared codes.
+
+    A live read taken before a clear says nothing about the car now: on
+    2026-09-25 the ECM read P0456 failing at 20:12 and MES cleared it at 20:27.
+    """
+    from .fes import CLEARING_RE
+    newest: str | None = None
+    for entry in CATALOG.select(vin=vin):
+        if entry.parse_error:
+            continue
+        try:
+            text = Path(entry.path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if any(CLEARING_RE.match(line.strip()) for line in text.splitlines()):
+            ts = str(entry.timestamp)
+            if newest is None or ts > newest:
+                newest = ts
+    return newest
 
 
 def _parse_measurements(raw: str) -> tuple[list[dict[str, Any]], list[str]]:
@@ -217,6 +240,15 @@ def _verify_measurement(m: dict[str, Any], vin: str) -> dict[str, Any]:
             result.update(status="not_found", note=str(exc))
         return result
 
+    if mtype == "live" and str(m.get("kind", "")).strip().lower() in (
+            "dtc", "permanent", "module_dtc"):
+        result.update(status="rejected",
+                      note="a live code is still a code: it shows the fault is standing "
+                           "(criterion 1 reads it automatically), it does not convict a "
+                           "component. Cite a live did/parameter, an actuator result or a "
+                           "manual test instead")
+        return result
+
     if mtype == "live":
         verdict = live_obs.verify_live(m, vin)
         status = verdict.pop("status", "unverified")
@@ -260,10 +292,25 @@ def assess(vin: str, codes: str, component: str, mechanism: str,
     history = analysis.dtc_history(entries) if entries else {}
     per_code: dict[str, str] = {}
     demonstrated = False
+    cleared_at = _last_clear(vin)
     for c in code_list:
         base = knowledge.base_code(c)
         rec = next((r for k, r in history.items()
                     if knowledge.base_code(k) == base), None)
+        live = live_obs.active_status(vin, base)
+        if live and live["active"]:
+            live_at = str(live["at"]).replace("T", " ")
+            if cleared_at is None or live_at > cleared_at:
+                per_code[base] = (f"standing now: failing live on {live['ecu']} "
+                                  f"(status {live['status']}, read {live['at']}, after the "
+                                  f"last clear)")
+                demonstrated = True
+                continue
+            live_note = (f"; was failing live on {live['ecu']} at {live['at']} "
+                         f"(status {live['status']}) but codes were cleared at {cleared_at}, "
+                         f"so that read no longer describes the car")
+        else:
+            live_note = ""
         if rec is None:
             per_code[base] = "never seen in this car's logs"
         elif rec.returned_after_clear:
@@ -279,6 +326,8 @@ def assess(vin: str, codes: str, component: str, mechanism: str,
         else:
             per_code[base] = f"seen in {rec.session_count} session(s)"
             demonstrated = demonstrated or rec.session_count >= 2
+        if live_note:
+            per_code[base] += live_note
     criteria["demonstrated"] = {
         "met": demonstrated,
         "per_code": per_code,

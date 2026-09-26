@@ -17,7 +17,14 @@ from __future__ import annotations
 
 import os
 import sys
+import tempfile
 from pathlib import Path
+
+# Before any cuore import: the audit log, observations and address store
+# must go to a throwaway directory, never the bench's real evidence.
+os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-live-")
+os.environ.pop("CUORE_AUDIT_PATH", None)
+os.environ.pop("MES_LIVE_OBSERVATIONS", None)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 

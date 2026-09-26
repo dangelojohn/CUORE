@@ -37,6 +37,11 @@ _MAX_BYTES = 5 * 1024 * 1024  # 5 MiB — rotate before exceeding this.
 
 def _candidate_dirs() -> list[Path]:
     candidates: list[Path] = []
+    # Same redirect as config.state_dir(): tests point this at a temporary
+    # directory. Ignoring it put 180 fake sessions in the real audit log.
+    state = os.environ.get("CUORE_STATE_DIR")
+    if state:
+        candidates.append(Path(state))
     program_data = os.environ.get("PROGRAMDATA")
     if program_data:
         candidates.append(Path(program_data) / "cuore")

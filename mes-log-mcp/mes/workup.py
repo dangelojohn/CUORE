@@ -22,6 +22,55 @@ from . import analysis, fes as fes_mod, knowledge, scan as scan_mod
 from .catalog import CATALOG
 
 
+def _scan_clear_between(entries: list[Any], informative: Any,
+                        latest_fes: Any) -> dict[str, Any] | None:
+    """A clear done in an all-systems SCAN between the findings and the clean read.
+
+    ``post_clear_assessment`` only sees clears inside one FES session. On
+    2026-09-25 the codes were read in a FES session at 20:02, erased by a SCAN
+    at 20:27, and re-read clean in a FES session at 20:28: without this, the
+    dossier showed that clean read with no warning at all.
+    """
+    lo = getattr(informative, "timestamp", None) or ""
+    hi = getattr(latest_fes, "timestamp", None) or ""
+    best = None
+    for e in entries:
+        if e.kind != "scan" or e.parse_error or not e.timestamp:
+            continue
+        ts = str(e.timestamp)
+        if not (str(lo) <= ts <= str(hi)):
+            continue
+        try:
+            slog = scan_mod.load_scan(e.path, timestamp=e.timestamp)
+        except Exception:
+            continue
+        if slog.clear_results and (best is None or ts > best[0]):
+            best = (ts, e.name, slog)
+    if best is None:
+        return None
+    ts, name, slog = best
+    ok = [m.name for m in slog.clear_results if (m.clear_result or "").upper() == "SUCCESS"]
+    refused = {m.name: [x.full for x in m.dtcs] for m in slog.clear_results
+               if (m.clear_result or "").upper() != "SUCCESS"}
+    return {
+        "source": name,
+        "cleared_at": ts,
+        "modules_cleared": ok,
+        "modules_refused": refused,
+        "codes_cleared": [d.full for d in informative.dtcs],
+        "re_read_after_clear": True,
+        "verdict": (f"Codes were erased by the all-systems scan {name} at {ts}. The clean "
+                    f"read in {getattr(latest_fes, 'name', 'the latest session')} came "
+                    f"after that clear, before any monitor could re-run: it is NOT proof "
+                    f"of repair and carries no information about whether the fault is "
+                    f"still there."),
+        "next_step": ("Drive until the monitors re-run (EVAP: fuel 15-85 %, cold starts, "
+                      "several drives), then read the status bytes (verify_repair) or "
+                      "re-scan. A returning code is the answer; silence right after a "
+                      "clear is not."),
+    }
+
+
 def _latest(entries, kind):
     for e in entries:
         if e.kind == kind and not e.parse_error:
@@ -109,6 +158,10 @@ def build(vin: str = "", vehicle: str = "",
         cleared = analysis.post_clear_assessment(informative)
         if cleared:
             current["clear_assessment"] = cleared.to_dict()
+        elif not log.dtcs and informative is not log:
+            scan_clear = _scan_clear_between(entries, informative, latest_fes)
+            if scan_clear:
+                current["clear_assessment"] = scan_clear
         frames = {d.full: {k: v.display for k, v in d.freeze_frame.items()}
                   for d in informative.dtcs if d.freeze_frame}
         if frames:
