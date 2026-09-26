@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Live vs log — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Live vs log</h1>
+<p class="lede">The newest MES log read against the newest live UDS read, per
+module, per code. The two are taken on different schedules and routinely
+disagree — a code can be active live and absent from the newest log (set
+since the last scan), present in the log and gone live (erased by a clear or
+intermittent; absent is not passed), or, the trap, present in both while both predate the last clear, in
+which case neither reading describes the car as it is now.</p>
+
+{% set chip_for = {
+  "live_and_logged": "returned",
+  "live_not_logged": "returned",
+  "no_log": "returned",
+  "logged_not_live": "ok",
+  "stale_both": "plain",
+  "no_live_read": "plain",
+} %}
+
+<form class="panel" method="get" action="/v/{{ vin }}/live-vs-log"
+      style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+  <div style="flex:1;min-width:220px">
+    <label for="module">Module</label>
+    <input id="module" name="module" type="text" value="{{ module }}"
+           placeholder="ECM, TCM, BCM… (empty = every module)">
+  </div>
+  <button class="btn primary" type="submit">Filter</button>
+  {% if module %}<a class="btn" href="/v/{{ vin }}/live-vs-log">Clear filter</a>{% endif %}
+  <div class="mono small muted">
+    newest clear:
+    {% if result.newest_clear %}{{ result.newest_clear }}{% else %}none on record{% endif %}
+  </div>
+</form>
+
+{% if result.error %}
+  <div class="note warn"><span class="lab">Could not compare</span>{{ result.error }}</div>
+{% elif result.note %}
+  <div class="note"><span class="lab">Nothing to show</span>{{ result.note }}</div>
+{% endif %}
+
+{% if result.summary %}
+<div class="panel tight" style="display:flex;gap:8px;flex-wrap:wrap;padding:10px 14px">
+  {% for cls, n in result.summary.items() %}
+    <span class="chip {{ chip_for.get(cls, 'plain') }}">{{ cls.replace('_', ' ') }} &times; {{ n }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% for m in result.modules %}
+<div class="panel">
+  <h3>{{ m.module }}</h3>
+  <div class="mono small muted">
+    log:
+    {% if m.log %}{{ m.log.file }} at {{ m.log.at }}
+    {% else %}(no log has ever read this module for this VIN){% endif %}
+    &middot;
+    live:
+    {% if m.live %}{{ m.live.ecu }} at {{ m.live.at }}
+    {% else %}(no live read for this module){% endif %}
+  </div>
+
+  {% if m.rows %}
+  <div class="tw" style="margin-top:10px">
+  <table>
+    <thead>
+      <tr>
+        <th>Code</th><th>Class</th><th>Log status</th><th>Live status</th><th>Reading</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for r in m.rows %}
+      <tr>
+        <td class="mono">{{ r.code }}</td>
+        <td><span class="chip {{ chip_for.get(r.class, 'plain') }}">{{ r.class.replace('_', ' ') }}</span></td>
+        <td class="mono small">{{ r.log_status or "—" }}</td>
+        <td class="mono small">{{ r.live_status or "—" }}</td>
+        <td class="small">{{ r.reading }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+    <p class="small muted" style="margin-top:8px">No code on either side for this module.</p>
+  {% endif %}
+</div>
+{% else %}
+  {% if not result.error and not result.note %}
+    <div class="note"><span class="lab">Nothing to show</span>
+    No module has both a log entry and a live entry for this VIN yet.</div>
+  {% endif %}
+{% endfor %}
+
+<div class="note">
+  <span class="lab">Reading the class column</span>
+  <b>live and logged</b> — active live and in the newest log: standing now.
+  <b>logged not live</b> — in the log; a live read taken after it shows the
+  code not active, or a stale active live read has since been superseded by a
+  clean, newer log. That means erased, not fixed: only the status byte after the
+  test re-runs (verify_repair) shows a pass.
+  <b>live not logged</b> — active live, absent from a log that predates the
+  live read — set after the last MES scan.
+  <b>stale both</b> — both readings predate the last clear; neither describes
+  the car now.
+  <b>no live read</b> / <b>no log</b> — only one source has ever seen this
+  module.
+</div>
+
+{% endblock %}

@@ -708,3 +708,15 @@ def coverage_skip(request: Request, key: str = Form(...),
 @router.post("/coverage/reset", response_class=HTMLResponse)
 def coverage_reset(request: Request) -> HTMLResponse:
     return _coverage_do(request, live_ops.coverage_reset)
+
+
+@router.get("/v/{vin}/live-vs-log", response_class=HTMLResponse)
+def live_vs_log(request: Request, vin: str, module: str = "") -> HTMLResponse:
+    """Newest MES log vs newest live UDS read, one row per code, per module."""
+    dossier = _dossier(vin)
+    result = mes_bridge.live_vs_log(vin, module=module)
+    response = _page(request, "live_vs_log.html", vin=vin, result=result,
+                     module=module, bar=_vehicle_bar(vin, dossier),
+                     tab="live_vs_log")
+    _set_active_vehicle(response, vin)
+    return response

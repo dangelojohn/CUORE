@@ -23,6 +23,7 @@ from .errors import BadRequest, NotFound
 from mes import (  # noqa: E402  -- must follow the bootstrap import
     analysis,
     catalog,
+    compare,
     csvlog,
     dtc as dtc_mod,
     encoding,
@@ -194,6 +195,20 @@ def vehicle_report(vin: str = "", vehicle: str = "") -> dict[str, Any]:
     if "error" in report:
         raise NotFound(report["error"])
     return report
+
+
+def live_vs_log(vin: str, module: str = "") -> dict[str, Any]:
+    """Newest log read vs newest live read, one row per code, per module.
+
+    Passthrough to :func:`mes.compare.live_vs_log`; see that module for the
+    join and classification rules.
+    """
+    if not vin.strip():
+        raise BadRequest("a VIN is required")
+    result = compare.live_vs_log(vin, module=module)
+    if "error" in result:
+        raise BadRequest(result["error"])
+    return result
 
 
 def _classified(record: Any) -> dict[str, Any]:

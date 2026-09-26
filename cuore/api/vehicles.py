@@ -112,6 +112,21 @@ def parameter(vin: str, parameter: str, file: str = "") -> dict[str, Any]:
     return mes_bridge.parameter_series(parameter, name=file, vin=vin)
 
 
+@router.get("/vehicles/{vin}/live-vs-log", summary="Live UDS reads vs the newest MES log")
+def live_vs_log(vin: str, module: str = Query(
+        default="", description="Restrict to one module (MES abbreviation, "
+                                "ECU name, or cuore's short code). Empty "
+                                "reports every module either side has seen.")
+        ) -> dict[str, Any]:
+    """One row per code: what the newest log says vs what the car just said.
+
+    Read-only, writes nothing -- see ``mes.compare.live_vs_log`` for the join
+    and the six-way classification (live_and_logged, logged_not_live,
+    live_not_logged, stale_both, no_live_read, no_log).
+    """
+    return mes_bridge.live_vs_log(vin, module=module)
+
+
 @router.post("/vehicle/{vin}/verdict", summary="The evidence gate")
 def verdict(vin: str, body: VerdictRequest) -> dict[str, Any]:
     """Gate a proposed diagnosis against four criteria.
