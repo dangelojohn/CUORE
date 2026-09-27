@@ -38,7 +38,11 @@ function Get-NewestCodeTime {
 
 $proc = Get-CuoreProcess
 if ($proc) {
-    $isCuore = $proc.CommandLine -match '-m\s+cuore'
+    # command line may be unreadable if another account/rights started it:
+    # fall back to "python.exe answering cuore's health check"
+    $healthy = $false
+    try { $healthy = (Invoke-WebRequest -UseBasicParsing "$Base/api/health" -TimeoutSec 3).Content -match '"profile"' } catch { }
+    $isCuore = ($proc.CommandLine -match '-m\s+cuore') -or ((-not $proc.CommandLine) -and $proc.Name -eq 'python.exe') -or $healthy
     $started = $proc.CreationDate
     $stale = $isCuore -and ($started -lt (Get-NewestCodeTime))
     if ($isCuore -and ($Restart -or $stale)) {
@@ -53,7 +57,11 @@ if ($proc) {
     }
 }
 
-if (-not $proc) {
+# If the "CUORE Server" keep-alive is running it starts cuore itself (within
+# ~10 s); starting a second copy here would just lose the race for the port.
+$keepAlive = Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" |
+             Where-Object { $_.CommandLine -match 'cuore-keepalive\.ps1' }
+if (-not $proc -and -not $keepAlive) {
     Start-Process -FilePath $Python `
                   -ArgumentList "-m", "cuore", "--profile", "bench", "--port", "$Port" `
                   -WorkingDirectory $PSScriptRoot -WindowStyle Minimized
