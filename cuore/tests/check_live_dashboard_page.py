@@ -247,6 +247,8 @@ else:
             edge_proc.wait(timeout=5)
         except Exception:
             edge_proc.kill()
+        from _edge_cleanup import kill_edge_profile
+        kill_edge_profile(profile_dir)  # Edge detaches; terminate() alone leaks it
 
 
 # ===========================================================================
@@ -354,6 +356,8 @@ else:
                     edge_proc.wait(timeout=5)
                 except Exception:
                     edge_proc.kill()
+                from _edge_cleanup import kill_edge_profile
+                kill_edge_profile(profile_dir)  # Edge detaches; terminate() alone leaks it
     finally:
         server_proc.terminate()
         try:

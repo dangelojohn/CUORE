@@ -205,6 +205,8 @@ def main():
             proc.wait(timeout=5)
         except Exception:
             proc.kill()
+        from _edge_cleanup import kill_edge_profile
+        kill_edge_profile(profile_dir)  # Edge detaches; terminate() alone leaks it
         shutil.rmtree(profile_dir, ignore_errors=True)
 
     sys.exit(exit_code)
