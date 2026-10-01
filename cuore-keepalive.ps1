@@ -21,7 +21,12 @@ $KeepLog = Join-Path $LogDir "keepalive.log"
 
 $created = $false
 $mutex = New-Object System.Threading.Mutex($true, "Local\CuoreKeepAlive", [ref]$created)
-if (-not $created) { exit 0 }  # another keep-alive is already watching
+if (-not $created) {
+    # another keep-alive is already watching; note it so silent exits are visible
+    "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')  launch $PID skipped: another keep-alive holds the lock" |
+        Out-File -FilePath $KeepLog -Append -Encoding utf8
+    exit 0
+}
 
 function Write-KeepLog([string]$msg) {
     "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')  $msg" | Out-File -FilePath $KeepLog -Append -Encoding utf8
@@ -63,6 +68,7 @@ function Start-Cuore {
 }
 
 Write-KeepLog "keep-alive running (pid $PID)"
+Register-EngineEvent PowerShell.Exiting -Action { Write-KeepLog "keep-alive exiting (pid $PID)" } | Out-Null
 $fails = 0
 while ($true) {
     $listener = Get-Listener
