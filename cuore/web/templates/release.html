@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Release — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<link rel="stylesheet" href="/static/shop.css">
+
+<h1>Release</h1>
+<p class="lede">Advisory, not a gate — each item below with its evidence.
+Release with one tap whenever the car is ready; if verification isn't in
+yet, say why and it's recorded as released unverified.</p>
+
+{% set visit = view.visit %}
+
+{% if release_error %}<div class="note alert"><span class="lab">Not released</span>{{ release_error }}</div>{% endif %}
+
+<div class="panel job-head-panel">
+  <div class="job-head">
+    <h2>Visit <span class="mono">{{ visit.id }}</span></h2>
+    <span class="chip {{ 'ok' if visit.status == 'out' else 'chronic' }}">{{ visit.status }}</span>
+    {% if visit.outcome %}<span class="chip {{ 'ok' if visit.outcome == 'fixed' else 'returned' }}">{{ visit.outcome }}</span>{% endif %}
+  </div>
+  <div class="small muted">In {{ visit.in_at }}{% if visit.technician %} &middot; {{ visit.technician }}{% endif %}
+    {% if visit.bay %} &middot; bay {{ visit.bay }}{% endif %}
+    {% if visit.out_at %} &middot; out {{ visit.out_at }}{% endif %}</div>
+  {% if visit.complaint %}<p class="small">&ldquo;{{ visit.complaint }}&rdquo;</p>{% endif %}
+</div>
+
+<div class="panel release-check">
+  <div class="job-head">
+    <h3>Verification</h3>
+    {% if view.dossier_verdict %}
+      {% set vs = view.dossier_verdict.state|lower|replace("_", "-") %}
+      <span class="chip-verdict v-{{ vs }}">{{ view.dossier_verdict.label }}</span>
+    {% else %}
+      <span class="chip returned">no data</span>
+    {% endif %}
+  </div>
+  {% if view.dossier_verdict %}
+    <p class="small">{{ view.dossier_verdict.summary }}</p>
+    {% if view.dossier_verdict.basis %}
+      <ul class="checklist small">
+        {% for b in view.dossier_verdict.basis %}<li class="checklist-step">{{ b }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+  {% else %}
+    <p class="small muted">No dossier verdict available for this vehicle yet.</p>
+  {% endif %}
+  <p class="small"><a href="/v/{{ view.vin }}/verify">Read readiness &rarr;</a> &middot;
+     <a href="/v/{{ view.vin }}/gate">Evidence gate &rarr;</a></p>
+  {% if not view.verified %}
+    <p class="small note alert">Not verified — releasing now records this car
+      as released unverified.</p>
+  {% endif %}
+</div>
+
+<div class="panel release-check">
+  <h3>Report printed</h3>
+  <p class="small"><a href="/v/{{ view.vin }}/report.pdf">Handover report (PDF) &rarr;</a></p>
+  <label class="release-cb"><input type="checkbox" name="report_printed" form="release-form"> Report printed</label>
+</div>
+
+<div class="panel release-check">
+  <h3>Labels printed</h3>
+  <p class="small"><a href="/v/{{ view.vin }}/labels">Print labels &rarr;</a></p>
+  <label class="release-cb"><input type="checkbox" name="labels_printed" form="release-form"> Labels printed</label>
+</div>
+
+<div class="panel release-check">
+  <h3>Parts logged</h3>
+  <p class="small"><a href="/v/{{ view.vin }}/parts">Parts &rarr;</a></p>
+  <label class="release-cb"><input type="checkbox" name="parts_logged" form="release-form"> Parts logged</label>
+</div>
+
+<div class="panel release-check">
+  <h3>Tools reviewed</h3>
+  {% if view.tool_review %}
+    <p class="small">{{ view.tool_review }}</p>
+  {% else %}
+    <p class="small muted">not reviewed</p>
+  {% endif %}
+  <label class="release-cb"><input type="checkbox" name="tools_reviewed" form="release-form"> Tools reviewed</label>
+</div>
+
+{% if visit.status == "out" %}
+  <div class="panel">
+    {% if visit.outcome == "released_unverified" %}
+      <p class="chip returned">Released unverified</p>
+      {% if visit.release and visit.release.get("unverified_override") %}
+        <p class="small">Reason: {{ visit.release.unverified_override }}</p>
+      {% endif %}
+    {% else %}
+      <p>Released {{ visit.out_at }}.</p>
+    {% endif %}
+  </div>
+{% else %}
+  <div class="panel">
+    <h3>Release</h3>
+    <form method="post" action="/v/{{ view.vin }}/release" id="release-form">
+      <input type="hidden" name="visit_id" value="{{ visit.id }}">
+      <div class="field"><label for="notes">Notes</label>
+        <input id="notes" name="notes"></div>
+      <div class="field"><label for="reason">Reason (if releasing before verification)</label>
+        <input id="reason" name="reason" placeholder="why release now"></div>
+      <button class="btn primary release-btn" type="submit">Release car</button>
+    </form>
+  </div>
+{% endif %}
+
+<div class="panel">
+  <h3>Tools away</h3>
+  <p class="small muted">Advisory only — recording this never blocks moving
+    on to the next car.</p>
+  {% if not view.tools_used %}
+    <p class="small muted">No tool-usage review on file for this car yet.</p>
+  {% endif %}
+  <form method="post" action="/v/{{ view.vin }}/release/tools_away" id="tools-away-form">
+    <input type="hidden" name="job_id" value="{{ visit.job_id or '' }}">
+    {% for tool in view.tools_used %}
+      <div class="release-check">
+        <input type="hidden" name="tool_{{ loop.index0 }}" value="{{ tool }}" form="tools-away-form">
+        <label class="release-cb">
+          <input type="checkbox" name="put_away_{{ loop.index0 }}" form="tools-away-form"> {{ tool }} — put away</label>
+        <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+          <input type="text" name="location_{{ loop.index0 }}" form="tools-away-form" placeholder="location (optional)">
+          <select name="not_available_{{ loop.index0 }}" form="tools-away-form">
+            <option value="">available</option>
+            <option value="damaged">damaged</option>
+            <option value="missing">missing</option>
+            <option value="empty">empty</option>
+            <option value="loaned">loaned</option>
+          </select>
+        </div>
+      </div>
+    {% endfor %}
+    <div class="field"><label for="restock">Restock (consumables used up)</label>
+      <input id="restock" name="restock" form="tools-away-form" placeholder="e.g. 2x EVAP smoke solution"></div>
+    <button class="btn primary release-btn" type="submit">Tools away. Start the next Stelvio &rarr;</button>
+  </form>
+</div>
+
+{% endblock %}

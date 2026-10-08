@@ -1,0 +1,17 @@
+/* =========================================================================
+ * Shop (cuore/web/templates/shop.html, intake.html, release.html).
+ * Appended, new file -- kept separate from cuore.css per that file's own
+ * convention of appending feature sections rather than interleaving them.
+ * ========================================================================= */
+
+.release-check { margin-bottom: 10px; }
+.release-cb {
+  display: flex; align-items: center; gap: 8px; min-height: 44px;
+  font-size: 14px; margin-top: 4px;
+}
+.release-cb input[type="checkbox"] { width: 20px; height: 20px; }
+.release-btn { width: 100%; min-height: 48px; font-size: 16px; text-align: center; }
+
+@media (max-width: 400px) {
+  .release-cb { font-size: 13px; }
+}
