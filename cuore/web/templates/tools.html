@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Tools{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/tools.css">
+
+<h1>Tools</h1>
+<p class="lede">Every cuore operation in one place: what it does, when to use
+it, and whether it will actually run right now.</p>
+
+<div id="tools-app" data-vin="{{ vin }}">
+
+  <div class="t-status" id="t-status" aria-live="polite"></div>
+
+  <div class="t-suggested" id="t-suggested" hidden>
+    <h2>Suggested next</h2>
+    <div class="t-suggested-row" id="t-suggested-row"></div>
+  </div>
+
+  <div class="t-search-wrap">
+    <input type="search" id="t-search" data-search class="t-search"
+           placeholder="Search tools -- try 'readiness' or 'module'"
+           aria-label="Search tools">
+  </div>
+
+  <div class="t-workflows" id="t-workflows"></div>
+
+  <div class="t-groups" id="t-groups"></div>
+
+</div>
+
+<script id="tools-catalogue-fixture" type="application/json">{{ catalogue | tojson }}</script>
+<script src="/static/tools.js"></script>
+{% endblock %}

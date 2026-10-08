@@ -1,0 +1,42 @@
+{# Reusable "Others' experience" card: links other owners/forums/videos have
+   published about a code, family or job. Fed by the `experience_links`
+   Jinja global (registered as an import-time side effect by
+   cuore/web/experience_globals.py -- see that module's docstring) via a
+   page-local `exp = experience_links(...)` set before this include.
+   Guarded so a page still renders -- with the empty state below -- before
+   that global lands, and before mes.experience itself lands. #}
+{% set exp = exp if exp is defined else {"links": [], "count": 0} %}
+
+{% macro exp_row(l) %}
+  <div class="exp-row">
+    <span class="exp-icon" aria-hidden="true" title="{{ l.kind or '' }}">{{ "▶" if l.kind == "how_to_video" else "✎" }}</span>
+    <div class="exp-main">
+      <a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.title }}</a>
+      <div class="small muted">{{ l.source }}{% if l.date %} &middot; {{ l.date }}{% endif %}</div>
+      {% if l.covers %}<div class="small muted">covers: {{ l.covers }}</div>{% endif %}
+    </div>
+    <div class="exp-chips">
+      {% if l.reputation %}<span class="chip {{ 'ok' if l.reputation == 'high' else 'plain' }}">{{ l.reputation }}</span>{% endif %}
+      {% if l.vehicle_fit %}<span class="chip plain">{{ l.vehicle_fit }}</span>{% endif %}
+    </div>
+  </div>
+{% endmacro %}
+
+<div class="panel experience-card">
+  <h3>Others' experience{% if exp.count %} <span class="count-badge">{{ exp.count }}</span>{% endif %}</h3>
+  {% if exp.links %}
+    {% for l in exp.links[:3] %}{{ exp_row(l) }}{% endfor %}
+    {% if exp.links|length > 3 %}
+    <details class="exp-more">
+      <summary>+{{ exp.links|length - 3 }} more</summary>
+      {% for l in exp.links[3:] %}{{ exp_row(l) }}{% endfor %}
+    </details>
+    {% endif %}
+    {% set verified_dates = exp.links|map(attribute="verified_at")|select|list %}
+    {% if verified_dates %}
+      <p class="small muted exp-verified">verified {{ verified_dates|max }}</p>
+    {% endif %}
+  {% else %}
+    <p class="muted small">No experience links yet for this item.</p>
+  {% endif %}
+</div>
