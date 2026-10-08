@@ -1354,3 +1354,28 @@ html.intro-skip .intro-overlay { display: none; }
 @media print {
   .intro-overlay, .intro-dismiss-toggle { display: none !important; }
 }
+
+/* =========================================================================
+ * Single column
+ * -------------------------------------------------------------------------
+ * Mechanics read this under a car, usually on a phone, often one-handed
+ * between steps -- a side-by-side split means losing your place scanning
+ * back and forth. Every page is one column at every width. This overrides
+ * .cols (and its two/wide-left/three variants, cuore.css:270-272) which
+ * otherwise go two-up above 900px; it does NOT touch toolbars, chip rows,
+ * filter rows, the media/gallery grids, the live-dashboard gauge grids, or
+ * table markup -- those are rows of small controls or data, not a primary/
+ * secondary panel split, and forcing them to one-per-row would make them
+ * worse, not better. Tables get a centred, readable cap instead of
+ * stretching edge-to-edge once they're the only thing in the row.
+ *
+ * If you add a new .cols variant or any other container class meant to lay
+ * two panels of content side by side, add its selector to the rule below
+ * rather than leaving it two-column -- cuore/tests/check_single_column.py
+ * greps for exactly this and will fail the build if a multi-column
+ * grid-template-columns shows up on .cols anywhere outside this block.
+ * ========================================================================= */
+.cols, .cols.two, .cols.wide-left, .cols.three {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.tw { max-width: 960px; margin-left: auto; margin-right: auto; }
