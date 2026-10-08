@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Systems — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/systems.css">
+
+<h1>System dependencies</h1>
+<p class="lede">What may sit upstream of what, and what this car's own history does
+  (or does not yet) corroborate. A dashed or dotted line is a guess, not a finding --
+  read each edge's own note before treating it as diagnosis.</p>
+
+{% if view.findings %}
+<div class="panel tight">
+  <ul style="margin:0;padding:10px 14px">
+    {% for f in view.findings %}<li style="margin-bottom:6px">{{ f }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<h2>Dependency graph</h2>
+<div class="sys-graph-wrap">
+  {{ svg|safe }}
+</div>
+
+<div class="sys-legend panel tight">
+  <div class="sys-legend-row">
+    <b class="small">Node colour (status)</b>
+    <span class="chip status-active">active</span>
+    <span class="chip status-cleared_unverified">cleared, unverified</span>
+    <span class="chip ok">verified clean</span>
+    <span class="chip status-stale">stale / no data</span>
+  </div>
+  <div class="sys-legend-row">
+    <b class="small">Edge line (confidence, A depends on B)</b>
+    <span class="sys-line-sample sys-line-solid"></span><span class="small">confirmed / corroborated</span>
+    <span class="sys-line-sample sys-line-dashed"></span><span class="small">single source</span>
+    <span class="sys-line-sample sys-line-dotted"></span><span class="small">unverified / unknown</span>
+  </div>
+  <p class="small muted" style="margin:6px 0 0">Tap a node to jump to its card below. The number
+    badge on a node is its open code count.</p>
+</div>
+
+{% if view.co_occurrence %}
+<h2>Co-occurrence</h2>
+<div class="tw">
+<table class="sys-corr">
+  <thead><tr><th>Systems</th><th class="n">Sessions together</th><th class="n">A alone</th>
+    <th class="n">B alone</th><th class="n">Lift</th><th>Reading</th></tr></thead>
+  <tbody>
+  {% for row in view.co_occurrence %}
+    <tr>
+      <td><a href="#sys-{{ row.a }}">{{ row.a_label }}</a> &times;
+          <a href="#sys-{{ row.b }}">{{ row.b_label }}</a></td>
+      <td class="n mono">{{ row.sessions_together }}</td>
+      <td class="n mono">{{ row.sessions_a }}</td>
+      <td class="n mono">{{ row.sessions_b }}</td>
+      <td class="n mono">{{ "%.2f"|format(row.lift) if row.lift is not none else "—" }}</td>
+      <td class="small">{{ row.reading }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+
+{% if view.chains %}
+<h2>Possible upstream causes</h2>
+{% for ch in view.chains %}
+  <div class="panel chain-card">
+    <h3>{{ ch.issue }}</h3>
+    {% for u in ch.possible_upstream %}
+      <div class="chain-row">
+        <a class="chip-code sm" href="#sys-{{ u.system }}">{{ u.system_label }}</a>
+        <span class="small">{{ u.why }}</span>
+        {% if u.evidence %}<div class="small muted">{{ u.evidence }}</div>{% endif %}
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+{% endif %}
+
+<h2>Systems</h2>
+{% for c in view.cards %}
+  <div class="panel sys-card" id="sys-{{ c.key }}">
+    <div class="sys-card-head">
+      <h3>{{ c.label }}</h3>
+      <span class="chip {{ c.status_chip_class }}">{{ c.status_label }}</span>
+    </div>
+
+    {% if c.codes %}
+    <p class="small">Codes:
+      {% for code in c.codes %}<a class="chip-code sm" href="/v/{{ vin }}/code/{{ code }}">{{ code }}</a>{% endfor %}
+      {% if c.sessions %} &middot; {{ c.sessions }} session(s){% endif %}
+      {% if c.first %} &middot; {{ c.first }} &rarr; {{ c.last }}{% endif %}</p>
+    {% else %}
+    <p class="muted small">No open codes on record for this system.</p>
+    {% endif %}
+
+    {% if c.depends_on %}
+    <p class="small"><b>Depends on:</b>
+      {% for dep in c.depends_on %}
+        <a class="chip-code sm" href="#sys-{{ dep.system }}" title="{{ dep.source or '' }}">{{ dep.system_label }}</a>
+        <span class="small muted">({{ dep.confidence|lower }})</span>
+        {% if not loop.last %} &middot; {% endif %}
+      {% endfor %}
+    </p>
+    {% for dep in c.depends_on %}
+      <p class="small muted">&bull; {{ dep.system_label }}: {{ dep.why }}
+        {% if dep.source %}<span class="mono">[{{ dep.source }}]</span>{% endif %}</p>
+    {% endfor %}
+    {% endif %}
+
+    {% if c.components %}
+    <p class="small"><b>Components:</b> {{ c.components|join(", ") }}</p>
+    {% endif %}
+
+    {% if c.live_channels %}
+    <h4 class="subhead">Live channels</h4>
+    <ul class="small" style="margin:0 0 8px">
+      {% for lc in c.live_channels %}<li>{{ lc.name }} &mdash; <span class="muted">known-good: {{ lc.band }}</span></li>{% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if c.maintenance_items %}
+    <p class="small"><b>Maintenance due:</b> {{ c.maintenance_items|join(", ") }}</p>
+    {% endif %}
+
+    {% if c.parts %}
+    <h4 class="subhead">Parts</h4>
+    {% for p in c.parts %}{% set compact = True %}{% include "_part_card.html" %}{% endfor %}
+    {% endif %}
+
+    {% set exp = experience_links(family=c.key) if experience_links is defined else {"links": [], "count": 0} %}
+    {% include "_experience.html" %}
+  </div>
+{% else %}
+  <p class="muted">No systems data on file yet.</p>
+{% endfor %}
+
+{% endblock %}

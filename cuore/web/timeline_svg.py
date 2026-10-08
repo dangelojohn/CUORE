@@ -715,4 +715,49 @@ def sparkline(occurrences: list[float], symptoms: list[float],
     return "".join(parts)
 
 
-__all__ = ["render", "lane_layout", "sparkline", "ROW_H", "CONDITIONS_ROW_H", "TOP_PAD"]
+# --- "by system" lane grouping (?lanes=systems) ----------------------------
+
+
+def regroup_by_system(tl: dict[str, Any], code_system: dict[str, str],
+                      system_labels: dict[str, str]) -> dict[str, Any]:
+    """The ``?lanes=systems`` view: the same events, bars lanes regrouped by
+    system (per ``cuore.services.systems_bridge``) instead of DTC family.
+
+    ``code_system`` maps a bare code (e.g. ``"P0455"``) to a system key, as
+    built by :mod:`cuore.web.timeline_routes` from
+    ``systems_bridge.systems_for_code``'s primary role per code seen in
+    this timeline. An event whose code is not in that map keeps its own
+    lane id as its "system" -- so this degrades gracefully to the existing
+    family grouping when ``systems_bridge`` is absent or has not
+    classified a code, rather than dropping anything.
+
+    ``render()``/``lane_layout()`` are already generic over a bars lane's
+    ``id``/``label`` (colour falls back to ``var(--ink-2)`` for an id
+    outside ``_FAMILY_COLOR``, same style/marker grammar otherwise), so
+    nothing else needs to change to draw this -- only the lane grouping."""
+    lanes = tl.get("lanes") or []
+    bars = [ln for ln in lanes if (ln.get("kind") or "bars") == "bars"]
+    other = [ln for ln in lanes if (ln.get("kind") or "bars") != "bars"]
+
+    grouped: dict[str, dict[str, Any]] = {}
+    order: list[str] = []
+    for lane in bars:
+        for e in lane.get("events") or []:
+            label = str(e.get("label") or "")
+            code = label.split("/")[0].strip().upper()
+            sys_key = code_system.get(code) or lane.get("id") or "other"
+            if sys_key not in grouped:
+                grouped[sys_key] = {
+                    "id": sys_key,
+                    "label": system_labels.get(sys_key) or sys_key.replace("_", " ").title(),
+                    "kind": "bars", "events": [],
+                }
+                order.append(sys_key)
+            grouped[sys_key]["events"].append(e)
+
+    new_bars = [grouped[k] for k in order] if grouped else bars
+    return {**tl, "lanes": new_bars + other}
+
+
+__all__ = ["render", "lane_layout", "sparkline", "regroup_by_system",
+          "ROW_H", "CONDITIONS_ROW_H", "TOP_PAD"]

@@ -23,13 +23,15 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from mes import analysis, catalog, code_feel, compact, csvlog, dtc as dtc_mod, dtc_text, experience, fes, modules, paths, scan
+from mes import analysis, catalog, code_feel, compact, csvlog, dtc as dtc_mod, dtc_text, electrical, electrical_inspections, experience, fes, layout_systems, modules, paths, scan
 from mes import dealer as dealer_mod
 from mes import feedback as feedback_mod
+from mes import jobs as jobs_mod
 from mes import notes as notes_mod
 from mes import parts as parts_mod
 from mes import symptoms as symptoms_mod
 from mes import faulttree, verdict
+from mes import systems as systems_mod
 from mes import workup as workup_mod
 from mes.errors import MesError
 
@@ -862,6 +864,31 @@ def dtc_feel(code: str) -> str:
     return _guard(lambda: code_feel.lookup(code))
 
 
+@mcp.tool()
+def systems_for_code(code: str, description: str = "") -> str:
+    """Which vehicle system(s) a DTC implicates, as a sourced list.
+
+    Primary system(s) first (exact-code table, then any-U-code -> network,
+    then a P1xxx description-keyword match, then the generic SAE prefix/
+    range fallback), followed by whatever systems those primaries'
+    ``depends_on`` edges name as upstream (e.g. P0455 -> evap primary, with
+    electrical_supply and fuel upstream). Every row carries a confidence and
+    a source; nothing is guessed silently."""
+    return _guard(lambda: systems_mod.systems_for_code(code, description))
+
+
+@mcp.tool()
+def system_correlation(vin: str) -> str:
+    """Project one vehicle's whole DTC corpus onto the vehicle-systems graph.
+
+    Per-system code/session counts and status, system-pair co-occurrence
+    (sessions >= 2, with a lift figure), and dependency "chains" naming
+    systems that could be upstream of each affected one -- worded as a lead,
+    never a proven cause. Built from the same per-session data
+    ``workup(vin=...)`` draws on; simulation logs excluded."""
+    return _guard(lambda: systems_mod.correlate(vin))
+
+
 # --- CSV recordings (graph subsystem export) ------------------------------
 
 
@@ -1004,6 +1031,123 @@ def part_info(key: str = "", code: str = "", job: str = "") -> str:
             return parts_mod.for_job(job)
         return parts_mod.all()
     return _guard(run)
+
+
+@mcp.tool()
+def electrical_path(code: str) -> str:
+    """The electrical path for a DTC: elements, hop roles, sources/
+    confidence, cross-system interactions and inspection steps.
+
+    Curated for the EVAP family (P0440/P0441/P0455/P0456/P1CEA), the
+    network/U-code cascade family (U0100, U1700-U1716, U1765, U1960,
+    U2054, B1040), B1176 (window riser, plain-words only), C141B/C141C and
+    the P0300-04 misfire family. Everything else returns an empty path with
+    a note, not an error -- this module never invents a circuit it has no
+    source for.
+    """
+    def run():
+        return electrical.code_electrical_path(code)
+    return _guard(run)
+
+
+@mcp.tool()
+def physical_path(code: str) -> str:
+    """The physical layout path for a DTC: electrical hops first (from
+    ``electrical_path``, when curated), then the mechanical/hydraulic/
+    pneumatic path -- fuel, EVAP, air intake/boost, misfire families.
+
+    Curated physical families: EVAP (P0440/P0441/P0455/P0456/P1CEA), fuel
+    trim (P0171/P0172) and the P0300-04 misfire family; B1176 (window
+    riser) is included at a plain-words level. Everything else returns
+    whatever electrical path is known (or an empty path with a note) --
+    this module never invents a hose route or a part location it has no
+    source for.
+    """
+    def run():
+        return layout_systems.code_physical_path(code)
+    return _guard(run)
+
+
+@mcp.tool()
+def electrical_inspection_add(vin: str, element: str, condition: str,
+                               by: str = "technician", note: str = "",
+                               media_ids: str = "") -> str:
+    """Record what was actually found at one electrical element on one VIN.
+
+    ``element`` is an id from ``mes.electrical.ELEMENTS`` (e.g. "xy201",
+    "g003a", "f82", "esim_connector") -- any string is accepted so a
+    not-yet-catalogued element can still be logged.
+    ``condition`` is one of: ok, corroded, chafed, loose, water, repaired,
+    replaced, not_found. ``media_ids`` is a comma-separated list.
+    Append-only -- never overwrites a prior finding.
+    """
+    def run():
+        ids = [m.strip() for m in media_ids.split(",") if m.strip()]
+        return electrical_inspections.add(vin, element, condition, by=by,
+                                           note=note, media_ids=ids)
+    return _guard(run)
+
+
+@mcp.tool()
+def electrical_inspections(vin: str, element: str = "") -> str:
+    """Inspection history for a VIN, optionally filtered to one element.
+
+    Oldest first. Use ``mes.electrical_inspections.latest`` (not exposed
+    directly as a tool) for just the most recent finding -- or filter this
+    list's last row by element.
+    """
+    def run():
+        rows = electrical_inspections.load(vin=vin, element=element)
+        return {"vin": vin, "element": element or None, "count": len(rows),
+                "inspections": rows}
+    return _guard(run)
+
+
+# --- jobs: one case per visit -----------------------------------------------
+
+
+@mcp.tool()
+def job_open(vin: str, technician: str = "", complaint: str = "") -> str:
+    """Open a new job (case) for this vehicle -- one per shop visit, aligning
+    the driver's complaint, the mechanic's hypotheses, test results and
+    malfunctions into one logical flow.
+
+    Args:
+        complaint: the driver's own words for what's wrong.
+    """
+    return _guard(lambda: jobs_mod.open(vin, technician=technician, complaint=complaint))
+
+
+@mcp.tool()
+def job_current(vin: str) -> str:
+    """The newest not-closed job for this vehicle, or null if none is open."""
+    return _guard(lambda: jobs_mod.current(vin))
+
+
+@mcp.tool()
+def job_add_action(job_id: str, kind: str, text: str, ref_json: str = "") -> str:
+    """Record one action taken against a job: a test, an inspection, a
+    repair, a part swap, a clear, or a free-text note.
+
+    Args:
+        kind: one of test | inspection | repair | part | clear | note.
+        ref_json: optional JSON object {"kind","id","label"} citing the
+            real record this action refers to.
+    """
+    def run():
+        ref = json.loads(ref_json) if ref_json.strip() else None
+        return jobs_mod.add_action(job_id, kind, text, ref=ref)
+    return _guard(run)
+
+
+@mcp.tool()
+def job_set_hypothesis(job_id: str, hyp_id: str, status: str = "",
+                       next_test: str = "") -> str:
+    """Change a hypothesis's status (open | supported | refuted | confirmed)
+    and/or its next test. Evidence itself is attached by
+    ``cuore.services.jobs_bridge`` from real records, never typed in here."""
+    return _guard(lambda: jobs_mod.set_hypothesis(
+        job_id, hyp_id, status=status or None, next_test=next_test or None))
 
 
 # --- resources -------------------------------------------------------------

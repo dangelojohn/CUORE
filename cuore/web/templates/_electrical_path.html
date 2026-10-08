@@ -1,0 +1,52 @@
+{# One code's electrical path as a horizontal stepper: fuse -> connector ->
+   component -> ground (or whatever role sequence the bridge returns), each
+   hop with its location, confidence chip and latest inspection condition,
+   plus "how each system interacts with this problem" and a link back into
+   the full layout diagram, pre-filtered to this code.
+
+   Included by code.html and report.html. Context expected: vin, code.
+   ``electrical_path_for`` is a Jinja global registered by
+   cuore/web/electrical_routes.py as a side effect of importing it (same
+   pattern as timeline_routes's ``code_feel`` / media_routes's
+   ``media_strip``) -- guarded here so every page that includes this
+   partial still renders before app.py wires that router in. #}
+{% set elec = electrical_path_for(vin, code) if electrical_path_for is defined and code else None %}
+{% if elec %}
+<link rel="stylesheet" href="/static/electrical.css">
+<div class="panel elec-path-card">
+  <h3>Electrical path for {{ elec.code }}</h3>
+  {% if elec.found %}
+    <div class="elec-stepper">
+      {% for hop in elec.path %}
+        <div class="elec-hop">
+          <div class="elec-hop-role">{{ hop.role }}</div>
+          <div class="elec-hop-label">{{ hop.label }}</div>
+          <div class="small muted">{{ (hop.location or {}).description }}</div>
+          <div class="elec-hop-chips">
+            <span class="chip plain sm">{{ (hop.location or {}).confidence or hop.confidence }} confidence</span>
+            {% if hop.condition %}
+              <span class="chip {{ 'ok' if hop.condition == 'ok' else ('status-active' if hop.condition == 'not_found' else 'status-cleared_unverified') }} sm">{{ hop.condition|replace("_", " ") }}</span>
+            {% else %}
+              <span class="chip plain sm">never inspected</span>
+            {% endif %}
+          </div>
+        </div>
+        {% if not loop.last %}<div class="elec-hop-arrow" aria-hidden="true">&rarr;</div>{% endif %}
+      {% endfor %}
+    </div>
+
+    {% if elec.systems_interaction %}
+      <h4 class="small">How each system interacts with this</h4>
+      <ul class="small">
+        {% for s in elec.systems_interaction %}
+          <li><b>{{ s.system }}</b>: {{ s.how }}
+            <span class="muted">[{{ s.confidence }} confidence, source: {{ s.source }}]</span></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% else %}
+    <p class="muted small">No electrical path known yet for {{ elec.code }}.</p>
+  {% endif %}
+  <p><a class="btn" href="{{ elec.layout_href }}">Open in layout &rarr;</a></p>
+</div>
+{% endif %}

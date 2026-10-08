@@ -148,6 +148,55 @@ def _bridge():
         return None
 
 
+def _systems_bridge():
+    """``cuore.services.systems_bridge``, or ``None`` if it has not landed --
+    used only by ``?lanes=systems`` (see ``_code_to_system_map`` below)."""
+    try:
+        from ..services import systems_bridge
+        return systems_bridge
+    except ImportError:
+        return None
+
+
+def _code_to_system_map(tl: dict[str, Any]) -> tuple[dict[str, str], dict[str, str]]:
+    """Best-effort ``code -> system key`` map for ``?lanes=systems``, built
+    by calling ``systems_bridge.systems_for_code()`` once per distinct code
+    this timeline's bars lanes carry and keeping each code's ``primary``
+    system. Empty (which degrades ``regroup_by_system`` to the existing
+    family grouping) if ``systems_bridge`` is not built yet, or classifies
+    none of this car's codes."""
+    bridge = _systems_bridge()
+    code_system: dict[str, str] = {}
+    system_labels: dict[str, str] = {}
+    if bridge is None:
+        return code_system, system_labels
+    try:
+        for s in bridge.systems() or []:
+            if s.get("key"):
+                system_labels[s["key"]] = s.get("label") or s["key"]
+    except Exception:  # noqa: BLE001 -- a knowledge-table miss must never 500 this page
+        pass
+    codes: set[str] = set()
+    for lane in tl.get("lanes", []):
+        if (lane.get("kind") or "bars") != "bars":
+            continue
+        for e in lane.get("events") or []:
+            for part in str(e.get("label") or "").split("/"):
+                part = part.strip().upper()
+                if part:
+                    codes.add(part)
+    for code in codes:
+        try:
+            roles = bridge.systems_for_code(code) or []
+        except Exception:  # noqa: BLE001
+            continue
+        primary = next((r for r in roles if r.get("role") == "primary"),
+                       roles[0] if roles else None)
+        if primary and primary.get("system"):
+            code_system[code] = primary["system"]
+    return code_system, system_labels
+
+
 def _timeline(vin: str) -> dict[str, Any]:
     bridge = _bridge()
     if bridge is None:
@@ -286,11 +335,19 @@ def _verdict_class(verdict: str) -> str:
 
 @router.get("/v/{vin}/timeline", response_class=HTMLResponse)
 def timeline_page(request: Request, vin: str, axis: str = "time",
-                  range: str = "all", saved: str = "", error: str = "") -> HTMLResponse:
+                  range: str = "all", lanes: str = "family",
+                  saved: str = "", error: str = "") -> HTMLResponse:
     """Swimlane timeline: every code family's presence beside every
     recorded driver symptom, note and repair -- so "does this car actually
-    feel wrong" can be read off against "what the logs say" at a glance."""
+    feel wrong" can be read off against "what the logs say" at a glance.
+
+    ``?lanes=systems`` regroups the bars lanes by system (per
+    ``cuore.services.systems_bridge``) instead of DTC family -- see
+    ``timeline_svg.regroup_by_system``. Everything else on the page (the
+    by-family correlation table, findings, symptom form) is unaffected;
+    only the swimlane chart's own grouping changes."""
     axis = axis if axis in ("time", "odometer") else "time"
+    lanes_mode = "systems" if lanes == "systems" else "family"
     dossier = _dossier(vin)
     tl = _timeline(vin)
     tl = _apply_range(tl, range)
@@ -298,11 +355,17 @@ def timeline_page(request: Request, vin: str, axis: str = "time",
     for row in tl.get("correlation", []):
         row["verdict_class"] = _verdict_class(row.get("verdict", ""))
 
-    svg = timeline_svg.render(tl, axis=axis, width=1000)
-    layout = timeline_svg.lane_layout(tl)
+    tl_chart = tl
+    if lanes_mode == "systems":
+        code_system, system_labels = _code_to_system_map(tl)
+        tl_chart = timeline_svg.regroup_by_system(tl, code_system, system_labels)
+
+    svg = timeline_svg.render(tl_chart, axis=axis, width=1000)
+    layout = timeline_svg.lane_layout(tl_chart)
 
     response = _page(request, "timeline.html", vin=vin, tl=tl, svg=svg, layout=layout,
-                     axis=axis, range_key=range, bar=_vehicle_bar(vin, dossier),
+                     axis=axis, range_key=range, lanes_mode=lanes_mode,
+                     bar=_vehicle_bar(vin, dossier),
                      tab="timeline", saved=bool(saved), symptom_error=error,
                      symptom_tags=tl.get("symptom_tags") or SYMPTOM_TAGS,
                      condition_tags=tl.get("conditions") or CONDITION_TAGS,

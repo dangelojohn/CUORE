@@ -1,0 +1,24 @@
+{# Compact system chips: "EVAP (primary) · Electrical (upstream?)".
+
+   Context expected: `badges` -- a list shaped like
+   systems_for_code(code)'s return ({system, role, confidence, source}).
+   `vin` must be in scope (every page that includes this already has it)
+   so the chip can link through to that system's card on /v/{vin}/systems.
+
+   A low-confidence edge (SINGLE-SOURCE/UNKNOWN) gets a trailing "?" on
+   its role rather than a second colour -- confidence is never
+   colour-only here either, same rule the timeline's legend already
+   follows. Renders nothing when `badges` is empty/undefined. #}
+{% set badges = badges if badges is defined else [] %}
+{% if badges %}
+<span class="sysb-row">
+  {% for b in badges %}
+    {% set _low = (b.confidence or "")|upper in ["SINGLE-SOURCE", "UNKNOWN"] %}
+    <a class="sysb-chip sysb-{{ b.role }}"
+       href="/v/{{ vin }}/systems#sys-{{ b.system }}"
+       title="{{ b.source or '' }}{% if _low %} (not yet corroborated){% endif %}">{{
+         system_label(b.system) if system_label is defined else (b.system|title) }}
+      <span class="sysb-role">({{ b.role }}{{ "?" if _low else "" }})</span></a>
+  {% endfor %}
+</span>
+{% endif %}

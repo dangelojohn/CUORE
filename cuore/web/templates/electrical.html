@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Electrical — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/media.css">
+<link rel="stylesheet" href="/static/electrical.css">
+
+<h1>Electrical</h1>
+
+{% if systems_filter %}
+  <div class="elec-system-row" role="group" aria-label="Filter by system">
+    {% for s in systems_filter %}
+      <a class="elec-chip{{ ' active' if s.active }}"
+         href="/v/{{ vin }}/electrical{{ '' if s.key == 'all' else '?system=' + s.key }}">
+        {% if s.color %}<span class="elec-chip-dot" style="background:{{ s.color }}"></span>{% endif %}
+        {{ s.label }}
+      </a>
+    {% endfor %}
+  </div>
+{% endif %}
+
+{% if code %}
+  <div class="panel tight elec-code-banner">
+    <p class="small" style="padding:10px 14px;margin:0">
+      Showing the path for <span class="chip-code sm">{{ code }}</span>
+      {% if not path_data.found %}<span class="muted">— no known path for this code yet</span>{% endif %}
+      &middot; <a href="/v/{{ vin }}/electrical">Clear highlight</a>
+      &middot; <a href="/v/{{ vin }}/code/{{ code }}">Back to {{ code }} &rarr;</a>
+    </p>
+  </div>
+{% endif %}
+
+{% if saved %}<div class="note good"><span class="lab">Recorded</span>Inspection saved.</div>{% endif %}
+{% if inspect_error %}<div class="note alert"><span class="lab">Not recorded</span>{{ inspect_error }}</div>{% endif %}
+
+<div class="elec-diagram">
+  {{ svg|safe }}
+</div>
+
+<h2>Elements</h2>
+<div class="elec-cards">
+{% for c in cards %}
+  <div class="panel elec-card" id="el-{{ c.id }}">
+    <h3>{{ c.label }} <span class="chip plain sm">{{ c.kind }}</span>
+      {% if c.system_label %}<span class="chip plain sm">{{ c.system_label }}</span>{% endif %}
+      {% if c.latest %}
+        <span class="chip {{ 'ok' if c.latest.condition == 'ok' else ('status-active' if c.latest.condition == 'not_found' else 'status-cleared_unverified') }}">{{ condition_labels.get(c.latest.condition, c.latest.condition) }}</span>
+      {% else %}
+        <span class="chip plain">never inspected</span>
+      {% endif %}
+    </h3>
+    <p class="small muted">{{ c.zone_label }} &mdash; {{ c.location.description }}
+      <span class="chip plain sm">{{ c.location.confidence }} confidence</span>
+      <span class="small">source: {{ c.location.source }}</span></p>
+    {% if c.feeds %}<p class="small">Feeds: {% for f in c.feeds %}<a href="#el-{{ f }}" class="mono">{{ f }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+    {% if c.part_of_systems %}<p class="small">Systems: {% for s in c.part_of_systems %}<span class="chip plain sm">{{ s }}</span>{% endfor %}</p>{% endif %}
+    {% if c.tsb_refs %}<p class="small">Bulletins: {% for t in c.tsb_refs %}<span class="mono small">{{ t }}</span>{% endfor %}</p>{% endif %}
+    {% if c.inspection_hint %}<p class="small"><b>How to check:</b> {{ c.inspection_hint }}</p>{% endif %}
+    {% if c.notes %}<p class="small muted">{{ c.notes }}</p>{% endif %}
+    {% if c.latest %}
+      <p class="small muted">Last inspected {{ c.latest.at }} by {{ c.latest.by }}
+        {% if c.latest.note %}&mdash; {{ c.latest.note }}{% endif %}</p>
+    {% endif %}
+
+    <details class="elec-inspect">
+      <summary class="btn">Record inspection</summary>
+      <form method="post" action="/v/{{ vin }}/electrical/inspect" style="margin-top:8px">
+        <input type="hidden" name="element" value="{{ c.id }}">
+        <input type="hidden" name="redirect_to" value="{{ redirect_to }}">
+        <div class="field"><label>Condition</label>
+          <div class="tag-grid">
+            {% for cond in conditions %}
+              <span class="tag-chip {{ 'normally' if cond == 'ok' }}">
+                <input type="radio" id="cond_{{ c.id }}_{{ cond }}" name="condition" value="{{ cond }}" required>
+                <label for="cond_{{ c.id }}_{{ cond }}">{{ condition_labels.get(cond, cond) }}</label>
+              </span>
+            {% endfor %}
+          </div>
+        </div>
+        <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:10px">
+          <div class="field" style="margin-bottom:0"><label for="by_{{ c.id }}">By</label>
+            <input type="text" id="by_{{ c.id }}" name="by" value="mechanic">
+          </div>
+          <div class="field" style="margin-bottom:0"><label for="note_{{ c.id }}">Note (optional)</label>
+            <input type="text" id="note_{{ c.id }}" name="note" maxlength="500">
+          </div>
+        </div>
+        <p><button class="btn primary" type="submit">Save inspection</button></p>
+      </form>
+    </details>
+
+    {% set target_kind = "electrical" %}{% set target_id = c.id %}
+    {% set compact = True %}
+    {% include "_media_attach.html" %}
+  </div>
+{% endfor %}
+</div>
+
+{% endblock %}

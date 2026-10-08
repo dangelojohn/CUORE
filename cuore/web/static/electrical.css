@@ -1,0 +1,77 @@
+/* Electrical layout diagram (cuore/web/templates/electrical.html,
+ * _electrical_path.html). Appended as its own sheet, same posture as
+ * media.css -- loaded only by the pages that need it.
+ *
+ * The diagram is a fixed-aspect SVG that must never force the page itself
+ * to scroll sideways at 400px: it gets its own horizontally-scrolling box
+ * (same pattern as .tl-scroll in cuore.css), and the box's own max-width
+ * keeps it from overflowing on a narrow phone before that scrollbar would
+ * even be needed.
+ */
+
+.elec-diagram {
+  overflow-x: auto; max-width: 100%; border: 1px solid var(--rule);
+  border-radius: var(--radius); background: var(--surface); padding: 6px;
+  margin-bottom: 14px;
+}
+.elec-diagram svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+
+.elec-cards { display: flex; flex-direction: column; gap: 10px; }
+.elec-card h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.elec-inspect summary { cursor: pointer; }
+.elec-inspect { margin: 10px 0; }
+
+.elec-code-banner a { color: var(--ink-2); }
+
+/* System filter chips (?system=): a horizontally-scrolling row so 15 chips
+ * never force the page itself to scroll sideways at 400px (same
+ * .tl-scroll-style pattern as .elec-diagram/.elec-stepper above). Each chip
+ * is a full 44px tap target, not just its visible padding. */
+.elec-system-row {
+  display: flex; flex-wrap: nowrap; gap: 6px; overflow-x: auto;
+  padding: 2px 2px 8px; margin-bottom: 10px;
+}
+.elec-chip {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; padding: 0 14px; border: 1px solid var(--rule);
+  border-radius: 999px; background: var(--surface-2); color: var(--ink-2);
+  font-size: 13px; text-decoration: none; white-space: nowrap;
+}
+.elec-chip.active {
+  background: var(--accent); color: var(--surface); border-color: var(--accent);
+}
+.elec-chip-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+
+/* The code-path stepper on code.html / report.html: a horizontal flow of
+ * hop cards with an arrow between them, in its own scrolling box so a
+ * four/five-hop path never forces the page to scroll sideways at 400px. */
+.elec-path-card { margin: 14px 0; }
+.elec-stepper {
+  display: flex; align-items: stretch; gap: 4px; overflow-x: auto;
+  padding-bottom: 4px; margin: 8px 0 10px;
+}
+.elec-hop {
+  flex: none; min-width: 140px; max-width: 180px; padding: 8px 10px;
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.elec-hop-role {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--ink-3); margin-bottom: 2px;
+}
+.elec-hop-label { font-weight: 650; font-size: 13px; margin-bottom: 2px; }
+.elec-hop-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.elec-hop-arrow {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  min-width: 20px; color: var(--ink-3); font-size: 16px;
+}
+
+@media (max-width: 400px) {
+  .elec-hop { min-width: 120px; max-width: 150px; }
+}
+
+/* .chip.sm is only pre-scoped under .count-badge in cuore.css -- this page
+ * and the stepper use the small chip size in several other contexts. */
+.elec-card .chip.sm, .elec-hop-chips .chip.sm, .elec-code-banner .chip.sm {
+  font-size: 9px; padding: 1px 5px;
+}

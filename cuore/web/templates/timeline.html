@@ -57,14 +57,18 @@
 <h2>Swimlane</h2>
 <div class="tl-toolbar">
   <span class="grp">Axis:
-    <a href="?axis=time&range={{ range_key }}" {% if axis == "time" %}class="on"{% endif %}>Time</a>
-    <a href="?axis=odometer&range={{ range_key }}" {% if axis == "odometer" %}class="on"{% endif %}>Odometer</a>
+    <a href="?axis=time&range={{ range_key }}&lanes={{ lanes_mode }}" {% if axis == "time" %}class="on"{% endif %}>Time</a>
+    <a href="?axis=odometer&range={{ range_key }}&lanes={{ lanes_mode }}" {% if axis == "odometer" %}class="on"{% endif %}>Odometer</a>
   </span>
   <span class="grp">Range:
-    <a href="?axis={{ axis }}&range=all" {% if range_key == "all" %}class="on"{% endif %}>All</a>
-    <a href="?axis={{ axis }}&range=1y" {% if range_key == "1y" %}class="on"{% endif %}>1y</a>
-    <a href="?axis={{ axis }}&range=90d" {% if range_key == "90d" %}class="on"{% endif %}>90d</a>
-    <a href="?axis={{ axis }}&range=30d" {% if range_key == "30d" %}class="on"{% endif %}>30d</a>
+    <a href="?axis={{ axis }}&range=all&lanes={{ lanes_mode }}" {% if range_key == "all" %}class="on"{% endif %}>All</a>
+    <a href="?axis={{ axis }}&range=1y&lanes={{ lanes_mode }}" {% if range_key == "1y" %}class="on"{% endif %}>1y</a>
+    <a href="?axis={{ axis }}&range=90d&lanes={{ lanes_mode }}" {% if range_key == "90d" %}class="on"{% endif %}>90d</a>
+    <a href="?axis={{ axis }}&range=30d&lanes={{ lanes_mode }}" {% if range_key == "30d" %}class="on"{% endif %}>30d</a>
+  </span>
+  <span class="grp">Group:
+    <a href="?axis={{ axis }}&range={{ range_key }}&lanes=family" {% if lanes_mode == "family" %}class="on"{% endif %}>Family</a>
+    <a href="?axis={{ axis }}&range={{ range_key }}&lanes=systems" {% if lanes_mode == "systems" %}class="on"{% endif %}>System</a>
   </span>
 </div>
 

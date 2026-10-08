@@ -20,6 +20,9 @@ __all__ = [
     "knowledge",
     "experience",
     "render",
+    "electrical",
+    "electrical_inspections",
+    "systems",
 ]
 
 __version__ = "2.0.0"
