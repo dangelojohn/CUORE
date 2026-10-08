@@ -18,3 +18,5 @@ Conventions used everywhere: every fact carries a date, a source and a confidenc
 ## Why "CUORE"
 
 Cuore is Italian for heart. The Stelvio, Giulia, Levante and Grecale are special to the people who own them and to the mechanic who specialises in them. The app is written with that care: diagnose on evidence, prove the repair, keep the car's whole story, and hand the owner an honest report.
+
+The owners' maxim is passion and the joy of driving. The mechanic makes it his own, and CUORE exists to help him achieve it in every job: the car goes back driving the way it should, with the fix proven and its story told honestly.
