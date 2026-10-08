@@ -42,6 +42,20 @@ def _parts_for_code(code: str) -> list[dict[str, Any]]:
         return []
 
 
+def _cases_for(vin: str, codes: list[str]) -> list[dict[str, Any]]:
+    """Prior cases for this vehicle's model matching these codes, or ``[]``
+    -- the cases bridge may not be wired (``cases_api`` is not registered
+    on ``app.py`` yet; see ``cuore/api/cases.py``)."""
+    try:
+        from ..services import cases_bridge
+    except Exception:  # noqa: BLE001 -- optional dependency
+        return []
+    try:
+        return list(cases_bridge.match(vin, codes).get("matches") or [])
+    except Exception:  # noqa: BLE001 -- a report must never 500 on this
+        return []
+
+
 def _photos_for(vin: str, limit: int = 6) -> list[dict[str, Any]]:
     """Up to ``limit`` media rows for this vehicle, or ``[]`` -- the media
     library may not be wired."""
@@ -138,6 +152,7 @@ def _report_context(vin: str) -> dict[str, Any]:
         "experience": _experience_for(view["open_work"], view["codes"]),
         "notes": notes,
         "photos": _photos_for(vin, 6),
+        "cases": _cases_for(vin, [c["code"] for c in view["codes"]]),
     }
 
 

@@ -19,19 +19,23 @@ Design notes
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
 from mes import analysis, catalog, code_feel, compact, csvlog, dtc as dtc_mod, dtc_text, electrical, electrical_inspections, experience, fes, layout_systems, modules, paths, scan
+from mes import cases as cases_mod
 from mes import dealer as dealer_mod
 from mes import feedback as feedback_mod
 from mes import jobs as jobs_mod
 from mes import notes as notes_mod
 from mes import parts as parts_mod
+from mes import shop as shop_mod
 from mes import symptoms as symptoms_mod
 from mes import faulttree, verdict
 from mes import systems as systems_mod
+from mes import tools_kb
+from mes import tool_usage as tool_usage_mod
 from mes import workup as workup_mod
 from mes.errors import MesError
 
@@ -1148,6 +1152,150 @@ def job_set_hypothesis(job_id: str, hyp_id: str, status: str = "",
     ``cuore.services.jobs_bridge`` from real records, never typed in here."""
     return _guard(lambda: jobs_mod.set_hypothesis(
         job_id, hyp_id, status=status or None, next_test=next_test or None))
+
+
+# --- tools: what to bring, what was used, what was learned -----------------
+
+
+@mcp.tool()
+def tool_recommend(step: str) -> str:
+    """Tools recommended for one job/step key (e.g. "oil_change",
+    "turbo_replacement", "evap_smoke_test"), each with kind, spec (or
+    UNKNOWN -- confirm on the car / service manual), why it's needed, and
+    any torque spec resolved live from the torque library. A family prefix
+    like "evap" unions every evap_* step. Unknown key returns an empty list
+    -- never an invented tool."""
+    return _guard(lambda: {"step": step, "tools": tools_kb.recommend(step)})
+
+
+@mcp.tool()
+def tool_usage_add(vin: str, step: str, job_id: str = "", by: str = "",
+                   tools_used_json: str = "[]", missing_tools_json: str = "[]",
+                   would_buy_json: str = "[]", time_min: Optional[float] = None) -> str:
+    """Record what a mechanic actually used at release for one job/step:
+    the tools used (each right/wrong/unsure with a note), tools that were
+    missing, and tools he'd buy next time and why. This is the learning
+    loop -- the next identical job (this VIN or any other) shows this
+    first via ``tool_learn``.
+
+    Args:
+        tools_used_json: JSON list of {"tool","was_right","note"} -- "tool"
+            is either a mes.tools_kb.TOOLS key or free text for a tool the
+            catalogue doesn't know yet; "was_right" is yes|no|unsure.
+        missing_tools_json: JSON list of free-text strings.
+        would_buy_json: JSON list of {"name","why"}.
+    """
+    def run():
+        tools_used = json.loads(tools_used_json) if tools_used_json.strip() else []
+        missing_tools = json.loads(missing_tools_json) if missing_tools_json.strip() else []
+        would_buy = json.loads(would_buy_json) if would_buy_json.strip() else []
+        return tool_usage_mod.add(vin, step, job_id=job_id, by=by, tools_used=tools_used,
+                                  missing_tools=missing_tools, would_buy=would_buy,
+                                  time_min=time_min)
+    return _guard(run)
+
+
+@mcp.tool()
+def tool_learn(step: str, vin: str = "") -> str:
+    """What mechanics actually used last time for this job/step, aggregated:
+    top tools used, which were flagged wrong (with notes), buy suggestions
+    (with counts and reasons), and tools reported missing. Scoped to this
+    VIN first if given and it has reviews, else every vehicle -- a lesson
+    from one car should surface on the next identical job on any car."""
+    return _guard(lambda: tool_usage_mod.learn(step, vin=vin or None))
+
+
+@mcp.tool()
+def tool_inventory_set(tool: str, status: str, note: str = "") -> str:
+    """Record whether the shop has this tool right now. ``status`` is
+    "owned" or "not_owned" -- a simple garage-wide owned/not-owned list,
+    not a full asset ledger. ``tool`` is a ``mes.tools_kb.TOOLS`` key, or
+    free text for a tool the catalogue doesn't know yet."""
+    return _guard(lambda: tool_usage_mod.inventory_set(tool, status, note=note))
+
+
+@mcp.tool()
+def tool_inventory_list() -> str:
+    """The garage's current tool inventory: every tool with a recorded
+    owned/not_owned status, keyed by tool."""
+    return _guard(lambda: {"inventory": tool_usage_mod.inventory_list()})
+
+
+# --- shop: one car at a time ------------------------------------------------
+
+
+@mcp.tool()
+def shop_intake(vin: str, complaint: str = "", technician: str = "") -> str:
+    """Start this car: register a shop visit and open its linked Job in one
+    step.
+
+    Args:
+        complaint: the driver's own words for what's wrong.
+    """
+    return _guard(lambda: shop_mod.intake(vin, complaint, technician=technician))
+
+
+@mcp.tool()
+def shop_release(visit_id: str, dossier_verified: bool = False,
+                 report_printed: bool = False, labels_printed: bool = False,
+                 parts_logged: bool = False, tools_reviewed: bool = False,
+                 notes: str = "", reason: str = "") -> str:
+    """Release a car from the bay. Advises and records -- never blocks on an
+    unmet checklist item. ``dossier_verified`` must come from this car's own
+    dossier verdict (e.g. ``diagnosis_verdict``/``workup``) being
+    ``VERIFIED_CLEAN`` -- it is not something to assert freely, since a
+    mechanic cannot tick a box into verification, only proof from the car
+    does. When not verified, ``reason`` (if given) is recorded as the
+    release's unverified-override reason and the visit's outcome becomes
+    ``released_unverified`` instead of ``fixed``. Closes the linked Job via
+    ``mes.jobs`` if it is still open."""
+    checks = {"report_printed": report_printed, "labels_printed": labels_printed,
+             "parts_logged": parts_logged, "tools_reviewed": tools_reviewed,
+             "notes": notes}
+    return _guard(lambda: shop_mod.release(
+        visit_id, checks, dossier_verified=dossier_verified, reason=reason or None))
+
+
+# --- cases: what the last one with these codes needed ----------------------
+
+
+def _codes_from_csv(codes: str) -> list[str]:
+    return [c.strip() for c in (codes or "").split(",") if c.strip()]
+
+
+@mcp.tool()
+def cases_match(vin: str, codes: str = "") -> str:
+    """Prior cases for this vehicle's model (never this VIN's own), ranked
+    by outcome fixed-and-verified first, then code overlap, then family
+    overlap. Each result carries a ``similarity`` score and a
+    ``what_to_expect`` sentence worded "on the last <model> with these
+    codes ..." -- a prior car's fix is never presented as proven for this
+    one.
+
+    Args:
+        codes: comma-separated DTCs to match against (e.g. "P0440,P0455").
+            Leave empty to rank every case for this model with no code
+            overlap signal -- still useful for outcome/family ranking, but
+            less specific.
+    """
+    return _guard(lambda: cases_mod.match(vin, _codes_from_csv(codes)))
+
+
+@mcp.tool()
+def cases_prefill(vin: str, codes: str = "") -> str:
+    """A suggested starting point for a new job on this vehicle, built from
+    the single best-matching prior case (``cases_match``'s top result):
+    suggested hypotheses with their prior final status and key evidence,
+    an ordered path with prior minutes per step, tools to have ready
+    (merged with this shop's own have/not_available status), parts likely
+    needed, known pitfalls, and total expected minutes. Returns an honest
+    empty prefill (not an error) when no prior case matches.
+
+    Args:
+        codes: comma-separated DTCs (e.g. "P0440,P0455"); see
+            ``cases_match``.
+    """
+    return _guard(lambda: cases_mod.prefill(vin, _codes_from_csv(codes)))
 
 
 # --- resources -------------------------------------------------------------
