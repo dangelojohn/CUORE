@@ -24,23 +24,27 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from mes.errors import MesError  # noqa: E402  -- needs bootstrap to have run
 
-from .api import checklists as checklists_api, dossier as dossier_api, feedback as feedback_api, known_good, live, live_ui, logs, media as media_api, parts as parts_api, recordings, reference, system, timeline as timeline_api, tools as tools_api, experience as experience_api, vehicles  # noqa: E402
+from .api import checklists as checklists_api, dossier as dossier_api, electrical as electrical_api, feedback as feedback_api, jobs as jobs_api, known_good, live, live_ui, logs, media as media_api, parts as parts_api, recordings, reference, system, systems as systems_api, timeline as timeline_api, tools as tools_api, experience as experience_api, vehicles  # noqa: E402
 from .config import Settings, load  # noqa: E402
 from .models import ErrorBody  # noqa: E402
 from .services.errors import BridgeError  # noqa: E402
 from .web import dashboard_routes  # noqa: E402
 from .web import drivetrain_routes  # noqa: E402
 from .web import dossier_routes  # noqa: E402
+from .web import electrical_routes  # noqa: E402
 from .web import labels_routes  # noqa: E402
 from .web import live_dashboard_routes  # noqa: E402
 from .web import media_routes  # noqa: E402
+from .web import modules_routes  # noqa: E402
 from .web import parts_routes  # noqa: E402
 from .web import report_routes  # noqa: E402
 from .web import routes as web_routes  # noqa: E402
 from .web import service_routes  # noqa: E402
+from .web import systems_routes  # noqa: E402
 from .web import timeline_routes  # noqa: E402
 from .web import tools_routes  # noqa: E402
 from .web import inbox_routes  # noqa: E402
+from .web import jobs_routes  # noqa: E402
 
 log = logging.getLogger("cuore")
 
@@ -126,6 +130,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(media_api.router, prefix="/api")
     app.include_router(parts_api.router, prefix="/api")
     app.include_router(feedback_api.router, prefix="/api")
+    app.include_router(jobs_api.router, prefix="/api")
+    app.include_router(systems_api.router, prefix="/api")
+    app.include_router(electrical_api.router, prefix="/api")
     app.include_router(dashboard_routes.api_router, prefix="/api")
     app.include_router(service_routes.api_router, prefix="/api")
     app.include_router(drivetrain_routes.api_router, prefix="/api")
@@ -139,10 +146,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(timeline_routes.router)
     app.include_router(tools_routes.router)
     app.include_router(inbox_routes.router)
+    app.include_router(jobs_routes.router)
     app.include_router(live_dashboard_routes.router)
     app.include_router(media_routes.router)
     app.include_router(parts_routes.router)
     app.include_router(report_routes.router)
+    app.include_router(systems_routes.router)
+    app.include_router(electrical_routes.router)
+    app.include_router(modules_routes.router)
 
     app.mount("/static",
               StaticFiles(directory=str(web_routes.STATIC_DIR)),

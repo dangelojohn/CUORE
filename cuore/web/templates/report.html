@@ -2,6 +2,7 @@
 {% block title %}{{ bar.name }} — Report{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="/static/systems.css">
 
 <div class="report" data-vin="{{ vin }}">
 
@@ -69,6 +70,35 @@
         {% endfor %}
       </tbody>
     </table>
+  </section>
+
+  <section id="systems-involved">
+    <h2>Systems involved</h2>
+    {% for c in view.codes %}
+      {% set badges = systems_for_code(c.code) if systems_for_code is defined else [] %}
+      {% if badges %}
+      <p class="small"><span class="mono">{{ c.code }}</span>
+        {% include "_system_badge.html" %}</p>
+      {% endif %}
+    {% else %}
+      <p class="muted small">No codes on file.</p>
+    {% endfor %}
+    <p class="small"><a href="/v/{{ vin }}/systems">Full systems dependency view &rarr;</a></p>
+  </section>
+
+  <section id="electrical">
+    <h2>Electrical path</h2>
+    {% set _elec_codes = [] %}
+    {% for job in view.open_work %}
+      {% for code in job.codes %}
+        {% if code not in _elec_codes %}{% set _ = _elec_codes.append(code) %}{% endif %}
+      {% endfor %}
+    {% endfor %}
+    {% for code in _elec_codes %}
+      {% include "_electrical_path.html" %}
+    {% else %}
+      <p class="muted small">No open codes to trace electrically.</p>
+    {% endfor %}
   </section>
 
   <section id="feel">

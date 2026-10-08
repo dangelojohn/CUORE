@@ -53,7 +53,11 @@
   </div>
   <div class="vtabs">
     <a href="/v/{{ bar.vin }}" {% if tab == "dossier" %}class="on"{% endif %}>Dossier</a>
+    <a href="/v/{{ bar.vin }}/job" {% if tab == "job" %}class="on"{% endif %}>Job</a>
+    <a href="/v/{{ bar.vin }}/modules" {% if tab == "modules" %}class="on"{% endif %}>Modules</a>
     <a href="/v/{{ bar.vin }}/timeline" {% if tab == "timeline" %}class="on"{% endif %}>Timeline</a>
+    <a href="/v/{{ bar.vin }}/systems" {% if tab == "systems" %}class="on"{% endif %}>Systems</a>
+    <a href="/v/{{ bar.vin }}/electrical" {% if tab == "electrical" %}class="on"{% endif %}>Electrical</a>
     <a href="/v/{{ bar.vin }}/media" {% if tab == "media" %}class="on"{% endif %}>Media</a>
     <a href="/v/{{ bar.vin }}/parts" {% if tab == "parts" %}class="on"{% endif %}>Parts</a>
     <a href="/v/{{ bar.vin }}/dashboard" {% if tab == "dashboard" %}class="on"{% endif %}>Dashboard</a>

@@ -961,3 +961,32 @@ a.part-compact:hover { border-color: var(--accent); }
   .part-image { width: 48%; }
   .part-image img { width: 100%; height: 90px; }
 }
+
+/* =========================================================================
+ * Job (case) page (cuore/web/templates/job.html).
+ * Appended section -- added for the Job workflow feature, kept separate
+ * rather than interleaved with the sheet above.
+ * ========================================================================= */
+
+.job-head-panel { margin-bottom: 10px; }
+.job-stepper { margin-bottom: 14px; }
+
+.hyp-card { margin-bottom: 12px; }
+.hyp-card.suggested-hyp { border-style: dashed; }
+.evidence-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+.evidence-chip { max-width: 100%; white-space: normal; text-align: left; }
+
+.hyp-status-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.hyp-status-btn {
+  min-height: 44px; padding: 6px 14px; border: 1.5px solid var(--rule);
+  border-radius: var(--radius); background: var(--surface-2); color: var(--ink-2);
+  font-size: 13px; font-family: inherit; cursor: pointer;
+}
+.hyp-status-btn.on {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--ink);
+  font-weight: 650;
+}
+
+@media (max-width: 400px) {
+  .hyp-status-btn { flex: 1 1 auto; }
+}
