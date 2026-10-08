@@ -78,6 +78,19 @@ scan report).</p>
 
   <section id="tests" class="dossier-section">
     <h2 class="section-h">3. Tests &amp; inspections</h2>
+
+    <form method="get" action="/v/{{ vin }}/job/{{ job.id }}" class="tools-step-picker">
+      <label for="tools_step" class="small muted">Job type (for tool recommendations)</label>
+      <select id="tools_step" name="tools_step" onchange="this.form.submit()">
+        {% for k in view.tools_step_choices %}
+          <option value="{{ k }}" {{ "selected" if k == view.tools_step_key }}>{{ k|replace("_", " ") }}</option>
+        {% endfor %}
+      </select>
+      <noscript><button class="btn" type="submit">Update</button></noscript>
+    </form>
+    {% set panel = view.tools_panel %}
+    {% include "_tools_panel.html" %}
+
     <div class="cols two">
       <div class="panel tight">
         <h3>Dealer (wiTECH) results</h3>
@@ -182,6 +195,9 @@ scan report).</p>
 
   <section id="actions" class="dossier-section">
     <h2 class="section-h">5. Repair actions</h2>
+    {% set panel = view.tools_panel %}
+    {% set compact = True %}
+    {% include "_tools_panel.html" %}
     <ul class="checklist">
       {% for a in job.actions %}
         <li class="checklist-step"><span class="step-text">
@@ -220,6 +236,63 @@ scan report).</p>
   <section id="outcome" class="dossier-section">
     <h2 class="section-h">7. Outcome &amp; handover</h2>
     {% if close_error %}<div class="note alert"><span class="lab">Not closed</span>{{ close_error }}</div>{% endif %}
+
+    {% if job.status != "closed" %}
+    <div class="panel tools-review-panel">
+      <h3>Tools used review{% if view.tools_reviewed %} <span class="chip ok">saved</span>{% else %}<span class="chip chronic">required before closing</span>{% endif %}</h3>
+      <p class="small muted">Tick what you actually used, mark it right/wrong/unsure with a
+        reason, note anything missing, and what you'd buy next time. This is what the next
+        identical job on this car -- or any Stelvio -- sees first.</p>
+      <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/tools-review">
+        <input type="hidden" name="step" value="{{ view.tools_panel.step }}">
+        {% for row in view.tools_panel.tools %}
+          {% set key = row.tool_info.key %}
+          <div class="tool-review-row">
+            <label class="tool-review-used"><input type="checkbox" name="used__{{ key }}" value="1"> {{ row.tool_info.name }}</label>
+            <span class="tool-review-right">
+              {% for v in ["yes", "no", "unsure"] %}
+                <label><input type="radio" name="right__{{ key }}" value="{{ v }}" {{ "checked" if v == "yes" }}> {{ v }}</label>
+              {% endfor %}
+            </span>
+            <input type="text" name="note__{{ key }}" placeholder="note (why right/wrong)" class="tool-review-note">
+          </div>
+        {% endfor %}
+
+        <h4 class="small muted">Other tools used (not in the list above)</h4>
+        {% for i in range(1, 4) %}
+          <div class="tool-review-row">
+            <input type="text" name="extra{{ i }}_name" placeholder="tool name">
+            <span class="tool-review-right">
+              {% for v in ["yes", "no", "unsure"] %}
+                <label><input type="radio" name="extra{{ i }}_right" value="{{ v }}" {{ "checked" if v == "unsure" }}> {{ v }}</label>
+              {% endfor %}
+            </span>
+            <input type="text" name="extra{{ i }}_note" placeholder="note" class="tool-review-note">
+          </div>
+        {% endfor %}
+
+        <div class="field"><label for="missing_tools">Missing tools (comma separated)</label>
+          <input id="missing_tools" name="missing_tools"></div>
+
+        <h4 class="small muted">Would buy next time</h4>
+        {% for i in range(1, 3) %}
+          <div class="tool-review-row">
+            <input type="text" name="buy{{ i }}_name" placeholder="tool to buy">
+            <input type="text" name="buy{{ i }}_why" placeholder="why" class="tool-review-note">
+          </div>
+        {% endfor %}
+
+        <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+          <div class="field"><label for="time_min">Minutes spent</label>
+            <input id="time_min" type="number" step="1" name="time_min"></div>
+          <div class="field"><label for="by">By</label>
+            <input id="by" name="by" placeholder="name/initials"></div>
+        </div>
+        <button class="btn primary" type="submit">Save tools review</button>
+      </form>
+    </div>
+    {% endif %}
+
     {% if job.status == "closed" %}
       <p>Closed {{ job.closed_at }} &mdash; outcome <span class="chip ok">{{ job.outcome }}</span></p>
     {% else %}
@@ -236,6 +309,10 @@ scan report).</p>
           <input id="codes_returned" name="codes_returned"></div>
         <div class="field"><label for="verdict">Verdict / closing note</label>
           <input id="verdict" name="verdict"></div>
+        {% if not view.tools_reviewed %}
+        <div class="field"><label for="tools_review_skip_reason">Skip tools review -- reason (required if not saved above)</label>
+          <input id="tools_review_skip_reason" name="tools_review_skip_reason"></div>
+        {% endif %}
         <button class="btn primary" type="submit">Close case</button>
       </form>
     {% endif %}

@@ -10,7 +10,10 @@ Five checks:
   1. Opening a case via the HTML form lands a job on the page.
   2. The suggested hypotheses include an EVAP one with >=1 real evidence_for ref.
   3. Add action + set hypothesis status round trip (both via the HTML forms).
-  4. Closing with an outcome is required and sticks.
+  4. Closing with an outcome is required and sticks; closing is blocked
+     without a tools-used review or a stated skip reason (see
+     ``mes.tools_kb``/``mes.tool_usage`` and
+     ``cuore.services.jobs_bridge.close_job``), and allowed once one is given.
   5. The job page renders 200 at 400px with no page-level horizontal overflow.
 
 Run:
@@ -140,16 +143,31 @@ if job_id:
     check("closing with no outcome is refused, not silently accepted",
           bad_close.status_code == 422, str(bad_close.status_code))
 
+    # The tools-used review is mandatory before a close is accepted (see
+    # cuore.services.jobs_bridge.close_job) -- closing with no review and no
+    # stated skip reason must be refused, not silently accepted.
+    unreviewed_close = client.post(f"/v/{VIN}/job/{job_id}/close",
+                                   data={"outcome": "fixed"}, follow_redirects=True)
+    view_unreviewed = client.get(f"/api/vehicles/{VIN}/job/{job_id}").json()
+    check("closing with no tools review and no skip reason is refused",
+          view_unreviewed["job"]["status"] != "closed", str(view_unreviewed["job"]))
+    check("the refusal is explained on the re-rendered page",
+          "tools used review" in unreviewed_close.text.lower(), unreviewed_close.text[:2000])
+
     close_resp = client.post(f"/v/{VIN}/job/{job_id}/close",
-                             data={"outcome": "fixed", "verdict": "ECM recalibrated per TSB"},
+                             data={"outcome": "fixed", "verdict": "ECM recalibrated per TSB",
+                                   "tools_review_skip_reason": "no usage review captured on this run"},
                              follow_redirects=True)
-    check("closing with a real outcome responds 200", close_resp.status_code == 200,
-          str(close_resp.status_code))
+    check("closing with a real outcome and a stated skip reason responds 200",
+          close_resp.status_code == 200, str(close_resp.status_code))
 
     view4 = client.get(f"/api/vehicles/{VIN}/job/{job_id}").json()
     check("the job is now closed with outcome 'fixed'",
           view4["job"]["status"] == "closed" and view4["job"]["outcome"] == "fixed",
           str(view4["job"]))
+    check("the skip reason was recorded as a job action, not silently dropped",
+          any("Tools-used review skipped" in a["text"] for a in view4["job"]["actions"]),
+          str(view4["job"]["actions"]))
 else:
     check("step 4 skipped: no job to close", False, "see checks above")
 

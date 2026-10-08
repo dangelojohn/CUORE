@@ -990,3 +990,67 @@ a.part-compact:hover { border-color: var(--accent); }
 @media (max-width: 400px) {
   .hyp-status-btn { flex: 1 1 auto; }
 }
+
+/* =========================================================================
+ * Tools for this step (cuore/web/templates/_tools_panel.html), used on
+ * job.html (steps 3 & 5) and maintenance.html (per item), plus the
+ * mandatory tools-used review on job.html (step 7).
+ * Appended section -- added for the tools-kb feature, kept separate
+ * rather than interleaved with the sheet above.
+ * ========================================================================= */
+
+.tools-step-picker {
+  display: flex; align-items: center; gap: 8px; margin: 6px 0 12px; flex-wrap: wrap;
+}
+.tools-step-picker select {
+  min-height: 44px; padding: 4px 10px; border: 1px solid var(--rule);
+  border-radius: var(--radius); background: var(--surface); color: var(--ink);
+}
+
+.tools-panel h3 { display: flex; align-items: center; gap: 8px; }
+.tool-rows { display: flex; flex-direction: column; gap: 10px; }
+.tool-row {
+  padding: 8px 2px; border-bottom: 1px solid var(--rule-soft);
+}
+.tool-row:last-child { border-bottom: none; }
+.tool-row-main { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.tool-kind { text-transform: uppercase; letter-spacing: .03em; }
+.tool-required { font-weight: 650; color: var(--accent); }
+.tool-spec { margin: 2px 0; }
+.tool-note { color: var(--ink-2); }
+
+.tools-review-panel .chip.chronic { margin-left: 6px; }
+
+.tool-review-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  min-height: 44px; padding: 6px 0; border-bottom: 1px solid var(--rule-soft);
+}
+.tool-review-row:last-of-type { border-bottom: none; }
+.tool-review-used { display: flex; align-items: center; gap: 6px; min-width: 180px; flex: 1 1 200px; }
+.tool-review-used input[type="checkbox"] { width: 20px; height: 20px; }
+.tool-review-right { display: flex; gap: 10px; flex: none; }
+.tool-review-right label { display: flex; align-items: center; gap: 4px; min-height: 44px; }
+.tool-review-right input[type="radio"] { width: 18px; height: 18px; }
+.tool-review-note {
+  flex: 1 1 160px; min-height: 36px; padding: 4px 8px; border: 1px solid var(--rule);
+  border-radius: var(--radius); background: var(--surface); color: var(--ink);
+}
+
+@media (max-width: 400px) {
+  .tool-review-row { flex-direction: column; align-items: stretch; }
+  .tool-review-right { justify-content: space-between; }
+}
+
+.have-chip { margin-left: auto; }
+.tool-have-form { display: flex; gap: 8px; margin: 6px 0; }
+.tool-have-btn {
+  min-height: 44px; padding: 4px 12px; border: 1.5px solid var(--rule);
+  border-radius: var(--radius); background: var(--surface-2); color: var(--ink-2);
+  font-size: 13px; font-family: inherit; cursor: pointer;
+}
+.tool-have-btn.on { background: var(--accent-dim); border-color: var(--accent); color: var(--ink); font-weight: 650; }
+
+.tool-decision-card {
+  margin-top: 8px; padding: 10px; border: 1.5px dashed var(--rule);
+  border-radius: var(--radius); background: var(--surface-2);
+}

@@ -177,6 +177,10 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
     {% set _job = _item_job_map.get(it.key) %}
     {% set exp = experience_links(job=_job) if experience_links is defined and _job else {"links": [], "count": 0} %}
     {% include "_experience.html" %}
+
+    {% set panel = tools_recommend(step=it.key, vin=vin) if tools_recommend is defined else {"step": it.key, "tools": [], "learned": {}} %}
+    {% set compact = True %}
+    {% include "_tools_panel.html" %}
   </details>
   {% endfor %}
 </div>

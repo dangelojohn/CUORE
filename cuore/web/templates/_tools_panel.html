@@ -1,0 +1,115 @@
+{# Reusable "Tools for this step" panel. Fed by the `tools_recommend` Jinja
+   global (registered as an import-time side effect by
+   cuore/web/tools_kb_globals.py -- see that module's docstring) via a
+   page-local `panel = tools_recommend(step=..., vin=...)` set before this
+   include. Guarded so a page still renders -- with the empty state below
+   -- before that global lands, and before mes.tools_kb itself lands.
+
+   Context expected:
+     panel    -- {step, tools: [row...], learned: {...}} shaped per
+                 cuore.services.tools_kb_bridge.recommend_with_learning.
+     compact  -- optional; truthy renders a shorter form for inline use
+                 (maintenance.html per-item), no learned-detail expansion. #}
+{% set panel = panel if panel is defined else {"step": "", "tools": [], "learned": {}} %}
+{% set compact = compact if compact is defined else False %}
+
+{% macro tk_conf_chip(c) -%}
+<span class="chip {{ 'ok' if c in ('CONFIRMED','CORROBORATED') else ('chronic' if c == 'SINGLE-SOURCE' else 'plain') }}">{{ c }}</span>
+{%- endmacro %}
+
+<div class="panel tight tools-panel">
+  <h3>Tools for this step{% if panel.tools %} <span class="count-badge">{{ panel.tools|length }}</span>{% endif %}</h3>
+  {% if panel.tools %}
+    <div class="tool-rows">
+    {% for row in panel.tools %}
+      {% set ti = row.tool_info %}
+      {% set have = row.have if row.have is defined else "unknown" %}
+      <div class="tool-row">
+        <div class="tool-row-main">
+          <b>{{ ti.name }}</b>
+          <span class="small muted tool-kind">{{ ti.kind }}</span>
+          <span class="small {{ 'tool-required' if row.required else 'muted' }}">{{ "required" if row.required else "optional" }}</span>
+          <span class="chip {{ 'ok' if have == 'owned' else ('returned' if have == 'not_owned' else 'plain') }} have-chip">have it: {{ {"owned": "yes", "not_owned": "no", "unknown": "not recorded"}[have] }}</span>
+        </div>
+        <p class="small mono tool-spec">{{ ti.spec or "UNKNOWN -- confirm on the car / service manual (TechAuthority)" }}
+          {{ tk_conf_chip(ti.confidence) }}
+          {% if ti.source %}<a href="{{ ti.source }}" target="_blank" rel="noopener">source</a>{% endif %}</p>
+        {% if ti.why %}<p class="small muted">{{ ti.why }}</p>{% endif %}
+        {% if row.note %}<p class="small tool-note">{{ row.note }}</p>{% endif %}
+        {% if row.torques %}
+          <p class="small">
+          {% for t in row.torques %}
+            <span class="chip plain evidence-chip">{{ t.component or t.key }}: {{ t.display }}</span>
+            {{ tk_conf_chip(t.confidence) }}
+          {% endfor %}
+          </p>
+        {% endif %}
+        {% if row.alternatives_info %}
+          <p class="small muted">Alternatives: {% for a in row.alternatives_info %}{{ a.name }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        {% endif %}
+
+        {% if not compact %}
+        <form method="post" action="/tools-kb/inventory-form" class="tool-have-form">
+          <input type="hidden" name="tool" value="{{ ti.key }}">
+          <input type="hidden" name="return_to" value="{{ request.url.path }}">
+          <button type="submit" name="status" value="owned" class="tool-have-btn {{ 'on' if have == 'owned' }}">I have this</button>
+          <button type="submit" name="status" value="not_owned" class="tool-have-btn {{ 'on' if have == 'not_owned' }}">I don't</button>
+        </form>
+        {% endif %}
+
+        {% if row.decision %}
+          {% set d = row.decision %}
+          <div class="tool-decision-card">
+            <p class="small"><b>Don't have it -- decision needed.</b> {{ d.used_when }}
+              <span class="muted">({{ d.used_when_source }})</span></p>
+            <p class="small muted">How often needed: {{ d.frequency }}
+              {{ tk_conf_chip(d.frequency_confidence) }} <span class="muted">({{ d.frequency_source }})</span></p>
+            <p class="small"><b>Alternatives:</b></p>
+            <ul class="small">
+              {% for a in d.alternatives %}
+                <li>{{ a.option }} &mdash; {{ a.note }}
+                  {% if a.cost %}(<span class="mono">{{ a.cost.range }} {{ a.cost.unit }}</span> {{ tk_conf_chip(a.cost.confidence) }}
+                    <a href="{{ a.cost.source }}" target="_blank" rel="noopener">source</a>){% endif %}</li>
+              {% endfor %}
+            </ul>
+            <p class="small"><b>Cost options (sourced, never guessed):</b></p>
+            <ul class="small">
+              {% for c in d.cost_options %}
+                <li>{{ c.tier }}: <span class="mono">{{ c.range }} {{ c.unit }}</span> {{ tk_conf_chip(c.confidence) }}
+                  &mdash; {{ c.what }} &mdash; <a href="{{ c.source.split(' (')[0] }}" target="_blank" rel="noopener">source</a></li>
+              {% endfor %}
+            </ul>
+            {% if d.practical_difference %}<p class="small muted">{{ d.practical_difference }}</p>{% endif %}
+            <p class="small muted">Record your decision (buy / borrow / rent / skip + why) in the step 7
+              "Would buy next time" review.</p>
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted small">No tool recommendations tabulated yet for this step.</p>
+  {% endif %}
+
+  {% set learned = panel.learned or {} %}
+  {% if learned.review_count %}
+    <h4 class="small muted">What mechanics used last time ({{ learned.review_count }} review{{ "s" if learned.review_count != 1 }}{% if learned.scope == "vin" %}, this car{% else %}, all cars{% endif %})</h4>
+    {% if learned.top_tools %}
+      <p class="small"><b>Most used:</b>
+        {% for t in learned.top_tools[:5] %}{{ t.tool }} ({{ t.used_count }}){% if not loop.last %}, {% endif %}{% endfor %}</p>
+    {% endif %}
+    {% if learned.flagged_wrong %}
+      <p class="small"><span class="chip returned">flagged wrong</span>
+        {% for f in learned.flagged_wrong %}{{ f.tool }} ({{ f.count }}){% if f.notes %} &mdash; {{ f.notes[0] }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}</p>
+    {% endif %}
+    {% if learned.buy_suggestions and not compact %}
+      <p class="small"><b>Would buy next time:</b>
+        {% for b in learned.buy_suggestions %}{{ b.name }} ({{ b.count }}){% if b.why %} &mdash; {{ b.why[0] }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}</p>
+    {% endif %}
+    {% if learned.missing_tools and not compact %}
+      <p class="small muted">Reported missing: {% for m in learned.missing_tools %}{{ m.text }} ({{ m.count }}){% if not loop.last %}, {% endif %}{% endfor %}</p>
+    {% endif %}
+  {% elif not compact %}
+    <p class="muted small">No usage reviews recorded yet for this step.</p>
+  {% endif %}
+</div>
