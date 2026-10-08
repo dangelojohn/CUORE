@@ -1,0 +1,55 @@
+/* CUORE pictogram sprite styling.
+ *
+ * Pairs with icons.svg (the <symbol> sprite) and cuore/web/icons.py (the
+ * icon() helper that emits the markup below). A mechanic scanning this UI
+ * often reads pictograms faster than the short label beside them, so size
+ * and colour carry real meaning: bigger = more prominent placement, colour
+ * on priority marks = urgency, never decoration.
+ *
+ * Deliberately NOT imported by base.html here -- this is a new, standalone
+ * file; the integration pass adds the <link> same as flow.css / print.css.
+ */
+
+.ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  line-height: 0;
+}
+
+.ico svg {
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Sizes -- the three the spec calls for. Use the matching class on the
+   wrapping .ico element: class="ico ico-20" etc. (icon() picks these from
+   size="s"|"m"|"l"). */
+.ico-20, .ico-20 svg { width: 20px; height: 20px; }
+.ico-28, .ico-28 svg { width: 28px; height: 28px; }
+.ico-40, .ico-40 svg { width: 40px; height: 40px; }
+
+/* Priority colours -- status-colour semantics (red/amber/grey), not
+   decorative: P1 is urgent, P2 is worth watching, P3 is routine. Applied on
+   top of whatever size class is already on the element. */
+.ico-p1 { color: #c0392b; }
+.ico-p2 { color: #d68910; }
+.ico-p3 { color: #7f8c8d; }
+
+/* A row of pictograms (e.g. the 12 flow steps, or a system/symptom picker):
+   wraps at phone width instead of forcing a horizontal scroll. */
+.pictogram-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pictogram-row .ico {
+  flex: 0 0 auto;
+}

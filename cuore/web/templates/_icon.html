@@ -1,0 +1,25 @@
+{#
+  Includable pictogram partial -- for the (rarer) spot where an `{% include %}`
+  reads better than calling the `icon()` global directly, e.g. inside a loop
+  body assembled by another include. Most call sites should just write
+  `{{ icon("sys_fuel") }}` directly; this exists so a template that only
+  has data to pass via `{% include ... with context %}` has an equivalent.
+
+  Expected variables (set them with `{% set %}` or a `with` block before
+  including this file):
+    icon_key    -- required; a key from cuore.web.icons.ICONS
+    icon_size   -- optional, one of "s" | "m" | "l" (default "m")
+    icon_label  -- optional override for the aria-label (default: the
+                   registry's English label; language-aware label text is
+                   the caller's job, same as everywhere else `icon()` is used)
+
+  Guards with `is defined` throughout (same house rule
+  cuore.web.flow_globals's docstring calls out for `_flow_bar.html`): this
+  partial, and the `icon` global it calls, must never 500 a page -- an
+  unknown icon_key degrades to a bare, still-accessible span (see
+  cuore.web.icons.icon), and a missing icon_key here renders nothing.
+-#}
+{%- if icon_key is defined and icon_key and icon is defined -%}
+{{ icon(icon_key, icon_size if icon_size is defined and icon_size else "m",
+        icon_label if icon_label is defined and icon_label else none) }}
+{%- endif -%}

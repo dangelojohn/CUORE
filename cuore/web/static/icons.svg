@@ -1,0 +1,396 @@
+<!--
+  CUORE pictogram sprite.
+
+  One <symbol id="i-<key>"> per entry in cuore.web.icons.ICONS -- the key
+  there IS the symbol id suffix, so icons.py never needs a separate symbol
+  table and the two files can't drift out of sync silently (a missing
+  symbol just renders a blank <use>, caught by cuore/tests/check_icons_i18n.py).
+
+  Style: thin line pictograms, hand-drawn as plain paths (no icon-library
+  artwork), 24x24 viewBox, stroke 1.75, round caps/joins, currentColor --
+  set once per <symbol> so a mechanic glancing at a 20px row can tell shapes
+  apart without reading the label underneath. A few status/priority marks
+  are deliberately filled (fill="currentColor" stroke="none" on the mark
+  itself) to show "how much" at a glance (filled = active/P1, half = partial,
+  outline = clear/P3).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true">
+
+<!-- ===================== 1. Flow steps (12) ===================== -->
+
+<symbol id="i-step_start" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2 17h2.5l2-4.5h9l2.5 4.5H20"/>
+  <circle cx="7.5" cy="18.3" r="1.4"/>
+  <circle cx="16.5" cy="18.3" r="1.4"/>
+  <path d="M1 11.5l3.2-1.8"/>
+</symbol>
+
+<symbol id="i-step_complaint" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M9 5c3.3 0 5.5 2.6 5.5 5.8 0 2-1 3.1-2 4.1-.9.9-1.2 1.6-1.2 2.7 0 1.3-1 2-2 2s-2-.8-2-2"/>
+  <path d="M9.2 8.2c1.4 0 2.5 1.1 2.5 2.4 0 1-0.6 1.7-1.4 2.3"/>
+</symbol>
+
+<symbol id="i-step_verdict" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 3l7 3v6c0 5-3.4 7.6-7 9-3.6-1.4-7-4-7-9V6l7-3z"/>
+  <path d="M9 12.2l2 2 4.2-4.5"/>
+</symbol>
+
+<symbol id="i-step_scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M9 2v5M15 2v5"/>
+  <path d="M7 7h10v4a5 5 0 0 1-5 5 5 5 0 0 1-5-5V7z"/>
+  <path d="M12 16v5"/>
+</symbol>
+
+<symbol id="i-step_understand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="9.5" r="5.3"/>
+  <path d="M9.6 16h4.8M10.1 18.4h3.8"/>
+  <path d="M12 2.8v2M6 9.5H4M20 9.5h-2M7.5 5l-1.4-1.4M16.5 5l1.4-1.4"/>
+</symbol>
+
+<symbol id="i-step_test" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="5" y="5" width="14" height="12" rx="1.5"/>
+  <path d="M8 9h3v3H8zM13 9.3h3M13 12h3M13 14.7h3M8 14.7h3"/>
+  <path d="M9 17v3M15 17v3"/>
+</symbol>
+
+<symbol id="i-step_hypothesis" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="5" cy="6.5" r="1.6"/>
+  <circle cx="19" cy="4" r="1.6"/>
+  <circle cx="19" cy="11" r="1.6"/>
+  <circle cx="19" cy="18" r="1.6"/>
+  <path d="M6.6 6.8l10.6-2.5M6.6 6.5l10.8 4.5M6.6 7l10.8 10.5"/>
+</symbol>
+
+<symbol id="i-step_plan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M4.5 6.3h1.4M4.5 12h1.4M4.5 17.7h1.4"/>
+  <path d="M9 6.3h10.5M9 12h10.5M9 17.7h10.5"/>
+</symbol>
+
+<symbol id="i-step_repair" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M14.6 6.6a4 4 0 1 0-5.4 5.4L4 17.2l3 3 5.2-5.2a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2z"/>
+</symbol>
+
+<symbol id="i-step_verify" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="8.4"/>
+  <path d="M8.3 12.3l2.7 2.7 5-5.6"/>
+</symbol>
+
+<symbol id="i-step_document" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 2.5h7l3 3v16H7z"/>
+  <path d="M14 2.5v3h3"/>
+  <path d="M9.5 11h6M9.5 14.3h6M9.5 17.6h4"/>
+</symbol>
+
+<symbol id="i-step_release" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M5 2.5v19"/>
+  <path d="M5 4h11l-2.6 3.5L16 11H5"/>
+  <path d="M17.2 15h4.8M19.6 12.6l2.4 2.4-2.4 2.4"/>
+</symbol>
+
+<!-- ===================== 2. Systems (25, keys = mes.systems.SYSTEMS) ===================== -->
+
+<symbol id="i-sys_electrical_supply" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="4" y="8" width="16" height="10" rx="1.5"/>
+  <path d="M9 8V6h6v2"/>
+  <path d="M8.6 13h2.4M14 11v4"/>
+</symbol>
+
+<symbol id="i-sys_network" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="6" cy="6" r="1.9"/><circle cx="18" cy="6" r="1.9"/>
+  <circle cx="6" cy="18" r="1.9"/><circle cx="18" cy="18" r="1.9"/>
+  <circle cx="12" cy="12" r="1.9"/>
+  <path d="M7.4 7.4l3 3M16.6 7.4l-3 3M7.4 16.6l3-3M16.6 16.6l-3-3"/>
+</symbol>
+
+<symbol id="i-sys_ignition" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M13 2L6 13h5l-1 9 8-12h-5l1-8z"/>
+</symbol>
+
+<symbol id="i-sys_fuel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="5" y="4" width="8" height="16" rx="1"/>
+  <path d="M9 4V2.3M7 8.3h4"/>
+  <path d="M13 9h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8.2l-2-2"/>
+</symbol>
+
+<symbol id="i-sys_evap" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="8.5" r="4"/>
+  <path d="M12 12.5v6.8M9 19.3h6"/>
+  <path d="M9.6 7l4.8 3M14.4 7l-4.8 3"/>
+</symbol>
+
+<symbol id="i-sys_air_intake_boost" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 9.3h10l4 4h4"/>
+  <path d="M3 15h8l4-4.3"/>
+  <circle cx="19" cy="9.3" r="1.2"/><circle cx="19" cy="15" r="1.2"/>
+</symbol>
+
+<symbol id="i-sys_cooling" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 3c3.5 4.5 6 7.7 6 10.8A6 6 0 0 1 6 13.8C6 10.7 8.5 7.5 12 3z"/>
+</symbol>
+
+<symbol id="i-sys_lubrication" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M6 10h8v9a1.5 1.5 0 0 1-1.5 1.5h-5A1.5 1.5 0 0 1 6 19z"/>
+  <path d="M8 10V7a1 1 0 0 1 1-1h2"/>
+  <path d="M14 12.3l5-4M19 8.3l1.6-1.6M19 8.3l-2-.4"/>
+</symbol>
+
+<symbol id="i-sys_exhaust_emissions" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 13h8"/>
+  <rect x="11" y="10.3" width="5" height="5.4" rx="1"/>
+  <path d="M16 11.3l4 .9v1.6l-4 .9z"/>
+  <path d="M20.8 9.3a1.9 1.9 0 1 0-1-3.5 2.2 2.2 0 0 0-4.1.7 1.7 1.7 0 0 0 .3 3.3h4.8z"/>
+</symbol>
+
+<symbol id="i-sys_transmission_driveline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="3"/>
+  <path d="M12 4v2.3M12 17.7V20M4 12h2.3M17.7 12H20M6.5 6.5l1.6 1.6M15.9 15.9l1.6 1.6M6.5 17.5l1.6-1.6M15.9 8.1l1.6-1.6"/>
+</symbol>
+
+<symbol id="i-sys_brakes_abs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="8"/>
+  <circle cx="12" cy="12" r="2.2"/>
+  <path d="M12 6v3M18 12h-3M12 18v-3M6 12h3"/>
+</symbol>
+
+<symbol id="i-sys_steering" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="8"/>
+  <circle cx="12" cy="12" r="1.7"/>
+  <path d="M12 13.7V20M6.3 9.6l3.9 1.7h3.6l3.9-1.7"/>
+</symbol>
+
+<symbol id="i-sys_suspension" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8 2v3M8 19v3"/>
+  <path d="M8 5l8 2-8 2 8 2-8 2 8 2-8 2"/>
+</symbol>
+
+<symbol id="i-sys_body_comfort" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="5" y="3" width="13" height="18" rx="1"/>
+  <path d="M5 3v18"/>
+  <circle cx="14.5" cy="12" r="1" fill="currentColor" stroke="none"/>
+</symbol>
+
+<symbol id="i-sys_adas_sensors" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 21v-6"/>
+  <circle cx="12" cy="15" r="1.3" fill="currentColor" stroke="none"/>
+  <path d="M8.6 11.6a5 5 0 0 1 6.8 0M6.2 9a8 8 0 0 1 11.6 0"/>
+</symbol>
+
+<symbol id="i-sys_hvac" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+  <path d="M12 10.5c0-3 2-5 4-5s2 2.5 0 3.8c-1 .7-2.5 1-4 1.2"/>
+  <path d="M13.5 12c3 0 5 2 5 4s-2.5 2-3.8 0c-.7-1-1-2.5-1.2-4"/>
+  <path d="M10.5 12c-3 0-5-2-5-4s2.5-2 3.8 0c.7 1 1 2.5 1.2 4"/>
+  <path d="M12 13.5c0 3-2 5-4 5s-2-2.5 0-3.8c1-.7 2.5-1 4-1.2"/>
+</symbol>
+
+<symbol id="i-sys_pcv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 20V9a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v2"/>
+  <circle cx="17" cy="14" r="2.4"/>
+  <path d="M17 11.6V9.6"/>
+</symbol>
+
+<symbol id="i-sys_engine_management" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="7" y="7" width="10" height="10" rx="1.2"/>
+  <circle cx="12" cy="12" r="2"/>
+  <path d="M9 4v3M12 4v3M15 4v3M9 17v3M12 17v3M15 17v3M4 9h3M4 12h3M4 15h3M17 9h3M17 12h3M17 15h3"/>
+</symbol>
+
+<symbol id="i-sys_valve_control" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="10.8" cy="12" r="4"/>
+  <path d="M10.8 8a4 4 0 0 1 0 8c1.6 0 4.7-1 4.7-4"/>
+  <path d="M4 12h2.8"/>
+</symbol>
+
+<symbol id="i-sys_starting_charging" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="4" y="9" width="10" height="7" rx="1.5"/>
+  <path d="M14 11h3a2 2 0 0 1 0 4h-3"/>
+  <path d="M7 9V7M11 9V7"/>
+</symbol>
+
+<symbol id="i-sys_security_immobiliser" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="6" y="11" width="12" height="9" rx="1.5"/>
+  <path d="M8.5 11V8a3.5 3.5 0 1 1 7 0v3"/>
+  <circle cx="12" cy="15.3" r="1.2" fill="currentColor" stroke="none"/>
+</symbol>
+
+<symbol id="i-sys_infotainment_cluster" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="5" width="18" height="12" rx="1.5"/>
+  <path d="M9 20h6M12 17v3"/>
+</symbol>
+
+<symbol id="i-sys_lighting" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="9.5" r="5"/>
+  <path d="M9.6 15.8h4.8M10.1 18.1h3.8"/>
+</symbol>
+
+<symbol id="i-sys_wheels_tpms" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="8"/>
+  <circle cx="12" cy="12" r="4"/>
+  <path d="M12 4v2M12 18v2M4 12h2M18 12h2M6.3 6.3l1.4 1.4M16.3 16.3l1.4 1.4M6.3 17.7l1.4-1.4M16.3 7.7l1.4-1.4"/>
+</symbol>
+
+<symbol id="i-sys_restraints" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="8.3"/>
+  <circle cx="9.6" cy="9.8" r="1" fill="currentColor" stroke="none"/>
+  <circle cx="14.4" cy="9.8" r="1" fill="currentColor" stroke="none"/>
+  <path d="M8.3 15.2c1.1-1.6 2.3-2.2 3.7-2.2s2.6.6 3.7 2.2"/>
+</symbol>
+
+<!-- ===================== 3. Symptoms (12, keys = mes.symptoms.SYMPTOM_TAGS) ===================== -->
+
+<symbol id="i-symptom_drives_normally" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M5 20L10 4h4l5 16"/>
+  <path d="M8.3 15h7.4"/>
+  <path d="M9.6 11l1.6 1.6 3-3.4"/>
+</symbol>
+
+<symbol id="i-symptom_mil_on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 4a5 5 0 0 0-5 5c0 2 1 3 1 5h8c0-2 1-3 1-5a5 5 0 0 0-5-5z"/>
+  <path d="M9 17.3h6"/>
+  <path d="M11.3 6.8l-1.4 2.4h2.6l-1.4 2.5"/>
+</symbol>
+
+<symbol id="i-symptom_fuel_smell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M9 4.3c2.4 3 4.1 5.3 4.1 7.5A4.1 4.1 0 0 1 4.9 11.8C4.9 9.6 6.6 7.3 9 4.3z"/>
+  <path d="M14.8 8.8c.9 0 1.7.8 1.7 1.7M16.9 6.8c1.4 0 2.7 1.3 2.7 2.7"/>
+</symbol>
+
+<symbol id="i-symptom_hard_start" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="8.3" cy="14.5" r="2.2"/>
+  <path d="M10.4 14.5h7M15.6 14.5v2.3M18 14.5v2.3"/>
+  <path d="M14 6l1 2 2-1-1 2 2-1-2.2 2"/>
+</symbol>
+
+<symbol id="i-symptom_rough_idle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 13c2 0 2-4 4-4s2 7 4 7 2-9 4-9 2 6 4 6 2-3 4-3"/>
+</symbol>
+
+<symbol id="i-symptom_hesitation" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 15h3.4"/>
+  <path d="M9.5 15h3"/>
+  <path d="M15.6 15h3.4l-2.3-3.1M19 15l-2.3 3.1"/>
+</symbol>
+
+<symbol id="i-symptom_loss_of_power" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 3.3v7.4"/>
+  <path d="M7.6 7.3a7 7 0 1 0 8.8 0"/>
+  <path d="M9 15.8l3 3.9 3-3.9"/>
+</symbol>
+
+<symbol id="i-symptom_hard_to_refuel" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M6 20V8a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v12"/>
+  <path d="M4 20h12"/>
+  <path d="M14 10h2a2 2 0 0 1 2 2v5a1.5 1.5 0 0 0 3 0V9"/>
+  <path d="M4 4l16 16"/>
+</symbol>
+
+<symbol id="i-symptom_noise" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M5 9v6h3l4 4V5l-4 4z"/>
+  <path d="M15.2 9.3a4 4 0 0 1 0 5.4M17.6 7.2a7 7 0 0 1 0 9.6"/>
+</symbol>
+
+<symbol id="i-symptom_vibration" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="8" y="8" width="8" height="8" rx="1"/>
+  <path d="M4 9v6M2 10.5v3M20 9v6M22 10.5v3"/>
+</symbol>
+
+<symbol id="i-symptom_warning_message" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="4" y="5" width="16" height="12" rx="1.5"/>
+  <path d="M9 17l-2 3M15 17l2 3"/>
+  <path d="M12 8.3v3.4"/>
+  <circle cx="12" cy="14.2" r="0.2" fill="currentColor" stroke="currentColor"/>
+</symbol>
+
+<symbol id="i-symptom_other" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="6" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+  <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+  <circle cx="18" cy="12" r="1.4" fill="currentColor" stroke="none"/>
+</symbol>
+
+<!-- ===================== 4. Statuses (5) ===================== -->
+
+<symbol id="i-status_active" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="6.5" fill="currentColor" stroke="none"/>
+</symbol>
+
+<symbol id="i-status_cleared_unverified" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="6.5"/>
+  <path d="M12 5.5a6.5 6.5 0 0 1 0 13z" fill="currentColor" stroke="none"/>
+</symbol>
+
+<symbol id="i-status_verified" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="7"/>
+  <path d="M8.5 12.3l2.5 2.5 4.5-5"/>
+</symbol>
+
+<symbol id="i-status_stale" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="8"/>
+  <path d="M12 7.5v5l3.5 2"/>
+</symbol>
+
+<symbol id="i-status_unknown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="12" cy="12" r="8"/>
+  <path d="M9.8 9.6a2.2 2.2 0 1 1 3.4 2.3c-.8.7-1.2 1.2-1.2 2.3"/>
+  <path d="M12 17h.01"/>
+</symbol>
+
+<!-- ===================== 5. Priorities (3) ===================== -->
+
+<symbol id="i-priority_p1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 4l8 15H4z" fill="currentColor" stroke="none"/>
+</symbol>
+
+<symbol id="i-priority_p2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 4l8 15H4z"/>
+  <path d="M12 4v15H4z" fill="currentColor" stroke="none"/>
+</symbol>
+
+<symbol id="i-priority_p3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12 4l8 15H4z"/>
+</symbol>
+
+<!-- ===================== 6. Misc (7) ===================== -->
+
+<symbol id="i-tools" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 21l7-7"/>
+  <path d="M14.6 6.6a4 4 0 1 0-5.4 5.4L4 17.2l3 3 5.2-5.2a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2z"/>
+  <path d="M17.3 3l1.7 1.7-5 5-1.7-1.7z"/>
+</symbol>
+
+<symbol id="i-parts" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 8l9-4 9 4-9 4-9-4z"/>
+  <path d="M3 8v9l9 4 9-4V8"/>
+  <path d="M12 12v9"/>
+</symbol>
+
+<symbol id="i-camera" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="8" width="18" height="12" rx="1.5"/>
+  <path d="M8 8l1.5-3h5L16 8"/>
+  <circle cx="12" cy="14" r="3.2"/>
+</symbol>
+
+<symbol id="i-microphone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="9" y="3" width="6" height="11" rx="3"/>
+  <path d="M6 11a6 6 0 0 0 12 0"/>
+  <path d="M12 17v3M9 20h6"/>
+</symbol>
+
+<symbol id="i-photo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="3" y="4" width="18" height="15" rx="1.5"/>
+  <circle cx="8.5" cy="9.5" r="1.6"/>
+  <path d="M4 17l5-5 3.5 3.5L17 10l4 6"/>
+</symbol>
+
+<symbol id="i-pdf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 2.5h7l3 3v16H7z"/>
+  <path d="M14 2.5v3h3"/>
+  <path d="M9 12.4h1.3a1.2 1.2 0 1 1 0 2.4H9zM9 12.4v4.4"/>
+  <path d="M13 12.4v4.4M13 12.4h1.3v4.4M13 14.6h1.3"/>
+</symbol>
+
+<symbol id="i-label" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M12.5 3.5h5.5a1 1 0 0 1 1 1v5.5a1 1 0 0 1-.3.7l-9 9a1 1 0 0 1-1.4 0l-6-6a1 1 0 0 1 0-1.4l9-9a1 1 0 0 1 .7-.3z"/>
+  <circle cx="16" cy="7" r="1.3"/>
+</symbol>
+
+</svg>
