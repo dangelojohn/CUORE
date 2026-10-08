@@ -14,13 +14,14 @@
    figures) is heavy chrome that only earns its place on the two pages a
    mechanic actually lands on and lingers over -- the Bench landing page
    and the handover Report. Every other /v/ page gets the slim always-on
-   .vline strip only, now carrying the verdict chip, any blocker, and a
-   "Next: ..." link pointing at the Bench (not at the step itself -- the
-   Bench is where that next action gets its own real link, evidence and
-   all) so the car's status is never more than this one sticky row away,
-   whichever tab happens to be open. The flow bar (_flow_bar.html) is
-   job-specific chrome -- the Job page's own 12-step stepper -- so it only
-   renders when tab == "job"; every other tab renders nothing for it. #}
+   .vline strip only, now carrying the verdict chip and any blocker (the
+   "Next: ..." link that used to sit here too was dropped per
+   JOB_UX_FIXES_2026-10-08.md item 9 -- it only duplicated the primary
+   Next button each step already has) so the car's status is never more
+   than this one sticky row away, whichever tab happens to be open. The
+   flow bar (_flow_bar.html) is job-specific chrome -- the Job page's own
+   12-step stepper -- so it only renders when tab == "job"; every other
+   tab renders nothing for it. #}
 {% set _show_hero = tab in ("bench", "report") %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
 {% set _hero_slug = (bar.name.split()|last)|lower if bar.name else 'car' %}
@@ -48,7 +49,32 @@
   {% endif %}
 {% endif %}
 <div class="vbar">
-  {% if _show_hero %}
+  {% if tab == "bench" %}
+  {# Compact hero (BENCH_UX_SPEC 2026-10-08 follow-up): a mechanic needs the
+     next action on-screen at 400x800 with zero scrolling, so the Bench
+     trades the Report's leisurely image band / big verdict statement /
+     key-figures row for a small image band (<= 18vh), the car's name, a
+     verdict chip and the next-action sentence -- nothing else. The full
+     hero (image, tagline, key figures) stays report-only; see the
+     tab == "report" branch below. #}
+  <div class="vhero vhero-compact">
+    <div class="hero-img" style="background-image:url(/static/brand/{{ _hero_slug }}.jpg)"></div>
+    <div class="hero-text">
+      <div class="hero-head">
+        <span class="hero-name">{{ bar.name }}</span>
+      </div>
+      {% if view is defined and view and view.verdict %}
+        {# Item 17: the next-action/blocker sentence is shown exactly ONCE
+           on the Bench, as bench.html's own blocker banner -- not repeated
+           here in the hero too. The hero keeps just the status chip. #}
+        {% set _hvstate = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
+        <div class="hero-verdict">
+          <span class="hero-verdict-chip v-{{ _hvstate }}">{{ view.verdict.label }}</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+  {% elif tab == "report" %}
   <div class="vhero">
     <div class="hero-img" style="background-image:url(/static/brand/{{ _hero_slug }}.jpg)"></div>
     <div class="hero-text">
@@ -82,41 +108,59 @@
     </div>
   </div>
   {% endif %}
+  {# Item 9: every raw enum this strip could otherwise show gets a human
+     label here, in one place -- "not_running"/"disconnected"/"connected"/
+     "unknown" (``cuore.live.interlock.mes_status``'s own ``state`` values)
+     become the "Scanner: ..." word the persistent banner promises, and a
+     verdict ``state``/flow ``why`` string that still carries a raw
+     SCREAMING_CASE token (e.g. "verdict UNVERIFIED_REPAIR: ...", written by
+     cuore/services/flow_bridge.py, outside this page's edit scope) gets
+     that token swapped for its human form before it ever reaches a title
+     attribute. See cuore/services/bench_bridge.py's own LABELS dict for
+     the Bench's equivalent mapping. #}
+  {% set _scanner_labels = {"connected": "connected", "not_running": "not running",
+                            "disconnected": "disconnected", "unknown": "unknown"} %}
+  {% set _enum_to_label = {"UNVERIFIED_REPAIR": "unverified repair",
+                           "ACTIVE_FAULTS": "active faults",
+                           "VERIFIED_CLEAN": "verified clean", "NO_DATA": "no data"} %}
+  {% macro _sanitize(s) -%}
+    {%- set ns = namespace(out=s or "") -%}
+    {%- for raw, label in _enum_to_label.items() -%}{%- set ns.out = ns.out|replace(raw, label) -%}{%- endfor -%}
+    {{- ns.out -}}
+  {%- endmacro %}
   <div class="vline">
     <span class="vname" title="{{ bar.name }}">{{ bar.name }}</span>
-    <span class="vin-tail mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-6:] }}</span>
+    <span class="vin-tail mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-8:] }}</span>
     {% if bar.odo_last is not none %}
       <span class="mono vkm">{{ "{:,}".format(bar.odo_last|int) }} km</span>
     {% endif %}
+    {% if live_strip %}
+      {% if live_strip.error %}
+        <span class="chip plain" title="{{ live_strip.error }}">Scanner: unknown</span>
+      {% else %}
+        <span class="chip chip-wrap {{ 'ok' if live_strip.mes_state != 'connected' else 'returned' }}"
+              title="Scanner: {{ _scanner_labels.get(live_strip.mes_state, (live_strip.mes_state or 'unknown')|replace('_', ' ')) }}">Scanner:
+          {{ _scanner_labels.get(live_strip.mes_state, (live_strip.mes_state or 'unknown')|replace('_', ' ')) }}</span>
+        <span class="chip plain" title="{{ live_strip.buses_verified }}/{{ live_strip.buses_total }} buses verified">
+          Live {{ live_strip.buses_verified }}/{{ live_strip.buses_total }}</span>
+      {% endif %}
+    {% endif %}
     {% if not _show_hero %}
       {# The compact status strip every non-bench/report /v/ page relies on
-         now that it doesn't also get the hero: the verdict at a glance, any
-         blocker, and the suggested next action -- linking at the Bench, not
-         at the step itself (the Bench is where that link gets its own real
-         href/evidence; here it's just "go see what's next"). #}
+         now that it doesn't also get the hero: the verdict at a glance and
+         any blocker -- the "Next" pointer used to be here too, but it only
+         duplicated the primary Next button each step already has (item 9),
+         so it is gone, not just reworded. #}
       {# Item 14 (BENCH_UX_SPEC 2026-10-08): these header chips wrap in
          sentence case instead of hard-truncating -- `.chip-wrap` (cuore.css)
-         drops the chip's usual all-caps/no-wrap treatment just for these
-         three; title="" still carries the full text for a tap/hover. #}
+         drops the chip's usual all-caps/no-wrap treatment just for these;
+         title="" still carries the full text for a tap/hover. #}
       {% if view is defined and view and view.verdict %}
         {% set _vs = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
         <span class="chip-verdict status-verdict chip-wrap v-{{ _vs }}" title="{{ view.verdict.summary or '' }}">{{ view.verdict.label }}</span>
       {% endif %}
       {% if flow and flow.blockers %}
-        <span class="chip chronic status-blocker chip-wrap" title="{{ flow.blockers[0].why or flow.blockers[0] }}">{{ flow.blockers|length }}&#9888; <span class="status-blocker-label">{{ t('blocked_label') }}</span></span>
-      {% endif %}
-      {% if flow and flow.next %}
-        <a class="chip plain status-next chip-wrap" href="/v/{{ bar.vin }}" title="{{ flow.next.why or '' }}">{{ t('next_label') }}: {{ flow.next.title }} &rarr;</a>
-      {% endif %}
-    {% endif %}
-    {% if live_strip %}
-      {% if live_strip.error %}
-        <span class="chip plain" title="{{ live_strip.error }}">MES ?</span>
-      {% else %}
-        <span class="chip chip-wrap {{ 'ok' if live_strip.mes_state != 'connected' else 'returned' }}"
-              title="MES {{ live_strip.mes_state or 'unknown' }}">MES {{ live_strip.mes_state or '?' }}</span>
-        <span class="chip plain" title="{{ live_strip.buses_verified }}/{{ live_strip.buses_total }} buses verified">
-          Live {{ live_strip.buses_verified }}/{{ live_strip.buses_total }}</span>
+        <span class="chip chronic status-blocker chip-wrap" title="{{ _sanitize(flow.blockers[0].why or flow.blockers[0]) }}">{{ flow.blockers|length }}&#9888; <span class="status-blocker-label">{{ t('blocked_label') }}</span></span>
       {% endif %}
     {% endif %}
     <details class="vmore">

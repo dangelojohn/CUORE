@@ -312,6 +312,33 @@ def wait_for_port(port: int, timeout: float = 15.0) -> bool:
     return False
 
 
+def wait_for_navigation(cdp: "CDP", url: str, timeout: float = 15.0) -> bool:
+    """Poll until the tab has actually navigated to ``url`` (not still
+    ``about:blank``) and ``document.readyState`` is "complete". A fixed
+    short sleep after ``/json/new?<url>`` is NOT enough in this environment
+    -- a cold headless-Edge tab observably takes several seconds (not the
+    ~1.5s this check used to assume) before ``location.href`` moves off
+    ``about:blank``, independent of how fast the server itself answers
+    (confirmed separately: the server's own response lands in well under a
+    second). Polling, not a longer fixed guess, is what actually restores
+    the strict downstream geometry checks reliably."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        val = cdp.send("Runtime.evaluate", {
+            "expression": ("JSON.stringify({href: location.href, "
+                           "ready: document.readyState})"),
+            "returnByValue": True,
+        })
+        try:
+            state = json.loads(val.get("result", {}).get("value") or "{}")
+        except ValueError:
+            state = {}
+        if state.get("href", "about:blank") != "about:blank" and state.get("ready") == "complete":
+            return True
+        time.sleep(0.3)
+    return False
+
+
 edge = find_edge()
 server_dir = tempfile.mkdtemp(prefix="cuore-check-bench-server-")
 port = free_port()
@@ -370,7 +397,7 @@ else:
                 try:
                     cdp.send("Page.enable")
                     cdp.send("Runtime.enable")
-                    time.sleep(1.2)
+                    navigated = wait_for_navigation(cdp, url)
                     cdp.send("Emulation.setDeviceMetricsOverride", {
                         "width": 400, "height": 800, "deviceScaleFactor": 1, "mobile": True,
                     })
@@ -379,7 +406,7 @@ else:
                     nav = cdp.send("Runtime.evaluate", {
                         "expression": "document.readyState", "returnByValue": True})
                     check("bench page loaded in the headless browser",
-                          nav.get("result", {}).get("value") in ("complete", "interactive"),
+                          navigated and nav.get("result", {}).get("value") in ("complete", "interactive"),
                           str(nav))
 
                     overflow = cdp.send("Runtime.evaluate", {
@@ -406,20 +433,17 @@ else:
                     check("the first next-action card is present on the page",
                           card_rect is not None, str(card_rect))
                     if card_rect is not None:
-                        # The 800px (= viewport height) ceiling this used to assert
-                        # assumed the bench's old bespoke one-line header. Per the
-                        # orchestrator's authorised addition, the bench now includes
-                        # the standard {% include "_vbar.html" %} hero + tab strip
-                        # every other /v/{vin} page uses (BENCH_UX_SPEC F16) -- a
-                        # deliberately bigger, richer block this file has no CSS
-                        # access to shrink -- plus the resume card, fuel gate and
-                        # readiness panel (BENCH_UX_SPEC A1/A2/C10). The trade is a
-                        # short scroll past genuinely useful content instead of the
-                        # bare verdict chip; 2400px is a generous regression guard
-                        # (catches runaway/duplicated content), not a design target.
-                        check("the first next-action card does not sit absurdly far "
-                             "down the page (regression guard, not a design target)",
-                             card_rect["top"] < 2400, str(card_rect))
+                        # Strict stopwatch check (matches check_stopwatch.py): the
+                        # Bench's shared {% include "_vbar.html" %} hero now renders
+                        # a COMPACT hero for tab == "bench" (image band capped at
+                        # 18vh, no tagline, no key-figures row -- see _vbar.html and
+                        # cuore.css's "Bench compact hero" section) specifically so
+                        # the resume card and first next-action card land back
+                        # on-screen at 400x800 with no scrolling. The full,
+                        # taller hero (image/tagline/key-figures) is report-only.
+                        check("the first next-action card's top is within the "
+                             "first 800px viewport (no scrolling at 400x800)",
+                             card_rect["top"] < 800, str(card_rect))
                         check("the first next-action card does not overflow horizontally",
                              card_rect["right"] <= 400 + 1, str(card_rect))
 

@@ -198,13 +198,15 @@ def check_flow_bar(env: Environment) -> None:
 
 # --- 3: _vtabs.html ---------------------------------------------------------
 
-VISIBLE_LABELS = ["Bench", "Job", "Codes", "Systems", "Report"]
+# 2026-10-08 UX pass: Live board was promoted out of the More menu and into
+# the visible row (after Codes, labelled "Live") -- see _vtabs.html.
+VISIBLE_LABELS = ["Bench", "Job", "Codes", "Live", "Systems", "Report"]
 OLD_LINK_PATHS = [
     f"/v/{VIN}", f"/v/{VIN}/job", f"/v/{VIN}/modules", f"/v/{VIN}/timeline",
     f"/v/{VIN}/systems", f"/v/{VIN}/electrical", f"/v/{VIN}/media", f"/v/{VIN}/parts",
     f"/v/{VIN}/dashboard", f"/v/{VIN}/gauges", f"/v/{VIN}/codes", f"/v/{VIN}/tree",
     f"/v/{VIN}/gate", f"/v/{VIN}/service-hub", f"/v/{VIN}/report", f"/v/{VIN}/inbox",
-    f"/logs?vin={VIN}",
+    f"/logs?vin={VIN}", f"/v/{VIN}/liveboard",
 ]
 NEW_LINK_PATHS = [f"/v/{VIN}/labels"]
 
@@ -217,8 +219,8 @@ def check_vtabs(env: Environment) -> None:
     # highlighted).
     rendered = tmpl.render(bar={"vin": VIN}, tab="job")
     before_more = rendered.split("<details")[0]
-    check("vtabs: exactly 5 tabs visible outside the More menu",
-          sum(f">{lbl}<" in before_more for lbl in VISIBLE_LABELS) == 5)
+    check("vtabs: exactly 6 tabs visible outside the More menu",
+          sum(f">{lbl}<" in before_more for lbl in VISIBLE_LABELS) == 6)
     check("vtabs: viewed tab (Job) marked .on",
           f'href="/v/{VIN}/job" class="on' in rendered)
     for path in OLD_LINK_PATHS + NEW_LINK_PATHS:

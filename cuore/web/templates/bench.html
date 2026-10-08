@@ -35,6 +35,17 @@
 }
 .bench-case-hint { margin: 0; }
 
+/* Item 17: the one blocker/next-action banner on the whole page. */
+.bench-blocker-banner {
+  display: flex; align-items: flex-start; gap: 8px; padding: 10px;
+  background: var(--sev-chronic-bg); border: 1px solid var(--sev-chronic);
+  border-radius: var(--radius);
+}
+.bench-blocker-banner:not(.is-blocker) {
+  background: var(--surface-2); border-color: var(--rule);
+}
+.bench-blocker-banner .bench-next-action { flex: 1 1 auto; }
+
 /* Resume card (A1) */
 .bench-resume {
   background: var(--raised); border: 1px solid var(--rule);
@@ -65,11 +76,17 @@
 }
 .bench-card[data-state="blocked"] { border-color: var(--sev-chronic); }
 .bench-card[data-state="done"] { opacity: 0.85; }
-.bench-check { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.bench-checkbox-real { width: 22px; height: 22px; cursor: pointer; }
-.bench-check-label { font-size: 10px; color: var(--ink-3); }
+.bench-check {
+  flex: none; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; min-width: 48px; min-height: 48px;
+}
+.bench-checkbox-real { width: 28px; height: 28px; cursor: pointer; }
+.bench-check-label { font-size: 12px; color: var(--ink-3); }
 .bench-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.bench-card-text { font-size: 15px; display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; cursor: pointer; }
+.bench-card-text {
+  font-size: 15px; display: flex; align-items: center; gap: 6px;
+  overflow-wrap: anywhere; cursor: pointer; min-height: 44px;
+}
 .bench-state-badge { font-size: 10px; margin-left: auto; }
 .bench-state-badge.state-ready { color: var(--ok); background: var(--ok-bg); }
 .bench-state-badge.state-blocked { color: var(--sev-returned); background: var(--sev-returned-bg); }
@@ -91,12 +108,16 @@
 .bench-pass-line { font-weight: 600; }
 .bench-inspect-steps { margin: 0; padding-left: 18px; }
 .bench-outcome-fields { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-top: 4px; }
+.bench-outcome-fields select, .bench-outcome-fields input[type="text"] { min-height: 48px; }
 .bench-outcome-fields input[type="text"] { flex: 1 1 140px; min-width: 0; }
+.bench-outcome-fields .btn { min-height: 48px; min-width: 48px; }
 .bench-done-summary { margin: 0; }
 
 .bench-shortcuts { display: flex; flex-wrap: wrap; gap: 6px; }
-.bench-shortcut { white-space: normal; }
-.bench-shortcut { text-decoration: none; }
+.bench-shortcut {
+  white-space: normal; text-decoration: none; min-height: 44px;
+  display: inline-flex; align-items: center;
+}
 .bench-shortcut.v-active { color: var(--sev-returned); background: var(--sev-returned-bg); }
 .bench-shortcut.v-cleared-unverified { color: var(--sev-chronic); background: var(--sev-chronic-bg); }
 .bench-legend { margin: 2px 0 0; }
@@ -106,110 +127,46 @@
 .bench-why summary { cursor: pointer; font-size: 13px; }
 
 .bench-links { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
-.bench-links .btn { min-height: 44px; display: inline-flex; align-items: center; }
+.bench-links .btn { min-height: 48px; display: inline-flex; align-items: center; }
 </style>
 
 <div class="bench" data-vin="{{ vin }}">
-
-  {# A1/A2: resume card -- last scan, what changed, N of M done, next action #}
-  <div class="bench-resume">
-    <div class="bench-resume-row">
-      <span>last scan {{ bench.resume.last_scan_relative }}</span>
-      {% if bench.scan_stale %}
-        <span class="bench-resume-stale">&middot; stale (&gt; 24 h)</span>
-      {% endif %}
-      <span class="bench-resume-progress">&middot; {{ bench.progress.done }} of {{ bench.progress.total }} done</span>
-    </div>
-    {% if bench.resume.changed %}
-      <ul class="bench-resume-changes">
-        {% for c in bench.resume.changed %}<li>{{ c }}</li>{% endfor %}
-      </ul>
-    {% elif not bench.resume.is_first_visit %}
-      <p class="small muted" style="margin:0">nothing changed since your last visit</p>
-    {% endif %}
-    {% if bench.resume.next_action %}
-      <p class="bench-resume-next">{{ bench.resume.next_action }}</p>
-    {% endif %}
-  </div>
 
   {% if bench.complaint %}
     <p class="bench-complaint">&ldquo;{{ bench.complaint }}&rdquo;</p>
   {% endif %}
 
-  {% if bench.verdict.next_action %}
-    <p class="bench-next-action">{{ bench.verdict.next_action }}</p>
-  {% endif %}
-
-  {% if bench.verdict.basis %}
-    <details class="bench-why">
-      <summary>Why {{ (bench.verdict.state or "")|lower|replace("_", " ") }}?</summary>
-      <p class="small muted" style="margin:4px 0 0">{{ bench.verdict.basis[0] }}</p>
-      {% if bench.verdict.basis|length > 1 %}
-        <ul class="small muted">
-          {% for b in bench.verdict.basis[1:] %}<li>{{ b }}</li>{% endfor %}
-        </ul>
+  {# Item 17: the blocker/next-action sentence shown ONCE, as a banner --
+     icon, one-line action (class kept as "bench-next-action" so it is
+     never mistaken for -- or buried inside -- a collapsed disclosure),
+     "Why?" for the full sentence + verdict basis. Replaces the old
+     resume-card line + bare headline + separate "Why {{state}}?" block,
+     which repeated this same sentence 3 times (JOB_UX_FIXES item 17). #}
+  {% if bench.blocker_banner %}
+    <div class="bench-blocker-banner{{ ' is-blocker' if bench.blocker_banner.is_blocker }}">
+      {% if icon is defined %}{{ icon(bench.blocker_banner.icon, size="s") }}{% endif %}
+      <p class="bench-next-action">{{ bench.blocker_banner.action }}</p>
+      {% if bench.blocker_banner.why != bench.blocker_banner.action or bench.blocker_banner.basis %}
+        <details class="bench-why">
+          <summary>Why?</summary>
+          <p class="small muted" style="margin:4px 0 0">{{ bench.blocker_banner.why }}</p>
+          {% if bench.blocker_banner.basis %}
+            <ul class="small muted">
+              {% for b in bench.blocker_banner.basis %}<li>{{ b }}</li>{% endfor %}
+            </ul>
+          {% endif %}
+        </details>
       {% endif %}
-    </details>
+    </div>
   {% endif %}
 
   {% if bench.case_hint %}
     <p class="bench-case-hint small muted">{{ bench.case_hint }}</p>
   {% endif %}
 
-  {# C10: live fuel gate + readiness panel #}
-  <div class="bench-gates">
-    <div class="bench-gate {{ 'out' if bench.fuel_gate.in_window == False }}">
-      <h4>Fuel gate (EVAP needs 15&ndash;85%)</h4>
-      {% if bench.fuel_gate.level is not none %}
-        <p style="margin:0">{{ bench.fuel_gate.level }}%
-          {% if bench.fuel_gate.in_window %} &mdash; in window
-          {% else %} &mdash; {{ bench.fuel_gate.direction }} window{% endif %}</p>
-        {% if bench.fuel_gate.litres_to_target is not none %}
-          <p class="small muted" style="margin:0">burn ~{{ bench.fuel_gate.litres_to_target }} L to reach 85%</p>
-        {% else %}
-          <p class="small muted" style="margin:0">litres to burn: UNKNOWN (no sourced tank capacity)</p>
-        {% endif %}
-      {% else %}
-        <p class="small muted" style="margin:0">UNKNOWN &mdash; no fuel reading on file</p>
-      {% endif %}
-    </div>
-    <div class="bench-gate">
-      <h4>Readiness</h4>
-      {% if bench.readiness.monitors %}
-        <p style="margin:0">{{ bench.readiness.monitors|selectattr("complete")|list|length }}/{{ bench.readiness.monitors|length }} complete</p>
-        <p class="small muted" style="margin:0">read {{ bench.readiness.at }}</p>
-      {% else %}
-        <p class="small muted" style="margin:0">{{ bench.readiness.note or "no readiness read yet" }}</p>
-      {% endif %}
-    </div>
-  </div>
-
-  {# B6: shared parts/tools at job level #}
-  {% if bench.job_parts or bench.job_tools %}
-    <div class="bench-job-shared">
-      {% if bench.job_parts %}
-        <div class="bench-parts muted">
-          <b>Parts for this job:</b>
-          {% for p in bench.job_parts %}
-            <span class="bench-part">{{ p.name }}{% if p.number %} &middot;
-              <span class="mono">{{ p.number }}</span>{% endif %}</span>
-          {% endfor %}
-        </div>
-      {% endif %}
-      {% if bench.job_tools %}
-        <div class="bench-tools">
-          <b>Tools for this job:</b>
-          {% for tl in bench.job_tools %}
-            <span class="chip plain bench-tool {{ 'ok' if tl.have == 'owned' else ('not-ok' if tl.have == 'not_owned' else '') }}">
-              {{ tl.name }} &mdash;
-              {{ "have" if tl.have == "owned" else ("not owned" if tl.have == "not_owned" else "unknown: ask") }}
-            </span>
-          {% endfor %}
-        </div>
-      {% endif %}
-    </div>
-  {% endif %}
-
+  {# Bench order (item 17): status line (vbar) -> blocker banner (above) ->
+     the 3 next-action cards -> resume details -> fuel gate/readiness ->
+     job-level parts/tools -> codes row -> links. #}
   <div class="bench-actions">
     {% for a in bench.next_actions %}
       <div class="bench-card" id="task-{{ a.step_id }}" data-task-id="{{ a.step_id }}" data-state="{{ a.state|lower }}">
@@ -305,6 +262,84 @@
       <p class="muted small">{{ t('nothing_open') if t is defined else 'Nothing open on the checklist.' }}</p>
     {% endfor %}
   </div>
+
+  {# A1/A2: resume details -- last scan, what changed, N of M done. The
+     next-action sentence itself lives solely in the banner above now
+     (item 17), so this card no longer repeats it. #}
+  <div class="bench-resume">
+    <div class="bench-resume-row">
+      <span>last scan {{ bench.resume.last_scan_relative }}</span>
+      {% if bench.scan_stale %}
+        <span class="bench-resume-stale">&middot; stale (&gt; 24 h)</span>
+      {% endif %}
+      <span class="bench-resume-progress">&middot; {{ bench.progress.done }} of {{ bench.progress.total }} done</span>
+      {# Item 9: bench_bridge.scanner_label()/LABELS -- never the raw MES
+         state enum (the persistent per-tab banner in _vbar.html shows the
+         same word for every other /v/ page; this is the Bench's own). #}
+      <span class="muted">&middot; Scanner: {{ bench.scanner_label }}</span>
+    </div>
+    {% if bench.resume.changed %}
+      <ul class="bench-resume-changes">
+        {% for c in bench.resume.changed %}<li>{{ c }}</li>{% endfor %}
+      </ul>
+    {% elif not bench.resume.is_first_visit %}
+      <p class="small muted" style="margin:0">nothing changed since your last visit</p>
+    {% endif %}
+  </div>
+
+  {# C10: live fuel gate + readiness panel #}
+  <div class="bench-gates">
+    <div class="bench-gate {{ 'out' if bench.fuel_gate.in_window == False }}">
+      <h4>Fuel gate (EVAP needs 15&ndash;85%)</h4>
+      {% if bench.fuel_gate.level is not none %}
+        <p style="margin:0">{{ bench.fuel_gate.level }}%
+          {% if bench.fuel_gate.in_window %} &mdash; in window
+          {% else %} &mdash; {{ bench.fuel_gate.direction }} window{% endif %}</p>
+        {% if bench.fuel_gate.litres_to_target is not none %}
+          <p class="small muted" style="margin:0">burn ~{{ bench.fuel_gate.litres_to_target }} L to reach 85%</p>
+        {% else %}
+          <p class="small muted" style="margin:0">litres to burn: UNKNOWN (no sourced tank capacity)</p>
+        {% endif %}
+      {% else %}
+        <p class="small muted" style="margin:0">UNKNOWN &mdash; no fuel reading on file</p>
+      {% endif %}
+    </div>
+    <div class="bench-gate">
+      <h4>Readiness</h4>
+      {% if bench.readiness.monitors %}
+        <p style="margin:0">{{ bench.readiness.monitors|selectattr("complete")|list|length }}/{{ bench.readiness.monitors|length }} complete</p>
+        <p class="small muted" style="margin:0">read {{ bench.readiness.at }}</p>
+      {% else %}
+        <p class="small muted" style="margin:0">{{ bench.readiness.note or "no readiness read yet" }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# B6: shared parts/tools at job level #}
+  {% if bench.job_parts or bench.job_tools %}
+    <div class="bench-job-shared">
+      {% if bench.job_parts %}
+        <div class="bench-parts muted">
+          <b>Parts for this job:</b>
+          {% for p in bench.job_parts %}
+            <span class="bench-part">{{ p.name }}{% if p.number %} &middot;
+              <span class="mono">{{ p.number }}</span>{% endif %}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% if bench.job_tools %}
+        <div class="bench-tools">
+          <b>Tools for this job:</b>
+          {% for tl in bench.job_tools %}
+            <span class="chip plain bench-tool {{ 'ok' if tl.have == 'owned' else ('not-ok' if tl.have == 'not_owned' else '') }}">
+              {{ tl.name }} &mdash;
+              {{ "have" if tl.have == "owned" else ("not owned" if tl.have == "not_owned" else "unknown: ask") }}
+            </span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
 
   {% if bench.shortcuts %}
     <div class="bench-shortcuts">

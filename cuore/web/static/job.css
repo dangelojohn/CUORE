@@ -1,0 +1,230 @@
+/* job.css -- styling for /v/{vin}/job only (JOB_UX_FIXES_2026-10-08.md).
+   Scoped under .job-page everywhere so nothing here bleeds onto any other
+   page -- cuore.css/_vbar.html/_vtabs.html stay untouched. Loaded after
+   cuore.css (job.html links it directly, after base.html's own <link>s),
+   so these rules can freely override cuore.css's own job-page-only classes
+   without editing that file. */
+
+.job-page { max-width: 980px; }
+
+/* ---------- fix #8: compact, phase-grouped stepper ---------------------- */
+
+.job-page .process-map {
+  display: flex;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  gap: 2px;
+  padding: 4px 2px 8px;
+  margin: 0 0 10px;
+  -webkit-overflow-scrolling: touch;
+}
+.job-page .pm-captions {
+  display: flex;
+  width: 100%;
+  margin-bottom: 2px;
+  font-size: 10px;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--muted, #8a8f96);
+}
+.job-page .pm-cap { flex: 0 0 auto; text-align: left; white-space: nowrap; overflow: hidden; }
+.job-page .pm-cap-4 { flex-basis: 33%; }
+.job-page .pm-cap-3 { flex-basis: 25%; }
+.job-page .pm-cap-2 { flex-basis: 16.6%; }
+.job-page .process-map .pm-step {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  height: 40px;
+  padding: 2px 3px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 10px;
+  line-height: 1;
+}
+.job-page .process-map .pm-n { margin-top: 1px; }
+/* phase dividers at the fixed 4/3/2/3 boundaries -- no extra markup, just
+   a border on the anchor that starts the next phase */
+.job-page .process-map a.pm-step:nth-child(6),  /* n=5, after caption row the 1st anchor is child 2 -> offset by 1 for .pm-captions */
+.job-page .process-map a.pm-step:nth-child(9),
+.job-page .process-map a.pm-step:nth-child(11) {
+  margin-left: 6px;
+  border-left: 1px solid var(--border, #333);
+  padding-left: 6px;
+}
+.job-page .pm-current { outline: 2px solid var(--accent, #5b9dff); outline-offset: 1px; }
+
+/* ---------- fix #5/#17: toast + blocker banner -------------------------- */
+
+.job-page .flash-toast {
+  position: sticky;
+  top: 4px;
+  z-index: 5;
+  padding: 10px 14px;
+  margin: 0 0 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--panel, #1c1f24);
+  border: 1px solid var(--border, #333);
+}
+.job-page .flash-ok { border-color: #2e7d4f; }
+.job-page .flash-err { border-color: #b23b3b; }
+.job-page .flash-warn { border-color: #b2923b; }
+
+.job-page .blocker-banner {
+  margin: 0 0 12px;
+}
+.job-page .blocker-action { display: block; margin-top: 2px; font-size: 13px; }
+
+/* ---------- fix #6: "job is at step N" chip in the sticky flow-bar ------ */
+
+.flow-viewing-chip { margin-left: 6px; text-decoration: none; }
+
+/* ---------- fix #7: Back/Next nav, sticky on phones --------------------- */
+
+.job-page .step-nav {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border, #333);
+}
+.job-page .step-nav-back { margin-right: auto; }
+
+@media (max-width: 767px) {
+  .job-page .step-nav {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg, #14161a);
+    padding: 8px 4px calc(8px + env(safe-area-inset-bottom, 0px));
+    margin: 18px -4px 0;
+    border-top: 1px solid var(--border, #333);
+    z-index: 4;
+  }
+  .job-page .step-nav .btn { flex: 1 1 auto; min-height: 48px; }
+}
+
+/* ---------- fix #4 (step 6 count), fix #3 (result sheet) ---------------- */
+
+.job-page .step6-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  margin: 2px 0 10px;
+}
+.job-page .step6-status-not-started { background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac); }
+.job-page .step6-status-progress { background: #3a3010; color: #e0b84a; }
+.job-page .step6-status-complete { background: #163a1f; color: #4fbf74; }
+
+.job-page .result-chip { margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.job-page .result-chip-pass { background: #163a1f; color: #4fbf74; }
+.job-page .result-chip-fail { background: #3a1616; color: #e0574a; }
+.job-page .result-chip-inconclusive { background: #3a3010; color: #e0b84a; }
+.job-page .result-chip-not_possible { background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac); }
+
+/* ---------- fix #1/#2/#11/#12/#13: hypothesis cards --------------------- */
+
+.job-page .hyp-card { position: relative; margin-bottom: 14px; }
+.job-page .hyp-card.is-deleted { opacity: .6; }
+.job-page .hyp-card.suggested-hyp { border-style: dashed; }
+.job-page .hyp-card.suggested-hyp.no-evidence { opacity: .72; }
+
+.job-page .likelihood-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--panel-2, #26292f);
+  margin: 4px 0 8px;
+  overflow: hidden;
+  max-width: 160px;
+}
+.job-page .likelihood-fill { display: block; height: 100%; border-radius: 999px; }
+.job-page .likelihood-fill.likelihood-high { background: #e0574a; }
+.job-page .likelihood-fill.likelihood-med { background: #e0b84a; }
+.job-page .likelihood-fill.likelihood-low { background: #4fbf74; }
+.job-page .likelihood-fill.likelihood-none { background: transparent; }
+
+.job-page .evidence-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0; }
+.job-page .evidence-chip { display: inline-flex; align-items: center; gap: 4px; }
+.job-page .evidence-remove-form { display: inline; }
+.job-page .chip-remove {
+  border: none; background: transparent; cursor: pointer;
+  font-size: 13px; line-height: 1; padding: 0 2px;
+  min-width: 20px; min-height: 20px;
+  color: inherit; opacity: .7;
+}
+.job-page .chip-remove:hover { opacity: 1; }
+
+.job-page .evidence-pickers { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; }
+.job-page .evidence-form { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.job-page .evidence-free-text { flex: 1 1 140px; min-height: 36px; }
+
+.job-page .linked-codes .chip-code { margin-right: 4px; }
+.job-page .do-it-now { margin-left: 8px; }
+
+.job-page .confirm-reason {
+  color: #e0b84a;
+  margin: 4px 0;
+}
+
+.job-page .hyp-status-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.job-page .hyp-status-btn { min-height: 48px; min-width: 48px; padding: 6px 12px; }
+.job-page .hyp-status-btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+.job-page .confirm-pending-panel {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--accent, #5b9dff);
+  background: var(--panel-2, #1a2230);
+}
+.job-page .confirm-pending-panel .btn { min-height: 44px; }
+
+.job-page .hyp-edit-details, .job-page .evidence-picker, .job-page .deleted-hyps,
+.job-page .suggestions-more, .job-page .add-hypothesis-collapsed { margin-top: 8px; }
+.job-page .hyp-delete-form { display: inline-block; margin-top: 8px; }
+.job-page .btn.danger { color: #e0574a; border-color: #e0574a; }
+
+.job-page .manual-hyp-form .field { margin-bottom: 10px; }
+.job-page .manual-hyp-form input,
+.job-page .manual-hyp-form select { width: 100%; min-height: 44px; box-sizing: border-box; }
+.job-page .manual-hyp-form select[multiple] { min-height: 90px; }
+.job-page .field-error { color: #e0574a; font-size: 12px; display: block; margin-top: 2px; }
+
+/* ---------- small toast (job.js-rendered) -------------------------------- */
+
+.job-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  max-width: min(92vw, 420px);
+  background: var(--panel, #1c1f24);
+  border: 1px solid var(--border, #333);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  z-index: 50;
+  box-shadow: 0 6px 20px rgba(0,0,0,.35);
+}
+.job-toast button { min-height: 36px; }
+
+.job-confirm-modal::backdrop { background: rgba(0,0,0,.55); }
+.job-confirm-modal {
+  border: none;
+  border-radius: 12px;
+  padding: 16px;
+  max-width: 420px;
+  width: calc(100vw - 32px);
+}
+.job-confirm-modal .btn { min-height: 48px; }

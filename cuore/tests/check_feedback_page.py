@@ -67,8 +67,12 @@ client = TestClient(_app_with_router())
 
 
 # === 1. the dossier carries data-fact and the feedback script ==============
+# /v/{VIN} is now the Bench (cuore/web/bench_routes.py) -- data-fact="verdict|"
+# comes from _verdict_card.html, which the Bench doesn't render (it has its
+# own compact hero/verdict chip instead). The full dossier, with the
+# feedback chrome this section actually checks, lives at /v/{VIN}/dossier.
 
-r = client.get(f"/v/{VIN}")
+r = client.get(f"/v/{VIN}/dossier")
 check("dossier responds 200", r.status_code == 200, str(r.status_code))
 check("dossier carries at least one data-fact attribute", 'data-fact="verdict|"' in r.text)
 check("dossier loads feedback.js", "feedback.js" in r.text)
@@ -269,7 +273,12 @@ else:
             )
             try:
                 _wait_for_devtools(_devtools_port)
-                _url = f"http://127.0.0.1:{_port}/v/{VIN}/job"
+                # job.html renders one step per screen (?step=N); the "4. Scan
+                # & codes" heading (#step-4, wrapping _codes_table.html) this
+                # section measures only exists when that step is the one on
+                # screen, which is not guaranteed to be the flow's own default
+                # step -- ask for it explicitly rather than relying on that.
+                _url = f"http://127.0.0.1:{_port}/v/{VIN}/job?step=4"
                 # /json/new?url creates the target but -- on this machine --
                 # leaves it on about:blank rather than actually navigating
                 # (confirmed by checking location.href after); Page.navigate

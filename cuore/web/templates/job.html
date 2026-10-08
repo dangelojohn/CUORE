@@ -2,6 +2,7 @@
 {% block title %}Job — {{ bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="{{ static_url('job.css') }}">
 
 {% set job = job_view.job %}
 {% set flow = flow_state_for(vin) if flow_state_for is defined else none %}
@@ -87,10 +88,227 @@
   </a>
 {% endmacro %}
 
-<p class="lede">{{ t('job_lede') }}</p>
+{# ---------- Job UX pass 2026-10-08 additions ---------- #}
 
-{# ---------- process map: the 12 steps as a horizontal pictogram strip ---------- #}
+{# fix #7: the primary/secondary buttons at the bottom of every step's own
+   content -- never a "current page" link (the old #7 bug), always the
+   *next*/previous step's own title, read from the step registry above so
+   a renamed step never goes stale here (fix #10). #}
+{% set _registry_titles = {} %}
+{% if job_view.step_registry %}
+  {% for s in job_view.step_registry %}{% set _ = _registry_titles.update({s.n: s.title}) %}{% endfor %}
+{% endif %}
+{% macro step_nav(n) %}
+  {% set _next_title = _registry_titles.get(n + 1, t(_step_title_keys[n + 1]) if n < 12 else "") %}
+  <div class="step-nav">
+    {% if n > 1 %}
+      <a class="btn step-nav-back" href="/v/{{ vin }}/job?step={{ n - 1 }}">&larr; {{ t('back_word') }}</a>
+    {% endif %}
+    {% if n < 12 %}
+      <a class="btn primary step-nav-next" href="/v/{{ vin }}/job?step={{ n + 1 }}">{{ t('next_word') }}: {{ _next_title }} &rarr;</a>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{# fix #17: the dossier's own blocker (e.g. "fuel 93.73%, EVAP monitor will
+   not run") shown once, with the one-line action and a Why disclosure --
+   also on steps 7 and 10 where it actually affects the decision. #}
+{% macro blocker_banner() %}
+  {% if view.verdict and view.verdict.blocker %}
+    <div class="note warn blocker-banner">
+      <b>{{ t('blocker_word') }}:</b> {{ view.verdict.blocker }}
+      {% if view.verdict.summary %}<span class="blocker-action">{{ view.verdict.summary }}</span>{% endif %}
+      {% if view.verdict.basis %}
+        <details class="why-expander"><summary>{{ t('why_word') }}</summary>
+          <ul>{% for b in view.verdict.basis %}<li>{{ b }}</li>{% endfor %}</ul>
+        </details>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endmacro %}
+
+{# fix #1: the inline reason a Confirm button is disabled -- mirrors the
+   real gate mes.jobs._validate_status_transition/_require_confirm_evidence
+   enforce server-side (>=1 passed/failed test evidence_for, 0 unresolved
+   evidence_against); this is display-only, the server call is what
+   actually decides. #}
+{% macro confirm_gate_reason(h) %}
+  {%- set _passfail = h.evidence_for|selectattr('kind', 'equalto', 'test')|selectattr('result', 'defined')|selectattr('result', 'in', ['pass', 'fail'])|list -%}
+  {%- set _unresolved = h.evidence_against|rejectattr('resolved')|list -%}
+  {%- if h.status == 'confirmed' -%}
+  {%- elif _unresolved -%}{{ t('unresolved_against') }}
+  {%- elif not _passfail -%}{{ t('needs_test_result') }}{% if h.next_test %} {{ t('next_test_colon') }} {{ h.next_test }}{% endif %}
+  {%- endif -%}
+{% endmacro %}
+
+{% macro likelihood_bar(level) %}
+  {% set _pct = {"high": 90, "med": 55, "low": 25}.get(level, 0) %}
+  <div class="likelihood-bar" title="{{ t('likelihood_label') }}: {{ t('likelihood_' + level) if level else t('none_selected') }}">
+    <span class="likelihood-fill likelihood-{{ level or 'none' }}" style="width:{{ _pct }}%"></span>
+  </div>
+{% endmacro %}
+
+{% macro evidence_chip(e, hyp_id, side, cls) %}
+  <span class="chip {{ cls }} evidence-chip">
+    <span class="evidence-chip-label">{{ e.label }}</span>
+    <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ hyp_id }}/evidence" class="evidence-remove-form">
+      <input type="hidden" name="side" value="{{ side }}">
+      <input type="hidden" name="op" value="remove">
+      <input type="hidden" name="kind" value="{{ e.kind }}">
+      <input type="hidden" name="ref_id" value="{{ e.id }}">
+      <input type="hidden" name="label" value="{{ e.label }}">
+      <input type="hidden" name="step" value="7">
+      <button type="submit" class="chip-remove" aria-label="{{ t('delete_word') }}" title="{{ t('delete_word') }}">&times;</button>
+    </form>
+  </span>
+{% endmacro %}
+
+{% macro evidence_picker(h, side) %}
+  <details class="evidence-picker">
+    <summary>{{ t('evidence_for_add') if side == 'for' else t('evidence_against_add') }}</summary>
+    <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/evidence" class="evidence-form">
+      <input type="hidden" name="side" value="{{ side }}">
+      <input type="hidden" name="op" value="add">
+      <input type="hidden" name="step" value="7">
+      <select name="_pick" class="evidence-pick">
+        <option value="">{{ t('no_evidence_yet_label') }}</option>
+        {% for c in active_codes %}<option value="code|{{ c }}|{{ c }}">{{ c }}</option>{% endfor %}
+        {% for f in (view.freeze_frames or []) %}<option value="freeze_frame|{{ f.code }}|{{ f.code }} freeze frame">{{ f.code }} freeze frame</option>{% endfor %}
+      </select>
+      <input type="text" name="label" placeholder="{{ t('system_select_placeholder') }}" class="evidence-free-text">
+      <input type="hidden" name="kind" value="observation" class="evidence-kind-field">
+      <input type="hidden" name="ref_id" value="" class="evidence-id-field">
+      <button class="btn" type="submit">{{ t('save') }}</button>
+    </form>
+  </details>
+{% endmacro %}
+
+{% macro hyp_card(h) %}
+  {% set _reason = (confirm_gate_reason(h)|trim) %}
+  <div class="job-card hyp-card" id="hyp-{{ h.id }}" data-hyp-id="{{ h.id }}"
+       data-hyp-status="{{ h.status }}" data-hyp-system="{{ h.system }}"
+       data-hyp-text="{{ h.text }}">
+    <div class="job-head">
+      <h3>{{ h.text }}</h3>
+      {% if h.system %}<span class="chip plain">{{ h.system }}</span>{% endif %}
+      <span class="chip {{ {"open": "plain", "supported": "chronic", "refuted": "cleared", "confirmed": "returned"}[h.status] }}">{{ t('status_' + h.status) }}</span>
+    </div>
+
+    {{ likelihood_bar(h.likelihood) }}
+
+    <div class="evidence-row"><b class="small">{{ t('evidence_for') }}</b> <span class="ev-count small muted">({{ h.evidence_for|length }})</span>
+      {% for e in h.evidence_for %}{{ evidence_chip(e, h.id, 'for', 'ok') }}{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
+    </div>
+    <div class="evidence-row"><b class="small">{{ t('evidence_against') }}</b> <span class="ev-count small muted">({{ h.evidence_against|length }})</span>
+      {% for e in h.evidence_against %}{{ evidence_chip(e, h.id, 'against', 'returned') }}{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
+    </div>
+    <div class="evidence-pickers">
+      {{ evidence_picker(h, 'for') }}
+      {{ evidence_picker(h, 'against') }}
+    </div>
+
+    {% if h.codes %}<p class="small linked-codes"><b>{{ t('linked_codes_label') }}:</b>
+      {% for c in h.codes %}<span class="chip-code mono">{{ c }}</span>{% endfor %}</p>{% endif %}
+    {% if h.next_test %}<p class="small"><b>{{ t('next_test_colon') }}</b> {{ h.next_test }}
+      <a class="btn small do-it-now" href="/v/{{ vin }}/job?step=6">{{ t('do_it_now') }} &rarr;</a></p>{% endif %}
+    {% if h.updated_at %}<p class="small muted">{{ t('last_updated_label') }}: {{ h.updated_at }}</p>{% endif %}
+    {% if h.confirmed_by %}<p class="small muted">{{ t('confirmed_by_on').format(by=h.confirmed_by, at=h.confirmed_at) }}</p>{% endif %}
+
+    {% if h.status != 'confirmed' and _reason %}
+      <p class="confirm-reason small" id="reason-{{ h.id }}">{{ _reason }}</p>
+    {% endif %}
+
+    <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/status" class="hyp-status-row">
+      <input type="hidden" name="step" value="7">
+      {% for st in ["open", "supported", "refuted", "confirmed"] %}
+        <button class="hyp-status-btn {{ 'on' if h.status == st }}" type="submit" name="status" value="{{ st }}"
+          {% if st == 'confirmed' and _reason %}disabled title="{{ _reason }}"{% endif %}>{{ t('status_' + st) }}</button>
+      {% endfor %}
+    </form>
+
+    {% if confirm_pending == h.id %}
+      <div class="confirm-pending-panel" data-confirm-panel data-hyp-id="{{ h.id }}">
+        <p><b>{{ t('confirm_tap_again') }}</b></p>
+        <p class="small">{{ t('evidence_for') }} {{ h.evidence_for|length }} &middot; {{ t('evidence_against') }} {{ h.evidence_against|length }}
+          {% if h.likelihood %} &middot; {{ t('likelihood_label') }}: {{ t('likelihood_' + h.likelihood) }}{% endif %}</p>
+        <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/status" class="inline-form">
+          <input type="hidden" name="status" value="confirmed">
+          <input type="hidden" name="ack" value="1">
+          <input type="hidden" name="step" value="7">
+          <button class="btn primary" type="submit">{{ t('confirm_tap_again') }}</button>
+        </form>
+        <a class="btn" href="/v/{{ vin }}/job?step=7#hyp-{{ h.id }}">{{ t('cancel_word') }}</a>
+      </div>
+    {% endif %}
+
+    <details class="hyp-edit-details">
+      <summary>{{ t('edit_word') }}</summary>
+      <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/edit" class="hyp-edit-form">
+        <input type="hidden" name="step" value="7">
+        <div class="field"><label>{{ t('hypothesis_label') }}</label><input name="text" value="{{ h.text }}"></div>
+        <div class="field"><label>{{ t('system_label') }}</label>
+          <select name="system"><option value="">{{ t('system_select_placeholder') }}</option>
+            {% for s in systems_taxonomy %}<option value="{{ s }}" {{ 'selected' if h.system == s }}>{{ s }}</option>{% endfor %}
+          </select></div>
+        <div class="field"><label>{{ t('next_test_label') }}</label><input name="next_test" value="{{ h.next_test }}"></div>
+        <div class="field"><label>{{ t('likelihood_label') }}</label>
+          <select name="likelihood"><option value="">{{ t('none_selected') }}</option>
+            {% for lv in ['low', 'med', 'high'] %}<option value="{{ lv }}" {{ 'selected' if h.likelihood == lv }}>{{ t('likelihood_' + lv) }}</option>{% endfor %}
+          </select></div>
+        <div class="field"><label>{{ t('linked_codes_label') }}</label>
+          <input name="codes" value="{{ (h.codes or [])|join(', ') }}"></div>
+        <button class="btn primary" type="submit">{{ t('save') }}</button>
+      </form>
+    </details>
+
+    <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/delete" class="hyp-delete-form">
+      <input type="hidden" name="step" value="7">
+      <button class="btn danger" type="submit">{{ t('delete_word') }}</button>
+    </form>
+  </div>
+{% endmacro %}
+
+{% macro suggestion_card(s, idx) %}
+  <div class="job-card hyp-card suggested-hyp{{ ' no-evidence' if not s.evidence_for }}" id="sugg-{{ idx }}">
+    <div class="job-head">
+      <h3>{{ s.text }}</h3>
+      {% if s.system %}<span class="chip plain">{{ s.system }}</span>{% endif %}
+      <span class="chip plain">{{ t('suggested_label') }}</span>
+      {% if s.merged_count and s.merged_count > 1 %}<span class="chip plain">{{ s.merged_count }} {{ t('upstream_merged_prefix') }}</span>{% endif %}
+    </div>
+    <div class="evidence-row"><b class="small">{{ t('evidence_for') }}</b>
+      {% for e in s.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('no_evidence_separated') }}</span>{% endfor %}
+    </div>
+    <div class="evidence-row"><b class="small">{{ t('evidence_against') }}</b>
+      {% for e in s.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
+    </div>
+    {% if s.next_test %}<p class="small"><b>{{ t('next_test_colon') }}</b> {{ s.next_test }}</p>{% endif %}
+    <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/suggested" class="inline-form">
+      <input type="hidden" name="step" value="7">
+      <input type="hidden" name="text" value="{{ s.text }}">
+      <input type="hidden" name="system" value="{{ s.system }}">
+      <input type="hidden" name="next_test" value="{{ s.next_test }}">
+      <input type="hidden" name="evidence_for" value='{{ s.evidence_for|tojson }}'>
+      <input type="hidden" name="evidence_against" value='{{ s.evidence_against|tojson }}'>
+      <button class="btn primary" type="submit">{{ t('add_to_ledger') }}</button>
+    </form>
+  </div>
+{% endmacro %}
+
+<div class="job-page">
+
+{% if flash_msg %}
+  <div class="flash-toast flash-{{ flash_kind }}" role="status" data-flash>{{ flash_msg }}</div>
+{% endif %}
+
+{# ---------- fix #8: one compact stepper, grouped into phases ---------- #}
 <nav class="process-map" aria-label="Job steps">
+  <div class="pm-captions" aria-hidden="true">
+    <span class="pm-cap pm-cap-4">{{ t('intake_phase') }}</span>
+    <span class="pm-cap pm-cap-3">{{ t('diagnose_phase') }}</span>
+    <span class="pm-cap pm-cap-2">{{ t('repair_phase') }}</span>
+    <span class="pm-cap pm-cap-3">{{ t('closeout_phase') }}</span>
+  </div>
   {% for n in range(1, 13) %}
     {% set _st = step_map_status(n) %}
     <a class="pm-step pm-{{ _st }}"
@@ -112,6 +330,7 @@
       <div class="small muted">{{ t('opened_label') }} {{ job.opened_at }}{% if job.technician %} {{ t('by_label') }} {{ job.technician }}{% endif %}
         {% if job.closed_at %} &middot; {{ t('closed_label') }} {{ job.closed_at }}{% endif %}</div>
     </div>
+    {{ step_nav(1) }}
   {% else %}
     <p class="muted small">{{ t('no_visit_open') }}
       <a href="/start">{{ t('start_intake') }} &rarr;</a></p>
@@ -127,7 +346,7 @@
 <section class="dossier-section">
   <h2 id="step-2" class="section-h step-title">2. {{ t("complaint_symptoms") }}</h2>
   {{ step_oneliner(2) }}
-  {% set note_redirect = "/v/" + vin + "/job#step-2" %}
+  {% set note_redirect = "/v/" + vin + "/job?step=2#step-2" %}
   {% include "_symptom_form.html" %}
   {% if job_view.symptoms %}
     <div class="panel tight"><ul class="checklist">
@@ -139,6 +358,7 @@
   {% else %}
     <p class="muted small">{{ t('no_symptom_reports') }}</p>
   {% endif %}
+  {{ step_nav(2) }}
 </section>
 {% else %}
   {{ step_headline(2) }}
@@ -149,6 +369,7 @@
   <h2 id="step-3" class="section-h step-title">3. {{ t("verdict") }}</h2>
   {{ step_oneliner(3) }}
   {% include "_verdict_card.html" %}
+  {{ step_nav(3) }}
 </section>
 {% else %}
   {{ step_headline(3) }}
@@ -171,6 +392,7 @@
     {% include "_codes_table.html" %}
     <p class="small"><a href="/tools">{{ t('read_car_now') }} &rarr;</a></p>
   </details>
+  {{ step_nav(4) }}
 </section>
 {% else %}
   {{ step_headline(4) }}
@@ -194,6 +416,7 @@
       <p class="muted small">{{ t('no_active_codes') }}</p>
     {% endif %}
   </details>
+  {{ step_nav(5) }}
 </section>
 {% else %}
   {{ step_headline(5) }}
@@ -203,6 +426,19 @@
 <section class="dossier-section">
   <h2 id="step-6" class="section-h step-title">6. {{ t("tests_inspections") }}</h2>
   {{ step_oneliner(6) }}
+  {# fix #4's own honest-count line (distinct from the flow stepper's
+     done/current/blocked dot): real totals straight off each open-work
+     card's own progress, so a freshly opened job with 0 of N steps done
+     never reads as complete/green. #}
+  {% set ns = namespace(done=0, total=0) %}
+  {% for c in view.open_work %}
+    {% if c.progress %}{% set ns.done = ns.done + (c.progress.done or 0) %}{% set ns.total = ns.total + (c.progress.total or 0) %}{% endif %}
+  {% endfor %}
+  {% set _t6_state = 'complete' if (ns.total and ns.done == ns.total) else ('progress' if ns.done else 'not-started') %}
+  <p class="step6-status step6-status-{{ _t6_state }}">
+    {% if _t6_state == 'complete' %}{{ t('complete_word') }}{% elif _t6_state == 'progress' %}{{ t('in_progress_word') }}{% else %}{{ t('not_started_word') }}{% endif %}
+    {{ ns.done }}/{{ ns.total }}
+  </p>
   <details class="step-collapse" open>
     <summary>{{ t('open_work_attachments') }}</summary>
     {% include "_open_work.html" %}
@@ -210,6 +446,7 @@
     {% include "_media_attach.html" %}
     <p class="small"><a href="/v/{{ vin }}/electrical">{{ t('electrical') }} &rarr;</a></p>
   </details>
+  {{ step_nav(6) }}
 </section>
 {% else %}
   {{ step_headline(6) }}
@@ -219,71 +456,82 @@
 <section class="dossier-section">
   <h2 id="step-7" class="section-h step-title">7. {{ t("hypotheses") }}</h2>
   {{ step_oneliner(7) }}
+  {{ blocker_banner() }}
 
-  {% for h in job.hypotheses %}
-    <div class="job-card hyp-card" id="hyp-{{ h.id }}">
-      <div class="job-head">
-        <h3>{{ h.text }}</h3>
-        {% if h.system %}<span class="chip plain">{{ h.system }}</span>{% endif %}
-        <span class="chip {{ {"open": "plain", "supported": "chronic", "refuted": "cleared", "confirmed": "returned"}[h.status] }}">{{ t('status_' + h.status) }}</span>
-      </div>
-      <div class="evidence-row"><b class="small">{{ t('evidence_for') }}</b>
-        {% for e in h.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
-      </div>
-      <div class="evidence-row"><b class="small">{{ t('evidence_against') }}</b>
-        {% for e in h.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
-      </div>
-      {% if h.next_test %}<p class="small"><b>{{ t('next_test_colon') }}</b> {{ h.next_test }}</p>{% endif %}
-      <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/status" class="hyp-status-row">
-        {% for st in ["open", "supported", "refuted", "confirmed"] %}
-          <button class="hyp-status-btn {{ "on" if h.status == st }}" type="submit" name="status" value="{{ st }}">{{ t('status_' + st) }}</button>
-        {% endfor %}
+  {% if undo_hyp %}
+    <div class="note warn" data-undo-hyp="{{ undo_hyp }}">
+      {{ t('deleted_label') }}.
+      <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ undo_hyp }}/undelete" class="inline-form">
+        <input type="hidden" name="step" value="7">
+        <button class="btn small" type="submit">{{ t('undo_word') }}</button>
       </form>
     </div>
-  {% else %}
-    <p class="muted small">{{ t('no_hypotheses_yet') }}</p>
-  {% endfor %}
-
-  {% if job_view.suggested_hypotheses %}
-    <h3 class="small muted">{{ t('suggested_from_tree') }}</h3>
-    {% for s in job_view.suggested_hypotheses %}
-      <div class="job-card hyp-card suggested-hyp">
-        <div class="job-head">
-          <h3>{{ s.text }}</h3>
-          {% if s.system %}<span class="chip plain">{{ s.system }}</span>{% endif %}
-          <span class="chip plain">{{ t('suggested_label') }}</span>
-        </div>
-        <div class="evidence-row"><b class="small">{{ t('evidence_for') }}</b>
-          {% for e in s.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
-        </div>
-        <div class="evidence-row"><b class="small">{{ t('evidence_against') }}</b>
-          {% for e in s.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
-        </div>
-        {% if s.next_test %}<p class="small"><b>{{ t('next_test_colon') }}</b> {{ s.next_test }}</p>{% endif %}
-        <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/suggested">
-          <input type="hidden" name="text" value="{{ s.text }}">
-          <input type="hidden" name="system" value="{{ s.system }}">
-          <input type="hidden" name="next_test" value="{{ s.next_test }}">
-          <input type="hidden" name="evidence_for" value='{{ s.evidence_for|tojson }}'>
-          <input type="hidden" name="evidence_against" value='{{ s.evidence_against|tojson }}'>
-          <button class="btn primary" type="submit">{{ t('add_to_ledger') }}</button>
-        </form>
-      </div>
-    {% endfor %}
   {% endif %}
 
-  <div class="panel">
-    <h3>{{ t('add_hypothesis') }}</h3>
-    <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses">
-      <div class="field"><label for="hyp_text">{{ t('hypothesis_label') }}</label>
-        <input id="hyp_text" name="text" required></div>
-      <div class="field"><label for="hyp_system">{{ t('system_label') }}</label>
-        <input id="hyp_system" name="system" placeholder="{{ t('system_placeholder') }}"></div>
-      <div class="field"><label for="hyp_next">{{ t('next_test_label') }}</label>
-        <input id="hyp_next" name="next_test"></div>
-      <button class="btn primary" type="submit">{{ t('add_hypothesis') }}</button>
-    </form>
-  </div>
+  {% for h in job.hypotheses %}{{ hyp_card(h) }}{% else %}<p class="muted small">{{ t('no_hypotheses_yet') }}</p>{% endfor %}
+
+  {% if job_view.deleted_hypotheses %}
+    <details class="deleted-hyps">
+      <summary>{{ t('deleted_label') }} ({{ job_view.deleted_hypotheses|length }})</summary>
+      {% for h in job_view.deleted_hypotheses %}
+        <div class="job-card hyp-card is-deleted">
+          <div class="job-head"><h3>{{ h.text }}</h3></div>
+          <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/undelete" class="inline-form">
+            <input type="hidden" name="step" value="7">
+            <button class="btn small" type="submit">{{ t('undelete_word') }}</button>
+          </form>
+        </div>
+      {% endfor %}
+    </details>
+  {% endif %}
+
+  <details class="add-hypothesis-collapsed">
+    <summary class="btn primary">{{ t('add_hypothesis_collapsed') }}</summary>
+    <div class="panel manual-hyp-form">
+      <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses" id="manual-hyp-form"
+            data-job-id="{{ job.id }}" data-similar-url="/v/{{ vin }}/job/{{ job.id }}/hypotheses/similar">
+        <input type="hidden" name="step" value="7">
+        <div class="field"><label for="hyp_text">{{ t('hypothesis_label') }}</label>
+          <input id="hyp_text" name="text" required></div>
+        <p class="small muted" id="similar-hint" hidden></p>
+        <div class="field"><label for="hyp_system">{{ t('system_label') }}</label>
+          <select id="hyp_system" name="system">
+            <option value="">{{ t('system_select_placeholder') }}</option>
+            {% for s in systems_taxonomy %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select></div>
+        <div class="field"><label for="hyp_codes">{{ t('linked_codes_label') }}</label>
+          <select id="hyp_codes" name="codes" multiple>
+            {% for c in active_codes %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+          </select></div>
+        <div class="field"><label for="hyp_likelihood">{{ t('likelihood_label') }}</label>
+          <select id="hyp_likelihood" name="likelihood">
+            <option value="">{{ t('none_selected') }}</option>
+            <option value="low">{{ t('likelihood_low') }}</option>
+            <option value="med">{{ t('likelihood_med') }}</option>
+            <option value="high">{{ t('likelihood_high') }}</option>
+          </select></div>
+        <div class="field"><label for="hyp_next">{{ t('next_test_label') }}</label>
+          <input id="hyp_next" name="next_test" list="next-test-suggestions"></div>
+        <datalist id="next-test-suggestions">
+          {% for s in job_view.suggested_hypotheses %}{% if s.next_test %}<option value="{{ s.next_test }}">{% endif %}{% endfor %}
+        </datalist>
+        <button class="btn primary" type="submit">{{ t('add_hypothesis') }}</button>
+      </form>
+    </div>
+  </details>
+
+  {% set _top3 = job_view.suggested_hypotheses_top if job_view.suggested_hypotheses_top is defined else job_view.suggested_hypotheses[:3] %}
+  {% set _rest = job_view.suggested_hypotheses_rest if job_view.suggested_hypotheses_rest is defined else job_view.suggested_hypotheses[3:] %}
+  {% if _top3 %}
+    <h3 class="small muted">{{ t('suggested_from_tree') }}</h3>
+    {% for s in _top3 %}{{ suggestion_card(s, loop.index) }}{% endfor %}
+    {% if _rest %}
+      <details class="suggestions-more">
+        <summary>{{ t('show_n_more').format(n=_rest|length) }}</summary>
+        {% for s in _rest %}{{ suggestion_card(s, 3 + loop.index) }}{% endfor %}
+      </details>
+    {% endif %}
+  {% endif %}
 
   {% if case_prefill and case_prefill.matched_case %}
     <div class="panel tight case-prefill-card">
@@ -317,6 +565,8 @@
   {% elif case_prefill %}
     <p class="muted small">{{ case_prefill.summary }}</p>
   {% endif %}
+
+  {{ step_nav(7) }}
 </section>
 {% else %}
   {{ step_headline(7) }}
@@ -337,6 +587,7 @@
       </div>
     {% endif %}
   {% endif %}
+  {{ step_nav(8) }}
 </section>
 {% else %}
   {{ step_headline(8) }}
@@ -355,9 +606,10 @@
       <li class="muted small">{{ t('no_actions_recorded') }}</li>
     {% endfor %}
   </ul>
-  <div class="panel">
+  <div class="panel" id="actions">
     <h3>{{ t('record_an_action') }}</h3>
     <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/actions">
+      <input type="hidden" name="step" value="9">
       <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
         <select name="kind">
           {% for k in ["test", "inspection", "repair", "part", "clear", "note"] %}
@@ -369,6 +621,7 @@
       <p><button class="btn primary" type="submit">{{ t('record_action') }}</button></p>
     </form>
   </div>
+  {{ step_nav(9) }}
 </section>
 {% else %}
   {{ step_headline(9) }}
@@ -378,6 +631,7 @@
 <section class="dossier-section">
   <h2 id="step-10" class="section-h step-title">10. {{ t("verify") }}</h2>
   {{ step_oneliner(10) }}
+  {{ blocker_banner() }}
   {% include "_verdict_card.html" %}
   <p><a class="btn" href="/v/{{ vin }}/verify">{{ t('read_readiness') }} &rarr;</a></p>
   {% if job.verification %}
@@ -385,6 +639,7 @@
       &middot; {{ t('codes_returned_colon') }} {{ job.verification.codes_returned|join(", ") if job.verification.codes_returned else t('none_word') }}
       {% if job.verification.verdict %} &middot; {{ job.verification.verdict }}{% endif %}</p>
   {% endif %}
+  {{ step_nav(10) }}
 </section>
 {% else %}
   {{ step_headline(10) }}
@@ -399,6 +654,7 @@
     <a href="/v/{{ vin }}/labels">{{ t('labels') }} &rarr;</a> &middot;
     <a href="/v/{{ vin }}/inbox">{{ t('inbox') }}{% if job_view.feedback_open_count %} ({{ job_view.feedback_open_count }} {{ t('open_count_suffix') }}){% endif %} &rarr;</a>
   </p>
+  {{ step_nav(11) }}
 </section>
 {% else %}
   {{ step_headline(11) }}
@@ -494,6 +750,7 @@
       <button class="btn primary" type="submit">{{ t('close_case') }}</button>
     </form>
   {% endif %}
+  {{ step_nav(12) }}
 </section>
 {% else %}
   {{ step_headline(12) }}
@@ -501,4 +758,7 @@
 
 {% endif %}
 
+</div>
+
+<script src="{{ static_url('job.js') }}" defer></script>
 {% endblock %}

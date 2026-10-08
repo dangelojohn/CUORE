@@ -1,4 +1,32 @@
-<h1 class="mono">{{ code }}</h1>
+{# code_feel is a Jinja global registered by cuore/web/timeline_routes.py as a
+   side effect of importing it (see that module's docstring) -- guarded here
+   so this page still renders before app.py wires that router in. Hoisted up
+   here (was further down) so the header row below and the feel-card can
+   share one lookup instead of calling it twice. #}
+{% set cf = code_feel(vin, code) if code_feel is defined else {"feel": None, "pattern": None} %}
+
+{# Item 16: the DTC appears exactly ONCE, in this header row, together with
+   its status, MIL state and confidence badge -- none of those get a
+   second, differently-weighted repeat further down this page.
+   `records` (this code's occurrence history, from code.html's own route)
+   reaches this included partial via Jinja's share-the-caller's-context
+   default -- its first row's most recent occurrence is this DTC's current
+   read state; mapped through mes.dtc.DtcStatus's own values (never
+   invented) onto the three words a tech expects from a scan tool. #}
+{% set _dtc_status_labels = {"stored": "Current", "returned": "Current",
+                             "uncleared": "Current", "cleared": "Cleared",
+                             "absent": "Cleared", "unknown": "Unknown"} %}
+{% set _latest_status = (records[0].occurrences[0].status if records is defined
+                         and records and records[0].occurrences else none) %}
+<div class="code-head">
+  <h1 class="mono">{{ code }}</h1>
+  {% if _latest_status %}
+    <span class="chip plain code-head-chip" title="most recent read: {{ _latest_status }}">{{
+      _dtc_status_labels.get(_latest_status, _latest_status|title) }}</span>
+  {% endif %}
+  {% if cf.feel and cf.feel.mil %}<span class="chip plain code-head-chip">MIL: {{ cf.feel.mil }}</span>{% endif %}
+  {% if cf.feel and cf.feel.confidence %}<span class="chip plain code-head-chip">Confidence: {{ cf.feel.confidence }}</span>{% endif %}
+</div>
 
 {% set badges = systems_for_code(code) if systems_for_code is defined else [] %}
 {% include "_system_badge.html" %}
@@ -10,21 +38,19 @@
 {% set target_kind = "code" %}{% set target_id = code %}
 {% include "_media_attach.html" %}
 
-{# code_feel is a Jinja global registered by cuore/web/timeline_routes.py as a
-   side effect of importing it (see that module's docstring) -- guarded here
-   so this page still renders before app.py wires that router in. #}
-{% set cf = code_feel(vin, code) if code_feel is defined else {"feel": None, "pattern": None} %}
 <div class="panel feel-card">
   <h3>What would the driver feel?</h3>
   {% if cf.feel %}
     <p class="feel-sentence" id="fb-feel-{{ code }}" data-fact="feel|{{ code }}">{{ cf.feel.feel }}</p>
     {% if cf.feel.expect or cf.feel.not_expected %}
     <div class="feel-tags">
-      {% for x in cf.feel.expect %}<span class="chip expect">{{ x }}</span>{% endfor %}
-      {% for x in cf.feel.not_expected %}<span class="chip not-expect">{{ x }}</span>{% endfor %}
+      {% for x in cf.feel.expect %}<span class="chip expect">Expected &#10003; {{ x }}</span>{% endfor %}
+      {% for x in cf.feel.not_expected %}<span class="chip not-expect">Not expected &mdash; {{ x }}</span>{% endfor %}
     </div>
+    <p class="small muted feel-tags-legend">Legend:
+      <span class="chip expect">Expected &#10003;</span> this code should cause it &middot;
+      <span class="chip not-expect">Not expected &mdash;</span> this code should not</p>
     {% endif %}
-    {% if cf.feel.mil %}<p class="small">MIL: {{ cf.feel.mil }}</p>{% endif %}
     {% if cf.feel.notes %}<p class="small muted">{{ cf.feel.notes }}</p>{% endif %}
     <p class="small muted">Confidence: {{ cf.feel.confidence }}
       {% if cf.feel.source %} &middot; source: <span class="mono">{{ cf.feel.source }}</span>{% endif %}</p>

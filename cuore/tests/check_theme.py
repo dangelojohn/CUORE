@@ -7,12 +7,22 @@ CUORE_STATE_DIR, the Stelvio (VIN below, real corpus) as the fixture vehicle,
 headless Edge driven over CDP for anything that needs actual layout (font
 size, overflow, element presence) rather than just HTML text.
 
-Four checks, matching the owner's brief exactly:
+Four checks, matching the owner's brief (updated for the Bench/Report hero
+split -- _vbar.html now renders the full hero, with its key-figures row,
+only for tab == "report"; the Bench (tab == "bench", now at /v/{vin}) gets
+a COMPACT hero instead -- small image band, name, a verdict CHIP
+(.hero-verdict-chip) and the next-action sentence, no key figures. The
+job page (tab == "job") never got a hero at all. The checks below were
+written against the hero's old layout, which showed the full hero on what
+is now the Bench's own route -- updated to look at the pages that actually
+carry each piece of hero chrome today, same intent as before):
   1. Body computed font-size is >= 17px (job page).
-  2. The hero shows the verdict state text (.hero-verdict-state, non-empty)
-     on both the job page and the dossier page.
-  3. The hero's key-figures row renders at least two figures
-     (.hero-figure) for VIN ZASFAKPN5J7B88115.
+  2. The hero shows the verdict state text on both pages that carry a
+     hero: the full .hero-verdict-state on the Report, and the compact
+     .hero-verdict-chip on the Bench.
+  3. The Report's hero key-figures row renders at least two figures
+     (.hero-figure) for VIN ZASFAKPN5J7B88115 (the Bench's compact hero
+     deliberately drops this row -- see _vbar.html).
   4. No page-level horizontal overflow at 400px on the job page.
 
 Also writes two screenshots to the scratchpad for a one-time visual read:
@@ -142,6 +152,27 @@ def wait_for_port(port: int, timeout: float = 15.0) -> bool:
     return False
 
 
+def wait_for_navigation(cdp: CDP, timeout: float = 15.0) -> bool:
+    """Poll until the tab has actually left ``about:blank`` and
+    ``document.readyState`` is "complete". A fixed short sleep after
+    ``Page.navigate`` is not reliable in this environment -- observed:
+    headless Edge can take several seconds to even start navigating,
+    regardless of how fast the server itself answers (confirmed
+    separately against this same app)."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        val = cdp.eval_value(
+            "JSON.stringify({href: location.href, ready: document.readyState})")
+        try:
+            state = json.loads(val or "{}")
+        except ValueError:
+            state = {}
+        if state.get("href", "about:blank") != "about:blank" and state.get("ready") == "complete":
+            return True
+        time.sleep(0.3)
+    return False
+
+
 def navigate(devtools_port: int, url: str, width: int, height: int,
             dark: bool = False) -> CDP:
     target = open_target(devtools_port, "about:blank")
@@ -156,7 +187,7 @@ def navigate(devtools_port: int, url: str, width: int, height: int,
         cdp.send("Emulation.setEmulatedMedia",
                 {"features": [{"name": "prefers-color-scheme", "value": "dark"}]})
     cdp.send("Page.navigate", {"url": url})
-    time.sleep(1.2)
+    wait_for_navigation(cdp)
     cdp.send("Emulation.setDeviceMetricsOverride", {
         "width": width, "height": height, "deviceScaleFactor": 1, "mobile": width < 768,
     })
@@ -218,22 +249,17 @@ try:
         SCRATCHPAD.mkdir(parents=True, exist_ok=True)
 
         job_url = f"http://127.0.0.1:{port}/v/{VIN}/job"
-        dossier_url = f"http://127.0.0.1:{port}/v/{VIN}"
+        bench_url = f"http://127.0.0.1:{port}/v/{VIN}"  # the Bench -- compact hero
+        report_url = f"http://127.0.0.1:{port}/v/{VIN}/report"  # the full hero
 
-        # --- job page at 1400px: checks 1-3, plus the wide screenshot ----
+        # --- job page at 1400px: check 1, plus the wide screenshot -------
+        # (the job page never carries a hero -- _vbar.html only renders one
+        # for tab in ("bench", "report") -- so only the font-size check and
+        # the visual screenshot happen here now.)
         cdp = navigate(devtools_port, job_url, 1400, 1800, dark=True)
         try:
             fs = cdp.eval_value("parseFloat(getComputedStyle(document.body).fontSize)")
             check("body computed font-size is >= 17px", fs is not None and fs >= 17, str(fs))
-
-            job_state = cdp.eval_value(
-                "(function(){var e=document.querySelector('.hero-verdict-state');"
-                "return e?e.textContent.trim():null;})()")
-
-            fig_count = cdp.eval_value(
-                "document.querySelectorAll('.hero-figure').length")
-            check(f"hero key-figures row renders >= 2 figures for {VIN}",
-                  fig_count is not None and fig_count >= 2, str(fig_count))
 
             shot = cdp.send("Page.captureScreenshot", {"format": "png"})
             wide_path = SCRATCHPAD / "job_1400.png"
@@ -243,18 +269,33 @@ try:
         finally:
             cdp.close()
 
-        # --- dossier page: other half of check 2 -------------------------
-        cdp = navigate(devtools_port, dossier_url, 1400, 1800)
+        # --- report page: full hero -- check 2 (one half) and check 3 ----
+        cdp = navigate(devtools_port, report_url, 1400, 1800)
         try:
-            dossier_state = cdp.eval_value(
+            report_state = cdp.eval_value(
                 "(function(){var e=document.querySelector('.hero-verdict-state');"
+                "return e?e.textContent.trim():null;})()")
+
+            fig_count = cdp.eval_value(
+                "document.querySelectorAll('.hero-figure').length")
+            check(f"report hero key-figures row renders >= 2 figures for {VIN}",
+                  fig_count is not None and fig_count >= 2, str(fig_count))
+        finally:
+            cdp.close()
+
+        # --- bench page: compact hero -- check 2 (other half) ------------
+        cdp = navigate(devtools_port, bench_url, 1400, 1800)
+        try:
+            bench_state = cdp.eval_value(
+                "(function(){var e=document.querySelector('.hero-verdict-chip');"
                 "return e?e.textContent.trim():null;})()")
         finally:
             cdp.close()
 
-        check("hero shows the verdict state text on the job and dossier pages",
-              bool(job_state) and bool(dossier_state),
-              f"job={job_state!r} dossier={dossier_state!r}")
+        check("hero shows the verdict state text on both the report's full "
+              "hero and the bench's compact hero",
+              bool(report_state) and bool(bench_state),
+              f"report={report_state!r} bench={bench_state!r}")
 
         # --- job page at 400px: check 4, plus the narrow screenshot ------
         cdp = navigate(devtools_port, job_url, 400, 1400)

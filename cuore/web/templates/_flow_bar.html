@@ -31,6 +31,19 @@
    service itself, and every field read below is guarded with `or`/`is
    defined` so a partially-shaped fixture degrades instead of 500ing. #}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
+{# Job UX pass (2026-10-08, item #6): the header must show the step being
+   VIEWED (job.html's own ?step=N), not only the flow's own "current step"
+   opinion -- those two can differ (paging through ?step=N by hand). Read
+   straight off `request.query_params`, same trick i18n.py's own `t`/`lang`
+   globals use for the `lang` cookie, so no route anywhere has to pass a new
+   kwarg through just for this. Guarded so a bare jinja2.Environment with no
+   `request` in context (check_flow_bar.py's own fixture render calls) still
+   renders exactly as before -- it never sets ?step=, so `_viewed_n` falls
+   straight back to `flow.current`, identical output. #}
+{% set _req_step_n = (request.query_params.get('step')|int(default=0)) if request is defined and request else 0 %}
+{% set _viewed_n = _req_step_n if (flow and 1 <= _req_step_n <= (flow.steps|length)) else (flow.current if flow else none) %}
+{% set _current_steps = flow.steps|selectattr("n", "equalto", flow.current)|list if flow and flow.current else [] %}
+{% set _current_step_obj = _current_steps[0] if _current_steps else none %}
 {# Also rendered by check_flow_bar.py against a bare jinja2.Environment
    with no i18n globals -- same `_lbl` fallback-to-English-literal pattern
    as _vtabs.html, so that test's own hardcoded-English assertions
@@ -44,8 +57,13 @@
   {% if flow and flow.steps %}
     <div class="flow-line">
       {% if flow.next %}
-        <span class="flow-step-label">{{ _lbl('step_word', 'Step') }} {{ flow.current }} {{ _lbl('of_word', 'of') }} {{ flow.steps|length }}:
-          {%- for s in flow.steps if s.n == flow.current %} {{ s.title }}{% endfor %}</span>
+        <span class="flow-step-label">{{ _lbl('step_word', 'Step') }} {{ _viewed_n }} {{ _lbl('of_word', 'of') }} {{ flow.steps|length }}:
+          {%- for s in flow.steps if s.n == _viewed_n %} {{ s.title }}{% endfor %}</span>
+        {% if _viewed_n != flow.current and _current_step_obj %}
+          <a class="chip plain flow-viewing-chip"
+             href="{{ _current_step_obj.href|replace('#step-', '?step=') }}"
+             title="{{ _current_step_obj.title }}">{{ _lbl('job_is_at_step', 'Job is at step') }} {{ flow.current }} &rarr;</a>
+        {% endif %}
         {% if flow.blockers %}
           <span class="chip chronic flow-blocker-chip" title="{{ flow.blockers|length }} {{ _lbl('blocked_label', 'blocker(s)') }}">{{ flow.blockers|length }}&#9888;</span>
         {% endif %}

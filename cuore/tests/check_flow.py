@@ -47,6 +47,7 @@ from mes import jobs as jobs_mod  # noqa: E402
 from mes import shop as shop_mod  # noqa: E402
 from mes import symptoms as symptoms_mod  # noqa: E402
 from cuore.live import store as live_store  # noqa: E402
+from cuore.live import checklists as checklist_store  # noqa: E402
 
 failures: list[str] = []
 checks = 0
@@ -92,14 +93,29 @@ live_store.record_observation("scan", {"dtcs": ["P0455"]}, vin=VIN_3,
                               stream="serial COM3@115200")
 job3_id = visit3["job_id"]
 hyp3 = jobs_mod.add_hypothesis(job3_id, "EVAP: ESIM signal path", system="EVAP")
+# A hypothesis must be supported by a passed/failed test before it can be
+# confirmed (mes.jobs.RuleViolation, JOB_UX_FIXES_2026-10-08.md #1) -- a
+# direct open -> confirmed jump with no evidence is refused, not allowed.
+jobs_mod.add_evidence(job3_id, hyp3["id"], "for",
+                      {"kind": "test", "id": "smoke-1",
+                       "label": "smoke test: pass", "result": "pass"})
+jobs_mod.set_hypothesis(job3_id, hyp3["id"], status="supported")
 jobs_mod.set_hypothesis(job3_id, hyp3["id"], status="confirmed")
 jobs_mod.add_action(job3_id, "part", "ordered ESIM connector")
 jobs_mod.add_action(job3_id, "repair", "replaced ESIM connector")
+# Step 6 (Tests & inspections) now counts checklist rows with a *result*
+# over every row this VIN's open-work exposes (JOB_UX_FIXES_2026-10-08.md
+# #4) -- VIN_3 is fictional with no real open-work, so checklist_step_ids
+# is mocked to name one real row, and that row is given a passed result,
+# the same way a real smoke test would be recorded on step 6.
+checklist_store.set_result(VIN_3, "evap-smoke-1", "pass", reason="clean")
 fake_view3 = {"verdict": {"state": "UNVERIFIED_REPAIR",
                          "summary": "P0455 cleared 1 Oct; monitors have not re-run. "
                                     "Not proof of repair."},
              "open_work": [], "codes": [], "attempted": []}
-with mock.patch.object(flow_bridge.dossier_bridge, "build_view", return_value=fake_view3):
+with mock.patch.object(flow_bridge.dossier_bridge, "build_view", return_value=fake_view3), \
+     mock.patch.object(flow_bridge.dossier_bridge, "checklist_step_ids",
+                       return_value={"evap-smoke-1"}):
     state3 = flow_bridge.flow_state(VIN_3)
 check("3a. through a repair action -> current step 10", state3["current"] == 10,
      str(state3["current"]))
@@ -116,16 +132,23 @@ live_store.record_observation("scan", {"dtcs": ["P0455"]}, vin=VIN_4,
                               stream="serial COM3@115200")
 job4_id = visit4["job_id"]
 hyp4 = jobs_mod.add_hypothesis(job4_id, "EVAP: ESIM signal path", system="EVAP")
+jobs_mod.add_evidence(job4_id, hyp4["id"], "for",
+                      {"kind": "test", "id": "smoke-1",
+                       "label": "smoke test: pass", "result": "pass"})
+jobs_mod.set_hypothesis(job4_id, hyp4["id"], status="supported")
 jobs_mod.set_hypothesis(job4_id, hyp4["id"], status="confirmed")
 jobs_mod.add_action(job4_id, "part", "ordered ESIM connector")
 jobs_mod.add_action(job4_id, "repair", "replaced ESIM connector")
+checklist_store.set_result(VIN_4, "evap-smoke-1", "pass", reason="clean")
 shop_mod.release(visit4["id"], {
     "verified": True, "report_printed": True, "labels_printed": True,
     "parts_logged": True, "tools_reviewed": True, "notes": "fixed",
 })
 fake_view = {"verdict": {"state": "VERIFIED_CLEAN", "label": "Verified clean"},
             "open_work": [], "codes": [], "attempted": []}
-with mock.patch.object(flow_bridge.dossier_bridge, "build_view", return_value=fake_view):
+with mock.patch.object(flow_bridge.dossier_bridge, "build_view", return_value=fake_view), \
+     mock.patch.object(flow_bridge.dossier_bridge, "checklist_step_ids",
+                       return_value={"evap-smoke-1"}):
     state4 = flow_bridge.flow_state(VIN_4)
 check("4. VERIFIED_CLEAN + full release -> current step 12", state4["current"] == 12,
      str(state4["current"]))

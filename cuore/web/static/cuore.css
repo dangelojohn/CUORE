@@ -1450,3 +1450,115 @@ html.intro-skip .intro-overlay { display: none; }
  * it. It keeps floating (it's still a useful one-tap shortcut), just from
  * bottom-left instead, so the two never compete for the same spot. */
 .fab-note { left: 18px; right: auto; }
+
+/* =========================================================================
+ * Bench compact hero (_vbar.html, tab == "bench" branch).
+ * -------------------------------------------------------------------------
+ * The stopwatch ask: the Bench must answer "what next" with no scrolling
+ * at 400x800. The Report keeps the full hero above (image band, tagline,
+ * big verdict statement, key-figures row) -- genuinely useful chrome for
+ * a leisurely read, but too tall to also leave room for the next action
+ * on a phone. The Bench's own hero (.vhero-compact) is a much smaller
+ * trade: a capped image band, the car's name, a small verdict chip, and
+ * the next-action sentence. Nothing else -- no tagline, no key figures.
+ * Selectors here win on specificity (two classes) over the base/emphasis
+ * .hero-img / .hero-name rules above regardless of source order, so this
+ * section can simply be appended rather than threaded into those blocks.
+ * ========================================================================= */
+.vhero.vhero-compact { overflow: hidden; }
+.vhero.vhero-compact .hero-img {
+  height: 18vh; max-height: 18vh; min-height: 0;
+}
+.vhero.vhero-compact .hero-text {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+  background: linear-gradient(to top, #000 0%, rgba(0,0,0,.82) 55%, transparent 100%);
+  padding: var(--space-2) var(--pad) var(--space-2);
+}
+.vhero.vhero-compact .hero-head { display: flex; align-items: baseline; gap: var(--space-2); }
+.vhero.vhero-compact .hero-name { font-size: 28px; font-weight: 300; color: #fff; letter-spacing: 0; }
+.vhero.vhero-compact .hero-verdict {
+  margin-top: 2px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+}
+.hero-verdict-chip {
+  display: inline-block; font-size: 12px; font-weight: 650; letter-spacing: .06em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: var(--radius);
+}
+.hero-verdict-chip.v-active-faults     { color: var(--sev-returned); background: var(--sev-returned-bg); }
+.hero-verdict-chip.v-unverified-repair { color: var(--sev-chronic); background: var(--sev-chronic-bg); }
+.hero-verdict-chip.v-verified-clean    { color: var(--ok); background: var(--ok-bg); }
+.hero-verdict-chip.v-no-data           { color: var(--ink-3); background: var(--surface-2); }
+.hero-next-sentence {
+  margin: 0; font-size: 20px; font-weight: 300; line-height: 1.3; max-width: 72ch;
+  color: rgba(255,255,255,.92); overflow-wrap: anywhere;
+}
+
+/* =========================================================================
+ * Shop-floor pass (JOB_UX_FIXES_2026-10-08.md items 14-17)
+ * Appended, not merged into any rule above -- a pure override layer. Every
+ * selector here either already wins on source order (same specificity,
+ * later wins) or is written to match/beat whatever it overrides, so
+ * nothing above this comment needed to change.
+ *
+ * Item 14: body >= 16px (already true -- see the earlier `body { font-size:
+ * 16px; }`), secondary text >= 14px, nothing below 12px, muted text at
+ * least 4.5:1 (the dark theme's default --ink-3 was #79848c; #9aa4ac is the
+ * same token everywhere it's used, lighter). Item 15: every interactive
+ * element >= 48x48 (tabs, MORE, toggles); 44px is called out as the floor
+ * only where 48 cannot fit without breaking a dense row (tables, inline
+ * chip links) -- those are listed explicitly rather than swept in.
+ * ========================================================================= */
+
+:root { --ink-3: #9aa4ac; }
+
+/* Secondary text: raised from ~12.5-13px to the 14px floor everywhere it's
+ * used as a label/caption rather than a reading paragraph. */
+.small, .bench-resume-row, .bench-resume-changes, .bench-job-shared,
+.bench-parts, .bench-tools, .bench-card-detail, .step-text, .job-refs {
+  font-size: 14px;
+}
+
+/* Nothing below 12px: the smallest labels this app has (table header caps,
+ * figure captions, chip text) get a 12px floor. Evidence/status chips also
+ * move to sentence case here (item 14) -- their CSS already uppercases
+ * everything via text-transform, which is the part that made a code id
+ * unreadable at a glance; turning that off is enough, the markup itself
+ * already writes normal prose with the code id as the only `.mono` run. */
+th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
+.chip.sm, table.codes-table .chip, .chip-code.sm, .tl-label {
+  font-size: 12px;
+}
+.chip, .chip-verdict, .status-verdict, .bench-state-badge,
+.bench-shortcut, .hero-verdict-chip {
+  font-size: 12px; text-transform: none; letter-spacing: normal;
+}
+
+/* Item 16: "Expected / Not expected" is said in words now (the template
+ * prefixes each chip with "Expected \2713" / "Not expected \2014"), so the
+ * strikethrough this app used to lean on to mean "not expected" would now
+ * just be a redundant (and easily-misread-as-deleted) decoration on top of
+ * that word. */
+.feel-card .feel-tags .chip.not-expect { text-decoration: none; }
+.feel-tags-legend { margin: 0 0 8px; }
+
+.code-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 4px; }
+.code-head h1 { margin: 0; }
+.code-head-chip { font-size: 12px; }
+
+/* Item 15: touch targets. Primary row/tab controls go to 48x48; dense
+ * inline controls that cannot grow that far without breaking their row
+ * (table-cell chips, the vmore disclosure's own small triggers) get the
+ * 44px floor the spec allows as the exception, explicitly, rather than by
+ * omission. */
+.vtabs a, .vmore-tab summary, .vmore summary {
+  min-height: 48px; min-width: 48px; display: inline-flex;
+  align-items: center; justify-content: center; font-size: 14px;
+}
+.feedback-affordance, .fab-feedback { min-width: 48px; min-height: 48px; }
+.chip-code.sm, .raw-rows summary, .all-pids summary {
+  min-height: 44px;
+}
+
+@media (max-width: 500px) {
+  .vtabs { gap: 4px; }
+  .vtabs a { padding: 6px 10px; }
+}

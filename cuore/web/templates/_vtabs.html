@@ -25,11 +25,12 @@
    with no error if that service isn't wired up yet or has no opinion on
    this VIN). #}
 {# Mechanic-UX review item 4: the Bench landing page (another agent's
-   build, at /v/{vin}) is now the primary tab -- Job, Codes, Systems,
+   build, at /v/{vin}) is now the primary tab -- Job, Codes, Live, Systems,
    Report ride alongside it; the old dossier (same template, moved to
-   /v/{vin}/dossier) drops into More so five tabs, not six, stay visible
-   on a phone-width strip. #}
-{% set _visible = ("bench", "job", "codes", "systems", "report") %}
+   /v/{vin}/dossier) drops into More. Live board was promoted out of More
+   and into this visible row (after Codes) per the 2026-10-08 UX pass --
+   six tabs now stay visible on a phone-width strip. #}
+{% set _visible = ("bench", "job", "codes", "liveboard", "systems", "report") %}
 {% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "parts", "media",
                  "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard") %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
@@ -59,6 +60,7 @@
   {{ vtab("bench", "/v/" + bar.vin, _lbl("bench", "Bench")) }}
   {{ vtab("job", "/v/" + bar.vin + "/job", _lbl("job", "Job")) }}
   {{ vtab("codes", "/v/" + bar.vin + "/codes", _lbl("codes", "Codes")) }}
+  {{ vtab("liveboard", "/v/" + bar.vin + "/liveboard", _lbl("live_board", "Live")) }}
   {{ vtab("systems", "/v/" + bar.vin + "/systems", _lbl("systems", "Systems")) }}
   {{ vtab("report", "/v/" + bar.vin + "/report", _lbl("report", "Report")) }}
 

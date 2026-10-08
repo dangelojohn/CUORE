@@ -1145,13 +1145,96 @@ def job_add_action(job_id: str, kind: str, text: str, ref_json: str = "") -> str
 
 
 @mcp.tool()
+def job_add_hypothesis(job_id: str, text: str, system: str = "", next_test: str = "",
+                       codes: str = "", likelihood: str = "", by: str = "") -> str:
+    """Add a hypothesis to a job's ledger -- starts status "open" with no
+    evidence. ``codes`` is a comma-separated list of linked DTCs.
+    ``likelihood`` is one of low | med | high, or "" for none."""
+    def run():
+        code_list = [c.strip() for c in codes.split(",") if c.strip()]
+        return jobs_mod.add_hypothesis(job_id, text, system=system, next_test=next_test,
+                                       codes=code_list or None, likelihood=likelihood or None,
+                                       by=by or None)
+    return _guard(run)
+
+
+@mcp.tool()
 def job_set_hypothesis(job_id: str, hyp_id: str, status: str = "",
-                       next_test: str = "") -> str:
+                       next_test: str = "", by: str = "") -> str:
     """Change a hypothesis's status (open | supported | refuted | confirmed)
-    and/or its next test. Evidence itself is attached by
-    ``cuore.services.jobs_bridge`` from real records, never typed in here."""
-    return _guard(lambda: jobs_mod.set_hypothesis(
-        job_id, hyp_id, status=status or None, next_test=next_test or None))
+    and/or its next test. Evidence itself is attached via
+    ``job_add_evidence`` (or by ``cuore.services.jobs_bridge`` from real
+    records) -- never typed in here.
+
+    Status follows ``open -> supported -> confirmed``, plus ``refuted`` from
+    any state. Jumping ``open -> confirmed``, or confirming without >=1
+    passed/failed test evidence_for or with any unresolved evidence_against,
+    returns ``{"error": "RuleViolation", "message": <reason>, "next_test":
+    <...>}`` instead of saving.
+    """
+    def run():
+        try:
+            return jobs_mod.set_hypothesis(job_id, hyp_id, status=status or None,
+                                           next_test=next_test or None, by=by or None)
+        except jobs_mod.RuleViolation as exc:
+            return {"error": "RuleViolation", "message": exc.reason,
+                   "next_test": exc.next_test}
+    return _guard(run)
+
+
+@mcp.tool()
+def job_edit_hypothesis(job_id: str, hyp_id: str, text: str = "", system: str = "",
+                        codes: str = "", likelihood: str = "", next_test: str = "",
+                        by: str = "") -> str:
+    """Edit a hypothesis's own fields (never its status or evidence -- see
+    ``job_set_hypothesis``/``job_add_evidence``). Leave a field blank to
+    leave it unchanged. ``codes`` is comma-separated."""
+    def run():
+        code_list = [c.strip() for c in codes.split(",") if c.strip()] if codes.strip() else None
+        return jobs_mod.edit_hypothesis(job_id, hyp_id, text=text or None, system=system or None,
+                                        codes=code_list, likelihood=likelihood or None,
+                                        next_test=next_test or None, by=by or None)
+    return _guard(run)
+
+
+@mcp.tool()
+def job_delete_hypothesis(job_id: str, hyp_id: str, by: str = "") -> str:
+    """Soft-delete a hypothesis -- sets ``deleted: true``, never erases its
+    history. See ``job_undelete_hypothesis`` for the undo."""
+    return _guard(lambda: jobs_mod.delete_hypothesis(job_id, hyp_id, by=by or None))
+
+
+@mcp.tool()
+def job_undelete_hypothesis(job_id: str, hyp_id: str, by: str = "") -> str:
+    """Undo ``job_delete_hypothesis``."""
+    return _guard(lambda: jobs_mod.undelete_hypothesis(job_id, hyp_id, by=by or None))
+
+
+@mcp.tool()
+def job_add_evidence(job_id: str, hyp_id: str, side: str, ref_json: str, by: str = "") -> str:
+    """Attach one real record as evidence for (``side="for"``) or against
+    (``side="against"``) a hypothesis.
+
+    Args:
+        ref_json: JSON object {"kind", "id", "label", "result"?} -- kind
+            one of code | freeze_frame | actuator | live | inspection |
+            symptom | note | media | dealer | bulletin | feedback | test |
+            observation. Only a ``kind="test"`` ref with ``result`` pass or
+            fail counts toward the confirm gate.
+    """
+    def run():
+        ref = json.loads(ref_json)
+        return jobs_mod.add_evidence(job_id, hyp_id, side, ref, by=by or None)
+    return _guard(run)
+
+
+@mcp.tool()
+def job_remove_evidence(job_id: str, hyp_id: str, side: str, ref_id: str,
+                        ref_kind: str = "", by: str = "") -> str:
+    """Remove one evidence ref (matched by id, and kind when given) from a
+    hypothesis's evidence_for/against list."""
+    return _guard(lambda: jobs_mod.remove_evidence(
+        job_id, hyp_id, side, ref_id, ref_kind=ref_kind or None, by=by or None))
 
 
 # --- tools: what to bring, what was used, what was learned -----------------

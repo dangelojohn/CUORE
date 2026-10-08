@@ -24,6 +24,11 @@ except Exception:  # noqa: BLE001 -- the flow must still render without it
     timeline_bridge = None
 
 try:
+    from ..live import checklists as checklist_store
+except Exception:  # noqa: BLE001
+    checklist_store = None
+
+try:
     from ..live import store as live_store
 except Exception:  # noqa: BLE001
     live_store = None
@@ -128,6 +133,64 @@ def _any_car_observation_after(vin: str, since: Optional[str]) -> bool:
     except Exception:  # noqa: BLE001
         return False
     return any(live_store.is_from_car(o) and _after(o.get("at"), since) for o in obs)
+
+
+def step_registry() -> list[dict[str, Any]]:
+    """Every flow step's ``{n, key, title}``, oldest-first -- the data a
+    content cross-reference like "the step 7 Hypotheses review"
+    (JOB_UX_FIXES_2026-10-08.md #10) is generated from, instead of a
+    hard-coded number baked into template copy."""
+    return [{"n": n, "key": key, "title": title} for n, key, title, _ in _STEPS]
+
+
+def step_link(key: str) -> Optional[dict[str, Any]]:
+    """One step's ``{n, key, title}`` by its key (e.g. ``"hypotheses"``), or
+    ``None`` for an unknown key -- ``step_link('review')``-style content
+    cross-references resolve through this, never a hard-coded step number."""
+    return next(({"n": n, "key": k, "title": t} for n, k, t, _ in _STEPS if k == key), None)
+
+
+def _tri_state(done_n: int, total_n: int) -> str:
+    """not_started / in_progress / complete from a real (done, total) pair
+    -- never "complete" with 0 done, and never "complete" with no criteria
+    to have met (total == 0 means nothing is on file yet, i.e. not started,
+    not vacuously done)."""
+    if total_n <= 0 or done_n <= 0:
+        return "not_started"
+    if done_n >= total_n:
+        return "complete"
+    return "in_progress"
+
+
+def _checklist_progress(vin: str, dossier: dict[str, Any]) -> tuple[int, int]:
+    """Step 6 (Tests & inspections): checklist rows that carry a *result*
+    (JOB_UX_FIXES_2026-10-08.md #3's result sheet, not the bench's bare
+    done flag) over every checklist row this vehicle's open-work exposes."""
+    if checklist_store is None:
+        return (0, 0)
+    try:
+        step_ids = dossier_bridge.checklist_step_ids(vin, dossier)
+    except Exception:  # noqa: BLE001
+        return (0, 0)
+    if not step_ids:
+        return (0, 0)
+    try:
+        entries = checklist_store.get(vin)
+    except Exception:  # noqa: BLE001
+        entries = {}
+    done = sum(1 for sid in step_ids if (entries.get(sid) or {}).get("result") is not None)
+    return (done, len(step_ids))
+
+
+def _hypothesis_progress(hypotheses: list[dict[str, Any]]) -> tuple[int, int]:
+    """Step 7 (Hypotheses): non-deleted hypotheses whose status has moved
+    past ``open`` (supported/refuted/confirmed all count) over every
+    non-deleted hypothesis on the job."""
+    active = [h for h in hypotheses if not h.get("deleted")]
+    if not active:
+        return (0, 0)
+    done = sum(1 for h in active if h.get("status") != "open")
+    return (done, len(active))
 
 
 def current_vehicle() -> Optional[str]:
@@ -247,19 +310,42 @@ def flow_state(vin: str) -> dict[str, Any]:
     why[3] = ((verdict.get("summary") or "verdict computed from codes on file")
              if done[3] else "no codes read yet; verdict not computed")
 
-    done[5] = bool(hypotheses)
-    why[5] = (f"{len(hypotheses)} hypothesis(es) on file" if hypotheses
+    # Step 5 (Understand the fault): "viewed" cannot be known, so this is
+    # complete when either a hypothesis exists (the mechanic has engaged
+    # with the evidence enough to propose one) or the mechanic took the
+    # explicit "understood" action (kind="understand" -- see mes.jobs);
+    # not_started otherwise. No in_progress state for this one -- it is a
+    # binary review, not a count of rows (JOB_UX_FIXES_2026-10-08.md #4).
+    understood_actions = [a for a in actions if a.get("kind") == "understand"]
+    step5_complete = bool(hypotheses) or bool(understood_actions)
+    done[5] = step5_complete
+    state: dict[int, str] = {5: "complete" if step5_complete else "not_started"}
+    progress: dict[int, dict[str, int]] = {5: {"done": 1 if step5_complete else 0, "total": 1}}
+    why[5] = ("a hypothesis is on file" if hypotheses
+             else "marked understood" if understood_actions
+             else "no hypothesis recorded yet, and the fault has not been marked understood")
+
+    # Step 6 (Tests & inspections): real criteria is checklist rows that
+    # carry a *result* (#3's result sheet) over every row this vehicle's
+    # open-work exposes -- never "green" just because something, anything,
+    # was logged (#4's bug: 0/22 showed as done).
+    checklist_done, checklist_total = _checklist_progress(vin, dossier)
+    state[6] = _tri_state(checklist_done, checklist_total)
+    progress[6] = {"done": checklist_done, "total": checklist_total}
+    done[6] = state[6] == "complete"
+    why[6] = (f"{checklist_done}/{checklist_total} test result(s) recorded" if checklist_total
+             else "no checklist steps on file for this vehicle yet")
+
+    # Step 7 (Hypotheses): non-deleted hypotheses whose status has moved
+    # past open (supported/refuted/confirmed) over every non-deleted
+    # hypothesis -- not just "one confirmed", since a job can legitimately
+    # carry several hypotheses that must each be worked through.
+    hyp_done, hyp_total = _hypothesis_progress(hypotheses)
+    state[7] = _tri_state(hyp_done, hyp_total)
+    progress[7] = {"done": hyp_done, "total": hyp_total}
+    done[7] = state[7] == "complete"
+    why[7] = (f"{hyp_done}/{hyp_total} hypothesis(es) resolved beyond open" if hyp_total
              else "no hypothesis recorded yet")
-
-    attempted = dossier_view.get("attempted") or []
-    done[6] = bool(attempted) or observed_since_intake
-    why[6] = ("inspection, actuator run, or live observation on file" if done[6]
-             else "no inspection, actuator run, or live observation since intake")
-
-    confirmed = [h for h in hypotheses if h.get("status") == "confirmed"]
-    done[7] = bool(confirmed)
-    why[7] = ("a hypothesis confirmed" if confirmed
-             else "no hypothesis confirmed yet")
 
     part_actions = [a for a in actions if a.get("kind") == "part"]
     done[8] = bool(part_actions)
@@ -289,6 +375,13 @@ def flow_state(vin: str) -> dict[str, Any]:
 
     # --- fold into ordered steps, pick current/blocked ---------------------
 
+    # Every step not already given an explicit tri-state above (5/6/7) is
+    # binary -- complete once its own done[n] flag is true, not_started
+    # otherwise. No step is ever reported "complete" with 0 done.
+    for n in (1, 2, 3, 4, 8, 9, 10, 11, 12):
+        state[n] = "complete" if done[n] else "not_started"
+        progress[n] = {"done": 1 if done[n] else 0, "total": 1}
+
     blocked_on_parts = bool(visit) and visit.get("status") == "waiting_parts"
     first_not_done = next((n for n, *_ in _STEPS if not done[n]), 12)
 
@@ -310,9 +403,11 @@ def flow_state(vin: str) -> dict[str, Any]:
         }[n]
         href = _href(href_template, vin)
 
+        # "status" is kept for old consumers, but derived from "state" --
+        # never independently computed -- so the two can never disagree.
         if n == first_not_done:
             status = "blocked" if blocked_on_parts else "current"
-        elif done[n]:
+        elif state[n] == "complete":
             status = "done"
         else:
             status = "todo"
@@ -322,7 +417,8 @@ def flow_state(vin: str) -> dict[str, Any]:
 
         steps.append({
             "n": n, "key": key, "title": title, "href": href,
-            "status": status, "why": why[n], "est_min": est_min,
+            "status": status, "state": state[n], "progress": progress[n],
+            "why": why[n], "est_min": est_min,
         })
 
     current_n = first_not_done
@@ -358,4 +454,4 @@ def _minutes_now(in_at: str) -> float:
     return (datetime.now() - t0).total_seconds() / 60.0
 
 
-__all__ = ["flow_state", "current_vehicle"]
+__all__ = ["flow_state", "current_vehicle", "step_registry", "step_link"]

@@ -5,22 +5,88 @@ app reusing ``cuore.web.routes``'s own page/dossier helpers, so rendering
 stays identical to every other ``/v/{vin}`` page. Every form here degrades
 with no JavaScript -- a stepper of plain GET/POST/redirect forms, same
 convention as ``/v/{vin}/dealer`` and ``/v/{vin}/notes``.
+
+Job UX pass (docs/research/JOB_UX_FIXES_2026-10-08.md), 2026-10-08: every
+mutating route below now redirects to ``?step=<the step it lives on>#<row
+anchor>`` with a ``msg``/``mk`` (message/kind) query pair a toast reads --
+never to a different tab, never to a different step (fix #5).
+
+``cuore.services.jobs_bridge`` now carries the real guided-diagnostics
+engine: ``edit_hypothesis``/``delete_hypothesis``/``undelete_hypothesis``/
+``add_evidence``/``remove_evidence``/``resolve_evidence``/
+``add_test_evidence``/``check_similar``/``step_registry``, and
+``set_hypothesis`` enforces the confirm gate (open -> supported ->
+confirmed, refuted from any state; confirm needs >=1 passed/failed test
+result and 0 unresolved evidence_against -- fix #1) by raising
+``jobs_bridge.RuleViolation`` *unconverted* -- this module's only job is to
+catch that (never let it 500) and redirect back to the same card with its
+``reason``/``next_test`` shown inline, per the 409 {detail, next_test}
+contract. Every route below goes through ``jobs_bridge`` only -- no direct
+``mes.jobs`` import here.
 """
 
 from __future__ import annotations
 
 import json
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from ..api.deps import require_token
 from ..services import cases_bridge, dossier_bridge, jobs_bridge, tools_kb_bridge
 from ..services.errors import BridgeError
 from . import routes as web_routes
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
+
+try:  # fix #12: System picker is a taxonomy select, not free text
+    from mes import systems as _mes_systems
+except Exception:  # noqa: BLE001 -- the manual hypothesis form must still render
+    _mes_systems = None
+
+
+def _systems_taxonomy() -> list[str]:
+    if _mes_systems is None:
+        return []
+    try:
+        return sorted({v.get("label", k) for k, v in _mes_systems.systems().items()})
+    except Exception:  # noqa: BLE001
+        return []
+
+
+SYSTEMS_TAXONOMY: list[str] = _systems_taxonomy()
+
+
+def _rule_violation_msg(exc: "jobs_bridge.RuleViolation") -> str:
+    """One line out of a caught ``jobs_bridge.RuleViolation`` -- its own
+    ``reason`` plus ``next_test`` when there is one, exactly what the toast
+    shows (fix #1's 409 {detail, next_test} contract, rendered inline
+    instead of as a raw HTTP body since this route serves an HTML form)."""
+    reason = getattr(exc, "reason", None) or str(exc) or "That wasn't allowed."
+    next_test = getattr(exc, "next_test", "") or ""
+    return f"{reason} Next: {next_test}" if next_test else reason
+
+
+def _step_redirect(vin: str, step: str = "", anchor: str = "", msg: str = "",
+                   mk: str = "ok", extra: str = "") -> RedirectResponse:
+    """Every mutating route's one exit: back to the *same* step, never a
+    different tab or step (fix #5) -- optionally with a one-line toast
+    message/kind and any extra query the receiving page wants (e.g.
+    ``confirm=<hyp_id>`` for the confirm-summary panel)."""
+    parts = []
+    if step:
+        parts.append(f"step={quote(str(step))}")
+    if msg:
+        parts.append(f"msg={quote(msg)}")
+        parts.append(f"mk={quote(mk)}")
+    if extra:
+        parts.append(extra)
+    qs = ("?" + "&".join(parts)) if parts else ""
+    frag = f"#{anchor}" if anchor else ""
+    return RedirectResponse(url=f"/v/{vin}/job{qs}{frag}", status_code=303)
 
 
 @router.post("/tools-kb/inventory-form", response_class=HTMLResponse)
@@ -36,7 +102,7 @@ async def tools_inventory_form(status: str = Form(...), tool: str = Form(...),
 
 
 def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = "",
-             **extra: Any) -> HTMLResponse:
+             step: str = "", **extra: Any) -> HTMLResponse:
     dossier = web_routes._dossier(vin)
     bar = web_routes._vehicle_bar(vin, dossier)
     job_view = jobs_bridge.build_job_view(vin, job_id or None, tools_step=tools_step or None)
@@ -52,13 +118,44 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
         case_prefill = cases_bridge.prefill(vin, active_codes)
     except Exception:  # noqa: BLE001 -- case memory must never 500 the job page
         case_prefill = None
+
+    # --- display-only reshaping of job_view for this render (fix #11/#13):
+    # active (non-deleted) hypotheses ranked by net evidence with the
+    # leading one pinned first; deleted ones split out for an Undo row.
+    # ``jobs_bridge.suggested_hypotheses`` already dedupes+ranks its own
+    # list, so the suggestions themselves need no further work here --
+    # job.html just slices the first 3 off for "top" vs. "Show N more".
+    # Never mutates the stored job; this dict is built fresh per request.
+    hyps = list((job_view.get("job") or {}).get("hypotheses") or [])
+    active_hyps = [h for h in hyps if not h.get("deleted")]
+    deleted_hyps = [h for h in hyps if h.get("deleted")]
+    active_hyps.sort(
+        key=lambda h: (len(h.get("evidence_for") or []) - len(h.get("evidence_against") or [])),
+        reverse=True,
+    )
+    if job_view.get("job"):
+        job_view["job"]["hypotheses"] = active_hyps
+    job_view["deleted_hypotheses"] = deleted_hyps
+
+    # Toast/flash state from a mutating route's redirect (fix #5) -- read
+    # straight off the query string so this works with zero JavaScript;
+    # job.js upgrades the same params into a nicer dismissable toast.
+    qp = request.query_params
+    flash_msg = qp.get("msg") or ""
+    flash_kind = qp.get("mk") or "ok"
+    confirm_pending = qp.get("confirm") or ""
+    undo_hyp = qp.get("undo_hyp") or ""
+
     # `view` carries the full dossier view -- the shape _verdict_card.html,
     # _codes_table.html and _open_work.html already expect everywhere else
     # they're included; `job_view` carries the Job-specific data only
     # job.html itself reads.
     response = web_routes._page(request, "job.html", vin=vin, bar=bar, view=dossier_view,
                                 job_view=job_view, case_prefill=case_prefill,
-                                active_codes=active_codes, tab="job", **extra)
+                                active_codes=active_codes, tab="job", step=step,
+                                flash_msg=flash_msg, flash_kind=flash_kind,
+                                confirm_pending=confirm_pending, undo_hyp=undo_hyp,
+                                systems_taxonomy=SYSTEMS_TAXONOMY, **extra)
     web_routes._set_active_vehicle(response, vin)
     return response
 
@@ -85,16 +182,45 @@ async def job_open(request: Request, vin: str,
                    complaint: str = Form(default="")) -> RedirectResponse:
     """Step 1: open a new case for this vehicle, in the driver's own words."""
     jobs_bridge.open_job(vin, technician=technician, complaint=complaint)
-    return RedirectResponse(url=f"/v/{vin}/job", status_code=303)
+    return _step_redirect(vin, "1", msg="Case opened.", mk="ok")
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses", response_class=HTMLResponse)
 async def hypothesis_add(request: Request, vin: str, job_id: str,
                          text: str = Form(...), system: str = Form(default=""),
-                         next_test: str = Form(default="")) -> RedirectResponse:
-    """Step 4: add a hypothesis to the ledger by hand."""
-    jobs_bridge.add_hypothesis(job_id, text, system=system, next_test=next_test)
-    return RedirectResponse(url=f"/v/{vin}/job#hypotheses", status_code=303)
+                         next_test: str = Form(default=""),
+                         likelihood: str = Form(default=""),
+                         codes: str = Form(default=""),
+                         by: str = Form(default=""),
+                         step: str = Form(default="7")) -> RedirectResponse:
+    """Step 7: add a hypothesis by hand (fix #12: System is a taxonomy pick,
+    Linked codes a multi-select of open DTCs, Likelihood Low/Med/High)."""
+    code_list = [c.strip() for c in codes.split(",") if c.strip()]
+    likelihood_val = likelihood.strip().lower() or None
+    try:
+        hyp = jobs_bridge.add_hypothesis(job_id, text, system=system, next_test=next_test,
+                                         codes=code_list or None, likelihood=likelihood_val,
+                                         by=by.strip() or None)
+    except BridgeError as exc:
+        return _step_redirect(vin, step, anchor="add-hypothesis", msg=str(exc), mk="err")
+    return _step_redirect(vin, step, anchor=f"hyp-{hyp['id']}", msg="Hypothesis added.", mk="ok")
+
+
+@router.get("/v/{vin}/job/{job_id}/hypotheses/similar")
+def hypothesis_similar(vin: str, job_id: str, text: str = "", system: str = "") -> dict[str, Any]:
+    """Fix #11's "Similar to ... -- merge?" prompt, read live as the tech
+    types (job.js debounces this) -- thin pass-through to
+    ``jobs_bridge.check_similar``, the real token-overlap check against the
+    job on file, so the prompt is never a client-side guess. No JS -> no
+    prompt, no behaviour change: the manual-add form still saves a new
+    hypothesis either way."""
+    try:
+        match = jobs_bridge.check_similar(job_id, text, system)
+    except Exception:  # noqa: BLE001 -- a hint must never 500
+        match = None
+    if not match:
+        return {"similar": None}
+    return {"similar": {"id": match["id"], "text": match["text"]}}
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/suggested", response_class=HTMLResponse)
@@ -102,9 +228,10 @@ async def hypothesis_add_suggested(request: Request, vin: str, job_id: str,
                                    text: str = Form(...), system: str = Form(default=""),
                                    next_test: str = Form(default=""),
                                    evidence_for: str = Form(default="[]"),
-                                   evidence_against: str = Form(default="[]")
+                                   evidence_against: str = Form(default="[]"),
+                                   step: str = Form(default="7")
                                    ) -> RedirectResponse:
-    """Step 4: promote one of the auto-suggested hypotheses, with its real
+    """Step 7: promote one of the auto-suggested hypotheses, with its real
     evidence attached in the same step -- the refs travel as a hidden JSON
     field rather than being retyped, so nothing here can invent evidence
     that was not already shown on the page."""
@@ -113,37 +240,154 @@ async def hypothesis_add_suggested(request: Request, vin: str, job_id: str,
         "evidence_for": json.loads(evidence_for) if evidence_for.strip() else [],
         "evidence_against": json.loads(evidence_against) if evidence_against.strip() else [],
     }
-    jobs_bridge.add_suggested_hypothesis(job_id, suggestion)
-    return RedirectResponse(url=f"/v/{vin}/job#hypotheses", status_code=303)
+    hyp = jobs_bridge.add_suggested_hypothesis(job_id, suggestion)
+    return _step_redirect(vin, step, anchor=f"hyp-{hyp['id']}",
+                          msg="Hypothesis added from suggestion.", mk="ok")
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/status", response_class=HTMLResponse)
 async def hypothesis_set_status(request: Request, vin: str, job_id: str, hyp_id: str,
-                                status: str = Form(...)) -> RedirectResponse:
-    """Step 4: the 44px status buttons -- open / supported / refuted / confirmed."""
-    jobs_bridge.set_hypothesis(job_id, hyp_id, status=status)
-    return RedirectResponse(url=f"/v/{vin}/job#hypotheses", status_code=303)
+                                status: str = Form(...), step: str = Form(default="7"),
+                                ack: str = Form(default=""),
+                                by: str = Form(default="")) -> RedirectResponse:
+    """Step 7: the status buttons -- open / supported / refuted / confirmed.
+
+    Fix #1: ``jobs_bridge.set_hypothesis`` itself enforces the path (open ->
+    supported -> confirmed, refuted from any state) and the confirm gate
+    (>=1 passed/failed test evidence_for, 0 unresolved evidence_against),
+    raising ``jobs_bridge.RuleViolation`` -- caught below and shown inline
+    (the 409 {detail, next_test} contract, rendered as this HTML form's own
+    toast), never a 500 and never silently accepted. ``confirmed``
+    additionally needs a second tap (``ack=1``): the first tap just
+    redirects back with ``confirm=<hyp_id>`` so job.html renders the
+    evidence-summary panel job.js promotes into a modal -- its own "confirm
+    again" button is what actually sends ``ack=1``; if the gate would have
+    refused anyway, that second POST catches the same RuleViolation. ``by``
+    (who) rides along so the engine can stamp confirmed_by/at."""
+    if status == "confirmed" and ack != "1":
+        return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", extra=f"confirm={hyp_id}")
+
+    try:
+        jobs_bridge.set_hypothesis(job_id, hyp_id, status=status, by=by.strip() or None)
+    except jobs_bridge.RuleViolation as exc:
+        return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}",
+                              msg=_rule_violation_msg(exc), mk="err")
+    except BridgeError as exc:
+        return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg=str(exc), mk="err")
+    return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg=f"Status set to {status}.",
+                          mk="ok")
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/next_test", response_class=HTMLResponse)
 async def hypothesis_set_next_test(request: Request, vin: str, job_id: str, hyp_id: str,
-                                   next_test: str = Form(default="")) -> RedirectResponse:
+                                   next_test: str = Form(default=""),
+                                   step: str = Form(default="7")) -> RedirectResponse:
     jobs_bridge.set_hypothesis(job_id, hyp_id, next_test=next_test)
-    return RedirectResponse(url=f"/v/{vin}/job#hypotheses", status_code=303)
+    return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg="Saved.", mk="ok")
+
+
+@router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/edit", response_class=HTMLResponse)
+async def hypothesis_edit(request: Request, vin: str, job_id: str, hyp_id: str,
+                          text: str = Form(default=""), system: str = Form(default=""),
+                          next_test: str = Form(default=""),
+                          likelihood: str = Form(default=""),
+                          codes: str = Form(default=""),
+                          by: str = Form(default=""),
+                          step: str = Form(default="7")) -> RedirectResponse:
+    """Fix #2: Edit -- any hypothesis field except status/evidence, which go
+    through their own gated routes so editing can never route around the
+    confirm gate."""
+    kw: dict[str, Any] = {}
+    if text.strip():
+        kw["text"] = text
+    if system:
+        kw["system"] = system
+    if next_test:
+        kw["next_test"] = next_test
+    if likelihood:
+        kw["likelihood"] = likelihood.strip().lower()
+    if codes.strip():
+        kw["codes"] = [c.strip() for c in codes.split(",") if c.strip()]
+    if not kw:
+        return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg="Nothing to save.", mk="warn")
+    try:
+        jobs_bridge.edit_hypothesis(job_id, hyp_id, by=by.strip() or None, **kw)
+    except BridgeError as exc:
+        return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg=str(exc), mk="err")
+    return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg="Hypothesis updated.", mk="ok")
+
+
+@router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/evidence", response_class=HTMLResponse)
+async def hypothesis_evidence(request: Request, vin: str, job_id: str, hyp_id: str,
+                              side: str = Form(default="for"),
+                              kind: str = Form(default="observation"),
+                              ref_id: str = Form(default=""),
+                              label: str = Form(...),
+                              op: str = Form(default="add"),
+                              by: str = Form(default=""),
+                              step: str = Form(default="7")) -> RedirectResponse:
+    """Fix #2: + Evidence for / + Evidence against, and the remove side of
+    the same picker -- thin pass-through to ``jobs_bridge.add_evidence``/
+    ``remove_evidence``, which is what the confirm gate itself reads, so an
+    item linked here is real evidence for fix #1 the moment it's added."""
+    side = side if side in ("for", "against") else "for"
+    if op == "remove":
+        try:
+            jobs_bridge.remove_evidence(job_id, hyp_id, side, ref_id or label,
+                                        ref_kind=kind or None, by=by.strip() or None)
+        except BridgeError as exc:
+            return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg=str(exc), mk="err")
+        return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg="Evidence removed.",
+                              mk="ok", extra=f"undo_ev={hyp_id}:{side}:{quote(label)}")
+
+    ref = {"kind": kind or "observation", "id": ref_id or label, "label": label}
+    try:
+        jobs_bridge.add_evidence(job_id, hyp_id, side, ref, by=by.strip() or None)
+    except BridgeError as exc:
+        return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg=str(exc), mk="err")
+    return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}",
+                          msg=f"Evidence {'for' if side == 'for' else 'against'} added.", mk="ok")
+
+
+@router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/delete", response_class=HTMLResponse)
+async def hypothesis_delete(request: Request, vin: str, job_id: str, hyp_id: str,
+                            by: str = Form(default=""),
+                            step: str = Form(default="7")) -> RedirectResponse:
+    """Fix #2: Delete, soft (``jobs_bridge.delete_hypothesis``) -- the card
+    itself stays on the audit trail; the undo offered in the toast is
+    :func:`hypothesis_undelete` below."""
+    try:
+        jobs_bridge.delete_hypothesis(job_id, hyp_id, by=by.strip() or None)
+    except BridgeError as exc:
+        return _step_redirect(vin, step, anchor="hypotheses", msg=str(exc), mk="err")
+    return _step_redirect(vin, step, anchor="hypotheses", msg="Hypothesis deleted.", mk="ok",
+                          extra=f"undo_hyp={hyp_id}")
+
+
+@router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/undelete", response_class=HTMLResponse)
+async def hypothesis_undelete(request: Request, vin: str, job_id: str, hyp_id: str,
+                              by: str = Form(default=""),
+                              step: str = Form(default="7")) -> RedirectResponse:
+    try:
+        jobs_bridge.undelete_hypothesis(job_id, hyp_id, by=by.strip() or None)
+    except BridgeError as exc:
+        return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg=str(exc), mk="err")
+    return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg="Hypothesis restored.", mk="ok")
 
 
 @router.post("/v/{vin}/job/{job_id}/actions", response_class=HTMLResponse)
 async def action_add(request: Request, vin: str, job_id: str,
-                     kind: str = Form(...), text: str = Form(...)) -> RedirectResponse:
-    """Step 5: record one repair action -- test, inspection, repair, part,
+                     kind: str = Form(...), text: str = Form(...),
+                     step: str = Form(default="9")) -> RedirectResponse:
+    """Step 9: record one repair action -- test, inspection, repair, part,
     clear, or a free-text note."""
     jobs_bridge.add_action(job_id, kind, text)
-    return RedirectResponse(url=f"/v/{vin}/job#actions", status_code=303)
+    return _step_redirect(vin, step, anchor="actions", msg="Action recorded.", mk="ok")
 
 
 @router.post("/v/{vin}/job/{job_id}/tools-review", response_class=HTMLResponse)
 async def tools_review_add(request: Request, vin: str, job_id: str) -> RedirectResponse:
-    """Step 7: the mandatory "tools used" review -- what was actually used
+    """Step 12: the mandatory "tools used" review -- what was actually used
     at release, right/wrong/unsure with a reason, anything missing, and
     what he'd buy next time. Field names are dynamic (one triplet per
     recommended tool, keyed by tool key) because the recommended-tool list
@@ -190,7 +434,7 @@ async def tools_review_add(request: Request, vin: str, job_id: str) -> RedirectR
     jobs_bridge.add_tool_usage(vin, step, job_id, by=_get("by"), tools_used=tools_used,
                                missing_tools=missing_tools, would_buy=would_buy,
                                time_min=time_min)
-    return RedirectResponse(url=f"/v/{vin}/job/{job_id}#outcome", status_code=303)
+    return _step_redirect(vin, "12", anchor="outcome", msg="Tools review saved.", mk="ok")
 
 
 @router.post("/v/{vin}/job/{job_id}/close", response_class=HTMLResponse)
@@ -199,7 +443,7 @@ async def job_close(request: Request, vin: str, job_id: str,
                     codes_returned: str = Form(default=""),
                     verdict: str = Form(default=""),
                     tools_review_skip_reason: str = Form(default="")) -> HTMLResponse:
-    """Step 7: close the case. Outcome is required -- a job can never be
+    """Step 12: close the case. Outcome is required -- a job can never be
     closed with no stated result. Also gated on the tools-used review
     (see ``jobs_bridge.close_job``) -- ``tools_review_skip_reason`` lets a
     mechanic close without filling the review, but only by stating why."""

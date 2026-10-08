@@ -94,6 +94,60 @@ _STATUS_LEGEND = [
     {"label": "Cleared, unverified", "css": "v-cleared-unverified"},
 ]
 
+#: JOB_UX_FIXES_2026-10-08.md item 9: a single source of human labels for
+#: every raw enum this module's own output otherwise carries, so a template
+#: never has to show (or re-invent a translation for) a bare value like
+#: ``not_running`` or a verdict ``blocker`` key. Every other enum this page
+#: shows (verdict state/label, tool ``have``) is already human-labelled at
+#: its own source (dossier_bridge/tools_kb_bridge) -- this dict only covers
+#: the two that weren't: the live MES/scanner state, and the one-line
+#: action for each ``blocker`` key :func:`_fuel_gate`/the verdict compute.
+LABELS: dict[str, dict[str, str]] = {
+    "mes_state": {
+        "connected": "Connected", "disconnected": "Disconnected",
+        "not_running": "Not running", "unknown": "Unknown",
+    },
+    "blocker": {
+        "fuel out of window": "Burn fuel to 15-85 %, then run a drive cycle.",
+        "awaiting drive cycle": "Run a drive cycle, then read readiness.",
+        "active faults": "Open the codes and start the first test below.",
+    },
+}
+
+
+def scanner_label(live_status: dict[str, Any]) -> str:
+    """"Connected" / "Not running" / ... -- never the raw MES state enum,
+    never "MES ?" for an unreadable strip."""
+    if live_status.get("error"):
+        return "Unknown"
+    return LABELS["mes_state"].get(live_status.get("mes_state"), "Unknown")
+
+
+def _blocker_banner(verdict: dict[str, Any]) -> dict[str, Any] | None:
+    """The ONE banner the bench shows for "what do I do right now" (item
+    17): an icon, a short one-line action, and the verdict's own full
+    sentence + basis behind "Why?". ``None`` only when there is no
+    next_action sentence at all (should not happen in practice).
+
+    A true blocker (fuel out of window / awaiting drive cycle / active
+    faults) gets the warning icon and the curated short action from
+    :data:`LABELS`; a clean/no-data verdict still gets ONE line (the
+    verdict's own sentence verbatim -- it is already short), just with a
+    neutral icon, so this is the only place that sentence is ever shown on
+    the bench page."""
+    next_action = verdict.get("next_action")
+    if not next_action:
+        return None
+    key = verdict.get("blocker")
+    is_blocker = key not in (None, "none", "no data")
+    return {
+        "icon": "symptom_warning_message" if is_blocker else "status_verified",
+        "is_blocker": is_blocker,
+        "action": LABELS["blocker"].get(key, next_action) if is_blocker else next_action,
+        "why": next_action,
+        "basis": verdict.get("basis") or [],
+    }
+
 
 # --- small helpers ----------------------------------------------------------
 
@@ -701,7 +755,9 @@ def build_bench(vin: str) -> dict[str, Any]:
         "fuel_gate": _fuel_gate(vin, view.get("freeze_frames") or []),
         "readiness": dossier_bridge.readiness_panel(vin, dossier),
         "live_status": live_status,
+        "scanner_label": scanner_label(live_status),
+        "blocker_banner": _blocker_banner(verdict),
     }
 
 
-__all__ = ["build_bench", "FAMILY_ICON"]
+__all__ = ["build_bench", "FAMILY_ICON", "LABELS", "scanner_label"]

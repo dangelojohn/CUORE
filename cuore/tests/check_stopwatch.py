@@ -234,6 +234,30 @@ def wait_for_port(port: int, timeout: float = 15.0) -> bool:
     return False
 
 
+def wait_for_navigation(cdp: "CDP", timeout: float = 15.0) -> bool:
+    """Poll until the tab has actually left ``about:blank`` and
+    ``document.readyState`` is "complete" -- see check_bench.py's own
+    ``wait_for_navigation`` docstring for why a fixed short sleep after
+    ``/json/new?<url>`` is not reliable in this environment (observed:
+    several seconds for headless Edge to even start navigating, regardless
+    of how fast the server itself answers)."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        val = cdp.send("Runtime.evaluate", {
+            "expression": ("JSON.stringify({href: location.href, "
+                           "ready: document.readyState})"),
+            "returnByValue": True,
+        })
+        try:
+            state = json.loads(val.get("result", {}).get("value") or "{}")
+        except ValueError:
+            state = {}
+        if state.get("href", "about:blank") != "about:blank" and state.get("ready") == "complete":
+            return True
+        time.sleep(0.3)
+    return False
+
+
 edge = find_edge()
 server_dir = tempfile.mkdtemp(prefix="cuore-check-stopwatch-server-")
 port = free_port()
@@ -294,7 +318,7 @@ else:
                 try:
                     cdp.send("Page.enable")
                     cdp.send("Runtime.enable")
-                    time.sleep(1.2)
+                    wait_for_navigation(cdp)
                     cdp.send("Emulation.setDeviceMetricsOverride", {
                         "width": 400, "height": 1400, "deviceScaleFactor": 1, "mobile": True,
                     })
@@ -315,7 +339,7 @@ else:
                         cdp = CDP(target["webSocketDebuggerUrl"])
                         cdp.send("Page.enable")
                         cdp.send("Runtime.enable")
-                        time.sleep(1.2)
+                        wait_for_navigation(cdp)
                         cdp.send("Emulation.setDeviceMetricsOverride", {
                             "width": 400, "height": 1400, "deviceScaleFactor": 1, "mobile": True,
                         })

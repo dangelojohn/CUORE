@@ -19,11 +19,19 @@
 
 .feedback-affordance {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 44px; min-height: 44px; margin-left: 4px;
+  min-width: 48px; min-height: 48px; margin-left: 4px;
   background: var(--surface-2); color: var(--ink-2);
   border: 1px solid var(--rule); border-radius: var(--radius);
   font-size: 16px; line-height: 1; cursor: pointer; vertical-align: middle;
 }
+/* Item 15: feedback.js already sets this button's title/aria-label to
+ * "Flag this row: <label>" -- the one thing it was still missing was a
+ * glyph that actually reads as a flag rather than a "more/expand" ellipsis
+ * (its text content is "..."). Hidden visually (font-size: 0 on the real
+ * text node) in favour of a flag icon drawn here instead; the title/
+ * aria-label (unaffected by this) remain the accessible name. */
+.feedback-affordance { font-size: 0; }
+.feedback-affordance::before { content: "\2691"; font-size: 16px; line-height: 1; }
 .feedback-affordance:hover { border-color: var(--accent); color: var(--ink); }
 .feedback-affordance[data-has-feedback] { color: var(--sev-chronic); border-color: var(--sev-chronic); }
 
