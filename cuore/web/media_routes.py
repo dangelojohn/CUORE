@@ -52,7 +52,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from .. import __version__
-from ..services import cache, mes_bridge
+from ..services import cache, experience_bridge, mes_bridge
 from ..services.errors import BridgeError
 from ..api.deps import require_token, settings_of
 
@@ -65,10 +65,20 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 
 _VIN_COOKIE = "cuore_vin"
 
-KINDS = ["photo", "scan", "video", "document"]
+KINDS = ["photo", "scan", "video", "audio", "document"]
 TARGET_KINDS = ["vehicle", "code", "step", "service_record", "symptom"]
 TARGET_LABELS = {"vehicle": "Vehicle", "code": "Code", "step": "Checklist step",
                  "service_record": "Service record", "symptom": "Symptom"}
+
+#: Sound tags an audio clip can carry -- kept in sync with
+#: ``cuore.live.media.SOUND_TAGS`` but re-declared here (no import of
+#: ``cuore.live.media`` -- this module's own fixture store must keep working
+#: even before that landed) so the gallery's "Sounds" section and the
+#: symptom-tag chips in the upload form/dialog have something to render
+#: whichever store (real bridge or fixture) is backing the page.
+SOUND_TAGS = ("wheel_bearing", "cv_joint", "belt_squeal", "lifter_tick", "turbo_whine",
+              "exhaust_leak", "brake_squeal", "knock", "rattle", "hum", "whine",
+              "click", "other_sound")
 
 
 # --- helpers (small, deliberate duplicates of cuore.web.routes's/service_
@@ -142,7 +152,9 @@ def _new_id() -> str:
 
 
 def _kind_for_mime(mime: Optional[str]) -> str:
-    mime = (mime or "").lower()
+    mime = (mime or "").split(";", 1)[0].strip().lower()
+    if mime.startswith("audio/"):
+        return "audio"
     if mime.startswith("image/"):
         return "photo"
     if mime.startswith("video/"):
@@ -151,7 +163,7 @@ def _kind_for_mime(mime: Optional[str]) -> str:
 
 
 def _matches(item: dict[str, Any], *, q: str, kind: str, tag: str, target_kind: str,
-            target_id: str, since: str, until: str) -> bool:
+            target_id: str, since: str, until: str, symptom_tag: str = "") -> bool:
     if item.get("hidden"):
         return False
     if kind and item.get("kind") != kind:
@@ -162,10 +174,13 @@ def _matches(item: dict[str, Any], *, q: str, kind: str, tag: str, target_kind: 
         return False
     if tag and tag not in (item.get("tags") or []):
         return False
+    if symptom_tag and symptom_tag not in (item.get("symptom_tags") or []):
+        return False
     if q:
         needle = q.strip().lower()
         hay = " ".join([str(item.get("caption") or ""), str(item.get("filename") or ""),
-                        " ".join(item.get("tags") or [])]).lower()
+                        " ".join(item.get("tags") or []), str(item.get("feels_like") or ""),
+                        " ".join(item.get("symptom_tags") or [])]).lower()
         if needle not in hay:
             return False
     stamp = str(item.get("captured_at") or item.get("uploaded_at") or "")
@@ -183,7 +198,8 @@ def _list_media_fixture(vin: str, **filters: Any) -> dict[str, Any]:
 
 
 def list_media(vin: str, *, q: str = "", kind: str = "", tag: str = "", target_kind: str = "",
-               target_id: str = "", since: str = "", until: str = "") -> dict[str, Any]:
+               target_id: str = "", since: str = "", until: str = "",
+               symptom_tag: str = "") -> dict[str, Any]:
     """The gallery's read path. Tries the real bridge, falls back to the
     fixture store on any miss or failure -- a knowledge-table-style guard,
     never a 500."""
@@ -193,21 +209,25 @@ def list_media(vin: str, *, q: str = "", kind: str = "", tag: str = "", target_k
         if fn is not None:
             try:
                 return fn(vin, q=q, kind=kind, tag=tag, target_kind=target_kind,
-                          target_id=target_id, since=since, until=until)
+                          target_id=target_id, since=since, until=until,
+                          symptom_tag=symptom_tag)
             except Exception:  # noqa: BLE001 -- a bridge misfire must fall back, not 500
                 pass
     return _list_media_fixture(vin, q=q, kind=kind, tag=tag, target_kind=target_kind,
-                               target_id=target_id, since=since, until=until)
+                               target_id=target_id, since=since, until=until,
+                               symptom_tag=symptom_tag)
 
 
 async def save_media(vin: str, files: list[UploadFile], *, caption: str, tags: list[str],
                      target_kind: str, target_id: str, odometer_km: Optional[float],
-                     author: str) -> list[dict[str, Any]]:
+                     author: str, symptom_tags: Optional[list[str]] = None,
+                     feels_like: str = "") -> list[dict[str, Any]]:
     """The upload path, shared by the plain-form handler below and (once it
     carries scripting) the dialog's own fetch. Reads each file's bytes once
     -- needed either way, to size it for the fixture or to hand real bytes
     to the real bridge -- so this is where that happens, not in the caller.
     """
+    symptom_tags = list(symptom_tags or [])
     read: list[dict[str, Any]] = []
     for f in files:
         content = await f.read()
@@ -219,7 +239,8 @@ async def save_media(vin: str, files: list[UploadFile], *, caption: str, tags: l
         if fn is not None:
             try:
                 return fn(vin, files=read, caption=caption, tags=tags, target_kind=target_kind,
-                          target_id=target_id, odometer_km=odometer_km, author=author)
+                          target_id=target_id, odometer_km=odometer_km, author=author,
+                          symptom_tags=symptom_tags, feels_like=feels_like)
             except Exception:  # noqa: BLE001 -- fall back to the fixture, never 500
                 pass
 
@@ -233,6 +254,8 @@ async def save_media(vin: str, files: list[UploadFile], *, caption: str, tags: l
             "author": author or "mechanic", "caption": caption, "tags": list(tags),
             "target_kind": target_kind or "vehicle", "target_id": target_id,
             "odometer_km": odometer_km, "hidden": False,
+            "symptom_tags": list(symptom_tags), "feels_like": feels_like,
+            "duration_s": None,
         }
         rows.append(row)
     _FIXTURE_STORE.setdefault(vin, []).extend(rows)
@@ -311,22 +334,63 @@ except Exception:  # noqa: BLE001
 # --- the gallery page -------------------------------------------------------
 
 
+def _sound_reference(tag: str) -> Optional[dict[str, Any]]:
+    """The best verified "here's what that sounds like" reference clip for
+    one sound tag (``mes.experience``'s ``sound_reference`` entries are
+    keyed exactly like a service job, so this reuses ``links_for``'s
+    ``job=`` lookup rather than adding a parallel call) -- ``None`` when
+    nothing is tabulated, never an exception."""
+    try:
+        links = experience_bridge.links_for(job=tag).get("links") or []
+    except Exception:  # noqa: BLE001 -- a data-module hiccup must never 500 a page
+        return None
+    return links[0] if links else None
+
+
+def sound_groups(vin: str) -> list[dict[str, Any]]:
+    """For the gallery's "Sounds" section: one group per sound tag that has
+    at least one non-hidden audio clip on this vehicle, each with its clips
+    (newest first) and, where tabulated, a verified reference clip to
+    compare against."""
+    audio = list_media(vin, kind="audio").get("items") or []
+    groups: list[dict[str, Any]] = []
+    for sound_tag in SOUND_TAGS:
+        clips = [it for it in audio if sound_tag in (it.get("symptom_tags") or [])]
+        if not clips:
+            continue
+        groups.append({
+            "tag": sound_tag,
+            "label": sound_tag.replace("_", " "),
+            # Named "clips", not "items" -- a dict's own ``.items`` method
+            # shadows a same-named key under Jinja's dot-notation attribute
+            # lookup (same gotcha ``_media_attach.html`` already works
+            # around with ``_ms["items"]`` bracket access).
+            "clips": clips,
+            "reference": _sound_reference(sound_tag),
+        })
+    return groups
+
+
 @router.get("/v/{vin}/media", response_class=HTMLResponse)
 def media_gallery(request: Request, vin: str, q: str = "", kind: str = "", tag: str = "",
                   target_kind: str = "", target_id: str = "", since: str = "", until: str = "",
-                  saved: str = "", error: str = "") -> HTMLResponse:
+                  symptom_tag: str = "", saved: str = "", error: str = "") -> HTMLResponse:
     """The gallery: search, kind/target filter chips, date range, a
     responsive thumbnail grid, and the upload panel. ``target_kind``/
     ``target_id`` double as both a results filter and the upload form's
     prefill, so the attach strip's "+ add" link (which carries them) lands
-    here ready to post against the right target."""
+    here ready to post against the right target. A "Sounds" section up top
+    groups this vehicle's audio clips by sound tag, each with a "compare
+    with a reference" link where one is tabulated."""
     dossier = _dossier(vin)
     data = list_media(vin, q=q, kind=kind, tag=tag, target_kind=target_kind,
-                      target_id=target_id, since=since, until=until)
+                      target_id=target_id, since=since, until=until, symptom_tag=symptom_tag)
     response = _page(request, "media.html", vin=vin, bar=_vehicle_bar(vin, dossier),
                      tab="media", items=data.get("items") or [], q=q, kind=kind, tag=tag,
                      target_kind=target_kind, target_id=target_id, since=since, until=until,
-                     kinds=KINDS, target_kinds=TARGET_KINDS, target_labels=TARGET_LABELS,
+                     symptom_tag=symptom_tag, kinds=KINDS, target_kinds=TARGET_KINDS,
+                     target_labels=TARGET_LABELS, sound_tags=SOUND_TAGS,
+                     sound_groups=sound_groups(vin),
                      recent_tags=recent_tags(vin), current_odometer=_current_odometer(dossier),
                      saved=bool(saved), error=error)
     _set_active_vehicle(response, vin)
@@ -362,6 +426,8 @@ async def media_upload(request: Request, vin: str) -> RedirectResponse:
     target_id = field("target_id")
     author = field("author") or "mechanic"
     odometer_raw = field("odometer_km")
+    symptom_tags = [t.strip() for t in re.split(r"[,\n]+", field("symptom_tags")) if t.strip()]
+    feels_like = field("feels_like")
 
     error: Optional[str] = None
     if not files:
@@ -377,7 +443,8 @@ async def media_upload(request: Request, vin: str) -> RedirectResponse:
     if error is None:
         try:
             await save_media(vin, files, caption=caption, tags=tags, target_kind=target_kind,
-                             target_id=target_id, odometer_km=odometer_km, author=author)
+                             target_id=target_id, odometer_km=odometer_km, author=author,
+                             symptom_tags=symptom_tags, feels_like=feels_like)
         except BridgeError as exc:
             error = str(exc)
 
@@ -386,5 +453,5 @@ async def media_upload(request: Request, vin: str) -> RedirectResponse:
     return RedirectResponse(url=url, status_code=303)
 
 
-__all__ = ["router", "templates", "TEMPLATE_DIR", "list_media", "save_media", "media_strip",
-          "target_href", "recent_tags"]
+__all__ = ["router", "templates", "TEMPLATE_DIR", "SOUND_TAGS", "list_media", "save_media",
+          "media_strip", "target_href", "recent_tags", "sound_groups"]

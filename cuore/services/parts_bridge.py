@@ -68,6 +68,19 @@ def _drivetrain_specs():
         return None
 
 
+def _model_for_vin(vin: Optional[str]) -> Optional[str]:
+    """Best-effort model name for ``vin`` via ``mes.platform``, or ``None``
+    on any failure or an unrecognised VIN -- never raises."""
+    if not vin:
+        return None
+    try:
+        from mes import platform as platform_mod
+        model = platform_mod.model_for_vin(vin)
+    except Exception:  # noqa: BLE001
+        return None
+    return None if model == "UNKNOWN" else model
+
+
 # --- fixture: the exact shape mes.parts.get()/for_code()/for_job()/all()
 # will return, used until that module lands (or for any key it does not yet
 # cover). Keyed to things this corpus already knows about -- the Stelvio's
@@ -310,28 +323,52 @@ def part(key: str) -> Optional[dict[str, Any]]:
     return _enrich(raw)
 
 
-def parts_for_code(code: str) -> list[dict[str, Any]]:
-    """Every part related to a DTC -- ``[]`` if none are known, never an error."""
+def _label_siblings(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    for r in rows:
+        sibling_of = r.get("sibling_of")
+        if sibling_of:
+            r["label"] = f"from {str(sibling_of).title()} parts: verify fit"
+    return rows
+
+
+def parts_for_code(code: str, vin: Optional[str] = None) -> list[dict[str, Any]]:
+    """Every part related to a DTC -- ``[]`` if none are known, never an error.
+
+    ``vin``, if given, resolves a model via ``mes.platform.model_for_vin``
+    and (only against the real ``mes.parts`` module, which supports it --
+    the fixture does not) threads ``include_siblings=True`` through so any
+    sourced sibling-platform part rows are included too, labeled "from
+    <Model> parts: verify fit".
+    """
     if not code or not code.strip():
         return []
     mod = _parts_mod()
+    include_siblings = bool(_model_for_vin(vin))
     try:
-        rows = mod.for_code(code) if mod is not None else _fixture_for_code(code)
+        if mod is not None:
+            rows = mod.for_code(code, include_siblings=include_siblings)
+        else:
+            rows = _fixture_for_code(code)
     except Exception:  # noqa: BLE001
         rows = []
-    return [_enrich(r) for r in (rows or [])]
+    return _label_siblings([_enrich(r) for r in (rows or [])])
 
 
-def parts_for_job(job: str) -> list[dict[str, Any]]:
-    """Every part related to a maintenance/service job -- ``[]`` if none."""
+def parts_for_job(job: str, vin: Optional[str] = None) -> list[dict[str, Any]]:
+    """Every part related to a maintenance/service job -- ``[]`` if none.
+    See :func:`parts_for_code` for ``vin``/``include_siblings`` behavior."""
     if not job or not job.strip():
         return []
     mod = _parts_mod()
+    include_siblings = bool(_model_for_vin(vin))
     try:
-        rows = mod.for_job(job) if mod is not None else _fixture_for_job(job)
+        if mod is not None:
+            rows = mod.for_job(job, include_siblings=include_siblings)
+        else:
+            rows = _fixture_for_job(job)
     except Exception:  # noqa: BLE001
         rows = []
-    return [_enrich(r) for r in (rows or [])]
+    return _label_siblings([_enrich(r) for r in (rows or [])])
 
 
 def all_parts() -> list[dict[str, Any]]:

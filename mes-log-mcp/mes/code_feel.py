@@ -301,7 +301,7 @@ def _family_fallback(base: str) -> Optional[dict[str, Any]]:
     return None
 
 
-def lookup(code: str) -> Optional[dict[str, Any]]:
+def lookup(code: str, include_siblings: bool = False) -> Optional[dict[str, Any]]:
     """"What would the driver feel?" for one DTC.
 
     Resolves the exact code first (failure-type byte stripped); if that is
@@ -311,6 +311,17 @@ def lookup(code: str) -> Optional[dict[str, Any]]:
     looked up) and ``matched`` (``"exact"`` or ``"family:<name>"``) on top of
     the table fields (``feel``, ``expect``, ``not_expected``, ``mil``,
     ``notes``, ``confidence``, ``source``).
+
+    ``include_siblings=True`` adds a ``"siblings"`` key: entries for sourced
+    sibling platforms (grecale/levante -- see :mod:`mes.platform``) that
+    would apply the same finding there, each flagged ``{"sibling_of":
+    <model>, "verify_fit": True}``. This table carries no per-vehicle-model
+    field at all (every entry here is a physical/engineering finding, not
+    tied to one car), so -- per house rule, never present an unverified
+    relationship as fact -- ``"siblings"`` is always ``[]``: nothing in
+    this table has been confirmed to transfer to a sibling car, so nothing
+    is tagged. Callers that want the sourced platform relationship itself
+    should use :func:`mes.platform.siblings`.
     """
     base = base_code(code)
     if not base:
@@ -320,14 +331,16 @@ def lookup(code: str) -> Optional[dict[str, Any]]:
         out = dict(exact)
         out["code"] = base
         out["matched"] = "exact"
-        return out
-    family = _family_fallback(base)
-    if family is not None:
+    else:
+        family = _family_fallback(base)
+        if family is None:
+            return None
         out = dict(family)
         out["code"] = base
         out["matched"] = ("family:network" if base[0] == "U" else "family:misfire")
-        return out
-    return None
+    if include_siblings:
+        out["siblings"] = []
+    return out
 
 
 __all__ = ["CONFIRMED", "CORROBORATED", "SINGLE_SOURCE", "UNKNOWN",

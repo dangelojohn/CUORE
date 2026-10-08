@@ -36,8 +36,11 @@ async def upload(
     target_id: str = Form(default=""),
     odometer_km: float | None = Form(default=None),
     author: str = Form(default=""),
+    symptom_tags: str = Form(default="", description="Comma-separated."),
+    feels_like: str = Form(default=""),
 ) -> dict[str, Any]:
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+    symptom_tag_list = [t.strip() for t in symptom_tags.split(",") if t.strip()]
     rows = []
     for up in file:
         body = await up.read()
@@ -47,6 +50,7 @@ async def upload(
                 vin, body, up.filename or "upload", mime,
                 caption=caption, tags=tag_list, target_kind=target_kind,
                 target_id=target_id, odometer_km=odometer_km, author=author,
+                symptom_tags=symptom_tag_list, feels_like=feels_like,
             )
         except media_store.BadMedia as e:
             raise HTTPException(status_code=400, detail=str(e))
@@ -64,9 +68,11 @@ def list_media(
     target_id: str = Query(default=""),
     since: str = Query(default=""),
     until: str = Query(default=""),
+    symptom_tag: str = Query(default=""),
 ) -> dict[str, Any]:
     rows = media_store.search(vin, q=q, kind=kind, tag=tag, target_kind=target_kind,
-                              target_id=target_id, since=since, until=until)
+                              target_id=target_id, since=since, until=until,
+                              symptom_tag=symptom_tag)
     return {"count": len(rows), "media": rows}
 
 
@@ -95,14 +101,18 @@ def thumb(id: str) -> FileResponse:
                         content_disposition_type="inline")
 
 
-@router.post("/media/{id}", summary="Edit caption, tags, or target")
+@router.post("/media/{id}", summary="Edit caption, tags, target, symptom tags, or feels_like")
 def update(id: str, caption: str | None = None, tags: str | None = None,
-          target_kind: str | None = None, target_id: str | None = None) -> dict[str, Any]:
+          target_kind: str | None = None, target_id: str | None = None,
+          symptom_tags: str | None = None, feels_like: str | None = None) -> dict[str, Any]:
     _row_or_404(id)
     tag_list = [t.strip() for t in tags.split(",") if t.strip()] if tags is not None else None
+    symptom_tag_list = ([t.strip() for t in symptom_tags.split(",") if t.strip()]
+                        if symptom_tags is not None else None)
     try:
         return media_store.update(id, caption=caption, tags=tag_list,
-                                  target_kind=target_kind, target_id=target_id)
+                                  target_kind=target_kind, target_id=target_id,
+                                  symptom_tags=symptom_tag_list, feels_like=feels_like)
     except media_store.BadMedia as e:
         raise HTTPException(status_code=400, detail=str(e))
 

@@ -1,10 +1,14 @@
-"""Mechanic evidence media library: photos, scans, borescope clips.
+"""Mechanic evidence media library: photos, scans, borescope clips, and audio
+clips of what a part sounds like (a failing wheel bearing, a belt squeal).
 
 Files live at ``<state>/media/<vin>/<id>.<ext>``, a thumbnail for each at
 ``<state>/media/<vin>/thumbs/<id>.jpg`` (320px, EXIF-rotated for photos; for
 video the first frame via ``ffmpeg`` when it is on PATH, else a generic
-poster), and one append-friendly index row per file at
-``<state>/media/index.jsonl``.
+poster; for audio a drawn waveform-style poster), and one append-friendly
+index row per file at ``<state>/media/index.jsonl``. An audio row can also
+carry ``symptom_tags`` (what it sounds like, from :data:`SOUND_TAGS` plus the
+shared driver/mechanic symptom vocabulary) and ``feels_like`` (free text --
+what it feels like through the wheel/pedal/seat).
 
 Same posture as ``cuore.live.store`` and ``cuore.live.checklists``: plain
 JSON/JSONL beside the lock file, guarded by a lock, read-modify-write. Unlike
@@ -35,6 +39,14 @@ from typing import Any
 
 from .config import state_dir
 
+# Side effect: puts `mes` (mes-log-mcp/mes) on sys.path, same as every
+# cuore.services.*_bridge module -- so `symptom_tags` on an audio clip
+# ("what it feels like" alongside "what it sounds like") reuses the exact
+# same vocabulary the driver/mechanic symptom timeline uses, rather than a
+# second, drifting copy of it.
+from .. import bootstrap  # noqa: F401
+from mes.symptoms import SYMPTOM_TAGS  # noqa: E402
+
 _LOCK = threading.Lock()
 
 MAX_SIZE = 500 * 1024 * 1024  # 500 MB
@@ -49,10 +61,31 @@ ALLOWED_MIMES: dict[str, tuple[str, str]] = {
     "video/mp4": ("video", "mp4"),
     "video/webm": ("video", "webm"),
     "video/quicktime": ("video", "mov"),
+    "audio/mpeg": ("audio", "mp3"),
+    "audio/mp4": ("audio", "m4a"),
+    "audio/wav": ("audio", "wav"),
+    "audio/x-wav": ("audio", "wav"),
+    "audio/ogg": ("audio", "ogg"),
+    "audio/webm": ("audio", "webm"),
+    "audio/aac": ("audio", "aac"),
 }
 
 TARGET_KINDS = {"vehicle", "code", "step", "service_record", "symptom", "note",
                 "timeline"}
+
+#: Sound-specific tags, on top of mes.symptoms.SYMPTOM_TAGS, for describing a
+#: recorded clip of a failing part (what it sounds like). ``other_sound``
+#: mirrors SYMPTOM_TAGS's own ``other`` escape hatch.
+SOUND_TAGS = (
+    "wheel_bearing", "cv_joint", "belt_squeal", "lifter_tick", "turbo_whine",
+    "exhaust_leak", "brake_squeal", "knock", "rattle", "hum", "whine",
+    "click", "other_sound",
+)
+
+#: Every value ``symptom_tags`` may contain -- the driver/mechanic symptom
+#: vocabulary plus the sound tags above, so one media item can be tagged
+#: consistently whichever file it is.
+ALLOWED_SYMPTOM_TAGS = frozenset(SYMPTOM_TAGS) | frozenset(SOUND_TAGS)
 
 THUMB_SIZE = 320
 
@@ -217,6 +250,62 @@ def _generic_poster(dest: Path) -> bool:
         return False
 
 
+def _make_audio_thumb(dest: Path) -> bool:
+    """A drawn waveform-style poster -- not an analysis of the actual audio
+    (that would not be "cheap"), just a recognisable glyph so an audio tile
+    in the grid doesn't look broken next to photo/video thumbnails."""
+    try:
+        from PIL import Image, ImageDraw
+    except ImportError:
+        return False
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        img = Image.new("RGB", (THUMB_SIZE, THUMB_SIZE), (40, 40, 40))
+        draw = ImageDraw.Draw(img)
+        # A row of bars of varying (fixed, deterministic) height -- a
+        # waveform glyph, not a measurement of this specific clip.
+        heights = [0.3, 0.6, 0.85, 0.5, 0.95, 0.4, 0.7, 0.55, 0.9, 0.35,
+                   0.65, 0.45, 0.8, 0.5, 0.6]
+        n = len(heights)
+        margin = THUMB_SIZE // 6
+        usable = THUMB_SIZE - 2 * margin
+        bar_w = usable / (n * 1.6)
+        gap = bar_w * 0.6
+        mid = THUMB_SIZE / 2
+        x = margin
+        for h in heights:
+            bar_h = usable * h * 0.5
+            draw.rectangle(
+                [x, mid - bar_h, x + bar_w, mid + bar_h],
+                fill=(200, 200, 200),
+            )
+            x += bar_w + gap
+        img.save(dest, "JPEG", quality=80)
+        return True
+    except Exception:
+        return False
+
+
+def _audio_duration_s(file_path: Path, ext: str) -> float | None:
+    """Best-effort clip length, only where it's cheap to read -- a WAV
+    header gives it for free via the stdlib ``wave`` module. Compressed
+    formats (mp3/m4a/ogg/webm/aac) need a real decoder/parser to get a
+    reliable duration, which is not "cheap", so those are skipped (``None``)
+    rather than guessed at."""
+    if ext != "wav":
+        return None
+    try:
+        import wave
+        with wave.open(str(file_path), "rb") as w:
+            frames = w.getnframes()
+            rate = w.getframerate()
+            if rate:
+                return round(frames / float(rate), 2)
+    except Exception:
+        pass
+    return None
+
+
 def _build_thumb(vin: str, id_: str, kind: str, file_path: Path) -> None:
     dest = _thumb_path(vin, id_)
     if kind == "photo":
@@ -225,22 +314,41 @@ def _build_thumb(vin: str, id_: str, kind: str, file_path: Path) -> None:
     elif kind == "video":
         if _make_video_thumb(file_path, dest):
             return
+    elif kind == "audio":
+        if _make_audio_thumb(dest):
+            return
     # scans/documents (PDF) and anything thumbnail generation failed on:
     # no thumbnail is written; callers treat a missing thumb as "none".
 
 
 # --- core API -------------------------------------------------------------
 
+def _clean_symptom_tags(symptom_tags: list[str] | None) -> list[str]:
+    tags = [str(t).strip() for t in (symptom_tags or []) if str(t).strip()]
+    bad = [t for t in tags if t not in ALLOWED_SYMPTOM_TAGS]
+    if bad:
+        raise BadMedia(f"unknown symptom_tags: {bad!r}")
+    return tags
+
+
 def add(vin: str, file_bytes: bytes, filename: str, mime: str, *,
         caption: str = "", tags: list[str] | None = None,
         target_kind: str = "vehicle", target_id: str = "",
         odometer_km: float | None = None, author: str = "",
-        captured_at: str = "") -> dict[str, Any]:
+        captured_at: str = "", symptom_tags: list[str] | None = None,
+        feels_like: str = "") -> dict[str, Any]:
     """Store one media file for ``vin``. Returns its index row.
 
     A duplicate (same sha256, same VIN) returns the existing row untouched --
     no new file, no new index entry.
+
+    ``symptom_tags`` (from :data:`ALLOWED_SYMPTOM_TAGS` -- the driver/
+    mechanic symptom vocabulary plus :data:`SOUND_TAGS`) and ``feels_like``
+    (free text) are most useful on an audio clip -- "what a failing wheel
+    bearing sounds like, and what it feels like" -- but are accepted on any
+    kind, same as ``caption``/``tags``.
     """
+    mime = (mime or "").split(";", 1)[0].strip().lower()
     if mime not in ALLOWED_MIMES:
         raise BadMedia(f"unsupported mime type: {mime!r}")
     if len(file_bytes) > MAX_SIZE:
@@ -249,6 +357,7 @@ def add(vin: str, file_bytes: bytes, filename: str, mime: str, *,
         raise BadMedia("empty file")
     if target_kind not in TARGET_KINDS:
         raise BadMedia(f"unknown target_kind: {target_kind!r}")
+    symptom_tag_list = _clean_symptom_tags(symptom_tags)
 
     kind, ext = ALLOWED_MIMES[mime]
     digest = hashlib.sha256(file_bytes).hexdigest()
@@ -272,6 +381,8 @@ def add(vin: str, file_bytes: bytes, filename: str, mime: str, *,
             except Exception:
                 resolved_captured_at = ""
 
+        duration_s = _audio_duration_s(fpath, ext) if kind == "audio" else None
+
         now = datetime.now().isoformat(timespec="seconds")
         row = {
             "id": id_,
@@ -290,6 +401,9 @@ def add(vin: str, file_bytes: bytes, filename: str, mime: str, *,
             "target_id": target_id or "",
             "odometer_km": odometer_km,
             "hidden": False,
+            "symptom_tags": symptom_tag_list,
+            "feels_like": feels_like or "",
+            "duration_s": duration_s,
         }
         _append_row(row)
 
@@ -317,7 +431,9 @@ def thumb_path(id_: str) -> Path | None:
 
 
 def update(id_: str, *, caption: str | None = None, tags: list[str] | None = None,
-           target_kind: str | None = None, target_id: str | None = None) -> dict[str, Any]:
+           target_kind: str | None = None, target_id: str | None = None,
+           symptom_tags: list[str] | None = None,
+           feels_like: str | None = None) -> dict[str, Any]:
     with _LOCK:
         rows = _read_rows()
         row = None
@@ -337,6 +453,10 @@ def update(id_: str, *, caption: str | None = None, tags: list[str] | None = Non
             new_row["target_kind"] = target_kind
         if target_id is not None:
             new_row["target_id"] = target_id
+        if symptom_tags is not None:
+            new_row["symptom_tags"] = _clean_symptom_tags(symptom_tags)
+        if feels_like is not None:
+            new_row["feels_like"] = feels_like
         _append_row(new_row)
         return new_row
 
@@ -358,10 +478,12 @@ def hide(id_: str) -> dict[str, Any]:
 
 def search(vin: str, q: str = "", kind: str = "", tag: str = "",
            target_kind: str = "", target_id: str = "", since: str = "",
-           until: str = "") -> list[dict[str, Any]]:
+           until: str = "", symptom_tag: str = "") -> list[dict[str, Any]]:
     """Rows for ``vin``, newest ``captured_at`` first, hidden excluded.
 
-    ``q`` matches caption, tags, filename, and target id, case-insensitive.
+    ``q`` matches caption, tags, filename, target id, ``feels_like`` and
+    ``symptom_tags``, case-insensitive. ``symptom_tag`` narrows to rows
+    carrying that exact tag (e.g. a sound tag like ``"wheel_bearing"``).
     """
     needle = q.strip().lower()
     out: list[dict[str, Any]] = []
@@ -371,6 +493,8 @@ def search(vin: str, q: str = "", kind: str = "", tag: str = "",
         if kind and row.get("kind") != kind:
             continue
         if tag and tag not in (row.get("tags") or []):
+            continue
+        if symptom_tag and symptom_tag not in (row.get("symptom_tags") or []):
             continue
         if target_kind and row.get("target_kind") != target_kind:
             continue
@@ -387,6 +511,8 @@ def search(vin: str, q: str = "", kind: str = "", tag: str = "",
                 " ".join(row.get("tags") or []),
                 str(row.get("filename") or ""),
                 str(row.get("target_id") or ""),
+                str(row.get("feels_like") or ""),
+                " ".join(row.get("symptom_tags") or []),
             ]).lower()
             if needle not in haystack:
                 continue
@@ -413,5 +539,5 @@ def export_zip(vin: str) -> Path:
 
 
 __all__ = ["BadMedia", "UnknownMedia", "ALLOWED_MIMES", "TARGET_KINDS", "MAX_SIZE",
-           "index_path", "vin_dir", "thumbs_dir", "add", "get", "path", "thumb_path",
-           "update", "hide", "search", "export_zip"]
+           "SOUND_TAGS", "ALLOWED_SYMPTOM_TAGS", "index_path", "vin_dir", "thumbs_dir",
+           "add", "get", "path", "thumb_path", "update", "hide", "search", "export_zip"]

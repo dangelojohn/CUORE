@@ -87,6 +87,110 @@
   }
 
   // ---------------------------------------------------------------------
+  // Record sound: MediaRecorder straight into the same upload form/XHR path
+  // as a picked file -- a recorded clip is just another "file" on the same
+  // form, so nothing about the upload plumbing above needs to know the
+  // difference. Progressive enhancement: the button stays hidden (the
+  // dropzone/file-input, now accept="...,audio/*,...", is the fallback)
+  // unless both MediaRecorder and getUserMedia exist.
+  function wireRecord() {
+    var form = qs("[data-media-upload]");
+    var btn = qs("[data-record-sound]");
+    var timer = qs("#media-record-timer");
+    var input = form && qs('input[type="file"]', form);
+    if (!form || !btn || !input) return;
+    if (!window.MediaRecorder || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return; // file picker (accept="...,audio/*,...") is the fallback
+    }
+    btn.hidden = false;
+
+    var recorder = null;
+    var chunks = [];
+    var stream = null;
+    var startedAt = 0;
+    var tickHandle = null;
+
+    function formatElapsed(ms) {
+      var total = Math.floor(ms / 1000);
+      var m = Math.floor(total / 60);
+      var s = total % 60;
+      return m + ":" + (s < 10 ? "0" : "") + s;
+    }
+
+    function stopTimer() {
+      if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
+      if (timer) timer.hidden = true;
+    }
+
+    function stopStream() {
+      if (stream) {
+        stream.getTracks().forEach(function (t) { t.stop(); });
+        stream = null;
+      }
+    }
+
+    function startRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+        stream = s;
+        chunks = [];
+        try {
+          recorder = new MediaRecorder(stream);
+        } catch (e) {
+          stopStream();
+          return;
+        }
+        recorder.addEventListener("dataavailable", function (ev) {
+          if (ev.data && ev.data.size) chunks.push(ev.data);
+        });
+        recorder.addEventListener("stop", function () {
+          stopStream();
+          stopTimer();
+          btn.classList.remove("is-recording");
+          btn.textContent = "";
+          var dot = document.createElement("span");
+          dot.className = "media-record-dot";
+          dot.setAttribute("aria-hidden", "true");
+          dot.innerHTML = "&#9679;";
+          btn.appendChild(dot);
+          btn.appendChild(document.createTextNode(" Record sound"));
+          if (!chunks.length) return;
+          var mime = recorder.mimeType || "audio/webm";
+          var blob = new Blob(chunks, { type: mime });
+          var ext = mime.indexOf("ogg") !== -1 ? "ogg" : "webm";
+          var file = new File([blob], "sound-" + Date.now() + "." + ext, { type: mime });
+          if (window.DataTransfer) {
+            var dt = new DataTransfer();
+            dt.items.add(file);
+            input.files = dt.files;
+          }
+          if (typeof form.requestSubmit === "function") form.requestSubmit();
+          else form.dispatchEvent(new Event("submit", { cancelable: true }));
+        });
+        recorder.start();
+        startedAt = Date.now();
+        btn.classList.add("is-recording");
+        if (timer) {
+          timer.hidden = false;
+          timer.textContent = "0:00";
+          tickHandle = setInterval(function () {
+            timer.textContent = formatElapsed(Date.now() - startedAt);
+          }, 500);
+        }
+      }).catch(function () {
+        stopStream();
+      });
+    }
+
+    btn.addEventListener("click", function () {
+      if (recorder && recorder.state === "recording") {
+        recorder.stop();
+      } else {
+        startRecording();
+      }
+    });
+  }
+
+  // ---------------------------------------------------------------------
   // The tap-to-view dialog on the gallery grid.
   function wireDialog() {
     var dialog = qs("#media-dialog");
@@ -97,6 +201,8 @@
     var meta = qs("#media-dialog-meta", dialog);
     var captionInput = qs("#media-dialog-caption", dialog);
     var tagsInput = qs("#media-dialog-tags", dialog);
+    var symptomTagsInput = qs("#media-dialog-symptom-tags", dialog);
+    var feelsLikeInput = qs("#media-dialog-feels-like", dialog);
     var msg = qs("#media-dialog-msg", dialog);
     var saveBtn = qs("#media-dialog-save", dialog);
     var hideBtn = qs("#media-dialog-hide", dialog);
@@ -119,6 +225,10 @@
         var video = document.createElement("video");
         video.src = fileUrl; video.controls = true;
         view.appendChild(video);
+      } else if (current.kind === "audio") {
+        var audio = document.createElement("audio");
+        audio.src = fileUrl; audio.controls = true;
+        view.appendChild(audio);
       } else {
         var img = document.createElement("img");
         img.src = fileUrl; img.alt = current.caption || current.filename || "";
@@ -129,6 +239,8 @@
           (current.target_id ? ": " + current.target_id : "") : "");
       captionInput.value = current.caption || "";
       tagsInput.value = (current.tags || []).join(", ");
+      if (symptomTagsInput) symptomTagsInput.value = (current.symptom_tags || []).join(", ");
+      if (feelsLikeInput) feelsLikeInput.value = current.feels_like || "";
       originalLink.href = fileUrl;
       showMsg("");
       dialog.showModal();
@@ -158,7 +270,13 @@
     if (saveBtn) {
       saveBtn.addEventListener("click", function () {
         var tags = tagsInput.value.split(",").map(function (t) { return t.trim(); }).filter(Boolean);
-        patch({ caption: captionInput.value, tags: tags }, function () { showMsg("saved"); });
+        var body = { caption: captionInput.value, tags: tags };
+        if (symptomTagsInput) {
+          body.symptom_tags = symptomTagsInput.value.split(",")
+            .map(function (t) { return t.trim(); }).filter(Boolean);
+        }
+        if (feelsLikeInput) body.feels_like = feelsLikeInput.value;
+        patch(body, function () { showMsg("saved"); });
       });
     }
     if (hideBtn) {
@@ -179,6 +297,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     wireUpload();
+    wireRecord();
     wireDialog();
   });
 })();

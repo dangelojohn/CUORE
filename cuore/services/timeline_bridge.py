@@ -206,11 +206,30 @@ def _verdict_for(pattern: dict[str, Any]) -> str:
 def code_feel(vin: str, code: str) -> dict[str, Any]:
     """"What would the driver feel?" for one code, next to what this car's
     own symptom reports actually say near its occurrences.
+
+    Passes ``include_siblings=True`` into ``mes.code_feel.lookup`` so a
+    sourced sibling-platform (Grecale/Levante) finding would be returned
+    under ``feel["siblings"]``, each labeled "from <Model> code_feel:
+    verify fit" via this VIN's own model (``mes.platform.model_for_vin``).
+    ``mes.code_feel`` currently tags nothing to a sibling model (every
+    entry there is a physical/engineering finding, not vehicle-specific --
+    see its module docstring), so ``siblings`` is always ``[]`` today.
     """
     if not vin.strip():
         raise BadRequest("a VIN is required")
     base = _base(code)
-    feel = code_feel_mod.lookup(base)
+    feel = code_feel_mod.lookup(base, include_siblings=True)
+    if feel is not None:
+        try:
+            from mes import platform as platform_mod
+            model = platform_mod.model_for_vin(vin)
+        except Exception:  # noqa: BLE001
+            model = None
+        if model and model != platform_mod.UNKNOWN:
+            for sib in feel.get("siblings", []):
+                sib_of = sib.get("sibling_of")
+                if sib_of:
+                    sib["label"] = f"from {str(sib_of).title()} code_feel: verify fit"
 
     occ_dts: list[Optional[datetime]] = []
     occ_files: set[str] = set()

@@ -5,9 +5,9 @@
 <link rel="stylesheet" href="/static/media.css">
 
 <h1>Photos &amp; video</h1>
-<p class="lede">Every photo, video and document attached to this vehicle — from a
+<p class="lede">Every photo, video, document and sound attached to this vehicle — from a
 specific code, checklist step, service record or symptom, or filed loose against
-the vehicle itself. Works from the phone's camera; drag-and-drop on a bench PC.</p>
+the vehicle itself. Works from the phone's camera or mic; drag-and-drop on a bench PC.</p>
 
 {% if error %}
   <div class="note alert"><span class="lab">Not uploaded</span>{{ error }}</div>
@@ -16,15 +16,50 @@ the vehicle itself. Works from the phone's camera; drag-and-drop on a bench PC.<
   <div class="note good"><span class="lab">Uploaded</span>Saved to this vehicle's media.</div>
 {% endif %}
 
+{% if sound_groups %}
+<div class="panel media-sounds" id="media-sounds">
+  <h2>Sounds</h2>
+  <p class="lede small">What a part sounds like, by sound tag — tap a reference link to
+  compare a verified clip against your own recording.</p>
+  {% for g in sound_groups %}
+    <div class="media-sound-group">
+      <div class="media-sound-group-head">
+        <span class="chip plain sm">{{ g.label }}</span>
+        {% if g.reference %}
+          <a class="small media-sound-ref" href="{{ g.reference.url }}" target="_blank" rel="noopener">
+            compare with a reference: {{ g.reference.title }} &rarr;</a>
+        {% endif %}
+      </div>
+      <div class="media-attach-row">
+        {% for it in g.clips[:6] %}
+          <a class="media-attach-thumb" href="/api/media/{{ it.id }}/file" target="_blank" rel="noopener"
+             title="{{ it.caption or it.filename }}">
+            <img src="/api/media/{{ it.id }}/thumb" alt="" loading="lazy">
+          </a>
+        {% endfor %}
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="panel media-upload">
-  <h2>Add photos, video or documents</h2>
+  <h2>Add photos, video, sounds or documents</h2>
   <form method="post" action="/v/{{ vin }}/media" enctype="multipart/form-data"
         id="media-upload-form" data-media-upload>
     <input type="hidden" name="redirect_to" value="/v/{{ vin }}/media?target_kind={{ target_kind }}&amp;target_id={{ target_id|urlencode }}">
 
+    <div class="media-record-row">
+      <button type="button" id="media-record-btn" class="btn media-record-btn"
+              data-record-sound hidden aria-label="Record sound">
+        <span class="media-record-dot" aria-hidden="true">&#9679;</span> Record sound
+      </button>
+      <span id="media-record-timer" class="small muted" hidden>0:00</span>
+    </div>
+
     <label class="media-droplabel" id="media-dropzone" for="media-file-input" data-dropzone>
       <input type="file" id="media-file-input" name="file" multiple
-             accept="image/*,video/*,application/pdf" capture="environment">
+             accept="image/*,video/*,audio/*,application/pdf" capture="environment">
       <span class="media-drop-text">Tap to open the camera or file picker — or drop files here</span>
     </label>
     <ul id="media-upload-progress" class="media-progress-list" hidden></ul>
@@ -39,6 +74,18 @@ the vehicle itself. Works from the phone's camera; drag-and-drop on a bench PC.<
     </div>
     <datalist id="media-recent-tags">
       {% for t in recent_tags %}<option value="{{ t }}">{% endfor %}
+    </datalist>
+
+    <div class="cols two">
+      <label>Symptom/sound tags <span class="small muted">(what it sounds/feels like)</span>
+        <input type="text" name="symptom_tags" placeholder="comma separated" list="media-symptom-tags">
+      </label>
+      <label>Feels like <span class="small muted">(through the wheel/pedal/seat)</span>
+        <input type="text" name="feels_like" maxlength="200" placeholder="e.g. vibrates at 60mph">
+      </label>
+    </div>
+    <datalist id="media-symptom-tags">
+      {% for t in sound_tags %}<option value="{{ t }}">{% endfor %}
     </datalist>
 
     <div class="cols two">
@@ -109,6 +156,7 @@ the vehicle itself. Works from the phone's camera; drag-and-drop on a bench PC.<
       <span class="media-thumb">
         <img src="/api/media/{{ it.id }}/thumb" alt="" loading="lazy">
         {% if it.kind == "video" %}<span class="media-play-badge" aria-hidden="true">&#9654;</span>{% endif %}
+        {% if it.kind == "audio" %}<span class="media-play-badge media-audio-badge" aria-hidden="true">&#9834;</span>{% endif %}
       </span>
       <span class="media-cap">{{ it.caption or it.filename }}</span>
       <span class="media-meta small muted">{{ (it.captured_at or it.uploaded_at or "")[:16] }}</span>
@@ -117,6 +165,9 @@ the vehicle itself. Works from the phone's camera; drag-and-drop on a bench PC.<
       {% endif %}
       {% if it.tags %}
         <span class="media-tags">{% for t in it.tags %}<span class="chip plain sm">{{ t }}</span>{% endfor %}</span>
+      {% endif %}
+      {% if it.symptom_tags %}
+        <span class="media-tags media-symptom-tags">{% for t in it.symptom_tags %}<span class="chip plain sm">{{ t }}</span>{% endfor %}</span>
       {% endif %}
     </a>
   {% else %}
@@ -133,6 +184,8 @@ the vehicle itself. Works from the phone's camera; drag-and-drop on a bench PC.<
   <div class="media-dialog-body">
     <label>Caption <input type="text" id="media-dialog-caption" maxlength="200"></label>
     <label>Tags <input type="text" id="media-dialog-tags"></label>
+    <label>Symptom/sound tags <input type="text" id="media-dialog-symptom-tags" list="media-symptom-tags"></label>
+    <label>Feels like <input type="text" id="media-dialog-feels-like" maxlength="200"></label>
     <p id="media-dialog-msg" class="small muted" hidden></p>
     <p class="media-dialog-actions">
       <button type="button" class="btn" id="media-dialog-save">Save</button>

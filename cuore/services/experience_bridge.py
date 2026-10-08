@@ -19,6 +19,15 @@ all -- degrades to an empty result rather than ever raising out of this
 module. That is what lets every page using this bridge render "No
 experience links yet" instead of a 500 while the data agent's module is
 still landing.
+
+An optional ``vin`` on :func:`links_for` resolves that VIN's model via
+``mes.platform.model_for_vin`` and, when a model is found, passes
+``include_siblings=True`` into ``mes.experience`` so pages can also surface
+any sourced sibling-platform (Grecale/Levante) entries -- each one is given
+a ``label`` of "from <Model> experience: verify fit" rather than being
+presented as this car's own experience. ``mes.experience`` currently has no
+entry tagged for a sibling model (see its module docstring), so this is
+plumbing with nothing to show yet, not a behavior change.
 """
 
 from __future__ import annotations
@@ -41,6 +50,20 @@ def _experience_module() -> Any:
         return None
 
 
+def _model_for_vin(vin: Optional[str]) -> Optional[str]:
+    """Best-effort model name for ``vin``, or ``None`` on any failure/VIN
+    not recognised -- never raises, same degrade-to-empty rule as the rest
+    of this module."""
+    if not vin:
+        return None
+    try:
+        from mes import platform as platform_mod  # noqa: PLC0415
+        model = platform_mod.model_for_vin(vin)
+    except Exception:  # noqa: BLE001
+        return None
+    return None if model == "UNKNOWN" else model
+
+
 def _date_ordinal(value: Any) -> int:
     """Sortable "newest first" key. Unparseable/missing dates sort last."""
     s = str(value or "")[:10]
@@ -57,24 +80,32 @@ def _sort_key(link: dict[str, Any]) -> tuple[int, int, int]:
 
 
 def links_for(*, code: Optional[str] = None, family: Optional[str] = None,
-              job: Optional[str] = None) -> dict[str, Any]:
+              job: Optional[str] = None, vin: Optional[str] = None) -> dict[str, Any]:
     """Merged, de-duplicated, ordered experience links for whichever of
     ``code``/``family``/``job`` are given. ``{"links": [...], "count": n}``,
     always -- an empty list (never an exception) when ``mes.experience``
     is unavailable, nothing was given, or the lookup itself failed.
+
+    ``vin``, if given, resolves a model via ``mes.platform.model_for_vin``
+    and threads ``include_siblings=True`` through so any sourced
+    sibling-platform entries (flagged ``sibling_of``/``verify_fit`` by
+    ``mes.experience``) are included too, each labeled "from <Model>
+    experience: verify fit".
     """
     experience = _experience_module()
     if experience is None:
         return {"links": [], "count": 0}
 
+    include_siblings = bool(_model_for_vin(vin))
+
     collected: list[dict[str, Any]] = []
     try:
         if code:
-            collected += list(experience.for_code(code) or [])
+            collected += list(experience.for_code(code, include_siblings=include_siblings) or [])
         if family:
-            collected += list(experience.for_family(family) or [])
+            collected += list(experience.for_family(family, include_siblings=include_siblings) or [])
         if job:
-            collected += list(experience.for_job(job) or [])
+            collected += list(experience.for_job(job, include_siblings=include_siblings) or [])
     except Exception:  # noqa: BLE001 -- a data-module hiccup must never 500 a page
         return {"links": [], "count": 0}
 
@@ -89,6 +120,10 @@ def links_for(*, code: Optional[str] = None, family: Optional[str] = None,
         deduped.append(link)
 
     deduped.sort(key=_sort_key)
+    for link in deduped:
+        sibling_of = link.get("sibling_of")
+        if sibling_of:
+            link["label"] = f"from {str(sibling_of).title()} experience: verify fit"
     return {"links": deduped, "count": len(deduped)}
 
 

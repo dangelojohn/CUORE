@@ -34,18 +34,20 @@ from .errors import BadRequest, NotFound
 
 def list_media(vin: str, *, q: str = "", kind: str = "", tag: str = "",
                target_kind: str = "", target_id: str = "", since: str = "",
-               until: str = "") -> dict[str, Any]:
+               until: str = "", symptom_tag: str = "") -> dict[str, Any]:
     """``{"items": [...]}`` -- the shape ``media_routes.list_media`` expects
     back, newest ``captured_at`` first, hidden excluded."""
     rows = media_store.search(vin, q=q, kind=kind, tag=tag, target_kind=target_kind,
-                              target_id=target_id, since=since, until=until)
+                              target_id=target_id, since=since, until=until,
+                              symptom_tag=symptom_tag)
     return {"items": rows}
 
 
 def save_media(vin: str, *, files: list[dict[str, Any]], caption: str = "",
                tags: Optional[list[str]] = None, target_kind: str = "vehicle",
                target_id: str = "", odometer_km: Optional[float] = None,
-               author: str = "") -> list[dict[str, Any]]:
+               author: str = "", symptom_tags: Optional[list[str]] = None,
+               feels_like: str = "") -> list[dict[str, Any]]:
     """Store each of ``files`` via :func:`cuore.live.media.add`. Returns the
     new index rows, one per file, in the same order.
 
@@ -61,6 +63,7 @@ def save_media(vin: str, *, files: list[dict[str, Any]], caption: str = "",
                 vin, f.get("content") or b"", f.get("filename") or "upload", mime,
                 caption=caption, tags=list(tags or []), target_kind=target_kind or "vehicle",
                 target_id=target_id, odometer_km=odometer_km, author=author,
+                symptom_tags=list(symptom_tags or []), feels_like=feels_like,
             )
         except media_store.BadMedia as exc:
             raise BadRequest(str(exc)) from exc
@@ -100,10 +103,13 @@ def thumb_path(id_: str) -> Optional[Path]:
 
 
 def update(id_: str, *, caption: Optional[str] = None, tags: Optional[list[str]] = None,
-           target_kind: Optional[str] = None, target_id: Optional[str] = None) -> dict[str, Any]:
+           target_kind: Optional[str] = None, target_id: Optional[str] = None,
+           symptom_tags: Optional[list[str]] = None,
+           feels_like: Optional[str] = None) -> dict[str, Any]:
     try:
         return media_store.update(id_, caption=caption, tags=tags,
-                                  target_kind=target_kind, target_id=target_id)
+                                  target_kind=target_kind, target_id=target_id,
+                                  symptom_tags=symptom_tags, feels_like=feels_like)
     except media_store.UnknownMedia as exc:
         raise NotFound(f"no media with id {id_!r}") from exc
     except media_store.BadMedia as exc:

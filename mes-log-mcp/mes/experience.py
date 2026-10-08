@@ -36,6 +36,20 @@ is left out, same as before.
 Lookup is by exact key membership in ``keys`` -- no fuzzy matching, no family
 fallback (unlike :mod:`mes.code_feel`): a code with no entry simply returns
 an empty list, which is the honest answer when nothing verified.
+
+Sibling platforms (2026-10-07 pass, see :mod:`mes.platform`): this project's
+car is a Stelvio; the user has described the Maserati Grecale and Maserati
+Levante as "similar" sibling cars. A quick pass looked for a Grecale- or
+Levante-specific, verifiable (oEmbed or browser_cdp) EVAP/P0455, ZF 8HP
+fluid, or wheel-bearing-noise video or thread and found nothing that was
+both model-specific and verifiable in the time available -- the ZF 8HP
+fluid-change videos found were generic (BMW/Jeep/Dodge), not
+Maserati-specific, and the P0455 hits were generic write-ups, not Maserati
+ones. Per house rule (never present an unverified relationship as fact),
+nothing was added rather than mistagging a generic video as Maserati-
+specific. ``SIBLING_FITS`` and ``include_siblings`` below are therefore live
+plumbing with nothing yet to return -- an entry only gets tagged if its own
+``vehicle_fit`` is literally ``"grecale"`` or ``"levante"``, never guessed.
 """
 
 from __future__ import annotations
@@ -54,7 +68,14 @@ JOBS = {
     "brake_fluid", "transfer_case", "drive_belt", "battery_12v",
     "window_riser", "tpms", "zf8hp_fluid",
 }
-KNOWN_NON_CODE_KEYS = FAMILIES | JOBS
+#: Sound tags the media library's audio clips can carry (see
+#: ``cuore.live.media.SOUND_TAGS``, the superset this is a subset of --
+#: only the tags with a verified reference clip below are tabulated here).
+#: An entry keyed by one of these is ``kind: "sound_reference"``: a verified
+#: "here's what that sounds like" clip a mechanic's own recording can be
+#: compared against, not a repair how-to.
+SOUND_TAGS = {"wheel_bearing", "cv_joint", "belt_squeal", "turbo_whine", "exhaust_leak"}
+KNOWN_NON_CODE_KEYS = FAMILIES | JOBS | SOUND_TAGS
 
 VERIFIED_AT = "2026-10-07"
 
@@ -556,29 +577,155 @@ LINKS: tuple[dict[str, Any], ...] = (
         "verified_at": VERIFIED_AT,
         "verified_how": "browser_cdp",
     },
+
+    # --- sound references: "here's what that sounds like" (verified via ---
+    # --- the YouTube oEmbed endpoint, 2026-10-07) -- generic, not          ---
+    # --- Alfa/Stelvio-specific; a mechanic's own recording (the media     ---
+    # --- library's audio clips) gets compared against the failure mode,  ---
+    # --- not against this platform. ---------------------------------------
+    {
+        "id": "yt-sound-wheel-bearing",
+        "keys": ["wheel_bearing"],
+        "title": "What a bad wheel bearing sounds like and how to diagnose "
+                 "which one it is (best audio capture yet)",
+        "url": "https://www.youtube.com/watch?v=liBzed1tQTA",
+        "source": "youtube",
+        "kind": "sound_reference",
+        "covers": "Clear audio capture of a failing wheel bearing's growl/hum, plus how "
+                  "to tell which corner it's coming from.",
+        "vehicle_fit": "generic_obd",
+        "date": None,
+        "reputation": "medium",
+        "verified_at": VERIFIED_AT,
+        "verified_how": "youtube_oembed",
+    },
+    {
+        "id": "yt-sound-cv-joint",
+        "keys": ["cv_joint"],
+        "title": "How To Diagnose A Bad CV Axle",
+        "url": "https://www.youtube.com/watch?v=BC5NOoznHXw",
+        "source": "youtube",
+        "kind": "sound_reference",
+        "covers": "The rhythmic clicking/popping a worn outer CV joint makes while "
+                  "turning, and how to reproduce it on a test drive.",
+        "vehicle_fit": "generic_obd",
+        "date": None,
+        "reputation": "medium",
+        "verified_at": VERIFIED_AT,
+        "verified_how": "youtube_oembed",
+    },
+    {
+        "id": "yt-sound-belt-squeal",
+        "keys": ["belt_squeal"],
+        "title": "Diagnosing Belt Noise squeak or squeal on a Serpentine Belt",
+        "url": "https://www.youtube.com/watch?v=Is_02fID1_g",
+        "source": "youtube",
+        "kind": "sound_reference",
+        "covers": "The squeak/squeal a glazed, worn or misaligned serpentine belt makes, "
+                  "and the water-spray test that confirms it's the belt.",
+        "vehicle_fit": "generic_obd",
+        "date": None,
+        "reputation": "medium",
+        "verified_at": VERIFIED_AT,
+        "verified_how": "youtube_oembed",
+    },
+    {
+        "id": "yt-sound-turbo-whine",
+        "keys": ["turbo_whine"],
+        "title": "Turbo Whining? Do THIS Before Your Engine Explodes!",
+        "url": "https://www.youtube.com/watch?v=SNCtezZHCNw",
+        "source": "youtube",
+        "kind": "sound_reference",
+        "covers": "The rising high-pitched whine a spooling turbo makes under boost, "
+                  "versus the sharper, louder whine that signals bearing wear.",
+        "vehicle_fit": "generic_obd",
+        "date": None,
+        "reputation": "medium",
+        "verified_at": VERIFIED_AT,
+        "verified_how": "youtube_oembed",
+    },
+    {
+        "id": "yt-sound-exhaust-leak",
+        "keys": ["exhaust_leak"],
+        "title": "What An Exhaust Leak May Sound Like",
+        "url": "https://www.youtube.com/watch?v=B9vCVByesGI",
+        "source": "youtube",
+        "kind": "sound_reference",
+        "covers": "The ticking/tapping-to-rumble a manifold or pipe exhaust leak makes, "
+                  "most pronounced cold at idle.",
+        "vehicle_fit": "generic_obd",
+        "date": None,
+        "reputation": "medium",
+        "verified_at": VERIFIED_AT,
+        "verified_how": "youtube_oembed",
+    },
 )
+
+
+#: ``vehicle_fit`` values treated as "a sibling platform's car, not this
+#: one" -- see :mod:`mes.platform`. Kept in sync with
+#: ``mes.platform.SIBLING_MODELS`` but re-declared here (no import) so this
+#: module stays the same kind of standalone lookup table its docstring
+#: already promises.
+SIBLING_FITS = frozenset({"grecale", "levante"})
 
 
 def _norm(key: str) -> str:
     return (key or "").strip()
 
 
-def for_code(code: str) -> list[dict[str, Any]]:
-    """All entries tagged with this exact DTC (e.g. ``"P0455"``)."""
+def _tag_sibling(entry: dict[str, Any]) -> dict[str, Any]:
+    out = dict(entry)
+    out["sibling_of"] = entry.get("vehicle_fit")
+    out["verify_fit"] = True
+    return out
+
+
+def _filtered(matches: list[dict[str, Any]], include_siblings: bool) -> list[dict[str, Any]]:
+    primary = [e for e in matches if e.get("vehicle_fit") not in SIBLING_FITS]
+    if not include_siblings:
+        return primary
+    sibling_entries = [_tag_sibling(e) for e in matches if e.get("vehicle_fit") in SIBLING_FITS]
+    return primary + sibling_entries
+
+
+def for_code(code: str, include_siblings: bool = False) -> list[dict[str, Any]]:
+    """All entries tagged with this exact DTC (e.g. ``"P0455"``).
+
+    With ``include_siblings=True``, also returns any entry whose
+    ``vehicle_fit`` is a sourced sibling platform (grecale/levante -- see
+    :mod:`mes.platform`), each flagged ``{"sibling_of": <model>,
+    "verify_fit": True}``. Nothing is tagged unless the entry's own
+    ``vehicle_fit`` already says so -- see module docstring.
+    """
     key = _norm(code).upper()
-    return [e for e in LINKS if key in e["keys"]]
+    return _filtered([e for e in LINKS if key in e["keys"]], include_siblings)
 
 
-def for_family(family: str) -> list[dict[str, Any]]:
-    """All entries tagged with this fault family (e.g. ``"EVAP"``)."""
+def for_family(family: str, include_siblings: bool = False) -> list[dict[str, Any]]:
+    """All entries tagged with this fault family (e.g. ``"EVAP"``). See
+    :func:`for_code` for ``include_siblings``."""
     key = _norm(family)
-    return [e for e in LINKS if key in e["keys"]]
+    return _filtered([e for e in LINKS if key in e["keys"]], include_siblings)
 
 
-def for_job(job: str) -> list[dict[str, Any]]:
-    """All entries tagged with this service job (e.g. ``"oil_change"``)."""
+def for_job(job: str, include_siblings: bool = False) -> list[dict[str, Any]]:
+    """All entries tagged with this service job (e.g. ``"oil_change"``).
+    See :func:`for_code` for ``include_siblings``."""
     key = _norm(job)
-    return [e for e in LINKS if key in e["keys"]]
+    return _filtered([e for e in LINKS if key in e["keys"]], include_siblings)
+
+
+def for_sound(sound: str, include_siblings: bool = False) -> list[dict[str, Any]]:
+    """All entries tagged with this sound tag (e.g. ``"wheel_bearing"``) --
+    mechanically identical to :func:`for_job` (lookup is exact key
+    membership regardless of what kind of key it is), kept as its own named
+    entry point since the media gallery's "Sounds" section calls it for a
+    different reason: comparing a mechanic's own recording against a
+    verified reference clip, not finding a repair how-to. See
+    :func:`for_code` for ``include_siblings``."""
+    key = _norm(sound)
+    return _filtered([e for e in LINKS if key in e["keys"]], include_siblings)
 
 
 def all() -> list[dict[str, Any]]:

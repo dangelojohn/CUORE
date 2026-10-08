@@ -19,6 +19,7 @@ import json
 import os
 import sys
 import tempfile
+import wave
 import zipfile
 from pathlib import Path
 
@@ -62,6 +63,16 @@ def make_jpeg(exif_dt: str = "2024:05:17 10:30:00") -> bytes:
     return buf.getvalue()
 
 
+def make_wav(seconds: float = 0.5) -> bytes:
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(8000)
+        w.writeframes(b"\x00\x00" * int(8000 * seconds))
+    return buf.getvalue()
+
+
 # --- upload with EXIF date, thumbnail, dedupe -----------------------------
 
 jpeg_bytes = make_jpeg()
@@ -102,6 +113,54 @@ bad_resp = client.post(
     files=[("file", ("notes.txt", b"not a real media file", "text/plain"))],
 )
 check("bad mime responds 400", bad_resp.status_code == 400, bad_resp.text)
+
+
+# --- audio upload: kind, symptom_tags, feels_like, search by sound tag -----
+
+wav_bytes = make_wav()
+audio_resp = client.post(
+    f"/api/vehicles/{VIN}/media",
+    files=[("file", ("wheel_bearing.wav", wav_bytes, "audio/wav"))],
+    data={"caption": "front right wheel bearing", "symptom_tags": "wheel_bearing,hum",
+          "feels_like": "vibrates through the steering wheel at 60mph",
+          "target_kind": "vehicle"},
+)
+check("audio upload responds 200", audio_resp.status_code == 200, audio_resp.text)
+audio_row = audio_resp.json()["media"][0] if audio_resp.status_code == 200 else {}
+check("audio upload kind is audio", audio_row.get("kind") == "audio", str(audio_row.get("kind")))
+check("audio upload symptom_tags stored",
+      set(audio_row.get("symptom_tags") or []) == {"wheel_bearing", "hum"},
+      str(audio_row.get("symptom_tags")))
+check("audio upload feels_like stored",
+      audio_row.get("feels_like") == "vibrates through the steering wheel at 60mph",
+      str(audio_row.get("feels_like")))
+audio_id = audio_row.get("id", "")
+
+audio_thumb_resp = client.get(f"/api/media/{audio_id}/thumb")
+check("audio thumbnail exists", audio_thumb_resp.status_code == 200, audio_thumb_resp.text)
+
+by_sound_tag = client.get(f"/api/vehicles/{VIN}/media", params={"symptom_tag": "wheel_bearing"})
+check("search by sound tag responds 200", by_sound_tag.status_code == 200, by_sound_tag.text)
+check("search by sound tag finds the audio clip",
+      audio_id in {m["id"] for m in by_sound_tag.json().get("media", [])},
+      str(by_sound_tag.json()))
+
+feels_like_resp = client.get(f"/api/vehicles/{VIN}/media", params={"q": "vibrates through"})
+check("q search matches feels_like",
+      audio_id in {m["id"] for m in feels_like_resp.json().get("media", [])})
+
+bad_audio_resp = client.post(
+    f"/api/vehicles/{VIN}/media",
+    files=[("file", ("weird.flac", b"not a real flac file", "audio/flac"))],
+)
+check("bad audio mime responds 400", bad_audio_resp.status_code == 400, bad_audio_resp.text)
+
+bad_tag_resp = client.post(
+    f"/api/vehicles/{VIN}/media",
+    files=[("file", ("noise.wav", make_wav(), "audio/wav"))],
+    data={"symptom_tags": "not_a_real_tag"},
+)
+check("unknown symptom_tag responds 400", bad_tag_resp.status_code == 400, bad_tag_resp.text)
 
 
 # --- search by tag, by target; hidden excluded ------------------------------

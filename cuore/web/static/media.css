@@ -17,6 +17,12 @@
 }
 .media-drop-text { font-size: 13.5px; }
 
+.media-record-row { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+.media-record-btn { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+.media-record-dot { color: var(--sev-returned); font-size: 14px; }
+.media-record-btn.is-recording .media-record-dot { animation: media-record-pulse 1s ease-in-out infinite; }
+@keyframes media-record-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+
 .media-progress-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .media-progress-list li { font-size: 12.5px; color: var(--ink-2); }
 .media-progress-list .bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 3px; }
@@ -51,6 +57,13 @@
 .media-target-chip, .media-tags { font-size: 10.5px; }
 .media-tags { display: flex; flex-wrap: wrap; gap: 3px; }
 .media-empty { grid-column: 1 / -1; }
+.media-audio-badge { font-size: 18px; }
+
+/* ---------- the Sounds section ---------- */
+.media-sound-group { margin: 10px 0; padding-top: 8px; border-top: 1px solid var(--rule); }
+.media-sound-group:first-of-type { border-top: none; padding-top: 0; }
+.media-sound-group-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.media-sound-ref { text-decoration: none; }
 
 @media (max-width: 400px) {
   .media-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }

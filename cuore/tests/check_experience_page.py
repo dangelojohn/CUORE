@@ -80,15 +80,15 @@ class _FakeExperience:
                 "covers": "EVAP family", "vehicle_fit": "Stelvio", "date": "2020-01-01",
                 "reputation": "high", "verified_at": "2026-01-01", "verified_how": "manual"}
 
-    def for_code(self, code):
+    def for_code(self, code, include_siblings=False):
         return [dict(self.VIDEO), dict(self.THREAD)] if code == "P0456" else []
 
-    def for_family(self, family):
+    def for_family(self, family, include_siblings=False):
         # VIDEO deliberately duplicated here -- same id as the code lookup's
         # VIDEO -- to exercise de-dup across two different lookups.
         return [dict(self.OLD_HIGH), dict(self.VIDEO)] if family == "EVAP" else []
 
-    def for_job(self, job):
+    def for_job(self, job, include_siblings=False):
         return [dict(self.VIDEO)] if job == "oil_change" else []
 
     def all(self):

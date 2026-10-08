@@ -20,6 +20,7 @@ Run:
 from __future__ import annotations
 
 import base64
+import io
 import itertools
 import json
 import os
@@ -29,6 +30,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+import wave
 from pathlib import Path
 
 os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-media-")
@@ -91,6 +93,9 @@ check("upload form present", 'id="media-upload-form"' in page.text and 'enctype=
 check("file input accepts camera capture", 'capture="environment"' in page.text)
 check("search box present", 'data-search' in page.text and 'name="q"' in page.text)
 check("kind filter chips present", "Photo" in page.text and "Video" in page.text and "Document" in page.text)
+check("audio filter chip present", "Audio" in page.text)
+check("record-sound button present", 'data-record-sound' in page.text)
+check("file input degrades to a picker accepting audio too", 'accept="image/*,video/*,audio/*,application/pdf"' in page.text)
 check("export-zip link present", "Export everything" in page.text and "/export.zip" in page.text)
 check("empty gallery says so", "No media yet" in page.text)
 
@@ -127,6 +132,35 @@ q_miss = client.get(f"/v/{VIN}/media", params={"q": "totally-unmatched-xyz"})
 check("an unmatched query excludes it", "leak_test.jpg" not in q_miss.text)
 target_hit = client.get(f"/v/{VIN}/media", params={"target_kind": "code", "target_id": "P0456"})
 check("target_kind/target_id filter keeps the item", "leak_test.jpg" in target_hit.text)
+
+print("=== audio upload: symptom tags, feels_like, Sounds section ===")
+_wav_buf = io.BytesIO()
+with wave.open(_wav_buf, "wb") as _w:
+    _w.setnchannels(1)
+    _w.setsampwidth(2)
+    _w.setframerate(8000)
+    _w.writeframes(b"\x00\x00" * 4000)
+
+audio_upload = client.post(
+    f"/v/{VIN}/media",
+    data={"caption": "front wheel bearing noise", "symptom_tags": "wheel_bearing",
+         "feels_like": "vibrates at highway speed", "target_kind": "vehicle"},
+    files=[("file", ("bearing.wav", _wav_buf.getvalue(), "audio/wav"))],
+    follow_redirects=False,
+)
+check("audio upload POST redirects (303)", audio_upload.status_code == 303, str(audio_upload.status_code))
+audio_followed = client.get(f"/v/{VIN}/media")
+check("uploaded audio clip appears on the gallery",
+      "bearing.wav" in audio_followed.text or "front wheel bearing noise" in audio_followed.text)
+check("Sounds section renders for a vehicle with an audio clip",
+      "Sounds" in audio_followed.text and "wheel bearing" in audio_followed.text.lower())
+check("dialog offers a symptom/sound-tags field", 'id="media-dialog-symptom-tags"' in audio_followed.text)
+check("dialog offers a feels-like field", 'id="media-dialog-feels-like"' in audio_followed.text)
+
+audio_kind_hit = client.get(f"/v/{VIN}/media", params={"kind": "audio"})
+check("kind=audio keeps the uploaded clip", "bearing.wav" in audio_kind_hit.text)
+sound_tag_hit = client.get(f"/v/{VIN}/media", params={"symptom_tag": "wheel_bearing"})
+check("symptom_tag=wheel_bearing keeps the uploaded clip", "bearing.wav" in sound_tag_hit.text)
 
 # --- code page's attach strip -------------------------------------------
 

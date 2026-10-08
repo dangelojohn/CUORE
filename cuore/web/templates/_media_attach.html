@@ -29,6 +29,7 @@
          title="{{ it.caption or it.filename }}">
         <img src="/api/media/{{ it.id }}/thumb" alt="" loading="lazy">
         {% if it.kind == "video" %}<span class="media-play-badge" aria-hidden="true">&#9654;</span>{% endif %}
+        {% if it.kind == "audio" %}<span class="media-play-badge media-audio-badge" aria-hidden="true">&#9834;</span>{% endif %}
       </a>
     {% endfor %}
     <a class="media-attach-add" href="{{ _all_href }}" title="Add photo or video" aria-label="Add photo or video">+</a>

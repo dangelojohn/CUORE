@@ -63,6 +63,16 @@ print("=== for_job('oil_change') returns tabulated entries ===")
 oil = experience.for_job("oil_change")
 check("oil_change has at least 1 entry", len(oil) >= 1)
 
+print("=== for_sound('wheel_bearing') returns a verified sound_reference ===")
+bearing = experience.for_sound("wheel_bearing")
+check("wheel_bearing has at least 1 entry", len(bearing) >= 1, str(bearing))
+check("wheel_bearing entry is kind sound_reference",
+      all(e["kind"] == "sound_reference" for e in bearing), str(bearing))
+check("wheel_bearing entry is verified",
+      all(e.get("verified_at") and e.get("verified_how") for e in bearing), str(bearing))
+check("for_sound mechanically matches for_job (same lookup)",
+      experience.for_sound("wheel_bearing") == experience.for_job("wheel_bearing"))
+
 print("=== all() matches LINKS length, no cross-function drift ===")
 check("all() returns every entry", len(experience.all()) == len(experience.LINKS))
 

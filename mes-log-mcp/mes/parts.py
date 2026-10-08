@@ -53,7 +53,15 @@ TECHAUTHORITY = "use the service manual (TechAuthority)"
 VEHICLE = ("2018 Alfa Romeo Stelvio 2.0T (GU), 2.0L GME-T4 MultiAir turbo, "
            "sales code EC2, US market, Q4 AWD, ZF 8HP automatic")
 
-FITS_VALUES = ("stelvio_2.0t", "giorgio", "specific_vins")
+FITS_VALUES = ("stelvio_2.0t", "giorgio", "specific_vins", "grecale", "levante")
+
+#: ``fits`` values treated as "a sibling platform's car, not this one" --
+#: see ``mes.platform``. No ``PARTS`` entry currently uses either value: a
+#: 2026-10-07 pass found no Grecale/Levante-specific, sourced part number
+#: that could be added without guessing a cross-reference; per house rule
+#: (never present an unverified relationship as fact), none was fabricated.
+#: ``include_siblings`` below is live plumbing with nothing yet to return.
+SIBLING_FITS = frozenset({"grecale", "levante"})
 
 OM_URL = ("https://vehicleinfo.mopar.com/assets/publications/en-us/"
           "Alfa_Romeo/2018/Stelvio/P124461_18_GU_OM_EN_USC_DIGITAL_2nd_V2.pdf")
@@ -729,24 +737,47 @@ def get(key: str) -> Optional[dict[str, Any]]:
     return dict(rec) if rec is not None else None
 
 
-def for_code(code: str) -> list[dict[str, Any]]:
-    """Parts whose ``related_codes`` includes ``code`` (case-insensitive)."""
+def _tag_sibling(row: dict[str, Any]) -> dict[str, Any]:
+    out = dict(row)
+    out["sibling_of"] = row.get("fits")
+    out["verify_fit"] = True
+    return out
+
+
+def _split_siblings(rows: list[dict[str, Any]],
+                     include_siblings: bool) -> list[dict[str, Any]]:
+    primary = [r for r in rows if r.get("fits") not in SIBLING_FITS]
+    if not include_siblings:
+        return primary
+    sibling_rows = [_tag_sibling(r) for r in rows if r.get("fits") in SIBLING_FITS]
+    return primary + sibling_rows
+
+
+def for_code(code: str, include_siblings: bool = False) -> list[dict[str, Any]]:
+    """Parts whose ``related_codes`` includes ``code`` (case-insensitive).
+
+    With ``include_siblings=True``, also returns any part whose ``fits`` is
+    a sourced sibling platform (grecale/levante -- see ``mes.platform``),
+    flagged ``{"sibling_of": <model>, "verify_fit": True}``. No current
+    ``PARTS`` entry has such a ``fits`` value -- see ``SIBLING_FITS``.
+    """
     code_u = code.strip().upper()
     out = []
     for key, rec in PARTS.items():
         if code_u in (c.upper() for c in rec.get("related_codes", [])):
             out.append({"key": key, **rec})
-    return out
+    return _split_siblings(out, include_siblings)
 
 
-def for_job(job: str) -> list[dict[str, Any]]:
-    """Parts whose ``related_jobs`` includes ``job`` (case-insensitive)."""
+def for_job(job: str, include_siblings: bool = False) -> list[dict[str, Any]]:
+    """Parts whose ``related_jobs`` includes ``job`` (case-insensitive).
+    See :func:`for_code` for ``include_siblings``."""
     job_l = job.strip().lower()
     out = []
     for key, rec in PARTS.items():
         if job_l in (j.lower() for j in rec.get("related_jobs", [])):
             out.append({"key": key, **rec})
-    return out
+    return _split_siblings(out, include_siblings)
 
 
 def all() -> dict[str, dict[str, Any]]:
