@@ -16,52 +16,7 @@
    is destructured by name so nothing can print as a Python repr. ======= #}
 <div class="dossier" data-vin="{{ vin }}">
 
-  {% set vstate = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
-  <div class="verdict-card v-{{ vstate }}" id="verdict" data-fact="verdict|">
-    <div class="verdict-top">
-      <span class="chip-verdict v-{{ vstate }}">&#11044; {{ view.verdict.label }}</span>
-    </div>
-    <p class="verdict-sentence">{{ view.verdict.summary }}</p>
-    {% if view.verdict.actions %}
-    <div class="verdict-actions">
-      {% for a in view.verdict.actions %}
-        <a class="btn-verdict {{ 'primary' if loop.first }} {{ 'is-disabled' if not a.enabled }}"
-           href="{{ a.href if a.enabled else '#' }}"
-           {% if not a.enabled %}aria-disabled="true" tabindex="-1"{% endif %}
-           {% if a.hint %}title="{{ a.hint }}"{% endif %}>{{ a.label }}</a>
-      {% endfor %}
-    </div>
-    {% endif %}
-    {% if view.verdict.basis %}
-    <details class="why-expander">
-      <summary>Why</summary>
-      <ul>
-        {% for b in view.verdict.basis %}<li>{{ b }}</li>{% endfor %}
-      </ul>
-      {% if view.verdict.cleared_at %}
-        <p class="small muted">Cleared {{ view.verdict.cleared_at }}{% if view.verdict.cleared_by %} by {{ view.verdict.cleared_by }}{% endif %}.</p>
-      {% endif %}
-      {% if view.verdict.readiness %}
-        {# evap_monitor may arrive as the string "complete"/"incomplete"/
-           "not_supported"/None (view.verdict.readiness, built from a stored
-           observation) or as a plain bool (same field name elsewhere in the
-           app) -- handled either way so this never prints the raw value. #}
-        {% set em = view.verdict.readiness.evap_monitor %}
-        {% if em == "complete" or em is sameas true %}
-          {% set em_text = "complete" %}
-        {% elif em == "not_supported" %}
-          {% set em_text = "not supported on this vehicle" %}
-        {% elif em == "incomplete" or em is sameas false %}
-          {% set em_text = "not yet run" %}
-        {% else %}
-          {% set em_text = "unknown" %}
-        {% endif %}
-        <p class="small muted">Readiness read {{ view.verdict.readiness.at }} &mdash;
-          EVAP monitor {{ em_text }}{% if view.verdict.readiness.all_complete %}, all monitors complete{% endif %}.</p>
-      {% endif %}
-    </details>
-    {% endif %}
-  </div>
+  {% include "_verdict_card.html" %}
 
   <div class="jumprow" aria-label="Jump to section">
     <a class="jump-chip" href="#open-work">Open work</a>
@@ -76,67 +31,7 @@
     <button type="button" class="jump-chip jump-action" data-collapse-all>Collapse all</button>
   </div>
 
-  <section id="open-work" class="dossier-section">
-    <h2 class="section-h">Open work</h2>
-    {% for job in view.open_work %}
-      <div class="job-card">
-        <div class="job-head">
-          <h3>{{ job.title }}</h3>
-          {% if job.codes %}
-          <div class="job-codes">
-            {% for c in job.codes %}<a class="chip-code" href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% endfor %}
-          </div>
-          {% endif %}
-        </div>
-        {% set badges = [] %}
-        {% if job.codes and systems_for_code is defined %}
-          {% for c in job.codes %}
-            {% for b in systems_for_code(c) %}
-              {% if b not in badges %}{% set _ = badges.append(b) %}{% endif %}
-            {% endfor %}
-          {% endfor %}
-        {% endif %}
-        {% include "_system_badge.html" %}
-        {% if job.steps %}
-        <ol class="checklist">
-          {% for s in job.steps %}
-          <li class="checklist-step {{ 'is-done' if s.done }}"
-              id="fb-{{ s.id }}" data-fact="checklist|{{ s.id }}">
-            <form method="post" action="/v/{{ vin }}/checklist" class="step-form" data-checklist-form>
-              <input type="hidden" name="step_id" value="{{ s.id }}">
-              <input type="hidden" name="done" value="{{ '0' if s.done else '1' }}">
-              <button type="submit" class="step-check" aria-pressed="{{ 'true' if s.done else 'false' }}"
-                      title="{{ 'Mark not done' if s.done else 'Mark done' }}">
-                <span aria-hidden="true">{{ "✓" if s.done else "" }}</span>
-              </button>
-            </form>
-            <span class="step-text">{{ s.text }}
-              {% if s.ref %}<a class="step-ref" href="{{ s.ref_href or '#' }}">{{ s.ref }}</a>{% endif %}
-            </span>
-            {% if s.done_at %}
-              <span class="small muted step-meta">done {{ s.done_at }}{% if s.done_by %} by {{ s.done_by }}{% endif %}</span>
-            {% endif %}
-            {% set target_kind = "step" %}{% set target_id = s.id %}{% set compact = true %}
-            {% include "_media_attach.html" %}
-          </li>
-          {% endfor %}
-        </ol>
-        {% endif %}
-        {% set exp = experience_links(family=job.family) if experience_links is defined and job.family else {"links": [], "count": 0} %}
-        {% include "_experience.html" %}
-        <div class="job-foot">
-          {% if job.progress %}<span class="progress-pill">{{ job.progress.done }}/{{ job.progress.total }}</span>{% endif %}
-          {% if job.refs %}
-            <span class="job-refs">
-              {% for r in job.refs %}{% if r.href %}<a href="{{ r.href }}">{{ r.label }}</a>{% else %}<span class="muted">{{ r.label }}</span>{% endif %}{% if not loop.last %} &middot; {% endif %}{% endfor %}
-            </span>
-          {% endif %}
-        </div>
-      </div>
-    {% else %}
-      <p class="muted small">No open-work families right now.</p>
-    {% endfor %}
-  </section>
+  {% include "_open_work.html" %}
 
   <details class="card-details" id="sec-blindspots" data-persist="blindspots">
     <summary>Blind spots
@@ -163,38 +58,7 @@
     </div>
   </details>
 
-  <details class="card-details" id="sec-history" data-persist="history">
-    <summary>History
-      <span class="count-badge">Chronic {{ view.code_counts.chronic }} &middot; Seen once {{ view.code_counts.seen_once }}{% if view.code_counts.returned_after_clear %} &middot; Returned {{ view.code_counts.returned_after_clear }}{% endif %}</span></summary>
-    <div class="card-body">
-      {% for bucket_key, bucket_label in [("returned_after_clear", "Returned after a clear"), ("chronic", "Chronic"), ("seen_once", "Seen once")] %}
-        {% set rows = view.codes|selectattr("bucket", "equalto", bucket_key)|list %}
-        {% if rows %}
-        <h4 class="subhead">{{ bucket_label }} <span class="chip plain">{{ rows|length }}</span></h4>
-        <div class="tw">
-        <table class="codes-table">
-          <colgroup><col style="width:20%"><col style="width:29%"><col style="width:15%"><col style="width:6%"><col style="width:22%"><col style="width:8%"></colgroup>
-          <thead><tr><th>Code</th><th>Description</th><th>Status</th><th class="n">&times;N</th><th>Last</th><th class="n">Km</th></tr></thead>
-          <tbody>
-          {% for c in rows %}
-            <tr class="row-link code-row" data-href="{{ c.href }}" tabindex="0"
-                id="fb-{{ c.code }}" data-fact="codes|{{ c.code }}">
-              <td class="code-cell"><a class="mono" href="{{ c.href }}" title="{{ c.dtc }}">{{ c.code }}</a>
-                <span class="sys-badge" title="{{ c.system }} system">{{ c.system[:3]|upper }}</span></td>
-              <td class="desc-cell">{{ c.description }}</td>
-              <td><span class="chip status-{{ c.status|lower }}">{{ c.status_label }}</span></td>
-              <td class="n mono">{{ c.sessions }}</td>
-              <td class="mono lastseen-cell" title="{{ c.last_seen }}">{{ c.last_seen_short }}</td>
-              <td class="n mono kmcell">{% if c.distance_km is not none %}{{ "%.1f"|format(c.distance_km/1000) }}k{% else %}&mdash;{% endif %}</td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-        </div>
-        {% endif %}
-      {% endfor %}
-    </div>
-  </details>
+  {% include "_codes_table.html" %}
 
   <details class="card-details" id="sec-attempted" data-persist="attempted">
     <summary>Already attempted <span class="count-badge">{{ view.attempted|length }}</span></summary>

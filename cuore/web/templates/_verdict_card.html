@@ -1,0 +1,46 @@
+  {% set vstate = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
+  <div class="verdict-card v-{{ vstate }}" id="verdict" data-fact="verdict|">
+    <div class="verdict-top">
+      <span class="chip-verdict v-{{ vstate }}">&#11044; {{ view.verdict.label }}</span>
+    </div>
+    <p class="verdict-sentence">{{ view.verdict.summary }}</p>
+    {% if view.verdict.actions %}
+    <div class="verdict-actions">
+      {% for a in view.verdict.actions %}
+        <a class="btn-verdict {{ 'primary' if loop.first }} {{ 'is-disabled' if not a.enabled }}"
+           href="{{ a.href if a.enabled else '#' }}"
+           {% if not a.enabled %}aria-disabled="true" tabindex="-1"{% endif %}
+           {% if a.hint %}title="{{ a.hint }}"{% endif %}>{{ a.label }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if view.verdict.basis %}
+    <details class="why-expander">
+      <summary>Why</summary>
+      <ul>
+        {% for b in view.verdict.basis %}<li>{{ b }}</li>{% endfor %}
+      </ul>
+      {% if view.verdict.cleared_at %}
+        <p class="small muted">Cleared {{ view.verdict.cleared_at }}{% if view.verdict.cleared_by %} by {{ view.verdict.cleared_by }}{% endif %}.</p>
+      {% endif %}
+      {% if view.verdict.readiness %}
+        {# evap_monitor may arrive as the string "complete"/"incomplete"/
+           "not_supported"/None (view.verdict.readiness, built from a stored
+           observation) or as a plain bool (same field name elsewhere in the
+           app) -- handled either way so this never prints the raw value. #}
+        {% set em = view.verdict.readiness.evap_monitor %}
+        {% if em == "complete" or em is sameas true %}
+          {% set em_text = "complete" %}
+        {% elif em == "not_supported" %}
+          {% set em_text = "not supported on this vehicle" %}
+        {% elif em == "incomplete" or em is sameas false %}
+          {% set em_text = "not yet run" %}
+        {% else %}
+          {% set em_text = "unknown" %}
+        {% endif %}
+        <p class="small muted">Readiness read {{ view.verdict.readiness.at }} &mdash;
+          EVAP monitor {{ em_text }}{% if view.verdict.readiness.all_complete %}, all monitors complete{% endif %}.</p>
+      {% endif %}
+    </details>
+    {% endif %}
+  </div>

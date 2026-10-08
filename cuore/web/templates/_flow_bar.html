@@ -1,0 +1,81 @@
+{# Sticky "where am I in this job" bar -- sits just under the vehicle tab
+   strip. One include line (`{% include "_flow_bar.html" %}`, right after
+   _vbar.html/`_vtabs.html` in whatever layout renders them) is the whole
+   integration; left for later, see the owning task's notes. Pure CSS/HTML:
+   the 12-step stepper lives inside a <details> so no JS is required to
+   expand it.
+
+   Context expected: bar (bar.vin -- this partial is only ever included on
+   a page that already has `bar` in scope, same contract _vbar.html uses).
+   Reads the flow via the `flow_state_for(vin)` Jinja global flow_globals.py
+   registers. Three states, in order of precedence:
+
+     1. no flow (service not wired up yet, or it has no opinion on this
+        VIN) -- a minimal bar: "Take this car in" -> /start.
+     2. flow.next is set -- the normal bar: "Step N of 12: <title>" plus a
+        44px primary "Suggested next: <title> ->" button (the suggested
+        step's own `why`, if any, rides along as the button's title=
+        tooltip -- there's no room for a second line in a 44px bar).
+     3. flow.steps exist but flow.next is falsy (the last step, release,
+        is done and there is nothing after it) -- the job is finished:
+        "Tools away. Start the next Stelvio ->" -> /start.
+
+   Wording throughout reads as an assistant making a suggestion, never a
+   manager giving an order: "Suggested next", not "Next" or "You must". A
+   blocked step reads "Not yet: <why>" in amber (reusing --sev-chronic,
+   not a new colour) -- but every step link, blocked or not, is always a
+   real <a href>; nothing here stops the mechanic opening any step at any
+   time, in any order.
+
+   Never raises: flow_state_for already swallows every error from the
+   service itself, and every field read below is guarded with `or`/`is
+   defined` so a partially-shaped fixture degrades instead of 500ing. #}
+{% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
+<div class="flow-bar">
+  {% if flow and flow.steps %}
+    <div class="flow-line">
+      {% if flow.next %}
+        <span class="flow-step-label">Step {{ flow.current }} of {{ flow.steps|length }}:
+          {%- for s in flow.steps if s.n == flow.current %} {{ s.title }}{% endfor %}</span>
+        {% if flow.blockers %}
+          <span class="chip chronic flow-blocker-chip" title="{{ flow.blockers|length }} blocker(s)">{{ flow.blockers|length }}&#9888;</span>
+        {% endif %}
+        {% set _next_whys = flow.steps|selectattr("n", "equalto", flow.next.n)|map(attribute="why")|list %}
+        {% set _next_why = _next_whys[0] if _next_whys else none %}
+        <a class="btn primary flow-next" href="{{ flow.next.href }}"{% if _next_why %} title="{{ _next_why }}"{% endif %}>{{ flow.next.button_label or ("Suggested next: " + flow.next.title + " →") }}</a>
+      {% else %}
+        <span class="flow-step-label">Job complete.</span>
+        <a class="btn primary flow-next" href="/start">Tools away. Start the next Stelvio &rarr;</a>
+      {% endif %}
+      <details class="flow-more">
+        <summary aria-label="Show all steps">Steps &#9662;</summary>
+        <ol class="flow-stepper">
+          {% for s in flow.steps %}
+            <li class="flow-step is-{{ s.status }}">
+              <span class="flow-step-icon" aria-hidden="true">{% if s.status == "done" %}&#10003;{% elif s.status == "current" %}&#9675;{% elif s.status == "blocked" %}&#9888;{% else %}&middot;{% endif %}</span>
+              <span class="flow-step-body">
+                <a href="{{ s.href }}" class="flow-step-title">{{ s.n }}. {{ s.title }}</a>
+                {% if s.why %}
+                  <span class="flow-step-why{{ ' flow-step-why-blocked' if s.status == 'blocked' }} muted small">{% if s.status == "blocked" %}Not yet: {% endif %}{{ s.why }}</span>
+                {% endif %}
+              </span>
+              {% if s.est_min %}<span class="flow-step-est mono small">{{ s.est_min }} min</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+        {% if flow.blockers %}
+          <div class="flow-blockers">
+            {% for b in flow.blockers %}
+              <div class="note warn flow-blocker">Not yet: {{ b.why or b }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </details>
+    </div>
+  {% else %}
+    <div class="flow-line flow-line-empty">
+      <span class="flow-step-label">Ready for the next car.</span>
+      <a class="btn primary flow-next" href="/start">Take this car in &rarr;</a>
+    </div>
+  {% endif %}
+</div>

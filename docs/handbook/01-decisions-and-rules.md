@@ -1,5 +1,9 @@
 # Decisions and rules
 
+## Core directive (check every feature against this)
+
+CUORE is a diagnostic assistant for a mechanic who specialises in one brand and model. Its job is to help him diagnose this car on evidence, prove the repair, and make the next same-model car with the same fault start from what this one taught. The mechanic decides; CUORE advises and records, with sources, dates and confidence. Before building anything, ask: does it serve diagnosing, proving, or learning for the next car? If not, do not build it. No boards, throughput, blocking gates or inventory management.
+
 ## Owner's standing rules (2026-09 to 2026-10)
 
 1. The mechanic makes the decisions and the repairs. CUORE supplies the most recent, truthful information with date, source and confidence, labels stale or unverified items, and never invents values.

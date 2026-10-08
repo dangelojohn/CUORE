@@ -5,58 +5,8 @@
 <link rel="stylesheet" href="/static/media.css">
 <link rel="stylesheet" href="/static/systems.css">
 
-<h1 class="mono">{{ code }}</h1>
-
-{% set badges = systems_for_code(code) if systems_for_code is defined else [] %}
-{% include "_system_badge.html" %}
-
-{% include "_electrical_path.html" %}
-
-{% set target_kind = "code" %}{% set target_id = code %}
-{% include "_media_attach.html" %}
-
-{# code_feel is a Jinja global registered by cuore/web/timeline_routes.py as a
-   side effect of importing it (see that module's docstring) -- guarded here
-   so this page still renders before app.py wires that router in. #}
-{% set cf = code_feel(vin, code) if code_feel is defined else {"feel": None, "pattern": None} %}
-<div class="panel feel-card">
-  <h3>What would the driver feel?</h3>
-  {% if cf.feel %}
-    <p class="feel-sentence" id="fb-feel-{{ code }}" data-fact="feel|{{ code }}">{{ cf.feel.feel }}</p>
-    {% if cf.feel.expect or cf.feel.not_expected %}
-    <div class="feel-tags">
-      {% for x in cf.feel.expect %}<span class="chip expect">{{ x }}</span>{% endfor %}
-      {% for x in cf.feel.not_expected %}<span class="chip not-expect">{{ x }}</span>{% endfor %}
-    </div>
-    {% endif %}
-    {% if cf.feel.mil %}<p class="small">MIL: {{ cf.feel.mil }}</p>{% endif %}
-    {% if cf.feel.notes %}<p class="small muted">{{ cf.feel.notes }}</p>{% endif %}
-    <p class="small muted">Confidence: {{ cf.feel.confidence }}
-      {% if cf.feel.source %} &middot; source: <span class="mono">{{ cf.feel.source }}</span>{% endif %}</p>
-  {% else %}
-    <p class="muted">Not in the knowledge table: use the service manual (TechAuthority).</p>
-  {% endif %}
-  {% if cf.pattern %}
-    <p class="small muted">This car: {{ cf.pattern.occurrences }} occurrence(s),
-      {{ cf.pattern.symptom_reports_near }} symptom report(s) nearby
-      {% if cf.pattern.drives_normally_near %}, {{ cf.pattern.drives_normally_near }} "drives normally" report(s) nearby{% endif %}.</p>
-  {% endif %}
-</div>
-
-{# Family is not in this page's own context -- derived from the code's own
-   prefix, the same coarse grouping cuore.services.timeline_bridge's fixture
-   families use (EVAP, network, body, chassis, misfire). Approximate on
-   purpose: it only widens the experience-link search, never narrows what
-   this page reports about the code itself. #}
-{% set _c = code|upper %}
-{% if _c.startswith("P04") %}{% set _family = "EVAP" %}
-{% elif _c.startswith("P03") %}{% set _family = "misfire" %}
-{% elif _c.startswith("U0") %}{% set _family = "network" %}
-{% elif _c.startswith("B") %}{% set _family = "body" %}
-{% elif _c.startswith("C") %}{% set _family = "chassis" %}
-{% else %}{% set _family = None %}{% endif %}
-{% set exp = experience_links(code=code, family=_family) if experience_links is defined else {"links": [], "count": 0} %}
-{% include "_experience.html" %}
+{% set compact = False %}
+{% include "_code_brief.html" %}
 
 {# parts_for is a Jinja global registered by cuore/web/parts_routes.py as a
    side effect of importing it (see that module's docstring) -- guarded here

@@ -1,0 +1,32 @@
+  <details class="card-details" id="sec-history" data-persist="history">
+    <summary>History
+      <span class="count-badge">Chronic {{ view.code_counts.chronic }} &middot; Seen once {{ view.code_counts.seen_once }}{% if view.code_counts.returned_after_clear %} &middot; Returned {{ view.code_counts.returned_after_clear }}{% endif %}</span></summary>
+    <div class="card-body">
+      {% for bucket_key, bucket_label in [("returned_after_clear", "Returned after a clear"), ("chronic", "Chronic"), ("seen_once", "Seen once")] %}
+        {% set rows = view.codes|selectattr("bucket", "equalto", bucket_key)|list %}
+        {% if rows %}
+        <h4 class="subhead">{{ bucket_label }} <span class="chip plain">{{ rows|length }}</span></h4>
+        <div class="tw">
+        <table class="codes-table">
+          <colgroup><col style="width:20%"><col style="width:29%"><col style="width:15%"><col style="width:6%"><col style="width:22%"><col style="width:8%"></colgroup>
+          <thead><tr><th>Code</th><th>Description</th><th>Status</th><th class="n">&times;N</th><th>Last</th><th class="n">Km</th></tr></thead>
+          <tbody>
+          {% for c in rows %}
+            <tr class="row-link code-row" data-href="{{ c.href }}" tabindex="0"
+                id="fb-{{ c.code }}" data-fact="codes|{{ c.code }}">
+              <td class="code-cell"><a class="mono" href="{{ c.href }}" title="{{ c.dtc }}">{{ c.code }}</a>
+                <span class="sys-badge" title="{{ c.system }} system">{{ c.system[:3]|upper }}</span></td>
+              <td class="desc-cell">{{ c.description }}</td>
+              <td><span class="chip status-{{ c.status|lower }}">{{ c.status_label }}</span></td>
+              <td class="n mono">{{ c.sessions }}</td>
+              <td class="mono lastseen-cell" title="{{ c.last_seen }}">{{ c.last_seen_short }}</td>
+              <td class="n mono kmcell">{% if c.distance_km is not none %}{{ "%.1f"|format(c.distance_km/1000) }}k{% else %}&mdash;{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </details>

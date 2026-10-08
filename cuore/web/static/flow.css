@@ -1,0 +1,115 @@
+/* =========================================================================
+ * Flow bar (cuore/web/templates/_flow_bar.html) + flow-aware vehicle tab
+ * strip (cuore/web/templates/_vtabs.html). Its own file rather than being
+ * folded into cuore.css directly -- the integration pass that adds the
+ * two <link>/<include> lines wiring this in is separate; needs a
+ * `<link rel="stylesheet" href="/static/flow.css">` next to cuore.css's
+ * own tag once that lands. Reuses the existing --ok / --accent /
+ * --sev-chronic / --ink-3 severity tokens and the .btn/.chip/.note base
+ * classes from cuore.css -- no new colours.
+ * ========================================================================= */
+
+.flow-bar {
+  position: sticky; top: 0; z-index: 14; /* just under .vbar's z-index: 15 */
+  background: var(--surface); border-bottom: 1px solid var(--rule);
+}
+.flow-line {
+  display: flex; align-items: center; gap: 8px;
+  height: 44px; max-height: 44px; padding: 0 var(--pad);
+  overflow: hidden;
+}
+.flow-line-empty { justify-content: space-between; }
+.flow-step-label {
+  flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600;
+  color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.flow-blocker-chip { flex: none; }
+.flow-next {
+  flex: none; min-height: 44px; height: 44px; padding: 0 14px; font-size: 13px;
+  white-space: nowrap;
+}
+.flow-more { flex: none; position: relative; }
+.flow-more summary {
+  list-style: none; cursor: pointer; min-height: 44px; min-width: 44px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-2); font-size: 12px; padding: 0 6px;
+}
+.flow-more summary::-webkit-details-marker { display: none; }
+.flow-more[open] summary { color: var(--ink); }
+.flow-stepper {
+  position: absolute; right: 0; top: 100%; z-index: 16;
+  width: min(360px, 94vw); max-height: 70vh; overflow-y: auto;
+  margin: 0; padding: 8px; list-style: none;
+  background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+}
+.flow-step {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 4px; border-top: 1px solid var(--rule-soft);
+}
+.flow-step:first-child { border-top: none; }
+.flow-step-icon {
+  flex: none; width: 20px; text-align: center; font-size: 13px; line-height: 1.4;
+  color: var(--ink-3);
+}
+.flow-step.is-done .flow-step-icon { color: var(--ok); }
+.flow-step.is-current .flow-step-icon { color: var(--accent); }
+.flow-step.is-blocked .flow-step-icon { color: var(--sev-chronic); }
+.flow-step.is-current { background: var(--accent-dim); border-radius: var(--radius); }
+.flow-step-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.flow-step-title { font-size: 13px; font-weight: 600; color: var(--ink); text-decoration: none; }
+.flow-step-title:hover { text-decoration: underline; }
+.flow-step-why { color: var(--ink-3); }
+.flow-step-why-blocked { color: var(--sev-chronic); font-weight: 600; }
+.flow-step-est { flex: none; color: var(--ink-3); align-self: center; }
+.flow-blockers { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+.flow-blocker { margin: 0; font-size: 12.5px; }
+
+@media (max-width: 400px) {
+  .flow-stepper { width: 94vw; right: 2px; }
+  .flow-step-est { display: none; }
+}
+
+/* ---------- vehicle tab strip: "More" menu + flow highlight ----------
+ * The root <div class="vtabs"> in _vtabs.html keeps cuore.css's existing
+ * .vtabs/.vtabs a styling (link colour, min-height, overflow-x scroll);
+ * this only adds what's new. */
+
+.vtabs details.vmore-tab { position: relative; flex: none; }
+.vtabs details.vmore-tab summary {
+  list-style: none; cursor: pointer; display: inline-flex; align-items: center;
+  min-height: 30px; padding: 6px 10px; color: var(--ink-3); font-size: 12px;
+  text-transform: uppercase; letter-spacing: .07em;
+  border: 1px solid transparent; border-radius: var(--radius);
+}
+.vtabs details.vmore-tab summary::-webkit-details-marker { display: none; }
+.vtabs details.vmore-tab summary:hover { color: var(--ink); background: var(--raised); }
+.vtabs details.vmore-tab summary.on,
+.vtabs details.vmore-tab[open] summary {
+  color: var(--ink); background: var(--bg); border-color: var(--rule);
+}
+.vmore-tab-panel {
+  position: absolute; left: 0; top: 100%; z-index: 16;
+  display: flex; flex-direction: column; min-width: 180px;
+  background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .35); padding: 4px;
+}
+.vmore-tab-panel a {
+  min-height: 44px; display: flex; align-items: center; gap: 6px; padding: 0 12px;
+  color: var(--ink-2); text-decoration: none; font-size: 13px; white-space: nowrap;
+  border-radius: var(--radius);
+}
+.vmore-tab-panel a:hover { color: var(--ink); background: var(--surface-2); }
+.vmore-tab-panel a.on { color: var(--ink); background: var(--accent-dim); font-weight: 650; }
+
+/* Current flow step's tab, visible or inside More -- distinct from .on
+ * (which tab the browser is showing): this marks the one the flow thinks
+ * is next, so the accent colour (identity/emphasis per cuore.css's own
+ * --accent comment) is the right read here, not a severity token. */
+.vtabs a.flow-current-tab,
+.vmore-tab-panel a.flow-current-tab { color: var(--accent); font-weight: 650; }
+.vtabs details.vmore-tab summary.flow-has-current { border-color: var(--accent); }
+
+@media (max-width: 400px) {
+  .vmore-tab-panel { min-width: 160px; }
+}

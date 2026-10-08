@@ -1,0 +1,69 @@
+{# Vehicle tab strip, reordered to the mechanic's flow. Meant to replace
+   the inline `<div class="vtabs">...</div>` block inside _vbar.html --
+   that file's own docstring has the `bar`/`tab`/`live_strip` contract this
+   partial shares with it; swapping that inline markup for
+   `{% include "_vtabs.html" %}` is the other integration line, left for
+   later alongside _flow_bar.html's.
+
+   Five tabs stay visible -- Job, Dossier, Codes, Systems, Report, the
+   single-car-focus flow's own path -- everything else moves behind a
+   tap-to-open "More" menu so the strip stops needing horizontal scroll on
+   a phone. (Release is reached from the flow bar's own last-step link,
+   /v/{vin}/release, not from this tab strip.)
+
+   Every link path that was in the old flat strip is kept, including
+   Dashboard -- not named in the flow spec's own "More" list, kept anyway
+   so no existing bookmark/link breaks -- plus a new Labels link to the
+   label-printing page (cuore/web/labels_routes.py's /v/{vin}/labels),
+   which had no tab link anywhere before this.
+
+   Two states get marked, and they can differ: `.on` is the tab the
+   browser is actually showing (the same `tab == "..."` check _vbar.html
+   always used); `.flow-current-tab` is whichever tab the flow service
+   thinks is the mechanic's current step, from the same `flow_state_for`
+   Jinja global _flow_bar.html reads (degrades to "nothing highlighted"
+   with no error if that service isn't wired up yet or has no opinion on
+   this VIN). #}
+{% set _visible = ("job", "dossier", "codes", "systems", "report") %}
+{% set _more = ("modules", "timeline", "gauges", "electrical", "parts", "media",
+                 "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard") %}
+{% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
+{% set _flow_key = (flow.steps|selectattr("n", "equalto", flow.current)|map(attribute="key")|first)
+                    if flow and flow.steps else none %}
+{# Only treat it as a highlight if it actually names one of this strip's
+   tabs -- a flow step with no tab of its own (e.g. a "tests" step that
+   lives inside the Job page's own stepper) must not force the More menu
+   open for nothing. #}
+{% set flow_tab_key = _flow_key if (_flow_key in _visible or _flow_key in _more) else none %}
+{% set _fb_open = feedback_open_count(bar.vin) if feedback_open_count is defined else 0 %}
+
+{% macro vtab(key, href, label, badge="") -%}
+<a href="{{ href }}" class="{{ 'on' if tab == key }}{{ ' flow-current-tab' if flow_tab_key == key }}">{{ label }}{{ badge|safe }}</a>
+{%- endmacro %}
+
+<div class="vtabs">
+  {{ vtab("job", "/v/" + bar.vin + "/job", "Job") }}
+  {{ vtab("dossier", "/v/" + bar.vin, "Dossier") }}
+  {{ vtab("codes", "/v/" + bar.vin + "/codes", "Codes") }}
+  {{ vtab("systems", "/v/" + bar.vin + "/systems", "Systems") }}
+  {{ vtab("report", "/v/" + bar.vin + "/report", "Report") }}
+
+  <details class="vmore-tab"{% if flow_tab_key in _more %} open{% endif %}>
+    <summary aria-label="More vehicle tabs" class="{{ 'on' if tab not in _visible }}{{ ' flow-has-current' if flow_tab_key in _more }}">More&hellip;</summary>
+    <div class="vmore-tab-panel">
+      {{ vtab("modules", "/v/" + bar.vin + "/modules", "Modules") }}
+      {{ vtab("timeline", "/v/" + bar.vin + "/timeline", "Timeline") }}
+      {{ vtab("gauges", "/v/" + bar.vin + "/gauges", "Gauges") }}
+      {{ vtab("electrical", "/v/" + bar.vin + "/electrical", "Electrical") }}
+      {{ vtab("parts", "/v/" + bar.vin + "/parts", "Parts") }}
+      {{ vtab("media", "/v/" + bar.vin + "/media", "Media") }}
+      {{ vtab("service-hub", "/v/" + bar.vin + "/service-hub", "Service") }}
+      {{ vtab("tree", "/v/" + bar.vin + "/tree", "Fault tree") }}
+      {{ vtab("gate", "/v/" + bar.vin + "/gate", "Evidence gate") }}
+      {{ vtab("inbox", "/v/" + bar.vin + "/inbox", "Inbox", (' <span class="chip chronic">' + _fb_open|string + '</span>') if _fb_open else "") }}
+      {{ vtab("labels", "/v/" + bar.vin + "/labels", "Labels") }}
+      {{ vtab("logs", "/logs?vin=" + bar.vin, "Logs") }}
+      {{ vtab("dashboard", "/v/" + bar.vin + "/dashboard", "Dashboard") }}
+    </div>
+  </details>
+</div>
