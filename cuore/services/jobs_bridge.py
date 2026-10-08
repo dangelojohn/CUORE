@@ -20,7 +20,7 @@ import re
 from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
-from . import dossier_bridge, mes_bridge, timeline_bridge, tools_kb_bridge
+from . import cache, dossier_bridge, mes_bridge, timeline_bridge, tools_kb_bridge
 from .errors import BadRequest, NotFound
 
 from mes import jobs as jobs_mod  # noqa: E402
@@ -227,6 +227,18 @@ def suggested_hypotheses(vin: str, view: dict[str, Any]) -> list[dict[str, Any]]
 # --- gathering the rest of the stepper's "auto-gathered evidence" --------
 
 
+def _cached_workup(vin: str) -> dict[str, Any]:
+    """The same memoised workup ``cuore.web.routes._dossier`` builds for the
+    dossier page, keyed identically (vin, newest MES-log mtime) so the two
+    share one cache entry instead of each re-running ``mes_bridge.workup`` --
+    which alone re-parses every FES log for the VIN, seconds of work on a
+    real corpus (see ``cuore.services.cache``)."""
+    return cache.get_or_build(
+        ("workup", vin, mes_bridge.newest_mtime(vin)),
+        lambda: mes_bridge.workup(vin=vin),
+    )
+
+
 def _symptoms(vin: str) -> list[dict[str, Any]]:
     try:
         return timeline_bridge.symptoms(vin)["symptoms"]
@@ -279,7 +291,13 @@ def _systems_chains(vin: str) -> list[dict[str, Any]]:
     if systems_bridge is None:
         return []
     try:
-        data = systems_bridge.correlate(vin)
+        # Pure corpus analysis (mes.systems.correlate reuses mes.analysis/
+        # mes.workup data) -- no mutable state read, so the MES-log mtime
+        # alone is the right cache key, same as the workup itself.
+        data = cache.get_or_build(
+            ("systems_correlate", vin, mes_bridge.newest_mtime(vin)),
+            lambda: systems_bridge.correlate(vin),
+        )
     except Exception:  # noqa: BLE001
         return []
     if not isinstance(data, dict) or data.get("error"):
@@ -437,7 +455,7 @@ def build_job_view(vin: str, job_id: Optional[str] = None, *,
             job = jobs_for_vin[-1] if jobs_for_vin else None
 
     try:
-        dossier = mes_bridge.workup(vin=vin)
+        dossier = _cached_workup(vin)
     except Exception:  # noqa: BLE001 -- the job page must still render
         dossier = {}
     try:

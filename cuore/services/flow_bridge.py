@@ -15,7 +15,7 @@ from __future__ import annotations
 from typing import Any, Callable, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
-from . import dossier_bridge, mes_bridge
+from . import cache, dossier_bridge, mes_bridge
 from .errors import BadRequest
 
 try:
@@ -162,7 +162,15 @@ def flow_state(vin: str) -> dict[str, Any]:
             job = None
 
     try:
-        dossier = mes_bridge.workup(vin=vin)
+        # Same cache key ``cuore.web.routes._dossier`` and
+        # ``cuore.services.jobs_bridge._cached_workup`` use (vin, newest
+        # MES-log mtime), so all three share one entry instead of each
+        # re-running ``mes_bridge.workup`` -- seconds of FES re-parsing on a
+        # real corpus.
+        dossier = cache.get_or_build(
+            ("workup", vin, mes_bridge.newest_mtime(vin)),
+            lambda: mes_bridge.workup(vin=vin),
+        )
     except Exception:  # noqa: BLE001
         dossier = {}
     try:

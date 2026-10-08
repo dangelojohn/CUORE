@@ -25,9 +25,10 @@ import re
 from datetime import datetime
 from typing import Any
 
-from . import mes_bridge
+from . import cache, mes_bridge
 from .errors import BridgeError
 from ..live import checklists as checklist_store
+from ..live import config as live_config
 from ..live import store as live_store
 
 #: EVAP monitor runs at 15-85% fuel; cited wherever a freeze frame needs
@@ -186,6 +187,27 @@ def _num(display: Any) -> float | None:
         return None
     m = re.match(r"\s*(-?\d+(?:\.\d+)?)", str(display))
     return float(m.group(1)) if m else None
+
+
+def _state_fingerprint() -> float:
+    """Newest mtime across this app's mutable state files.
+
+    Checklists, jobs, shop visits, symptoms, notes, dealer results, tool
+    usage, live observations and the rest are all flat files sitting
+    directly under one shared directory -- every ``mes.*``/``cuore.live``
+    state module mirrors ``cuore.live.config.state_dir()`` (see each
+    module's own ``state_dir()`` docstring). Folded into
+    :func:`build_view`'s cache key so a ticked checklist step or a freshly
+    logged symptom invalidates the cached open-work/freeze-frame/attempted
+    build the same way a new MES log invalidates ``mes_bridge.newest_mtime``
+    -- no separate invalidation hook, same reasoning as ``cuore.services.cache``
+    itself.
+    """
+    try:
+        d = live_config.state_dir()
+        return max((p.stat().st_mtime for p in d.iterdir() if p.is_file()), default=0.0)
+    except OSError:
+        return 0.0
 
 
 def live_available(live_status: dict[str, Any] | None) -> bool:
@@ -794,19 +816,14 @@ def checklist_step_ids(vin: str, dossier: dict[str, Any]) -> set[str]:
 # --- the one entry point -----------------------------------------------------
 
 
-def build_view(vin: str, dossier: dict[str, Any],
-              live_status: dict[str, Any] | None) -> dict[str, Any]:
-    """Everything the redesigned dossier page needs, computed once.
-
-    ``dossier`` is the workup dict (``mes_bridge.workup(vin=vin)``);
-    ``live_status`` is the same shape ``base.html``'s live strip already
-    renders (``port``, ``mes_state``, ``lock_holder``, ...), or ``None`` when
-    the caller has not computed it. Nothing here mutates either argument or
-    touches the car -- nothing here writes anything at all.
+def _build_view_core(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
+    """Everything :func:`build_view` needs except the verdict and blind
+    spots, which also read ``live_status`` and are cheap enough (no file
+    I/O beyond what ``dossier`` already carries) to compute fresh on every
+    call. Split out purely so it can be memoised -- see ``build_view``.
     """
     checklist = checklist_store.get(vin)
     open_work = _build_open_work(vin, dossier, checklist)
-    verdict = _build_verdict(vin, dossier, live_status, open_work)
 
     family_map = _family_map(dossier)
     try:
@@ -819,17 +836,48 @@ def build_view(vin: str, dossier: dict[str, Any],
                                     recent_ts, family_map)
 
     return {
-        "verdict": verdict,
         "open_work": open_work,
         "codes": codes,
         "code_counts": code_counts,
         "attempted": _build_attempted(vin),
         "freeze_frames": _build_freeze_frames(vin, dossier),
-        "blind_spots": _build_blind_spots(vin, dossier, live_status),
         "bulletins": _build_bulletins(dossier, open_work),
         "latest": _build_latest(dossier),
         "provenance_note": dossier.get("provenance_note", ""),
     }
+
+
+def build_view(vin: str, dossier: dict[str, Any],
+              live_status: dict[str, Any] | None) -> dict[str, Any]:
+    """Everything the redesigned dossier page needs, computed once.
+
+    ``dossier`` is the workup dict (``mes_bridge.workup(vin=vin)``);
+    ``live_status`` is the same shape ``base.html``'s live strip already
+    renders (``port``, ``mes_state``, ``lock_holder``, ...), or ``None`` when
+    the caller has not computed it. Nothing here mutates either argument or
+    touches the car -- nothing here writes anything at all.
+
+    The dossier, job and flow pages between them call this several times
+    per render (the Job page alone calls it twice: once for its own
+    suggested-hypothesis evidence, once for the page body) and the open-work
+    cards alone re-evaluate a fault tree per code, parsing FES logs directly
+    -- seconds of work on a real corpus. Everything but the verdict and
+    blind spots is pulled from :func:`_build_view_core`, memoised on (vin,
+    newest MES-log mtime, newest state-file mtime) exactly like
+    ``cuore.web.routes._dossier`` already memoises the workup itself, so a
+    second call in the same request (or the next request, until a log or a
+    state file changes) costs a dict lookup instead of a re-evaluation. The
+    verdict and blind spots stay outside that cache because they depend on
+    ``live_status``, which varies request to request and is not part of the
+    key.
+    """
+    core = cache.get_or_build(
+        ("dossier_view_core", vin, mes_bridge.newest_mtime(vin), _state_fingerprint()),
+        lambda: _build_view_core(vin, dossier),
+    )
+    verdict = _build_verdict(vin, dossier, live_status, core["open_work"])
+    blind_spots = _build_blind_spots(vin, dossier, live_status)
+    return {"verdict": verdict, "blind_spots": blind_spots, **core}
 
 
 __all__ = ["build_view", "checklist_step_ids", "live_available", "readiness_result",
