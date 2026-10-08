@@ -300,6 +300,7 @@ def _build_view(vin: str) -> dict[str, Any]:
                  "system_label": labels.get(dep.get("system"), dep.get("system"))}
                 for dep in (s.get("depends_on") or [])
             ],
+            "technical": s.get("technical") or {},
         })
 
     edges = []
@@ -308,7 +309,10 @@ def _build_view(vin: str) -> dict[str, Any]:
             conf = (dep.get("confidence") or "UNKNOWN").upper()
             edges.append({"a": s.get("key"), "b": dep.get("system"), "confidence": conf,
                          "style": CONFIDENCE_STYLE.get(conf, "dotted"),
-                         "why": dep.get("why"), "source": dep.get("source")})
+                         "why": dep.get("why"), "source": dep.get("source"),
+                         "a_label": labels.get(s.get("key"), s.get("key")),
+                         "b_label": labels.get(dep.get("system"), dep.get("system")),
+                         "technical": dep.get("technical") or {}})
 
     co_occurrence = [
         {**row, "a_label": labels.get(row.get("a"), row.get("a")),

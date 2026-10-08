@@ -21,8 +21,10 @@ colour-only):
 * Every node and every edge carries its own ``<title>`` (hover/long-press
   text), so nothing here is readable only by colour, dash pattern or
   position.
-* Nodes are plain ``<a href="#sys-{key}">`` wraps -- "tapping" one is just
-  an in-page anchor jump to its card below, no JS required.
+* Nodes are plain ``<a href="#node-{key}">`` wraps -- "tapping" one is just
+  an in-page anchor jump to its detail block below, no JS required. Edges
+  are likewise wrapped in ``<a href="#edge-{a}-{b}">`` -- "tapping" a line
+  jumps to that edge's own detail block.
 
 Layout is a small fixed grid keyed by the systems this app already knows
 about (see ``_GRID``), not force-directed -- stable across reloads and
@@ -159,9 +161,10 @@ def render(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> str:
         x1t, y1t = x1 + dx / dist * trim, y1 + dy / dist * trim
         x2t, y2t = x2 - dx / dist * trim, y2 - dy / dist * trim
         parts.append(
+            f'<a href="#edge-{_esc(a)}-{_esc(b)}">'
             f'<g><line x1="{x1t:.1f}" y1="{y1t:.1f}" x2="{x2t:.1f}" y2="{y2t:.1f}" '
             f'stroke="var(--ink-3)" stroke-width="1.6"{dash_attr} marker-end="url(#sys-arrow)"/>'
-            f'<title>{_esc(title)}</title></g>')
+            f'<title>{_esc(title)}</title></g></a>')
 
     for n in nodes:
         key = n.get("key")
@@ -184,7 +187,7 @@ def render(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> str:
             inner += (f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="9" fill="{stroke}"/>'
                       f'<text x="{bx:.1f}" y="{by + 3.2:.1f}" text-anchor="middle" '
                       f'font-size="10" fill="var(--surface)" font-family="var(--mono), monospace">{count}</text>')
-        parts.append(f'<a href="#sys-{_esc(key)}"><g>{inner}<title>{_esc(title)}</title></g></a>')
+        parts.append(f'<a href="#node-{_esc(key)}"><g>{inner}<title>{_esc(title)}</title></g></a>')
 
     parts.append("</svg>")
     return "".join(parts)

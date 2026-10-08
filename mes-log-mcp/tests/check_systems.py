@@ -122,6 +122,31 @@ check("chains only built for systems with sessions > 0",
 unknown_vin = systems.correlate("NOPE123NOTREAL0000")
 check("unknown VIN is an error, not an empty graph", "error" in unknown_vin, str(unknown_vin))
 
+print("=== technical enrichment ===")
+_sourced_measures = []
+for sys_key, row in systems.SYSTEMS.items():
+    for dep in row["depends_on"]:
+        tech = dep.get("technical")
+        check(f"{sys_key} -> {dep['system']} technical has carries+propagates",
+              bool(tech) and bool(tech.get("carries")) and bool(tech.get("propagates")),
+              str(tech))
+        if tech and tech.get("measure") and tech["measure"].get("source"):
+            _sourced_measures.append((sys_key, dep["system"]))
+check("at least 3 edges have a sourced measure",
+      len(_sourced_measures) >= 3, str(_sourced_measures))
+
+net_elec = next(d for d in systems.SYSTEMS["network"]["depends_on"]
+                if d["system"] == "electrical_supply")
+check("network -> electrical_supply measure reads 'Measure: ... G003A to battery negative'",
+      net_elec["technical"]["measure"]["where"] == "G003A to battery negative"
+      and net_elec["technical"]["measure"]["source"] == "S2008000032",
+      str(net_elec["technical"]["measure"]))
+
+check("every system's technical.codes_owned matches _EXACT_RULES exactly",
+      all(set(row["technical"]["codes_owned"]) ==
+          {c for r in systems._EXACT_RULES if sys_key in r["systems"] for c in r["codes"]}
+          for sys_key, row in systems.SYSTEMS.items()))
+
 print()
 if failures:
     print(f"{len(failures)} FAILURES: {failures}")

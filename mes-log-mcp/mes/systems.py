@@ -21,6 +21,20 @@ never asserts a dependency is *proven*, only that the corpus shows two
 systems' codes appearing together, worded as "could be upstream", with the
 session counts that back (or don't back) that reading.
 
+Every ``depends_on`` edge also carries a ``technical`` dict (``carries``,
+``path``, ``bus``, ``measure``, ``propagates``, ``tsb_refs``) -- the
+electrical/physical mechanism behind the edge, not just the prose ``why``.
+``carries``/``propagates`` are mandatory on every edge (what actually flows,
+and what the failure looks like downstream); ``path`` (element ids from
+``mes.electrical``/``mes.layout_systems``), ``bus`` (name/speed from
+``cuore.live.buses``) and ``measure`` (a concrete test point, with a
+numeric ``limit`` only when a TSB actually states one -- otherwise
+``"UNKNOWN (TechAuthority)"``) are included only where this repo's own
+sourced data supports them. Each SYSTEM also carries a ``technical`` dict
+(``modules``, ``dids``, ``live_channels_with_bands``, ``components``,
+``codes_owned``) -- same house rule: every value cites a source and
+confidence, or says ``UNKNOWN`` and points at the service manual.
+
 Confidence levels (same scale as the rest of this package):
 
 * ``CONFIRMED``     -- stated in this repo's own sourced table (an FCA/Alfa
@@ -55,6 +69,9 @@ CONFIDENCE_LEVELS = (CONFIRMED, CORROBORATED, SINGLE_SOURCE, UNKNOWN)
 #: so an UNKNOWN confidence always reads the same way across this package.
 _UNKNOWN_NOTE = "not established in any source checked -- use the service manual (TechAuthority)"
 
+#: Same note, for a ``technical.measure.limit`` with no TSB-stated number.
+_UNKNOWN_LIMIT = "UNKNOWN (TechAuthority)"
+
 #: Strip the failure-type byte: "P0456-00" -> "P0456". Mirrors
 #: ``mes.knowledge.base_code`` / ``mes.code_feel.base_code``, reimplemented
 #: here rather than imported so this module stays a standalone lookup table.
@@ -68,10 +85,38 @@ def base_code(code: str) -> str:
 
 # --- the system graph -------------------------------------------------------
 
-def _dep(system: str, why: str, confidence: str, source: Optional[str] = None) -> dict[str, Any]:
+def _tech(carries: str, propagates: str, *,
+          path: Optional[list[str]] = None,
+          bus: Optional[dict[str, Any]] = None,
+          measure: Optional[dict[str, Any]] = None,
+          tsb_refs: Optional[list[str]] = None) -> dict[str, Any]:
+    """One ``depends_on`` edge's technical detail. ``carries`` (what flows:
+    "12 V supply", "ground", "CAN data", "vacuum", "oil pressure", ...) and
+    ``propagates`` (a plain sentence of the failure mode) are mandatory on
+    every edge. ``path`` (element ids from :mod:`mes.electrical`/
+    :mod:`mes.layout_systems`), ``bus`` ({"name", "speed", ...}, from
+    :mod:`cuore.live.buses`) and ``measure`` ({"what", "where", "limit",
+    "source", "confidence"}) are included only where this repo's own
+    sourced data supports them -- never invented to fill the shape."""
+    out: dict[str, Any] = {"carries": carries, "propagates": propagates}
+    if path:
+        out["path"] = list(path)
+    if bus:
+        out["bus"] = dict(bus)
+    if measure:
+        out["measure"] = dict(measure)
+    if tsb_refs:
+        out["tsb_refs"] = list(tsb_refs)
+    return out
+
+
+def _dep(system: str, why: str, confidence: str, source: Optional[str] = None,
+         technical: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """One ``depends_on`` edge. Enforces the house rule at definition time:
     a non-UNKNOWN confidence must carry a real citation; an UNKNOWN one gets
-    the standard note if the caller didn't supply one."""
+    the standard note if the caller didn't supply one. ``technical`` (built
+    with :func:`_tech`) is required -- every edge must say what it carries
+    and how it propagates, even when that is all that's known."""
     if confidence not in CONFIDENCE_LEVELS:
         raise ValueError(f"bad confidence {confidence!r}")
     if confidence == UNKNOWN and not source:
@@ -79,7 +124,11 @@ def _dep(system: str, why: str, confidence: str, source: Optional[str] = None) -
     if not source:
         raise ValueError(f"dependency on {system!r} has no source -- "
                           "mark confidence UNKNOWN or cite one")
-    return {"system": system, "why": why, "confidence": confidence, "source": source}
+    if not technical or "carries" not in technical or "propagates" not in technical:
+        raise ValueError(f"dependency on {system!r} has no technical "
+                          "dict with carries/propagates")
+    return {"system": system, "why": why, "confidence": confidence,
+            "source": source, "technical": technical}
 
 
 def _system(key: str, label: str, components: list[str], *,
@@ -115,6 +164,23 @@ _RFHUB_SOURCE = ("mes.electrical 'rfhub_module' entry (network address CONFIRMED
                  "and documented to carry TPMS data, per GIORGIO_MODULE_MAP.md; "
                  "module identity as RFHUB itself is INFERRED, per that same entry)")
 
+#: Electrical-path element ids, as named in mes.electrical.ELEMENTS, reused
+#: here only as plain string references (never re-derived) for depends_on
+#: edges whose path a sourced TSB actually spells out.
+_BCM_SUPPLY_PATH = ["bcm", "f82", "bcm_feed_20a"]
+_BCM_CONNECTOR_GROUND_PATH = ["xy201", "g003a", "g003b"]
+_BCM_FULL_PATH = _BCM_SUPPLY_PATH + _BCM_CONNECTOR_GROUND_PATH
+
+#: cuore.live.buses facts, restated as plain data (never imported -- this
+#: module stays standalone) so a depends_on edge's ``bus`` field can cite
+#: the actual pins/bitrate/confidence cuore.live.buses.py sources.
+_BUS_CAN_C = {"name": "CAN-C", "speed": "500 kbit/s", "pins": "6/14",
+              "confidence": "confirmed", "source": "cuore.live.buses CAN_C"}
+_BUS_CAN_IHS = {"name": "CAN-IHS", "speed": "125 kbit/s", "pins": "3/11",
+                "confidence": "confirmed", "source": "cuore.live.buses CAN_IHS"}
+_BUS_CAN_CH = {"name": "CAN-CH", "speed": "500 kbit/s (inferred)", "pins": "12/13",
+               "confidence": "inferred", "source": "cuore.live.buses CAN_CH"}
+
 #: Ordered as given: the "natural" reading order for a dossier, roughly
 #: supply -> network -> the engine's own systems -> driveline -> chassis ->
 #: comfort/sensor/HVAC extras.
@@ -139,7 +205,18 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "BCM power feeds and chassis grounds are a documented root "
                  "cause of multi-module U-code cascades, not per-module bus "
                  "faults.",
-                 CONFIRMED, f"{_S1808000005}; {_S2008000032}; {_S1708000262}"),
+                 CONFIRMED, f"{_S1808000005}; {_S2008000032}; {_S1708000262}",
+                 technical=_tech(
+                     "12 V supply",
+                     "Low supply voltage at the BCM makes several modules "
+                     "drop off CAN at once: U-codes on many modules "
+                     "simultaneously, not one module's own bus fault.",
+                     path=_BCM_FULL_PATH,
+                     measure={"what": "voltage drop", "where": "G003A to battery negative",
+                              "limit": _UNKNOWN_LIMIT, "source": "S2008000032",
+                              "confidence": SINGLE_SOURCE},
+                     tsb_refs=["S1808000005", "S2008000032", "S1708000262"],
+                 )),
         ],
     ),
     "ignition": _system(
@@ -154,7 +231,17 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "no-start/cranks-only complaint is diagnosed by verifying "
                  "ECM/PCM B+ feeds and grounds before suspecting ignition "
                  "parts.",
-                 CONFIRMED, _S2308000004),
+                 CONFIRMED, _S2308000004,
+                 technical=_tech(
+                     "12 V supply",
+                     "A weak ECM/PCM B+ feed or ground starves the coil "
+                     "driver circuit: cranks-but-no-start, or random "
+                     "misfire codes, rather than a single bad coil.",
+                     measure={"what": "voltage drop", "where": "ECM/PCM B+ feed to battery positive",
+                              "limit": _UNKNOWN_LIMIT, "source": "S2308000004",
+                              "confidence": SINGLE_SOURCE},
+                     tsb_refs=["S2308000004"],
+                 )),
         ],
     ),
     "fuel": _system(
@@ -168,7 +255,13 @@ SYSTEMS: dict[str, dict[str, Any]] = {
             _dep("electrical_supply",
                  "The fuel pump and injectors are electrically driven, so a "
                  "weak supply/ground can present as a fuel-delivery fault.",
-                 UNKNOWN),
+                 UNKNOWN,
+                 technical=_tech(
+                     "12 V supply",
+                     "A weak supply/ground to the fuel pump driver can look "
+                     "like a fuel-delivery fault (lean/rich trim codes) "
+                     "rather than a pump or injector failure.",
+                 )),
         ],
     ),
     "evap": _system(
@@ -184,12 +277,25 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "The ESIM and purge valve are ECM-commanded electrical "
                  "components (a leak-detection pump and a solenoid); a weak "
                  "supply/ground can disrupt the self-test they rely on.",
-                 SINGLE_SOURCE, _EVAP_SOURCES),
+                 SINGLE_SOURCE, _EVAP_SOURCES,
+                 technical=_tech(
+                     "12 V supply",
+                     "A weak supply/ground to the ESIM or purge-valve "
+                     "solenoid disrupts the EVAP self-test, setting a leak "
+                     "code (P0440/P0455/P0456) even with no actual leak.",
+                     path=["esim_connector", "esim_ground"],
+                 )),
             _dep("fuel",
                  "EVAP shares the tank, fuel cap and fuel-level/pressure "
                  "signal path with the fuel system; a fuel-cap or tank-side "
                  "fault can present as an EVAP leak code.",
-                 CORROBORATED, _EVAP_FUEL_SOURCES),
+                 CORROBORATED, _EVAP_FUEL_SOURCES,
+                 technical=_tech(
+                     "fuel vapor pressure",
+                     "A loose fuel cap or tank-side fault changes vapor "
+                     "pressure the ESIM reads, setting an EVAP leak code "
+                     "that is really a fuel-side mechanical issue.",
+                 )),
         ],
     ),
     "air_intake_boost": _system(
@@ -209,7 +315,13 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "present as a boost/MAP-sensor fault.",
                  SINGLE_SOURCE,
                  "general turbocharger architecture (exhaust-driven turbine) "
-                 "-- no GU/Stelvio-specific TSB citation found"),
+                 "-- no GU/Stelvio-specific TSB citation found",
+                 technical=_tech(
+                     "exhaust gas",
+                     "An exhaust-side restriction or failing turbo housing "
+                     "shows up as low boost / a MAP-sensor plausibility "
+                     "code, not a boost-circuit electrical fault.",
+                 )),
         ],
     ),
     "cooling": _system(
@@ -241,7 +353,14 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "set secondary catalyst/O2 codes.",
                  SINGLE_SOURCE,
                  "general emissions-system architecture -- no GU/Stelvio-"
-                 "specific TSB citation found"),
+                 "specific TSB citation found",
+                 technical=_tech(
+                     "unburned fuel / combustion gas",
+                     "A misfire dumps unburned fuel into the exhaust, "
+                     "overheating and fouling the catalyst/O2 sensors: a "
+                     "secondary catalyst-efficiency code that traces back "
+                     "to the ignition-side misfire, not the catalyst.",
+                 )),
         ],
     ),
     "transmission_driveline": _system(
@@ -256,12 +375,29 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "U0102 'lost communication with transfer case' can be an "
                  "ECM software/configuration fault (AWD software on a RWD "
                  "build) rather than a transfer-case hardware or bus fault.",
-                 CONFIRMED, _S2008000078),
+                 CONFIRMED, _S2008000078,
+                 technical=_tech(
+                     "CAN data",
+                     "An ECM software/configuration mismatch (AWD cal on a "
+                     "RWD build) presents as a transfer-case 'lost "
+                     "communication' code with no actual bus or hardware "
+                     "fault.",
+                     bus=_BUS_CAN_C,
+                     tsb_refs=["S2008000078"],
+                 )),
             _dep("suspension",
                  "Tyre circumference mismatch on AWD causes shudder/bind and "
                  "can damage the transfer case; this is ruled out before any "
                  "driveline hardware is condemned.",
-                 CONFIRMED, _S1821000001),
+                 CONFIRMED, _S1821000001,
+                 technical=_tech(
+                     "driveline mechanical coupling",
+                     "A tyre-circumference mismatch on AWD binds the "
+                     "driveline, presenting as a transfer-case shudder/"
+                     "damage complaint that is actually a tire/suspension "
+                     "issue.",
+                     tsb_refs=["S1821000001"],
+                 )),
         ],
     ),
     "brakes_abs": _system(
@@ -277,7 +413,14 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "The ABS/ESC modulator and wheel-speed sensors are "
                  "electrically supplied module hardware, like the other "
                  "modules that cascade from a BCM supply fault.",
-                 UNKNOWN),
+                 UNKNOWN,
+                 technical=_tech(
+                     "12 V supply",
+                     "A weak supply/ground to the ABS/ESC modulator could "
+                     "present as a brake-system module fault, like other "
+                     "modules that cascade from a BCM supply fault -- not "
+                     "corroborated for this module specifically.",
+                 )),
         ],
     ),
     "steering": _system(
@@ -290,7 +433,13 @@ SYSTEMS: dict[str, dict[str, Any]] = {
             _dep("electrical_supply",
                  "EPS is an electrically driven power-steering system; a "
                  "weak supply affects assist.",
-                 UNKNOWN),
+                 UNKNOWN,
+                 technical=_tech(
+                     "12 V supply",
+                     "A weak supply to the EPS motor/rack reduces or drops "
+                     "power-assist, presenting as a steering-effort "
+                     "complaint rather than a rack/motor failure.",
+                 )),
         ],
     ),
     "suspension": _system(
@@ -314,11 +463,30 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "Most body-module codes gateway through the BCM onto the "
                  "vehicle's CAN/LIN buses; an intermittent bus/terminal "
                  "fault can present as a body-module fault.",
-                 SINGLE_SOURCE, _S1708000262),
+                 SINGLE_SOURCE, _S1708000262,
+                 technical=_tech(
+                     "CAN data",
+                     "An intermittent bus/terminal fault on the gatewayed "
+                     "buses presents as a body-module (door/window/"
+                     "locking) fault rather than a bus fault.",
+                     bus=_BUS_CAN_IHS,
+                     tsb_refs=["S1708000262"],
+                 )),
             _dep("electrical_supply",
                  "BCM supply-side faults (e.g. fuse F82) are documented to "
                  "cascade into multiple module/body symptoms.",
-                 CONFIRMED, _S1808000005),
+                 CONFIRMED, _S1808000005,
+                 technical=_tech(
+                     "12 V supply",
+                     "A BCM supply-side fault (fuse F82) cascades into "
+                     "multiple body-module symptoms at once (locks, "
+                     "windows, lighting) rather than one module failing.",
+                     path=_BCM_SUPPLY_PATH,
+                     measure={"what": "voltage drop", "where": "fuse F82 to BCM power feed",
+                              "limit": _UNKNOWN_LIMIT, "source": "S1808000005",
+                              "confidence": SINGLE_SOURCE},
+                     tsb_refs=["S1808000005"],
+                 )),
         ],
     ),
     "adas_sensors": _system(
@@ -332,7 +500,14 @@ SYSTEMS: dict[str, dict[str, Any]] = {
             _dep("network",
                  "ADAS/chassis-module codes often ride the same gatewayed "
                  "CAN buses as other modules affected by bus/supply events.",
-                 UNKNOWN),
+                 UNKNOWN,
+                 technical=_tech(
+                     "CAN data",
+                     "A bus/supply event affecting other gatewayed modules "
+                     "could present as an ADAS-sensor communication fault "
+                     "-- not corroborated for this system specifically.",
+                     bus=_BUS_CAN_CH,
+                 )),
         ],
     ),
     "hvac": _system(
@@ -360,7 +535,13 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  SINGLE_SOURCE,
                  "general PCV system architecture (crankcase ventilation "
                  "draws from the lubrication system's crankcase) -- no "
-                 "GU/Stelvio-specific TSB citation found"),
+                 "GU/Stelvio-specific TSB citation found",
+                 technical=_tech(
+                     "crankcase blow-by gas",
+                     "Excess blow-by or an oil overfill overwhelms the PCV "
+                     "valve/hoses, presenting as a PCV-side fault that "
+                     "actually originates in the lubrication system.",
+                 )),
             _dep("air_intake_boost",
                  "The PCV valve/hoses route crankcase vapor into the "
                  "intake tract under vacuum; a stuck-open valve or split "
@@ -369,7 +550,13 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  SINGLE_SOURCE,
                  "general PCV system architecture (crankcase-to-intake "
                  "vacuum connection) -- no GU/Stelvio-specific TSB "
-                 "citation found"),
+                 "citation found",
+                 technical=_tech(
+                     "vacuum",
+                     "A stuck-open PCV valve or split hose is an unmetered-"
+                     "air (vacuum) leak into the intake tract: a lean or "
+                     "boost-side fault that traces back to the PCV system.",
+                 )),
         ],
     ),
     "engine_management": _system(
@@ -384,7 +571,17 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "cranks/no-start complaint is diagnosed by verifying "
                  "ECM/PCM B+ feeds and grounds before suspecting an "
                  "ECM-internal fault.",
-                 CONFIRMED, _S2308000004),
+                 CONFIRMED, _S2308000004,
+                 technical=_tech(
+                     "ground",
+                     "A poor ECM/PCM ground presents as a cranks/no-start "
+                     "or an erratic ECM-internal code, not an ECM hardware "
+                     "failure.",
+                     measure={"what": "voltage drop", "where": "ECM/PCM ground to battery negative",
+                              "limit": _UNKNOWN_LIMIT, "source": "S2308000004",
+                              "confidence": SINGLE_SOURCE},
+                     tsb_refs=["S2308000004"],
+                 )),
         ],
     ),
     "valve_control": _system(
@@ -402,7 +599,14 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "oil-pressure-actuated valve systems in general.",
                  SINGLE_SOURCE,
                  "general MultiAir/cam-phaser architecture (oil-pressure-"
-                 "actuated) -- no GU/Stelvio-specific TSB citation found"),
+                 "actuated) -- no GU/Stelvio-specific TSB citation found",
+                 technical=_tech(
+                     "oil pressure",
+                     "Low oil pressure or dirty oil starves the MultiAir/"
+                     "cam-phaser actuator, setting a camshaft timing/"
+                     "actuator code that traces back to lubrication, not "
+                     "the actuator itself.",
+                 )),
         ],
     ),
     "starting_charging": _system(
@@ -417,7 +621,14 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "A cranks/no-start or stop-start-disabled complaint is "
                  "diagnosed by verifying ECM/PCM B+ feeds and grounds "
                  "before suspecting the starter or DBSM hardware.",
-                 CONFIRMED, _S2308000004),
+                 CONFIRMED, _S2308000004,
+                 technical=_tech(
+                     "12 V supply",
+                     "A weak B+ feed or ground presents as a cranks/no-"
+                     "start or stop-start-disabled complaint rather than a "
+                     "starter or DBSM hardware failure.",
+                     tsb_refs=["S2308000004"],
+                 )),
         ],
     ),
     "security_immobiliser": _system(
@@ -433,12 +644,29 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "also the documented B-CAN/C-CAN gateway; an intermittent "
                  "bus/terminal fault can present as a security-module "
                  "fault.",
-                 SINGLE_SOURCE, _S1708000262),
+                 SINGLE_SOURCE, _S1708000262,
+                 technical=_tech(
+                     "CAN data",
+                     "An intermittent bus/terminal fault on the BCM's "
+                     "gatewayed buses can present as a security/"
+                     "immobiliser fault, since the immobiliser is hosted "
+                     "on the BCM.",
+                     bus=_BUS_CAN_C,
+                     tsb_refs=["S1708000262"],
+                 )),
             _dep("electrical_supply",
                  "BCM supply-side faults (e.g. fuse F82) are documented to "
                  "cascade into multiple module/body symptoms, and the "
                  "immobiliser is hosted on the BCM.",
-                 CONFIRMED, _S1808000005),
+                 CONFIRMED, _S1808000005,
+                 technical=_tech(
+                     "12 V supply",
+                     "A BCM supply-side fault (fuse F82) can disable the "
+                     "BCM-hosted immobiliser along with other BCM-hosted "
+                     "functions, not just one security component.",
+                     path=_BCM_SUPPLY_PATH,
+                     tsb_refs=["S1808000005"],
+                 )),
         ],
     ),
     "infotainment_cluster": _system(
@@ -454,12 +682,28 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "onto the vehicle's CAN/LIN buses; an intermittent bus/"
                  "terminal fault can present as an infotainment/cluster "
                  "fault.",
-                 SINGLE_SOURCE, _S1708000262),
+                 SINGLE_SOURCE, _S1708000262,
+                 technical=_tech(
+                     "CAN data",
+                     "An intermittent bus/terminal fault presents as an "
+                     "infotainment/cluster fault (blank screen, dropped "
+                     "gauges) rather than a bus fault.",
+                     bus=_BUS_CAN_C,
+                     tsb_refs=["S1708000262"],
+                 )),
             _dep("electrical_supply",
                  "BCM supply-side faults (e.g. fuse F82) are documented to "
                  "cascade into multiple module symptoms, infotainment/"
                  "cluster included.",
-                 CONFIRMED, _S1808000005),
+                 CONFIRMED, _S1808000005,
+                 technical=_tech(
+                     "12 V supply",
+                     "A BCM supply-side fault cascades into infotainment/"
+                     "cluster symptoms along with other module symptoms, "
+                     "not an IPC/head-unit hardware failure.",
+                     path=_BCM_SUPPLY_PATH,
+                     tsb_refs=["S1808000005"],
+                 )),
         ],
     ),
     "lighting": _system(
@@ -474,7 +718,13 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "Lamps and lighting-control modules are electrical "
                  "loads; a weak supply/ground can present as a lighting "
                  "fault.",
-                 UNKNOWN),
+                 UNKNOWN,
+                 technical=_tech(
+                     "12 V supply",
+                     "A weak supply/ground to a lamp or lighting-control "
+                     "module presents as a lighting fault -- not "
+                     "corroborated for this car specifically.",
+                 )),
         ],
     ),
     "wheels_tpms": _system(
@@ -489,7 +739,14 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "whose network address is confirmed in this project's "
                  "own module map (module identity as RFHUB itself is "
                  "inferred).",
-                 SINGLE_SOURCE, _RFHUB_SOURCE),
+                 SINGLE_SOURCE, _RFHUB_SOURCE,
+                 technical=_tech(
+                     "CAN data",
+                     "A bus/supply fault reaching the RFHUB drops TPMS "
+                     "data from the network, presenting as a TPMS fault "
+                     "that is really a network-side issue.",
+                     bus=_BUS_CAN_C,
+                 )),
         ],
     ),
     "restraints": _system(
@@ -506,10 +763,127 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "supplied safety modules; a weak supply/ground could "
                  "affect them like other modules, but no sourced "
                  "restraints-specific cascade was found.",
-                 UNKNOWN),
+                 UNKNOWN,
+                 technical=_tech(
+                     "12 V supply",
+                     "A weak supply/ground to the ORC or its satellite "
+                     "sensors could present as a restraints fault, like "
+                     "other modules affected by a supply fault -- not "
+                     "corroborated for restraints specifically.",
+                 )),
         ],
     ),
 }
+
+
+# --- per-SYSTEM technical enrichment ----------------------------------------
+#
+# modules/dids/components below cite only what this repo's own modules have
+# actually sourced (cuore.live.buses' modules_seen tuples, cuore.live.
+# did_catalog's EXTRA_DIDS, mes.electrical/mes.layout_systems element
+# locations); every system not named gets an empty list rather than a
+# guessed entry. live_channels_with_bands is filled from mes.known_good,
+# imported lazily (same lazy-import posture correlate() already uses) so a
+# knowledge-table miss can never break module import.
+
+#: Bus module codes this project has actually observed/placed per the
+#: sourced ``modules_seen`` tuples in cuore.live.buses -- not every module
+#: on the car, only the ones with a system this file already models.
+_MODULES_BY_SYSTEM: dict[str, list[dict[str, str]]] = {
+    "network": [
+        {"code": "BCM", "bus": "CAN-C", "confidence": "confirmed"},
+        {"code": "RFHUB", "bus": "CAN-C", "confidence": "confirmed"},
+        {"code": "IPC", "bus": "CAN-C", "confidence": "confirmed"},
+        {"code": "TCM", "bus": "CAN-C", "confidence": "confirmed"},
+        {"code": "ABS", "bus": "CAN-CH", "confidence": "inferred"},
+        {"code": "EPS", "bus": "CAN-CH", "confidence": "inferred"},
+        {"code": "ORC", "bus": "CAN-CH", "confidence": "inferred"},
+    ],
+    "engine_management": [{"code": "ECM", "bus": "CAN-C", "confidence": "confirmed"}],
+    "transmission_driveline": [{"code": "TCM", "bus": "CAN-C", "confidence": "confirmed"}],
+    "body_comfort": [{"code": "BCM", "bus": "CAN-C", "confidence": "confirmed"}],
+    "infotainment_cluster": [{"code": "IPC", "bus": "CAN-C", "confidence": "confirmed"}],
+    "security_immobiliser": [{"code": "BCM", "bus": "CAN-C", "confidence": "confirmed"}],
+    "wheels_tpms": [{"code": "RFHUB", "bus": "CAN-C", "confidence": "confirmed"}],
+    "brakes_abs": [{"code": "ABS", "bus": "CAN-CH", "confidence": "inferred"}],
+    "steering": [{"code": "EPS", "bus": "CAN-CH", "confidence": "inferred"}],
+    "restraints": [{"code": "ORC", "bus": "CAN-CH", "confidence": "inferred"}],
+    "adas_sensors": [{"code": "PAM", "bus": "CAN-CH", "confidence": "inferred"}],
+    "lighting": [{"code": "AFLS", "bus": "CAN-CH", "confidence": "inferred"}],
+}
+_MODULES_SOURCE = "cuore.live.buses CAN_C/CAN_CH.modules_seen (sourced observations, not a full module list)"
+
+#: First 8 catalogued DID names, module=ECM, from cuore.live.did_catalog
+#: EXTRA_DIDS (the only module that catalog adds beyond addressing.DIDS).
+#: Confidence matches that source exactly -- danardi78, diesel-tested,
+#: UNVERIFIED on this car's petrol 2.0T.
+_ECM_DID_NAMES = [
+    "Fuel tank level", "Time since start (engine-on timer)", "Engine oil level",
+    "Intake manifold temperature (pre-intercooler)", "Throttle position, sensor 1",
+    "Throttle position, sensor 2", "Throttle position, sensor 3",
+    "Wastegate / overboost valve position",
+]
+_DIDS_SOURCE = ("cuore.live.did_catalog EXTRA_DIDS, module=ECM (danardi78, "
+               "tested on diesel Giulia -- confidence=unverified on this "
+               "car's petrol 2.0T)")
+_DIDS_BY_SYSTEM: dict[str, list[dict[str, str]]] = {
+    "engine_management": [{"name": n, "confidence": "unverified", "source": _DIDS_SOURCE}
+                          for n in _ECM_DID_NAMES],
+}
+
+#: Zone/confidence for the handful of components this repo's own
+#: mes.electrical / mes.layout_systems elements actually place; every other
+#: component label below falls back to zone="unknown" -- never guessed.
+_COMPONENT_ZONES: dict[str, tuple[str, str, str]] = {
+    "fuses": ("trunk", SINGLE_SOURCE,
+              "mes.electrical 'f82' element (TSB S1808000005, rear PDC)"),
+    "esim": ("rear_left_wheel_well", SINGLE_SOURCE,
+             "mes.electrical 'esim_connector' element (TSB 9100469/9100471 "
+             "+ EVAP_STELVIO.md; co-location with the canister is INFERRED "
+             "there, restated here as SINGLE-SOURCE in this module's own "
+             "4-value scale)"),
+    "fuel tank": ("underbody", SINGLE_SOURCE,
+                  "mes.layout_systems 'fuel_tank' element (TSB 9100471 "
+                  "'drop the Fuel Tank' to access the FDM lock ring)"),
+}
+
+
+def _slug(label: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", label.lower()).strip("_")
+
+
+def _component_entry(label: str) -> dict[str, Any]:
+    zone, confidence, source = _COMPONENT_ZONES.get(
+        label.lower(), ("unknown", UNKNOWN, _UNKNOWN_NOTE))
+    return {"id": _slug(label), "label": label, "zone": zone,
+            "confidence": confidence, "source": source}
+
+
+def _live_channel_band(channel_id: str) -> dict[str, Any]:
+    """One system's ``live_channels`` entry resolved to its known-good band
+    via :mod:`mes.known_good`, imported lazily (never at module scope) so a
+    knowledge-table miss can never break this module's own import."""
+    try:
+        from . import known_good as _known_good
+        row = _known_good.known_good(channel_id)
+    except Exception:  # noqa: BLE001 -- enrichment is a nice-to-have, never fatal
+        row = None
+    if not row:
+        return {"channel": channel_id, "normal": None, "warn": None,
+                "confidence": UNKNOWN, "source": _UNKNOWN_NOTE}
+    return {"channel": channel_id, "normal": row.get("normal"), "warn": row.get("warn"),
+            "confidence": row.get("confidence", UNKNOWN),
+            "source": row.get("source") or "mes.known_good"}
+
+
+for _sys_key, _row in SYSTEMS.items():
+    _row["technical"] = {
+        "modules": [dict(m, source=_MODULES_SOURCE) for m in _MODULES_BY_SYSTEM.get(_sys_key, [])],
+        "dids": list(_DIDS_BY_SYSTEM.get(_sys_key, [])),
+        "live_channels_with_bands": [_live_channel_band(ch) for ch in _row["live_channels"]],
+        "components": [_component_entry(c) for c in _row["components"]],
+        "codes_owned": [],  # filled below, once _EXACT_RULES exists
+    }
 
 
 def systems() -> dict[str, dict[str, Any]]:
@@ -537,7 +911,9 @@ _U_CODE_SOURCE = ("SAE J2012 U-prefix range (network/communication), "
                   "cascade family rule (3+ lost-communication U-codes)")
 
 #: Exact-code rules, checked before any family/range fallback. Each entry's
-#: ``systems`` are the PRIMARY systems for every code it lists.
+#: ``systems`` are the PRIMARY systems for every code it lists. This is the
+#: "CODE_RULES" table a SYSTEM's own ``technical.codes_owned`` is derived
+#: from below -- never hand-duplicated, so the two can never drift apart.
 _EXACT_RULES: tuple[dict[str, Any], ...] = (
     {"codes": ("P0440", "P0441", "P0455", "P0456", "P0457", "P1CEA"),
      "systems": ("evap",), "confidence": CONFIRMED,
@@ -577,6 +953,13 @@ _EXACT_RULES: tuple[dict[str, Any], ...] = (
                "over-advanced/over-retarded) -- generic SAE definition, "
                "not vehicle-specific")},
 )
+
+#: Filled now that _EXACT_RULES exists: every system's technical.codes_owned
+#: is exactly the codes _EXACT_RULES names it primary for -- derived, not
+#: hand-maintained, so the two tables can never disagree.
+for _sys_key, _rule in ((s, r) for r in _EXACT_RULES for s in r["systems"]):
+    SYSTEMS[_sys_key]["technical"]["codes_owned"].extend(
+        c for c in _rule["codes"] if c not in SYSTEMS[_sys_key]["technical"]["codes_owned"])
 
 #: Keyword fallback for P1xxx (manufacturer-defined) codes, and for B-codes
 #: (body) that need routing to a more specific body-adjacent system before

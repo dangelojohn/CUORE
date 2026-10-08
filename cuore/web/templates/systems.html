@@ -40,6 +40,32 @@
     badge on a node is its open code count.</p>
 </div>
 
+{% if view.edges %}
+<h2>Edge detail</h2>
+{% for e in view.edges %}
+  {% set t = e.technical or {} %}
+  <details class="panel tight" id="edge-{{ e.a }}-{{ e.b }}" open>
+    <summary><b>{{ e.a_label }}</b> depends on <b>{{ e.b_label }}</b>
+      <span class="chip">{{ e.confidence|lower }}</span></summary>
+    <table class="tw small" style="margin-top:6px">
+      <tbody>
+        <tr><td><b>Carries</b></td><td>{{ t.carries or "—" }}</td></tr>
+        {% if t.path %}<tr><td><b>Path</b></td><td class="mono">{{ t.path|join(" &rarr; ") }}</td></tr>{% endif %}
+        {% if t.bus %}<tr><td><b>Bus</b></td><td>{{ t.bus.name }} ({{ t.bus.speed }})
+          <span class="chip">{{ t.bus.confidence|default("unknown") }}</span></td></tr>{% endif %}
+        <tr><td><b>Propagates</b></td><td>{{ t.propagates or "—" }}</td></tr>
+        {% if t.measure %}
+        <tr><td><b>Measure</b></td><td>Measure: {{ t.measure.what }} {{ t.measure.where }},
+          limit {{ t.measure.limit }}, source {{ t.measure.source }}
+          <span class="chip">{{ t.measure.confidence|lower }}</span></td></tr>
+        {% endif %}
+        <tr><td><b>Source</b></td><td class="small muted">{{ e.source }}</td></tr>
+      </tbody>
+    </table>
+  </details>
+{% endfor %}
+{% endif %}
+
 {% if view.co_occurrence %}
 <h2>Co-occurrence</h2>
 <div class="tw">
@@ -132,6 +158,33 @@
 
     {% set exp = experience_links(family=c.key) if experience_links is defined else {"links": [], "count": 0} %}
     {% include "_experience.html" %}
+
+    {% set t = c.technical or {} %}
+    <details id="node-{{ c.key }}">
+      <summary class="small muted">Technical detail</summary>
+      {% if t.modules %}
+      <p class="small"><b>Modules:</b>
+        {% for m in t.modules %}{{ m.code }} ({{ m.bus }} <span class="chip">{{ m.confidence }}</span>){% if not loop.last %}, {% endif %}{% endfor %}</p>
+      {% endif %}
+      {% if t.dids %}
+      <p class="small"><b>DIDs:</b> {{ t.dids[:8]|map(attribute="name")|join(", ") }}
+        <span class="chip">{{ t.dids[0].confidence }}</span></p>
+      {% endif %}
+      {% if t.live_channels_with_bands %}
+      <p class="small"><b>Live channels:</b>
+        {% for lc in t.live_channels_with_bands %}{{ lc.channel }}
+          (normal {{ lc.normal or "—" }}, warn {{ lc.warn or "—" }}
+          <span class="chip">{{ lc.confidence|lower }}</span>){% if not loop.last %}, {% endif %}{% endfor %}</p>
+      {% endif %}
+      {% if t.components %}
+      <p class="small"><b>Components:</b>
+        {% for comp in t.components %}{{ comp.label }} ({{ comp.zone }}
+          <span class="chip">{{ comp.confidence|lower }}</span>){% if not loop.last %}, {% endif %}{% endfor %}</p>
+      {% endif %}
+      {% if t.codes_owned %}
+      <p class="small"><b>Codes owned:</b> {{ t.codes_owned|join(", ") }}</p>
+      {% endif %}
+    </details>
   </div>
 {% else %}
   <p class="muted">No systems data on file yet.</p>
