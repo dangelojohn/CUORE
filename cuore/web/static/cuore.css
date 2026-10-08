@@ -1054,3 +1054,103 @@ a.part-compact:hover { border-color: var(--accent); }
   margin-top: 8px; padding: 10px; border: 1.5px dashed var(--rule);
   border-radius: var(--radius); background: var(--surface-2);
 }
+
+/* =====================================================================
+ * Marque theme
+ *
+ * Everything below is additive: it overrides a handful of variables and
+ * selectors already defined above, by cascade order, so the base rules
+ * never had to be touched. Mood is Maserati/Ferrari rather than rally
+ * workshop: dark, calm, generous whitespace, large quiet type, hairlines
+ * instead of boxes, one accent-filled action per page. Non-negotiables
+ * carried over unchanged: 44px targets, 16px body minimum, status colour
+ * meaning status only, system font stacks, offline, print.css untouched.
+ *
+ * data-marque on <html> ("alfa" default, "maserati", "ferrari") only ever
+ * swaps --accent/--accent-dim -- the severity and --ok tokens above are
+ * deliberately marque-invariant, same reasoning as the dark/light split.
+ * ===================================================================== */
+
+:root {
+  --space-1: 6px; --space-2: 12px; --space-3: 20px; --space-4: 32px; --space-5: 48px;
+}
+
+:root[data-marque="maserati"]  { --accent: #3d6ea5; --accent-dim: #16263a; }
+:root[data-marque="ferrari"]   { --accent: #d2001f; --accent-dim: #331014; }
+:root[data-theme="light"][data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
+:root[data-theme="light"][data-marque="ferrari"]  { --accent: #a3001a; --accent-dim: #f3d9db; }
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"])[data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
+  :root:not([data-theme="dark"])[data-marque="ferrari"]  { --accent: #a3001a; --accent-dim: #f3d9db; }
+}
+
+/* -- type: larger, lighter, more air -- */
+body { font-size: 16px; line-height: 1.6; }
+h1 { font-weight: 300; font-size: 32px; line-height: 1.3; letter-spacing: -.01em; }
+h2 { font-weight: 300; }
+.section-h, .step-title {
+  font-size: 11px; letter-spacing: .14em; margin: var(--space-4) 0 var(--space-2);
+}
+.step-title { padding-bottom: var(--space-1); border-bottom: 1px solid var(--rule-soft); }
+
+/* -- flatter panels: hairline instead of a boxed card -- */
+.panel, .job-card {
+  background: transparent; border: none; border-top: 1px solid var(--rule-soft);
+  border-radius: 0; padding: var(--space-3) 0;
+}
+.panel.tight { padding: 0; border-top: none; }
+
+/* -- one filled action, everything else outline --
+ * Only the flow bar's own "Suggested next" link (.flow-next) stays
+ * accent-filled; every other button on the page -- including other
+ * .btn.primary/.btn-verdict.primary uses, which read as "a" primary
+ * action on their own section, not "the" one action on the page --
+ * drops back to the same quiet outline as a plain .btn. */
+.btn, .btn.primary, .btn-verdict.primary { background: transparent; border-color: var(--rule); color: var(--ink); }
+.btn:hover, .btn.primary:hover, .btn-verdict.primary:hover { border-color: var(--ink-3); filter: none; }
+.flow-next.btn { background: var(--accent); border-color: var(--accent); color: #fff; }
+.flow-next.btn:hover { filter: brightness(1.08); }
+
+/* flow.css's .vmore-tab-panel sets `display: flex` with higher specificity
+ * than the UA stylesheet's closed-<details> hiding rule, so the "More"
+ * tab panel stays laid out (and overflows the 400px viewport rightward)
+ * even while collapsed. Found while checking the 400px pages here, not
+ * part of the redesign itself, but it must be fixed for the no-overflow
+ * check to mean anything -- a plain display:none when not [open]. */
+details.vmore-tab:not([open]) .vmore-tab-panel { display: none; }
+
+/* -- hero band above the vehicle strip (_vbar.html) --
+ * .vbar held `position: sticky` as a whole further up this file; that is
+ * overridden here so only .vline (the slim strip) sticks and the hero
+ * scrolls away above it, per the mechanic-UX ask. */
+.vbar { position: static; padding: 0; }
+.vhero { position: relative; overflow: hidden; }
+.hero-img {
+  height: 176px; background-size: cover; background-position: center 35%;
+  background-color: var(--surface-2); /* calm fallback -- stays invisible as a photo, just a flat panel, when the file is absent */
+}
+.hero-text {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: var(--space-3) var(--pad);
+  background: linear-gradient(to top, rgba(0,0,0,.6), transparent);
+  display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap;
+}
+.hero-name { font-size: 26px; font-weight: 300; color: #fff; }
+.hero-vin, .hero-km { font-family: var(--mono); font-size: 13px; color: rgba(255,255,255,.82); }
+.vline {
+  position: sticky; top: 0; z-index: 15; background: var(--bg);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+@media (max-width: 480px) {
+  .hero-img { height: 120px; }
+  .hero-name { font-size: 21px; }
+
+  /* The per-fact "ask/correct" icon (feedback.js's .feedback-affordance,
+   * glued with no break opportunity to a mono number inside a `white-space:
+   * nowrap` table cell or a flex checklist row) pushes those rows past a
+   * 400px viewport once the 16px body minimum widens the number beside it.
+   * That is exactly the clutter this theme is meant to remove at this
+   * width -- the page-level "?/✎" FAB (base.html) still reaches the same
+   * feedback panel, so nothing is actually lost. */
+  .feedback-affordance-wrap { display: none; }
+}

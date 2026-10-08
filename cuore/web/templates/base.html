@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-marque="{{ marque|default('alfa') }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
+<meta name="theme" content="{{ marque|default('alfa') }}">
 <title>{% block title %}CUORE{% endblock %}</title>
 <link rel="stylesheet" href="/static/cuore.css">
 <link rel="stylesheet" href="/static/flow.css">

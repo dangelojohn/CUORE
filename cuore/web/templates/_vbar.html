@@ -9,7 +9,18 @@
    odo_last, odo_span, ecus), tab (which tab is active), live_strip (set for
    every page by routes.py's _page() helper -- already in scope here via
    Jinja's include-shares-context, no route change needed). #}
+{% set _hero_slug = (bar.name.split()|last)|lower if bar.name else 'car' %}
 <div class="vbar">
+  <div class="vhero">
+    <div class="hero-img" style="background-image:url(/static/brand/{{ _hero_slug }}.jpg)"></div>
+    <div class="hero-text">
+      <span class="hero-name">{{ bar.name }}</span>
+      <span class="hero-vin mono">&hellip;{{ bar.vin[-6:] }}</span>
+      {% if bar.odo_last is not none %}
+        <span class="hero-km mono">{{ "{:,}".format(bar.odo_last|int) }} km</span>
+      {% endif %}
+    </div>
+  </div>
   <div class="vline">
     <span class="vname" title="{{ bar.name }}">{{ bar.name }}</span>
     <span class="vin-tail mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-6:] }}</span>

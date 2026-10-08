@@ -14,7 +14,7 @@ is a second copy of the truth.</p>
 {% set _current_n = flow.current if flow else none %}
 
 <section class="dossier-section">
-  <h2 id="step-1" class="section-h">1. Start</h2>
+  <h2 id="step-1" class="section-h step-title">1. Start</h2>
   {% if job %}
     <div class="panel tight">
       <p>&ldquo;{{ job.complaint or "(no complaint recorded)" }}&rdquo;</p>
@@ -30,7 +30,7 @@ is a second copy of the truth.</p>
 {% if job %}
 
 <section class="dossier-section">
-  <h2 id="step-2" class="section-h">2. Complaint &amp; symptoms</h2>
+  <h2 id="step-2" class="section-h step-title">2. Complaint &amp; symptoms</h2>
   {% set note_redirect = "/v/" + vin + "/job#step-2" %}
   {% include "_symptom_form.html" %}
   {% if job_view.symptoms %}
@@ -46,12 +46,12 @@ is a second copy of the truth.</p>
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-3" class="section-h">3. Verdict</h2>
+  <h2 id="step-3" class="section-h step-title">3. Verdict</h2>
   {% include "_verdict_card.html" %}
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-4" class="section-h">4. Scan &amp; codes</h2>
+  <h2 id="step-4" class="section-h step-title">4. Scan &amp; codes</h2>
   <details class="step-collapse"{% if _current_n == 4 or _current_n is none %} open{% endif %}>
     <summary>Codes on file</summary>
     {% include "_codes_table.html" %}
@@ -60,7 +60,7 @@ is a second copy of the truth.</p>
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-5" class="section-h">5. Understand the fault</h2>
+  <h2 id="step-5" class="section-h step-title">5. Understand the fault</h2>
   <details class="step-collapse"{% if _current_n == 5 %} open{% endif %}>
     <summary>Open codes, explained</summary>
     {% set _active = view.codes|selectattr("status", "equalto", "ACTIVE")|list %}
@@ -77,7 +77,7 @@ is a second copy of the truth.</p>
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-6" class="section-h">6. Tests &amp; inspections</h2>
+  <h2 id="step-6" class="section-h step-title">6. Tests &amp; inspections</h2>
   <details class="step-collapse"{% if _current_n == 6 or _current_n is none %} open{% endif %}>
     <summary>Open work &amp; attachments</summary>
     {% include "_open_work.html" %}
@@ -88,7 +88,7 @@ is a second copy of the truth.</p>
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-7" class="section-h">7. Hypotheses</h2>
+  <h2 id="step-7" class="section-h step-title">7. Hypotheses</h2>
 
   {% for h in job.hypotheses %}
     <div class="job-card hyp-card" id="hyp-{{ h.id }}">
@@ -190,7 +190,7 @@ is a second copy of the truth.</p>
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-8" class="section-h">8. Plan the repair</h2>
+  <h2 id="step-8" class="section-h step-title">8. Plan the repair</h2>
   {% set panel = job_view.tools_panel %}
   {% set compact = True %}
   {% include "_tools_panel.html" %}
@@ -205,7 +205,7 @@ is a second copy of the truth.</p>
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-9" class="section-h">9. Repair</h2>
+  <h2 id="step-9" class="section-h step-title">9. Repair</h2>
   <ul class="checklist">
     {% for a in job.actions %}
       <li class="checklist-step"><span class="step-text">
@@ -232,7 +232,7 @@ is a second copy of the truth.</p>
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-10" class="section-h">10. Verify</h2>
+  <h2 id="step-10" class="section-h step-title">10. Verify</h2>
   {% include "_verdict_card.html" %}
   <p><a class="btn" href="/v/{{ vin }}/verify">Read readiness &rarr;</a></p>
   {% if job.verification %}
@@ -243,7 +243,7 @@ is a second copy of the truth.</p>
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-11" class="section-h">11. Document</h2>
+  <h2 id="step-11" class="section-h step-title">11. Document</h2>
   <p class="small">
     <a href="/v/{{ vin }}/report.pdf">Handover report (PDF) &rarr;</a> &middot;
     <a href="/v/{{ vin }}/labels">Labels &rarr;</a> &middot;
@@ -252,7 +252,7 @@ is a second copy of the truth.</p>
 </section>
 
 <section class="dossier-section">
-  <h2 id="step-12" class="section-h">12. Release</h2>
+  <h2 id="step-12" class="section-h step-title">12. Release</h2>
   <p><a class="btn primary" href="/v/{{ vin }}/release">Go to release &rarr;</a></p>
 
   {% if close_error %}<div class="note alert"><span class="lab">Not closed</span>{{ close_error }}</div>{% endif %}
