@@ -685,5 +685,47 @@ def live_snapshot() -> str:
     return _via("GET", "/live/snapshot", ops.live_snapshot)
 
 
+# --- media library ---------------------------------------------------------
+#
+# Pure HTTP-client tools: evidence media (photos, scans, borescope clips)
+# lives in cuore's state directory, written through cuore's own API
+# (cuore.live.media), so there is no in-process fallback to offer here --
+# unlike _via's adapter tools, a media read with cuore unreachable has
+# nothing useful to fall back to.
+
+@mcp.tool()
+def list_media(vin: str, q: str = "", kind: str = "") -> str:
+    """Search a vehicle's evidence media (photos, scans, borescope clips).
+
+    ``q`` matches caption, tags, filename, and target id, case-insensitive.
+    ``kind`` narrows to photo|scan|video|document. Hidden items are excluded.
+    Requires cuore to be reachable -- there is no in-process fallback.
+    """
+    try:
+        return json.dumps(cuore_client.call(
+            "GET", f"/vehicles/{vin}/media", query={"q": q, "kind": kind}), indent=2)
+    except cuore_client.CuoreTimeout as e:
+        return json.dumps({"error": str(e), "kind": "Timeout"}, indent=2)
+    except cuore_client.CuoreUnavailable as e:
+        return json.dumps({"error": str(e), "kind": "Unavailable"}, indent=2)
+
+
+@mcp.tool()
+def media_note(id: str, caption: str = "", tags: str = "") -> str:
+    """Edit a media item's caption and/or tags (comma-separated). Leaves either
+    alone when left blank. Requires cuore to be reachable."""
+    query: dict[str, Any] = {}
+    if caption:
+        query["caption"] = caption
+    if tags:
+        query["tags"] = tags
+    try:
+        return json.dumps(cuore_client.call("POST", f"/media/{id}", query=query), indent=2)
+    except cuore_client.CuoreTimeout as e:
+        return json.dumps({"error": str(e), "kind": "Timeout"}, indent=2)
+    except cuore_client.CuoreUnavailable as e:
+        return json.dumps({"error": str(e), "kind": "Unavailable"}, indent=2)
+
+
 if __name__ == "__main__":
     mcp.run()

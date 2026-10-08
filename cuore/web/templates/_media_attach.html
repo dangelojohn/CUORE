@@ -1,0 +1,39 @@
+{# Compact "Photos & video" strip for one (target_kind, target_id) pair.
+   Included from code.html (target=code), vehicle.html's open-work steps
+   (target=step) and notes area (target=vehicle), service.html,
+   oil_change.html and maintenance.html (target=service_record, after
+   saving, for the last record) and timeline.html (target=symptom).
+
+   Context expected: vin, target_kind, target_id. Optional: compact (true
+   for a one-line rendering with no header/"all media" link -- used inline
+   per checklist step so a job card with several steps does not turn into a
+   wall of thumbnail grids).
+
+   ``media_strip`` and ``target_href`` are Jinja globals registered by
+   cuore/web/media_routes.py as a side effect of importing it (same pattern
+   as timeline_routes's ``code_feel``) -- guarded here so every page that
+   includes this partial still renders before app.py wires that router in. #}
+{% set _ms = media_strip(vin, target_kind, target_id, 6) if media_strip is defined else {"items": [], "total": 0} %}
+{% set _all_href = "/v/" ~ vin ~ "/media?target_kind=" ~ target_kind ~ "&target_id=" ~ (target_id|urlencode) %}
+<div class="media-attach {{ 'compact' if compact else '' }}" data-media-attach
+     data-vin="{{ vin }}" data-target-kind="{{ target_kind }}" data-target-id="{{ target_id }}">
+  {% if not compact %}
+    <div class="media-attach-head">
+      <span class="media-attach-label">Photos &amp; video</span>
+      {% if _ms.total %}<span class="chip plain sm">{{ _ms.total }}</span>{% endif %}
+    </div>
+  {% endif %}
+  <div class="media-attach-row">
+    {% for it in _ms["items"] %}
+      <a class="media-attach-thumb" href="/api/media/{{ it.id }}/file" target="_blank" rel="noopener"
+         title="{{ it.caption or it.filename }}">
+        <img src="/api/media/{{ it.id }}/thumb" alt="" loading="lazy">
+        {% if it.kind == "video" %}<span class="media-play-badge" aria-hidden="true">&#9654;</span>{% endif %}
+      </a>
+    {% endfor %}
+    <a class="media-attach-add" href="{{ _all_href }}" title="Add photo or video" aria-label="Add photo or video">+</a>
+  </div>
+  {% if not compact %}
+    <a class="media-attach-all small" href="{{ _all_href }}">All media{% if _ms.total > 6 %} ({{ _ms.total }}){% endif %} &rarr;</a>
+  {% endif %}
+</div>

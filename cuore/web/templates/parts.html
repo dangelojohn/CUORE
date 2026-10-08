@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Parts — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Parts</h1>
+<p class="lede">Every part cuore knows about for this platform — OEM numbers,
+aftermarket equivalents, supersessions, torque specs, price range and
+photos — grouped by the job it belongs to. Search by name, part number or
+what it does.</p>
+
+<form method="get" action="/v/{{ vin }}/parts" class="part-search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search parts (name, number, what it does)"
+         aria-label="Search parts">
+  <button class="btn" type="submit">Search</button>
+  {% if q or job %}<a class="btn" href="/v/{{ vin }}/parts">Clear</a>{% endif %}
+</form>
+<p class="small muted">{{ count }} part{{ "s" if count != 1 }}{% if q %} matching "{{ q }}"{% endif %}{% if job %} for job "{{ job }}"{% endif %}.</p>
+
+{% if not groups %}
+  <div class="panel"><p class="muted">No part data yet.</p></div>
+{% endif %}
+
+{% for job_key, label, parts in groups %}
+<h2>{{ label }}</h2>
+<div class="cols two">
+{% for part in parts %}
+  {% set p = part %}
+  {% set compact = False %}
+  {% include "_part_card.html" %}
+{% endfor %}
+</div>
+{% endfor %}
+
+{% endblock %}

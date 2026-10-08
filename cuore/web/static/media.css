@@ -1,0 +1,99 @@
+/* CUORE media gallery (/v/{vin}/media) and the "Photos & video" attach strip
+ * (_media_attach.html). Kept out of cuore.css -- a new, separate page and
+ * partial, not a touch-up to the existing sheet. Reuses the app's existing
+ * tokens (--surface, --rule, --ink, --accent, ...) defined in cuore.css so
+ * both themes just work with no overrides of its own.
+ */
+
+.media-upload .media-droplabel {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  min-height: 96px; border: 2px dashed var(--rule); border-radius: var(--radius);
+  background: var(--surface-2); color: var(--ink-2); padding: 16px; cursor: pointer;
+  margin: 8px 0 10px;
+}
+.media-upload .media-droplabel.is-dragover { border-color: var(--accent); color: var(--ink); background: var(--accent-dim); }
+.media-upload .media-droplabel input[type="file"] {
+  position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden;
+}
+.media-drop-text { font-size: 13.5px; }
+
+.media-progress-list { list-style: none; margin: 0 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.media-progress-list li { font-size: 12.5px; color: var(--ink-2); }
+.media-progress-list .bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 3px; }
+.media-progress-list .bar > span { display: block; height: 100%; background: var(--accent); width: 0%; transition: width .15s linear; }
+.media-progress-list li.is-done .bar > span { background: var(--ok); }
+.media-progress-list li.is-error .bar > span { background: var(--sev-returned); }
+
+.media-filters { display: flex; flex-direction: column; gap: 8px; }
+.media-search-box { width: 100%; min-height: 44px; }
+.media-chip-row { margin: 0; }
+
+.media-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0;
+}
+.media-tile {
+  display: flex; flex-direction: column; gap: 3px; text-decoration: none; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+  padding: 6px; min-height: 44px;
+}
+.media-thumb {
+  position: relative; display: block; aspect-ratio: 1 / 1; overflow: hidden;
+  border-radius: var(--radius); background: var(--surface-2);
+}
+.media-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media-play-badge {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 22px; text-shadow: 0 1px 4px rgba(0,0,0,.6); pointer-events: none;
+}
+.media-cap { font-size: 12.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis;
+             white-space: nowrap; }
+.media-meta { font-size: 11px; }
+.media-target-chip, .media-tags { font-size: 10.5px; }
+.media-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+.media-empty { grid-column: 1 / -1; }
+
+@media (max-width: 400px) {
+  .media-grid { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .media-cap, .media-meta { font-size: 11px; }
+}
+@media (min-width: 720px) {
+  .media-grid { grid-template-columns: repeat(5, 1fr); }
+}
+@media (min-width: 1100px) {
+  .media-grid { grid-template-columns: repeat(7, 1fr); }
+}
+
+/* ---------- the viewer dialog ---------- */
+.media-dialog {
+  width: min(92vw, 720px); max-width: 92vw; max-height: 90vh; padding: 0;
+  border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface);
+  color: var(--ink);
+}
+.media-dialog::backdrop { background: rgba(0,0,0,.55); }
+.media-dialog-head { display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-bottom: 1px solid var(--rule); margin: 0; }
+.media-dialog-view { display: flex; align-items: center; justify-content: center; background: #000;
+  max-height: 55vh; overflow: hidden; }
+.media-dialog-view img, .media-dialog-view video { max-width: 100%; max-height: 55vh; display: block; }
+.media-dialog-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.media-dialog-body label { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; color: var(--ink-2); }
+.media-dialog-body input[type="text"] { min-height: 40px; }
+.media-dialog-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+
+/* ---------- the attach strip (_media_attach.html) ---------- */
+.media-attach { margin: 10px 0; }
+.media-attach-head { display: flex; align-items: center; gap: 6px; font-size: 12.5px;
+  color: var(--ink-2); margin-bottom: 4px; }
+.media-attach-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.media-attach-thumb, .media-attach-add {
+  width: 44px; height: 44px; border-radius: var(--radius); overflow: hidden; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--rule); background: var(--surface-2); text-decoration: none;
+  color: var(--ink-2); position: relative;
+}
+.media-attach-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.media-attach-add { font-size: 20px; font-weight: 700; }
+.media-attach.compact .media-attach-thumb, .media-attach.compact .media-attach-add {
+  width: 32px; height: 32px; font-size: 16px;
+}
+.media-attach-all { display: inline-block; margin-top: 4px; }

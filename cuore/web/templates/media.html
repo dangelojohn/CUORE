@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Media — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/media.css">
+
+<h1>Photos &amp; video</h1>
+<p class="lede">Every photo, video and document attached to this vehicle — from a
+specific code, checklist step, service record or symptom, or filed loose against
+the vehicle itself. Works from the phone's camera; drag-and-drop on a bench PC.</p>
+
+{% if error %}
+  <div class="note alert"><span class="lab">Not uploaded</span>{{ error }}</div>
+{% endif %}
+{% if saved %}
+  <div class="note good"><span class="lab">Uploaded</span>Saved to this vehicle's media.</div>
+{% endif %}
+
+<div class="panel media-upload">
+  <h2>Add photos, video or documents</h2>
+  <form method="post" action="/v/{{ vin }}/media" enctype="multipart/form-data"
+        id="media-upload-form" data-media-upload>
+    <input type="hidden" name="redirect_to" value="/v/{{ vin }}/media?target_kind={{ target_kind }}&amp;target_id={{ target_id|urlencode }}">
+
+    <label class="media-droplabel" id="media-dropzone" for="media-file-input" data-dropzone>
+      <input type="file" id="media-file-input" name="file" multiple
+             accept="image/*,video/*,application/pdf" capture="environment">
+      <span class="media-drop-text">Tap to open the camera or file picker — or drop files here</span>
+    </label>
+    <ul id="media-upload-progress" class="media-progress-list" hidden></ul>
+
+    <div class="cols two">
+      <label>Caption
+        <input type="text" name="caption" maxlength="200" placeholder="what is this">
+      </label>
+      <label>Tags
+        <input type="text" name="tags" placeholder="comma separated" list="media-recent-tags">
+      </label>
+    </div>
+    <datalist id="media-recent-tags">
+      {% for t in recent_tags %}<option value="{{ t }}">{% endfor %}
+    </datalist>
+
+    <div class="cols two">
+      <label>Attach to
+        <select name="target_kind">
+          {% for k in target_kinds %}
+            <option value="{{ k }}" {{ 'selected' if target_kind == k }}>{{ target_labels.get(k, k) }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Target id <span class="small muted">(code, step id, record date…)</span>
+        <input type="text" name="target_id" value="{{ target_id }}">
+      </label>
+    </div>
+    <div class="cols two">
+      <label>Odometer (km)
+        <input type="number" step="1" name="odometer_km"
+               value="{{ current_odometer|round|int if current_odometer is not none else '' }}">
+      </label>
+      <label>Author
+        <input type="text" name="author" placeholder="mechanic">
+      </label>
+    </div>
+
+    <p><button class="btn primary" type="submit">Upload</button></p>
+  </form>
+</div>
+
+<form method="get" action="/v/{{ vin }}/media" class="panel media-filters" id="media-search-form">
+  <input type="search" name="q" value="{{ q }}" placeholder="search captions, tags, filenames&hellip;"
+         data-search class="media-search-box">
+
+  <div class="tag-grid media-chip-row">
+    {% for k in [""] + kinds %}
+      {% set label = "All" if k == "" else (k|capitalize) %}
+      <span class="tag-chip">
+        <input type="radio" name="kind" value="{{ k }}" id="mk-{{ k or 'all' }}"
+               {{ 'checked' if kind == k }} onchange="this.form.submit()">
+        <label for="mk-{{ k or 'all' }}">{{ label }}</label>
+      </span>
+    {% endfor %}
+  </div>
+  <div class="tag-grid media-chip-row">
+    {% for k in [""] + target_kinds %}
+      {% set label = "Any target" if k == "" else target_labels.get(k, k) %}
+      <span class="tag-chip">
+        <input type="radio" name="target_kind" value="{{ k }}" id="mt-{{ k or 'any' }}"
+               {{ 'checked' if target_kind == k }} onchange="this.form.submit()">
+        <label for="mt-{{ k or 'any' }}">{{ label }}</label>
+      </span>
+    {% endfor %}
+  </div>
+  {% if target_id %}<input type="hidden" name="target_id" value="{{ target_id }}">{% endif %}
+
+  <div class="cols two">
+    <label>From <input type="date" name="since" value="{{ since }}" onchange="this.form.submit()"></label>
+    <label>Until <input type="date" name="until" value="{{ until }}" onchange="this.form.submit()"></label>
+  </div>
+  <noscript><p><button class="btn" type="submit">Search</button></p></noscript>
+  <p><a class="btn" href="/api/vehicles/{{ vin }}/media/export.zip">Export everything (zip) &rarr;</a></p>
+</form>
+
+<div class="media-grid" id="media-grid">
+  {% for it in items %}
+    {% set href = target_href(vin, it.target_kind, it.target_id) %}
+    <a class="media-tile" href="/api/media/{{ it.id }}/file" target="_blank" rel="noopener"
+       data-media-id="{{ it.id }}" data-media-item='{{ it|tojson }}'>
+      <span class="media-thumb">
+        <img src="/api/media/{{ it.id }}/thumb" alt="" loading="lazy">
+        {% if it.kind == "video" %}<span class="media-play-badge" aria-hidden="true">&#9654;</span>{% endif %}
+      </span>
+      <span class="media-cap">{{ it.caption or it.filename }}</span>
+      <span class="media-meta small muted">{{ (it.captured_at or it.uploaded_at or "")[:16] }}</span>
+      {% if it.target_kind %}
+        <span class="chip plain sm media-target-chip">{{ target_labels.get(it.target_kind, it.target_kind) }}{% if it.target_id %}: {{ it.target_id }}{% endif %}</span>
+      {% endif %}
+      {% if it.tags %}
+        <span class="media-tags">{% for t in it.tags %}<span class="chip plain sm">{{ t }}</span>{% endfor %}</span>
+      {% endif %}
+    </a>
+  {% else %}
+    <p class="muted media-empty">No media yet{% if q or kind or target_kind %} matching this filter{% endif %}.</p>
+  {% endfor %}
+</div>
+
+<dialog id="media-dialog" class="media-dialog">
+  <form method="dialog" class="media-dialog-head">
+    <span class="small muted" id="media-dialog-meta"></span>
+    <button type="submit" class="icon-btn" aria-label="Close">&times;</button>
+  </form>
+  <div id="media-dialog-view" class="media-dialog-view"></div>
+  <div class="media-dialog-body">
+    <label>Caption <input type="text" id="media-dialog-caption" maxlength="200"></label>
+    <label>Tags <input type="text" id="media-dialog-tags"></label>
+    <p id="media-dialog-msg" class="small muted" hidden></p>
+    <p class="media-dialog-actions">
+      <button type="button" class="btn" id="media-dialog-save">Save</button>
+      <button type="button" class="btn" id="media-dialog-hide">Hide</button>
+      <a class="btn" id="media-dialog-original" target="_blank" rel="noopener">Open original</a>
+    </p>
+  </div>
+</dialog>
+
+<script src="/static/media.js"></script>
+
+{% endblock %}

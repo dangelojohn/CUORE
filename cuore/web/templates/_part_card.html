@@ -1,0 +1,164 @@
+{# Reusable part card. Fed by the `parts_for` Jinja global (registered as an
+   import-time side effect by cuore/web/parts_routes.py -- see that module's
+   docstring) via a page-local `p = ...` set before this include. Guarded so
+   a page still renders -- with the empty state below -- before that global
+   lands, and before mes.parts itself lands (cuore.services.parts_bridge
+   falls back to its own fixture either way, so `p` is never missing data
+   because of that, only because no part is known for this code/job yet).
+
+   Context expected:
+     p        -- one part dict, shaped per cuore.services.parts_bridge's
+                 contract docstring (name, what_it_does, oem, aftermarket,
+                 supersedes, fits, location, related_codes, related_jobs,
+                 torques, price, buy, images, notes).
+     vin      -- for the "related codes" links and the compact-mode link
+                 to the full parts page.
+     compact  -- optional; truthy renders the compact form (name, first
+                 part number, first image, link to the full card).
+     media_page_exists -- optional; shows "Save a photo of mine" only when
+                 truthy (full mode only). #}
+{% set p = p if p is defined else None %}
+{% set compact = compact if compact is defined else False %}
+
+{% macro part_conf_chip(c) -%}
+<span class="chip {{ 'ok' if c in ('CONFIRMED','CORROBORATED') else ('plain' if c == 'UNKNOWN' else 'chronic') }}">{{ c }}</span>
+{%- endmacro %}
+
+{% if not p %}
+  <div class="panel part-card"><p class="muted small">No part data yet.</p></div>
+{% elif compact %}
+  <a class="part-card part-compact" href="/v/{{ vin }}/parts#{{ p.key }}">
+    {% set img = (p.images or [])|first %}
+    {% if img %}
+      <img class="part-thumb" src="{{ img.url }}" alt="{{ p.name }}" loading="lazy"
+           referrerpolicy="no-referrer"
+           onerror="this.outerHTML='&lt;span class=&quot;part-thumb part-thumb-fallback&quot;&gt;no photo&lt;/span&gt;'">
+    {% else %}
+      <span class="part-thumb part-thumb-fallback">no photo</span>
+    {% endif %}
+    <span class="part-compact-text">
+      <span class="part-compact-name">{{ p.name }}</span>
+      {% set first_oem = (p.oem or [])|first %}
+      <span class="small mono muted">{{ first_oem.number if first_oem else "UNKNOWN" }}</span>
+    </span>
+  </a>
+{% else %}
+  <div class="panel part-card" id="{{ p.key }}">
+    <h3>{{ p.name }}</h3>
+    {% if p.what_it_does %}<p class="lede">{{ p.what_it_does }}</p>{% endif %}
+    {% if p.location %}<p class="small muted">Location: {{ p.location }}</p>{% endif %}
+    {% if p.fits %}<p class="small muted">Fits: {{ p.fits }}</p>{% endif %}
+
+    {% if p.oem %}
+    <h4>OEM numbers</h4>
+    <div class="tw">
+    <table>
+      <thead><tr><th>Number</th><th>Brand</th><th>Confidence</th><th>Notes / source</th></tr></thead>
+      <tbody>
+      {% for o in p.oem %}
+        <tr>
+          <td class="mono">{{ o.number or "UNKNOWN" }}</td>
+          <td>{{ o.brand or "" }}</td>
+          <td>{{ part_conf_chip(o.confidence or "UNKNOWN") }}</td>
+          <td class="small muted">{{ o.note or "" }}
+            {% if o.source %}<br><a href="{{ o.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+
+    {% if p.supersedes %}
+    <p class="small muted"><b>Supersedes:</b>
+      {% for s in p.supersedes %}<span class="mono">{{ s }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+    {% endif %}
+
+    {% if p.aftermarket %}
+    <h4>Aftermarket equivalents</h4>
+    <div class="tw">
+    <table>
+      <thead><tr><th>Brand</th><th>Number</th><th>Confidence</th><th>Source</th></tr></thead>
+      <tbody>
+      {% for a in p.aftermarket %}
+        <tr>
+          <td>{{ a.brand or "" }}</td>
+          <td class="mono">{{ a.number or "UNKNOWN" }}</td>
+          <td>{{ part_conf_chip(a.confidence or "UNKNOWN") }}</td>
+          <td class="small">{% if a.source %}<a href="{{ a.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+
+    {% if p.price %}
+    <p class="small"><b>Price:</b>
+      {% if p.price.low is not none and p.price.high is not none %}{{ p.price.low }}&ndash;{{ p.price.high }}
+      {% elif p.price.low is not none %}{{ p.price.low }}+
+      {% elif p.price.high is not none %}up to {{ p.price.high }}
+      {% endif %}{{ p.price.currency or "" }}
+      <span class="muted">(as of {{ p.price.as_of }}{% if p.price.source %}, {{ p.price.source }}{% endif %})</span></p>
+    {% else %}
+    <p class="small muted">No price data yet.</p>
+    {% endif %}
+
+    {% if p.buy %}
+    <p>
+      {% for b in p.buy %}<a class="btn" href="{{ b.url }}" target="_blank" rel="noopener">{{ b.label }} &rarr;</a>{% endfor %}
+    </p>
+    {% endif %}
+
+    {% if p.torques %}
+    <h4>Torque</h4>
+    <div class="tw">
+    <table>
+      <thead><tr><th>Fastener</th><th>Spec</th><th>Confidence</th></tr></thead>
+      <tbody>
+      {% for t in p.torques %}
+        <tr>
+          <td>{{ t.component or t.key }}{% if t.single_use %} <span class="chip returned">single-use</span>{% endif %}</td>
+          <td class="mono">{{ t.display }}{% if t.angle %} {{ t.angle }}{% endif %}</td>
+          <td>{{ part_conf_chip(t.confidence or "UNKNOWN") }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
+
+    {% if p.related_codes %}
+    <p class="small">Related codes:
+      {% for c in p.related_codes %}<a class="chip-code sm" href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% endfor %}</p>
+    {% endif %}
+    {% if p.related_jobs %}
+    <p class="small muted">Related jobs: {{ p.related_jobs|join(", ") }}</p>
+    {% endif %}
+
+    {% if p.images %}
+    <h4>Photos</h4>
+    <div class="part-image-grid">
+    {% for img in p.images %}
+      <figure class="part-image">
+        <img src="{{ img.url }}" alt="{{ p.name }}" loading="lazy" referrerpolicy="no-referrer"
+             onerror="this.style.display='none'; this.nextElementSibling.querySelector('.part-image-fallback').hidden=false;">
+        <figcaption>
+          <span class="part-image-fallback small" hidden>
+            <a href="{{ img.source_page or img.url }}" target="_blank" rel="noopener">from {{ img.source_name or "source" }} &rarr;</a>
+          </span>
+          <span class="small muted">{{ img.source_name or "" }}</span>
+          {% if img.source_page %}<a class="small" href="{{ img.source_page }}" target="_blank" rel="noopener">from {{ img.source_name or "source" }} &rarr;</a>{% endif %}
+        </figcaption>
+      </figure>
+    {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if media_page_exists %}
+    <p><a class="small" href="/v/{{ vin }}/media?target=part:{{ p.key }}">Save a photo of mine &rarr;</a></p>
+    {% endif %}
+
+    {% if p.notes %}<p class="small muted">{{ p.notes }}</p>{% endif %}
+  </div>
+{% endif %}
