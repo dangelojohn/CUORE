@@ -265,3 +265,6 @@ confidence and source, reconstructed from MES's own string table and validated
 against ten corpus-confirmed anchors.
 
 Requires Python 3.10+ and `mcp>=1.2.0`.
+
+
+See [CUORE.md](CUORE.md) for what CUORE is and its maxim, and [docs/handbook/](docs/handbook/README.md) to understand and build on everything gathered.
