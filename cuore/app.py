@@ -49,6 +49,7 @@ from .web import jobs_routes  # noqa: E402
 from .web import lang_routes  # noqa: E402
 from .web import flow_globals, tools_kb_globals  # noqa: F401
 from .web import icons, i18n  # noqa: F401
+from .web import static_version  # noqa: F401
 
 log = logging.getLogger("cuore")
 
@@ -164,6 +165,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(systems_routes.router)
     app.include_router(electrical_routes.router)
     app.include_router(modules_routes.router)
+
+    # Every /static URL is already cache-busted by static_version.static_url's
+    # ``?v=<mtime hash>`` query string, so a long max-age would be safe -- but
+    # a stray hand-typed /static/ link (or icons.svg's #fragment reference,
+    # which browsers don't even send back to the server to revalidate) must
+    # never stick a tech with yesterday's CSS/JS. no-cache forces a
+    # revalidation request every time instead of serving straight from disk
+    # cache, which costs nothing on a bench LAN.
+    @app.middleware("http")
+    async def _no_cache_static(request: Request, call_next):
+        response = await call_next(request)
+        if request.url.path.startswith("/static"):
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+        return response
 
     app.mount("/static",
               StaticFiles(directory=str(web_routes.STATIC_DIR)),

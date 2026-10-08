@@ -40,6 +40,8 @@ except Exception:  # noqa: BLE001 -- markupsafe ships with Jinja2, but don't 500
     def Markup(s: str) -> str:  # type: ignore[no-redef]
         return s
 
+from .static_version import static_url
+
 
 #: key -> {"symbol": <icons.svg symbol suffix, == key>, "label_en": ..., "label_it": ...}
 #: Grouped the same way icons.svg is grouped: flow steps, systems (keys taken
@@ -161,7 +163,7 @@ def icon(key: str, size: str = "m", label: Optional[str] = None) -> Any:
     return Markup(
         f'<span class="ico ico-{px}">'
         f'<svg role="img" aria-label="{safe_label}">'
-        f'<use href="/static/icons.svg#i-{symbol}"></use>'
+        f'<use href="{static_url("icons.svg")}#i-{symbol}"></use>'
         f'</svg></span>'
     )
 

@@ -150,7 +150,7 @@ for key in _sample_keys:
     check(f"icon({key!r}) contains aria-label", "aria-label=" in out)
     check(f"icon({key!r}) contains its label text", entry["label_en"] in out)
     check(f"icon({key!r}) contains the use href for its symbol",
-          f'href="/static/icons.svg#i-{entry["symbol"]}"' in out)
+          f'/static/icons.svg' in out and f'#i-{entry["symbol"]}"' in out)
 
 _custom = str(icons_mod.icon("tools", label="Attrezzi"))
 check("icon() honours an explicit label override", "Attrezzi" in _custom)

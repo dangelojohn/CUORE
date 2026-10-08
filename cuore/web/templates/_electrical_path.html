@@ -12,7 +12,7 @@
    partial still renders before app.py wires that router in. #}
 {% set elec = electrical_path_for(vin, code) if electrical_path_for is defined and code else None %}
 {% if elec %}
-<link rel="stylesheet" href="/static/electrical.css">
+<link rel="stylesheet" href="{{ static_url('electrical.css') }}">
 <div class="panel elec-path-card">
   <h3>Electrical path for {{ elec.code }}</h3>
   {% if elec.found %}

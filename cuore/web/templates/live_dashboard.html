@@ -2,8 +2,8 @@
 {% block title %}Gauges — {{ bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
-<link rel="stylesheet" href="/static/live/widgets.css">
-<link rel="stylesheet" href="/static/live/dashboard.css">
+<link rel="stylesheet" href="{{ static_url('live/widgets.css') }}">
+<link rel="stylesheet" href="{{ static_url('live/dashboard.css') }}">
 
 <h1>Gauges</h1>
 <p class="lede">A customizable live-data dashboard: pick a layout, connect to
@@ -80,8 +80,8 @@ the car is plugged in or not.</p>
   <dialog id="dd-channels-dialog" class="dd-dialog"></dialog>
 </div>
 
-<script src="/static/live/widgets.js"></script>
-<script src="/static/live/dashboard.js"></script>
+<script src="{{ static_url('live/widgets.js') }}"></script>
+<script src="{{ static_url('live/dashboard.js') }}"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     if (window.CuoreDashboard) window.CuoreDashboard.init();

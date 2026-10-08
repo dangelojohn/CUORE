@@ -6,10 +6,10 @@
 <meta name="color-scheme" content="dark light">
 <meta name="theme" content="{{ marque|default('alfa') }}">
 <title>{% block title %}CUORE{% endblock %}</title>
-<link rel="stylesheet" href="/static/cuore.css">
-<link rel="stylesheet" href="/static/flow.css">
-<link rel="stylesheet" href="/static/icons.css">
-<link rel="stylesheet" href="/static/print.css" media="print">
+<link rel="stylesheet" href="{{ static_url('cuore.css') }}">
+<link rel="stylesheet" href="{{ static_url('flow.css') }}">
+<link rel="stylesheet" href="{{ static_url('icons.css') }}">
+<link rel="stylesheet" href="{{ static_url('print.css') }}" media="print">
 </head>
 <body{% if vin is defined and vin %} data-vin="{{ vin }}"{% endif %}>
 
@@ -104,13 +104,13 @@
 </main>
 
 {% if vin is defined and vin %}
-<link rel="stylesheet" href="/static/feedback.css">
+<link rel="stylesheet" href="{{ static_url('feedback.css') }}">
 <button type="button" class="fab-feedback" id="feedback-fab" title="Ask / correct"
         aria-label="Ask or correct a fact on this page">?/&#9998;</button>
 {% include "_feedback_panel.html" %}
 {% endif %}
 
-<script src="/static/cuore.js"></script>
-{% if vin is defined and vin %}<script src="/static/feedback.js" defer></script>{% endif %}
+<script src="{{ static_url('cuore.js') }}"></script>
+{% if vin is defined and vin %}<script src="{{ static_url('feedback.js') }}" defer></script>{% endif %}
 </body>
 </html>
