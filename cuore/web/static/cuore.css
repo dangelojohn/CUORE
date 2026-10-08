@@ -866,6 +866,13 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 .tag-chip.normally input:checked + label { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
 .tag-hint { font-size: 12px; color: var(--ink-3); margin: -6px 0 10px; }
 
+/* "What did the driver feel?" dropdown (replaces the old tag chips above,
+ * which stay defined for any other template still using .tag-grid/.tag-chip). */
+.tag-select { width: 100%; font-size: 14px; }
+@media (max-width: 760px) {
+  .tag-select option { min-height: 44px; padding: 10px 6px; }
+}
+
 /* "What would the driver feel?" card on code.html. */
 .feel-card .feel-sentence { font-size: 15px; margin: 4px 0 10px; }
 .feel-card .feel-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }

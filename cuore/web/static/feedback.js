@@ -293,11 +293,22 @@
     var fab = document.getElementById("feedback-fab");
     var pagePanel = document.getElementById("feedback-page-panel");
     if (!fab || !pagePanel) return;
+
+    // The collapsed class is what keeps the panel down to just its small
+    // bottom-right affordance (see feedback.css); keep it in sync with the
+    // <details> open state however that state changes -- the FAB below,
+    // or a click straight on the <summary> (the no-JS path, still native
+    // here too).
+    pagePanel.addEventListener("toggle", function () {
+      pagePanel.classList.toggle("feedback-page-panel-collapsed", !pagePanel.open);
+    });
+
     fab.addEventListener("click", function () {
-      pagePanel.open = true;
-      pagePanel.scrollIntoView({ block: "end", behavior: "smooth" });
-      var ta = pagePanel.querySelector("textarea");
-      if (ta) ta.focus();
+      pagePanel.open = !pagePanel.open;
+      if (pagePanel.open) {
+        var ta = pagePanel.querySelector("textarea");
+        if (ta) ta.focus();
+      }
     });
   }
 

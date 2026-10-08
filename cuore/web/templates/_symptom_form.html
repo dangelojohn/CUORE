@@ -30,24 +30,18 @@
 
 <div class="panel" id="symptom-form">
   <h3>What did the driver feel?</h3>
-  <p class="tag-hint">Nothing felt is useful evidence -- tick "Drives normally" on an
+  <p class="tag-hint">Nothing felt is useful evidence -- choose "Drives normally" on an
     unremarkable drive just as readily as a real complaint.</p>
   <form method="post" action="/v/{{ vin }}/symptoms">
     <input type="hidden" name="redirect_to" value="{{ back_to }}">
 
-    <div class="field"><label>Tags</label>
-      <div class="tag-grid">
-        <span class="tag-chip normally">
-          <input type="checkbox" id="tag_drives_normally" name="tags" value="drives_normally">
-          <label for="tag_drives_normally">&#10003; Drives normally</label>
-        </span>
+    <div class="field">
+      <select name="tags" multiple size="6" class="tag-select" aria-label="What did the driver feel?">
+        <option value="drives_normally">Drives normally</option>
         {% for t in tags if t != "drives_normally" %}
-          <span class="tag-chip">
-            <input type="checkbox" id="tag_{{ t }}" name="tags" value="{{ t }}">
-            <label for="tag_{{ t }}">{{ t|replace("_", " ") }}</label>
-          </span>
+          <option value="{{ t }}">{{ t|replace("_", " ") }}</option>
         {% endfor %}
-      </div>
+      </select>
     </div>
 
     <div class="field"><label>Conditions</label>

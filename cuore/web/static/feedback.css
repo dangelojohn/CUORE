@@ -25,10 +25,25 @@
   border-radius: var(--radius); padding: 10px 12px; margin: 6px 0;
   max-width: 480px;
 }
-.feedback-page-panel { position: fixed; left: 12px; right: 12px; bottom: 84px;
-  z-index: 41; max-width: 420px; margin: 0; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+/* Anchored bottom-right, directly above the FAB -- never left:/right: both
+   set (that stretch, with only max-width to cap it, is what let the old
+   rule cover page content: the browser drops `right` and keeps the box
+   pinned at `left`, full width, regardless of open/closed). */
+.feedback-page-panel { position: fixed; right: 18px; left: auto; bottom: 82px;
+  z-index: 41; width: min(420px, calc(100vw - 36px)); max-width: 420px;
+  margin: 0; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
 .feedback-page-panel summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
 .feedback-page-panel[open] summary { margin-bottom: 8px; }
+
+/* Collapsed (default on load, and whenever closed again): shrink the box
+   down to just the <summary> affordance so it can never cover content,
+   closed or not, JS or not -- the no-JS fallback is exactly this state,
+   permanently, pinned bottom-right rather than stretched left. */
+.feedback-page-panel.feedback-page-panel-collapsed { width: auto; max-width: 240px; }
+.feedback-page-panel.feedback-page-panel-collapsed summary {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+  padding: 8px 12px; box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
 
 .feedback-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .feedback-kind-btn, .feedback-kind-opt {
@@ -62,7 +77,7 @@
 .feedback-thread-toggle { font-size: 12px; color: var(--ink-2); cursor: pointer; background: none; border: none; padding: 4px 0; text-decoration: underline; }
 
 .fab-feedback {
-  position: fixed; left: 18px; bottom: 18px; z-index: 40;
+  position: fixed; right: 18px; bottom: 18px; z-index: 40;
   width: 52px; height: 52px; border-radius: 50%;
   background: var(--raised); color: var(--ink); border: 1px solid var(--rule);
   font-size: 18px; box-shadow: 0 4px 14px rgba(0,0,0,.4); cursor: pointer;
@@ -82,5 +97,6 @@
 .inbox-forms form { display: flex; gap: 6px; align-items: center; }
 
 @media (max-width: 400px) {
-  .feedback-page-panel { left: 8px; right: 8px; bottom: 76px; max-width: none; }
+  .feedback-page-panel { right: 8px; bottom: 76px; width: calc(100vw - 16px); max-width: none; }
+  .feedback-page-panel.feedback-page-panel-collapsed { width: auto; }
 }

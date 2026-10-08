@@ -11,7 +11,11 @@
    render templates straight off the environment, with no request at all,
    and this must still render for them. #}
 {% set _path = request.url.path if request is defined else ("/v/" ~ vin) %}
-<details class="feedback-page-panel" id="feedback-page-panel">
+{# Collapsed by default -- the full panel only appears once the FAB (or,
+   no-JS, this <summary> itself) opens it. feedback.js keeps this class in
+   sync with the <details> open state; without JS it just stays, which is
+   correct too: the panel should start collapsed either way. #}
+<details class="feedback-page-panel feedback-page-panel-collapsed" id="feedback-page-panel">
   <summary>Ask / correct (this page)</summary>
   <form method="post" action="/v/{{ vin }}/feedback" class="feedback-form">
     <input type="hidden" name="redirect_to" value="{{ _path }}">
