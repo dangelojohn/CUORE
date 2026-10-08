@@ -34,7 +34,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from .. import __version__
-from ..services import cache, mes_bridge
+from ..services import cache, dossier_bridge, mes_bridge
 from ..services.errors import BridgeError
 from ..api.deps import require_token, settings_of
 from ..live import ops as live_ops
@@ -236,11 +236,13 @@ def vehicle(request: Request, vin: str) -> HTMLResponse:
     codes = mes_bridge.open_codes_for(dossier)
     bar = _vehicle_bar(vin, dossier)
     vehicle_notes = mes_bridge.notes(vin, target_kind="vehicle")["notes"]
+    live_status = _status_strip()
+    view = dossier_bridge.build_view(vin, dossier, live_status)
     response = _page(request, "vehicle.html", vin=vin, d=dossier, bar=bar,
                      open_codes=codes, live_panel=_live_panel_for(vin, bar["ecus"]),
                      notes_list=vehicle_notes, note_target_kind="vehicle",
                      note_target_id="", note_redirect=f"/v/{vin}", note_kind_locked=True,
-                     tab="dossier")
+                     tab="dossier", view=view, live_strip=live_status)
     _set_active_vehicle(response, vin)
     return response
 
