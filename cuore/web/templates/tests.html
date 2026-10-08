@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Tests — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('tests.css') }}">
+
+<h1>Tests</h1>
+<p class="lede">Every mechanic test that applies to this car, with this vehicle's
+  latest recorded result. "Recommended for this car" is ranked first against this
+  car's open codes and this job's open hypotheses -- the rest sit below, by
+  category. A result of PASS/FAIL that names a hypothesis is attached to it as
+  evidence automatically, the same way a job-page test row already does.</p>
+
+<div class="ts-summary" id="ts-summary" data-vin="{{ view.vin }}">
+  <span class="ts-summary-main">
+    {{ view.counts.pass + view.counts.fail + view.counts.inconclusive + view.counts.not_possible }}
+    of {{ view.total }} done
+  </span>
+  <span class="ts-summary-chip ts-chip-pass">{{ view.counts.pass }} pass</span>
+  <span class="ts-summary-chip ts-chip-fail">{{ view.counts.fail }} fail</span>
+  {% if view.counts.inconclusive %}<span class="ts-summary-chip ts-chip-inconclusive">{{ view.counts.inconclusive }} inconclusive</span>{% endif %}
+  {% if view.counts.not_possible %}<span class="ts-summary-chip ts-chip-not_possible">{{ view.counts.not_possible }} not possible</span>{% endif %}
+</div>
+
+<div class="ts-filters" id="ts-filters" role="toolbar" aria-label="Filter tests">
+  <button type="button" class="ts-filter-chip is-on" data-filter="all">All</button>
+  <button type="button" class="ts-filter-chip" data-filter="recommended">Recommended</button>
+  {% for cat in view.categories %}
+  <button type="button" class="ts-filter-chip" data-filter="cat:{{ cat }}">{{ cat.replace('_', ' ') }}</button>
+  {% endfor %}
+</div>
+
+<div class="ts-list" id="ts-list">
+  {% for t in view.tests %}
+  <div class="ts-row" id="test-{{ t.id }}" data-category="{{ t.category }}"
+       data-recommended="{{ '1' if t.recommended else '0' }}">
+    <div class="ts-row-head">
+      <span class="ts-row-name">{{ t.name }}</span>
+      <span class="chip ts-cat-chip">{{ t.category.replace('_', ' ') }}</span>
+      <span class="chip ts-state-chip">{{ t.car_state }}</span>
+      <span class="ts-duration">{{ t.duration_min }} min</span>
+      <span class="chip ts-result-chip ts-result-{{ t.latest_result.result }}"
+            data-role="result-chip">{{ t.latest_result.result.replace('_', ' ')|upper }}</span>
+    </div>
+
+    {% if t.recommended and t.why %}
+    <div class="ts-why">Recommended: {{ t.why|join('; ') }}</div>
+    {% endif %}
+
+    {% if t.blocker %}
+    <div class="ts-blocker">
+      Blocked: fuel level {{ t.blocker.level }}% is {{ t.blocker.direction }} the
+      {{ t.blocker.window[0] }}-{{ t.blocker.window[1] }}% EVAP verification window --
+      this test's result may not be meaningful until fuel level is back in range.
+    </div>
+    {% endif %}
+
+    {% if t.latest_result.result != "not_done" %}
+    <div class="ts-latest">
+      Latest: {{ t.latest_result.result.replace('_', ' ') }}
+      {% if t.latest_result.value is not none %}&middot; {{ t.latest_result.value }}{{ t.latest_result.unit }}{% endif %}
+      {% if t.latest_result.reason %}&middot; {{ t.latest_result.reason }}{% endif %}
+      {% if t.latest_result.when %}&middot; {{ t.latest_result.when }}{% endif %}
+      {% if t.latest_result.by %}&middot; {{ t.latest_result.by }}{% endif %}
+    </div>
+    {% endif %}
+
+    <details class="ts-details">
+      <summary>Details</summary>
+      <p class="ts-purpose">{{ t.purpose }}</p>
+      <p class="small muted">When to use: {{ t.when_to_use }}</p>
+      <p class="small"><b>Tools:</b> {{ t.tools|join(', ') }}</p>
+      <ol class="ts-procedure">
+        {% for step in t.procedure %}<li>{{ step }}</li>{% endfor %}
+      </ol>
+      {% if t.pass_criteria %}
+      <table class="ts-criteria">
+        <thead><tr><th>Parameter</th><th>Spec</th><th>Source</th><th>Confidence</th></tr></thead>
+        <tbody>
+          {% for pc in t.pass_criteria %}
+          <tr>
+            <td>{{ pc.parameter }}</td>
+            <td>{{ pc.spec }}{% if pc.unit %} {{ pc.unit }}{% endif %}</td>
+            <td class="small muted">{{ pc.source }}</td>
+            <td><span class="chip ts-conf-chip ts-conf-{{ pc.confidence|lower|replace('-', '_') }}">{{ pc.confidence }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      <p class="small"><b>A fail means:</b> {{ t.fail_means }}</p>
+      {% if t.hazards %}
+      <p class="small ts-hazards"><b>Hazards:</b> {{ t.hazards|join(', ') }}</p>
+      {% endif %}
+      {% if t.safety %}<p class="small muted">{{ t.safety }}</p>{% endif %}
+    </details>
+
+    <form class="ts-result-form" method="post"
+          action="/v/{{ view.vin }}/tests/{{ t.id }}/result"
+          data-vin="{{ view.vin }}" data-test="{{ t.id }}">
+      <div class="ts-buttons">
+        <button type="submit" class="ts-btn ts-btn-pass" name="result" value="pass">PASS</button>
+        <button type="submit" class="ts-btn ts-btn-fail" name="result" value="fail">FAIL</button>
+        <button type="submit" class="ts-btn ts-btn-sm" name="result" value="inconclusive">Inconclusive</button>
+        <button type="submit" class="ts-btn ts-btn-sm" name="result" value="not_possible">Not possible</button>
+      </div>
+      <div class="ts-extra" hidden>
+        {% if t.pass_criteria %}
+        <label class="ts-field">Value
+          <input type="number" step="any" name="value">
+          <input type="text" name="unit" class="ts-unit" placeholder="unit"
+                 value="{{ t.pass_criteria[0].unit }}">
+        </label>
+        {% endif %}
+        {% if view.open_hypotheses %}
+        <label class="ts-field">Hypothesis
+          <select name="hypothesis_id">
+            <option value="">(none)</option>
+            {% for h in view.open_hypotheses %}
+            <option value="{{ h.id }}"{% if t.systems and h.system == t.systems[0] %} selected{% endif %}>{{ h.text }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="ts-field">Supports
+          <select name="supports">
+            <option value="for">for</option>
+            <option value="against">against</option>
+          </select>
+        </label>
+        {% endif %}
+        <label class="ts-field">Reason <input type="text" name="reason"></label>
+        <button type="button" class="ts-btn ts-save" hidden>Save</button>
+      </div>
+    </form>
+  </div>
+  {% endfor %}
+</div>
+
+<script src="{{ static_url('tests.js') }}"></script>
+{% endblock %}

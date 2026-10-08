@@ -30,7 +30,7 @@
    /v/{vin}/dossier) drops into More. Live board was promoted out of More
    and into this visible row (after Codes) per the 2026-10-08 UX pass --
    six tabs now stay visible on a phone-width strip. #}
-{% set _visible = ("bench", "job", "codes", "liveboard", "systems", "report") %}
+{% set _visible = ("bench", "job", "codes", "liveboard", "tests", "systems", "report") %}
 {% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "parts", "media",
                  "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard") %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
@@ -61,6 +61,7 @@
   {{ vtab("job", "/v/" + bar.vin + "/job", _lbl("job", "Job")) }}
   {{ vtab("codes", "/v/" + bar.vin + "/codes", _lbl("codes", "Codes")) }}
   {{ vtab("liveboard", "/v/" + bar.vin + "/liveboard", _lbl("live_board", "Live")) }}
+  {{ vtab("tests", "/v/" + bar.vin + "/tests", _lbl("tests", "Tests")) }}
   {{ vtab("systems", "/v/" + bar.vin + "/systems", _lbl("systems", "Systems")) }}
   {{ vtab("report", "/v/" + bar.vin + "/report", _lbl("report", "Report")) }}
 

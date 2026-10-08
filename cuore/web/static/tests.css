@@ -1,0 +1,142 @@
+/* Tests -- the shop-floor mechanic-test catalogue (/v/{vin}/tests).
+ *
+ * Single column, 16px body text, 48px-tall buttons, true-black-friendly
+ * (reuses cuore.css's tokens throughout -- --ink/--ink-2/--ink-3,
+ * --surface/--surface-2, --rule/--rule-soft, --radius, --ok/--sev-chronic/
+ * --sev-returned for the result chips, --accent for the marque theme).
+ * Nothing new is invented here, this is additive chrome for one page, same
+ * posture as liveboard.css.
+ */
+
+/* ---------- summary strip ---------- */
+.ts-summary {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 10px 0; border-bottom: 1px solid var(--rule-soft);
+  font-size: 16px;
+}
+.ts-summary-main { font-weight: 650; color: var(--ink); }
+.ts-summary-chip {
+  padding: 3px 10px; border-radius: var(--radius); font-size: 13px;
+  border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-2);
+}
+.ts-chip-pass { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
+.ts-chip-fail { color: var(--sev-returned); border-color: var(--sev-returned); background: var(--sev-returned-bg); }
+.ts-chip-inconclusive { color: var(--sev-chronic); border-color: var(--sev-chronic); background: var(--sev-chronic-bg); }
+.ts-chip-not_possible { color: var(--ink-3); background: var(--surface-2); }
+
+/* ---------- filter chips ---------- */
+.ts-filters {
+  display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 0;
+}
+.ts-filter-chip {
+  min-height: 36px; padding: 4px 12px; border-radius: 999px;
+  border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-2);
+  font-size: 13px; cursor: pointer;
+}
+.ts-filter-chip.is-on { color: var(--ink); border-color: var(--accent, var(--ink-3)); background: var(--surface); font-weight: 650; }
+
+/* ---------- test rows ---------- */
+.ts-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 32px; }
+.ts-row {
+  border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface);
+  padding: 10px 12px; scroll-margin-top: 90px;
+}
+.ts-row[data-recommended="1"] { border-left: 3px solid var(--accent, var(--ok)); }
+
+.ts-row-head {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 16px;
+}
+.ts-row-name { font-weight: 650; color: var(--ink); flex: 1 1 auto; min-width: 0; }
+.ts-cat-chip, .ts-state-chip {
+  font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: var(--radius); background: var(--surface-2);
+  border: 1px solid var(--rule); color: var(--ink-3);
+}
+.ts-duration { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+
+.ts-result-chip {
+  font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  padding: 3px 9px; border-radius: var(--radius); border: 1px solid var(--rule);
+  background: var(--surface-2); color: var(--ink-3);
+}
+.ts-result-pass { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
+.ts-result-fail { color: var(--sev-returned); border-color: var(--sev-returned); background: var(--sev-returned-bg); }
+.ts-result-inconclusive { color: var(--sev-chronic); border-color: var(--sev-chronic); background: var(--sev-chronic-bg); }
+.ts-result-not_possible { color: var(--ink-3); background: var(--surface-2); }
+.ts-result-not_done { color: var(--ink-3); background: transparent; }
+
+.ts-why {
+  margin-top: 6px; font-size: 13px; color: var(--ok); overflow-wrap: anywhere;
+}
+.ts-blocker {
+  margin-top: 6px; padding: 6px 8px; border-radius: var(--radius);
+  background: var(--sev-chronic-bg); border: 1px solid var(--sev-chronic);
+  color: var(--sev-chronic); font-size: 13px;
+}
+.ts-latest {
+  margin-top: 6px; font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere;
+}
+
+/* ---------- details ---------- */
+.ts-details { margin-top: 8px; }
+.ts-details summary {
+  cursor: pointer; min-height: 36px; display: flex; align-items: center;
+  font-size: 13px; color: var(--ink-2);
+}
+.ts-purpose { font-size: 14px; color: var(--ink); }
+.ts-procedure { margin: 6px 0; padding-left: 22px; font-size: 14px; }
+.ts-procedure li { margin-bottom: 4px; }
+.ts-hazards { color: var(--sev-returned); }
+
+.ts-criteria { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+.ts-criteria th, .ts-criteria td {
+  text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--rule-soft);
+}
+.ts-criteria-wrap { overflow-x: auto; }
+.ts-conf-chip {
+  font-size: 10.5px; letter-spacing: .04em; padding: 1px 7px; border-radius: var(--radius);
+  border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-3);
+}
+.ts-conf-confirmed    { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
+.ts-conf-corroborated { color: var(--ink); border-color: var(--ink-3); }
+.ts-conf-single_source{ color: var(--sev-chronic); border-color: var(--sev-chronic); }
+.ts-conf-unknown      { color: var(--ink-3); }
+
+/* ---------- result form: two big 48px buttons + two smaller ones ---------- */
+.ts-result-form { margin-top: 10px; }
+.ts-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.ts-btn {
+  min-height: 48px; border-radius: var(--radius); border: 1px solid var(--rule);
+  background: var(--surface-2); color: var(--ink); font-size: 15px; font-weight: 650;
+  cursor: pointer; flex: 1 1 120px;
+}
+.ts-btn-pass { color: var(--ok); border-color: var(--ok); }
+.ts-btn-pass:hover, .ts-btn-pass.is-chosen { background: var(--ok-bg); }
+.ts-btn-fail { color: var(--sev-returned); border-color: var(--sev-returned); }
+.ts-btn-fail:hover, .ts-btn-fail.is-chosen { background: var(--sev-returned-bg); }
+.ts-btn-sm { flex: 1 1 100px; font-size: 13px; font-weight: 500; min-height: 44px; }
+.ts-btn-sm.is-chosen { border-color: var(--sev-chronic); color: var(--sev-chronic); }
+
+.ts-extra {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-top: 10px;
+  padding: 10px; border-radius: var(--radius); background: var(--surface-2);
+  border: 1px solid var(--rule);
+}
+.ts-field {
+  display: flex; flex-direction: column; gap: 2px; font-size: 12px;
+  color: var(--ink-2);
+}
+.ts-field input, .ts-field select {
+  min-height: 36px; font-size: 14px; padding: 4px 6px; border-radius: var(--radius);
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+}
+.ts-unit { width: 64px; margin-left: 4px; }
+.ts-save { min-height: 44px; flex: 0 0 auto; padding: 0 20px; }
+
+.ts-status { font-size: 13px; margin-top: 6px; }
+.ts-status.is-ok { color: var(--ok); }
+.ts-status.is-error { color: var(--sev-returned); }
+
+@media (max-width: 480px) {
+  .ts-btn { flex: 1 1 45%; }
+}
