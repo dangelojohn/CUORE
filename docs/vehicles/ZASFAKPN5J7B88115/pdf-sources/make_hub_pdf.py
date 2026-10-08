@@ -1,4 +1,4 @@
-"""One-page Service Hub sheet for the 2018 Stelvio 2.0T (cuore data, 2026-09-26)."""
+"""One-page Service Hub sheet for the 2018 Stelvio 2.0T (cuore data, refreshed 2026-10-07)."""
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
@@ -11,9 +11,9 @@ RULE, SHADE = colors.HexColor("#c9d1d6"), colors.HexColor("#f1f4f6")
 OPEN_BG, OK_BG = colors.HexColor("#fbeaea"), colors.HexColor("#e8f2ec")
 
 ss = getSampleStyleSheet()
-b = ParagraphStyle("b", parent=ss["Normal"], fontName="Helvetica", fontSize=7.4, leading=9.2, textColor=INK)
-bh = ParagraphStyle("bh", parent=b, fontName="Helvetica-Bold", fontSize=9, leading=11, textColor=ACCENT)
-sm = ParagraphStyle("sm", parent=b, fontSize=6.8, leading=8.2, textColor=MUTED)
+b = ParagraphStyle("b", parent=ss["Normal"], fontName="Helvetica", fontSize=7.0, leading=8.6, textColor=INK)
+bh = ParagraphStyle("bh", parent=b, fontName="Helvetica-Bold", fontSize=8.6, leading=10.4, textColor=ACCENT)
+sm = ParagraphStyle("sm", parent=b, fontSize=6.4, leading=7.6, textColor=MUTED)
 title = ParagraphStyle("t", parent=ss["Normal"], fontName="Helvetica-Bold", fontSize=15, leading=18, textColor=INK)
 
 # (section, key specs, last known service, open items / flags, cuore page)
@@ -25,12 +25,14 @@ CARDS = [
      "Record the oil change details in cuore (brand, filter, torques applied, condition).",
      "/oil-change"),
     ("Routine maintenance",
-     "Owner's manual (CONFIRM.): air filter 30k mi; cabin filter 20k mi / 2 yr; spark plugs 30k mi (mileage only), "
-     "NGK 90219 / Mopar 68292346AA (CORROB.), 19.5 Nm (CORROB.); coolant OAT MS.90032, 8.8 L engine circuit + separate "
-     "intercooler circuit; brake fluid DOT 4 MS.90039 every 2 yr; drive belt 36k mi / 4 yr; A/C R-1234yf. "
-     "PCV, throttle body, boost hoses: UNKNOWN.",
+     "Owner's manual (CONFIRM.): air filter and spark plugs due every 30k mi; car is near 88,400 mi (142,290 km), "
+     "approaching the 90k mi mark for both. Spark plug NGK 90219 / Mopar 68292346AA (CORROB.), 19.5 Nm. Cabin "
+     "filter 20k mi / 2 yr. Coolant OAT MS.90032, 8.8 L engine circuit + separate intercooler circuit, 150k mi / "
+     "15 yr. Brake fluid DOT 4 MS.90039 every 2 yr (CONFIRM.). Drive belt 36k mi / 4 yr (18k mi / 2 yr severe "
+     "duty). A/C R-1234yf, annual. PCV, throttle body, boost hoses: UNKNOWN.",
      "Oil-change reset only (MES 2026-09-15). No maintenance items recorded yet.",
-     "Record a baseline visit (what is known to be done, with odometer) so due dates can be calculated.",
+     "Record a baseline visit (what is known, with odometer) so due dates can be calculated, unless records show "
+     "these were already done. Air filter, spark plugs and drive belt are likely due soon.",
      "/maintenance"),
     ("Brakes, wheels & tyres",
      "Front rotor 330 x 28 mm new, 25.5 mm min (SINGLE); rear min UNKNOWN (read cast MIN TH). DOT 4, MS.90039, change every 2 yr (CONFIRM.). "
@@ -62,16 +64,23 @@ CARDS = [
      "torques UNKNOWN (fabricated values withdrawn in fact-check).",
      "No record.", "", "/drivetrain/mounts"),
     ("EVAP & emissions",
-     "P0455, P0456, P0440 chronic. System sealed (3 smoke tests); canister, ESIM, cap, filter, purge valve all "
-     "new. ECM software 52170619 / P235QB39.",
-     "Codes cleared 2026-09-25 20:27; tests not re-run yet.",
-     "Next: wiTECH flash check, then Test A (ESIM switch in wiTECH). Recalls 25V586000 (fuel pump) and "
-     "18V636000 (2.0L ECM software) to check.",
+     "P0455, P0456, P0440 chronic since 2025-09. System sealed (3 smoke tests); canister, ESIM, cap, filter, "
+     "purge valve all new. ECM software 52170619 / P235QB39. P0455 / P0440 freeze frames: fuel 94% / 92% (EVAP "
+     "monitor needs 15-85%).",
+     "P0440 recurred in the 2026-09-28 and 09-29 scans after earlier clears; cleared again 2026-09-29 10:46 "
+     "(SCAN_2609291046). The 2026-10-04 clean session/scan came after that clear, before any monitor could "
+     "re-run: repair is UNVERIFIED, not confirmed.",
+     "wiTECH flash check (TSB 18-030-17), then Test A (ESIM switch). Check recalls 25V586000 (fuel pump) and "
+     "18V636000 (ECM software). Do not clear codes again; verify with a readiness read after drives with fuel "
+     "15-85%.",
      "/tree, /dashboard"),
     ("Network / body / ADAS",
-     "BCM U1711/U1712/U1713, DASM C141C and C141B, B1176 window riser, RFHUB B1040 (likely bystander).",
-     "Chronic since 2026-06-07.",
-     "Grey-cable read of ABS/HALF; network-cascade fault tree first steps.",
+     "Network: U0100 (ECM comms), U1713 (BCM), B1040 (RFHUB), C141B (DASM camera) -- chronic since 2026-06/"
+     "08-27. Separate: B1176 (rear left window riser, BCM), chronic since 2026-08-27.",
+     "Network codes present in the 2026-09-28 scan, gone by 2026-09-29: one power/bus event, not per-module "
+     "faults. B1176 persisted through 2026-09-29 -- a separate, unresolved body fault.",
+     "Confirm network codes stay clear next scan. B1176: grey-cable read of ABS/HALF, then the window-riser "
+     "fault tree (separate from the network-cascade steps).",
      "/tree"),
 ]
 
@@ -79,8 +88,8 @@ rows = [[Paragraph(h, ParagraphStyle("hh", parent=b, fontName="Helvetica-Bold"))
          ("Section", "Key specs (confidence)", "Last known service", "Open items", "cuore page")]]
 st = [("GRID", (0, 0), (-1, -1), 0.5, RULE), ("VALIGN", (0, 0), (-1, -1), "TOP"),
       ("BACKGROUND", (0, 0), (-1, 0), SHADE),
-      ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-      ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]
+      ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+      ("TOPPADDING", (0, 0), (-1, -1), 2), ("BOTTOMPADDING", (0, 0), (-1, -1), 2)]
 for i, (name, specs, last, opens, page) in enumerate(CARDS, start=1):
     rows.append([Paragraph(name, bh), Paragraph(specs, b), Paragraph(last, b),
                  Paragraph(opens or "-", b), Paragraph(f"/v/&lt;VIN&gt;{page}" if page.startswith("/") and "," not in page
@@ -92,7 +101,7 @@ t = Table(rows, colWidths=[1.05 * inch, 2.85 * inch, 1.35 * inch, 1.55 * inch, 0
 t.setStyle(TableStyle(st))
 
 story = [Paragraph("Service Hub - 2018 Alfa Romeo Stelvio 2.0T", title),
-         Paragraph("VIN ZASFAKPN5J7B88115  |  about 142,290 km  |  Q4 AWD, ZF 8HP  |  cuore, 2026-09-26", sm),
+         Paragraph("VIN ZASFAKPN5J7B88115  |  about 142,290 km  |  Q4 AWD, ZF 8HP  |  cuore, 2026-10-07", sm),
          Spacer(1, 6), t, Spacer(1, 6),
          Paragraph("Confidence: CONFIRM. = manufacturer document; CORROB. = two independent sources; SINGLE = one "
                    "source; UNKNOWN = use the FCA service manual (TechAuthority). Torque data fact-checked "

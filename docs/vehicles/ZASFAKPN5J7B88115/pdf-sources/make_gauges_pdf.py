@@ -14,9 +14,11 @@ SHOT = os.path.join(HERE, "gauges_shot.png")
 OUT = r"C:\Users\User\Desktop\Stelvio Gauges (1 page).pdf"
 
 # toolbar + parameter table, then the graph, from the demo-mode screenshot
+# (re-measured 2026-10-07 against a fresh 1300x1350 capture -- the page header
+# grew a page-tabs row since the 2026-09-26 crop, shifting everything below it)
 im = PILImage.open(SRC).convert("RGB")
-a, g = im.crop((44, 312, 1256, 760)), im.crop((44, 958, 1256, 1268))
-comb = PILImage.new("RGB", (1212, a.height + g.height + 6), "white")
+a, g = im.crop((36, 305, 1264, 790)), im.crop((36, 1003, 1264, 1297))
+comb = PILImage.new("RGB", (1228, a.height + g.height + 6), "white")
 comb.paste(a, (0, 0)); comb.paste(g, (0, a.height + 6)); comb.save(SHOT)
 
 INK, MUTED, ACCENT = colors.HexColor("#1b2227"), colors.HexColor("#5b6770"), colors.HexColor("#9e1b21")
@@ -48,14 +50,19 @@ shot = Image(SHOT, width=4.45 * inch, height=4.45 * inch * comb.height / comb.wi
 side = [P("Open it", h),
         P("cuore: <b>/v/ZASFAKPN5J7B88115/gauges</b> (the <b>Gauges</b> tab). Full-screen: <b>/gauges/hud</b>."),
         Spacer(1, 3), P("Data sources", h),
-        P("<b>Live car</b>: starts a read-only poll session (OBD Mode 01 and UDS 0x22 reads, CAN-C only). "
-          "While it runs, clears and actuator tests are refused."),
-        P("<b>Replay</b>: plays a cuore or MES CSV recording at 0.25x to 16x, with seek. Marked as replay."),
+        P("<b>Live car</b>: starts a read-only poll session (OBD Mode 01 and UDS 0x22 reads, CAN-C modules only). "
+          "While it runs, clears and actuator tests are refused. Custom channels are polled the same way, CAN-C "
+          "modules only."),
+        P("<b>Monitor DTCs</b> (Live only): reads stored and pending codes (Mode 03/07) every 10 s, read-only, "
+          "alongside the normal poll. Each change is drawn as a marker on every graph, written as a TAG row if "
+          "recording, and logged to Alarms &amp; markers."),
+        P("<b>Replay</b>: plays a cuore or MES CSV recording at 0.25x to 16x, with seek. TAG rows in the "
+          "recording replay as graph markers too. Marked as replay."),
         P("<b>Demo</b>: simulated values under a yellow <b>DEMO DATA - NOT FROM THE CAR</b> banner."),
         P("Replay, demo and snapshots are never used as evidence from the car.", sm),
         Spacer(1, 3), P("Keyboard", h),
         P("<b>Space</b> pause all &nbsp; <b>1-9</b> page tabs &nbsp; <b>R</b> record &nbsp; "
-          "<b>S</b> snapshot &nbsp; <b>E</b> edit layout")]
+          "<b>S</b> snapshot &nbsp; <b>E</b> edit layout &nbsp; (Mark has no hotkey: use the button)")]
 top = Table([[shot, side]], colWidths=[4.6 * inch, 2.9 * inch])
 top.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
 
@@ -91,28 +98,36 @@ controls = table([
     ["Connect / Stop, Record, Snapshot",
      "Record writes an MES-format CSV that the existing log tools read. Snapshot saves every value on the page as one row, "
      "labelled with its source."],
+    ["Mark, markers",
+     "Mark button drops a marker now. A trigger's mark action, a Monitor DTCs change, or a replay TAG row drops one too. "
+     "Every marker is drawn on every graph and logged with time and text to Alarms &amp; markers."],
     ["Pause all, time window, graph mouse",
      "Window 10 s to 10 min. On a paused graph: wheel to zoom, drag to pan, double-click to reset. Hover shows a cursor "
      "linked across graphs."],
     ["Sound, Alarms",
      "Warn and alarm colours per widget; with Sound on, a beep and a spoken warning. The Alarms drawer logs every event "
      "with time and value."],
-    ["Triggers", "Rules such as boost crosses above a value, then start recording; or beep, speak, snapshot, mark. "
-                 "Each rule has a cooldown."],
+    ["Triggers", "Rules on a channel threshold (crosses above/below, &gt;, &lt;, ==, !=) or on a DTC "
+                 "({\"dtc\": \"any\"} or a code, firing only on a newly added code) -- start or stop recording, "
+                 "snapshot, beep, speak or mark. Each rule has a cooldown."],
     ["Custom channels", "Torque-style formulas on a module identifier, e.g. (A*256+B)/10-40, or expressions over other "
-                        "channels. Checked before saving."],
+                        "channels. Checked before saving, then polled live like a built-in channel -- CAN-C modules "
+                        "only."],
 ], [2.2 * inch, 5.3 * inch])
 
-warn = Table([[P("<b>Bands and limits:</b> built-in layouts only show warn and alarm bands where a value is sourced. "
-                 "Unknown limits are left blank rather than guessed. Check any band you add against the service "
-                 "manual (TechAuthority).")]], colWidths=[7.5 * inch])
+warn = Table([[P("<b>Bands and limits:</b> a built-in layout's warn/alarm bands come from mes.known_good, this car's "
+                 "sourced reference research. Only a one-sided limit (e.g. coolant or gearbox fluid too hot) becomes "
+                 "a warn/alarm band. An idle-only or two-sided range (e.g. idle RPM, O2 switching) shows as a note "
+                 "with its confidence instead. UNKNOWN channels (EVAP purge duty, EVAP vapour pressure, peak boost, "
+                 "tyre pressures) stay blank, never guessed. Check any band against the service manual "
+                 "(TechAuthority).")]], colWidths=[7.5 * inch])
 warn.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), WARN),
                           ("LINEBEFORE", (0, 0), (0, -1), 3, colors.HexColor("#c07a1c")),
                           ("LEFTPADDING", (0, 0), (-1, -1), 6), ("TOPPADDING", (0, 0), (-1, -1), 3),
                           ("BOTTOMPADDING", (0, 0), (-1, -1), 3)]))
 
 story = [P("Gauges - live data for the 2018 Alfa Romeo Stelvio 2.0T", title),
-         P("VIN ZASFAKPN5J7B88115  |  cuore Gauges page  |  screenshot shows DEMO data  |  2026-09-26", sm),
+         P("VIN ZASFAKPN5J7B88115  |  cuore Gauges page  |  screenshot shows DEMO data  |  2026-10-07", sm),
          Spacer(1, 5), top, Spacer(1, 5), layouts, Spacer(1, 5), widgets, Spacer(1, 5), controls,
          Spacer(1, 5), warn]
 
