@@ -81,6 +81,70 @@ _FAMILY_TITLES = {
     "network": "Network: one power/bus event, not {n} separate faults",
 }
 
+#: EVAP was the first job this cuore app diagnosed, so it (and the network
+#: cascade) got a hand-curated ``FAMILY_STEPS`` table above. Every other
+#: family this car's history can throw -- misfire, fuel trim, cooling, body,
+#: chassis, ADAS, or anything else SAE's DTC-prefix convention covers --
+#: still needs an open-work card; :func:`_build_open_work` builds those
+#: generically, grouping codes by the family below and pulling steps live
+#: from ``mes_bridge.fault_tree`` (``mes.faulttree.tree_for`` -- the
+#: hand-written tree when one exists, else a sourced generated one) instead
+#: of a second hand-maintained step table. Patterns are checked in order;
+#: the first match wins. Generalised from the same SAE J2012 prefix-range
+#: convention ``mes.systems._sae_fallback`` already uses.
+_GENERIC_FAMILY_RULES: tuple[tuple[re.Pattern, str, str], ...] = (
+    (re.compile(r"^P030[0-9]$"), "misfire", "Misfire"),
+    (re.compile(r"^P017[0-5]$"), "fuel_trim", "Fuel trim"),
+    (re.compile(r"^P01(0[0-9]|1[0-9]|2[0-9])$"), "cooling",
+     "Cooling / intake sensors"),
+    (re.compile(r"^P0[67][0-9]{2}$"), "engine_management", "Engine management"),
+    (re.compile(r"^P0[89][0-9]{2}$"), "transmission_driveline",
+     "Transmission / driveline"),
+    (re.compile(r"^C(141B|141C)$"), "adas", "ADAS (camera/radar)"),
+    (re.compile(r"^C[0-9A-F]{4}$"), "chassis", "Chassis (brakes/steering/suspension)"),
+    (re.compile(r"^B[0-9A-F]{4}$"), "body", "Body / comfort"),
+    (re.compile(r"^U[0-9A-F]{4}$"), "network", "Network / communication"),
+    (re.compile(r"^P[0-9A-F]{4}$"), "powertrain_other", "Powertrain (other)"),
+)
+
+
+def _generic_family_for(base: str) -> tuple[str, str] | None:
+    """``(family_key, family_label)`` for a code with no hand-curated
+    ``FAMILY_STEPS`` entry, or ``None`` for something that isn't a
+    recognisable P/B/C/U code at all."""
+    for pattern, key, label in _GENERIC_FAMILY_RULES:
+        if pattern.match(base):
+            return key, label
+    return None
+
+
+def _history_codes(dossier: dict[str, Any]) -> set[str]:
+    """Every base code present anywhere in this car's own history -- the
+    same ``chronic``/``returned_after_clear``/``seen_once`` buckets the code
+    table reads -- so a generic open-work card can be offered for a family
+    the TSB family-finding rule above doesn't recognise."""
+    history = dossier.get("history") or {}
+    out: set[str] = set()
+    for bucket in ("chronic", "returned_after_clear", "seen_once"):
+        for rec in history.get(bucket, []):
+            b = _base(rec.get("dtc", ""))
+            if b:
+                out.add(b)
+    return out
+
+
+def _generic_tree_steps(code: str, vin: str) -> list[dict[str, Any]]:
+    """The first tree's steps for one code, via ``mes_bridge.fault_tree`` --
+    the hand-written tree when ``mes.faulttree.tree_for`` has one, else its
+    sourced generated tree. Never raises: a lookup failure just means no
+    generic card gets built for that code."""
+    try:
+        result = mes_bridge.fault_tree(code, vin=vin)
+    except Exception:
+        return []
+    trees = result.get("trees") or []
+    return trees[0].get("steps") or [] if trees else []
+
 
 # --- small shared helpers --------------------------------------------------
 
@@ -382,12 +446,14 @@ def _build_open_work(vin: str, dossier: dict[str, Any],
     findings = tsb.get("family_findings") or []
     per_code = tsb.get("per_code") or {}
     cards = []
+    covered_codes: set[str] = set()
     for f in findings:
         family = f.get("family") or ""
         steps_def = FAMILY_STEPS.get(family)
         if not steps_def:
             continue  # no checklist table for this family yet
         codes = [c.upper() for c in (f.get("codes") or [])]
+        covered_codes.update(codes)
         steps = []
         done = 0
         for s in steps_def:
@@ -407,6 +473,53 @@ def _build_open_work(vin: str, dossier: dict[str, Any],
             "family": family, "title": title, "codes": codes, "steps": steps,
             "refs": _family_refs(codes, per_code, f.get("reading", "")),
             "progress": {"done": done, "total": len(steps_def)},
+        })
+
+    # Every other family this car's own history shows, grouped by the
+    # generic SAE-range classification above, with steps pulled live from
+    # mes.faulttree via mes_bridge.fault_tree -- so EVAP keeps being the
+    # richest, hand-curated example, but a misfire, fuel-trim, cooling,
+    # body, chassis or ADAS code (or any other family) still gets a
+    # sourced, actionable card instead of nothing.
+    remaining = sorted(_history_codes(dossier) - covered_codes)
+    groups: dict[str, list[str]] = {}
+    labels: dict[str, str] = {}
+    for code in remaining:
+        fam = _generic_family_for(code)
+        if fam is None:
+            continue
+        key, label = fam
+        groups.setdefault(key, []).append(code)
+        labels[key] = label
+    for family_key in sorted(groups):
+        codes = sorted(set(groups[family_key]))
+        tree_steps = _generic_tree_steps(codes[0], vin)[:6]
+        if not tree_steps:
+            continue
+        steps = []
+        done = 0
+        for i, s in enumerate(tree_steps):
+            step_id = f"{family_key}-{i + 1}"
+            st = checklist.get(step_id) or {}
+            is_done = bool(st.get("done"))
+            done += int(is_done)
+            text = s.get("title") or s.get("test") or "Step"
+            if s.get("test") and s.get("test") != text:
+                text = f"{text}: {s['test']}"
+            steps.append({
+                "id": step_id, "text": text, "ref": s.get("source"),
+                "ref_href": None,
+                "done": is_done, "done_at": st.get("done_at"),
+                "done_by": st.get("done_by"),
+            })
+        label = labels.get(family_key, family_key)
+        title = (f"{label}: one open issue" if len(codes) == 1
+                 else f"{label}: {len(codes)} codes, one system")
+        cards.append({
+            "family": family_key, "title": title, "codes": codes,
+            "steps": steps, "refs": [],
+            "progress": {"done": done, "total": len(steps)},
+            "generic": True,
         })
     return cards
 

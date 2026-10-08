@@ -16,13 +16,15 @@ does the validation.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
-from . import dossier_bridge, mes_bridge, timeline_bridge
+from . import dossier_bridge, mes_bridge, timeline_bridge, tools_kb_bridge
 from .errors import BadRequest, NotFound
 
 from mes import jobs as jobs_mod  # noqa: E402
+from mes import tools_kb  # noqa: E402
 
 try:
     from . import electrical_bridge
@@ -134,12 +136,92 @@ def _network_suggestions(view: dict[str, Any]) -> list[dict[str, Any]]:
                          "this fault tree cites before chasing individual codes."}]
 
 
+#: EVAP and network each got a hand-written hypothesis builder above,
+#: because they're this app's first, richest examples. Every other family
+#: dossier_bridge's generic open-work builder can produce (misfire,
+#: fuel_trim, cooling, body, chassis, adas, etc.) still deserves a
+#: hypothesis per code -- built the same way, from real evidence, just
+#: without a bespoke pair of ESIM/calibration-style hypotheses hand-written
+#: for it. Skipped here so the two curated builders above keep owning their
+#: own families rather than being duplicated.
+_CURATED_FAMILIES = {"EVAP", "network"}
+
+
+def _hypothesis_for_code(family: str, code: str,
+                         steps: list[dict[str, Any]]) -> tuple[str, str]:
+    """``(hypothesis text, next_test)`` for one code, built only from the
+    real steps its own generated fault tree already produced -- see
+    ``dossier_bridge._generic_tree_steps`` (``mes.faulttree.tree_for``).
+    Never invents a branch beyond re-labelling a real step's own text."""
+    swap_step = next(
+        (s for s in steps if "swap" in (s.get("text") or "").lower()), None)
+    if family == "misfire":
+        m = re.match(r"^P030([1-4])$", code)
+        cyl = f" cylinder {m.group(1)}" if m else ""
+        text = f"{code}: coil or plug{cyl} (swap test)"
+        next_test = swap_step["text"] if swap_step else (
+            steps[0]["text"] if steps else "")
+        return text, next_test
+    lead = swap_step or (steps[0] if steps else None)
+    if lead is None:
+        return f"{code}: {family} fault", ""
+    short = (lead["text"].split(":", 1)[0] if ":" in lead["text"]
+             else lead["text"])
+    return f"{code}: {short}", lead["text"]
+
+
+def _generic_family_suggestions(vin: str, view: dict[str, Any]
+                                ) -> list[dict[str, Any]]:
+    """One hypothesis per code for every open-work family dossier_bridge
+    generated generically (i.e. everything that isn't EVAP/network), each
+    pre-filled with real evidence: freeze frames and returned-after-clear
+    history for that exact code, logged-done steps from the same card, and
+    any bulletin that names the code -- the same evidence_for/against
+    discipline as the EVAP/network builders, just applied to whichever
+    family this car's own history actually has open."""
+    freeze_frames = view.get("freeze_frames", [])
+    codes_hist = view.get("codes", [])
+    bulletins = view.get("bulletins", [])
+    out: list[dict[str, Any]] = []
+    for card in view.get("open_work", []):
+        family = card.get("family") or ""
+        if family in _CURATED_FAMILIES or not card.get("generic"):
+            continue
+        steps = card.get("steps", [])
+        done_steps = [s for s in steps if s.get("done")]
+        for code in card.get("codes", []):
+            evidence_for = [
+                _ref("freeze_frame", f["code"], f"{f['code']} freeze frame")
+                for f in freeze_frames if f.get("code", "").startswith(code)
+            ]
+            evidence_for += [
+                _ref("inspection", s["id"], f"{s['text']} -- logged done")
+                for s in done_steps
+            ]
+            evidence_for += [
+                _ref("bulletin", b["id"], f"{b['id']}: {b.get('title', '')}")
+                for b in bulletins if code in (b.get("codes") or [])
+            ]
+            evidence_for += [
+                _ref("code", r["code"],
+                     f"{r['code']} returned after clear ({r.get('last_seen_short')})")
+                for r in codes_hist
+                if r.get("code") == code and r.get("bucket") == "returned_after_clear"
+            ]
+            text, next_test = _hypothesis_for_code(family, code, steps)
+            out.append({"text": text, "system": family,
+                       "evidence_for": evidence_for, "evidence_against": [],
+                       "next_test": next_test})
+    return out
+
+
 def suggested_hypotheses(vin: str, view: dict[str, Any]) -> list[dict[str, Any]]:
     """Hypotheses this car's own fault tree/bulletins already point at, each
     pre-filled with real evidence_for/against refs -- never invented. The
     mechanic adds whichever apply via the job page's form; nothing here
     writes anything."""
-    return _evap_suggestions(vin, view) + _network_suggestions(view)
+    return (_evap_suggestions(vin, view) + _network_suggestions(view)
+           + _generic_family_suggestions(vin, view))
 
 
 # --- gathering the rest of the stepper's "auto-gathered evidence" --------
@@ -205,6 +287,38 @@ def _systems_chains(vin: str) -> list[dict[str, Any]]:
     return data.get("chains", [])
 
 
+# --- tools for this job: recommend + what was learned last time ----------
+
+#: Every job/step key ``mes.tools_kb`` knows, for the Job page's "job type
+#: (for tool recommendations)" picker -- built from JOB_TOOLS itself so a
+#: new step key added there shows up here with no second place to update.
+TOOLS_STEP_CHOICES: tuple[str, ...] = tuple(tools_kb.JOB_TOOLS.keys())
+
+
+def _infer_tools_step_key(view: dict[str, Any]) -> str:
+    """A reasonable default job/step key for this case's own evidence --
+    never a guess at a *size* or *tool*, just which already-tabulated
+    step's tool list is most likely relevant, so the mechanic sees
+    something useful before touching the picker. Falls back to
+    "diagnostics", which is always a safe, honest default."""
+    families = {c.get("family") for c in view.get("open_work", [])}
+    if "EVAP" in families:
+        return "evap_smoke_test"
+    if "network" in families or "NETWORK" in families:
+        return "network_voltage_drop"
+    return "diagnostics"
+
+
+def tools_panel(step: str, vin: str) -> dict[str, Any]:
+    """The merged recommend+learned payload the Job/Maintenance pages
+    render through ``_tools_panel.html``."""
+    return tools_kb_bridge.recommend_with_learning(step, vin=vin)
+
+
+def add_tool_usage(vin: str, step: str, job_id: str, **kw: Any) -> dict[str, Any]:
+    return tools_kb_bridge.add_usage(vin, step, job_id=job_id, **kw)
+
+
 # --- job CRUD, thin pass-through to mes.jobs ------------------------------
 
 
@@ -218,7 +332,24 @@ def open_job(vin: str, *, technician: str = "", complaint: str = "") -> dict[str
         raise BadRequest(str(exc)) from exc
 
 
-def close_job(job_id: str, outcome: str, **kw: Any) -> dict[str, Any]:
+def close_job(job_id: str, outcome: str, *, tools_review_skip_reason: str = "",
+             **kw: Any) -> dict[str, Any]:
+    """Close a job -- gated on the mandatory "tools used" review: a job
+    cannot close until :func:`add_tool_usage` has recorded a review against
+    it, or the mechanic explicitly skips the review with a stated reason
+    (recorded as a job action, so the handover record shows it was a
+    deliberate skip, not an omission)."""
+    job = jobs_mod.get(job_id)
+    if job is None:
+        raise BadRequest(f"no job {job_id!r}")
+    skip_reason = (tools_review_skip_reason or "").strip()
+    reviewed = tools_kb_bridge.has_review(job["vin"], job_id)
+    if not reviewed and not skip_reason:
+        raise BadRequest(
+            "Tools used review is required before closing this job -- fill "
+            "it out at step 7, or explicitly skip it with a reason.")
+    if skip_reason and not reviewed:
+        jobs_mod.add_action(job_id, "note", f"Tools-used review skipped: {skip_reason}")
     try:
         return jobs_mod.close(job_id, outcome, **kw)
     except ValueError as exc:
@@ -282,10 +413,15 @@ def add_suggested_hypothesis(job_id: str, suggestion: dict[str, Any]) -> dict[st
 # --- the one read entry point ---------------------------------------------
 
 
-def build_job_view(vin: str, job_id: Optional[str] = None) -> dict[str, Any]:
+def build_job_view(vin: str, job_id: Optional[str] = None, *,
+                   tools_step: Optional[str] = None) -> dict[str, Any]:
     """Everything the Job page needs, computed once. ``job`` is ``None`` when
     this VIN has no matching job yet (job_id given but not found raises
-    NotFound instead, since that is a bad link, not an empty state)."""
+    NotFound instead, since that is a bad link, not an empty state).
+
+    ``tools_step`` picks which ``mes.tools_kb`` job/step key the "Tools for
+    this step" panel (steps 3 and 5) and the mandatory review (step 7) use;
+    left unset, it is inferred from this case's own open-work family."""
     vin = (vin or "").strip()
     if not vin:
         raise BadRequest("a VIN is required")
@@ -314,6 +450,14 @@ def build_job_view(vin: str, job_id: Optional[str] = None) -> dict[str, Any]:
     existing_texts = {h["text"] for h in (job or {}).get("hypotheses", [])}
     suggestions = [s for s in suggestions if s["text"] not in existing_texts]
 
+    step_key = (tools_step or "").strip() or _infer_tools_step_key(dossier_view)
+    try:
+        panel = tools_panel(step_key, vin)
+    except Exception:  # noqa: BLE001 -- the job page must still render
+        panel = {"step": step_key, "tools": [], "learned": {}}
+
+    reviewed = bool(job) and tools_kb_bridge.has_review(vin, job["id"])
+
     return {
         "vin": vin,
         "job": job,
@@ -328,9 +472,14 @@ def build_job_view(vin: str, job_id: Optional[str] = None) -> dict[str, Any]:
         "dealer_results": _dealer_results(vin),
         "electrical_inspections": _electrical_inspections(vin),
         "systems_chains": _systems_chains(vin),
+        "tools_step_key": step_key,
+        "tools_step_choices": TOOLS_STEP_CHOICES,
+        "tools_panel": panel,
+        "tools_reviewed": reviewed,
     }
 
 
 __all__ = ["build_job_view", "suggested_hypotheses", "open_job", "close_job",
           "add_hypothesis", "set_hypothesis", "add_action", "attach",
-          "get_job", "add_suggested_hypothesis"]
+          "get_job", "add_suggested_hypothesis", "TOOLS_STEP_CHOICES",
+          "tools_panel", "add_tool_usage"]

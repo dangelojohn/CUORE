@@ -53,9 +53,14 @@ check("P1CEA routes to its own tree",
 both = faulttree.evaluate(["P0456", "P1CEA"])
 check("both trees + ordering note when leak and flow codes coexist",
       len(both["trees"]) == 2 and "ordering_note" in both)
-miss = faulttree.evaluate(["P0300"])
-check("uncovered code errors and lists what exists",
+miss = faulttree.evaluate([])
+check("no codes at all errors and lists what exists",
       "error" in miss and miss["available"])
+generic = faulttree.evaluate(["P0300"])
+check("a code with no hand-written tree now gets a generic one instead of "
+      "an error",
+      "error" not in generic and generic["trees"]
+      and generic["trees"][0]["generic"] is True)
 
 print("=== network cascade tree ===")
 net_codes = ["U1711-2F", "U1712-2F", "U1713-2F", "U1716-2F", "U2054-87",

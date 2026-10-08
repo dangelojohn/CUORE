@@ -26,8 +26,11 @@ Confidence levels, strongest first:
 Lookup is by exact code first (failure-type byte stripped, same rule as
 ``mes.knowledge.base_code``), then by family when the exact code is not
 tabulated: any ``U`` code falls back to the generic network-fault entry, any
-``P03xx`` falls back to the generic misfire entry. Everything else with no
-exact entry returns ``None`` -- a missing answer, not a wrong one.
+``P03xx`` falls back to the generic misfire entry. Any other properly-formed
+P/B/C/U code falls back further still, to a generic SAE-prefix-letter entry
+(``UNKNOWN`` confidence, honest "not established" text, never invented) --
+so ``lookup`` only returns ``None`` for something that isn't a P/B/C/U code
+at all.
 """
 
 from __future__ import annotations
@@ -291,6 +294,69 @@ _CODES: dict[str, dict[str, Any]] = {
 }
 
 
+#: Any P/B/C/U code with no exact entry and no family match above still
+#: deserves an honest answer rather than nothing at all -- the generic SAE
+#: J2012 prefix-letter convention (CONFIRMED meaning: what the letter
+#: itself always designates), with every drivability claim left UNKNOWN
+#: rather than guessed. This is the last-resort fallback, checked after
+#: every more specific entry/family above.
+_SAE_LETTER_SOURCE = "SAE J2012 DTC-prefix convention (generic, not vehicle-specific)"
+
+_SAE_GENERIC_BY_LETTER: dict[str, dict[str, Any]] = {
+    "P": {
+        "feel": ("Powertrain code (engine/transmission). What a driver "
+                "would notice for this specific code is not established in "
+                "any source checked -- it can range from completely "
+                "invisible to a rough idle, hesitation or reduced power "
+                "depending on the fault."),
+        "expect": ["mil_on"],
+        "not_expected": [],
+    },
+    "B": {
+        "feel": ("Body code (a body-electrical module or comfort/"
+                "convenience feature, not the engine or drivetrain). What a "
+                "driver would notice for this specific code is not "
+                "established in any source checked -- typically a feature "
+                "malfunctioning rather than a drivability change."),
+        "expect": ["other"],
+        "not_expected": ["rough_idle", "hesitation", "loss_of_power", "hard_start"],
+    },
+    "C": {
+        "feel": ("Chassis code (brakes, steering, suspension or a related "
+                "chassis system). What a driver would notice for this "
+                "specific code is not established in any source checked."),
+        "expect": ["warning_message"],
+        "not_expected": [],
+    },
+    "U": {
+        "feel": ("Network/communication code. What a driver would notice "
+                "for this specific code is not established in any source "
+                "checked -- see the network-family fallback this module "
+                "already uses for most U-codes."),
+        "expect": ["warning_message"],
+        "not_expected": ["rough_idle", "hesitation", "loss_of_power", "hard_start"],
+    },
+}
+
+
+def _sae_generic_fallback(base: str) -> Optional[dict[str, Any]]:
+    """Last-resort generic entry by SAE prefix letter alone, so ``lookup``
+    never returns ``None`` for a properly-formed P/B/C/U code -- honestly
+    marked ``UNKNOWN`` rather than invented."""
+    if not base:
+        return None
+    letter = base[0]
+    tmpl = _SAE_GENERIC_BY_LETTER.get(letter)
+    if tmpl is None:
+        return None
+    out = dict(tmpl)
+    out["mil"] = "unknown"
+    out["notes"] = _UNKNOWN_NOTE
+    out["confidence"] = UNKNOWN
+    out["source"] = _SAE_LETTER_SOURCE
+    return out
+
+
 def _family_fallback(base: str) -> Optional[dict[str, Any]]:
     if not base:
         return None
@@ -333,11 +399,17 @@ def lookup(code: str, include_siblings: bool = False) -> Optional[dict[str, Any]
         out["matched"] = "exact"
     else:
         family = _family_fallback(base)
-        if family is None:
-            return None
-        out = dict(family)
-        out["code"] = base
-        out["matched"] = ("family:network" if base[0] == "U" else "family:misfire")
+        if family is not None:
+            out = dict(family)
+            out["code"] = base
+            out["matched"] = ("family:network" if base[0] == "U" else "family:misfire")
+        else:
+            generic = _sae_generic_fallback(base)
+            if generic is None:
+                return None
+            out = generic
+            out["code"] = base
+            out["matched"] = "generic:sae"
     if include_siblings:
         out["siblings"] = []
     return out

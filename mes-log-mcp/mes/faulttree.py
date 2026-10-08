@@ -20,10 +20,15 @@ proven is exactly the time a solo mechanic does not have.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
 from . import fes as fes_mod, knowledge, notes as notes_mod
+from . import systems as systems_mod
+from . import layout_systems as layout_mod
+from . import parts as parts_mod
+from . import known_good as known_good_mod
 from .catalog import CATALOG
 
 
@@ -64,6 +69,7 @@ class Tree:
     steps: tuple[Step, ...]
     verification: tuple[Step, ...]
     do_not: tuple[str, ...]
+    generic: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -74,6 +80,7 @@ class Tree:
             "steps": [s.to_dict() for s in self.steps],
             "verification": [s.to_dict() for s in self.verification],
             "do_not": list(self.do_not),
+            "generic": self.generic,
         }
 
 
@@ -654,10 +661,303 @@ TREES: tuple[Tree, ...] = (EVAP_LEAK, P1CEA_FLOW, NETWORK_CASCADE,
                             DASM_HALF_LINK)
 
 
+# --- generic (non-hand-written) trees ---------------------------------------
+#
+# EVAP was the first code family this project diagnosed, so it got a
+# hand-written tree first; the car throws every family SAE defines, and a
+# mechanic working, say, a P0301 or a C1234 deserves the same sourced,
+# ordered sequence -- built from this repo's own sourced tables instead of
+# transcribed by hand. Nothing below is invented: every step cites the
+# module (and, through it, the bulletin/part/spec) it came from, and a step
+# with no sourced table to draw from is a clearly-marked generic SAE-range
+# step, never a guessed one.
+
+def _sae_generic_steps(base: str) -> list[tuple[str, str, str, str, str, str, str]]:
+    """Last-resort steps for a code's SAE prefix range, used when (or in
+    addition to) the sourced tables above have nothing more specific.
+    Each tuple is ``(title, test, tools, expect, if_abnormal, cost,
+    source)``; the source always says plainly that this is a generic
+    SAE-range convention, not a platform-specific citation."""
+    if re.match(r"^P03\d{2}$", base):
+        return [
+            ("Coil/plug swap test between cylinders",
+             "Swap the spark plug and ignition coil from the misfiring "
+             "cylinder with a known-good cylinder's, then recheck which "
+             "cylinder misfires.",
+             "Hands.",
+             "Misfire follows the swapped part to the other cylinder.",
+             "Misfire follows the part: replace it. Misfire stays on the "
+             "original cylinder: the cause is mechanical on that cylinder "
+             "(injector, compression), not the swapped part.",
+             "cheap / 20 min",
+             "Generic SAE misfire (P03xx) diagnostic convention -- an "
+             "industry-standard swap test, not a platform-specific "
+             "bulletin"),
+            ("Injector check on the misfiring cylinder",
+             "Check that cylinder's injector resistance and response to "
+             "its commanded pulse.",
+             "Meter; MES live injector parameters if available.",
+             "Injector in spec and responds to the commanded pulse.",
+             "Out of spec or unresponsive: replace the injector.",
+             "meter work / 20 min",
+             "Generic SAE misfire (P03xx) diagnostic convention"),
+            ("Compression test on the misfiring cylinder",
+             "Run a compression (or cylinder-leakage) test on the "
+             "misfiring cylinder.",
+             "Compression gauge / leakdown tester.",
+             "Compression within spec and even across cylinders.",
+             "Low or uneven compression: a mechanical fault (valve, ring, "
+             "head) -- no electrical repair will resolve this.",
+             "shop equipment / 30 min",
+             "Generic SAE misfire (P03xx) diagnostic convention"),
+        ]
+    if re.match(r"^P017[0-9]$", base):
+        return [
+            ("Vacuum leak smoke/propane test",
+             "Smoke-test (or propane-sniff) the intake tract for an "
+             "unmetered air leak.",
+             "Smoke machine or propane torch.",
+             "No leak found.",
+             "Leak found: repair it before suspecting the fuel system.",
+             "shop equipment / 20 min",
+             "Generic SAE fuel-trim (P017x) diagnostic convention"),
+            ("Fuel pressure check",
+             "Check fuel pressure against the published spec at idle and "
+             "under load.",
+             "Fuel pressure gauge / MES live fuel-rail-pressure parameter "
+             "if available.",
+             "Pressure in spec.",
+             "Out of spec: diagnose the fuel pump, regulator or filter.",
+             "gauge/meter work / 20 min",
+             "Generic SAE fuel-trim (P017x) diagnostic convention"),
+            ("MAF/MAP plausibility check",
+             "Compare the MAF or MAP reading against known-good "
+             "load/RPM expectations.",
+             "MES live parameters.",
+             "Reading plausible for the load/RPM shown.",
+             "Implausible reading: diagnose that sensor/its wiring.",
+             "free / 10 min",
+             "Generic SAE fuel-trim (P017x) diagnostic convention"),
+        ]
+    if base.startswith("U"):
+        return [
+            ("Supply, grounds and terminals -- the network family's own "
+             "ranked causes",
+             "Check the module's power supply fuse/feed, its chassis "
+             "grounds, and its connector terminals for spread or "
+             "backed-out pins -- the same ranked causes this repo's own "
+             "network-cascade tree uses for the U-codes it already "
+             "covers.",
+             "Fuse box, meter, hands/visual.",
+             "Supply, grounds and terminals all in spec.",
+             "Repair whichever stage fails; see the 'network-cascade' "
+             "tree (mes.faulttree.NETWORK_CASCADE) for the full ranked "
+             "sequence and its bulletin citations.",
+             "cheap-to-moderate / 30-60 min",
+             "mes.faulttree.NETWORK_CASCADE (same ranked causes, "
+             "generalised to a U-code not already in that tree's list)"),
+        ]
+    if base.startswith("B") or base.startswith("C"):
+        return [
+            ("Module connector and supply, then the named component",
+             "Check the implicated module's connector (seating, "
+             "corrosion, spread terminals) and its power/ground supply "
+             "first; only then suspect the component the code names.",
+             "Hands/visual, meter.",
+             "Connector and supply both good.",
+             "Fault found there: repair it -- a module with a marginal "
+             "supply or connector can misreport a component fault "
+             "downstream. Both good: proceed to the named component.",
+             "free-to-cheap / 20 min",
+             "General B/C-code diagnostic convention (module connector "
+             "and supply checked before the named component) -- not a "
+             "platform-specific bulletin for this exact code"),
+        ]
+    return []
+
+
+def generic_tree(code: str, description: str = "") -> Tree:
+    """A sourced, ordered isolation sequence for a code with no hand-written
+    tree above -- built only from this repo's own sourced tables, never an
+    invented value.
+
+    Build order: systems implicated (``mes.systems.systems_for_code`` --
+    primary systems, then whatever they name as upstream, electrical supply
+    first), the electrical-then-physical hop path (``mes.layout_systems``,
+    which already runs ``mes.electrical``'s hops -- supply/connector/ground
+    -- ahead of its own physical components), matching TSBs
+    (``mes.knowledge.tsb_for``), related parts (``mes.parts.for_code``),
+    known-good bands for the implicated systems' live channels
+    (``mes.known_good``), and finally a clearly-marked generic SAE-range
+    step for the code's own prefix (see :func:`_sae_generic_steps`).
+
+    :func:`tree_for` returns this, flagged ``generic=True``, for any code
+    :data:`TREES` does not already cover by hand.
+    """
+    base = knowledge.base_code(code)
+    steps: list[Step] = []
+    framing: list[str] = []
+    counter = [0]
+
+    def sid() -> str:
+        counter[0] += 1
+        return f"G{counter[0]}"
+
+    # 1. Systems implicated -- primary, then upstream (electrical supply
+    #    first when one of the primaries depends on it).
+    sys_rows = systems_mod.systems_for_code(base, description)
+    primaries = [r for r in sys_rows if r["role"] == "primary"
+                 and r["system"] != "UNKNOWN"]
+    # Re-derive the upstream edges' full ``why``/``source`` straight from the
+    # system graph -- ``systems_for_code`` only passes through
+    # system/confidence/source for an upstream row, and ``why`` is the whole
+    # point of leading with the electrical supply/connector/ground hop.
+    upstreams: list[dict[str, Any]] = []
+    seen_upstream: set[str] = set()
+    for r in primaries:
+        sys_def = systems_mod.SYSTEMS.get(r["system"])
+        if not sys_def:
+            continue
+        for dep in sys_def.get("depends_on", []):
+            if dep["system"] in seen_upstream:
+                continue
+            seen_upstream.add(dep["system"])
+            upstreams.append(dep)
+    if primaries:
+        labels = [systems_mod.SYSTEMS.get(r["system"], {}).get(
+            "label", r["system"]) for r in primaries]
+        framing.append(
+            "System(s) implicated: " + ", ".join(labels) + " -- "
+            + "; ".join(f"{r['system']} ({r['confidence']}): {r['source']}"
+                       for r in primaries)
+            + " (mes.systems.systems_for_code).")
+    else:
+        framing.append(
+            f"No system mapping found for {base} in mes.systems -- "
+            "proceed from the electrical/physical path and generic "
+            "SAE-range steps below only.")
+    for dep in upstreams:
+        label = systems_mod.SYSTEMS.get(dep["system"], {}).get(
+            "label", dep["system"])
+        steps.append(Step(
+            sid(), f"Upstream check: {label}",
+            dep["why"], "Per the cited source.",
+            "No fault found upstream of the primary system(s).",
+            f"Fault found on {label.lower()}: repair it before suspecting "
+            "the primary system's own components.",
+            "varies", dep["source"]))
+
+    # 2. Electrical hops first, then physical components.
+    phys = layout_mod.code_physical_path(base)
+    for s in phys.get("inspect_steps", []):
+        steps.append(Step(
+            sid(), f"Inspect: {s.get('element', '?')}",
+            s.get("what", ""), s.get("how", ""),
+            "Passes inspection/test.",
+            "Fails: repair or replace that element.",
+            "varies", s.get("source") or "none -- TechAuthority"))
+
+    # 3. Matching TSBs.
+    for b in knowledge.tsb_for(base):
+        bd = b.to_dict()
+        steps.append(Step(
+            sid(), f"Bulletin {b.number}: {b.title}",
+            b.action, "Per the bulletin.",
+            "Repair resolves the condition the bulletin describes.",
+            "Condition persists: this bulletin was not the cause.",
+            "per bulletin", bd["source"], caution=b.caution))
+
+    # 4. Related parts.
+    for p in parts_mod.for_code(base):
+        steps.append(Step(
+            sid(), f"Part: {p.get('name') or p.get('key')}",
+            p.get("what_it_does", ""),
+            "Visual/function check; replace if faulty.",
+            "Part functions correctly.",
+            "Faulty: replace -- see mes.parts.for_code for OEM/aftermarket "
+            "options.",
+            "parts cost varies", "mes.parts.for_code"))
+
+    # 5. Known-good bands for the implicated systems' own live channels.
+    seen_channels: set[str] = set()
+    for r in primaries:
+        sys_def = systems_mod.SYSTEMS.get(r["system"])
+        if not sys_def:
+            continue
+        for ch in sys_def.get("live_channels", []):
+            if ch in seen_channels:
+                continue
+            seen_channels.add(ch)
+            band = known_good_mod.known_good(ch)
+            if not band:
+                continue
+            steps.append(Step(
+                sid(), f"Live channel check: {band.get('name', ch)}",
+                f"Compare the live {band.get('name', ch)} reading against "
+                "the known-good band.",
+                "MES live parameters / obd2 server.",
+                "Reading inside the known-good band.",
+                "Outside the band: treat as a lead on this system.",
+                "free", band.get("source") or "mes.known_good"))
+
+    # 6. Generic SAE-range step for the code's own prefix, last -- never
+    #    standing in for a sourced step above, only supplementing it.
+    for (title, test, tools, expect, if_abnormal, cost, source) in \
+            _sae_generic_steps(base):
+        steps.append(Step(sid(), title, test, tools, expect, if_abnormal,
+                          cost, source))
+
+    if not steps:
+        steps.append(Step(
+            sid(), "No sourced sequence available",
+            f"No system mapping, electrical/physical path, TSB, part or "
+            f"known-good band was found in this repo for {base}.",
+            "--", "--", "--", "free",
+            "mes.faulttree.generic_tree found nothing to cite -- use the "
+            "service manual (TechAuthority)."))
+
+    return Tree(
+        key=f"generic:{base}",
+        title=f"{base} -- generated isolation sequence (no hand-written "
+             "tree exists yet)",
+        codes=frozenset({base}),
+        framing=tuple(framing),
+        steps=tuple(steps),
+        verification=(),
+        do_not=("Do not treat this generated sequence as equivalent to a "
+                "hand-written, bulletin-verified tree (like the EVAP or "
+                "network-cascade trees) -- confirm each step against the "
+                "service manual before relying on it.",),
+        generic=True,
+    )
+
+
+def tree_for(code: str, description: str = "") -> Tree:
+    """The tree for one code: the hand-written tree when one of
+    :data:`TREES` covers it, else :func:`generic_tree`, flagged
+    ``generic=True``."""
+    base = knowledge.base_code(code)
+    for t in TREES:
+        if base in t.codes:
+            return t
+    return generic_tree(base, description)
+
+
 def trees_for(codes) -> list[Tree]:
-    """Every tree that any of the given codes routes to."""
-    bases = {knowledge.base_code(c) for c in codes if str(c).strip()}
-    return [t for t in TREES if bases & t.codes]
+    """Every tree that covers any of the given codes: the hand-written tree
+    when one exists for a code, else its generic tree (see :func:`tree_for`),
+    de-duplicated by key, in the order the codes were given."""
+    out: list[Tree] = []
+    seen: set[str] = set()
+    for c in codes:
+        if not str(c).strip():
+            continue
+        t = tree_for(c)
+        if t.key in seen:
+            continue
+        seen.add(t.key)
+        out.append(t)
+    return out
 
 
 def evaluate(codes, vin: str = "") -> dict[str, Any]:
@@ -681,7 +981,7 @@ def evaluate(codes, vin: str = "") -> dict[str, Any]:
         "codes": sorted({knowledge.base_code(c) for c in codes}),
         "trees": [t.to_dict() for t in matched],
     }
-    if len(matched) > 1:
+    if {"evap-leak", "p1cea-boost-purge"} <= {t.key for t in matched}:
         out["ordering_note"] = (
             "Leak codes are fixed and verified before P1CEA -- the flow "
             "monitor only runs after the small-leak test passes.")

@@ -69,8 +69,13 @@ misfire_entry = code_feel.lookup("P0305")  # cylinder 5, not individually tabula
 check("an untabulated P03xx falls back to the misfire family",
       misfire_entry is not None and misfire_entry["matched"] == "family:misfire")
 
-check("a code with no entry and no family returns None",
-      code_feel.lookup("P9999") is None)
+check("a code with no entry and no family falls back to the generic "
+      "SAE-prefix entry, UNKNOWN confidence, instead of nothing",
+      code_feel.lookup("P9999") is not None
+      and code_feel.lookup("P9999")["matched"] == "generic:sae"
+      and code_feel.lookup("P9999")["confidence"] == code_feel.UNKNOWN)
+check("something that isn't a P/B/C/U code at all still returns None",
+      code_feel.lookup("XYZZY") is None)
 
 print("=== EVAP family: no drivability symptom expected ===")
 drivability = {"rough_idle", "hesitation", "loss_of_power", "hard_start"}
@@ -86,7 +91,12 @@ tool_result = json.loads(server.dtc_feel("P0455"))
 check("dtc_feel tool returns a sourced P0455 entry",
       tool_result is not None and tool_result["confidence"] != code_feel.UNKNOWN)
 unknown_tool = json.loads(server.dtc_feel("P9999"))
-check("dtc_feel tool returns null for nothing tabulated", unknown_tool is None)
+check("dtc_feel tool returns the generic SAE fallback for nothing "
+      "tabulated, not null",
+      unknown_tool is not None and unknown_tool["confidence"] == "UNKNOWN")
+not_a_code_tool = json.loads(server.dtc_feel("XYZZY"))
+check("dtc_feel tool returns null for something that isn't a P/B/C/U code",
+      not_a_code_tool is None)
 
 print()
 if failures:
