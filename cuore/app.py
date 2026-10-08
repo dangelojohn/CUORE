@@ -40,6 +40,7 @@ from .web import routes as web_routes  # noqa: E402
 from .web import service_routes  # noqa: E402
 from .web import timeline_routes  # noqa: E402
 from .web import tools_routes  # noqa: E402
+from .web import inbox_routes  # noqa: E402
 
 log = logging.getLogger("cuore")
 
@@ -137,6 +138,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(dossier_routes.router)
     app.include_router(timeline_routes.router)
     app.include_router(tools_routes.router)
+    app.include_router(inbox_routes.router)
     app.include_router(live_dashboard_routes.router)
     app.include_router(media_routes.router)
     app.include_router(parts_routes.router)

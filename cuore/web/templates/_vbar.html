@@ -63,6 +63,8 @@
     <a href="/v/{{ bar.vin }}/gate" {% if tab == "gate" %}class="on"{% endif %}>Evidence gate</a>
     <a href="/v/{{ bar.vin }}/service-hub" {% if tab == "service-hub" %}class="on"{% endif %}>Service</a>
     <a href="/v/{{ bar.vin }}/report" {% if tab == "report" %}class="on"{% endif %}>Report</a>
+    {% set _fb_open = feedback_open_count(bar.vin) if feedback_open_count is defined else 0 %}
+    <a href="/v/{{ bar.vin }}/inbox" {% if tab == "inbox" %}class="on"{% endif %}>Inbox{% if _fb_open %} <span class="chip chronic">{{ _fb_open }}</span>{% endif %}</a>
     <a href="/logs?vin={{ bar.vin }}">Logs</a>
   </div>
 </div>

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Inbox — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="/static/feedback.css">
+
+<h1>Inbox</h1>
+<p class="lede">Every correction, question, confirmation, input and
+disagreement a technician has left on a fact cuore showed for this car.
+Open items need an answer; answered items are waiting to be marked applied
+or dismissed.</p>
+
+<div class="inbox-filters">
+  <a class="btn {{ 'primary' if not status }}" href="/v/{{ vin }}/inbox">All</a>
+  {% for s in statuses %}
+    <a class="btn {{ 'primary' if status == s }}" href="/v/{{ vin }}/inbox?status={{ s }}">{{ s|capitalize }}
+      {% if s == 'open' and open_count %}({{ open_count }}){% endif %}</a>
+  {% endfor %}
+</div>
+
+{% set _redirect = "/v/" ~ vin ~ "/inbox" ~ ("?status=" ~ status if status else "") %}
+
+{% for s in statuses %}
+  {% set rows = grouped[s] %}
+  {% if rows or not status or status == s %}
+  <div class="panel">
+    <h2>{{ s|capitalize }} <span class="chip plain">{{ rows|length }}</span></h2>
+    {% for f in rows %}
+      {% set target_href = f.target.page ~ (('#fb-' ~ f.target.item) if f.target.item else '') %}
+      <div class="inbox-item">
+        <div class="inbox-target">
+          <span class="chip plain">{{ f.kind }}</span>
+          <a href="{{ target_href }}">{{ f.target.page }}{% if f.target.section %} / {{ f.target.section }}{% endif %}{% if f.target.item %} / {{ f.target.item }}{% endif %}</a>
+          <span class="muted">{{ f.at }} &middot; {{ f.author }}</span>
+        </div>
+        <div class="inbox-text small muted">&ldquo;{{ f.target.label }}&rdquo;</div>
+        {% if f.text %}<p class="inbox-text">{{ f.text }}</p>{% endif %}
+        {% if f.answer %}
+          <div class="inbox-answer small">{{ f.answer.text }}
+            <span class="muted">&mdash; {{ f.answer.by }}, {{ f.answer.at }}</span></div>
+        {% endif %}
+        {% if f.applied_note %}<p class="small muted">Note: {{ f.applied_note }}</p>{% endif %}
+
+        <div class="inbox-forms">
+          {% if f.status in ("open", "answered") %}
+          <form method="post" action="/v/{{ vin }}/feedback/{{ f.id }}/answer">
+            <input type="hidden" name="redirect_to" value="{{ _redirect }}">
+            <input type="text" name="text" placeholder="Answer" maxlength="4000" style="width:220px">
+            <input type="hidden" name="by" value="technician">
+            <button class="btn" type="submit">Answer</button>
+          </form>
+          {% endif %}
+          {% if f.status != "applied" %}
+          <form method="post" action="/v/{{ vin }}/feedback/{{ f.id }}/status">
+            <input type="hidden" name="redirect_to" value="{{ _redirect }}">
+            <input type="hidden" name="status" value="applied">
+            <input type="text" name="note" placeholder="What changed (optional)" style="width:160px">
+            <button class="btn" type="submit">Mark applied</button>
+          </form>
+          {% endif %}
+          {% if f.status != "dismissed" %}
+          <form method="post" action="/v/{{ vin }}/feedback/{{ f.id }}/status">
+            <input type="hidden" name="redirect_to" value="{{ _redirect }}">
+            <input type="hidden" name="status" value="dismissed">
+            <button class="btn" type="submit">Dismiss</button>
+          </form>
+          {% endif %}
+          {% if f.status != "open" %}
+          <form method="post" action="/v/{{ vin }}/feedback/{{ f.id }}/status">
+            <input type="hidden" name="redirect_to" value="{{ _redirect }}">
+            <input type="hidden" name="status" value="open">
+            <button class="btn" type="submit">Reopen</button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <p class="muted small">Nothing {{ s }}.</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+{% endfor %}
+
+{% endblock %}

@@ -16,7 +16,7 @@
 <div class="dossier" data-vin="{{ vin }}">
 
   {% set vstate = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
-  <div class="verdict-card v-{{ vstate }}" id="verdict">
+  <div class="verdict-card v-{{ vstate }}" id="verdict" data-fact="verdict|">
     <div class="verdict-top">
       <span class="chip-verdict v-{{ vstate }}">&#11044; {{ view.verdict.label }}</span>
     </div>
@@ -90,7 +90,8 @@
         {% if job.steps %}
         <ol class="checklist">
           {% for s in job.steps %}
-          <li class="checklist-step {{ 'is-done' if s.done }}">
+          <li class="checklist-step {{ 'is-done' if s.done }}"
+              id="fb-{{ s.id }}" data-fact="checklist|{{ s.id }}">
             <form method="post" action="/v/{{ vin }}/checklist" class="step-form" data-checklist-form>
               <input type="hidden" name="step_id" value="{{ s.id }}">
               <input type="hidden" name="done" value="{{ '0' if s.done else '1' }}">
@@ -166,7 +167,8 @@
           <thead><tr><th>Code</th><th>Description</th><th>Status</th><th class="n">&times;N</th><th>Last</th><th class="n">Km</th></tr></thead>
           <tbody>
           {% for c in rows %}
-            <tr class="row-link code-row" data-href="{{ c.href }}" tabindex="0">
+            <tr class="row-link code-row" data-href="{{ c.href }}" tabindex="0"
+                id="fb-{{ c.code }}" data-fact="codes|{{ c.code }}">
               <td class="code-cell"><a class="mono" href="{{ c.href }}" title="{{ c.dtc }}">{{ c.code }}</a>
                 <span class="sys-badge" title="{{ c.system }} system">{{ c.system[:3]|upper }}</span></td>
               <td class="desc-cell">{{ c.description }}</td>
@@ -261,7 +263,7 @@
     <summary>Bulletins <span class="count-badge">{{ view.bulletins|length }}</span></summary>
     <div class="card-body">
       {% for b in view.bulletins %}
-        <div class="bulletin-card" id="{{ b.anchor }}">
+        <div class="bulletin-card" id="{{ b.anchor }}" data-fact="bulletins|{{ b.id }}">
           <h4><span class="mono">{{ b.id }}</span> &mdash; {{ b.title }}</h4>
           <p class="small">{{ b.action }}</p>
           {% if b.caution %}<div class="note warn small">{{ b.caution }}</div>{% endif %}

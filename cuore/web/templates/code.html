@@ -16,7 +16,7 @@
 <div class="panel feel-card">
   <h3>What would the driver feel?</h3>
   {% if cf.feel %}
-    <p class="feel-sentence">{{ cf.feel.feel }}</p>
+    <p class="feel-sentence" id="fb-feel-{{ code }}" data-fact="feel|{{ code }}">{{ cf.feel.feel }}</p>
     {% if cf.feel.expect or cf.feel.not_expected %}
     <div class="feel-tags">
       {% for x in cf.feel.expect %}<span class="chip expect">{{ x }}</span>{% endfor %}

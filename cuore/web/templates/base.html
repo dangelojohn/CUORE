@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/static/cuore.css">
 <link rel="stylesheet" href="/static/print.css" media="print">
 </head>
-<body>
+<body{% if vin is defined and vin %} data-vin="{{ vin }}"{% endif %}>
 
 <header class="top">
   <a class="brand" href="/" aria-label="CUORE, home">
@@ -87,6 +87,14 @@
 </div>
 </main>
 
+{% if vin is defined and vin %}
+<link rel="stylesheet" href="/static/feedback.css">
+<button type="button" class="fab-feedback" id="feedback-fab" title="Ask / correct"
+        aria-label="Ask or correct a fact on this page">?/&#9998;</button>
+{% include "_feedback_panel.html" %}
+{% endif %}
+
 <script src="/static/cuore.js"></script>
+{% if vin is defined and vin %}<script src="/static/feedback.js" defer></script>{% endif %}
 </body>
 </html>

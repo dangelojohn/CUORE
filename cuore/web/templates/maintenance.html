@@ -114,7 +114,8 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
       {% for p in it.parts %}
         <tr>
           <td>{{ p.name or "UNKNOWN" }}</td>
-          <td class="mono">{{ p.part_number or "UNKNOWN — use the service manual (TechAuthority)" }}</td>
+          <td class="mono" id="fb-part-{{ p.part_number or p.name }}"
+              data-fact="parts|{{ p.part_number or p.name }}">{{ p.part_number or "UNKNOWN — use the service manual (TechAuthority)" }}</td>
           <td>{{ conf_chip(p.confidence) }}</td>
           <td class="small muted">{{ p.notes }}
             {% if p.source %}<br><a href="{{ p.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td>

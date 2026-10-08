@@ -1,0 +1,86 @@
+/* Mechanic feedback: the "..." affordance on every data-fact element, its
+ * inline panel, the whole-page FAB + fallback panel, and the inbox list.
+ * Loaded only on pages that carry a vin (see base.html) -- same "its own
+ * file, linked where used" posture as media.css/tools.css.
+ *
+ * Reuses cuore.css's tokens (--surface, --ink, --rule, --accent, --radius,
+ * .btn, .chip, .panel) rather than inventing a second vocabulary. */
+
+.feedback-affordance {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; margin-left: 4px;
+  background: var(--surface-2); color: var(--ink-2);
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  font-size: 16px; line-height: 1; cursor: pointer; vertical-align: middle;
+}
+.feedback-affordance:hover { border-color: var(--accent); color: var(--ink); }
+.feedback-affordance[data-has-feedback] { color: var(--sev-chronic); border-color: var(--sev-chronic); }
+
+.feedback-badge {
+  font-size: 10.5px; color: var(--ink-3); margin-left: 4px; white-space: nowrap;
+}
+
+.feedback-inline-panel, .feedback-page-panel {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 10px 12px; margin: 6px 0;
+  max-width: 480px;
+}
+.feedback-page-panel { position: fixed; left: 12px; right: 12px; bottom: 84px;
+  z-index: 41; max-width: 420px; margin: 0; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
+.feedback-page-panel summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
+.feedback-page-panel[open] summary { margin-bottom: 8px; }
+
+.feedback-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.feedback-kind-btn, .feedback-kind-opt {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 4px 10px; font-size: 12.5px;
+  background: var(--raised); color: var(--ink); border: 1px solid var(--rule);
+  border-radius: var(--radius); cursor: pointer;
+}
+.feedback-kind-btn[aria-pressed="true"] {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.feedback-kind-opt input { width: auto; margin-right: 6px; }
+
+.feedback-text, textarea.feedback-text {
+  width: 100%; min-height: 60px; margin-bottom: 8px;
+  background: var(--bg); color: var(--ink); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 7px 9px; font-family: inherit; font-size: 14px;
+}
+.feedback-author {
+  width: 100%; margin-bottom: 8px;
+  background: var(--bg); color: var(--ink); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 7px 9px; font-family: inherit; font-size: 14px;
+}
+.feedback-actions { display: flex; gap: 8px; }
+.feedback-status { min-height: 16px; margin: 4px 0; }
+
+.feedback-thread { margin-top: 10px; border-top: 1px solid var(--rule-soft); padding-top: 8px; }
+.feedback-thread-row { padding: 6px 0; border-bottom: 1px solid var(--rule-soft); font-size: 12.5px; }
+.feedback-thread-row:last-child { border-bottom: none; }
+.feedback-thread-answer { margin-top: 4px; padding-left: 10px; border-left: 2px solid var(--ok); color: var(--ink-2); }
+.feedback-thread-toggle { font-size: 12px; color: var(--ink-2); cursor: pointer; background: none; border: none; padding: 4px 0; text-decoration: underline; }
+
+.fab-feedback {
+  position: fixed; left: 18px; bottom: 18px; z-index: 40;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--raised); color: var(--ink); border: 1px solid var(--rule);
+  font-size: 18px; box-shadow: 0 4px 14px rgba(0,0,0,.4); cursor: pointer;
+}
+.fab-feedback:hover { filter: brightness(1.08); }
+
+/* ---------- inbox page (/v/{vin}/inbox) ---------- */
+
+.inbox-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+.inbox-item { padding: 10px 0; border-bottom: 1px solid var(--rule-soft); }
+.inbox-item:last-child { border-bottom: none; }
+.inbox-target { font-size: 12px; color: var(--ink-3); margin-bottom: 2px; }
+.inbox-text { margin: 4px 0; }
+.inbox-answer { margin: 6px 0; padding: 8px 10px; border-left: 2px solid var(--ok);
+  background: var(--surface-2); border-radius: 0 var(--radius) var(--radius) 0; }
+.inbox-forms { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.inbox-forms form { display: flex; gap: 6px; align-items: center; }
+
+@media (max-width: 400px) {
+  .feedback-page-panel { left: 8px; right: 8px; bottom: 76px; max-width: none; }
+}

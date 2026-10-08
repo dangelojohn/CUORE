@@ -1,0 +1,39 @@
+{# Whole-page feedback: the FAB's target, and the no-JS fallback for it.
+   feedback.js enhances every element carrying data-fact with its own
+   inline panel built entirely in script -- this partial only covers "ask
+   or correct something about this whole page", so that still works with
+   JavaScript off (a native <details> needs no script to open).
+
+   Context expected: vin. Jinja templates rendered through Starlette's
+   Jinja2Templates.TemplateResponse carry the current request, which gives
+   the exact page path with no route change needed -- guarded with
+   ``is defined`` because a couple of test harnesses (check_dossier_page.py)
+   render templates straight off the environment, with no request at all,
+   and this must still render for them. #}
+{% set _path = request.url.path if request is defined else ("/v/" ~ vin) %}
+<details class="feedback-page-panel" id="feedback-page-panel">
+  <summary>Ask / correct (this page)</summary>
+  <form method="post" action="/v/{{ vin }}/feedback" class="feedback-form">
+    <input type="hidden" name="redirect_to" value="{{ _path }}">
+    <input type="hidden" name="page" value="{{ _path }}">
+    <input type="hidden" name="section" value="page">
+    <input type="hidden" name="item" value="">
+    <input type="hidden" name="label" value="(whole page)">
+    <div class="feedback-kinds" role="radiogroup" aria-label="Kind of feedback">
+      {% for k, lab in [("correction","Correct"), ("question","Ask"), ("confirm","Confirm"),
+                        ("input","Add input"), ("disagree","Disagree")] %}
+        <label class="feedback-kind-opt">
+          <input type="radio" name="kind" value="{{ k }}" {% if loop.first %}checked{% endif %}>
+          {{ lab }}
+        </label>
+      {% endfor %}
+    </div>
+    <div class="field"><label for="fb-page-text">Details</label>
+      <textarea id="fb-page-text" name="text" class="feedback-text" rows="3" maxlength="4000"
+                placeholder="What's wrong, or what are you asking?"></textarea></div>
+    <div class="field"><label for="fb-page-author">Your name (optional, remembered)</label>
+      <input id="fb-page-author" type="text" name="author" class="feedback-author"
+             data-feedback-author="1"></div>
+    <p><button class="btn primary" type="submit">Send</button></p>
+  </form>
+</details>

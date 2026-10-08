@@ -9,7 +9,8 @@
 {% if tl.findings %}
 <div class="panel tight">
   <ul style="margin:0;padding:10px 14px">
-    {% for f in tl.findings %}<li style="margin-bottom:6px">{{ f }}</li>{% endfor %}
+    {% for f in tl.findings %}<li style="margin-bottom:6px" id="fb-finding-{{ loop.index }}"
+        data-fact="findings|{{ loop.index }}">{{ f }}</li>{% endfor %}
   </ul>
 </div>
 {% endif %}

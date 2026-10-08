@@ -17,7 +17,7 @@ record work or read the full spec/torque tables for that area.</p>
   "evap": "evap_leak",
 } %}
 {% for c in cards %}
-  <div class="panel">
+  <div class="panel" id="fb-{{ c.key }}" data-fact="service|{{ c.key }}">
     <h2>{{ c.title }}</h2>
     {% if c.last %}
       <p class="small muted">last: {{ c.last.date }}

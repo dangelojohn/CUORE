@@ -25,9 +25,11 @@ what it does.</p>
 <h2>{{ label }}</h2>
 <div class="cols two">
 {% for part in parts %}
+  <div id="fb-part-{{ part.key or part.name }}" data-fact="parts|{{ part.key or part.name }}">
   {% set p = part %}
   {% set compact = False %}
   {% include "_part_card.html" %}
+  </div>
 {% endfor %}
 </div>
 {% endfor %}
