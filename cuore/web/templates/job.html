@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}Job — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Job</h1>
+<p class="lede">One case per visit: the driver's complaint, the mechanic's
+hypotheses with real evidence for and against, the actions taken, and how
+the repair was verified — all in one logical flow, the same shape
+MultiEcuScan itself walks (vehicle &rarr; module &rarr; errors &rarr;
+scan report).</p>
+
+{% if not view.job %}
+  <div class="panel">
+    <h2>Open a case</h2>
+    <form method="post" action="/v/{{ vin }}/job/open">
+      <div class="field"><label for="technician">Technician</label>
+        <input id="technician" name="technician" placeholder="name/initials"></div>
+      <div class="field"><label for="complaint">Complaint — the driver's own words</label>
+        <textarea id="complaint" name="complaint"></textarea></div>
+      <button class="btn primary" type="submit">Open case</button>
+    </form>
+  </div>
+{% else %}
+  {% set job = view.job %}
+  {% set status_chip = {"open": "chronic", "verifying": "chronic", "closed": "ok"}[job.status] %}
+
+  <div class="panel job-head-panel">
+    <div class="job-head">
+      <h2>Case <span class="mono">{{ job.id }}</span></h2>
+      <span class="chip {{ status_chip }}">{{ job.status }}</span>
+      {% if job.outcome %}<span class="chip plain">{{ job.outcome }}</span>{% endif %}
+    </div>
+    <div class="small muted">Opened {{ job.opened_at }}{% if job.technician %} by {{ job.technician }}{% endif %}
+      {% if job.closed_at %} &middot; closed {{ job.closed_at }}{% endif %}</div>
+  </div>
+
+  <nav class="jumprow job-stepper">
+    <a class="jump-chip" href="#complaint">1 Complaint</a>
+    <a class="jump-chip" href="#scan">2 Scan &amp; codes</a>
+    <a class="jump-chip" href="#tests">3 Tests &amp; inspections</a>
+    <a class="jump-chip" href="#hypotheses">4 Hypotheses{% if job.hypotheses %} <b>{{ job.hypotheses|length }}</b>{% endif %}</a>
+    <a class="jump-chip" href="#actions">5 Actions{% if job.actions %} <b>{{ job.actions|length }}</b>{% endif %}</a>
+    <a class="jump-chip" href="#verify">6 Verify</a>
+    <a class="jump-chip" href="#outcome">7 Outcome</a>
+  </nav>
+
+  <section id="complaint" class="dossier-section">
+    <h2 class="section-h">1. Complaint &amp; symptoms</h2>
+    <div class="panel"><p>&ldquo;{{ job.complaint or "(no complaint recorded)" }}&rdquo;</p></div>
+    {% if view.symptoms %}
+      <div class="panel tight"><ul class="checklist">
+        {% for s in view.symptoms %}
+          <li class="checklist-step"><span class="step-text mono small">{{ s.at }}</span>
+            <span class="step-text">{{ (s.tags or [])|join(", ") or "symptom reported" }}{% if s.text %} — {{ s.text }}{% endif %}</span></li>
+        {% endfor %}
+      </ul></div>
+    {% else %}
+      <p class="muted small">No driver symptom reports yet.
+        <a href="/v/{{ vin }}/timeline">Add one on the timeline &rarr;</a></p>
+    {% endif %}
+  </section>
+
+  <section id="scan" class="dossier-section">
+    <h2 class="section-h">2. Scan &amp; codes</h2>
+    {% if view.dossier_verdict %}
+      {% set vs = view.dossier_verdict.state|lower|replace("_", "-") %}
+      <div class="verdict-card v-{{ vs }}">
+        <span class="chip-verdict v-{{ vs }}">{{ view.dossier_verdict.label }}</span>
+        <p class="verdict-sentence">{{ view.dossier_verdict.summary }}</p>
+      </div>
+    {% else %}
+      <p class="muted small">No dossier verdict available for this vehicle yet.</p>
+    {% endif %}
+    <p class="small"><a href="/v/{{ vin }}/codes">Every code &rarr;</a> &middot;
+       <a href="/v/{{ vin }}">Full dossier &rarr;</a></p>
+  </section>
+
+  <section id="tests" class="dossier-section">
+    <h2 class="section-h">3. Tests &amp; inspections</h2>
+    <div class="cols two">
+      <div class="panel tight">
+        <h3>Dealer (wiTECH) results</h3>
+        {% for r in view.dealer_results %}
+          <div class="small mrow"><span class="mono">{{ r.at }}</span> &mdash; {{ r.kind }}</div>
+        {% else %}
+          <p class="muted small">None recorded. <a href="/v/{{ vin }}/dealer">Add one &rarr;</a></p>
+        {% endfor %}
+      </div>
+      <div class="panel tight">
+        <h3>Electrical inspections</h3>
+        {% for r in view.electrical_inspections %}
+          <div class="small mrow"><span class="mono">{{ r.at }}</span> &mdash; {{ r.element }}: {{ r.condition }}</div>
+        {% else %}
+          <p class="muted small">None recorded. <a href="/v/{{ vin }}/electrical">Add one &rarr;</a></p>
+        {% endfor %}
+      </div>
+    </div>
+    {% if view.systems_chains %}
+      <div class="panel tight">
+        <h3>Systems correlation</h3>
+        {% for c in view.systems_chains %}
+          <p class="small">{{ c.issue }} &mdash; possible upstream:
+            {% for u in c.possible_upstream %}{{ u.system }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <p class="small muted">{{ view.media_count }} media item(s) &middot;
+      {{ view.feedback_open_count }} open feedback item(s) &mdash;
+      <a href="/v/{{ vin }}/media">Media &rarr;</a> &middot;
+      <a href="/v/{{ vin }}/inbox">Inbox &rarr;</a></p>
+  </section>
+
+  <section id="hypotheses" class="dossier-section">
+    <h2 class="section-h">4. Hypotheses</h2>
+
+    {% for h in job.hypotheses %}
+      <div class="job-card hyp-card" id="hyp-{{ h.id }}">
+        <div class="job-head">
+          <h3>{{ h.text }}</h3>
+          {% if h.system %}<span class="chip plain">{{ h.system }}</span>{% endif %}
+          <span class="chip {{ {"open": "plain", "supported": "chronic", "refuted": "cleared", "confirmed": "returned"}[h.status] }}">{{ h.status }}</span>
+        </div>
+        <div class="evidence-row"><b class="small">Evidence for:</b>
+          {% for e in h.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">none yet</span>{% endfor %}
+        </div>
+        <div class="evidence-row"><b class="small">Evidence against:</b>
+          {% for e in h.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">none yet</span>{% endfor %}
+        </div>
+        {% if h.next_test %}<p class="small"><b>Next test:</b> {{ h.next_test }}</p>{% endif %}
+        <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/status" class="hyp-status-row">
+          {% for st in ["open", "supported", "refuted", "confirmed"] %}
+            <button class="hyp-status-btn {{ "on" if h.status == st }}" type="submit" name="status" value="{{ st }}">{{ st }}</button>
+          {% endfor %}
+        </form>
+      </div>
+    {% else %}
+      <p class="muted small">No hypotheses on this case yet.</p>
+    {% endfor %}
+
+    {% if view.suggested_hypotheses %}
+      <h3 class="small muted">Suggested — from this car's own fault tree &amp; bulletins</h3>
+      {% for s in view.suggested_hypotheses %}
+        <div class="job-card hyp-card suggested-hyp">
+          <div class="job-head">
+            <h3>{{ s.text }}</h3>
+            {% if s.system %}<span class="chip plain">{{ s.system }}</span>{% endif %}
+            <span class="chip plain">suggested</span>
+          </div>
+          <div class="evidence-row"><b class="small">Evidence for:</b>
+            {% for e in s.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">none yet</span>{% endfor %}
+          </div>
+          <div class="evidence-row"><b class="small">Evidence against:</b>
+            {% for e in s.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">none yet</span>{% endfor %}
+          </div>
+          {% if s.next_test %}<p class="small"><b>Next test:</b> {{ s.next_test }}</p>{% endif %}
+          <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/suggested">
+            <input type="hidden" name="text" value="{{ s.text }}">
+            <input type="hidden" name="system" value="{{ s.system }}">
+            <input type="hidden" name="next_test" value="{{ s.next_test }}">
+            <input type="hidden" name="evidence_for" value='{{ s.evidence_for|tojson }}'>
+            <input type="hidden" name="evidence_against" value='{{ s.evidence_against|tojson }}'>
+            <button class="btn primary" type="submit">Add to ledger</button>
+          </form>
+        </div>
+      {% endfor %}
+    {% endif %}
+
+    <div class="panel">
+      <h3>Add a hypothesis</h3>
+      <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses">
+        <div class="field"><label for="hyp_text">Hypothesis</label>
+          <input id="hyp_text" name="text" required></div>
+        <div class="field"><label for="hyp_system">System</label>
+          <input id="hyp_system" name="system" placeholder="e.g. EVAP"></div>
+        <div class="field"><label for="hyp_next">Next test</label>
+          <input id="hyp_next" name="next_test"></div>
+        <button class="btn primary" type="submit">Add hypothesis</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="actions" class="dossier-section">
+    <h2 class="section-h">5. Repair actions</h2>
+    <ul class="checklist">
+      {% for a in job.actions %}
+        <li class="checklist-step"><span class="step-text">
+          <span class="chip plain">{{ a.kind }}</span> {{ a.text }}
+          <span class="muted small step-meta">{{ a.at }}</span></span></li>
+      {% else %}
+        <li class="muted small">No actions recorded yet.</li>
+      {% endfor %}
+    </ul>
+    <div class="panel">
+      <h3>Record an action</h3>
+      <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/actions">
+        <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
+          <select name="kind">
+            {% for k in ["test", "inspection", "repair", "part", "clear", "note"] %}
+              <option value="{{ k }}">{{ k }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="text" placeholder="what was done" required>
+        </div>
+        <p><button class="btn primary" type="submit">Record action</button></p>
+      </form>
+    </div>
+  </section>
+
+  <section id="verify" class="dossier-section">
+    <h2 class="section-h">6. Verify</h2>
+    <p><a class="btn" href="/v/{{ vin }}/verify">Read readiness &rarr;</a></p>
+    {% if job.verification %}
+      <p class="small">Readiness read at: {{ job.verification.readiness_at or "not yet read" }}
+        &middot; Codes returned: {{ job.verification.codes_returned|join(", ") if job.verification.codes_returned else "none" }}
+        {% if job.verification.verdict %} &middot; {{ job.verification.verdict }}{% endif %}</p>
+    {% endif %}
+  </section>
+
+  <section id="outcome" class="dossier-section">
+    <h2 class="section-h">7. Outcome &amp; handover</h2>
+    {% if close_error %}<div class="note alert"><span class="lab">Not closed</span>{{ close_error }}</div>{% endif %}
+    {% if job.status == "closed" %}
+      <p>Closed {{ job.closed_at }} &mdash; outcome <span class="chip ok">{{ job.outcome }}</span></p>
+    {% else %}
+      <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/close">
+        <div class="field"><label for="outcome">Outcome</label>
+          <select id="outcome" name="outcome" required>
+            <option value="">(choose)</option>
+            <option value="fixed">fixed</option>
+            <option value="not_fixed">not_fixed</option>
+            <option value="deferred">deferred</option>
+          </select>
+        </div>
+        <div class="field"><label for="codes_returned">Codes returned (comma separated, if any)</label>
+          <input id="codes_returned" name="codes_returned"></div>
+        <div class="field"><label for="verdict">Verdict / closing note</label>
+          <input id="verdict" name="verdict"></div>
+        <button class="btn primary" type="submit">Close case</button>
+      </form>
+    {% endif %}
+    <p><a href="/v/{{ vin }}/report.pdf">Handover report (PDF) &rarr;</a></p>
+  </section>
+{% endif %}
+
+{% endblock %}

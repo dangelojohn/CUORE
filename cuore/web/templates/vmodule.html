@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ m.code }} — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<p><a href="/v/{{ vin }}/modules">&larr; Module tree</a></p>
+
+<h1 class="mono">{{ m.code }}
+  <span class="chip {% if m.status == 'active' %}status-active
+                     {% elif m.status == 'cleared_unverified' %}status-cleared_unverified
+                     {% elif m.status == 'stale' %}status-stale
+                     {% elif m.status == 'clean' %}ok
+                     {% else %}plain{% endif %}">{{ m.status.replace("_", " ") }}</span></h1>
+<p class="lede">{{ m.name or "not in the module registry" }}
+  {% if m.domain %}&middot; {{ m.domain }}{% endif %}
+  {% if m.bus %}&middot; bus <span class="mono">{{ m.bus }}</span>{% endif %}</p>
+
+<details class="card-details" id="sec-info" data-persist="info" open>
+  <summary>Info</summary>
+  <div class="card-body">
+    <table>
+      <tbody>
+        <tr><td class="muted">Hardware</td><td class="mono">{{ m.identity.hardware or "—" }}</td></tr>
+        <tr><td class="muted">Software</td><td class="mono">{{ m.identity.software or "—" }}</td></tr>
+        <tr><td class="muted">ISO code</td><td class="mono">{{ m.identity.iso or "—" }}</td></tr>
+        <tr><td class="muted">VIN match</td>
+          <td>{% if m.identity.vin_match is none %}<span class="muted">no SCAN identity to check</span>
+              {% elif m.identity.vin_match %}<span class="chip ok">matches this VIN</span>
+              {% else %}<span class="chip status-active">VIN mismatch</span>{% endif %}</td></tr>
+        <tr><td class="muted">Last seen</td><td class="mono small">{{ m.last_seen or "—" }}</td></tr>
+      </tbody>
+    </table>
+    {% if m.tsb %}
+      <h4 class="subhead">Bulletins against this module's codes</h4>
+      {% for t in m.tsb %}
+        <div class="small" style="margin-bottom:6px">
+          <span class="chip plain">{{ t.bulletin }}</span> <b>{{ t.title }}</b>
+          <div class="muted">{{ t.action }}</div>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</details>
+
+<details class="card-details" id="sec-errors" data-persist="errors" open>
+  <summary>Errors <span class="count-badge">{{ m.errors_detail|length }}</span></summary>
+  <div class="card-body">
+    <div class="tw">
+    <table>
+      <thead><tr><th>Code</th><th>Status</th><th>Description</th><th>Last seen</th><th></th></tr></thead>
+      <tbody>
+      {% for e in m.errors_detail %}
+        <tr>
+          <td><a class="mono" href="/v/{{ vin }}/code/{{ e.dtc.split('-')[0] }}">{{ e.dtc }}</a></td>
+          <td><span class="chip {% if e.status == 'active' %}status-active
+                                 {% elif e.status == 'cleared_unverified' %}status-cleared_unverified
+                                 {% else %}status-stale{% endif %}">{{ e.status.replace("_", " ") }}</span></td>
+          <td class="small">{{ e.description }}</td>
+          <td class="mono small">{{ e.last_seen }}</td>
+          <td>
+            {% if e.freeze_frame %}
+              <details>
+                <summary class="small muted">freeze frame</summary>
+                <div class="small mono">
+                  {% for k, v in e.freeze_frame.items() %}{{ k }}: {{ v }}<br>{% endfor %}
+                </div>
+              </details>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="muted">No codes recorded for this module.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</details>
+
+<details class="card-details" id="sec-params" data-persist="params">
+  <summary>Parameters <span class="count-badge">{{ m.parameters|length }}</span></summary>
+  <div class="card-body">
+    <div class="tw">
+    <table>
+      <thead><tr><th>DID</th><th>Name</th><th>Unit</th><th>Known-good band</th><th>Last live value</th></tr></thead>
+      <tbody>
+      {% for p in m.parameters %}
+        <tr>
+          <td class="mono small">{{ p.did }}</td>
+          <td>{{ p.name }}</td>
+          <td class="mono small">{{ p.unit or "—" }}</td>
+          <td class="small">
+            {% if p.band %}{{ p.band.min }}&ndash;{{ p.band.max }}
+              <span class="chip plain sm">{{ p.band.confidence }}</span>
+            {% else %}<span class="muted">no sourced band</span>{% endif %}
+          </td>
+          <td class="small mono">
+            {% if p.last_value %}
+              {{ p.last_value.ascii or (p.last_value.bytes|join(" ") if p.last_value.bytes else "—") }}
+            {% else %}<span class="muted">never observed live</span>{% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="5" class="muted">No catalogued parameters for this module.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</details>
+
+<details class="card-details" id="sec-actuators" data-persist="actuators">
+  <summary>Actuators <span class="count-badge">{{ m.actuators.available }}</span></summary>
+  <div class="card-body">
+    {% if m.actuators.blocked %}
+      <p class="chip status-active" style="display:inline-flex">blocked</p>
+      <p class="small muted">{{ m.actuators.reason }}</p>
+    {% endif %}
+    <p class="small muted">Actuator tests run only through the <code>obd2</code> MCP server's
+      <code>run_actuator</code> tool, never from this page — there is no HTTP route for it.</p>
+    <div class="tw">
+    <table>
+      <thead><tr><th>Name</th><th>Consent phrase</th><th>Source</th><th>Replayable</th></tr></thead>
+      <tbody>
+      {% for a in m.actuators_detail %}
+        <tr>
+          <td>{{ a.name }}</td>
+          <td class="mono small">{{ a.consent_phrase }}</td>
+          <td class="small muted">{{ a.tool or a.source }}</td>
+          <td>{% if a.blocked %}<span class="chip status-active">blocked</span>
+              {% elif a.replayable %}<span class="chip ok">yes</span>
+              {% else %}<span class="chip plain" title="{{ a.reasons }}">no</span>{% endif %}</td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="muted">No actuator tests learned for this module on this VIN yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</details>
+
+<details class="card-details" id="sec-adjustments" data-persist="adjustments">
+  <summary>Adjustments <span class="count-badge">{{ m.adjustments_detail|length }}</span></summary>
+  <div class="card-body">
+    {% for a in m.adjustments_detail %}
+      <div class="attempt-row">
+        <div class="attempt-main">
+          <b>{{ a.operation }}</b>
+          {% if a.kind %}<span class="muted">{{ a.kind }}</span>{% endif %}
+          {% if a.outcome %}<span class="chip {{ 'status-active' if 'FAIL' in (a.outcome|upper) else 'ok' }}">{{ a.outcome }}</span>{% endif %}
+          <span class="small muted">{{ a.timestamp }}</span>
+        </div>
+        {% if a.note %}<div class="small muted">{{ a.note }}</div>{% endif %}
+      </div>
+    {% else %}
+      <p class="muted small">Nothing on record for this module.</p>
+    {% endfor %}
+  </div>
+</details>
+
+{% endblock %}

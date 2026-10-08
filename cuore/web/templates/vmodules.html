@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Modules — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Module tree</h1>
+<p class="lede">Every module this car's logs (or the live registry) have anything
+  to say about — identity, open and historical errors, how many live
+  parameters are catalogued, and whether an actuator replay is even
+  permitted. The MultiEcuScan tree, read from the corpus rather than the
+  bench. Tap a module for its full Info / Errors / Parameters / Actuators /
+  Adjustments breakdown.</p>
+
+<div class="panel" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+  <div style="flex:1;min-width:220px">
+    <label for="filter">Filter</label>
+    <input id="filter" type="search" data-search data-filter-target="#moduletree"
+           placeholder="code, name, domain…" autocomplete="off">
+  </div>
+  <div class="mono small muted">{{ rows|length }} module{{ "s" if rows|length != 1 }}</div>
+</div>
+
+<div class="panel tight">
+  <div class="tw">
+  <table id="moduletree">
+    <thead>
+      <tr>
+        <th>Module</th><th>Status</th><th>Bus</th><th>Identity</th>
+        <th class="n">Errors</th><th class="n">Params</th>
+        <th class="n">Actuators</th><th class="n">Done</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for m in rows %}
+      <tr class="row-link" data-href="/v/{{ vin }}/modules/{{ m.code }}" tabindex="0">
+        <td>
+          <a class="mono" href="/v/{{ vin }}/modules/{{ m.code }}">{{ m.code }}</a>
+          <div class="small muted">{{ m.name or "not in the module registry" }}</div>
+        </td>
+        <td><span class="chip {% if m.status == 'active' %}status-active
+                             {% elif m.status == 'cleared_unverified' %}status-cleared_unverified
+                             {% elif m.status == 'stale' %}status-stale
+                             {% elif m.status == 'clean' %}ok
+                             {% else %}plain{% endif %}">{{ m.status.replace("_", " ") }}</span></td>
+        <td class="small mono muted">{{ m.bus or "unknown" }}</td>
+        <td class="small mono">
+          {% if m.identity.software %}SW {{ m.identity.software }}{% endif %}
+          {% if m.identity.hardware %}<br>HW {{ m.identity.hardware }}{% endif %}
+          {% if not m.identity.software and not m.identity.hardware %}<span class="muted">no SCAN identity</span>{% endif %}
+        </td>
+        <td class="n">
+          {% if m.errors.active %}<span class="chip status-active sm">{{ m.errors.active }} active</span>{% endif %}
+          {% if m.errors.cleared_unverified %}<span class="chip status-cleared_unverified sm">{{ m.errors.cleared_unverified }} cleared</span>{% endif %}
+          {% if m.errors.stale %}<span class="chip status-stale sm">{{ m.errors.stale }} stale</span>{% endif %}
+          {% if not m.errors.active and not m.errors.cleared_unverified and not m.errors.stale %}<span class="muted">—</span>{% endif %}
+        </td>
+        <td class="n mono">{{ m.params.available }}</td>
+        <td class="n">
+          {{ m.actuators.available }}
+          {% if m.actuators.blocked %}<span class="chip plain sm" title="{{ m.actuators.reason }}">blocked</span>{% endif %}
+        </td>
+        <td class="n mono">{{ m.adjustments|length }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="8" class="muted">No modules found in this vehicle's logs.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% endblock %}
