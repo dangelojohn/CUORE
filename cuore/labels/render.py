@@ -34,6 +34,12 @@ NM_PER_LBFT = 1.35582
 FONT = "Helvetica"
 FONT_BOLD = "Helvetica-Bold"
 MIN_FONT_PT = 4.0
+#: Floor for the one "key line" of each label kind (the value a tech must
+#: still be able to read even on a badly-shrunk label) -- every other line
+#: on the label still falls back to MIN_FONT_PT. Raised from 4pt to 6pt
+#: per the readability requirement; drawers pass this as ``min_size`` only
+#: on their key line, never globally.
+KEY_LINE_MIN_FONT_PT = 6.0
 PAD_MM = 1.4
 
 
@@ -267,8 +273,11 @@ def draw_oil_change(c: canvas.Canvas, x: float, y: float, w: float, h: float,
     next_line = "NEXT: " + " / ".join(bits) if bits else "NEXT: unknown"
     if next_date:
         next_line += f" or {next_date}"
+    basis = data.get("next_due_basis")
+    if basis:
+        next_line += f" (basis: {basis})"
     draw_fit_line(c, ix, top - row_h * 1.9, iw, next_line, font=FONT_BOLD,
-                 max_size=min(11.0, row_h * 1.1))
+                 max_size=min(11.0, row_h * 1.1), min_size=KEY_LINE_MIN_FONT_PT)
 
     odo_km = data.get("odometer_km")
     odo_mi = data.get("odometer_mi")
@@ -326,7 +335,8 @@ def draw_service(c: canvas.Canvas, x: float, y: float, w: float, h: float,
 
     y2 -= line_h
     next_line = "Next due: " + (data.get("next_due") or "unknown")
-    draw_fit_line(c, ix, y2, iw, next_line, font=FONT_BOLD, max_size=8.5)
+    draw_fit_line(c, ix, y2, iw, next_line, font=FONT_BOLD, max_size=8.5,
+                 min_size=KEY_LINE_MIN_FONT_PT)
 
     y2 -= line_h
     spec_line = " / ".join(x for x in (
@@ -364,7 +374,7 @@ def draw_torque_tag(c: canvas.Canvas, x: float, y: float, w: float, h: float,
         torque_line += f" + {data['angle']}"
     val_h = h * 0.34
     draw_fit_line(c, ix, top - header_h - val_h * 0.6, iw, torque_line,
-                 font=FONT_BOLD, max_size=16.0)
+                 font=FONT_BOLD, max_size=16.0, min_size=KEY_LINE_MIN_FONT_PT)
 
     flags = []
     if data.get("single_use"):
@@ -396,7 +406,8 @@ def draw_reminder(c: canvas.Canvas, x: float, y: float, w: float, h: float,
     if data.get("next_due_mi"):
         bits.append(f"{data['next_due_mi']} mi")
     due_line = " / ".join(bits) if bits else "UNKNOWN"
-    draw_fit_line(c, ix, top - h * 0.42, iw, due_line, font=FONT_BOLD, max_size=20.0)
+    draw_fit_line(c, ix, top - h * 0.42, iw, due_line, font=FONT_BOLD, max_size=20.0,
+                 min_size=KEY_LINE_MIN_FONT_PT)
 
     if data.get("next_due_date"):
         draw_fit_line(c, ix, top - h * 0.64, iw, f"or {data['next_due_date']}",
@@ -406,11 +417,114 @@ def draw_reminder(c: canvas.Canvas, x: float, y: float, w: float, h: float,
     draw_fit_line(c, ix, y + pad + h * 0.06, iw, tail, font=FONT, max_size=9.0)
 
 
+def draw_maintenance_reminder(c: canvas.Canvas, x: float, y: float, w: float, h: float,
+                              data: dict[str, Any], qr_url: Optional[str] = None) -> None:
+    """One overdue/due-soon :mod:`mes.maintenance_specs` item -- the per-item
+    label the "Print all due" batch produces one of for each item."""
+    pad = _pad(w, h)
+    ix, iw = x + pad, w - 2 * pad
+    top = y + h - pad
+
+    status = (data.get("status") or "").upper().replace("_", " ")
+    draw_fit_line(c, ix, top - h * 0.14, iw, status or "MAINTENANCE DUE",
+                 font=FONT_BOLD, max_size=10.0)
+
+    item = data.get("item") or "(item)"
+    draw_fit_line(c, ix, top - h * 0.42, iw, item, font=FONT_BOLD, max_size=14.0,
+                 min_size=KEY_LINE_MIN_FONT_PT)
+
+    bits = []
+    if data.get("due_km"):
+        bits.append(f"{data['due_km']} km")
+    if data.get("due_date"):
+        bits.append(data["due_date"])
+    due_line = "due: " + " / ".join(bits) if bits else "due: unknown"
+    draw_fit_line(c, ix, top - h * 0.64, iw, due_line, font=FONT, max_size=9.0)
+
+    vin_short = data.get("vin_short")
+    if vin_short:
+        draw_fit_line(c, ix, y + pad + h * 0.04, iw, f"VIN..{vin_short}", font=FONT,
+                     max_size=7.5)
+
+
+def draw_part_tag(c: canvas.Canvas, x: float, y: float, w: float, h: float,
+                  data: dict[str, Any], qr_url: Optional[str] = None) -> None:
+    pad = _pad(w, h)
+    ix, iw = x + pad, w - 2 * pad
+    top = y + h - pad
+
+    name = data.get("part_name") or "(part)"
+    draw_fit_line(c, ix, top - h * 0.16, iw, name, font=FONT_BOLD, max_size=11.0,
+                 min_size=KEY_LINE_MIN_FONT_PT)
+
+    oem = data.get("oem_number")
+    conf = data.get("oem_confidence")
+    oem_line = (f"OEM {oem}" + (f" ({conf})" if conf else "")) if oem else "OEM: unknown"
+    draw_fit_line(c, ix, top - h * 0.38, iw, oem_line, font=FONT, max_size=9.0)
+
+    y2 = top - h * 0.58
+    if data.get("torque"):
+        draw_fit_line(c, ix, y2, iw, f"Torque: {data['torque']}", font=FONT, max_size=8.0)
+        y2 -= h * 0.16
+
+    tail = " | ".join(t for t in (
+        data.get("related"),
+        data.get("date"),
+        (f"by {data.get('technician')}" if data.get("technician") else None),
+    ) if t)
+    draw_fit_line(c, ix, y + pad, iw, tail, font=FONT, max_size=7.5)
+
+
+def draw_inspection_tag(c: canvas.Canvas, x: float, y: float, w: float, h: float,
+                        data: dict[str, Any], qr_url: Optional[str] = None) -> None:
+    pad = _pad(w, h)
+    ix, iw = x + pad, w - 2 * pad
+    top = y + h - pad
+
+    draw_fit_line(c, ix, top - h * 0.16, iw, data.get("element") or "(element)",
+                 font=FONT_BOLD, max_size=11.0)
+
+    condition = (data.get("condition") or "unknown").upper()
+    draw_fit_line(c, ix, top - h * 0.46, iw, condition, font=FONT_BOLD, max_size=16.0,
+                 min_size=KEY_LINE_MIN_FONT_PT)
+
+    tail = " | ".join(t for t in (data.get("date"),
+                                  (f"by {data.get('by')}" if data.get("by") else None)) if t)
+    draw_fit_line(c, ix, y + pad, iw, tail, font=FONT, max_size=8.0)
+
+
+def draw_job_tag(c: canvas.Canvas, x: float, y: float, w: float, h: float,
+                 data: dict[str, Any], qr_url: Optional[str] = None) -> None:
+    pad = _pad(w, h)
+    ix, iw = x + pad, w - 2 * pad
+    top = y + h - pad
+
+    header = f"JOB {data.get('job_id') or '?'}"
+    draw_fit_line(c, ix, top - h * 0.14, iw, header, font=FONT_BOLD, max_size=10.0)
+
+    status = (data.get("status") or "open").upper()
+    draw_fit_line(c, ix, top - h * 0.38, iw, status, font=FONT_BOLD, max_size=14.0,
+                 min_size=KEY_LINE_MIN_FONT_PT)
+
+    draw_fit_block(c, ix, top - h * 0.5, iw, h * 0.3,
+                   data.get("complaint") or "(no complaint)", font=FONT, max_size=8.0)
+
+    tail = " | ".join(t for t in (
+        (f"Tech {data.get('technician')}" if data.get("technician") else None),
+        data.get("opened_date"),
+    ) if t)
+    draw_fit_line(c, ix, y + pad, iw, tail, font=FONT, max_size=7.5)
+
+
 _DRAWERS: dict[str, Callable[..., None]] = {
     "oil_change": draw_oil_change,
     "service": draw_service,
     "torque_tag": draw_torque_tag,
     "reminder": draw_reminder,
+    "maintenance_reminder": draw_maintenance_reminder,
+    "part_tag": draw_part_tag,
+    "inspection_tag": draw_inspection_tag,
+    "job_tag": draw_job_tag,
 }
 
 KINDS = tuple(_DRAWERS.keys())
@@ -430,40 +544,54 @@ def _draw_cell_border_stub(c: canvas.Canvas, x: float, y: float, w: float, h: fl
 
 
 def _finish_page(c: canvas.Canvas, template: LabelTemplate, page_w_pt: float,
-                 page_h_pt: float, used: bool) -> None:
+                 page_h_pt: float, used: bool,
+                 calibration_note: Optional[str] = None) -> None:
     if not used:
         return
     if not template.geometry_confirmed:
         # Only stamp the warning where it cannot land on a label: the
         # bottom margin must be at least 5 mm (evenly-distributed fallback
-        # layouts often leave ~3 mm). The web page and the test grid always
-        # carry the warning, so skipping it here loses nothing.
+        # layouts often leave ~3 mm) for the full warning sentence -- but a
+        # short "calibrated on ..." note needs only enough room for one
+        # line of 6.5pt text (~2.3mm), so it gets a lower bar and still
+        # shows on tight layouts like 6576/6578 (~2.8/4.2mm). The web page
+        # and the test grid always carry the warning, so skipping it here
+        # loses nothing.
         _, last_y = template.cell_origin_mm(template.count - 1)
         bottom_margin_mm = template.page_h_mm - (last_y + template.label_h_mm)
-        if bottom_margin_mm < 5.0:
+        min_margin_mm = 2.5 if calibration_note else 5.0
+        if bottom_margin_mm < min_margin_mm:
             return
         c.saveState()
         c.setFont(FONT, 6.5)
         c.setFillGray(0.5)
-        c.drawString(mm_to_pt(3), mm_to_pt(min(3.0, bottom_margin_mm / 2.0 - 1.0)),
-                    f"UNVERIFIED geometry ({template.id}) -- print a test "
-                    "grid on plain paper and check alignment before using "
-                    "film. See docs/reference/AVERY_LABEL_TEMPLATES.md.")
+        # A saved calibration for this (template, printer) pair is better
+        # news than the generic warning -- someone already measured this
+        # sheet on this printer, so say so instead of telling them to.
+        msg = calibration_note or (
+            f"UNVERIFIED geometry ({template.id}) -- print a test "
+            "grid on plain paper and check alignment before using "
+            "film. See docs/reference/AVERY_LABEL_TEMPLATES.md.")
+        c.drawString(mm_to_pt(3), mm_to_pt(min(3.0, bottom_margin_mm / 2.0 - 1.0)), msg)
         c.restoreState()
 
 
-def generate_labels_pdf(template: LabelTemplate, kind: str, data: dict[str, Any],
-                        *, copies: int = 1, start_index: int = 0,
-                        offset_x_mm: float = 0.0, offset_y_mm: float = 0.0,
-                        qr_url: Optional[str] = None,
-                        show_cell_outline: bool = False) -> bytes:
-    """Render ``copies`` repeats of one label (``kind``, ``data``) onto
-    ``template``, starting at 0-based cell ``start_index`` so a partly-used
-    sheet can be reused, overflowing onto additional pages as needed."""
+def generate_labels_pdf_multi(template: LabelTemplate, kind: str,
+                              data_list: list[dict[str, Any]], *, start_index: int = 0,
+                              offset_x_mm: float = 0.0, offset_y_mm: float = 0.0,
+                              qr_url: Optional[str] = None,
+                              show_cell_outline: bool = False,
+                              calibration_note: Optional[str] = None) -> bytes:
+    """Render one label per entry in ``data_list`` (all the same ``kind``),
+    walking cells left-to-right/top-to-bottom from 0-based cell
+    ``start_index`` and overflowing onto additional pages as needed -- the
+    batch form of :func:`generate_labels_pdf`, for a caller (e.g. "print
+    all due") that needs a different value per label rather than N copies
+    of one."""
     if kind not in _DRAWERS:
         raise ValueError(f"unknown label kind: {kind!r} (have {', '.join(KINDS)})")
-    if copies < 1:
-        raise ValueError("copies must be >= 1")
+    if not data_list:
+        raise ValueError("data_list must not be empty")
     if not (0 <= start_index < template.count):
         raise ValueError(
             f"start_index {start_index} out of range for {template.id!r} "
@@ -476,11 +604,10 @@ def generate_labels_pdf(template: LabelTemplate, kind: str, data: dict[str, Any]
     c = canvas.Canvas(buf, pagesize=(page_w_pt, page_h_pt))
 
     idx = start_index
-    remaining = copies
     used_on_page = False
-    while remaining > 0:
+    for data in data_list:
         if idx >= template.count:
-            _finish_page(c, template, page_w_pt, page_h_pt, used_on_page)
+            _finish_page(c, template, page_w_pt, page_h_pt, used_on_page, calibration_note)
             c.showPage()
             idx = 0
             used_on_page = False
@@ -502,12 +629,28 @@ def generate_labels_pdf(template: LabelTemplate, kind: str, data: dict[str, Any]
 
         used_on_page = True
         idx += 1
-        remaining -= 1
 
-    _finish_page(c, template, page_w_pt, page_h_pt, used_on_page)
+    _finish_page(c, template, page_w_pt, page_h_pt, used_on_page, calibration_note)
     c.showPage()
     c.save()
     return buf.getvalue()
+
+
+def generate_labels_pdf(template: LabelTemplate, kind: str, data: dict[str, Any],
+                        *, copies: int = 1, start_index: int = 0,
+                        offset_x_mm: float = 0.0, offset_y_mm: float = 0.0,
+                        qr_url: Optional[str] = None,
+                        show_cell_outline: bool = False,
+                        calibration_note: Optional[str] = None) -> bytes:
+    """Render ``copies`` repeats of one label (``kind``, ``data``) onto
+    ``template``, starting at 0-based cell ``start_index`` so a partly-used
+    sheet can be reused, overflowing onto additional pages as needed."""
+    if copies < 1:
+        raise ValueError("copies must be >= 1")
+    return generate_labels_pdf_multi(
+        template, kind, [data] * copies, start_index=start_index,
+        offset_x_mm=offset_x_mm, offset_y_mm=offset_y_mm, qr_url=qr_url,
+        show_cell_outline=show_cell_outline, calibration_note=calibration_note)
 
 
 def generate_test_grid_pdf(template: LabelTemplate, *,
@@ -568,7 +711,8 @@ def generate_test_grid_pdf(template: LabelTemplate, *,
 
 
 __all__ = [
-    "generate_labels_pdf", "generate_test_grid_pdf", "KINDS",
+    "generate_labels_pdf", "generate_labels_pdf_multi", "generate_test_grid_pdf", "KINDS",
     "fit_font_size", "fit_block", "draw_fit_line", "draw_fit_block",
     "clip_to_width", "km_to_mi", "nm_to_lbft", "short_vin", "mm_to_pt",
+    "MIN_FONT_PT", "KEY_LINE_MIN_FONT_PT",
 ]

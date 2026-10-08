@@ -35,7 +35,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from .. import __version__
@@ -58,9 +58,18 @@ _VIN_COOKIE = "cuore_vin"
 _OVERRIDE_FIELDS = (
     "shop_name", "date", "odometer_km", "oil_viscosity", "oil_spec",
     "quantity_l", "filter_part_no", "technician", "next_due_km",
-    "next_due_mi", "next_due_date", "section", "work_done", "next_due",
-    "key_spec", "key_torque", "component", "torque_key", "torque_nm",
-    "torque_lbft", "angle", "vehicle", "job",
+    "next_due_mi", "next_due_date", "next_due_basis", "section", "work_done",
+    "next_due", "key_spec", "key_torque", "component", "torque_key",
+    "torque_nm", "torque_lbft", "angle", "vehicle", "job",
+    # maintenance_reminder
+    "item", "status", "due_km", "due_date",
+    # part_tag
+    "part_key", "part_name", "oem_number", "oem_confidence", "torque",
+    "related_code", "related_job",
+    # inspection_tag
+    "element", "condition", "by",
+    # job_tag
+    "job_id", "complaint", "opened_date",
 )
 
 
@@ -121,6 +130,18 @@ def _float_q(v: Optional[str], default: float = 0.0) -> float:
         return float(str(v).strip())
     except (TypeError, ValueError):
         return default
+
+
+def _float_q_opt(v: Optional[str]) -> Optional[float]:
+    """Like :func:`_float_q` but ``None`` when the field was left blank --
+    callers use that to tell "not given" apart from an explicit ``0``, so a
+    saved print-offset calibration can be applied automatically."""
+    if v in (None, ""):
+        return None
+    try:
+        return float(str(v).strip())
+    except (TypeError, ValueError):
+        return None
 
 
 def _overrides_from(q: dict[str, Any]) -> dict[str, Any]:
@@ -201,11 +222,19 @@ def labels_page(request: Request, vin: str) -> HTMLResponse:
         error = str(exc)
         template = None
 
+    calibrations = labels_bridge.list_calibrations(template_id)
+    due_items = []
+    try:
+        due_items = labels_bridge.maintenance_due_items(vin)
+    except BridgeError:
+        due_items = []
+
     response = _page(request, "labels.html", vin=vin, bar=_vehicle_bar(vin, dossier),
                      tab="labels", templates_list=tmpl_info["templates"],
                      kinds=tmpl_info["kinds"], records=records, q=q,
                      kind=kind, template_id=template_id, error=error,
-                     preview_url=preview_url,
+                     preview_url=preview_url, calibrations=calibrations,
+                     calibrated=_bool_q(q.get("calibrated")), due_items=due_items,
                      current_odometer=(dossier.get("identity") or {}).get("odometer_last_km"))
     response.set_cookie(_VIN_COOKIE, vin, max_age=60 * 60 * 24 * 30, samesite="lax")
     return response
@@ -220,8 +249,9 @@ def labels_pdf(request: Request, vin: str) -> Response:
     overrides = _overrides_from(q)
     record_id = q.get("record_id") or ""
     copies = max(1, _int_q(q.get("copies"), 1))
-    offset_x_mm = _float_q(q.get("offset_x_mm"), 0.0)
-    offset_y_mm = _float_q(q.get("offset_y_mm"), 0.0)
+    offset_x_mm = _float_q_opt(q.get("offset_x_mm"))
+    offset_y_mm = _float_q_opt(q.get("offset_y_mm"))
+    printer_name = q.get("printer_name") or ""
     qr_url = q.get("qr_url") if _bool_q(q.get("qr")) else None
 
     template = labels_bridge.get_template(template_id, custom)
@@ -229,19 +259,59 @@ def labels_pdf(request: Request, vin: str) -> Response:
     if _bool_q(q.get("grid")):
         pdf = labels_bridge.render_test_grid(template_id, custom,
                                              offset_x_mm=offset_x_mm,
-                                             offset_y_mm=offset_y_mm)
+                                             offset_y_mm=offset_y_mm,
+                                             printer_name=printer_name)
         fname = f"label-test-grid-{template_id}.pdf"
+    elif _bool_q(q.get("due")):
+        start_index = _start_index(q, template.cols)
+        pdf = labels_bridge.maintenance_reminder_batch_pdf(
+            vin=vin, template_id=template_id, custom=custom,
+            start_index=start_index, offset_x_mm=offset_x_mm,
+            offset_y_mm=offset_y_mm, printer_name=printer_name, qr_url=qr_url)
+        fname = f"label-maintenance-due-{vin}.pdf"
     else:
         start_index = _start_index(q, template.cols)
         pdf = labels_bridge.render_pdf(
             vin=vin, kind=kind, template_id=template_id, record_id=record_id,
             overrides=overrides, custom=custom, copies=copies,
             start_index=start_index, offset_x_mm=offset_x_mm,
-            offset_y_mm=offset_y_mm, qr_url=qr_url)
+            offset_y_mm=offset_y_mm, printer_name=printer_name, qr_url=qr_url)
         fname = f"label-{kind}-{vin}.pdf"
 
     return Response(content=pdf, media_type="application/pdf",
                     headers={"Content-Disposition": f'inline; filename="{fname}"'})
+
+
+@router.post("/v/{vin}/labels/calibrate", response_class=HTMLResponse)
+async def labels_calibrate_submit(request: Request, vin: str) -> RedirectResponse:
+    """Save a print-offset calibration measured off a printed test grid.
+    Plain POST, no JavaScript required -- same degrade-first shape as
+    ``/v/{vin}/electrical/inspect``."""
+    form = await request.form()
+    template_id = str(form.get("template_id", "")).strip()
+    printer_name = str(form.get("printer_name", "")).strip()
+    note = str(form.get("note", "")).strip()
+    kind = str(form.get("kind", "")).strip() or "oil_change"
+
+    error = None
+    try:
+        offset_x_mm = float(str(form.get("offset_x_mm", "0")).strip())
+        offset_y_mm = float(str(form.get("offset_y_mm", "0")).strip())
+    except (TypeError, ValueError):
+        error = "offsets must be numbers"
+
+    if error is None:
+        try:
+            labels_bridge.save_calibration(template_id, printer_name, offset_x_mm,
+                                           offset_y_mm, note)
+        except BridgeError as exc:
+            error = str(exc)
+
+    from urllib.parse import quote
+    params = [f"kind={quote(kind)}", f"template_id={quote(template_id)}",
+             f"printer_name={quote(printer_name)}"]
+    params.append("calibrated=1" if error is None else f"error={quote(error)}")
+    return RedirectResponse(url=f"/v/{vin}/labels?{'&'.join(params)}", status_code=303)
 
 
 # --- JSON API ----------------------------------------------------------------

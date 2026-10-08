@@ -29,10 +29,13 @@ from reportlab.pdfbase.pdfmetrics import stringWidth  # noqa: E402
 
 from cuore import bootstrap  # noqa: F401,E402
 from cuore.config import load as load_settings  # noqa: E402
+from cuore.services import labels_bridge  # noqa: E402
 from cuore.services.errors import BridgeError  # noqa: E402
 from cuore.web import labels_routes  # noqa: E402
 from cuore.labels import templates as T  # noqa: E402
 from cuore.labels import render as R  # noqa: E402
+from cuore.live import label_calibration  # noqa: E402
+from mes import service as service_mod  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio this toolchain already knows about
 
@@ -256,7 +259,8 @@ check("JSON templates endpoint responds 200", r6.status_code == 200)
 body = r6.json()
 check("JSON templates endpoint lists templates", len(body.get("templates", [])) >= 7)
 check("JSON templates endpoint lists kinds", set(body.get("kinds", [])) == {
-    "oil_change", "service", "torque_tag", "reminder"})
+    "oil_change", "service", "torque_tag", "reminder", "maintenance_reminder",
+    "part_tag", "inspection_tag", "job_tag"})
 
 
 # --- summary ------------------------------------------------------------------
@@ -290,6 +294,62 @@ _pdf = R.generate_labels_pdf(_t6576, "reminder", {"vehicle": "V", "job": "Oil ch
 _txt = _PdfReader(_io.BytesIO(_pdf)).pages[0].extract_text()
 check("6576 label sheet does not stamp the warning over the bottom labels",
       "UNVERIFIED" not in _txt)
+
+
+# --- new: calibration, maintenance_reminder batch, part_tag, key-line floor,
+#     unverified-template-shows-calibrated (2026-10-07) -----------------------
+
+# 1. calibration saved and applied to a render.
+label_calibration.save("avery_6576", "bench-laser-1", 2.0, 3.0, note="qa")
+_calib = label_calibration.get("avery_6576", "bench-laser-1")
+check("calibration save()/get() round-trips the measured offsets",
+     _calib is not None and _calib["offset_x_mm"] == 2.0 and _calib["offset_y_mm"] == 3.0)
+_pdf_calibrated = labels_bridge.render_pdf(vin=VIN, kind="reminder", template_id="avery_6576",
+                                          printer_name="bench-laser-1")
+_pdf_uncalibrated = labels_bridge.render_pdf(vin=VIN, kind="reminder", template_id="avery_6576",
+                                             offset_x_mm=0.0, offset_y_mm=0.0)
+check("a saved calibration's offset is applied to the render automatically",
+     _pdf_calibrated != _pdf_uncalibrated)
+
+# 2. maintenance_reminder batch produces one label per due item (fixture state).
+_MVIN = "ZTESTLABELSFIXTURE1"
+service_mod.record_maintenance(_MVIN, {
+    "date": "2000-01-01", "odometer_km": 1000, "technician": "QA",
+    "items": [{"item_key": "engine_air_filter", "action": "replaced"}],
+})
+_due = labels_bridge.maintenance_due_items(_MVIN, current_odometer_km=999999)
+check("maintenance_due_items finds the fixture's overdue item", len(_due) >= 1)
+_batch_pdf = labels_bridge.maintenance_reminder_batch_pdf(
+    vin=_MVIN, template_id="avery_5522", current_odometer_km=999999)
+_batch_text = _PdfReader(_io.BytesIO(_batch_pdf)).pages[0].extract_text()
+check("maintenance_reminder batch prints one label per due item",
+     _batch_text.count("due:") == len(_due), f"due items={len(_due)}")
+
+# 3. part_tag renders with the OEM number.
+_part_data = labels_bridge.part_tag_label_data({"part_key": "oil_filter"})
+check("part_tag_label_data resolves the OEM number from the parts library",
+     bool(_part_data["oem_number"]))
+_part_pdf = labels_bridge.render_pdf(vin=VIN, kind="part_tag", template_id="avery_5522",
+                                    overrides={"part_key": "oil_filter"})
+_part_text = _PdfReader(_io.BytesIO(_part_pdf)).pages[0].extract_text()
+check("part_tag PDF contains the resolved OEM number",
+     _part_data["oem_number"] in _part_text)
+
+# 4. key line font never below 6pt.
+_key_size = R.fit_font_size(LONG_TEXT, R.FONT_BOLD, 10.0, max_size=14.0,
+                           min_size=R.KEY_LINE_MIN_FONT_PT)
+check("a key line never shrinks below KEY_LINE_MIN_FONT_PT",
+     _key_size >= R.KEY_LINE_MIN_FONT_PT, f"size={_key_size}")
+
+# 5. unverified template shows "calibrated" after saving a calibration.
+label_calibration.save("avery_6578", "cal-test-printer", 1.0, 1.0)
+_cal_pdf = labels_bridge.render_pdf(vin=VIN, kind="reminder", template_id="avery_6578",
+                                   printer_name="cal-test-printer")
+_cal_text = _PdfReader(_io.BytesIO(_cal_pdf)).pages[0].extract_text()
+check("UNVERIFIED template shows 'calibrated' instead of the warning "
+     "once a calibration is saved",
+     "calibrated" in _cal_text.lower() and "UNVERIFIED" not in _cal_text,
+     repr(_cal_text))
 
 
 print(f"{checks} checks, {len(failures)} failures")

@@ -24,10 +24,28 @@ from .. import bootstrap  # noqa: F401 -- side effect: puts `mes` on sys.path
 from .errors import BadRequest, NotFound
 from ..labels import render as label_render
 from ..labels import templates as label_templates
+from ..live import label_calibration
 
 from mes import service as service_mod  # noqa: E402
 from mes import service_specs  # noqa: E402
 from mes import drivetrain_specs  # noqa: E402
+from mes import jobs as jobs_mod  # noqa: E402
+
+
+def _parts_bridge():
+    try:
+        from . import parts_bridge
+        return parts_bridge
+    except Exception:  # noqa: BLE001 -- a part_tag label must never 500
+        return None
+
+
+def _electrical_bridge():
+    try:
+        from . import electrical_bridge
+        return electrical_bridge
+    except Exception:  # noqa: BLE001 -- an inspection_tag label must never 500
+        return None
 
 
 # --- templates -------------------------------------------------------------
@@ -62,6 +80,41 @@ def get_template(template_id: str, custom: Optional[dict[str, Any]] = None):
         return label_templates.get(template_id)
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
+
+
+# --- print-offset calibration -----------------------------------------------
+
+
+def _resolve_offsets(template_id: str, printer_name: str,
+                     offset_x_mm: Optional[float], offset_y_mm: Optional[float]
+                     ) -> tuple[float, float, Optional[str]]:
+    """Fill in ``offset_x_mm``/``offset_y_mm`` from the saved calibration for
+    ``(template_id, printer_name)`` whenever the caller left one or both
+    ``None`` -- an explicit value (including ``0.0``) is never overridden,
+    so a print can still deliberately diverge from the saved calibration.
+    Also returns the "calibrated on ..." note for an UNVERIFIED template
+    with a matching calibration, or ``None`` otherwise.
+    """
+    calib = label_calibration.get(template_id, printer_name) if printer_name else None
+    x = offset_x_mm if offset_x_mm is not None else (calib["offset_x_mm"] if calib else 0.0)
+    y = offset_y_mm if offset_y_mm is not None else (calib["offset_y_mm"] if calib else 0.0)
+    note = None
+    if calib:
+        note = f"calibrated on {calib['printer_name']} {calib['verified_at'][:10]}"
+    return x, y, note
+
+
+def save_calibration(template_id: str, printer_name: str, offset_x_mm: float,
+                     offset_y_mm: float, note: str = "") -> dict[str, Any]:
+    try:
+        return label_calibration.save(template_id, printer_name, offset_x_mm,
+                                      offset_y_mm, note)
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+def list_calibrations(template_id: str) -> list[dict[str, Any]]:
+    return label_calibration.for_template(template_id)
 
 
 # --- vehicle context ---------------------------------------------------------
@@ -133,7 +186,21 @@ def oil_change_label_data(vin: str, record: Optional[dict[str, Any]],
     next_due = service_mod.next_oil_change(vin) if vin.strip() else {"known": False}
 
     odo_km = overrides.get("odometer_km") or d.get("odometer_km")
+    if not odo_km:
+        # Never print a label with a silently-blank odometer -- the record
+        # has none and the caller gave none, so this is a real gap the
+        # mechanic must fill in (the web form prompts for it), not a
+        # stand-in to render over.
+        raise BadRequest(
+            "no odometer reading for this oil-change label -- the record "
+            "has none; enter one before printing")
     next_km = overrides.get("next_due_km") or next_due.get("next_due_odometer_km")
+    # ``based_on == "mes_adjustment_only"`` means the only evidence for a
+    # next-due figure is an MES 'Oil change' reset event with no odometer
+    # baseline -- print that basis explicitly rather than implying the
+    # ledger itself supports the number.
+    next_due_basis = ("MES reset, unverified"
+                      if next_due.get("based_on") == "mes_adjustment_only" else "")
     data = {
         "shop_name": overrides.get("shop_name") or shop_name or "CUORE",
         "date": overrides.get("date") or d.get("date") or "",
@@ -148,6 +215,7 @@ def oil_change_label_data(vin: str, record: Optional[dict[str, Any]],
         "next_due_km": _fmt_num(next_km),
         "next_due_mi": _fmt_num(label_render.km_to_mi(next_km)),
         "next_due_date": overrides.get("next_due_date") or next_due.get("next_due_date") or "",
+        "next_due_basis": overrides.get("next_due_basis") or next_due_basis,
     }
     return data
 
@@ -199,12 +267,173 @@ def reminder_label_data(vin: str, overrides: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# --- maintenance reminder (one label per overdue/due-soon item) ------------
+
+
+def maintenance_due_items(vin: str, current_odometer_km: Optional[float] = None
+                          ) -> list[dict[str, Any]]:
+    """Every :mod:`mes.maintenance_specs` item currently ``overdue`` or
+    ``due_soon`` for ``vin`` -- the backing list for the "Print all due"
+    batch button. ``[]`` if none are due or the VIN has no history yet."""
+    vin = (vin or "").strip()
+    if not vin:
+        return []
+    if current_odometer_km is None:
+        try:
+            from mes import workup as workup_mod
+            dossier = workup_mod.build(vin=vin)
+            if "error" not in dossier:
+                current_odometer_km = (dossier.get("identity") or {}).get("odometer_last_km")
+        except Exception:  # noqa: BLE001
+            current_odometer_km = None
+    due = service_mod.maintenance_due(vin, current_odometer_km)
+    return [it for it in due.get("items", []) if it.get("status") in ("overdue", "due_soon")]
+
+
+def maintenance_reminder_label_data(vin: str, item: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "item": item.get("label") or item.get("item_key") or "(item)",
+        "status": item.get("status") or "",
+        "due_km": _fmt_num(item.get("next_due_odometer_km")),
+        "due_date": item.get("next_due_date") or "",
+        "vin_short": label_render.short_vin(vin),
+    }
+
+
+def _maintenance_reminder_preview(vin: str, overrides: dict[str, Any]) -> dict[str, Any]:
+    """A single preview label for the picker -- the overrides directly if
+    given, else the first due item, else an honest empty state (never a
+    fabricated due item)."""
+    if overrides.get("item"):
+        return {
+            "item": overrides["item"],
+            "status": overrides.get("status") or "",
+            "due_km": overrides.get("due_km") or "",
+            "due_date": overrides.get("due_date") or "",
+            "vin_short": label_render.short_vin(vin),
+        }
+    items = maintenance_due_items(vin)
+    if items:
+        return maintenance_reminder_label_data(vin, items[0])
+    return {"item": "(no item currently due)", "status": "", "due_km": "",
+           "due_date": "", "vin_short": label_render.short_vin(vin)}
+
+
+def maintenance_reminder_batch_pdf(*, vin: str, template_id: str,
+                                   custom: Optional[dict[str, Any]] = None,
+                                   start_index: int = 0,
+                                   offset_x_mm: Optional[float] = None,
+                                   offset_y_mm: Optional[float] = None,
+                                   printer_name: str = "",
+                                   qr_url: Optional[str] = None,
+                                   current_odometer_km: Optional[float] = None) -> bytes:
+    """One ``maintenance_reminder`` label per overdue/due-soon item --
+    the "Print all due" button. Raises :class:`BadRequest` if nothing is
+    due, same posture as any other empty-result-is-an-error write path
+    here (nothing to silently print)."""
+    items = maintenance_due_items(vin, current_odometer_km)
+    if not items:
+        raise BadRequest(f"no maintenance items are overdue or due soon for {vin}")
+    template = get_template(template_id, custom)
+    offset_x_mm, offset_y_mm, calibration_note = _resolve_offsets(
+        template_id, printer_name, offset_x_mm, offset_y_mm)
+    data_list = [maintenance_reminder_label_data(vin, it) for it in items]
+    try:
+        return label_render.generate_labels_pdf_multi(
+            template, "maintenance_reminder", data_list, start_index=start_index,
+            offset_x_mm=offset_x_mm, offset_y_mm=offset_y_mm, qr_url=qr_url,
+            calibration_note=calibration_note)
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+# --- part tag ----------------------------------------------------------------
+
+
+def part_tag_label_data(overrides: dict[str, Any]) -> dict[str, Any]:
+    key = (overrides.get("part_key") or "").strip()
+    part = None
+    mod = _parts_bridge()
+    if key and mod is not None:
+        try:
+            part = mod.part(key)
+        except Exception:  # noqa: BLE001
+            part = None
+    part = part or {}
+    oem_rows = part.get("oem") or []
+    first_oem = oem_rows[0] if oem_rows else {}
+    torques = part.get("torques") or []
+    first_torque = next((t for t in torques if t.get("display") not in (None, "UNKNOWN")), None)
+    torque_display = overrides.get("torque") or ""
+    if not torque_display and first_torque:
+        torque_display = f"{first_torque['display']} ({first_torque.get('confidence', 'UNKNOWN')})"
+    related = " / ".join(x for x in (
+        overrides.get("related_code"), overrides.get("related_job")) if x)
+    return {
+        "part_name": overrides.get("part_name") or part.get("name") or "",
+        "oem_number": overrides.get("oem_number") or first_oem.get("number") or "",
+        "oem_confidence": overrides.get("oem_confidence") or first_oem.get("confidence") or "",
+        "torque": torque_display,
+        "related": related,
+        "date": overrides.get("date") or "",
+        "technician": overrides.get("technician") or "",
+    }
+
+
+# --- inspection tag ------------------------------------------------------------
+
+
+def inspection_tag_label_data(vin: str, overrides: dict[str, Any]) -> dict[str, Any]:
+    element = (overrides.get("element") or "").strip()
+    latest = None
+    mod = _electrical_bridge()
+    if element and vin.strip() and mod is not None:
+        try:
+            rows = mod.list_inspections(vin, element)
+            latest = rows[-1] if rows else None
+        except Exception:  # noqa: BLE001
+            latest = None
+    latest = latest or {}
+    return {
+        "element": overrides.get("element") or latest.get("element") or "",
+        "condition": overrides.get("condition") or latest.get("condition") or "",
+        "date": overrides.get("date") or (latest.get("at") or "")[:10],
+        "by": overrides.get("by") or latest.get("by") or "",
+    }
+
+
+# --- job tag -------------------------------------------------------------------
+
+
+def job_tag_label_data(vin: str, overrides: dict[str, Any]) -> dict[str, Any]:
+    job = None
+    if vin.strip() and not overrides.get("job_id"):
+        try:
+            job = jobs_mod.current(vin)
+        except Exception:  # noqa: BLE001
+            job = None
+    job = job or {}
+    complaint = (overrides.get("complaint") or job.get("complaint") or "")[:60]
+    return {
+        "job_id": overrides.get("job_id") or job.get("id") or "",
+        "complaint": complaint,
+        "status": overrides.get("status") or job.get("status") or "",
+        "technician": overrides.get("technician") or job.get("technician") or "",
+        "opened_date": overrides.get("opened_date") or (job.get("opened_at") or "")[:10],
+    }
+
+
 _LABEL_DATA_BUILDERS = {
     "oil_change": lambda vin, record, overrides: oil_change_label_data(
         vin, record, overrides.get("shop_name", ""), overrides),
     "service": lambda vin, record, overrides: service_label_data(vin, record, overrides),
     "torque_tag": lambda vin, record, overrides: torque_tag_label_data(overrides),
     "reminder": lambda vin, record, overrides: reminder_label_data(vin, overrides),
+    "maintenance_reminder": lambda vin, record, overrides: _maintenance_reminder_preview(
+        vin, overrides),
+    "part_tag": lambda vin, record, overrides: part_tag_label_data(overrides),
+    "inspection_tag": lambda vin, record, overrides: inspection_tag_label_data(vin, overrides),
+    "job_tag": lambda vin, record, overrides: job_tag_label_data(vin, overrides),
 }
 
 
@@ -231,23 +460,30 @@ def render_pdf(*, vin: str, kind: str, template_id: str, record_id: str = "",
                overrides: Optional[dict[str, Any]] = None,
                custom: Optional[dict[str, Any]] = None,
                copies: int = 1, start_index: int = 0,
-               offset_x_mm: float = 0.0, offset_y_mm: float = 0.0,
+               offset_x_mm: Optional[float] = None, offset_y_mm: Optional[float] = None,
+               printer_name: str = "",
                qr_url: Optional[str] = None) -> bytes:
     overrides = dict(overrides or {})
     template = get_template(template_id, custom)
     record = find_record(vin, kind, record_id) if record_id else None
     data = build_label_data(vin, kind, record, overrides)
+    offset_x_mm, offset_y_mm, calibration_note = _resolve_offsets(
+        template_id, printer_name, offset_x_mm, offset_y_mm)
     try:
         return label_render.generate_labels_pdf(
             template, kind, data, copies=copies, start_index=start_index,
-            offset_x_mm=offset_x_mm, offset_y_mm=offset_y_mm, qr_url=qr_url)
+            offset_x_mm=offset_x_mm, offset_y_mm=offset_y_mm, qr_url=qr_url,
+            calibration_note=calibration_note)
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
 
 
 def render_test_grid(template_id: str, custom: Optional[dict[str, Any]] = None,
-                     offset_x_mm: float = 0.0, offset_y_mm: float = 0.0) -> bytes:
+                     offset_x_mm: Optional[float] = None, offset_y_mm: Optional[float] = None,
+                     printer_name: str = "") -> bytes:
     template = get_template(template_id, custom)
+    offset_x_mm, offset_y_mm, _note = _resolve_offsets(
+        template_id, printer_name, offset_x_mm, offset_y_mm)
     return label_render.generate_test_grid_pdf(
         template, offset_x_mm=offset_x_mm, offset_y_mm=offset_y_mm)
 
@@ -255,5 +491,8 @@ def render_test_grid(template_id: str, custom: Optional[dict[str, Any]] = None,
 __all__ = [
     "list_templates", "get_template", "list_records", "torque_lookup",
     "search_torques", "build_label_data", "find_record", "render_pdf",
-    "render_test_grid",
+    "render_test_grid", "save_calibration", "list_calibrations",
+    "maintenance_due_items", "maintenance_reminder_label_data",
+    "maintenance_reminder_batch_pdf", "part_tag_label_data",
+    "inspection_tag_label_data", "job_tag_label_data",
 ]

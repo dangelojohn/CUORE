@@ -126,6 +126,50 @@ first and check it against a real sheet before printing to film.</p>
       <input type="text" name="next_due_km" placeholder="Next due km (blank = computed)" value="{{ q.next_due_km or '' }}">
       <input type="text" name="next_due_date" placeholder="Next due date (blank = computed)" value="{{ q.next_due_date or '' }}">
     </div>
+    {% elif kind == 'maintenance_reminder' %}
+    <h3>Maintenance reminder fields</h3>
+    <p class="small muted">Leave blank to preview the first overdue/due-soon item
+    ({{ due_items|length }} currently due) — or type one in directly.</p>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="item" placeholder="Item (blank = first due)" value="{{ q.item or '' }}">
+      <input type="text" name="status" placeholder="Status (overdue / due_soon)" value="{{ q.status or '' }}">
+      <input type="text" name="due_km" placeholder="Due at km" value="{{ q.due_km or '' }}">
+      <input type="text" name="due_date" placeholder="Due by date" value="{{ q.due_date or '' }}">
+    </div>
+    {% elif kind == 'part_tag' %}
+    <h3>Part tag fields</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="part_key" placeholder="Part library key (optional lookup)" value="{{ q.part_key or '' }}">
+      <input type="text" name="part_name" placeholder="Part name" value="{{ q.part_name or '' }}">
+      <input type="text" name="oem_number" placeholder="OEM number" value="{{ q.oem_number or '' }}">
+      <input type="text" name="oem_confidence" placeholder="OEM confidence" value="{{ q.oem_confidence or '' }}">
+      <input type="text" name="torque" placeholder="Torque (blank = from library)" value="{{ q.torque or '' }}">
+      <input type="text" name="related_code" placeholder="Related code" value="{{ q.related_code or '' }}">
+      <input type="text" name="related_job" placeholder="Related job" value="{{ q.related_job or '' }}">
+      <input type="date" name="date" value="{{ q.date or '' }}">
+      <input type="text" name="technician" placeholder="Technician initials" value="{{ q.technician or '' }}">
+    </div>
+    <p class="small muted">A part library key looked up here fills name/OEM
+    number/torque from <a href="/v/{{ vin }}/parts" target="_blank" rel="noopener">the parts page</a>'s
+    data — override any field above it.</p>
+    {% elif kind == 'inspection_tag' %}
+    <h3>Inspection tag fields</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="element" placeholder="Element id (e.g. from the electrical page)" value="{{ q.element or '' }}">
+      <input type="text" name="condition" placeholder="Condition (blank = latest logged)" value="{{ q.condition or '' }}">
+      <input type="date" name="date" value="{{ q.date or '' }}">
+      <input type="text" name="by" placeholder="Inspected by" value="{{ q.by or '' }}">
+    </div>
+    {% elif kind == 'job_tag' %}
+    <h3>Job tag fields</h3>
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
+      <input type="text" name="job_id" placeholder="Job id (blank = current job)" value="{{ q.job_id or '' }}">
+      <input type="text" name="status" placeholder="Status" value="{{ q.status or '' }}">
+      <input type="text" name="technician" placeholder="Technician initials" value="{{ q.technician or '' }}">
+      <input type="date" name="opened_date" value="{{ q.opened_date or '' }}">
+    </div>
+    <div class="field"><label for="complaint">Complaint (first 60 characters print)</label>
+      <textarea id="complaint" name="complaint">{{ q.complaint or '' }}</textarea></div>
     {% endif %}
 
     <h3>Sheet position, copies &amp; calibration</h3>
@@ -138,11 +182,17 @@ first and check it against a real sheet before printing to film.</p>
         <input id="start_col" type="number" step="1" name="start_col" value="{{ q.start_col or '' }}"></div>
       <div class="field"><label for="copies">Copies</label>
         <input id="copies" type="number" step="1" min="1" name="copies" value="{{ q.copies or 1 }}"></div>
-      <div class="field"><label for="offset_x_mm">Calibration offset X (mm)</label>
-        <input id="offset_x_mm" type="number" step="0.1" name="offset_x_mm" value="{{ q.offset_x_mm or 0 }}"></div>
-      <div class="field"><label for="offset_y_mm">Calibration offset Y (mm)</label>
-        <input id="offset_y_mm" type="number" step="0.1" name="offset_y_mm" value="{{ q.offset_y_mm or 0 }}"></div>
+      <div class="field"><label for="offset_x_mm">Calibration offset X (mm, blank = use saved)</label>
+        <input id="offset_x_mm" type="number" step="0.1" name="offset_x_mm" value="{{ q.offset_x_mm or '' }}"></div>
+      <div class="field"><label for="offset_y_mm">Calibration offset Y (mm, blank = use saved)</label>
+        <input id="offset_y_mm" type="number" step="0.1" name="offset_y_mm" value="{{ q.offset_y_mm or '' }}"></div>
+      <div class="field"><label for="printer_name">Printer name</label>
+        <input id="printer_name" type="text" name="printer_name" placeholder="e.g. bay-laser-1"
+               value="{{ q.printer_name or '' }}"></div>
     </div>
+    <p class="small muted">Leave the offsets blank and name a printer to apply
+    that printer's saved calibration automatically — type a number to
+    override it just for this print.</p>
 
     <h3>QR code (optional, off by default)</h3>
     <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))">
@@ -155,6 +205,11 @@ first and check it against a real sheet before printing to film.</p>
       <button class="btn" type="submit">Update preview</button>
       <button class="btn primary" type="submit" formaction="/v/{{ vin }}/labels.pdf" formtarget="_blank">Download PDF</button>
       <button class="btn" type="submit" formaction="/v/{{ vin }}/labels.pdf" formtarget="_blank" name="grid" value="1">Print test grid (plain paper)</button>
+      {% if kind == 'maintenance_reminder' %}
+      <button class="btn" type="submit" formaction="/v/{{ vin }}/labels.pdf" formtarget="_blank" name="due" value="1"
+              {{ 'disabled' if not due_items }}>
+        Print all due ({{ due_items|length }})</button>
+      {% endif %}
     </p>
     <p class="small muted">The PDF opens inline so the browser's print dialog
     can print it — choose <b>Actual size / 100%</b>, never "Fit to page",
@@ -171,6 +226,42 @@ first and check it against a real sheet before printing to film.</p>
   {% else %}
   <p class="small muted">Pick a kind and template above to see a preview.</p>
   {% endif %}
+</div>
+
+<div class="panel">
+  <h2>Calibrate</h2>
+  <p class="small muted">Print the test grid above on plain paper, hold it
+  against a real sheet in your printer's output, measure how far the die-cut
+  box is from the printed box in millimetres (X = right, Y = down), and save
+  that here. Every later render for this sheet on this printer applies the
+  offset automatically — the fields above can still override it per print.</p>
+  {% if calibrated %}
+  <div class="note"><span class="lab">Saved</span>Calibration recorded.</div>
+  {% endif %}
+  {% if calibrations %}
+  <ul class="small muted">
+    {% for c in calibrations %}
+    <li>calibrated on {{ c.printer_name }} {{ c.verified_at[:10] }} — X {{ c.offset_x_mm }} mm, Y {{ c.offset_y_mm }} mm{% if c.note %} ({{ c.note }}){% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No calibration saved yet for this template.</p>
+  {% endif %}
+  <form method="post" action="/v/{{ vin }}/labels/calibrate">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <input type="hidden" name="template_id" value="{{ template_id }}">
+    <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+      <div class="field"><label for="cal_printer_name">Printer name</label>
+        <input id="cal_printer_name" type="text" name="printer_name" required
+               placeholder="e.g. bay-laser-1" value="{{ q.printer_name or '' }}"></div>
+      <div class="field"><label for="cal_offset_x_mm">Measured offset X (mm)</label>
+        <input id="cal_offset_x_mm" type="number" step="0.1" name="offset_x_mm" required value="0"></div>
+      <div class="field"><label for="cal_offset_y_mm">Measured offset Y (mm)</label>
+        <input id="cal_offset_y_mm" type="number" step="0.1" name="offset_y_mm" required value="0"></div>
+      <input type="text" name="note" placeholder="Note (optional)">
+    </div>
+    <p><button class="btn" type="submit">Save calibration</button></p>
+  </form>
 </div>
 
 {% endblock %}
