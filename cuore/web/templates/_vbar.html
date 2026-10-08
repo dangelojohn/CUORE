@@ -10,14 +10,59 @@
    every page by routes.py's _page() helper -- already in scope here via
    Jinja's include-shares-context, no route change needed). #}
 {% set _hero_slug = (bar.name.split()|last)|lower if bar.name else 'car' %}
+{% set _taglines = {"alfa": "Passion and the joy of driving"} %}
+{% set _tagline = _taglines.get(marque|default("alfa")) %}
+{% set figures = [] %}
+{% if view is defined and view %}
+  {% if view.code_counts is defined and view.code_counts and view.code_counts.active is not none %}
+    {% set figures = figures + [{"value": view.code_counts.active, "label": "Open codes"}] %}
+  {% endif %}
+  {% if bar.odo_last is not none %}
+    {% set figures = figures + [{"value": "{:,}".format(bar.odo_last|int), "label": "Odometer km"}] %}
+  {% endif %}
+  {% if view.freeze_frames %}
+    {% set _ff_fuel = (view.freeze_frames[0].key|selectattr("name", "equalto", "Fuel level")|list) %}
+    {% if _ff_fuel and _ff_fuel[0].value is not none %}
+      {% set _fv = _ff_fuel[0] %}
+      {% set _fv_num = (_fv.value|string).split(" ")[0]|float(default=-1) %}
+      {% if _fv_num >= 0 %}
+        {% set figures = figures + [{"value": (_fv_num|round|int|string) + "%",
+           "label": "Fuel at code set" + (" — out of window" if _fv.flag else " — in window"),
+           "flag": _fv.flag}] %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+{% endif %}
 <div class="vbar">
   <div class="vhero">
     <div class="hero-img" style="background-image:url(/static/brand/{{ _hero_slug }}.jpg)"></div>
     <div class="hero-text">
-      <span class="hero-name">{{ bar.name }}</span>
-      <span class="hero-vin mono">&hellip;{{ bar.vin[-6:] }}</span>
-      {% if bar.odo_last is not none %}
-        <span class="hero-km mono">{{ "{:,}".format(bar.odo_last|int) }} km</span>
+      <div class="hero-head">
+        <span class="hero-name">{{ bar.name }}</span>
+        <span class="hero-vin mono">&hellip;{{ bar.vin[-6:] }}</span>
+        {% if bar.odo_last is not none %}
+          <span class="hero-km mono">{{ "{:,}".format(bar.odo_last|int) }} km</span>
+        {% endif %}
+      </div>
+      {% if _tagline %}<div class="hero-tagline">{{ _tagline }}</div>{% endif %}
+      {% if view is defined and view and view.verdict %}
+        {% set _hvstate = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
+        <div class="hero-verdict">
+          <span class="hero-verdict-state v-{{ _hvstate }}">{{ view.verdict.label }}</span>
+          {% if view.verdict.summary %}
+            <p class="hero-verdict-sentence">{{ view.verdict.summary }}</p>
+          {% endif %}
+          {% if figures %}
+            <div class="hero-figures">
+              {% for fig in figures %}
+                <div class="hero-figure">
+                  <span class="hero-figure-value{{ ' flagged' if fig.flag }}">{{ fig.value }}</span>
+                  <span class="hero-figure-label">{{ fig.label }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
       {% endif %}
     </div>
   </div>

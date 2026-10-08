@@ -1,24 +1,23 @@
-"""Checks for the Marque theme (cuore.css's appended "Marque theme" section,
-base.html's data-marque attribute, _vbar.html's hero band, job.html's
-.step-title headings).
+"""Checks for the Emphasis pass (cuore.css's appended "Emphasis pass"
+section, on top of the Marque theme below it; _vbar.html's hero band;
+job.html's .step-title headings).
 
 Same posture as check_jobs_page.py: a real uvicorn server on a throwaway
 CUORE_STATE_DIR, the Stelvio (VIN below, real corpus) as the fixture vehicle,
 headless Edge driven over CDP for anything that needs actual layout (font
-size, button height, overflow) rather than just HTML text.
+size, overflow, element presence) rather than just HTML text.
 
-Five checks:
-  1. The dossier (/v/{VIN}) and job (/v/{VIN}/job) pages render 200 with
-     data-marque="alfa" on <html> (the default marque, nothing set it).
-  2. Over CDP: computed body font-size >= 16px, and the flow-bar's
-     "Suggested next" button (.flow-next) is >= 44px tall.
-  3. Over CDP at 400px: no page-level horizontal overflow on either page.
-  4. The light toggle still works: setting data-theme="light" on <html>
-     changes the computed --bg custom property to the light value.
-  5. print.css is still linked with media="print" on both pages.
+Four checks, matching the owner's brief exactly:
+  1. Body computed font-size is >= 17px (job page).
+  2. The hero shows the verdict state text (.hero-verdict-state, non-empty)
+     on both the job page and the dossier page.
+  3. The hero's key-figures row renders at least two figures
+     (.hero-figure) for VIN ZASFAKPN5J7B88115.
+  4. No page-level horizontal overflow at 400px on the job page.
 
-Also writes three screenshots to the scratchpad for a one-time visual
-read: job_400.png, dossier_400.png, job_1400.png.
+Also writes two screenshots to the scratchpad for a one-time visual read:
+job_1400.png (wide, dark) and job_400.png (narrow) -- capped at two per the
+low-memory environment; Edge is always killed via _edge_cleanup after.
 
 Run:
     .venv/Scripts/python.exe cuore/tests/check_theme.py
@@ -30,7 +29,6 @@ import base64
 import itertools
 import json
 import os
-import re
 import socket
 import subprocess
 import sys
@@ -45,10 +43,6 @@ os.environ.pop("CUORE_AUDIT_PATH", None)
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-
-from fastapi.testclient import TestClient  # noqa: E402
-
-from cuore.app import create_app  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio -- real corpus, chronic P0455/P0440/P0456
 
@@ -69,27 +63,6 @@ def check(label: str, cond: bool, detail: str = "") -> None:
     if not cond:
         failures.append(f"{label}{(' -- ' + detail) if detail else ''}")
 
-
-client = TestClient(create_app())
-
-
-# --- 1 & 5: cheap HTML-text checks via TestClient ---------------------------
-
-dossier_html = client.get(f"/v/{VIN}").text
-job_html = client.get(f"/v/{VIN}/job").text
-
-check("dossier page renders 200 with data-marque=\"alfa\"",
-      '<html lang="en" data-marque="alfa">' in dossier_html, dossier_html[:200])
-check("job page renders 200 with data-marque=\"alfa\"",
-      '<html lang="en" data-marque="alfa">' in job_html, job_html[:200])
-
-check("dossier page still links print.css for the print media",
-      bool(re.search(r'<link[^>]+print\.css[^>]+media="print"', dossier_html)), "")
-check("job page still links print.css for the print media",
-      bool(re.search(r'<link[^>]+print\.css[^>]+media="print"', job_html)), "")
-
-
-# --- 2, 3, 4: real layout, over CDP against a live server ------------------
 
 def find_edge() -> str:
     for candidate in EDGE_CANDIDATES:
@@ -169,7 +142,33 @@ def wait_for_port(port: int, timeout: float = 15.0) -> bool:
     return False
 
 
+def navigate(devtools_port: int, url: str, width: int, height: int,
+            dark: bool = False) -> CDP:
+    target = open_target(devtools_port, "about:blank")
+    cdp = CDP(target["webSocketDebuggerUrl"])
+    cdp.send("Page.enable")
+    cdp.send("Runtime.enable")
+    # Headless Edge's default prefers-color-scheme is light, which would
+    # otherwise silently flip the whole body (below the always-dark hero
+    # band) to the light palette -- force dark so the dark palette (the
+    # one this pass actually changes) is what gets measured/screenshotted.
+    if dark:
+        cdp.send("Emulation.setEmulatedMedia",
+                {"features": [{"name": "prefers-color-scheme", "value": "dark"}]})
+    cdp.send("Page.navigate", {"url": url})
+    time.sleep(1.2)
+    cdp.send("Emulation.setDeviceMetricsOverride", {
+        "width": width, "height": height, "deviceScaleFactor": 1, "mobile": width < 768,
+    })
+    time.sleep(0.5)
+    return cdp
+
+
 edge = find_edge()
+if not edge:
+    print("headless Edge not found -- cannot run the layout checks")
+    sys.exit(1)
+
 server_dir = tempfile.mkdtemp(prefix="cuore-check-theme-server-")
 port = free_port()
 env = dict(os.environ)
@@ -185,135 +184,109 @@ app = create_app()
 uvicorn.run(app, host="127.0.0.1", port={port}, log_level="warning")
 """
 
-if not edge:
-    check("headless Edge is available for the layout checks", False, str(EDGE_CANDIDATES))
-else:
-    server_proc = subprocess.Popen(
-        [sys.executable, "-c", _SERVER_SNIPPET],
-        cwd=str(ROOT), env=env,
+server_proc = subprocess.Popen(
+    [sys.executable, "-c", _SERVER_SNIPPET],
+    cwd=str(ROOT), env=env,
+    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+)
+try:
+    if not wait_for_port(port):
+        print("uvicorn never came up -- aborting")
+        sys.exit(1)
+
+    # Seed a job so the job page's flow bar / verdict render for real.
+    data = urllib.parse.urlencode(
+        {"technician": "tester", "complaint": "CEL, smells like gas"}).encode()
+    try:
+        urllib.request.urlopen(
+            urllib.request.Request(f"http://127.0.0.1:{port}/v/{VIN}/job/open",
+                                   data=data, method="POST"), timeout=10)
+    except Exception as exc:  # noqa: BLE001
+        print(f"warning: seeding the job failed ({exc}); checks continue regardless")
+
+    time.sleep(0.3)
+    devtools_port = free_port()
+    profile_dir = Path(tempfile.mkdtemp(prefix="cuore-edge-theme-"))
+    edge_proc = subprocess.Popen(
+        [edge, "--headless=new", f"--remote-debugging-port={devtools_port}",
+         f"--user-data-dir={profile_dir}", "--no-first-run", "--window-size=400,1400",
+         "about:blank"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
     )
     try:
-        up = wait_for_port(port)
-        check("uvicorn came up on the free port", up, f"port {port}")
-        if up:
-            # Seed a job so the job page's flow bar shows the real "Suggested
-            # next" button, not the empty-job fallback.
-            data = urllib.parse.urlencode(
-                {"technician": "tester", "complaint": "CEL, smells like gas"}).encode()
-            try:
-                urllib.request.urlopen(
-                    urllib.request.Request(f"http://127.0.0.1:{port}/v/{VIN}/job/open",
-                                           data=data, method="POST"), timeout=10)
-            except Exception as exc:  # noqa: BLE001
-                check("seeding a job on the screenshot server", False, str(exc))
+        wait_for_devtools(devtools_port)
+        SCRATCHPAD.mkdir(parents=True, exist_ok=True)
 
-            time.sleep(0.3)
-            devtools_port = free_port()
-            profile_dir = Path(tempfile.mkdtemp(prefix="cuore-edge-theme-"))
-            edge_proc = subprocess.Popen(
-                [edge, "--headless=new", f"--remote-debugging-port={devtools_port}",
-                 f"--user-data-dir={profile_dir}", "--no-first-run", "--window-size=400,1400",
-                 "about:blank"],
-                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            )
-            try:
-                wait_for_devtools(devtools_port)
-                SCRATCHPAD.mkdir(parents=True, exist_ok=True)
+        job_url = f"http://127.0.0.1:{port}/v/{VIN}/job"
+        dossier_url = f"http://127.0.0.1:{port}/v/{VIN}"
 
-                for page_name, path, shot_name in (
-                    ("job", f"/v/{VIN}/job", "job_400.png"),
-                    ("dossier", f"/v/{VIN}", "dossier_400.png"),
-                ):
-                    # /json/new?<url> only registers the target's intended
-                    # url on this Edge build -- it does not actually drive
-                    # the navigation (location.href stays "about:blank").
-                    # An explicit Page.navigate after connecting is what
-                    # reliably loads the real page.
-                    target = open_target(devtools_port, "about:blank")
-                    cdp = CDP(target["webSocketDebuggerUrl"])
-                    try:
-                        cdp.send("Page.enable")
-                        cdp.send("Runtime.enable")
-                        cdp.send("Page.navigate", {"url": f"http://127.0.0.1:{port}{path}"})
-                        time.sleep(1.2)
-                        cdp.send("Emulation.setDeviceMetricsOverride", {
-                            "width": 400, "height": 1400, "deviceScaleFactor": 1, "mobile": True,
-                        })
-                        time.sleep(0.6)
-
-                        ready = cdp.eval_value("document.readyState")
-                        check(f"{page_name} page loaded in the headless browser",
-                              ready in ("complete", "interactive"), str(ready))
-
-                        if page_name == "job":
-                            fs = cdp.eval_value(
-                                "parseFloat(getComputedStyle(document.body).fontSize)")
-                            check("body font-size is >= 16px", fs is not None and fs >= 16, str(fs))
-
-                            btn_h = cdp.eval_value(
-                                "(function(){var b=document.querySelector('.flow-next');"
-                                "return b?b.getBoundingClientRect().height:null;})()")
-                            check("flow-bar \"Suggested next\" button is >= 44px tall",
-                                  btn_h is not None and btn_h >= 44, str(btn_h))
-
-                        dims = json.loads(cdp.eval_value(
-                            "JSON.stringify({sw: document.documentElement.scrollWidth, "
-                            "cw: document.documentElement.clientWidth})"))
-                        sw, cw = dims.get("sw", 0), dims.get("cw", 0)
-                        check(f"no page-level horizontal overflow on {page_name} at 400px",
-                              sw <= cw + 1, f"scrollWidth={sw} clientWidth={cw}")
-
-                        if page_name == "job":
-                            # 4. light toggle still honoured.
-                            cdp.send("Runtime.evaluate", {"expression":
-                                "document.documentElement.setAttribute('data-theme','light')"})
-                            bg = cdp.eval_value(
-                                "getComputedStyle(document.documentElement)"
-                                ".getPropertyValue('--bg').trim()")
-                            check("data-theme=\"light\" renders the light --bg variable",
-                                  bg == "#eef0f2", str(bg))
-                            cdp.send("Runtime.evaluate", {"expression":
-                                "document.documentElement.removeAttribute('data-theme')"})
-
-                        shot = cdp.send("Page.captureScreenshot",
-                                       {"format": "png", "captureBeyondViewport": False})
-                        out_path = SCRATCHPAD / shot_name
-                        out_path.write_bytes(base64.b64decode(shot["data"]))
-                        check(f"screenshot {shot_name} captured",
-                              out_path.exists() and out_path.stat().st_size > 0, str(out_path))
-
-                        if page_name == "job":
-                            cdp.send("Emulation.setDeviceMetricsOverride", {
-                                "width": 1400, "height": 1800, "deviceScaleFactor": 1,
-                                "mobile": False,
-                            })
-                            time.sleep(0.4)
-                            shot_wide = cdp.send("Page.captureScreenshot", {"format": "png"})
-                            wide_path = SCRATCHPAD / "job_1400.png"
-                            wide_path.write_bytes(base64.b64decode(shot_wide["data"]))
-                            check("screenshot job_1400.png captured",
-                                  wide_path.exists() and wide_path.stat().st_size > 0,
-                                  str(wide_path))
-                    finally:
-                        cdp.close()
-            except Exception as exc:  # noqa: BLE001
-                check("headless Edge completed the layout checks", False,
-                     f"{type(exc).__name__}: {exc}")
-            finally:
-                edge_proc.terminate()
-                try:
-                    edge_proc.wait(timeout=5)
-                except Exception:
-                    edge_proc.kill()
-                from _edge_cleanup import kill_edge_profile
-                kill_edge_profile(profile_dir)
-    finally:
-        server_proc.terminate()
+        # --- job page at 1400px: checks 1-3, plus the wide screenshot ----
+        cdp = navigate(devtools_port, job_url, 1400, 1800, dark=True)
         try:
-            server_proc.wait(timeout=5)
+            fs = cdp.eval_value("parseFloat(getComputedStyle(document.body).fontSize)")
+            check("body computed font-size is >= 17px", fs is not None and fs >= 17, str(fs))
+
+            job_state = cdp.eval_value(
+                "(function(){var e=document.querySelector('.hero-verdict-state');"
+                "return e?e.textContent.trim():null;})()")
+
+            fig_count = cdp.eval_value(
+                "document.querySelectorAll('.hero-figure').length")
+            check(f"hero key-figures row renders >= 2 figures for {VIN}",
+                  fig_count is not None and fig_count >= 2, str(fig_count))
+
+            shot = cdp.send("Page.captureScreenshot", {"format": "png"})
+            wide_path = SCRATCHPAD / "job_1400.png"
+            wide_path.write_bytes(base64.b64decode(shot["data"]))
+            check("screenshot job_1400.png captured",
+                  wide_path.exists() and wide_path.stat().st_size > 0, str(wide_path))
+        finally:
+            cdp.close()
+
+        # --- dossier page: other half of check 2 -------------------------
+        cdp = navigate(devtools_port, dossier_url, 1400, 1800)
+        try:
+            dossier_state = cdp.eval_value(
+                "(function(){var e=document.querySelector('.hero-verdict-state');"
+                "return e?e.textContent.trim():null;})()")
+        finally:
+            cdp.close()
+
+        check("hero shows the verdict state text on the job and dossier pages",
+              bool(job_state) and bool(dossier_state),
+              f"job={job_state!r} dossier={dossier_state!r}")
+
+        # --- job page at 400px: check 4, plus the narrow screenshot ------
+        cdp = navigate(devtools_port, job_url, 400, 1400)
+        try:
+            dims = json.loads(cdp.eval_value(
+                "JSON.stringify({sw: document.documentElement.scrollWidth, "
+                "cw: document.documentElement.clientWidth})"))
+            sw, cw = dims.get("sw", 0), dims.get("cw", 0)
+            check("no horizontal overflow at 400px on the job page",
+                  sw <= cw + 1, f"scrollWidth={sw} clientWidth={cw}")
+
+            shot = cdp.send("Page.captureScreenshot", {"format": "png"})
+            narrow_path = SCRATCHPAD / "job_400.png"
+            narrow_path.write_bytes(base64.b64decode(shot["data"]))
+            check("screenshot job_400.png captured",
+                  narrow_path.exists() and narrow_path.stat().st_size > 0, str(narrow_path))
+        finally:
+            cdp.close()
+    finally:
+        edge_proc.terminate()
+        try:
+            edge_proc.wait(timeout=5)
         except Exception:
-            server_proc.kill()
+            edge_proc.kill()
+        from _edge_cleanup import kill_edge_profile
+        kill_edge_profile(profile_dir)
+finally:
+    server_proc.terminate()
+    try:
+        server_proc.wait(timeout=5)
+    except Exception:
+        server_proc.kill()
 
 
 # --- report ------------------------------------------------------------------

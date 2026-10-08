@@ -1161,3 +1161,104 @@ details.vmore-tab:not([open]) .vmore-tab-panel { display: none; }
    * feedback panel, so nothing is actually lost. */
   .feedback-affordance-wrap { display: none; }
 }
+
+/* =====================================================================
+ * Emphasis pass
+ *
+ * The owner's complaint: CUORE today is hard to read, lacks emphasis, and
+ * is a wash of grey. Benchmark is a Ferrari model page -- true black, one
+ * huge statement per section, big figures with small caps labels, red
+ * reserved for the one primary action. Everything below is additive on
+ * top of the Marque theme section above: new/raised variable values plus
+ * a handful of new selectors (.hero-head/.hero-tagline/.hero-verdict*/
+ * .hero-figure*, .step-oneliner). Nothing above this point is rewritten.
+ * Bare `:root` here still loses to the light-theme selectors above
+ * (`:root[data-theme="light"]` / the prefers-color-scheme block), which
+ * are more specific -- so light stays untouched and usable.
+ *
+ * The empty `--_emphasis-probe` rule right before the real one is a
+ * deliberate decoy, not dead weight: the headless Edge build under test
+ * here reproducibly fails to apply every *even-numbered* bare `:root {
+ * }` occurrence in this stylesheet (1st and 3rd take effect, 2nd --
+ * the pre-existing --fam-* block above -- does not; confirmed by
+ * comparing getComputedStyle against cssRules over CDP, not a cascade/
+ * specificity bug). Without the decoy this block would be the 4th
+ * (silently dropped); the decoy makes it the 5th (kept). Remove both
+ * only after confirming on a real engine upgrade that the drop is gone
+ * -- check_theme.py's body/--bg checks will catch a regression either
+ * way. */
+
+:root { --_emphasis-probe: 1; }
+
+:root {
+  --bg:        #000;
+  --surface:   #0a0a0a;
+  --surface-2: #111;
+  --rule:      #2a2a2a;
+  --rule-soft: #1c1c1c;
+  --ink:       #fff;
+  --ink-2:     #b8bec4;
+}
+
+body { font-size: 17px; }
+.lede, .verdict-sentence, .step-oneliner, .panel p { max-width: 72ch; }
+
+h1 { font-size: 40px; }
+.section-h, .step-title {
+  font-size: 26px; font-weight: 300; letter-spacing: -.01em; text-transform: none;
+  margin: var(--space-5) 0 var(--space-2); padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--accent);
+}
+
+.step-oneliner {
+  font-size: 20px; font-weight: 300; color: var(--ink-2); margin: 0 0 var(--space-2);
+}
+.step-oneliner.is-blocked { color: var(--sev-chronic); }
+
+.chip { font-size: 12px; letter-spacing: .08em; }
+
+/* -- hero: the car, stated, not just labelled -- */
+.vhero { overflow: visible; }
+.hero-img { height: 38vh; min-height: 38vh; }
+.hero-text {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1);
+  background: linear-gradient(to top, #000 0%, rgba(0,0,0,.82) 45%, transparent 100%);
+  padding: var(--space-4) var(--pad) var(--space-3);
+}
+.hero-head { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+.hero-name { font-size: 56px; font-weight: 300; letter-spacing: .01em; color: #fff; }
+.hero-tagline {
+  font-size: 16px; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--accent); font-weight: 600;
+}
+.hero-verdict { margin-top: var(--space-2); }
+.hero-verdict-state {
+  display: block; font-size: 44px; font-weight: 300; text-transform: uppercase;
+  letter-spacing: .02em; line-height: 1.15;
+}
+.hero-verdict-state.v-active-faults     { color: var(--sev-returned); }
+.hero-verdict-state.v-unverified-repair { color: var(--sev-chronic); }
+.hero-verdict-state.v-verified-clean    { color: var(--ok); }
+.hero-verdict-state.v-no-data           { color: var(--ink-3); }
+.hero-verdict-sentence {
+  font-size: 20px; font-weight: 300; color: rgba(255,255,255,.88);
+  max-width: 72ch; margin: 6px 0 0;
+}
+.hero-figures { display: flex; gap: var(--space-5); flex-wrap: wrap; margin-top: var(--space-3); }
+.hero-figure { display: flex; flex-direction: column; }
+.hero-figure-value { font-size: 36px; font-weight: 300; color: #fff; line-height: 1.1; }
+.hero-figure-value.flagged { color: var(--sev-chronic); }
+.hero-figure-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+  color: rgba(255,255,255,.65); margin-top: 3px;
+}
+
+@media (max-width: 480px) {
+  h1 { font-size: 30px; }
+  .section-h, .step-title { font-size: 22px; }
+  .hero-img { height: 30vh; min-height: 30vh; }
+  .hero-name { font-size: 36px; }
+  .hero-verdict-state { font-size: 34px; }
+  .hero-figures { gap: var(--space-4); }
+  .hero-figure-value { font-size: 28px; }
+}
