@@ -6,6 +6,7 @@
 <meta name="color-scheme" content="dark light">
 <title>{% block title %}CUORE{% endblock %}</title>
 <link rel="stylesheet" href="/static/cuore.css">
+<link rel="stylesheet" href="/static/flow.css">
 <link rel="stylesheet" href="/static/print.css" media="print">
 </head>
 <body{% if vin is defined and vin %} data-vin="{{ vin }}"{% endif %}>
@@ -25,7 +26,7 @@
     <nav>
       <a class="navutil" href="/start">Start</a>
       <div class="navgroup" title="A car's log history, read from the MES corpus">
-        <a href="/">Vehicles</a>
+        <a href="/vehicles">Vehicles</a>
         <a href="/modules">Modules</a>
         <a href="/recordings">Recordings</a>
         <a href="/logs">Logs</a>

@@ -258,25 +258,19 @@ def flow_state(vin: str) -> dict[str, Any]:
     for n, key, title, button_label in _STEPS:
         href_template = {
             1: "/start",
-            2: "/v/{vin}/timeline",
+            2: "/v/{vin}/job#step-2",
             3: "/v/{vin}",
             4: "/v/{vin}/codes",
-            5: "/v/{vin}/codes",
-            6: "/v/{vin}/tree",
-            7: "/v/{vin}/job",
-            8: "/v/{vin}/parts",
-            9: "/v/{vin}/job",
-            10: "/v/{vin}/verify",
-            11: "/v/{vin}/report",
+            5: "/v/{vin}/job#step-5",
+            6: "/v/{vin}/job#step-6",
+            7: "/v/{vin}/job#step-7",
+            8: "/v/{vin}/job#step-8",
+            9: "/v/{vin}/job#step-9",
+            10: "/v/{vin}/job#step-10",
+            11: "/v/{vin}/job#step-11",
             12: "/v/{vin}/release",
         }[n]
-        if n == 5:
-            active_codes = [c for c in dossier_view.get("codes", [])
-                            if c.get("status") == "ACTIVE" and c.get("href")]
-            href = (active_codes[0]["href"] if active_codes
-                   else _href(href_template, vin))
-        else:
-            href = _href(href_template, vin)
+        href = _href(href_template, vin)
 
         if n == first_not_done:
             status = "blocked" if blocked_on_parts else "current"

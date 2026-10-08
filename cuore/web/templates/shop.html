@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Waiting — CUORE{% endblock %}
+{% block content %}
+
+<link rel="stylesheet" href="/static/shop.css">
+
+<h1>Other cars waiting</h1>
+<p class="lede">Cars already taken in but not yet started. One car at a
+time -- <a href="/start">start the next one</a> when this one's done.</p>
+
+<div class="panel tight">
+  <ul class="checklist">
+    {% for car in waiting %}
+      <li class="checklist-step">
+        <span class="step-text">
+          <a href="/v/{{ car.vin }}">{{ car.vehicle or car.vin }}</a>
+          {% if car.complaint %} &mdash; &ldquo;{{ car.complaint }}&rdquo;{% endif %}
+          <span class="muted small step-meta">
+            {% if car.promised_at %}promised {{ car.promised_at }} &middot; {% endif %}
+            waiting {{ car.minutes_in_shop }} min
+          </span>
+        </span>
+      </li>
+    {% else %}
+      <li class="muted small">No other cars waiting.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% endblock %}

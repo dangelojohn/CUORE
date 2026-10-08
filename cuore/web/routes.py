@@ -203,7 +203,18 @@ def _match_live_modules(ecu_seen: list[str]) -> list[dict[str, Any]]:
 
 @router.get("/", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
-    """Vehicle picker, with the corpus's own health beside it."""
+    """The car in the bay goes straight to its job; otherwise, start one."""
+    from ..services import flow_bridge
+    vin = flow_bridge.current_vehicle()
+    if vin:
+        return RedirectResponse(url=f"/v/{vin}/job", status_code=303)
+    return RedirectResponse(url="/start", status_code=303)
+
+
+@router.get("/vehicles", response_class=HTMLResponse)
+def vehicles_page(request: Request) -> HTMLResponse:
+    """Vehicle picker, with the corpus's own health beside it -- the old
+    home page, kept reachable from the header's "Vehicles" link."""
     status = mes_bridge.corpus_status()
     return _page(request, "index.html",
                  vehicles=mes_bridge.vehicles(real_only=True),

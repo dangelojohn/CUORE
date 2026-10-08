@@ -16,7 +16,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..api.deps import require_token
-from ..services import jobs_bridge, tools_kb_bridge
+from ..services import cases_bridge, dossier_bridge, jobs_bridge, tools_kb_bridge
 from ..services.errors import BridgeError
 from . import routes as web_routes
 
@@ -39,9 +39,26 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
              **extra: Any) -> HTMLResponse:
     dossier = web_routes._dossier(vin)
     bar = web_routes._vehicle_bar(vin, dossier)
-    view = jobs_bridge.build_job_view(vin, job_id or None, tools_step=tools_step or None)
-    response = web_routes._page(request, "job.html", vin=vin, bar=bar, view=view,
-                                tab="job", **extra)
+    job_view = jobs_bridge.build_job_view(vin, job_id or None, tools_step=tools_step or None)
+    live_status = web_routes._status_strip()
+    try:
+        dossier_view = dossier_bridge.build_view(vin, dossier, live_status)
+    except Exception:  # noqa: BLE001 -- the job page must still render
+        dossier_view = {"verdict": None, "open_work": [], "codes": [],
+                        "code_counts": {}, "attempted": []}
+    active_codes = [c["code"] for c in dossier_view.get("codes", [])
+                    if c.get("status") == "ACTIVE"]
+    try:
+        case_prefill = cases_bridge.prefill(vin, active_codes)
+    except Exception:  # noqa: BLE001 -- case memory must never 500 the job page
+        case_prefill = None
+    # `view` carries the full dossier view -- the shape _verdict_card.html,
+    # _codes_table.html and _open_work.html already expect everywhere else
+    # they're included; `job_view` carries the Job-specific data only
+    # job.html itself reads.
+    response = web_routes._page(request, "job.html", vin=vin, bar=bar, view=dossier_view,
+                                job_view=job_view, case_prefill=case_prefill,
+                                active_codes=active_codes, tab="job", **extra)
     web_routes._set_active_vehicle(response, vin)
     return response
 

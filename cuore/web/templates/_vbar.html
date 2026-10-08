@@ -51,24 +51,6 @@
       </div>
     </details>
   </div>
-  <div class="vtabs">
-    <a href="/v/{{ bar.vin }}" {% if tab == "dossier" %}class="on"{% endif %}>Dossier</a>
-    <a href="/v/{{ bar.vin }}/job" {% if tab == "job" %}class="on"{% endif %}>Job</a>
-    <a href="/v/{{ bar.vin }}/modules" {% if tab == "modules" %}class="on"{% endif %}>Modules</a>
-    <a href="/v/{{ bar.vin }}/timeline" {% if tab == "timeline" %}class="on"{% endif %}>Timeline</a>
-    <a href="/v/{{ bar.vin }}/systems" {% if tab == "systems" %}class="on"{% endif %}>Systems</a>
-    <a href="/v/{{ bar.vin }}/electrical" {% if tab == "electrical" %}class="on"{% endif %}>Electrical</a>
-    <a href="/v/{{ bar.vin }}/media" {% if tab == "media" %}class="on"{% endif %}>Media</a>
-    <a href="/v/{{ bar.vin }}/parts" {% if tab == "parts" %}class="on"{% endif %}>Parts</a>
-    <a href="/v/{{ bar.vin }}/dashboard" {% if tab == "dashboard" %}class="on"{% endif %}>Dashboard</a>
-    <a href="/v/{{ bar.vin }}/gauges" {% if tab == "gauges" %}class="on"{% endif %}>Gauges</a>
-    <a href="/v/{{ bar.vin }}/codes" {% if tab == "codes" %}class="on"{% endif %}>Codes</a>
-    <a href="/v/{{ bar.vin }}/tree" {% if tab == "tree" %}class="on"{% endif %}>Fault tree</a>
-    <a href="/v/{{ bar.vin }}/gate" {% if tab == "gate" %}class="on"{% endif %}>Evidence gate</a>
-    <a href="/v/{{ bar.vin }}/service-hub" {% if tab == "service-hub" %}class="on"{% endif %}>Service</a>
-    <a href="/v/{{ bar.vin }}/report" {% if tab == "report" %}class="on"{% endif %}>Report</a>
-    {% set _fb_open = feedback_open_count(bar.vin) if feedback_open_count is defined else 0 %}
-    <a href="/v/{{ bar.vin }}/inbox" {% if tab == "inbox" %}class="on"{% endif %}>Inbox{% if _fb_open %} <span class="chip chronic">{{ _fb_open }}</span>{% endif %}</a>
-    <a href="/logs?vin={{ bar.vin }}">Logs</a>
-  </div>
+  {% include "_vtabs.html" %}
 </div>
+{% include "_flow_bar.html" %}
