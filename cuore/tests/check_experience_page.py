@@ -122,6 +122,10 @@ try:
     check("order: high reputation before medium", ids.index("t1") > ids.index("v1"), str(ids))
     check("order: how_to_video ranks ahead of an equally-high-reputation non-video",
           ids.index("v1") < ids.index("o1"), str(ids))
+    scores = [l["score"] for l in result["links"]]
+    check("scores are descending", scores == sorted(scores, reverse=True), str(scores))
+    check("exact-code video (v1) scores highest and is first",
+          ids[0] == "v1" and result["links"][0]["score"] == max(scores), str(ids) + " " + str(scores))
     empty = experience_bridge.links_for()
     check("no code/family/job given -> empty result, no error",
           empty == {"links": [], "count": 0}, str(empty))
@@ -166,6 +170,20 @@ try:
           "EVAP smoke test walkthrough" in code_resp.text
           and "P0456 after battery disconnect" in code_resp.text)
     check("external links carry rel=noopener", 'rel="noopener"' in code_resp.text)
+    check("card is collapsed by default with (N) in the summary",
+          "<details class=\"card-details\">" in code_resp.text
+          and "Others' experience (3)" in code_resp.text, code_resp.text)
+
+    forums_resp = client.get(f"/v/{VIN}/code/P0456", params={"exp": "forums"})
+    # the summary teaser always names the top-scored link (the video) --
+    # only the row list itself should be forums-only, so check for the
+    # video's own link (its href), not its title (which also appears in
+    # the teaser regardless of ?exp).
+    check("?exp=forums shows only forum threads",
+          forums_resp.status_code == 200
+          and "P0456 after battery disconnect" in forums_resp.text
+          and 'href="https://youtube.example/v1"' not in forums_resp.text,
+          forums_resp.text[:2000])
 finally:
     _unpatched()
 

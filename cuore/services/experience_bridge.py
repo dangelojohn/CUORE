@@ -9,9 +9,23 @@ verified_how}``.
 
 :func:`links_for` is the one entry point every page/route uses: it calls
 whichever of those three lookups apply, merges the results, de-duplicates
-(by ``id``, falling back to ``url``), and orders them the way every "Others'
-experience" card wants: highest reputation first, then how-to videos ahead
-of everything else at equal reputation, then newest within a tie.
+(by ``id``, falling back to ``url``), scores each surviving link and sorts
+by that score, descending.
+
+Score = relevance + importance:
+
+* relevance -- which lookup(s) found the link: exact code match 100,
+  family match 60, job match 40, plus a vehicle-fit bonus (exact model
+  +30, sibling platform +10, generic/unknown +0) when ``vin`` resolves a
+  model via ``mes.platform.model_for_vin``. A link found by more than one
+  lookup keeps the highest relevance (and that lookup's reason).
+* importance -- reputation (high +20, medium +10), kind (how_to_video
+  +15, teardown +12, forum_thread +10, sound_reference +8, owner_report
+  +5), and recency (+1 per year since 2020, capped at +6).
+
+Each link gets a ``score`` (int) and a short ``reason`` string built from
+the same signals (e.g. ``"exact code, this model, hands-on video"``) so a
+page can explain the ranking, not just show it.
 
 The import is lazy (inside the function, not at module load) and every
 failure -- ``mes.experience`` not existing yet, or raising anything at
@@ -25,9 +39,8 @@ An optional ``vin`` on :func:`links_for` resolves that VIN's model via
 ``include_siblings=True`` into ``mes.experience`` so pages can also surface
 any sourced sibling-platform (Grecale/Levante) entries -- each one is given
 a ``label`` of "from <Model> experience: verify fit" rather than being
-presented as this car's own experience. ``mes.experience`` currently has no
-entry tagged for a sibling model (see its module docstring), so this is
-plumbing with nothing to show yet, not a behavior change.
+presented as this car's own experience, and (see above) a smaller
+vehicle-fit bonus than an exact-model match.
 """
 
 from __future__ import annotations
@@ -35,11 +48,33 @@ from __future__ import annotations
 from datetime import date as _date
 from typing import Any, Optional
 
-#: reputation values ranked low-to-high priority (lower sorts first)
-_REPUTATION_RANK = {"high": 0, "medium": 1}
+#: relevance points by which lookup found the link, and the reason phrase
+#: that lookup contributes.
+_RELEVANCE = {
+    "code": (100, "exact code"),
+    "family": (60, "family match"),
+    "job": (40, "job match"),
+}
 
-#: kind values ranked low-to-high priority (lower sorts first)
-_KIND_RANK = {"how_to_video": 0}
+#: vehicle-fit bonus points + reason phrase, by fit tier.
+_VEHICLE_FIT_EXACT = (30, "this model")
+_VEHICLE_FIT_SIBLING = (10, "sibling model: verify fit")
+
+#: reputation points, lower-cased reputation value -> points.
+_REPUTATION_SCORE = {"high": 20, "medium": 10}
+
+#: importance points + reason phrase, by ``kind``.
+_KIND_SCORE = {
+    "how_to_video": (15, "hands-on video"),
+    "teardown": (12, "teardown"),
+    "forum_thread": (10, "forum thread"),
+    "sound_reference": (8, "sound reference"),
+    "owner_report": (5, "owner report"),
+}
+
+#: recency cap: at most this many points, one per year since _RECENCY_BASE.
+_RECENCY_BASE_YEAR = 2020
+_RECENCY_CAP = 6
 
 
 def _experience_module() -> Any:
@@ -64,62 +99,123 @@ def _model_for_vin(vin: Optional[str]) -> Optional[str]:
     return None if model == "UNKNOWN" else model
 
 
-def _date_ordinal(value: Any) -> int:
-    """Sortable "newest first" key. Unparseable/missing dates sort last."""
+def _sibling_model_names(model: Optional[str]) -> set[str]:
+    """Lower-cased sibling model names for ``model`` (e.g. ``"giulia"``,
+    ``"grecale"``), via ``mes.platform.siblings``. Empty set on any
+    failure or when ``model`` is falsy -- never raises."""
+    if not model:
+        return set()
+    try:
+        from mes import platform as platform_mod  # noqa: PLC0415
+        return {str(s.get("model") or "").lower() for s in platform_mod.siblings(model)}
+    except Exception:  # noqa: BLE001
+        return set()
+
+
+def _recency_score(value: Any) -> int:
     s = str(value or "")[:10]
     try:
-        return _date.fromisoformat(s).toordinal()
+        year = _date.fromisoformat(s).year
     except ValueError:
         return 0
+    return max(0, min(_RECENCY_CAP, year - _RECENCY_BASE_YEAR))
 
 
-def _sort_key(link: dict[str, Any]) -> tuple[int, int, int]:
-    reputation_rank = _REPUTATION_RANK.get((link.get("reputation") or "").lower(), 2)
-    kind_rank = _KIND_RANK.get(link.get("kind") or "", 1)
-    return (reputation_rank, kind_rank, -_date_ordinal(link.get("date")))
+def _vehicle_fit_score(vehicle_fit: Any, model: Optional[str],
+                        sibling_models: set[str]) -> tuple[int, Optional[str]]:
+    if not model or not vehicle_fit:
+        return 0, None
+    vf_lower = str(vehicle_fit).lower()
+    if model in vf_lower:
+        return _VEHICLE_FIT_EXACT
+    if any(sib in vf_lower for sib in sibling_models):
+        return _VEHICLE_FIT_SIBLING
+    return 0, None
+
+
+def _score_link(link: dict[str, Any], via: str, model: Optional[str],
+                 sibling_models: set[str]) -> dict[str, Any]:
+    """Return a copy of ``link`` with ``score`` (int) and ``reason`` (str)
+    added, scored per the module docstring."""
+    scored = dict(link)
+    reasons: list[str] = []
+
+    relevance, relevance_reason = _RELEVANCE[via]
+    reasons.append(relevance_reason)
+
+    vf_score, vf_reason = _vehicle_fit_score(scored.get("vehicle_fit"), model, sibling_models)
+    if vf_reason:
+        reasons.append(vf_reason)
+
+    reputation = str(scored.get("reputation") or "").lower()
+    rep_score = _REPUTATION_SCORE.get(reputation, 0)
+
+    kind = scored.get("kind") or ""
+    kind_score, kind_reason = _KIND_SCORE.get(kind, (0, None))
+    if kind_reason:
+        reasons.append(kind_reason)
+
+    recency_score = _recency_score(scored.get("date"))
+
+    scored["score"] = relevance + vf_score + rep_score + kind_score + recency_score
+    scored["reason"] = ", ".join(reasons)
+    return scored
 
 
 def links_for(*, code: Optional[str] = None, family: Optional[str] = None,
               job: Optional[str] = None, vin: Optional[str] = None) -> dict[str, Any]:
-    """Merged, de-duplicated, ordered experience links for whichever of
-    ``code``/``family``/``job`` are given. ``{"links": [...], "count": n}``,
-    always -- an empty list (never an exception) when ``mes.experience``
-    is unavailable, nothing was given, or the lookup itself failed.
+    """Merged, de-duplicated, scored and ordered (highest score first)
+    experience links for whichever of ``code``/``family``/``job`` are
+    given. ``{"links": [...], "count": n}``, always -- an empty list
+    (never an exception) when ``mes.experience`` is unavailable, nothing
+    was given, or the lookup itself failed. Each link in the result
+    carries a ``score`` (int) and a ``reason`` (str) -- see module
+    docstring for how both are built.
 
     ``vin``, if given, resolves a model via ``mes.platform.model_for_vin``
     and threads ``include_siblings=True`` through so any sourced
     sibling-platform entries (flagged ``sibling_of``/``verify_fit`` by
     ``mes.experience``) are included too, each labeled "from <Model>
-    experience: verify fit".
+    experience: verify fit", and scored with the smaller sibling
+    vehicle-fit bonus rather than the exact-model one.
     """
     experience = _experience_module()
     if experience is None:
         return {"links": [], "count": 0}
 
-    include_siblings = bool(_model_for_vin(vin))
+    model = _model_for_vin(vin)
+    include_siblings = bool(model)
+    sibling_models = _sibling_model_names(model)
 
-    collected: list[dict[str, Any]] = []
+    collected: list[tuple[dict[str, Any], str]] = []
     try:
         if code:
-            collected += list(experience.for_code(code, include_siblings=include_siblings) or [])
+            for link in experience.for_code(code, include_siblings=include_siblings) or []:
+                collected.append((link, "code"))
         if family:
-            collected += list(experience.for_family(family, include_siblings=include_siblings) or [])
+            for link in experience.for_family(family, include_siblings=include_siblings) or []:
+                collected.append((link, "family"))
         if job:
-            collected += list(experience.for_job(job, include_siblings=include_siblings) or [])
+            for link in experience.for_job(job, include_siblings=include_siblings) or []:
+                collected.append((link, "job"))
     except Exception:  # noqa: BLE001 -- a data-module hiccup must never 500 a page
         return {"links": [], "count": 0}
 
-    seen: set[str] = set()
-    deduped: list[dict[str, Any]] = []
-    for link in collected:
+    best: dict[str, dict[str, Any]] = {}
+    unkeyed: list[dict[str, Any]] = []
+    for link, via in collected:
+        scored = _score_link(link, via, model, sibling_models)
         key = str(link.get("id") or link.get("url") or "")
-        if key and key in seen:
+        if not key:
+            unkeyed.append(scored)
             continue
-        if key:
-            seen.add(key)
-        deduped.append(link)
+        existing = best.get(key)
+        if existing is None or scored["score"] > existing["score"]:
+            best[key] = scored
 
-    deduped.sort(key=_sort_key)
+    deduped = list(best.values()) + unkeyed
+    deduped.sort(key=lambda l: -l["score"])
+
     for link in deduped:
         sibling_of = link.get("sibling_of")
         if sibling_of:
