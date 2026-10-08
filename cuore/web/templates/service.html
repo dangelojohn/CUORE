@@ -2,6 +2,7 @@
 {% block title %}Service — {{ bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="/static/media.css">
 
 <h1>General service</h1>
 <p class="lede">Brakes, tyres, filters, fluids, parts replaced, labour notes —
@@ -15,6 +16,10 @@ job category to load its torque checklist below.</p>
 {% endif %}
 {% if saved %}
   <div class="note good"><span class="lab">Recorded</span>Service entry saved to the ledger.</div>
+  {% if records %}
+    {% set target_kind = "service_record" %}{% set target_id = records[-1].id %}
+    {% include "_media_attach.html" %}
+  {% endif %}
 {% endif %}
 
 <div class="panel tight">

@@ -2,6 +2,7 @@
 {% block title %}Oil change — {{ bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="/static/media.css">
 
 <h1>Oil change</h1>
 <p class="lede">Specs below are sourced and confidence-graded (see
@@ -32,6 +33,10 @@ next one automatically.</p>
 {% endif %}
 {% if saved %}
   <div class="note good"><span class="lab">Recorded</span>Oil change saved to the ledger.</div>
+  {% if checklist.last_oil_change %}
+    {% set target_kind = "service_record" %}{% set target_id = checklist.last_oil_change.id %}
+    {% include "_media_attach.html" %}
+  {% endif %}
 {% endif %}
 
 {% if checklist.carried_forward_considerations %}
@@ -115,6 +120,16 @@ next one automatically.</p>
   </table>
   </div>
 </div>
+
+{# parts_for is a Jinja global registered by cuore/web/parts_routes.py as a
+   side effect of importing it -- guarded so this page still renders before
+   app.py wires that router in. #}
+{% set _job_parts = parts_for(job="oil_change") if parts_for is defined else [] %}
+{% for part in _job_parts %}
+  {% set p = part %}
+  {% set compact = True %}
+  {% include "_part_card.html" %}
+{% endfor %}
 
 <div class="panel">
   <h2>Record this oil change</h2>

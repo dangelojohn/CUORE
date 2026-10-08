@@ -2,8 +2,12 @@
 {% block title %}{{ code }} — {{ bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="/static/media.css">
 
 <h1 class="mono">{{ code }}</h1>
+
+{% set target_kind = "code" %}{% set target_id = code %}
+{% include "_media_attach.html" %}
 
 {# code_feel is a Jinja global registered by cuore/web/timeline_routes.py as a
    side effect of importing it (see that module's docstring) -- guarded here
@@ -32,6 +36,34 @@
       {% if cf.pattern.drives_normally_near %}, {{ cf.pattern.drives_normally_near }} "drives normally" report(s) nearby{% endif %}.</p>
   {% endif %}
 </div>
+
+{# Family is not in this page's own context -- derived from the code's own
+   prefix, the same coarse grouping cuore.services.timeline_bridge's fixture
+   families use (EVAP, network, body, chassis, misfire). Approximate on
+   purpose: it only widens the experience-link search, never narrows what
+   this page reports about the code itself. #}
+{% set _c = code|upper %}
+{% if _c.startswith("P04") %}{% set _family = "EVAP" %}
+{% elif _c.startswith("P03") %}{% set _family = "misfire" %}
+{% elif _c.startswith("U0") %}{% set _family = "network" %}
+{% elif _c.startswith("B") %}{% set _family = "body" %}
+{% elif _c.startswith("C") %}{% set _family = "chassis" %}
+{% else %}{% set _family = None %}{% endif %}
+{% set exp = experience_links(code=code, family=_family) if experience_links is defined else {"links": [], "count": 0} %}
+{% include "_experience.html" %}
+
+{# parts_for is a Jinja global registered by cuore/web/parts_routes.py as a
+   side effect of importing it (see that module's docstring) -- guarded here
+   so this page still renders before app.py wires that router in. #}
+{% set _code_parts = parts_for(code=code) if parts_for is defined else [] %}
+{% if _code_parts %}
+<h2>Parts for {{ code }}</h2>
+{% for part in _code_parts %}
+  {% set p = part %}
+  {% set compact = True %}
+  {% include "_part_card.html" %}
+{% endfor %}
+{% endif %}
 
 {% for r in records %}
 <div class="panel">

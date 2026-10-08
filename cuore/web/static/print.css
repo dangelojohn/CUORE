@@ -1,0 +1,51 @@
+/* Print stylesheet, used by every page's <link ... media="print">.
+   Goal: a mechanic hits Ctrl+P on any CUORE page and gets a plain, legible,
+   black-on-white sheet -- no chrome, no collapsed sections, page numbers
+   from the browser's own print dialog, repeated table headers. */
+
+@media print {
+  * { color: #000 !important; background: #fff !important;
+      box-shadow: none !important; text-shadow: none !important; }
+
+  /* chrome that only makes sense on screen */
+  header.top, .navmenu, #theme-toggle, .livestrip, .foot, #keyhelp,
+  .no-print, .vtabs, .jump-chip, .fab, button, .step-check,
+  details.navmenu, .icon-btn {
+    display: none !important;
+  }
+
+  a { color: #000 !important; text-decoration: underline; }
+
+  /* external links show their destination on paper */
+  a[href^="http"]::after, a[href^="https"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #333 !important;
+  }
+  /* internal/relative links are navigable on screen only -- no URL noise */
+  a[href^="/"]::after, a[href^="#"]::after { content: none; }
+
+  /* every <details> opens up: nothing stays hidden on paper */
+  details { display: block !important; }
+  details > summary { display: block !important; list-style: none; }
+  details[open] > summary::-webkit-details-marker,
+  details > summary::-webkit-details-marker { display: none; }
+
+  main { margin: 0 !important; padding: 0 !important; max-width: none !important; }
+
+  h1, h2, h3 { break-after: avoid; }
+  h2 { break-before: page; }
+  section:first-of-type h2, .report-head + section h2 { break-before: auto; }
+
+  table { border-collapse: collapse; width: 100%; }
+  table thead { display: table-header-group; }
+  tr { break-inside: avoid; }
+  th, td { border: 0.5pt solid #999; padding: 3px 5px; font-size: 9pt; }
+
+  .chip, .chip-verdict { border: 0.75pt solid #000; padding: 1px 5px;
+    border-radius: 0; display: inline-block; }
+
+  img { max-width: 100% !important; }
+
+  .vbar, .vline { position: static !important; }
+}

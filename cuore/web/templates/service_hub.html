@@ -9,6 +9,13 @@ service, open flags, and next due where that's known. Click through to
 record work or read the full spec/torque tables for that area.</p>
 
 <div class="cols two">
+{% set _card_job_map = {
+  "oil_service": "oil_change",
+  "brakes_tires": "brake_fluid",
+  "transmission": "transmission_fluid",
+  "transfer_case": "transfer_case",
+  "evap": "evap_leak",
+} %}
 {% for c in cards %}
   <div class="panel">
     <h2>{{ c.title }}</h2>
@@ -48,11 +55,18 @@ record work or read the full spec/torque tables for that area.</p>
       </ul>
     {% endif %}
 
+    {% set _job = _card_job_map.get(c.key) %}
     <p>
     {% for href, label in c.links %}
       <a class="btn" href="{{ href }}">{{ label }}</a>
     {% endfor %}
+      <a class="btn" href="/v/{{ vin }}/parts{% if _job %}?job={{ _job }}{% endif %}">Parts &rarr;</a>
     </p>
+
+    {% if _job %}
+      {% set exp = experience_links(job=_job) if experience_links is defined else {"links": [], "count": 0} %}
+      {% include "_experience.html" %}
+    {% endif %}
   </div>
 {% endfor %}
 </div>

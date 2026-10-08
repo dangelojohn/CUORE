@@ -6,6 +6,7 @@
 <meta name="color-scheme" content="dark light">
 <title>{% block title %}CUORE{% endblock %}</title>
 <link rel="stylesheet" href="/static/cuore.css">
+<link rel="stylesheet" href="/static/print.css" media="print">
 </head>
 <body>
 
@@ -17,6 +18,8 @@
   <span class="profile" title="Which half of the system this is">{{ profile }}</span>
   <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle dark/light theme"
           title="Toggle dark/light theme">&#9680;</button>
+  <button type="button" class="icon-btn no-print" aria-label="Print this page"
+          title="Print this page" onclick="window.print()">&#128424;</button>
   <details class="navmenu">
     <summary class="icon-btn menu-btn" aria-label="Menu">&#9776;</summary>
     <nav>
@@ -30,7 +33,7 @@
         <a href="/live">Live link</a>
         <a href="/coverage">Coverage</a>
       </div>
-      <a class="navutil" href="/api/docs">API</a>
+      <a class="navutil" href="/tools">Tools</a>
     </nav>
   </details>
 </header>
@@ -65,6 +68,7 @@
   <span>profile {{ profile }}</span>
   <span>Simulation logs excluded unless asked for</span>
   <span><kbd>?</kbd> keys</span>
+  <span class="muted"><a href="/api/docs" class="muted">Developer API</a></span>
 </div>
 
 <div class="panel" id="keyhelp" hidden>

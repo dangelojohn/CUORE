@@ -115,6 +115,23 @@ below are sourced and confidence-graded; see the full
   </div>
 </div>
 
+{# parts_for is a Jinja global registered by cuore/web/parts_routes.py as a
+   side effect of importing it -- guarded so this page still renders before
+   app.py wires that router in. #}
+{# a plain `{% set %}` would be re-scoped by each `{% for %}` below and
+   never accumulate -- `namespace()` is Jinja's mutable escape from that. #}
+{% set ns = namespace(parts=[]) %}
+{% if parts_for is defined %}
+  {% for _j in ("brakes_front", "brakes_rear", "wheels") %}
+    {% for part in parts_for(job=_j) %}{% set ns.parts = ns.parts + [part] %}{% endfor %}
+  {% endfor %}
+{% endif %}
+{% for part in ns.parts %}
+  {% set p = part %}
+  {% set compact = True %}
+  {% include "_part_card.html" %}
+{% endfor %}
+
 <div class="panel">
   <h2>Record this service</h2>
   <form method="post" action="/v/{{ vin }}/brakes-tires">

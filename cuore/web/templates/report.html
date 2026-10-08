@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+{% block title %}{{ bar.name }} — Report{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<div class="report" data-vin="{{ vin }}">
+
+  <div class="report-head">
+    <h1>{{ bar.name }}</h1>
+    <p class="mono small">VIN {{ vin }}
+      {% if bar.odo_last is not none %} &middot; {{ "{:,}".format(bar.odo_last|int) }} km{% endif %}</p>
+    <p class="small muted">As of {{ stamp.generated }}, data through {{ stamp.data_through }}.</p>
+    <a class="jump-chip no-print" href="/v/{{ vin }}/report.pdf">Download PDF</a>
+    <a class="jump-chip no-print" href="/v/{{ vin }}/report.pdf?size=a4">Download PDF (A4)</a>
+  </div>
+
+  {% set vstate = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
+  <section id="verdict">
+    <h2>Verdict</h2>
+    <div class="verdict-card v-{{ vstate }}">
+      <span class="chip-verdict v-{{ vstate }}">&#11044; {{ view.verdict.label }}</span>
+      <p class="verdict-sentence">{{ view.verdict.summary }}</p>
+      {% if view.verdict.basis %}
+        <ul class="small">{% for b in view.verdict.basis %}<li>{{ b }}</li>{% endfor %}</ul>
+      {% endif %}
+      {% if view.verdict.cleared_at %}
+        <p class="small muted">Cleared {{ view.verdict.cleared_at }}{% if view.verdict.cleared_by %} by {{ view.verdict.cleared_by }}{% endif %}.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section id="open-work">
+    <h2>Open work</h2>
+    {% for job in view.open_work %}
+      <div class="rpt-card">
+        <h3>{{ job.title }} <span class="mono small">{{ job.codes|join(" ") }}</span>
+          {% if job.progress %}<span class="progress-pill">{{ job.progress.done }}/{{ job.progress.total }}</span>{% endif %}</h3>
+        <ol class="checklist">
+          {% for s in job.steps %}
+            <li>{{ "[x]" if s.done else "[ ]" }} {{ s.text }}
+              {% if s.ref %}<span class="mono small">{{ s.ref }}</span>{% endif %}
+              {% if s.done %}<span class="small muted">done {{ s.done_at }}{% if s.done_by %} by {{ s.done_by }}{% endif %}</span>{% endif %}
+            </li>
+          {% endfor %}
+        </ol>
+      </div>
+    {% else %}
+      <p class="muted small">No open-work families right now.</p>
+    {% endfor %}
+  </section>
+
+  <section id="codes">
+    <h2>Codes</h2>
+    <table class="rpt-table">
+      <thead><tr><th>Code</th><th>Description</th><th>System</th><th>Status</th><th>xN</th><th>Last seen</th><th>km</th></tr></thead>
+      <tbody>
+        {% for c in view.codes %}
+        <tr>
+          <td class="mono"><a href="/v/{{ vin }}/code/{{ c.code }}">{{ c.code }}</a></td>
+          <td>{{ c.description }}</td>
+          <td>{{ c.system }}</td>
+          <td><span class="chip status-{{ c.status|lower }}">{{ c.status_label }}</span></td>
+          <td>{{ c.sessions }}</td>
+          <td>{{ c.last_seen_short }}</td>
+          <td>{{ "{:,}".format(c.distance_km) if c.distance_km is not none else "-" }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="muted small">No codes on file.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section id="feel">
+    <h2>What the driver would feel</h2>
+    {% for f in feels %}
+      <div class="rpt-card">
+        <p><b>{{ f.code }}</b> ({{ f.family_title or f.family }}):
+          {{ f.feel.feel if f.feel else "No description on file for this code." }}
+          {% if f.feel and f.feel.confidence %}<span class="small muted">[confidence: {{ f.feel.confidence }}]</span>{% endif %}</p>
+        {% if f.pattern %}
+          <p class="small muted">This car's own data: {{ f.pattern.symptom_reports_near }} symptom report(s) nearby
+            {% if f.pattern.by_tag %}, tags: {% for t, n in f.pattern.by_tag.items() %}{{ t }}({{ n }}){% if not loop.last %}, {% endif %}{% endfor %}{% endif %}.</p>
+        {% endif %}
+      </div>
+    {% else %}
+      <p class="muted small">No open-work codes to describe.</p>
+    {% endfor %}
+    {% if correlation_findings %}
+      <h3 class="small">Symptom correlation</h3>
+      <ul class="small">{% for line in correlation_findings %}<li>{{ line }}</li>{% endfor %}</ul>
+    {% endif %}
+  </section>
+
+  <section id="freeze-frames">
+    <h2>Freeze frames</h2>
+    {% for ff in view.freeze_frames %}
+      <div class="rpt-card">
+        <h4 class="mono">{{ ff.code }}{% if ff.set_km_ago is not none %} <span class="small muted">set {{ ff.set_km_ago }} km ago</span>{% endif %}</h4>
+        <table class="rpt-table"><tbody>
+          {% for p in ff.key %}
+          <tr><td>{{ p.name }}</td><td class="mono">{{ p.value }}{% if p.flag %} <span class="small">&#9888; {{ p.flag }}</span>{% endif %}</td></tr>
+          {% endfor %}
+        </tbody></table>
+      </div>
+    {% else %}
+      <p class="muted small">No freeze frames captured.</p>
+    {% endfor %}
+  </section>
+
+  <section id="attempted">
+    <h2>Already attempted</h2>
+    <table class="rpt-table">
+      <thead><tr><th>Operation</th><th>Outcome</th><th>xN</th><th>First</th><th>Last</th></tr></thead>
+      <tbody>
+        {% for a in view.attempted %}
+        <tr><td>{{ a.operation }}</td><td>{{ a.outcome }}</td><td>{{ a.count }}</td>
+          <td>{{ a.first_short }}</td><td>{{ a.last_short }}</td></tr>
+        {% else %}
+        <tr><td colspan="5" class="muted small">Nothing on record.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section id="bulletins">
+    <h2>Bulletins</h2>
+    <table class="rpt-table">
+      <thead><tr><th>Bulletin</th><th>What it says</th><th>Codes</th><th>Confidence</th></tr></thead>
+      <tbody>
+        {% for b in view.bulletins %}
+        <tr><td class="mono">{{ b.id }}</td><td>{{ b.title }}</td><td class="mono">{{ b.codes|join(" ") }}</td>
+          <td><span class="chip {{ 'ok' if b.verified else 'plain' }}">{{ 'confirmed' if b.verified else 'unverified' }}</span></td></tr>
+        {% else %}
+        <tr><td colspan="4" class="muted small">No bulletins matched.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section id="blind-spots">
+    <h2>Blind spots</h2>
+    <table class="rpt-table">
+      <thead><tr><th>Question</th><th>What answers it</th></tr></thead>
+      <tbody>
+        {% for b in view.blind_spots %}
+        <tr><td>{{ b.question }}</td><td>{{ b.action or b.why }}</td></tr>
+        {% else %}
+        <tr><td colspan="2" class="muted small">No open questions on record.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+
+  <section id="fixes">
+    <h2>Possible fixes</h2>
+    {% for job in view.open_work %}
+      <h4 class="small">{{ job.title }}</h4>
+      <ul class="small">
+        {% for s in job.steps %}
+          <li>{{ s.text }} (source: {{ s.ref or "procedure" }}, status: {{ "done" if s.done else "open" }})</li>
+        {% endfor %}
+      </ul>
+    {% endfor %}
+    {% for b in view.bulletins %}
+      {% if b.action %}
+      <p class="small">{{ b.id }}: {{ b.action }}
+        (source: bulletin, confidence: {{ 'confirmed' if b.verified else 'unverified' }})</p>
+      {% endif %}
+    {% endfor %}
+    {% if not view.open_work and not view.bulletins %}
+      <p class="muted small">No sourced fix steps for this vehicle's open codes.</p>
+    {% endif %}
+  </section>
+
+  <section id="parts">
+    <h2>Parts for the open codes</h2>
+    {% for group in parts %}
+      <h4 class="small mono">{{ group.code }}</h4>
+      <table class="rpt-table">
+        <thead><tr><th>Part</th><th>OEM #</th><th>Confidence</th><th>Source</th></tr></thead>
+        <tbody>
+          {% for p in group.parts %}
+          <tr><td>{{ p.name }}</td>
+            <td class="mono">{% for o in p.oem %}{{ o.number }}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</td>
+            <td>{{ "OEM confirmed" if p.oem else ("aftermarket only" if p.aftermarket else "unconfirmed") }}</td>
+            <td class="small">{% for x in p.buy %}{% if x.url %}<a href="{{ x.url }}">{{ x.label or x.url }}</a>{% else %}{{ x }}{% endif %}{% if not loop.last %}, {% endif %}{% else %}-{% endfor %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted small">No parts data on file for these codes.</p>
+    {% endfor %}
+  </section>
+
+  <section id="experience">
+    <h2>Others' experience</h2>
+    {% for group in experience %}
+      <h4 class="small">{{ group.label }}</h4>
+      <ul class="small">
+        {% for l in group.links %}
+          <li><a href="{{ l.url }}">{{ l.title or l.url }}</a></li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted small">No experience links matched this vehicle's open codes.</p>
+    {% endfor %}
+  </section>
+
+  <section id="notes">
+    <h2>Mechanic notes</h2>
+    <ul class="small">
+      {% for n in notes %}
+        <li>{{ n.text }} <span class="muted">({{ n.created_at }})</span></li>
+      {% else %}
+        <li class="muted">No notes on file.</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  {% if photos %}
+  <section id="photos">
+    <h2>Photos</h2>
+    <div class="rpt-photos">
+      {% for ph in photos[:6] %}
+        <figure>
+          {% if ph.thumb_url or ph.url %}<img src="{{ ph.thumb_url or ph.url }}" alt="{{ ph.caption or '' }}">{% endif %}
+          <figcaption class="small">{{ ph.caption or ph.filename }} <span class="muted">({{ ph.captured_at }})</span></figcaption>
+        </figure>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section id="legend">
+    <h2>Sources and confidence legend</h2>
+    <table class="rpt-table">
+      <tbody>
+        <tr><td><span class="chip status-active">Red</span></td><td>Active -- current evidence, not resolved</td></tr>
+        <tr><td><span class="chip status-cleared_unverified">Amber</span></td><td>Cleared but unverified, or an action not yet confirmed</td></tr>
+        <tr><td><span class="chip ok">Green</span></td><td>Verified clean on a live read</td></tr>
+        <tr><td><span class="chip status-stale">Grey</span></td><td>Stale -- no data, or not seen recently</td></tr>
+      </tbody>
+    </table>
+    <p class="small muted">{{ view.provenance_note }}</p>
+  </section>
+
+</div>
+{% endblock %}

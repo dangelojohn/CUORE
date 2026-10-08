@@ -23,9 +23,11 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from mes import analysis, catalog, code_feel, compact, csvlog, dtc as dtc_mod, dtc_text, fes, modules, paths, scan
+from mes import analysis, catalog, code_feel, compact, csvlog, dtc as dtc_mod, dtc_text, experience, fes, modules, paths, scan
 from mes import dealer as dealer_mod
+from mes import feedback as feedback_mod
 from mes import notes as notes_mod
+from mes import parts as parts_mod
 from mes import symptoms as symptoms_mod
 from mes import faulttree, verdict
 from mes import workup as workup_mod
@@ -510,6 +512,39 @@ def dtc_description(code: str, module: str = "") -> str:
 
 
 @mcp.tool()
+def experience_links(code: str = "", family: str = "", job: str = "") -> str:
+    """Others' experience: verified YouTube how-tos and forum threads.
+
+    A small hand-curated, link-verified table (``mes.experience``) pointing
+    at what other mechanics/owners have actually done with this exact code,
+    fault family or service job -- the thing a dossier of codes and specs
+    cannot tell you. Every link was checked on 2026-10-07 by an HTTP GET
+    returning 200 (forum/other sources) or the YouTube oEmbed endpoint
+    (YouTube sources); nothing unverified is in the table.
+
+    Known gap: stelvioforum.com, giuliaforums.com, alfabb.com and
+    alfaowner.com all sit behind a JS proof-of-work bot challenge that
+    returns HTTP 202 to a plain HTTP client rather than the real thread, so
+    no thread on those four domains passed verification and none is
+    included -- this table is YouTube-heavy as a direct result, not by
+    choice. See the module docstring for detail.
+
+    Pass exactly one of ``code`` (e.g. "P0455"), ``family`` (e.g. "EVAP") or
+    ``job`` (e.g. "oil_change"); with none given, returns every entry.
+    """
+    def run():
+        code_s, family_s, job_s = code.strip(), family.strip(), job.strip()
+        if code_s:
+            return experience.for_code(code_s)
+        if family_s:
+            return experience.for_family(family_s)
+        if job_s:
+            return experience.for_job(job_s)
+        return experience.all()
+    return _guard(run)
+
+
+@mcp.tool()
 def actuator_history(vin: str = "", operation: str = "") -> str:
     """Every actuator test and adjustment run across the corpus.
 
@@ -728,6 +763,52 @@ def hide_note(id: str) -> str:
     return _guard(lambda: notes_mod.hide(id))
 
 
+# --- mechanic feedback on a fact cuore showed -------------------------------
+
+
+@mcp.tool()
+def feedback_list(vin: str, status: str = "") -> str:
+    """Feedback rows for this VIN, oldest first. Empty status returns every
+    row; otherwise one of open | answered | applied | dismissed."""
+    return _guard(lambda: {"vin": vin,
+                           "feedback": feedback_mod.load(vin, status=status or None)})
+
+
+@mcp.tool()
+def feedback_add(vin: str, kind: str, page: str, label: str, section: str = "",
+                 item: str = "", text: str = "", author: str = "technician") -> str:
+    """Record one piece of mechanic feedback on a fact cuore showed. The
+    mechanic makes the decisions: this is how they correct a fact, ask about
+    it, confirm it, add input, or flag disagreement -- and later see the
+    answer.
+
+    Args:
+        kind: one of correction | question | confirm | input | disagree.
+        page: the cuore page/route the fact appeared on.
+        label: the fact text itself, as shown, <=200 characters.
+        section: narrows page, optional.
+        item: narrows section further, optional (e.g. a DTC or step id).
+        text: the feedback itself -- the correction, the question, etc.
+    """
+    def run():
+        target = {"page": page, "section": section, "item": item, "label": label}
+        return feedback_mod.add(vin, kind, target, text=text, author=author)
+    return _guard(run)
+
+
+@mcp.tool()
+def feedback_answer(id: str, text: str, by: str = "claude") -> str:
+    """Answer one feedback row. Moves it to status "answered"."""
+    return _guard(lambda: feedback_mod.answer(id, by, text))
+
+
+@mcp.tool()
+def feedback_status(id: str, status: str, note: str = "") -> str:
+    """Set a feedback row's status: open | answered | applied | dismissed.
+    ``note`` is optional context, typically what was changed when applying."""
+    return _guard(lambda: feedback_mod.set_status(id, status, note=note or None))
+
+
 # --- driver/mechanic symptom reports ---------------------------------------
 
 
@@ -897,6 +978,31 @@ def log_dir() -> str:
             "env_overrides": ["MES_LOG_DIRS (os.pathsep separated)",
                               "MES_LOG_DIR"],
         }
+    return _guard(run)
+
+
+@mcp.tool()
+def part_info(key: str = "", code: str = "", job: str = "") -> str:
+    """Parts reference lookup (mes.parts): OEM/aftermarket numbers, torque
+    keys, price, buy links and location -- every value sourced and
+    confidence-rated, never invented.
+
+    Exactly one of the three selectors is normally used:
+        key  -- one part by its key (e.g. "oil_filter"); returns one record
+                or null.
+        code -- parts related to a DTC (e.g. "P0455"); returns a list.
+        job  -- parts related to a maintenance/service job key (e.g.
+                "evap_leak", "oil_change"); returns a list.
+    All blank returns every part keyed by part key.
+    """
+    def run():
+        if key:
+            return parts_mod.get(key)
+        if code:
+            return parts_mod.for_code(code)
+        if job:
+            return parts_mod.for_job(job)
+        return parts_mod.all()
     return _guard(run)
 
 

@@ -2,6 +2,7 @@
 {% block title %}Routine maintenance — {{ bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="/static/media.css">
 
 {% macro conf_chip(c) -%}
 <span class="chip {{ 'ok' if c in ('CONFIRMED','CORROBORATED') else ('plain' if c == 'UNKNOWN' else 'chronic') }}">{{ c }}</span>
@@ -29,6 +30,10 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
 {% endif %}
 {% if saved %}
   <div class="note good"><span class="lab">Recorded</span>Maintenance visit saved to the ledger.</div>
+  {% if checklist.last_maintenance %}
+    {% set target_kind = "service_record" %}{% set target_id = checklist.last_maintenance.id %}
+    {% include "_media_attach.html" %}
+  {% endif %}
 {% endif %}
 
 <div class="panel tight">
@@ -70,6 +75,14 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
 </div>
 {% endif %}
 
+{% set _item_job_map = {
+  "engine_air_filter": "engine_air_filter",
+  "cabin_air_filter": "cabin_air_filter",
+  "spark_plugs": "spark_plugs",
+  "brake_fluid": "brake_fluid",
+  "drive_belt": "drive_belt",
+  "battery_12v": "battery_12v",
+} %}
 {% for category, items in checklist.items_by_category.items() %}
 {% if items %}
 <div class="panel tight">
@@ -112,6 +125,18 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
     </div>
     {% endif %}
 
+    {# parts_for is a Jinja global registered by cuore/web/parts_routes.py as
+       a side effect of importing it -- guarded so this page still renders
+       before app.py wires that router in. Keyed by the maintenance item's
+       own key, which is the job key cuore.services.parts_bridge groups
+       parts under for this feature. #}
+    {% set _item_parts = parts_for(job=it.key) if parts_for is defined else [] %}
+    {% for part in _item_parts %}
+      {% set p = part %}
+      {% set compact = True %}
+      {% include "_part_card.html" %}
+    {% endfor %}
+
     {% if it.fluid %}
     <h3>Fluid</h3>
     <p class="small">{{ it.fluid.spec or "UNKNOWN — use the service manual (TechAuthority)" }}
@@ -147,6 +172,10 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
     <p class="small muted">Last recorded: {{ due.last_date }}
       {% if due.last_odometer_km is not none %}at {{ "{:,}".format(due.last_odometer_km|round|int) }} km{% endif %}</p>
     {% endif %}
+
+    {% set _job = _item_job_map.get(it.key) %}
+    {% set exp = experience_links(job=_job) if experience_links is defined and _job else {"links": [], "count": 0} %}
+    {% include "_experience.html" %}
   </details>
   {% endfor %}
 </div>

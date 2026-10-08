@@ -18,6 +18,7 @@ __all__ = [
     "dtc_text",
     "analysis",
     "knowledge",
+    "experience",
     "render",
 ]
 

@@ -882,3 +882,82 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
   .tl-labels { min-width: 70px; max-width: 92px; }
   .tl-label { font-size: 10.5px; padding: 0 5px; }
 }
+
+/* =========================================================================
+ * Others' experience card (cuore/web/templates/_experience.html).
+ * Appended section -- added for the experience-links feature, kept
+ * separate from the rest of the sheet above rather than interleaved.
+ * ========================================================================= */
+
+.experience-card h3 { display: flex; align-items: center; gap: 8px; }
+.exp-row {
+  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  padding: 6px 2px; border-bottom: 1px solid var(--rule-soft);
+}
+.exp-row:last-child { border-bottom: none; }
+.exp-icon {
+  flex: none; display: inline-flex; align-items: center; justify-content: center;
+  width: 28px; height: 28px; border-radius: 999px; background: var(--surface-2);
+  color: var(--ink-2); font-size: 13px;
+}
+.exp-main { flex: 1 1 auto; min-width: 0; }
+.exp-main a { font-weight: 600; word-break: break-word; }
+.exp-chips { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.exp-more summary { cursor: pointer; padding: 6px 0; color: var(--ink-2); }
+.exp-verified { margin: 8px 0 0; }
+
+@media (max-width: 400px) {
+  .exp-row { flex-wrap: wrap; }
+  .exp-chips { flex-direction: row; align-items: center; }
+}
+
+/* =========================================================================
+ * Parts (cuore/web/templates/parts.html, _part_card.html).
+ * Appended section -- added for the parts-catalog feature, kept separate
+ * rather than interleaved with the sheet above.
+ * ========================================================================= */
+
+.part-search { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px; }
+.part-search input[type="search"] {
+  flex: 1 1 220px; min-height: 44px; padding: 6px 10px; border: 1px solid var(--rule);
+  border-radius: var(--radius); background: var(--surface); color: var(--ink);
+}
+
+.part-card h4 { margin: 14px 0 6px; font-size: 13.5px; color: var(--ink-2); }
+
+/* Compact card: a tap target (anchor, not div) for inline use on code.html/
+ * maintenance.html/oil_change.html/brakes_tires.html -- name + first OEM
+ * number + thumbnail, linking through to the full card on /v/{vin}/parts. */
+a.part-compact {
+  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  padding: 8px; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface); text-decoration: none; color: var(--ink);
+  margin-bottom: 8px;
+}
+a.part-compact:hover { border-color: var(--accent); }
+.part-thumb {
+  flex: none; width: 40px; height: 40px; border-radius: var(--radius);
+  object-fit: cover; background: var(--surface-2);
+}
+.part-thumb-fallback {
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 9px; color: var(--ink-3); text-align: center; line-height: 1.1;
+}
+.part-compact-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.part-compact-name { font-weight: 600; word-break: break-word; }
+
+/* Photos grid on the full card. */
+.part-image-grid {
+  display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 0 10px;
+}
+.part-image { margin: 0; width: 140px; }
+.part-image img {
+  display: block; width: 140px; height: 100px; object-fit: cover;
+  border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--rule);
+}
+.part-image figcaption { margin-top: 4px; display: flex; flex-direction: column; gap: 2px; }
+
+@media (max-width: 400px) {
+  .part-image { width: 48%; }
+  .part-image img { width: 100%; height: 90px; }
+}
