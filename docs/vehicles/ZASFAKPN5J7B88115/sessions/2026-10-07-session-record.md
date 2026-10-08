@@ -53,3 +53,7 @@ In progress today (uncommitted at the time of this record): Systems layer (25 sy
 ## 6. One-page sheets in this folder (pdf/, generators in pdf-sources/)
 
 Dossier, Pending Items, Service Hub, Routine Maintenance, General Service Record, Oil Change, Brakes Wheels Tyres, Transmission and Drivetrain, Torque Settings, Drivetrain Torque Settings, Gauges, Service Labels, Sample Service Labels, Mechanic Notes, Vehicle Dashboard, wiTECH Test A (1 page and full), wiTECH Flash Check, ECM Flash Procedure, ESIM Bench Test, ESIM Wiring Test, ESIM Wiring Diagram Lookup, Recalls and Campaigns.
+
+## 7. Addendum (later on 2026-10-07)
+
+Committed and pushed (GitHub main at the "Handbook: architecture" commit): Systems layer (25 systems) with Systems tab and by-system timeline; Electrical tab generalised to all systems (76 placed elements) with per-code physical paths and inspection records; Job workflow with hypothesis ledger (EVAP: ESIM signal path, EVAP: ECM calibration, network, each with real evidence refs); MES-style Modules view; the inspections `latest()` bug fixed. Handbook created at docs/handbook/ (decisions, architecture, knowledge tables, Stelvio case, methods, roadmap). All suites green at commit time. cuore restarted to serve the new tabs.
