@@ -679,6 +679,43 @@ def add_test_evidence(vin: str, hyp_id: str, step_id: str, label: str, result: s
         return None
 
 
+def _next_unresolved_test(h: dict[str, Any], view: dict[str, Any]) -> str:
+    """Job UX run 2, R4: once the hypothesis's own next-test step has a
+    linked result, the fault tree's *next* untested step for this system --
+    or ``""`` when every step this card knows about already has a result,
+    which the caller renders as "ready to confirm"."""
+    system = (h.get("system") or "").strip().lower()
+    if not system:
+        return ""
+    card = next((c for c in view.get("open_work", [])
+                if (c.get("family") or "").strip().lower() == system), None)
+    if card is None:
+        return ""
+    tested_ids = {
+        e.get("id") for e in (h.get("evidence_for") or []) + (h.get("evidence_against") or [])
+        if e.get("kind") == "test"
+    }
+    for s in card.get("steps") or []:
+        if s.get("id") not in tested_ids:
+            return s.get("text") or ""
+    return ""
+
+
+def _display_next_test(h: dict[str, Any], view: dict[str, Any]) -> str:
+    """The hypothesis card's own "Next test" line -- the hand-picked/
+    suggested ``next_test`` text until that specific test actually has a
+    linked result on file, then the fault tree's next unresolved step
+    (R4), falling back to a "ready to confirm" line once none remain."""
+    has_test_evidence = any(
+        e.get("kind") == "test"
+        for e in (h.get("evidence_for") or []) + (h.get("evidence_against") or [])
+    )
+    if not has_test_evidence:
+        return h.get("next_test") or ""
+    nxt = _next_unresolved_test(h, view)
+    return nxt or "No further test — ready to confirm."
+
+
 def check_similar(job_id: str, text: str, system: str = "") -> Optional[dict[str, Any]]:
     """:func:`similar_existing` against the real job on file -- the "merge?"
     prompt's data side (#11)."""
@@ -784,6 +821,16 @@ def build_job_view(vin: str, job_id: Optional[str] = None, *,
         panel = {"step": step_key, "tools": [], "learned": {}}
 
     reviewed = bool(job) and tools_kb_bridge.has_review(vin, job["id"])
+
+    # R4: the view's own display copy of each hypothesis gets its
+    # next_test recomputed fresh every render -- never mutates the stored
+    # job, same posture as jobs_routes.py's active/deleted split below it.
+    if job and job.get("hypotheses"):
+        job = dict(job)
+        job["hypotheses"] = [
+            {**h, "next_test": _display_next_test(h, dossier_view)}
+            for h in job["hypotheses"]
+        ]
 
     return {
         "vin": vin,

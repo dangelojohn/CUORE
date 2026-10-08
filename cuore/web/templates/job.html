@@ -136,8 +136,19 @@
   {%- set _passfail = h.evidence_for|selectattr('kind', 'equalto', 'test')|selectattr('result', 'defined')|selectattr('result', 'in', ['pass', 'fail'])|list -%}
   {%- set _unresolved = h.evidence_against|rejectattr('resolved')|list -%}
   {%- if h.status == 'confirmed' -%}
-  {%- elif _unresolved -%}{{ t('unresolved_against') }}
-  {%- elif not _passfail -%}{{ t('needs_test_result') }}{% if h.next_test %} {{ t('next_test_colon') }} {{ h.next_test }}{% endif %}
+  {%- else -%}
+    {#- Job UX run 2, R7: the path rule (open -> supported -> confirmed)
+       is enforced server-side regardless of evidence -- say so up front
+       on an ``open`` hypothesis rather than only after a refused modal
+       tap, so the button's own disabled-reason tooltip already reads
+       "Mark supported first." The evidence reason (if any) still follows,
+       so a hypothesis that is open *and* short on evidence still carries
+       the "...passed/failed test result..." wording this page's own
+       regression check keys on. #}
+    {%- if h.status == 'open' -%}Mark supported first.{% if _unresolved or not _passfail %} {% endif %}{%- endif -%}
+    {%- if _unresolved -%}{{ t('unresolved_against') }}
+    {%- elif not _passfail -%}{{ t('needs_test_result') }}{% if h.next_test %} {{ t('next_test_colon') }} {{ h.next_test }}{% endif %}
+    {%- endif -%}
   {%- endif -%}
 {% endmacro %}
 
@@ -171,7 +182,10 @@
       <input type="hidden" name="op" value="add">
       <input type="hidden" name="step" value="7">
       <select name="_pick" class="evidence-pick">
-        <option value="">{{ t('no_evidence_yet_label') }}</option>
+        {# R8: "Choose evidence..." -- a placeholder, not a status report;
+           hardcoded (not t('no_evidence_yet_label')) since i18n.py is
+           outside this pass's file list. #}
+        <option value="">Choose evidence&hellip;</option>
         {% for c in active_codes %}<option value="code|{{ c }}|{{ c }}">{{ c }}</option>{% endfor %}
         {% for f in (view.freeze_frames or []) %}<option value="freeze_frame|{{ f.code }}|{{ f.code }} freeze frame">{{ f.code }} freeze frame</option>{% endfor %}
       </select>
@@ -210,9 +224,9 @@
     {% if h.codes %}<p class="small linked-codes"><b>{{ t('linked_codes_label') }}:</b>
       {% for c in h.codes %}<span class="chip-code mono">{{ c }}</span>{% endfor %}</p>{% endif %}
     {% if h.next_test %}<p class="small"><b>{{ t('next_test_colon') }}</b> {{ h.next_test }}
-      <a class="btn small do-it-now" href="/v/{{ vin }}/job?step=6">{{ t('do_it_now') }} &rarr;</a></p>{% endif %}
-    {% if h.updated_at %}<p class="small muted">{{ t('last_updated_label') }}: {{ h.updated_at }}</p>{% endif %}
-    {% if h.confirmed_by %}<p class="small muted">{{ t('confirmed_by_on').format(by=h.confirmed_by, at=h.confirmed_at) }}</p>{% endif %}
+      <a class="btn small do-it-now" href="/v/{{ vin }}/job?step=6&from_hyp={{ h.id }}">{{ t('do_it_now') }} &rarr;</a></p>{% endif %}
+    {% if h.updated_at %}<p class="small muted">{{ t('last_updated_label') }}: <span class="ts-human" data-iso-ts="{{ h.updated_at }}">{{ h.updated_at }}</span></p>{% endif %}
+    {% if h.confirmed_by %}<p class="small muted">{{ t('confirmed_by_on').format(by=h.confirmed_by, at='') }}<span class="ts-human" data-iso-ts="{{ h.confirmed_at }}">{{ h.confirmed_at }}</span></p>{% endif %}
 
     {% if h.status != 'confirmed' and _reason %}
       <p class="confirm-reason small" id="reason-{{ h.id }}">{{ _reason }}</p>
@@ -227,17 +241,35 @@
     </form>
 
     {% if confirm_pending == h.id %}
+      {# Job UX run 2, R7: name the hypothesis, list the actual evidence
+         (not just counts), and surface any active blocker -- the modal
+         job.js promotes this panel into should never be thinner than the
+         page it came from. Cancel/Confirm sit side by side, Confirm last
+         so it reads as the primary action (CSS puts them in a row). #}
       <div class="confirm-pending-panel" data-confirm-panel data-hyp-id="{{ h.id }}">
         <p><b>{{ t('confirm_tap_again') }}</b></p>
-        <p class="small">{{ t('evidence_for') }} {{ h.evidence_for|length }} &middot; {{ t('evidence_against') }} {{ h.evidence_against|length }}
-          {% if h.likelihood %} &middot; {{ t('likelihood_label') }}: {{ t('likelihood_' + h.likelihood) }}{% endif %}</p>
-        <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/status" class="inline-form">
-          <input type="hidden" name="status" value="confirmed">
-          <input type="hidden" name="ack" value="1">
-          <input type="hidden" name="step" value="7">
-          <button class="btn primary" type="submit">{{ t('confirm_tap_again') }}</button>
-        </form>
-        <a class="btn" href="/v/{{ vin }}/job?step=7#hyp-{{ h.id }}">{{ t('cancel_word') }}</a>
+        <p class="small confirm-hyp-title">&ldquo;{{ h.text }}&rdquo;</p>
+        <div class="small confirm-evidence-list">
+          <b>{{ t('evidence_for') }} ({{ h.evidence_for|length }})</b>
+          {% for e in h.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted">{{ t('none_yet') }}</span>{% endfor %}
+        </div>
+        <div class="small confirm-evidence-list">
+          <b>{{ t('evidence_against') }} ({{ h.evidence_against|length }})</b>
+          {% for e in h.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted">{{ t('none_yet') }}</span>{% endfor %}
+        </div>
+        {% if h.likelihood %}<p class="small">{{ t('likelihood_label') }}: {{ t('likelihood_' + h.likelihood) }}</p>{% endif %}
+        {% if view.verdict and view.verdict.blocker %}
+          <p class="note warn small confirm-blocker">{{ t('blocker_word') }}: {{ view.verdict.blocker }}</p>
+        {% endif %}
+        <div class="confirm-pending-actions">
+          <a class="btn" href="/v/{{ vin }}/job?step=7#hyp-{{ h.id }}">{{ t('cancel_word') }}</a>
+          <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/status" class="inline-form">
+            <input type="hidden" name="status" value="confirmed">
+            <input type="hidden" name="ack" value="1">
+            <input type="hidden" name="step" value="7">
+            <button class="btn primary" type="submit">{{ t('confirm_tap_again') }}</button>
+          </form>
+        </div>
       </div>
     {% endif %}
 

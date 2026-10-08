@@ -371,7 +371,7 @@ def systems_page(request: Request, vin: str, all: bool = False) -> HTMLResponse:
     the card list under it) only shows what this car's own codes touch."""
     dossier = _dossier(vin)
     view = _build_view(vin, show_all=all)
-    svg = systems_svg.render(view["nodes"], view["edges"])
+    svg = systems_svg.render(view["nodes"], view["edges"], vin=vin)
     response = _page(request, "systems.html", vin=vin, bar=_vehicle_bar(vin, dossier),
                      tab="systems", view=view, svg=svg)
     _set_active_vehicle(response, vin)

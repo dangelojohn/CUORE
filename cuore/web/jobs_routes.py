@@ -106,6 +106,13 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
     dossier = web_routes._dossier(vin)
     bar = web_routes._vehicle_bar(vin, dossier)
     job_view = jobs_bridge.build_job_view(vin, job_id or None, tools_step=tools_step or None)
+    # Run 2, #9: _vehicle_bar falls back to "(unnamed vehicle)" straight
+    # off dossier.identity; job_view["vehicle"] already carries
+    # jobs_bridge._vehicle_name's richer resolution (shop_bridge corpus
+    # name, then a WMI decode) -- the same fix bench_routes.py applies to
+    # its own bar, so the Job tab's banner stops disagreeing with Bench's.
+    if job_view.get("vehicle"):
+        bar["name"] = job_view["vehicle"]
     live_status = web_routes._status_strip()
     try:
         dossier_view = dossier_bridge.build_view(vin, dossier, live_status)
@@ -267,6 +274,17 @@ async def hypothesis_set_status(request: Request, vin: str, job_id: str, hyp_id:
     if status == "confirmed" and ack != "1":
         return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", extra=f"confirm={hyp_id}")
 
+    # Job UX run 2, R8: Undo on a status-change toast, same posture as
+    # Delete's own undo below -- remember the status this hypothesis was
+    # on *before* this call so a toast click can put it straight back.
+    old_status = ""
+    try:
+        old_job = jobs_bridge.get_job(job_id)
+        old_hyp = next((h for h in (old_job.get("hypotheses") or []) if h.get("id") == hyp_id), None)
+        old_status = (old_hyp or {}).get("status") or ""
+    except Exception:  # noqa: BLE001 -- the undo hint is never load-bearing
+        old_status = ""
+
     try:
         jobs_bridge.set_hypothesis(job_id, hyp_id, status=status, by=by.strip() or None)
     except jobs_bridge.RuleViolation as exc:
@@ -274,8 +292,10 @@ async def hypothesis_set_status(request: Request, vin: str, job_id: str, hyp_id:
                               msg=_rule_violation_msg(exc), mk="err")
     except BridgeError as exc:
         return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg=str(exc), mk="err")
+    undo_extra = (f"undo_status={quote(hyp_id)}:{quote(old_status)}"
+                 if old_status and old_status != status else "")
     return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg=f"Status set to {status}.",
-                          mk="ok")
+                          mk="ok", extra=undo_extra)
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/next_test", response_class=HTMLResponse)

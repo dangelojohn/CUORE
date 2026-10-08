@@ -142,6 +142,85 @@ check("the refusal reason reaches the re-rendered page",
       "passed/failed test result" in confirm_attempt.text, confirm_attempt.text[:200])
 
 
+# --- run 2 regression: Fail result linked -> evidence appears -> open ->
+#     confirmed still rejected (the path rule, not just evidence) ->
+#     supported -> confirm via the modal's ack -> stays on step 7, 1/1,
+#     next test changes, and the job chip moves forward (R2/R3/R4/R7) ------
+
+client.post(f"/v/{VIN}/job/{job_id}/hypotheses/{fresh['id']}/edit",
+           data={"system": "EVAP", "step": "7"}, follow_redirects=True)
+
+evap_view = client.get(f"/api/vehicles/{VIN}/view").json()
+evap_card = next((c for c in evap_view.get("open_work", [])
+                  if (c.get("family") or "").upper() == "EVAP"), None)
+evap_step_id = (evap_card.get("steps") or [{}])[0].get("id") if evap_card else None
+check("the fixture has an EVAP checklist step to link evidence to",
+      bool(evap_step_id), str(evap_card))
+
+if evap_step_id:
+    result_resp = client.post(
+        f"/api/vehicles/{VIN}/checklist/{evap_step_id}/result",
+        json={"result": "fail", "reason": "leak found", "value": 0.5, "unit": "psi",
+             "hypothesis_id": fresh["id"], "supports": "for"})
+    check("recording the Fail result responds 200", result_resp.status_code == 200,
+          str(result_resp.status_code))
+
+    view3 = client.get(f"/api/vehicles/{VIN}/job").json()
+    hyp3 = next(h for h in view3["job"]["hypotheses"] if h["id"] == fresh["id"])
+    check("the Fail result shows up as evidence_for on the hypothesis (1)",
+          len(hyp3.get("evidence_for") or []) == 1, str(hyp3.get("evidence_for")))
+
+    # open -> confirmed is still rejected even though evidence now exists --
+    # the path rule (R7), not only the evidence gate (#1), is enforced.
+    still_open_attempt = client.post(
+        f"/v/{VIN}/job/{job_id}/hypotheses/{fresh['id']}/status",
+        data={"status": "confirmed", "step": "7"}, follow_redirects=True)
+    view4 = client.get(f"/api/vehicles/{VIN}/job").json()
+    hyp4 = next(h for h in view4["job"]["hypotheses"] if h["id"] == fresh["id"])
+    check("open -> confirmed is still rejected once evidence exists but status is still open",
+          hyp4["status"] != "confirmed", str(hyp4))
+
+    step7_reason = client.get(f"/v/{VIN}/job", params={"step": "7"}).text
+    start = step7_reason.find(f'id="hyp-{fresh["id"]}"')
+    end = step7_reason.find('id="hyp-', start + 1) if start >= 0 else -1
+    card3 = step7_reason[start:end if end > 0 else len(step7_reason)] if start >= 0 else ""
+    check('the open-status reason reads "Mark supported first"',
+          "Mark supported first" in card3, card3[:400])
+
+    client.post(f"/v/{VIN}/job/{job_id}/hypotheses/{fresh['id']}/status",
+               data={"status": "supported", "step": "7"}, follow_redirects=True)
+    confirm_tap1 = client.post(
+        f"/v/{VIN}/job/{job_id}/hypotheses/{fresh['id']}/status",
+        data={"status": "confirmed", "step": "7"}, follow_redirects=False)
+    check("the first confirm tap (no ack) redirects back to step 7 with a confirm panel",
+          confirm_tap1.status_code in (303, 307)
+          and confirm_tap1.headers.get("location", "").startswith(f"/v/{VIN}/job?step=7"),
+          f"status={confirm_tap1.status_code} location={confirm_tap1.headers.get('location')}")
+    confirm_tap2 = client.post(
+        f"/v/{VIN}/job/{job_id}/hypotheses/{fresh['id']}/status",
+        data={"status": "confirmed", "ack": "1", "step": "7"}, follow_redirects=False)
+    check("the second confirm tap (ack=1) redirects back to step 7, never another step/tab",
+          confirm_tap2.status_code in (303, 307)
+          and confirm_tap2.headers.get("location", "").startswith(f"/v/{VIN}/job?step=7"),
+          f"status={confirm_tap2.status_code} location={confirm_tap2.headers.get('location')}")
+
+    view5 = client.get(f"/api/vehicles/{VIN}/job").json()
+    hyp5 = next(h for h in view5["job"]["hypotheses"] if h["id"] == fresh["id"])
+    check("the hypothesis is confirmed after the second tap", hyp5["status"] == "confirmed",
+          str(hyp5))
+    check("the next_test changed off the original evidence-gate wording (R4)",
+          "passed/failed test result" not in (hyp5.get("next_test") or ""),
+          str(hyp5.get("next_test")))
+
+    step7_final = client.get(f"/v/{VIN}/job", params={"step": "7"}).text
+    check('step 7 summary reads "1/1" resolved beyond open',
+          "1/1" in step7_final, step7_final[step7_final.find("1/1") - 80:step7_final.find("1/1") + 20])
+
+    flow_after = client.get(f"/api/vehicles/{VIN}/flow").json()
+    check("the job progress chip moves forward off step 7 once it's resolved (R2)",
+          flow_after.get("current", 7) != 7, str(flow_after.get("current")))
+
+
 # --- #8: content starts within 200px of the sticky header at 768 wide
 #     (CDP) -- and the one screenshot of ?step=7 this session is allowed ----
 

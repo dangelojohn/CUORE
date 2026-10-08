@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+{% block title %}{{ view.label }} — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('systems.css') }}">
+<link rel="stylesheet" href="{{ static_url('system.css') }}">
+
+<div class="sysd-page">
+<p class="small"><a href="/v/{{ vin }}/systems">&larr; All systems</a></p>
+<h1>{{ view.label }}</h1>
+<p class="lede">What this car's own evidence says about the {{ view.label|lower }} system, where it sits in the
+  dependency graph, and what to look at next. A dashed or unsourced value is marked, never guessed.</p>
+
+{# --- 1. status strip ---------------------------------------------------- #}
+<details class="panel sysd-section" open data-fact="system:{{ view.key }}|status strip">
+  <summary><h2 class="sysd-h">Status</h2></summary>
+  {% set ss = view.status_strip %}
+
+  {% if ss.codes %}
+  <h3 class="subhead">This car's codes</h3>
+  <ul class="sysd-list">
+    {% for c in ss.codes %}
+    <li class="sysd-row">
+      <a class="chip-code sm" href="{{ c.href }}">{{ c.code }}</a>
+      <span class="chip status-{{ c.status|lower }}">{{ c.status_label }}</span>
+      <span class="small muted">{{ c.description }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="muted small">No codes on this car map to {{ view.label|lower }}.</p>
+  {% endif %}
+
+  <h3 class="subhead">Monitor readiness</h3>
+  {% if not ss.monitor.has_monitor %}
+  <p class="small muted">No OBD monitor applies to this system.</p>
+  {% elif ss.monitor.status %}
+  <p class="small">{{ ss.monitor.name }}: <span class="chip">{{ ss.monitor.status }}</span>
+    {% if ss.monitor.at %}<span class="muted">as of {{ ss.monitor.at }}</span>{% endif %}</p>
+  {% else %}
+  <p class="small muted">{{ ss.monitor.name }}: {{ ss.monitor.note or view.unknown_marker }}</p>
+  {% endif %}
+
+  <h3 class="subhead">Latest live values</h3>
+  {% if ss.live_values %}
+  <ul class="sysd-list">
+    {% for lv in ss.live_values %}
+    <li class="sysd-row">
+      <span>{{ lv.name }}</span>
+      {% if lv.latest %}
+        <span class="chip {{ 'status-active' if lv.latest.level in ('excessive','moderate') else ('ok' if lv.latest.level == 'ok' else 'plain') }}">{{ lv.latest.value }} &middot; {{ lv.latest.level }}</span>
+        <span class="small muted">{{ lv.latest.source }}</span>
+      {% else %}
+        <span class="small muted">no recorded value on file &mdash; known-good: {{ lv.band_note }}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No live channels defined for this system.</p>
+  {% endif %}
+
+  <h3 class="subhead">Active blocker</h3>
+  {% if ss.blocker %}
+  <p class="small"><span class="chip status-active">blocked</span> {{ ss.blocker.text }}
+    {% if ss.blocker.why and ss.blocker.why != ss.blocker.text %}<span class="small muted">({{ ss.blocker.why }})</span>{% endif %}</p>
+  {% else %}
+  <p class="small muted">No active blocker on this car right now.</p>
+  {% endif %}
+
+  <p class="small muted">Last evidence from the car:
+    {% if ss.last_evidence %}{{ ss.last_evidence }}{% else %}no evidence on file yet{% endif %}</p>
+</details>
+
+{# --- 2. relationship ring ------------------------------------------------ #}
+<details class="panel sysd-section" open data-fact="system:{{ view.key }}|relationships">
+  <summary><h2 class="sysd-h">Relationships</h2></summary>
+  {% set rel = view.relationship %}
+
+  <h3 class="subhead">Upstream — feeds this</h3>
+  {% if rel.upstream %}
+  <ul class="sysd-list">
+    {% for e in rel.upstream %}
+    <li class="sysd-row">
+      <a href="{{ e.href }}">{{ e.label }}</a>
+      <span class="chip">{{ e.confidence|lower }}</span>
+      <span class="small muted">kind: {{ e.kind }}</span>
+      {% if e.hot %}<span class="chip status-active">hot — seen together on this car{% if e.lift %} ({{ "%.2f"|format(e.lift) }}x lift){% endif %}</span>{% endif %}
+      <div class="small muted">{{ e.why }} <span class="mono">[{{ e.source }}]</span></div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">Nothing documented feeds this system.</p>
+  {% endif %}
+
+  <h3 class="subhead">Downstream — fed by this</h3>
+  {% if rel.downstream %}
+  <ul class="sysd-list">
+    {% for e in rel.downstream %}
+    <li class="sysd-row">
+      <a href="{{ e.href }}">{{ e.label }}</a>
+      <span class="chip">{{ e.confidence|lower }}</span>
+      <span class="small muted">kind: {{ e.kind }}</span>
+      {% if e.hot %}<span class="chip status-active">hot — seen together on this car{% if e.lift %} ({{ "%.2f"|format(e.lift) }}x lift){% endif %}</span>{% endif %}
+      <div class="small muted">{{ e.why }} <span class="mono">[{{ e.source }}]</span></div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">This system is not documented as feeding anything else.</p>
+  {% endif %}
+
+  {% if rel.hot_only %}
+  <h3 class="subhead">Seen together on this car (no documented dependency)</h3>
+  <ul class="sysd-list">
+    {% for e in rel.hot_only %}
+    <li class="sysd-row">
+      <a href="{{ e.href }}">{{ e.label }}</a>
+      <span class="chip status-active">hot{% if e.lift %} ({{ "%.2f"|format(e.lift) }}x lift){% endif %}</span>
+      <div class="small muted">{{ e.reading }}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</details>
+
+{# --- 3. components, placed ------------------------------------------------ #}
+<details class="panel sysd-section" data-fact="system:{{ view.key }}|components">
+  <summary><h2 class="sysd-h">Components ({{ (view.components.parts|length) + (view.components.elements|length) }})</h2></summary>
+  {% set comp = view.components %}
+
+  {% if comp.parts %}
+  <h3 class="subhead">Parts</h3>
+  <ul class="sysd-list">
+    {% for p in comp.parts %}
+    <li class="sysd-row">{% if p.href %}<a href="{{ p.href }}">{{ p.name }}</a>{% else %}<span>{{ p.name }}</span>
+      <span class="small muted">(no parts-catalogue entry yet)</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if comp.elements %}
+  <h3 class="subhead">Placed in the electrical layout</h3>
+  <ul class="sysd-list">
+    {% for e in comp.elements %}
+    <li class="sysd-row">
+      <b>{{ e.label }}</b>
+      <span class="small muted">zone: {{ e.zone }}</span>
+      <span class="chip">{{ e.location_confidence|lower }}</span>
+      <div class="small muted">{{ e.location_note }}</div>
+      <div class="small muted">Inspection: {{ e.inspection_hint }}</div>
+      {% if e.latest_inspection %}
+      <div class="small muted">Last inspected: {{ e.latest_inspection.at }} — {{ e.latest_inspection.condition }}
+        {% if e.latest_inspection.by %}(by {{ e.latest_inspection.by }}){% endif %}</div>
+      {% else %}
+      <div class="small muted">No inspection on record.</div>
+      {% endif %}
+      <a class="small" href="{{ e.inspect_href }}">Open inspection form &rarr;</a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No electrical-layout elements merged in for this system yet.</p>
+  {% endif %}
+
+  {% if comp.wiring_paths %}
+  <h3 class="subhead">Per-code wiring path</h3>
+  {% for wp in comp.wiring_paths %}
+  <p class="small"><b>{{ wp.code }}</b>:
+    {% for hop in wp.path %}{{ hop.element }}{% if not loop.last %} &rarr; {% endif %}{% endfor %}
+  </p>
+  {% endfor %}
+  {% endif %}
+</details>
+
+{# --- 4. how it fails here --------------------------------------------- #}
+<details class="panel sysd-section" open data-fact="system:{{ view.key }}|how it fails here">
+  <summary><h2 class="sysd-h">How it fails here</h2></summary>
+  {% set hf = view.how_it_fails %}
+  {% if not hf.open_codes %}
+  <p class="small muted">No open codes on this system to build a fault tree from.</p>
+  {% elif hf.fault_tree %}
+  <p class="small">Fault tree for {{ hf.open_codes|join(', ') }}.</p>
+  {% if hf.next_test_label %}
+  <p class="small"><b>Next unresolved test:</b> {{ hf.next_test_label }}</p>
+  {% endif %}
+  {% else %}
+  <p class="small muted">No fault tree on file for {{ hf.open_codes|join(', ') }}. {{ view.unknown_marker }}</p>
+  {% endif %}
+  <p><a class="btn" href="{{ hf.do_it_now_href }}">Do it now &rarr;</a></p>
+</details>
+
+{# --- 5. hypotheses -------------------------------------------------------- #}
+<details class="panel sysd-section" data-fact="system:{{ view.key }}|hypotheses">
+  <summary><h2 class="sysd-h">Hypotheses ({{ view.hypotheses.rows|length }})</h2></summary>
+  {% if view.hypotheses.rows %}
+  <ul class="sysd-list">
+    {% for h in view.hypotheses.rows %}
+    <li class="sysd-row">
+      <span>{{ h.text }}</span>
+      <span class="chip">{{ h.status }}</span>
+      <span class="small muted">{{ h.evidence_count }} evidence item(s)</span>
+      {% if h.next_test %}<div class="small muted">Next test: {{ h.next_test }}</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No hypotheses touching this system yet.</p>
+  {% endif %}
+  <p><a class="small" href="{{ view.hypotheses.add_href }}">+ Add hypothesis &rarr;</a></p>
+</details>
+
+{# --- 6. what this car has taught ------------------------------------------ #}
+<details class="panel sysd-section" data-fact="system:{{ view.key }}|what this car has taught">
+  <summary><h2 class="sysd-h">What this car has taught</h2></summary>
+  {% set taught = view.taught %}
+  {% if taught.codes %}
+  <p class="small">{{ taught.sessions or 0 }} session(s), {{ taught.first or "—" }} &rarr; {{ taught.last or "—" }}.</p>
+  {% else %}
+  <p class="small muted">No timeline evidence for this system yet.</p>
+  {% endif %}
+  {% if taught.case_matches %}
+  <h3 class="subhead">Case memory</h3>
+  <ul class="sysd-list">
+    {% for m in taught.case_matches %}
+    <li class="sysd-row small muted">On the last {{ m.vehicle_model or "similar car" }} with these codes in this
+      system, {{ m.summary or m.note or "a similar pattern was logged" }}.</li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No matching case history for this system's codes yet.</p>
+  {% endif %}
+</details>
+
+{# --- 7. others' experience -------------------------------------------- #}
+<details class="panel sysd-section" data-fact="system:{{ view.key }}|others' experience">
+  <summary><h2 class="sysd-h">Others' experience ({{ view.experience.count }})</h2></summary>
+  {% set exp = view.experience %}
+  {% include "_experience.html" %}
+</details>
+
+{# --- 8. what else should I look at? ------------------------------------ #}
+<details class="panel sysd-section" data-fact="system:{{ view.key }}|what else should I look at">
+  <summary><h2 class="sysd-h">What else should I look at?</h2></summary>
+  {% if view.look_at_next %}
+  <ul class="sysd-list">
+    {% for n in view.look_at_next %}
+    <li class="sysd-row"><a href="{{ n.href }}">{{ n.label }}</a>
+      <div class="small muted">{{ n.why }}</div></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No ranked neighbours yet for this system.</p>
+  {% endif %}
+</details>
+
+</div>
+{% endblock %}

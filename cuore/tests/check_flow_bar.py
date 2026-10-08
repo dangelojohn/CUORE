@@ -167,10 +167,11 @@ def check_flow_bar(env: Environment) -> None:
     normal = tmpl.render(bar={"vin": VIN}, tab="codes")
     check("flow_bar: step label 'Step 6 of 12: Tests and inspections'",
           "Step 6 of 12:" in normal and "Tests and inspections" in normal)
-    check("flow_bar: next button href points at job#hypotheses",
-          f'href="/v/{VIN}/job#hypotheses"' in normal)
-    check("flow_bar: next button reads as a suggestion, not an order",
-          "Suggested next: Hypotheses" in normal and "You must" not in normal)
+    # Job UX run 2, R1: the header carries no next button; the bottom bar is
+    # the only navigation, so the bar must not render a second primary action.
+    check("flow_bar: no header next button (bottom bar is the only navigation)",
+          "Suggested next:" not in normal and 'class="btn primary flow-next"' not in normal)
+    check("flow_bar: wording never orders the mechanic", "You must" not in normal)
     check("flow_bar: blocker count chip shown", "flow-blocker-chip" in normal and "1" in normal)
     check("flow_bar: blocker text shown as 'Not yet: <why>' inside amber .note.warn",
           'class="note warn flow-blocker"' in normal

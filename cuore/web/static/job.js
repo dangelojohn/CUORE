@@ -28,21 +28,31 @@
 
   // ---------- toast (fix #5) ----------------------------------------------
 
-  function showToast(text, kind, undoForm) {
+  // R8: Undo on the toast -- a selector to a <form> (submitted as-is, the
+  // Delete/undelete case) or to a <button> (clicked as-is, the
+  // status-change case below, since each status is its own submit button
+  // rather than a value you can set and resubmit).
+  function showToast(text, kind, undoSel) {
     var el = document.createElement("div");
     el.className = "job-toast";
     el.setAttribute("role", "status");
     var span = document.createElement("span");
     span.textContent = text;
     el.appendChild(span);
-    if (undoForm) {
+    if (undoSel) {
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn small";
       btn.textContent = "Undo";
       btn.addEventListener("click", function () {
-        var f = document.querySelector(undoForm);
-        if (f) { try { f.requestSubmit ? f.requestSubmit() : f.submit(); } catch (e) { f.submit(); } }
+        var target = document.querySelector(undoSel);
+        if (target) {
+          if (target.tagName === "FORM") {
+            try { target.requestSubmit ? target.requestSubmit() : target.submit(); } catch (e) { target.submit(); }
+          } else {
+            target.click();
+          }
+        }
         el.remove();
       });
       el.appendChild(btn);
@@ -55,16 +65,27 @@
     var flash = qs("[data-flash]", root);
     if (flash) {
       var kind = /flash-err/.test(flash.className) ? "err" : /flash-warn/.test(flash.className) ? "warn" : "ok";
-      var undoHyp = new URLSearchParams(location.search).get("undo_hyp");
-      var undoSel = undoHyp ? '[data-undo-hyp="' + undoHyp + '"] form' : null;
+      var params = new URLSearchParams(location.search);
+      var undoHyp = params.get("undo_hyp");
+      var undoStatus = params.get("undo_status"); // "<hypId>:<prevStatus>"
+      var undoSel = null;
+      if (undoHyp) {
+        undoSel = '[data-undo-hyp="' + undoHyp + '"] form';
+      } else if (undoStatus && undoStatus.indexOf(":") !== -1) {
+        var parts = undoStatus.split(":");
+        var hypId = parts[0], prevStatus = parts.slice(1).join(":");
+        undoSel = '#hyp-' + hypId + ' .hyp-status-row button[value="' + prevStatus + '"]';
+      }
       showToast(flash.textContent.trim(), kind, undoSel);
       flash.remove();
     }
-    // strip msg/mk (and confirm, handled separately below) from the URL bar
-    // so a page refresh never replays a stale toast.
+    // strip msg/mk/undo_status (and confirm, handled separately below) from
+    // the URL bar so a page refresh never replays a stale toast.
     var url = new URL(location.href);
     var changed = false;
-    ["msg", "mk"].forEach(function (p) { if (url.searchParams.has(p)) { url.searchParams.delete(p); changed = true; } });
+    ["msg", "mk", "undo_status"].forEach(function (p) {
+      if (url.searchParams.has(p)) { url.searchParams.delete(p); changed = true; }
+    });
     if (changed && window.history && window.history.replaceState) {
       window.history.replaceState(null, "", url.pathname + (url.search || "") + url.hash);
     }
@@ -86,6 +107,33 @@
     var cancel = dlg.querySelector('a.btn:not(.primary)');
     if (cancel) cancel.addEventListener("click", function () { dlg.close(); });
   });
+
+  // ---------- R8: "Today 15:58" instead of a raw ISO timestamp -----------
+  // Progressive enhancement only -- job.html's own text node is the raw
+  // ISO timestamp (still correct, just not pretty) for a no-JS reader.
+  (function humanizeTimestamps() {
+    function fmt(iso) {
+      var d = new Date((iso || "").replace(" ", "T"));
+      if (isNaN(d.getTime())) return null;
+      var now = new Date();
+      var hh = String(d.getHours()).padStart ? String(d.getHours()).padStart(2, "0") : ("0" + d.getHours()).slice(-2);
+      var mm = ("0" + d.getMinutes()).slice(-2);
+      var time = hh + ":" + mm;
+      var sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+      if (sameDay) return "Today " + time;
+      var yest = new Date(now); yest.setDate(now.getDate() - 1);
+      if (d.getFullYear() === yest.getFullYear() && d.getMonth() === yest.getMonth() && d.getDate() === yest.getDate()) {
+        return "Yesterday " + time;
+      }
+      var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return d.getDate() + " " + months[d.getMonth()] + " " + time;
+    }
+    qsa(".ts-human", root).forEach(function (el) {
+      var iso = el.getAttribute("data-iso-ts");
+      var out = fmt(iso);
+      if (out) el.textContent = out;
+    });
+  })();
 
   // ---------- evidence picker (fix #2) ------------------------------------
 
@@ -152,6 +200,13 @@
     if (!step6) return;
     var section = step6.closest(".dossier-section");
     if (!section) return;
+
+    // R3: the tick button carries only a title tooltip and an aria-hidden
+    // glyph -- no accessible name of its own. Stamp one from the row's own
+    // text ("Mark <row text> done"/"...not done") at load, independent of
+    // whether the result sheet below ever touches this row.
+    qsa(".step-check", section).forEach(setCheckAriaLabel);
+
     qsa("form[data-checklist-form]", section).forEach(function (form) {
       form.addEventListener("submit", function (ev) {
         ev.preventDefault();
@@ -170,6 +225,22 @@
     });
   })();
 
+  function rowLabel(li) {
+    var textEl = li.querySelector(".step-text");
+    if (!textEl) return "";
+    // First text node only -- excludes any .result-chip already appended.
+    var node = textEl.childNodes[0];
+    return node ? node.textContent.trim() : textEl.textContent.trim();
+  }
+
+  function setCheckAriaLabel(btn) {
+    var li = btn.closest(".checklist-step");
+    if (!li) return;
+    var text = rowLabel(li);
+    var done = btn.getAttribute("aria-pressed") === "true";
+    btn.setAttribute("aria-label", "Mark " + text + (done ? " not done" : " done"));
+  }
+
   // ---------- step 6: the result sheet (fix #3) ---------------------------
   // Ticking a row's own checkbox (above) still just marks it done, exactly
   // as before this page existed -- that is the no-JS path and it keeps
@@ -187,6 +258,7 @@
     var vin = document.body.getAttribute("data-vin");
     if (!vin) return;
 
+    var fromHyp = new URLSearchParams(location.search).get("from_hyp") || "";
     var hyps = [];
     fetch("/api/vehicles/" + encodeURIComponent(vin) + "/job", { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -199,38 +271,108 @@
 
     var RESULTS = ["pass", "fail", "inconclusive", "not_possible"];
     var RESULT_LABEL = { pass: "Pass", fail: "Fail", inconclusive: "Inconclusive", not_possible: "Not possible" };
+    // R5: what pass/fail actually *means* for a leak/smoke-style test is
+    // the opposite of most other checks -- Fail = a fault was found, which
+    // *supports* a leak/fault hypothesis; Pass = clean, which *refutes* it.
+    // Detected from the row's own wording (a heuristic, not a schema --
+    // there is no structured test-type field anywhere in this app yet).
+    function isLeakTest(stepText) { return /smoke|leak/i.test(stepText); }
+    function resultMeaning(stepText, r) {
+      var leak = isLeakTest(stepText);
+      if (r === "pass") return leak ? "Pass — no leak" : "Pass — no fault found";
+      if (r === "fail") return leak ? "Fail — leak/smoke found" : "Fail — fault found";
+      return RESULT_LABEL[r];
+    }
+    // For pass/fail, the side of the hypothesis ledger this result lands
+    // on by default -- fail supports a fault hypothesis, pass refutes it.
+    // inconclusive/not_possible proves nothing either way, default "for"
+    // only so the control has a valid starting value.
+    function defaultSupports(r) { return r === "pass" ? "against" : "for"; }
+    // A number+unit pulled straight out of the row's own text (e.g. "...at
+    // 0.5 psi") -- the only place a spec/known-good band lives today;
+    // shown as a hint under Measured value (R5), never invented.
+    function specFromText(stepText) {
+      var m = /(-?\d+(?:\.\d+)?)\s*(psi|kpa|bar|%|v|mv|a|ohm|mm|rpm)\b/i.exec(stepText || "");
+      return m ? ("Spec: " + m[1] + " " + m[2]) : "";
+    }
 
     function buildSheet(li, stepId, stepText) {
       var dlg = document.createElement("dialog");
       dlg.className = "job-confirm-modal result-sheet";
+      var spec = specFromText(stepText);
+      var oneOpen = hyps.filter(function (h) { return h.status === "open"; });
+      var preselect = fromHyp || (oneOpen.length === 1 ? oneOpen[0].id : "");
       var html = '<p><b>Record a result</b></p><p class="small muted">' + stepText + '</p>' +
         '<div class="field"><label>Result</label><div class="result-radios">' +
         RESULTS.map(function (r) {
-          return '<label><input type="radio" name="result" value="' + r + '"> ' + RESULT_LABEL[r] + '</label>';
-        }).join(" ") + '</div></div>' +
+          return '<label><input type="radio" name="result" value="' + r + '" data-meaning="1"> '
+            + resultMeaning(stepText, r) + '</label>';
+        }).join("") + '</div></div>' +
         '<div class="field"><label>Measured value</label>' +
         '<input type="number" step="any" name="value" style="width:48%"> ' +
         '<input type="text" name="unit" placeholder="unit" style="width:40%"></div>' +
-        '<div class="field"><label>Reason (if fail/inconclusive/not possible)</label>' +
+        (spec ? '<p class="small muted spec-line">' + spec + '</p>' : '') +
+        '<div class="field"><label>Reason<span class="reason-required-mark" hidden> (required)</span></label>' +
         '<input type="text" name="reason" style="width:100%"></div>' +
         '<div class="field"><label>Supports/refutes which hypothesis?</label>' +
         '<select name="hypothesis_id" style="width:100%"><option value="">(none)</option>' +
-        hyps.map(function (h) { return '<option value="' + h.id + '">' + h.text.replace(/</g, "&lt;") + '</option>'; }).join("") +
+        hyps.map(function (h) {
+          return '<option value="' + h.id + '"' + (h.id === preselect ? " selected" : "") + '>'
+            + h.text.replace(/</g, "&lt;") + '</option>';
+        }).join("") +
         '</select></div>' +
         '<div class="field"><label><input type="radio" name="supports" value="for" checked> for</label> ' +
-        '<label><input type="radio" name="supports" value="against"> against</label></div>' +
+        '<label><input type="radio" name="supports" value="against"> against</label>' +
+        '<p class="small supports-warning" hidden></p></div>' +
         '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">' +
         '<button type="button" class="btn" data-cancel>Cancel</button>' +
         '<button type="button" class="btn primary" data-save>Save result</button></div>';
       dlg.innerHTML = html;
       document.body.appendChild(dlg);
+
+      var supportsOverridden = false;
+      qsa('input[name="supports"]', dlg).forEach(function (r) {
+        r.addEventListener("change", function () { supportsOverridden = true; checkSupportsWarning(); });
+      });
+      function checkSupportsWarning() {
+        var result = (dlg.querySelector('input[name="result"]:checked') || {}).value;
+        var supports = (dlg.querySelector('input[name="supports"]:checked') || {}).value;
+        var warn = dlg.querySelector(".supports-warning");
+        if (!result || !supports || !warn) return;
+        var expected = defaultSupports(result);
+        if (supportsOverridden && supports !== expected && (result === "pass" || result === "fail")) {
+          warn.textContent = resultMeaning(stepText, result) + " usually counts \"" + expected
+            + "\" the hypothesis -- you picked \"" + supports + "\".";
+          warn.hidden = false;
+        } else {
+          warn.hidden = true;
+        }
+      }
+      qsa('input[name="result"]', dlg).forEach(function (r) {
+        r.addEventListener("change", function () {
+          if (!supportsOverridden) {
+            var want = defaultSupports(r.value);
+            var target = dlg.querySelector('input[name="supports"][value="' + want + '"]');
+            if (target) target.checked = true;
+          }
+          var reasonMark = dlg.querySelector(".reason-required-mark");
+          if (reasonMark) reasonMark.hidden = (r.value === "pass");
+          checkSupportsWarning();
+        });
+      });
+
       dlg.querySelector("[data-cancel]").addEventListener("click", function () { dlg.close(); dlg.remove(); });
       dlg.querySelector("[data-save]").addEventListener("click", function () {
         var result = (dlg.querySelector('input[name="result"]:checked') || {}).value;
         if (!result) { showToast("Pick a result first.", "err"); return; }
+        var reasonVal = dlg.querySelector('input[name="reason"]').value.trim();
+        if (result !== "pass" && !reasonVal) {
+          showToast("A reason is required for " + RESULT_LABEL[result].toLowerCase() + ".", "err");
+          return;
+        }
         var body = {
           result: result,
-          reason: dlg.querySelector('input[name="reason"]').value,
+          reason: reasonVal,
           value: dlg.querySelector('input[name="value"]').value || null,
           unit: dlg.querySelector('input[name="unit"]').value,
           hypothesis_id: dlg.querySelector('select[name="hypothesis_id"]').value || null,
@@ -243,14 +385,9 @@
           body: JSON.stringify(body),
         })
           .then(function (r) { if (!r.ok) throw new Error("save failed"); return r.json(); })
-          .then(function () {
-            var existing = li.querySelector(".result-chip");
-            if (existing) existing.remove();
-            var chip = document.createElement("span");
-            chip.className = "result-chip result-chip-" + result;
-            chip.textContent = RESULT_LABEL[result];
-            var textEl = li.querySelector(".step-text");
-            if (textEl) textEl.appendChild(chip);
+          .then(function (entry) {
+            applyResultToRow(li, stepId, result, entry);
+            refreshCounters(vin, stepId);
             showToast("Saved.", "ok");
             dlg.close(); dlg.remove();
           })
@@ -259,12 +396,77 @@
       try { dlg.showModal(); } catch (e) { /* unsupported: no-op, row still works via the plain checkbox */ }
     }
 
+    // R3: re-render the row itself from the server's own response --
+    // tick box, aria-pressed/label, and a "Fail · 0.5 psi"-style chip --
+    // rather than only appending a chip and leaving the box/label stale
+    // until a reload.
+    function applyResultToRow(li, stepId, result, entry) {
+      var existing = li.querySelector(".result-chip");
+      if (existing) existing.remove();
+      var chip = document.createElement("span");
+      chip.className = "result-chip result-chip-" + result;
+      var label = RESULT_LABEL[result];
+      if (entry && entry.value !== null && entry.value !== undefined && entry.value !== "") {
+        label += " · " + entry.value + (entry.unit || "");
+      }
+      chip.textContent = label;
+      var textEl = li.querySelector(".step-text");
+      if (textEl) textEl.appendChild(chip);
+
+      var done = !entry || entry.done !== false;
+      li.classList.toggle("is-done", done);
+      var check = li.querySelector(".step-check");
+      if (check) {
+        check.setAttribute("aria-pressed", done ? "true" : "false");
+        var mark = check.querySelector("span[aria-hidden]");
+        if (mark) mark.textContent = done ? "✓" : "";
+        check.title = done ? "Mark not done" : "Mark done";
+        setCheckAriaLabel(check);
+        var doneInput = li.querySelector('input[name="done"]');
+        if (doneInput) doneInput.value = done ? "0" : "1";
+      }
+    }
+
+    // R3: the family's own progress-pill ("0/6") and step 6's own overall
+    // "Not started/In progress/Complete N/M" line both go stale the moment
+    // a result is saved -- re-fetch the dossier view (the same data these
+    // numbers are rendered from) and patch both from it, no reload.
+    function refreshCounters(vin, stepId) {
+      fetch("/api/vehicles/" + encodeURIComponent(vin) + "/view", { credentials: "same-origin" })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          if (!data || !data.open_work) return;
+          var totalDone = 0, totalAll = 0;
+          data.open_work.forEach(function (card) {
+            if (card.progress) { totalDone += card.progress.done || 0; totalAll += card.progress.total || 0; }
+          });
+          // Family pill: find the open-work card that names this step,
+          // then patch that one card's own .job-foot .progress-pill.
+          var card = data.open_work.find(function (c) {
+            return (c.steps || []).some(function (s) { return s.id === stepId; });
+          });
+          var rowLi = document.getElementById("fb-" + stepId) || qs('[data-fact="checklist|' + stepId + '"]', root);
+          var cardEl = rowLi ? rowLi.closest(".job-card") : null;
+          var foot = cardEl ? cardEl.querySelector(".job-foot .progress-pill") : null;
+          if (foot && card && card.progress) {
+            foot.textContent = card.progress.done + "/" + card.progress.total;
+          }
+          var statusEl = qs(".step6-status", section);
+          if (statusEl && totalAll) {
+            var state = totalDone >= totalAll ? "complete" : (totalDone > 0 ? "progress" : "not-started");
+            statusEl.className = "step6-status step6-status-" + state;
+            statusEl.textContent = (state === "complete" ? "Complete" : state === "progress" ? "In progress" : "Not started")
+              + " " + totalDone + "/" + totalAll;
+          }
+        })
+        .catch(function () {});
+    }
+
     qsa(".checklist-step", section).forEach(function (li) {
       var fact = li.getAttribute("data-fact") || "";
       var stepId = fact.indexOf("checklist|") === 0 ? fact.slice("checklist|".length) : "";
       if (!stepId) return;
-      var textEl = li.querySelector(".step-text");
-      var stepText = textEl ? textEl.textContent.trim() : stepId;
+      var stepText = rowLabel(li) || stepId;
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "btn small result-sheet-trigger";

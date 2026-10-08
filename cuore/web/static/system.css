@@ -1,0 +1,32 @@
+/* CUORE per-system dive-in page (/v/{vin}/systems/{key}). Single column,
+ * 16px body, 48px tap targets -- a stricter floor than the app-wide 44px
+ * convention (cuore.css), scoped to this page only via .sysd-page so it
+ * never changes any other page's sizing. Reuses the app's existing tokens
+ * (--surface, --rule, --ink, --sev-*, --ok, ...) and the .chip/.chip-code/
+ * .panel classes already defined in cuore.css/systems.css -- no new colour
+ * is introduced here, only layout.
+ */
+
+.sysd-page { font-size: 16px; max-width: 72ch; margin: 0 auto; }
+
+.sysd-section { margin: 14px 0; }
+.sysd-section > summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; }
+.sysd-h { display: inline; margin: 0; font-size: 16px; }
+
+.subhead {
+  color: var(--ink-3); font-size: 12px; text-transform: uppercase;
+  letter-spacing: .08em; margin: 14px 0 6px;
+}
+
+.sysd-list { list-style: none; margin: 0; padding: 0; }
+.sysd-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  min-height: 48px; padding: 8px 0; border-bottom: 1px solid var(--rule-soft);
+}
+.sysd-row:last-child { border-bottom: none; }
+.sysd-row a, .sysd-row > span:first-child { min-height: 48px; display: inline-flex; align-items: center; }
+
+@media (max-width: 400px) {
+  .sysd-page { font-size: 16px; }
+  .sysd-row { gap: 6px; }
+}

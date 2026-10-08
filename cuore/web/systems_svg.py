@@ -117,9 +117,17 @@ def _positions(keys: list[str]) -> dict[str, tuple[float, float]]:
     return pos
 
 
-def render(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> str:
+def render(nodes: list[dict[str, Any]], edges: list[dict[str, Any]], vin: str = "") -> str:
     """``nodes``: ``[{key, label, status, code_count}]``.
-    ``edges``: ``[{a, b, confidence, why}]`` meaning *a depends_on b*."""
+    ``edges``: ``[{a, b, confidence, why}]`` meaning *a depends_on b*.
+
+    ``vin``, when given, makes each node a link to its own dive-in page
+    (``/v/{vin}/systems/{key}``, :mod:`cuore.web.system_routes`) instead of
+    the in-page ``#node-{key}`` jump -- the per-card ``id="sys-{key}"``/
+    ``id="node-{key}"`` anchors below stay in place either way (still
+    reached from ``_system_badge.html``'s ``#sys-{key}`` links and from
+    each edge's own ``#edge-{a}-{b}`` jump), so nothing that already
+    points at those anchors breaks."""
     if not nodes:
         return _no_data_svg()
     keys = [n["key"] for n in nodes if n.get("key")]
@@ -187,7 +195,8 @@ def render(nodes: list[dict[str, Any]], edges: list[dict[str, Any]]) -> str:
             inner += (f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="9" fill="{stroke}"/>'
                       f'<text x="{bx:.1f}" y="{by + 3.2:.1f}" text-anchor="middle" '
                       f'font-size="10" fill="var(--surface)" font-family="var(--mono), monospace">{count}</text>')
-        parts.append(f'<a href="#node-{_esc(key)}"><g>{inner}<title>{_esc(title)}</title></g></a>')
+        href = f"/v/{_esc(vin)}/systems/{_esc(key)}" if vin else f"#node-{_esc(key)}"
+        parts.append(f'<a href="{href}" data-system="{_esc(key)}"><g>{inner}<title>{_esc(title)}</title></g></a>')
 
     parts.append("</svg>")
     return "".join(parts)

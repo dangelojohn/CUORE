@@ -80,8 +80,9 @@
               {% endfor %}
             </ul>
             {% if d.practical_difference %}<p class="small muted">{{ d.practical_difference }}</p>{% endif %}
-            <p class="small muted">Record your decision (buy / borrow / rent / skip + why) in the step 7
-              "Would buy next time" review.</p>
+            {% set _rs = step_link('repair') if step_link is defined else none %}
+            <p class="small muted">Record your decision (buy / borrow / rent / skip + why) when you put the tools away
+              {% if _rs %}(step {{ _rs.n }}, {{ _rs.title }}){% endif %}: "would buy next time".</p>
           </div>
         {% endif %}
       </div>

@@ -39,9 +39,10 @@
     <span class="sys-line-sample sys-line-dashed"></span><span class="small">single source</span>
     <span class="sys-line-sample sys-line-dotted"></span><span class="small">unverified / unknown</span>
   </div>
-  <p class="small muted" style="margin:6px 0 0">Tap a node to jump to its card below. The number
+  <p class="small muted" style="margin:6px 0 0">Tap a node to open its full page. The number
     badge on a node is its open code count.</p>
 </div>
+<script src="{{ static_url('systems_map.js') }}" defer></script>
 
 {% if view.edges %}
 <h2>Edge detail</h2>
@@ -125,8 +126,9 @@
 {% for c in view.cards %}
   <div class="panel sys-card" id="sys-{{ c.key }}">
     <div class="sys-card-head">
-      <h3>{{ c.label }}</h3>
+      <h3><a href="/v/{{ vin }}/systems/{{ c.key }}">{{ c.label }}</a></h3>
       <span class="chip {{ c.status_chip_class }}">{{ c.status_label }}</span>
+      <a class="small" href="/v/{{ vin }}/systems/{{ c.key }}">Open full page &rarr;</a>
     </div>
 
     {% if c.codes %}

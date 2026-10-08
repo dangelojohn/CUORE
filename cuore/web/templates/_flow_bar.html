@@ -67,14 +67,11 @@
         {% if flow.blockers %}
           <span class="chip chronic flow-blocker-chip" title="{{ flow.blockers|length }} {{ _lbl('blocked_label', 'blocker(s)') }}">{{ flow.blockers|length }}&#9888;</span>
         {% endif %}
-        {% set _prev_steps = flow.steps|selectattr("n", "equalto", (flow.current or 0) - 1)|list %}
-        {% if _prev_steps %}
-          {% set _prev = _prev_steps[0] %}
-          <a class="btn flow-prev" href="{{ _prev.href|replace('#step-', '?step=') }}" title="{{ _prev.title }}">&larr;<span class="flow-prev-label"> {{ _prev.title }}</span></a>
-        {% endif %}
-        {% set _next_whys = flow.steps|selectattr("n", "equalto", flow.next.n)|map(attribute="why")|list %}
-        {% set _next_why = _next_whys[0] if _next_whys else none %}
-        <a class="btn primary flow-next" href="{{ flow.next.href|replace('#step-', '?step=') }}"{% if _next_why %} title="{{ _next_why }}"{% endif %}>{{ flow.next.button_label or (_lbl('suggested_next', 'Suggested next') + ": " + flow.next.title + " →") }}</a>
+        {# Job UX run 2, R1: the header carries no back/next buttons of its
+           own -- those duplicated (and sometimes contradicted) the bottom
+           step-nav bar's Back/Next, which is now the only navigation on
+           the page. Only the step label, the "Job is at step" chip, the
+           blocker chip and the Steps ▾ menu stay here. #}
       {% else %}
         <span class="flow-step-label">{{ _lbl('job_complete', 'Job complete.') }}</span>
         <a class="btn primary flow-next" href="/start">{{ _lbl('tools_away_start_next', 'Tools away. Start the next Stelvio') }} &rarr;</a>

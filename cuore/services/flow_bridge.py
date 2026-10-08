@@ -383,7 +383,14 @@ def flow_state(vin: str) -> dict[str, Any]:
         progress[n] = {"done": 1 if done[n] else 0, "total": 1}
 
     blocked_on_parts = bool(visit) and visit.get("status") == "waiting_parts"
-    first_not_done = next((n for n, *_ in _STEPS if not done[n]), 12)
+    # Job UX run 2, R2: "job progress" is the first step the tech hasn't
+    # even started -- not the first step that isn't 100% done. A tri-state
+    # step (6/7) sitting at "in_progress" (1 of 22 tests, say) has real
+    # work on file and must not pin the chip there forever; only
+    # "not_started" blocks forward progress. Same `state` dict the step
+    # summaries themselves render from, so this can never disagree with
+    # what's on screen (R2's "same criteria as the step summaries").
+    first_not_done = next((n for n, *_ in _STEPS if state.get(n) == "not_started"), 12)
 
     steps: list[dict[str, Any]] = []
     for n, key, title, button_label in _STEPS:

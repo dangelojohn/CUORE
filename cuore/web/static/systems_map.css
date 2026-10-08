@@ -1,0 +1,139 @@
+/* Systems map overlay styling -- Phase 2 of the dive-in plan. Injected by
+ * systems_map.js (one <link>), so systems.html needed no CSS line of its
+ * own. Uses cuore.css' own tokens throughout; no new colours are invented
+ * here. Responsive down to 710px with no horizontal scroll; nothing below
+ * 12px. */
+
+.sys-graph-wrap {
+  position: relative;
+}
+
+.smap-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.smap-hot-edge {
+  stroke: var(--ok);
+  stroke-width: 4;
+  stroke-linecap: round;
+  opacity: 0.55;
+}
+
+.smap-hot-edge-label {
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  fill: var(--ok);
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 3px;
+}
+
+.smap-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  margin: 10px 0 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius, 8px);
+  background: var(--surface-2);
+}
+
+.smap-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.smap-swatch i {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 2px solid;
+  flex: 0 0 auto;
+}
+
+.smap-swatch i.smap-hot-sample {
+  width: 20px;
+  height: 4px;
+  border: none;
+  border-radius: 2px;
+  background: var(--ok);
+  opacity: 0.7;
+}
+
+.smap-slider-box {
+  margin: 10px 0 18px;
+  padding: 10px 12px;
+  border: 1px solid var(--ink-3);
+  border-radius: var(--radius, 8px);
+  background: var(--surface-2);
+}
+
+.smap-slider-label {
+  font-size: 12.5px;
+  color: var(--ink);
+  margin-bottom: 8px;
+  min-height: 1.2em;
+}
+
+.smap-slider {
+  width: 100%;
+  box-sizing: border-box;
+  height: 48px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+/* The 48px requirement is on the thumb itself, not the track. */
+.smap-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  background: var(--ink-3);
+  border-radius: 3px;
+}
+.smap-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--ok);
+  border: 2px solid var(--surface);
+  cursor: pointer;
+  margin-top: -21px;
+}
+.smap-slider::-moz-range-track {
+  height: 6px;
+  background: var(--ink-3);
+  border-radius: 3px;
+}
+.smap-slider::-moz-range-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--ok);
+  border: 2px solid var(--surface);
+  cursor: pointer;
+}
+
+@media (max-width: 710px) {
+  .smap-legend {
+    gap: 8px 12px;
+    padding: 8px 10px;
+  }
+  .smap-swatch {
+    font-size: 12px;
+  }
+}

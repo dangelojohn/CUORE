@@ -51,6 +51,8 @@ def _flow_state(vin: str, **kw: Any) -> dict[str, Any] | None:
 
 def _register(templates: Any) -> None:
     templates.env.globals["flow_state_for"] = _flow_state
+    # JOB_UX_FIXES #10: content cross-references resolve through the registry.
+    templates.env.globals["step_link"] = flow_bridge.step_link
 
 
 for _module_name in ("routes", "service_routes", "drivetrain_routes", "timeline_routes"):

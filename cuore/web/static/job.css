@@ -11,23 +11,32 @@
 
 .job-page .process-map {
   display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+  flex-wrap: wrap;
   gap: 2px;
   padding: 4px 2px 8px;
   margin: 0 0 10px;
-  -webkit-overflow-scrolling: touch;
 }
+
+/* ---------- R6 (run 2): the full 1-12 step list is a menu, not inline
+   content -- job.html still renders all 11 non-current ``.step-headline``
+   rows (check_screens.py counts on it), but the sticky flow-bar's own
+   "Steps ▾" disclosure (_flow_bar.html) is the one place a tech browses
+   the full list with status/why text. Hiding these keeps the current
+   step's content within ~200px of the header (R6's own accept line)
+   without dropping the rows from the page -- a screen reader or the old
+   assertions still see them; sighted nav goes through the icon row above,
+   the flow-bar's Steps ▾, or the bottom Back/Next. */
+.job-page .step-headline { display: none; }
 .job-page .pm-captions {
   display: flex;
   width: 100%;
   margin-bottom: 2px;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: .02em;
   text-transform: uppercase;
   color: var(--muted, #8a8f96);
 }
-.job-page .pm-cap { flex: 0 0 auto; text-align: left; white-space: nowrap; overflow: hidden; }
+.job-page .pm-cap { flex: 0 0 auto; text-align: left; white-space: nowrap; overflow: hidden; margin-right: 10px; }
 .job-page .pm-cap-4 { flex-basis: 33%; }
 .job-page .pm-cap-3 { flex-basis: 25%; }
 .job-page .pm-cap-2 { flex-basis: 16.6%; }
@@ -37,15 +46,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 34px;
-  height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 2px 3px;
   border-radius: 6px;
   text-decoration: none;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1;
 }
-.job-page .process-map .pm-n { margin-top: 1px; }
+.job-page .process-map .pm-n { margin-top: 1px; font-size: 12px; }
 /* phase dividers at the fixed 4/3/2/3 boundaries -- no extra markup, just
    a border on the anchor that starts the next phase */
 .job-page .process-map a.pm-step:nth-child(6),  /* n=5, after caption row the 1st anchor is child 2 -> offset by 1 for .pm-captions */
@@ -186,6 +195,18 @@
   background: var(--panel-2, #1a2230);
 }
 .job-page .confirm-pending-panel .btn { min-height: 44px; }
+.job-page .confirm-evidence-list { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+.job-page .confirm-blocker { margin: 6px 0; }
+/* R7: Cancel + Confirm side by side, Confirm (primary) on the end so it
+   reads as the default action -- was a stacked, left-aligned pair. */
+.job-page .confirm-pending-actions {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 8px;
+  margin-top: 10px;
+}
+.job-page .confirm-pending-actions .inline-form { flex: 1 1 auto; }
+.job-page .confirm-pending-actions .btn { width: 100%; }
 
 .job-page .hyp-edit-details, .job-page .evidence-picker, .job-page .deleted-hyps,
 .job-page .suggestions-more, .job-page .add-hypothesis-collapsed { margin-top: 8px; }
@@ -228,3 +249,29 @@
   width: calc(100vw - 32px);
 }
 .job-confirm-modal .btn { min-height: 48px; }
+
+/* ---------- R5: result-sheet radios/labels, spec line, warnings -------- */
+
+.result-sheet .result-radios { display: flex; flex-direction: column; gap: 4px; }
+.result-sheet .result-radios label {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 2px 4px; font-size: 14px;
+}
+.result-sheet .result-radios input[type="radio"],
+.result-sheet input[name="supports"] { width: 24px; height: 24px; margin: 0; }
+.result-sheet .spec-line { margin: -4px 0 8px; }
+.result-sheet .supports-warning { color: #e0b84a; margin: 4px 0; }
+.result-sheet .reason-required-mark { color: #e0574a; font-weight: 400; }
+.result-sheet label:has(input[name="supports"]) {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-right: 10px;
+}
+
+/* ---------- R3: the row's own result chip shows the value too ---------- */
+
+.job-page .result-chip { font-size: 12px; }
+
+/* ---------- R8: evidence chips are sentence case, monospace only for the
+   code-id prefix (e.g. "P0455: freeze frame") -- was all-caps monospace */
+
+.job-page .evidence-chip-label { text-transform: none; }
+.job-page .evidence-chip .evidence-chip-label:first-letter { text-transform: uppercase; }
