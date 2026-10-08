@@ -20,6 +20,12 @@
     <span class="logo-slot" role="img" aria-label="CUORE logo"></span>
     CU<span>O</span>RE
   </a>
+  {# The header's own tagline echo -- CSS keeps this hidden at every width
+     from 400-900px so it can never collide with the wordmark next to it
+     (R2's chrome-budget problem, same family as the logo-slot shrink
+     above); the hero band (_vbar.html) is the one place the tagline is
+     always shown, at every width. #}
+  <span class="top-tagline">{{ marque_tagline if marque_tagline is defined and marque_tagline else "Passion and the joy of driving" }}</span>
   <span class="profile" title="Which half of the system this is">{{ profile }}</span>
   {% if t is defined and lang is defined %}
   <form method="post" action="/lang" class="lang-picker" role="group" aria-label="{{ t('language') }}">

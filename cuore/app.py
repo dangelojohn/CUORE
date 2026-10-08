@@ -28,6 +28,7 @@ from .api import cases as cases_api, checklists as checklists_api, dossier as do
 from .config import Settings, load  # noqa: E402
 from .models import ErrorBody  # noqa: E402
 from .services.errors import BridgeError  # noqa: E402
+from .web import bench_routes  # noqa: E402
 from .web import dashboard_routes  # noqa: E402
 from .web import drivetrain_routes  # noqa: E402
 from .web import dossier_routes  # noqa: E402
@@ -147,6 +148,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(drivetrain_routes.api_router, prefix="/api")
     app.include_router(labels_routes.api_router, prefix="/api")
     app.include_router(web_routes.router)
+    app.include_router(bench_routes.router)
     app.include_router(shop_routes.router)
     app.include_router(dashboard_routes.router)
     app.include_router(service_routes.router)

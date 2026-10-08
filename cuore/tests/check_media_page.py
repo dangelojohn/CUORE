@@ -175,7 +175,10 @@ check("strip offers a '+ add' affordance", 'media-attach-add' in code_resp.text)
 # --- vehicle dossier: open-work step strips + notes-area strip ----------
 
 print("=== attach strip on vehicle.html ===")
-veh_resp = client.get(f"/v/{VIN}")
+# vehicle.html (the dossier) moved from /v/{vin} to /v/{vin}/dossier when
+# /v/{vin} became the Bench landing page -- repointed here so this content
+# check still hits the template it's actually testing.
+veh_resp = client.get(f"/v/{VIN}/dossier")
 check("vehicle page responds 200", veh_resp.status_code == 200, str(veh_resp.status_code))
 check("at least one attach strip present (open-work step or notes)",
       'data-media-attach' in veh_resp.text)

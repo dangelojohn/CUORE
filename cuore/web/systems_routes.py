@@ -271,7 +271,7 @@ for _module_name in ("service_routes", "drivetrain_routes", "timeline_routes"):
 
 # --- the page's view model --------------------------------------------------
 
-def _build_view(vin: str) -> dict[str, Any]:
+def _build_view(vin: str, show_all: bool = True) -> dict[str, Any]:
     systems = _systems()
     corr = _correlate(vin)
     by_system = {r.get("system"): r for r in (corr.get("by_system") or [])}
@@ -326,10 +326,36 @@ def _build_view(vin: str) -> dict[str, Any]:
                    for u in (ch.get("possible_upstream") or [])]
         chains.append({**ch, "possible_upstream": upstream})
 
+    # Mechanic-UX review point 7: the graph defaults to this car's own
+    # footprint -- the systems that actually have a code on it, plus
+    # whatever those directly depend on -- not the full 25-system
+    # taxonomy. ``?all=1`` (``show_all``) still shows everything, and the
+    # per-system card list below the graph is filtered the same way so
+    # the two never disagree about what's "on this car" right now.
+    keep_keys = {n["key"] for n in nodes}
+    if not show_all:
+        with_codes = {n["key"] for n in nodes if n["code_count"]}
+        upstream_keys: set[str] = set()
+        for s in systems:
+            if s.get("key") in with_codes:
+                for dep in s.get("depends_on") or []:
+                    upstream_keys.add(dep.get("system"))
+        narrowed = with_codes | upstream_keys
+        # Never show an empty graph -- a car with no codes on file yet
+        # still gets the full map rather than a blank page.
+        if narrowed:
+            keep_keys = narrowed
+
+    nodes = [n for n in nodes if n["key"] in keep_keys]
+    cards = [c for c in cards if c["key"] in keep_keys]
+    edges = [e for e in edges if e["a"] in keep_keys and e["b"] in keep_keys]
+
     return {
         "nodes": nodes, "edges": edges, "cards": cards,
         "co_occurrence": co_occurrence, "chains": chains,
         "findings": corr.get("findings") or [],
+        "show_all": show_all, "total_systems": len(systems),
+        "visible_systems": len(nodes),
     }
 
 
@@ -337,11 +363,14 @@ def _build_view(vin: str) -> dict[str, Any]:
 
 
 @router.get("/v/{vin}/systems", response_class=HTMLResponse)
-def systems_page(request: Request, vin: str) -> HTMLResponse:
+def systems_page(request: Request, vin: str, all: bool = False) -> HTMLResponse:
     """The dependency graph: which systems may sit upstream of which codes,
-    and what this vehicle's own history does and does not corroborate."""
+    and what this vehicle's own history does and does not corroborate.
+
+    ``?all=1`` shows the full systems taxonomy; by default the graph (and
+    the card list under it) only shows what this car's own codes touch."""
     dossier = _dossier(vin)
-    view = _build_view(vin)
+    view = _build_view(vin, show_all=all)
     svg = systems_svg.render(view["nodes"], view["edges"])
     response = _page(request, "systems.html", vin=vin, bar=_vehicle_bar(vin, dossier),
                      tab="systems", view=view, svg=svg)

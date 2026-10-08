@@ -1,0 +1,116 @@
+/* cuore/web/static/scan.css
+ *
+ * Mechanic-UX review, three pages in one pass:
+ *   5. the dossier (/v/{vin}) -- every cluster/section collapsed to one
+ *      summary line by default, and the jump-chip row promoted to a real
+ *      pinned jump bar.
+ *   7. systems (/v/{vin}/systems) -- graph first, evidence prose one tap
+ *      deep.
+ *   8. codes (/v/{vin}/codes) -- relative dates, session counts, system
+ *      filter chips.
+ *
+ * New sheet, not a cuore.css/systems.css touch -- both of those are owned
+ * by other agents working the same review in parallel. Loaded by
+ * vehicle.html/systems.html/codes.html *after* cuore.css and systems.css,
+ * so an equal-specificity selector here wins the cascade on its own merits
+ * (no !important needed) -- see the .jumprow override below, which is the
+ * one place that matters.
+ */
+
+/* =====================================================================
+ * 5. Dossier: pinned jump bar + collapsed clusters
+ * ===================================================================== */
+
+/* cuore.css deliberately keeps .jumprow out of the sticky stack (its own
+ * comment there explains the <=110px sticky-chrome budget). This review
+ * explicitly asks for a real pinned jump bar, so this overrides just that
+ * one rule on the dossier page. --sticky-under-tabs is measured live by
+ * cuore.js from whatever is actually stuck above it (the .vline strip),
+ * so this keeps lining up even if that strip's own height changes later. */
+.jumprow {
+  position: sticky;
+  top: var(--sticky-under-tabs, 44px);
+  z-index: 14;
+  min-height: 40px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule-soft);
+}
+
+/* Per-cluster <details> (the former always-open job-cards). Shares
+ * .card-details with every other collapsed section so cuore.js's existing
+ * open/close persistence and the jump row's expand-all/collapse-all both
+ * just work on it with no new JS plumbing for that part. */
+.cluster-details > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.cluster-details > summary::-webkit-details-marker { display: none; }
+.cluster-summary-line {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  min-height: 40px; padding: 2px 0;
+}
+.cluster-summary-line .cluster-title { font-weight: 650; font-size: 15px; }
+.cluster-next {
+  color: var(--ink-3); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; max-width: 36ch;
+}
+.cluster-pin {
+  margin-left: auto; flex: none; min-height: 32px; min-width: 32px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--raised); color: var(--ink-3); cursor: pointer;
+  font-size: 13px;
+}
+.cluster-details.is-pinned .cluster-pin {
+  color: var(--accent); border-color: var(--accent);
+}
+.cluster-details.is-pinned > summary .cluster-title::after {
+  content: " \1F4CC"; font-size: 11px; /* pin glyph, redundant with the button's own state */
+}
+.job-step-link { margin-left: auto; }
+
+@media (max-width: 480px) {
+  .cluster-next { max-width: 22ch; }
+}
+
+/* =====================================================================
+ * 7. Systems: graph first, evidence one tap deep
+ * ===================================================================== */
+
+.sys-toggle-line { margin: 4px 0 10px; }
+.sys-evidence summary {
+  cursor: pointer; padding: 6px 0; font-size: 13px;
+}
+.sys-evidence[open] summary { margin-bottom: 8px; }
+.sys-evidence h3 {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); margin: 12px 0 6px;
+}
+
+/* =====================================================================
+ * 8. Codes table: relative dates, session counts, system filter chips
+ * ===================================================================== */
+
+.codesf-row {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  margin: 0 0 10px;
+}
+.codesf-chip {
+  display: inline-flex; align-items: center; min-height: 36px;
+  padding: 5px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em;
+  background: var(--raised); color: var(--ink-2); border: 1px solid var(--rule);
+  border-radius: 999px; text-decoration: none; white-space: nowrap;
+}
+.codesf-chip:hover { color: var(--ink); border-color: var(--ink-3); }
+.codesf-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.code-cluster-link {
+  display: inline-flex; align-items: center; min-height: 28px; padding: 2px 9px;
+  font-size: 11.5px; border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--surface-2); color: var(--ink-2); text-decoration: none;
+}
+.code-cluster-link:hover { border-color: var(--accent); color: var(--accent); }
+
+@media (max-width: 480px) {
+  .codesf-chip { font-size: 11px; padding: 4px 9px; }
+}

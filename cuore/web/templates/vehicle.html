@@ -4,6 +4,7 @@
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('media.css') }}">
 <link rel="stylesheet" href="{{ static_url('systems.css') }}">
+<link rel="stylesheet" href="{{ static_url('scan.css') }}">
 
 {% set view = view if view is defined else None %}
 
@@ -31,7 +32,98 @@
     <button type="button" class="jump-chip jump-action" data-collapse-all>Collapse all</button>
   </div>
 
-  {% include "_open_work.html" %}
+  {# ----------------------------------------------------------------------
+     Open work, redone as one collapsed cluster per family (R5): a job-card
+     used to render here always expanded via {% include "_open_work.html" %}
+     -- that partial is shared with job.html (not touched by this pass), so
+     rather than change what it renders, the same markup is reproduced here
+     inline, wrapped in a <details class="card-details cluster-details">
+     per family. Sharing .card-details means cuore.js's existing open/close
+     persistence and the jump row's expand-all/collapse-all both already
+     work on these with no new plumbing; the accordion ("only one cluster
+     open by default") and the pin button are the only genuinely new JS,
+     in cuore.js. ---------------------------------------------------------- #}
+  {% set _icon_aliases = {"body": "sys_body_comfort", "chassis": "sys_brakes_abs",
+                          "adas": "sys_adas_sensors", "fuel_trim": "sys_fuel"} %}
+  <section id="open-work" class="dossier-section">
+    <h2 class="section-h">Open work</h2>
+    {% for job in view.open_work %}
+      {% set _slug = (job.family or ("job-" ~ loop.index))|lower %}
+      {% set _fam_codes = view.codes|selectattr("family", "equalto", job.family)|list if job.family else [] %}
+      {% set _active = _fam_codes|selectattr("status", "equalto", "ACTIVE")|list %}
+      {% set _clearedu = _fam_codes|selectattr("status", "equalto", "CLEARED_UNVERIFIED")|list %}
+      {% set _state_row = (_active[0] if _active else (_clearedu[0] if _clearedu else (_fam_codes[0] if _fam_codes else none))) %}
+      {% set _next_step = (job.steps|rejectattr("done")|list|first) if job.steps else none %}
+      {% set _icon_key = _icon_aliases.get(_slug, "sys_" ~ _slug) %}
+      <details class="card-details cluster-details" id="cluster-{{ _slug }}" data-persist="cluster-{{ _slug }}">
+        <summary>
+          <span class="cluster-summary-line">
+            {% if icon is defined %}{{ icon(_icon_key, "s", job.title) }}{% endif %}
+            <span class="cluster-title">{{ job.title }}</span>
+            <span class="count-badge">{{ job.codes|length }} code{{ "s" if job.codes|length != 1 }}</span>
+            {% if _state_row %}<span class="chip status-{{ _state_row.status|lower }}">{{ _state_row.status_label }}</span>{% endif %}
+            <span class="cluster-next small muted">{{ _next_step.text if _next_step else "All steps done" }}</span>
+            <button type="button" class="cluster-pin" data-pin aria-pressed="false"
+                    title="Keep this cluster open when another one opens" aria-label="Pin this cluster open">&#128204;</button>
+          </span>
+        </summary>
+        <div class="job-card">
+          {% if job.codes %}
+          <div class="job-codes">
+            {% for c in job.codes %}<a class="chip-code" href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% endfor %}
+          </div>
+          {% endif %}
+          {% set badges = [] %}
+          {% if job.codes and systems_for_code is defined %}
+            {% for c in job.codes %}
+              {% for b in systems_for_code(c) %}
+                {% if b not in badges %}{% set _ = badges.append(b) %}{% endif %}
+              {% endfor %}
+            {% endfor %}
+          {% endif %}
+          {% include "_system_badge.html" %}
+          {% if job.steps %}
+          <ol class="checklist">
+            {% for s in job.steps %}
+            <li class="checklist-step {{ 'is-done' if s.done }}"
+                id="fb-{{ s.id }}" data-fact="checklist|{{ s.id }}">
+              <form method="post" action="/v/{{ vin }}/checklist" class="step-form" data-checklist-form>
+                <input type="hidden" name="step_id" value="{{ s.id }}">
+                <input type="hidden" name="done" value="{{ '0' if s.done else '1' }}">
+                <button type="submit" class="step-check" aria-pressed="{{ 'true' if s.done else 'false' }}"
+                        title="{{ 'Mark not done' if s.done else 'Mark done' }}">
+                  <span aria-hidden="true">{{ "✓" if s.done else "" }}</span>
+                </button>
+              </form>
+              <span class="step-text">{{ s.text }}
+                {% if s.ref %}<a class="step-ref" href="{{ s.ref_href or '#' }}">{{ s.ref }}</a>{% endif %}
+              </span>
+              {% if s.done_at %}
+                <span class="small muted step-meta">done {{ s.done_at }}{% if s.done_by %} by {{ s.done_by }}{% endif %}</span>
+              {% endif %}
+              {% set target_kind = "step" %}{% set target_id = s.id %}{% set compact = true %}
+              {% include "_media_attach.html" %}
+            </li>
+            {% endfor %}
+          </ol>
+          {% endif %}
+          {% set exp = experience_links(family=job.family) if experience_links is defined and job.family else {"links": [], "count": 0} %}
+          {% include "_experience.html" %}
+          <div class="job-foot">
+            {% if job.progress %}<span class="progress-pill">{{ job.progress.done }}/{{ job.progress.total }}</span>{% endif %}
+            {% if job.refs %}
+              <span class="job-refs">
+                {% for ref in job.refs %}{% if ref.href %}<a href="{{ ref.href }}">{{ ref.label }}</a>{% else %}<span class="muted">{{ ref.label }}</span>{% endif %}{% if not loop.last %} &middot; {% endif %}{% endfor %}
+              </span>
+            {% endif %}
+            <a class="small job-step-link" href="/v/{{ vin }}/job?step=6">Open in Job &rarr;</a>
+          </div>
+        </div>
+      </details>
+    {% else %}
+      <p class="muted small">No open-work families right now.</p>
+    {% endfor %}
+  </section>
 
   <details class="card-details" id="sec-blindspots" data-persist="blindspots">
     <summary>Blind spots
@@ -190,7 +282,7 @@
     </div>
   </details>
 
-  <details class="card-details" id="sec-notes" data-persist="notes" open>
+  <details class="card-details" id="sec-notes" data-persist="notes">
     <summary>Notes</summary>
     <div class="card-body">
       {% set target_kind = "vehicle" %}{% set target_id = vin %}{% set compact = false %}

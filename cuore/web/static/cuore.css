@@ -137,6 +137,20 @@ textarea:focus-visible {
 }
 .top .brand span { color: var(--accent); }
 
+/* Header tagline echo: hidden across the whole 400-900px band so it can
+ * never collide with the wordmark next to it (mechanic-UX review item 2)
+ * -- the hero band is the one place the tagline always shows, at every
+ * width (see .hero-tagline). Only re-appears on a wide enough desktop
+ * header that there's real room beside the brand mark. */
+.top-tagline {
+  display: none; margin-left: 2px; font-size: 11px; color: var(--ink-3);
+  text-transform: uppercase; letter-spacing: .1em; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+@media (min-width: 901px) {
+  .top-tagline { display: inline-block; max-width: 240px; }
+}
+
 /* Logo placeholder: a real mark is being designed separately. This is a
  * square slot in the same spot the old inline SVG badge occupied, sized to
  * fit the <=56px header strip. Drop the file at
@@ -478,6 +492,23 @@ kbd {
 .vline .vin-tail { font-size: 11.5px; color: var(--ink-3); flex: none; }
 .vline .vkm { font-size: 11.5px; color: var(--ink-2); flex: none; white-space: nowrap; }
 .vline .chip { flex: none; }
+
+/* Compact status strip (mechanic-UX review item 4): shown in .vline only
+ * on pages that don't also carry the full hero -- verdict chip, blocker
+ * count, and the "Next: ..." link to the Bench. All three truncate hard
+ * rather than wrap, same posture as .vname/.vin-tail/.vkm right above --
+ * a 400px strip has no room to grow taller. */
+.vline .status-verdict, .vline .status-blocker { flex: none; }
+.vline .status-next {
+  flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center;
+  font-family: var(--mono); font-size: 10px; letter-spacing: .04em;
+  text-decoration: none; color: var(--ink-2); white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.vline .status-next:hover { color: var(--ink); }
+@media (max-width: 400px) {
+  .vline .status-blocker .status-blocker-label { display: none; }
+}
 .vmore { margin-left: auto; flex: none; position: relative; }
 .vmore summary {
   display: inline-flex; align-items: center; justify-content: center;
@@ -867,11 +898,13 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 .tag-hint { font-size: 12px; color: var(--ink-3); margin: -6px 0 10px; }
 
 /* "What did the driver feel?" dropdown (replaces the old tag chips above,
- * which stay defined for any other template still using .tag-grid/.tag-chip). */
-.tag-select { width: 100%; font-size: 14px; }
-@media (max-width: 760px) {
-  .tag-select option { min-height: 44px; padding: 10px 6px; }
-}
+ * which stay defined for any other template still using .tag-grid/.tag-chip).
+ * size="12" (mechanic-UX review item 1) shows the whole fixed vocabulary at
+ * once with no inner scrollbar -- the option padding/line-height below is
+ * what gets each of those 12 rows close to a glove-friendly 44px, on every
+ * width, not just under the old 760px-only rule. */
+.tag-select { width: 100%; font-size: 15px; }
+.tag-select option { min-height: 44px; padding: 13px 8px; line-height: 1.2; }
 
 /* "What would the driver feel?" card on code.html. */
 .feel-card .feel-sentence { font-size: 15px; margin: 4px 0 10px; }

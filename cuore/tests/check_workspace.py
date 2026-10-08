@@ -8,12 +8,20 @@ pointed at a throwaway directory BEFORE cuore is imported, and the real MES
 corpus on this machine (the Stelvio, VIN below -- chronic EVAP codes,
 P0455/P0440/P0456) is the fixture.
 
+Per the mechanic-UX review's Bench/tab reshuffle, the old dossier moved
+from ``/v/{vin}`` to ``/v/{vin}/dossier`` -- check 3 below points there
+now. The flow bar itself (_flow_bar.html) is job-specific chrome under
+that same review (tab == "job" only), so the dossier page no longer
+carries it; check 3 instead confirms the always-on compact vehicle strip
+(.vline) that replaced it on every non-bench/report /v/ page.
+
 Five checks:
   1. GET / redirects to /start when no car is in the bay.
   2. After an intake (via the real /start form), GET / redirects to that
      car's job page, and the job page renders step-1..step-12 anchors with
      the verdict card and codes table inline.
-  3. The flow bar (_flow_bar.html) renders on the dossier page.
+  3. The compact vehicle status strip (.vline) renders on the dossier page
+     (/v/{vin}/dossier); the job-only flow bar does not.
   4. /api/vehicles/{vin}/flow and /api/tools-kb/recommend/oil_change both
      respond 200 through the real app.
   5. The job page renders at 400px with no page-level horizontal overflow
@@ -94,12 +102,15 @@ check("the codes table renders inline on the job page",
       "sec-history" in job_page.text, job_page.text[:300])
 
 
-# --- 3. the flow bar renders on the dossier page ----------------------------
+# --- 3. the compact vehicle strip renders on the dossier page --------------
 
-dossier_page = client.get(f"/v/{VIN}")
+dossier_page = client.get(f"/v/{VIN}/dossier")
 check("the dossier page responds 200", dossier_page.status_code == 200,
       str(dossier_page.status_code))
-check("the flow bar renders on the dossier page", "flow-bar" in dossier_page.text)
+check("the compact vehicle strip renders on the dossier page",
+      'class="vline"' in dossier_page.text)
+check("the job-only flow bar does not render on the dossier page",
+      "flow-bar" not in dossier_page.text)
 
 
 # --- 4. the flow + tools-kb APIs respond through the real app --------------

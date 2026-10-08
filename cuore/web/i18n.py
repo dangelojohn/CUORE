@@ -269,6 +269,12 @@ STRINGS: dict[str, dict[str, str]] = {
     "verify_passive_listen": {"en": "Verify (passive listen)", "it": "Verifica (ascolto passivo)"},
     "voltage": {"en": "Voltage", "it": "Tensione"},
     "parts": {"en": "Parts", "it": "Ricambi"},
+    "full_dossier": {"en": "Full dossier", "it": "Dossier completo"},
+    "mark_done": {"en": "Mark done", "it": "Segna fatto"},
+    "nothing_open": {"en": "Nothing open on the checklist.",
+                     "it": "Nessun elemento aperto nella lista di controllo."},
+    "have_it": {"en": "have", "it": "disponibile"},
+    "need_it": {"en": "need", "it": "da procurare"},
 
     # -- common automotive/diagnostic terms (kept here since they recur
     #    across many of the headings/buttons above and are easy to get
@@ -283,6 +289,235 @@ STRINGS: dict[str, dict[str, str]] = {
 
     # -- language chooser (used by pick_language_html below) -------------
     "language": {"en": "Language", "it": "Lingua"},
+
+    # -- mechanic-review pass: status strip, tabs, job/intake/release,
+    #    symptom form (see job.html, _flow_bar.html, _vtabs.html,
+    #    _vbar.html, intake.html, release.html, _symptom_form.html) -------
+    "bench": {"en": "Bench", "it": "Banco"},
+    "dossier": {"en": "Dossier", "it": "Dossier"},
+    "systems": {"en": "Systems", "it": "Sistemi"},
+    "report": {"en": "Report", "it": "Rapporto"},
+    "timeline": {"en": "Timeline", "it": "Cronologia"},
+    "media": {"en": "Media", "it": "Media"},
+    "service": {"en": "Service", "it": "Assistenza"},
+    "labels": {"en": "Labels", "it": "Etichette"},
+    "more": {"en": "More", "it": "Altro"},
+    "more_vehicle_tabs": {"en": "More vehicle tabs", "it": "Altre schede veicolo"},
+    "more_vehicle_details": {"en": "More vehicle details", "it": "Altri dettagli veicolo"},
+    "full_vin": {"en": "Full VIN", "it": "VIN completo"},
+    "km_span": {"en": "km span", "it": "intervallo km"},
+    "open_codes": {"en": "Open codes", "it": "Codici attivi"},
+    "odometer_km": {"en": "Odometer km", "it": "Contachilometri km"},
+    "fuel_at_code_set": {"en": "Fuel at code set", "it": "Carburante all'attivazione del codice"},
+    "out_of_window": {"en": "out of window", "it": "fuori finestra"},
+    "in_window": {"en": "in window", "it": "in finestra"},
+    "next_label": {"en": "Next", "it": "Prossimo"},
+    "not_yet": {"en": "Not yet", "it": "Non ancora"},
+    "blocked_label": {"en": "blocker(s)", "it": "blocco/i"},
+
+    "steps_label": {"en": "Steps", "it": "Passaggi"},
+    "step_word": {"en": "Step", "it": "Passo"},
+    "of_word": {"en": "of", "it": "di"},
+    "show_all_steps": {"en": "Show all steps", "it": "Mostra tutti i passaggi"},
+    "job_complete": {"en": "Job complete.", "it": "Lavoro completato."},
+    "suggested_next": {"en": "Suggested next", "it": "Prossimo suggerito"},
+    "ready_for_next_car": {"en": "Ready for the next car.", "it": "Pronta per la prossima vettura."},
+    "tools_away_start_next": {"en": "Tools away. Start the next Stelvio",
+                               "it": "Attrezzi riposti. Avvia la prossima Stelvio"},
+
+    "job_lede": {"en": "The single workspace for this visit: the mechanic's flow, start to "
+                        "release, one step per screen. Every section below is the same "
+                        "partial used elsewhere in CUORE -- nothing here is a second copy of "
+                        "the truth.",
+                 "it": "Lo spazio di lavoro unico per questa visita: il percorso del "
+                       "meccanico, dall'avvio al rilascio, un passaggio per schermata. Ogni "
+                       "sezione qui sotto è lo stesso componente usato altrove in CUORE -- "
+                       "qui non c'è una seconda copia della verità."},
+    "no_complaint_recorded": {"en": "(no complaint recorded)", "it": "(nessun disturbo registrato)"},
+    "opened_label": {"en": "Opened", "it": "Aperto"},
+    "by_label": {"en": "by", "it": "da"},
+    "closed_label": {"en": "closed", "it": "chiuso"},
+    "no_visit_open": {"en": "No visit open for this car yet.", "it": "Nessuna visita aperta per questa vettura."},
+    "start_intake": {"en": "Start intake", "it": "Avvia accettazione"},
+    "no_symptom_reports": {"en": "No driver symptom reports yet.",
+                            "it": "Nessuna segnalazione sintomo del guidatore."},
+    "symptom_reported": {"en": "symptom reported", "it": "sintomo segnalato"},
+    "codes_on_file": {"en": "Codes on file", "it": "Codici archiviati"},
+    "read_car_now": {"en": "Read the car now", "it": "Leggi la vettura ora"},
+    "codes_explained": {"en": "Open codes, explained", "it": "Codici attivi, spiegati"},
+    "no_active_codes": {"en": "No active codes to explain right now.",
+                         "it": "Nessun codice attivo da spiegare al momento."},
+    "open_work_attachments": {"en": "Open work & attachments", "it": "Lavori aperti e allegati"},
+    "evidence_for": {"en": "Evidence for:", "it": "Prove a favore:"},
+    "evidence_against": {"en": "Evidence against:", "it": "Prove contrarie:"},
+    "none_yet": {"en": "none yet", "it": "ancora nessuna"},
+    "next_test_colon": {"en": "Next test:", "it": "Prossima prova:"},
+    "no_hypotheses_yet": {"en": "No hypotheses on this case yet.", "it": "Ancora nessuna ipotesi su questo caso."},
+    "suggested_from_tree": {"en": "Suggested — from this car's own fault tree & bulletins",
+                             "it": "Suggerite — dall'albero dei guasti e dai bollettini di questa vettura"},
+    "suggested_label": {"en": "suggested", "it": "suggerita"},
+    "hypothesis_label": {"en": "Hypothesis", "it": "Ipotesi"},
+    "system_label": {"en": "System", "it": "Sistema"},
+    "system_placeholder": {"en": "e.g. EVAP", "it": "es. EVAP"},
+    "next_test_label": {"en": "Next test", "it": "Prossima prova"},
+    "last_stelvio_codes": {"en": "Last Stelvio with these codes", "it": "Ultima Stelvio con questi codici"},
+    "path_label": {"en": "Path", "it": "Percorso"},
+    "tools_label": {"en": "Tools:", "it": "Attrezzi:"},
+    "pitfalls": {"en": "Pitfalls", "it": "Insidie"},
+    "status_open": {"en": "open", "it": "aperta"},
+    "status_supported": {"en": "supported", "it": "supportata"},
+    "status_refuted": {"en": "refuted", "it": "respinta"},
+    "status_confirmed": {"en": "confirmed", "it": "confermata"},
+    "kind_test": {"en": "test", "it": "prova"},
+    "kind_inspection": {"en": "inspection", "it": "ispezione"},
+    "kind_repair": {"en": "repair", "it": "riparazione"},
+    "kind_part": {"en": "part", "it": "ricambio"},
+    "kind_clear": {"en": "clear", "it": "azzera"},
+    "kind_note": {"en": "note", "it": "nota"},
+    "what_was_done": {"en": "what was done", "it": "cosa è stato fatto"},
+    "record_an_action": {"en": "Record an action", "it": "Registra un'azione"},
+    "no_actions_recorded": {"en": "No actions recorded yet.", "it": "Nessuna azione registrata ancora."},
+    "readiness_read_at": {"en": "Readiness read at:", "it": "Readiness letta il:"},
+    "not_yet_read": {"en": "not yet read", "it": "non ancora letta"},
+    "codes_returned_colon": {"en": "Codes returned:", "it": "Codici ritornati:"},
+    "none_word": {"en": "none", "it": "nessuno"},
+    "handover_report_pdf": {"en": "Handover report (PDF)", "it": "Rapporto di consegna (PDF)"},
+    "open_count_suffix": {"en": "open", "it": "aperti"},
+    "not_closed": {"en": "Not closed", "it": "Non chiuso"},
+    "saved": {"en": "saved", "it": "salvato"},
+    "required_before_closing": {"en": "required before closing", "it": "richiesto prima della chiusura"},
+    "tools_review_hint": {"en": "Tick what you actually used, mark it right/wrong/unsure with a "
+                                 "reason, note anything missing, and what you'd buy next time. "
+                                 "This is what the next identical job on this car -- or any "
+                                 "Stelvio -- sees first.",
+                           "it": "Seleziona ciò che hai davvero usato, segna giusto/sbagliato/incerto "
+                                 "con un motivo, annota cosa manca e cosa compreresti la prossima "
+                                 "volta. Questo è ciò che il prossimo lavoro identico su questa "
+                                 "vettura -- o su qualsiasi Stelvio -- vede per primo."},
+    "other_tools_used": {"en": "Other tools used (not in the list above)",
+                          "it": "Altri attrezzi utilizzati (non nell'elenco sopra)"},
+    "tool_name_placeholder": {"en": "tool name", "it": "nome attrezzo"},
+    "note_why_placeholder": {"en": "note (why right/wrong)", "it": "nota (perché giusto/sbagliato)"},
+    "yes_word": {"en": "yes", "it": "sì"},
+    "no_word": {"en": "no", "it": "no"},
+    "unsure_word": {"en": "unsure", "it": "incerto"},
+    "missing_tools": {"en": "Missing tools (comma separated)", "it": "Attrezzi mancanti (separati da virgola)"},
+    "would_buy_next_time": {"en": "Would buy next time", "it": "Da acquistare la prossima volta"},
+    "tool_to_buy_placeholder": {"en": "tool to buy", "it": "attrezzo da acquistare"},
+    "why_placeholder": {"en": "why", "it": "perché"},
+    "minutes_spent": {"en": "Minutes spent", "it": "Minuti impiegati"},
+    "by_initials_label": {"en": "By", "it": "Da"},
+    "name_initials_placeholder": {"en": "name/initials", "it": "nome/iniziali"},
+    "outcome_label": {"en": "Outcome", "it": "Esito"},
+    "choose_placeholder": {"en": "(choose)", "it": "(scegli)"},
+    "outcome_fixed": {"en": "fixed", "it": "risolto"},
+    "outcome_not_fixed": {"en": "not_fixed", "it": "non risolto"},
+    "outcome_deferred": {"en": "deferred", "it": "rinviato"},
+    "codes_returned_field": {"en": "Codes returned (comma separated, if any)",
+                              "it": "Codici ritornati (separati da virgola, se presenti)"},
+    "verdict_closing_note": {"en": "Verdict / closing note", "it": "Verdetto / nota di chiusura"},
+    "skip_tools_review_reason": {"en": "Skip tools review -- reason (required if not saved above)",
+                                  "it": "Salta la revisione attrezzi -- motivo (richiesto se non salvata sopra)"},
+
+    "start_this_stelvio": {"en": "Start this Stelvio", "it": "Avvia questa Stelvio"},
+    "not_started": {"en": "Not started", "it": "Non avviata"},
+    "intake_lede": {"en": "One car, start to finish. Pick a VIN already in the corpus, or "
+                           "type a new one, and this opens the visit and its case together "
+                           "-- then drops straight into the job page to start the diagnostic "
+                           "work.",
+                     "it": "Una vettura, dall'inizio alla fine. Scegli un VIN già nel corpus, "
+                           "o digitane uno nuovo, e questo apre la visita e il caso insieme "
+                           "-- per poi passare direttamente alla pagina del lavoro e iniziare "
+                           "la diagnosi."},
+    "vin_placeholder": {"en": "17-character VIN", "it": "VIN a 17 caratteri"},
+    "complaint_label": {"en": "Complaint — the driver's own words", "it": "Disturbo — nelle parole del guidatore"},
+    "technician_label": {"en": "Technician", "it": "Tecnico"},
+
+    "release_lede": {"en": "Advisory, not a gate — each item below with its evidence. "
+                            "Release with one tap whenever the car is ready; if "
+                            "verification isn't in yet, say why and it's recorded as "
+                            "released unverified.",
+                      "it": "Consultivo, non un blocco — ogni voce qui sotto con la sua "
+                            "prova. Rilascia con un tocco quando la vettura è pronta; se la "
+                            "verifica non è ancora arrivata, indica il motivo e verrà "
+                            "registrata come rilasciata non verificata."},
+    "visit_label": {"en": "Visit", "it": "Visita"},
+    "in_label": {"en": "In", "it": "Entrata"},
+    "bay_label": {"en": "bay", "it": "baia"},
+    "out_label": {"en": "out", "it": "uscita"},
+    "verification": {"en": "Verification", "it": "Verifica"},
+    "no_data_chip": {"en": "no data", "it": "nessun dato"},
+    "no_dossier_verdict": {"en": "No dossier verdict available for this vehicle yet.",
+                            "it": "Nessun verdetto dossier disponibile per questa vettura."},
+    "not_verified_note": {"en": "Not verified — releasing now records this car as released unverified.",
+                           "it": "Non verificata — il rilascio ora registra questa vettura come rilasciata non verificata."},
+    "not_released": {"en": "Not released", "it": "Non rilasciata"},
+    "report_printed": {"en": "Report printed", "it": "Rapporto stampato"},
+    "print_labels_link": {"en": "Print labels", "it": "Stampa etichette"},
+    "parts_logged": {"en": "Parts logged", "it": "Ricambi registrati"},
+    "tools_reviewed": {"en": "Tools reviewed", "it": "Attrezzi revisionati"},
+    "not_reviewed": {"en": "not reviewed", "it": "non revisionato"},
+    "released_unverified": {"en": "Released unverified", "it": "Rilasciata non verificata"},
+    "reason_colon": {"en": "Reason:", "it": "Motivo:"},
+    "released_on": {"en": "Released", "it": "Rilasciata il"},
+    "notes_label": {"en": "Notes", "it": "Note"},
+    "reason_release_early": {"en": "Reason (if releasing before verification)",
+                              "it": "Motivo (se rilasciata prima della verifica)"},
+    "why_release_now_placeholder": {"en": "why release now", "it": "perché rilasciare ora"},
+    "tools_away_h3": {"en": "Tools away", "it": "Attrezzi riposti"},
+    "tools_away_advisory": {"en": "Advisory only — recording this never blocks moving on to the next car.",
+                             "it": "Solo informativo — registrarlo non blocca mai il passaggio alla vettura successiva."},
+    "no_tool_review": {"en": "No tool-usage review on file for this car yet.",
+                        "it": "Nessuna revisione d'uso attrezzi registrata per questa vettura."},
+    "put_away_suffix": {"en": "— put away", "it": "— riposto"},
+    "location_placeholder": {"en": "location (optional)", "it": "posizione (opzionale)"},
+    "available_opt": {"en": "available", "it": "disponibile"},
+    "damaged_opt": {"en": "damaged", "it": "danneggiato"},
+    "missing_opt": {"en": "missing", "it": "mancante"},
+    "empty_opt": {"en": "empty", "it": "vuoto"},
+    "loaned_opt": {"en": "loaned", "it": "prestato"},
+    "restock_label": {"en": "Restock (consumables used up)", "it": "Riapprovvigionamento (consumabili esauriti)"},
+    "restock_placeholder": {"en": "e.g. 2x EVAP smoke solution", "it": "es. 2x soluzione fumo EVAP"},
+
+    "symptom_q": {"en": "What did the driver feel?", "it": "Cosa ha percepito il guidatore?"},
+    "conditions_label": {"en": "Conditions", "it": "Condizioni"},
+    "reporter_label": {"en": "Reporter", "it": "Segnalatore"},
+    "driver_opt": {"en": "Driver", "it": "Guidatore"},
+    "mechanic_opt": {"en": "Mechanic", "it": "Meccanico"},
+    "when_label": {"en": "When", "it": "Quando"},
+    "odometer_optional": {"en": "Odometer (km, optional)", "it": "Contachilometri (km, opzionale)"},
+    "edit_hint": {"en": "tap to edit", "it": "tocca per modificare"},
+    "notes_optional": {"en": "Notes (optional)", "it": "Note (opzionale)"},
+    "symptom_text_placeholder": {"en": "e.g. smelled fuel right after filling up, gone by the next morning",
+                                  "it": "es. odore di carburante subito dopo il rifornimento, sparito entro il mattino dopo"},
+    "recorded_label": {"en": "Recorded", "it": "Registrato"},
+    "symptom_saved": {"en": "Symptom report saved.", "it": "Segnalazione sintomo salvata."},
+    "not_recorded_label": {"en": "Not recorded", "it": "Non registrato"},
+
+    # per-tag labels for the symptom-report <select> (replaces the plain
+    # key|replace("_"," ") humanisation with a real translation; "Drives
+    # normally" itself stays a literal string in the template, not routed
+    # through t(), so it reads identically regardless of language -- an
+    # existing test (check_timeline_page.py) asserts that exact English
+    # text with no language cookie set).
+    "symptom_mil_on": {"en": "MIL on", "it": "Spia MIL accesa"},
+    "symptom_fuel_smell": {"en": "fuel smell", "it": "odore di carburante"},
+    "symptom_hard_start": {"en": "hard start", "it": "avviamento difficile"},
+    "symptom_rough_idle": {"en": "rough idle", "it": "minimo instabile"},
+    "symptom_hesitation": {"en": "hesitation", "it": "esitazione"},
+    "symptom_loss_of_power": {"en": "loss of power", "it": "perdita di potenza"},
+    "symptom_hard_to_refuel": {"en": "hard to refuel", "it": "difficoltà di rifornimento"},
+    "symptom_noise": {"en": "noise", "it": "rumore"},
+    "symptom_vibration": {"en": "vibration", "it": "vibrazione"},
+    "symptom_warning_message": {"en": "warning message", "it": "messaggio di avviso"},
+    "symptom_other": {"en": "other", "it": "altro"},
+    "cond_cold_start": {"en": "cold start", "it": "partenza a freddo"},
+    "cond_hot": {"en": "hot", "it": "a caldo"},
+    "cond_just_refuelled": {"en": "just refuelled", "it": "appena rifornita"},
+    "cond_highway": {"en": "highway", "it": "autostrada"},
+    "cond_city": {"en": "city", "it": "città"},
+    "cond_idle": {"en": "idle", "it": "al minimo"},
+    "cond_rain": {"en": "rain", "it": "pioggia"},
 }
 
 
@@ -377,7 +612,12 @@ def _register(templates: Any) -> None:
     templates.env.globals["lang"] = _lang_global
 
 
-for _module_name in ("routes", "service_routes", "drivetrain_routes", "timeline_routes"):
+for _module_name in (
+    "routes", "service_routes", "media_routes", "labels_routes", "bench_routes",
+    "timeline_routes", "drivetrain_routes", "jobs_routes", "shop_routes",
+    "electrical_routes", "systems_routes", "modules_routes", "inbox_routes",
+    "report_routes", "tools_routes", "parts_routes",
+):
     try:
         _mod = importlib.import_module(f".{_module_name}", __package__)
         _tmpl = getattr(_mod, "templates", None) or getattr(_mod, "_shared_templates", None)

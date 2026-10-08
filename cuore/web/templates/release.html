@@ -5,35 +5,33 @@
 
 <link rel="stylesheet" href="{{ static_url('shop.css') }}">
 
-<h1>Release</h1>
-<p class="lede">Advisory, not a gate — each item below with its evidence.
-Release with one tap whenever the car is ready; if verification isn't in
-yet, say why and it's recorded as released unverified.</p>
+<h1>{{ t('release') }}</h1>
+<p class="lede">{{ t('release_lede') }}</p>
 
 {% set visit = view.visit %}
 
-{% if release_error %}<div class="note alert"><span class="lab">Not released</span>{{ release_error }}</div>{% endif %}
+{% if release_error %}<div class="note alert"><span class="lab">{{ t('not_released') }}</span>{{ release_error }}</div>{% endif %}
 
 <div class="panel job-head-panel">
   <div class="job-head">
-    <h2>Visit <span class="mono">{{ visit.id }}</span></h2>
+    <h2>{{ t('visit_label') }} <span class="mono">{{ visit.id }}</span></h2>
     <span class="chip {{ 'ok' if visit.status == 'out' else 'chronic' }}">{{ visit.status }}</span>
     {% if visit.outcome %}<span class="chip {{ 'ok' if visit.outcome == 'fixed' else 'returned' }}">{{ visit.outcome }}</span>{% endif %}
   </div>
-  <div class="small muted">In {{ visit.in_at }}{% if visit.technician %} &middot; {{ visit.technician }}{% endif %}
-    {% if visit.bay %} &middot; bay {{ visit.bay }}{% endif %}
-    {% if visit.out_at %} &middot; out {{ visit.out_at }}{% endif %}</div>
+  <div class="small muted">{{ t('in_label') }} {{ visit.in_at }}{% if visit.technician %} &middot; {{ visit.technician }}{% endif %}
+    {% if visit.bay %} &middot; {{ t('bay_label') }} {{ visit.bay }}{% endif %}
+    {% if visit.out_at %} &middot; {{ t('out_label') }} {{ visit.out_at }}{% endif %}</div>
   {% if visit.complaint %}<p class="small">&ldquo;{{ visit.complaint }}&rdquo;</p>{% endif %}
 </div>
 
 <div class="panel release-check">
   <div class="job-head">
-    <h3>Verification</h3>
+    <h3>{{ t('verification') }}</h3>
     {% if view.dossier_verdict %}
       {% set vs = view.dossier_verdict.state|lower|replace("_", "-") %}
       <span class="chip-verdict v-{{ vs }}">{{ view.dossier_verdict.label }}</span>
     {% else %}
-      <span class="chip returned">no data</span>
+      <span class="chip returned">{{ t('no_data_chip') }}</span>
     {% endif %}
   </div>
   {% if view.dossier_verdict %}
@@ -44,75 +42,73 @@ yet, say why and it's recorded as released unverified.</p>
       </ul>
     {% endif %}
   {% else %}
-    <p class="small muted">No dossier verdict available for this vehicle yet.</p>
+    <p class="small muted">{{ t('no_dossier_verdict') }}</p>
   {% endif %}
-  <p class="small"><a href="/v/{{ view.vin }}/verify">Read readiness &rarr;</a> &middot;
-     <a href="/v/{{ view.vin }}/gate">Evidence gate &rarr;</a></p>
+  <p class="small"><a href="/v/{{ view.vin }}/verify">{{ t('read_readiness') }} &rarr;</a> &middot;
+     <a href="/v/{{ view.vin }}/gate">{{ t('evidence_gate') }} &rarr;</a></p>
   {% if not view.verified %}
-    <p class="small note alert">Not verified — releasing now records this car
-      as released unverified.</p>
+    <p class="small note alert">{{ t('not_verified_note') }}</p>
   {% endif %}
 </div>
 
 <div class="panel release-check">
-  <h3>Report printed</h3>
-  <p class="small"><a href="/v/{{ view.vin }}/report.pdf">Handover report (PDF) &rarr;</a></p>
-  <label class="release-cb"><input type="checkbox" name="report_printed" form="release-form"> Report printed</label>
+  <h3>{{ t('report_printed') }}</h3>
+  <p class="small"><a href="/v/{{ view.vin }}/report.pdf">{{ t('handover_report_pdf') }} &rarr;</a></p>
+  <label class="release-cb"><input type="checkbox" name="report_printed" form="release-form"> {{ t('report_printed') }}</label>
 </div>
 
 <div class="panel release-check">
-  <h3>Labels printed</h3>
-  <p class="small"><a href="/v/{{ view.vin }}/labels">Print labels &rarr;</a></p>
-  <label class="release-cb"><input type="checkbox" name="labels_printed" form="release-form"> Labels printed</label>
+  <h3>{{ t('labels_printed') }}</h3>
+  <p class="small"><a href="/v/{{ view.vin }}/labels">{{ t('print_labels_link') }} &rarr;</a></p>
+  <label class="release-cb"><input type="checkbox" name="labels_printed" form="release-form"> {{ t('labels_printed') }}</label>
 </div>
 
 <div class="panel release-check">
-  <h3>Parts logged</h3>
-  <p class="small"><a href="/v/{{ view.vin }}/parts">Parts &rarr;</a></p>
-  <label class="release-cb"><input type="checkbox" name="parts_logged" form="release-form"> Parts logged</label>
+  <h3>{{ t('parts_logged') }}</h3>
+  <p class="small"><a href="/v/{{ view.vin }}/parts">{{ t('parts') }} &rarr;</a></p>
+  <label class="release-cb"><input type="checkbox" name="parts_logged" form="release-form"> {{ t('parts_logged') }}</label>
 </div>
 
 <div class="panel release-check">
-  <h3>Tools reviewed</h3>
+  <h3>{{ t('tools_reviewed') }}</h3>
   {% if view.tool_review %}
     <p class="small">{{ view.tool_review }}</p>
   {% else %}
-    <p class="small muted">not reviewed</p>
+    <p class="small muted">{{ t('not_reviewed') }}</p>
   {% endif %}
-  <label class="release-cb"><input type="checkbox" name="tools_reviewed" form="release-form"> Tools reviewed</label>
+  <label class="release-cb"><input type="checkbox" name="tools_reviewed" form="release-form"> {{ t('tools_reviewed') }}</label>
 </div>
 
 {% if visit.status == "out" %}
   <div class="panel">
     {% if visit.outcome == "released_unverified" %}
-      <p class="chip returned">Released unverified</p>
+      <p class="chip returned">{{ t('released_unverified') }}</p>
       {% if visit.release and visit.release.get("unverified_override") %}
-        <p class="small">Reason: {{ visit.release.unverified_override }}</p>
+        <p class="small">{{ t('reason_colon') }} {{ visit.release.unverified_override }}</p>
       {% endif %}
     {% else %}
-      <p>Released {{ visit.out_at }}.</p>
+      <p>{{ t('released_on') }} {{ visit.out_at }}.</p>
     {% endif %}
   </div>
 {% else %}
   <div class="panel">
-    <h3>Release</h3>
+    <h3>{{ t('release') }}</h3>
     <form method="post" action="/v/{{ view.vin }}/release" id="release-form">
       <input type="hidden" name="visit_id" value="{{ visit.id }}">
-      <div class="field"><label for="notes">Notes</label>
+      <div class="field"><label for="notes">{{ t('notes_label') }}</label>
         <input id="notes" name="notes"></div>
-      <div class="field"><label for="reason">Reason (if releasing before verification)</label>
-        <input id="reason" name="reason" placeholder="why release now"></div>
-      <button class="btn primary release-btn" type="submit">Release car</button>
+      <div class="field"><label for="reason">{{ t('reason_release_early') }}</label>
+        <input id="reason" name="reason" placeholder="{{ t('why_release_now_placeholder') }}"></div>
+      <button class="btn primary release-btn" type="submit">{{ t('release_car') }}</button>
     </form>
   </div>
 {% endif %}
 
 <div class="panel">
-  <h3>Tools away</h3>
-  <p class="small muted">Advisory only — recording this never blocks moving
-    on to the next car.</p>
+  <h3>{{ t('tools_away_h3') }}</h3>
+  <p class="small muted">{{ t('tools_away_advisory') }}</p>
   {% if not view.tools_used %}
-    <p class="small muted">No tool-usage review on file for this car yet.</p>
+    <p class="small muted">{{ t('no_tool_review') }}</p>
   {% endif %}
   <form method="post" action="/v/{{ view.vin }}/release/tools_away" id="tools-away-form">
     <input type="hidden" name="job_id" value="{{ visit.job_id or '' }}">
@@ -120,22 +116,22 @@ yet, say why and it's recorded as released unverified.</p>
       <div class="release-check">
         <input type="hidden" name="tool_{{ loop.index0 }}" value="{{ tool }}" form="tools-away-form">
         <label class="release-cb">
-          <input type="checkbox" name="put_away_{{ loop.index0 }}" form="tools-away-form"> {{ tool }} — put away</label>
+          <input type="checkbox" name="put_away_{{ loop.index0 }}" form="tools-away-form"> {{ tool }} {{ t('put_away_suffix') }}</label>
         <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-          <input type="text" name="location_{{ loop.index0 }}" form="tools-away-form" placeholder="location (optional)">
+          <input type="text" name="location_{{ loop.index0 }}" form="tools-away-form" placeholder="{{ t('location_placeholder') }}">
           <select name="not_available_{{ loop.index0 }}" form="tools-away-form">
-            <option value="">available</option>
-            <option value="damaged">damaged</option>
-            <option value="missing">missing</option>
-            <option value="empty">empty</option>
-            <option value="loaned">loaned</option>
+            <option value="">{{ t('available_opt') }}</option>
+            <option value="damaged">{{ t('damaged_opt') }}</option>
+            <option value="missing">{{ t('missing_opt') }}</option>
+            <option value="empty">{{ t('empty_opt') }}</option>
+            <option value="loaned">{{ t('loaned_opt') }}</option>
           </select>
         </div>
       </div>
     {% endfor %}
-    <div class="field"><label for="restock">Restock (consumables used up)</label>
-      <input id="restock" name="restock" form="tools-away-form" placeholder="e.g. 2x EVAP smoke solution"></div>
-    <button class="btn primary release-btn" type="submit">Tools away. Start the next Stelvio &rarr;</button>
+    <div class="field"><label for="restock">{{ t('restock_label') }}</label>
+      <input id="restock" name="restock" form="tools-away-form" placeholder="{{ t('restock_placeholder') }}"></div>
+    <button class="btn primary release-btn" type="submit">{{ t('tools_away_start_next') }} &rarr;</button>
   </form>
 </div>
 

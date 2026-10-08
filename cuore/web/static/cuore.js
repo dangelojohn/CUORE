@@ -194,7 +194,13 @@
     });
 
     function setAll(open) {
+      // Expand-all/collapse-all is a deliberate bulk override -- it must
+      // win over the cluster accordion's "only one open at a time" rule
+      // below, which otherwise reacts to each of these same toggle events
+      // one at a time and would leave only the last cluster open.
+      accordionSuppressed = true;
       cards.forEach(function (card) { card.open = open; });
+      accordionSuppressed = false;
     }
 
     root.querySelectorAll("[data-expand-all]").forEach(function (b) {
@@ -210,6 +216,81 @@
       if (ev.key === "e") setAll(true);
       else if (ev.key === "c") setAll(false);
     });
+  }
+
+  // ---------------------------------------------------------------------
+  // Dossier clusters (R5): each open-work family is a
+  // <details class="card-details cluster-details"> -- it already gets
+  // open/close persistence and the expand-all/collapse-all buttons for
+  // free from wireDossierSections above (same .card-details class, same
+  // data-persist attribute). The only genuinely new behaviour here is the
+  // accordion ("opening one cluster closes the others, unless pinned")
+  // and the pin button itself, stored per VIN per cluster so it survives
+  // a reload the same way the open/closed state does.
+  var accordionSuppressed = false;
+
+  function clusterPinKey(vin, name) {
+    return "cuore-cluster-pin-" + vin + "-" + name;
+  }
+
+  function wireClusterAccordion() {
+    var root = document.querySelector(".dossier[data-vin]");
+    if (!root) return;
+    var vin = root.getAttribute("data-vin");
+    var clusters = Array.prototype.slice.call(root.querySelectorAll("details.cluster-details"));
+    if (!clusters.length) return;
+
+    function setPinned(card, name, pinned) {
+      card.classList.toggle("is-pinned", pinned);
+      var btn = card.querySelector(".cluster-pin");
+      if (btn) btn.setAttribute("aria-pressed", pinned ? "true" : "false");
+      if (storage && name) {
+        try { storage.setItem(clusterPinKey(vin, name), pinned ? "1" : "0"); } catch (e) { /* ignore */ }
+      }
+    }
+
+    clusters.forEach(function (card) {
+      var name = card.getAttribute("data-persist");
+      var pinned = false;
+      if (storage && name) {
+        try { pinned = storage.getItem(clusterPinKey(vin, name)) === "1"; } catch (e) { pinned = false; }
+      }
+      if (pinned) setPinned(card, name, true);
+
+      var pinBtn = card.querySelector(".cluster-pin");
+      if (pinBtn) {
+        pinBtn.addEventListener("click", function (ev) {
+          // The pin button lives inside <summary> -- without stopping
+          // this, the browser's native summary click would also toggle
+          // the <details> open/closed on the same tap.
+          ev.preventDefault();
+          ev.stopPropagation();
+          setPinned(card, name, !card.classList.contains("is-pinned"));
+        });
+      }
+
+      card.addEventListener("toggle", function () {
+        if (accordionSuppressed || !card.open) return;
+        clusters.forEach(function (other) {
+          if (other !== card && other.open && !other.classList.contains("is-pinned")) {
+            other.open = false;
+          }
+        });
+      });
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Pinned jump bar (R5): .jumprow sticks right under whatever is already
+  // stuck to the top of the viewport (the .vline strip) -- measured live
+  // rather than hard-coded, so a later change to that strip's own height
+  // never leaves a gap or an overlap here.
+  function syncStickyUnderTabs() {
+    var jumprow = document.querySelector(".dossier .jumprow");
+    if (!jumprow) return;
+    var vline = document.querySelector(".vline");
+    var h = vline ? Math.ceil(vline.getBoundingClientRect().height) : 44;
+    document.documentElement.style.setProperty("--sticky-under-tabs", h + "px");
   }
 
   // ---------------------------------------------------------------------
@@ -271,7 +352,10 @@
     wireFilter();
     wireThemeToggle();
     wireDossierSections();
+    wireClusterAccordion();
+    syncStickyUnderTabs();
     wireChecklistForms();
     wireQuickAddNote();
   });
+  window.addEventListener("resize", syncStickyUnderTabs);
 })();

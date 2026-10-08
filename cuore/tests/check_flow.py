@@ -23,6 +23,7 @@ Run:
 from __future__ import annotations
 
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -39,7 +40,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore import bootstrap  # noqa: E402,F401
 from cuore.config import Settings  # noqa: E402
-from cuore.services import flow_bridge  # noqa: E402
+from cuore.services import flow_bridge, shop_bridge  # noqa: E402
 from cuore.api import flow as flow_api  # noqa: E402
 
 from mes import jobs as jobs_mod  # noqa: E402
@@ -78,6 +79,11 @@ check("2. intake + symptom -> current step 3 or 4", state2["current"] in (3, 4),
      str(state2["current"]))
 
 # --- check 3: through a repair action ---------------------------------------
+# VIN_3 is fictional -- no real MES logs ever back it, so its dossier verdict
+# would genuinely be NO_DATA (step 3 rightly not done then). A verdict is
+# mocked here, same as check 4 below, purely so this synthetic VIN can stand
+# in for a car whose corpus verdict says UNVERIFIED_REPAIR -- the actual
+# step-3/NO_DATA rule itself is covered on the real VIN in check 6.
 
 VIN_3 = "ZFLOWTESTREPAIR003"
 visit3 = shop_mod.intake(VIN_3, complaint="EVAP codes")
@@ -89,7 +95,12 @@ hyp3 = jobs_mod.add_hypothesis(job3_id, "EVAP: ESIM signal path", system="EVAP")
 jobs_mod.set_hypothesis(job3_id, hyp3["id"], status="confirmed")
 jobs_mod.add_action(job3_id, "part", "ordered ESIM connector")
 jobs_mod.add_action(job3_id, "repair", "replaced ESIM connector")
-state3 = flow_bridge.flow_state(VIN_3)
+fake_view3 = {"verdict": {"state": "UNVERIFIED_REPAIR",
+                         "summary": "P0455 cleared 1 Oct; monitors have not re-run. "
+                                    "Not proof of repair."},
+             "open_work": [], "codes": [], "attempted": []}
+with mock.patch.object(flow_bridge.dossier_bridge, "build_view", return_value=fake_view3):
+    state3 = flow_bridge.flow_state(VIN_3)
 check("3a. through a repair action -> current step 10", state3["current"] == 10,
      str(state3["current"]))
 current_step3 = next(s for s in state3["steps"] if s["n"] == 10)
@@ -133,6 +144,33 @@ bad_hrefs = [s["href"] for s in body.get("steps", []) if not s["href"].startswit
 check("5b. every step href starts with /", not bad_hrefs, str(bad_hrefs))
 check("5c. current_vehicle() returns a VIN string or None",
      flow_bridge.current_vehicle() is None or isinstance(flow_bridge.current_vehicle(), str))
+
+# --- check 6: real VIN -- pre-intake MES evidence still counts, and the ----
+# visit gets a real vehicle name even though /start was never told one.
+
+VIN_STELVIO = "ZASFAKPN5J7B88115"  # the Stelvio -- real corpus, chronic EVAP codes
+visit_stelvio = shop_bridge.intake(VIN_STELVIO, complaint="EVAP check")
+symptoms_mod.add(VIN_STELVIO, visit_stelvio["in_at"], reporter="driver",
+                 text="smells of fuel")
+state_stelvio = flow_bridge.flow_state(VIN_STELVIO)
+step3 = next(s for s in state_stelvio["steps"] if s["n"] == 3)
+step4 = next(s for s in state_stelvio["steps"] if s["n"] == 4)
+
+check("6a. real VIN, pre-intake MES logs -> step 3 (verdict) is done",
+     step3["status"] == "done", str(step3))
+check("6b. real VIN, pre-intake MES logs -> step 4 (scan & codes) is done",
+     step4["status"] == "done", str(step4))
+check("6c. step 3's why names the verdict, never 'verdict not computed'",
+     "not computed" not in step3["why"].lower(), step3["why"])
+check("6d. step 4's why names a date or says codes were read since intake",
+     "since intake" in step4["why"].lower()
+     or bool(re.search(r"\d{1,2} [A-Za-z]{3}", step4["why"])),
+     step4["why"])
+
+check("6e. the visit's vehicle name resolves to something containing "
+     "'Stelvio', never left blank or '(unnamed vehicle)'",
+     bool(visit_stelvio.get("vehicle")) and "stelvio" in visit_stelvio["vehicle"].lower(),
+     str(visit_stelvio.get("vehicle")))
 
 # --- summary ------------------------------------------------------------------
 

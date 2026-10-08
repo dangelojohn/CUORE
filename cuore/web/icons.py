@@ -172,7 +172,12 @@ def _register(templates: Any) -> None:
     templates.env.globals["icon"] = icon
 
 
-for _module_name in ("routes", "service_routes", "drivetrain_routes", "timeline_routes"):
+for _module_name in (
+    "routes", "service_routes", "media_routes", "labels_routes", "bench_routes",
+    "timeline_routes", "drivetrain_routes", "jobs_routes", "shop_routes",
+    "electrical_routes", "systems_routes", "modules_routes", "inbox_routes",
+    "report_routes", "tools_routes", "parts_routes",
+):
     try:
         _mod = importlib.import_module(f".{_module_name}", __package__)
         _tmpl = getattr(_mod, "templates", None) or getattr(_mod, "_shared_templates", None)

@@ -3,21 +3,24 @@
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('systems.css') }}">
+<link rel="stylesheet" href="{{ static_url('scan.css') }}">
 
 <h1>System dependencies</h1>
 <p class="lede">What may sit upstream of what, and what this car's own history does
   (or does not yet) corroborate. A dashed or dotted line is a guess, not a finding --
   read each edge's own note before treating it as diagnosis.</p>
 
-{% if view.findings %}
-<div class="panel tight">
-  <ul style="margin:0;padding:10px 14px">
-    {% for f in view.findings %}<li style="margin-bottom:6px">{{ f }}</li>{% endfor %}
-  </ul>
-</div>
-{% endif %}
-
 <h2>Dependency graph</h2>
+<p class="small muted sys-toggle-line">
+  {% if view.show_all %}
+    Showing all {{ view.total_systems }} systems in the taxonomy.
+    <a href="?">Show just this car's own systems &rarr;</a>
+  {% else %}
+    Showing {{ view.visible_systems }} of {{ view.total_systems }} systems --
+    the ones with a code on this car, plus what they directly depend on.
+    <a href="?all=1">Show all {{ view.total_systems }} &rarr;</a>
+  {% endif %}
+</p>
 <div class="sys-graph-wrap">
   {{ svg|safe }}
 </div>
@@ -42,9 +45,10 @@
 
 {% if view.edges %}
 <h2>Edge detail</h2>
+<p class="small muted">One tap deep -- tap an edge above, or a heading below, to open it.</p>
 {% for e in view.edges %}
   {% set t = e.technical or {} %}
-  <details class="panel tight" id="edge-{{ e.a }}-{{ e.b }}" open>
+  <details class="panel tight" id="edge-{{ e.a }}-{{ e.b }}">
     <summary><b>{{ e.a_label }}</b> depends on <b>{{ e.b_label }}</b>
       <span class="chip">{{ e.confidence|lower }}</span></summary>
     <table class="tw small" style="margin-top:6px">
@@ -66,27 +70,39 @@
 {% endfor %}
 {% endif %}
 
-{% if view.co_occurrence %}
-<h2>Co-occurrence</h2>
-<div class="tw">
-<table class="sys-corr">
-  <thead><tr><th>Systems</th><th class="n">Sessions together</th><th class="n">A alone</th>
-    <th class="n">B alone</th><th class="n">Lift</th><th>Reading</th></tr></thead>
-  <tbody>
-  {% for row in view.co_occurrence %}
-    <tr>
-      <td><a href="#sys-{{ row.a }}">{{ row.a_label }}</a> &times;
-          <a href="#sys-{{ row.b }}">{{ row.b_label }}</a></td>
-      <td class="n mono">{{ row.sessions_together }}</td>
-      <td class="n mono">{{ row.sessions_a }}</td>
-      <td class="n mono">{{ row.sessions_b }}</td>
-      <td class="n mono">{{ "%.2f"|format(row.lift) if row.lift is not none else "—" }}</td>
-      <td class="small">{{ row.reading }}</td>
-    </tr>
-  {% endfor %}
-  </tbody>
-</table>
-</div>
+{% if view.findings or view.co_occurrence %}
+<details class="panel tight sys-evidence">
+  <summary><b>Evidence for these links</b></summary>
+
+  {% if view.findings %}
+  <ul style="margin:8px 0;padding:0 14px">
+    {% for f in view.findings %}<li style="margin-bottom:6px">{{ f }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if view.co_occurrence %}
+  <h3>Co-occurrence</h3>
+  <div class="tw">
+  <table class="sys-corr">
+    <thead><tr><th>Systems</th><th class="n">Sessions together</th><th class="n">A alone</th>
+      <th class="n">B alone</th><th class="n">Lift</th><th>Reading</th></tr></thead>
+    <tbody>
+    {% for row in view.co_occurrence %}
+      <tr>
+        <td><a href="#sys-{{ row.a }}">{{ row.a_label }}</a> &times;
+            <a href="#sys-{{ row.b }}">{{ row.b_label }}</a></td>
+        <td class="n mono">{{ row.sessions_together }}</td>
+        <td class="n mono">{{ row.sessions_a }}</td>
+        <td class="n mono">{{ row.sessions_b }}</td>
+        <td class="n mono">{{ "%.2f"|format(row.lift) if row.lift is not none else "—" }}</td>
+        <td class="small">{{ row.reading }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</details>
 {% endif %}
 
 {% if view.chains %}

@@ -31,14 +31,23 @@
    service itself, and every field read below is guarded with `or`/`is
    defined` so a partially-shaped fixture degrades instead of 500ing. #}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
+{# Also rendered by check_flow_bar.py against a bare jinja2.Environment
+   with no i18n globals -- same `_lbl` fallback-to-English-literal pattern
+   as _vtabs.html, so that test's own hardcoded-English assertions
+   ("Take this car in", "Tools away. Start the next Stelvio", "Not yet: ",
+   "Suggested next: ") still hold when `t` isn't registered, while the
+   real app gets the actual translation. #}
+{% macro _lbl(key, fallback) -%}
+{%- if t is defined -%}{{ t(key) }}{%- else -%}{{ fallback }}{%- endif -%}
+{%- endmacro %}
 <div class="flow-bar">
   {% if flow and flow.steps %}
     <div class="flow-line">
       {% if flow.next %}
-        <span class="flow-step-label">Step {{ flow.current }} of {{ flow.steps|length }}:
+        <span class="flow-step-label">{{ _lbl('step_word', 'Step') }} {{ flow.current }} {{ _lbl('of_word', 'of') }} {{ flow.steps|length }}:
           {%- for s in flow.steps if s.n == flow.current %} {{ s.title }}{% endfor %}</span>
         {% if flow.blockers %}
-          <span class="chip chronic flow-blocker-chip" title="{{ flow.blockers|length }} blocker(s)">{{ flow.blockers|length }}&#9888;</span>
+          <span class="chip chronic flow-blocker-chip" title="{{ flow.blockers|length }} {{ _lbl('blocked_label', 'blocker(s)') }}">{{ flow.blockers|length }}&#9888;</span>
         {% endif %}
         {% set _prev_steps = flow.steps|selectattr("n", "equalto", (flow.current or 0) - 1)|list %}
         {% if _prev_steps %}
@@ -47,13 +56,13 @@
         {% endif %}
         {% set _next_whys = flow.steps|selectattr("n", "equalto", flow.next.n)|map(attribute="why")|list %}
         {% set _next_why = _next_whys[0] if _next_whys else none %}
-        <a class="btn primary flow-next" href="{{ flow.next.href|replace('#step-', '?step=') }}"{% if _next_why %} title="{{ _next_why }}"{% endif %}>{{ flow.next.button_label or ("Suggested next: " + flow.next.title + " →") }}</a>
+        <a class="btn primary flow-next" href="{{ flow.next.href|replace('#step-', '?step=') }}"{% if _next_why %} title="{{ _next_why }}"{% endif %}>{{ flow.next.button_label or (_lbl('suggested_next', 'Suggested next') + ": " + flow.next.title + " →") }}</a>
       {% else %}
-        <span class="flow-step-label">Job complete.</span>
-        <a class="btn primary flow-next" href="/start">Tools away. Start the next Stelvio &rarr;</a>
+        <span class="flow-step-label">{{ _lbl('job_complete', 'Job complete.') }}</span>
+        <a class="btn primary flow-next" href="/start">{{ _lbl('tools_away_start_next', 'Tools away. Start the next Stelvio') }} &rarr;</a>
       {% endif %}
       <details class="flow-more">
-        <summary aria-label="Show all steps">Steps &#9662;</summary>
+        <summary aria-label="{{ _lbl('show_all_steps', 'Show all steps') }}">{{ _lbl('steps_label', 'Steps') }} &#9662;</summary>
         <ol class="flow-stepper">
           {% for s in flow.steps %}
             <li class="flow-step is-{{ s.status }}">
@@ -61,7 +70,7 @@
               <span class="flow-step-body">
                 <a href="{{ s.href|replace('#step-', '?step=') }}" class="flow-step-title">{{ s.n }}. {{ s.title }}</a>
                 {% if s.why %}
-                  <span class="flow-step-why{{ ' flow-step-why-blocked' if s.status == 'blocked' }} muted small">{% if s.status == "blocked" %}Not yet: {% endif %}{{ s.why }}</span>
+                  <span class="flow-step-why{{ ' flow-step-why-blocked' if s.status == 'blocked' }} muted small">{% if s.status == "blocked" %}{{ _lbl('not_yet', 'Not yet') }}: {% endif %}{{ s.why }}</span>
                 {% endif %}
               </span>
               {% if s.est_min %}<span class="flow-step-est mono small">{{ s.est_min }} min</span>{% endif %}
@@ -71,7 +80,7 @@
         {% if flow.blockers %}
           <div class="flow-blockers">
             {% for b in flow.blockers %}
-              <div class="note warn flow-blocker">Not yet: {{ b.why or b }}</div>
+              <div class="note warn flow-blocker">{{ _lbl('not_yet', 'Not yet') }}: {{ b.why or b }}</div>
             {% endfor %}
           </div>
         {% endif %}
@@ -79,8 +88,8 @@
     </div>
   {% else %}
     <div class="flow-line flow-line-empty">
-      <span class="flow-step-label">Ready for the next car.</span>
-      <a class="btn primary flow-next" href="/start">Take this car in &rarr;</a>
+      <span class="flow-step-label">{{ _lbl('ready_for_next_car', 'Ready for the next car.') }}</span>
+      <a class="btn primary flow-next" href="/start">{{ _lbl('take_car_in', 'Take this car in') }} &rarr;</a>
     </div>
   {% endif %}
 </div>

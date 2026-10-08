@@ -2,12 +2,23 @@
 {% block title %}Codes — {{ bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="{{ static_url('scan.css') }}">
 
 <h1>Every code this car has set</h1>
 <p class="lede">Ordered by what decides a diagnosis: returned after a clear
 first, then chronic, then the rest. First-seen and last-seen are both shown —
 a code seen once last week and one recurring across a year are different
 problems, and printing only the latest hides which is which.</p>
+
+{% set _qs = "&include_simulation=true" if include_simulation else "" %}
+<div class="codesf-row" aria-label="Filter by system">
+  <a class="codesf-chip {{ 'on' if not system_filter }}"
+     href="/v/{{ vin }}/codes{{ '?include_simulation=true' if include_simulation else '' }}">All</a>
+  {% for b in system_buckets %}
+    <a class="codesf-chip {{ 'on' if system_filter and system_filter|lower == b|lower }}"
+       href="/v/{{ vin }}/codes?system={{ b|urlencode }}{{ _qs }}">{{ b }}</a>
+  {% endfor %}
+</div>
 
 <div class="panel" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
   <div style="flex:1;min-width:220px">
@@ -17,13 +28,13 @@ problems, and printing only the latest hides which is which.</p>
   </div>
   <div>
     {% if include_simulation %}
-      <a class="btn" href="/v/{{ vin }}/codes">Exclude simulation</a>
+      <a class="btn" href="/v/{{ vin }}/codes{{ '?system=' + system_filter|urlencode if system_filter }}">Exclude simulation</a>
     {% else %}
-      <a class="btn" href="/v/{{ vin }}/codes?include_simulation=true">Include simulation</a>
+      <a class="btn" href="/v/{{ vin }}/codes?include_simulation=true{{ '&system=' + system_filter|urlencode if system_filter }}">Include simulation</a>
     {% endif %}
   </div>
   <div class="mono small muted">
-    {{ data.count }} codes over {{ data.logs_considered }} logs
+    {{ rows|length }} of {{ data.count }} codes over {{ data.logs_considered }} logs
     {% if data.simulation_included %}
       <span class="chip simulated">simulation included</span>
     {% else %}
@@ -37,7 +48,7 @@ problems, and printing only the latest hides which is which.</p>
   <table id="codetable">
     <thead>
       <tr>
-        <th>Code</th><th>State</th><th>Description</th><th>Module</th>
+        <th>Code</th><th>State</th><th>System</th><th>Description</th><th>Module</th>
         <th class="n">Sessions</th><th>First</th><th>Last</th><th class="n">Distance</th>
       </tr>
     </thead>
@@ -46,15 +57,16 @@ problems, and printing only the latest hides which is which.</p>
       <tr class="row-link" data-href="/v/{{ vin }}/code/{{ r.dtc.split('-')[0] }}" tabindex="0">
         <td><a class="mono" href="/v/{{ vin }}/code/{{ r.dtc.split('-')[0] }}">{{ r.dtc }}</a></td>
         <td><span class="chip {{ r.severity }}">{{ r.severity }}</span></td>
+        <td><a class="code-cluster-link" href="{{ r.cluster_href }}" title="Jump to this code's dossier cluster">{{ r.system_bucket }}</a></td>
         <td>{{ r.descriptions|join(", ") }}</td>
         <td class="small muted">{{ r.modules|join(", ") }}</td>
-        <td class="n">{{ r.sessions }}</td>
-        <td class="mono small">{{ r.first_seen }}</td>
-        <td class="mono small">{{ r.last_seen }}</td>
+        <td class="n mono">{{ r.sessions_x }}</td>
+        <td class="mono small" title="{{ r.first_seen }}">{{ r.first_seen_ago }}</td>
+        <td class="mono small" title="{{ r.last_seen }}">{{ r.last_seen_ago }}</td>
         <td class="n">{% if r.distance_span_km %}{{ "{:,}".format(r.distance_span_km|int) }} km{% else %}—{% endif %}</td>
       </tr>
     {% else %}
-      <tr><td colspan="8" class="muted">No codes in the selected logs.</td></tr>
+      <tr><td colspan="9" class="muted">No codes match this filter.</td></tr>
     {% endfor %}
     </tbody>
   </table>

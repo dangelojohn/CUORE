@@ -8,17 +8,31 @@
    Context expected: bar (vin, name, logs, first_log, last_log, odo_first,
    odo_last, odo_span, ecus), tab (which tab is active), live_strip (set for
    every page by routes.py's _page() helper -- already in scope here via
-   Jinja's include-shares-context, no route change needed). #}
+   Jinja's include-shares-context, no route change needed).
+
+   Mechanic-UX review item 4: the full hero (image, verdict headline, key
+   figures) is heavy chrome that only earns its place on the two pages a
+   mechanic actually lands on and lingers over -- the Bench landing page
+   and the handover Report. Every other /v/ page gets the slim always-on
+   .vline strip only, now carrying the verdict chip, any blocker, and a
+   "Next: ..." link pointing at the Bench (not at the step itself -- the
+   Bench is where that next action gets its own real link, evidence and
+   all) so the car's status is never more than this one sticky row away,
+   whichever tab happens to be open. The flow bar (_flow_bar.html) is
+   job-specific chrome -- the Job page's own 12-step stepper -- so it only
+   renders when tab == "job"; every other tab renders nothing for it. #}
+{% set _show_hero = tab in ("bench", "report") %}
+{% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
 {% set _hero_slug = (bar.name.split()|last)|lower if bar.name else 'car' %}
 {% set _taglines = {"alfa": "Passion and the joy of driving"} %}
 {% set _tagline = _taglines.get(marque|default("alfa")) %}
 {% set figures = [] %}
 {% if view is defined and view %}
   {% if view.code_counts is defined and view.code_counts and view.code_counts.active is not none %}
-    {% set figures = figures + [{"value": view.code_counts.active, "label": "Open codes"}] %}
+    {% set figures = figures + [{"value": view.code_counts.active, "label": t('open_codes')}] %}
   {% endif %}
   {% if bar.odo_last is not none %}
-    {% set figures = figures + [{"value": "{:,}".format(bar.odo_last|int), "label": "Odometer km"}] %}
+    {% set figures = figures + [{"value": "{:,}".format(bar.odo_last|int), "label": t('odometer_km')}] %}
   {% endif %}
   {% if view.freeze_frames %}
     {% set _ff_fuel = (view.freeze_frames[0].key|selectattr("name", "equalto", "Fuel level")|list) %}
@@ -27,13 +41,14 @@
       {% set _fv_num = (_fv.value|string).split(" ")[0]|float(default=-1) %}
       {% if _fv_num >= 0 %}
         {% set figures = figures + [{"value": (_fv_num|round|int|string) + "%",
-           "label": "Fuel at code set" + (" — out of window" if _fv.flag else " — in window"),
+           "label": t('fuel_at_code_set') + " — " + (t('out_of_window') if _fv.flag else t('in_window')),
            "flag": _fv.flag}] %}
       {% endif %}
     {% endif %}
   {% endif %}
 {% endif %}
 <div class="vbar">
+  {% if _show_hero %}
   <div class="vhero">
     <div class="hero-img" style="background-image:url(/static/brand/{{ _hero_slug }}.jpg)"></div>
     <div class="hero-text">
@@ -66,11 +81,29 @@
       {% endif %}
     </div>
   </div>
+  {% endif %}
   <div class="vline">
     <span class="vname" title="{{ bar.name }}">{{ bar.name }}</span>
     <span class="vin-tail mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-6:] }}</span>
     {% if bar.odo_last is not none %}
       <span class="mono vkm">{{ "{:,}".format(bar.odo_last|int) }} km</span>
+    {% endif %}
+    {% if not _show_hero %}
+      {# The compact status strip every non-bench/report /v/ page relies on
+         now that it doesn't also get the hero: the verdict at a glance, any
+         blocker, and the suggested next action -- linking at the Bench, not
+         at the step itself (the Bench is where that link gets its own real
+         href/evidence; here it's just "go see what's next"). #}
+      {% if view is defined and view and view.verdict %}
+        {% set _vs = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
+        <span class="chip-verdict status-verdict v-{{ _vs }}" title="{{ view.verdict.summary or '' }}">{{ view.verdict.label }}</span>
+      {% endif %}
+      {% if flow and flow.blockers %}
+        <span class="chip chronic status-blocker" title="{{ flow.blockers[0].why or flow.blockers[0] }}">{{ flow.blockers|length }}&#9888; <span class="status-blocker-label">{{ t('blocked_label') }}</span></span>
+      {% endif %}
+      {% if flow and flow.next %}
+        <a class="chip plain status-next" href="/v/{{ bar.vin }}" title="{{ flow.next.why or '' }}">{{ t('next_label') }}: {{ flow.next.title }} &rarr;</a>
+      {% endif %}
     {% endif %}
     {% if live_strip %}
       {% if live_strip.error %}
@@ -83,16 +116,16 @@
       {% endif %}
     {% endif %}
     <details class="vmore">
-      <summary aria-label="More vehicle details">&hellip;</summary>
+      <summary aria-label="{{ t('more_vehicle_details') }}">&hellip;</summary>
       <div class="vmore-panel">
-        <div class="small">Full VIN <span class="mono">{{ bar.vin }}</span></div>
+        <div class="small">{{ t('full_vin') }} <span class="mono">{{ bar.vin }}</span></div>
         {% if bar.odo_first is not none and bar.odo_last is not none %}
           <div class="small">{{ "{:,}".format(bar.odo_first|int) }} &rarr;
             {{ "{:,}".format(bar.odo_last|int) }} km{% if bar.odo_span %}
-            <span class="muted">({{ "{:,}".format(bar.odo_span|int) }} km span)</span>{% endif %}</div>
+            <span class="muted">({{ "{:,}".format(bar.odo_span|int) }} {{ t('km_span') }})</span>{% endif %}</div>
         {% endif %}
         {% if bar.logs %}
-          <div class="small"><b>{{ bar.logs }}</b> logs{% if bar.first_log %}
+          <div class="small"><b>{{ bar.logs }}</b> {{ t('logs') }}{% if bar.first_log %}
             &middot; {{ bar.first_log }} &rarr; {{ bar.last_log }}{% endif %}</div>
         {% endif %}
         {% if bar.ecus %}<div class="small">{{ bar.ecus|length }} ECU{{ "s" if bar.ecus|length != 1 }}</div>{% endif %}
@@ -103,10 +136,10 @@
             <div class="small">held by {{ live_strip.lock_holder }}</div>
           {% endif %}
         {% endif %}
-        <div class="small"><a href="/live">Live link &rarr;</a></div>
+        <div class="small"><a href="/live">{{ t('live_link') }} &rarr;</a></div>
       </div>
     </details>
   </div>
   {% include "_vtabs.html" %}
 </div>
-{% include "_flow_bar.html" %}
+{% if tab == "job" %}{% include "_flow_bar.html" %}{% endif %}

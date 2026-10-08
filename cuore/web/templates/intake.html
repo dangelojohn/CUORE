@@ -4,26 +4,24 @@
 
 <link rel="stylesheet" href="{{ static_url('shop.css') }}">
 
-<h1>Start this Stelvio</h1>
-<p class="lede">One car, start to finish. Pick a VIN already in the corpus,
-or type a new one, and this opens the visit and its case together -- then
-drops straight into the job page to start the diagnostic work.</p>
+<h1>{{ t('start_this_stelvio') }}</h1>
+<p class="lede">{{ t('intake_lede') }}</p>
 
-{% if intake_error %}<div class="note alert"><span class="lab">Not started</span>{{ intake_error }}</div>{% endif %}
+{% if intake_error %}<div class="note alert"><span class="lab">{{ t('not_started') }}</span>{{ intake_error }}</div>{% endif %}
 
 <div class="panel">
   <form method="post" action="/start">
-    <div class="field"><label for="vin">VIN</label>
-      <input id="vin" name="vin" list="vehicle-vins" required placeholder="17-character VIN" autofocus>
+    <div class="field"><label for="vin">{{ t('vin') }}</label>
+      <input id="vin" name="vin" list="vehicle-vins" required placeholder="{{ t('vin_placeholder') }}" autofocus>
       <datalist id="vehicle-vins">
         {% for v in vehicle_choices %}<option value="{{ v.vin }}">{{ v.name }}</option>{% endfor %}
       </datalist>
     </div>
-    <div class="field"><label for="complaint">Complaint — the driver's own words</label>
+    <div class="field"><label for="complaint">{{ t('complaint_label') }}</label>
       <textarea id="complaint" name="complaint" rows="4"></textarea></div>
-    <div class="field"><label for="technician">Technician</label>
-      <input id="technician" name="technician" placeholder="name/initials"></div>
-    <button class="btn primary release-btn" type="submit">Start this Stelvio</button>
+    <div class="field"><label for="technician">{{ t('technician_label') }}</label>
+      <input id="technician" name="technician" placeholder="{{ t('name_initials_placeholder') }}"></div>
+    <button class="btn primary release-btn" type="submit">{{ t('start_this_stelvio') }}</button>
   </form>
 </div>
 

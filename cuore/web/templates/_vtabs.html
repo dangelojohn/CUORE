@@ -24,8 +24,13 @@
    Jinja global _flow_bar.html reads (degrades to "nothing highlighted"
    with no error if that service isn't wired up yet or has no opinion on
    this VIN). #}
-{% set _visible = ("job", "dossier", "codes", "systems", "report") %}
-{% set _more = ("modules", "timeline", "gauges", "electrical", "parts", "media",
+{# Mechanic-UX review item 4: the Bench landing page (another agent's
+   build, at /v/{vin}) is now the primary tab -- Job, Codes, Systems,
+   Report ride alongside it; the old dossier (same template, moved to
+   /v/{vin}/dossier) drops into More so five tabs, not six, stay visible
+   on a phone-width strip. #}
+{% set _visible = ("bench", "job", "codes", "systems", "report") %}
+{% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "parts", "media",
                  "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard") %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
 {% set _flow_key = (flow.steps|selectattr("n", "equalto", flow.current)|map(attribute="key")|first)
@@ -37,33 +42,43 @@
 {% set flow_tab_key = _flow_key if (_flow_key in _visible or _flow_key in _more) else none %}
 {% set _fb_open = feedback_open_count(bar.vin) if feedback_open_count is defined else 0 %}
 
+{# This strip is also rendered by check_flow_bar.py against a bare
+   jinja2.Environment with no i18n globals registered -- `_lbl` falls back
+   to the plain English label (the same text that test's own
+   VISIBLE_LABELS/">Dashboard<"/">Labels<" checks expect) whenever `t`
+   isn't available, and uses the real translation whenever it is. #}
+{% macro _lbl(key, fallback) -%}
+{%- if t is defined -%}{{ t(key) }}{%- else -%}{{ fallback }}{%- endif -%}
+{%- endmacro %}
+
 {% macro vtab(key, href, label, badge="") -%}
 <a href="{{ href }}" class="{{ 'on' if tab == key }}{{ ' flow-current-tab' if flow_tab_key == key }}">{{ label }}{{ badge|safe }}</a>
 {%- endmacro %}
 
 <div class="vtabs">
-  {{ vtab("job", "/v/" + bar.vin + "/job", "Job") }}
-  {{ vtab("dossier", "/v/" + bar.vin, "Dossier") }}
-  {{ vtab("codes", "/v/" + bar.vin + "/codes", "Codes") }}
-  {{ vtab("systems", "/v/" + bar.vin + "/systems", "Systems") }}
-  {{ vtab("report", "/v/" + bar.vin + "/report", "Report") }}
+  {{ vtab("bench", "/v/" + bar.vin, _lbl("bench", "Bench")) }}
+  {{ vtab("job", "/v/" + bar.vin + "/job", _lbl("job", "Job")) }}
+  {{ vtab("codes", "/v/" + bar.vin + "/codes", _lbl("codes", "Codes")) }}
+  {{ vtab("systems", "/v/" + bar.vin + "/systems", _lbl("systems", "Systems")) }}
+  {{ vtab("report", "/v/" + bar.vin + "/report", _lbl("report", "Report")) }}
 
   <details class="vmore-tab"{% if flow_tab_key in _more %} open{% endif %}>
-    <summary aria-label="More vehicle tabs" class="{{ 'on' if tab not in _visible }}{{ ' flow-has-current' if flow_tab_key in _more }}">More&hellip;</summary>
+    <summary aria-label="{{ _lbl('more_vehicle_tabs', 'More vehicle tabs') }}" class="{{ 'on' if tab not in _visible }}{{ ' flow-has-current' if flow_tab_key in _more }}">{{ _lbl("more", "More") }}&hellip;</summary>
     <div class="vmore-tab-panel">
-      {{ vtab("modules", "/v/" + bar.vin + "/modules", "Modules") }}
-      {{ vtab("timeline", "/v/" + bar.vin + "/timeline", "Timeline") }}
-      {{ vtab("gauges", "/v/" + bar.vin + "/gauges", "Gauges") }}
-      {{ vtab("electrical", "/v/" + bar.vin + "/electrical", "Electrical") }}
-      {{ vtab("parts", "/v/" + bar.vin + "/parts", "Parts") }}
-      {{ vtab("media", "/v/" + bar.vin + "/media", "Media") }}
-      {{ vtab("service-hub", "/v/" + bar.vin + "/service-hub", "Service") }}
-      {{ vtab("tree", "/v/" + bar.vin + "/tree", "Fault tree") }}
-      {{ vtab("gate", "/v/" + bar.vin + "/gate", "Evidence gate") }}
-      {{ vtab("inbox", "/v/" + bar.vin + "/inbox", "Inbox", (' <span class="chip chronic">' + _fb_open|string + '</span>') if _fb_open else "") }}
-      {{ vtab("labels", "/v/" + bar.vin + "/labels", "Labels") }}
-      {{ vtab("logs", "/logs?vin=" + bar.vin, "Logs") }}
-      {{ vtab("dashboard", "/v/" + bar.vin + "/dashboard", "Dashboard") }}
+      {{ vtab("dossier", "/v/" + bar.vin + "/dossier", _lbl("dossier", "Dossier")) }}
+      {{ vtab("modules", "/v/" + bar.vin + "/modules", _lbl("modules", "Modules")) }}
+      {{ vtab("timeline", "/v/" + bar.vin + "/timeline", _lbl("timeline", "Timeline")) }}
+      {{ vtab("gauges", "/v/" + bar.vin + "/gauges", _lbl("gauges", "Gauges")) }}
+      {{ vtab("electrical", "/v/" + bar.vin + "/electrical", _lbl("electrical", "Electrical")) }}
+      {{ vtab("parts", "/v/" + bar.vin + "/parts", _lbl("parts", "Parts")) }}
+      {{ vtab("media", "/v/" + bar.vin + "/media", _lbl("media", "Media")) }}
+      {{ vtab("service-hub", "/v/" + bar.vin + "/service-hub", _lbl("service", "Service")) }}
+      {{ vtab("tree", "/v/" + bar.vin + "/tree", _lbl("fault_tree", "Fault tree")) }}
+      {{ vtab("gate", "/v/" + bar.vin + "/gate", _lbl("evidence_gate", "Evidence gate")) }}
+      {{ vtab("inbox", "/v/" + bar.vin + "/inbox", _lbl("inbox", "Inbox"), (' <span class="chip chronic">' + _fb_open|string + '</span>') if _fb_open else "") }}
+      {{ vtab("labels", "/v/" + bar.vin + "/labels", _lbl("labels", "Labels")) }}
+      {{ vtab("logs", "/logs?vin=" + bar.vin, _lbl("logs", "Logs")) }}
+      {{ vtab("dashboard", "/v/" + bar.vin + "/dashboard", _lbl("dashboard", "Dashboard")) }}
     </div>
   </details>
 </div>

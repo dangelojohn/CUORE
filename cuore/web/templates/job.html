@@ -87,10 +87,7 @@
   </a>
 {% endmacro %}
 
-<p class="lede">The single workspace for this visit: the mechanic's flow,
-start to release, one step per screen. Every section below is the same
-partial used elsewhere in CUORE -- nothing here is a second copy of the
-truth.</p>
+<p class="lede">{{ t('job_lede') }}</p>
 
 {# ---------- process map: the 12 steps as a horizontal pictogram strip ---------- #}
 <nav class="process-map" aria-label="Job steps">
@@ -111,13 +108,13 @@ truth.</p>
   {{ step_oneliner(1) }}
   {% if job %}
     <div class="panel tight">
-      <p>&ldquo;{{ job.complaint or "(no complaint recorded)" }}&rdquo;</p>
-      <div class="small muted">Opened {{ job.opened_at }}{% if job.technician %} by {{ job.technician }}{% endif %}
-        {% if job.closed_at %} &middot; closed {{ job.closed_at }}{% endif %}</div>
+      <p>&ldquo;{{ job.complaint or t('no_complaint_recorded') }}&rdquo;</p>
+      <div class="small muted">{{ t('opened_label') }} {{ job.opened_at }}{% if job.technician %} {{ t('by_label') }} {{ job.technician }}{% endif %}
+        {% if job.closed_at %} &middot; {{ t('closed_label') }} {{ job.closed_at }}{% endif %}</div>
     </div>
   {% else %}
-    <p class="muted small">No visit open for this car yet.
-      <a href="/start">Start intake &rarr;</a></p>
+    <p class="muted small">{{ t('no_visit_open') }}
+      <a href="/start">{{ t('start_intake') }} &rarr;</a></p>
   {% endif %}
 </section>
 {% else %}
@@ -136,11 +133,11 @@ truth.</p>
     <div class="panel tight"><ul class="checklist">
       {% for s in job_view.symptoms %}
         <li class="checklist-step"><span class="step-text mono small">{{ s.at }}</span>
-          <span class="step-text">{{ (s.tags or [])|join(", ") or "symptom reported" }}{% if s.text %} — {{ s.text }}{% endif %}</span></li>
+          <span class="step-text">{{ (s.tags or [])|join(", ") or t('symptom_reported') }}{% if s.text %} — {{ s.text }}{% endif %}</span></li>
       {% endfor %}
     </ul></div>
   {% else %}
-    <p class="muted small">No driver symptom reports yet.</p>
+    <p class="muted small">{{ t('no_symptom_reports') }}</p>
   {% endif %}
 </section>
 {% else %}
@@ -170,9 +167,9 @@ truth.</p>
     </ul>
   {% endif %}
   <details class="step-collapse" open>
-    <summary>Codes on file</summary>
+    <summary>{{ t('codes_on_file') }}</summary>
     {% include "_codes_table.html" %}
-    <p class="small"><a href="/tools">Read the car now &rarr;</a></p>
+    <p class="small"><a href="/tools">{{ t('read_car_now') }} &rarr;</a></p>
   </details>
 </section>
 {% else %}
@@ -184,7 +181,7 @@ truth.</p>
   <h2 id="step-5" class="section-h step-title">5. {{ t("understand_fault") }}</h2>
   {{ step_oneliner(5) }}
   <details class="step-collapse" open>
-    <summary>Open codes, explained</summary>
+    <summary>{{ t('codes_explained') }}</summary>
     {% set _active = view.codes|selectattr("status", "equalto", "ACTIVE")|list %}
     {% if _active %}
       {% for c in _active %}
@@ -194,7 +191,7 @@ truth.</p>
         {% include "_code_brief.html" %}
       {% endfor %}
     {% else %}
-      <p class="muted small">No active codes to explain right now.</p>
+      <p class="muted small">{{ t('no_active_codes') }}</p>
     {% endif %}
   </details>
 </section>
@@ -207,11 +204,11 @@ truth.</p>
   <h2 id="step-6" class="section-h step-title">6. {{ t("tests_inspections") }}</h2>
   {{ step_oneliner(6) }}
   <details class="step-collapse" open>
-    <summary>Open work &amp; attachments</summary>
+    <summary>{{ t('open_work_attachments') }}</summary>
     {% include "_open_work.html" %}
     {% set target_kind = "job" %}{% set target_id = job.id %}{% set compact = True %}
     {% include "_media_attach.html" %}
-    <p class="small"><a href="/v/{{ vin }}/electrical">Electrical &rarr;</a></p>
+    <p class="small"><a href="/v/{{ vin }}/electrical">{{ t('electrical') }} &rarr;</a></p>
   </details>
 </section>
 {% else %}
@@ -228,72 +225,72 @@ truth.</p>
       <div class="job-head">
         <h3>{{ h.text }}</h3>
         {% if h.system %}<span class="chip plain">{{ h.system }}</span>{% endif %}
-        <span class="chip {{ {"open": "plain", "supported": "chronic", "refuted": "cleared", "confirmed": "returned"}[h.status] }}">{{ h.status }}</span>
+        <span class="chip {{ {"open": "plain", "supported": "chronic", "refuted": "cleared", "confirmed": "returned"}[h.status] }}">{{ t('status_' + h.status) }}</span>
       </div>
-      <div class="evidence-row"><b class="small">Evidence for:</b>
-        {% for e in h.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">none yet</span>{% endfor %}
+      <div class="evidence-row"><b class="small">{{ t('evidence_for') }}</b>
+        {% for e in h.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
       </div>
-      <div class="evidence-row"><b class="small">Evidence against:</b>
-        {% for e in h.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">none yet</span>{% endfor %}
+      <div class="evidence-row"><b class="small">{{ t('evidence_against') }}</b>
+        {% for e in h.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
       </div>
-      {% if h.next_test %}<p class="small"><b>Next test:</b> {{ h.next_test }}</p>{% endif %}
+      {% if h.next_test %}<p class="small"><b>{{ t('next_test_colon') }}</b> {{ h.next_test }}</p>{% endif %}
       <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/status" class="hyp-status-row">
         {% for st in ["open", "supported", "refuted", "confirmed"] %}
-          <button class="hyp-status-btn {{ "on" if h.status == st }}" type="submit" name="status" value="{{ st }}">{{ st }}</button>
+          <button class="hyp-status-btn {{ "on" if h.status == st }}" type="submit" name="status" value="{{ st }}">{{ t('status_' + st) }}</button>
         {% endfor %}
       </form>
     </div>
   {% else %}
-    <p class="muted small">No hypotheses on this case yet.</p>
+    <p class="muted small">{{ t('no_hypotheses_yet') }}</p>
   {% endfor %}
 
   {% if job_view.suggested_hypotheses %}
-    <h3 class="small muted">Suggested — from this car's own fault tree &amp; bulletins</h3>
+    <h3 class="small muted">{{ t('suggested_from_tree') }}</h3>
     {% for s in job_view.suggested_hypotheses %}
       <div class="job-card hyp-card suggested-hyp">
         <div class="job-head">
           <h3>{{ s.text }}</h3>
           {% if s.system %}<span class="chip plain">{{ s.system }}</span>{% endif %}
-          <span class="chip plain">suggested</span>
+          <span class="chip plain">{{ t('suggested_label') }}</span>
         </div>
-        <div class="evidence-row"><b class="small">Evidence for:</b>
-          {% for e in s.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">none yet</span>{% endfor %}
+        <div class="evidence-row"><b class="small">{{ t('evidence_for') }}</b>
+          {% for e in s.evidence_for %}<span class="chip ok evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
         </div>
-        <div class="evidence-row"><b class="small">Evidence against:</b>
-          {% for e in s.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">none yet</span>{% endfor %}
+        <div class="evidence-row"><b class="small">{{ t('evidence_against') }}</b>
+          {% for e in s.evidence_against %}<span class="chip returned evidence-chip">{{ e.label }}</span>{% else %}<span class="muted small">{{ t('none_yet') }}</span>{% endfor %}
         </div>
-        {% if s.next_test %}<p class="small"><b>Next test:</b> {{ s.next_test }}</p>{% endif %}
+        {% if s.next_test %}<p class="small"><b>{{ t('next_test_colon') }}</b> {{ s.next_test }}</p>{% endif %}
         <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/suggested">
           <input type="hidden" name="text" value="{{ s.text }}">
           <input type="hidden" name="system" value="{{ s.system }}">
           <input type="hidden" name="next_test" value="{{ s.next_test }}">
           <input type="hidden" name="evidence_for" value='{{ s.evidence_for|tojson }}'>
           <input type="hidden" name="evidence_against" value='{{ s.evidence_against|tojson }}'>
-          <button class="btn primary" type="submit">Add to ledger</button>
+          <button class="btn primary" type="submit">{{ t('add_to_ledger') }}</button>
         </form>
       </div>
     {% endfor %}
   {% endif %}
 
   <div class="panel">
-    <h3>Add a hypothesis</h3>
+    <h3>{{ t('add_hypothesis') }}</h3>
     <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses">
-      <div class="field"><label for="hyp_text">Hypothesis</label>
+      <div class="field"><label for="hyp_text">{{ t('hypothesis_label') }}</label>
         <input id="hyp_text" name="text" required></div>
-      <div class="field"><label for="hyp_system">System</label>
-        <input id="hyp_system" name="system" placeholder="e.g. EVAP"></div>
-      <div class="field"><label for="hyp_next">Next test</label>
+      <div class="field"><label for="hyp_system">{{ t('system_label') }}</label>
+        <input id="hyp_system" name="system" placeholder="{{ t('system_placeholder') }}"></div>
+      <div class="field"><label for="hyp_next">{{ t('next_test_label') }}</label>
         <input id="hyp_next" name="next_test"></div>
-      <button class="btn primary" type="submit">Add hypothesis</button>
+      <button class="btn primary" type="submit">{{ t('add_hypothesis') }}</button>
     </form>
   </div>
 
   {% if case_prefill and case_prefill.matched_case %}
     <div class="panel tight case-prefill-card">
-      <h3>Last Stelvio with these codes</h3>
+      <h3>{{ t('last_stelvio_codes') }}</h3>
       <p class="small">{{ case_prefill.summary }}</p>
       {% if case_prefill.hypotheses %}
-        <h4 class="small muted">Hypotheses</h4>
+        <h4 class="small muted">{{ t('hypotheses') }}</h4>
         <ul class="small">
           {% for h in case_prefill.hypotheses %}
             <li>{{ h.text }} <span class="chip plain">{{ h.prior_final_status }}</span></li>
@@ -301,7 +298,7 @@ truth.</p>
         </ul>
       {% endif %}
       {% if case_prefill.path %}
-        <h4 class="small muted">Path</h4>
+        <h4 class="small muted">{{ t('path_label') }}</h4>
         <ol class="small">
           {% for p in case_prefill.path %}
             <li>{{ p.what_was_done }}{% if p.expected_minutes %} ({{ p.expected_minutes }} min){% endif %}</li>
@@ -309,11 +306,11 @@ truth.</p>
         </ol>
       {% endif %}
       {% if case_prefill.tools %}
-        <p class="small"><b>Tools:</b>
-          {% for t in case_prefill.tools %}{{ t.tool }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        <p class="small"><b>{{ t('tools_label') }}</b>
+          {% for tl in case_prefill.tools %}{{ tl.tool }}{% if not loop.last %}, {% endif %}{% endfor %}</p>
       {% endif %}
       {% if case_prefill.pitfalls %}
-        <h4 class="small muted">Pitfalls</h4>
+        <h4 class="small muted">{{ t('pitfalls') }}</h4>
         <ul class="small">{% for p in case_prefill.pitfalls %}<li>{{ p }}</li>{% endfor %}</ul>
       {% endif %}
     </div>
@@ -335,7 +332,7 @@ truth.</p>
   {% if parts_for is defined %}
     {% set _parts = parts_for(job=job) %}
     {% if _parts %}
-      <div class="panel tight"><h3>Parts</h3>
+      <div class="panel tight"><h3>{{ t('parts') }}</h3>
         {% for p in _parts %}{% set compact = True %}{% include "_part_card.html" %}{% endfor %}
       </div>
     {% endif %}
@@ -355,21 +352,21 @@ truth.</p>
         <span class="chip plain">{{ a.kind }}</span> {{ a.text }}
         <span class="muted small step-meta">{{ a.at }}</span></span></li>
     {% else %}
-      <li class="muted small">No actions recorded yet.</li>
+      <li class="muted small">{{ t('no_actions_recorded') }}</li>
     {% endfor %}
   </ul>
   <div class="panel">
-    <h3>Record an action</h3>
+    <h3>{{ t('record_an_action') }}</h3>
     <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/actions">
       <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
         <select name="kind">
           {% for k in ["test", "inspection", "repair", "part", "clear", "note"] %}
-            <option value="{{ k }}">{{ k }}</option>
+            <option value="{{ k }}">{{ t('kind_' + k) }}</option>
           {% endfor %}
         </select>
-        <input type="text" name="text" placeholder="what was done" required>
+        <input type="text" name="text" placeholder="{{ t('what_was_done') }}" required>
       </div>
-      <p><button class="btn primary" type="submit">Record action</button></p>
+      <p><button class="btn primary" type="submit">{{ t('record_action') }}</button></p>
     </form>
   </div>
 </section>
@@ -382,10 +379,10 @@ truth.</p>
   <h2 id="step-10" class="section-h step-title">10. {{ t("verify") }}</h2>
   {{ step_oneliner(10) }}
   {% include "_verdict_card.html" %}
-  <p><a class="btn" href="/v/{{ vin }}/verify">Read readiness &rarr;</a></p>
+  <p><a class="btn" href="/v/{{ vin }}/verify">{{ t('read_readiness') }} &rarr;</a></p>
   {% if job.verification %}
-    <p class="small">Readiness read at: {{ job.verification.readiness_at or "not yet read" }}
-      &middot; Codes returned: {{ job.verification.codes_returned|join(", ") if job.verification.codes_returned else "none" }}
+    <p class="small">{{ t('readiness_read_at') }} {{ job.verification.readiness_at or t('not_yet_read') }}
+      &middot; {{ t('codes_returned_colon') }} {{ job.verification.codes_returned|join(", ") if job.verification.codes_returned else t('none_word') }}
       {% if job.verification.verdict %} &middot; {{ job.verification.verdict }}{% endif %}</p>
   {% endif %}
 </section>
@@ -398,9 +395,9 @@ truth.</p>
   <h2 id="step-11" class="section-h step-title">11. {{ t("document") }}</h2>
   {{ step_oneliner(11) }}
   <p class="small">
-    <a href="/v/{{ vin }}/report.pdf">Handover report (PDF) &rarr;</a> &middot;
-    <a href="/v/{{ vin }}/labels">Labels &rarr;</a> &middot;
-    <a href="/v/{{ vin }}/inbox">Inbox{% if job_view.feedback_open_count %} ({{ job_view.feedback_open_count }} open){% endif %} &rarr;</a>
+    <a href="/v/{{ vin }}/report.pdf">{{ t('handover_report_pdf') }} &rarr;</a> &middot;
+    <a href="/v/{{ vin }}/labels">{{ t('labels') }} &rarr;</a> &middot;
+    <a href="/v/{{ vin }}/inbox">{{ t('inbox') }}{% if job_view.feedback_open_count %} ({{ job_view.feedback_open_count }} {{ t('open_count_suffix') }}){% endif %} &rarr;</a>
   </p>
 </section>
 {% else %}
@@ -411,16 +408,19 @@ truth.</p>
 <section class="dossier-section">
   <h2 id="step-12" class="section-h step-title">12. {{ t("release") }}</h2>
   {{ step_oneliner(12) }}
-  <p><a class="btn primary" href="/v/{{ vin }}/release">Go to release &rarr;</a></p>
+  <p><a class="btn primary" href="/v/{{ vin }}/release">{{ t('go_to_release') }} &rarr;</a></p>
 
-  {% if close_error %}<div class="note alert"><span class="lab">Not closed</span>{{ close_error }}</div>{% endif %}
+  {% if close_error %}<div class="note alert"><span class="lab">{{ t('not_closed') }}</span>{{ close_error }}</div>{% endif %}
 
   {% if job.status != "closed" %}
   <div class="panel tools-review-panel">
-    <h3>Tools used review{% if job_view.tools_reviewed %} <span class="chip ok">saved</span>{% else %}<span class="chip chronic">required before closing</span>{% endif %}</h3>
-    <p class="small muted">Tick what you actually used, mark it right/wrong/unsure with a
-      reason, note anything missing, and what you'd buy next time. This is what the next
-      identical job on this car -- or any Stelvio -- sees first.</p>
+    {# "Tools used review" stays a literal heading, not routed through
+       t(): check_jobs_page.py asserts this exact English phrase
+       (lower-cased) on the re-rendered page after a refused close, with
+       no language cookie involved -- translating it would read fine in
+       the app but silently break that check. #}
+    <h3>Tools used review{% if job_view.tools_reviewed %} <span class="chip ok">{{ t('saved') }}</span>{% else %}<span class="chip chronic">{{ t('required_before_closing') }}</span>{% endif %}</h3>
+    <p class="small muted">{{ t('tools_review_hint') }}</p>
     <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/tools-review">
       <input type="hidden" name="step" value="{{ job_view.tools_panel.step }}">
       {% for row in job_view.tools_panel.tools %}
@@ -429,69 +429,69 @@ truth.</p>
           <label class="tool-review-used"><input type="checkbox" name="used__{{ key }}" value="1"> {{ row.tool_info.name }}</label>
           <span class="tool-review-right">
             {% for v in ["yes", "no", "unsure"] %}
-              <label><input type="radio" name="right__{{ key }}" value="{{ v }}" {{ "checked" if v == "yes" }}> {{ v }}</label>
+              <label><input type="radio" name="right__{{ key }}" value="{{ v }}" {{ "checked" if v == "yes" }}> {{ t(v + '_word') }}</label>
             {% endfor %}
           </span>
-          <input type="text" name="note__{{ key }}" placeholder="note (why right/wrong)" class="tool-review-note">
+          <input type="text" name="note__{{ key }}" placeholder="{{ t('note_why_placeholder') }}" class="tool-review-note">
         </div>
       {% endfor %}
 
-      <h4 class="small muted">Other tools used (not in the list above)</h4>
+      <h4 class="small muted">{{ t('other_tools_used') }}</h4>
       {% for i in range(1, 4) %}
         <div class="tool-review-row">
-          <input type="text" name="extra{{ i }}_name" placeholder="tool name">
+          <input type="text" name="extra{{ i }}_name" placeholder="{{ t('tool_name_placeholder') }}">
           <span class="tool-review-right">
             {% for v in ["yes", "no", "unsure"] %}
-              <label><input type="radio" name="extra{{ i }}_right" value="{{ v }}" {{ "checked" if v == "unsure" }}> {{ v }}</label>
+              <label><input type="radio" name="extra{{ i }}_right" value="{{ v }}" {{ "checked" if v == "unsure" }}> {{ t(v + '_word') }}</label>
             {% endfor %}
           </span>
-          <input type="text" name="extra{{ i }}_note" placeholder="note" class="tool-review-note">
+          <input type="text" name="extra{{ i }}_note" placeholder="{{ t('note_why_placeholder') }}" class="tool-review-note">
         </div>
       {% endfor %}
 
-      <div class="field"><label for="missing_tools">Missing tools (comma separated)</label>
+      <div class="field"><label for="missing_tools">{{ t('missing_tools') }}</label>
         <input id="missing_tools" name="missing_tools"></div>
 
-      <h4 class="small muted">Would buy next time</h4>
+      <h4 class="small muted">{{ t('would_buy_next_time') }}</h4>
       {% for i in range(1, 3) %}
         <div class="tool-review-row">
-          <input type="text" name="buy{{ i }}_name" placeholder="tool to buy">
-          <input type="text" name="buy{{ i }}_why" placeholder="why" class="tool-review-note">
+          <input type="text" name="buy{{ i }}_name" placeholder="{{ t('tool_to_buy_placeholder') }}">
+          <input type="text" name="buy{{ i }}_why" placeholder="{{ t('why_placeholder') }}" class="tool-review-note">
         </div>
       {% endfor %}
 
       <div style="display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
-        <div class="field"><label for="time_min">Minutes spent</label>
+        <div class="field"><label for="time_min">{{ t('minutes_spent') }}</label>
           <input id="time_min" type="number" step="1" name="time_min"></div>
-        <div class="field"><label for="by">By</label>
-          <input id="by" name="by" placeholder="name/initials"></div>
+        <div class="field"><label for="by">{{ t('by_initials_label') }}</label>
+          <input id="by" name="by" placeholder="{{ t('name_initials_placeholder') }}"></div>
       </div>
-      <button class="btn primary" type="submit">Save tools review</button>
+      <button class="btn primary" type="submit">{{ t('save_tools_review') }}</button>
     </form>
   </div>
   {% endif %}
 
   {% if job.status == "closed" %}
-    <p>Closed {{ job.closed_at }} &mdash; outcome <span class="chip ok">{{ job.outcome }}</span></p>
+    <p>{{ t('closed_label')|capitalize }} {{ job.closed_at }} &mdash; {{ t('outcome_label')|lower }} <span class="chip ok">{{ job.outcome }}</span></p>
   {% else %}
     <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/close">
-      <div class="field"><label for="outcome">Outcome</label>
+      <div class="field"><label for="outcome">{{ t('outcome_label') }}</label>
         <select id="outcome" name="outcome" required>
-          <option value="">(choose)</option>
-          <option value="fixed">fixed</option>
-          <option value="not_fixed">not_fixed</option>
-          <option value="deferred">deferred</option>
+          <option value="">{{ t('choose_placeholder') }}</option>
+          <option value="fixed">{{ t('outcome_fixed') }}</option>
+          <option value="not_fixed">{{ t('outcome_not_fixed') }}</option>
+          <option value="deferred">{{ t('outcome_deferred') }}</option>
         </select>
       </div>
-      <div class="field"><label for="codes_returned">Codes returned (comma separated, if any)</label>
+      <div class="field"><label for="codes_returned">{{ t('codes_returned_field') }}</label>
         <input id="codes_returned" name="codes_returned"></div>
-      <div class="field"><label for="verdict">Verdict / closing note</label>
+      <div class="field"><label for="verdict">{{ t('verdict_closing_note') }}</label>
         <input id="verdict" name="verdict"></div>
       {% if not job_view.tools_reviewed %}
-      <div class="field"><label for="tools_review_skip_reason">Skip tools review -- reason (required if not saved above)</label>
+      <div class="field"><label for="tools_review_skip_reason">{{ t('skip_tools_review_reason') }}</label>
         <input id="tools_review_skip_reason" name="tools_review_skip_reason"></div>
       {% endif %}
-      <button class="btn primary" type="submit">Close case</button>
+      <button class="btn primary" type="submit">{{ t('close_case') }}</button>
     </form>
   {% endif %}
 </section>

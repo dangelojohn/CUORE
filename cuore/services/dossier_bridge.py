@@ -445,6 +445,99 @@ def _build_verdict(vin: str, dossier: dict[str, Any], live_status: dict[str, Any
     }
 
 
+# --- verdict.next_action -- the one-sentence "what do I do right now" -------
+#
+# Added for the bench page (cuore/services/bench_bridge.py): a mechanic
+# landing on a car should not have to read the verdict's basis list and the
+# open-work cards to work out what to actually do next. Nothing here is a
+# new judgement -- it just combines the verdict state already computed above
+# with the same fuel-out-of-window flag :func:`_build_freeze_frames` already
+# derives and the same open-work steps :func:`_build_open_work` already
+# orders, into the one sentence (plus a short ``blocker`` label and the
+# ``next_step_id`` it points at) the bench page's headline needs.
+
+
+def _first_unchecked_step(open_work: list[dict[str, Any]]
+                          ) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
+    """The first not-yet-done step across every open-work card, in the same
+    order the cards themselves are already in (curated families first, then
+    the generic ones) -- ``(card, step)``, or ``(None, None)`` if every step
+    on file is ticked."""
+    for card in open_work:
+        for step in card.get("steps") or []:
+            if not step.get("done"):
+                return card, step
+    return None, None
+
+
+def _step_bit(step: dict[str, Any] | None) -> str | None:
+    """"<step text> (<bulletin>)" -- the fragment both the ACTIVE_FAULTS and
+    fuel-blocked UNVERIFIED_REPAIR sentences below quote verbatim."""
+    if step is None:
+        return None
+    bulletin = step.get("ref") or "no bulletin on file"
+    return f"{step['text']} ({bulletin})"
+
+
+def _fuel_out_of_window(freeze_frames: list[dict[str, Any]]
+                        ) -> tuple[float, str, float] | None:
+    """``(level, "above"/"below", threshold)`` for the first EVAP freeze-frame
+    fuel reading outside :data:`_EVAP_FUEL_WINDOW` -- the same flag
+    :func:`_build_freeze_frames` already set on that reading -- or ``None``
+    when no freeze frame carries that flag."""
+    lo, hi = _EVAP_FUEL_WINDOW
+    for ff in freeze_frames:
+        for p in ff.get("key") or []:
+            if p.get("name") != "Fuel level" or not p.get("flag"):
+                continue
+            level = _num(p.get("value"))
+            if level is None:
+                continue
+            return level, ("below" if level < lo else "above"), (lo if level < lo else hi)
+    return None
+
+
+def _verdict_next_action(verdict: dict[str, Any], open_work: list[dict[str, Any]],
+                         freeze_frames: list[dict[str, Any]]
+                         ) -> tuple[str, str, str | None]:
+    """``(next_action sentence, blocker label, next_step_id)`` for one
+    verdict. Never raises -- a missing open-work step or freeze frame just
+    means a shorter sentence, not a broken one."""
+    state = verdict.get("state")
+    _card, step = _first_unchecked_step(open_work)
+    step_id = step.get("id") if step else None
+    bit = _step_bit(step)
+
+    if state == "UNVERIFIED_REPAIR":
+        fuel = _fuel_out_of_window(freeze_frames)
+        if fuel is not None:
+            level, direction, threshold = fuel
+            sentence = (f"Cannot verify yet: the EVAP monitor will not run {direction} "
+                       f"{threshold:g} % fuel (set at {level:g} %). Burn fuel into the "
+                       f"{_EVAP_FUEL_WINDOW[0]:g}-{_EVAP_FUEL_WINDOW[1]:g} % window, then "
+                       f"complete a drive cycle.")
+            if bit:
+                sentence += f" Meanwhile: {bit}."
+            return sentence, "fuel out of window", step_id
+        sentence = ("Cannot verify yet: no readiness read since the clear. Read "
+                    "readiness once the drive cycle completes.")
+        if bit:
+            sentence += f" Meanwhile: {bit}."
+        return sentence, "awaiting drive cycle", step_id
+
+    if state == "ACTIVE_FAULTS":
+        if bit:
+            return f"Start with {bit}.", "active faults", step_id
+        return "Active faults on file -- open the codes to begin.", "active faults", None
+
+    if state == "VERIFIED_CLEAN":
+        readiness = verdict.get("readiness") or {}
+        date = _short_date(readiness.get("at")) or verdict.get("cleared_at") or "the last read"
+        return f"Verified by readiness read on {date}: release.", "none", None
+
+    return "Read the car.", "no data", None
+
+
 # --- open work (family findings as a checklist) -----------------------------
 
 
@@ -876,6 +969,11 @@ def build_view(vin: str, dossier: dict[str, Any],
         lambda: _build_view_core(vin, dossier),
     )
     verdict = _build_verdict(vin, dossier, live_status, core["open_work"])
+    next_action, blocker, next_step_id = _verdict_next_action(
+        verdict, core["open_work"], core["freeze_frames"])
+    verdict["next_action"] = next_action
+    verdict["blocker"] = blocker
+    verdict["next_step_id"] = next_step_id
     blind_spots = _build_blind_spots(vin, dossier, live_status)
     return {"verdict": verdict, "blind_spots": blind_spots, **core}
 

@@ -46,6 +46,11 @@ try:
 except Exception:  # noqa: BLE001
     feedback_bridge = None
 
+try:
+    from mes import shop as shop_mod
+except Exception:  # noqa: BLE001 -- the job page must still render
+    shop_mod = None
+
 
 # --- small ref builders -------------------------------------------------
 
@@ -237,6 +242,31 @@ def _cached_workup(vin: str) -> dict[str, Any]:
         ("workup", vin, mes_bridge.newest_mtime(vin)),
         lambda: mes_bridge.workup(vin=vin),
     )
+
+
+def _vehicle_name(vin: str) -> str:
+    """This VIN's vehicle name for the Job page: the name already stored on
+    its shop visit (set at intake -- see
+    ``shop_bridge.resolve_vehicle_name``), or, if no visit is on file yet,
+    the same resolution run fresh. Never "(unnamed vehicle)" once a VIN is
+    known -- see ``shop_bridge.resolve_vehicle_name`` for the fallback
+    chain (corpus vehicle list, dossier identity, WMI decode, the VIN
+    itself)."""
+    if shop_mod is not None:
+        try:
+            visit = shop_mod.current(vin)
+            if visit is None:
+                visits = shop_mod.load(vin)
+                visit = visits[-1] if visits else None
+            if visit and visit.get("vehicle"):
+                return visit["vehicle"]
+        except Exception:  # noqa: BLE001
+            pass
+    try:
+        from . import shop_bridge
+        return shop_bridge.resolve_vehicle_name(vin)
+    except Exception:  # noqa: BLE001
+        return vin
 
 
 def _symptoms(vin: str) -> list[dict[str, Any]]:
@@ -478,6 +508,7 @@ def build_job_view(vin: str, job_id: Optional[str] = None, *,
 
     return {
         "vin": vin,
+        "vehicle": _vehicle_name(vin),
         "job": job,
         "all_jobs": jobs_mod.load(vin),
         "dossier_verdict": dossier_view.get("verdict"),

@@ -11,7 +11,8 @@ This exercises both sides:
     with a fixture ``view``/``result``/``verdict`` built to the agreed
     shape. This is deterministic regardless of the real route/corpus.
   * The real-route checks go through the real app (TestClient) against
-    the Stelvio's real corpus (``view`` now lands on ``/v/{vin}`` from
+    the Stelvio's real corpus (``view`` now lands on ``/v/{vin}/dossier`` --
+    ``/v/{vin}`` itself is the bench, cuore/web/bench_routes.py -- from
     ``cuore.services.dossier_bridge.build_view``, and ``/v/{vin}/verify``
     plus the checklist routes are wired in ``cuore/web/dossier_routes.py``
     and ``cuore/api/checklists.py``) -- both landed while this file was
@@ -236,7 +237,7 @@ check("quick-add note FAB present", 'id="quick-add-note"' in html)
 
 client = TestClient(create_app())
 
-page = client.get(f"/v/{VIN}")
+page = client.get(f"/v/{VIN}/dossier")
 check("dossier page responds 200", page.status_code == 200, str(page.status_code))
 check("dossier page is HTML", "<html" in page.text.lower())
 

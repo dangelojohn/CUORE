@@ -33,6 +33,16 @@ except Exception:  # noqa: BLE001 -- the tools-away section must still render
 
 # --- vehicle name lookup, for intake prefill and board display -------------
 
+#: WMI (VIN positions 1-4) -> make, for the handful of makes this shop
+#: actually sees. Decoding stops at "make" -- the model is deliberately
+#: reported as "UNKNOWN" rather than guessed from trim/engine codes nobody
+#: has mapped yet.
+_WMI_MAKES: dict[str, str] = {
+    "ZASF": "Alfa Romeo",
+    "ZN6": "Maserati",
+    "ZN7": "Maserati",
+}
+
 
 def vehicle_choices() -> list[dict[str, Any]]:
     """VIN + display name for every real vehicle in the corpus, for the
@@ -47,10 +57,48 @@ def vehicle_choices() -> list[dict[str, Any]]:
 
 
 def _vehicle_name(vin: str) -> str:
+    """The corpus's own name for this VIN, from the vehicle list -- empty
+    when this VIN is not (yet) one of the corpus's known vehicles."""
     for v in vehicle_choices():
         if v["vin"] == vin:
             return v["name"]
     return ""
+
+
+def _decode_wmi(vin: str) -> str:
+    """Make only, from the VIN's WMI -- longest-prefix match so a 4-char
+    WMI (``ZASF``) is tried before a 3-char one (``ZN6``/``ZN7``) that could
+    otherwise shadow it. ``""`` when the WMI is not one this shop knows."""
+    vin = (vin or "").strip().upper()
+    for prefix in sorted(_WMI_MAKES, key=len, reverse=True):
+        if vin.startswith(prefix):
+            return _WMI_MAKES[prefix]
+    return ""
+
+
+def resolve_vehicle_name(vin: str) -> str:
+    """Best name available for this VIN at the moment a visit/job is
+    created, so a car with no name on file yet is never shown as
+    "(unnamed vehicle)": the corpus's own vehicle list, then the dossier
+    identity's own ``vehicle`` field (:func:`mes_bridge.workup`), then a WMI
+    decode (make only, model "UNKNOWN"), then -- if nothing resolves at all
+    -- the VIN itself, since a known VIN must never render as unnamed."""
+    vin = (vin or "").strip()
+    if not vin:
+        return ""
+    name = _vehicle_name(vin)
+    if name:
+        return name
+    try:
+        identity = mes_bridge.workup(vin=vin).get("identity") or {}
+    except Exception:  # noqa: BLE001
+        identity = {}
+    if identity.get("vehicle"):
+        return identity["vehicle"]
+    make = _decode_wmi(vin)
+    if make:
+        return f"{make} UNKNOWN"
+    return vin
 
 
 # --- write surface, thin pass-through to mes.shop ---------------------------
@@ -62,7 +110,7 @@ def intake(vin: str, complaint: str = "", *, technician: str = "") -> dict[str, 
         raise BadRequest("a VIN is required")
     try:
         return shop_mod.intake(vin, complaint, technician=technician,
-                               vehicle=_vehicle_name(vin))
+                               vehicle=resolve_vehicle_name(vin))
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
 
@@ -231,7 +279,7 @@ def _release_view_for(visit: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-__all__ = ["vehicle_choices", "intake", "start_step", "end_step",
+__all__ = ["vehicle_choices", "resolve_vehicle_name", "intake", "start_step", "end_step",
           "release", "get_visit", "build_release_view",
           "build_release_view_for_vin", "current_visit_for_vin",
           "tools_used_for_visit", "confirm_tools_away"]

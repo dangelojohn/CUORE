@@ -84,6 +84,16 @@
 }
 .fab-feedback:hover { filter: brightness(1.08); }
 
+/* The round FAB is the only page-level feedback affordance (mechanic-UX
+ * review item 3) -- it must never sit over the last bit of real page
+ * content, so the page reserves its own height at the bottom, and it must
+ * never sit over whatever input the mechanic is mid-typing into, so it
+ * hides itself the moment anything inside <main> has focus (the feedback
+ * panel's own fields live outside <main>, so opening/using the panel
+ * itself is unaffected). */
+body[data-vin] main { padding-bottom: 52px; }
+main:focus-within ~ .fab-feedback { display: none; }
+
 /* ---------- inbox page (/v/{vin}/inbox) ---------- */
 
 .inbox-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }

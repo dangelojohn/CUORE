@@ -20,63 +20,86 @@
 {% set conds = condition_tags if condition_tags is defined and condition_tags else
   ["cold_start","hot","just_refuelled","highway","city","idle","rain"] %}
 {% set back_to = note_redirect if note_redirect is defined and note_redirect else request.url.path %}
+{# "When" defaults to now whenever the route didn't already supply
+   now_local (job.html's include doesn't) -- a tiny inline script sets it
+   client-side from the browser's own clock rather than needing every
+   including route threaded through with a server-computed timestamp.
+   Odometer prefills from the sticky vehicle bar's own bar.odo_last when
+   that's in scope (job.html always has `bar`; timeline.html/code.html may
+   not) -- still a plain, focusable <input>, so it's an edit, not a lock. #}
 
 {% if request.query_params.get('saved') %}
-  <div class="note good"><span class="lab">Recorded</span>Symptom report saved.</div>
+  <div class="note good"><span class="lab">{{ t('recorded_label') }}</span>{{ t('symptom_saved') }}</div>
 {% endif %}
 {% if request.query_params.get('error') %}
-  <div class="note alert"><span class="lab">Not recorded</span>{{ request.query_params.get('error') }}</div>
+  <div class="note alert"><span class="lab">{{ t('not_recorded_label') }}</span>{{ request.query_params.get('error') }}</div>
 {% endif %}
 
 <div class="panel" id="symptom-form">
-  <h3>What did the driver feel?</h3>
+  <h3>{{ t('symptom_q') }}</h3>
   <p class="tag-hint">Nothing felt is useful evidence -- choose "Drives normally" on an
     unremarkable drive just as readily as a real complaint.</p>
   <form method="post" action="/v/{{ vin }}/symptoms">
     <input type="hidden" name="redirect_to" value="{{ back_to }}">
 
     <div class="field">
-      <select name="tags" multiple size="6" class="tag-select" aria-label="What did the driver feel?">
+      <select name="tags" multiple size="12" class="tag-select" aria-label="{{ t('symptom_q') }}">
         <option value="drives_normally">Drives normally</option>
-        {% for t in tags if t != "drives_normally" %}
-          <option value="{{ t }}">{{ t|replace("_", " ") }}</option>
+        {% for tg in tags if tg != "drives_normally" %}
+          {% set _lbl = t('symptom_' + tg) %}
+          <option value="{{ tg }}">{{ _lbl if _lbl != ('symptom_' + tg) else tg|replace("_", " ") }}</option>
         {% endfor %}
       </select>
     </div>
 
-    <div class="field"><label>Conditions</label>
+    <div class="field"><label>{{ t('conditions_label') }}</label>
       <div class="tag-grid">
         {% for c in conds %}
+          {% set _clbl = t('cond_' + c) %}
           <span class="tag-chip">
             <input type="checkbox" id="cond_{{ c }}" name="conditions" value="{{ c }}">
-            <label for="cond_{{ c }}">{{ c|replace("_", " ") }}</label>
+            <label for="cond_{{ c }}">{{ _clbl if _clbl != ('cond_' + c) else c|replace("_", " ") }}</label>
           </span>
         {% endfor %}
       </div>
     </div>
 
     <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:10px">
-      <div class="field" style="margin-bottom:0"><label>Reporter</label>
+      <div class="field" style="margin-bottom:0"><label>{{ t('reporter_label') }}</label>
         <div class="tag-grid">
           <span class="tag-chip"><input type="radio" id="rep_driver" name="reporter" value="driver" checked>
-            <label for="rep_driver">Driver</label></span>
+            <label for="rep_driver">{{ t('driver_opt') }}</label></span>
           <span class="tag-chip"><input type="radio" id="rep_mechanic" name="reporter" value="mechanic">
-            <label for="rep_mechanic">Mechanic</label></span>
+            <label for="rep_mechanic">{{ t('mechanic_opt') }}</label></span>
         </div>
       </div>
-      <div class="field" style="margin-bottom:0"><label for="symptom_at">When</label>
-        <input type="datetime-local" id="symptom_at" name="at" value="{{ now_local }}">
+      <div class="field" style="margin-bottom:0"><label for="symptom_at">{{ t('when_label') }}</label>
+        <input type="datetime-local" id="symptom_at" name="at" value="{{ now_local if now_local is defined and now_local else '' }}" data-default-now="1">
       </div>
-      <div class="field" style="margin-bottom:0"><label for="symptom_odo">Odometer (km, optional)</label>
-        <input type="number" id="symptom_odo" name="odometer_km" min="0" step="1" inputmode="numeric">
+      <div class="field" style="margin-bottom:0">
+        <label for="symptom_odo">{{ t('odometer_optional') }}
+          {% if bar is defined and bar and bar.odo_last is not none %}<span class="muted small">(&#9998; {{ t('edit_hint') }})</span>{% endif %}
+        </label>
+        <input type="number" id="symptom_odo" name="odometer_km" min="0" step="1" inputmode="numeric"
+               {% if bar is defined and bar and bar.odo_last is not none %}value="{{ bar.odo_last|int }}"{% endif %}>
       </div>
     </div>
 
-    <div class="field"><label for="symptom_text">Notes (optional)</label>
+    <div class="field"><label for="symptom_text">{{ t('notes_optional') }}</label>
       <textarea id="symptom_text" name="text" rows="2" maxlength="2000" style="width:100%"
-                placeholder="e.g. smelled fuel right after filling up, gone by the next morning"></textarea>
+                placeholder="{{ t('symptom_text_placeholder') }}"></textarea>
     </div>
 
-    <p><button class="btn primary" type="submit">Save symptom report</button></p>
+    <p><button class="btn primary" type="submit">{{ t('save_symptom_report') }}</button></p>
   </form>
 </div>
+<script>
+(function(){
+  var el = document.getElementById("symptom_at");
+  if (el && !el.value) {
+    var d = new Date(), pad = function(n){ return String(n).padStart(2, "0"); };
+    el.value = d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate())
+      + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+})();
+</script>

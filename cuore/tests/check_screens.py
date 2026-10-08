@@ -50,6 +50,7 @@ sys.path.insert(0, str(ROOT))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore.app import create_app  # noqa: E402
+from cuore.web.i18n import DEFAULT_LANG, t as _t  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio -- real corpus, chronic P0455/P0440/P0456
 
@@ -105,7 +106,10 @@ check("process map's current icon links to step 7",
 step12 = client.get(f"/v/{VIN}/job", params={"step": "12"})
 check("?step=12 responds 200", step12.status_code == 200, str(step12.status_code))
 check("?step=12 shows the release link", f'/v/{VIN}/release' in step12.text and
-      "Go to release" in step12.text, "release link/text not found")
+      # "Go to release" now goes through t() (mechanic-UX review item 5); no
+      # lang cookie has been set yet at this point, so DEFAULT_LANG ("it")
+      # is what actually renders -- check for that, not the English string.
+      _t("go_to_release", DEFAULT_LANG) in step12.text, "release link/text not found")
 check("?step=12 shows step 12's own heading", 'id="step-12"' in step12.text,
       "no id=\"step-12\"")
 

@@ -76,6 +76,22 @@ def _norm_ts(ts: Optional[str]) -> str:
     return (ts or "").replace("T", " ")[:19]
 
 
+def _short_date(ts: Optional[str]) -> str:
+    """"4 Oct"-style date out of an ISO-ish timestamp, for a why-text that
+    tells a mechanic how stale a piece of evidence is. ``""`` when ``ts``
+    does not parse -- never raises, since a why-string must still render."""
+    from datetime import datetime
+
+    norm = _norm_ts(ts)
+    if not norm:
+        return ""
+    try:
+        dt = datetime.fromisoformat(norm)
+    except ValueError:
+        return norm[:10]
+    return f"{dt.day} {dt.strftime('%b')}"
+
+
 def _after(ts: Optional[str], since: Optional[str]) -> bool:
     if not ts or not since:
         return False
@@ -204,18 +220,32 @@ def flow_state(vin: str) -> dict[str, Any]:
     identity = dossier.get("identity") or {}
     latest_log_ts = ((cp.get("latest_session") or {}).get("timestamp")
                      or (cp.get("latest_scan") or {}).get("timestamp"))
-    log_since_intake = bool(identity.get("log_count")) and (
+    has_any_log = bool(identity.get("log_count"))
+    log_since_intake = has_any_log and (
         in_at is None or _after(latest_log_ts, in_at) or latest_log_ts is None)
     observed_since_intake = _any_car_observation_after(vin, in_at)
-    done[4] = bool(log_since_intake or observed_since_intake)
-    why[4] = ("codes read since intake" if done[4]
-             else "no observation or MES log since intake")
+    # Evidence that predates intake still counts -- a VIN with any
+    # session/scan on file has had its codes read, full stop. A read taken
+    # since intake just upgrades the why-text to say so; it is never what
+    # makes this step done versus not.
+    done[4] = bool(has_any_log or observed_since_intake)
+    if log_since_intake or observed_since_intake:
+        why[4] = "codes read since intake"
+    elif has_any_log:
+        why[4] = (f"codes from MES logs, newest {_short_date(latest_log_ts)}; "
+                 "read the car again to refresh")
+    else:
+        why[4] = "no observation or MES log on file for this VIN"
 
-    # step 3 (verdict) is not independently knowable -- it counts done
-    # exactly when step 4 (scan & codes) has data, per the flow's own rule.
-    done[3] = done[4]
-    why[3] = ("verdict computed from codes on file" if done[3]
-             else "no codes read yet; verdict not computed")
+    # step 3 (verdict) counts done whenever dossier_bridge actually produced
+    # a verdict -- NO_DATA means none; anything else means one was computed,
+    # even from evidence that predates intake. Never show "verdict not
+    # computed" once a real verdict exists; its own summary sentence is the
+    # why-text, so post-intake reads upgrade it automatically.
+    verdict_state = verdict.get("state")
+    done[3] = bool(verdict_state) and verdict_state != "NO_DATA"
+    why[3] = ((verdict.get("summary") or "verdict computed from codes on file")
+             if done[3] else "no codes read yet; verdict not computed")
 
     done[5] = bool(hypotheses)
     why[5] = (f"{len(hypotheses)} hypothesis(es) on file" if hypotheses

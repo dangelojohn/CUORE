@@ -39,6 +39,36 @@ from typing import Any, Optional
 
 STATUSES = ("in", "out")
 
+#: WMI (VIN positions 1-4) -> make, decoded as the last-resort fallback when
+#: a caller opens a visit with no name at all. This module stays independent
+#: of ``cuore`` (see module docstring), so it has no access to the MES
+#: corpus's own vehicle list or dossier identity -- those richer lookups
+#: belong to ``cuore.services.shop_bridge.resolve_vehicle_name``, which is
+#: what callers should normally pass in as ``vehicle``. This is just enough
+#: to guarantee a known VIN is never recorded with no name at all. Model is
+#: always reported as "UNKNOWN" -- never guessed.
+_WMI_MAKES: dict[str, str] = {
+    "ZASF": "Alfa Romeo",
+    "ZN6": "Maserati",
+    "ZN7": "Maserati",
+}
+
+
+def _decode_wmi(vin: str) -> str:
+    vin = (vin or "").strip().upper()
+    for prefix in sorted(_WMI_MAKES, key=len, reverse=True):
+        if vin.startswith(prefix):
+            return _WMI_MAKES[prefix]
+    return ""
+
+
+def _fallback_vehicle_name(vin: str) -> str:
+    """Never "" for a non-empty VIN: a WMI-decoded make (model "UNKNOWN"),
+    or, failing that, the VIN itself -- a visit must never carry no name at
+    all once its VIN is known."""
+    make = _decode_wmi(vin)
+    return f"{make} UNKNOWN" if make else vin
+
 #: The release checklist's recorded booleans -- shown with their evidence,
 #: never a gate on release. ``notes`` rides alongside as free text.
 #: ``verified`` is deliberately not here: it is never mechanic-ticked, only
@@ -195,11 +225,12 @@ def intake(vin: str, complaint: str = "", *, technician: str = "",
     vin = (vin or "").strip()
     if not vin:
         raise ValueError("vin is required")
+    vehicle = (vehicle or "").strip() or _fallback_vehicle_name(vin)
     from mes import jobs as jobs_mod
     job = jobs_mod.open(vin, technician=technician, complaint=complaint)
     rec = {"op": "intake", "id": uuid.uuid4().hex[:12],
           "at": datetime.now().isoformat(timespec="seconds"),
-          "vin": vin, "vehicle": (vehicle or "").strip(),
+          "vin": vin, "vehicle": vehicle,
           "complaint": (complaint or "").strip(),
           "technician": (technician or "").strip(), "job_id": job["id"]}
     _append(rec)

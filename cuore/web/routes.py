@@ -9,7 +9,9 @@ Page set:
 
 ===========================  ==================================================
 ``/``                        vehicle picker and corpus health
-``/v/{vin}``                 the dossier
+``/v/{vin}``                 the bench (cuore/web/bench_routes.py) -- what to
+                              do right now
+``/v/{vin}/dossier``         the full dossier
 ``/v/{vin}/codes``           every code with severity and provenance
 ``/v/{vin}/code/{code}``     one code's life across sessions
 ``/v/{vin}/tree``            fault-tree walkthrough
@@ -25,6 +27,7 @@ Page set:
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -103,6 +106,68 @@ def error_page(request: Request, body: Any) -> HTMLResponse:
          "version": __version__, "profile": settings.profile.value},
         status_code=body.status,
     )
+
+
+#: The 5 coarse system-filter buckets the codes table groups codes into
+#: (review R8) -- matches the dossier's own cluster families 1:1 by reusing
+#: dossier_bridge's EVAP special-case and generic SAE-prefix rules, so a
+#: code row's "system" here is never a second, disagreeing guess at the
+#: same classification the dossier already made for that code's cluster.
+_SYSTEM_BUCKET_ORDER = ("EVAP", "Network", "Body", "Chassis", "Engine other")
+_GENERIC_BUCKET = {"network": "Network", "body": "Body", "chassis": "Chassis",
+                   "adas": "Chassis"}
+
+
+def _code_family_and_bucket(base: str) -> tuple[str, str]:
+    """``(family_key, bucket)`` for one base DTC (e.g. ``"P0456"``).
+
+    ``family_key`` is the exact slug a dossier cluster is anchored at
+    (``cluster-evap``, ``cluster-network``, ...); ``bucket`` is the coarser
+    of the 5 filter chips the codes table shows. Never raises on an
+    unrecognised prefix -- falls back to "Engine other" rather than
+    dropping the row from every filter.
+    """
+    from ..services import dossier_bridge as _db
+    try:
+        if base in _db._EVAP_CODES:
+            return "EVAP", "EVAP"
+        fam = _db._generic_family_for(base)
+    except Exception:  # noqa: BLE001 -- a classification miss must never 500 a page
+        fam = None
+    if fam is None:
+        return "other", "Engine other"
+    key, _label = fam
+    return key, _GENERIC_BUCKET.get(key, "Engine other")
+
+
+def _relative_ago(ts: str | None) -> str:
+    """"11 d ago" / "3 mo ago" / "2 y ago" -- coarse enough for a table
+    column; the cell's own title attribute keeps the exact timestamp (see
+    codes.html), so nothing is actually lost by rounding here."""
+    if not ts:
+        return "—"
+    s = str(ts).strip()
+    dt = None
+    for fmt_len, parser in ((19, lambda v: datetime.strptime(v[:19], "%Y-%m-%d %H:%M:%S")),
+                            (10, lambda v: datetime.strptime(v[:10], "%Y-%m-%d"))):
+        try:
+            dt = parser(s)
+            break
+        except ValueError:
+            continue
+    if dt is None:
+        return s
+    days = (datetime.now() - dt).days
+    if days < 0:
+        days = 0
+    if days == 0:
+        return "today"
+    if days < 31:
+        return f"{days} d ago"
+    months = days // 30
+    if months < 12:
+        return f"{months} mo ago"
+    return f"{days // 365} y ago"
 
 
 def _dossier(vin: str) -> dict[str, Any]:
@@ -240,9 +305,15 @@ def _live_panel_for(vin: str, ecu_seen: list[str]) -> dict[str, Any]:
     return out
 
 
-@router.get("/v/{vin}", response_class=HTMLResponse)
+@router.get("/v/{vin}/dossier", response_class=HTMLResponse)
 def vehicle(request: Request, vin: str) -> HTMLResponse:
-    """The dossier: what am I looking at, before the hood opens."""
+    """The full dossier: what am I looking at, before the hood opens.
+
+    Used to live at ``/v/{vin}`` -- that path is now the bench
+    (``cuore/web/bench_routes.py``), the smaller "what to do right now"
+    screen. Every existing link to ``#open-work``/``#sec-*`` on this page
+    still resolves the same way; only the path it hangs off changed.
+    """
     dossier = _dossier(vin)
     codes = mes_bridge.open_codes_for(dossier)
     bar = _vehicle_bar(vin, dossier)
@@ -252,7 +323,8 @@ def vehicle(request: Request, vin: str) -> HTMLResponse:
     response = _page(request, "vehicle.html", vin=vin, d=dossier, bar=bar,
                      open_codes=codes, live_panel=_live_panel_for(vin, bar["ecus"]),
                      notes_list=vehicle_notes, note_target_kind="vehicle",
-                     note_target_id="", note_redirect=f"/v/{vin}", note_kind_locked=True,
+                     note_target_id="", note_redirect=f"/v/{vin}/dossier",
+                     note_kind_locked=True,
                      tab="dossier", view=view, live_strip=live_status)
     _set_active_vehicle(response, vin)
     return response
@@ -260,14 +332,38 @@ def vehicle(request: Request, vin: str) -> HTMLResponse:
 
 @router.get("/v/{vin}/codes", response_class=HTMLResponse)
 def codes(request: Request, vin: str,
-          include_simulation: bool = False) -> HTMLResponse:
-    """Every code this car has ever set, ordered by what decides a diagnosis."""
+          include_simulation: bool = False, system: str = "") -> HTMLResponse:
+    """Every code this car has ever set, ordered by what decides a diagnosis.
+
+    Review R8: each row is shaped here (not re-sorted -- ``extract_dtcs``
+    already orders returned/chronic/cleared/seen-once, and that order is
+    preserved through the filter below) with a relative "ago" date, an
+    "xN" session count, and the system bucket/cluster anchor used for the
+    filter chips and the row's link back to its dossier cluster.
+    """
     dossier = _dossier(vin)
     data = mes_bridge.extract_dtcs(vin=vin,
                                    include_simulation=include_simulation)
-    response = _page(request, "codes.html", vin=vin, rows=data["dtcs"], data=data,
+    for r in data["dtcs"]:
+        base = (r.get("dtc") or "").split("-")[0]
+        family_key, bucket = _code_family_and_bucket(base)
+        r["family_key"] = family_key
+        r["system_bucket"] = bucket
+        r["cluster_href"] = f"/v/{vin}/dossier#cluster-{family_key.lower()}"
+        r["first_seen_ago"] = _relative_ago(r.get("first_seen"))
+        r["last_seen_ago"] = _relative_ago(r.get("last_seen"))
+        r["sessions_x"] = f"x{r.get('sessions') or 0}"
+
+    system_filter = (system or "").strip()
+    rows = data["dtcs"]
+    if system_filter:
+        rows = [r for r in rows if r["system_bucket"].lower() == system_filter.lower()]
+
+    response = _page(request, "codes.html", vin=vin, rows=rows, data=data,
                      bar=_vehicle_bar(vin, dossier),
-                     include_simulation=include_simulation, tab="codes")
+                     include_simulation=include_simulation, tab="codes",
+                     system_filter=system_filter,
+                     system_buckets=_SYSTEM_BUCKET_ORDER)
     _set_active_vehicle(response, vin)
     return response
 
