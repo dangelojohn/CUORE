@@ -1,0 +1,88 @@
+{# Symptom entry: big tap-to-toggle chips, no JavaScript required.
+   Included by timeline.html and code.html only (per the design review --
+   not offered from the dossier, to keep one obvious place to log what the
+   driver actually felt). POSTs to /v/{vin}/symptoms (cuore/web/
+   timeline_routes.py); that handler redirects back to whatever page
+   included this form with ?saved=1 or ?error=... on the query string, so
+   the flash below reads straight off request.query_params rather than
+   needing every including route to thread saved/error through its own
+   context -- this is what lets the SAME partial work on code.html's route
+   (cuore/web/routes.py), which this task may not edit.
+
+   Context expected: vin, note_redirect (where to bounce back to --
+   defaults to the current page), symptom_tags, condition_tags (both
+   optional -- fall back to the full fixed vocabulary below if the bridge
+   has not supplied its own list yet). #}
+
+{% set tags = symptom_tags if symptom_tags is defined and symptom_tags else
+  ["drives_normally","mil_on","fuel_smell","hard_start","rough_idle","hesitation",
+   "loss_of_power","hard_to_refuel","noise","vibration","warning_message","other"] %}
+{% set conds = condition_tags if condition_tags is defined and condition_tags else
+  ["cold_start","hot","just_refuelled","highway","city","idle","rain"] %}
+{% set back_to = note_redirect if note_redirect is defined and note_redirect else request.url.path %}
+
+{% if request.query_params.get('saved') %}
+  <div class="note good"><span class="lab">Recorded</span>Symptom report saved.</div>
+{% endif %}
+{% if request.query_params.get('error') %}
+  <div class="note alert"><span class="lab">Not recorded</span>{{ request.query_params.get('error') }}</div>
+{% endif %}
+
+<div class="panel" id="symptom-form">
+  <h3>What did the driver feel?</h3>
+  <p class="tag-hint">Nothing felt is useful evidence -- tick "Drives normally" on an
+    unremarkable drive just as readily as a real complaint.</p>
+  <form method="post" action="/v/{{ vin }}/symptoms">
+    <input type="hidden" name="redirect_to" value="{{ back_to }}">
+
+    <div class="field"><label>Tags</label>
+      <div class="tag-grid">
+        <span class="tag-chip normally">
+          <input type="checkbox" id="tag_drives_normally" name="tags" value="drives_normally">
+          <label for="tag_drives_normally">&#10003; Drives normally</label>
+        </span>
+        {% for t in tags if t != "drives_normally" %}
+          <span class="tag-chip">
+            <input type="checkbox" id="tag_{{ t }}" name="tags" value="{{ t }}">
+            <label for="tag_{{ t }}">{{ t|replace("_", " ") }}</label>
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="field"><label>Conditions</label>
+      <div class="tag-grid">
+        {% for c in conds %}
+          <span class="tag-chip">
+            <input type="checkbox" id="cond_{{ c }}" name="conditions" value="{{ c }}">
+            <label for="cond_{{ c }}">{{ c|replace("_", " ") }}</label>
+          </span>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:10px">
+      <div class="field" style="margin-bottom:0"><label>Reporter</label>
+        <div class="tag-grid">
+          <span class="tag-chip"><input type="radio" id="rep_driver" name="reporter" value="driver" checked>
+            <label for="rep_driver">Driver</label></span>
+          <span class="tag-chip"><input type="radio" id="rep_mechanic" name="reporter" value="mechanic">
+            <label for="rep_mechanic">Mechanic</label></span>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0"><label for="symptom_at">When</label>
+        <input type="datetime-local" id="symptom_at" name="at" value="{{ now_local }}">
+      </div>
+      <div class="field" style="margin-bottom:0"><label for="symptom_odo">Odometer (km, optional)</label>
+        <input type="number" id="symptom_odo" name="odometer_km" min="0" step="1" inputmode="numeric">
+      </div>
+    </div>
+
+    <div class="field"><label for="symptom_text">Notes (optional)</label>
+      <textarea id="symptom_text" name="text" rows="2" maxlength="2000" style="width:100%"
+                placeholder="e.g. smelled fuel right after filling up, gone by the next morning"></textarea>
+    </div>
+
+    <p><button class="btn primary" type="submit">Save symptom report</button></p>
+  </form>
+</div>

@@ -23,9 +23,10 @@ from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
-from mes import analysis, catalog, compact, csvlog, dtc as dtc_mod, dtc_text, fes, modules, paths, scan
+from mes import analysis, catalog, code_feel, compact, csvlog, dtc as dtc_mod, dtc_text, fes, modules, paths, scan
 from mes import dealer as dealer_mod
 from mes import notes as notes_mod
+from mes import symptoms as symptoms_mod
 from mes import faulttree, verdict
 from mes import workup as workup_mod
 from mes.errors import MesError
@@ -725,6 +726,59 @@ def edit_note(id: str, text: str) -> str:
 def hide_note(id: str) -> str:
     """Hide a note (soft delete). Appends a hide record -- never rewrites history."""
     return _guard(lambda: notes_mod.hide(id))
+
+
+# --- driver/mechanic symptom reports ---------------------------------------
+
+
+@mcp.tool()
+def add_symptom(vin: str, at: str, reporter: str = "driver", tags: str = "",
+                conditions: str = "", odometer_km: float | None = None,
+                text: str = "") -> str:
+    """Record what a person actually felt, as distinct from what the car's
+    computer measured -- the attested half of the timeline cuore builds
+    against the logged code history. Never counts as evidence in
+    ``diagnosis_verdict``; it is a human claim, not a measurement.
+
+    Args:
+        at: ISO timestamp of when the symptom happened (required).
+        reporter: "driver" or "mechanic".
+        tags: comma-separated, from SYMPTOM_TAGS (drives_normally, mil_on,
+            fuel_smell, hard_start, rough_idle, hesitation, loss_of_power,
+            hard_to_refuel, noise, vibration, warning_message, other).
+            "drives_normally" cannot be combined with a drivability tag
+            (rough_idle, hesitation, loss_of_power, hard_start).
+        conditions: comma-separated, from CONDITIONS (cold_start, hot,
+            just_refuelled, highway, city, idle, rain).
+    """
+    def run():
+        tag_list = [t.strip() for t in tags.split(",") if t.strip()]
+        cond_list = [c.strip() for c in conditions.split(",") if c.strip()]
+        return symptoms_mod.add(vin, at, odometer_km=odometer_km, reporter=reporter,
+                                tags=tag_list, conditions=cond_list, text=text)
+    return _guard(run)
+
+
+@mcp.tool()
+def symptoms(vin: str = "", include_hidden: bool = False) -> str:
+    """Symptom reports, oldest first. Empty vin returns every vehicle's."""
+    return _guard(lambda: {"vin": vin,
+                           "symptoms": symptoms_mod.load(vin, include_hidden=include_hidden)})
+
+
+@mcp.tool()
+def hide_symptom(id: str) -> str:
+    """Hide a symptom report (soft delete). Never rewrites history."""
+    return _guard(lambda: symptoms_mod.hide(id))
+
+
+@mcp.tool()
+def dtc_feel(code: str) -> str:
+    """"What would the driver feel?" for one DTC -- a sourced knowledge-table
+    lookup (never a car measurement). Exact code first, then family fallback
+    (any U-code -> network, any P03xx -> misfire); null if nothing is
+    tabulated for it."""
+    return _guard(lambda: code_feel.lookup(code))
 
 
 # --- CSV recordings (graph subsystem export) ------------------------------

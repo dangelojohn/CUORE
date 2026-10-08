@@ -776,3 +776,109 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 .vtabs::-webkit-scrollbar, .jumprow::-webkit-scrollbar { display: none; }
 /* The strip's "..." details button must never be pushed off-screen. */
 .vbar .vmore { flex: none; margin-left: auto; }
+
+
+/* =========================================================================
+ * TIMELINE -- "Codes vs. what the driver notices" (/v/{vin}/timeline)
+ * Appended section; everything above this line predates the timeline page.
+ * ========================================================================= */
+
+/* Per-code-family colours for cuore/web/timeline_svg.py. Same convention as
+ * the --sev-*/--ok ramp above: dark-first in :root, mirrored in the light
+ * media query and the explicit [data-theme="light"] override, so the SVG's
+ * var(--fam-*) references resolve correctly in both themes without the
+ * Python module knowing which is active. Chosen to stay visually distinct
+ * from --accent and from each other, and from --sev-cleared's blue (chassis
+ * uses a steeper, darker blue than evap's teal or network's violet). */
+:root {
+  --fam-mil:          #e8565c;
+  --fam-evap:          #3fb0ae;
+  --fam-network:       #a986ef;
+  --fam-body:           #d98a3c;
+  --fam-chassis:        #5b8fd9;
+  --fam-engine:  #8fae4a;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --fam-mil:          #9e1b21;
+    --fam-evap:          #1f7a78;
+    --fam-network:       #6b4fb0;
+    --fam-body:           #a85a10;
+    --fam-chassis:        #2a5ea8;
+    --fam-engine:  #5c7a1e;
+  }
+}
+
+:root[data-theme="light"] {
+  --fam-mil:          #9e1b21;
+  --fam-evap:          #1f7a78;
+  --fam-network:       #6b4fb0;
+  --fam-body:           #a85a10;
+  --fam-chassis:        #2a5ea8;
+  --fam-engine:  #5c7a1e;
+}
+
+/* The swimlane chart: a fixed, non-scrolling label column (so a lane's name
+ * is always on screen) beside a horizontally-scrolling SVG. This is what
+ * keeps the page itself from scrolling sideways at 400px -- only the chart's
+ * own box does, via its own scrollbar. */
+.tl-chart { display: flex; align-items: flex-start; border: 1px solid var(--rule);
+            border-radius: var(--radius); background: var(--surface); overflow: hidden; }
+.tl-labels { flex: none; display: flex; flex-direction: column; min-width: 86px;
+             max-width: 120px; border-right: 1px solid var(--rule); background: var(--surface-2); }
+.tl-label { display: flex; align-items: center; padding: 0 8px; font-size: 11.5px;
+            color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            border-bottom: 1px solid var(--rule-soft); }
+.tl-scroll { flex: 1 1 auto; overflow-x: auto; overflow-y: hidden; max-width: 100%; min-width: 0; }
+.tl-scroll svg { display: block; }
+.tl-toolbar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline;
+              margin: 8px 0 10px; font-size: 12.5px; }
+.tl-toolbar .grp { display: inline-flex; gap: 4px; align-items: center; }
+.tl-toolbar a { padding: 3px 8px; border: 1px solid var(--rule); border-radius: var(--radius);
+                color: var(--ink-2); text-decoration: none; min-height: 28px; display: inline-flex;
+                align-items: center; }
+.tl-toolbar a.on { color: var(--ink); border-color: var(--accent); font-weight: 650; }
+
+/* Correlation table: verdict chips reuse the existing severity chip classes
+ * (.chip.chronic amber, .chip.plain grey-neutral) rather than new colours --
+ * R10's rule ("colour means status, nothing else") already covers this. */
+.tl-corr td.codes-cell { display: flex; flex-wrap: wrap; gap: 4px; }
+.tl-corr .spark { vertical-align: middle; }
+
+/* Symptom entry form: big tap-to-toggle chips, checkbox-styled, 44px min
+ * target per the mechanic-UX baseline already set for .btn/.jump-chip. */
+.tag-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 14px; }
+.tag-chip { position: relative; }
+.tag-chip input[type="checkbox"], .tag-chip input[type="radio"] {
+  position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer;
+}
+.tag-chip label {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 44px; padding: 6px 14px; border: 1.5px solid var(--rule); border-radius: 999px;
+  background: var(--surface-2); color: var(--ink-2); font-size: 13.5px; cursor: pointer;
+  user-select: none; transition: background .1s ease, border-color .1s ease, color .1s ease;
+}
+.tag-chip input:checked + label {
+  background: var(--accent-dim); border-color: var(--accent); color: var(--ink); font-weight: 650;
+}
+.tag-chip.normally label { border-color: var(--ok); color: var(--ok); font-weight: 650; }
+.tag-chip.normally input:checked + label { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.tag-hint { font-size: 12px; color: var(--ink-3); margin: -6px 0 10px; }
+
+/* "What would the driver feel?" card on code.html. */
+.feel-card .feel-sentence { font-size: 15px; margin: 4px 0 10px; }
+.feel-card .feel-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.feel-card .feel-tags .chip.expect { color: var(--ok); background: var(--ok-bg); }
+.feel-card .feel-tags .chip.not-expect { color: var(--ink-3); background: var(--surface-2);
+  text-decoration: line-through; text-decoration-color: var(--ink-3); }
+
+@media print {
+  .tl-scroll { overflow: visible !important; }
+  .tl-chart { border: none; }
+}
+
+@media (max-width: 400px) {
+  .tl-labels { min-width: 70px; max-width: 92px; }
+  .tl-label { font-size: 10.5px; padding: 0 5px; }
+}

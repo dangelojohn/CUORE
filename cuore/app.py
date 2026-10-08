@@ -24,7 +24,7 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from mes.errors import MesError  # noqa: E402  -- needs bootstrap to have run
 
-from .api import checklists as checklists_api, dossier as dossier_api, known_good, live, live_ui, logs, recordings, reference, system, vehicles  # noqa: E402
+from .api import checklists as checklists_api, dossier as dossier_api, known_good, live, live_ui, logs, recordings, reference, system, timeline as timeline_api, vehicles  # noqa: E402
 from .config import Settings, load  # noqa: E402
 from .models import ErrorBody  # noqa: E402
 from .services.errors import BridgeError  # noqa: E402
@@ -35,6 +35,7 @@ from .web import labels_routes  # noqa: E402
 from .web import live_dashboard_routes  # noqa: E402
 from .web import routes as web_routes  # noqa: E402
 from .web import service_routes  # noqa: E402
+from .web import timeline_routes  # noqa: E402
 
 log = logging.getLogger("cuore")
 
@@ -114,6 +115,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(known_good.router, prefix="/api")
     app.include_router(checklists_api.router, prefix="/api")
     app.include_router(dossier_api.router, prefix="/api")
+    app.include_router(timeline_api.router, prefix="/api")
     app.include_router(dashboard_routes.api_router, prefix="/api")
     app.include_router(service_routes.api_router, prefix="/api")
     app.include_router(drivetrain_routes.api_router, prefix="/api")
@@ -124,6 +126,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(drivetrain_routes.router)
     app.include_router(labels_routes.router)
     app.include_router(dossier_routes.router)
+    app.include_router(timeline_routes.router)
     app.include_router(live_dashboard_routes.router)
 
     app.mount("/static",

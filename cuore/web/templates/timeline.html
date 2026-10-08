@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Timeline — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+<h1>Codes vs. what the driver notices</h1>
+
+{% if tl.findings %}
+<div class="panel tight">
+  <ul style="margin:0;padding:10px 14px">
+    {% for f in tl.findings %}<li style="margin-bottom:6px">{{ f }}</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<h2>By family</h2>
+<div class="tw">
+<table class="tl-corr">
+  <thead><tr><th>Family</th><th>Codes</th><th class="n">Occurrences</th>
+    <th class="n">Symptom reports near</th><th>Over time</th><th>Verdict</th></tr></thead>
+  <tbody>
+  {% for row in tl.correlation %}
+    <tr>
+      <td>{{ row.family }}</td>
+      <td class="codes-cell">
+        {% for c in row.codes %}<a class="chip-code sm" href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% endfor %}
+      </td>
+      <td class="n mono">{{ row.occurrences }}</td>
+      <td class="n mono">{{ row.symptom_reports_near }}</td>
+      <td>{% if row.spark %}{{ row.spark|safe }}{% else %}<span class="muted">—</span>{% endif %}</td>
+      <td><span class="chip {{ row.verdict_class }}">{{ row.verdict }}</span></td>
+    </tr>
+  {% else %}
+    <tr><td colspan="6" class="muted">No code family has enough history to correlate yet.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2>Swimlane</h2>
+<div class="tl-toolbar">
+  <span class="grp">Axis:
+    <a href="?axis=time&range={{ range_key }}" {% if axis == "time" %}class="on"{% endif %}>Time</a>
+    <a href="?axis=odometer&range={{ range_key }}" {% if axis == "odometer" %}class="on"{% endif %}>Odometer</a>
+  </span>
+  <span class="grp">Range:
+    <a href="?axis={{ axis }}&range=all" {% if range_key == "all" %}class="on"{% endif %}>All</a>
+    <a href="?axis={{ axis }}&range=1y" {% if range_key == "1y" %}class="on"{% endif %}>1y</a>
+    <a href="?axis={{ axis }}&range=90d" {% if range_key == "90d" %}class="on"{% endif %}>90d</a>
+    <a href="?axis={{ axis }}&range=30d" {% if range_key == "30d" %}class="on"{% endif %}>30d</a>
+  </span>
+</div>
+
+<div class="tl-chart">
+  <div class="tl-labels" style="padding-top:{{ layout[0].top if layout else 0 }}px" aria-hidden="true">
+    {% for lane in layout %}
+      <div class="tl-label" style="height:{{ lane.height }}px" title="{{ lane.label }}">{{ lane.label }}</div>
+    {% endfor %}
+  </div>
+  <div class="tl-scroll" role="img" aria-label="Swimlane timeline of codes, clears, symptoms, notes, work and conditions">
+    {{ svg|safe }}
+  </div>
+</div>
+
+<details class="raw-rows" style="margin-top:14px">
+  <summary>List view (accessible table of every event)</summary>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Lane</th><th>When</th><th class="n">Odometer</th><th>Severity</th><th>Label</th><th>Detail</th></tr></thead>
+    <tbody>
+    {% for lane in tl.lanes %}
+      {% for e in lane.events %}
+        <tr>
+          <td class="small">{{ lane.label }}</td>
+          <td class="mono small">{{ e.t }}{% if e.t_end %} &rarr; {{ e.t_end }}{% endif %}</td>
+          <td class="n small">{% if e.odo %}{{ "{:,.0f}".format(e.odo) }} km{% else %}—{% endif %}</td>
+          <td class="small"><span class="chip plain">{{ e.severity }}</span></td>
+          <td class="small">{% if e.href %}<a href="{{ e.href }}">{{ e.label }}</a>{% else %}{{ e.label }}{% endif %}</td>
+          <td class="small muted">{{ e.detail }}</td>
+        </tr>
+      {% endfor %}
+    {% else %}
+      <tr><td colspan="6" class="muted">No events yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+
+<h2>Log a symptom</h2>
+{% include "_symptom_form.html" %}
+
+{% endblock %}

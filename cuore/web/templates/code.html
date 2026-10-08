@@ -5,6 +5,34 @@
 
 <h1 class="mono">{{ code }}</h1>
 
+{# code_feel is a Jinja global registered by cuore/web/timeline_routes.py as a
+   side effect of importing it (see that module's docstring) -- guarded here
+   so this page still renders before app.py wires that router in. #}
+{% set cf = code_feel(vin, code) if code_feel is defined else {"feel": None, "pattern": None} %}
+<div class="panel feel-card">
+  <h3>What would the driver feel?</h3>
+  {% if cf.feel %}
+    <p class="feel-sentence">{{ cf.feel.feel }}</p>
+    {% if cf.feel.expect or cf.feel.not_expected %}
+    <div class="feel-tags">
+      {% for x in cf.feel.expect %}<span class="chip expect">{{ x }}</span>{% endfor %}
+      {% for x in cf.feel.not_expected %}<span class="chip not-expect">{{ x }}</span>{% endfor %}
+    </div>
+    {% endif %}
+    {% if cf.feel.mil %}<p class="small">MIL: {{ cf.feel.mil }}</p>{% endif %}
+    {% if cf.feel.notes %}<p class="small muted">{{ cf.feel.notes }}</p>{% endif %}
+    <p class="small muted">Confidence: {{ cf.feel.confidence }}
+      {% if cf.feel.source %} &middot; source: <span class="mono">{{ cf.feel.source }}</span>{% endif %}</p>
+  {% else %}
+    <p class="muted">Not in the knowledge table: use the service manual (TechAuthority).</p>
+  {% endif %}
+  {% if cf.pattern %}
+    <p class="small muted">This car: {{ cf.pattern.occurrences }} occurrence(s),
+      {{ cf.pattern.symptom_reports_near }} symptom report(s) nearby
+      {% if cf.pattern.drives_normally_near %}, {{ cf.pattern.drives_normally_near }} "drives normally" report(s) nearby{% endif %}.</p>
+  {% endif %}
+</div>
+
 {% for r in records %}
 <div class="panel">
   <h3>{{ r.dtc }}
@@ -85,6 +113,9 @@
 
 <p><a class="btn" href="/v/{{ vin }}/tree?codes={{ code|urlencode }}">Fault tree for {{ code }} &rarr;</a>
    <a class="btn" href="/v/{{ vin }}/gate?codes={{ code|urlencode }}">Take it to the gate &rarr;</a></p>
+
+<h2>Log a symptom</h2>
+{% include "_symptom_form.html" %}
 
 <h2>Notes on {{ code }}</h2>
 {% include "_notes.html" %}
