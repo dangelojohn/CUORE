@@ -76,5 +76,7 @@ for ($i = 0; $i -lt 120; $i++) {
     Start-Sleep -Milliseconds 500
 }
 
+# Git Bash rewrites "/api/health" into "C:/Program Files/Git/api/health"; undo that.
+$Page = $Page -replace '^[A-Za-z]:[\/](Program Files[\/])?Git[\/]', '/'
 if (-not $Page.StartsWith("/")) { $Page = "/" + $Page }
 Start-Process "$Base$Page"
