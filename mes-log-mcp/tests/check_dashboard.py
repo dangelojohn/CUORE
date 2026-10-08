@@ -20,6 +20,7 @@ sys.path.insert(0, str(HERE.parents[1]))          # mes-log-mcp -- for `mes`
 sys.path.insert(0, str(HERE.parents[2]))          # repo root -- for `cuore.web.dashboard_charts`
 
 from mes import dashboard  # noqa: E402
+from mes.catalog import CATALOG  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"
 NO_SUCH_VIN = "1C4RJFAG0JC000001"
@@ -49,7 +50,13 @@ check("vin echoed", s["vin"] == VIN)
 check("vehicle name present", bool(s["vehicle"]), str(s))
 check("odometer span is sane", s["odometer_first_km"] < s["odometer_last_km"],
       f"{s['odometer_first_km']} .. {s['odometer_last_km']}")
-check("log count matches the corpus (32 logs)", s["log_count"] == 32, str(s["log_count"]))
+# Derived from the corpus itself (the same CATALOG.select call
+# analysis.vehicle_summary / dashboard.build make) rather than a hardcoded
+# count, so this keeps passing as real logs are added to the corpus.
+expected_log_count = len(CATALOG.select(vin=VIN))
+check("log count matches the corpus (non-simulation logs for this VIN)",
+      s["log_count"] == expected_log_count,
+      f"{s['log_count']} != {expected_log_count}")
 check("open_codes_count is a non-negative int", isinstance(s["open_codes_count"], int)
       and s["open_codes_count"] >= 0)
 check("chronic_count includes the known chronics (>= 1)", s["chronic_count"] >= 1,

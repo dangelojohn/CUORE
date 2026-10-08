@@ -8,10 +8,13 @@ that must be ignored.
 Phase 2 points MES_LOG_DIR back at the real corpus (no override) and re-runs
 live_vs_log against the SAME temp live observations, checking that the real
 ECM EVAP codes (P0455/P0456/P0440) come back with a determinate class given
-the fake live read: that read (2026-01-01, long before the real 2026-09-25
-clear) predates the newest real clear, while the real corpus's newest ECM
-read (the 20:28 post-clear FES session) is clean and postdates it -- so the
-live evidence is stale and the log is believed: "logged_not_live".
+the fake live read: that read (2026-01-01) long predates the real corpus's
+newest clear, while the real corpus's newest ECM log read postdates that
+clear and is clean (no stored P0455/P0456/P0440) -- so the live evidence is
+stale and the log is believed: "logged_not_live". The expected newest_clear
+is derived straight from the real corpus (the newest log whose text contains
+the MES "CLEARING STORED FAULT CODES" marker) rather than hardcoded, so this
+check keeps passing as more real logs land.
 """
 
 import json
@@ -160,6 +163,32 @@ os.environ["MES_LOG_DIR"] = tmp_logs
 os.environ["MES_LIVE_OBSERVATIONS"] = tmp_live.name
 
 from mes import compare  # noqa: E402  (import after env vars are set)
+from mes.catalog import CATALOG  # noqa: E402
+from mes.fes import CLEARING_RE  # noqa: E402
+
+
+def _real_newest_clear(vin):
+    """Independently derive the newest clear timestamp from the real corpus.
+
+    Walks the same CATALOG entries ``mes.verdict._last_clear`` does, but
+    re-implemented here (rather than imported) so the check isn't a tautology
+    against the function under test -- it is a structural check: the newest
+    clear must be the newest log whose text contains the MES clear marker.
+    This tracks the real corpus as logs are added instead of pinning a date.
+    """
+    newest = None
+    for entry in CATALOG.select(vin=vin):
+        if entry.parse_error:
+            continue
+        try:
+            text = Path(entry.path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if any(CLEARING_RE.match(line.strip()) for line in text.splitlines()):
+            ts = str(entry.timestamp)
+            if newest is None or ts > newest:
+                newest = ts
+    return newest
 
 print("=== synthetic corpus: every class ===")
 result = compare.live_vs_log(VIN)
@@ -204,8 +233,10 @@ os.environ.pop("MES_LOG_DIRS", None)
 
 print("\n=== real corpus + fake live observations ===")
 real = compare.live_vs_log(VIN)
-check("real newest_clear is the 2026-09-25 20:27 scan clear",
-      real["newest_clear"] == "2026-09-25 20:27:00", real["newest_clear"])
+expected_clear = _real_newest_clear(VIN)
+check("real newest_clear is the newest clear-marked log in the real corpus",
+      bool(expected_clear) and real["newest_clear"] == expected_clear,
+      f"{real['newest_clear']} != {expected_clear}")
 
 for code in ("P0455-00", "P0456-00", "P0440-00"):
     r = row_for(real, "ECM", code)

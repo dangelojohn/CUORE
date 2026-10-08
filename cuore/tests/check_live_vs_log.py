@@ -4,7 +4,10 @@ Same posture as ``cuore/tests/check_live.py``: CUORE_STATE_DIR and
 MES_LIVE_OBSERVATIONS are pointed at throwaway temp paths BEFORE cuore is
 imported, so nothing here ever touches the bench's real observation store.
 The log corpus itself is NOT overridden -- the real MES corpus for this VIN
-is the fixture, same posture as ``cuore/tests/check_api.py``.
+is the fixture, same posture as ``cuore/tests/check_api.py``. The expected
+newest_clear and the synthetic live read's timestamp are both derived from
+the real corpus at run time (not hardcoded dates), so this keeps passing as
+more real logs land for this VIN.
 
 Run:
     .venv/Scripts/python.exe cuore/tests/check_live_vs_log.py
@@ -28,12 +31,61 @@ os.environ["MES_LIVE_OBSERVATIONS"] = str(_live_obs)
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio -- real corpus, real EVAP codes
 
+# `mes` lives in a hyphenated directory next to `cuore` and is not itself
+# importable without this -- same fix cuore.bootstrap applies for the app
+# itself, done by hand here so this can inspect the corpus before any cuore
+# import.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_REPO_ROOT / "mes-log-mcp"))
+
+from datetime import datetime, timedelta  # noqa: E402
+from mes.catalog import CATALOG  # noqa: E402
+from mes.fes import CLEARING_RE  # noqa: E402
+
+
+def _real_newest_clear(vin: str) -> str | None:
+    """Independently derive the newest clear timestamp from the real corpus.
+
+    Re-implemented here rather than calling ``mes.verdict._last_clear``, so
+    this is a structural check (the newest log with the MES clear marker)
+    and not a tautology against the function the route relies on. Tracks
+    the real corpus as more real logs are added, instead of a pinned date.
+    """
+    newest = None
+    for entry in CATALOG.select(vin=vin):
+        if entry.parse_error:
+            continue
+        try:
+            text = Path(entry.path).read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        if any(CLEARING_RE.match(line.strip()) for line in text.splitlines()):
+            ts = str(entry.timestamp)
+            if newest is None or ts > newest:
+                newest = ts
+    return newest
+
+
+def _after_newest_log(vin: str) -> str:
+    """An ISO timestamp strictly after every real log for this VIN.
+
+    Keeps the synthetic live read newer than the whole corpus (clears
+    included) as more real logs land, so it stays classified as
+    live_not_logged instead of drifting into logged_not_live once new logs
+    overtake a date picked by hand.
+    """
+    entries = CATALOG.select(vin=vin)
+    newest = entries[0].timestamp if entries else "2026-01-01 00:00:00"
+    dt = datetime.strptime(newest, "%Y-%m-%d %H:%M:%S")
+    return (dt + timedelta(days=1)).isoformat()
+
+
 # A fake, real-link-shaped ECM read, timestamped after every real log for
-# this VIN (including the 2026-09-25 20:27 clear and the 20:28 post-clear
-# re-read) -- so it should classify as live_not_logged: active live, newer
-# than a log that does not list it.
+# this VIN (including the newest clear and whatever post-clear re-read
+# follows it) -- so it should classify as live_not_logged: active live,
+# newer than a log that does not list it.
 _live_lines = [
-    {"at": "2026-09-26T00:00:00", "kind": "module_dtcs", "vin": VIN,
+    {"at": _after_newest_log(VIN), "kind": "module_dtcs", "vin": VIN,
      "stream": "serial COM3@115200",
      "data": {"ecu": "ECM", "codes": ["P0455-00"],
               "dtcs": [{"code": "P0455-00", "status": 13}]}},
@@ -69,8 +121,10 @@ resp = client.get(f"/api/vehicles/{VIN}/live-vs-log")
 check("json route responds 200", resp.status_code == 200, str(resp.status_code))
 body = resp.json()
 check("vin echoed", body.get("vin") == VIN, str(body.get("vin")))
-check("newest_clear is the real 2026-09-25 20:27 scan clear",
-      body.get("newest_clear") == "2026-09-25 20:27:00", str(body.get("newest_clear")))
+expected_clear = _real_newest_clear(VIN)
+check("newest_clear is the newest clear-marked log in the real corpus",
+      bool(expected_clear) and body.get("newest_clear") == expected_clear,
+      f"{body.get('newest_clear')} != {expected_clear}")
 
 ecm = next((m for m in body.get("modules", []) if m["module"] == "ECM"), None)
 check("ECM module present in the report", ecm is not None)
