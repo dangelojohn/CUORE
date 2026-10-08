@@ -1544,6 +1544,18 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
 .code-head h1 { margin: 0; }
 .code-head-chip { font-size: 12px; }
 
+/* Item 16 cont'd: on job.html's compact code card, _code_brief.html drops
+ * its own big <h1> (would duplicate the code) and leaves the single DTC
+ * display to this caller-printed line -- so it needs the same ">=24px,
+ * monospace" floor the big header would otherwise have provided. */
+.priority-code-row .mono { font-size: 24px; font-weight: 600; }
+
+/* System chips are clickable (<a>) -- the 28px sysb-chip box is a table/
+ * card decoration, not a touch target, everywhere else they're used, but
+ * here they sit in the shop-floor-reachable code card, so they get the
+ * same 44px dense-inline-control floor as chip-code/raw-rows/all-pids. */
+.sysb-chip { min-height: 44px; }
+
 /* Item 15: touch targets. Primary row/tab controls go to 48x48; dense
  * inline controls that cannot grow that far without breaking their row
  * (table-cell chips, the vmore disclosure's own small triggers) get the

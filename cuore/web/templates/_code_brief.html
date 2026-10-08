@@ -18,8 +18,15 @@
                              "absent": "Cleared", "unknown": "Unknown"} %}
 {% set _latest_status = (records[0].occurrences[0].status if records is defined
                          and records and records[0].occurrences else none) %}
+{# `compact` callers (job.html's step 5) already print the code themselves,
+   in a mono span right above this include -- repeating it here as a second,
+   differently-weighted h1 is exactly the duplicate-DTC problem this header
+   row exists to prevent. So in compact mode this row keeps the status/MIL/
+   confidence badges (still shown exactly once) but leaves the code text to
+   the caller's own line, which cuore.css sizes to the same >=24px mono
+   floor as this h1 so there is still exactly one, readable, DTC. #}
 <div class="code-head">
-  <h1 class="mono">{{ code }}</h1>
+  {% if not compact %}<h1 class="mono">{{ code }}</h1>{% endif %}
   {% if _latest_status %}
     <span class="chip plain code-head-chip" title="most recent read: {{ _latest_status }}">{{
       _dtc_status_labels.get(_latest_status, _latest_status|title) }}</span>
