@@ -14,3 +14,7 @@ The place to understand everything gathered so far and to build on later. Start 
 Related folders: `docs/vehicles/<VIN>/` (per-car case folder: PDFs, generators, session records), `docs/reference/` (spec sheets), `docs/research/` (research notes and the mechanic UX review), `docs/format/` (file formats).
 
 Conventions used everywhere: every fact carries a date, a source and a confidence grade (CONFIRMED manufacturer document, CORROBORATED two independent sources, SINGLE-SOURCE, UNKNOWN meaning "use the service manual, TechAuthority"). Nothing is invented to fill a gap. Driver and mechanic inputs (symptoms, notes, feedback, media, inspections, jobs) are attested records, never car measurements, and never enter the evidence gate as measurements.
+
+## Why "CUORE"
+
+Cuore is Italian for heart. The Stelvio, Giulia, Levante and Grecale are special to the people who own them and to the mechanic who specialises in them. The app is written with that care: diagnose on evidence, prove the repair, keep the car's whole story, and hand the owner an honest report.
