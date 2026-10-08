@@ -111,28 +111,32 @@ for key, entry in i18n.STRINGS.items():
 check("t() returns the bare key for an unknown key",
       i18n.t("__no_such_key__", "it") == "__no_such_key__")
 
-check("DEFAULT_LANG is Italian", i18n.DEFAULT_LANG == "it")
+# The language chooser has been removed (it did not work): the app now
+# always renders English, and t() ignores whatever lang it's asked for.
+check("DEFAULT_LANG is English", i18n.DEFAULT_LANG == "en")
 check("SUPPORTED_LANGS includes it and en",
       "it" in i18n.SUPPORTED_LANGS and "en" in i18n.SUPPORTED_LANGS)
 
 _PROBE_KEY = "__check_icons_i18n_probe__"
 i18n.STRINGS[_PROBE_KEY] = {"en": "Probe text"}  # no "it" on purpose
 try:
-    check("t() falls back to English when the requested language's "
-          "translation is missing",
+    check("t() returns the English text even when asked for 'it' "
+          "(the chooser is gone -- t() always renders English now)",
           i18n.t(_PROBE_KEY, "it") == "Probe text")
     check("t() returns the English text when lang is English",
           i18n.t(_PROBE_KEY, "en") == "Probe text")
 finally:
     del i18n.STRINGS[_PROBE_KEY]
 
-check("lang_from_cookie defaults unknown/empty values to Italian",
-      i18n.lang_from_cookie(None) == "it" and i18n.lang_from_cookie("xx") == "it")
-check("lang_from_cookie accepts a supported language",
-      i18n.lang_from_cookie("en") == "en")
+check("lang_from_cookie always resolves to English now, regardless of value",
+      i18n.lang_from_cookie(None) == "en" and i18n.lang_from_cookie("xx") == "en"
+      and i18n.lang_from_cookie("it") == "en")
 
+# pick_language_html itself is kept (unused) alongside the rest of the
+# removed-chooser plumbing, but nothing in the templates calls it anymore;
+# just confirm it still renders without raising.
 _picker = str(i18n.pick_language_html("en"))
-check("pick_language_html mentions Italiano and English",
+check("pick_language_html still renders its two buttons",
       "Italiano" in _picker and "English" in _picker)
 check("pick_language_html buttons are 44px tall",
       "height:44px" in _picker)

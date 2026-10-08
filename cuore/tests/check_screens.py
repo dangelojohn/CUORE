@@ -106,31 +106,32 @@ check("process map's current icon links to step 7",
 step12 = client.get(f"/v/{VIN}/job", params={"step": "12"})
 check("?step=12 responds 200", step12.status_code == 200, str(step12.status_code))
 check("?step=12 shows the release link", f'/v/{VIN}/release' in step12.text and
-      # "Go to release" now goes through t() (mechanic-UX review item 5); no
-      # lang cookie has been set yet at this point, so DEFAULT_LANG ("it")
-      # is what actually renders -- check for that, not the English string.
+      # "Go to release" goes through t() (mechanic-UX review item 5). The
+      # language chooser has been removed -- it did not work -- so t()
+      # always renders English now, regardless of any lang cookie.
       _t("go_to_release", DEFAULT_LANG) in step12.text, "release link/text not found")
 check("?step=12 shows step 12's own heading", 'id="step-12"' in step12.text,
       "no id=\"step-12\"")
 
 
-# --- 4. POST /lang then Italian labels on the job page ---------------------
+# --- 4. the removed language chooser stays gone, and a stray lang cookie
+#        has no effect (t() ignores it and always renders English) --------
 
-lang_resp = client.post("/lang", data={"lang": "it", "next": f"/v/{VIN}/job"},
-                        follow_redirects=False)
-check("POST /lang responds with a redirect", lang_resp.status_code in (302, 303),
-      str(lang_resp.status_code))
-check("the lang cookie was set to it", client.cookies.get("lang") == "it",
-      str(client.cookies.get("lang")))
+check("the /lang route is gone", client.post(
+    "/lang", data={"lang": "it", "next": f"/v/{VIN}/job"},
+    follow_redirects=False).status_code == 404, "POST /lang still routes somewhere")
+check("no header language chooser form is rendered",
+      'action="/lang"' not in step12.text and "lang-picker" not in step12.text,
+      "a /lang chooser form is still in the page")
 
-job_it = client.get(f"/v/{VIN}/job")
-check("job page responds 200 after switching language", job_it.status_code == 200,
-      str(job_it.status_code))
-check("job page shows an Italian step label (Rilascio) after POST /lang",
-      "Rilascio" in job_it.text, "Rilascio (release, it) not found")
-check("the IT button reads as active in the header chooser",
-      re.search(r'value="it"\s+class="lang-btn lang-btn-active"', job_it.text) is not None,
-      "lang-btn-active not found on the it button")
+client.cookies.set("lang", "it")
+job_cookie_it = client.get(f"/v/{VIN}/job")
+check("job page responds 200 with a stray lang=it cookie set",
+      job_cookie_it.status_code == 200, str(job_cookie_it.status_code))
+check("job page still shows the English step label (Release) with lang=it cookie set",
+      _t("release", DEFAULT_LANG) in job_cookie_it.text and "Rilascio" not in job_cookie_it.text,
+      "English label not found, or Italian text leaked through, with a stray lang=it cookie")
+client.cookies.delete("lang")
 
 
 # --- 5. no horizontal overflow at 400px (CDP, no screenshot) ---------------

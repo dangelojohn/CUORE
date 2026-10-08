@@ -37,6 +37,7 @@ import base64
 import itertools
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -94,12 +95,27 @@ check("/ redirects to that car's job page once it is in the bay",
 
 job_page = client.get(f"/v/{VIN}/job")
 check("the job page responds 200", job_page.status_code == 200, str(job_page.status_code))
-for n in range(1, 13):
-    check(f"the job page has anchor id=\"step-{n}\"", f'id="step-{n}"' in job_page.text)
-check("the verdict card renders inline on the job page",
-      "verdict-card" in job_page.text, job_page.text[:300])
-check("the codes table renders inline on the job page",
-      "sec-history" in job_page.text, job_page.text[:300])
+# The job page is one step per screen now, not all 12 anchors on one page:
+# the current step renders its own section (id="step-N"), and the other
+# 11 steps each render a headline row linking to ?step=N.
+current_step_sections = re.findall(r'id="step-(\d+)"', job_page.text)
+check("the job page renders exactly one current-step section",
+      len(current_step_sections) == 1, str(current_step_sections))
+headline_steps = re.findall(
+    rf'class="step-headline[^"]*" href="/v/{VIN}/job\?step=(\d+)"', job_page.text)
+check("the job page renders 11 headline rows linking to the other steps",
+      len(headline_steps) == 11, str(headline_steps))
+check("the current-step section plus the headline rows cover all 12 steps",
+      sorted(int(n) for n in current_step_sections + headline_steps) == list(range(1, 13)),
+      str(sorted(int(n) for n in current_step_sections + headline_steps)))
+#  The job page is one step per screen (default step 2), so the verdict
+# card (step 3) and codes table (step 4) only render on their own steps.
+job_step3 = client.get(f"/v/{VIN}/job", params={"step": "3"})
+check("the verdict card renders inline on the job page's step 3",
+      "verdict-card" in job_step3.text, job_step3.text[:300])
+job_step4 = client.get(f"/v/{VIN}/job", params={"step": "4"})
+check("the codes table renders inline on the job page's step 4",
+      "sec-history" in job_step4.text, job_step4.text[:300])
 
 
 # --- 3. the compact vehicle strip renders on the dossier page --------------

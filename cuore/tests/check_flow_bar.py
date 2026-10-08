@@ -198,7 +198,7 @@ def check_flow_bar(env: Environment) -> None:
 
 # --- 3: _vtabs.html ---------------------------------------------------------
 
-VISIBLE_LABELS = ["Job", "Dossier", "Codes", "Systems", "Report"]
+VISIBLE_LABELS = ["Bench", "Job", "Codes", "Systems", "Report"]
 OLD_LINK_PATHS = [
     f"/v/{VIN}", f"/v/{VIN}/job", f"/v/{VIN}/modules", f"/v/{VIN}/timeline",
     f"/v/{VIN}/systems", f"/v/{VIN}/electrical", f"/v/{VIN}/media", f"/v/{VIN}/parts",

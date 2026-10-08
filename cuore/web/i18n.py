@@ -67,9 +67,12 @@ except Exception:  # noqa: BLE001
 #: nothing else changes.
 SUPPORTED_LANGS: tuple[str, ...] = ("it", "en")
 
-#: Most CUORE mechanics' first language -- an unset/unknown cookie means
-#: this, not English.
-DEFAULT_LANG = "it"
+#: The Italian language chooser has been removed from the UI (it did not
+#: work); the app now always renders English regardless of any ``lang``
+#: cookie. ``DEFAULT_LANG`` stays "en" rather than being deleted so the
+#: rest of this module (and the still-present Italian strings below, kept
+#: but unused) needs no further rewiring if a working chooser comes back.
+DEFAULT_LANG = "en"
 
 #: English is the one language every key is guaranteed to have, so it is
 #: ``t()``'s fallback when the requested language's translation is missing
@@ -522,25 +525,27 @@ STRINGS: dict[str, dict[str, str]] = {
 
 
 def t(key: str, lang: str = DEFAULT_LANG) -> str:
-    """Translate ``key`` into ``lang``, falling back to English, then to
-    the bare key if ``key`` isn't in STRINGS at all (never raises -- a
-    missing translation must degrade, not break the page)."""
+    """Return the English text for ``key`` (or the bare key if ``key``
+    isn't in STRINGS at all -- never raises, a missing translation must
+    degrade, not break the page).
+
+    The language chooser has been removed (it did not work), so ``lang``
+    -- whatever a caller or a leftover cookie passes -- is ignored; this
+    always resolves to :data:`_FALLBACK_LANG` ("en"). The ``it`` entries
+    in STRINGS are kept in place, unused, in case a working chooser comes
+    back later."""
     entry = STRINGS.get(key)
     if not entry:
         return key
-    use_lang = lang if lang in SUPPORTED_LANGS else DEFAULT_LANG
-    val = entry.get(use_lang)
-    if val:
-        return val
     return entry.get(_FALLBACK_LANG, key)
 
 
 def lang_from_cookie(cookie_value: Optional[str]) -> str:
-    """Normalise a raw ``lang`` cookie value to a supported language,
-    defaulting to :data:`DEFAULT_LANG` ("it") for anything missing or
-    unrecognised."""
-    v = (cookie_value or "").strip().lower()
-    return v if v in SUPPORTED_LANGS else DEFAULT_LANG
+    """Always returns :data:`DEFAULT_LANG` ("en") -- the ``lang`` cookie is
+    no longer read now that the language chooser is gone. Kept (rather than
+    removed) because it's still called from this module's own request-context
+    plumbing below."""
+    return DEFAULT_LANG
 
 
 def set_lang_cookie(response: Any, lang: str) -> Any:

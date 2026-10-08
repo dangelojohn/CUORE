@@ -31,6 +31,12 @@ from cuore import bootstrap  # noqa: F401,E402
 from cuore.config import load as load_settings  # noqa: E402
 from cuore.services.errors import BridgeError  # noqa: E402
 from cuore.web import service_routes  # noqa: E402
+# Importing these three (same as cuore.app does) is what registers the
+# static_url/t/icon Jinja globals onto service_routes's own Jinja2Templates
+# instance -- without them, base.html's calls to static_url/t/icon 500 on
+# every page since this test builds its own app around just this router.
+from cuore.web import icons, i18n  # noqa: F401,E402
+from cuore.web import static_version  # noqa: F401,E402
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio this toolchain already knows about
 TEST_VIN = "TESTVIN00000PAGE"
