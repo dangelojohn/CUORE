@@ -94,23 +94,27 @@
          blocker, and the suggested next action -- linking at the Bench, not
          at the step itself (the Bench is where that link gets its own real
          href/evidence; here it's just "go see what's next"). #}
+      {# Item 14 (BENCH_UX_SPEC 2026-10-08): these header chips wrap in
+         sentence case instead of hard-truncating -- `.chip-wrap` (cuore.css)
+         drops the chip's usual all-caps/no-wrap treatment just for these
+         three; title="" still carries the full text for a tap/hover. #}
       {% if view is defined and view and view.verdict %}
         {% set _vs = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
-        <span class="chip-verdict status-verdict v-{{ _vs }}" title="{{ view.verdict.summary or '' }}">{{ view.verdict.label }}</span>
+        <span class="chip-verdict status-verdict chip-wrap v-{{ _vs }}" title="{{ view.verdict.summary or '' }}">{{ view.verdict.label }}</span>
       {% endif %}
       {% if flow and flow.blockers %}
-        <span class="chip chronic status-blocker" title="{{ flow.blockers[0].why or flow.blockers[0] }}">{{ flow.blockers|length }}&#9888; <span class="status-blocker-label">{{ t('blocked_label') }}</span></span>
+        <span class="chip chronic status-blocker chip-wrap" title="{{ flow.blockers[0].why or flow.blockers[0] }}">{{ flow.blockers|length }}&#9888; <span class="status-blocker-label">{{ t('blocked_label') }}</span></span>
       {% endif %}
       {% if flow and flow.next %}
-        <a class="chip plain status-next" href="/v/{{ bar.vin }}" title="{{ flow.next.why or '' }}">{{ t('next_label') }}: {{ flow.next.title }} &rarr;</a>
+        <a class="chip plain status-next chip-wrap" href="/v/{{ bar.vin }}" title="{{ flow.next.why or '' }}">{{ t('next_label') }}: {{ flow.next.title }} &rarr;</a>
       {% endif %}
     {% endif %}
     {% if live_strip %}
       {% if live_strip.error %}
         <span class="chip plain" title="{{ live_strip.error }}">MES ?</span>
       {% else %}
-        <span class="chip {{ 'ok' if live_strip.mes_state != 'connected' else 'returned' }}"
-              title="MES {{ live_strip.mes_state or 'unknown' }}">MES {{ (live_strip.mes_state or '?')|truncate(10, True, '') }}</span>
+        <span class="chip chip-wrap {{ 'ok' if live_strip.mes_state != 'connected' else 'returned' }}"
+              title="MES {{ live_strip.mes_state or 'unknown' }}">MES {{ live_strip.mes_state or '?' }}</span>
         <span class="chip plain" title="{{ live_strip.buses_verified }}/{{ live_strip.buses_total }} buses verified">
           Live {{ live_strip.buses_verified }}/{{ live_strip.buses_total }}</span>
       {% endif %}

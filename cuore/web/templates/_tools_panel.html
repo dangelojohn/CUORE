@@ -29,7 +29,7 @@
           <b>{{ ti.name }}</b>
           <span class="small muted tool-kind">{{ ti.kind }}</span>
           <span class="small {{ 'tool-required' if row.required else 'muted' }}">{{ "required" if row.required else "optional" }}</span>
-          <span class="chip {{ 'ok' if have == 'owned' else ('returned' if have == 'not_owned' else 'plain') }} have-chip">have it: {{ {"owned": "yes", "not_owned": "no", "unknown": "not recorded"}[have] }}</span>
+          <span class="chip {{ 'ok' if have == 'owned' else ('returned' if have == 'not_owned' else 'plain') }} have-chip">{{ {"owned": "have", "not_owned": "not owned", "unknown": "unknown: ask"}[have] }}</span>
         </div>
         <p class="small mono tool-spec">{{ ti.spec or "UNKNOWN -- confirm on the car / service manual (TechAuthority)" }}
           {{ tk_conf_chip(ti.confidence) }}

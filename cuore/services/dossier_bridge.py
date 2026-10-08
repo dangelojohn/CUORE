@@ -305,6 +305,56 @@ def readiness_result(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def fuel_status(freeze_frames: list[dict[str, Any]]) -> dict[str, Any]:
+    """Current fuel % and EVAP-window state, for the bench's live fuel gate.
+
+    Reads the same EVAP freeze-frame "Fuel level" reading the verdict's own
+    ``next_action`` sentence already quotes (:func:`_fuel_out_of_window`
+    scans the same frames but only returns a value when the reading is
+    flagged out-of-window) -- never a second, disagreeing number. ``level``
+    is ``None`` (UNKNOWN) when no EVAP freeze frame carries a fuel reading;
+    nothing here is ever invented.
+    """
+    lo, hi = _EVAP_FUEL_WINDOW
+    for ff in freeze_frames:
+        for p in ff.get("key") or []:
+            if p.get("name") != "Fuel level":
+                continue
+            level = _num(p.get("value"))
+            if level is None:
+                continue
+            in_window = lo <= level <= hi
+            direction = None if in_window else ("below" if level < lo else "above")
+            return {"level": level, "window": [lo, hi], "in_window": in_window,
+                    "direction": direction}
+    return {"level": None, "window": [lo, hi], "in_window": None, "direction": None}
+
+
+def readiness_panel(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
+    """The bench's monitor-readiness panel: the latest from-car readiness
+    observation since the last clear, or an honest "no readiness read yet".
+
+    Reuses :func:`_latest_readiness` -- the same observation the verdict
+    itself reads -- so the bench panel and the verdict can never disagree
+    about what the car's own monitors last said.
+    """
+    cleared_at, _cleared_by, _ca = _clear_info(dossier)
+    obs = _latest_readiness(vin, cleared_at)
+    if obs is None:
+        return {"at": None, "monitors": [], "all_complete": None,
+                "note": "no readiness read yet"}
+    data = obs.get("data") or {}
+    since = data.get("since_clear") or {}
+    monitors = since.get("monitors") or []
+    return {
+        "at": obs.get("at"),
+        "monitors": [{"name": m.get("monitor"), "complete": bool(m.get("complete"))}
+                     for m in monitors],
+        "all_complete": bool(since.get("all_complete")) if monitors else None,
+        "note": None if monitors else "readiness read, but no monitor list decoded",
+    }
+
+
 def _evap_from_readiness(obs: dict[str, Any] | None) -> dict[str, Any] | None:
     if obs is None:
         return None
@@ -979,4 +1029,4 @@ def build_view(vin: str, dossier: dict[str, Any],
 
 
 __all__ = ["build_view", "checklist_step_ids", "live_available", "readiness_result",
-           "FAMILY_STEPS"]
+           "fuel_status", "readiness_panel", "FAMILY_STEPS"]

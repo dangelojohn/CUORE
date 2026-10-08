@@ -126,8 +126,11 @@
   </section>
 
   <details class="card-details" id="sec-blindspots" data-persist="blindspots">
+    {# Item 14 (BENCH_UX_SPEC 2026-10-08): no hard truncation on a blind-spot
+       title -- the full question wraps (chip-wrap, cuore.css) instead of
+       being cut at 22 chars; title="" still carries the full text too. #}
     <summary>Blind spots
-      <span class="count-badge">{% for b in view.blind_spots[:4] %}<span class="chip plain sm">{{ b.question|truncate(22, True, "") }}</span>{% endfor %}{% if view.blind_spots|length > 4 %} +{{ view.blind_spots|length - 4 }}{% endif %}</span></summary>
+      <span class="count-badge">{% for b in view.blind_spots[:4] %}<span class="chip plain sm chip-wrap" title="{{ b.question }}">{{ b.question }}</span>{% endfor %}{% if view.blind_spots|length > 4 %} +{{ view.blind_spots|length - 4 }}{% endif %}</span></summary>
     <div class="card-body blind">
       {% for b in view.blind_spots %}
         {% set a = b.action %}

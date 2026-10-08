@@ -48,6 +48,16 @@ TEMPLATE_DIR = HERE / "templates"
 
 templates = Jinja2Templates(directory=str(TEMPLATE_DIR))
 
+# base.html / _vbar.html call static_url()/icon()/t()/lang() unconditionally,
+# so this module's own Jinja2Templates instance needs those globals even when
+# labels_routes is imported on its own (as cuore/tests/check_labels.py does,
+# without ever importing cuore.app) -- importing these for their
+# registration side effect is the same pattern static_version.py/icons.py/
+# i18n.py already use for the modules that go through cuore.app.
+from . import static_version as _static_version  # noqa: E402,F401
+from . import icons as _icons  # noqa: E402,F401
+from . import i18n as _i18n  # noqa: E402,F401
+
 router = APIRouter(include_in_schema=False,
                    dependencies=[Depends(require_token)])
 

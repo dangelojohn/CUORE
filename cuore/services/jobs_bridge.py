@@ -224,9 +224,51 @@ def suggested_hypotheses(vin: str, view: dict[str, Any]) -> list[dict[str, Any]]
     """Hypotheses this car's own fault tree/bulletins already point at, each
     pre-filled with real evidence_for/against refs -- never invented. The
     mechanic adds whichever apply via the job page's form; nothing here
-    writes anything."""
-    return (_evap_suggestions(vin, view) + _network_suggestions(view)
-           + _generic_family_suggestions(vin, view))
+    writes anything.
+
+    Also folds in the newest liveboard snapshot, if one exists
+    (``cuore.live.ui_store`` snapshots with ``layout == "liveboard"``): any
+    channel it reads outside its sourced known-good range becomes one more
+    evidence_for ref on whichever suggestion's ``system`` that channel's own
+    ``mes.systems`` mapping names (``cuore.services.liveboard_bridge.
+    channel_system``/``evaluate`` -- never a band invented here). No
+    liveboard snapshot, or nothing out of range in it, changes nothing.
+    """
+    out = (_evap_suggestions(vin, view) + _network_suggestions(view)
+          + _generic_family_suggestions(vin, view))
+    try:
+        from ..live import ui_store
+        from . import liveboard_bridge
+    except Exception:  # noqa: BLE001 -- live-data wiring is a nice-to-have here
+        return out
+    try:
+        snap = next((s for s in ui_store.list_snapshots(200)
+                    if s.get("layout") == "liveboard"), None)
+    except Exception:  # noqa: BLE001
+        snap = None
+    if snap is None:
+        return out
+    raw_values = {cid: v.get("value") for cid, v in (snap.get("values") or {}).items()
+                 if isinstance(v, dict) and v.get("value") is not None}
+    if not raw_values:
+        return out
+    try:
+        recs = liveboard_bridge.snapshot_recommendations(raw_values)
+    except Exception:  # noqa: BLE001
+        return out
+    for rec in recs:
+        if rec["level"] not in ("excessive", "moderate"):
+            continue
+        sys_key = liveboard_bridge.channel_system(rec["id"])
+        if not sys_key:
+            continue
+        unit = f" {rec['unit']}" if rec.get("unit") else ""
+        ref = _ref("live", snap["id"], f"{rec['name']} {rec['value']:g}{unit}: {rec['level']}")
+        for s in out:
+            if (s.get("system") or "").strip().lower() == sys_key.lower():
+                if ref not in s["evidence_for"]:
+                    s["evidence_for"].append(ref)
+    return out
 
 
 # --- gathering the rest of the stepper's "auto-gathered evidence" --------

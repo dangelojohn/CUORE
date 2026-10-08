@@ -95,7 +95,10 @@ client = TestClient(_app_with_router())
 
 page = client.get(f"/v/{VIN}/gauges")
 check("gauges page responds 200", page.status_code == 200, str(page.status_code))
-for needle in ('src="/static/live/widgets.js"', 'src="/static/live/dashboard.js"',
+# widgets.js/dashboard.js are now loaded through static_url(), which appends
+# a cache-busting "?v=<hash>" query string -- match the src= prefix rather
+# than the old exact "...js"" literal.
+for needle in ('src="/static/live/widgets.js', 'src="/static/live/dashboard.js',
               'id="dd-app"', 'id="dd-grid"', 'CuoreDashboard.init()'):
     check(f"gauges page contains {needle!r}", needle in page.text)
 check("gauges page links widgets.css and dashboard.css",

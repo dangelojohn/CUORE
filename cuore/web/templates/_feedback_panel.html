@@ -14,7 +14,13 @@
 {# Collapsed by default -- the full panel only appears once the FAB (or,
    no-JS, this <summary> itself) opens it. feedback.js keeps this class in
    sync with the <details> open state; without JS it just stays, which is
-   correct too: the panel should start collapsed either way. #}
+   correct too: the panel should start collapsed either way.
+
+   BENCH_UX_SPEC 2026-10-08 item 12: closed, this sits in normal page flow
+   (feedback.css no longer makes it position:fixed except while [open]) --
+   the FAB is the only floating bottom-right affordance (item 17). Open, it
+   becomes a bottom sheet that pushes <main> up by its own height rather
+   than floating over it; feedback.js's wireFab() measures that height. #}
 <details class="feedback-page-panel feedback-page-panel-collapsed" id="feedback-page-panel">
   <summary>Ask / correct (this page)</summary>
   <form method="post" action="/v/{{ vin }}/feedback" class="feedback-form">
@@ -23,12 +29,19 @@
     <input type="hidden" name="section" value="page">
     <input type="hidden" name="item" value="">
     <input type="hidden" name="label" value="(whole page)">
+    {# Item 13: three verbs, each self-explanatory from its own one-line
+       description -- no need for the other two retired verbs (Add input /
+       Disagree) to disambiguate against. The API still accepts those two
+       kind values; this form just never offers them any more. #}
     <div class="feedback-kinds" role="radiogroup" aria-label="Kind of feedback">
-      {% for k, lab in [("correction","Correct"), ("question","Ask"), ("confirm","Confirm"),
-                        ("input","Add input"), ("disagree","Disagree")] %}
+      {% for k, lab, desc in [
+            ("correction", "Correct", "This is wrong, here is the right value"),
+            ("question", "Ask", "A question about this"),
+            ("confirm", "Confirm", "I checked this on the car")] %}
         <label class="feedback-kind-opt">
           <input type="radio" name="kind" value="{{ k }}" {% if loop.first %}checked{% endif %}>
-          {{ lab }}
+          <span class="feedback-kind-text">{{ lab }}</span>
+          <span class="feedback-kind-desc">{{ desc }}</span>
         </label>
       {% endfor %}
     </div>

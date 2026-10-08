@@ -14,11 +14,26 @@
 
   var AUTHOR_KEY = "cuore_feedback_author";
 
-  var KIND_ORDER = ["correction", "question", "confirm", "input", "disagree"];
+  // BENCH_UX_SPEC 2026-10-08 item 13: three verbs, not five -- each with
+  // its own one-line description (KIND_DESCRIPTIONS) so it reads on its
+  // own, with no need for the two retired verbs (Add input / Disagree) to
+  // disambiguate against. The API still accepts all five kind values;
+  // KIND_ALIAS/canonicalKind() maps either retired one onto its nearest
+  // current verb so nothing that still sends an old value gets rejected.
+  var KIND_ORDER = ["correction", "question", "confirm"];
   var KIND_LABELS = {
     correction: "Correct", question: "Ask", confirm: "Confirm",
+    // Kept so a historical thread row still shows a real label instead of
+    // the raw stored string, even though no current control offers these.
     input: "Add input", disagree: "Disagree"
   };
+  var KIND_DESCRIPTIONS = {
+    correction: "This is wrong, here is the right value",
+    question: "A question about this",
+    confirm: "I checked this on the car"
+  };
+  var KIND_ALIAS = { input: "correction", disagree: "question" };
+  function canonicalKind(k) { return KIND_ALIAS[k] || k; }
 
   function vinOf() {
     return document.body.getAttribute("data-vin") || "";
@@ -122,9 +137,16 @@
       var btn = document.createElement("button");
       btn.type = "button";
       btn.className = "feedback-kind-btn";
-      btn.textContent = KIND_LABELS[k];
       btn.setAttribute("data-kind", k);
       btn.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+      var verb = document.createElement("span");
+      verb.className = "feedback-kind-verb";
+      verb.textContent = KIND_LABELS[k];
+      var desc = document.createElement("span");
+      desc.className = "feedback-kind-desc";
+      desc.textContent = KIND_DESCRIPTIONS[k] || "";
+      btn.appendChild(verb);
+      btn.appendChild(desc);
       btn.addEventListener("click", function () {
         var all = kinds.querySelectorAll("button");
         for (var j = 0; j < all.length; j++) all[j].setAttribute("aria-pressed", "false");
@@ -185,7 +207,7 @@
 
     submitBtn.addEventListener("click", function () {
       var pressed = kinds.querySelector('button[aria-pressed="true"]');
-      var kind = pressed ? pressed.getAttribute("data-kind") : "question";
+      var kind = canonicalKind(pressed ? pressed.getAttribute("data-kind") : "question");
       var authorName = author.value.trim();
       rememberAuthor(authorName);
       submitBtn.disabled = true;
@@ -260,12 +282,16 @@
         var wrap = document.createElement("span");
         wrap.className = "feedback-affordance-wrap";
 
+        // Item 13: "Flag this row" -- the same data-fact mechanism as
+        // before, renamed/reframed per the mechanic-UX review, and its
+        // panel (buildPanel) pre-fills this exact fact's own context
+        // (section/item/label below) rather than the whole page's.
         var btn = document.createElement("button");
         btn.type = "button";
         btn.className = "feedback-affordance";
         btn.textContent = "…";
-        btn.title = "Ask or correct this";
-        btn.setAttribute("aria-label", "Ask or correct: " + label);
+        btn.title = "Flag this row";
+        btn.setAttribute("aria-label", "Flag this row: " + label);
 
         var counts = countsMap[key];
         if (counts && (counts.open || counts.answered || counts.confirms || counts.corrections)) {
@@ -289,19 +315,37 @@
     });
   }
 
+  // BENCH_UX_SPEC 2026-10-08 item 12: open, the panel is a bottom sheet
+  // that pushes <main> up by exactly its own height rather than floating
+  // over it. This measures the panel's own rendered box (feedback.css
+  // gives it position:fixed only while [open]) and writes that height to
+  // --feedback-sheet-reserve, which main's own padding-bottom consumes;
+  // closed, the property is cleared and main falls back to just enough
+  // padding to clear the FAB (feedback.css's own default).
+  function syncSheetReserve(pagePanel) {
+    if (pagePanel.open) {
+      var h = Math.ceil(pagePanel.getBoundingClientRect().height);
+      document.documentElement.style.setProperty("--feedback-sheet-reserve", h + "px");
+    } else {
+      document.documentElement.style.removeProperty("--feedback-sheet-reserve");
+    }
+  }
+
   function wireFab() {
     var fab = document.getElementById("feedback-fab");
     var pagePanel = document.getElementById("feedback-page-panel");
     if (!fab || !pagePanel) return;
 
-    // The collapsed class is what keeps the panel down to just its small
-    // bottom-right affordance (see feedback.css); keep it in sync with the
-    // <details> open state however that state changes -- the FAB below,
-    // or a click straight on the <summary> (the no-JS path, still native
-    // here too).
+    // The collapsed class is what keeps the panel down to plain in-flow
+    // content (see feedback.css); keep it -- and the sheet-height
+    // reservation above -- in sync with the <details> open state however
+    // that state changes: the FAB below, or a click straight on the
+    // <summary> (the no-JS path, still native here too).
     pagePanel.addEventListener("toggle", function () {
       pagePanel.classList.toggle("feedback-page-panel-collapsed", !pagePanel.open);
+      syncSheetReserve(pagePanel);
     });
+    window.addEventListener("resize", function () { syncSheetReserve(pagePanel); });
 
     fab.addEventListener("click", function () {
       pagePanel.open = !pagePanel.open;

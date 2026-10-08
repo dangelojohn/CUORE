@@ -1,0 +1,139 @@
+/* Liveboard -- the passenger-seat live gauge board (/v/{vin}/liveboard).
+ *
+ * One surface, readable from a moving car: a 40px status line, a notice
+ * line, a red Problems strip that never needs scrolling to find, big
+ * 44px-tall buttons, then every channel as a digital line item grouped by
+ * system. Reuses cuore.css's tokens throughout (--ok/--sev-chronic/
+ * --sev-returned/--ink-3 for the four readout colours, --mono for the
+ * digits, --raised/--rule/--radius for the buttons) -- nothing new is
+ * invented here, this is additive chrome for one page.
+ */
+
+#lb-app { max-width: 960px; margin: 0 auto; padding: 0 0 var(--space-5, 24px); }
+
+/* ---------- status line: 40px, car name / VIN tail / adapter / session /
+   "updated Ns ago" -- all client-rendered (liveboard.js) so it can show
+   live session state, not just the car. ---------- */
+.lb-status {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  min-height: 40px; padding: 4px 0; border-bottom: 1px solid var(--rule-soft);
+  font-size: 13px; color: var(--ink-2);
+}
+.lb-status-name {
+  font-weight: 650; color: var(--ink); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; max-width: 40vw;
+}
+.lb-status-vin { color: var(--ink-3); }
+.lb-status-chip {
+  padding: 2px 8px; border-radius: var(--radius); background: var(--surface-2);
+  border: 1px solid var(--rule); font-size: 12px; color: var(--ink-2);
+}
+.lb-status-chip.is-ok   { color: var(--ok);          border-color: var(--ok); }
+.lb-status-chip.is-warn { color: var(--sev-chronic);  border-color: var(--sev-chronic); }
+.lb-status-chip.is-bad  { color: var(--sev-returned); border-color: var(--sev-returned); }
+.lb-status-updated { margin-left: auto; color: var(--ink-3); font-size: 12px; white-space: nowrap; }
+
+/* ---------- notice line ---------- */
+.lb-notice {
+  margin-top: 8px; padding: 8px 10px; border-radius: var(--radius);
+  background: var(--surface-2); border: 1px solid var(--rule); color: var(--ink-2);
+  font-size: 13px;
+}
+.lb-notice.is-demo { border-color: var(--sev-chronic); color: var(--sev-chronic); }
+
+/* ---------- Problems strip: excessive channels, top of page, no scroll
+   needed -- it sits right after the status line/notice, before the
+   controls, so it's the first thing in view. ---------- */
+.lb-problems {
+  margin-top: 10px; border: 1px solid var(--sev-returned); border-radius: var(--radius);
+  background: var(--sev-returned-bg); overflow: hidden;
+}
+.lb-problems-head {
+  padding: 6px 10px; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--sev-returned); border-bottom: 1px solid var(--sev-returned);
+}
+.lb-problems-list { display: flex; flex-direction: column; }
+.lb-problem-row {
+  display: flex; gap: 10px; align-items: baseline; padding: 8px 10px;
+  border-top: 1px solid rgba(255, 255, 255, .08); font-size: 14px; color: var(--ink);
+  flex-wrap: wrap;
+}
+.lb-problem-row:first-child { border-top: none; }
+.lb-problem-name { font-weight: 700; color: var(--sev-returned); flex: none; }
+.lb-problem-text { color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+
+/* ---------- big buttons, 44px targets ---------- */
+.lb-controls { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.lb-btn {
+  min-height: 44px; min-width: 44px; padding: 0 20px; font-size: 16px; font-weight: 650;
+  font-family: inherit; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--raised); color: var(--ink); cursor: pointer; flex: 1 1 auto;
+}
+.lb-btn:hover { border-color: var(--ink-3); }
+.lb-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.lb-btn-primary:hover { filter: brightness(1.08); }
+.lb-btn-stop { background: var(--sev-returned); border-color: var(--sev-returned); color: #fff; }
+.lb-btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+/* ---------- snapshot result: recommendations + job line ---------- */
+.lb-snapshot-result {
+  margin-top: 10px; padding: 10px 12px; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface-2); font-size: 14px;
+}
+.lb-snapshot-result h3 { margin: 0 0 6px; font-size: 14px; color: var(--ink); }
+.lb-snapshot-id { color: var(--ink-3); font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.lb-rec-row { display: flex; gap: 8px; padding: 5px 0; border-top: 1px solid var(--rule-soft); flex-wrap: wrap; }
+.lb-rec-row:first-child { border-top: none; }
+.lb-rec-level {
+  font-weight: 700; flex: none; min-width: 72px; text-transform: uppercase; font-size: 11px;
+}
+.lb-rec-level.level-excessive { color: var(--sev-returned); }
+.lb-rec-level.level-moderate  { color: var(--sev-chronic); }
+.lb-rec-level.level-ok        { color: var(--ok); }
+.lb-rec-level.level-unknown   { color: var(--ink-3); }
+.lb-rec-text { color: var(--ink-2); min-width: 0; overflow-wrap: anywhere; }
+.lb-job-line {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--rule-soft); color: var(--ink-2);
+}
+.lb-job-line a { color: var(--accent); overflow-wrap: anywhere; }
+
+/* ---------- groups + digital line items ---------- */
+.lb-groups { margin-top: 16px; }
+.lb-group { margin-bottom: 18px; }
+.lb-group-head {
+  font-size: 15px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-2); border-bottom: 1px solid var(--rule); padding-bottom: 6px; margin-bottom: 2px;
+}
+.lb-chan {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 0; border-bottom: 1px solid var(--rule-soft);
+}
+.lb-chan:last-child { border-bottom: none; }
+.lb-chan-left { min-width: 0; flex: 1 1 auto; }
+.lb-chan-name { font-size: 15px; color: var(--ink); overflow-wrap: anywhere; }
+.lb-chan-band { font-size: 11px; color: var(--ink-3); margin-top: 2px; overflow-wrap: anywhere; }
+.lb-chan-right {
+  display: flex; align-items: baseline; gap: 4px; flex: none; text-align: right;
+  white-space: nowrap;
+}
+.lb-chan-value {
+  font-family: var(--mono); font-size: 28px; font-weight: 650; line-height: 1;
+  color: var(--ink-3); transition: color .15s linear;
+}
+.lb-chan-unit { font-size: 13px; color: var(--ink-3); }
+.lb-chan.level-ok        .lb-chan-value { color: var(--ok); }
+.lb-chan.level-moderate  .lb-chan-value { color: var(--sev-chronic); }
+.lb-chan.level-excessive .lb-chan-value { color: var(--sev-returned); }
+.lb-chan.level-unknown   .lb-chan-value { color: var(--ink-3); }
+.lb-chan.is-stale { opacity: .4; }
+
+@media (min-width: 640px) {
+  .lb-chan-value { font-size: 36px; }
+}
+
+@media (max-width: 480px) {
+  .lb-status { font-size: 12px; gap: 8px; }
+  .lb-status-name { max-width: 34vw; }
+  .lb-chan-name { font-size: 14px; }
+  .lb-btn { padding: 0 14px; font-size: 15px; }
+}

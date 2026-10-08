@@ -4,7 +4,18 @@
  * file, linked where used" posture as media.css/tools.css.
  *
  * Reuses cuore.css's tokens (--surface, --ink, --rule, --accent, --radius,
- * .btn, .chip, .panel) rather than inventing a second vocabulary. */
+ * .btn, .chip, .panel) rather than inventing a second vocabulary.
+ *
+ * BENCH_UX_SPEC 2026-10-08 items 12/13/17 rewrote the whole-page panel: it
+ * used to be a second `position: fixed` box sat right above the FAB, which
+ * both doubled the floating-element count the mechanic-UX review's item 17
+ * rules out, and -- being capped to a small max-width/max-height -- could
+ * still end up covering the last bit of real page content on a short
+ * screen. Closed, it is now plain in-flow content (the no-JS fallback
+ * still works, just by scrolling to it rather than it floating); open, it
+ * becomes a bottom sheet that *pushes* <main> up by exactly its own height
+ * (feedback.js sets --feedback-sheet-reserve) instead of floating over
+ * anything. */
 
 .feedback-affordance {
   display: inline-flex; align-items: center; justify-content: center;
@@ -20,42 +31,68 @@
   font-size: 10.5px; color: var(--ink-3); margin-left: 4px; white-space: nowrap;
 }
 
-.feedback-inline-panel, .feedback-page-panel {
+.feedback-inline-panel {
   background: var(--surface); border: 1px solid var(--rule);
   border-radius: var(--radius); padding: 10px 12px; margin: 6px 0;
   max-width: 480px;
 }
-/* Anchored bottom-right, directly above the FAB -- never left:/right: both
-   set (that stretch, with only max-width to cap it, is what let the old
-   rule cover page content: the browser drops `right` and keeps the box
-   pinned at `left`, full width, regardless of open/closed). */
-.feedback-page-panel { position: fixed; right: 18px; left: auto; bottom: 82px;
-  z-index: 41; width: min(420px, calc(100vw - 36px)); max-width: 420px;
-  margin: 0; box-shadow: 0 6px 18px rgba(0,0,0,.35); }
-.feedback-page-panel summary { cursor: pointer; font-weight: 600; padding: 4px 0; }
-.feedback-page-panel[open] summary { margin-bottom: 8px; }
 
-/* Collapsed (default on load, and whenever closed again): shrink the box
-   down to just the <summary> affordance so it can never cover content,
-   closed or not, JS or not -- the no-JS fallback is exactly this state,
-   permanently, pinned bottom-right rather than stretched left. */
-.feedback-page-panel.feedback-page-panel-collapsed { width: auto; max-width: 240px; }
-.feedback-page-panel.feedback-page-panel-collapsed summary {
-  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
-  padding: 8px 12px; box-shadow: 0 4px 12px rgba(0,0,0,.3);
+/* ---------- the whole-page panel: in-flow closed, a bottom sheet open --- */
+
+.feedback-page-panel {
+  margin: 14px 0 0; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface);
 }
+.feedback-page-panel summary {
+  cursor: pointer; font-weight: 600; list-style: none;
+  display: flex; align-items: center; min-height: 44px; padding: 8px 12px;
+}
+.feedback-page-panel summary::-webkit-details-marker { display: none; }
+.feedback-page-panel .feedback-form { padding: 0 12px 12px; }
 
+/* Open: fixed to the viewport bottom, a reserved height (scrolls inside
+ * itself past that), never wider than the viewport -- this is the "bottom
+ * sheet that pushes content" item 12 asks for. feedback.js measures this
+ * box's own rendered height and writes it to --feedback-sheet-reserve,
+ * which body[data-vin] main's padding-bottom (below) consumes, so main's
+ * last visible content is always pushed clear of the sheet, never covered
+ * by it. */
+.feedback-page-panel[open] {
+  position: fixed; left: 0; right: 0; bottom: 0; margin: 0; z-index: 41;
+  width: 100%; max-height: min(70vh, 520px); overflow-y: auto;
+  border-radius: var(--radius) var(--radius) 0 0; border-bottom: none;
+  box-shadow: 0 -6px 18px rgba(0,0,0,.35);
+}
+.feedback-page-panel[open] summary { border-bottom: 1px solid var(--rule); margin-bottom: 4px; }
+
+/* The FAB is the one floating bottom-right affordance the mechanic-UX
+ * review (item 17) allows at 400-800px; once the sheet is open it would
+ * otherwise sit half-hidden under the sheet's own bottom-right corner, so
+ * it steps aside entirely rather than becoming a second visible control. */
+body:has(.feedback-page-panel[open]) .fab-feedback { display: none; }
+
+/* ---------- kind verbs: 3, each with its own one-line description ------- */
+/* Item 13: five verbs (Correct/Ask/Confirm/Add input/Disagree) collapsed
+ * to three -- Correct, Ask, Confirm -- each self-explanatory from its own
+ * description rather than needing the other two to disambiguate against.
+ * feedback.js maps any legacy "input"/"disagree" kind value onto the
+ * nearest of these three before it is ever sent, so the API (which still
+ * accepts all five) never sees a button for the retired two. */
 .feedback-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .feedback-kind-btn, .feedback-kind-opt {
-  display: inline-flex; align-items: center; justify-content: center;
-  min-height: 44px; padding: 4px 10px; font-size: 12.5px;
+  display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  min-height: 44px; padding: 6px 12px; font-size: 12.5px; text-align: left;
   background: var(--raised); color: var(--ink); border: 1px solid var(--rule);
-  border-radius: var(--radius); cursor: pointer;
+  border-radius: var(--radius); cursor: pointer; flex: 1 1 140px;
 }
-.feedback-kind-btn[aria-pressed="true"] {
+.feedback-kind-btn[aria-pressed="true"], .feedback-kind-opt:has(input:checked) {
   background: var(--accent); border-color: var(--accent); color: #fff;
 }
-.feedback-kind-opt input { width: auto; margin-right: 6px; }
+.feedback-kind-btn[aria-pressed="true"] .feedback-kind-desc,
+.feedback-kind-opt:has(input:checked) .feedback-kind-desc { color: rgba(255,255,255,.85); }
+.feedback-kind-verb, .feedback-kind-text { font-weight: 650; }
+.feedback-kind-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.feedback-kind-desc { font-size: 11px; color: var(--ink-3); font-weight: 400; }
 
 .feedback-text, textarea.feedback-text {
   width: 100%; min-height: 60px; margin-bottom: 8px;
@@ -84,14 +121,16 @@
 }
 .fab-feedback:hover { filter: brightness(1.08); }
 
-/* The round FAB is the only page-level feedback affordance (mechanic-UX
- * review item 3) -- it must never sit over the last bit of real page
- * content, so the page reserves its own height at the bottom, and it must
- * never sit over whatever input the mechanic is mid-typing into, so it
- * hides itself the moment anything inside <main> has focus (the feedback
- * panel's own fields live outside <main>, so opening/using the panel
- * itself is unaffected). */
-body[data-vin] main { padding-bottom: 52px; }
+/* The round FAB is the only page-level feedback affordance, and (item 17)
+ * the only floating bottom-right element on the page at all -- it must
+ * never sit over the last bit of real page content, so the page reserves
+ * its own height at the bottom (grown further, via --feedback-sheet-
+ * reserve, whenever the sheet above is open), and it must never sit over
+ * whatever input the mechanic is mid-typing into, so it hides itself the
+ * moment anything inside <main> has focus (the feedback panel's own
+ * fields live outside <main>, so opening/using the panel itself is
+ * unaffected). */
+body[data-vin] main { padding-bottom: var(--feedback-sheet-reserve, 52px); }
 main:focus-within ~ .fab-feedback { display: none; }
 
 /* ---------- inbox page (/v/{vin}/inbox) ---------- */
@@ -107,6 +146,6 @@ main:focus-within ~ .fab-feedback { display: none; }
 .inbox-forms form { display: flex; gap: 6px; align-items: center; }
 
 @media (max-width: 400px) {
-  .feedback-page-panel { right: 8px; bottom: 76px; width: calc(100vw - 16px); max-width: none; }
-  .feedback-page-panel.feedback-page-panel-collapsed { width: auto; }
+  .feedback-page-panel[open] { max-height: min(78vh, 520px); }
+  .feedback-kind-btn, .feedback-kind-opt { flex: 1 1 100%; }
 }

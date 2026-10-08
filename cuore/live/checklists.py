@@ -43,13 +43,24 @@ def _save(data: dict[str, Any]) -> None:
 
 
 def get(vin: str) -> dict[str, Any]:
-    """``{step_id: {done, done_at, done_by}}`` recorded for this VIN."""
+    """``{step_id: {done, done_at, done_by, outcome, note}}`` recorded for
+    this VIN. ``outcome``/``note`` are ``None`` on an entry recorded before
+    the bench's outcome capture landed, or on a step that was undone."""
     with _LOCK:
         return dict(_load().get(vin, {}))
 
 
-def set_step(vin: str, step_id: str, done: bool, by: str = "") -> dict[str, Any]:
-    """Record one step's state. Returns the stored entry for that step."""
+def set_step(vin: str, step_id: str, done: bool, by: str = "",
+            outcome: str | None = None, note: str | None = None) -> dict[str, Any]:
+    """Record one step's state. Returns the stored entry for that step.
+
+    ``outcome`` is one of ``"ok"``/``"fault_found"``/``"skipped"``, or
+    ``None`` -- the bench page's own evidence gate: a job whose end state is
+    an evidence gate cannot be told apart from "ticked and ignored" with a
+    bare done/undone flag. Un-ticking a step (``done=False``, the bench's
+    "undo") clears both, the same way ``done_at``/``done_by`` already reset
+    to ``None`` -- an undone step carries no stale outcome.
+    """
     with _LOCK:
         data = _load()
         entry = data.setdefault(vin, {})
@@ -57,6 +68,8 @@ def set_step(vin: str, step_id: str, done: bool, by: str = "") -> dict[str, Any]
             "done": bool(done),
             "done_at": datetime.now().isoformat(timespec="seconds") if done else None,
             "done_by": (by.strip() or None) if (done and by.strip()) else None,
+            "outcome": (outcome or None) if done else None,
+            "note": ((note or "").strip() or None) if done else None,
         }
         _save(data)
         return dict(entry[step_id])

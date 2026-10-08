@@ -1412,3 +1412,41 @@ html.intro-skip .intro-overlay { display: none; }
   grid-template-columns: minmax(0, 1fr) !important;
 }
 .tw { max-width: 960px; margin-left: auto; margin-right: auto; }
+
+/* =========================================================================
+ * BENCH_UX_SPEC 2026-10-08, items 14 & 17.
+ * Appended section; everything above predates this pass. feedback.css
+ * carries items 12/13's own panel/kind-button rules -- this is just the
+ * bits that live in the shared sheet.
+ * ========================================================================= */
+
+/* Item 14: no hard truncation on a blind-spot title (vehicle.html) or the
+ * vbar's own header chips (_vbar.html's status-verdict/status-blocker/
+ * status-next, and the MES chip) -- `.chip-wrap` drops the chip's usual
+ * all-caps/no-wrap treatment for sentence case that wraps instead.
+ * title="" (already present on every one of these) still carries the
+ * exact text for a tap/hover regardless. */
+.chip-wrap {
+  white-space: normal; text-transform: none; word-break: break-word;
+  max-width: none;
+}
+.vline .status-next.chip-wrap {
+  overflow: visible; text-overflow: clip; white-space: normal;
+}
+
+/* Item 14: the vehicle name (.vline .vname, every /v/ page's sticky strip)
+ * wraps onto up to two lines before it falls back to an ellipsis, rather
+ * than cutting off on line one. */
+.vline .vname {
+  white-space: normal; overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.vline { align-items: flex-start; }
+
+/* Item 17: at 400-800px the feedback FAB (base.html) is meant to be the
+ * only floating bottom-right element on a page -- the dossier's own
+ * quick-add-note FAB (vehicle.html) used to share that exact corner with
+ * it. It keeps floating (it's still a useful one-tap shortcut), just from
+ * bottom-left instead, so the two never compete for the same spot. */
+.fab-note { left: 18px; right: auto; }

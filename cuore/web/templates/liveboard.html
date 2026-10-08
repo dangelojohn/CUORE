@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Liveboard — {{ bar.name }}{% endblock %}
+{# No hero, no vehicle-bar tab row -- this is a single-purpose cockpit view
+   with its own compact status line (built client-side, in liveboard.js, so
+   it can also carry session state and a live "updated Ns ago"). An HTML
+   comment is non-empty after `.strip()`, so base.html's own vehiclebar
+   fallback (the generic /live status banner) never renders either --
+   without touching base.html itself. #}
+{% block vehiclebar %}<!-- liveboard: own status line below, no vbar/hero -->{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('liveboard.css') }}">
+
+<div id="lb-app" data-vin="{{ vin }}" data-name="{{ bar.name }}">
+
+  <div class="lb-status" id="lb-status">
+    <span class="lb-status-name" title="{{ bar.name }}">{{ bar.name }}</span>
+    <span class="lb-status-vin mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-6:] }}</span>
+    <span class="lb-status-chip" id="lb-status-adapter">adapter —</span>
+    <span class="lb-status-chip" id="lb-status-session">session —</span>
+    <span class="lb-status-updated" id="lb-status-updated">no data yet</span>
+  </div>
+
+  <div class="lb-notice" id="lb-notice" hidden></div>
+
+  <div class="lb-problems" id="lb-problems" hidden>
+    <div class="lb-problems-head">Problems</div>
+    <div class="lb-problems-list" id="lb-problems-list"></div>
+  </div>
+
+  <div class="lb-controls" role="toolbar" aria-label="Liveboard controls">
+    <button type="button" id="lb-start" class="lb-btn lb-btn-primary">Start</button>
+    <button type="button" id="lb-stop" class="lb-btn lb-btn-stop" hidden>Stop</button>
+    <button type="button" id="lb-snapshot" class="lb-btn">Snapshot</button>
+    <button type="button" id="lb-demo" class="lb-btn">Demo</button>
+  </div>
+
+  <div class="lb-snapshot-result" id="lb-snapshot-result" hidden></div>
+
+  <div class="lb-groups" id="lb-groups"></div>
+
+</div>
+
+<script src="{{ static_url('liveboard.js') }}"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.CuoreLiveboard) window.CuoreLiveboard.init();
+  });
+</script>
+{% endblock %}

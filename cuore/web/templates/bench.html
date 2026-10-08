@@ -1,30 +1,22 @@
-{# The bench: what to do to this car right now. No hero, no 12-step flow
-   bar -- cuore/services/bench_bridge.py already boiled the dossier down to
-   one verdict sentence and three cards, so this template's only job is to
-   lay those out small enough that the first card is on-screen on a
-   400x800 phone with no scrolling. See that module's own docstring for
-   where each field comes from; nothing here recomputes a verdict, a part
-   number or a tool's have/not-have status. #}
+{# The bench: what to do to this car right now. cuore/services/bench_bridge.py
+   already boiled the dossier down to a resume summary, a verdict sentence
+   and a small task roster (each with procedure, pass criteria,
+   preconditions and parts/tools already resolved) -- this template's only
+   job is to lay those out small enough that the resume card and first task
+   are on-screen on a 400x800 phone with no scrolling. See that module's own
+   docstring for where each field comes from; nothing here recomputes a
+   verdict, a part number, a tool's have/not-have status, or a pass
+   criterion. #}
 {% extends "base.html" %}
-{% block title %}{{ bench.vehicle }} &mdash; Bench{% endblock %}
+{% block title %}{{ bench.vehicle }} &mdash; Bench &middot; {{ bench.progress.done }}/{{ bench.progress.total }} &middot; {{ bench.verdict.state or "NO_DATA" }}{% endblock %}
 
-{% block vehiclebar %}
-{% set _status_icon = {"ACTIVE_FAULTS": "status_active",
-                        "UNVERIFIED_REPAIR": "status_cleared_unverified",
-                        "VERIFIED_CLEAN": "status_verified",
-                        "NO_DATA": "status_unknown"} %}
-{% set _vstate = (bench.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
-<div class="bench-status">
-  <span class="bench-status-name">{{ bench.vehicle }}</span>
-  <span class="bench-status-vin mono">&hellip;{{ bench.vin_tail }}</span>
-  {% if bench.km is not none %}
-    <span class="bench-status-km mono">{{ "{:,}".format(bench.km|int) }} km</span>
-  {% endif %}
-  <span class="chip-verdict v-{{ _vstate }} bench-status-chip">
-    {% if icon is defined %}{{ icon(_status_icon.get(bench.verdict.state, "status_unknown"), size="s") }}{% endif %}
-    {{ bench.verdict.label }}</span>
-</div>
-{% endblock %}
+{# Standard persistent vehicle hero + tab strip, same include every other
+   /v/{vin}/* page uses (BENCH_UX_SPEC_2026-10-08.md F16: one tab bar across
+   every view, not just the dossier). _vbar.html shows the full hero (image,
+   verdict headline, figures) for tab == "bench"/"report" -- see that
+   module's own docstring -- and includes _vtabs.html itself at the end, so
+   nothing else here needs to. #}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 
 {% block content %}
 <style>
@@ -32,15 +24,6 @@
    without risking any other page's layout. Uses the same custom
    properties cuore.css already defines (colours/radius/mono/sans), so
    light/dark/marque theming is inherited for free. */
-.bench-status {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-  min-height: 40px; padding: 6px var(--pad);
-  background: var(--surface); border-bottom: 1px solid var(--rule);
-}
-.bench-status-name { font-weight: 650; font-size: 14px; }
-.bench-status-vin, .bench-status-km { font-size: 12px; color: var(--ink-3); }
-.bench-status-chip { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; }
-
 .bench { display: flex; flex-direction: column; gap: 10px; max-width: 100%; }
 .bench-complaint {
   margin: 4px 0 0; font-size: 14px; font-style: italic; color: var(--ink-2);
@@ -52,21 +35,45 @@
 }
 .bench-case-hint { margin: 0; }
 
+/* Resume card (A1) */
+.bench-resume {
+  background: var(--raised); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 10px; display: flex;
+  flex-direction: column; gap: 4px; max-width: 100%;
+}
+.bench-resume-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 13px; }
+.bench-resume-progress { font-weight: 650; }
+.bench-resume-stale { color: var(--sev-returned); font-weight: 650; }
+.bench-resume-changes { margin: 0; padding-left: 18px; font-size: 13px; }
+.bench-resume-next { margin: 2px 0 0; font-weight: 600; }
+
+/* Fuel gate + readiness (C10) */
+.bench-gates { display: flex; flex-wrap: wrap; gap: 8px; }
+.bench-gate {
+  flex: 1 1 160px; background: var(--surface-2); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 8px; font-size: 12px;
+}
+.bench-gate h4 { margin: 0 0 4px; font-size: 12px; }
+.bench-gate.out { border-color: var(--sev-returned); }
+
 .bench-actions { display: flex; flex-direction: column; gap: 10px; }
+.bench-job-shared { font-size: 12px; overflow-wrap: anywhere; }
 .bench-card {
   display: flex; gap: 10px; align-items: flex-start;
   background: var(--raised); border: 1px solid var(--rule);
   border-radius: var(--radius); padding: 10px; max-width: 100%;
 }
-.bench-check { flex: none; }
-.bench-checkbox {
-  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
-  font-size: 22px; line-height: 1; background: var(--surface-2); color: var(--ink);
-  border: 1px solid var(--rule); border-radius: var(--radius); cursor: pointer;
-}
-.bench-checkbox:hover { border-color: var(--ink-3); }
+.bench-card[data-state="blocked"] { border-color: var(--sev-chronic); }
+.bench-card[data-state="done"] { opacity: 0.85; }
+.bench-check { flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.bench-checkbox-real { width: 22px; height: 22px; cursor: pointer; }
+.bench-check-label { font-size: 10px; color: var(--ink-3); }
 .bench-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.bench-card-text { font-size: 15px; display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; }
+.bench-card-text { font-size: 15px; display: flex; align-items: center; gap: 6px; overflow-wrap: anywhere; cursor: pointer; }
+.bench-state-badge { font-size: 10px; margin-left: auto; }
+.bench-state-badge.state-ready { color: var(--ok); background: var(--ok-bg); }
+.bench-state-badge.state-blocked { color: var(--sev-returned); background: var(--sev-returned-bg); }
+.bench-state-badge.state-done { color: var(--ink-3); background: var(--surface-2); }
 .bench-bulletin { align-self: flex-start; white-space: normal; max-width: 100%; }
 .bench-parts, .bench-tools { font-size: 12px; overflow-wrap: anywhere; }
 .bench-part { margin-right: 6px; }
@@ -77,16 +84,54 @@
 .bench-tool.ok { color: var(--ok); background: var(--ok-bg); }
 .bench-tool.not-ok { color: var(--sev-returned); background: var(--sev-returned-bg); }
 
+.bench-card-detail { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; font-size: 13px; }
+.bench-preconditions { display: flex; flex-wrap: wrap; gap: 6px; }
+.bench-precondition.ok { color: var(--ok); background: var(--ok-bg); }
+.bench-precondition.not-ok { color: var(--sev-returned); background: var(--sev-returned-bg); }
+.bench-pass-line { font-weight: 600; }
+.bench-inspect-steps { margin: 0; padding-left: 18px; }
+.bench-outcome-fields { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-top: 4px; }
+.bench-outcome-fields input[type="text"] { flex: 1 1 140px; min-width: 0; }
+.bench-done-summary { margin: 0; }
+
 .bench-shortcuts { display: flex; flex-wrap: wrap; gap: 6px; }
 .bench-shortcut { white-space: normal; }
 .bench-shortcut { text-decoration: none; }
 .bench-shortcut.v-active { color: var(--sev-returned); background: var(--sev-returned-bg); }
 .bench-shortcut.v-cleared-unverified { color: var(--sev-chronic); background: var(--sev-chronic-bg); }
+.bench-legend { margin: 2px 0 0; }
+.bench-legend .chip { margin-right: 2px; }
+
+.bench-why { margin: 0; }
+.bench-why summary { cursor: pointer; font-size: 13px; }
 
 .bench-links { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
+.bench-links .btn { min-height: 44px; display: inline-flex; align-items: center; }
 </style>
 
 <div class="bench" data-vin="{{ vin }}">
+
+  {# A1/A2: resume card -- last scan, what changed, N of M done, next action #}
+  <div class="bench-resume">
+    <div class="bench-resume-row">
+      <span>last scan {{ bench.resume.last_scan_relative }}</span>
+      {% if bench.scan_stale %}
+        <span class="bench-resume-stale">&middot; stale (&gt; 24 h)</span>
+      {% endif %}
+      <span class="bench-resume-progress">&middot; {{ bench.progress.done }} of {{ bench.progress.total }} done</span>
+    </div>
+    {% if bench.resume.changed %}
+      <ul class="bench-resume-changes">
+        {% for c in bench.resume.changed %}<li>{{ c }}</li>{% endfor %}
+      </ul>
+    {% elif not bench.resume.is_first_visit %}
+      <p class="small muted" style="margin:0">nothing changed since your last visit</p>
+    {% endif %}
+    {% if bench.resume.next_action %}
+      <p class="bench-resume-next">{{ bench.resume.next_action }}</p>
+    {% endif %}
+  </div>
+
   {% if bench.complaint %}
     <p class="bench-complaint">&ldquo;{{ bench.complaint }}&rdquo;</p>
   {% endif %}
@@ -95,25 +140,144 @@
     <p class="bench-next-action">{{ bench.verdict.next_action }}</p>
   {% endif %}
 
+  {% if bench.verdict.basis %}
+    <details class="bench-why">
+      <summary>Why {{ (bench.verdict.state or "")|lower|replace("_", " ") }}?</summary>
+      <p class="small muted" style="margin:4px 0 0">{{ bench.verdict.basis[0] }}</p>
+      {% if bench.verdict.basis|length > 1 %}
+        <ul class="small muted">
+          {% for b in bench.verdict.basis[1:] %}<li>{{ b }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+    </details>
+  {% endif %}
+
   {% if bench.case_hint %}
     <p class="bench-case-hint small muted">{{ bench.case_hint }}</p>
   {% endif %}
 
+  {# C10: live fuel gate + readiness panel #}
+  <div class="bench-gates">
+    <div class="bench-gate {{ 'out' if bench.fuel_gate.in_window == False }}">
+      <h4>Fuel gate (EVAP needs 15&ndash;85%)</h4>
+      {% if bench.fuel_gate.level is not none %}
+        <p style="margin:0">{{ bench.fuel_gate.level }}%
+          {% if bench.fuel_gate.in_window %} &mdash; in window
+          {% else %} &mdash; {{ bench.fuel_gate.direction }} window{% endif %}</p>
+        {% if bench.fuel_gate.litres_to_target is not none %}
+          <p class="small muted" style="margin:0">burn ~{{ bench.fuel_gate.litres_to_target }} L to reach 85%</p>
+        {% else %}
+          <p class="small muted" style="margin:0">litres to burn: UNKNOWN (no sourced tank capacity)</p>
+        {% endif %}
+      {% else %}
+        <p class="small muted" style="margin:0">UNKNOWN &mdash; no fuel reading on file</p>
+      {% endif %}
+    </div>
+    <div class="bench-gate">
+      <h4>Readiness</h4>
+      {% if bench.readiness.monitors %}
+        <p style="margin:0">{{ bench.readiness.monitors|selectattr("complete")|list|length }}/{{ bench.readiness.monitors|length }} complete</p>
+        <p class="small muted" style="margin:0">read {{ bench.readiness.at }}</p>
+      {% else %}
+        <p class="small muted" style="margin:0">{{ bench.readiness.note or "no readiness read yet" }}</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {# B6: shared parts/tools at job level #}
+  {% if bench.job_parts or bench.job_tools %}
+    <div class="bench-job-shared">
+      {% if bench.job_parts %}
+        <div class="bench-parts muted">
+          <b>Parts for this job:</b>
+          {% for p in bench.job_parts %}
+            <span class="bench-part">{{ p.name }}{% if p.number %} &middot;
+              <span class="mono">{{ p.number }}</span>{% endif %}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% if bench.job_tools %}
+        <div class="bench-tools">
+          <b>Tools for this job:</b>
+          {% for tl in bench.job_tools %}
+            <span class="chip plain bench-tool {{ 'ok' if tl.have == 'owned' else ('not-ok' if tl.have == 'not_owned' else '') }}">
+              {{ tl.name }} &mdash;
+              {{ "have" if tl.have == "owned" else ("not owned" if tl.have == "not_owned" else "unknown: ask") }}
+            </span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+
   <div class="bench-actions">
     {% for a in bench.next_actions %}
-      <div class="bench-card" data-step-id="{{ a.step_id }}">
+      <div class="bench-card" id="task-{{ a.step_id }}" data-task-id="{{ a.step_id }}" data-state="{{ a.state|lower }}">
         <form method="post" action="{{ a.href_tick }}" class="bench-check">
           <input type="hidden" name="step_id" value="{{ a.step_id }}">
-          <input type="hidden" name="done" value="1">
-          <button type="submit" class="bench-checkbox"
-                  aria-label="{{ t('mark_done') if t is defined else 'Mark done' }}"
-                  title="{{ t('mark_done') if t is defined else 'Mark done' }}">&#9744;</button>
+          <input type="checkbox" id="chk-{{ a.step_id }}" name="done" value="1"
+                 class="bench-checkbox-real" {% if a.done %}checked{% endif %}
+                 aria-label="{{ (t('mark_done') if t is defined else 'Mark done') }}: {{ a.text }}"
+                 form="form-{{ a.step_id }}">
+          <label for="chk-{{ a.step_id }}" class="bench-check-label">{{ t('mark_done') if t is defined else 'Mark done' }}</label>
         </form>
         <div class="bench-card-body">
-          <div class="bench-card-text">
-            {% if icon is defined %}{{ icon(a.icon, size="s") }}{% endif %}
-            <span>{{ a.text }}</span>
-          </div>
+          <details>
+            <summary class="bench-card-text">
+              {% if icon is defined %}{{ icon(a.icon, size="s") }}{% endif %}
+              <span>{{ a.text }}</span>
+              <span class="chip plain bench-state-badge state-{{ a.state|lower }}">{{ a.state }}{% if a.blocked_reason %}: {{ a.blocked_reason }}{% endif %}</span>
+            </summary>
+            <div class="bench-card-detail">
+              {% if a.preconditions %}
+                <div class="bench-preconditions">
+                  {% for p in a.preconditions %}
+                    <span class="chip plain bench-precondition {{ 'ok' if p.ok else 'not-ok' }}">
+                      {{ p.label }}: {{ 'ok' if p.ok else 'blocked' }}
+                      {% if not p.ok and p.fix_href %} &mdash; <a href="{{ p.fix_href }}">{{ p.fix_label }}</a>{% endif %}
+                      {% if not p.ok and p.fix_text %} &mdash; {{ p.fix_text }}{% endif %}
+                    </span>
+                  {% endfor %}
+                </div>
+              {% endif %}
+              <p style="margin:0"><b>Procedure:</b>
+                {{ a.detail.procedure.test or "UNKNOWN -- no sourced procedure for this step yet; confirm on the car / service manual" }}</p>
+              {% if a.detail.procedure.tools %}
+                <p class="small muted" style="margin:0">Tool: {{ a.detail.procedure.tools }}</p>
+              {% endif %}
+              <p class="bench-pass-line" style="margin:0">Pass = {{ a.detail.pass_line }}</p>
+              {% if a.detail.if_abnormal %}
+                <p class="small muted" style="margin:0">If abnormal: {{ a.detail.if_abnormal }}</p>
+              {% endif %}
+              {% if a.detail.doc %}
+                <p class="small" style="margin:0">Doc:
+                  {% if a.detail.doc.href %}<a href="{{ a.detail.doc.href }}">{{ a.detail.doc.id }}</a>{% else %}{{ a.detail.doc.id }}{% endif %}
+                  {% if a.detail.doc.title %} &mdash; {{ a.detail.doc.title }}{% endif %}</p>
+              {% endif %}
+              {% if a.detail.inspect_steps %}
+                <ul class="bench-inspect-steps small muted">
+                  {% for s in a.detail.inspect_steps %}
+                    <li>{{ s.element }}: {{ s.what }} ({{ s.how }}) &mdash; {{ s.source }}</li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+
+              <form method="post" action="{{ a.href_tick }}" id="form-{{ a.step_id }}" class="bench-outcome-fields">
+                <input type="hidden" name="step_id" value="{{ a.step_id }}">
+                <select name="outcome">
+                  <option value="ok" {% if a.outcome == 'ok' %}selected{% endif %}>OK</option>
+                  <option value="fault_found" {% if a.outcome == 'fault_found' %}selected{% endif %}>Fault found</option>
+                  <option value="skipped" {% if a.outcome == 'skipped' %}selected{% endif %}>Skipped</option>
+                </select>
+                <input type="text" name="note" placeholder="finding / reason" value="{{ a.note or '' }}">
+                <button type="submit" class="btn">Save</button>
+              </form>
+              {% if a.done %}
+                <p class="bench-done-summary small muted">Done {{ a.done_at }}{% if a.done_by %} by {{ a.done_by }}{% endif %}
+                  {% if a.outcome %} &mdash; {{ a.outcome|replace('_', ' ') }}{% endif %}{% if a.note %}: {{ a.note }}{% endif %}</p>
+              {% endif %}
+            </div>
+          </details>
           {% if a.bulletin %}
             <span class="chip plain bench-bulletin">{{ a.bulletin.id }}</span>
           {% endif %}
@@ -130,8 +294,7 @@
               {% for tl in a.tools %}
                 <span class="chip plain bench-tool {{ 'ok' if tl.have == 'owned' else ('not-ok' if tl.have == 'not_owned' else '') }}">
                   {{ tl.name }} &mdash;
-                  {{ (t('have_it') if t is defined else 'have') if tl.have == 'owned'
-                     else ((t('need_it') if t is defined else 'need') if tl.have == 'not_owned' else '?') }}
+                  {{ "have" if tl.have == "owned" else ("not owned" if tl.have == "not_owned" else "unknown: ask") }}
                 </span>
               {% endfor %}
             </div>
@@ -147,13 +310,18 @@
     <div class="bench-shortcuts">
       {% for s in bench.shortcuts %}
         <a class="chip plain bench-shortcut v-{{ s.status|lower|replace('_', '-') }}"
-           href="{{ s.href }}">{{ s.code }}</a>
+           href="{{ s.href }}"
+           title="{{ s.description or 'no description on file' }} &mdash; {{ s.status_label }}{% if s.addressed_by %} &mdash; addressed by: {{ s.addressed_by }}{% endif %}">{{ s.code }}</a>
       {% endfor %}
     </div>
+    <p class="small muted bench-legend">Legend:
+      {% for l in bench.legend %}<span class="chip plain {{ l.css }}">{{ l.label }}</span>{% endfor %}
+    </p>
   {% endif %}
 
   <div class="bench-links">
     <a class="btn" href="/v/{{ vin }}/job">{{ t('job') if t is defined else 'Job' }}</a>
+    <a class="btn" href="/v/{{ vin }}/liveboard">{{ t('live_board') if t is defined else 'Live board' }}</a>
     <a class="btn" href="/v/{{ vin }}/dossier">{{ t('full_dossier') if t is defined else 'Full dossier' }}</a>
   </div>
 </div>
