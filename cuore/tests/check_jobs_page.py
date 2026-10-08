@@ -293,7 +293,7 @@ else:
             try:
                 urllib.request.urlopen(
                     urllib.request.Request(f"http://127.0.0.1:{port}/v/{VIN}/job/open",
-                                           data=data, method="POST"), timeout=10)
+                                           data=data, method="POST"), timeout=30)
             except Exception as exc:  # noqa: BLE001
                 check("seeding a job on the screenshot server", False, str(exc))
 

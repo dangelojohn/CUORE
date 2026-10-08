@@ -784,7 +784,7 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
  * ========================================================================= */
 
 /* Per-code-family colours for cuore/web/timeline_svg.py. Same convention as
- * the --sev-*/--ok ramp above: dark-first in :root, mirrored in the light
+ * the --sev-* / --ok ramp above: dark-first in :root, mirrored in the light
  * media query and the explicit [data-theme="light"] override, so the SVG's
  * var(--fam-*) references resolve correctly in both themes without the
  * Python module knowing which is active. Chosen to stay visually distinct
@@ -1170,25 +1170,11 @@ details.vmore-tab:not([open]) .vmore-tab-panel { display: none; }
  * huge statement per section, big figures with small caps labels, red
  * reserved for the one primary action. Everything below is additive on
  * top of the Marque theme section above: new/raised variable values plus
- * a handful of new selectors (.hero-head/.hero-tagline/.hero-verdict*/
- * .hero-figure*, .step-oneliner). Nothing above this point is rewritten.
+ * a handful of new selectors (.hero-head/.hero-tagline/.hero-verdict*
+ * /.hero-figure*, .step-oneliner). Nothing above this point is rewritten.
  * Bare `:root` here still loses to the light-theme selectors above
  * (`:root[data-theme="light"]` / the prefers-color-scheme block), which
- * are more specific -- so light stays untouched and usable.
- *
- * The empty `--_emphasis-probe` rule right before the real one is a
- * deliberate decoy, not dead weight: the headless Edge build under test
- * here reproducibly fails to apply every *even-numbered* bare `:root {
- * }` occurrence in this stylesheet (1st and 3rd take effect, 2nd --
- * the pre-existing --fam-* block above -- does not; confirmed by
- * comparing getComputedStyle against cssRules over CDP, not a cascade/
- * specificity bug). Without the decoy this block would be the 4th
- * (silently dropped); the decoy makes it the 5th (kept). Remove both
- * only after confirming on a real engine upgrade that the drop is gone
- * -- check_theme.py's body/--bg checks will catch a regression either
- * way. */
-
-:root { --_emphasis-probe: 1; }
+ * are more specific -- so light stays untouched and usable. */
 
 :root {
   --bg:        #000;
@@ -1261,4 +1247,110 @@ h1 { font-size: 40px; }
   .hero-verdict-state { font-size: 34px; }
   .hero-figures { gap: var(--space-4); }
   .hero-figure-value { font-size: 28px; }
+}
+
+/* =========================================================================
+ * Screens -- one job step per screen (job.html), the process map above it,
+ * the opening reveal (_intro.html), and the header language chooser.
+ * Appended section; everything above predates this pass. Reuses existing
+ * tokens/classes throughout (--ok/--accent/--sev-chronic/--ink-3 for
+ * status colour, .btn/.ico/.pictogram-row for controls and pictograms) --
+ * no new colours invented here.
+ * ========================================================================= */
+
+/* ---------- process map: 12 step icons, horizontal, never widens the page
+ * ---------- scrolls sideways on its own (phone-safe); the page itself
+ * never does. */
+.process-map {
+  display: flex; gap: 4px; align-items: flex-end;
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  padding: 10px 2px 12px; margin-bottom: var(--space-3, 20px);
+  border-bottom: 1px solid var(--rule-soft);
+  scrollbar-width: thin;
+}
+.pm-step {
+  flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-width: 44px; min-height: 44px; padding: 4px 6px; text-decoration: none;
+  border-radius: var(--radius); color: var(--ink-3);
+}
+.pm-step .pm-n { font-size: 10px; font-family: var(--mono); }
+.pm-step.pm-done { color: var(--ok); }
+.pm-step.pm-current { color: var(--accent); font-weight: 650; }
+.pm-step.pm-blocked { color: var(--sev-chronic); }
+.pm-step.pm-todo { color: var(--ink-3); }
+.pm-step.pm-current .pm-n { font-size: 11px; }
+.pm-step:hover { background: var(--surface-2); }
+
+/* ---------- step headline rows: the 11 steps that aren't the current
+ * screen, each a single tappable line. ---------- */
+.step-headline {
+  display: flex; align-items: center; gap: 10px; min-height: 44px;
+  padding: 6px var(--pad); text-decoration: none; color: var(--ink);
+  border-bottom: 1px solid var(--rule-soft);
+}
+.step-headline:hover { background: var(--surface-2); }
+.step-headline-n { color: var(--ink-3); font-size: 12px; flex: none; }
+.step-headline-title { font-weight: 600; flex: none; }
+.step-headline-why {
+  color: var(--ink-3); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; min-width: 0; flex: 1 1 auto;
+}
+.step-headline-done .step-headline-n,
+.step-headline-done .step-headline-title { color: var(--ok); }
+.step-headline-current .step-headline-n,
+.step-headline-current .step-headline-title { color: var(--accent); }
+.step-headline-blocked .step-headline-why { color: var(--sev-chronic); font-weight: 600; }
+
+/* ---------- priority marks (ACTIVE/CLEARED_UNVERIFIED/STALE -> p1/p2/p3),
+ * job.html's own mapping, reusing icons.css's .ico-p1/.ico-p2/.ico-p3. */
+.priority-codes-list .step-text, .priority-code-row { display: flex; align-items: center; gap: 6px; }
+
+/* ---------- header language chooser: two 44px buttons, plain POST forms,
+ * no JS. ---------- */
+.lang-picker { display: inline-flex; gap: 4px; }
+.lang-btn {
+  min-height: 44px; min-width: 44px; padding: 0 10px; font-size: 12px;
+  font-weight: 650; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: transparent; color: var(--ink-2); cursor: pointer;
+}
+.lang-btn-active { color: var(--ink); border-color: var(--accent); background: var(--accent-dim); }
+
+/* ---------- opening reveal (_intro.html): full-screen black overlay,
+ * logo fade-in, tagline, fade-out onto the page beneath. Dismiss is the
+ * checkbox/label pair in _intro.html -- a tap anywhere on the overlay
+ * toggles the (hidden) checkbox, which this CSS uses to hide it instantly
+ * for anyone who doesn't want to wait out the animation. */
+.intro-dismiss-toggle { position: absolute; }
+.intro-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; background: #000; cursor: pointer;
+  animation: intro-fade 2.2s ease-in forwards;
+}
+.intro-dismiss-toggle:checked ~ .intro-overlay { display: none; }
+.intro-mark { opacity: 0; animation: intro-in .9s ease-out .15s forwards; }
+.intro-logo { height: 64px; max-width: 70vw; display: block; }
+.intro-wordmark {
+  font-size: 40px; font-weight: 300; letter-spacing: .04em; color: #fff;
+}
+.intro-wordmark span { color: var(--accent); }
+.intro-tagline {
+  opacity: 0; animation: intro-in .9s ease-out .9s forwards;
+  color: rgba(255, 255, 255, .72); font-size: 12px; letter-spacing: .18em;
+  text-transform: uppercase;
+}
+@keyframes intro-in { to { opacity: 1; } }
+@keyframes intro-fade {
+  0% { opacity: 1; }
+  72% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+/* Shown once per browser session -- _intro.html's inline script adds this
+ * class on every page after the first one this session. */
+html.intro-skip .intro-overlay { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .intro-overlay { animation: none; display: none; }
+}
+@media print {
+  .intro-overlay, .intro-dismiss-toggle { display: none !important; }
 }

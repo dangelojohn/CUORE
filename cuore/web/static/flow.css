@@ -28,6 +28,14 @@
   flex: none; min-height: 44px; height: 44px; padding: 0 14px; font-size: 13px;
   white-space: nowrap;
 }
+/* Secondary "previous step" control, left of the primary suggestion.
+   Collapses to an arrow-only 44px square under 400px (see the media query
+   below) so it never competes with .flow-next for the strip's budget --
+   .flow-step-label (flex:1, min-width:0) still does all the shrinking. */
+.flow-prev {
+  flex: none; min-height: 44px; height: 44px; min-width: 44px; padding: 0 10px;
+  font-size: 13px; white-space: nowrap; background: transparent;
+}
 .flow-more { flex: none; position: relative; }
 .flow-more summary {
   list-style: none; cursor: pointer; min-height: 44px; min-width: 44px;
@@ -68,6 +76,8 @@
 @media (max-width: 400px) {
   .flow-stepper { width: 94vw; right: 2px; }
   .flow-step-est { display: none; }
+  .flow-prev-label { display: none; }
+  .flow-prev { padding: 0 8px; }
 }
 
 /* ---------- vehicle tab strip: "More" menu + flow highlight ----------

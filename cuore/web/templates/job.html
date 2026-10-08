@@ -3,22 +3,111 @@
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 
-<h1>Job</h1>
-<p class="lede">The single workspace for this visit: the mechanic's flow,
-start to release, laid out as one page instead of a dozen tabs. Every
-section below is the same partial used elsewhere in CUORE -- nothing here
-is a second copy of the truth.</p>
-
 {% set job = job_view.job %}
 {% set flow = flow_state_for(vin) if flow_state_for is defined else none %}
-{% set _current_n = flow.current if flow else none %}
-{% macro step_oneliner(n) %}
-  {% set _s = (flow.steps|selectattr("n", "equalto", n)|list|first) if flow and flow.steps else none %}
-  {% if _s and _s.why %}<p class="step-oneliner{{ ' is-blocked' if _s.status == 'blocked' }}">{% if _s.status == "blocked" %}Not yet: {% endif %}{{ _s.why }}</p>{% endif %}
+
+{# One step per screen: ?step=N picks it, default is the flow's own
+   current step (or 1 if there is no flow opinion yet). Clamped to 1..12
+   so a stray/garbage value can never pick a step that doesn't exist. #}
+{% set _step_param = (step|default("")|int) if step|default("") else none %}
+{% set _raw_n = _step_param or (flow.current if flow and flow.current else 1) %}
+{% set _current_n = [1, [_raw_n, 12]|min]|max %}
+
+{# n -> that step's flow_state_for() entry (status/why/href), for the
+   process map and the headline rows. A plain dict built once here, not a
+   second service call per step. #}
+{% set _steps_by_n = {} %}
+{% if flow and flow.steps %}
+  {% for s in flow.steps %}{% set _ = _steps_by_n.update({s.n: s}) %}{% endfor %}
+{% endif %}
+
+{% set _step_defs = [
+  (1, "start", "step_start"),
+  (2, "complaint_symptoms", "step_complaint"),
+  (3, "verdict", "step_verdict"),
+  (4, "scan_codes", "step_scan"),
+  (5, "understand_fault", "step_understand"),
+  (6, "tests_inspections", "step_test"),
+  (7, "hypotheses", "step_hypothesis"),
+  (8, "plan_repair", "step_plan"),
+  (9, "repair", "step_repair"),
+  (10, "verify", "step_verify"),
+  (11, "document", "step_document"),
+  (12, "release", "step_release"),
+] %}
+{% set _step_title_keys = {} %}
+{% set _step_icon_keys = {} %}
+{% for n, tkey, ikey in _step_defs %}
+  {% set _ = _step_title_keys.update({n: tkey}) %}
+  {% set _ = _step_icon_keys.update({n: ikey}) %}
+{% endfor %}
+
+{# Two different notions of "status", deliberately kept apart:
+   step_flow_status is the flow's own opinion (done/current/blocked/todo),
+   used for the "Not yet: <why>" wording -- a step the flow calls blocked
+   must still read as blocked even when it's the one on screen.
+   step_map_status is what the process map/headline rows colour by: the
+   step actually on screen always reads "current" there (accent, larger),
+   even if the flow's own current step is elsewhere (e.g. paging through
+   ?step=N by hand) -- otherwise two icons could claim to be "current" at
+   once. For every other step the two agree. #}
+{% macro step_flow_status(n) %}{% set s = _steps_by_n.get(n) %}{{ s.status if s else "todo" }}{% endmacro %}
+{% macro step_map_status(n) %}
+  {%- if n == _current_n -%}
+    current
+  {%- else -%}
+    {%- set _fs = step_flow_status(n)|trim -%}
+    {%- if _fs in ("done", "blocked") -%}{{ _fs }}{%- else -%}todo{%- endif -%}
+  {%- endif -%}
+{% endmacro %}
+{% macro step_why(n) %}{% set s = _steps_by_n.get(n) %}{{ s.why if s else "" }}{% endmacro %}
+
+{# Priority icon from a code's status (job.html's own mapping -- never
+   touches dossier_bridge/jobs_bridge; ACTIVE/CLEARED_UNVERIFIED/STALE are
+   the three statuses view.codes already carries). #}
+{% macro priority_icon(status) %}
+  {%- set _p = {"ACTIVE": "priority_p1", "CLEARED_UNVERIFIED": "priority_p2", "STALE": "priority_p3"}.get(status) -%}
+  {%- if _p %}{{ icon(_p, "s") }}{% endif -%}
 {% endmacro %}
 
+{% macro step_oneliner(n) %}
+  {% set _why = step_why(n) %}
+  {% set _st = step_flow_status(n) %}
+  {% if _why %}<p class="step-oneliner{{ ' is-blocked' if _st == 'blocked' }}">{% if _st == "blocked" %}Not yet: {% endif %}{{ _why }}</p>{% endif %}
+{% endmacro %}
+
+{% macro step_headline(n) %}
+  {% set _st = step_map_status(n) %}
+  {% set _why = step_why(n) %}
+  <a class="step-headline step-headline-{{ _st }}" href="/v/{{ vin }}/job?step={{ n }}">
+    {{ icon(_step_icon_keys[n], "s") }}
+    <span class="step-headline-n mono">{{ n }}</span>
+    <span class="step-headline-title">{{ t(_step_title_keys[n]) }}</span>
+    {% if _why %}<span class="step-headline-why small">{% if _st == "blocked" %}Not yet: {% endif %}{{ _why }}</span>{% endif %}
+  </a>
+{% endmacro %}
+
+<p class="lede">The single workspace for this visit: the mechanic's flow,
+start to release, one step per screen. Every section below is the same
+partial used elsewhere in CUORE -- nothing here is a second copy of the
+truth.</p>
+
+{# ---------- process map: the 12 steps as a horizontal pictogram strip ---------- #}
+<nav class="process-map" aria-label="Job steps">
+  {% for n in range(1, 13) %}
+    {% set _st = step_map_status(n) %}
+    <a class="pm-step pm-{{ _st }}"
+       href="/v/{{ vin }}/job?step={{ n }}" title="{{ t(_step_title_keys[n]) }}"
+       aria-current="{{ 'step' if n == _current_n else 'false' }}">
+      {{ icon(_step_icon_keys[n], "l" if n == _current_n else "s", t(_step_title_keys[n])) }}
+      <span class="pm-n">{{ n }}</span>
+    </a>
+  {% endfor %}
+</nav>
+
+{% if _current_n == 1 %}
 <section class="dossier-section">
-  <h2 id="step-1" class="section-h step-title">1. Start</h2>
+  <h2 id="step-1" class="section-h step-title">1. {{ t("start") }}</h2>
   {{ step_oneliner(1) }}
   {% if job %}
     <div class="panel tight">
@@ -31,11 +120,15 @@ is a second copy of the truth.</p>
       <a href="/start">Start intake &rarr;</a></p>
   {% endif %}
 </section>
+{% else %}
+  {{ step_headline(1) }}
+{% endif %}
 
 {% if job %}
 
+{% if _current_n == 2 %}
 <section class="dossier-section">
-  <h2 id="step-2" class="section-h step-title">2. Complaint &amp; symptoms</h2>
+  <h2 id="step-2" class="section-h step-title">2. {{ t("complaint_symptoms") }}</h2>
   {{ step_oneliner(2) }}
   {% set note_redirect = "/v/" + vin + "/job#step-2" %}
   {% include "_symptom_form.html" %}
@@ -50,33 +143,54 @@ is a second copy of the truth.</p>
     <p class="muted small">No driver symptom reports yet.</p>
   {% endif %}
 </section>
+{% else %}
+  {{ step_headline(2) }}
+{% endif %}
 
+{% if _current_n == 3 %}
 <section class="dossier-section">
-  <h2 id="step-3" class="section-h step-title">3. Verdict</h2>
+  <h2 id="step-3" class="section-h step-title">3. {{ t("verdict") }}</h2>
   {{ step_oneliner(3) }}
   {% include "_verdict_card.html" %}
 </section>
+{% else %}
+  {{ step_headline(3) }}
+{% endif %}
 
+{% if _current_n == 4 %}
 <section class="dossier-section">
-  <h2 id="step-4" class="section-h step-title">4. Scan &amp; codes</h2>
+  <h2 id="step-4" class="section-h step-title">4. {{ t("scan_codes") }}</h2>
   {{ step_oneliner(4) }}
-  <details class="step-collapse"{% if _current_n == 4 or _current_n is none %} open{% endif %}>
+  {% if view.codes %}
+    <ul class="checklist priority-codes-list">
+      {% for c in view.codes %}
+        <li class="checklist-step"><span class="step-text">{{ priority_icon(c.status) }}
+          <span class="mono">{{ c.code }}</span> <span class="muted small">{{ c.status }}</span></span></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+  <details class="step-collapse" open>
     <summary>Codes on file</summary>
     {% include "_codes_table.html" %}
     <p class="small"><a href="/tools">Read the car now &rarr;</a></p>
   </details>
 </section>
+{% else %}
+  {{ step_headline(4) }}
+{% endif %}
 
+{% if _current_n == 5 %}
 <section class="dossier-section">
-  <h2 id="step-5" class="section-h step-title">5. Understand the fault</h2>
+  <h2 id="step-5" class="section-h step-title">5. {{ t("understand_fault") }}</h2>
   {{ step_oneliner(5) }}
-  <details class="step-collapse"{% if _current_n == 5 %} open{% endif %}>
+  <details class="step-collapse" open>
     <summary>Open codes, explained</summary>
     {% set _active = view.codes|selectattr("status", "equalto", "ACTIVE")|list %}
     {% if _active %}
       {% for c in _active %}
         {% set code = c.code %}
         {% set compact = True %}
+        <p class="small priority-code-row">{{ priority_icon(c.status) }} <span class="mono">{{ code }}</span></p>
         {% include "_code_brief.html" %}
       {% endfor %}
     {% else %}
@@ -84,11 +198,15 @@ is a second copy of the truth.</p>
     {% endif %}
   </details>
 </section>
+{% else %}
+  {{ step_headline(5) }}
+{% endif %}
 
+{% if _current_n == 6 %}
 <section class="dossier-section">
-  <h2 id="step-6" class="section-h step-title">6. Tests &amp; inspections</h2>
+  <h2 id="step-6" class="section-h step-title">6. {{ t("tests_inspections") }}</h2>
   {{ step_oneliner(6) }}
-  <details class="step-collapse"{% if _current_n == 6 or _current_n is none %} open{% endif %}>
+  <details class="step-collapse" open>
     <summary>Open work &amp; attachments</summary>
     {% include "_open_work.html" %}
     {% set target_kind = "job" %}{% set target_id = job.id %}{% set compact = True %}
@@ -96,9 +214,13 @@ is a second copy of the truth.</p>
     <p class="small"><a href="/v/{{ vin }}/electrical">Electrical &rarr;</a></p>
   </details>
 </section>
+{% else %}
+  {{ step_headline(6) }}
+{% endif %}
 
+{% if _current_n == 7 %}
 <section class="dossier-section">
-  <h2 id="step-7" class="section-h step-title">7. Hypotheses</h2>
+  <h2 id="step-7" class="section-h step-title">7. {{ t("hypotheses") }}</h2>
   {{ step_oneliner(7) }}
 
   {% for h in job.hypotheses %}
@@ -199,9 +321,13 @@ is a second copy of the truth.</p>
     <p class="muted small">{{ case_prefill.summary }}</p>
   {% endif %}
 </section>
+{% else %}
+  {{ step_headline(7) }}
+{% endif %}
 
+{% if _current_n == 8 %}
 <section class="dossier-section">
-  <h2 id="step-8" class="section-h step-title">8. Plan the repair</h2>
+  <h2 id="step-8" class="section-h step-title">8. {{ t("plan_repair") }}</h2>
   {{ step_oneliner(8) }}
   {% set panel = job_view.tools_panel %}
   {% set compact = True %}
@@ -215,9 +341,13 @@ is a second copy of the truth.</p>
     {% endif %}
   {% endif %}
 </section>
+{% else %}
+  {{ step_headline(8) }}
+{% endif %}
 
+{% if _current_n == 9 %}
 <section class="dossier-section">
-  <h2 id="step-9" class="section-h step-title">9. Repair</h2>
+  <h2 id="step-9" class="section-h step-title">9. {{ t("repair") }}</h2>
   {{ step_oneliner(9) }}
   <ul class="checklist">
     {% for a in job.actions %}
@@ -243,9 +373,13 @@ is a second copy of the truth.</p>
     </form>
   </div>
 </section>
+{% else %}
+  {{ step_headline(9) }}
+{% endif %}
 
+{% if _current_n == 10 %}
 <section class="dossier-section">
-  <h2 id="step-10" class="section-h step-title">10. Verify</h2>
+  <h2 id="step-10" class="section-h step-title">10. {{ t("verify") }}</h2>
   {{ step_oneliner(10) }}
   {% include "_verdict_card.html" %}
   <p><a class="btn" href="/v/{{ vin }}/verify">Read readiness &rarr;</a></p>
@@ -255,9 +389,13 @@ is a second copy of the truth.</p>
       {% if job.verification.verdict %} &middot; {{ job.verification.verdict }}{% endif %}</p>
   {% endif %}
 </section>
+{% else %}
+  {{ step_headline(10) }}
+{% endif %}
 
+{% if _current_n == 11 %}
 <section class="dossier-section">
-  <h2 id="step-11" class="section-h step-title">11. Document</h2>
+  <h2 id="step-11" class="section-h step-title">11. {{ t("document") }}</h2>
   {{ step_oneliner(11) }}
   <p class="small">
     <a href="/v/{{ vin }}/report.pdf">Handover report (PDF) &rarr;</a> &middot;
@@ -265,9 +403,13 @@ is a second copy of the truth.</p>
     <a href="/v/{{ vin }}/inbox">Inbox{% if job_view.feedback_open_count %} ({{ job_view.feedback_open_count }} open){% endif %} &rarr;</a>
   </p>
 </section>
+{% else %}
+  {{ step_headline(11) }}
+{% endif %}
 
+{% if _current_n == 12 %}
 <section class="dossier-section">
-  <h2 id="step-12" class="section-h step-title">12. Release</h2>
+  <h2 id="step-12" class="section-h step-title">12. {{ t("release") }}</h2>
   {{ step_oneliner(12) }}
   <p><a class="btn primary" href="/v/{{ vin }}/release">Go to release &rarr;</a></p>
 
@@ -353,6 +495,9 @@ is a second copy of the truth.</p>
     </form>
   {% endif %}
 </section>
+{% else %}
+  {{ step_headline(12) }}
+{% endif %}
 
 {% endif %}
 

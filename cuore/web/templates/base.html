@@ -8,9 +8,12 @@
 <title>{% block title %}CUORE{% endblock %}</title>
 <link rel="stylesheet" href="/static/cuore.css">
 <link rel="stylesheet" href="/static/flow.css">
+<link rel="stylesheet" href="/static/icons.css">
 <link rel="stylesheet" href="/static/print.css" media="print">
 </head>
 <body{% if vin is defined and vin %} data-vin="{{ vin }}"{% endif %}>
+
+{% include "_intro.html" %}
 
 <header class="top">
   <a class="brand" href="/" aria-label="CUORE, home">
@@ -18,6 +21,16 @@
     CU<span>O</span>RE
   </a>
   <span class="profile" title="Which half of the system this is">{{ profile }}</span>
+  {% if t is defined and lang is defined %}
+  <form method="post" action="/lang" class="lang-picker" role="group" aria-label="{{ t('language') }}">
+    <input type="hidden" name="next" value="{% if request is defined and request %}{{ request.url.path }}{% if request.url.query %}?{{ request.url.query }}{% endif %}{% endif %}">
+    {% for code, label in [("it", "IT"), ("en", "EN")] %}
+      <button type="submit" name="lang" value="{{ code }}"
+              class="lang-btn{{ ' lang-btn-active' if lang() == code }}"
+              aria-pressed="{{ 'true' if lang() == code else 'false' }}">{{ label }}</button>
+    {% endfor %}
+  </form>
+  {% endif %}
   <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle dark/light theme"
           title="Toggle dark/light theme">&#9680;</button>
   <button type="button" class="icon-btn no-print" aria-label="Print this page"

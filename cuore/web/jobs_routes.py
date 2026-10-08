@@ -64,15 +64,19 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
 
 
 @router.get("/v/{vin}/job", response_class=HTMLResponse)
-def job_page(request: Request, vin: str, tools_step: str = "") -> HTMLResponse:
-    """The current (or most recent) job for this vehicle, with the stepper."""
-    return _job_page(request, vin, tools_step=tools_step)
+def job_page(request: Request, vin: str, tools_step: str = "", step: str = "") -> HTMLResponse:
+    """The current (or most recent) job for this vehicle, one step per
+    screen -- ``step`` is the only query param this page reads to pick
+    which of the 12 steps is the full screen (default: the flow's own
+    current step, resolved inside job.html itself)."""
+    return _job_page(request, vin, tools_step=tools_step, step=step)
 
 
 @router.get("/v/{vin}/job/{job_id}", response_class=HTMLResponse)
-def job_page_one(request: Request, vin: str, job_id: str, tools_step: str = "") -> HTMLResponse:
+def job_page_one(request: Request, vin: str, job_id: str, tools_step: str = "",
+                 step: str = "") -> HTMLResponse:
     """One specific job by id -- e.g. a closed case from this car's history."""
-    return _job_page(request, vin, job_id=job_id, tools_step=tools_step)
+    return _job_page(request, vin, job_id=job_id, tools_step=tools_step, step=step)
 
 
 @router.post("/v/{vin}/job/open", response_class=HTMLResponse)
@@ -207,7 +211,11 @@ async def job_close(request: Request, vin: str, job_id: str,
                               tools_review_skip_reason=tools_review_skip_reason)
     except BridgeError as exc:
         error = str(exc)
-    return _job_page(request, vin, job_id=job_id, close_error=error)
+    # Rendered directly (no redirect) -- the close form lives on step 12's
+    # screen, so that's the screen the re-render must show, regardless of
+    # the flow's own current-step opinion, or a refusal would render onto
+    # whatever step happens to be current and never be seen.
+    return _job_page(request, vin, job_id=job_id, close_error=error, step="12")
 
 
 __all__ = ["router"]

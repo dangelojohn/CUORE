@@ -40,9 +40,14 @@
         {% if flow.blockers %}
           <span class="chip chronic flow-blocker-chip" title="{{ flow.blockers|length }} blocker(s)">{{ flow.blockers|length }}&#9888;</span>
         {% endif %}
+        {% set _prev_steps = flow.steps|selectattr("n", "equalto", (flow.current or 0) - 1)|list %}
+        {% if _prev_steps %}
+          {% set _prev = _prev_steps[0] %}
+          <a class="btn flow-prev" href="{{ _prev.href|replace('#step-', '?step=') }}" title="{{ _prev.title }}">&larr;<span class="flow-prev-label"> {{ _prev.title }}</span></a>
+        {% endif %}
         {% set _next_whys = flow.steps|selectattr("n", "equalto", flow.next.n)|map(attribute="why")|list %}
         {% set _next_why = _next_whys[0] if _next_whys else none %}
-        <a class="btn primary flow-next" href="{{ flow.next.href }}"{% if _next_why %} title="{{ _next_why }}"{% endif %}>{{ flow.next.button_label or ("Suggested next: " + flow.next.title + " →") }}</a>
+        <a class="btn primary flow-next" href="{{ flow.next.href|replace('#step-', '?step=') }}"{% if _next_why %} title="{{ _next_why }}"{% endif %}>{{ flow.next.button_label or ("Suggested next: " + flow.next.title + " →") }}</a>
       {% else %}
         <span class="flow-step-label">Job complete.</span>
         <a class="btn primary flow-next" href="/start">Tools away. Start the next Stelvio &rarr;</a>
@@ -54,7 +59,7 @@
             <li class="flow-step is-{{ s.status }}">
               <span class="flow-step-icon" aria-hidden="true">{% if s.status == "done" %}&#10003;{% elif s.status == "current" %}&#9675;{% elif s.status == "blocked" %}&#9888;{% else %}&middot;{% endif %}</span>
               <span class="flow-step-body">
-                <a href="{{ s.href }}" class="flow-step-title">{{ s.n }}. {{ s.title }}</a>
+                <a href="{{ s.href|replace('#step-', '?step=') }}" class="flow-step-title">{{ s.n }}. {{ s.title }}</a>
                 {% if s.why %}
                   <span class="flow-step-why{{ ' flow-step-why-blocked' if s.status == 'blocked' }} muted small">{% if s.status == "blocked" %}Not yet: {% endif %}{{ s.why }}</span>
                 {% endif %}

@@ -1,0 +1,24 @@
+{# Opening reveal: a full-screen black overlay with the CUORE mark fading
+   in, then fading out to reveal the page underneath. Pure CSS animation
+   (~2.2s, see cuore.css's "Screens" section for the keyframes);
+   prefers-reduced-motion disables it outright. Dismiss is a <label>/
+   checkbox trick -- no JS required for that part. Shown once per browser
+   session: the one inline script below (no CDN, no library) sets a
+   sessionStorage flag and adds a class that cuore.css uses to skip the
+   overlay on every page after the first one this session. Never shown on
+   print (cuore.css's @media print rule). Included once, from base.html,
+   so every page gets it -- base.html already guards every *other* global
+   this partial might have used with `is defined`, but this one reads no
+   template globals at all, so it's safe on every template, including the
+   two whose Jinja environment doesn't carry icons.py/i18n.py's globals. #}
+<input type="checkbox" id="intro-dismiss" class="intro-dismiss-toggle" hidden>
+<label for="intro-dismiss" class="intro-overlay no-print" aria-hidden="true">
+  <span class="intro-mark">
+    <img src="/static/brand/logo.svg" alt="CUORE" class="intro-logo"
+         onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'intro-wordmark',textContent:'CUORE'}))">
+  </span>
+  <span class="intro-tagline">The mechanic's own record of the car</span>
+</label>
+<script>
+(function(){try{if(sessionStorage.getItem("cuoreIntroSeen")){document.documentElement.classList.add("intro-skip");}else{sessionStorage.setItem("cuoreIntroSeen","1");}}catch(e){}})();
+</script>
