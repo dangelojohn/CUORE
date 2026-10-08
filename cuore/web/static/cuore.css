@@ -118,26 +118,44 @@ textarea:focus-visible {
 /* ---------- chrome ---------- */
 
 .top {
-  position: sticky; top: 0; z-index: 20;
+  /* Not sticky: on a /v/ page the vehicle strip below is the one thing
+   * that stays pinned (R2) -- stacking this on top of it too is exactly
+   * the "287px of chrome eating a 490px phone screen" problem the
+   * mechanic-UX review measured. It scrolls away with the rest of the
+   * page; the menu button and theme toggle live here but are reachable
+   * by scrolling up, same as any other site's header. */
+  position: static; z-index: 20;
   display: flex; align-items: center; gap: 18px;
   padding: 8px var(--pad);
   background: var(--surface);
   border-bottom: 1px solid var(--rule);
 }
 .top .brand {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 8px; min-height: 44px;
   font-weight: 700; letter-spacing: .06em; text-decoration: none;
   font-size: 13px; text-transform: uppercase;
 }
 .top .brand span { color: var(--accent); }
 
-/* The badge mark. An enamel-and-ring convention, not any one marque's
- * specific charge -- a fixed palette on purpose, the way a physical pin
- * would not recolour itself for a dark room. Origin of the idea: CUORE
- * means heart, this app reads a car's vitals, so the charge is a pulse
- * trace, read left to right across the two colours a workshop already
- * uses here for "attention" and "confirmed" -- not a copied crest. */
-.brand-mark { flex: none; display: block; }
+/* Logo placeholder: a real mark is being designed separately. This is a
+ * square slot in the same spot the old inline SVG badge occupied, sized to
+ * fit the <=56px header strip. Drop the file at
+ * cuore/web/static/brand/logo.svg (see that folder's README) and it shows
+ * automatically via the background-image; until then the dashed border +
+ * "LOGO" text make it obvious this is a stand-in, not a broken image. */
+.logo-slot {
+  flex: none; display: block; width: 36px; height: 36px;
+  border: 1.5px dashed var(--ink-3); border-radius: var(--radius);
+  background: url(/static/brand/logo.svg) center/contain no-repeat;
+  position: relative;
+}
+.logo-slot::after {
+  content: "LOGO"; position: absolute; inset: 0; display: flex;
+  align-items: center; justify-content: center;
+  font-size: 8px; letter-spacing: .04em; color: var(--ink-3);
+  font-family: var(--mono); text-transform: uppercase; pointer-events: none;
+}
+@media (max-width: 759px) { .logo-slot { width: 32px; height: 32px; } }
 .top nav { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 .top nav a {
   font-size: 12.5px; color: var(--ink-3); text-decoration: none;
@@ -183,7 +201,7 @@ textarea:focus-visible {
 /* Vehicle context. Sticky under the top bar so which car you are looking at
  * never scrolls away -- the single most common way to misread a dossier. */
 .vbar {
-  position: sticky; top: 39px; z-index: 15;
+  position: sticky; top: 0; z-index: 15;
   background: var(--surface-2);
   border-bottom: 1px solid var(--rule);
   padding: 9px var(--pad);
@@ -345,7 +363,8 @@ input[type=text], input[type=search], textarea, select {
 textarea { min-height: 68px; resize: vertical; }
 .field { margin-bottom: 12px; }
 .btn {
-  display: inline-block; background: var(--raised); color: var(--ink);
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--raised); color: var(--ink);
   border: 1px solid var(--rule); border-radius: var(--radius);
   padding: 7px 14px; font-size: 13px; font-family: inherit; cursor: pointer;
   text-decoration: none;
@@ -396,8 +415,364 @@ kbd {
  * which made every page overflow a 400px screen and the browser zoom the
  * whole page out. Let it wrap under the brand instead. */
 @media (max-width: 760px) {
-  .top { flex-wrap: wrap; row-gap: 6px; }
-  .top nav { margin-left: 0; width: 100%; flex-wrap: wrap; row-gap: 6px; gap: 10px; }
-  .navgroup { flex-wrap: wrap; gap: 10px; }
-  .navgroup.live, .navutil { padding-left: 10px; }
+  .top { flex-wrap: nowrap; }
 }
+
+/* ======================================================================
+   Mechanic UX rebuild (MECHANIC_UX_REVIEW.md R1-R10): compact chrome, a
+   computed verdict, always-open job cards, collapsed counted sections,
+   fixed-grammar tables, glove-ready targets. Everything below is additive
+   to the rules above; nothing above was removed, only the header/vbar
+   layout rules were adjusted in place (search ".top" / ".vbar" above).
+   ====================================================================== */
+
+/* ---------- header: icon buttons + collapsing nav (R2, R10) ---------- */
+
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; margin: 2px 0;
+  background: transparent; border: 1px solid var(--rule); border-radius: var(--radius);
+  color: var(--ink-2); font-size: 15px; cursor: pointer; line-height: 1;
+}
+.icon-btn:hover { color: var(--ink); border-color: var(--ink-3); }
+#theme-toggle { margin-left: auto; }
+
+.navmenu { list-style: none; }
+.navmenu summary.menu-btn { list-style: none; }
+.navmenu summary.menu-btn::-webkit-details-marker { display: none; }
+.navmenu summary.menu-btn::marker { content: ""; }
+.navmenu nav { display: flex; align-items: center; gap: 14px; }
+
+@media (min-width: 760px) {
+  .top { flex-wrap: nowrap; }
+  #theme-toggle { margin-left: 10px; }
+  .navmenu { margin-left: auto; }
+  .navmenu summary.menu-btn { display: none; }
+  .navmenu nav { display: flex !important; }
+}
+@media (max-width: 759px) {
+  .top { gap: 8px; padding: 6px 10px; }
+  .top .profile { display: none; }
+  .navmenu { position: relative; margin-left: auto; }
+  .navmenu nav { display: none; flex-direction: column; align-items: flex-start; gap: 10px; }
+  .navmenu[open] nav {
+    display: flex !important; position: absolute; right: 0; top: 46px;
+    background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+    padding: 10px 14px; z-index: 30; min-width: 200px; box-shadow: 0 6px 18px rgba(0,0,0,.35);
+  }
+  .navmenu nav .navgroup { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .navmenu nav .navgroup.live, .navmenu nav .navutil { padding-left: 0; border-left: none; }
+}
+
+/* ---------- vbar: one merged strip (R2) ---------- */
+
+.vbar { padding: 6px var(--pad) 7px; }
+.vline {
+  display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;
+  min-height: 26px; overflow: hidden;
+}
+.vline .vname {
+  font-weight: 650; font-size: 14px; white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis; max-width: 38%; flex: 0 1 auto;
+}
+.vline .vin-tail { font-size: 11.5px; color: var(--ink-3); flex: none; }
+.vline .vkm { font-size: 11.5px; color: var(--ink-2); flex: none; white-space: nowrap; }
+.vline .chip { flex: none; }
+.vmore { margin-left: auto; flex: none; position: relative; }
+.vmore summary {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 40px; height: 44px; cursor: pointer; color: var(--ink-3);
+  border: 1px solid var(--rule); border-radius: var(--radius); list-style: none;
+}
+.vmore summary::-webkit-details-marker { display: none; }
+.vmore[open] summary { color: var(--ink); }
+.vmore-panel {
+  position: absolute; right: 0; top: 46px; z-index: 25;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+  padding: 10px 14px; min-width: 240px; box-shadow: 0 6px 18px rgba(0,0,0,.35);
+}
+.vmore-panel .small { margin-bottom: 4px; }
+.vtabs { margin-top: 4px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+.vtabs a {
+  flex: none; min-height: 30px; display: inline-flex; align-items: center;
+  padding: 6px 10px;
+}
+
+/* A sticky strip's own min-height target is explicitly relaxed to 40px by
+ * the review (the jump-row/table-row exception); .vtabs reads as the same
+ * kind of dense navigational row, so it gets the same allowance -- a 44px
+ * tab row here would blow the <=110px sticky-chrome budget on its own. */
+
+/* ---------- dossier: verdict card (R1) ---------- */
+
+.dossier { display: block; }
+
+.verdict-card {
+  border: 1px solid var(--rule); border-left: 4px solid var(--ink-3);
+  border-radius: var(--radius); background: var(--surface);
+  padding: var(--pad); margin-bottom: 14px;
+}
+.verdict-card.v-active-faults { border-left-color: var(--sev-returned); }
+.verdict-card.v-unverified-repair { border-left-color: var(--sev-chronic); }
+.verdict-card.v-verified-clean { border-left-color: var(--ok); }
+.verdict-card.v-no-data { border-left-color: var(--ink-3); }
+
+.chip-verdict {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  padding: 5px 10px; border-radius: var(--radius); font-weight: 650;
+}
+.chip-verdict.v-active-faults { color: var(--sev-returned); background: var(--sev-returned-bg); }
+.chip-verdict.v-unverified-repair { color: var(--sev-chronic); background: var(--sev-chronic-bg); }
+.chip-verdict.v-verified-clean { color: var(--ok); background: var(--ok-bg); }
+.chip-verdict.v-no-data { color: var(--ink-3); background: var(--surface-2); }
+
+.verdict-sentence { font-size: 16px; color: var(--ink); margin: 10px 0 12px; max-width: 70ch; }
+
+.verdict-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.btn-verdict {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 8px 18px; font-size: 14px; font-weight: 600;
+  border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--raised); color: var(--ink); text-decoration: none; text-align: center;
+  flex: 1 1 auto;
+}
+.btn-verdict.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-verdict.is-disabled {
+  opacity: .5; cursor: not-allowed; background: var(--surface-2); color: var(--ink-3);
+  border-color: var(--rule); pointer-events: none;
+}
+@media (max-width: 480px) { .btn-verdict { flex: 1 1 100%; } }
+
+.why-expander { margin-top: 6px; }
+.why-expander summary {
+  cursor: pointer; font-size: 12.5px; color: var(--ink-3); min-height: 44px; display: inline-flex; align-items: center;
+}
+.why-expander ul { margin: 6px 0 4px 18px; padding: 0; font-size: 13px; color: var(--ink-2); }
+.why-expander li { margin-bottom: 4px; }
+
+/* ---------- jump row (R3) ---------- */
+
+.jumprow {
+  /* Not sticky -- the vbar strip above is the one sticky element on a /v/
+   * page (R2's <=110px budget has no room for a third stacked bar). It
+   * sits right under the verdict card instead, which keeps every section
+   * two taps away without adding to the sticky chrome. */
+  display: flex; gap: 6px; overflow-x: auto; padding: 6px 0 10px; margin-bottom: 4px;
+  background: var(--bg);
+}
+.jump-chip {
+  flex: none; display: inline-flex; align-items: center; min-height: 32px;
+  padding: 5px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+  background: var(--raised); color: var(--ink-2); border: 1px solid var(--rule);
+  border-radius: 999px; text-decoration: none; cursor: pointer; font-family: inherit;
+  white-space: nowrap;
+}
+.jump-chip:hover { color: var(--ink); border-color: var(--ink-3); }
+.jump-chip b { color: var(--accent); margin-left: 3px; }
+.jump-action { border-style: dashed; }
+
+/* ---------- open-work job cards (R4) ---------- */
+
+.section-h {
+  font-size: 11.5px; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--ink-3); margin: 18px 0 8px; font-weight: 600;
+}
+.job-card {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+  padding: var(--pad); margin-bottom: 12px;
+}
+.job-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+.job-head h3 { margin: 0; font-size: 15px; }
+.job-codes { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip-code, .chip-code.sm {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 3px 11px;
+  font-family: var(--mono); font-size: 12px; background: var(--surface-2); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: var(--radius); text-decoration: none;
+}
+.chip-code:hover { border-color: var(--accent); color: var(--accent); }
+
+.checklist { list-style: none; margin: 0; padding: 0; }
+.checklist-step {
+  display: flex; align-items: flex-start; gap: 10px; padding: 9px 0;
+  border-top: 1px solid var(--rule-soft);
+}
+.checklist-step:first-child { border-top: none; }
+.checklist-step.is-done .step-text { color: var(--ink-3); text-decoration: line-through; }
+.step-form { flex: none; }
+.step-check {
+  width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius);
+  color: var(--ok); font-size: 18px; cursor: pointer;
+}
+.checklist-step.is-done .step-check { background: var(--ok-bg); border-color: var(--ok); }
+.step-text { flex: 1 1 auto; padding-top: 10px; font-size: 14px; }
+.step-ref { margin-left: 6px; font-size: 12px; }
+.step-meta { display: block; margin-top: 2px; }
+
+.job-foot { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+.progress-pill {
+  font-family: var(--mono); font-size: 12px; font-weight: 650; color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--rule); border-radius: 999px;
+  padding: 3px 10px;
+}
+.job-refs { font-size: 12px; color: var(--ink-3); }
+.job-refs a { color: var(--ink-3); }
+
+/* ---------- collapsed counted cards (R3) ---------- */
+
+.card-details {
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
+  margin-bottom: 10px;
+}
+.card-details > summary {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px var(--pad); min-height: 44px; cursor: pointer;
+  font-size: 13px; font-weight: 650; color: var(--ink); list-style: none;
+}
+.card-details > summary::-webkit-details-marker { display: none; }
+.card-details > summary::before {
+  content: "\25B8"; color: var(--ink-3); transition: transform .15s ease; flex: none;
+}
+.card-details[open] > summary::before { transform: rotate(90deg); }
+.count-badge {
+  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-weight: 500;
+  display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap;
+}
+.count-badge .chip.sm { font-size: 9px; padding: 1px 5px; }
+.card-body { padding: 0 var(--pad) var(--pad); }
+.card-details > summary { border-bottom: 1px solid transparent; }
+.card-details[open] > summary { border-bottom: 1px solid var(--rule); }
+.subhead { font-size: 12.5px; color: var(--ink-3); margin: 14px 0 6px; }
+.subhead:first-child { margin-top: 2px; }
+
+/* ---------- fixed-grammar code tables (R5) ---------- */
+
+table.codes-table { table-layout: fixed; }
+table.codes-table td, table.codes-table th { overflow: hidden; padding: 6px 5px; }
+table.codes-table th:first-child, table.codes-table td:first-child { padding-left: 8px; }
+/* The status chip's own font/padding is a hair too wide for "STALE"/
+ * "ACTIVE" to clear a <=15% column at 360px without this; status stays
+ * fully readable, which matters more here than matching the chip size
+ * everywhere else in the app. */
+table.codes-table .chip { font-size: 9px; padding: 1px 4px; letter-spacing: .03em; }
+table.codes-table .desc-cell { white-space: normal; word-break: break-word; }
+table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
+  white-space: nowrap; text-overflow: ellipsis;
+}
+/* The code-cell holds the DTC (link) and a system-grouping badge. The
+ * badge is deliberately neutral/grey, never colour-coded -- R10 reserves
+ * colour for status (red/amber/green/grey) only, and system is a
+ * different dimension from status. min-width:0 is required for a flex
+ * child's own text-overflow:ellipsis to ever take effect. */
+.code-cell { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+.code-cell a { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sys-badge {
+  flex: none; font-family: var(--mono); font-size: 8.5px; letter-spacing: .02em;
+  color: var(--ink-3); border: 1px solid var(--rule); border-radius: 2px; padding: 0 3px;
+}
+
+.chip.status-active { color: var(--sev-returned); background: var(--sev-returned-bg); border-color: var(--sev-returned); }
+.chip.status-cleared_unverified { color: var(--sev-chronic); background: var(--sev-chronic-bg); border-color: var(--sev-chronic); }
+.chip.status-stale { color: var(--ink-3); background: var(--surface-2); }
+
+/* ---------- already attempted (R6) ---------- */
+
+.attempt-row { padding: 9px 0; border-top: 1px solid var(--rule-soft); }
+.attempt-row:first-child { border-top: none; }
+.attempt-row.is-fail { background: var(--sev-returned-bg); margin: 0 calc(-1 * var(--pad)); padding: 9px var(--pad); border-radius: var(--radius); }
+.attempt-main { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+.attempt-footnote { margin-top: 4px; }
+.raw-rows { margin-top: 6px; }
+.raw-rows summary { cursor: pointer; font-size: 12px; color: var(--ink-3); min-height: 32px; display: inline-flex; align-items: center; }
+.raw-rows td { white-space: nowrap; }
+
+/* ---------- freeze frames (R7) ---------- */
+
+.ff-card { border-top: 1px solid var(--rule-soft); padding: 12px 0; }
+.ff-card:first-child { border-top: none; }
+.ff-key-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;
+  margin-top: 8px;
+}
+.ff-pid {
+  background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius);
+  padding: 8px 10px;
+}
+.ff-pid.is-flag { border-color: var(--sev-chronic); background: var(--sev-chronic-bg); }
+.ff-name { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; }
+.ff-value { font-size: 14px; margin-top: 2px; }
+.ff-flag { font-size: 12px; color: var(--sev-chronic); margin-top: 3px; font-weight: 650; }
+.all-pids { margin-top: 10px; }
+.all-pids summary { cursor: pointer; font-size: 12px; color: var(--ink-3); min-height: 32px; display: inline-flex; align-items: center; }
+.ff-all-grid { margin-top: 6px; display: grid; grid-template-columns: 1fr; gap: 2px; }
+@media (min-width: 640px) { .ff-all-grid { grid-template-columns: 1fr 1fr; } }
+.ff-all-row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: 12.5px; border-bottom: 1px solid var(--rule-soft); }
+.ff-all-row .k { color: var(--ink-3); }
+
+/* ---------- bulletins (R9) ---------- */
+
+.bulletin-card { border-top: 1px solid var(--rule-soft); padding: 12px 0; }
+.bulletin-card:first-child { border-top: none; }
+.bulletin-card h4 { margin: 0 0 4px; font-size: 13.5px; }
+.bulletin-codes { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+.chip-code.sm { min-height: 44px; font-size: 11px; padding: 2px 9px; }
+
+/* ---------- blind spots (R8) ---------- */
+
+.blindspot-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.blindspot-row .q { flex: 1 1 260px; }
+.blindspot-row .why { flex: 2 1 320px; }
+.dealer-tag { min-height: 28px; display: inline-flex; align-items: center; }
+.epistemic-line { margin-top: 10px; }
+
+/* ---------- notes quick-add FAB (R10) ---------- */
+
+.fab-note {
+  position: fixed; right: 18px; bottom: 18px; z-index: 40;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--accent); color: #fff; border: none; font-size: 22px;
+  box-shadow: 0 4px 14px rgba(0,0,0,.4); cursor: pointer;
+}
+.fab-note:hover { filter: brightness(1.08); }
+
+/* ---------- verify page ---------- */
+
+.verify-page { max-width: 640px; }
+.readiness-panel .readiness-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-top: 1px solid var(--rule-soft); }
+.readiness-panel .readiness-row:first-of-type { border-top: none; }
+.back-to-dossier {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 48px; margin-top: 16px; font-weight: 650; font-size: 14px;
+}
+
+/* ---------- ergonomics baseline (R10) ---------- */
+
+body { font-size: 16px; }
+.small { font-size: 13px; }
+table.codes-table td.n.mono, table.codes-table td.mono { font-size: 14px; }
+/* ...except the short last-seen date and the compact km figure, which are
+ * labels rather than precision measurements and need the width back more
+ * than they need the bump (title="" carries the exact value on tap). */
+table.codes-table td.lastseen-cell { font-size: 12px; }
+table.codes-table td.kmcell { font-size: 12.5px; }
+.jump-chip, .vtabs a { min-height: 40px; }
+.btn { min-height: 44px; }
+input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* ---------- theme toggle persistence hook ---------- */
+/* data-theme is set/read by cuore.js; the actual palettes are the
+ * :root[data-theme="light"] / @media blocks already defined above. */
+
+@media (max-width: 400px) {
+  .vline .vname { max-width: 32%; }
+  .verdict-actions { flex-direction: column; }
+}
+
+
+/* Swipeable rows (tabs, section chips): no desktop-style scrollbar; they
+ * still scroll by touch, trackpad and shift+wheel. */
+.vtabs, .jumprow { scrollbar-width: none; }
+.vtabs::-webkit-scrollbar, .jumprow::-webkit-scrollbar { display: none; }
+/* The strip's "..." details button must never be pushed off-screen. */
+.vbar .vmore { flex: none; margin-left: auto; }

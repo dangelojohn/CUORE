@@ -3,6 +3,336 @@
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 
+{% set view = view if view is defined else None %}
+
+{% if view %}
+{# ======================================================================
+   The mechanic-UX rebuild: verdict first, open work always expanded,
+   everything else a collapsed, counted card. See
+   docs (MECHANIC_UX_REVIEW.md) R1-R10. All content below comes from
+   ``view`` -- no raw dict/list is ever interpolated directly, every field
+   is destructured by name so nothing can print as a Python repr. ======= #}
+<div class="dossier" data-vin="{{ vin }}">
+
+  {% set vstate = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
+  <div class="verdict-card v-{{ vstate }}" id="verdict">
+    <div class="verdict-top">
+      <span class="chip-verdict v-{{ vstate }}">&#11044; {{ view.verdict.label }}</span>
+    </div>
+    <p class="verdict-sentence">{{ view.verdict.summary }}</p>
+    {% if view.verdict.actions %}
+    <div class="verdict-actions">
+      {% for a in view.verdict.actions %}
+        <a class="btn-verdict {{ 'primary' if loop.first }} {{ 'is-disabled' if not a.enabled }}"
+           href="{{ a.href if a.enabled else '#' }}"
+           {% if not a.enabled %}aria-disabled="true" tabindex="-1"{% endif %}
+           {% if a.hint %}title="{{ a.hint }}"{% endif %}>{{ a.label }}</a>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if view.verdict.basis %}
+    <details class="why-expander">
+      <summary>Why</summary>
+      <ul>
+        {% for b in view.verdict.basis %}<li>{{ b }}</li>{% endfor %}
+      </ul>
+      {% if view.verdict.cleared_at %}
+        <p class="small muted">Cleared {{ view.verdict.cleared_at }}{% if view.verdict.cleared_by %} by {{ view.verdict.cleared_by }}{% endif %}.</p>
+      {% endif %}
+      {% if view.verdict.readiness %}
+        {# evap_monitor may arrive as the string "complete"/"incomplete"/
+           "not_supported"/None (view.verdict.readiness, built from a stored
+           observation) or as a plain bool (same field name elsewhere in the
+           app) -- handled either way so this never prints the raw value. #}
+        {% set em = view.verdict.readiness.evap_monitor %}
+        {% if em == "complete" or em is sameas true %}
+          {% set em_text = "complete" %}
+        {% elif em == "not_supported" %}
+          {% set em_text = "not supported on this vehicle" %}
+        {% elif em == "incomplete" or em is sameas false %}
+          {% set em_text = "not yet run" %}
+        {% else %}
+          {% set em_text = "unknown" %}
+        {% endif %}
+        <p class="small muted">Readiness read {{ view.verdict.readiness.at }} &mdash;
+          EVAP monitor {{ em_text }}{% if view.verdict.readiness.all_complete %}, all monitors complete{% endif %}.</p>
+      {% endif %}
+    </details>
+    {% endif %}
+  </div>
+
+  <div class="jumprow" aria-label="Jump to section">
+    <a class="jump-chip" href="#open-work">Open work</a>
+    <a class="jump-chip" href="#sec-blindspots">Blind spots{% if view.blind_spots %} <b>{{ view.blind_spots|length }}</b>{% endif %}</a>
+    <a class="jump-chip" href="#sec-history">History</a>
+    <a class="jump-chip" href="#sec-attempted">Attempted</a>
+    <a class="jump-chip" href="#sec-freeze">Freeze frames</a>
+    <a class="jump-chip" href="#sec-bulletins">Bulletins</a>
+    <a class="jump-chip" href="#sec-live">Live</a>
+    <a class="jump-chip" href="#sec-notes">Notes</a>
+    <button type="button" class="jump-chip jump-action" data-expand-all>Expand all</button>
+    <button type="button" class="jump-chip jump-action" data-collapse-all>Collapse all</button>
+  </div>
+
+  <section id="open-work" class="dossier-section">
+    <h2 class="section-h">Open work</h2>
+    {% for job in view.open_work %}
+      <div class="job-card">
+        <div class="job-head">
+          <h3>{{ job.title }}</h3>
+          {% if job.codes %}
+          <div class="job-codes">
+            {% for c in job.codes %}<a class="chip-code" href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% if job.steps %}
+        <ol class="checklist">
+          {% for s in job.steps %}
+          <li class="checklist-step {{ 'is-done' if s.done }}">
+            <form method="post" action="/v/{{ vin }}/checklist" class="step-form" data-checklist-form>
+              <input type="hidden" name="step_id" value="{{ s.id }}">
+              <input type="hidden" name="done" value="{{ '0' if s.done else '1' }}">
+              <button type="submit" class="step-check" aria-pressed="{{ 'true' if s.done else 'false' }}"
+                      title="{{ 'Mark not done' if s.done else 'Mark done' }}">
+                <span aria-hidden="true">{{ "✓" if s.done else "" }}</span>
+              </button>
+            </form>
+            <span class="step-text">{{ s.text }}
+              {% if s.ref %}<a class="step-ref" href="{{ s.ref_href or '#' }}">{{ s.ref }}</a>{% endif %}
+            </span>
+            {% if s.done_at %}
+              <span class="small muted step-meta">done {{ s.done_at }}{% if s.done_by %} by {{ s.done_by }}{% endif %}</span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ol>
+        {% endif %}
+        <div class="job-foot">
+          {% if job.progress %}<span class="progress-pill">{{ job.progress.done }}/{{ job.progress.total }}</span>{% endif %}
+          {% if job.refs %}
+            <span class="job-refs">
+              {% for r in job.refs %}{% if r.href %}<a href="{{ r.href }}">{{ r.label }}</a>{% else %}<span class="muted">{{ r.label }}</span>{% endif %}{% if not loop.last %} &middot; {% endif %}{% endfor %}
+            </span>
+          {% endif %}
+        </div>
+      </div>
+    {% else %}
+      <p class="muted small">No open-work families right now.</p>
+    {% endfor %}
+  </section>
+
+  <details class="card-details" id="sec-blindspots" data-persist="blindspots">
+    <summary>Blind spots
+      <span class="count-badge">{% for b in view.blind_spots[:4] %}<span class="chip plain sm">{{ b.question|truncate(22, True, "") }}</span>{% endfor %}{% if view.blind_spots|length > 4 %} +{{ view.blind_spots|length - 4 }}{% endif %}</span></summary>
+    <div class="card-body blind">
+      {% for b in view.blind_spots %}
+        {% set a = b.action %}
+        <div class="item blindspot-row">
+          <div class="q">{{ b.question }}</div>
+          <div class="why">{{ b.why }}</div>
+          {% if a.kind in ("readiness", "link", "permanent", "mode06") and a.href %}
+            <a class="btn {{ 'is-disabled' if not a.enabled }}"
+               href="{{ a.href if a.enabled else '#' }}"
+               {% if not a.enabled %}aria-disabled="true" tabindex="-1"{% endif %}
+               {% if a.hint %}title="{{ a.hint }}"{% endif %}>{{ a.label }}</a>
+          {% else %}
+            <span class="chip plain dealer-tag" {% if a.hint %}title="{{ a.hint }}"{% endif %}>{{ a.label }}</span>
+          {% endif %}
+        </div>
+      {% endfor %}
+      {% if view.provenance_note %}
+        <p class="small muted epistemic-line">{{ view.provenance_note }}</p>
+      {% endif %}
+    </div>
+  </details>
+
+  <details class="card-details" id="sec-history" data-persist="history">
+    <summary>History
+      <span class="count-badge">Chronic {{ view.code_counts.chronic }} &middot; Seen once {{ view.code_counts.seen_once }}{% if view.code_counts.returned_after_clear %} &middot; Returned {{ view.code_counts.returned_after_clear }}{% endif %}</span></summary>
+    <div class="card-body">
+      {% for bucket_key, bucket_label in [("returned_after_clear", "Returned after a clear"), ("chronic", "Chronic"), ("seen_once", "Seen once")] %}
+        {% set rows = view.codes|selectattr("bucket", "equalto", bucket_key)|list %}
+        {% if rows %}
+        <h4 class="subhead">{{ bucket_label }} <span class="chip plain">{{ rows|length }}</span></h4>
+        <div class="tw">
+        <table class="codes-table">
+          <colgroup><col style="width:20%"><col style="width:29%"><col style="width:15%"><col style="width:6%"><col style="width:22%"><col style="width:8%"></colgroup>
+          <thead><tr><th>Code</th><th>Description</th><th>Status</th><th class="n">&times;N</th><th>Last</th><th class="n">Km</th></tr></thead>
+          <tbody>
+          {% for c in rows %}
+            <tr class="row-link code-row" data-href="{{ c.href }}" tabindex="0">
+              <td class="code-cell"><a class="mono" href="{{ c.href }}" title="{{ c.dtc }}">{{ c.code }}</a>
+                <span class="sys-badge" title="{{ c.system }} system">{{ c.system[:3]|upper }}</span></td>
+              <td class="desc-cell">{{ c.description }}</td>
+              <td><span class="chip status-{{ c.status|lower }}">{{ c.status_label }}</span></td>
+              <td class="n mono">{{ c.sessions }}</td>
+              <td class="mono lastseen-cell" title="{{ c.last_seen }}">{{ c.last_seen_short }}</td>
+              <td class="n mono kmcell">{% if c.distance_km is not none %}{{ "%.1f"|format(c.distance_km/1000) }}k{% else %}&mdash;{% endif %}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </details>
+
+  <details class="card-details" id="sec-attempted" data-persist="attempted">
+    <summary>Already attempted <span class="count-badge">{{ view.attempted|length }}</span></summary>
+    <div class="card-body">
+      {% for a in view.attempted %}
+        <div class="attempt-row {{ 'is-fail' if a.outcome and 'FAIL' in a.outcome|upper }}">
+          <div class="attempt-main">
+            <b>{{ a.operation }}</b>
+            <span class="muted">{{ a.kind }}</span>
+            <span class="mono">&times;{{ a.count }}</span>
+            <span class="chip {{ 'returned' if a.outcome and 'FAIL' in a.outcome|upper else 'ok' }}">{{ a.outcome }}</span>
+            {% if a.reason_chip %}<span class="chip plain">{{ a.reason_chip }}</span>{% endif %}
+            <span class="small muted">{{ a.first_short }}{% if a.last_short and a.last_short != a.first_short %} &rarr; {{ a.last_short }}{% endif %}</span>
+          </div>
+          {% if a.footnote %}<div class="small muted attempt-footnote">{{ a.footnote }}</div>{% endif %}
+          {% if a.rows %}
+          <details class="raw-rows">
+            <summary>Raw rows ({{ a.rows|length }})</summary>
+            <div class="tw">
+            <table>
+              <tbody>
+              {% for row in a.rows %}
+                <tr>
+                  {% for key, value in row.items() %}
+                    <td class="small"><span class="muted">{{ key }}</span>
+                      <span class="mono">{{ value }}</span></td>
+                  {% endfor %}
+                </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            </div>
+          </details>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="muted small">Nothing on record.</p>
+      {% endfor %}
+    </div>
+  </details>
+
+  <details class="card-details" id="sec-freeze" data-persist="freeze">
+    <summary>Freeze frames <span class="count-badge">{{ view.freeze_frames|length }}</span></summary>
+    <div class="card-body">
+      {% for ff in view.freeze_frames %}
+        <div class="ff-card">
+          <h4 class="mono">{{ ff.code }}{% if ff.set_km_ago is not none %}
+            <span class="small muted">&middot; set {{ ff.set_km_ago }} km ago</span>{% endif %}</h4>
+          <div class="ff-key-grid">
+            {% for p in ff.key %}
+              <div class="ff-pid {{ 'is-flag' if p.flag }}">
+                <div class="ff-name">{{ p.name }}</div>
+                <div class="ff-value mono">{{ p.value }}</div>
+                {% if p.flag %}<div class="ff-flag">&#9888; {{ p.flag }}</div>{% endif %}
+              </div>
+            {% endfor %}
+          </div>
+          {% if ff.all %}
+          <details class="all-pids">
+            <summary>All PIDs ({{ ff.all|length }})</summary>
+            <div class="ff-all-grid">
+              {% for p in ff.all %}
+                <div class="ff-all-row"><span class="k">{{ p.name }}</span><span class="mono">{{ p.value }}</span></div>
+              {% endfor %}
+            </div>
+          </details>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="muted small">No freeze frames captured.</p>
+      {% endfor %}
+    </div>
+  </details>
+
+  <details class="card-details" id="sec-bulletins" data-persist="bulletins">
+    <summary>Bulletins <span class="count-badge">{{ view.bulletins|length }}</span></summary>
+    <div class="card-body">
+      {% for b in view.bulletins %}
+        <div class="bulletin-card" id="{{ b.anchor }}">
+          <h4><span class="mono">{{ b.id }}</span> &mdash; {{ b.title }}</h4>
+          <p class="small">{{ b.action }}</p>
+          {% if b.caution %}<div class="note warn small">{{ b.caution }}</div>{% endif %}
+          {% if b.codes %}
+          <div class="bulletin-codes">
+            {% for c in b.codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}
+          </div>
+          {% endif %}
+          {% if b.superseded %}<div class="small muted">Superseded: {{ b.superseded }}</div>{% endif %}
+          <div class="small muted mono">{{ b.source }}</div>
+        </div>
+      {% else %}
+        <p class="muted small">No bulletins match the open codes.</p>
+      {% endfor %}
+    </div>
+  </details>
+
+  <details class="card-details" id="sec-live" data-persist="live">
+    <summary>Live {% if live_panel and not live_panel.error %}<span class="count-badge">{{ live_panel.buses|selectattr("verified")|list|length }}/{{ live_panel.buses|length }} buses verified</span>{% endif %}</summary>
+    <div class="card-body">
+      {% if live_panel.error %}
+        <div class="note"><span class="lab">Live link</span>{{ live_panel.error }}</div>
+      {% else %}
+        <div class="tw">
+        <table>
+          <thead><tr><th>Bus</th><th>Reachable</th><th>Verified</th></tr></thead>
+          <tbody>
+          {% for b in live_panel.buses %}
+            <tr>
+              <td class="small mono">{{ b.bus }}</td>
+              <td class="small">{% if b.reachable_with_cable %}yes{% else %}needs a different cable{% endif %}</td>
+              <td class="small"><span class="chip {{ 'ok' if b.verified else 'plain' }}">{{ 'verified' if b.verified else 'not yet' }}</span></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        {% set live_addressed = live_panel.modules|selectattr("usable")|list %}
+        {% set live_unaddressed = live_panel.modules|rejectattr("usable")|list %}
+        {% if live_addressed %}
+          <p class="small muted" style="margin:8px 0 4px">This car's own logged ECUs the live link has a confirmed address for:</p>
+          <p>{% for m in live_addressed %}<a class="btn" href="/live/module/{{ m.code }}?vin={{ vin }}">{{ m.code }} &rarr;</a>{% endfor %}</p>
+        {% endif %}
+        {% if live_unaddressed %}
+          <p class="small muted" style="margin:8px 0 4px">Also seen in the live table, no confirmed address yet:
+            {% for m in live_unaddressed %}<span class="mono">{{ m.code }}</span>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+        {% endif %}
+        <p class="small muted"><a href="/live?vin={{ vin }}">Open the live link for this car &rarr;</a></p>
+      {% endif %}
+    </div>
+  </details>
+
+  <details class="card-details" id="sec-notes" data-persist="notes" open>
+    <summary>Notes</summary>
+    <div class="card-body">
+      {% include "_notes.html" %}
+    </div>
+  </details>
+
+  {% if view.latest %}
+  <p class="small muted latest-line">Latest: {{ view.latest.session_short }}
+    <span title="{{ view.latest.session_file }}">({{ view.latest.ecu }})</span>
+    {% if view.latest.scan_short %} &middot; last scan {{ view.latest.scan_short }}{% endif %}</p>
+  {% endif %}
+
+</div>
+
+<button type="button" class="fab-note" id="quick-add-note" title="Add a note" aria-label="Add a note">&#9998;</button>
+
+{% else %}
+{# ----------------------------------------------------------------------
+   Fallback: `view` has not landed in the route context yet. Renders the
+   previous dossier so every other page/test that merely expects
+   /v/{vin} to return 200 keeps working while the backend context change
+   lands in parallel. ---------------------------------------------------- #}
+
 {% set cp = d.current_picture %}
 
 <div class="cols wide-left">
@@ -268,5 +598,7 @@
 
 <h2>Notes <a class="small" href="/v/{{ vin }}/notes">(all notes for this vehicle &rarr;)</a></h2>
 {% include "_notes.html" %}
+
+{% endif %}
 
 {% endblock %}

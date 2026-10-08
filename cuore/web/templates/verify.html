@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Verify repair — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+
+{# Context expected: vin, bar, result (a readiness dict, or None if the read
+   has not been attempted/failed), verdict (the same shape as
+   view.verdict -- state/label/summary/basis/...). Reached from the
+   verdict card's "Verify repair" action (GET /v/{vin}/verify). Destructure
+   every field explicitly -- never print `result` or `verdict` as a whole,
+   so nothing here can show up as a raw dict. #}
+
+<div class="verify-page">
+
+  {% if verdict %}
+    {% set vstate = (verdict.state or "NO_DATA")|lower|replace("_", "-") %}
+    <div class="verdict-card v-{{ vstate }}">
+      <div class="verdict-top"><span class="chip-verdict v-{{ vstate }}">&#11044; {{ verdict.label }}</span></div>
+      <p class="verdict-sentence">{{ verdict.summary }}</p>
+    </div>
+  {% endif %}
+
+  <h2 class="section-h">Readiness read</h2>
+
+  {% if result %}
+    {# evap_monitor is a bool from dossier_bridge.readiness_result() (this
+       page's own ``result``), but handled defensively for the string form
+       ("complete"/"incomplete"/"not_supported"/None) the verdict's own
+       readiness sub-object uses elsewhere, so a shape change here never
+       prints a raw value. #}
+    {% set em = result.evap_monitor %}
+    {% if em == "complete" or em is sameas true %}
+      {% set em_chip, em_text = "ok", "complete" %}
+    {% elif em == "not_supported" %}
+      {% set em_chip, em_text = "plain", "not supported on this vehicle" %}
+    {% elif em == "incomplete" or em is sameas false %}
+      {% set em_chip, em_text = "chronic", "not yet run" %}
+    {% else %}
+      {% set em_chip, em_text = "plain", "unknown" %}
+    {% endif %}
+    <div class="panel readiness-panel">
+      {% if result.at %}<div class="small muted">Read {{ result.at }}</div>{% endif %}
+      <div class="readiness-row">
+        <span class="small muted">EVAP monitor</span>
+        <span class="chip {{ em_chip }}">{{ em_text }}</span>
+      </div>
+      {% if result.all_complete is defined %}
+      <div class="readiness-row">
+        <span class="small muted">All monitors</span>
+        <span class="chip {{ 'ok' if result.all_complete else 'chronic' }}">
+          {{ 'complete' if result.all_complete else 'incomplete' }}</span>
+      </div>
+      {% endif %}
+      {% if result.monitors %}
+      <div class="tw" style="margin-top:8px">
+      <table>
+        <thead><tr><th>Monitor</th><th>Status</th></tr></thead>
+        <tbody>
+        {% for m in result.monitors %}
+          <tr><td class="small">{{ m.name }}</td>
+              <td><span class="chip {{ 'ok' if m.complete else 'chronic' }}">
+                {{ 'complete' if m.complete else 'not run' }}</span></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="panel">
+      <p class="muted small">No readiness read on file for this car yet. Connect the car and
+      use the <a class="mono" href="/live">live link</a> (<span class="mono">obd2.read_readiness</span>)
+      to take one, then reload this page.</p>
+    </div>
+  {% endif %}
+
+  <a class="btn primary back-to-dossier" href="/v/{{ vin }}">&larr; Back to dossier</a>
+
+</div>
+
+{% endblock %}

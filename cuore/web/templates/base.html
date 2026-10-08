@@ -11,33 +11,34 @@
 
 <header class="top">
   <a class="brand" href="/" aria-label="CUORE, home">
-    <svg class="brand-mark" width="26" height="26" viewBox="0 0 64 64" aria-hidden="true">
-      <circle cx="32" cy="32" r="29" fill="#F4F2EC" stroke="#16265A" stroke-width="4"/>
-      <circle cx="32" cy="32" r="25.5" fill="none" stroke="#FFFFFF" stroke-width="1" opacity=".55"/>
-      <path d="M10,32 L21,32 L25,19 L29,45 L32,32" fill="none" stroke="#B3131B"
-            stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M32,32 L35,32 L38,24 L41,38 L44,32 L54,32" fill="none" stroke="#1E6B45"
-            stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+    <span class="logo-slot" role="img" aria-label="CUORE logo"></span>
     CU<span>O</span>RE
   </a>
   <span class="profile" title="Which half of the system this is">{{ profile }}</span>
-  <nav>
-    <div class="navgroup" title="A car's log history, read from the MES corpus">
-      <a href="/">Vehicles</a>
-      <a href="/modules">Modules</a>
-      <a href="/recordings">Recordings</a>
-      <a href="/logs">Logs</a>
-    </div>
-    <div class="navgroup live" title="The adapter, right now">
-      <a href="/live">Live link</a>
-      <a href="/coverage">Coverage</a>
-    </div>
-    <a class="navutil" href="/api/docs">API</a>
-  </nav>
+  <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle dark/light theme"
+          title="Toggle dark/light theme">&#9680;</button>
+  <details class="navmenu">
+    <summary class="icon-btn menu-btn" aria-label="Menu">&#9776;</summary>
+    <nav>
+      <div class="navgroup" title="A car's log history, read from the MES corpus">
+        <a href="/">Vehicles</a>
+        <a href="/modules">Modules</a>
+        <a href="/recordings">Recordings</a>
+        <a href="/logs">Logs</a>
+      </div>
+      <div class="navgroup live" title="The adapter, right now">
+        <a href="/live">Live link</a>
+        <a href="/coverage">Coverage</a>
+      </div>
+      <a class="navutil" href="/api/docs">API</a>
+    </nav>
+  </details>
 </header>
 
-{% if live_strip %}
+{% set vb %}{% block vehiclebar %}{% endblock %}{% endset %}
+{% if vb.strip() %}
+  {{ vb }}
+{% elif live_strip %}
 <div class="livestrip" title="The live link's state — click through for the full picture">
   <a href="/live">
     {% if live_strip.error %}
@@ -55,8 +56,6 @@
   </a>
 </div>
 {% endif %}
-
-{% block vehiclebar %}{% endblock %}
 
 <main>
 {% block content %}{% endblock %}
@@ -78,6 +77,8 @@
     <tr><td class="k"><kbd>/</kbd></td><td>Focus the filter box</td></tr>
     <tr><td class="k"><kbd>j</kbd> <kbd>k</kbd></td><td>Move through rows</td></tr>
     <tr><td class="k"><kbd>Enter</kbd></td><td>Open the highlighted row</td></tr>
+    <tr><td class="k"><kbd>e</kbd></td><td>Expand all sections (dossier)</td></tr>
+    <tr><td class="k"><kbd>c</kbd></td><td>Collapse all sections (dossier)</td></tr>
   </table>
 </div>
 </main>

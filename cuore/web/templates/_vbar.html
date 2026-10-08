@@ -1,19 +1,55 @@
 {# Sticky vehicle context. Included by every /v/ page so which car you are
-   looking at, and over what odometer span, never scrolls out of sight. #}
+   looking at never scrolls out of sight -- and, per the mechanic-UX review,
+   merged with the live-link chip so a vehicle page shows only ONE sticky
+   strip (plus the tab row) instead of two. Full VIN, log counts and the
+   date range move behind the "..." tap so the visible line stays short
+   enough to read at a glance, gloves on.
+
+   Context expected: bar (vin, name, logs, first_log, last_log, odo_first,
+   odo_last, odo_span, ecus), tab (which tab is active), live_strip (set for
+   every page by routes.py's _page() helper -- already in scope here via
+   Jinja's include-shares-context, no route change needed). #}
 <div class="vbar">
-  <div class="line1">
-    <span class="vname">{{ bar.name }}</span>
-    <span class="vin">{{ bar.vin }}</span>
-  </div>
-  <div class="facts">
-    {% if bar.odo_first is not none and bar.odo_last is not none %}
-      <span><b>{{ "{:,}".format(bar.odo_first) }}</b> &rarr;
-            <b>{{ "{:,}".format(bar.odo_last) }}</b> km{% if bar.odo_span %}
-            <span class="muted">({{ "{:,}".format(bar.odo_span) }} km span)</span>{% endif %}</span>
+  <div class="vline">
+    <span class="vname" title="{{ bar.name }}">{{ bar.name }}</span>
+    <span class="vin-tail mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-6:] }}</span>
+    {% if bar.odo_last is not none %}
+      <span class="mono vkm">{{ "{:,}".format(bar.odo_last|int) }} km</span>
     {% endif %}
-    <span><b>{{ bar.logs }}</b> logs</span>
-    {% if bar.first_log %}<span>{{ bar.first_log }} &rarr; {{ bar.last_log }}</span>{% endif %}
-    {% if bar.ecus %}<span>{{ bar.ecus|length }} ECU{{ "s" if bar.ecus|length != 1 }}</span>{% endif %}
+    {% if live_strip %}
+      {% if live_strip.error %}
+        <span class="chip plain" title="{{ live_strip.error }}">MES ?</span>
+      {% else %}
+        <span class="chip {{ 'ok' if live_strip.mes_state != 'connected' else 'returned' }}"
+              title="MES {{ live_strip.mes_state or 'unknown' }}">MES {{ (live_strip.mes_state or '?')|truncate(10, True, '') }}</span>
+        <span class="chip plain" title="{{ live_strip.buses_verified }}/{{ live_strip.buses_total }} buses verified">
+          Live {{ live_strip.buses_verified }}/{{ live_strip.buses_total }}</span>
+      {% endif %}
+    {% endif %}
+    <details class="vmore">
+      <summary aria-label="More vehicle details">&hellip;</summary>
+      <div class="vmore-panel">
+        <div class="small">Full VIN <span class="mono">{{ bar.vin }}</span></div>
+        {% if bar.odo_first is not none and bar.odo_last is not none %}
+          <div class="small">{{ "{:,}".format(bar.odo_first|int) }} &rarr;
+            {{ "{:,}".format(bar.odo_last|int) }} km{% if bar.odo_span %}
+            <span class="muted">({{ "{:,}".format(bar.odo_span|int) }} km span)</span>{% endif %}</div>
+        {% endif %}
+        {% if bar.logs %}
+          <div class="small"><b>{{ bar.logs }}</b> logs{% if bar.first_log %}
+            &middot; {{ bar.first_log }} &rarr; {{ bar.last_log }}{% endif %}</div>
+        {% endif %}
+        {% if bar.ecus %}<div class="small">{{ bar.ecus|length }} ECU{{ "s" if bar.ecus|length != 1 }}</div>{% endif %}
+        {% if live_strip and not live_strip.error %}
+          <div class="small mono">{{ live_strip.port or 'no port' }}{% if live_strip.baud %}@{{ live_strip.baud }}{% endif %}
+            &middot; cable {{ live_strip.cable or 'none' }}</div>
+          {% if live_strip.lock_holder and live_strip.lock_holder != 'cuore' %}
+            <div class="small">held by {{ live_strip.lock_holder }}</div>
+          {% endif %}
+        {% endif %}
+        <div class="small"><a href="/live">Live link &rarr;</a></div>
+      </div>
+    </details>
   </div>
   <div class="vtabs">
     <a href="/v/{{ bar.vin }}" {% if tab == "dossier" %}class="on"{% endif %}>Dossier</a>
