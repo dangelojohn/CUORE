@@ -91,6 +91,27 @@
     }
   })();
 
+  // ---------- ?system=/?codes=/?hypothesis= prefill: scroll to the thing
+  // the link was actually about -------------------------------------------
+  // job.html already does the real work with no JS at all: the step 7
+  // add-hypothesis <details> renders `open` and its matching <option>s
+  // render `selected` straight off these same query params server-side,
+  // and a matching step 5 code card / step 7 hypothesis card already
+  // carries a highlight class. This only adds the one thing a plain GET
+  // can't: bringing that element into view instead of leaving the tech to
+  // scroll and find it themselves.
+  (function scrollToPrefillTarget() {
+    var params = new URLSearchParams(location.search);
+    var hypId = params.get("hypothesis");
+    var target = hypId ? document.getElementById("hyp-" + hypId) : null;
+    if (!target && (params.has("system") || params.has("codes"))) {
+      target = qs("#add-hypothesis", root);
+    }
+    if (target && target.scrollIntoView) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  })();
+
   // ---------- confirm modal (fix #1) --------------------------------------
 
   qsa(".confirm-pending-panel", root).forEach(function (panel) {
@@ -258,7 +279,7 @@
     var vin = document.body.getAttribute("data-vin");
     if (!vin) return;
 
-    var fromHyp = new URLSearchParams(location.search).get("from_hyp") || "";
+    var fromHyp = new URLSearchParams(location.search).get("hypothesis") || "";
     var hyps = [];
     fetch("/api/vehicles/" + encodeURIComponent(vin) + "/job", { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -296,12 +317,36 @@
       return m ? ("Spec: " + m[1] + " " + m[2]) : "";
     }
 
+    // Item 2 of the 2026-10-08 follow-up: when several hypotheses are open,
+    // the result sheet's own hypothesis picker guesses which one this row
+    // is actually testing, in order --
+    //   1. the hypothesis whose next_test (jobs_bridge._display_next_test,
+    //      already on each entry in `hyps`) names this same row -- an
+    //      exact match first, then a loose substring one (wording is
+    //      transcribed from the same fault-tree step, but not guaranteed
+    //      byte-identical);
+    //   2. the one linked from "Do it now" (?hypothesis=, read into
+    //      `fromHyp` above);
+    //   3. none -- the picker then reads "Choose a hypothesis..." (never
+    //      "(none)", which read as a status report rather than a prompt).
+    function matchByNextTest(stepText) {
+      var norm = function (s) { return (s || "").trim().toLowerCase(); };
+      var text = norm(stepText);
+      if (!text) return null;
+      var exact = hyps.find(function (h) { return norm(h.next_test) === text; });
+      if (exact) return exact;
+      return hyps.find(function (h) {
+        var nt = norm(h.next_test);
+        return nt && (text.indexOf(nt) !== -1 || nt.indexOf(text) !== -1);
+      }) || null;
+    }
+
     function buildSheet(li, stepId, stepText) {
       var dlg = document.createElement("dialog");
       dlg.className = "job-confirm-modal result-sheet";
       var spec = specFromText(stepText);
-      var oneOpen = hyps.filter(function (h) { return h.status === "open"; });
-      var preselect = fromHyp || (oneOpen.length === 1 ? oneOpen[0].id : "");
+      var nextTestMatch = matchByNextTest(stepText);
+      var preselect = (nextTestMatch && nextTestMatch.id) || fromHyp || "";
       var html = '<p><b>Record a result</b></p><p class="small muted">' + stepText + '</p>' +
         '<div class="field"><label>Result</label><div class="result-radios">' +
         RESULTS.map(function (r) {
@@ -315,7 +360,7 @@
         '<div class="field"><label>Reason<span class="reason-required-mark" hidden> (required)</span></label>' +
         '<input type="text" name="reason" style="width:100%"></div>' +
         '<div class="field"><label>Supports/refutes which hypothesis?</label>' +
-        '<select name="hypothesis_id" style="width:100%"><option value="">(none)</option>' +
+        '<select name="hypothesis_id" style="width:100%"><option value="">Choose a hypothesis&hellip;</option>' +
         hyps.map(function (h) {
           return '<option value="' + h.id + '"' + (h.id === preselect ? " selected" : "") + '>'
             + h.text.replace(/</g, "&lt;") + '</option>';

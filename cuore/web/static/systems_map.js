@@ -206,6 +206,204 @@
     return { input: input, label: label };
   }
 
+  // --- live overlay -- Phase 4 ---------------------------------------------
+  //
+  // GET /api/systems/{vin}/live every 2s while the "Live" toggle is on:
+  // per-system worst live colour grade (cuore.services.liveboard_bridge.
+  // evaluate's own ok/moderate/excessive/unknown vocabulary, "none" when no
+  // live session is running), a chip for any brand-new DTC, and a
+  // "Snapshot" button that reuses the same two routes liveboard.js's own
+  // snapshot does. Toggling off restores the base state painting -- never
+  // leaves a cell showing a stale live colour.
+
+  var LIVE_POLL_MS = 2000;
+  var LIVE_GRADES = ["ok", "moderate", "excessive", "unknown", "none"];
+
+  function clearLiveClass(a) {
+    LIVE_GRADES.forEach(function (g) { a.classList.remove("smap-live-" + g); });
+  }
+
+  function showToast(msg, isError) {
+    var el = document.querySelector(".smap-toast");
+    if (el) el.remove();
+    el = document.createElement("div");
+    el.className = "smap-toast" + (isError ? " is-error" : "");
+    el.textContent = msg;
+    document.body.appendChild(el);
+    window.setTimeout(function () { el.remove(); }, 5000);
+  }
+
+  function setupLiveOverlay(wrap, vin, state) {
+    var timer = null;
+    var on = false;
+    var chipLayer = null;
+    var lastLive = null;
+
+    function chipLayerEl() {
+      if (!chipLayer) {
+        chipLayer = document.createElement("div");
+        chipLayer.className = "smap-chip-layer";
+        wrap.appendChild(chipLayer);
+      }
+      return chipLayer;
+    }
+
+    function positionOverCell(el, a) {
+      var wrapRect = wrap.getBoundingClientRect();
+      var r = a.getBoundingClientRect();
+      el.style.left = (r.left - wrapRect.left + r.width - 16) + "px";
+      el.style.top = (r.top - wrapRect.top - 6) + "px";
+    }
+
+    function renderChips(newCodes) {
+      var layer = chipLayerEl();
+      layer.innerHTML = "";
+      var bySystem = {};
+      (newCodes || []).forEach(function (nc) {
+        (nc.systems && nc.systems.length ? nc.systems : [null]).forEach(function (sysKey) {
+          if (!sysKey) return;
+          (bySystem[sysKey] = bySystem[sysKey] || []).push(nc);
+        });
+      });
+      cellEls(wrap).forEach(function (a) {
+        var key = a.getAttribute("data-system");
+        var hits = bySystem[key];
+        if (!hits || !hits.length) return;
+        hits.forEach(function (nc, i) {
+          var chip = document.createElement("a");
+          chip.className = "smap-new-code-chip";
+          chip.textContent = nc.code;
+          chip.title = nc.code + ": new since " + (nc.since || "unknown time");
+          chip.href = "/v/" + encodeURIComponent(vin) + "/job?step=7&codes="
+            + encodeURIComponent(nc.code) + "&system=" + encodeURIComponent(key);
+          layer.appendChild(chip);
+          positionOverCell(chip, a);
+          chip.style.marginLeft = (i * 12) + "px";
+        });
+      });
+    }
+
+    function applyLive(data) {
+      lastLive = data;
+      var scannerEl = wrap.parentNode.querySelector(".smap-scanner-label");
+      if (scannerEl) scannerEl.textContent = (data && data.scanner) || "";
+      cellEls(wrap).forEach(function (a) {
+        var key = a.getAttribute("data-system");
+        clearLiveClass(a);
+        var row = data && data.systems ? data.systems[key] : null;
+        var grade = row ? row.grade : "none";
+        a.classList.add("smap-live-" + grade);
+        var title = a.querySelector("title");
+        if (title && row && row.value != null) {
+          title.textContent += " -- live " + row.value + (row.unit ? " " + row.unit : "")
+            + " (" + grade + ")";
+        }
+      });
+      renderChips(data && data.new_codes);
+    }
+
+    function restore() {
+      cellEls(wrap).forEach(clearLiveClass);
+      if (chipLayer) chipLayer.innerHTML = "";
+      paintAll(wrap, state, null);
+      var scannerEl = wrap.parentNode.querySelector(".smap-scanner-label");
+      if (scannerEl) scannerEl.textContent = "";
+    }
+
+    function poll() {
+      fetch("/api/systems/" + encodeURIComponent(vin) + "/live")
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) { if (on && data) applyLive(data); })
+        .catch(function () { /* a missed poll just leaves the last paint up */ });
+    }
+
+    function start() {
+      on = true;
+      poll();
+      timer = window.setInterval(poll, LIVE_POLL_MS);
+    }
+
+    function stop() {
+      on = false;
+      if (timer) { window.clearInterval(timer); timer = null; }
+      restore();
+    }
+
+    function flatValuesFromLive() {
+      var liveValues = {}, flatValues = {};
+      if (!lastLive || !lastLive.systems) return { liveValues: liveValues, flatValues: flatValues };
+      Object.keys(lastLive.systems).forEach(function (key) {
+        var row = lastLive.systems[key];
+        if (!row.channel || row.value == null) return;
+        liveValues[row.channel] = { value: row.value, unit: row.unit || "" };
+        flatValues[row.channel] = row.value;
+      });
+      return { liveValues: liveValues, flatValues: flatValues };
+    }
+
+    function takeSnapshot() {
+      var vals = flatValuesFromLive();
+      if (!Object.keys(vals.flatValues).length) {
+        showToast("No live readings to snapshot yet.", true);
+        return;
+      }
+      var body = {
+        layout: "systems-map", page: "systems-map", source: "live",
+        values: vals.liveValues, note: "",
+      };
+      fetch("/api/live/snapshots", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+        .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+        .then(function (saved) {
+          return fetch("/api/liveboard/evaluate", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ values: vals.flatValues }),
+          })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .catch(function () { return null; })
+            .then(function (resp) {
+              var recs = (resp && resp.recommendations) || [];
+              var worst = recs.length ? (recs[0].level || "unknown") : "unknown";
+              showToast("Snapshot " + (saved.id || "") + " saved -- " + recs.length
+                + " reading(s), worst: " + worst);
+            });
+        })
+        .catch(function (err) {
+          showToast("Snapshot failed: " + (err && err.message ? err.message : err), true);
+        });
+    }
+
+    var bar = document.createElement("div");
+    bar.className = "smap-live-bar";
+
+    var toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "smap-live-toggle";
+    toggle.setAttribute("aria-pressed", "false");
+    toggle.textContent = "Live";
+    toggle.addEventListener("click", function () {
+      var next = toggle.getAttribute("aria-pressed") !== "true";
+      toggle.setAttribute("aria-pressed", next ? "true" : "false");
+      if (next) start(); else stop();
+    });
+
+    var scannerEl = document.createElement("span");
+    scannerEl.className = "smap-scanner-label";
+
+    var snapBtn = document.createElement("button");
+    snapBtn.type = "button";
+    snapBtn.className = "smap-snapshot-btn";
+    snapBtn.textContent = "Snapshot";
+    snapBtn.addEventListener("click", takeSnapshot);
+
+    bar.appendChild(toggle);
+    bar.appendChild(scannerEl);
+    bar.appendChild(snapBtn);
+    wrap.parentNode.insertBefore(bar, wrap);
+  }
+
   // --- wire it all together -----------------------------------------------
 
   function init() {
@@ -225,6 +423,7 @@
         redraw();
         window.addEventListener("resize", redraw);
 
+        setupLiveOverlay(wrap, vin, state);
         buildLegend(wrap);
         var slider = buildSlider(wrap.parentNode.querySelector(".smap-legend") || wrap, state.sessions);
         if (slider) {

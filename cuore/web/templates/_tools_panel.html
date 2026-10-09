@@ -94,7 +94,7 @@
 
   {% set learned = panel.learned or {} %}
   {% if learned.review_count %}
-    <h4 class="small muted">What mechanics used last time ({{ learned.review_count }} review{{ "s" if learned.review_count != 1 }}{% if learned.scope == "vin" %}, this car{% else %}, all cars{% endif %})</h4>
+    <h4 class="muted">What mechanics used last time ({{ learned.review_count }} review{{ "s" if learned.review_count != 1 }}{% if learned.scope == "vin" %}, this car{% else %}, all cars{% endif %})</h4>
     {% if learned.top_tools %}
       <p class="small"><b>Most used:</b>
         {% for t in learned.top_tools[:5] %}{{ t.tool }} ({{ t.used_count }}){% if not loop.last %}, {% endif %}{% endfor %}</p>

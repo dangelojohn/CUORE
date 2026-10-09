@@ -36,6 +36,8 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401 -- side effect: puts `mes` on sys.path
+from ..live import attested as attested_store
+from ..live import learned as learned_store
 
 from . import (
     bench_bridge,
@@ -170,6 +172,32 @@ def _live_value_for(channel_id: str, dview_freeze: list[dict[str, Any]]
     return None
 
 
+def _fact(attested_map: dict[str, dict[str, Any]], fact_key: str, raw_value: Optional[str]
+          ) -> dict[str, Any]:
+    """One open-square UNKNOWN marker's full state: the sourced text (or
+    the marker itself), the key a mechanic's input against it is filed
+    under, and the most recent attested input on file for it (``None`` if
+    none). Never upgrades ``raw_value`` -- an attested row is shown
+    *alongside* the marker, never in place of it (see ``cuore.live.
+    attested``'s module docstring for why)."""
+    text = raw_value or UNKNOWN_MARKER
+    return {
+        "text": text, "fact_key": fact_key, "is_unknown": text == UNKNOWN_MARKER,
+        "attested": attested_map.get(fact_key),
+    }
+
+
+def _channel_display_names(rec: dict[str, Any]) -> set[str]:
+    names: set[str] = set()
+    for ch in rec.get("live_channels") or []:
+        try:
+            cg = known_good_bridge.known_good_for(ch) or {}
+        except Exception:  # noqa: BLE001
+            cg = {}
+        names.add((cg.get("name") or ch.replace("_", " ")).strip().lower())
+    return names
+
+
 # --- the view model -----------------------------------------------------------
 
 def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
@@ -186,6 +214,11 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
     by_system = {r.get("system"): r for r in (corr.get("by_system") or [])}
     this_row = by_system.get(key) or {}
     dossier_codes = _dossier_codes_map(vin)
+
+    try:
+        attested_map = attested_store.latest_by_fact(vin, key)
+    except Exception:  # noqa: BLE001 -- a bad/missing store must never 500 the page
+        attested_map = {}
 
     # --- 1. status strip -----------------------------------------------------
     codes_status: list[dict[str, Any]] = []
@@ -212,10 +245,12 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         match = next((m for m in (rp.get("monitors") or [])
                      if any(kw in (m.get("name") or "").lower() for kw in monitor_keywords)),
                     None)
+        note_raw = None if match else (rp.get("note") or "no readiness read on file yet")
         monitor = {"has_monitor": True, "at": rp.get("at"),
                   "name": (match or {}).get("name") or monitor_keywords[0].title(),
                   "status": (match or {}).get("status") if match else None,
-                  "note": None if match else (rp.get("note") or "no readiness read on file yet")}
+                  "note": note_raw,
+                  "note_fact": _fact(attested_map, f"monitor:{key}", note_raw) if note_raw is not None else None}
 
     try:
         dossier = mes_bridge.workup(vin=vin)
@@ -229,9 +264,11 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
             band = known_good_bridge.sourced_band(ch) or {}
         except Exception:  # noqa: BLE001
             cg, band = {}, {}
+        band_note_raw = band.get("note") or None
         live_values.append({
             "id": ch, "name": cg.get("name") or ch.replace("_", " ").title(),
-            "band_note": band.get("note") or UNKNOWN_MARKER,
+            "band_note": band_note_raw or UNKNOWN_MARKER,
+            "band_fact": _fact(attested_map, f"live:{ch}", band_note_raw),
             "band_confidence": band.get("confidence") or "UNKNOWN",
             "latest": _live_value_for(ch, dview_freeze),
         })
@@ -264,11 +301,15 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
 
     def _dep_entry(dep: dict[str, Any], other_key: str) -> dict[str, Any]:
         hot = co_occ.get(other_key)
+        why_raw = dep.get("why") or None
+        source_raw = dep.get("source") or None
         return {
             "system": other_key, "label": labels.get(other_key, other_key),
-            "why": dep.get("why") or UNKNOWN_MARKER,
+            "why": why_raw or UNKNOWN_MARKER,
+            "why_fact": _fact(attested_map, f"rel:{other_key}:why", why_raw),
             "confidence": (dep.get("confidence") or "UNKNOWN").upper(),
-            "source": dep.get("source") or UNKNOWN_MARKER,
+            "source": source_raw or UNKNOWN_MARKER,
+            "source_fact": _fact(attested_map, f"rel:{other_key}:source", source_raw),
             "kind": _edge_kind(dep),
             "hot": bool(hot),
             "lift": hot.get("lift") if hot else None,
@@ -302,11 +343,16 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
             p = parts_bridge.part(pkey)
         except Exception:  # noqa: BLE001
             p = None
+        images = (p or {}).get("images") or []
+        image_url = images[0].get("url") if images and isinstance(images[0], dict) else None
+        image_fact = None if image_url else _fact(attested_map, f"part:{pkey}:image", None)
         if p:
             parts.append({"key": pkey, "name": p.get("name") or pkey,
-                         "href": f"/v/{vin}/parts#{pkey}"})
+                         "href": f"/v/{vin}/parts#{pkey}",
+                         "image_url": image_url, "image_fact": image_fact})
         else:
-            parts.append({"key": pkey, "name": pkey.replace("_", " "), "href": None})
+            parts.append({"key": pkey, "name": pkey.replace("_", " "), "href": None,
+                         "image_url": None, "image_fact": image_fact})
 
     try:
         all_elements = electrical_bridge.list_elements()
@@ -328,15 +374,27 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
 
     placed_components = []
     for e in elements:
+        eid = e.get("id")
         loc = e.get("location") or {}
+        location_note_raw = loc.get("description") or None
+        latest_insp = latest_inspection.get(eid)
         placed_components.append({
-            "id": e.get("id"), "label": e.get("label") or e.get("id"),
+            "id": eid, "label": e.get("label") or eid,
             "zone": loc.get("zone") or UNKNOWN_MARKER,
-            "location_note": loc.get("description") or UNKNOWN_MARKER,
+            "location_note": location_note_raw or UNKNOWN_MARKER,
+            "location_fact": _fact(attested_map, f"element:{eid}:location", location_note_raw),
             "location_confidence": loc.get("confidence") or "UNKNOWN",
             "inspection_hint": e.get("inspection_hint") or UNKNOWN_MARKER,
-            "latest_inspection": latest_inspection.get(e.get("id")),
-            "inspect_href": f"/v/{vin}/electrical?system={(tags and sorted(tags)[0]) or ''}",
+            "latest_inspection": ({
+                "condition": latest_insp.get("condition"), "at": latest_insp.get("at"),
+                "by": latest_insp.get("by"), "note": latest_insp.get("note") or "",
+                "photo_count": len(latest_insp.get("media_ids") or []),
+            } if latest_insp else None),
+            # pre-filled with element id (anchor) and system (query param) --
+            # electrical.html's own per-element "Record inspection" details/
+            # form (electrical_routes.py) already hides the element id, so
+            # jumping to its anchor is the whole pre-fill this page owes it.
+            "inspect_href": f"/v/{vin}/electrical?system={(tags and sorted(tags)[0]) or ''}#el-{eid}",
         })
 
     wiring_paths = []
@@ -458,6 +516,42 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
     ranked.sort(key=lambda r: r["score"], reverse=True)
     look_at_next = ranked[:3]
 
+    # --- 9. learned DIDs correlated with this system's channels --------------
+    chan_names = _channel_display_names(rec)
+    learned_dids: list[dict[str, Any]] = []
+    learned_available = True
+    try:
+        learned_data = learned_store.learned(vin) or {}
+    except Exception:  # noqa: BLE001 -- an unreadable store is an honest empty state, not a 500
+        learned_data = {}
+        learned_available = False
+    learned_entries = (learned_data.get(vin) or []) if isinstance(learned_data, dict) else []
+    for entry in learned_entries:
+        if entry.get("status") != "accepted":
+            continue
+        name = (entry.get("name") or "").strip().lower()
+        if name and name in chan_names:
+            learned_dids.append({
+                "module": entry.get("module"), "did": entry.get("did"),
+                "name": entry.get("name"), "unit": entry.get("unit"),
+                "confidence": entry.get("confidence"), "at": entry.get("at"),
+                "watch_href": f"/v/{vin}/liveboard?watch={entry.get('did')}",
+            })
+    learned = {"available": learned_available, "dids": learned_dids}
+
+    # --- 10. freeze frame, this system's channels highlighted ----------------
+    mapped_codes = {r["code"] for r in codes_status}
+    freeze_frames_view = []
+    for ff in dview_freeze:
+        base = _base_code(ff.get("code") or "")
+        if base not in mapped_codes:
+            continue
+        rows = [{"name": row.get("name"), "value": row.get("value"),
+                "highlighted": (row.get("name") or "").strip().lower() in chan_names}
+               for row in ff.get("all") or []]
+        freeze_frames_view.append({"code": ff.get("code"), "rows": rows,
+                                   "href": f"/v/{vin}/code/{base}"})
+
     return {
         "key": key, "label": label,
         "status_strip": status_strip,
@@ -468,7 +562,13 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         "taught": taught,
         "experience": experience,
         "look_at_next": look_at_next,
+        "learned": learned,
+        "freeze_frames": freeze_frames_view,
         "unknown_marker": UNKNOWN_MARKER,
+        "attested_footnote": ("Mechanic inputs are attested claims, not car measurements: "
+                              "they never replace the knowledge-table value shown beside them "
+                              "and never enter the evidence gate as something the car itself "
+                              "measured."),
     }
 
 

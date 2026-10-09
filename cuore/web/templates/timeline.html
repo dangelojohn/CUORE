@@ -47,7 +47,7 @@
   {% set _fam_key = "EVAP" if _fam_raw|upper == "EVAP" else _fam_raw|lower %}
   {% if _fam_key and _fam_key not in _seen_families %}
     {% set _ = _seen_families.append(_fam_key) %}
-    <h3 class="small muted" style="margin:10px 0 4px">{{ row.family }}</h3>
+    <h3 class="muted">{{ row.family }}</h3>
     {% set exp = experience_links(family=_fam_key) if experience_links is defined else {"links": [], "count": 0} %}
     {% include "_experience.html" %}
   {% endif %}

@@ -30,3 +30,28 @@
   .sysd-page { font-size: 16px; }
   .sysd-row { gap: 6px; }
 }
+
+/* --- phase 3: attested-input affordance on every UNKNOWN marker --------- */
+.sysd-attest { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.sysd-unknown-mark {
+  min-width: 32px; min-height: 32px; display: inline-flex; align-items: center;
+  justify-content: center; border: 1px solid var(--rule); background: var(--surface);
+  border-radius: 4px; cursor: pointer; font-size: 16px; line-height: 1; color: var(--ink-3);
+}
+.sysd-attest-prompt { cursor: default; }
+.sysd-attest-form {
+  display: flex; flex-direction: column; gap: 6px; width: 100%;
+  margin-top: 6px; padding: 10px; border: 1px solid var(--rule-soft); border-radius: 6px;
+}
+.sysd-attest-form label { display: flex; flex-direction: column; gap: 2px; }
+.sysd-attest-form input, .sysd-attest-form select {
+  min-height: 32px; padding: 4px 6px; font-size: 14px;
+}
+.sysd-mechanic-input { width: 100%; }
+
+/* --- phase 3: part image / missing-image marker -------------------------- */
+.sysd-part-img { max-width: 64px; max-height: 64px; border-radius: 4px; object-fit: cover; }
+
+/* --- phase 4 slice: freeze frame with this system's channels highlighted - */
+.sysd-freeze .sysd-ff-hot { font-weight: 600; }
+.sysd-freeze .sysd-ff-dim { opacity: .55; }

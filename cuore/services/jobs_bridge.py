@@ -58,6 +58,32 @@ try:
 except Exception:  # noqa: BLE001 -- the job page must still render
     shop_mod = None
 
+try:
+    from mes import systems as systems_mod
+except Exception:  # noqa: BLE001 -- the job page must still render
+    systems_mod = None
+
+
+def _sys_key(text: Optional[str]) -> str:
+    """A hypothesis/suggestion/open-work-card ``system``/``family`` string,
+    resolved to its canonical ``mes.systems`` key wherever that module
+    recognises it (``mes.systems.normalize_system`` -- the single shared
+    taxonomy, see mes.systems' own module docstring), else just lowered/
+    stripped so two spellings of the same unrecognised string still
+    compare equal. Never raises -- a knowledge-table issue here must not
+    break the job page."""
+    text = (text or "").strip()
+    if not text:
+        return ""
+    if systems_mod is not None:
+        try:
+            norm = systems_mod.normalize_system(text)
+        except Exception:  # noqa: BLE001
+            norm = None
+        if norm:
+            return norm
+    return text.lower()
+
 
 # --- small ref builders -------------------------------------------------
 
@@ -282,7 +308,7 @@ def _augment_with_liveboard(out: list[dict[str, Any]]) -> None:
         unit = f" {rec['unit']}" if rec.get("unit") else ""
         ref = _ref("live", snap["id"], f"{rec['name']} {rec['value']:g}{unit}: {rec['level']}")
         for s in out:
-            if (s.get("system") or "").strip().lower() == sys_key.lower():
+            if _sys_key(s.get("system")) == _sys_key(sys_key):
                 if ref not in s["evidence_for"]:
                     s["evidence_for"].append(ref)
 
@@ -684,11 +710,11 @@ def _next_unresolved_test(h: dict[str, Any], view: dict[str, Any]) -> str:
     linked result, the fault tree's *next* untested step for this system --
     or ``""`` when every step this card knows about already has a result,
     which the caller renders as "ready to confirm"."""
-    system = (h.get("system") or "").strip().lower()
+    system = _sys_key(h.get("system"))
     if not system:
         return ""
     card = next((c for c in view.get("open_work", [])
-                if (c.get("family") or "").strip().lower() == system), None)
+                if _sys_key(c.get("family")) == system), None)
     if card is None:
         return ""
     tested_ids = {

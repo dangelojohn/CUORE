@@ -210,6 +210,9 @@ class LivePoller:
         #: None before the first one -- the first read only establishes a
         #: baseline, it never reports a "change" for codes already present.
         self._dtc_state: Optional[tuple[set[str], set[str]]] = None
+        #: code -> iso timestamp this poller session first saw it (stored or
+        #: pending) -- read by :meth:`dtc_snapshot`, never by ``_run`` itself.
+        self._dtc_first_seen: dict[str, str] = {}
 
     # --- lifecycle -----------------------------------------------------
 
@@ -255,6 +258,7 @@ class LivePoller:
             self._monitor_dtcs = bool(monitor_dtcs)
             self._dtc_interval = max(MIN_DTC_INTERVAL_S, float(dtc_interval_s))
             self._dtc_state = None
+            self._dtc_first_seen = {}
             self._stop_event.clear()
             self._thread = threading.Thread(target=self._run, name="cuore-live-poller",
                                             daemon=True)
@@ -329,6 +333,20 @@ class LivePoller:
                 for cid in self._channels
             }
             return {"active": self.is_active(), "channels": channels}
+
+    def dtc_snapshot(self) -> dict[str, Any]:
+        """Read-only view of "Monitor DTCs" state for a caller that wants to
+        know about a code this session has seen without re-deriving the
+        Mode 03/07 diff itself (see :mod:`cuore.services.systems_map_bridge`'s
+        live-overlay ``new_codes``): ``{"codes": [...], "first_seen": {code:
+        iso timestamp}}``. Empty before the first Monitor-DTCs cycle, or when
+        ``monitor_dtcs`` was never requested for this session.
+        """
+        with self._lock:
+            if self._dtc_state is None:
+                return {"codes": [], "first_seen": {}}
+            stored, pending = self._dtc_state
+            return {"codes": sorted(stored | pending), "first_seen": dict(self._dtc_first_seen)}
 
     # --- alarms ------------------------------------------------------------
 
@@ -604,6 +622,10 @@ class LivePoller:
             return   # adapter/bus error this cycle; try again next interval
         prev = self._dtc_state
         self._dtc_state = (stored, pending)
+        now_iso = datetime.now().isoformat(timespec="seconds")
+        with self._lock:
+            for code in stored | pending:
+                self._dtc_first_seen.setdefault(code, now_iso)
         if prev is None:
             return   # first read only establishes the baseline, not a "change"
         prev_stored, prev_pending = prev

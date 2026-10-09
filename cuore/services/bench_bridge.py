@@ -760,4 +760,36 @@ def build_bench(vin: str) -> dict[str, Any]:
     }
 
 
-__all__ = ["build_bench", "FAMILY_ICON", "LABELS", "scanner_label"]
+# --- regeneration hook: a brand-new live DTC must not be served a stale
+#    cached next-action ---------------------------------------------------
+
+
+def regenerate_for_live_codes(vin: str) -> None:
+    """Called by ``cuore.services.systems_map_bridge`` (the Systems map's
+    live overlay) the moment the live poller sees a code this VIN's own
+    corpus-derived state did not carry yet, so Bench's next time it is
+    asked is rebuilt rather than served the memoised ``("workup", vin,
+    mtime), ...`` entry from :func:`build_bench` -- the whole point is
+    Bench, Job and Systems agreeing on the same new code, not three stale
+    pictures of the car.
+
+    A brand-new live code has no backing MES log yet, so it never moves
+    ``mes_bridge.newest_mtime(vin)`` -- the ordinary cache key
+    :mod:`cuore.services.cache` builds on would not fall out on its own the
+    way a new/edited log already does (see that module's own docstring).
+    ``cache`` exposes no keyed delete, only "drop everything"
+    (:func:`cuore.services.cache.clear`), which is exactly as cheap as the
+    module's own docstring says it should be (at most 16 small entries, "one
+    or two vehicles someone is looking at") -- so that is what this calls,
+    for every vehicle, not just ``vin``. Never raises: a cache miss just
+    means the next Bench/Job render costs one more rebuild, nothing
+    user-visible breaks.
+    """
+    try:
+        cache.clear()
+    except Exception:  # noqa: BLE001 -- a cache-regeneration hiccup must never surface
+        pass
+
+
+__all__ = ["build_bench", "FAMILY_ICON", "LABELS", "scanner_label",
+          "regenerate_for_live_codes"]

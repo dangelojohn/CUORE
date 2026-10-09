@@ -31,7 +31,7 @@ from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
-from . import mes_bridge
+from . import cache, mes_bridge
 from .errors import BadRequest
 from ..live import store as live_store
 
@@ -233,8 +233,12 @@ def code_feel(vin: str, code: str) -> dict[str, Any]:
 
     occ_dts: list[Optional[datetime]] = []
     occ_files: set[str] = set()
+    # The report calls this once per open-work code; the full workup is the
+    # expensive part (about 5 s each), so share it on the same corpus-mtime
+    # key bench_bridge and dossier_bridge use. A new log moves the key.
     try:
-        dossier = mes_bridge.workup(vin=vin)
+        mtime = mes_bridge.newest_mtime(vin)
+        dossier = cache.get_or_build(("workup", vin, mtime), lambda: mes_bridge.workup(vin=vin))
     except Exception:  # noqa: BLE001 -- a code page must still render with no corpus
         dossier = {}
     history = dossier.get("history") or {}

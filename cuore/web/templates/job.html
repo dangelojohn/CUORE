@@ -199,12 +199,16 @@
 
 {% macro hyp_card(h) %}
   {% set _reason = (confirm_gate_reason(h)|trim) %}
-  <div class="job-card hyp-card" id="hyp-{{ h.id }}" data-hyp-id="{{ h.id }}"
+  {# fix item 1: ?hypothesis=<id> (also what "Do it now" below now sends)
+     pre-selects this existing card -- a highlight, never a second,
+     disagreeing "selected" state on top of its own status chip. #}
+  <div class="job-card hyp-card{{ ' is-prefill-selected' if prefill_hypothesis and h.id == prefill_hypothesis }}"
+       id="hyp-{{ h.id }}" data-hyp-id="{{ h.id }}"
        data-hyp-status="{{ h.status }}" data-hyp-system="{{ h.system }}"
        data-hyp-text="{{ h.text }}">
     <div class="job-head">
       <h3>{{ h.text }}</h3>
-      {% if h.system %}<span class="chip plain">{{ h.system }}</span>{% endif %}
+      {% if h.system %}<span class="chip plain">{{ h.system_text or h.system }}</span>{% endif %}
       <span class="chip {{ {"open": "plain", "supported": "chronic", "refuted": "cleared", "confirmed": "returned"}[h.status] }}">{{ t('status_' + h.status) }}</span>
     </div>
 
@@ -224,7 +228,7 @@
     {% if h.codes %}<p class="small linked-codes"><b>{{ t('linked_codes_label') }}:</b>
       {% for c in h.codes %}<span class="chip-code mono">{{ c }}</span>{% endfor %}</p>{% endif %}
     {% if h.next_test %}<p class="small"><b>{{ t('next_test_colon') }}</b> {{ h.next_test }}
-      <a class="btn small do-it-now" href="/v/{{ vin }}/job?step=6&from_hyp={{ h.id }}">{{ t('do_it_now') }} &rarr;</a></p>{% endif %}
+      <a class="btn small do-it-now" href="/v/{{ vin }}/job?step=6&hypothesis={{ h.id }}">{{ t('do_it_now') }} &rarr;</a></p>{% endif %}
     {% if h.updated_at %}<p class="small muted">{{ t('last_updated_label') }}: <span class="ts-human" data-iso-ts="{{ h.updated_at }}">{{ h.updated_at }}</span></p>{% endif %}
     {% if h.confirmed_by %}<p class="small muted">{{ t('confirmed_by_on').format(by=h.confirmed_by, at='') }}<span class="ts-human" data-iso-ts="{{ h.confirmed_at }}">{{ h.confirmed_at }}</span></p>{% endif %}
 
@@ -441,8 +445,14 @@
       {% for c in _active %}
         {% set code = c.code %}
         {% set compact = True %}
-        <p class="small priority-code-row">{{ priority_icon(c.status) }} <span class="mono">{{ code }}</span></p>
-        {% include "_code_brief.html" %}
+        {# fix item 1: ?codes=P0440,P0455 on step 5 highlights those codes'
+           own cards -- never invented styling for a code that isn't ACTIVE
+           (prefill_codes not on file here just renders with no highlight). #}
+        <div class="priority-code-block{{ ' is-codes-highlighted' if code in (prefill_codes or []) }}"
+             id="code-brief-{{ code }}">
+          <p class="small priority-code-row">{{ priority_icon(c.status) }} <span class="mono">{{ code }}</span></p>
+          {% include "_code_brief.html" %}
+        </div>
       {% endfor %}
     {% else %}
       <p class="muted small">{{ t('no_active_codes') }}</p>
@@ -517,7 +527,12 @@
     </details>
   {% endif %}
 
-  <details class="add-hypothesis-collapsed">
+  {# fix item 1: ?system=<key>&codes=P0440,P0455 pre-selects the System
+     pick and pre-ticks the linked codes below, and expands this form (no
+     JS needed for either -- job.js only adds the scroll-into-view) --
+     never both expanded-for-a-reason and silently empty of that reason. #}
+  <details class="add-hypothesis-collapsed" id="add-hypothesis"
+            {{ 'open' if prefill_system or prefill_codes }}>
     <summary class="btn primary">{{ t('add_hypothesis_collapsed') }}</summary>
     <div class="panel manual-hyp-form">
       <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses" id="manual-hyp-form"
@@ -529,11 +544,17 @@
         <div class="field"><label for="hyp_system">{{ t('system_label') }}</label>
           <select id="hyp_system" name="system">
             <option value="">{{ t('system_select_placeholder') }}</option>
-            {% for s in systems_taxonomy %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+            {% for s in systems_taxonomy %}<option value="{{ s }}" {{ 'selected' if s == prefill_system }}>{{ s }}</option>{% endfor %}
           </select></div>
         <div class="field"><label for="hyp_codes">{{ t('linked_codes_label') }}</label>
+          {# ?codes= may name a code that isn't currently ACTIVE (e.g. a
+             cleared-but-unverified chronic code the tech is linking a new
+             hypothesis to anyway) -- add it to the option list rather than
+             silently dropping the pre-tick for a code this picker would
+             otherwise never offer. #}
+          {% set _codes_options = (active_codes + ((prefill_codes or [])|reject("in", active_codes)|list)) %}
           <select id="hyp_codes" name="codes" multiple>
-            {% for c in active_codes %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+            {% for c in _codes_options %}<option value="{{ c }}" {{ 'selected' if c in (prefill_codes or []) }}>{{ c }}</option>{% endfor %}
           </select></div>
         <div class="field"><label for="hyp_likelihood">{{ t('likelihood_label') }}</label>
           <select id="hyp_likelihood" name="likelihood">

@@ -5,11 +5,44 @@
 <link rel="stylesheet" href="{{ static_url('systems.css') }}">
 <link rel="stylesheet" href="{{ static_url('system.css') }}">
 
+{% macro attest(vin, view, f, verb="Add what you measured") %}
+{% if f.is_unknown %}
+<span class="sysd-attest">
+  <button type="button" class="sysd-unknown-mark" title="{{ verb }} / add a source / add a photo"
+          data-attest-toggle aria-expanded="false">&#9744;</button>
+  <span class="small muted sysd-attest-prompt">{{ verb }} / add a source / add a photo</span>
+  <form class="sysd-attest-form" hidden data-attest-form
+        data-vin="{{ vin }}" data-system="{{ view.key }}" data-fact-key="{{ f.fact_key }}">
+    <label class="small">Value <input type="text" name="value" required maxlength="200"></label>
+    <label class="small">Unit <input type="text" name="unit" maxlength="20"></label>
+    <label class="small">Kind
+      <select name="kind">
+        <option value="measured">measured</option>
+        <option value="source">source</option>
+        <option value="photo-media-id">photo (media id)</option>
+      </select>
+    </label>
+    <label class="small">Source/citation <input type="text" name="source" maxlength="200"></label>
+    <label class="small">By <input type="text" name="by" value="mechanic" maxlength="60"></label>
+    <button type="submit" class="btn small">Save</button>
+    <span class="small muted sysd-attest-status" data-attest-status></span>
+  </form>
+</span>
+{% endif %}
+{% if f.attested %}
+<div class="small muted sysd-mechanic-input">Mechanic input {{ f.attested.at }} by {{ f.attested.by }}:
+  {{ f.attested.value }}{% if f.attested.unit %} {{ f.attested.unit }}{% endif %}
+  {% if f.attested.source %}&mdash; {{ f.attested.source }}{% endif %}
+  <span class="chip plain">SINGLE-SOURCE (mechanic)</span></div>
+{% endif %}
+{% endmacro %}
+
 <div class="sysd-page">
 <p class="small"><a href="/v/{{ vin }}/systems">&larr; All systems</a></p>
 <h1>{{ view.label }}</h1>
 <p class="lede">What this car's own evidence says about the {{ view.label|lower }} system, where it sits in the
   dependency graph, and what to look at next. A dashed or unsourced value is marked, never guessed.</p>
+<p class="small muted">{{ view.attested_footnote }}</p>
 
 {# --- 1. status strip ---------------------------------------------------- #}
 <details class="panel sysd-section" open data-fact="system:{{ view.key }}|status strip">
@@ -38,7 +71,8 @@
   <p class="small">{{ ss.monitor.name }}: <span class="chip">{{ ss.monitor.status }}</span>
     {% if ss.monitor.at %}<span class="muted">as of {{ ss.monitor.at }}</span>{% endif %}</p>
   {% else %}
-  <p class="small muted">{{ ss.monitor.name }}: {{ ss.monitor.note or view.unknown_marker }}</p>
+  <p class="small muted">{{ ss.monitor.name }}: {{ ss.monitor.note or view.unknown_marker }}
+    {% if ss.monitor.note_fact %}{{ attest(vin, view, ss.monitor.note_fact) }}{% endif %}</p>
   {% endif %}
 
   <h3 class="subhead">Latest live values</h3>
@@ -51,7 +85,8 @@
         <span class="chip {{ 'status-active' if lv.latest.level in ('excessive','moderate') else ('ok' if lv.latest.level == 'ok' else 'plain') }}">{{ lv.latest.value }} &middot; {{ lv.latest.level }}</span>
         <span class="small muted">{{ lv.latest.source }}</span>
       {% else %}
-        <span class="small muted">no recorded value on file &mdash; known-good: {{ lv.band_note }}</span>
+        <span class="small muted">no recorded value on file &mdash; known-good: {{ lv.band_note }}
+          {{ attest(vin, view, lv.band_fact) }}</span>
       {% endif %}
     </li>
     {% endfor %}
@@ -86,7 +121,8 @@
       <span class="chip">{{ e.confidence|lower }}</span>
       <span class="small muted">kind: {{ e.kind }}</span>
       {% if e.hot %}<span class="chip status-active">hot — seen together on this car{% if e.lift %} ({{ "%.2f"|format(e.lift) }}x lift){% endif %}</span>{% endif %}
-      <div class="small muted">{{ e.why }} <span class="mono">[{{ e.source }}]</span></div>
+      <div class="small muted">{{ e.why }} {{ attest(vin, view, e.why_fact, "Add what you know") }}
+        <span class="mono">[{{ e.source }}]</span> {{ attest(vin, view, e.source_fact, "Add a source") }}</div>
     </li>
     {% endfor %}
   </ul>
@@ -103,7 +139,8 @@
       <span class="chip">{{ e.confidence|lower }}</span>
       <span class="small muted">kind: {{ e.kind }}</span>
       {% if e.hot %}<span class="chip status-active">hot — seen together on this car{% if e.lift %} ({{ "%.2f"|format(e.lift) }}x lift){% endif %}</span>{% endif %}
-      <div class="small muted">{{ e.why }} <span class="mono">[{{ e.source }}]</span></div>
+      <div class="small muted">{{ e.why }} {{ attest(vin, view, e.why_fact, "Add what you know") }}
+        <span class="mono">[{{ e.source }}]</span> {{ attest(vin, view, e.source_fact, "Add a source") }}</div>
     </li>
     {% endfor %}
   </ul>
@@ -134,8 +171,12 @@
   <h3 class="subhead">Parts</h3>
   <ul class="sysd-list">
     {% for p in comp.parts %}
-    <li class="sysd-row">{% if p.href %}<a href="{{ p.href }}">{{ p.name }}</a>{% else %}<span>{{ p.name }}</span>
-      <span class="small muted">(no parts-catalogue entry yet)</span>{% endif %}</li>
+    <li class="sysd-row">
+      {% if p.image_url %}<img class="sysd-part-img" src="{{ p.image_url }}" alt="{{ p.name }}">{% endif %}
+      {% if p.href %}<a href="{{ p.href }}">{{ p.name }}</a>{% else %}<span>{{ p.name }}</span>
+      <span class="small muted">(no parts-catalogue entry yet)</span>{% endif %}
+      {% if p.image_fact %}{{ attest(vin, view, p.image_fact, "Add a photo") }}{% endif %}
+    </li>
     {% endfor %}
   </ul>
   {% endif %}
@@ -148,15 +189,17 @@
       <b>{{ e.label }}</b>
       <span class="small muted">zone: {{ e.zone }}</span>
       <span class="chip">{{ e.location_confidence|lower }}</span>
-      <div class="small muted">{{ e.location_note }}</div>
+      <div class="small muted">{{ e.location_note }} {{ attest(vin, view, e.location_fact) }}</div>
       <div class="small muted">Inspection: {{ e.inspection_hint }}</div>
       {% if e.latest_inspection %}
       <div class="small muted">Last inspected: {{ e.latest_inspection.at }} — {{ e.latest_inspection.condition }}
-        {% if e.latest_inspection.by %}(by {{ e.latest_inspection.by }}){% endif %}</div>
+        {% if e.latest_inspection.by %}(by {{ e.latest_inspection.by }}){% endif %}
+        {% if e.latest_inspection.note %}&mdash; {{ e.latest_inspection.note }}{% endif %}
+        &middot; {{ e.latest_inspection.photo_count }} photo(s)</div>
       {% else %}
       <div class="small muted">No inspection on record.</div>
       {% endif %}
-      <a class="small" href="{{ e.inspect_href }}">Open inspection form &rarr;</a>
+      <a class="small" href="{{ e.inspect_href }}">Record inspection &rarr;</a>
     </li>
     {% endfor %}
   </ul>
@@ -255,5 +298,92 @@
   {% endif %}
 </details>
 
+{# --- 9. learned DIDs correlated with this system's channels ------------- #}
+<details class="panel sysd-section" data-fact="system:{{ view.key }}|learned DIDs">
+  <summary><h2 class="sysd-h">Learned DIDs ({{ view.learned.dids|length }})</h2></summary>
+  {% if view.learned.dids %}
+  <ul class="sysd-list">
+    {% for d in view.learned.dids %}
+    <li class="sysd-row">
+      <span class="mono">{{ d.module }} &middot; {{ d.did }}</span>
+      <span>{{ d.name }}{% if d.unit %} ({{ d.unit }}){% endif %}</span>
+      <span class="small muted">{{ d.confidence }} &middot; learned {{ d.at }}</span>
+      <a class="small" href="{{ d.watch_href }}">Watch on Live board &rarr;</a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No learned DIDs yet; capture one from the Live board.</p>
+  {% endif %}
+</details>
+
+{# --- 10. freeze frame, this system's channels highlighted ---------------- #}
+<details class="panel sysd-section" data-fact="system:{{ view.key }}|freeze frame">
+  <summary><h2 class="sysd-h">Freeze frame ({{ view.freeze_frames|length }})</h2></summary>
+  {% if view.freeze_frames %}
+  {% for ff in view.freeze_frames %}
+  <h3 class="subhead"><a href="{{ ff.href }}">{{ ff.code }}</a></h3>
+  <ul class="sysd-list sysd-freeze">
+    {% for row in ff.rows %}
+    <li class="sysd-row {{ 'sysd-ff-hot' if row.highlighted else 'sysd-ff-dim' }}">
+      <span>{{ row.name }}</span><span class="mono">{{ row.value }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+  {% else %}
+  <p class="small muted">No freeze frame on file for this system's codes.</p>
+  {% endif %}
+</details>
+
 </div>
+<script>
+(function () {
+  "use strict";
+  // Phase 3: file one attested mechanic input against an UNKNOWN marker.
+  // Plain fetch() + JSON, same posture as cuore.js/feedback.js elsewhere --
+  // POST /api/attested/{vin} (cuore/api/attested.py), then reload so the
+  // new "Mechanic input" line renders next to the marker it was filed
+  // against (never replacing it -- see the page footnote).
+  document.querySelectorAll("[data-attest-toggle]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var form = btn.parentElement.querySelector("[data-attest-form]");
+      if (!form) return;
+      var open = !form.hidden;
+      form.hidden = open;
+      btn.setAttribute("aria-expanded", String(!open));
+    });
+  });
+  document.querySelectorAll("[data-attest-form]").forEach(function (form) {
+    form.addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var status = form.querySelector("[data-attest-status]");
+      var fd = new FormData(form);
+      var body = {
+        system: form.getAttribute("data-system"),
+        fact_key: form.getAttribute("data-fact-key"),
+        value: fd.get("value") || "",
+        unit: fd.get("unit") || "",
+        source: fd.get("source") || "",
+        by: fd.get("by") || "mechanic",
+        kind: fd.get("kind") || "measured",
+      };
+      var vin = form.getAttribute("data-vin");
+      fetch("/api/attested/" + encodeURIComponent(vin), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(body),
+      }).then(function (resp) {
+        if (resp.ok) { window.location.reload(); return; }
+        return resp.json().then(function (j) {
+          if (status) status.textContent = (j && j.detail) || "could not save";
+        });
+      }).catch(function () {
+        if (status) status.textContent = "could not save -- check connection";
+      });
+    });
+  });
+})();
+</script>
 {% endblock %}

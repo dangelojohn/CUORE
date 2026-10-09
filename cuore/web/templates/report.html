@@ -117,7 +117,7 @@
       <p class="muted small">No open-work codes to describe.</p>
     {% endfor %}
     {% if correlation_findings %}
-      <h3 class="small">Symptom correlation</h3>
+      <h3>Symptom correlation</h3>
       <ul class="small">{% for line in correlation_findings %}<li>{{ line }}</li>{% endfor %}</ul>
     {% endif %}
   </section>
@@ -185,7 +185,7 @@
   <section id="fixes">
     <h2>Possible fixes</h2>
     {% for job in view.open_work %}
-      <h4 class="small">{{ job.title }}</h4>
+      <h4>{{ job.title }}</h4>
       <ul class="small">
         {% for s in job.steps %}
           <li>{{ s.text }} (source: {{ s.ref or "procedure" }}, status: {{ "done" if s.done else "open" }})</li>
@@ -206,7 +206,7 @@
   <section id="parts">
     <h2>Parts for the open codes</h2>
     {% for group in parts %}
-      <h4 class="small mono">{{ group.code }}</h4>
+      <h4 class="mono">{{ group.code }}</h4>
       <table class="rpt-table">
         <thead><tr><th>Part</th><th>OEM #</th><th>Confidence</th><th>Source</th></tr></thead>
         <tbody>
@@ -226,7 +226,7 @@
   <section id="experience">
     <h2>Others' experience</h2>
     {% for group in experience %}
-      <h4 class="small">{{ group.label }}</h4>
+      <h4>{{ group.label }}</h4>
       <ul class="small">
         {% for l in group.links %}
           <li><a href="{{ l.url }}">{{ l.title or l.url }}</a></li>

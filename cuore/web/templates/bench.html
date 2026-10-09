@@ -356,7 +356,27 @@
 
   <div class="bench-links">
     <a class="btn" href="/v/{{ vin }}/job">{{ t('job') if t is defined else 'Job' }}</a>
+    <a class="btn" href="/v/{{ vin }}/tests">{{ t('tests') if t is defined else 'Tests' }}</a>
     <a class="btn" href="/v/{{ vin }}/liveboard">{{ t('live_board') if t is defined else 'Live board' }}</a>
+    {# Item 3 (bench links, 2026-10-08 follow-up): a one-tap jump to the
+       top code's own primary system, whenever there is a blocker or a top
+       code to jump from -- `systems_for_code`/`system_label` are the same
+       Jinja globals _code_brief.html/_open_work.html/report.html already
+       call directly (registered by cuore.web.systems_routes, see that
+       module's own docstring), not a new lookup invented here; "primary"
+       only, never an upstream system, so this never disagrees with what
+       _system_badge.html itself would call this code's main system. #}
+    {% set _top_code = bench.shortcuts[0].code if bench.shortcuts else none %}
+    {# the spec's gate is "a blocker or a top code" -- with no top code
+       there is no code to resolve a system from either way, so the real
+       condition this link ever needs is just _top_code itself. #}
+    {% if _top_code and systems_for_code is defined %}
+      {% set _top_badge = (systems_for_code(_top_code)|selectattr("role", "equalto", "primary")|list|first) %}
+      {% if _top_badge %}
+        <a class="btn" href="/v/{{ vin }}/systems/{{ _top_badge.system }}">{{ t('system_label') if t is defined else 'System' }}:
+          {{ system_label(_top_badge.system) if system_label is defined else (_top_badge.system|title) }}</a>
+      {% endif %}
+    {% endif %}
     <a class="btn" href="/v/{{ vin }}/dossier">{{ t('full_dossier') if t is defined else 'Full dossier' }}</a>
   </div>
 </div>

@@ -20,11 +20,21 @@ History is never rewritten. Record shapes share one file, distinguished by
 ``op``:
 
 * ``open``                -- {op, id, at, vin, technician, complaint}
-* ``hypothesis_add``      -- {op, job_id, id, at, text, system, next_test,
-                              codes?, likelihood?, by?}
+* ``hypothesis_add``      -- {op, job_id, id, at, text, system, system_text,
+                              next_test, codes?, likelihood?, by?}. ``system``
+                              is ``mes.systems.normalize_system(system_text)``
+                              (or ``""``) resolved at write time; a record
+                              from before this field existed has no
+                              ``system_text`` at all -- :func:`_fold`
+                              re-resolves those from the old free-text
+                              ``system`` value on every read instead (never
+                              rewriting the log itself).
 * ``hypothesis_set``      -- {op, job_id, hyp_id, at, status?, next_test?, by?}
-* ``hypothesis_edit``     -- {op, job_id, hyp_id, at, text?, system?, codes?,
-                              likelihood?, next_test?, by?}
+* ``hypothesis_edit``     -- {op, job_id, hyp_id, at, text?, system?,
+                              system_text?, codes?, likelihood?, next_test?,
+                              by?} -- same ``system``/``system_text`` pairing
+                              and pre-``system_text`` migration as
+                              ``hypothesis_add``.
 * ``hypothesis_delete``   -- {op, job_id, hyp_id, at, by?}
 * ``hypothesis_undelete`` -- {op, job_id, hyp_id, at, by?}
 * ``action_add``          -- {op, job_id, id, at, kind, text, ref}
@@ -82,6 +92,22 @@ _LINK_BY_REF_KIND = {
 
 LINK_LISTS = ("symptom_ids", "note_ids", "media_ids", "feedback_ids",
              "service_record_ids", "inspection_ids")
+
+
+def _normalize_system(text: Optional[str]) -> Optional[str]:
+    """``mes.systems.normalize_system``, imported lazily (never at module
+    scope) so a knowledge-table issue in that module can never break
+    adding/editing a hypothesis -- same posture as
+    ``mes.electrical_bridge``'s own lazy, guarded imports. Returns ``None``
+    for blank/unrecognised text, same as the function it wraps."""
+    text = (text or "").strip()
+    if not text:
+        return None
+    try:
+        from . import systems as systems_mod
+        return systems_mod.normalize_system(text)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 class RuleViolation(Exception):
@@ -197,9 +223,20 @@ def _fold() -> dict[str, dict[str, Any]]:
 
         if op == "hypothesis_add":
             at = rec["at"]
+            # Migration (JOB_UX_FIXES-era records predate system_text): an
+            # old-shape record has no "system_text" key at all (raw text
+            # lived in "system" itself); a current-shape one always has
+            # "system_text", even "" for no system given. Either way the
+            # key is re-resolved here, on read, from whichever raw text
+            # exists -- never rewritten in the log itself, and re-run every
+            # fold so an ALIASES table improvement benefits old records too.
+            raw_system = rec.get("system_text")
+            if raw_system is None:
+                raw_system = rec.get("system") or ""
             job["hypotheses"].append({
                 "id": rec["id"], "text": rec.get("text") or "",
-                "system": rec.get("system") or "", "status": "open",
+                "system": _normalize_system(raw_system) or "",
+                "system_text": raw_system, "status": "open",
                 "evidence_for": [], "evidence_against": [],
                 "next_test": rec.get("next_test") or "",
                 "codes": list(rec.get("codes") or []),
@@ -231,10 +268,21 @@ def _fold() -> dict[str, dict[str, Any]]:
                 continue
             at = rec["at"]
             changed = []
-            for field in ("text", "system", "next_test"):
+            for field in ("text", "next_test"):
                 if rec.get(field) is not None:
                     hyp[field] = rec[field]
                     changed.append(field)
+            # Same migration-safe resolution as hypothesis_add: an edit
+            # record carries "system_text" (current shape) going forward,
+            # but a record written before that existed still only has
+            # "system" -- either way, re-resolve from whichever is there.
+            raw_system = rec.get("system_text")
+            if raw_system is None:
+                raw_system = rec.get("system")
+            if raw_system is not None:
+                hyp["system_text"] = raw_system
+                hyp["system"] = _normalize_system(raw_system) or ""
+                changed.append("system")
             if rec.get("codes") is not None:
                 hyp["codes"] = list(rec["codes"])
                 changed.append("codes")
@@ -445,9 +493,11 @@ def add_hypothesis(job_id: str, text: str, *, system: str = "",
         raise ValueError("likelihood must be one of: " + ", ".join(LIKELIHOODS))
     _require_job(job_id)
     hyp_id = uuid.uuid4().hex[:8]
+    system_text = (system or "").strip()
     _append({"op": "hypothesis_add", "job_id": job_id, "id": hyp_id,
              "at": datetime.now().isoformat(timespec="seconds"),
-             "text": text, "system": (system or "").strip(),
+             "text": text, "system": _normalize_system(system_text) or "",
+             "system_text": system_text,
              "next_test": (next_test or "").strip(),
              "codes": [c.strip() for c in (codes or []) if c and c.strip()],
              "likelihood": likelihood, "by": (by or "").strip() or None})
@@ -506,7 +556,9 @@ def edit_hypothesis(job_id: str, hyp_id: str, *, text: Optional[str] = None,
             raise ValueError("text cannot be blank")
         rec["text"] = text
     if system is not None:
-        rec["system"] = system.strip()
+        system_text = system.strip()
+        rec["system_text"] = system_text
+        rec["system"] = _normalize_system(system_text) or ""
     if codes is not None:
         rec["codes"] = [c.strip() for c in codes if c and c.strip()]
     if likelihood is not None:

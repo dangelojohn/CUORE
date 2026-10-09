@@ -60,6 +60,23 @@ def _systems_taxonomy() -> list[str]:
 SYSTEMS_TAXONOMY: list[str] = _systems_taxonomy()
 
 
+def _system_label_for_key(key: str) -> str:
+    """``?system=<key>`` (a ``systems_bridge``/``mes.systems`` key, e.g.
+    ``"evap"``) resolved to the human label the System ``<select>`` this
+    page renders actually lists (``SYSTEMS_TAXONOMY``, and every
+    hypothesis's own ``.system`` field) -- a bare key would never match any
+    ``<option>``'s value. An unknown key, or ``mes.systems`` unavailable,
+    reads as "" (no prefill) rather than a guess."""
+    key = (key or "").strip().lower()
+    if not key or _mes_systems is None:
+        return ""
+    try:
+        row = _mes_systems.systems().get(key)
+    except Exception:  # noqa: BLE001 -- a prefill hint must never 500 the page
+        return ""
+    return (row or {}).get("label") or ""
+
+
 def _rule_violation_msg(exc: "jobs_bridge.RuleViolation") -> str:
     """One line out of a caught ``jobs_bridge.RuleViolation`` -- its own
     ``reason`` plus ``next_test`` when there is one, exactly what the toast
@@ -102,7 +119,8 @@ async def tools_inventory_form(status: str = Form(...), tool: str = Form(...),
 
 
 def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = "",
-             step: str = "", **extra: Any) -> HTMLResponse:
+             step: str = "", system: str = "", codes: str = "", hypothesis: str = "",
+             **extra: Any) -> HTMLResponse:
     dossier = web_routes._dossier(vin)
     bar = web_routes._vehicle_bar(vin, dossier)
     job_view = jobs_bridge.build_job_view(vin, job_id or None, tools_step=tools_step or None)
@@ -153,6 +171,18 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
     confirm_pending = qp.get("confirm") or ""
     undo_hyp = qp.get("undo_hyp") or ""
 
+    # The step 7 "+ Add a hypothesis" prefill (?system=<key>&codes=P0440,
+    # P0455), step 5's "highlight these codes" (?codes=), and the "jump to
+    # this existing card" pointer (?hypothesis=<id>, also what the "Do it
+    # now" link on a hypothesis's own next_test now carries) -- all three
+    # degrade to "no prefill" on a bad/empty value, never a 500. job.html
+    # does the actual pre-select/pre-tick/expand with these, no JS
+    # required; job.js only adds the one thing a plain GET can't do itself
+    # (scrolling the target into view).
+    prefill_system = _system_label_for_key(system)
+    prefill_codes = [c.strip().upper() for c in codes.split(",") if c.strip()]
+    prefill_hypothesis = hypothesis.strip()
+
     # `view` carries the full dossier view -- the shape _verdict_card.html,
     # _codes_table.html and _open_work.html already expect everywhere else
     # they're included; `job_view` carries the Job-specific data only
@@ -162,25 +192,32 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
                                 active_codes=active_codes, tab="job", step=step,
                                 flash_msg=flash_msg, flash_kind=flash_kind,
                                 confirm_pending=confirm_pending, undo_hyp=undo_hyp,
-                                systems_taxonomy=SYSTEMS_TAXONOMY, **extra)
+                                systems_taxonomy=SYSTEMS_TAXONOMY,
+                                prefill_system=prefill_system, prefill_codes=prefill_codes,
+                                prefill_hypothesis=prefill_hypothesis, **extra)
     web_routes._set_active_vehicle(response, vin)
     return response
 
 
 @router.get("/v/{vin}/job", response_class=HTMLResponse)
-def job_page(request: Request, vin: str, tools_step: str = "", step: str = "") -> HTMLResponse:
+def job_page(request: Request, vin: str, tools_step: str = "", step: str = "",
+            system: str = "", codes: str = "", hypothesis: str = "") -> HTMLResponse:
     """The current (or most recent) job for this vehicle, one step per
     screen -- ``step`` is the only query param this page reads to pick
     which of the 12 steps is the full screen (default: the flow's own
-    current step, resolved inside job.html itself)."""
-    return _job_page(request, vin, tools_step=tools_step, step=step)
+    current step, resolved inside job.html itself). ``system``/``codes``/
+    ``hypothesis`` are the step 5/7 prefill hints -- see ``_job_page``."""
+    return _job_page(request, vin, tools_step=tools_step, step=step,
+                     system=system, codes=codes, hypothesis=hypothesis)
 
 
 @router.get("/v/{vin}/job/{job_id}", response_class=HTMLResponse)
 def job_page_one(request: Request, vin: str, job_id: str, tools_step: str = "",
-                 step: str = "") -> HTMLResponse:
+                 step: str = "", system: str = "", codes: str = "",
+                 hypothesis: str = "") -> HTMLResponse:
     """One specific job by id -- e.g. a closed case from this car's history."""
-    return _job_page(request, vin, job_id=job_id, tools_step=tools_step, step=step)
+    return _job_page(request, vin, job_id=job_id, tools_step=tools_step, step=step,
+                     system=system, codes=codes, hypothesis=hypothesis)
 
 
 @router.post("/v/{vin}/job/open", response_class=HTMLResponse)

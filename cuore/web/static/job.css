@@ -275,3 +275,19 @@
 
 .job-page .evidence-chip-label { text-transform: none; }
 .job-page .evidence-chip .evidence-chip-label:first-letter { text-transform: uppercase; }
+
+/* ---------- ?system=/?codes=/?hypothesis= prefill highlight (job UX pass
+   2026-10-08, item 1/2 of the follow-up) -- a step 5 code card or a step 7
+   hypothesis card the caller's link was actually about, called out with
+   the same accent outline the confirm modal already uses for "this is the
+   thing to look at", never a colour that could be mistaken for a
+   pass/fail/severity chip. */
+
+.job-page .priority-code-block { margin-bottom: 10px; }
+.job-page .priority-code-block.is-codes-highlighted,
+.job-page .hyp-card.is-prefill-selected {
+  outline: 2px solid var(--accent, #5b9dff);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+.job-page .priority-code-block.is-codes-highlighted { padding: 6px; margin: -6px -6px 10px; }

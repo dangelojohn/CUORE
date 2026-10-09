@@ -1267,5 +1267,176 @@ def correlate(vin: str) -> dict[str, Any]:
     }
 
 
+# --- shared system vocabulary: free text -> one of the 25 SYSTEMS keys -----
+#
+# Every other store that carries a "system" string (mes.jobs hypotheses,
+# mes.mechanic_tests test rows, the dossier's generic open-work family
+# keys, a liveboard channel's system, the electrical layout's own small tag
+# set) should mean the same 25 keys this module defines. This section is
+# the one place that resolves free text to a key -- additive to the SYSTEMS
+# graph above, never changing it.
+
+def _norm_text(text: Optional[str]) -> str:
+    """Lowercase, punctuation/underscores collapsed to single spaces,
+    trimmed -- the one normalisation :func:`normalize_system` and every
+    table below it is compared through, so "EVAP", "evap_system" and
+    "Evap System" all land on the same string."""
+    return re.sub(r"[^a-z0-9]+", " ", (text or "").strip().lower()).strip()
+
+
+#: systems-graph key -> [electrical-layout tag, ...]. mes.electrical.
+#: ELEMENTS carry their own small tag vocabulary (``part_of_systems``),
+#: built independently of this module's 25-key graph and not a 1:1 match --
+#: this is the one canonical map between the two. Previously duplicated as
+#: cuore.services.system_detail_bridge's own local ``_ELEMENT_TAGS_FOR``
+#: (same shape, same values); this is now the single source both that file
+#: and cuore.services.electrical_bridge.elements_for_system read from, so
+#: the two vocabularies can never drift apart. A systems-graph key with no
+#: entry here simply has no electrical-layout elements tagged for it --
+#: not a gap, the documented overlap mes.electrical's own callers already
+#: note.
+ELEMENT_TAGS_FOR: dict[str, list[str]] = {
+    "evap": ["evap"], "network": ["network"], "lighting": ["lighting"],
+    "brakes_abs": ["chassis"], "adas_sensors": ["adas"],
+    "body_comfort": ["body"], "starting_charging": ["charging", "cranking"],
+    "engine_management": ["misfire"], "wheels_tpms": ["tpms"],
+}
+
+#: Free text/aliases this project's own data actually produces, each
+#: resolved to one of the 25 SYSTEMS keys -- checked only after an exact
+#: key/label match fails (see :func:`normalize_system`). Never fuzzy --
+#: an alias not listed here (and not an exact key/label) resolves to
+#: ``None``, same house rule as every other lookup in this module.
+ALIASES: dict[str, str] = {
+    # dossier_bridge's generic open-work family keys
+    # (_GENERIC_FAMILY_RULES) and the hand-curated "EVAP"/"network"
+    # hypothesis-suggestion system strings -- jobs_bridge compares a
+    # hypothesis's own system against these, so they need the same
+    # resolution as everything else here.
+    "fuel_trim": "fuel", "fuel trim": "fuel",
+    "powertrain_other": "engine_management",
+    "powertrain (other)": "engine_management",
+    "chassis": "brakes_abs",
+    "adas": "adas_sensors",
+    "body": "body_comfort",
+
+    # free text a mechanic or a form might actually type for EVAP
+    "evap system": "evap", "evaporative system": "evap",
+    "evaporative emissions": "evap", "evaporative emissions system": "evap",
+
+    # SAE J1979 Mode 01 PID 01 OBD-II monitor names (cuore.live.obd's
+    # _CONTINUOUS/_SPARK/_COMPRESSION tables) -- restated here so free text
+    # naming a monitor ("the O2 heater monitor") also resolves. See
+    # MONITOR_TO_SYSTEM below for the dedicated, exact-name table
+    # system_states()-style callers should actually use for readiness data;
+    # these are the same assignments, just reachable as free text too.
+    "fuel system": "fuel",
+    "comprehensive components": "engine_management",
+    "comprehensive component": "engine_management",
+    "catalyst": "exhaust_emissions", "cat": "exhaust_emissions",
+    "heated catalyst": "exhaust_emissions",
+    "secondary air system": "exhaust_emissions", "secondary air": "exhaust_emissions",
+    "a c refrigerant": "hvac", "ac refrigerant": "hvac",
+    "oxygen sensor": "exhaust_emissions", "o2 sensor": "exhaust_emissions",
+    "oxygen sensor heater": "exhaust_emissions", "o2 heater": "exhaust_emissions",
+    "egr system": "exhaust_emissions", "egr": "exhaust_emissions",
+    "egr vvt system": "valve_control",
+    "nmhc catalyst": "exhaust_emissions",
+    "nox scr monitor": "exhaust_emissions",
+    "boost pressure": "air_intake_boost",
+    "exhaust gas sensor": "exhaust_emissions",
+    "pm filter": "exhaust_emissions",
+}
+
+# Electrical-layout tags are also valid aliases for their system key (e.g.
+# "cranking" -> "starting_charging") -- merged in rather than hand-copied so
+# the two tables can never disagree. ``setdefault``: an explicit entry
+# above (there are none that overlap today) would always win.
+for _tag_key, _tags in ELEMENT_TAGS_FOR.items():
+    for _tag in _tags:
+        ALIASES.setdefault(_tag, _tag_key)
+
+_ALIASES_NORM: dict[str, str] = {_norm_text(k): v for k, v in ALIASES.items()}
+_LABEL_NORM_TO_KEY: dict[str, str] = {_norm_text(v["label"]): k for k, v in SYSTEMS.items()}
+
+
+def normalize_system(text: Optional[str]) -> Optional[str]:
+    """Resolve free text to one of the 25 :data:`SYSTEMS` keys, or ``None``.
+
+    Checked in order: (1) an exact key, case/punctuation-insensitive (e.g.
+    "Air intake / boost" -> ``air_intake_boost``), (2) an exact label match
+    (e.g. "EVAP (evaporative emissions)" -> ``evap``), (3) the
+    :data:`ALIASES` table (electrical-layout tags, OBD-II monitor names,
+    and the free-text/family-name spellings this project's own forms and
+    dossier families actually produce). No fuzzy matching beyond that --
+    unrecognised text (or empty/whitespace-only text) returns ``None``
+    rather than a guess.
+    """
+    norm = _norm_text(text)
+    if not norm:
+        return None
+    key_form = norm.replace(" ", "_")
+    if key_form in SYSTEMS:
+        return key_form
+    if norm in _LABEL_NORM_TO_KEY:
+        return _LABEL_NORM_TO_KEY[norm]
+    return _ALIASES_NORM.get(norm)
+
+
+# --- OBD-II readiness monitor -> system key (per-system VERIFIED_CLEAN) ----
+#
+# SAE J1979 Mode 01 PID 01 monitor names, exactly as cuore.live.obd's
+# decode_readiness() produces them (_CONTINUOUS/_SPARK/_COMPRESSION), mapped
+# to the systems-graph key that monitor's completeness speaks to. Not every
+# system has a monitor; a key absent from monitors_for_system's output has
+# none at all -- that absence is itself the fact cuore.services.
+# systems_map_bridge.system_states() needs (a system with no monitor can
+# never earn VERIFIED_CLEAN from a monitor read, only from a clean car scan
+# after the clear), never guessed. Ambiguous SAE categories (O2/O2-heater
+# could read as fuel-trim or exhaust-sensor; EGR/VVT combines an emissions
+# and a valve-timing monitor on compression-ignition ECUs) are resolved to
+# the single most directly-affected system, documented inline -- not a
+# sourced fact, this module's own best-effort reading, same posture as
+# mes.systems._KEYWORDS above.
+MONITOR_TO_SYSTEM: dict[str, str] = {
+    "Misfire": "ignition",
+    "Fuel system": "fuel",
+    "Comprehensive components": "engine_management",
+    "Catalyst": "exhaust_emissions",
+    "Heated catalyst": "exhaust_emissions",
+    "Evaporative system": "evap",
+    "Secondary air system": "exhaust_emissions",
+    "A/C refrigerant": "hvac",
+    "Oxygen sensor": "exhaust_emissions",  # O2 sensor itself: exhaust-side component
+    "Oxygen sensor heater": "exhaust_emissions",
+    "EGR system": "exhaust_emissions",
+    "NMHC catalyst": "exhaust_emissions",
+    "NOx/SCR monitor": "exhaust_emissions",
+    "Boost pressure": "air_intake_boost",
+    "Exhaust gas sensor": "exhaust_emissions",
+    "PM filter": "exhaust_emissions",
+    "EGR/VVT system": "valve_control",  # combined diesel bit -- VVT half chosen
+}
+_MONITOR_TO_SYSTEM_NORM: dict[str, str] = {_norm_text(k): v for k, v in MONITOR_TO_SYSTEM.items()}
+
+
+def system_for_monitor(name: Optional[str]) -> Optional[str]:
+    """The systems-graph key an OBD-II readiness monitor's completeness
+    speaks to, or ``None`` for a monitor name this table doesn't
+    recognise."""
+    return _MONITOR_TO_SYSTEM_NORM.get(_norm_text(name))
+
+
+def monitors_for_system(key: str) -> list[str]:
+    """Every OBD-II monitor name (as :func:`cuore.live.obd.decode_readiness`
+    produces it) that speaks to ``key`` -- empty when this system has no
+    monitor at all, the fact ``system_states()`` needs to keep a
+    no-monitor system at CLEARED_UNVERIFIED instead of inventing a
+    VERIFIED_CLEAN it has no readiness evidence for."""
+    return [name for name, sys_key in MONITOR_TO_SYSTEM.items() if sys_key == key]
+
+
 __all__ = ["SYSTEMS", "systems", "systems_for_code", "correlate", "base_code",
-           "CONFIRMED", "CORROBORATED", "SINGLE_SOURCE", "UNKNOWN"]
+           "CONFIRMED", "CORROBORATED", "SINGLE_SOURCE", "UNKNOWN",
+           "ALIASES", "ELEMENT_TAGS_FOR", "normalize_system",
+           "MONITOR_TO_SYSTEM", "system_for_monitor", "monitors_for_system"]

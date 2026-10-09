@@ -483,7 +483,15 @@ kbd {
 .vbar { padding: 6px var(--pad) 7px; }
 .vline {
   display: flex; align-items: center; gap: 8px; flex-wrap: nowrap;
-  min-height: 26px; overflow: hidden;
+  min-height: 26px;
+  /* No overflow:hidden here (removed 2026-10-08, item 4 of the 400px
+   * clipping report): .vname already clips+ellipsizes itself, so the row
+   * does not need a second, blunter clip -- and that blunter clip was
+   * exactly what silently cut off (not scrolled, not wrapped, just gone)
+   * the "..." vmore button whenever the rest of the row's own flex:none
+   * chips (scanner/live/verdict/blocker) didn't fit at 400px. See the
+   * max-width:400px block below for the fix that keeps the row from
+   * actually needing to overflow in the first place. */
 }
 .vline .vname {
   font-weight: 650; font-size: 14px; white-space: nowrap; overflow: hidden;
@@ -798,6 +806,17 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 @media (max-width: 400px) {
   .vline .vname { max-width: 32%; }
   .verdict-actions { flex-direction: column; }
+  /* Item 4 (400px clipping report): .vline's chips (scanner/live/verdict/
+   * blocker) are all flex:none -- they refuse to shrink -- so on a
+   * crowded page (job/dossier/report, which also carry the verdict and
+   * blocker chips .vline hides on bench/report) the row's natural width
+   * can exceed 400px even with .vname's own ellipsis doing its job.
+   * Wrapping onto a second line (rather than the old overflow:hidden
+   * truncation) means every chip, and the "..." vmore button after them,
+   * stays fully visible and reachable -- never clipped, and never a
+   * reason for the page itself to grow a horizontal scrollbar, since
+   * nothing needs to run off the right edge any more. */
+  .vline { flex-wrap: wrap; row-gap: 4px; }
 }
 
 
@@ -1127,7 +1146,17 @@ a.part-compact:hover { border-color: var(--accent); }
 /* -- type: larger, lighter, more air -- */
 body { font-size: 16px; line-height: 1.6; }
 h1 { font-weight: 300; font-size: 32px; line-height: 1.3; letter-spacing: -.01em; }
-h2 { font-weight: 300; }
+/* One heading scale everywhere (report page review 2026-10-08): a bare h2 is
+   a section heading, so it takes the .section-h style instead of the old
+   11.5px tracked small caps; h3/h4 step down from it in the same face. */
+h2 {
+  font-size: 26px; font-weight: 300; letter-spacing: -.01em; text-transform: none;
+  color: var(--ink-2); margin: var(--space-5) 0 var(--space-2);
+}
+h3 { font-size: 19px; font-weight: 500; letter-spacing: 0; margin: var(--space-4) 0 var(--space-2); }
+h4 { font-size: 16px; font-weight: 600; margin: var(--space-3) 0 var(--space-1); }
+h3.small, h4.small { font-size: inherit; }
+h4.mono { font-size: 16px; }
 .section-h, .step-title {
   font-size: 11px; letter-spacing: .14em; margin: var(--space-4) 0 var(--space-2);
 }
@@ -1223,7 +1252,7 @@ body { font-size: 17px; }
 .lede, .verdict-sentence, .step-oneliner, .panel p { max-width: 72ch; }
 
 h1 { font-size: 40px; }
-.section-h, .step-title {
+h2, .section-h, .step-title {
   font-size: 26px; font-weight: 300; letter-spacing: -.01em; text-transform: none;
   margin: var(--space-5) 0 var(--space-2); padding-bottom: var(--space-2);
   border-bottom: 2px solid var(--accent);
@@ -1274,7 +1303,8 @@ h1 { font-size: 40px; }
 
 @media (max-width: 480px) {
   h1 { font-size: 30px; }
-  .section-h, .step-title { font-size: 22px; }
+  h2, .section-h, .step-title { font-size: 22px; }
+  h3 { font-size: 18px; }
   .hero-img { height: 30vh; min-height: 30vh; }
   .hero-name { font-size: 36px; }
   .hero-verdict-state { font-size: 34px; }

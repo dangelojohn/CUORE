@@ -59,6 +59,86 @@ check("opening a case for the fixture responds 200", open_resp.status_code == 20
       str(open_resp.status_code))
 
 
+# --- item 1 (2026-10-08 follow-up): ?system=<key>&codes=P0440 on step 7
+#     expands the add-hypothesis form and pre-selects/pre-ticks both -------
+
+step7_prefill = client.get(f"/v/{VIN}/job", params={"step": "7", "system": "evap", "codes": "P0440"})
+check("?step=7&system=evap&codes=P0440 responds 200",
+      step7_prefill.status_code == 200, str(step7_prefill.status_code))
+text_prefill = step7_prefill.text
+
+_ah_tag_start = text_prefill.find('<details class="add-hypothesis-collapsed"')
+_ah_tag_end = text_prefill.find(">", _ah_tag_start) if _ah_tag_start >= 0 else -1
+_ah_tag = text_prefill[_ah_tag_start:_ah_tag_end + 1] if _ah_tag_start >= 0 else ""
+check("the add-hypothesis form is expanded (open) when ?system=/?codes= is present",
+      "open" in _ah_tag, _ah_tag)
+
+_ah_end = text_prefill.find("</details>", _ah_tag_start) if _ah_tag_start >= 0 else -1
+_ah_html = text_prefill[_ah_tag_start:_ah_end] if _ah_tag_start >= 0 else ""
+
+
+def _option_selected(html: str, value: str) -> tuple[bool, str]:
+    marker = f'value="{value}"'
+    idx = html.find(marker)
+    if idx < 0:
+        return False, f"{marker} not found"
+    end = html.find(">", idx)
+    tag = html[idx:end + 1]
+    return "selected" in tag, tag
+
+
+_sel_ok, _sel_detail = _option_selected(_ah_html, "EVAP (evaporative emissions)")
+check("?system=evap pre-selects the EVAP option in the System select",
+      _sel_ok, _sel_detail)
+_code_ok, _code_detail = _option_selected(_ah_html, "P0440")
+check("?codes=P0440 pre-ticks the P0440 option in the linked-codes select",
+      _code_ok, _code_detail)
+
+
+# --- item 1 continued: ?codes= on step 5 highlights that code's own card --
+# (P0456, not P0440 -- the fixture's P0440 is CLEARED_UNVERIFIED right now,
+# so it has no step 5 card at all to highlight; step 5 only ever shows
+# ACTIVE codes' own cards, same restriction as before this pass.)
+
+step5_prefill = client.get(f"/v/{VIN}/job", params={"step": "5", "codes": "P0456"})
+check("?step=5&codes=P0456 responds 200", step5_prefill.status_code == 200,
+      str(step5_prefill.status_code))
+check('P0456\'s step 5 card carries the highlight class',
+      'id="code-brief-P0456"' in step5_prefill.text
+      and "is-codes-highlighted" in step5_prefill.text[
+          step5_prefill.text.find('id="code-brief-P0456"') - 80:
+          step5_prefill.text.find('id="code-brief-P0456"') + 20],
+      "no highlighted P0456 card found" if "P0456" in step5_prefill.text
+      else "P0456 is not an active code on this fixture")
+
+
+# --- item 2 (2026-10-08 follow-up): the step 6 result sheet's hypothesis
+#     picker -- next_test match first, then ?hypothesis=, else a real
+#     prompt label rather than "(none)" ---------------------------------
+
+job_js_text = (ROOT / "cuore" / "web" / "static" / "job.js").read_text(encoding="utf-8")
+check('the result sheet\'s hypothesis picker default reads "Choose a hypothesis...", '
+      'not "(none)"',
+      "Choose a hypothesis" in job_js_text
+      and '<option value="">(none)</option>' not in job_js_text,
+      "still has the old (none) wording" if '<option value="">(none)</option>' in job_js_text
+      else "\"Choose a hypothesis\" text not found in job.js")
+check("the picker matches by next_test before falling back to ?hypothesis=",
+      "matchByNextTest" in job_js_text and 'get("hypothesis")' in job_js_text,
+      "next_test match / ?hypothesis= read not found in job.js")
+
+
+# --- item 3 (2026-10-08 follow-up): the Bench links row carries a Tests
+#     link and a /systems/<key> link to the top code's primary system ----
+
+bench_page = client.get(f"/v/{VIN}")
+check("bench page responds 200", bench_page.status_code == 200, str(bench_page.status_code))
+check("the bench links row carries a Tests link",
+      f'href="/v/{VIN}/tests"' in bench_page.text, "no /tests link on the bench page")
+check("the bench links row carries a /systems/<key> link",
+      f"/v/{VIN}/systems/" in bench_page.text, "no /systems/<key> link on the bench page")
+
+
 # --- #6: the sticky header shows the VIEWED step, with a chip when it
 #     differs from the job's own current step -------------------------------
 
@@ -445,6 +525,58 @@ else:
                          out_path.exists() and out_path.stat().st_size > 0, str(out_path))
                     if out_path.exists():
                         print(f"  wrote {out_path} ({out_path.stat().st_size} bytes)")
+
+                    # --- item 4 (400px clipping report): same tab, just
+                    # re-emulated at 400px -- the one 400px screenshot this
+                    # session is allowed, plus the bounding-rect check that
+                    # the vbar's "..." (More) button is fully on-screen and
+                    # nothing had to grow a page-level horizontal scrollbar
+                    # to get it there. -----------------------------------
+                    print("=== 400px CDP: vbar \"...\" button + one screenshot ===")
+                    cdp.send("Emulation.setDeviceMetricsOverride", {
+                        "width": 400, "height": 800, "deviceScaleFactor": 1, "mobile": True,
+                    })
+                    time.sleep(0.4)
+
+                    vmore_rect = cdp.send("Runtime.evaluate", {
+                        "expression": (
+                            "(() => { const el = document.querySelector('.vbar .vmore'); "
+                            "if (!el) return JSON.stringify(null); "
+                            "const r = el.getBoundingClientRect(); "
+                            "return JSON.stringify({top: r.top, left: r.left, right: r.right, "
+                            "width: r.width, height: r.height}); })()"),
+                        "returnByValue": True,
+                    })
+                    vmore_box = json.loads(vmore_rect.get("result", {}).get("value", "null"))
+                    check("the vbar's \"...\" (More) button is present at 400px",
+                          vmore_box is not None, str(vmore_box))
+                    if vmore_box is not None:
+                        check("the \"...\" button has a real, non-zero box (not clipped away)",
+                              vmore_box["width"] > 0 and vmore_box["height"] > 0, str(vmore_box))
+                        check("the \"...\" button sits fully inside the 400px viewport",
+                              vmore_box["left"] >= 0 and vmore_box["right"] <= 400 + 1,
+                              str(vmore_box))
+
+                    overflow400 = cdp.send("Runtime.evaluate", {
+                        "expression": (
+                            "JSON.stringify({sw: document.documentElement.scrollWidth, "
+                            "cw: document.documentElement.clientWidth})"),
+                        "returnByValue": True,
+                    })
+                    dims400 = json.loads(overflow400.get("result", {}).get("value", "{}"))
+                    sw400, cw400 = dims400.get("sw", 0), dims400.get("cw", 0)
+                    check("no page-level horizontal overflow at 400px either",
+                          sw400 <= cw400 + 1, f"scrollWidth={sw400} clientWidth={cw400}")
+
+                    out_path_400 = SCRATCHPAD / "job_step7_400.png"
+                    shot400 = cdp.send("Page.captureScreenshot",
+                                      {"format": "png", "captureBeyondViewport": False})
+                    out_path_400.write_bytes(__import__("base64").b64decode(shot400["data"]))
+                    check("400px screenshot job_step7_400.png captured",
+                         out_path_400.exists() and out_path_400.stat().st_size > 0,
+                         str(out_path_400))
+                    if out_path_400.exists():
+                        print(f"  wrote {out_path_400} ({out_path_400.stat().st_size} bytes)")
                 finally:
                     cdp.close()
             except Exception as exc:  # noqa: BLE001
