@@ -158,6 +158,37 @@ check("...and still carries its original raw text as system_text",
      legacy_hyp.get("system_text") == "EVAP", str(legacy_hyp))
 
 
+# === mes.jobs.migrate_systems: append-only backfill, idempotent ============
+
+print("=== mes.jobs.migrate_systems ===")
+
+# legacy_id (seeded above) is the only hypothesis on this job still sitting
+# on an old-shape record -- hyp and edited both went through
+# add_hypothesis/edit_hypothesis, which always write a current-shape
+# record (a "system_text" key, even "").
+first_run = jobs_mod.migrate_systems(job_id=job["id"])
+check("migrating this job appends exactly one record, for the seeded "
+     "old-shape hypothesis",
+     first_run.get("count") == 1 and first_run.get("migrated") == [legacy_id],
+     str(first_run))
+
+second_run = jobs_mod.migrate_systems(job_id=job["id"])
+check("running it again is a no-op -- append-only, never rewrites the "
+     "JSONL, so the second pass finds nothing left to migrate",
+     second_run == {"migrated": [], "count": 0}, str(second_run))
+
+migrated_job = jobs_mod.get(job["id"])
+migrated_hyp = next(h for h in migrated_job["hypotheses"] if h["id"] == legacy_id)
+check("after migration the hypothesis still reads system='evap'",
+     migrated_hyp.get("system") == "evap", str(migrated_hyp))
+check("...and system_text='EVAP', now backed by the migration's own "
+     "hypothesis_edit record rather than the read-time fallback",
+     migrated_hyp.get("system_text") == "EVAP", str(migrated_hyp))
+check("the migration's audit entry is attributed to the 2026-10-08 migration",
+     any(a.get("by") == "migration 2026-10-08" for a in migrated_hyp.get("audit", [])),
+     str(migrated_hyp.get("audit")))
+
+
 # === mechanic_tests systems vocabulary =======================================
 
 print("=== mes.mechanic_tests systems vocabulary ===")

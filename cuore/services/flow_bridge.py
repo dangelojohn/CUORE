@@ -212,11 +212,45 @@ def current_vehicle() -> Optional[str]:
 
 
 def flow_state(vin: str) -> dict[str, Any]:
-    """Everything the flow widget needs for this VIN, computed once."""
+    """Everything the flow widget needs for this VIN.
+
+    ``job.html``, ``_vbar.html`` and ``_vtabs.html`` each call
+    ``flow_state_for(vin)`` independently on one render (the flow bar
+    shows up on both the tab strip and the page body), so this used to
+    rebuild the whole step list -- including a fresh ``build_view`` (and,
+    through it, a fault-tree pass per open-work code) -- 3-4 times per
+    page. ``_flow_state_core`` is memoised on the same staleness pair
+    ``dossier_bridge.build_view`` already uses (vin, newest MES-log mtime,
+    newest state-file mtime), so only the first call in a request (or the
+    next one, until a log or a state file changes) actually computes it.
+
+    The one field that is *not* corpus/state-derived is ``visit.minutes_in``
+    -- wall-clock "how long has this car been in the bay", which depends on
+    ``datetime.now()``. Caching that would freeze the bay clock until the
+    next cache-invalidating change, so ``_flow_state_core`` stores the raw
+    ``in_at`` instead and this wrapper recomputes ``minutes_in`` fresh on
+    every call, never from the cache.
+    """
     vin = (vin or "").strip()
     if not vin:
         raise BadRequest("a VIN is required")
+    core = cache.get_or_build(
+        ("flow_state", vin, mes_bridge.newest_mtime(vin), dossier_bridge._state_fingerprint()),
+        lambda: _flow_state_core(vin),
+    )
+    result = dict(core)
+    visit = result.get("visit")
+    if visit is not None:
+        visit = dict(visit)
+        in_at = visit.pop("_in_at", None)
+        visit["minutes_in"] = None if not in_at else round(_minutes_now(in_at), 1)
+        result["visit"] = visit
+    return result
 
+
+def _flow_state_core(vin: str) -> dict[str, Any]:
+    """The cacheable body of :func:`flow_state` -- everything except the
+    wall-clock ``minutes_in`` patched in by the caller."""
     shop_mod = _shop_mod()
     jobs_mod = _jobs_mod()
 
@@ -443,8 +477,10 @@ def flow_state(vin: str) -> dict[str, Any]:
         "current": current_n,
         "next": next_obj,
         "visit": ({"status": visit["status"],
-                  "minutes_in": (None if not in_at else
-                                round((_minutes_now(in_at)), 1)),
+                  # minutes_in is wall-clock (now - in_at) -- never cached;
+                  # flow_state() patches it in fresh from this raw in_at
+                  # after this core result comes out of the cache.
+                  "_in_at": in_at,
                   "promised_at": visit.get("promised_at")}
                  if visit else None),
         "job": ({"id": job["id"], "status": job["status"]} if job else None),

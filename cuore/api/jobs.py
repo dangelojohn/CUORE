@@ -186,4 +186,18 @@ def attach(job_id: str, body: RefAttach) -> dict[str, Any]:
                               supports=body.supports, link=body.link)
 
 
+@router.post("/jobs/migrate-systems",
+            summary="Backfill system_text on old-shape hypothesis records (idempotent)")
+def migrate_systems(job_id: Optional[str] = None) -> dict[str, Any]:
+    """One-off admin sweep (loopback-only app, no extra guard beyond the
+    existing token dependency) -- see ``mes.jobs.migrate_systems`` for what
+    it does and why it's safe to re-run. Imports ``mes.jobs`` directly
+    rather than through ``cuore.services.jobs_bridge`` (that module is
+    mid-edit elsewhere right now, and this sweep doesn't need its
+    page-view machinery), same posture as ``cuore.api.tests``' own direct
+    ``from mes import mechanic_tests``."""
+    from mes import jobs as jobs_mod
+    return jobs_mod.migrate_systems(job_id=job_id)
+
+
 __all__ = ["router"]

@@ -909,7 +909,10 @@ _t("can_bus_resistance_test", "CAN bus resistance test", "network", ["network"],
       "re-measuring.",
   ],
   pass_criteria=[_pc("CAN-H to CAN-L resistance, key off", 60, "ohm",
-                     INDUSTRY_PRACTICE, SINGLE_SOURCE)],
+                     INDUSTRY_PRACTICE + "; corroborated by the ISO 11898 CAN "
+                     "physical-layer standard's two-120-ohm-termination-"
+                     "resistor topology (see docs/research/"
+                     "SPECS_RESEARCH_2026-10-08.md)", CORROBORATED)],
   fail_means="A reading far above 60 ohm suggests an open/missing termination "
              "resistor or module; far below suggests a short in the bus wiring.",
   related_codes=["U0100", "U0101", "U0121", "U0140", "U0155"],

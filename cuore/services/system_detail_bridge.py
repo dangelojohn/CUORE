@@ -17,7 +17,7 @@ merge) of other bridges that already carry their own sourcing:
   live-board grading helper for this system's channels.
 * ``electrical_bridge`` -- layout elements, per-code wiring paths and
   inspection records (the electrical layout's own system vocabulary does
-  not match the 25-key systems graph 1:1 -- see ``_ELEMENT_TAGS_FOR``).
+  not match the 25-key systems graph 1:1 -- see ``ELEMENT_TAGS_FOR``).
 * ``parts_bridge`` -- catalogue entries for this system's part keys.
 * ``jobs_bridge`` -- suggested and job-attached hypotheses, filtered to
   this system.
@@ -38,6 +38,8 @@ from typing import Any, Optional
 from .. import bootstrap  # noqa: F401 -- side effect: puts `mes` on sys.path
 from ..live import attested as attested_store
 from ..live import learned as learned_store
+
+from mes.systems import ELEMENT_TAGS_FOR, normalize_system  # noqa: E402
 
 from . import (
     bench_bridge,
@@ -70,12 +72,9 @@ _CONFIDENCE_WEIGHT = {"CONFIRMED": 1.0, "CORROBORATED": 0.8,
 #: This is the documented overlap -- a systems-graph key with no entry
 #: here simply has no electrical-layout elements merged in (its
 #: ``components`` list, from the systems record itself, still shows).
-_ELEMENT_TAGS_FOR: dict[str, list[str]] = {
-    "evap": ["evap"], "network": ["network"], "lighting": ["lighting"],
-    "brakes_abs": ["chassis"], "adas_sensors": ["adas"],
-    "body_comfort": ["body"], "starting_charging": ["charging", "cranking"],
-    "engine_management": ["misfire"], "wheels_tpms": ["tpms"],
-}
+#: ``mes.systems.ELEMENT_TAGS_FOR`` is the single source for this map --
+#: see that module for why (previously duplicated here under the same
+#: name, now just imported so the two vocabularies can never drift apart).
 
 #: Standard OBD-II monitor categories (SAE J1979 continuous/non-continuous
 #: monitor taxonomy -- factual, not vehicle-specific) a systems-graph key
@@ -358,7 +357,7 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         all_elements = electrical_bridge.list_elements()
     except Exception:  # noqa: BLE001
         all_elements = []
-    tags = set(_ELEMENT_TAGS_FOR.get(key, []))
+    tags = set(ELEMENT_TAGS_FOR.get(key, []))
     elements = [e for e in all_elements if tags & set(e.get("part_of_systems") or [])]
 
     try:
@@ -447,24 +446,26 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
                     "next_test_label": next_test_label, "do_it_now_href": do_it_now_href}
 
     # --- 5. hypotheses touching this system -----------------------------------
-    key_norm = key.lower()
-    label_norm = label.lower()
+    # Both sides are resolved through the one shared alias table
+    # (mes.systems.normalize_system) instead of a local label/substring
+    # match -- suggested_hypotheses' "system" is still free text ("EVAP",
+    # a dossier family key, ...); job hypotheses' "system" is already a
+    # normalized key (mes.jobs resolves it on write/read), and
+    # normalize_system is a no-op for an already-normalized key.
     hyps = []
     try:
         jv = jobs_bridge.build_job_view(vin)
     except Exception:  # noqa: BLE001
         jv = {}
     for sugg in jv.get("suggested_hypotheses") or []:
-        sys_norm = (sugg.get("system") or "").strip().lower()
-        if sys_norm and (sys_norm == key_norm or sys_norm in label_norm or label_norm.startswith(sys_norm)):
+        if normalize_system(sugg.get("system")) == key:
             hyps.append({"text": sugg.get("text"), "status": "suggested",
                         "evidence_count": len(sugg.get("evidence_for") or []) +
                                           len(sugg.get("evidence_against") or []),
                         "next_test": sugg.get("next_test")})
     job = jv.get("job") or {}
     for h in job.get("hypotheses") or []:
-        sys_norm = (h.get("system") or "").strip().lower()
-        if sys_norm and (sys_norm == key_norm or sys_norm in label_norm):
+        if normalize_system(h.get("system")) == key:
             hyps.append({"text": h.get("text"), "status": h.get("status") or "open",
                         "evidence_count": len(h.get("evidence_for") or []) +
                                           len(h.get("evidence_against") or []),

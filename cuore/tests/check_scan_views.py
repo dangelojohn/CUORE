@@ -84,8 +84,8 @@ sys_all = client.get(f"/v/{VIN}/systems?all=1")
 check("systems page (default) responds 200", sys_default.status_code == 200)
 check("systems page (?all=1) responds 200", sys_all.status_code == 200)
 
-default_nodes = len(re.findall(r'<a href="#node-', sys_default.text))
-all_nodes = len(re.findall(r'<a href="#node-', sys_all.text))
+default_nodes = len(re.findall(r'data-system="', sys_default.text))
+all_nodes = len(re.findall(r'data-system="', sys_all.text))
 check("default systems graph has fewer nodes than ?all=1",
       0 < default_nodes < all_nodes, f"default={default_nodes} all={all_nodes}")
 check('the co-occurrence/findings prose sits inside a collapsed <details> '

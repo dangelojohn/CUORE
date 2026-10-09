@@ -593,6 +593,76 @@ def undelete_hypothesis(job_id: str, hyp_id: str, *, by: Optional[str] = None) -
     return _require_job(job_id)
 
 
+def migrate_systems(job_id: Optional[str] = None) -> dict[str, Any]:
+    """Backfill ``system_text`` for every non-deleted hypothesis still
+    sitting on an old-shape record (written before ``system_text``
+    existed -- raw free text lived in ``system`` itself, see the
+    ``hypothesis_add``/``hypothesis_edit`` migration notes above). Reads
+    are already migration-safe on their own (:func:`_fold` re-resolves an
+    old-shape record's free text every time); this just makes that
+    resolution permanent in the log, the same way any other hypothesis
+    edit would, for callers (reports, exports, a future ``jobs.jsonl``
+    reader) that read raw records instead of going through :func:`get`.
+
+    For each such hypothesis, appends one ``hypothesis_edit`` record
+    carrying ``system=<normalized key>``, ``system_text=<original free
+    text>``, ``by="migration 2026-10-08"`` -- the exact same op shape
+    :func:`edit_hypothesis` writes, so it folds (and audits) identically.
+    Never rewrites or touches an existing line -- append-only, same as
+    every other write in this module.
+
+    Idempotent: once a hypothesis's own most-recent system-setting record
+    carries a ``system_text`` key (even ``""``) -- which the migration
+    record above now does -- a later run finds nothing left to migrate
+    for it.
+
+    ``job_id`` limits the sweep to one job; omitted, every job is swept.
+    Returns ``{"migrated": [hyp_id, ...], "count": N}``.
+    """
+    jobs = _fold()
+    if job_id is not None:
+        job = jobs.get(job_id)
+        jobs = {job_id: job} if job is not None else {}
+
+    # The last raw record (in log order) that set each hypothesis's own
+    # system/system_text, keyed by (job_id, hyp_id) -- mirrors exactly
+    # which record _fold() itself would have used last for that field.
+    last_system_rec: dict[tuple[str, str], dict[str, Any]] = {}
+    for rec in _raw_records():
+        op = rec.get("op")
+        jid = rec.get("job_id")
+        if not jid:
+            continue
+        if op == "hypothesis_add":
+            hid = rec.get("id")
+            if hid:
+                last_system_rec[(jid, hid)] = rec
+        elif op == "hypothesis_edit":
+            hid = rec.get("hyp_id")
+            if hid and (rec.get("system_text") is not None or rec.get("system") is not None):
+                last_system_rec[(jid, hid)] = rec
+
+    at = datetime.now().isoformat(timespec="seconds")
+    migrated: list[str] = []
+    for jid, job in jobs.items():
+        if job is None:
+            continue
+        for hyp in job["hypotheses"]:
+            if hyp.get("deleted"):
+                continue
+            hid = hyp["id"]
+            rec = last_system_rec.get((jid, hid))
+            if rec is None or "system_text" in rec:
+                continue  # current-shape already -- nothing to migrate
+            raw_system = rec.get("system") or ""
+            _append({"op": "hypothesis_edit", "job_id": jid, "hyp_id": hid, "at": at,
+                     "system": _normalize_system(raw_system) or "",
+                     "system_text": raw_system, "by": "migration 2026-10-08"})
+            migrated.append(hid)
+
+    return {"migrated": migrated, "count": len(migrated)}
+
+
 def add_action(job_id: str, kind: str, text: str, *,
               ref: Optional[dict[str, Any]] = None) -> dict[str, Any]:
     """Record one action taken against this job: a test, an inspection, a
@@ -725,6 +795,6 @@ __all__ = ["STATUSES", "OUTCOMES", "HYP_STATUSES", "LIKELIHOODS", "ACTION_KINDS"
           "REF_KINDS", "TEST_RESULTS", "LINK_LISTS", "RuleViolation",
           "state_dir", "store_path", "open", "close",
           "add_hypothesis", "set_hypothesis", "edit_hypothesis",
-          "delete_hypothesis", "undelete_hypothesis",
+          "delete_hypothesis", "undelete_hypothesis", "migrate_systems",
           "add_action", "attach", "add_evidence", "remove_evidence",
           "resolve_evidence", "load", "get", "current"]

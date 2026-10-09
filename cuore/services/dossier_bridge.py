@@ -951,9 +951,30 @@ def checklist_step_ids(vin: str, dossier: dict[str, Any]) -> set[str]:
     Used by the checklist API to reject a step id that is not actually on
     this car's dossier -- a step id is only meaningful in the context of the
     family finding it belongs to.
+
+    This used to call ``_build_open_work(vin, dossier, {})`` fresh every
+    time -- a second, uncached re-evaluation of the fault tree per code
+    (``_generic_tree_steps`` -> ``mes_bridge.fault_tree`` -> real FES
+    parsing) on top of the one ``build_view`` already pays for and caches.
+    The checklist dict passed in only ever flips each step's own
+    ``done``/``done_at``/``done_by``, never which step ids exist (see
+    ``_build_open_work``'s body), so this is a pure function of
+    ``(vin, dossier)`` and can share ``build_view``'s own
+    ``dossier_view_core`` cache entry instead of building a second,
+    checklist-blind copy of the same open-work list -- correct because the
+    cache key (vin, newest MES-log mtime, newest state-file mtime) is the
+    same staleness criteria either caller needs: a new log or any state
+    file change invalidates it, same as ``build_view`` itself. Called from
+    request paths that never built that core (e.g. checklist POST
+    handlers), so it still has to build it the first time; callers that
+    already called ``build_view`` this request (or the last one, if nothing
+    changed) get a cache hit instead of a second fault-tree pass.
     """
-    open_work = _build_open_work(vin, dossier, {})
-    return {s["id"] for card in open_work for s in card["steps"]}
+    core = cache.get_or_build(
+        ("dossier_view_core", vin, mes_bridge.newest_mtime(vin), _state_fingerprint()),
+        lambda: _build_view_core(vin, dossier),
+    )
+    return {s["id"] for card in core["open_work"] for s in card["steps"]}
 
 
 # --- the one entry point -----------------------------------------------------
