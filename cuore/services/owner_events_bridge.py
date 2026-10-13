@@ -92,7 +92,8 @@ def taxonomy() -> dict[str, Any]:
 def add(vin: str, category: str, kind: str, *, at: Optional[str] = None,
         by_role: str = "owner", by_name: str = "", fields: Optional[dict[str, Any]] = None,
         note: str = "", media_ids: Optional[list[str]] = None,
-        odometer_km: Optional[float] = None) -> dict[str, Any]:
+        odometer_km: Optional[float] = None,
+        fields_meta: Optional[dict[str, str]] = None) -> dict[str, Any]:
     """Record one owner event. Raises :class:`BadRequest` on invalid input.
 
     ``incidents / noise_smell_vibration`` is the one kind this function
@@ -128,7 +129,7 @@ def add(vin: str, category: str, kind: str, *, at: Optional[str] = None,
     try:
         return store.add(vin, category, kind, at=at, by_role=by_role, by_name=by_name,
                          fields=fields, note=note, media_ids=media_ids,
-                         odometer_km=odometer_km)
+                         odometer_km=odometer_km, fields_meta=fields_meta)
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
 

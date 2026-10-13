@@ -39,6 +39,7 @@ from .web import live_dashboard_routes  # noqa: E402
 from .web import liveboard_routes  # noqa: E402
 from .web import owner_routes  # noqa: E402
 from .api import owner_events as owner_events_api  # noqa: E402
+from .api import vision as vision_api  # noqa: E402
 from .web import media_routes  # noqa: E402
 from .web import modules_routes  # noqa: E402
 from .web import parts_routes  # noqa: E402
@@ -135,6 +136,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(live_ui.router, prefix="/api")
     app.include_router(liveboard.router, prefix="/api")
     app.include_router(owner_events_api.router, prefix="/api")
+    app.include_router(vision_api.router, prefix="/api")
     app.include_router(tests_api.router, prefix="/api")
     app.include_router(known_good.router, prefix="/api")
     app.include_router(checklists_api.router, prefix="/api")

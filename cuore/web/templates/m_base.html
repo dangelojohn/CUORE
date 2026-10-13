@@ -1,9 +1,17 @@
 <!doctype html>
-<html lang="en" data-marque="{{ marque|default('alfa') }}">
+<html lang="en" data-marque="{{ marque|default('alfa') }}" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="dark light">
+{# Dark only on mobile, the owner's own instruction -- "dark-theme" (point
+   6) means this page never flips to the light palette cuore.css offers
+   desktop pages, regardless of the phone's own system setting. The
+   meta + data-theme="dark" together do that: the meta drops the "light"
+   half of the UA hint, and data-theme="dark" on <html> is what actually
+   defeats cuore.css's own `@media (prefers-color-scheme: light)` block
+   (it's guarded `:root:not([data-theme="dark"])`, so this one attribute
+   is what keeps a phone set to light mode on the true-black ground). #}
+<meta name="color-scheme" content="dark">
 <title>{% block title %}Tell CUORE{% endblock %}</title>
 {# Minimal layout on purpose: no desktop tabs, no hero, no _vbar.html --
    this is a phone-first page, not a shrunk-down desktop one. Reuses only
@@ -14,8 +22,24 @@
 </head>
 <body class="m-body">
 
+{# Opening reveal (owner's own request, 2026-10-13 rejection note): plays
+   on every open of /m/{vin} -- the home route is the only caller that
+   passes show_intro=True. _intro.html itself (CSS + markup, unmodified)
+   is the exact partial the main app uses, same timing, same tap-to-
+   dismiss; the one addition here is the line right after it that clears
+   the sessionStorage flag _intro.html's own script just set, so THIS
+   page never remembers having shown it -- "every open", not "once per
+   session", while every other page under /m/{vin}/* (which never passes
+   show_intro) renders no overlay at all and never touches the flag. #}
+{% if show_intro|default(false) %}
+{% include "_intro.html" %}
+<script>
+(function(){try{sessionStorage.removeItem("cuoreIntroSeen");}catch(e){}})();
+</script>
+{% endif %}
+
 <header class="m-top">
-  <a class="m-brand" href="/m/{{ vin }}">Tell CUORE</a>
+  <a class="m-brand" href="/m/{{ vin }}">CUORE</a>
 </header>
 
 <main class="m-main">
@@ -35,10 +59,20 @@
 </footer>
 
 <nav class="m-bottomnav" aria-label="Tell CUORE">
-  <a href="/m/{{ vin }}" class="{{ 'on' if active == 'add' }}">Add</a>
-  <a href="/m/{{ vin }}/messages" class="{{ 'on' if active == 'messages' }}">Messages</a>
-  <a href="/m/{{ vin }}/history" class="{{ 'on' if active == 'history' }}">History</a>
+  <a href="/m/{{ vin }}" class="{{ 'on' if active == 'add' }}">
+    <svg class="m-navicon" aria-hidden="true"><use href="/static/icons.svg#i-step_start"></use></svg>
+    <span>Add</span>
+  </a>
+  <a href="/m/{{ vin }}/messages" class="{{ 'on' if active == 'messages' }}">
+    <svg class="m-navicon" aria-hidden="true"><use href="/static/icons.svg#i-symptom_warning_message"></use></svg>
+    <span>Messages</span>
+  </a>
+  <a href="/m/{{ vin }}/history" class="{{ 'on' if active == 'history' }}">
+    <svg class="m-navicon" aria-hidden="true"><use href="/static/icons.svg#i-step_document"></use></svg>
+    <span>History</span>
+  </a>
 </nav>
 
+<script src="{{ static_url('m.js') }}" defer></script>
 </body>
 </html>

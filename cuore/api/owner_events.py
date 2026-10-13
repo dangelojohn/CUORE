@@ -48,6 +48,14 @@ class OwnerEventRequest(BaseModel):
     note: str = Field(default="")
     media_ids: list[str] = Field(default_factory=list)
     odometer_km: Optional[float] = Field(default=None)
+    fields_meta: dict[str, str] = Field(
+        default_factory=dict,
+        description="Optional {field_key: \"photo\"|\"typed\"} provenance tag per "
+                    "field -- e.g. a native app that read a value off a photo marks "
+                    "that key \"photo\" the same way the HTML form's own "
+                    "source_<key>=photo hidden input does. Any key that isn't one of "
+                    "this kind's real fields, or any value that isn't \"photo\"/"
+                    "\"typed\", is silently dropped by cuore.live.owner_events.add.")
 
 
 class ReplyRequest(BaseModel):
@@ -69,7 +77,8 @@ def get_events(vin: str, include_deleted: bool = False) -> dict[str, Any]:
 def post_event(vin: str, body: OwnerEventRequest) -> dict[str, Any]:
     return bridge.add(vin, body.category, body.kind, at=body.at, by_role=body.by_role,
                       by_name=body.by_name, fields=body.fields, note=body.note,
-                      media_ids=body.media_ids, odometer_km=body.odometer_km)
+                      media_ids=body.media_ids, odometer_km=body.odometer_km,
+                      fields_meta=body.fields_meta)
 
 
 @router.delete("/owner/{vin}/events/{id}", summary="Soft-delete one owner event")

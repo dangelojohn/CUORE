@@ -22,8 +22,25 @@ same precedence as every other cuore live store), one file,
 ``owner_events.jsonl``, two record shapes distinguished by ``op``:
 
 * ``event`` -- {op, id, vin, at, recorded_at, by: {role, name}, category,
-  kind, fields, note, media_ids, odometer_km, confidence="reported"}
+  kind, fields, fields_meta, note, media_ids, odometer_km, confidence="reported"}
 * ``delete``-- {op, id, at} -- marks an event hidden (soft delete)
+
+``fields_meta`` (added 2026-10-13, additive -- older rows simply have none)
+is ``{field_key: "photo"|"typed"}``, one entry per field whose provenance
+is worth remembering -- "photo" for a value read off a picture by the
+Mobile "Snap & fill" screen (``cuore.web.owner_routes``) rather than typed
+by the person, "typed" for an explicit hand-entry note; see that module's
+own docstring, and ``cuore.api.owner_events``, for the two callers (the
+HTML form's ``source_<key>=photo`` hidden inputs, and the JSON API's own
+``fields_meta`` body key) that both feed this same parameter. Only a key
+that is (a) one of this kind's real taxonomy fields and (b) one of these
+two words survives into the stored row -- anything else is dropped
+silently, same posture as an unknown field key ever since this store
+existed. It is informational only: a photo-read field is stored at the
+same ``confidence: "reported"`` as every other owner-typed value (a human
+still tapped Save) -- this just remembers *how* the value got into the
+box, for the "check before saving" amber chip and for anyone auditing the
+report later.
 
 This module owns the taxonomy -- the single source of truth the add/list
 form, the API's validation, and the timeline lane all read from -- plus
@@ -623,7 +640,8 @@ def _parse_iso_or_date(at: Optional[str]) -> str:
 def add(vin: str, category: str, kind: str, *, at: Optional[str] = None,
         by_role: str = "owner", by_name: str = "", fields: Optional[dict[str, Any]] = None,
         note: str = "", media_ids: Optional[list[str]] = None,
-        odometer_km: Optional[float] = None) -> dict[str, Any]:
+        odometer_km: Optional[float] = None,
+        fields_meta: Optional[dict[str, str]] = None) -> dict[str, Any]:
     """Validate against :data:`TAXONOMY`, stamp and append one owner-event
     row. Raises ``ValueError`` on anything the API layer should turn into a
     400: unknown category/kind, bad role, bad timestamp, note too long.
@@ -638,7 +656,7 @@ def add(vin: str, category: str, kind: str, *, at: Optional[str] = None,
         raise ValueError("vin is required")
     category = (category or "").strip()
     kind = (kind or "").strip()
-    kind_def(category, kind)  # raises on unknown category/kind
+    kd = kind_def(category, kind)  # raises on unknown category/kind
 
     by_role = (by_role or "owner").strip().lower()
     if by_role not in BY_ROLES:
@@ -669,6 +687,21 @@ def add(vin: str, category: str, kind: str, *, at: Optional[str] = None,
         except (TypeError, ValueError) as exc:
             raise ValueError("odometer_km must be numeric") from exc
 
+    # A meta tag is only kept for a field that (a) actually survived cleaning
+    # above -- a source note for a field that was blank/dropped would be a
+    # dangling claim about a value never stored -- and (b) is a real field
+    # of THIS kind (``kd["fields"]``, the same taxonomy gate ``fields``
+    # itself is deliberately NOT held to; ``fields_meta`` is, since it is
+    # provenance metadata, not a value, and a stray key here is always a
+    # caller bug worth dropping silently rather than storing). The value
+    # itself is capped to the two provenance words the UI actually needs:
+    # "photo" (read off a picture, not yet confirmed by a human eye) or
+    # "typed" (entered by hand) -- anything else is dropped the same way.
+    _META_VALUES = {"photo", "typed"}
+    clean_meta = {str(k): str(v).strip() for k, v in (fields_meta or {}).items()
+                 if str(k) in clean_fields and str(k) in kd["fields"]
+                 and str(v).strip() in _META_VALUES}
+
     entry = {
         "op": "event",
         "id": uuid.uuid4().hex[:12],
@@ -679,6 +712,7 @@ def add(vin: str, category: str, kind: str, *, at: Optional[str] = None,
         "category": category,
         "kind": kind,
         "fields": clean_fields,
+        "fields_meta": clean_meta,
         "note": note,
         "media_ids": [str(m).strip() for m in (media_ids or []) if str(m).strip()],
         "odometer_km": odo,

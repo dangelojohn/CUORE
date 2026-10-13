@@ -18,12 +18,29 @@ from .deps import require_token
 
 router = APIRouter(tags=["media"], dependencies=[Depends(require_token)])
 
+#: HTTP-layer cap for this endpoint -- deliberately tighter than
+#: ``media_store.MAX_SIZE`` (500 MB, still enforced as a defensive
+#: fallback). iPhone photos/HEIC/Live Photos are the case this is sized
+#: for; a fast, clear 413 beats reading a huge body only to 400 later.
+MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+
 
 def _row_or_404(id_: str) -> dict[str, Any]:
     try:
         return media_store.get(id_)
     except media_store.UnknownMedia:
         raise HTTPException(status_code=404, detail=f"no media with id {id_!r}")
+
+
+def _enrich(row: dict[str, Any]) -> dict[str, Any]:
+    """Add HTTP-layer fields (``url``, ``thumb_url``) on top of the storage
+    row -- ``cuore.live.media`` knows nothing about where it's mounted, so
+    those are built here, not there."""
+    row = dict(row)
+    id_ = row.get("id", "")
+    row["url"] = f"/api/media/{id_}/file"
+    row["thumb_url"] = f"/api/media/{id_}/thumb" if media_store.thumb_path(id_) else None
+    return row
 
 
 @router.post("/vehicles/{vin}/media", summary="Upload one or more media files")
@@ -38,23 +55,37 @@ async def upload(
     author: str = Form(default=""),
     symptom_tags: str = Form(default="", description="Comma-separated."),
     feels_like: str = Form(default=""),
+    note: str = Form(default="", description="Alias for caption, used when caption is blank."),
+    event_id: str = Form(default="", description="Shorthand for target_kind=timeline, target_id=event_id."),
+    keep_location: bool = Form(default=False, description="Keep decoded GPS lat/lon on the record. Default off (owner privacy) -- has_gps is reported either way."),
 ) -> dict[str, Any]:
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
     symptom_tag_list = [t.strip() for t in symptom_tags.split(",") if t.strip()]
+    effective_caption = caption or note
+    effective_target_kind, effective_target_id = target_kind, target_id
+    if event_id and target_kind == "vehicle" and not target_id:
+        effective_target_kind, effective_target_id = "timeline", event_id
     rows = []
     for up in file:
         body = await up.read()
+        if len(body) > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(f"{up.filename or 'file'} is {len(body)} bytes, over the "
+                        f"{MAX_UPLOAD_BYTES} byte (25 MB) upload limit"),
+            )
         mime = up.content_type or "application/octet-stream"
         try:
             row = media_store.add(
                 vin, body, up.filename or "upload", mime,
-                caption=caption, tags=tag_list, target_kind=target_kind,
-                target_id=target_id, odometer_km=odometer_km, author=author,
+                caption=effective_caption, tags=tag_list, target_kind=effective_target_kind,
+                target_id=effective_target_id, odometer_km=odometer_km, author=author,
                 symptom_tags=symptom_tag_list, feels_like=feels_like,
+                keep_location=keep_location,
             )
         except media_store.BadMedia as e:
             raise HTTPException(status_code=400, detail=str(e))
-        rows.append(row)
+        rows.append(_enrich(row))
     return {"count": len(rows), "media": rows}
 
 
@@ -73,7 +104,7 @@ def list_media(
     rows = media_store.search(vin, q=q, kind=kind, tag=tag, target_kind=target_kind,
                               target_id=target_id, since=since, until=until,
                               symptom_tag=symptom_tag)
-    return {"count": len(rows), "media": rows}
+    return {"count": len(rows), "media": [_enrich(r) for r in rows]}
 
 
 @router.get("/vehicles/{vin}/media/export.zip", summary="Export every file plus the index, for recovery")

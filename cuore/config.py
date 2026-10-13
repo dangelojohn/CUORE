@@ -55,6 +55,20 @@ class Settings(BaseSettings):
         default=False,
         description="Development autoreload. Never enable on the drive node.",
     )
+    vision_provider: str = Field(
+        default="none",
+        description="Photo-reading backend for 'Tell CUORE' photo uploads: "
+                    "none (off -- the honest default; CUORE runs offline by "
+                    "rule) | claude (sends the photo to Anthropic's Messages "
+                    "API over the internet; also needs ANTHROPIC_API_KEY -- "
+                    "the owner enables this knowingly, never a default) | "
+                    "tesseract (documented hook, not implemented -- no local "
+                    "OCR binary ships with this install).",
+    )
+    vision_model: str = Field(
+        default="claude-sonnet-5",
+        description="Model id used by the claude vision provider.",
+    )
 
     @property
     def lan_exposed(self) -> bool:

@@ -47,7 +47,7 @@ def save_media(vin: str, *, files: list[dict[str, Any]], caption: str = "",
                tags: Optional[list[str]] = None, target_kind: str = "vehicle",
                target_id: str = "", odometer_km: Optional[float] = None,
                author: str = "", symptom_tags: Optional[list[str]] = None,
-               feels_like: str = "") -> list[dict[str, Any]]:
+               feels_like: str = "", keep_location: bool = False) -> list[dict[str, Any]]:
     """Store each of ``files`` via :func:`cuore.live.media.add`. Returns the
     new index rows, one per file, in the same order.
 
@@ -64,6 +64,7 @@ def save_media(vin: str, *, files: list[dict[str, Any]], caption: str = "",
                 caption=caption, tags=list(tags or []), target_kind=target_kind or "vehicle",
                 target_id=target_id, odometer_km=odometer_km, author=author,
                 symptom_tags=list(symptom_tags or []), feels_like=feels_like,
+                keep_location=keep_location,
             )
         except media_store.BadMedia as exc:
             raise BadRequest(str(exc)) from exc

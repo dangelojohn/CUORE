@@ -197,6 +197,78 @@ def _exif_captured_at(img: Any) -> str | None:
     return None
 
 
+def _exif_gps(img: Any) -> tuple[bool, float | None, float | None]:
+    """Whether a GPS IFD is present at all (``has_gps``), and the decoded
+    (lat, lon) in decimal degrees when it parses cleanly. Best-effort --
+    a present-but-unparseable GPS IFD still reports ``has_gps=True`` with
+    ``None`` coordinates, since "was location data embedded" and "could we
+    decode it" are different facts an owner cares about."""
+    try:
+        from PIL import ExifTags
+        exif = img.getexif()
+        gps_ifd = exif.get_ifd(ExifTags.IFD.GPSInfo)
+    except Exception:
+        return False, None, None
+    if not gps_ifd:
+        return False, None, None
+    try:
+        def _to_deg(value: Any, ref: str) -> float:
+            d, m, s = value
+            deg = float(d) + float(m) / 60 + float(s) / 3600
+            return -deg if ref in ("S", "W") else deg
+
+        lat_raw, lat_ref = gps_ifd.get(2), gps_ifd.get(1)
+        lon_raw, lon_ref = gps_ifd.get(4), gps_ifd.get(3)
+        if lat_raw and lon_raw and lat_ref and lon_ref:
+            return True, round(_to_deg(lat_raw, lat_ref), 6), round(_to_deg(lon_raw, lon_ref), 6)
+    except Exception:
+        pass
+    return True, None, None
+
+
+# --- content sniffing -----------------------------------------------------
+
+#: ISO base media (``ftyp`` box) four-char subtypes that mean HEIC/HEIF.
+_HEIF_FTYPES = frozenset({b"heic", b"heix", b"heim", b"heis", b"hevc", b"hevx",
+                          b"mif1", b"msf1"})
+#: ...and the ones that mean an MP4-family video (not an exhaustive list --
+#: just enough that the common iPhone/Android exports sniff correctly).
+_MP4_FTYPES = frozenset({b"isom", b"iso2", b"mp41", b"mp42", b"avc1", b"M4V ",
+                         b"mmp4", b"3gp4", b"3gp5"})
+
+
+def _sniff_mime(data: bytes) -> str | None:
+    """Best-effort mime from magic bytes, trusting the body over whatever
+    content-type the client asserted. Returns ``None`` (not a guess) when
+    the signature is ambiguous or unrecognised -- callers fall back to the
+    client-declared mime in that case, same as always."""
+    if len(data) < 12:
+        return None
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "image/png"
+    if data[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "image/webp"
+    if data[:4] == b"RIFF" and data[8:12] == b"WAVE":
+        return "audio/wav"
+    if data[:5] == b"%PDF-":
+        return "application/pdf"
+    if data[:4] == b"OggS":
+        return "audio/ogg"
+    if data[4:8] == b"ftyp":
+        subtype = data[8:12]
+        if subtype in _HEIF_FTYPES:
+            return "image/heic"
+        if subtype == b"qt  ":
+            return "video/quicktime"
+        if subtype in _MP4_FTYPES:
+            return "video/mp4"
+    if data[:3] == b"ID3" or data[:2] in (b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"):
+        return "audio/mpeg"
+    return None
+
+
 def _make_photo_thumb(src: Path, dest: Path) -> bool:
     try:
         from PIL import Image, ImageOps
@@ -336,11 +408,30 @@ def add(vin: str, file_bytes: bytes, filename: str, mime: str, *,
         target_kind: str = "vehicle", target_id: str = "",
         odometer_km: float | None = None, author: str = "",
         captured_at: str = "", symptom_tags: list[str] | None = None,
-        feels_like: str = "") -> dict[str, Any]:
+        feels_like: str = "", keep_location: bool = False) -> dict[str, Any]:
     """Store one media file for ``vin``. Returns its index row.
 
     A duplicate (same sha256, same VIN) returns the existing row untouched --
     no new file, no new index entry.
+
+    ``mime`` is what the caller/client asserts, but the body is sniffed by
+    magic bytes first (:func:`_sniff_mime`) and that wins whenever it is
+    conclusive -- a wrong or generic client content-type (e.g. iOS sending
+    ``application/octet-stream``) never stops a real PNG/JPEG/HEIC file from
+    landing correctly. When sniffing is inconclusive (an ambiguous or
+    unrecognised signature) the caller-declared mime is used, unchanged.
+
+    For a photo, ``width``/``height``/``taken_at`` (EXIF ``DateTimeOriginal``,
+    distinct from ``captured_at`` which falls back to "now") and ``has_gps``
+    are read from EXIF on a best-effort basis -- an undecodable image (HEIC
+    without a HEIF plugin installed, for instance) simply leaves them
+    ``None``/``False`` rather than failing the upload. The stored original
+    file is never touched; only the derived thumbnail is rebuilt from
+    scratch (via ``Image.save``), which inherently drops EXIF -- GPS
+    included -- unless re-added, so the thumbnail itself never carries GPS.
+    The decimal lat/lon are only kept on the *index row* when the caller
+    passes ``keep_location=True``; ``has_gps`` is reported either way so the
+    owner always knows location data existed even when it wasn't kept.
 
     ``symptom_tags`` (from :data:`ALLOWED_SYMPTOM_TAGS` -- the driver/
     mechanic symptom vocabulary plus :data:`SOUND_TAGS`) and ``feels_like``
@@ -349,6 +440,9 @@ def add(vin: str, file_bytes: bytes, filename: str, mime: str, *,
     kind, same as ``caption``/``tags``.
     """
     mime = (mime or "").split(";", 1)[0].strip().lower()
+    sniffed = _sniff_mime(file_bytes)
+    if sniffed:
+        mime = sniffed
     if mime not in ALLOWED_MIMES:
         raise BadMedia(f"unsupported mime type: {mime!r}")
     if len(file_bytes) > MAX_SIZE:
@@ -372,14 +466,23 @@ def add(vin: str, file_bytes: bytes, filename: str, mime: str, *,
         fpath = _file_path(vin, id_, ext)
         fpath.write_bytes(file_bytes)
 
-        resolved_captured_at = captured_at
-        if not resolved_captured_at and kind == "photo":
+        width = height = None
+        exif_dt: str | None = None
+        has_gps = False
+        gps_lat = gps_lon = None
+        if kind == "photo":
             try:
                 from PIL import Image
                 with Image.open(io.BytesIO(file_bytes)) as img:
-                    resolved_captured_at = _exif_captured_at(img) or ""
+                    width, height = img.size
+                    exif_dt = _exif_captured_at(img)
+                    has_gps, gps_lat, gps_lon = _exif_gps(img)
             except Exception:
-                resolved_captured_at = ""
+                # Undecodable (e.g. HEIC with no HEIF plugin on this
+                # install) -- the file is still stored as-is; these just
+                # stay unknown rather than failing the whole upload.
+                pass
+        resolved_captured_at = captured_at or exif_dt or ""
 
         duration_s = _audio_duration_s(fpath, ext) if kind == "audio" else None
 
@@ -391,8 +494,10 @@ def add(vin: str, file_bytes: bytes, filename: str, mime: str, *,
             "filename": filename,
             "mime": mime,
             "size": len(file_bytes),
+            "bytes": len(file_bytes),
             "sha256": digest,
             "captured_at": resolved_captured_at or now,
+            "taken_at": exif_dt,
             "uploaded_at": now,
             "author": author or "",
             "caption": caption or "",
@@ -404,6 +509,11 @@ def add(vin: str, file_bytes: bytes, filename: str, mime: str, *,
             "symptom_tags": symptom_tag_list,
             "feels_like": feels_like or "",
             "duration_s": duration_s,
+            "width": width,
+            "height": height,
+            "has_gps": has_gps,
+            "gps_lat": gps_lat if (keep_location and has_gps) else None,
+            "gps_lon": gps_lon if (keep_location and has_gps) else None,
         }
         _append_row(row)
 
