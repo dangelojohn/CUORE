@@ -18,7 +18,11 @@
         tooltip -- there's no room for a second line in a 44px bar).
      3. flow.steps exist but flow.next is falsy (the last step, release,
         is done and there is nothing after it) -- the job is finished:
-        "Tools away. Start the next Stelvio ->" -> /start.
+        "Tools away. Start the next car ->" -> /start. (Was "...next
+        Stelvio" -- hardcoded Alfa's own model name for every marque this
+        job could be on; fixed by not routing this one string through
+        i18n.py's "tools_away_start_next" key at all, same as
+        intake.html's own heading -- see MARQUE_PORT_AUDIT_2026-10-13.md.)
 
    Wording throughout reads as an assistant making a suggestion, never a
    manager giving an order: "Suggested next", not "Next" or "You must". A
@@ -47,9 +51,10 @@
 {# Also rendered by check_flow_bar.py against a bare jinja2.Environment
    with no i18n globals -- same `_lbl` fallback-to-English-literal pattern
    as _vtabs.html, so that test's own hardcoded-English assertions
-   ("Take this car in", "Tools away. Start the next Stelvio", "Not yet: ",
+   ("Take this car in", "Tools away. Start the next car", "Not yet: ",
    "Suggested next: ") still hold when `t` isn't registered, while the
-   real app gets the actual translation. #}
+   real app gets the actual translation. The job-complete CTA below is
+   NOT one of those _lbl() calls, though -- see its own comment. #}
 {% macro _lbl(key, fallback) -%}
 {%- if t is defined -%}{{ t(key) }}{%- else -%}{{ fallback }}{%- endif -%}
 {%- endmacro %}
@@ -74,7 +79,12 @@
            blocker chip and the Steps ▾ menu stay here. #}
       {% else %}
         <span class="flow-step-label">{{ _lbl('job_complete', 'Job complete.') }}</span>
-        <a class="btn primary flow-next" href="/start">{{ _lbl('tools_away_start_next', 'Tools away. Start the next Stelvio') }} &rarr;</a>
+        {# Deliberately not _lbl('tools_away_start_next', ...): that i18n.py
+           key's English text hardcodes "...next Stelvio", and `t` is
+           always defined in the real app so the _lbl fallback string
+           would never be the one shown. Written directly here instead,
+           marque-neutral, same fix as intake.html's own heading. #}
+        <a class="btn primary flow-next" href="/start">Tools away. Start the next car &rarr;</a>
       {% endif %}
       <details class="flow-more">
         <summary aria-label="{{ _lbl('show_all_steps', 'Show all steps') }}">{{ _lbl('steps_label', 'Steps') }} &#9662;</summary>

@@ -553,7 +553,7 @@ _item(
                   "throttle body on Alfa Romeo platforms generally -- "
                   "confirm the exact MES/wiTECH procedure before "
                   "returning the car; not independently verified against "
-                  "a Stelvio-specific source this pass."],
+                  "a model-specific source this pass."],
 )
 
 _item(

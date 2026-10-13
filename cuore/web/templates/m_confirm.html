@@ -1,0 +1,34 @@
+{% extends "m_base.html" %}
+{% block title %}Saved -- Tell CUORE{% endblock %}
+{% block content %}
+<div class="m-confirm">
+  <p class="m-confirm-check">Saved</p>
+  <div class="m-card">
+    <p class="m-card-date mono">{{ event.at }}</p>
+    <p class="m-card-kind">{{ kd.label }}</p>
+    <div class="m-card-fields">
+      {% for f in fields_disp %}
+      <div class="m-card-field">
+        <span class="m-card-field-label">{{ f.label }}</span>
+        <span class="m-card-field-value">{{ f.value }}{% if f.unit %} {{ f.unit }}{% endif %}</span>
+        {% if f.from_photo %}<span class="m-chip-photo">photo</span>{% endif %}
+      </div>
+      {% endfor %}
+      {% if event.odometer_km is not none %}
+      <div class="m-card-field">
+        <span class="m-card-field-label">Odometer</span>
+        <span class="m-card-field-value mono">{{ "{:,}".format(event.odometer_km|int) }} km</span>
+      </div>
+      {% endif %}
+    </div>
+    <p class="m-card-attested">
+      Reported by {{ event.by.role }}{% if event.by.name %} ({{ event.by.name }}){% endif %}
+      -- attested, not measured.
+    </p>
+  </div>
+  <div class="m-confirm-actions">
+    <a class="m-ghost-btn" href="/m/{{ vin }}/add/{{ category }}/{{ kind }}">Add another</a>
+    <a class="m-ghost-btn" href="/m/{{ vin }}">Done</a>
+  </div>
+</div>
+{% endblock %}

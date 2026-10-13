@@ -227,6 +227,39 @@ def siblings(model: str) -> list[dict[str, Any]]:
     ]
 
 
+#: WMI -> marque, for CUORE's UI theming (``data-marque``/``cuore.css``).
+#: Deliberately coarser than :func:`model_for_vin`: the theme only needs to
+#: know which of the three marques a car belongs to, never the specific
+#: model, so ``ZN6``'s Levante/Grecale ambiguity (see module docstring) does
+#: not block it the way it blocks a model guess. Per the roadmap item that
+#: added this (CUORE ports Alfa -> Maserati -> Ferrari, marque specifics
+#: stay in data/config): ``ZAS``/``ZAR`` -> alfa, ``ZN6``/``ZAM`` ->
+#: maserati, ``ZFF`` -> ferrari, anything else -> ``"unknown"`` (never
+#: guessed).
+_WMI_MARQUE_RE = (
+    (re.compile(r"^(ZAS|ZAR)", re.IGNORECASE), "alfa"),
+    (re.compile(r"^(ZN6|ZAM)", re.IGNORECASE), "maserati"),
+    (re.compile(r"^(ZFF)", re.IGNORECASE), "ferrari"),
+)
+
+
+def marque_for_vin(vin: str) -> str:
+    """Marque (make-family) from a VIN's WMI, for UI theming only.
+
+    Returns ``"alfa"``, ``"maserati"`` or ``"ferrari"`` for a recognised
+    WMI prefix, else ``"unknown"`` -- never a guess. See :func:`model_for_vin`
+    for the (stricter, UNKNOWN-heavy) model-level decode this deliberately
+    does not reuse.
+    """
+    v = (vin or "").strip().upper()
+    if not v:
+        return "unknown"
+    for rx, marque in _WMI_MARQUE_RE:
+        if rx.match(v):
+            return marque
+    return "unknown"
+
+
 def model_for_vin(vin: str) -> str:
     """Best-effort model name from a VIN's WMI (first 3-4 characters).
 
@@ -258,4 +291,4 @@ def platform_for(model: str) -> Optional[dict[str, Any]]:
 
 __all__ = ["CONFIRMED", "CORROBORATED", "SINGLE_SOURCE", "UNKNOWN",
           "CONFIDENCE_LEVELS", "SIBLING_MODELS", "PLATFORMS",
-          "siblings", "model_for_vin", "platform_for"]
+          "siblings", "model_for_vin", "marque_for_vin", "platform_for"]

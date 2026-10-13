@@ -4,7 +4,13 @@
 
 <link rel="stylesheet" href="{{ static_url('shop.css') }}">
 
-<h1>{{ t('start_this_stelvio') }}</h1>
+{# "Start this Stelvio" (i18n.py's "start_this_stelvio" key) hardcoded
+   Alfa's own model name for every marque -- fixed here rather than in
+   i18n.py by not calling that key at all: no VIN is known yet on this
+   page (it is the intake form itself), so there is nothing to theme off
+   of, and the generic "car" reads correctly for every marque this app
+   now ports to (MARQUE_PORT_AUDIT_2026-10-13.md). #}
+<h1>Start this car</h1>
 <p class="lede">{{ t('intake_lede') }}</p>
 
 {% if intake_error %}<div class="note alert"><span class="lab">{{ t('not_started') }}</span>{{ intake_error }}</div>{% endif %}
@@ -21,7 +27,7 @@
       <textarea id="complaint" name="complaint" rows="4"></textarea></div>
     <div class="field"><label for="technician">{{ t('technician_label') }}</label>
       <input id="technician" name="technician" placeholder="{{ t('name_initials_placeholder') }}"></div>
-    <button class="btn primary release-btn" type="submit">{{ t('start_this_stelvio') }}</button>
+    <button class="btn primary release-btn" type="submit">Start this car</button>
   </form>
 </div>
 

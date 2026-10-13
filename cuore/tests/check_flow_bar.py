@@ -15,7 +15,8 @@ Checks, in order:
      next-step button's href/label, the blocker count chip, and the amber
      (.note.warn) blocker line inside the expanded stepper.
   2. _flow_bar.html's other two states: "job complete" (last step done,
-     no next -> "Tools away. Start the next Stelvio" / /start) and "no
+     no next -> "Tools away. Start the next car" / /start -- marque-neutral
+     since MARQUE_PORT_AUDIT_2026-10-13.md, was "...next Stelvio") and "no
      flow" (service has nothing for this VIN -> "Take this car in" /
      /start).
   3. _vtabs.html: exactly 5 tabs visible outside the More menu, every link
@@ -184,8 +185,8 @@ def check_flow_bar(env: Environment) -> None:
           all(s in normal for s in ("&#10003;", "&#9675;", "&#9888;")))
 
     complete = tmpl.render(bar={"vin": "COMPLETEVIN0000001"}, tab="report")
-    check("flow_bar: job-complete state shows the Stelvio message",
-          "Tools away. Start the next Stelvio" in complete)
+    check("flow_bar: job-complete state shows the marque-neutral message",
+          "Tools away. Start the next car" in complete)
     check("flow_bar: job-complete button links to /start", 'href="/start"' in complete)
     check("flow_bar: job-complete state has no 'Step N of 12' label",
           "Step" not in complete.split("flow-step-label")[1][:40])

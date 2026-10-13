@@ -51,7 +51,7 @@ from .systems import SYSTEMS
 TECHAUTHORITY = "use the service manual, TechAuthority"
 
 #: Generic/industry-practice rule-of-thumb source label, named explicitly
-#: per instruction -- never confused with a Stelvio-specific or
+#: per instruction -- never confused with a model-specific or
 #: manufacturer-sourced figure.
 INDUSTRY_PRACTICE = "industry practice"
 

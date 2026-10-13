@@ -5,40 +5,42 @@
 <h1 class="m-h1">{{ kd.label }}</h1>
 <p class="m-why">{{ kd.why_it_matters }}</p>
 
-<form method="post" action="/m/{{ vin }}/add/{{ category }}/{{ kind }}" class="m-form">
+<form method="post" action="/m/{{ vin }}/add/{{ category }}/{{ kind }}" class="m-form"
+     enctype="multipart/form-data">
+  {% include "_camera_tile.html" %}
+  {% if media_id %}<input type="hidden" name="media_id" value="{{ media_id }}">{% endif %}
 
   {% for key, spec in kd.fields.items() %}
+  {% set pf = prefill.get(key) %}
   <div class="m-field">
-    <label class="m-label">{{ spec.label }}{% if spec.unit %} ({{ spec.unit }}){% endif %}</label>
+    <label class="m-label">{{ spec.label }}{% if spec.unit %} <span class="m-unit-inline">({{ spec.unit }})</span>{% endif %}
+      {% if pf and pf.source == 'photo' %}<span class="m-chip-photo">read from photo -- check before saving</span>{% endif %}
+    </label>
 
     {% if spec.type == "choice" %}
     <div class="m-chips" role="group">
       {% for choice in spec.choices %}
       <label class="m-chip">
-        <input type="radio" name="{{ key }}" value="{{ choice }}"{% if spec.required %} required{% endif %}>
+        <input type="radio" name="{{ key }}" value="{{ choice }}"{% if spec.required %} required{% endif %}{% if pf and pf.value == choice %} checked{% endif %}>
         <span>{{ choice }}</span>
       </label>
       {% endfor %}
     </div>
 
     {% elif spec.type == "bool" %}
-    <div class="m-chips" role="group">
-      <label class="m-chip">
-        <input type="radio" name="{{ key }}" value="on">
-        <span>Yes</span>
-      </label>
-      <label class="m-chip">
-        <input type="radio" name="{{ key }}" value="off">
-        <span>No</span>
-      </label>
-    </div>
+    <label class="m-toggle">
+      <input type="checkbox" name="{{ key }}" value="on"{% if pf and pf.value in ('on', 'true', '1', 'yes') %} checked{% endif %}>
+      <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
+      <span class="m-toggle-label">Yes</span>
+    </label>
 
     {% elif spec.type == "number" %}
-    <input class="m-input" type="number" step="any" name="{{ key }}" inputmode="decimal"
+    <input class="m-input m-input-figure" type="number" step="any" name="{{ key }}" inputmode="decimal"
+          value="{{ pf.value if pf else '' }}"
           {% if spec.required %} required{% endif %}>
 
     {% elif spec.type == "date" %}
-    <input class="m-input" type="date" name="{{ key }}">
+    <input class="m-input" type="date" name="{{ key }}" value="{{ pf.value if pf else '' }}">
 
     {% elif spec.type == "datetime" %}
     <input class="m-input" type="datetime-local" name="{{ key }}">
@@ -47,16 +49,18 @@
     {# Free text stays open; the values last used are one tap away (datalist
        works without JS on iOS; the chips fill the box with one line of JS). #}
     {% set _rv = (recents or {}).get(key) or [] %}
-    <input class="m-input" type="text" name="{{ key }}" id="f-{{ key }}" list="dl-{{ key }}" autocomplete="off"{% if spec.required %} required{% endif %}>
+    <input class="m-input" type="text" name="{{ key }}" id="f-{{ key }}" list="dl-{{ key }}" autocomplete="off"
+          value="{{ pf.value if pf else '' }}"{% if spec.required %} required{% endif %}>
     {% if _rv %}
     <datalist id="dl-{{ key }}">{% for v in _rv %}<option value="{{ v }}">{% endfor %}</datalist>
     <div class="m-chips m-recent" aria-label="Last used">
-      {% for v in _rv %}<button type="button" class="m-chip" onclick="document.getElementById('f-{{ key }}').value=this.textContent">{{ v }}</button>{% endfor %}
+      {% for v in _rv %}<button type="button" class="m-chip" data-fill-chip="f-{{ key }}">{{ v }}</button>{% endfor %}
     </div>
     {% endif %}
     {% else %}
-    <input class="m-input" type="text" name="{{ key }}"{% if spec.required %} required{% endif %}>
+    <input class="m-input" type="text" name="{{ key }}" value="{{ pf.value if pf else '' }}"{% if spec.required %} required{% endif %}>
     {% endif %}
+    {% if pf and pf.source == 'photo' %}<input type="hidden" name="source_{{ key }}" value="photo">{% endif %}
   </div>
   {% endfor %}
 
@@ -77,21 +81,17 @@
   </div>
 
   <div class="m-field">
-    <label class="m-label">Odometer (optional)</label>
-    <input class="m-input" type="number" step="any" inputmode="decimal" name="odometer_km">
+    <label class="m-label">Odometer (optional)
+      {% if odometer_from_photo %}<span class="m-chip-photo">read from photo</span>{% endif %}
+    </label>
+    <input class="m-input m-input-figure" type="number" step="any" inputmode="decimal" name="odometer_km"
+          value="{{ odometer_prefill }}">
   </div>
 
   <div class="m-field">
     <label class="m-label">Anything else</label>
     <textarea class="m-input m-textarea" name="note" rows="3"></textarea>
   </div>
-
-  <p class="m-hint">
-    Have a photo of this (a receipt, a part, a warning light)? Save this
-    report first, then add it from the vehicle's
-    <a href="/v/{{ vin }}/media">Media</a> page -- it already handles photo
-    uploads for every record on this car.
-  </p>
 
   <button type="submit" class="m-submit">Save</button>
 </form>

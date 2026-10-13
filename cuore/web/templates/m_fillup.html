@@ -1,0 +1,133 @@
+{% extends "m_base.html" %}
+{% block title %}Fill-up -- Tell CUORE{% endblock %}
+{% block content %}
+<p class="m-back"><a href="/m/{{ vin }}">&larr; Home</a></p>
+<h1 class="m-h1">Fill-up</h1>
+
+{# The flagship 3-tap form: station/octane preselected from last time
+   (recents/prefill, computed in owner_routes.add_form), litres/price
+   prefilled with last time's numbers too -- Save is the only red button,
+   and nothing below "More details" is required to finish. #}
+<form method="post" action="/m/{{ vin }}/add/{{ category }}/{{ kind }}"
+     class="m-form m-fillup-form" enctype="multipart/form-data">
+  {% include "_camera_tile.html" %}
+  {% if media_id %}<input type="hidden" name="media_id" value="{{ media_id }}">{% endif %}
+
+  {% set station_pf = prefill.get('station') %}
+  <div class="m-field">
+    <label class="m-label">Station
+      {% if station_pf and station_pf.source == 'photo' %}<span class="m-chip-photo">read from photo</span>{% endif %}
+    </label>
+    {% if station_recents %}
+    <div class="m-chips m-recent">
+      {% for v in station_recents %}
+      <button type="button"
+             class="m-chip{{ ' is-selected' if (station_pf and station_pf.value == v) else '' }}"
+             data-fill-chip="f-station">{{ v }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
+    <input class="m-input" type="text" name="station" id="f-station"
+          value="{{ station_pf.value if station_pf else '' }}" placeholder="Station / brand">
+    {% if station_pf and station_pf.source == 'photo' %}<input type="hidden" name="source_station" value="photo">{% endif %}
+  </div>
+
+  {% set octane_pf = prefill.get('octane') %}
+  <div class="m-field">
+    <label class="m-label">Octane / RON
+      {% if octane_pf and octane_pf.source == 'photo' %}<span class="m-chip-photo">read from photo</span>{% endif %}
+    </label>
+    <div class="m-chips m-chips-octane" role="group">
+      {% for choice in kd.fields.octane.choices %}
+      <label class="m-chip">
+        <input type="radio" name="octane" value="{{ choice }}"{% if octane_pf and octane_pf.value == choice %} checked{% endif %}>
+        <span>{{ choice }}</span>
+      </label>
+      {% endfor %}
+    </div>
+    {% if octane_pf and octane_pf.source == 'photo' %}<input type="hidden" name="source_octane" value="photo">{% endif %}
+  </div>
+
+  <div class="m-figrow">
+    {% set litres_pf = prefill.get('litres') %}
+    <div class="m-field m-field-fig">
+      <label class="m-label">Litres{% if litres_pf and litres_pf.source == 'photo' %} <span class="m-chip-photo">photo</span>{% endif %}</label>
+      <div class="m-figure-field">
+        <input class="m-input m-input-figure" type="number" step="any" inputmode="decimal"
+              name="litres" required value="{{ litres_pf.value if litres_pf else '' }}">
+        <span class="m-unit">L</span>
+      </div>
+      {% if litres_pf and litres_pf.source == 'photo' %}<input type="hidden" name="source_litres" value="photo">{% endif %}
+    </div>
+
+    {% set price_pf = prefill.get('price') %}
+    <div class="m-field m-field-fig">
+      <label class="m-label">Price{% if price_pf and price_pf.source == 'photo' %} <span class="m-chip-photo">photo</span>{% endif %}</label>
+      <div class="m-figure-field">
+        <input class="m-input m-input-figure" type="number" step="any" inputmode="decimal"
+              name="price" value="{{ price_pf.value if price_pf else '' }}">
+        <span class="m-unit">$</span>
+      </div>
+      {% if price_pf and price_pf.source == 'photo' %}<input type="hidden" name="source_price" value="photo">{% endif %}
+    </div>
+  </div>
+
+  {% set cc_pf = prefill.get('cap_clicked') %}
+  {% set cc_checked = (cc_pf and cc_pf.source == 'photo' and cc_pf.value in ('on', 'true', '1', 'yes')) or not (cc_pf and cc_pf.source == 'photo') %}
+  <label class="m-toggle m-toggle-big">
+    <input type="checkbox" name="cap_clicked" value="on"{% if cc_checked %} checked{% endif %}>
+    <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
+    <span class="m-toggle-label">Cap clicked shut</span>
+  </label>
+  {% if cc_pf and cc_pf.source == 'photo' %}<input type="hidden" name="source_cap_clicked" value="photo">{% endif %}
+
+  <div class="m-field">
+    <label class="m-label">Odometer (optional)
+      {% if odometer_from_photo %}<span class="m-chip-photo">read from photo</span>{% endif %}
+    </label>
+    <input class="m-input m-input-figure" type="number" step="any" inputmode="decimal"
+          name="odometer_km" value="{{ odometer_prefill }}">
+  </div>
+
+  <details class="m-more">
+    <summary>More details</summary>
+    <div class="m-field">
+      <label class="m-label">Ethanol</label>
+      <div class="m-chips" role="group">
+        {% for choice in kd.fields.ethanol.choices %}
+        <label class="m-chip"><input type="radio" name="ethanol" value="{{ choice }}"><span>{{ choice }}</span></label>
+        {% endfor %}
+      </div>
+    </div>
+    <label class="m-toggle">
+      <input type="checkbox" name="additive_used" value="on">
+      <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
+      <span class="m-toggle-label">Fuel additive used</span>
+    </label>
+    <label class="m-toggle">
+      <input type="checkbox" name="overfilled" value="on">
+      <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
+      <span class="m-toggle-label">Pump stopped early / overfilled</span>
+    </label>
+    <label class="m-toggle">
+      <input type="checkbox" name="filled_engine_running" value="on">
+      <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
+      <span class="m-toggle-label">Filled with engine running</span>
+    </label>
+    <div class="m-field">
+      <label class="m-label">Who's reporting this</label>
+      <div class="m-chips" role="group">
+        <label class="m-chip"><input type="radio" name="by_role" value="owner" checked><span>Owner</span></label>
+        <label class="m-chip"><input type="radio" name="by_role" value="driver"><span>Driver</span></label>
+        <label class="m-chip"><input type="radio" name="by_role" value="mechanic"><span>Mechanic</span></label>
+      </div>
+    </div>
+    <div class="m-field">
+      <label class="m-label">Anything else</label>
+      <textarea class="m-input m-textarea" name="note" rows="3"></textarea>
+    </div>
+  </details>
+
+  <button type="submit" class="m-submit">Save</button>
+</form>
+{% endblock %}

@@ -1,13 +1,14 @@
 {% extends "m_base.html" %}
 {% block title %}Tell CUORE{% endblock %}
 {% block content %}
+<p class="m-back"><a href="/m/{{ vin }}">&larr; Home</a></p>
 <h1 class="m-h1">What should CUORE know?</h1>
 <p class="m-sub">Pick what you want to tell CUORE about this car.</p>
-<div class="m-tiles">
+<div class="m-rowlist">
   {% for c in categories %}
-  <a class="m-tile" href="/m/{{ vin }}/add/{{ c.key }}">
-    <span class="m-tile-label">{{ c.label }}</span>
-    <span class="m-tile-count">{{ c.kind_count }} kinds</span>
+  <a class="m-row" href="/m/{{ vin }}/add/{{ c.key }}{{ '?' + carry if carry %}">
+    <span class="m-row-label">{{ c.label }}</span>
+    <span class="m-row-count">{{ c.kind_count }}</span>
   </a>
   {% endfor %}
 </div>

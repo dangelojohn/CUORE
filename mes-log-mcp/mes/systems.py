@@ -315,7 +315,7 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "present as a boost/MAP-sensor fault.",
                  SINGLE_SOURCE,
                  "general turbocharger architecture (exhaust-driven turbine) "
-                 "-- no GU/Stelvio-specific TSB citation found",
+                 "-- no model-specific TSB citation found",
                  technical=_tech(
                      "exhaust gas",
                      "An exhaust-side restriction or failing turbo housing "
@@ -352,8 +352,7 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "A misfire dumps unburned fuel into the exhaust and can "
                  "set secondary catalyst/O2 codes.",
                  SINGLE_SOURCE,
-                 "general emissions-system architecture -- no GU/Stelvio-"
-                 "specific TSB citation found",
+                 "general emissions-system architecture -- no model-specific TSB citation found",
                  technical=_tech(
                      "unburned fuel / combustion gas",
                      "A misfire dumps unburned fuel into the exhaust, "
@@ -535,7 +534,7 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  SINGLE_SOURCE,
                  "general PCV system architecture (crankcase ventilation "
                  "draws from the lubrication system's crankcase) -- no "
-                 "GU/Stelvio-specific TSB citation found",
+                 "model-specific TSB citation found",
                  technical=_tech(
                      "crankcase blow-by gas",
                      "Excess blow-by or an oil overfill overwhelms the PCV "
@@ -549,7 +548,7 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "leak) that can present as a lean or boost-side fault.",
                  SINGLE_SOURCE,
                  "general PCV system architecture (crankcase-to-intake "
-                 "vacuum connection) -- no GU/Stelvio-specific TSB "
+                 "vacuum connection) -- no model-specific TSB "
                  "citation found",
                  technical=_tech(
                      "vacuum",
@@ -599,7 +598,7 @@ SYSTEMS: dict[str, dict[str, Any]] = {
                  "oil-pressure-actuated valve systems in general.",
                  SINGLE_SOURCE,
                  "general MultiAir/cam-phaser architecture (oil-pressure-"
-                 "actuated) -- no GU/Stelvio-specific TSB citation found",
+                 "actuated) -- no model-specific TSB citation found",
                  technical=_tech(
                      "oil pressure",
                      "Low oil pressure or dirty oil starves the MultiAir/"
@@ -935,13 +934,13 @@ _EXACT_RULES: tuple[dict[str, Any], ...] = (
                "cascade) -- B1040/U1700 are BCM communications codes")},
     {"codes": ("B1176",),
      "systems": ("body_comfort",), "confidence": SINGLE_SOURCE,
-     "source": "generic body-module DTC definition (B1176); no GU/Stelvio-specific TSB found"},
+     "source": "generic body-module DTC definition (B1176); no model-specific TSB found"},
     {"codes": ("C141B", "C141C"),
      "systems": ("adas_sensors",), "confidence": SINGLE_SOURCE,
-     "source": "generic chassis/ADAS DTC definition (C141B/C141C); no GU/Stelvio-specific TSB found"},
+     "source": "generic chassis/ADAS DTC definition (C141B/C141C); no model-specific TSB found"},
     {"codes": ("C104B",),
      "systems": ("brakes_abs",), "confidence": SINGLE_SOURCE,
-     "source": "generic chassis DTC definition (C104B, ABS/ESC range); no GU/Stelvio-specific TSB found"},
+     "source": "generic chassis DTC definition (C104B, ABS/ESC range); no model-specific TSB found"},
     {"codes": ("P0098", "P00F5", "P105E", "P1189"),
      "systems": ("air_intake_boost",), "confidence": CONFIRMED,
      "source": ("SAE J2012 IAT2/boost-pressure sensor circuit code "

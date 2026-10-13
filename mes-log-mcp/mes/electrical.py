@@ -351,7 +351,7 @@ ELEMENTS: dict[str, dict[str, Any]] = {
                          "grommet for chafe where it flexes with the door",
         notes="Door-harness flex points are a generic chafe risk on any "
               "platform; this is general automotive-electrical knowledge, "
-              "not a Stelvio-specific sourced fact.",
+              "not a model-specific sourced fact.",
     ),
 
     "ignition_coil_connector": _el(

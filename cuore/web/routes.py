@@ -82,11 +82,39 @@ def _status_strip() -> dict[str, Any]:
         return {"error": str(exc)}
 
 
+#: data-marque values cuore.css actually themes -- an unrecognised/unknown
+#: WMI (or no VIN at all, e.g. a vehicle-less page) falls back to "alfa",
+#: this project's first-and-default marque, rather than leaking "unknown"
+#: into data-marque where no theme would match it.
+_THEMED_MARQUES = ("alfa", "maserati", "ferrari")
+
+
+def _marque_for(ctx: dict[str, Any]) -> str:
+    """The marque this page's vehicle (if any) should theme as.
+
+    Every ``/v/{vin}/*`` route already passes ``vin=vin`` into ``_page()``'s
+    ctx -- see ``bench_routes.py``/``jobs_routes.py``/``systems_routes.py``/
+    ``tests_routes.py`` etc. Computing the marque once, here, means every
+    one of those pages' ``data-marque`` (base.html) and marque-conditional
+    copy agrees, instead of each route guessing (or not bothering, which is
+    how ``data-marque`` ended up hardcoded to "alfa" before this existed).
+    """
+    vin = ctx.get("vin") or ""
+    if not vin:
+        return "alfa"
+    try:
+        marque = mes_bridge.marque_for_vin(vin)
+    except Exception:  # noqa: BLE001 -- a broken decode must never sink a page
+        marque = "unknown"
+    return marque if marque in _THEMED_MARQUES else "alfa"
+
+
 def _page(request: Request, name: str, **ctx: Any) -> HTMLResponse:
     """Render a template with the context every page needs."""
     settings = settings_of(request)
     ctx.setdefault("version", __version__)
     ctx.setdefault("profile", settings.profile.value)
+    ctx.setdefault("marque", _marque_for(ctx))
     if "live_strip" not in ctx:  # not setdefault: the strip is not free to compute
         ctx["live_strip"] = _status_strip()
     return templates.TemplateResponse(request, name, ctx)

@@ -240,6 +240,105 @@ def _check_remembered_values() -> None:
 _check_remembered_values()
 
 
+# === 9. Mobile rebuild (2026-10-13): hero + quick actions + intro overlay ===
+
+home_html = client.get(f"/m/{VIN}").text
+check("home responds with the four quick-action tiles",
+      home_html.count('class="m-quick-card') == 4, str(home_html.count('class="m-quick-card')))
+for label in ("Fill-up", "Oil &amp; fluids", "Battery &amp; electrical", "Snap &amp; fill"):
+    check(f"home shows the {label!r} quick action", label in home_html)
+check("home carries the opening-reveal overlay markup",
+      "intro-overlay" in home_html and 'id="intro-dismiss"' in home_html)
+
+
+# === 10. fill-up form: octane chip preselects the last used =================
+
+r = client.post(f"/api/owner/{VIN}/events", json={
+    "category": "fuel", "kind": "fill_up", "by_role": "owner",
+    "fields": {"octane": "93", "cap_clicked": True, "litres": 38.0, "station": "Petro-Canada"},
+})
+check("a second fill-up (octane 93) POST responds 200", r.status_code == 200, str(r.status_code))
+
+fillup_form_html = client.get(f"/m/{VIN}/add/fuel/fill_up").text
+check("fill-up form renders the octane chips", 'name="octane"' in fillup_form_html and ">93<" in fillup_form_html)
+check("fill-up form preselects the last-used octane (93), not the earlier 91",
+      'value="93" checked' in fillup_form_html, fillup_form_html.count('checked'))
+check("fill-up form preselects the last-used station (Petro-Canada)",
+      'value="Petro-Canada"' in fillup_form_html)
+
+
+# === 11. snap page: camera tile with capture=environment ====================
+
+snap_html = client.get(f"/m/{VIN}/snap").text
+check("snap page responds 200 and carries the camera file input",
+      'type="file"' in snap_html and 'capture="environment"' in snap_html
+      and 'accept="image/*"' in snap_html)
+check("snap page offers the hint chips", 'name="hint"' in snap_html)
+
+
+# === 12. HTML form path: source_octane=photo -> fields_meta.octane=="photo" =
+
+r = client.post(f"/m/{VIN}/add/fuel/fill_up", data={
+    "station": "Shell", "octane": "91", "litres": "40", "price": "60",
+    "source_octane": "photo",
+}, follow_redirects=False)
+check("fill-up form POST (source_octane=photo) redirects to the confirm screen",
+      r.status_code == 303 and "/confirm/" in r.headers.get("location", ""),
+      f"{r.status_code} {r.headers.get('location')}")
+_confirm_event_id = r.headers.get("location", "").rsplit("/", 1)[-1]
+_photo_event = next((e for e in store.load(VIN) if e.get("id") == _confirm_event_id), None)
+check("the stored event exists", _photo_event is not None, _confirm_event_id)
+if _photo_event:
+    check("fields_meta.octane == 'photo' on the stored event",
+          (_photo_event.get("fields_meta") or {}).get("octane") == "photo",
+          str(_photo_event.get("fields_meta")))
+
+confirm_html = client.get(r.headers.get("location", "")).text
+check("confirm screen (record card) responds and shows the photo chip",
+      "m-card" in confirm_html and "m-chip-photo" in confirm_html)
+
+
+# === 13. JSON API: fields_meta accepted, validated to known field keys and
+# to "photo"/"typed" values (the API-contract follow-up, 2026-10-13) ========
+
+r = client.post(f"/api/owner/{VIN}/events", json={
+    "category": "fuel", "kind": "fill_up", "by_role": "owner",
+    "fields": {"octane": "89", "litres": 10.0},
+    "fields_meta": {"octane": "photo", "not_a_real_field": "photo", "litres": "not-a-valid-value"},
+})
+check("JSON API accepts a fields_meta body key", r.status_code == 200, str(r.status_code))
+_api_meta = (r.json().get("fields_meta") or {})
+check("JSON API stores fields_meta.octane == 'photo'", _api_meta.get("octane") == "photo", str(_api_meta))
+check("JSON API drops a fields_meta key that isn't a real field of this kind",
+      "not_a_real_field" not in _api_meta, str(_api_meta))
+check("JSON API drops a fields_meta value that isn't 'photo'/'typed'",
+      "litres" not in _api_meta, str(_api_meta))
+
+
+# === 14. the vision endpoint now exists (wired by another agent) but still
+# defaults to provider "none" -- the Snap page's own no-JS POST must not
+# depend on it ever succeeding ===============================================
+
+vision_resp = client.post(f"/api/vision/{VIN}/read",
+                          files={"file": ("x.jpg", b"not a real jpeg", "image/jpeg")},
+                          data={"hint": "fuel_pump"})
+check("vision endpoint responds 200 (default provider is 'none')",
+      vision_resp.status_code == 200, str(vision_resp.status_code))
+check("default vision provider reports unavailable (no key configured)",
+      vision_resp.json().get("available") is False, str(vision_resp.json()))
+
+snap_post = client.post(f"/m/{VIN}/snap",
+                        files={"photo": ("pump.jpg", b"not a real jpeg", "image/jpeg")},
+                        data={"hint": "fuel_pump"}, follow_redirects=False)
+check("snap POST (no JS, vision unavailable) still redirects somewhere useful",
+      snap_post.status_code == 303, str(snap_post.status_code))
+check("snap's own fallback routes a fuel_pump hint straight to fuel/fill_up",
+      "/add/fuel/fill_up" in snap_post.headers.get("location", ""),
+      snap_post.headers.get("location"))
+check("the photo taken on the snap screen carries through as media_id",
+      "media_id=" in snap_post.headers.get("location", ""))
+
+
 print(f"{checks} checks, {len(failures)} failures")
 for f in failures:
     print(" -", f)

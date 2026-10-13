@@ -17,9 +17,9 @@ same enforcement:
                        ``notes`` always points at the service manual.
 
 ``generic: True`` marks a value that is a generic OBD-II/SAE/physics/
-lead-acid-battery norm, not a Stelvio-specific spec -- allowed by
+lead-acid-battery norm, not a model-specific spec -- allowed by
 instruction, but never to be confused with a manufacturer figure. A value
-that is Stelvio/Giulia-specific but sourced from a forum thread (not a
+that is model-specific but sourced from a forum thread (not a
 manufacturer document) is ``SINGLE_SOURCE`` or ``CORROBORATED`` with
 ``generic: False``.
 
@@ -141,7 +141,7 @@ _kg("intake_air_temp", "Intake air temperature", "C",
           "ambient air temperature and rises with under-hood heat soak at "
           "idle/after a hot shutdown, generically by tens of degrees C on "
           "any turbocharged engine, then falls back toward ambient once "
-          "airflow resumes. No Stelvio-specific figure exists to compare "
+          "airflow resumes. No model-specific figure exists to compare "
           "against; use this car's own observed_ranges() alongside the "
           "ambient_air_temp PID read at the same moment. " + TECHAUTHORITY)
 
@@ -152,7 +152,7 @@ _kg("intake_map", "Intake manifold absolute pressure", "kPa",
     confidence=SINGLE_SOURCE, generic=True,
     source="https://engineerskill.blog/map-sensor-reading-at-idle",
     notes="Generic gasoline-engine idle-MAP guideline (20-35 kPa absolute "
-          "at hot idle, no load), not Stelvio-specific -- but physically "
+          "at hot idle, no load), not model-specific -- but physically "
           "applicable at idle since the turbo is unspooled and the intake "
           "behaves like a naturally-aspirated engine's. Not valid once "
           "under load/boost -- see 'boost' below for that regime, which is "
@@ -168,7 +168,7 @@ _kg("barometric_pressure", "Barometric (atmospheric) pressure", "kPa",
     notes="Standard sea-level pressure is 101.325 kPa; day-to-day station "
           "pressure at typical driving elevations commonly runs "
           "~95-105 kPa (physics/meteorology reference, not "
-          "Stelvio-specific). A reading well outside this band at low "
+          "model-specific). A reading well outside this band at low "
           "elevation indicates a sensor fault rather than weather; at high "
           "elevation a lower reading is expected and normal.")
 
@@ -199,7 +199,7 @@ _kg("ecm_195a", "Boost pressure (ECM DID 0x195A)", "bar",
 # --- fuel trims / O2 / load / throttle ----------------------------------------
 
 _FUEL_TRIM_NOTE = (
-    "Generic OBD-II fuel-trim guideline, not Stelvio-specific: within "
+    "Generic OBD-II fuel-trim guideline, not model-specific: within "
     "roughly +/-10% is considered in-spec across multiple independent "
     "repair-reference sources; long-term trim beyond roughly +/-20% is "
     "widely described as indicating a serious fuel-system or sensor fault. "
@@ -245,7 +245,7 @@ _kg("o2_b1s1_voltage", "O2 sensor, bank 1 sensor 1, voltage", "V",
     normal=(0.1, 0.9), direction="both",
     confidence=CORROBORATED, generic=True,
     source="https://www.fluke.com/en-us/learn/blog/digital-multimeters/how-to-monitor-oxygen-sensor-voltage-with-a-multimeter",
-    notes="Generic narrowband-O2 guideline, not Stelvio-specific: a "
+    notes="Generic narrowband-O2 guideline, not model-specific: a "
           "healthy sensor in closed loop cycles between roughly 0.1 V "
           "(lean) and 0.9 V (rich), crossing ~0.45 V several times per "
           "second. No warn/alarm band is set deliberately -- the "
@@ -284,7 +284,7 @@ _kg("battery_voltage", "Battery voltage", "V",
     direction="both", confidence=CORROBORATED, generic=True,
     source="https://www.firestonecompleteautocare.com/blog/batteries/car-battery-voltage/",
     notes="Generic 12V lead-acid charging-system guideline, not "
-          "Stelvio-specific: engine running/alternator charging, "
+          "model-specific: engine running/alternator charging, "
           "~13.5-14.7 V is normal; below that the charging system is "
           "under-delivering, above ~15 V suggests a regulator fault. "
           "ENGINE OFF, battery rested >30 min: ~12.2-12.8 V is a healthy "
@@ -341,7 +341,7 @@ _kg("tcm_04fe", "Gearbox (ZF 8HP) fluid temperature", "C",
     source="https://www.dodgedurango.net/threads/normal-zf-transmission-operating-temp-for-2019-gt.89031/",
     notes="Generic ZF 8HP guideline attributed to ZF technical support in "
           "one owner forum thread (80-100 C / 176-212 F normal, 120 C+ "
-          "risking overheat/module damage) -- not Stelvio-specific, and "
+          "risking overheat/module damage) -- not model-specific, and "
           "the OEM (here FCA/Alfa) writes the actual software thresholds, "
           "which may differ. Do not confuse this normal-driving band with "
           "the CONFIRMED 30-50 C fluid-fill-check window documented in "

@@ -178,7 +178,7 @@ ELEMENTS: dict[str, dict[str, Any]] = {
 
     "fuel_rail": _el(
         "component", "Fuel rail",
-        _unknown_loc("No Stelvio/Giorgio-specific source in this repo "
+        _unknown_loc("No model-specific source in this repo "
                       "locates the rail; engine-bay mounting across the "
                       "injectors is the only thing assumable from the "
                       "injector entry below, not independently sourced "
@@ -443,7 +443,7 @@ ELEMENTS: dict[str, dict[str, Any]] = {
 
     "turbocharger": _el(
         "component", "Turbocharger",
-        _unknown_loc("No Stelvio/Giorgio-specific TSB in this repo's "
+        _unknown_loc("No model-specific TSB in this repo's "
                       "knowledge base locates or sizes the turbo; engine-"
                       "bay mounting is assumed from the hose-routing "
                       "entries around it, not independently sourced."),
@@ -529,7 +529,7 @@ ELEMENTS: dict[str, dict[str, Any]] = {
         "valve", "Electronic (map-controlled) thermostat",
         _unknown_loc("Not independently sourced in this repo; 'electronic "
                       "thermostat' is named in this module's build spec "
-                      "but no Stelvio-specific TSB or doc confirms its "
+                      "but no model-specific TSB or doc confirms its "
                       "location or control strategy."),
         part_of_systems=["cooling"],
         inspection_hint="",
@@ -652,7 +652,7 @@ ELEMENTS: dict[str, dict[str, Any]] = {
         notes="A misfire dumps unburned fuel into the exhaust and can "
               "set secondary catalyst/O2 codes -- mes.systems' "
               "exhaust_emissions<-ignition dependency (SINGLE-SOURCE, "
-              "generic emissions architecture, no Stelvio-specific TSB).",
+              "generic emissions architecture, no model-specific TSB).",
     ),
 
     "o2_sensors": _el(
@@ -882,7 +882,7 @@ ELEMENTS: dict[str, dict[str, Any]] = {
         inspection_hint="wiggle test the door harness boot/grommet for "
                          "chafe where it flexes with the door -- generic "
                          "automotive-electrical knowledge, not a "
-                         "Stelvio-specific sourced fact",
+                         "model-specific sourced fact",
         notes="Physical counterpart to mes.electrical's "
               "window_riser_circuit element; see code_physical_path() "
               "for the B1176 merge.",
@@ -1384,8 +1384,7 @@ _MISFIRE_PHYSICAL_INTERACTION = [
      "how": "A misfire dumps unburned fuel into the exhaust and can set "
             "secondary catalyst/O2 codes.",
      "confidence": SINGLE_SOURCE,
-     "source": "general emissions-system architecture -- no GU/Stelvio-"
-               "specific TSB citation found"},
+     "source": "general emissions-system architecture -- no model-specific TSB citation found"},
 ]
 
 _MISFIRE_PHYSICAL_INSPECT_STEPS = [

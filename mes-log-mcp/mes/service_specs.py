@@ -22,7 +22,7 @@ The 2018 Giulia 2.0T shares this car's GME-T4 MultiAir engine (sales code
 EC2) and much of its running gear, so a fair amount of this is corroborated
 from Giulia-specific sources. Every row that leans on Giulia sourcing says
 so in ``platform_note`` -- it is offered as corroboration, not silently
-folded in as if it were Stelvio-specific.
+folded in as if it were model-specific.
 
 Research pass done 2026-09-26 by web search against public sources (Mopar/
 FCA parts listings, vehicleinfo.mopar.com, stelvioforum.com,

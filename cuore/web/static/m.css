@@ -1,10 +1,21 @@
-/* "Tell CUORE" mobile page. Phone-first: 16-17px minimum text, 48px
-   minimum tap targets, true-black ground + marque accent from cuore.css's
-   own custom properties (this file only reuses those tokens, never
-   cuore.css's desktop component rules -- no selector here collides with
-   anything in that file). Nothing under 12px anywhere in this file. */
+/* "Tell CUORE" mobile page -- rebuilt 2026-10-13 to the Ferrari-page
+   benchmark the main app follows (cuore.css's "Emphasis pass" section):
+   true black, generous whitespace, one statement per screen, big tabular
+   figures, red reserved for the single primary action, chips and small-
+   caps labels instead of boxed form chrome. Dark only on mobile (this
+   page's <html> carries data-theme="dark" -- see m_base.html's own note on
+   why that, not just this file, is what pins it there regardless of the
+   phone's system theme). Marque accent comes from cuore.css's own
+   data-marque custom properties; this file only ever reads those tokens
+   (--bg/--ink/--accent/...), never redefines them.
 
-* { box-sizing: border-box; }
+   Phone-first: 16-17px minimum body text, 48px minimum tap targets, every
+   small-caps label held to >=12px (check_owner_page.py's own font-size
+   scan enforces this file specifically). Nothing here collides with
+   cuore.css's desktop component rules -- this is additive on tokens only,
+   same posture the original version of this file documented. */
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 .m-body {
   margin: 0;
@@ -13,109 +24,241 @@
   font-family: var(--sans);
   font-size: 17px;
   line-height: 1.45;
-  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 .m-top {
   position: sticky;
   top: 0;
   z-index: 5;
-  background: var(--surface);
-  border-bottom: 1px solid var(--rule);
-  padding: 14px 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--rule-soft);
+  padding: 14px 20px;
   padding-top: calc(14px + env(safe-area-inset-top, 0px));
 }
 
 .m-brand {
-  color: var(--ink);
+  color: var(--ink-2);
   text-decoration: none;
-  font-weight: 700;
-  font-size: 18px;
-  letter-spacing: 0.02em;
+  font-weight: 300;
+  font-size: 15px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
 }
 
 .m-main {
-  padding: 16px;
+  padding: 24px 20px 12px;
   max-width: 480px;
   margin: 0 auto;
 }
 
-.m-h1 { font-size: 21px; margin: 4px 0 6px; }
-.m-sub, .m-why, .m-hint { color: var(--ink-2); font-size: 15px; margin: 0 0 16px; }
-.m-why { margin-bottom: 20px; }
+.m-h1 { font-size: 24px; font-weight: 300; letter-spacing: -.01em; margin: 4px 0 8px; }
+.m-sub, .m-why, .m-hint { color: var(--ink-2); font-size: 15px; margin: 0 0 18px; }
+.m-why { margin-bottom: 22px; }
 .m-empty { color: var(--ink-3); padding: 24px 0; }
 
-.m-back a { color: var(--ink-2); text-decoration: none; font-size: 15px; }
+.m-back { margin: 0 0 18px; }
+.m-back a {
+  color: var(--ink-3); text-decoration: none; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .1em; font-weight: 650;
+}
 
 .m-flash {
   padding: 12px 14px;
   border-radius: var(--radius, 3px);
   margin-bottom: 16px;
-  font-size: 16px;
+  font-size: 15px;
 }
 .m-flash-ok { background: var(--ok-bg); color: var(--ok); }
 .m-flash-error { background: var(--accent-dim); color: var(--accent); }
 
-/* Category / kind tiles -- at least 48px tall, full-width on a phone */
-.m-tiles {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-  margin-bottom: 20px;
+/* ---------- hero (home screen) ---------- */
+
+.m-hero { padding: 4px 0 28px; }
+.m-hero-name {
+  font-size: clamp(32px, 8.5vw, 40px);
+  font-weight: 300;
+  letter-spacing: .01em;
+  color: var(--ink);
+  margin: 0 0 18px;
+  line-height: 1.1;
 }
-.m-tile {
+.m-hero-odo { display: flex; align-items: baseline; gap: 6px; margin: 0; }
+.m-hero-odo-fig { font-size: 32px; font-weight: 300; line-height: 1; color: var(--ink); }
+.m-hero-odo-unit { font-size: 15px; color: var(--ink-3); }
+.m-hero-odo-label {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--ink-3); margin: 4px 0 20px;
+}
+.m-hero-verdict-state {
+  font-size: 13px; text-transform: uppercase; letter-spacing: .1em;
+  font-weight: 700; margin: 0 0 6px;
+}
+.m-hero-verdict-state.v-active-faults     { color: var(--sev-returned); }
+.m-hero-verdict-state.v-unverified-repair { color: var(--sev-chronic); }
+.m-hero-verdict-state.v-verified-clean    { color: var(--ok); }
+.m-hero-verdict-state.v-no-data           { color: var(--ink-3); }
+.m-hero-verdict-sentence { font-size: 15px; color: var(--ink-2); margin: 0; max-width: 34ch; }
+
+/* ---------- quick-action grid ---------- */
+
+.m-quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.m-quick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 112px;
+  padding: 18px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius, 3px);
+  color: var(--ink);
+  text-decoration: none;
+  transition: background-color 200ms ease, transform 200ms ease, border-color 200ms ease;
+}
+.m-quick-card:active { transform: scale(.97); }
+.m-quick-ico { width: 40px; height: 40px; stroke: var(--ink-2); fill: none; }
+.m-quick-label { font-size: 16px; font-weight: 600; line-height: 1.25; }
+
+/* The one red tile -- the primary action (Fill-up), per the owner's own
+   instruction: red reserved for a single primary action on this screen. */
+.m-quick-card-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.m-quick-card-primary .m-quick-ico { stroke: #fff; }
+
+/* ---------- messages row ---------- */
+
+.m-msg-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 4px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--rule-soft);
+  color: var(--ink);
+  text-decoration: none;
+}
+.m-msg-row-ico { width: 22px; height: 22px; stroke: var(--ink-2); fill: none; flex: none; }
+.m-msg-row-label { font-size: 16px; font-weight: 600; flex: 1; }
+.m-msg-row-empty { font-size: 13px; color: var(--ink-3); }
+.m-badge {
+  min-width: 24px; height: 24px; padding: 0 7px;
+  border-radius: 999px; background: var(--accent); color: #fff;
+  font-size: 12px; font-weight: 700; display: inline-flex; align-items: center;
+  justify-content: center; font-variant-numeric: tabular-nums;
+}
+
+/* ---------- "Everything else" / plain row lists ---------- */
+
+.m-section-h {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--ink-3); margin: 28px 0 10px;
+}
+.m-rowlist { display: flex; flex-direction: column; margin-bottom: 20px; }
+.m-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   min-height: 56px;
-  padding: 14px 16px;
-  background: var(--surface-2);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius, 3px);
+  padding: 0 2px;
+  border-bottom: 1px solid var(--rule-soft);
   color: var(--ink);
   text-decoration: none;
-  font-size: 17px;
+  font-size: 16px;
 }
-.m-tile-label { font-weight: 600; }
-.m-tile-count { color: var(--ink-3); font-size: 14px; }
+.m-row-label { font-weight: 500; }
+.m-row-count { color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; }
 
 .m-links { margin-top: 24px; }
-.m-links a { color: var(--ink-2); font-size: 15px; }
+.m-links a { color: var(--ink-3); font-size: 13px; text-decoration: none; }
 
-/* Forms */
-.m-form { display: flex; flex-direction: column; gap: 18px; }
-.m-field { display: flex; flex-direction: column; gap: 8px; }
-.m-label { font-size: 15px; font-weight: 600; color: var(--ink-2); }
+/* ---------- forms: large underlined fields, no boxes ---------- */
 
-.m-input {
+.m-form { display: flex; flex-direction: column; gap: 22px; }
+.m-field { display: flex; flex-direction: column; gap: 10px; }
+.m-label {
+  font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-3); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.m-unit-inline { text-transform: none; letter-spacing: 0; }
+
+/* Selector is `input.m-input`, not just `.m-input` -- cuore.css's own
+   `input[type=text], input[type=search], textarea, select { border: 1px
+   solid var(--rule); ... }` (its generic desktop field box) has the exact
+   same specificity as a bare class selector would (an attribute selector
+   counts the same as a class), so a plain `.m-input` rule silently lost
+   that fight on every text input on this page -- number/date inputs were
+   unaffected (that cuore.css rule never matches type=number/date), which
+   is why only the free-text fields were showing a full box instead of the
+   underline this file intends. `input.m-input` ties cuore.css's selector
+   on specificity and wins on source order (m.css's <link> is after
+   cuore.css's in m_base.html). */
+input.m-input {
+  -webkit-appearance: none; appearance: none;
   min-height: 48px;
-  padding: 10px 12px;
-  font-size: 17px;
-  background: var(--surface-2);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius, 3px);
+  padding: 10px 2px;
+  font-size: 18px;
+  font-family: var(--sans);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid var(--rule);
+  border-radius: 0;
   color: var(--ink);
   width: 100%;
+  transition: border-color 200ms ease;
 }
-.m-textarea { min-height: 72px; resize: vertical; }
+input.m-input:focus { outline: none; border-bottom-color: var(--accent); }
+textarea.m-textarea {
+  min-height: 72px; resize: vertical; width: 100%;
+  background: transparent; color: var(--ink); font-size: 17px; font-family: var(--sans);
+  border: none; border-bottom: 2px solid var(--rule); border-radius: 0; padding: 10px 2px;
+}
+textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 
-/* Big choice chips, works without JS: a native radio hidden behind a
-   48px-tall label the browser lets you tap anywhere on. */
+/* Big numeric figures (litres, price, odometer): the number itself is the
+   statement, the unit sits small right after it, never inside the box. */
+.m-figrow { display: flex; gap: 20px; }
+.m-field-fig { flex: 1; }
+.m-figure-field { display: flex; align-items: baseline; gap: 6px; }
+.m-input-figure {
+  font-size: 30px; font-weight: 300; font-variant-numeric: tabular-nums;
+  padding: 6px 2px;
+}
+.m-unit { font-size: 14px; color: var(--ink-3); white-space: nowrap; }
+
+/* Chips: 12px letter-spaced small-caps labels, 48px tap target, selected
+   state in the marque accent, 200ms transition -- never a native control. */
 .m-chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .m-chip {
+  -webkit-appearance: none; appearance: none;
   position: relative;
   min-height: 48px;
-  min-width: 64px;
+  min-width: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 16px;
   border: 1px solid var(--rule);
   border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--ink);
-  font-size: 16px;
+  background: transparent;
+  color: var(--ink-2);
   cursor: pointer;
+  font: inherit;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+}
+.m-chip span {
+  font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em;
 }
 .m-chip input {
   position: absolute;
@@ -125,52 +268,126 @@
   margin: 0;
   cursor: pointer;
 }
-.m-chip input:checked + span { color: var(--bg); }
-.m-chip:has(input:checked) {
+.m-chip:has(input:checked), .m-chip.is-selected {
   background: var(--accent);
   border-color: var(--accent);
+  color: #fff;
 }
+.m-chips-octane .m-chip { min-width: 64px; }
 
 .m-submit {
+  -webkit-appearance: none; appearance: none;
   min-height: 52px;
   border: none;
   border-radius: var(--radius, 3px);
   background: var(--accent);
   color: #fff;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
   cursor: pointer;
+}
+
+.m-ghost-btn {
+  -webkit-appearance: none; appearance: none;
+  flex: 1;
+  min-height: 48px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius, 3px);
+  background: transparent;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: .06em;
 }
 
 .m-inline-form { margin-top: 10px; gap: 10px; }
 
-/* Messages */
+/* Toggle switch (e.g. "cap clicked shut"): a real checkbox, visually a
+   48px-tall accent-filled track -- no native checkbox square anywhere. */
+.m-toggle {
+  display: flex; align-items: center; gap: 14px; min-height: 48px; cursor: pointer;
+}
+.m-toggle input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.m-toggle-track {
+  flex: none; width: 48px; height: 28px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--rule);
+  position: relative; transition: background-color 200ms ease, border-color 200ms ease;
+}
+.m-toggle-thumb {
+  position: absolute; top: 2px; left: 2px; width: 22px; height: 22px;
+  border-radius: 50%; background: var(--ink-3);
+  transition: transform 200ms ease, background-color 200ms ease;
+}
+.m-toggle input:checked + .m-toggle-track { background: var(--accent); border-color: var(--accent); }
+.m-toggle input:checked + .m-toggle-track .m-toggle-thumb { transform: translateX(20px); background: #fff; }
+.m-toggle-label { font-size: 16px; color: var(--ink); }
+.m-toggle-big .m-toggle-label { font-weight: 600; }
+
+/* "More details" disclosure -- native <details>, no JS needed. */
+.m-more { border-top: 1px solid var(--rule-soft); padding-top: 18px; }
+.m-more summary {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .1em; font-weight: 650;
+  color: var(--ink-3); cursor: pointer; list-style: none; min-height: 32px; display: flex; align-items: center;
+}
+.m-more summary::-webkit-details-marker { display: none; }
+.m-more[open] summary { color: var(--ink-2); }
+.m-more > *:not(summary) { margin-top: 18px; }
+
+/* Amber "read from photo" chip -- never the accent colour (that is reserved
+   for the primary action/selection state), always this one warm note. */
+.m-chip-photo {
+  display: inline-flex; align-items: center;
+  font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700;
+  color: var(--sev-chronic); background: var(--sev-chronic-bg);
+  padding: 2px 7px; border-radius: 999px; white-space: nowrap;
+}
+
+/* ---------- camera tile ---------- */
+
+.m-camera-tile {
+  display: flex; align-items: center; gap: 14px;
+  min-height: 56px; padding: 14px 16px;
+  background: var(--surface-2); border: 1px dashed var(--rule);
+  border-radius: var(--radius, 3px); cursor: pointer;
+}
+.m-camera-ico { width: 24px; height: 24px; stroke: var(--ink-2); fill: none; flex: none; }
+.m-camera-text { font-size: 15px; color: var(--ink-2); font-weight: 600; flex: 1; }
+.m-camera-preview {
+  width: 44px; height: 44px; border-radius: var(--radius, 3px);
+  object-fit: cover; flex: none;
+}
+.m-camera-input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+
+/* ---------- messages ---------- */
+
 .m-msg {
-  padding: 14px;
-  margin-bottom: 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius, 3px);
+  padding: 16px 0;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--rule-soft);
 }
 .m-msg-text { font-size: 16px; margin: 0 0 6px; }
-.m-msg-meta { font-size: 14px; color: var(--ink-3); margin: 0 0 10px; }
+.m-msg-meta { font-size: 13px; color: var(--ink-3); margin: 0 0 10px; }
 .m-msg-answer { font-size: 15px; color: var(--ink-2); }
 
-/* History */
+/* ---------- history ---------- */
+
 .m-event {
-  padding: 14px;
-  margin-bottom: 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--rule);
-  border-radius: var(--radius, 3px);
+  padding: 16px 0;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--rule-soft);
 }
 .m-event-head { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 4px; font-size: 16px; }
-.m-event-cat { color: var(--ink-3); font-size: 13px; }
-.m-event-meta { font-size: 13px; color: var(--ink-3); margin: 0 0 8px; }
+.m-event-cat { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
+.m-event-meta { font-size: 12.5px; color: var(--ink-3); margin: 0 0 8px; }
 .m-reported-badge {
   text-transform: uppercase;
   font-size: 12px;
-  letter-spacing: 0.04em;
+  letter-spacing: .06em;
   color: var(--ink-3);
 }
 .m-event-fields { margin: 0 0 8px; padding-left: 18px; font-size: 15px; }
@@ -187,12 +404,39 @@
   user-select: all;
 }
 
-/* Footer + bottom nav */
+/* ---------- record card (post-save confirmation) ---------- */
+
+.m-confirm { animation: m-fade-in .3s ease; }
+@keyframes m-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.m-confirm-check {
+  font-size: 13px; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--ok); font-weight: 700; margin: 0 0 18px;
+}
+.m-card {
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 20px 0;
+  margin-bottom: 24px;
+}
+.m-card-date { font-size: 13px; color: var(--ink-3); margin: 0 0 4px; }
+.m-card-kind { font-size: 24px; font-weight: 300; margin: 0 0 18px; }
+.m-card-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.m-card-field { display: flex; align-items: baseline; gap: 8px; }
+.m-card-field-label {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3);
+  min-width: 11ch;
+}
+.m-card-field-value { font-size: 16px; color: var(--ink); }
+.m-card-attested { font-size: 13px; color: var(--ink-3); margin: 0; }
+.m-confirm-actions { display: flex; gap: 10px; }
+
+/* ---------- footer + bottom nav ---------- */
+
 .m-footer {
   max-width: 480px;
   margin: 0 auto;
-  padding: 0 16px 16px;
-  font-size: 13px;
+  padding: 0 20px 16px;
+  font-size: 12px;
   color: var(--ink-3);
 }
 
@@ -200,22 +444,30 @@
   position: fixed;
   left: 0; right: 0; bottom: 0;
   display: flex;
-  background: var(--surface);
-  border-top: 1px solid var(--rule);
+  background: var(--bg);
+  border-top: 1px solid var(--rule-soft);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 .m-bottomnav a {
   flex: 1;
-  text-align: center;
-  padding: 14px 0;
-  min-height: 48px;
-  color: var(--ink-2);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px;
+  min-height: 56px;
+  color: var(--ink-3);
   text-decoration: none;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 650;
 }
+.m-navicon { width: 22px; height: 22px; stroke: currentColor; fill: none; }
 .m-bottomnav a.on { color: var(--accent); }
 
 /* Last-used values under a remembered free-text field (one tap fills the box). */
-.m-recent { margin-top: 8px; }
-.m-recent .m-chip { min-height: 44px; font-size: 16px; }
+.m-recent { margin-top: -2px; }
+
+/* Nothing in this file goes below 400px without staying inside the gutter;
+   the two-column quick-action grid still fits at 390px with 20px side
+   padding (see .m-main) plus a 12px gap. */
+@media (max-width: 360px) {
+  .m-quick-grid { grid-template-columns: 1fr; }
+  .m-figrow { flex-direction: column; gap: 22px; }
+}

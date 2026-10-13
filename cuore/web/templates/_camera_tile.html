@@ -1,0 +1,16 @@
+{# "Take a photo" tile -- point 4 of the Mobile rebuild: every form gets one
+   of these at the top. A plain <input type=file accept=image/*
+   capture=environment> opens the camera directly in iOS Safari and works
+   with scripting off (the file just rides along with the rest of the
+   multipart POST, and the route that owns this form uploads it itself --
+   see owner_routes._upload_photo). m.js only adds the inline preview via
+   FileReader; nothing here depends on it. Caller's <form> must carry
+   enctype="multipart/form-data" and the field name stays "photo" --
+   owner_routes.add_submit/snap_submit both read exactly that key. #}
+<label class="m-camera-tile" for="photo-input">
+  <svg class="m-camera-ico" aria-hidden="true"><use href="/static/icons.svg#i-camera"></use></svg>
+  <span class="m-camera-text">Take a photo</span>
+  <img class="m-camera-preview" id="photo-preview" alt="" hidden>
+</label>
+<input type="file" accept="image/*" capture="environment" name="photo" id="photo-input"
+      class="m-camera-input" data-photo-input>

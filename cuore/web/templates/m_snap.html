@@ -1,0 +1,30 @@
+{% extends "m_base.html" %}
+{% block title %}Snap & fill -- Tell CUORE{% endblock %}
+{% block content %}
+<p class="m-back"><a href="/m/{{ vin }}">&larr; Home</a></p>
+<h1 class="m-h1">Snap & fill</h1>
+<p class="m-sub">Take a photo of the odometer, the fuel pump, an oil bottle, a part
+  label or a receipt -- CUORE will try to read it and open the right form, filled
+  in. You always confirm or correct every value before it is saved.</p>
+
+<form method="post" action="/m/{{ vin }}/snap" enctype="multipart/form-data"
+     class="m-form" data-snap-form data-vin="{{ vin }}">
+  {% include "_camera_tile.html" %}
+
+  <div class="m-field">
+    <span class="m-label">What is this a photo of</span>
+    <div class="m-chips" role="group" data-snap-hints>
+      {% for h in hints %}
+      <label class="m-chip">
+        <input type="radio" name="hint" value="{{ h.key }}"{% if h.key == 'other' %} checked{% endif %}>
+        <span>{{ h.label }}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <p class="m-hint" data-snap-status hidden></p>
+
+  <button type="submit" class="m-submit" data-snap-continue>Continue</button>
+</form>
+{% endblock %}

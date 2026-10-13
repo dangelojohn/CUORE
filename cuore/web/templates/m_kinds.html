@@ -1,12 +1,12 @@
 {% extends "m_base.html" %}
 {% block title %}{{ category_label }} -- Tell CUORE{% endblock %}
 {% block content %}
-<p class="m-back"><a href="/m/{{ vin }}">&larr; Categories</a></p>
+<p class="m-back"><a href="/m/{{ vin }}">&larr; Home</a></p>
 <h1 class="m-h1">{{ category_label }}</h1>
-<div class="m-tiles">
+<div class="m-rowlist">
   {% for k in kinds %}
-  <a class="m-tile" href="/m/{{ vin }}/add/{{ category }}/{{ k.key }}">
-    <span class="m-tile-label">{{ k.label }}</span>
+  <a class="m-row" href="/m/{{ vin }}/add/{{ category }}/{{ k.key }}{{ '?' + carry if carry }}">
+    <span class="m-row-label">{{ k.label }}</span>
   </a>
   {% endfor %}
 </div>

@@ -618,7 +618,7 @@ DASM_HALF_LINK = Tree(
              "is no cheap path through this toolchain.",
              "free / 5 min inspection; recalibration is a shop job",
              "General forward-camera diagnostic practice -- NOT sourced "
-             "to any Stelvio/Giulia-specific bulletin in this repo. The "
+             "to any model-specific bulletin in this repo. The "
              "recalibration-path claim IS sourced: MES_CAPABILITY_GAPS."
              "md section 9 ('ADAS calibration -- the cleanest negative "
              "here').",

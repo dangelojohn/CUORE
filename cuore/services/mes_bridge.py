@@ -35,6 +35,7 @@ from mes import (  # noqa: E402  -- must follow the bootstrap import
     modules,
     notes as notes_mod,
     paths,
+    platform as platform_mod,
     scan,
     verdict,
 )
@@ -190,6 +191,15 @@ def workup(vin: str = "", vehicle: str = "") -> dict[str, Any]:
     if "error" in dossier:
         raise NotFound(dossier["error"])
     return dossier
+
+
+def marque_for_vin(vin: str) -> str:
+    """``"alfa"``/``"maserati"``/``"ferrari"``/``"unknown"`` for this VIN's
+    WMI -- the only thing the web layer's ``data-marque`` theming needs.
+    Pure passthrough to :func:`mes.platform.marque_for_vin`; never raises,
+    never guesses (an unrecognised WMI is ``"unknown"``, not a default
+    marque -- the caller decides what to show for that)."""
+    return platform_mod.marque_for_vin(vin)
 
 
 def vehicle_report(vin: str = "", vehicle: str = "") -> dict[str, Any]:

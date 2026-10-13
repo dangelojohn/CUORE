@@ -580,7 +580,7 @@ LINKS: tuple[dict[str, Any], ...] = (
 
     # --- sound references: "here's what that sounds like" (verified via ---
     # --- the YouTube oEmbed endpoint, 2026-10-07) -- generic, not          ---
-    # --- Alfa/Stelvio-specific; a mechanic's own recording (the media     ---
+    # --- model-specific; a mechanic's own recording (the media     ---
     # --- library's audio clips) gets compared against the failure mode,  ---
     # --- not against this platform. ---------------------------------------
     {
