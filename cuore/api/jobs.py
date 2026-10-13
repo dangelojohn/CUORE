@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from ..services import jobs_bridge
+from ..services import cases_bridge, jobs_bridge
 from ..services.jobs_bridge import RuleViolation
 from .deps import require_token
 
@@ -100,6 +100,26 @@ def open_job(vin: str, body: JobOpen) -> dict[str, Any]:
 def close_job(job_id: str, body: JobClose) -> dict[str, Any]:
     return jobs_bridge.close_job(job_id, body.outcome, readiness_at=body.readiness_at,
                                  codes_returned=body.codes_returned, verdict=body.verdict)
+
+
+@router.post("/jobs/{job_id}/close-as-case",
+            summary="Fold this job into a portable Case for the next car of this model")
+def close_job_as_case(job_id: str) -> dict[str, Any]:
+    """JSON twin of the Job page's step 12 "Close this job as a case"
+    button -- see ``mes.cases.case_from_job``/``record_case``. Idempotent:
+    pressing/calling this again on the same job returns the same case,
+    never a duplicate. Looks up the job's own vin first (the bridge layer
+    needs it, this endpoint's path does not carry one)."""
+    job = jobs_bridge.get_job(job_id)
+    return cases_bridge.record_case(job["vin"], job_id)
+
+
+@router.get("/jobs/{job_id}/case", summary="The case already on file for this job, if any")
+def get_job_case(job_id: str) -> dict[str, Any]:
+    case = cases_bridge.get_for_job(job_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail=f"no case recorded for job {job_id!r}")
+    return case
 
 
 @router.post("/jobs/{job_id}/hypotheses", summary="Add a hypothesis to a job's ledger")

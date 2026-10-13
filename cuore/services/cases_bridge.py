@@ -40,6 +40,17 @@ def prefill(vin: str, codes: list[str]) -> dict[str, Any]:
     return cases_mod.prefill(vin, codes or [])
 
 
+def get_for_job(job_id: str) -> dict[str, Any] | None:
+    """The case already on file for this job id, if ``record_case`` has
+    been run for it -- so step 12 can show "already closed as a case"
+    without recording a second one. Never raises; ``None`` means no case
+    yet, not an error."""
+    job_id = (job_id or "").strip()
+    if not job_id:
+        return None
+    return cases_mod.get(f"case-{job_id}")
+
+
 def record_case(vin: str, job_id: str) -> dict[str, Any]:
     """Build and persist a Case from one job. Exposed here so a caller that
     *can* edit ``mes/jobs.py``/``cuore/services/jobs_bridge.py`` (this task's
@@ -55,4 +66,4 @@ def record_case(vin: str, job_id: str) -> dict[str, Any]:
         raise BadRequest(str(exc)) from exc
 
 
-__all__ = ["match", "prefill", "record_case"]
+__all__ = ["match", "prefill", "record_case", "get_for_job"]

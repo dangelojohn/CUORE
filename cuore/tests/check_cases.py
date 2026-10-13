@@ -157,6 +157,70 @@ check("a VIN resolving to no known model gets no matches",
      other_model_matches["matches"] == [], str(other_model_matches))
 check("...even though Stelvio cases with that exact code are on file",
      any("P0440" in c.get("codes", []) for c in cases_mod.load(model="stelvio")))
+check('the word "cause" never appears anywhere in the output', "cause" not in blob)
+
+
+# --- 6. close-out fields: confirmed hypothesis, tests, parts fitted,
+#        verification state, outcome text -----------------------------------
+
+VIN_D = "ZASFAKPN5J7B00007"  # a fourth Stelvio -- close-out fixture
+
+job_d = jobs_mod.open(VIN_D, technician="tester", complaint="CEL, misfire")
+job_d_id = job_d["id"]
+hyp_d = jobs_mod.add_hypothesis(job_d_id, "purge valve stuck open", system="evap")
+jobs_mod.set_hypothesis(job_d_id, hyp_d["id"], status="supported")
+jobs_mod.add_evidence(job_d_id, hyp_d["id"], "for",
+                      {"kind": "test", "id": "t1", "label": "purge valve bench test",
+                       "result": "fail"})
+jobs_mod.set_hypothesis(job_d_id, hyp_d["id"], status="confirmed")
+jobs_mod.add_action(job_d_id, "part", "replaced purge valve",
+                    ref={"kind": "dealer", "id": "p1", "label": "purge valve PN 12345"})
+# close() with no readiness_at -- the readiness was never actually read
+# off the car at release, so verification_state must say so.
+jobs_mod.close(job_d_id, "fixed", codes_returned=[])
+case_d = cases_mod.case_from_job(VIN_D, job_d_id)
+
+check("confirmed_hypothesis carries the confirmed one, with its evidence",
+     case_d["confirmed_hypothesis"] is not None
+     and case_d["confirmed_hypothesis"]["text"] == "purge valve stuck open"
+     and "purge valve bench test" in case_d["confirmed_hypothesis"]["evidence_summary"],
+     str(case_d.get("confirmed_hypothesis")))
+check("tests recorded carries the bench test with its result",
+     any(t["text"] == "purge valve bench test" and t["result"] == "fail"
+        for t in case_d["tests"]), str(case_d["tests"]))
+check("parts_fitted carries the part action",
+     any("purge valve" in p["text"] for p in case_d["parts_fitted"]), str(case_d["parts_fitted"]))
+check("outcome_text reads a plain 'Fixed', never 'proven'/'cause'",
+     case_d["outcome_text"] == "Fixed", case_d["outcome_text"])
+check("a job whose readiness was never read off the car produces 'released unverified'",
+     "released unverified" in case_d["verification_state"].lower(), case_d["verification_state"])
+
+recorded_d1 = cases_bridge.record_case(VIN_D, job_d_id)
+recorded_d2 = cases_bridge.record_case(VIN_D, job_d_id)
+check("closing (recording) the same job twice yields one case id",
+     recorded_d1["id"] == recorded_d2["id"]
+     and len([r for r in cases_mod._raw_records() if r["id"] == recorded_d1["id"]]) == 1,
+     str([recorded_d1["id"], recorded_d2["id"]]))
+
+case_d_refuted = cases_mod.case_from_job(VIN_A, job_a_id)["refuted_hypotheses"]
+check("refuted_hypotheses carries the ruled-out hypothesis text",
+     any(h["text"] == "ruled this out" for h in case_d_refuted), str(case_d_refuted))
+
+
+# --- 7. a real case outranks the synthetic seed, and the wording carries
+#        the close date -----------------------------------------------------
+
+VIN_SEED = "ZASFAKPN5J7B00008"   # carries only a synthetic seed case
+VIN_E = "ZASFAKPN5J7B00009"      # a real, overlapping-codes case
+cases_mod._append(cases_mod._synthetic_evap_case(VIN_SEED))
+job_e_id = build_fixture_job(VIN_E, ["P0440"], outcome="fixed", refuted_text="not this either")
+recorded_e = cases_bridge.record_case(VIN_E, job_e_id)
+
+matches_e = cases_mod.match(VIN_QUERY, ["P0440"])
+check("a real job-derived case ranks above the synthetic seed",
+     bool(matches_e) and not matches_e[0].get("synthetic_from_logs"), str(matches_e[:1]))
+check('wording carries "(closed <date>)"',
+     bool(matches_e) and "(closed " in matches_e[0]["what_to_expect"], str(matches_e[:1]))
 
 
 print(f"{checks} checks, {len(failures)} failures")

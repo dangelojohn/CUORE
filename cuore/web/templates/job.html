@@ -811,6 +811,32 @@
 
   {% if job.status == "closed" %}
     <p>{{ t('closed_label')|capitalize }} {{ job.closed_at }} &mdash; {{ t('outcome_label')|lower }} <span class="chip ok">{{ job.outcome }}</span></p>
+
+    {# Hardcoded English, same posture as the "Tools used review" heading
+       above: i18n.py is out of this task's scope, so this stays
+       untranslated rather than adding a key there. #}
+    {% if case_error %}<div class="note alert"><span class="lab">Not closed as a case</span>{{ case_error }}</div>{% endif %}
+
+    <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/close-as-case">
+      <button class="btn danger" type="submit">{% if case_result %}Update the case for this job{% else %}Close this job as a case{% endif %}</button>
+    </form>
+
+    {% if case_result %}
+      <div class="panel case-result-panel">
+        <h3>On the last {{ (case_result.model or "car")|capitalize }} with these codes (closed {{ (case_result.closed or "")[:10] or "this job" }})</h3>
+        <p class="small muted">{{ case_result.outcome_text }} &middot; {{ case_result.verification_state }}</p>
+        {% if case_result.confirmed_hypothesis %}
+          <p><span class="lab">Confirmed, with evidence:</span> {{ case_result.confirmed_hypothesis.text }}{% if case_result.confirmed_hypothesis.evidence_summary %} &mdash; {{ case_result.confirmed_hypothesis.evidence_summary }}{% endif %}</p>
+        {% endif %}
+        {% if case_result.refuted_hypotheses %}
+          <p class="small"><span class="lab">Ruled out on that car:</span>
+            {% for h in case_result.refuted_hypotheses %}{{ h.text }}{% if not loop.last %}; {% endif %}{% endfor %}</p>
+        {% endif %}
+        {% if case_result.pitfalls %}
+          <p class="small muted">Pitfalls: {{ case_result.pitfalls|join("; ") }}</p>
+        {% endif %}
+      </div>
+    {% endif %}
   {% else %}
     <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/close">
       <div class="field"><label for="outcome">{{ t('outcome_label') }}</label>

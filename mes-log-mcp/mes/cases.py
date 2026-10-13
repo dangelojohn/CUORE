@@ -192,6 +192,108 @@ def _symptoms_summary(vin: str, job: dict[str, Any]) -> str:
     return "; ".join(parts)
 
 
+def _notes_pitfalls(vin: str, job: dict[str, Any]) -> list[str]:
+    """Free-text pitfalls, pre-filled from whatever notes this job linked
+    (``links.note_ids``) -- a technician's own words, carried over
+    verbatim, never rewritten. Empty when the job linked no notes."""
+    from . import notes as notes_mod
+    ids = set((job.get("links") or {}).get("note_ids") or [])
+    if not ids:
+        return []
+    rows = [n for n in notes_mod.load(vin, include_hidden=True) if n.get("id") in ids]
+    return [n["text"] for n in rows if n.get("text")]
+
+
+def _tests_recorded(job: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every test this job actually ran, with its result: job actions of
+    kind ``"test"`` (the action's own ref, if any, carries the result),
+    plus any hypothesis evidence ref of kind ``"test"`` -- deduped by
+    (text/label, result). Never invented: a test with no recorded result
+    still appears, with ``result`` ``None``."""
+    seen: set[tuple[str, Optional[str]]] = set()
+    out: list[dict[str, Any]] = []
+
+    def _add(text: str, result: Optional[str]) -> None:
+        text = (text or "").strip()
+        if not text:
+            return
+        key = (text, result)
+        if key in seen:
+            return
+        seen.add(key)
+        out.append({"text": text, "result": result})
+
+    for a in job.get("actions") or []:
+        if a.get("kind") != "test":
+            continue
+        ref = a.get("ref") or {}
+        _add(a.get("text", ""), ref.get("result"))
+    for h in job.get("hypotheses") or []:
+        for ref in (h.get("evidence_for") or []) + (h.get("evidence_against") or []):
+            if isinstance(ref, dict) and ref.get("kind") == "test":
+                _add(ref.get("label") or ref.get("id") or "", ref.get("result"))
+    return out
+
+
+def _parts_fitted(job: dict[str, Any]) -> list[dict[str, Any]]:
+    """Parts fitted, per the job's own actions of kind ``"part"`` -- what
+    the mechanic actually logged against this job, not a separate ledger
+    lookup."""
+    out = []
+    for a in job.get("actions") or []:
+        if a.get("kind") != "part":
+            continue
+        out.append({"text": a.get("text", ""), "ref": a.get("ref")})
+    return out
+
+
+_OUTCOME_TEXT = {
+    "fixed": "Fixed", "not_fixed": "Not fixed",
+    "released_unverified": "Released unverified", "deferred": "Deferred",
+}
+
+
+def _outcome_text(outcome: Optional[str]) -> str:
+    return _OUTCOME_TEXT.get(outcome or "", (outcome or "").replace("_", " ").capitalize() or "Unknown")
+
+
+def _confirmed_and_refuted(job: dict[str, Any]) -> tuple[Optional[dict[str, Any]], list[dict[str, Any]]]:
+    """The one confirmed hypothesis (if any), with an evidence summary
+    built only from its own evidence refs -- and every refuted hypothesis,
+    as "what it was not" (never worded "proven" or "cause" here; that
+    wording belongs to the display layer, see ``mes.cases.match``'s own
+    "ruled out on that car" phrasing)."""
+    confirmed = None
+    refuted: list[dict[str, Any]] = []
+    for h in job.get("hypotheses") or []:
+        if h.get("deleted"):
+            continue
+        if h.get("status") == "confirmed" and confirmed is None:
+            evidence = [e.get("label") or e.get("id") or e.get("kind") or ""
+                       for e in (h.get("evidence_for") or []) if isinstance(e, dict)]
+            evidence = [e for e in evidence if e]
+            confirmed = {"text": h.get("text", ""), "evidence_summary": "; ".join(evidence)}
+        elif h.get("status") == "refuted":
+            refuted.append({"text": h.get("text", "")})
+    return confirmed, refuted
+
+
+def _verification_state(job: dict[str, Any]) -> str:
+    """"verified clean" only when the readiness actually read off the car
+    at close (``verification.readiness_at``) came back with no codes;
+    otherwise "released unverified: <why>" -- the why is always a real
+    fact about this job's own verification record, never a guess."""
+    v = job.get("verification") or {}
+    readiness_at = v.get("readiness_at")
+    codes_returned = v.get("codes_returned") or []
+    if readiness_at and not codes_returned:
+        return "verified clean"
+    if not readiness_at:
+        return "released unverified: readiness was not read from the car at release"
+    return (f"released unverified: {len(codes_returned)} code(s) still returned "
+           f"at readiness read ({', '.join(codes_returned)})")
+
+
 def _parts_used(vin: str, job: dict[str, Any]) -> list[dict[str, Any]]:
     """Parts fitted on this VIN's service ledger during this job's window
     (opened_at..closed_at, inclusive by date -- an open job's window runs
@@ -318,9 +420,11 @@ def case_from_job(vin: str, job_id: str) -> dict[str, Any]:
     outcome, verified_by = _outcome_and_verification(vin, job)
     repairs = [a.get("text", "") for a in job.get("actions") or [] if a.get("kind") == "repair"]
 
-    pitfalls = list(tool_pitfalls)
-    for h in job.get("hypotheses") or []:
-        if h.get("status") == "refuted" and h.get("text"):
+    confirmed_hypothesis, refuted_hypotheses = _confirmed_and_refuted(job)
+
+    pitfalls = list(_notes_pitfalls(vin, job)) + list(tool_pitfalls)
+    for h in refuted_hypotheses:
+        if h.get("text"):
             pitfalls.append(f"ruled out: {h['text']}")
 
     return {
@@ -332,14 +436,20 @@ def case_from_job(vin: str, job_id: str) -> dict[str, Any]:
         "complaint": job.get("complaint", ""),
         "symptoms_summary": _symptoms_summary(vin, job),
         "hypotheses": hypotheses,
+        "confirmed_hypothesis": confirmed_hypothesis,
+        "refuted_hypotheses": refuted_hypotheses,
+        "tests": _tests_recorded(job),
         "path": path,
         "fixes_that_worked": repairs if outcome == "fixed" else [],
         "fixes_that_did_not": repairs if outcome == "not_fixed" else [],
         "parts_used": _parts_used(vin, job),
+        "parts_fitted": _parts_fitted(job),
         "tools": tools,
         "pitfalls": pitfalls,
         "outcome": outcome,
+        "outcome_text": _outcome_text(outcome),
         "verified_by": verified_by,
+        "verification_state": _verification_state(job),
         "opened": job.get("opened_at"),
         "closed": job.get("closed_at"),
         "total_minutes": total_minutes,
@@ -352,15 +462,11 @@ def record_case(vin: str, job_id: str) -> dict[str, Any]:
     a case already on file for this job id is returned as-is, not
     duplicated).
 
-    This is the hook ``mes.jobs.close`` should call on every close, so a
-    case lands the moment a job finishes. It is **not** wired there: this
-    task's scope excludes editing ``mes/jobs.py`` (and
-    ``cuore/services/jobs_bridge.py``, which is the other place a close
-    passes through). Until one of those calls this function, cases from
-    real jobs only appear when something else calls ``record_case``
-    explicitly (e.g. a script, or a future change to either of those two
-    files by whoever owns them).
-    """
+    Called from the Job page's step 12 (Release) "Close this job as a
+    case" action (``cuore.web.jobs_routes``) and its JSON twin
+    (``cuore.api.jobs``), both through ``cuore.services.cases_bridge`` --
+    never from ``mes.jobs.close`` itself, so a plain close never silently
+    creates a case; recording one is always a separate, explicit step."""
     case = case_from_job(vin, job_id)
     if any(r.get("id") == case["id"] for r in _raw_records()):
         return case
@@ -398,6 +504,14 @@ def _synthetic_evap_case(vin: str = VIN_STELVIO) -> dict[str, Any]:
              "key_evidence": ["codes return after every clear despite a sealed, "
                              "parts-replaced system"]},
         ],
+        "confirmed_hypothesis": None,
+        "refuted_hypotheses": [
+            {"text": "EVAP leak somewhere in the purge/vent/canister circuit"},
+        ],
+        "tests": [
+            {"text": "smoke test x3 (recirc line, purge/vent, canister)",
+             "result": "pass"},
+        ],
         "path": [
             {"step": 3, "what_was_done": "smoke test x3 (recirc line, purge/vent, canister)",
              "result": "sealed, no leak found each time", "minutes": None},
@@ -407,12 +521,15 @@ def _synthetic_evap_case(vin: str = VIN_STELVIO) -> dict[str, Any]:
         "fixes_that_worked": [],
         "fixes_that_did_not": ["replacing EVAP parts (purge/vent/canister circuit)"],
         "parts_used": [],
+        "parts_fitted": [],
         "tools": {"used": ["smoke machine"], "flagged_wrong": [], "bought": []},
         "pitfalls": ["a sealed system with 3 clean smoke tests still returned P0440 after "
                     "every clear -- the leak hypothesis was exhausted before the ECM "
                     "calibration one (TSB 18-030-17) was tried"],
         "outcome": "not_fixed",
+        "outcome_text": _outcome_text("not_fixed"),
         "verified_by": None,
+        "verification_state": "released unverified: not independently verified",
         "opened": None,
         "closed": None,
         "total_minutes": None,
@@ -465,7 +582,7 @@ def match(vin: str, codes: list[str]) -> list[dict[str, Any]]:
             if row.get("role") == "primary" and row.get("system") != "UNKNOWN":
                 given_families.add(row["system"])
 
-    scored: list[tuple[int, int, int, dict[str, Any]]] = []
+    scored: list[tuple[int, int, int, int, dict[str, Any]]] = []
     for case in load(model=model):
         if case.get("vin") == vin:
             continue
@@ -473,18 +590,23 @@ def match(vin: str, codes: list[str]) -> list[dict[str, Any]]:
         overlap = len(given & case_codes)
         fam_overlap = len(given_families & set(case.get("families") or []))
         verified_rank = 1 if case.get("outcome") == "fixed" and case.get("verified_by") else 0
-        scored.append((verified_rank, overlap, fam_overlap, case))
-    scored.sort(key=lambda t: (t[0], t[1], t[2]), reverse=True)
+        # A real, job-derived case always outranks the synthetic seed --
+        # the seed is only there so a model has somewhere to start before
+        # any real job has closed on it.
+        real_rank = 0 if case.get("synthetic_from_logs") else 1
+        scored.append((real_rank, verified_rank, overlap, fam_overlap, case))
+    scored.sort(key=lambda t: (t[0], t[1], t[2], t[3]), reverse=True)
 
     out = []
-    for verified_rank, overlap, fam_overlap, case in scored:
+    for real_rank, verified_rank, overlap, fam_overlap, case in scored:
         case_codes = {c.upper() for c in case.get("codes") or []}
         union = len(given | case_codes) or 1
         similarity = round(overlap / union, 2)
         verified_clause = (f", verified ({case['verified_by']})" if case.get("verified_by")
                           else ", not independently verified")
-        what = (f"On the last {subject} with these codes: outcome was "
-               f"{case.get('outcome')}{verified_clause}.")
+        closed_date = (case.get("closed") or "")[:10] or "date unknown"
+        what = (f"On the last {subject} with these codes (closed {closed_date}): "
+               f"outcome was {case.get('outcome')}{verified_clause}.")
         out.append({**case, "similarity": similarity, "code_overlap": overlap,
                    "family_overlap": fam_overlap, "what_to_expect": what})
     return out

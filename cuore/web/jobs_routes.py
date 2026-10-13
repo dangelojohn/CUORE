@@ -144,6 +144,18 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
     except Exception:  # noqa: BLE001 -- case memory must never 500 the job page
         case_prefill = None
 
+    # Step 12's own idempotent status: if this job was already closed as
+    # a case (a prior press of "Close this job as a case", or a re-render
+    # after this request's own POST already put it in `extra` as
+    # `case_result`), show it without requiring another press. A fresh
+    # `case_result` passed in `extra` (from job_close_as_case) always wins.
+    current_job_id = (job_view.get("job") or {}).get("id") or job_id
+    if "case_result" not in extra and current_job_id:
+        try:
+            extra["case_result"] = cases_bridge.get_for_job(current_job_id)
+        except Exception:  # noqa: BLE001 -- case memory must never 500 the job page
+            extra["case_result"] = None
+
     # --- display-only reshaping of job_view for this render (fix #11/#13):
     # active (non-deleted) hypotheses ranked by net evidence with the
     # leading one pinned first; deleted ones split out for an Undo row.
@@ -517,6 +529,32 @@ async def job_close(request: Request, vin: str, job_id: str,
     # the flow's own current-step opinion, or a refusal would render onto
     # whatever step happens to be current and never be seen.
     return _job_page(request, vin, job_id=job_id, close_error=error, step="12")
+
+
+@router.post("/v/{vin}/job/{job_id}/close-as-case", response_class=HTMLResponse)
+async def job_close_as_case(request: Request, vin: str, job_id: str) -> HTMLResponse:
+    """Step 12's "Close this job as a case" action: folds this job (plus
+    the real shop timing, parts, tool-usage and symptom/note records that
+    sit alongside it -- see ``mes.cases.case_from_job``) into a portable
+    Case, so the next car of this model with the same codes starts where
+    this one finished.
+
+    Deliberately separate from ``job_close`` above: a job can be closed
+    with an outcome and never become a case, and this action can be
+    pressed again on an already-closed job without side effects --
+    ``mes.cases.record_case`` is idempotent per job id, so pressing this
+    twice updates/returns the same case, never a duplicate. Never blocks
+    or redirects away from Release -- a refusal here (e.g. the job isn't
+    closed yet) is shown inline on the same step 12 screen, same posture
+    as ``close_error`` above."""
+    error = None
+    case_result = None
+    try:
+        case_result = cases_bridge.record_case(vin, job_id)
+    except BridgeError as exc:
+        error = str(exc)
+    return _job_page(request, vin, job_id=job_id, case_error=error,
+                     case_result=case_result, step="12")
 
 
 __all__ = ["router"]
