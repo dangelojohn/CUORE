@@ -215,3 +215,7 @@
   font-weight: 600;
 }
 .m-bottomnav a.on { color: var(--accent); }
+
+/* Last-used values under a remembered free-text field (one tap fills the box). */
+.m-recent { margin-top: 8px; }
+.m-recent .m-chip { min-height: 44px; font-size: 16px; }

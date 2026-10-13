@@ -43,6 +43,17 @@
     {% elif spec.type == "datetime" %}
     <input class="m-input" type="datetime-local" name="{{ key }}">
 
+    {% elif spec.remember %}
+    {# Free text stays open; the values last used are one tap away (datalist
+       works without JS on iOS; the chips fill the box with one line of JS). #}
+    {% set _rv = (recents or {}).get(key) or [] %}
+    <input class="m-input" type="text" name="{{ key }}" id="f-{{ key }}" list="dl-{{ key }}" autocomplete="off"{% if spec.required %} required{% endif %}>
+    {% if _rv %}
+    <datalist id="dl-{{ key }}">{% for v in _rv %}<option value="{{ v }}">{% endfor %}</datalist>
+    <div class="m-chips m-recent" aria-label="Last used">
+      {% for v in _rv %}<button type="button" class="m-chip" onclick="document.getElementById('f-{{ key }}').value=this.textContent">{{ v }}</button>{% endfor %}
+    </div>
+    {% endif %}
     {% else %}
     <input class="m-input" type="text" name="{{ key }}"{% if spec.required %} required{% endif %}>
     {% endif %}

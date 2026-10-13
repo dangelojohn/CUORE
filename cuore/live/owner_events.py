@@ -69,10 +69,15 @@ def _kind(label: str, fields: dict[str, dict[str, Any]], why_it_matters: str,
 
 
 def _f(type_: str, label: str, *, unit: str = "", choices: Optional[tuple[str, ...]] = None,
-      required: bool = False) -> dict[str, Any]:
+      required: bool = False, remember: bool = False) -> dict[str, Any]:
     """One form field descriptor: ``type`` is one of text|number|choice|bool|
     date|datetime. ``choices`` renders as big tap chips on the mobile form."""
     out: dict[str, Any] = {"type": type_, "label": label, "required": required}
+    if remember:
+        # Free text the garage types again and again (oil brand, filter make,
+        # fuel station): the form offers the values last used, this car first,
+        # then the rest of the garage (see recent_values). Typing stays open.
+        out["remember"] = True
     if unit:
         out["unit"] = unit
     if choices:
@@ -92,9 +97,12 @@ TAXONOMY: dict[str, dict[str, Any]] = {
         "kinds": {
             "engine_oil_change": _kind(
                 "Engine oil change",
-                {"brand": _f("text", "Brand"), "viscosity": _f("text", "Viscosity (e.g. 5W-30)"),
+                {"brand": _f("text", "Oil brand", remember=True),
+                 "viscosity": _f("text", "Viscosity (e.g. 5W-30)", remember=True),
                  "qty": _f("number", "Quantity", unit="L"),
-                 "filter_changed": _f("bool", "Filter changed")},
+                 "filter_changed": _f("bool", "Filter changed"),
+                 "filter_brand": _f("text", "Filter brand (e.g. Mann, UFI, Mopar)", remember=True),
+                 "filter_part_no": _f("text", "Filter part number", remember=True)},
                 "Oil interval and viscosity both matter for wear-related codes and for whether "
                 "an oil-life reset is overdue.",
                 ("lubrication",)),
@@ -158,7 +166,7 @@ TAXONOMY: dict[str, dict[str, Any]] = {
         "kinds": {
             "fill_up": _kind(
                 "Fill-up",
-                {"station": _f("text", "Station/brand"),
+                {"station": _f("text", "Station/brand", remember=True),
                  "octane": _f("choice", "Octane/RON",
                              choices=("87", "89", "91", "93", "94", "RON 95", "RON 98")),
                  "litres": _f("number", "Litres", unit="L", required=True),
@@ -195,7 +203,7 @@ TAXONOMY: dict[str, dict[str, Any]] = {
         "kinds": {
             "battery_replaced": _kind(
                 "Battery replaced",
-                {"brand": _f("text", "Brand"), "ah": _f("number", "Capacity", unit="Ah"),
+                {"brand": _f("text", "Brand", remember=True), "ah": _f("number", "Capacity", unit="Ah"),
                  "date_code": _f("text", "Date code")},
                 "A battery replacement resets adaptive charging strategy and can trigger stored "
                 "voltage/network codes for a day or two afterward.",
@@ -267,7 +275,7 @@ TAXONOMY: dict[str, dict[str, Any]] = {
                 "Tyres replaced",
                 {"which": _f("choice", "Which", choices=("all four", "front pair", "rear pair",
                                                           "one")),
-                 "brand": _f("text", "Brand/model")},
+                 "brand": _f("text", "Brand/model", remember=True)},
                 "A tyre-size or brand change can throw off ABS/TPMS wheel-speed comparisons.",
                 ("wheels_tpms", "brakes_abs")),
             "tyres_rotated": _kind(
@@ -734,3 +742,24 @@ def load(vin: str = "", *, include_deleted: bool = False) -> list[dict[str, Any]
 
 __all__ = ["TAXONOMY", "BY_ROLES", "MAX_NOTE", "MAX_FIELD_TEXT", "state_path",
           "kind_def", "add", "delete", "load"]
+
+
+def recent_values(vin: str, kind: str, field: str, limit: int = 6) -> list[str]:
+    """Distinct values typed before into a remembered free-text field, most
+    recent first: this car's own events first, then the rest of the garage's
+    (same shop, same shelf of filters). Attested records only; never a
+    suggestion of what *should* be used."""
+    seen: list[str] = []
+    def take(recs: list[dict[str, Any]]) -> None:
+        for e in reversed(recs):
+            if e.get("kind") != kind:
+                continue
+            v = str((e.get("fields") or {}).get(field) or "").strip()
+            if v and v.lower() not in {x.lower() for x in seen}:
+                seen.append(v)
+            if len(seen) >= limit:
+                return
+    take(load(vin))
+    if len(seen) < limit:
+        take([e for e in load() if e.get("vin") != vin])
+    return seen[:limit]

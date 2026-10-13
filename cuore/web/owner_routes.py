@@ -100,7 +100,10 @@ def add_form(request: Request, vin: str, category: str, kind: str) -> HTMLRespon
         kd = store.kind_def(category, kind)
     except ValueError as exc:
         return _page(request, "m_categories.html", vin, "add", categories=[], error=str(exc))
-    return _page(request, "m_form.html", vin, "add", category=category, kind=kind, kd=kd)
+    recents = {key: store.recent_values(vin, kind, key)
+               for key, spec in kd["fields"].items() if spec.get("remember")}
+    return _page(request, "m_form.html", vin, "add", category=category, kind=kind, kd=kd,
+                 recents=recents)
 
 
 @router.post("/m/{vin}/add/{category}/{kind}", response_class=HTMLResponse)

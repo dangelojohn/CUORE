@@ -222,6 +222,24 @@ too_small = [v for v in font_sizes if float(v) < 12]
 check("no font-size in m.css is under 12px", not too_small, str(too_small))
 
 
+# --- remembered free-text fields (oil filter brand etc.), 2026-10-13 --------
+def _check_remembered_values() -> None:
+    from cuore.live import owner_events as _store
+    _store.add(VIN, "fluids", "engine_oil_change", by_role="mechanic",
+               fields={"brand": "Selenia", "filter_brand": "UFI", "filter_part_no": "23.598.00"})
+    _store.add("OTHERVIN00000001", "fluids", "engine_oil_change", by_role="mechanic",
+               fields={"brand": "Petronas", "filter_brand": "Mann Filter"})
+    rv = _store.recent_values(VIN, "engine_oil_change", "filter_brand")
+    check("remembered: this car's filter brand first, then the garage's", rv[:2] == ["UFI", "Mann Filter"], str(rv))
+    html = client.get(f"/m/{VIN}/add/fluids/engine_oil_change").text
+    check("oil-change form: filter brand is open text with a datalist of last-used values",
+          'name="filter_brand"' in html and 'list="dl-filter_brand"' in html and ">UFI<" in html)
+    check("oil-change form: filter part number field present", 'name="filter_part_no"' in html)
+
+
+_check_remembered_values()
+
+
 print(f"{checks} checks, {len(failures)} failures")
 for f in failures:
     print(" -", f)
