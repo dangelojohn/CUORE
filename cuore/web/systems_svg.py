@@ -188,15 +188,28 @@ def render(nodes: list[dict[str, Any]], edges: list[dict[str, Any]], vin: str = 
         inner = (
             f'<rect x="{x - NODE_W/2:.1f}" y="{y - NODE_H/2:.1f}" width="{NODE_W}" height="{NODE_H}" '
             f'rx="10" fill="{fill}" stroke="{stroke}" stroke-width="2"/>'
-            f'<text x="{x:.1f}" y="{y + 4:.1f}" text-anchor="middle" font-size="11.5" '
+            # F4 (MECHANIC_REVIEW_3): readability floor is 12px everywhere on
+            # this surface, inline SVG text included (this renders at native
+            # scale -- 1 SVG unit == 1 CSS px -- same as everything else on
+            # this page, so these are real on-screen sizes, not viewBox units).
+            f'<text x="{x:.1f}" y="{y + 4:.1f}" text-anchor="middle" font-size="12" '
             f'fill="var(--ink)" font-family="var(--sans), sans-serif">{_esc(label)}</text>')
         if count:
             bx, by = x + NODE_W / 2 - 10, y - NODE_H / 2 + 10
             inner += (f'<circle cx="{bx:.1f}" cy="{by:.1f}" r="9" fill="{stroke}"/>'
                       f'<text x="{bx:.1f}" y="{by + 3.2:.1f}" text-anchor="middle" '
-                      f'font-size="10" fill="var(--surface)" font-family="var(--mono), monospace">{count}</text>')
+                      f'font-size="12" fill="var(--surface)" font-family="var(--mono), monospace">{count}</text>')
         href = f"/v/{_esc(vin)}/systems/{_esc(key)}" if vin else f"#node-{_esc(key)}"
-        parts.append(f'<a href="{href}" data-system="{_esc(key)}"><g>{inner}<title>{_esc(title)}</title></g></a>')
+        # F5 (MECHANIC_REVIEW_3): the legend promises "Tap a node to open
+        # its full page" but the visible NODE_W x NODE_H rect alone measured
+        # under 44px tall in the field. Add a transparent, fully-padded hit
+        # rect inside the same <a> -- it changes nothing drawn, only what's
+        # tappable -- sized well past the 44px floor on both axes so it
+        # survives any later resize of the visible node.
+        hit_w, hit_h = max(NODE_W, 44) + 16, max(NODE_H, 44) + 24
+        hit = (f'<rect x="{x - hit_w/2:.1f}" y="{y - hit_h/2:.1f}" '
+               f'width="{hit_w}" height="{hit_h}" fill="transparent"/>')
+        parts.append(f'<a href="{href}" data-system="{_esc(key)}"><g>{hit}{inner}<title>{_esc(title)}</title></g></a>')
 
     parts.append("</svg>")
     return "".join(parts)

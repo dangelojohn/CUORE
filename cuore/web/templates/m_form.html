@@ -1,0 +1,87 @@
+{% extends "m_base.html" %}
+{% block title %}{{ kd.label }} -- Tell CUORE{% endblock %}
+{% block content %}
+<p class="m-back"><a href="/m/{{ vin }}/add/{{ category }}">&larr; {{ category|replace('_',' ')|title }}</a></p>
+<h1 class="m-h1">{{ kd.label }}</h1>
+<p class="m-why">{{ kd.why_it_matters }}</p>
+
+<form method="post" action="/m/{{ vin }}/add/{{ category }}/{{ kind }}" class="m-form">
+
+  {% for key, spec in kd.fields.items() %}
+  <div class="m-field">
+    <label class="m-label">{{ spec.label }}{% if spec.unit %} ({{ spec.unit }}){% endif %}</label>
+
+    {% if spec.type == "choice" %}
+    <div class="m-chips" role="group">
+      {% for choice in spec.choices %}
+      <label class="m-chip">
+        <input type="radio" name="{{ key }}" value="{{ choice }}"{% if spec.required %} required{% endif %}>
+        <span>{{ choice }}</span>
+      </label>
+      {% endfor %}
+    </div>
+
+    {% elif spec.type == "bool" %}
+    <div class="m-chips" role="group">
+      <label class="m-chip">
+        <input type="radio" name="{{ key }}" value="on">
+        <span>Yes</span>
+      </label>
+      <label class="m-chip">
+        <input type="radio" name="{{ key }}" value="off">
+        <span>No</span>
+      </label>
+    </div>
+
+    {% elif spec.type == "number" %}
+    <input class="m-input" type="number" step="any" name="{{ key }}" inputmode="decimal"
+          {% if spec.required %} required{% endif %}>
+
+    {% elif spec.type == "date" %}
+    <input class="m-input" type="date" name="{{ key }}">
+
+    {% elif spec.type == "datetime" %}
+    <input class="m-input" type="datetime-local" name="{{ key }}">
+
+    {% else %}
+    <input class="m-input" type="text" name="{{ key }}"{% if spec.required %} required{% endif %}>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <div class="m-field">
+    <label class="m-label">When</label>
+    <input class="m-input" type="datetime-local" name="at">
+    <p class="m-hint">Leave blank for right now. A date alone is fine too.</p>
+  </div>
+
+  <div class="m-field">
+    <label class="m-label">Who's reporting this</label>
+    <div class="m-chips" role="group">
+      <label class="m-chip"><input type="radio" name="by_role" value="owner" checked><span>Owner</span></label>
+      <label class="m-chip"><input type="radio" name="by_role" value="driver"><span>Driver</span></label>
+      <label class="m-chip"><input type="radio" name="by_role" value="mechanic"><span>Mechanic</span></label>
+    </div>
+    <input class="m-input" type="text" name="by_name" placeholder="Name (optional)">
+  </div>
+
+  <div class="m-field">
+    <label class="m-label">Odometer (optional)</label>
+    <input class="m-input" type="number" step="any" inputmode="decimal" name="odometer_km">
+  </div>
+
+  <div class="m-field">
+    <label class="m-label">Anything else</label>
+    <textarea class="m-input m-textarea" name="note" rows="3"></textarea>
+  </div>
+
+  <p class="m-hint">
+    Have a photo of this (a receipt, a part, a warning light)? Save this
+    report first, then add it from the vehicle's
+    <a href="/v/{{ vin }}/media">Media</a> page -- it already handles photo
+    uploads for every record on this car.
+  </p>
+
+  <button type="submit" class="m-submit">Save</button>
+</form>
+{% endblock %}

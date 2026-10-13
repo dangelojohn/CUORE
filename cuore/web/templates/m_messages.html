@@ -1,0 +1,34 @@
+{% extends "m_base.html" %}
+{% block title %}Messages -- Tell CUORE{% endblock %}
+{% block content %}
+<h1 class="m-h1">Messages</h1>
+<p class="m-sub">Questions from CUORE and the mechanic. Answer any that are open.</p>
+
+{% if not messages %}
+<p class="m-empty">No messages right now.</p>
+{% endif %}
+
+{% for m in messages %}
+<div class="m-msg m-msg-{{ m.status }}">
+  <p class="m-msg-text">{{ m.text or m.target.label }}</p>
+  <p class="m-msg-meta">
+    from {{ m.author }} &middot; {{ m.at }}
+    {% if m.target.section %} &middot; code {{ m.target.section }}{% endif %}
+    &middot; {{ m.status }}
+  </p>
+  {% if m.answer %}
+  <p class="m-msg-answer"><strong>Reply:</strong> {{ m.answer.text }} ({{ m.answer.by }}, {{ m.answer.at }})</p>
+  {% else %}
+  <form method="post" action="/m/{{ vin }}/messages/{{ m.id }}/reply" class="m-form m-inline-form">
+    <textarea class="m-input m-textarea" name="text" rows="2" placeholder="Your reply" required></textarea>
+    <div class="m-chips" role="group">
+      <label class="m-chip"><input type="radio" name="by" value="owner" checked><span>Owner</span></label>
+      <label class="m-chip"><input type="radio" name="by" value="driver"><span>Driver</span></label>
+      <label class="m-chip"><input type="radio" name="by" value="mechanic"><span>Mechanic</span></label>
+    </div>
+    <button type="submit" class="m-submit">Reply</button>
+  </form>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

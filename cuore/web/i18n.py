@@ -297,6 +297,7 @@ STRINGS: dict[str, dict[str, str]] = {
     #    symptom form (see job.html, _flow_bar.html, _vtabs.html,
     #    _vbar.html, intake.html, release.html, _symptom_form.html) -------
     "bench": {"en": "Bench", "it": "Banco"},
+    "mobile": {"en": "Mobile", "it": "Mobile"},
     "tests": {"en": "Tests", "it": "Test"},
     "dossier": {"en": "Dossier", "it": "Dossier"},
     "systems": {"en": "Systems", "it": "Sistemi"},
@@ -549,6 +550,13 @@ STRINGS: dict[str, dict[str, str]] = {
                                "it": "Ancora nessuna prova per questa"},
     "needs_test_result": {"en": "Needs a passed/failed test result linked.",
                            "it": "Serve una prova superata/non superata collegata."},
+    # Mechanic review #3 (N4): distinguishes "0 evidence of any kind" from
+    # "evidence exists, but none of it is a pass/fail test result" -- the
+    # flat "Needs a..." line above reads as self-contradictory sitting
+    # right under a visible "Evidence for (1)" chip.
+    "needs_test_result_with_evidence": {
+        "en": "{n} piece(s) of evidence on file, but none of it is a pass/fail test result yet.",
+        "it": "{n} prova/e disponibile/i, ma nessuna è un risultato di test superato/non superato."},
     "unresolved_against": {"en": "Has unresolved evidence against — resolve or remove it first.",
                             "it": "Ha prove contrarie non risolte — risolvile o rimuovile prima."},
     "bad_status_path": {"en": "A hypothesis moves open → supported → confirmed (or refuted from "

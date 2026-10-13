@@ -195,6 +195,41 @@ view = client.get(f"/api/vehicles/{VIN}/job").json()
 fresh = next((h for h in view["job"]["hypotheses"] if h["text"] == "ux-check fresh hypothesis"), None)
 check("the fresh hypothesis landed on the ledger", fresh is not None, str(view["job"]["hypotheses"]))
 
+
+# --- N1: the step-6 result sheet's hypothesis list is embedded server-side
+#     (a #job-hyp-data JSON script block), not only fetched async at page
+#     parse time -- the race the mechanic review reproduced twice (the
+#     dropdown opening with only the placeholder, no hypothesis options,
+#     while job.js's one-shot fetch was still in flight) cannot happen if
+#     the data is already sitting in the page's own HTML. The headless-Edge
+#     CDP section below drives the real page and confirms the dialog's
+#     <select> is populated the instant it opens, with no wait. -----------
+
+step6_data = client.get(f"/v/{VIN}/job", params={"step": "6"})
+check("?step=6 responds 200 (for the embedded hypothesis data check)",
+      step6_data.status_code == 200, str(step6_data.status_code))
+_hyp_json_start = step6_data.text.find('id="job-hyp-data"')
+check('step 6 embeds a server-rendered "#job-hyp-data" JSON script block',
+      _hyp_json_start >= 0, "no #job-hyp-data script tag found on ?step=6")
+if _hyp_json_start >= 0 and fresh:
+    _script_open = step6_data.text.find(">", _hyp_json_start) + 1
+    _script_close = step6_data.text.find("</script>", _script_open)
+    _embedded_raw = step6_data.text[_script_open:_script_close]
+    try:
+        _embedded_hyps = json.loads(_embedded_raw)
+    except Exception as exc:  # noqa: BLE001
+        _embedded_hyps = None
+        check("the embedded hypothesis JSON parses", False, f"{exc}: {_embedded_raw[:200]}")
+    if _embedded_hyps is not None:
+        check("the embedded hypothesis JSON parses", True)
+        check("the just-added hypothesis is present in the embedded JSON "
+              "(available the instant the page renders, before any fetch)",
+              any(h.get("id") == fresh["id"] for h in _embedded_hyps),
+              str([h.get("id") for h in _embedded_hyps]))
+        check("the embedded JSON excludes deleted hypotheses",
+              all(not h.get("deleted") for h in _embedded_hyps), str(_embedded_hyps))
+
+
 step7_again = client.get(f"/v/{VIN}/job", params={"step": "7"})
 hyp_card_start = step7_again.text.find(f'id="hyp-{fresh["id"]}"') if fresh else -1
 hyp_card_end = step7_again.text.find('id="hyp-', hyp_card_start + 1) if hyp_card_start >= 0 else -1
@@ -296,9 +331,24 @@ if evap_step_id:
     check('step 7 summary reads "1/1" resolved beyond open',
           "1/1" in step7_final, step7_final[step7_final.find("1/1") - 80:step7_final.find("1/1") + 20])
 
+    # Mechanic review #3, N5: this used to assert only `current != 7`, which
+    # a chip stuck at 1 (R2's real bug -- flow_bridge.py's step 1 required
+    # an open *visit*, which this test's own /job/open seed never creates)
+    # would also satisfy, so a chip frozen at 1 passed as "moved forward".
+    # The real expected value, given exactly this test's own flow (intake
+    # via /job/open with no separate visit, no step-2 symptom recorded,
+    # real-corpus codes/verdict already on file, one hypothesis confirmed
+    # with one linked Fail result) is 2 -- intake and hypotheses both now
+    # read complete, tests sits at in_progress (1/22, which correctly does
+    # not block), and step 2 (no symptom filed in this flow) is the first
+    # real gap left. Asserting the specific number -- not just "!= 7" or
+    # "!= 1" -- is what actually proves R2's fix: that progress is read off
+    # the step criteria alone, with the visit optional.
     flow_after = client.get(f"/api/vehicles/{VIN}/flow").json()
-    check("the job progress chip moves forward off step 7 once it's resolved (R2)",
-          flow_after.get("current", 7) != 7, str(flow_after.get("current")))
+    check("the job progress chip moves forward to the real next gap, step 2, "
+          "once step 7 is resolved -- not stuck at step 1 for want of an open "
+          "visit (R2)",
+          flow_after.get("current") == 2, str(flow_after.get("current")))
 
 
 # --- #8: content starts within 200px of the sticky header at 768 wide
@@ -419,12 +469,25 @@ else:
         if up:
             data = urllib.parse.urlencode(
                 {"technician": "tester", "complaint": "CEL, smells like gas"}).encode()
+            cdp_job_id = None
             try:
                 urllib.request.urlopen(
                     urllib.request.Request(f"http://127.0.0.1:{port}/v/{VIN}/job/open",
                                            data=data, method="POST"), timeout=30)
+                with urllib.request.urlopen(
+                        f"http://127.0.0.1:{port}/api/vehicles/{VIN}/job", timeout=10) as r:
+                    cdp_job_id = json.loads(r.read().decode("utf-8"))["job"]["id"]
+                # N1/N2 (real-browser checks below): a hypothesis to populate
+                # the result sheet's dropdown with, seeded the same real way
+                # (a POST, server-side) rather than faked in the browser.
+                hyp_data = urllib.parse.urlencode(
+                    {"text": "cdp-check hypothesis", "step": "6"}).encode()
+                urllib.request.urlopen(
+                    urllib.request.Request(
+                        f"http://127.0.0.1:{port}/v/{VIN}/job/{cdp_job_id}/hypotheses",
+                        data=hyp_data, method="POST"), timeout=30)
             except Exception as exc:  # noqa: BLE001
-                check("seeding a job on the UX-check server", False, str(exc))
+                check("seeding a job (and a hypothesis) on the UX-check server", False, str(exc))
 
             time.sleep(0.5)
             devtools_port = free_port()
@@ -577,6 +640,112 @@ else:
                          str(out_path_400))
                     if out_path_400.exists():
                         print(f"  wrote {out_path_400} ({out_path_400.stat().st_size} bytes)")
+
+                    # --- N1/N2: the real page, real clicks, same tab/session
+                    #     this file is allowed (no second Edge instance) --
+                    #     step 6's result sheet populates its hypothesis
+                    #     dropdown the instant it opens (no async race to
+                    #     lose), and the step6-status counter is never
+                    #     stale by the time the dialog has actually closed
+                    #     (R3/N2's save-complete signal). --------------------
+                    print("=== same tab: step 6 result sheet, N1 (no-race dropdown) + N2 (counter) ===")
+                    cdp.send("Emulation.setDeviceMetricsOverride", {
+                        "width": 768, "height": 1024, "deviceScaleFactor": 1, "mobile": False,
+                    })
+                    cdp.send("Page.navigate", {"url": f"http://127.0.0.1:{port}/v/{VIN}/job?step=6"})
+
+                    step6_ready = False
+                    deadline6 = time.time() + 8
+                    while time.time() < deadline6:
+                        probe6 = cdp.send("Runtime.evaluate", {
+                            "expression": "JSON.stringify(!!document.querySelector('.result-sheet-trigger'))",
+                            "returnByValue": True,
+                        })
+                        if probe6.get("result", {}).get("value") == "true":
+                            step6_ready = True
+                            break
+                        time.sleep(0.3)
+                    check("step 6 loaded with at least one 'Record result' trigger (job.js ran)",
+                          step6_ready, "no .result-sheet-trigger appeared within 8s")
+
+                    if step6_ready:
+                        # N1: click "Record result" and read the dropdown back
+                        # with NO wait in between -- same tick, no setTimeout,
+                        # no poll. If the dropdown depended on an in-flight
+                        # fetch (the original bug), this would see only the
+                        # placeholder.
+                        n1_probe = cdp.send("Runtime.evaluate", {
+                            "expression": (
+                                "(function(){"
+                                "var btn = document.querySelector('.result-sheet-trigger');"
+                                "btn.click();"
+                                "var sel = document.querySelector('dialog.result-sheet select[name=\"hypothesis_id\"]');"
+                                "if (!sel) return JSON.stringify({ok:false});"
+                                "var opts = Array.prototype.map.call(sel.options, function(o){return {v:o.value, t:o.textContent};});"
+                                "return JSON.stringify({ok:true, opts:opts});"
+                                "})()"
+                            ),
+                            "returnByValue": True,
+                        })
+                        n1_data = json.loads(n1_probe.get("result", {}).get("value", "{}"))
+                        check("Record result opens a sheet with a hypothesis <select> (N1)",
+                              n1_data.get("ok") is True, str(n1_data))
+                        n1_opts = n1_data.get("opts") or []
+                        check("the dropdown already lists the seeded hypothesis the instant it "
+                              "opens -- not just the empty placeholder (N1, the load-bearing check)",
+                              any("cdp-check hypothesis" in (o.get("t") or "") for o in n1_opts),
+                              str(n1_opts))
+
+                        # N2: fill the sheet (real hypothesis picked, so the
+                        # N1 unlinked-save gate doesn't intercept this run)
+                        # and save, then poll tightly for the dialog to
+                        # actually close (which, after the fix, only happens
+                        # once refreshCounters() has resolved) -- the instant
+                        # it's gone, step6-status must already show the real
+                        # count, not the stale "Not started 0/" it carried
+                        # before any result existed.
+                        cdp.send("Runtime.evaluate", {
+                            "expression": (
+                                "(function(){"
+                                "var dlg = document.querySelector('dialog.result-sheet');"
+                                "var fail = dlg.querySelector('input[name=\"result\"][value=\"fail\"]');"
+                                "fail.checked = true; fail.dispatchEvent(new Event('change'));"
+                                "dlg.querySelector('input[name=\"reason\"]').value = 'cdp check leak';"
+                                "var sel = dlg.querySelector('select[name=\"hypothesis_id\"]');"
+                                "for (var i = 0; i < sel.options.length; i++) {"
+                                "  if (sel.options[i].textContent.indexOf('cdp-check hypothesis') !== -1) { sel.selectedIndex = i; break; }"
+                                "}"
+                                "dlg.querySelector('[data-save]').click();"
+                                "return '1';"
+                                "})()"
+                            ),
+                            "returnByValue": True,
+                        })
+                        dialog_gone = False
+                        deadline_save = time.time() + 5
+                        while time.time() < deadline_save:
+                            still_open = cdp.send("Runtime.evaluate", {
+                                "expression": "JSON.stringify(!!document.querySelector('dialog.result-sheet'))",
+                                "returnByValue": True,
+                            })
+                            if still_open.get("result", {}).get("value") == "false":
+                                dialog_gone = True
+                                break
+                            time.sleep(0.15)
+                        check("the result-sheet dialog actually closes after Save (save completed)",
+                              dialog_gone, "dialog.result-sheet still present after 5s")
+                        if dialog_gone:
+                            status_probe = cdp.send("Runtime.evaluate", {
+                                "expression": (
+                                    "(function(){var s = document.querySelector('.step6-status');"
+                                    "return s ? s.textContent : null;})()"
+                                ),
+                                "returnByValue": True,
+                            })
+                            status_text = status_probe.get("result", {}).get("value") or ""
+                            check("step6-status is NOT still the stale pre-save count the instant "
+                                  "the dialog closes -- no reload, no extra wait (N2)",
+                                  "Not started 0/" not in status_text, repr(status_text))
                 finally:
                     cdp.close()
             except Exception as exc:  # noqa: BLE001

@@ -147,7 +147,17 @@
        regression check keys on. #}
     {%- if h.status == 'open' -%}Mark supported first.{% if _unresolved or not _passfail %} {% endif %}{%- endif -%}
     {%- if _unresolved -%}{{ t('unresolved_against') }}
-    {%- elif not _passfail -%}{{ t('needs_test_result') }}{% if h.next_test %} {{ t('next_test_colon') }} {{ h.next_test }}{% endif %}
+    {%- elif not _passfail -%}
+      {#- N4: evidence_for can be non-empty (a code/freeze-frame/observation
+         chip) while still carrying zero test evidence -- say so explicitly
+         instead of a flat "needs a test result" that reads as
+         self-contradictory sitting under a visible evidence chip. -#}
+      {%- if h.evidence_for and h.evidence_for|length -%}
+        {{ t('needs_test_result_with_evidence').format(n=h.evidence_for|length) }}
+      {%- else -%}
+        {{ t('needs_test_result') }}
+      {%- endif -%}
+      {% if h.next_test %} {{ t('next_test_colon') }} {{ h.next_test }}{% endif %}
     {%- endif -%}
   {%- endif -%}
 {% endmacro %}
@@ -161,6 +171,12 @@
 
 {% macro evidence_chip(e, hyp_id, side, cls) %}
   <span class="chip {{ cls }} evidence-chip">
+    {#- N8: free-text evidence (typed into the picker's own label field,
+       never picked from an on-file code/freeze-frame) is stored as
+       kind="observation" -- the one kind with no on-file source behind
+       it. Flagged so it never reads as indistinguishable from a real
+       P0440 freeze-frame citation. -#}
+    {% if e.kind == 'observation' %}<span class="chip-manual-tag" title="Manually entered -- not sourced from the car's own data">manual</span>{% endif %}
     <span class="evidence-chip-label">{{ e.label }}</span>
     <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ hyp_id }}/evidence" class="evidence-remove-form">
       <input type="hidden" name="side" value="{{ side }}">
@@ -467,6 +483,19 @@
 {% if _current_n == 6 %}
 <section class="dossier-section">
   <h2 id="step-6" class="section-h step-title">6. {{ t("tests_inspections") }}</h2>
+  {# N1: the result sheet's hypothesis dropdown used to come from one
+     async GET fired at page-parse time into a closure variable that
+     `buildSheet()` read whenever "Record result" happened to be
+     clicked -- on a heavy dossier page that fetch can still be in
+     flight 1-2s after the page looks interactive, and a tech who opens
+     the sheet inside that window got a silently empty placeholder with
+     Save still clickable. This embeds the same (already-filtered,
+     non-deleted) hypothesis list the fetch would have returned, right
+     in the page job.js already has, so the sheet has real data the
+     instant it opens -- same posture as tools.html's
+     #tools-catalogue-fixture. job.js's own fetch still runs, now only
+     as a background refresh for a session left open across edits. #}
+  <script type="application/json" id="job-hyp-data">{{ (job.hypotheses|default([]))|rejectattr('deleted')|list|tojson }}</script>
   {{ step_oneliner(6) }}
   {# fix #4's own honest-count line (distinct from the flow stepper's
      done/current/blocked dot): real totals straight off each open-work

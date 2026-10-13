@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en" data-marque="{{ marque|default('alfa') }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark light">
+<title>{% block title %}Tell CUORE{% endblock %}</title>
+{# Minimal layout on purpose: no desktop tabs, no hero, no _vbar.html --
+   this is a phone-first page, not a shrunk-down desktop one. Reuses only
+   cuore.css's colour/spacing tokens (marque accent, true-black ground),
+   not its desktop component styles. #}
+<link rel="stylesheet" href="{{ static_url('cuore.css') }}">
+<link rel="stylesheet" href="{{ static_url('m.css') }}">
+</head>
+<body class="m-body">
+
+<header class="m-top">
+  <a class="m-brand" href="/m/{{ vin }}">Tell CUORE</a>
+</header>
+
+<main class="m-main">
+{% if error is defined and error %}
+  <p class="m-flash m-flash-error">{{ error }}</p>
+{% endif %}
+{% if saved is defined and saved %}
+  <p class="m-flash m-flash-ok" id="saved">Saved.</p>
+{% endif %}
+{% block content %}{% endblock %}
+</main>
+
+<footer class="m-footer">
+  Everything recorded here is an ATTESTED report -- who said it, when -- at
+  confidence &quot;reported&quot;. It is never a car measurement and never
+  counts as evidence on its own.
+</footer>
+
+<nav class="m-bottomnav" aria-label="Tell CUORE">
+  <a href="/m/{{ vin }}" class="{{ 'on' if active == 'add' }}">Add</a>
+  <a href="/m/{{ vin }}/messages" class="{{ 'on' if active == 'messages' }}">Messages</a>
+  <a href="/m/{{ vin }}/history" class="{{ 'on' if active == 'history' }}">History</a>
+</nav>
+
+</body>
+</html>

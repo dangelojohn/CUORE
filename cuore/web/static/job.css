@@ -139,6 +139,17 @@
 .job-page .result-chip-inconclusive { background: #3a3010; color: #e0b84a; }
 .job-page .result-chip-not_possible { background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac); }
 
+/* N1: a Fail/Pass result that saved without a hypothesis chosen (either
+ * the tech explicitly saved unlinked, or there was nothing open to link
+ * to) must never look identical to a correctly-linked save -- this chip
+ * sits right next to .result-chip and says so out loud. */
+.job-page .result-chip-unlinked {
+  margin-left: 4px; padding: 1px 7px; border-radius: 999px;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .03em;
+  background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac);
+}
+
 /* ---------- fix #1/#2/#11/#12/#13: hypothesis cards --------------------- */
 
 .job-page .hyp-card { position: relative; margin-bottom: 14px; }
@@ -162,6 +173,14 @@
 
 .job-page .evidence-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0; }
 .job-page .evidence-chip { display: inline-flex; align-items: center; gap: 4px; }
+/* N8: free-text ("observation") evidence is typed by a tech, not sourced
+ * from the car's own data -- a small tag so it never reads as a real
+ * code/freeze-frame citation at a glance. */
+.job-page .chip-manual-tag {
+  font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; padding: 1px 5px; border-radius: 999px;
+  background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac);
+}
 .job-page .evidence-remove-form { display: inline; }
 .job-page .chip-remove {
   border: none; background: transparent; cursor: pointer;
@@ -261,6 +280,9 @@
 .result-sheet input[name="supports"] { width: 24px; height: 24px; margin: 0; }
 .result-sheet .spec-line { margin: -4px 0 8px; }
 .result-sheet .supports-warning { color: #e0b84a; margin: 4px 0; }
+/* N1: shown when hypotheses are open but none is chosen -- the sheet
+ * must say so before Save, never save unlinked silently. */
+.result-sheet .unlinked-warning { color: #e0b84a; margin: 4px 0; }
 .result-sheet .reason-required-mark { color: #e0574a; font-weight: 400; }
 .result-sheet label:has(input[name="supports"]) {
   display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-right: 10px;

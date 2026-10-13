@@ -26,7 +26,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..api.deps import require_token
-from ..services import tests_bridge
+from ..services import shop_bridge, tests_bridge
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
 #: Server-rendered page: same posture as ``cuore.web.routes.router`` and
@@ -41,6 +41,11 @@ def tests_page(request: Request, vin: str) -> HTMLResponse:
     result form."""
     dossier = _dossier(vin)
     bar = _vehicle_bar(vin, dossier)
+    # F2 (MECHANIC_REVIEW_3): _vehicle_bar falls back to "(unnamed vehicle)"
+    # straight off dossier.identity; shop_bridge.resolve_vehicle_name adds
+    # the corpus name / WMI decode fallback bench_routes.py already relies
+    # on, so reuse it here rather than let this surface regress.
+    bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
     view = tests_bridge.build_tests_view(vin)
     response = _page(request, "tests.html", vin=vin, bar=bar, tab="tests", view=view)
     _set_active_vehicle(response, vin)

@@ -34,6 +34,7 @@ from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from . import cache, mes_bridge
 from .errors import BadRequest
 from ..live import store as live_store
+from ..live import owner_events as owner_events_store
 
 from mes import code_feel as code_feel_mod  # noqa: E402
 from mes import service as service_mod  # noqa: E402
@@ -64,12 +65,13 @@ _LANE_LABELS = {
     "notes": "Technician notes",
     "work": "Work performed",
     "conditions": "Conditions at code-set",
+    "owner_events": "Tell CUORE (owner-reported)",
 }
 _LANE_KIND = {
     "mil": "points", "evap": "bars", "network": "bars", "body": "bars",
     "chassis": "bars", "engine_other": "bars", "clears": "points",
     "symptoms": "points", "notes": "points", "work": "points",
-    "conditions": "points",
+    "conditions": "points", "owner_events": "points",
 }
 _FAMILY_DISPLAY = {"evap": "EVAP", "network": "network", "body": "body",
                   "chassis": "chassis", "engine_other": "engine_other"}
@@ -485,6 +487,38 @@ def _conditions_lane(vin: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     return lane, warnings
 
 
+def _owner_events_lane(vin: str) -> dict[str, Any]:
+    """"Tell CUORE" reports (``cuore.live.owner_events``), one additive lane.
+
+    Reads that store directly, not ``owner_events_bridge.list_events`` --
+    the bridge also folds in ``mes.symptoms`` rows for the one delegated
+    "noise/smell/vibration" kind, and those already render through
+    :func:`_symptoms_lane` above; including them here too would duplicate
+    every one of them on the timeline. Every event is ATTESTED, never a
+    car measurement -- labelled accordingly, same as the symptoms lane.
+    """
+    events = []
+    try:
+        rows = owner_events_store.load(vin)
+    except Exception:  # noqa: BLE001 -- a timeline page must still render
+        rows = []
+    for r in rows:
+        kind = r.get("kind") or ""
+        label = kind.replace("_", " ")
+        try:
+            kd = owner_events_store.kind_def(r.get("category", ""), kind)
+            label = kd["label"]
+        except ValueError:
+            pass
+        events.append({
+            "t": r.get("at"), "t_end": None, "odo": r.get("odometer_km"),
+            "label": label, "detail": r.get("note") or label,
+            "severity": "reported", "href": None,
+        })
+    return {"id": "owner_events", "label": _LANE_LABELS["owner_events"],
+           "kind": _LANE_KIND["owner_events"], "events": events}
+
+
 # --- the one entry point ------------------------------------------------------
 
 
@@ -517,6 +551,7 @@ def build_timeline(vin: str) -> dict[str, Any]:
         _symptoms_lane(all_symptoms),
         _notes_lane(vin),
         _work_lane(vin),
+        _owner_events_lane(vin),
     ]
     conditions_lane, fuel_warnings = _conditions_lane(vin)
     lanes.append(conditions_lane)

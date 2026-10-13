@@ -28,6 +28,7 @@ Run:
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -43,6 +44,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore.app import create_app  # noqa: E402
 from cuore.live import checklists as checklist_store  # noqa: E402
+from cuore.services import cache  # noqa: E402
 
 from mes import mechanic_tests  # noqa: E402
 
@@ -186,6 +188,50 @@ for script in ("check_jobs_rules.py", "check_live_dashboard_page.py"):
     ok = result.returncode == 0
     check(f"{script} still passes", ok,
          (result.stdout[-1500:] + result.stderr[-1500:]) if not ok else "")
+
+
+# ===========================================================================
+# 5. MECHANIC_REVIEW_3_TESTS_SYSTEMS_LIVE_2026-10-13.md regressions
+# ===========================================================================
+
+print("=== F2: vehicle name is never (unnamed vehicle), cold server ===")
+cache.clear()
+cold_client = TestClient(create_app())
+cold_page = cold_client.get(f"/v/{VIN}/tests")
+check("cold /tests responds 200", cold_page.status_code == 200, str(cold_page.status_code))
+check("cold /tests never shows (unnamed vehicle)",
+     "(unnamed vehicle)" not in cold_page.text)
+check("cold /tests names the Stelvio", "Stelvio" in cold_page.text, cold_page.text[:4000])
+
+print("=== F3: Liveboard Snapshot refuses honestly on zero live channels ===")
+lb_js = (ROOT / "cuore" / "web" / "static" / "liveboard.js").read_text(encoding="utf-8")
+check("liveboard.js guards an empty values dict before POSTing a snapshot",
+     "Object.keys(this.values).length" in lb_js)
+check("liveboard.js's empty-snapshot refusal matches the map's own wording",
+     "No live readings to snapshot yet." in lb_js)
+
+print("=== F4: readability floor -- tests.css never renders text under 12px ===")
+tests_css = (ROOT / "cuore" / "web" / "static" / "tests.css").read_text(encoding="utf-8")
+small_fonts = [m for m in re.findall(r"font-size:\s*([0-9.]+)px", tests_css) if float(m) < 12]
+check("no font-size under 12px in tests.css", not small_fonts, str(small_fonts))
+
+print("=== F5: .ts-filter-chip is a >=44px tap target ===")
+chip_rule = re.search(r"\.ts-filter-chip\s*\{[^}]*\}", tests_css)
+check("tests.css has a .ts-filter-chip rule", chip_rule is not None)
+if chip_rule:
+    min_height = re.search(r"min-height:\s*([0-9.]+)px", chip_rule.group(0))
+    check("'.ts-filter-chip' min-height is >= 44px",
+         min_height is not None and float(min_height.group(1)) >= 44,
+         chip_rule.group(0))
+
+print("=== F6 (locked in): a hypothesis_id test result lands on /job?step=7 ===")
+step7 = client.get(f"/v/{VIN}/job?step=7")
+check("GET /v/{vin}/job?step=7 responds 200", step7.status_code == 200, str(step7.status_code))
+evid_label = f"{mechanic_tests.test(test_id)['name']}: fail"
+check("step 7 shows the test result's own evidence chip label", evid_label in step7.text,
+     f"looked for {evid_label!r}")
+check("step 7 shows the linked evidence on the hypothesis card",
+     f"test:{test_id}" in step7.text)
 
 
 # ===========================================================================

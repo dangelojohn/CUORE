@@ -59,7 +59,7 @@ function Start-Cuore {
         Move-Item -Force $Log "$Log.old"
     }
     # cmd /c so stdout and stderr land in the log; hidden window
-    $cmd = "`"$Python`" -m cuore --profile bench --port $Port >> `"$Log`" 2>&1"
+    $cmd = "`"$Python`" -m cuore --profile bench --host 0.0.0.0 --port $Port >> `"$Log`" 2>&1"
     # the extra outer quotes survive cmd's strip-first-and-last-quote rule
     Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$cmd`"" -WorkingDirectory $Repo -WindowStyle Hidden
     Write-KeepLog "started cuore"

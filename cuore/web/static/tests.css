@@ -29,7 +29,9 @@
   display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 0;
 }
 .ts-filter-chip {
-  min-height: 36px; padding: 4px 12px; border-radius: 999px;
+  /* F5 (MECHANIC_REVIEW_3): the legend-documented tap targets must be
+     >=44px tall, not just wide. */
+  min-height: 44px; padding: 4px 12px; border-radius: 999px;
   border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-2);
   font-size: 13px; cursor: pointer;
 }
@@ -48,7 +50,7 @@
 }
 .ts-row-name { font-weight: 650; color: var(--ink); flex: 1 1 auto; min-width: 0; }
 .ts-cat-chip, .ts-state-chip {
-  font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+  font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
   padding: 2px 8px; border-radius: var(--radius); background: var(--surface-2);
   border: 1px solid var(--rule); color: var(--ink-3);
 }
@@ -94,7 +96,7 @@
 }
 .ts-criteria-wrap { overflow-x: auto; }
 .ts-conf-chip {
-  font-size: 10.5px; letter-spacing: .04em; padding: 1px 7px; border-radius: var(--radius);
+  font-size: 12px; letter-spacing: .04em; padding: 1px 7px; border-radius: var(--radius);
   border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-3);
 }
 .ts-conf-confirmed    { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }

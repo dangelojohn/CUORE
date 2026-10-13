@@ -39,6 +39,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
+from ..services import shop_bridge
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
 #: Server-rendered page: same posture as ``cuore.web.routes.router`` and
@@ -52,6 +53,10 @@ def liveboard_page(request: Request, vin: str) -> HTMLResponse:
     of digital channel readouts, a Problems strip up top."""
     dossier = _dossier(vin)
     bar = _vehicle_bar(vin, dossier)
+    # F2 (MECHANIC_REVIEW_3): same "(unnamed vehicle)" regression as
+    # tests_routes.py/system_routes.py -- reuse the resolver bench_routes.py
+    # already relies on rather than the bare dossier.identity fallback.
+    bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
     response = _page(request, "liveboard.html", vin=vin, bar=bar)
     _set_active_vehicle(response, vin)
     return response

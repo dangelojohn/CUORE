@@ -15,6 +15,7 @@ Run:
 from __future__ import annotations
 
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -28,8 +29,8 @@ sys.path.insert(0, str(ROOT))
 from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore.app import create_app  # noqa: E402
-from cuore.services import systems_bridge  # noqa: E402
-from cuore.web import system_routes, systems_routes  # noqa: E402
+from cuore.services import cache, systems_bridge  # noqa: E402
+from cuore.web import system_routes, systems_routes, systems_svg  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio -- real corpus, chronic P0455/P0440/P0456
 
@@ -109,6 +110,67 @@ for key in all_keys:
         if "depends on" in section.lower():
             violations.append(key)
 check("no \"depends on\" wording inside any hot-only-edges block", not violations, str(violations))
+
+print("=== MECHANIC_REVIEW_3_TESTS_SYSTEMS_LIVE_2026-10-13.md regressions ===")
+
+print("--- F2: vehicle name is never (unnamed vehicle), cold server ---")
+cache.clear()
+cold_client = TestClient(_app_with_routers())
+cold_detail = cold_client.get(f"/v/{VIN}/systems/evap")
+check("cold /systems/evap responds 200", cold_detail.status_code == 200, str(cold_detail.status_code))
+check("cold /systems/evap never shows (unnamed vehicle)",
+     "(unnamed vehicle)" not in cold_detail.text)
+check("cold /systems/evap names the Stelvio", "Stelvio" in cold_detail.text)
+
+print("--- F2: visiting /tests first cannot poison the map's vehicle name ---")
+poison_client = TestClient(create_app())
+poison_client.get(f"/v/{VIN}/tests")
+map_after = poison_client.get(f"/v/{VIN}/systems")
+check("map (/systems) still responds 200 after /tests", map_after.status_code == 200,
+     str(map_after.status_code))
+check("map (/systems) still names the Stelvio after /tests was visited first",
+     "Stelvio" in map_after.text and "(unnamed vehicle)" not in map_after.text)
+
+print("--- F1: every system's 'Record inspection' href lands on a real id=\"el-*\" ---")
+el_id_re = re.compile(r'id="(el-[^"]+)"')
+href_re = re.compile(r'href="(/v/[^"]+/electrical\?system=[^"#]*#el-[^"]+)"')
+electrical_page_cache: dict[str, set] = {}
+dead_links: list[str] = []
+checked_links = 0
+for key in all_keys:
+    resp = client.get(f"/v/{VIN}/systems/{key}")
+    if resp.status_code != 200:
+        continue
+    for href in href_re.findall(resp.text):
+        checked_links += 1
+        path, _, frag = href.partition("#")
+        anchor = "el-" + frag[len("el-"):] if frag.startswith("el-") else frag
+        if path not in electrical_page_cache:
+            dest = client.get(path)
+            electrical_page_cache[path] = set(el_id_re.findall(dest.text)) if dest.status_code == 200 else set()
+        if anchor not in electrical_page_cache[path]:
+            dead_links.append(f"{key}: {href}")
+check("at least one 'Record inspection' link was found to check", checked_links > 0, str(checked_links))
+check("every 'Record inspection' href lands on a page with a matching id=\"el-*\"",
+     not dead_links, str(dead_links))
+
+print("--- F5: the map's own SVG node links are >=44px tappable ---")
+demo_nodes = [{"key": "evap", "label": "EVAP", "status": "active", "code_count": 1}]
+svg = systems_svg.render(demo_nodes, [], vin=VIN)
+hit_rects = re.findall(r'<rect x="(-?[0-9.]+)" y="(-?[0-9.]+)" width="([0-9.]+)" height="([0-9.]+)" fill="transparent"/>', svg)
+check("the node <a> wraps a transparent hit rect", len(hit_rects) >= 1, svg[:400])
+if hit_rects:
+    _, _, w, h = hit_rects[0]
+    check("the node hit rect is >=44px on both axes",
+         float(w) >= 44 and float(h) >= 44, f"{w}x{h}")
+
+print("--- F7: the dependency graph has a horizontal-scroll hint, no page-level overflow ---")
+evap_page = client.get(f"/v/{VIN}/systems/evap")  # sanity: system detail pages are unaffected
+map_resp = client.get(f"/v/{VIN}/systems")
+check("map page responds 200", map_resp.status_code == 200, str(map_resp.status_code))
+check("map page carries a scroll hint for the graph wrap", "sys-graph-hint" in map_resp.text)
+check("the graph wrap stays scoped to overflow-x (never page-level overflow)",
+     "overflow-x" in (ROOT / "cuore" / "web" / "static" / "systems.css").read_text(encoding="utf-8"))
 
 print()
 if failures:

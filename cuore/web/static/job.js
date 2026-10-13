@@ -280,7 +280,21 @@
     if (!vin) return;
 
     var fromHyp = new URLSearchParams(location.search).get("hypothesis") || "";
+    // N1: seed `hyps` synchronously from the server-rendered JSON block
+    // (job.html's own #job-hyp-data, already filtered to non-deleted
+    // hypotheses) so it is never empty-by-timing the instant "Record
+    // result" is clicked -- no waiting on a network round trip first.
+    // The fetch below still runs, but only to refresh `hyps` in the
+    // background (e.g. a hypothesis added from another tab/session
+    // while this page has sat open); it can never be the *only* source.
     var hyps = [];
+    var hypDataEl = document.getElementById("job-hyp-data");
+    if (hypDataEl) {
+      try {
+        var seeded = JSON.parse(hypDataEl.textContent || "[]");
+        if (Array.isArray(seeded)) hyps = seeded.filter(function (h) { return !h.deleted; });
+      } catch (e) { /* malformed embed: fall through, fetch below still refreshes */ }
+    }
     fetch("/api/vehicles/" + encodeURIComponent(vin) + "/job", { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
@@ -365,7 +379,8 @@
           return '<option value="' + h.id + '"' + (h.id === preselect ? " selected" : "") + '>'
             + h.text.replace(/</g, "&lt;") + '</option>';
         }).join("") +
-        '</select></div>' +
+        '</select>' +
+        '<p class="small unlinked-warning" hidden></p></div>' +
         '<div class="field"><label><input type="radio" name="supports" value="for" checked> for</label> ' +
         '<label><input type="radio" name="supports" value="against"> against</label>' +
         '<p class="small supports-warning" hidden></p></div>' +
@@ -406,6 +421,24 @@
         });
       });
 
+      // N1: saving a result with a hypothesis open but *not* chosen must
+      // never be silent -- the sheet has to say so before Save, and the
+      // tech has to tap again to go ahead unlinked (same "tap again"
+      // posture R7's own confirm modal already uses elsewhere on this
+      // page, not a new pattern). Picking a hypothesis after the warning
+      // shows clears the ack, same as the supports-warning above.
+      var unlinkAck = false;
+      var hypSelEl = dlg.querySelector('select[name="hypothesis_id"]');
+      if (hypSelEl) {
+        hypSelEl.addEventListener("change", function () {
+          unlinkAck = false;
+          var warn = dlg.querySelector(".unlinked-warning");
+          if (warn) warn.hidden = true;
+          var saveBtn = dlg.querySelector("[data-save]");
+          if (saveBtn) saveBtn.textContent = "Save result";
+        });
+      }
+
       dlg.querySelector("[data-cancel]").addEventListener("click", function () { dlg.close(); dlg.remove(); });
       dlg.querySelector("[data-save]").addEventListener("click", function () {
         var result = (dlg.querySelector('input[name="result"]:checked') || {}).value;
@@ -415,12 +448,25 @@
           showToast("A reason is required for " + RESULT_LABEL[result].toLowerCase() + ".", "err");
           return;
         }
+        var hypChosen = dlg.querySelector('select[name="hypothesis_id"]').value || null;
+        if (!hypChosen && hyps.length > 0 && !unlinkAck) {
+          var unlinkWarn = dlg.querySelector(".unlinked-warning");
+          if (unlinkWarn) {
+            unlinkWarn.hidden = false;
+            unlinkWarn.textContent = hyps.length + " open hypothesis" + (hyps.length === 1 ? "" : "es")
+              + " on this job, but none chosen -- this result won't support or refute anything. Tap Save again to save it unlinked.";
+          }
+          var saveBtn = dlg.querySelector("[data-save]");
+          if (saveBtn) saveBtn.textContent = "Save unlinked";
+          unlinkAck = true;
+          return;
+        }
         var body = {
           result: result,
           reason: reasonVal,
           value: dlg.querySelector('input[name="value"]').value || null,
           unit: dlg.querySelector('input[name="unit"]').value,
-          hypothesis_id: dlg.querySelector('select[name="hypothesis_id"]').value || null,
+          hypothesis_id: hypChosen,
           supports: (dlg.querySelector('input[name="supports"]:checked') || {}).value || "for",
         };
         if (body.value !== null) body.value = parseFloat(body.value);
@@ -432,7 +478,16 @@
           .then(function (r) { if (!r.ok) throw new Error("save failed"); return r.json(); })
           .then(function (entry) {
             applyResultToRow(li, stepId, result, entry);
-            refreshCounters(vin, stepId);
+            // N2: wait for the counters to actually refresh before
+            // declaring the save complete (toast + close) -- previously
+            // this fired-and-forgot, so the row above could already say
+            // "done" while the step6-status line above it still read a
+            // stale "Not started 0/22" for a visible window.
+            var statusEl = qs(".step6-status", section);
+            if (statusEl) statusEl.textContent = "Updating…";
+            return refreshCounters(vin, stepId);
+          })
+          .then(function () {
             showToast("Saved.", "ok");
             dlg.close(); dlg.remove();
           })
@@ -448,6 +503,8 @@
     function applyResultToRow(li, stepId, result, entry) {
       var existing = li.querySelector(".result-chip");
       if (existing) existing.remove();
+      var existingUnlinked = li.querySelector(".result-chip-unlinked");
+      if (existingUnlinked) existingUnlinked.remove();
       var chip = document.createElement("span");
       chip.className = "result-chip result-chip-" + result;
       var label = RESULT_LABEL[result];
@@ -457,6 +514,17 @@
       chip.textContent = label;
       var textEl = li.querySelector(".step-text");
       if (textEl) textEl.appendChild(chip);
+
+      // N1: a pass/fail result that saved with no hypothesis linked --
+      // whether because the tech explicitly saved it unlinked, or
+      // because there was nothing open to link to -- must say so on the
+      // row itself, never look identical to a correctly-linked save.
+      if (textEl && (result === "pass" || result === "fail") && !(entry && entry.hypothesis_id) && hyps.length > 0) {
+        var unlinkedChip = document.createElement("span");
+        unlinkedChip.className = "result-chip-unlinked";
+        unlinkedChip.textContent = "not linked";
+        textEl.appendChild(unlinkedChip);
+      }
 
       var done = !entry || entry.done !== false;
       li.classList.toggle("is-done", done);
@@ -476,8 +544,13 @@
     // "Not started/In progress/Complete N/M" line both go stale the moment
     // a result is saved -- re-fetch the dossier view (the same data these
     // numbers are rendered from) and patch both from it, no reload.
+    // N2: returns the fetch's own promise (previously fire-and-forget)
+    // so the caller can chain on it and only declare the save "complete"
+    // (toast + dialog close) once this has actually resolved, instead of
+    // the row and the counter above it visibly disagreeing for however
+    // long this fetch takes.
     function refreshCounters(vin, stepId) {
-      fetch("/api/vehicles/" + encodeURIComponent(vin) + "/view", { credentials: "same-origin" })
+      return fetch("/api/vehicles/" + encodeURIComponent(vin) + "/view", { credentials: "same-origin" })
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (data) {
           if (!data || !data.open_work) return;

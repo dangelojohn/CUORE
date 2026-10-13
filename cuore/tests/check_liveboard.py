@@ -27,6 +27,7 @@ Run:
 from __future__ import annotations
 
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -42,7 +43,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore import bootstrap  # noqa: E402,F401  -- side effect: mes on sys.path
 from cuore.app import create_app  # noqa: E402
-from cuore.services import liveboard_bridge  # noqa: E402
+from cuore.services import cache, liveboard_bridge  # noqa: E402
 
 from mes import jobs as jobs_mod  # noqa: E402
 
@@ -165,6 +166,40 @@ verify_refs = [r for r in evap_now["evidence_for"]
 check("in-window fuel level adds a verification-possible ref to the EVAP hypothesis",
      len(verify_refs) == 1, repr(evap_now))
 check("fuel snapshot-to-job ran without error", isinstance(result3, dict))
+
+
+# --- 8. MECHANIC_REVIEW_3_TESTS_SYSTEMS_LIVE_2026-10-13.md regressions -----
+
+print("--- F2: vehicle name is never (unnamed vehicle), cold server ---")
+cache.clear()
+cold_client = TestClient(create_app())
+cold_page = cold_client.get(f"/v/{VIN}/liveboard")
+check("cold /liveboard responds 200", cold_page.status_code == 200)
+check("cold /liveboard never shows (unnamed vehicle)",
+     "(unnamed vehicle)" not in cold_page.text)
+check("cold /liveboard names the Stelvio", "Stelvio" in cold_page.text)
+
+print("--- F2: visiting /tests first cannot poison /liveboard's vehicle name ---")
+poison_client = TestClient(create_app())
+poison_client.get(f"/v/{VIN}/tests")
+lb_after = poison_client.get(f"/v/{VIN}/liveboard")
+check("liveboard still names the Stelvio after /tests was visited first",
+     "Stelvio" in lb_after.text and "(unnamed vehicle)" not in lb_after.text)
+
+print("--- F3: Snapshot refuses honestly on zero live channels (same as the map) ---")
+lb_js = (ROOT / "cuore" / "web" / "static" / "liveboard.js").read_text(encoding="utf-8")
+map_js = (ROOT / "cuore" / "web" / "static" / "systems_map.js").read_text(encoding="utf-8")
+check("liveboard.js's snapshot() guards against an empty this.values before POSTing",
+     re.search(r"snapshot = function[^{]*\{\s*(?:.*\n)*?.*Object\.keys\(this\.values\)\.length",
+              lb_js) is not None)
+check("the empty-snapshot refusal text matches the Systems map's own wording",
+     "No live readings to snapshot yet." in lb_js
+     and "No live readings to snapshot yet." in map_js)
+
+print("--- F4: readability floor -- liveboard.css never renders text under 12px ---")
+lb_css = (ROOT / "cuore" / "web" / "static" / "liveboard.css").read_text(encoding="utf-8")
+small_fonts = [m for m in re.findall(r"font-size:\s*([0-9.]+)px", lb_css) if float(m) < 12]
+check("no font-size under 12px in liveboard.css", not small_fonts, str(small_fonts))
 
 
 # --- summary -----------------------------------------------------------------

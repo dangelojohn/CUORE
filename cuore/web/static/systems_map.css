@@ -148,7 +148,7 @@
   border: 1px solid var(--ink-3);
   background: var(--surface-2);
   color: var(--ink);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -230,7 +230,7 @@ a[data-system].smap-live-none g {
   background: var(--sev-returned);
   color: var(--surface);
   font-family: var(--mono), monospace;
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   padding: 3px 6px;
@@ -265,6 +265,15 @@ a[data-system].smap-live-none g {
 .smap-toast.is-error {
   border-color: var(--sev-returned);
   color: var(--sev-returned);
+}
+
+/* F6 (MECHANIC_REVIEW_3): persistent (no auto-dismiss) notice shown when
+   /api/systems/{vin}/state fails or is slow -- the Live toggle, Snapshot
+   button and session slider are genuinely missing while this is visible. */
+.smap-fetch-notice {
+  margin: 0 0 8px; padding: 6px 10px; border-radius: var(--radius);
+  background: var(--sev-chronic-bg); border: 1px solid var(--sev-chronic);
+  color: var(--sev-chronic); font-size: 13px;
 }
 
 @media (max-width: 710px) {

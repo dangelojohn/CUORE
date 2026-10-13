@@ -60,7 +60,7 @@ def _register(templates: Any) -> None:
 # ``routes``'s; registering the same global twice on one object is harmless.
 for _module_name in (
     "routes", "service_routes", "drivetrain_routes", "timeline_routes",
-    "labels_routes", "media_routes",
+    "labels_routes", "media_routes", "owner_routes",
 ):
     try:
         _mod = importlib.import_module(f".{_module_name}", __package__)

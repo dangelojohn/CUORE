@@ -233,6 +233,28 @@
     window.setTimeout(function () { el.remove(); }, 5000);
   }
 
+  // F6 (MECHANIC_REVIEW_3): a failed/slow /api/systems/{vin}/state fetch
+  // used to silently drop the Live toggle, Snapshot button and session
+  // slider with no indication anything was missing. This note is
+  // persistent (no auto-dismiss) because, unlike a toast, the thing it is
+  // reporting on -- missing controls -- stays missing until the page is
+  // reloaded.
+  function showMapNotice(wrap, msg) {
+    var el = wrap.parentNode.querySelector(".smap-fetch-notice");
+    if (!el) {
+      el = document.createElement("div");
+      el.className = "smap-fetch-notice";
+      wrap.parentNode.insertBefore(el, wrap);
+    }
+    el.textContent = msg;
+    el.hidden = false;
+  }
+
+  function clearMapNotice(wrap) {
+    var el = wrap.parentNode.querySelector(".smap-fetch-notice");
+    if (el) el.hidden = true;
+  }
+
   function setupLiveOverlay(wrap, vin, state) {
     var timer = null;
     var on = false;
@@ -412,10 +434,37 @@
     if (!vin || !wrap) return;
     injectCss();
 
+    // F7 (MECHANIC_REVIEW_3): the graph's own overflow-x:auto wrap (never
+    // page-level scroll) needs a visible hint when it is actually wider
+    // than its box -- at 400px, EVAP/ADAS nodes can sit off-screen with no
+    // scrollbar and nothing else on screen saying there is more to the
+    // right. Re-checked on resize since this depends on viewport width.
+    var hint = document.querySelector(".sys-graph-hint");
+    var updateScrollHint = function () {
+      if (!hint) return;
+      hint.hidden = wrap.scrollWidth <= wrap.clientWidth + 1;
+    };
+    updateScrollHint();
+    window.addEventListener("resize", updateScrollHint);
+
+    // F6: a request still in flight after 3s gets the same honest note a
+    // failure does -- nothing on screen should let "still loading" and
+    // "failed" look identical to a mechanic waiting on the controls.
+    var settled = false;
+    var slowTimer = window.setTimeout(function () {
+      if (!settled) showMapNotice(wrap, "Live overlay unavailable -- still waiting on the server.");
+    }, 3000);
+
     fetch("/api/systems/" + encodeURIComponent(vin) + "/state")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (state) {
-        if (!state) return;
+        settled = true;
+        window.clearTimeout(slowTimer);
+        if (!state) {
+          showMapNotice(wrap, "Live overlay unavailable.");
+          return;
+        }
+        clearMapNotice(wrap);
         var root = wrap;
         paintAll(root, state, null);
         var overlay = buildOverlay(wrap);
@@ -442,7 +491,14 @@
           });
         }
       })
-      .catch(function () { /* the map still works unpainted -- never break the page */ });
+      .catch(function () {
+        // F6: the map still works unpainted -- never break the page -- but
+        // the mechanic must be told the Live/Snapshot/slider controls are
+        // missing rather than just finding them absent.
+        settled = true;
+        window.clearTimeout(slowTimer);
+        showMapNotice(wrap, "Live overlay unavailable.");
+      });
   }
 
   if (document.readyState === "loading") {

@@ -1,0 +1,17 @@
+{% extends "m_base.html" %}
+{% block title %}Tell CUORE{% endblock %}
+{% block content %}
+<h1 class="m-h1">What should CUORE know?</h1>
+<p class="m-sub">Pick what you want to tell CUORE about this car.</p>
+<div class="m-tiles">
+  {% for c in categories %}
+  <a class="m-tile" href="/m/{{ vin }}/add/{{ c.key }}">
+    <span class="m-tile-label">{{ c.label }}</span>
+    <span class="m-tile-count">{{ c.kind_count }} kinds</span>
+  </a>
+  {% endfor %}
+</div>
+<p class="m-links">
+  <a href="/m/{{ vin }}/qr">Open this page on a phone (QR / LAN link)</a>
+</p>
+{% endblock %}

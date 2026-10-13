@@ -1,0 +1,31 @@
+{% extends "m_base.html" %}
+{% block title %}History -- Tell CUORE{% endblock %}
+{% block content %}
+<h1 class="m-h1">History</h1>
+<p class="m-sub">Everything reported about this car, newest first. Every row is a reported claim, not a measurement.</p>
+
+{% if not events %}
+<p class="m-empty">Nothing reported yet.</p>
+{% endif %}
+
+{% for e in events %}
+<div class="m-event">
+  <p class="m-event-head">
+    <strong>{{ e.kind_label }}</strong>
+    <span class="m-event-cat">{{ e.category_label }}</span>
+  </p>
+  <p class="m-event-meta">
+    {{ e.at }} &middot; by {{ e.by.role }}{% if e.by.name %} ({{ e.by.name }}){% endif %}
+    &middot; <span class="m-reported-badge">reported</span>
+  </p>
+  {% if e.fields %}
+  <ul class="m-event-fields">
+    {% for k, v in e.fields.items() %}
+    <li>{{ k|replace('_',' ') }}: {{ v }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if e.note %}<p class="m-event-note">{{ e.note }}</p>{% endif %}
+</div>
+{% endfor %}
+{% endblock %}

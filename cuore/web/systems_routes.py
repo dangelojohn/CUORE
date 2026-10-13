@@ -48,7 +48,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
-from ..services import known_good_bridge, parts_bridge
+from ..services import known_good_bridge, parts_bridge, shop_bridge
 from . import systems_svg
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 from .routes import templates as _shared_templates
@@ -372,7 +372,15 @@ def systems_page(request: Request, vin: str, all: bool = False) -> HTMLResponse:
     dossier = _dossier(vin)
     view = _build_view(vin, show_all=all)
     svg = systems_svg.render(view["nodes"], view["edges"], vin=vin)
-    response = _page(request, "systems.html", vin=vin, bar=_vehicle_bar(vin, dossier),
+    bar = _vehicle_bar(vin, dossier)
+    # F2 (MECHANIC_REVIEW_3): _vehicle_bar's bare dossier.identity fallback
+    # can regress to "(unnamed vehicle)" depending on request order (shared
+    # workup cache across surfaces); resolve_vehicle_name is order-independent
+    # (corpus name, then identity, then WMI decode, then the VIN itself) and
+    # is the same resolver bench_routes.py already relies on -- never trust
+    # the cached dossier's own identity.vehicle for the hero name here.
+    bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
+    response = _page(request, "systems.html", vin=vin, bar=bar,
                      tab="systems", view=view, svg=svg)
     _set_active_vehicle(response, vin)
     return response

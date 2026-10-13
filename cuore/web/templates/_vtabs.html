@@ -30,7 +30,7 @@
    /v/{vin}/dossier) drops into More. Live board was promoted out of More
    and into this visible row (after Codes) per the 2026-10-08 UX pass --
    six tabs now stay visible on a phone-width strip. #}
-{% set _visible = ("bench", "job", "codes", "liveboard", "tests", "systems", "report") %}
+{% set _visible = ("bench", "job", "codes", "liveboard", "tests", "systems", "report", "mobile") %}
 {% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "parts", "media",
                  "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard") %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
@@ -64,6 +64,7 @@
   {{ vtab("tests", "/v/" + bar.vin + "/tests", _lbl("tests", "Tests")) }}
   {{ vtab("systems", "/v/" + bar.vin + "/systems", _lbl("systems", "Systems")) }}
   {{ vtab("report", "/v/" + bar.vin + "/report", _lbl("report", "Report")) }}
+  {{ vtab("mobile", "/m/" + bar.vin, _lbl("mobile", "Mobile")) }}
 
   <details class="vmore-tab"{% if flow_tab_key in _more %} open{% endif %}>
     <summary aria-label="{{ _lbl('more_vehicle_tabs', 'More vehicle tabs') }}" class="{{ 'on' if tab not in _visible }}{{ ' flow-has-current' if flow_tab_key in _more }}">{{ _lbl("more", "More") }}&hellip;</summary>
@@ -82,6 +83,10 @@
       {{ vtab("labels", "/v/" + bar.vin + "/labels", _lbl("labels", "Labels")) }}
       {{ vtab("logs", "/logs?vin=" + bar.vin, _lbl("logs", "Logs")) }}
       {{ vtab("dashboard", "/v/" + bar.vin + "/dashboard", _lbl("dashboard", "Dashboard")) }}
+      {# "Tell CUORE" (cuore/web/owner_routes.py) lives on its own /m/{vin}
+         phone-first layout, not under /v/{vin} -- so this is a plain link,
+         not a vtab() call (there is no "tell-cuore" vtab to highlight). #}
+      <a href="/m/{{ bar.vin }}">Tell CUORE</a>
     </div>
   </details>
 </div>

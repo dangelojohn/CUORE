@@ -29,7 +29,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
-from ..services import system_detail_bridge
+from ..services import shop_bridge, system_detail_bridge
 from . import systems_routes  # noqa: F401 -- side effect: registers Jinja globals
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
@@ -52,7 +52,12 @@ def system_detail_page(request: Request, vin: str, key: str) -> HTMLResponse:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"unknown system key: {key!r}")
     dossier = _dossier(vin)
-    response = _page(request, "system.html", vin=vin, bar=_vehicle_bar(vin, dossier),
+    bar = _vehicle_bar(vin, dossier)
+    # F2 (MECHANIC_REVIEW_3): same "(unnamed vehicle)" regression as
+    # tests_routes.py/liveboard_routes.py -- resolve_vehicle_name is the
+    # fallback chain bench_routes.py already relies on, reused here.
+    bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
+    response = _page(request, "system.html", vin=vin, bar=bar,
                      tab="systems", view=view)
     _set_active_vehicle(response, vin)
     return response

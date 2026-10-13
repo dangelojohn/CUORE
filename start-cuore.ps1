@@ -63,7 +63,7 @@ $keepAlive = Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" |
              Where-Object { $_.CommandLine -match 'cuore-keepalive\.ps1' }
 if (-not $proc -and -not $keepAlive) {
     Start-Process -FilePath $Python `
-                  -ArgumentList "-m", "cuore", "--profile", "bench", "--port", "$Port" `
+                  -ArgumentList "-m", "cuore", "--profile", "bench", "--host", "0.0.0.0", "--port", "$Port" `
                   -WorkingDirectory $PSScriptRoot -WindowStyle Minimized
 }
 

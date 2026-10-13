@@ -15,6 +15,7 @@ Run:
 from __future__ import annotations
 
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -22,7 +23,8 @@ from pathlib import Path
 os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-systems-map-")
 os.environ.pop("CUORE_AUDIT_PATH", None)
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -98,6 +100,22 @@ check("unknown VIN systems are all NO_DATA",
 check("unknown VIN has no sessions", (mbody.get("sessions") or []) == [], "")
 check("unknown VIN edges list is still a valid (possibly non-empty) list",
       isinstance(mbody.get("edges"), list), "")
+
+print("=== MECHANIC_REVIEW_3_TESTS_SYSTEMS_LIVE_2026-10-13.md regressions ===")
+
+print("--- F6: a failed/slow /api/systems/{vin}/state fetch must not vanish silently ---")
+map_js = (ROOT / "cuore" / "web" / "static" / "systems_map.js").read_text(encoding="utf-8")
+check("systems_map.js shows a notice on a fetch rejection (.catch), not just a comment",
+     re.search(r"\.catch\(function[^)]*\)\s*\{[^}]*showMapNotice", map_js, re.S) is not None)
+check("systems_map.js shows a notice when the response isn't ok (null state)",
+     re.search(r"if\s*\(!state\)\s*\{[^}]*showMapNotice", map_js, re.S) is not None)
+check("systems_map.js has a slow-fetch (>=3s) notice path too",
+     "slowTimer" in map_js and "3000" in map_js)
+
+print("--- F4: readability floor -- systems_map.css never renders text under 12px ---")
+map_css = (ROOT / "cuore" / "web" / "static" / "systems_map.css").read_text(encoding="utf-8")
+small_fonts = [m for m in re.findall(r"font-size:\s*([0-9.]+)px", map_css) if float(m) < 12]
+check("no font-size under 12px in systems_map.css", not small_fonts, str(small_fonts))
 
 print()
 if failures:

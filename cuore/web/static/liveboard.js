@@ -591,6 +591,17 @@
   // the same ``this.values`` in one pass so they can never disagree.
   LiveboardApp.prototype.snapshot = function () {
     var self = this;
+    // F3 (MECHANIC_REVIEW_3): mirror systems_map.js's takeSnapshot guard --
+    // refuse honestly on zero live channels instead of POSTing an empty
+    // "success" with no channel count and no recommendations.
+    if (!Object.keys(this.values).length) {
+      var el = this.doc.getElementById("lb-snapshot-result");
+      if (el) {
+        el.hidden = false;
+        el.textContent = "No live readings to snapshot yet.";
+      }
+      return Promise.resolve();
+    }
     var liveValues = {}, flatValues = {};
     Object.keys(this.values).forEach(function (id) {
       var v = self.values[id];

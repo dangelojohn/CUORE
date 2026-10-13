@@ -49,7 +49,7 @@
   background: var(--sev-returned-bg); overflow: hidden;
 }
 .lb-problems-head {
-  padding: 6px 10px; font-size: 11px; font-weight: 700; letter-spacing: .08em;
+  padding: 6px 10px; font-size: 12px; font-weight: 700; letter-spacing: .08em;
   text-transform: uppercase; color: var(--sev-returned); border-bottom: 1px solid var(--sev-returned);
 }
 .lb-problems-list { display: flex; flex-direction: column; }
@@ -85,7 +85,7 @@
 .lb-rec-row { display: flex; gap: 8px; padding: 5px 0; border-top: 1px solid var(--rule-soft); flex-wrap: wrap; }
 .lb-rec-row:first-child { border-top: none; }
 .lb-rec-level {
-  font-weight: 700; flex: none; min-width: 72px; text-transform: uppercase; font-size: 11px;
+  font-weight: 700; flex: none; min-width: 72px; text-transform: uppercase; font-size: 12px;
 }
 .lb-rec-level.level-excessive { color: var(--sev-returned); }
 .lb-rec-level.level-moderate  { color: var(--sev-chronic); }
@@ -111,7 +111,7 @@
 .lb-chan:last-child { border-bottom: none; }
 .lb-chan-left { min-width: 0; flex: 1 1 auto; }
 .lb-chan-name { font-size: 15px; color: var(--ink); overflow-wrap: anywhere; }
-.lb-chan-band { font-size: 11px; color: var(--ink-3); margin-top: 2px; overflow-wrap: anywhere; }
+.lb-chan-band { font-size: 12px; color: var(--ink-3); margin-top: 2px; overflow-wrap: anywhere; }
 .lb-chan-right {
   display: flex; align-items: baseline; gap: 4px; flex: none; text-align: right;
   white-space: nowrap;

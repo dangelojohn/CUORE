@@ -1,0 +1,16 @@
+{% extends "m_base.html" %}
+{% block title %}Open on a phone -- Tell CUORE{% endblock %}
+{% block content %}
+<h1 class="m-h1">Open this page on a phone</h1>
+{% if lan_url %}
+<p class="m-sub">Open this address on any device on the same network:</p>
+<p class="m-lan-url">{{ lan_url }}</p>
+<p class="m-hint">
+  This server has no login on the LAN -- anyone on this network can open
+  it. That's the owner's choice when CUORE_HOST is set to 0.0.0.0; see
+  docs/handbook/05-methods-and-gotchas.md.
+</p>
+{% else %}
+<p class="m-sub">{{ reason }}</p>
+{% endif %}
+{% endblock %}

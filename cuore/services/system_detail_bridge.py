@@ -49,6 +49,7 @@ from . import (
     experience_bridge,
     jobs_bridge,
     known_good_bridge,
+    layout_bridge,
     liveboard_bridge,
     mes_bridge,
     parts_bridge,
@@ -393,7 +394,21 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
             # electrical.html's own per-element "Record inspection" details/
             # form (electrical_routes.py) already hides the element id, so
             # jumping to its anchor is the whole pre-fill this page owes it.
-            "inspect_href": f"/v/{vin}/electrical?system={(tags and sorted(tags)[0]) or ''}#el-{eid}",
+            #
+            # F1 (MECHANIC_REVIEW_3): the viewed system's own tag (e.g.
+            # "evap") is not necessarily this *element's* canonical system --
+            # a shared/gateway component like the BCM is pulled onto this
+            # page because one of its several part_of_systems tags matches,
+            # but electrical_routes.py's own ?system= filter keys on
+            # layout_bridge.canonical_system(e) (one tag per element, picked
+            # from the full part_of_systems list, not just this system's).
+            # Calling that same resolver here -- rather than guessing from
+            # the viewed system's tags -- guarantees the query param always
+            # matches what the electrical page will actually render, so
+            # id="el-{eid}" is always present on the page the link lands on.
+            "inspect_href": (
+                f"/v/{vin}/electrical?system={layout_bridge.canonical_system(e)}#el-{eid}"
+            ),
         })
 
     wiring_paths = []

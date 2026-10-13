@@ -171,7 +171,14 @@ textarea:focus-visible {
 }
 @media (max-width: 759px) { .logo-slot { width: 32px; height: 32px; } }
 .top nav { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+/* Mechanic review #3 (N6): the shared header nav (Start/Vehicles/Modules/
+ * Recordings/Logs/Live link/Coverage/Tools -- present identically on
+ * every screen) measured 20-40px tall, and because it's on every page it
+ * dominated every "controls under 44px" count the job-page's own
+ * touch-target fixes (job.css) could never move. inline-flex + min-height
+ * grows the hit area to 44px without growing the visible text. */
 .top nav a {
+  display: inline-flex; align-items: center; min-height: 44px;
   font-size: 12.5px; color: var(--ink-3); text-decoration: none;
   text-transform: uppercase; letter-spacing: .06em;
 }
@@ -367,7 +374,15 @@ table a:hover { text-decoration: underline; }
 
 /* ---------- forms ---------- */
 
-label { display: block; font-size: 11px; text-transform: uppercase;
+/* Mechanic review #3 (N7): this was 11px app-wide, which is why step 7's
+ * own "Hypothesis"/"System"/"Linked codes"/"Likelihood"/"Next test" field
+ * labels (and every other form field label in the app) measured under
+ * the 12px minimum -- a one-line global rule, not a job-page redesign
+ * leftover. Bumped to 14px: every <label> in this app is a real form
+ * field label (never a decorative small-caps heading -- those use
+ * .section-h/.step-title instead), so "form labels" is the whole
+ * population this selector touches. */
+label { display: block; font-size: 14px; text-transform: uppercase;
         letter-spacing: .09em; color: var(--ink-3); margin-bottom: 4px; }
 input[type=text], input[type=search], textarea, select {
   width: 100%; background: var(--bg); color: var(--ink);
@@ -1169,16 +1184,32 @@ h4.mono { font-size: 16px; }
 }
 .panel.tight { padding: 0; border-top: none; }
 
-/* -- one filled action, everything else outline --
- * Only the flow bar's own "Suggested next" link (.flow-next) stays
- * accent-filled; every other button on the page -- including other
- * .btn.primary/.btn-verdict.primary uses, which read as "a" primary
- * action on their own section, not "the" one action on the page --
- * drops back to the same quiet outline as a plain .btn. */
+/* -- one real primary per screen, named explicitly -- everything else
+ * flattened --
+ * Mechanic review #3 (N3): the old comment here said "one filled
+ * action... everything else outline" but the one exception (.flow-next)
+ * was the ONLY button ever re-filled, which left job.html's own bottom
+ * step-nav Next -- the one forward-navigation control R1/R7 depend on a
+ * tech being able to spot at a glance -- rendering pixel-identical to
+ * Cancel/Save/Confirm/every status button. Exactly two buttons are ever
+ * filled, both named here (never implicit, never "whatever else also
+ * happens to carry .primary"):
+ *   - .flow-next  -- the flow bar's own "Tools away, start the next
+ *     car" link, shown only once a job is fully complete;
+ *   - .step-nav-next -- job.html's own per-step bottom "Next: ..." link,
+ *     shown on every step but the last.
+ * These two never render on screen at the same time (flow-next only
+ * appears once step 12 is done, by which point step-nav-next has
+ * nothing left after it to point to). Every other .btn/.btn.primary/
+ * .btn-verdict.primary -- Confirm, Save result, status-change buttons,
+ * anything else that also carries .primary for its own section --
+ * is flattened to the same quiet outline as a plain .btn. */
 .btn, .btn.primary, .btn-verdict.primary { background: transparent; border-color: var(--rule); color: var(--ink); }
 .btn:hover, .btn.primary:hover, .btn-verdict.primary:hover { border-color: var(--ink-3); filter: none; }
-.flow-next.btn { background: var(--accent); border-color: var(--accent); color: #fff; }
-.flow-next.btn:hover { filter: brightness(1.08); }
+.flow-next.btn, .step-nav-next.btn.primary {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+.flow-next.btn:hover, .step-nav-next.btn.primary:hover { filter: brightness(1.08); }
 
 /* flow.css's .vmore-tab-panel sets `display: flex` with higher specificity
  * than the UA stylesheet's closed-<details> hiding rule, so the "More"

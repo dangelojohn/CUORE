@@ -1,0 +1,217 @@
+/* "Tell CUORE" mobile page. Phone-first: 16-17px minimum text, 48px
+   minimum tap targets, true-black ground + marque accent from cuore.css's
+   own custom properties (this file only reuses those tokens, never
+   cuore.css's desktop component rules -- no selector here collides with
+   anything in that file). Nothing under 12px anywhere in this file. */
+
+* { box-sizing: border-box; }
+
+.m-body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.45;
+  padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+}
+
+.m-top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--surface);
+  border-bottom: 1px solid var(--rule);
+  padding: 14px 16px;
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+}
+
+.m-brand {
+  color: var(--ink);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: 0.02em;
+}
+
+.m-main {
+  padding: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+.m-h1 { font-size: 21px; margin: 4px 0 6px; }
+.m-sub, .m-why, .m-hint { color: var(--ink-2); font-size: 15px; margin: 0 0 16px; }
+.m-why { margin-bottom: 20px; }
+.m-empty { color: var(--ink-3); padding: 24px 0; }
+
+.m-back a { color: var(--ink-2); text-decoration: none; font-size: 15px; }
+
+.m-flash {
+  padding: 12px 14px;
+  border-radius: var(--radius, 3px);
+  margin-bottom: 16px;
+  font-size: 16px;
+}
+.m-flash-ok { background: var(--ok-bg); color: var(--ok); }
+.m-flash-error { background: var(--accent-dim); color: var(--accent); }
+
+/* Category / kind tiles -- at least 48px tall, full-width on a phone */
+.m-tiles {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.m-tile {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 56px;
+  padding: 14px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius, 3px);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 17px;
+}
+.m-tile-label { font-weight: 600; }
+.m-tile-count { color: var(--ink-3); font-size: 14px; }
+
+.m-links { margin-top: 24px; }
+.m-links a { color: var(--ink-2); font-size: 15px; }
+
+/* Forms */
+.m-form { display: flex; flex-direction: column; gap: 18px; }
+.m-field { display: flex; flex-direction: column; gap: 8px; }
+.m-label { font-size: 15px; font-weight: 600; color: var(--ink-2); }
+
+.m-input {
+  min-height: 48px;
+  padding: 10px 12px;
+  font-size: 17px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius, 3px);
+  color: var(--ink);
+  width: 100%;
+}
+.m-textarea { min-height: 72px; resize: vertical; }
+
+/* Big choice chips, works without JS: a native radio hidden behind a
+   48px-tall label the browser lets you tap anywhere on. */
+.m-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.m-chip {
+  position: relative;
+  min-height: 48px;
+  min-width: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 16px;
+  cursor: pointer;
+}
+.m-chip input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+.m-chip input:checked + span { color: var(--bg); }
+.m-chip:has(input:checked) {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.m-submit {
+  min-height: 52px;
+  border: none;
+  border-radius: var(--radius, 3px);
+  background: var(--accent);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.m-inline-form { margin-top: 10px; gap: 10px; }
+
+/* Messages */
+.m-msg {
+  padding: 14px;
+  margin-bottom: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius, 3px);
+}
+.m-msg-text { font-size: 16px; margin: 0 0 6px; }
+.m-msg-meta { font-size: 14px; color: var(--ink-3); margin: 0 0 10px; }
+.m-msg-answer { font-size: 15px; color: var(--ink-2); }
+
+/* History */
+.m-event {
+  padding: 14px;
+  margin-bottom: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius, 3px);
+}
+.m-event-head { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 4px; font-size: 16px; }
+.m-event-cat { color: var(--ink-3); font-size: 13px; }
+.m-event-meta { font-size: 13px; color: var(--ink-3); margin: 0 0 8px; }
+.m-reported-badge {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+.m-event-fields { margin: 0 0 8px; padding-left: 18px; font-size: 15px; }
+.m-event-note { font-size: 15px; color: var(--ink-2); }
+
+.m-lan-url {
+  font-family: var(--mono);
+  font-size: 16px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius, 3px);
+  word-break: break-all;
+  user-select: all;
+}
+
+/* Footer + bottom nav */
+.m-footer {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 16px 16px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.m-bottomnav {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--rule);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.m-bottomnav a {
+  flex: 1;
+  text-align: center;
+  padding: 14px 0;
+  min-height: 48px;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 15px;
+  font-weight: 600;
+}
+.m-bottomnav a.on { color: var(--accent); }

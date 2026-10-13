@@ -304,9 +304,23 @@ def _flow_state_core(vin: str) -> dict[str, Any]:
     done: dict[int, bool] = {}
     why: dict[int, str] = {}
 
-    done[1] = visit is not None
-    why[1] = (f"visit open (status: {visit['status']})" if visit
-             else "no visit open for this VIN")
+    # Job UX re-test #3, R2: intake must not require an open *visit* --
+    # /v/{vin}/job/open (the real intake route, and the same seed this
+    # repo's own regression tests use) opens a job without ever creating a
+    # shop visit, so a visit-only check pinned this step not_started (and
+    # therefore pinned `first_not_done` at 1) forever, no matter how much
+    # real progress steps 5-7 showed. Intake is done once either a visit is
+    # open OR a job exists for this VIN -- a job cannot exist without
+    # someone having taken the car in, visit record or not. Progress comes
+    # from this criterion alone; the visit is optional evidence of it, not
+    # a gate on it.
+    done[1] = visit is not None or job is not None
+    if visit is not None:
+        why[1] = f"visit open (status: {visit['status']})"
+    elif job is not None:
+        why[1] = "job open (no separate shop visit on file for this VIN)"
+    else:
+        why[1] = "no visit or job open for this VIN"
 
     symptoms = _symptoms(vin)
     done[2] = bool(symptoms)
