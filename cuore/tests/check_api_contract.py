@@ -99,18 +99,13 @@ for method, must_have in (
     check(f"core mobile route {method.upper()} {must_have} exists",
           must_have in paths and method in paths[must_have])
 
-# The doc's "fields_meta provenance" gap note is only true as long as
-# OwnerEventRequest has no such property -- flag it loudly (not a hard
-# failure list the doc can't react to) the day that changes, since the doc
-# then needs a rewrite, not just a row update.
-owner_event_schema = spec.get("components", {}).get("schemas", {}).get(
-    "OwnerEventRequest", {})
+# fields_meta is part of the contract since 2026-10-13: the request schema
+# must keep it, and the doc must describe it as wired (no stale gap note).
+owner_event_schema = (spec.get("components", {}).get("schemas", {})).get("OwnerEventRequest", {})
 has_fields_meta = "fields_meta" in owner_event_schema.get("properties", {})
-check("OwnerEventRequest still has no fields_meta property (doc's vision "
-      "gap note is current -- if this now fails, update "
-      "docs/mobile/API_CONTRACT.md's 'fields_meta provenance' section, it "
-      "is now stale)",
-      not has_fields_meta)
+check("OwnerEventRequest carries fields_meta", has_fields_meta)
+check("API_CONTRACT.md documents fields_meta as wired, not as a gap",
+      "fields_meta` provenance (wired" in text and "not yet wired" not in text)
 
 
 print(f"checks run: {checks}")

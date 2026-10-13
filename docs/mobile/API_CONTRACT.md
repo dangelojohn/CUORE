@@ -567,23 +567,16 @@ an HTTP error -- it still returns `200` with `available: false` (or
 readable `note`. A native app must branch on `available`/`fields`, not on
 HTTP status, to detect "nothing to suggest."
 
-### Gap: `fields_meta` provenance is not yet wired to the API
+### `fields_meta` provenance (wired 2026-10-13)
 
-`cuore.live.owner_events.add()` now accepts a `fields_meta:
-dict[str, "photo"]` parameter (added 2026-10-13) that records, per field,
-whether its value came from a photo read rather than being typed --
-`cuore/services/owner_events_bridge.add()` passes it straight through. **But
-`POST /api/owner/{vin}/events`'s request body (`OwnerEventRequest` in
-`cuore/api/owner_events.py`) has no `fields_meta` field yet** -- confirmed
-against the live schema (`components.schemas.OwnerEventRequest` in
-`app.openapi()` has no such property). A native app cannot, today, tell the
-server "this value came from a vision read" when it saves the event; that
-provenance is currently only reachable from the yet-to-be-updated web
-"Snap & fill" flow at the `cuore.web.owner_routes` layer, not the JSON API.
-Re-check this once `check_api_contract.py`'s next run shows
-`OwnerEventRequest` growing a `fields_meta` property, and update this gap
-note (and the request example in [owner events](#owner-events-tell-cuore))
-accordingly.
+`POST /api/owner/{vin}/events` accepts an optional `fields_meta:
+{<field key>: "photo" | "typed"}` alongside `fields`. The store
+(`cuore.live.owner_events.add()`), the bridge and the JSON API all carry it,
+validated against the kind's field keys, and `GET .../events` returns it on
+each event. A native app that pre-fills a field from `POST
+/api/vision/{vin}/read` stamps that key `"photo"` when the human saves; the
+value is still an attested record at `confidence: "reported"` -- the marker
+only remembers how the value got into the box.
 
 ---
 
@@ -611,10 +604,8 @@ record, never a car measurement:
   (`cuore.live.owner_events`'s own provenance convention) -- **informational
   only**: a photo-read field is stored at the exact same `confidence:
   "reported"` as a typed one, `fields_meta` just remembers *how* the value
-  got into the box. See the [vision gap note](#gap-fields_meta-provenance-is-not-yet-wired-to-the-api)
-  above: the JSON API does not yet accept `fields_meta` on `POST
-  /api/owner/{vin}/events`, so a native app cannot set this today even
-  though the store and bridge layers already support it.
+  got into the box. The JSON API accepts `fields_meta` on `POST
+  /api/owner/{vin}/events` (see above), so a native app sets it directly.
 
 The one existing pictogram/footer line every `/m/{vin}` page renders and
 that a native app should preserve in spirit:
