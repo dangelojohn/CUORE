@@ -44,7 +44,7 @@ from cuore.live.config import state_dir  # noqa: E402
 from cuore.live.errors import LiveError  # noqa: E402
 from cuore.live.framing import adapter_error, reassemble  # noqa: E402
 from cuore.live.obd import decode_obd_dtcs  # noqa: E402
-from cuore.live.safety import classify_command, validate_command  # noqa: E402
+from cuore.live.safety import classify_command, is_adapter_only, validate_command  # noqa: E402
 from cuore.live.transport import DEFAULT_TIMEOUT, link  # noqa: E402
 
 # Name this process in the advisory lock so the bench UI can show "held by
@@ -575,10 +575,13 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
     def body() -> dict[str, Any]:
         _sync_cable()
         b = ops._bus(bus)
-        # Only pure adapter commands are passive: a read request still has to
-        # transmit on the bus, so it must pass the transmit gate and must not
-        # run under STCMM 0 (receive-only, no ACK).
-        passive = kind == "adapter_state"
+        # Pure adapter commands (ATI, ATRV, STPRS, ATDPN, STI, STDI, ...) and
+        # adapter reconfiguration are passive: they never put a frame on the
+        # vehicle bus, so the bus-silence guard (auto-verify / the transmit
+        # gate) must not apply to them. Anything else that reaches the wire
+        # still has to transmit on the bus, so it must pass the transmit gate
+        # and must not run under STCMM 0 (receive-only, no ACK).
+        passive = kind == "adapter_state" or is_adapter_only(cmd)
         with link().session(f"send_raw {cmd}", bus=b, passive=passive, confirm=confirm,
                             allow_while_mes_connected=allow_while_mes_connected) as sess:
             raw = sess.cmd(cmd, timeout_seconds)

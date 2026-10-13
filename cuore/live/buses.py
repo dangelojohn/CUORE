@@ -52,7 +52,11 @@ CAN_C = Bus(
             "34",
             None,
             "confirmed",
-            "STP 34 (or STP 33 for the legislated 11-bit 7E0/7E8 pair); STPBRR expected 500000.",
+            "STP 34 (or STP 33 for the legislated 11-bit 7E0/7E8 pair); STPBRR expected 500000. "
+            "On 2018+ Giorgio cars (Security Gateway Module) CAN-C is gateway-isolated: there is "
+            "NO broadcast traffic on it at all, in either width -- a passive listen on STP 34 "
+            "reading 0 frames does not mean the bus is dead. See the STP 33 route's note; "
+            "ops.verify_bus() falls back to an active Mode 01 PID 00 probe for exactly this case.",
         ),
         Route(
             "none",
@@ -61,7 +65,12 @@ CAN_C = Bus(
             "untested",
             "11-bit legislated pair 7E0/7E8 at 500k. Giorgio broadcast traffic on CAN-C is "
             "largely 11-bit, so a monitor opened 29-bit-only can report zero frames on a "
-            "perfectly healthy bus. Listened for after STP 34, never preferred for UDS.",
+            "perfectly healthy bus. Listened for after STP 34, never preferred for UDS. On "
+            "2018+ cars behind the Security Gateway Module this route still carries no "
+            "broadcast traffic either -- the gateway only answers a request, it never emits "
+            "anything unprompted -- so a passive listen here is also 0 frames on a healthy "
+            "car; verification instead sends one legislated Mode 01 PID 00 request (7DF) and "
+            "accepts any 7E8-7EF reply as proof the bus is alive.",
         ),
     ),
     transmit_needs_confirmation=False,

@@ -14,6 +14,7 @@ from typing import Any, Optional
 
 import serial.tools.list_ports
 
+from . import audit
 from . import capture as capture_mod
 from . import store
 from . import uds as uds_mod
@@ -128,6 +129,53 @@ def probe(port: str = "", baud: int = 0, allow_while_mes_connected: bool = False
         return _stamp(sess, out)
 
 
+#: Legislated OBD-II responders: 7E8-7EF, the 11-bit reply IDs for ECU 0-7.
+_OBD_FUNCTIONAL_REPLIES = {format(0x7E8 + i, "X") for i in range(8)}
+
+
+def _active_probe_0100(lk: AdapterLink, b: Bus, port: str, baud: int,
+                       allow_while_mes_connected: bool) -> dict[str, Any]:
+    """One legislated Mode 01 PID 00 request, the last resort for CAN-C only.
+
+    2018+ Giorgio cars put the OBD diagnostic pair (6/14) behind the Security
+    Gateway Module: CAN-C carries no broadcast traffic at all, so a passive
+    listen is 0 frames on a perfectly healthy car (MES has read this same car
+    for weeks over the same pins). The gateway still answers any legislated
+    OBD-II request -- every emissions-legal vehicle must -- so one read-only
+    ``0100`` on the 11-bit functional address 7DF, at 500k (STP 33), is the
+    only traffic that can prove the bus alive here. No reply means genuinely
+    silent (ignition off, HS/MS switch, a half-seated plug), not a false
+    negative from the gateway's silence.
+
+    Never called for can_ihs or can_ch: those have no legislated responder,
+    are reachable only with a bypass cable, and must stay passive-only.
+    Uses ``_bypass_silence_guard`` because this request is what *establishes*
+    verification -- it cannot itself be gated on being verified already.
+    """
+    route = None
+    for r in routes_for(b, lk.cable):
+        if r.stn_protocol == "33":
+            route = r
+            break
+    if route is None:
+        return {"ok": False, "responders": [], "raw": None, "error": None,
+                "note": "no 11-bit (STP 33) route for cable " + repr(lk.cable)}
+    with lk.session("active_probe_0100", bus=b, port=port, baud=baud, passive=False,
+                    allow_while_mes_connected=allow_while_mes_connected, route=route,
+                    _bypass_silence_guard=True) as sess:
+        sess.cmd("ATCAF1", 2)
+        sess.cmd("ATSH7DF", 2)
+        q = sess.query("0100", "41", timeout=1.0)
+        responders = sorted(h.upper() for h in q["all_ecus"] if h.upper() in _OBD_FUNCTIONAL_REPLIES)
+        ok = bool(responders) and bool(q["ecus"])
+        audit.record("active_probe", bus=b.key, request="0100", ok=ok,
+                     reply_ecus=responders, raw=q["raw"])
+        if ok:
+            return {"ok": True, "responders": responders, "raw": q["raw"], "error": q["error"]}
+        return {"ok": False, "responders": [], "raw": q["raw"], "error": q["error"],
+                "note": "active probe 0100 got no reply"}
+
+
 def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                allow_while_mes_connected: bool = False) -> dict[str, Any]:
     """Passive listen; marks the bus verified under the current cable if traffic is seen.
@@ -137,6 +185,13 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
     opened for one ID width hears nothing of the other. Every route the
     declared cable allows is tried before reporting silence, because a healthy
     bus reported as dead is the worst answer this tool can give.
+
+    On ``can_c`` only, hearing nothing on every route is still not the end of
+    the story: 2018+ Giorgio cars gateway-isolate that bus (see
+    :func:`_active_probe_0100`) so a car behind the Security Gateway Module
+    is silent even when perfectly healthy. One active Mode 01 PID 00 probe is
+    tried before reporting silence; ``can_ihs``/``can_ch`` never get this
+    treatment and stay passive-only.
     """
     b = _bus(bus)
     lk = link()
@@ -164,14 +219,33 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                                      "error": cap["error"],
                                      "stn_protocol": sess.route.stn_protocol,
                                      "header_bits": sess.header_bits,
-                                     "attempts": attempts, "note": None})
+                                     "attempts": attempts, "verified_by": "passive_listen",
+                                     "note": None})
     tried = ", ".join(f"STP {a['stn_protocol']} ({a['header_bits']}-bit)" for a in attempts)
+    base_note = (f"no traffic on {b.key} with cable {lk.cable!r} on any route "
+                 f"tried ({tried}); check the cable, ignition, and the route "
+                 f"note: {sess.route.note}")
+    if b.key == "can_c" and lk.cable == "none":
+        probe = _active_probe_0100(lk, b, port, baud, allow_while_mes_connected)
+        attempts.append({"stn_protocol": "33", "header_bits": 11, "frames": 0,
+                         "error": probe.get("error"), "ids": {}, "active_probe": True,
+                         "responders": probe.get("responders", [])})
+        if probe["ok"]:
+            lk.mark_verified(b, 0, verified_by="active_probe_0100",
+                             responders=probe["responders"])
+            return _stamp(sess, {"verified": True, "frames": 0, "rate_hz": 0.0, "ids": {},
+                                 "error": None, "attempts": attempts,
+                                 "verified_by": "active_probe_0100",
+                                 "responders": probe["responders"],
+                                 "note": ("CAN-C carries no broadcast traffic behind the "
+                                          "Security Gateway Module on this platform; verified "
+                                          "instead by a reply from " +
+                                          ", ".join(probe["responders"]) +
+                                          " to a single legislated Mode 01 PID 00 request")})
+        base_note += "; " + probe["note"]
     return _stamp(sess, {"verified": False, "frames": 0, "rate_hz": 0.0, "ids": {},
                          "error": attempts[-1]["error"] if attempts else None,
-                         "attempts": attempts,
-                         "note": (f"no traffic on {b.key} with cable {lk.cable!r} on any route "
-                                  f"tried ({tried}); check the cable, ignition, and the route "
-                                  f"note: {sess.route.note}")})
+                         "attempts": attempts, "verified_by": None, "note": base_note})
 
 
 def capture(bus: str, seconds: float = 2.0, max_frames: int = 500,

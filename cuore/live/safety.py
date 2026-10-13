@@ -56,6 +56,20 @@ _ST_MONITOR_RE = re.compile(r"^STMA?\d*$")
 HEX_DIGITS = frozenset("0123456789ABCDEF")
 
 
+def is_adapter_only(cmd: str) -> bool:
+    """True for an AT/ST command that only reads the adapter itself (identity,
+    battery voltage, current protocol, ...) and never puts a frame on the
+    vehicle bus -- ``ATI``, ``ATRV``, ``STPRS``, ``ATDPN``, ``STI``, ``STDI``
+    and the rest of :data:`AT_READ_ONLY`/:data:`ST_READ_ONLY`.
+
+    Used to keep these commands off the bus-silence guard: refusing ``ATRV``
+    because CAN-C looks silent is wrong on its face, since ``ATRV`` never
+    touches CAN-C at all.
+    """
+    compact = cmd.strip().upper().replace(" ", "")
+    return compact in AT_READ_ONLY or compact in ST_READ_ONLY
+
+
 def validate_command(cmd: str) -> str:
     """One command, one line. Raises :class:`BadCommand` otherwise."""
     if not cmd or not cmd.strip():
@@ -223,6 +237,6 @@ def assert_actuation_module_allowed(module_code: str, bus_key: str) -> None:
 __all__ = [
     "WRITE_SERVICES", "AT_READ_ONLY", "ST_READ_ONLY", "MONITOR_COMMANDS", "READ_ONLY_UDS",
     "ACTUATION_UDS", "ACTUATION_BLOCKED_MODULES",
-    "validate_command", "classify_command", "assert_read_only_uds", "assert_transmit_allowed",
-    "assert_actuation_allowed", "assert_actuation_module_allowed",
+    "validate_command", "classify_command", "is_adapter_only", "assert_read_only_uds",
+    "assert_transmit_allowed", "assert_actuation_allowed", "assert_actuation_module_allowed",
 ]

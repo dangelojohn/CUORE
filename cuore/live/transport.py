@@ -238,14 +238,26 @@ class AdapterLink:
                     "status": route.status, "note": route.note}),
                 "verified": bool(ver), "verified_at": (ver or {}).get("at"),
                 "verified_frames": (ver or {}).get("frames"),
+                "verified_by": (ver or {}).get("verified_by"),
                 "transmit_needs_confirmation": bus.transmit_needs_confirmation,
             })
         return {"cable": self.cable, "buses": buses}
 
-    def mark_verified(self, bus: Bus, frames: int) -> None:
+    def mark_verified(self, bus: Bus, frames: int, *, verified_by: str = "passive_listen",
+                      **extra: Any) -> None:
+        """Record a bus as proven live under the declared cable.
+
+        ``verified_by`` names how: ``"passive_listen"`` (frames overheard
+        with no transmission at all) or ``"active_probe_0100"`` (CAN-C behind
+        a Security Gateway Module carries no broadcast traffic, so the only
+        proof available is a reply to one legislated Mode 01 PID 00 request
+        -- see :func:`cuore.live.ops._active_probe_0100`). ``extra`` is
+        merged in for callers that want to carry e.g. the responding ECU ids.
+        """
         self.verified[bus.key] = {"cable": self.cable, "frames": frames,
+                                  "verified_by": verified_by,
                                   "at": datetime.now().isoformat(timespec="seconds"),
-                                  "ts": time.monotonic()}
+                                  "ts": time.monotonic(), **extra}
 
     def is_verified(self, bus: Bus) -> bool:
         """Verified under the declared cable, and recently enough to trust.
@@ -276,6 +288,11 @@ class AdapterLink:
                                  "at": datetime.now().isoformat(timespec="seconds")}
         audit.record("auto_verify", **self.last_auto_verify)
         if not result.get("verified"):
+            # On can_c the passive listen is tried first, but behind a 2018+
+            # Security Gateway Module that bus carries no broadcast traffic
+            # at all -- verify_bus() then falls back to one active Mode 01
+            # PID 00 probe (see ops._active_probe_0100) before giving up, and
+            # result["note"] already says so when that also got no reply.
             raise Refused(
                 f"bus {bus.key} is silent: an automatic passive listen under cable "
                 f"{self.cable!r} heard no traffic, so nothing was sent. Check the cable is "
@@ -291,7 +308,8 @@ class AdapterLink:
                 passive: bool = False, confirm: bool = False,
                 allow_while_mes_connected: bool = False,
                 stream: Optional[Stream] = None,
-                route: Optional[Route] = None) -> Iterator[Session]:
+                route: Optional[Route] = None,
+                _bypass_silence_guard: bool = False) -> Iterator[Session]:
         """Open the adapter for one operation on one bus, then close it.
 
         ``passive=True`` sets receive-only mode (no CAN ACK) and skips the
@@ -301,6 +319,15 @@ class AdapterLink:
         passive listen can try a bus's other protocols. It must belong to the
         declared cable; reachability is still decided by the cable, never by
         the override.
+
+        ``_bypass_silence_guard`` is a private escape hatch for exactly one
+        caller: :func:`cuore.live.ops._active_probe_0100`, which transmits
+        the single legislated request that *establishes* verification on
+        CAN-C in the first place and so cannot itself be blocked by the
+        guard it is trying to satisfy, or trigger another round of
+        auto-verify. It is never reached from send_raw, HTTP, or any other
+        MCP tool, and the caller is responsible for only ever using it on
+        can_c.
         """
         with self.lock:
             chosen = route_for(bus, self.cable)
@@ -315,7 +342,7 @@ class AdapterLink:
                         f"{self.cable!r} is declared")
                 chosen = route
             auto: Optional[dict[str, Any]] = None
-            if not passive:
+            if not passive and not _bypass_silence_guard:
                 if bus.transmit_needs_confirmation and not confirm:
                     # Refuse before listening: consent comes first on CAN-CH.
                     assert_transmit_allowed(

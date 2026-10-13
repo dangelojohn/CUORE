@@ -1,0 +1,244 @@
+"""Regression checks for the CAN-C active-probe verification fallback.
+
+2018+ Giorgio cars (Security Gateway Module) put the OBD diagnostic pair
+(pins 6/14, CAN-C) behind a gateway that emits no broadcast traffic at all --
+a passive listen there is 0 frames on a perfectly healthy car. verify_bus()
+now falls back to one legislated Mode 01 PID 00 request on CAN-C (never
+can_ihs/can_ch) before reporting the bus silent. See cuore/live/ops.py
+(_active_probe_0100, verify_bus) and cuore/live/transport.py
+(AdapterLink.mark_verified, AdapterLink.session's _bypass_silence_guard).
+
+Same posture as cuore/tests/check_live.py: plain script, ``check(label,
+cond, detail)``, exit 1 on failure, no pytest -- a hand-written fake
+``Stream`` that answers exactly the bytes a real ELM327/STN adapter would.
+This never opens COM3 and never talks to the real adapter.
+
+Run:
+    .venv/Scripts/python.exe cuore/tests/check_active_probe.py
+"""
+
+from __future__ import annotations
+
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-active-probe-")
+os.environ.pop("CUORE_AUDIT_PATH", None)
+os.environ.pop("MES_LIVE_OBSERVATIONS", None)
+os.environ["CUORE_AUTOSTART"] = "0"   # never let send_raw's cuore_client spawn a real cuore
+
+REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO))
+sys.path.insert(0, str(REPO / "obd2-mcp"))
+
+from cuore.live import ops  # noqa: E402
+from cuore.live.buses import CAN_C, CAN_IHS  # noqa: E402
+from cuore.live.errors import Refused  # noqa: E402
+from cuore.live.stream import Stream  # noqa: E402
+from cuore.live.transport import AdapterLink, set_link  # noqa: E402
+
+failures: list[str] = []
+checks = 0
+
+
+def check(label: str, cond: bool, detail: str = "") -> None:
+    global checks
+    checks += 1
+    if not cond:
+        failures.append(f"{label}{(' -- ' + detail) if detail else ''}")
+
+
+def check_eq(label: str, got, want, extra: str = "") -> None:
+    detail = f"got {got!r} want {want!r}"
+    if extra:
+        detail += f" ({extra})"
+    check(label, got == want, detail)
+
+
+class ScriptedStream(Stream):
+    """Same fake as check_live.py's: answers from a fixed script, keyed by
+    the exact command sent. A command with no entry gets ``"?"`` -- the
+    adapter's own "unrecognized" reply, which is benign (not an error, not a
+    frame), exactly like a real STN that was asked something it has no
+    answer for.
+    """
+
+    def __init__(self, script: dict[str, str]):
+        self.script = script
+        self._buf = bytearray()
+        self._opened = False
+        self.sent: list[str] = []
+
+    def open(self) -> None:
+        self._opened = True
+
+    def close(self) -> None:
+        self._opened = False
+
+    def is_open(self) -> bool:
+        return self._opened
+
+    def write(self, data: bytes) -> None:
+        cmd = data.decode("ascii", errors="replace").rstrip("\r\n")
+        self.sent.append(cmd)
+        reply = self.script.get(cmd, "?")
+        self._buf.extend(reply.encode("ascii") + b"\r>")
+
+    def read(self, n: int) -> bytes:
+        if not self._buf:
+            return b""
+        n = max(n, 1)
+        chunk = bytes(self._buf[:n])
+        del self._buf[:n]
+        return chunk
+
+    def reset_input_buffer(self) -> None:
+        self._buf.clear()
+
+    def in_waiting(self) -> int:
+        return len(self._buf)
+
+    @property
+    def describe(self) -> str:
+        return "scripted"
+
+
+#: Common adapter-init replies every session needs, STN1170-flavoured.
+_BASE = {
+    "ATE0": "OK", "ATL0": "OK", "ATS0": "OK", "ATH1": "OK", "ATAT1": "OK",
+    "ATI": "ELM327 v2.3", "STI": "STN1170 v4.3.2",
+    "STP 34": "OK", "STP 33": "OK", "STP 54": "OK",
+    "STCMM 0": "OK", "STCMM 1": "OK",
+    "STFAC": "OK", "STPO": "OK",
+    "ATCAF1": "OK", "ATSH7DF": "OK",
+}
+
+
+def _link(script: dict[str, str], port: str = "COM99") -> tuple[AdapterLink, ScriptedStream]:
+    scripted = ScriptedStream(script)
+    lk = AdapterLink(stream_factory=lambda p, b: scripted, process="check_active_probe")
+    lk.auto_verify_seconds = 0.05
+    set_link(lk)
+    return lk, scripted
+
+
+_saved_port_env = {k: os.environ.get(k) for k in ("CUORE_OBD_PORT", "OBD_PORT")}
+os.environ["CUORE_OBD_PORT"] = "COM99"
+os.environ.pop("OBD_PORT", None)
+
+try:
+    # =======================================================================
+    # (a) passive listen hears nothing, active probe gets 41 00 -> verified.
+    # =======================================================================
+    script_ok = dict(_BASE)
+    script_ok["0100"] = "7E8 06 41 00 BE 3F A8 13"
+    # deliberately no "STM" entry: the passive listen hears nothing on
+    # either route (STP 34, then STP 33), same as the car on the bench.
+    lk, scripted = _link(script_ok)
+
+    result = ops.verify_bus("can_c", seconds=0.05)
+    check("active probe: verified True", result.get("verified") is True, str(result))
+    check_eq("active probe: verified_by", result.get("verified_by"), "active_probe_0100")
+    check_eq("active probe: responders", result.get("responders"), ["7E8"])
+    check("active probe: 0100 was actually sent", "0100" in scripted.sent, str(scripted.sent))
+    check("active probe: link.verified records verified_by",
+          lk.verified.get("can_c", {}).get("verified_by") == "active_probe_0100",
+          str(lk.verified.get("can_c")))
+
+    buses_out = lk.cable_state()
+    can_c_row = next(b for b in buses_out["buses"] if b["bus"] == "can_c")
+    check_eq("buses(): can_c verified", can_c_row["verified"], True)
+    check_eq("buses(): can_c verified_by surfaced", can_c_row["verified_by"], "active_probe_0100")
+
+    # A now-verified can_c also satisfies a normal (non-passive) session.
+    try:
+        with lk.session("after_probe", bus=CAN_C) as _sess:
+            pass
+        opened = True
+    except Refused:
+        opened = False
+    check("a transmit session opens once the active probe has verified can_c", opened)
+
+    # =======================================================================
+    # (b) passive listen AND the active probe both hear nothing -> still
+    #     refused, with the active-probe detail folded into the message.
+    # =======================================================================
+    script_silent = dict(_BASE)  # no "0100" entry either -> "?"
+    lk2, scripted2 = _link(script_silent)
+
+    result2 = ops.verify_bus("can_c", seconds=0.05)
+    check_eq("silent: verified False", result2.get("verified"), False)
+    check("silent: note mentions the active probe got no reply",
+          "active probe 0100 got no reply" in (result2.get("note") or ""),
+          repr(result2.get("note")))
+    check("silent: 0100 was still tried", "0100" in scripted2.sent, str(scripted2.sent))
+
+    try:
+        with lk2.session("write_probe", bus=CAN_C) as _sess:
+            pass
+        refused = False
+        msg = ""
+    except Refused as e:
+        refused = True
+        msg = str(e)
+    check("silent: a transmit session on can_c is refused", refused)
+    check("silent: refusal message carries the active-probe detail",
+          "active probe 0100 got no reply" in msg, msg)
+
+    # =======================================================================
+    # (c) can_ihs never gets an active probe: no "0100" is ever sent, and
+    #     the result carries no active-probe verification.
+    # =======================================================================
+    script_ihs = dict(_BASE)  # also no "0100" entry -- it must never be asked for
+    lk3, scripted3 = _link(script_ihs)
+
+    result3 = ops.verify_bus("can_ihs", seconds=0.05)
+    check_eq("can_ihs: verified False", result3.get("verified"), False)
+    check_eq("can_ihs: verified_by is not active_probe_0100",
+             result3.get("verified_by"), None)
+    check("can_ihs: 0100 was never sent", "0100" not in scripted3.sent, str(scripted3.sent))
+    check("can_ihs: no attempt is tagged active_probe",
+          not any(a.get("active_probe") for a in (result3.get("attempts") or [])),
+          str(result3.get("attempts")))
+
+    # =======================================================================
+    # (d) send_raw: ATRV (adapter-only) never triggers the silence guard,
+    #     even on a totally unverified link.
+    # =======================================================================
+    import json as _json
+
+    script_atrv = dict(_BASE)
+    script_atrv["ATRV"] = "14.1V"
+    lk4, scripted4 = _link(script_atrv)
+    check("ATRV precondition: can_c starts unverified",
+          not lk4.is_verified(CAN_C), str(lk4.verified))
+
+    import server as obd2_server  # noqa: E402  -- obd2-mcp/server.py
+
+    out = _json.loads(obd2_server.send_raw("ATRV"))
+    check("send_raw ATRV: not refused", "refused" not in out, str(out))
+    check("send_raw ATRV: not an error", "error" not in out, str(out))
+    check_eq("send_raw ATRV: raw reply", out.get("raw"), "14.1V")
+    check("send_raw ATRV: never ran the passive listen (no STM/STMA monitor sent)",
+          not any(c.strip().upper() in ("STM", "STMA") for c in scripted4.sent),
+          str(scripted4.sent))
+    check("send_raw ATRV: can_c still unverified afterwards (never auto-verified)",
+          not lk4.is_verified(CAN_C), str(lk4.verified))
+
+finally:
+    for k, v in _saved_port_env.items():
+        if v is None:
+            os.environ.pop(k, None)
+        else:
+            os.environ[k] = v
+
+
+print(f"checks run: {checks}")
+if failures:
+    print(f"FAILURES: {len(failures)}")
+    for f in failures:
+        print("  -", f)
+    sys.exit(1)
+print("all green")
