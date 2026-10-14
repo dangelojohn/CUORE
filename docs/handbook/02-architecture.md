@@ -179,6 +179,70 @@ Media: `list_media`, `media_note`.
 
 Verification: `verify_repair`.
 
+## Connect to car flow (2026-10-14)
+
+**Client**: `cuore/web/static/connect.js` (progressive enhancement overlay on the plain `/v/{vin}/scans` link in `_vbar.html`'s `#connect-drawer`). Never runs on page load; only a real tap on `#connect-car-btn` starts anything. Each refusal is shown with the live layer's real error text (from `cuore/live/ops.py`/`cuore/live/transport.py`), never invented copy.
+
+**Server**: `POST /api/live/connect/start` (`cuore/api/live.py`) -- the one additive route -- runs pre-checks in order (adapter found → bus verified → VIN matches) and, if every one passes, starts or reports an already-open guided scan (`cuore/live/fullscan.py`). Every pause after that reuses the existing `/api/live/fullscan/guided/continue`, `/skip` endpoints.
+
+## Modifications layer (2026-10-14 NO-GO decision)
+
+**Rule**: CUORE diagnoses, it never performs coding/configuration writes itself. A modification is done in MES/wiTECH via a handoff card (below) and RECORDED here with who/when/from→to/backup/verification.
+
+**Catalogue** (read-only): `mes/modifications.py` -- known modifications seeded from `mes.mes_functions` (rows of kind `"coding"`/`"adjustment"`) and a paddle-shift research pass (2026-10-14). Same split as `mes.parts` and `mes.mechanic_tests`: "what we know about this kind of thing."
+
+**Ledger** (writable): `cuore/live/modifications.py` (append-only JSONL, `modifications.jsonl`) -- one car's actual edits, stamped with who/when/from/to/backup/verification. Four record shapes: `record`, `delete`, `restore`, `amend` (soft deletes + undos, folded in append order).
+
+**Routes**: `cuore/web/mods_routes.py` (HTML `/v/{vin}/mods`, `/v/{vin}/mods/{mod_id}`), `cuore/api/modifications.py` (`/api/mods/catalog*`, `/api/mods/{vin}*`). The catalogue is generated from a research pass, not user-edited; the ledger is writable via `cuore/services/modifications_bridge.py`.
+
+## MES handoff cards (2026-10-14)
+
+**What**: when CUORE diagnoses that a coding/adjustment/actuator command is needed, it hands the technician a card -- module, menu path, prerequisites -- built from `mes.mes_functions`, never a cuore-driven write.
+
+**Module**: `cuore/services/mes_handoff_bridge.py`. Two functions: `:func:`candidates`/`:func:`card` (lookup matched against a test id or free-text step label) + `:func:`import_mes_log`/`:func:`list_mes_scans` (MES-captured logs outside cuore's live link get a health report via the same `mes.scan_health.verdict` without disguising them as live serial reads).
+
+**Import state**: `cuore/live/config.state_dir()` holds `mes_imports.json` (ledger of MES-sourced scans with verdicts), parallel to cuore's own `cuore/live/scanlog.py` (observations.jsonl) but never written to by the live layer.
+
+**UI**: `cuore/web/templates/_mes_handoff.html` (card template, embedded in Tests/Job pages).
+
+## CUORE log MCP tools (2026-10-14)
+
+**Scan tools** (`mes.cuore_log`, new module): `cuore_list_scans`, `cuore_latest_scan`, `cuore_read_scan`, `cuore_export_scan` -- read `CUORE_STATE_DIR`'s live-scan log (`cuore/live/scanlog.py`, observation clustering) identically to how MES tools read MultiEcuScan's files. Each scan tagged `full`/`guided`/`partial`/`attempt`.
+
+**Search tool**: `cuore_search` extends `search_logs`'s regex-with-context shape across `observations.jsonl`, `owner_events.jsonl`, `attested.jsonl`, `jobs.jsonl` and recording headers, read directly off disk (works even if `cuore.live` is not importable).
+
+**Timeline**: `logs_timeline(vin)` merges MES and CUORE lists into one newest-first, sourced view. `mes.catalog.LogEntry` now carries a `provenance` field; a second log root -- `CUORE_STATE_DIR/scans/<vin>/` where `cuore.live.scanlog.write_mes_export` writes MES-format exports -- is scanned alongside MES roots and tagged `provenance="cuore live export"` (real from-car data, never flagged `simulation`).
+
+**Hygiene**: `cuore_log_dir` reports store-file sizes; `cuore_log_archive` copies a dated, sha256-manifested snapshot of every CUORE log file to `CUORE_STATE_DIR/archive/` without truncating originals; `cuore_log_integrity` parses every store line and reports counts per kind/op/day. Same search independently implemented over HTTP at `GET /api/scans/search` (`cuore/api/scanlog.py`).
+
+## Transmission additions (2026-10-14)
+
+**Label kind**: `cuore/web/owner_routes.py` adds a label kind mapping `("fluids", "driveline_fluid")` → `("transmission_service", "")` for "Tell CUORE" fill-up guidance.
+
+**Parts**: `mes/parts.py` includes `transmission_fluid` (ZF 8HP ATF, location/related jobs/torque keys).
+
+**MES recording channels**: drivetrain-specific channels exposed in live capture; TCM DID discovery (`discover_module_dids`) for transmission-module reads.
+
+## Others' experience inputs (2026-10-14)
+
+**Module**: `cuore/live/experience_inputs.py` (append-only JSONL, `experience_inputs.jsonl`) -- driver/mechanic finds (YouTube video, forum thread, photo, note) typed in today, attributed to finder, shown on the code-experience card at confidence `"reported"` (same posture as `owner_events` and `mes.symptoms`, a person's claim not a fact).
+
+**Four record shapes**: `input` (url, title, kind, found_by, verified status), `input_edit` (never rewrites original), `delete`/`restore` (soft delete + undo), `flag`/`worked` (marks on any link id, curated or user-added).
+
+**API**: `cuore/services/experience_inputs_bridge.py` + `cuore/api/experience.py` (HTTP face, via `/api/experience/*`).
+
+**Verification**: `:func:`verify_entry` (module-level, so tests monkeypatch it) uses a browser User-Agent GET for most hosts; XenForo forums (stelvioforum/giuliaforums/alfabb/alfaowner) sit behind JS challenge (202 to plain clients) so those are confirmed by headless Edge. Failure degrades to `{"status": "unreachable"}` rather than blocking save.
+
+## Safety gates in `cuore/live/safety.py`
+
+Three independent checks, all pure functions:
+
+- `:func:`validate_command` -- CR, LF, STN batch separator rejected so nothing smuggles a second command past the classifier.
+- `:func:`classify_command` -- `read` / `vehicle_write` / `adapter_state` / `blocked` with allowlists for AT (`AT_READ_ONLY`) and ST (`ST_READ_ONLY`) reads rather than deny-lists.
+- `:func:`assert_read_only_uds` / `:func:`assert_transmit_allowed` -- HTTP layer's guarantee of no write route; cable protocol's ban on 500 kbps onto 125 kbps bus.
+
+**Write services** (`WRITE_SERVICES` dict): UDS service codes that change vehicle state, e.g. `"2E"` (WriteDataByIdentifier, configuration), `"2F"` (InputOutputControl, actuates hardware), `"31"` (RoutineControl, adaptations/service routines).
+
 ## Launchers and keep-alive
 
 - `start-cuore.ps1` -- launches cuore if not already up and opens a page in the default browser (`-Page`, `-Restart`). Only stops a process whose command line is `python -m cuore`, so it never kills an unrelated server.
