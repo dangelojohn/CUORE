@@ -5,7 +5,7 @@ Pure presentation over ``cuore.web.fullscan_routes.cable_reference_table()``
 -- the exact same function the Full scan wizard page
 (``/v/{vin}/scan``) calls to render its own on-screen reference (idle
 screen and every pause card). That function is itself generated from
-``cuore.live.buses`` (cable/bus pairing, bitrate -> HS/MS adapter switch)
+``cuore.live.buses`` (cable/bus pairing, route -> HS/MS adapter switch)
 and ``cuore.live.ops.modules()`` (the module list and each module's
 confidence chip, which reads the ``addressing.MODULES`` registry).
 

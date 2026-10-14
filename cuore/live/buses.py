@@ -196,6 +196,22 @@ def routes_for(bus: Bus, cable: str) -> list[Route]:
     return [route for route in bus.routes if route.cable == cable]
 
 
+def adapter_switch(bus_key: str, cable: str) -> str:
+    """Which way the vLinker FS adapter's HS/MS switch must sit: "HS" or "MS".
+
+    Decided by the route (its STN protocol), never by the bus bitrate. Both
+    MES bypass cables (blue A5, grey A6) bridge the car's bus pins onto the
+    adapter's normal HS pins (6/14), so with either cable fitted the switch
+    stays on HS even for the 125k CAN-IHS bus. MS is only for the cable-less
+    MS-CAN route (STP 53/54 on adapter pins 3/11). Raises ValueError when
+    ``bus_key`` has no route for ``cable``.
+    """
+    route = route_for(BUSES[bus_key], cable)
+    if route is None:
+        raise ValueError(f"no route for bus {bus_key!r} with cable {cable!r}")
+    return "MS" if route.stn_protocol in ("51", "52", "53", "54") else "HS"
+
+
 def buses_for_cable(cable: str) -> list[Bus]:
     """Buses reachable with ``cable``, in preference order."""
     result = []

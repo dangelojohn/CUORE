@@ -317,7 +317,10 @@ next step after three clean smoke tests and all-new EVAP parts) is in
 
 The garage has two bypass cables: the **blue A5** re-pins the adapter onto
 CAN-IHS (pins 3/11 -- body/comfort/infotainment); the **grey A6** re-pins
-it onto CAN-CH (pins 12/13 -- chassis/ADAS: ABS, EPS, ORC...). Everything
+it onto CAN-CH (pins 12/13 -- chassis/ADAS: ABS, EPS, ORC...). Both coloured
+cables re-pin their bus onto the adapter's HS pins, so the adapter's HS/MS
+switch stays on HS whenever a cable is fitted; MS is only for the
+cable-less MS-CAN route. Everything
 below is read-only (passive listen, `STCMM 0` + `STM`/`ATMA`) -- the
 existing write guards for ABS/EPS/ORC and anything on CAN-CH are untouched
 and still refuse without explicit confirmation.
@@ -381,7 +384,7 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 | ESM | unknown |
 | DASM | unknown |
 
-### Blue A5 (CAN-IHS) -- adapter switch: MS
+### Blue A5 (CAN-IHS) -- adapter switch: HS
 
 | Module | Confidence |
 |---|---|
@@ -409,6 +412,7 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 | ESL | unknown |
 
 <!-- cable-reference:end -->
+
 
 ## 9. Learning module parameters from MES (a second adapter on CAN-C)
 

@@ -55,9 +55,10 @@ def cable_reference_table() -> list[dict[str, Any]]:
 
     Never hand-typed: the bus/cable pairing and the HS/MS adapter-switch
     note come straight from ``cuore.live.buses`` (each ``Bus``'s own routes
-    and bitrate -- the bypass-cable route, where one exists, over the
-    no-cable alternate; HS for a 500k/HS-CAN bus, MS for a 125k/MS-CAN one,
-    per the "MS-CAN transceiver" wording in CAN_IHS's own route note), and
+    -- the bypass-cable route, where one exists, over the no-cable
+    alternate; the HS/MS switch comes from that route's STN protocol via
+    ``buses.adapter_switch``, not the bitrate: either coloured cable
+    re-pins its bus onto the adapter's HS pins, so it is always HS), and
     the module list plus each module's confidence chip come straight from
     ``cuore.live.ops.modules()`` (itself reading the ``addressing.MODULES``
     registry). Both the Full scan wizard (this module's ``scan_page``) and
@@ -72,7 +73,7 @@ def cable_reference_table() -> list[dict[str, Any]]:
             if route.cable != "none":
                 cable = route.cable
                 break
-        switch = "HS" if bus.bitrate >= 400000 else "MS"
+        switch = live_buses.adapter_switch(bus.key, cable)
         bus_label = bus.name.split(" (")[0]
         mods = live_ops.modules(bus=bus.key)["modules"]
         columns.append({

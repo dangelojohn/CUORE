@@ -661,6 +661,12 @@ def _guided_next(state: dict[str, Any]) -> Optional[dict[str, Any]]:
         return {"cable": "none", "bus": "can_c", "modules": [],
                 "instruction": "Remove the cable, then press Continue"}
     modules = [{"code": m.code, "name": m.name} for m in on_bus(bus_key)]
+    if state["segments"][idx].get("status") == "failed":
+        return {"cable": cable, "bus": bus_key, "modules": modules,
+               "instruction": f"{_GUIDED_BUS_LABEL[bus_key]} was silent -- check the "
+                              f"{_GUIDED_CABLE_NAME[cable]} cable is seated, the adapter switch "
+                              f"is on HS and the ignition is on, then press Continue to retry, "
+                              f"or Skip"}
     return {"cable": cable, "bus": bus_key, "modules": modules,
            "instruction": f"Fit the {_GUIDED_CABLE_NAME[cable]} cable "
                           f"({_GUIDED_BUS_LABEL[bus_key]}), then press Continue"}
@@ -831,8 +837,17 @@ def continue_guided(scan_id: str, cable_fitted: str) -> dict[str, Any]:
         new_rows = _sweep_bus_modules(seg["bus"], state["vin"], cable, state["stream"], False,
                                       _step, steps, session_counter=session_counter)
         state["coverage"].extend(new_rows)
-        state["segments"][idx]["status"] = "done"
-        state["pending_index"] = idx + 1
+        sweep_name = f"sweep_bus_full {seg['bus']}"
+        failed = next((s for s in reversed(steps) if s["step"] == sweep_name), {})
+        if failed.get("ok") is False:
+            # Nothing answered (bus silent / sweep refused): not a swept bus.
+            # Stay on this segment so the same cable step is offered again.
+            state["segments"][idx]["status"] = "failed"
+            state["segments"][idx]["why"] = failed.get("error", "sweep failed")
+        else:
+            state["segments"][idx]["status"] = "done"
+            state["segments"][idx]["why"] = None
+            state["pending_index"] = idx + 1
     state["session_opens"] = session_counter[0]
 
     _save_guided(state)

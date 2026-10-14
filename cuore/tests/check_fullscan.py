@@ -27,6 +27,7 @@ os.environ.pop("MES_LIVE_OBSERVATIONS", None)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from cuore.live import addressing, fullscan, interlock, ops, store  # noqa: E402
+from cuore.live.buses import adapter_switch  # noqa: E402
 from cuore.live.errors import LiveError, Refused  # noqa: E402
 from cuore.web.fullscan_routes import cable_reference_table  # noqa: E402
 
@@ -53,6 +54,21 @@ def check_eq(label: str, got, want) -> None:
 #: call), so every phase of the wizard can be checked against it below
 #: instead of a hand-typed list that could drift from addressing.py.
 _CABLE_COLS = cable_reference_table()
+
+# The adapter switch comes from the route, not the bitrate: both bypass
+# cables re-pin onto the adapter's HS pins, so blue A5 (125k) is HS too.
+_SWITCH_BY_CABLE = {c["cable"]: c["switch"] for c in _CABLE_COLS}
+check_eq("wizard reference: blue A5 -> HS", _SWITCH_BY_CABLE.get("blue_a5"), "HS")
+check_eq("wizard reference: grey A6 -> HS", _SWITCH_BY_CABLE.get("grey_a6"), "HS")
+check_eq("adapter_switch can_ihs/blue_a5", adapter_switch("can_ihs", "blue_a5"), "HS")
+check_eq("adapter_switch can_ch/grey_a6", adapter_switch("can_ch", "grey_a6"), "HS")
+check_eq("adapter_switch can_c/none", adapter_switch("can_c", "none"), "HS")
+check_eq("adapter_switch can_ihs/none (STP 54) is MS", adapter_switch("can_ihs", "none"), "MS")
+try:
+    adapter_switch("can_ch", "blue_a5")
+    check("adapter_switch rejects a bus/cable with no route", False)
+except ValueError:
+    check("adapter_switch rejects a bus/cable with no route", True)
 
 
 def check_cable_reference_rendered(label: str, html: str) -> None:
@@ -400,7 +416,28 @@ try:
     except LiveError:
         check("continue_guided rejects the wrong cable", True)
 
+    # A refused (silent-bus) sweep => segment failed, same step offered again.
+    _real_sweep = ops.sweep_bus_full
+
+    def _refusing_sweep(bus, **kw):
+        if bus == "can_ihs":
+            raise Refused("bus can_ihs is silent: heard no traffic, so nothing was sent")
+        return _real_sweep(bus, **kw)
+    _patch(ops, "sweep_bus_full", _refusing_sweep)
+    gf = fullscan_reloaded.continue_guided(guided_scan_id, "blue_a5")
+    seg2 = gf["segments"][1]
+    check_eq("refused sweep marks segment failed", seg2["status"], "failed")
+    check("failed segment why carries the error", "silent" in (seg2["why"] or ""), str(seg2))
+    check("failed segment keeps can_ihs out of segment_done", "can_ihs" not in gf["segment_done"])
+    check_eq("failed segment leaves pending_index", gf["pending_index"], 1)
+    check_eq("failed segment offers blue_a5 again", gf["next"]["cable"], "blue_a5")
+    check("failed segment instruction says retry", "retry" in gf["next"]["instruction"])
+    check("failed segment not in buses_attempted",
+          "can_ihs" not in fullscan_reloaded.last().get("buses_attempted", []))
+    _patch(ops, "sweep_bus_full", _real_sweep)
+
     g2 = fullscan_reloaded.continue_guided(guided_scan_id, "blue_a5")
+    check_eq("retry success marks segment done", g2["segments"][1]["status"], "done")
     check_eq("guided segment 2 keeps the same scan_id", g2["scan_id"], guided_scan_id)
     check_eq("guided segment 2 segment_done adds can_ihs", g2["segment_done"],
              ["can_c", "can_ihs"])
@@ -411,7 +448,7 @@ try:
     check("guided segment 2 swept ETM as answered",
           ihs_rows.get("ETM", {}).get("category") == "answered", str(ihs_rows.get("ETM")))
     verify_ihs_steps = [s for s in g2["steps"] if s["step"] == "verify_bus can_ihs"]
-    check("guided segment 2 verified can_ihs", len(verify_ihs_steps) == 1,
+    check("guided segment 2 verified can_ihs (failed try + retry)", len(verify_ihs_steps) == 2,
           str(verify_ihs_steps))
 
     g3 = fullscan_reloaded.skip_guided(guided_scan_id)
@@ -441,6 +478,12 @@ try:
 
     # --- abandon clears an open session honestly -----------------------------
     g5 = fullscan_reloaded.run_guided(VIN)
+    _patch(ops, "sweep_bus_full", _refusing_sweep)
+    fullscan_reloaded.continue_guided(g5["scan_id"], "blue_a5")
+    _patch(ops, "sweep_bus_full", _real_sweep)
+    gs = fullscan_reloaded.skip_guided(g5["scan_id"])
+    check_eq("skip after failure records skipped", gs["segments"][1]["status"], "skipped")
+    check_eq("skip after failure moves to grey", gs["next"]["cable"], "grey_a6")
     check("a second guided scan can start once the first is done", bool(g5["scan_id"]))
     other_scan_id = g5["scan_id"]
     g6 = fullscan_reloaded.abandon_guided(other_scan_id)
