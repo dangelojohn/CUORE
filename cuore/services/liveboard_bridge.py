@@ -63,6 +63,7 @@ except Exception:  # noqa: BLE001
 
 from mes import jobs as jobs_mod  # noqa: E402
 from mes import systems as systems_mod  # noqa: E402
+from mes.service_specs import TECHAUTHORITY  # noqa: E402
 
 try:  # defensive: this module is being built in parallel by another agent
     from ..live import scanlog as scanlog_mod
@@ -164,16 +165,17 @@ def _classify(ch: Any) -> str:
     return "other"
 
 
-def _board_band(channel_id: str) -> Optional[dict[str, Any]]:
+def _board_band(channel_id: str, vin: str = "") -> Optional[dict[str, Any]]:
     """The widget-ready band plus its ``direction`` -- ``sourced_band``
     itself omits ``direction`` (gauges don't need it); the liveboard's own
     per-channel recommendation does, so it is added back here from the raw
     row. ``None`` for anything ``sourced_band`` would also call ``None``
-    (no row, or only a documented UNKNOWN one)."""
-    band = known_good_bridge.sourced_band(channel_id)
+    (no row, only a documented UNKNOWN one, or -- given ``vin`` -- a row
+    that does not apply to this VIN's marque/platform)."""
+    band = known_good_bridge.sourced_band(channel_id, vin=vin)
     if band is None:
         return None
-    row = known_good_bridge.known_good_for(channel_id) or {}
+    row = known_good_bridge.known_good_for(channel_id, vin=vin) or {}
     return {
         "normal": band.get("normal"),
         "warn": band.get("warn"),
@@ -201,7 +203,7 @@ def board(vin: str = "") -> dict[str, Any]:
         entry = {
             "id": ch.id, "name": ch.name, "unit": ch.unit,
             "rate_hz": ch.default_rate_hz,
-            "band": _board_band(ch.id),
+            "band": _board_band(ch.id, vin=vin),
             "system": channel_system(ch.id),
         }
         by_group[_classify(ch)].append(entry)
@@ -288,7 +290,7 @@ def _channel_name(channel_id: str) -> str:
         return channel_id
 
 
-def evaluate(channel_id: str, value: float) -> dict[str, Any]:
+def evaluate(channel_id: str, value: float, vin: str = "") -> dict[str, Any]:
     """Grade one live value against its sourced known-good band.
 
     ``sourced_band`` gates whether this channel has anything usable at all
@@ -297,14 +299,27 @@ def evaluate(channel_id: str, value: float) -> dict[str, Any]:
     nulls warn/alarm for a "both"-direction row -- drive the actual grade,
     since a two-sided row like battery voltage is still graded on both
     sides here. Never invents a limit.
+
+    Pass ``vin`` to also gate on marque/platform (:func:`mes.known_good.
+    bands_for_vin`): a channel whose only row does not apply to this VIN
+    grades "unknown" exactly like a channel with no row at all, but with
+    wording that says so -- distinct from the plain "nothing sourced
+    anywhere" text used when the row is missing/UNKNOWN regardless of vin.
     """
     name = _channel_name(channel_id)
-    gate = known_good_bridge.sourced_band(channel_id)
+    gate = known_good_bridge.sourced_band(channel_id, vin=vin)
     if gate is None:
+        if vin and known_good_bridge.sourced_band(channel_id) is not None:
+            # A sourced band exists, just not for this VIN's marque/
+            # platform -- never say "no sourced reference range" here,
+            # that would imply nothing was ever researched for it.
+            return {"level": "unknown",
+                    "text": f"No reference band on file for this model for "
+                            f"{name} -- {TECHAUTHORITY}."}
         return {"level": "unknown",
                 "text": f"No sourced reference range for {name}; the sourced-range "
                         "check cannot be made."}
-    row = known_good_bridge.known_good_for(channel_id) or {}
+    row = known_good_bridge.known_good_for(channel_id, vin=vin) or {}
     direction = row.get("direction") or "both"
     level = _grade(float(value), row.get("normal"), row.get("alarm"), direction)
     source = row.get("source") or "sourced range"
@@ -319,9 +334,10 @@ def evaluate(channel_id: str, value: float) -> dict[str, Any]:
 _LEVEL_ORDER = {"excessive": 0, "moderate": 1, "unknown": 2, "ok": 3}
 
 
-def snapshot_recommendations(values: dict[str, float]) -> list[dict[str, Any]]:
+def snapshot_recommendations(values: dict[str, float], vin: str = "") -> list[dict[str, Any]]:
     """Every value in ``values`` (``{channel_id: value}``), graded, excessive
-    first."""
+    first. Pass ``vin`` to grade against that VIN's marque/platform-gated
+    bands (see :func:`evaluate`); omitted, grading is unfiltered as before."""
     out: list[dict[str, Any]] = []
     for cid, value in values.items():
         try:
@@ -329,7 +345,7 @@ def snapshot_recommendations(values: dict[str, float]) -> list[dict[str, Any]]:
             name, unit = ch.name, ch.unit
         except Exception:  # noqa: BLE001 -- grade whatever id was actually sent
             name, unit = cid, ""
-        ev = evaluate(cid, value)
+        ev = evaluate(cid, value, vin=vin)
         out.append({"id": cid, "name": name, "value": value, "unit": unit,
                    "level": ev["level"], "text": ev["text"]})
     out.sort(key=lambda r: _LEVEL_ORDER.get(r["level"], 9))
@@ -380,14 +396,14 @@ def attach_snapshot_to_job(vin: str, snapshot_id: str,
                 return h
         return None
 
-    recs = snapshot_recommendations(values)
+    recs = snapshot_recommendations(values, vin=vin)
     out_of_range = 0
     attached: list[dict[str, Any]] = []
     new_hypotheses: list[dict[str, Any]] = []
 
     for rec in recs:
         cid, level, value = rec["id"], rec["level"], rec["value"]
-        row = known_good_bridge.known_good_for(cid) or {}
+        row = known_good_bridge.known_good_for(cid, vin=vin) or {}
         source = row.get("source") or "sourced range"
 
         if cid == _FUEL_CHANNEL and _FUEL_VERIFY_WINDOW[0] <= value <= _FUEL_VERIFY_WINDOW[1]:

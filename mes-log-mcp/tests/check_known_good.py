@@ -25,6 +25,7 @@ from mes import known_good, service_specs  # noqa: E402
 from cuore.live import channels as channels_mod  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio this toolchain already knows about
+MASERATI_VIN = "ZN661XUA9JX000001"  # synthetic Maserati fixture (check_marque_port.py)
 
 failures: list[str] = []
 checks = 0
@@ -42,7 +43,8 @@ def check(label: str, condition: bool, detail: str = "") -> None:
 check("KNOWN_GOOD is non-empty", len(known_good.KNOWN_GOOD) > 0)
 
 REQUIRED_KEYS = {"id", "name", "unit", "conditions", "normal", "warn", "alarm",
-                 "direction", "confidence", "source", "notes", "generic"}
+                 "direction", "confidence", "source", "notes", "generic",
+                 "applies_to"}
 check("every row has exactly the documented keys",
       all(set(row.keys()) == REQUIRED_KEYS for row in known_good.KNOWN_GOOD.values()),
       str([cid for cid, row in known_good.KNOWN_GOOD.items()
@@ -98,6 +100,91 @@ check("every row's normal/warn/alarm band is ordered lo <= hi",
       str([cid for cid, row in known_good.KNOWN_GOOD.items()
           if not (_ordered(row["normal"]) and _ordered(row["warn"])
                   and _ordered(row["alarm"]))]))
+
+
+# --- KNOWN_GOOD: applies_to (2026-10-14 marque-port fix) ----------------------
+
+check("every row's applies_to is a non-empty tuple of PLATFORM_KEYS",
+      all(row["applies_to"] and set(row["applies_to"]) <= known_good.PLATFORM_KEYS
+          for row in known_good.KNOWN_GOOD.values()),
+      str([cid for cid, row in known_good.KNOWN_GOOD.items()
+          if not row["applies_to"] or not set(row["applies_to"]) <= known_good.PLATFORM_KEYS]))
+
+check("every generic row defaults applies_to to ('any',)",
+      all(row["applies_to"] == ("any",) for row in known_good.KNOWN_GOOD.values()
+          if row["generic"]),
+      str([cid for cid, row in known_good.KNOWN_GOOD.items()
+          if row["generic"] and row["applies_to"] != ("any",)]))
+
+check("every UNKNOWN row defaults applies_to to ('any',)",
+      all(row["applies_to"] == ("any",) for row in known_good.KNOWN_GOOD.values()
+          if row["confidence"] == known_good.UNKNOWN),
+      str([cid for cid, row in known_good.KNOWN_GOOD.items()
+          if row["confidence"] == known_good.UNKNOWN and row["applies_to"] != ("any",)]))
+
+# the two Stelvio-forum-sourced, non-generic rows this module actually has
+check("engine_rpm is tagged for giorgio_gme_2.0t and grecale_2.0t, not 'any'",
+      known_good.KNOWN_GOOD["engine_rpm"]["applies_to"] ==
+      ("giorgio_gme_2.0t", "grecale_2.0t"))
+check("engine_coolant_temp is tagged for giorgio_gme_2.0t and grecale_2.0t, not 'any'",
+      known_good.KNOWN_GOOD["engine_coolant_temp"]["applies_to"] ==
+      ("giorgio_gme_2.0t", "grecale_2.0t"))
+check("engine_rpm's grecale caveat is spelled out in its own notes",
+      "shared engine family" in known_good.KNOWN_GOOD["engine_rpm"]["notes"].lower())
+
+# _kg() must refuse a non-generic, non-UNKNOWN row with no explicit applies_to
+try:
+    known_good._kg("check_bad_applies_to", "bad", "", "", normal=(1, 2),
+                   confidence=known_good.SINGLE_SOURCE, source="https://example.com")
+    check("_kg refuses a non-generic sourced row with no applies_to", False)
+except ValueError:
+    check("_kg refuses a non-generic sourced row with no applies_to", True)
+finally:
+    known_good.KNOWN_GOOD.pop("check_bad_applies_to", None)
+
+# _kg() must refuse an applies_to key outside PLATFORM_KEYS
+try:
+    known_good._kg("check_bad_key", "bad", "", "", normal=(1, 2),
+                   confidence=known_good.SINGLE_SOURCE, source="https://example.com",
+                   applies_to=("not_a_real_key",))
+    check("_kg refuses an unrecognised applies_to key", False)
+except ValueError:
+    check("_kg refuses an unrecognised applies_to key", True)
+finally:
+    known_good.KNOWN_GOOD.pop("check_bad_key", None)
+
+
+# --- applies_to_vin() / bands_for_vin() ----------------------------------------
+
+check("applies_to_vin: an 'any' row applies to any VIN",
+      known_good.applies_to_vin(known_good.KNOWN_GOOD["battery_voltage"], MASERATI_VIN))
+check("applies_to_vin: engine_rpm applies to the Stelvio VIN",
+      known_good.applies_to_vin(known_good.KNOWN_GOOD["engine_rpm"], VIN))
+check("applies_to_vin: engine_rpm does NOT apply to the ambiguous Maserati VIN",
+      not known_good.applies_to_vin(known_good.KNOWN_GOOD["engine_rpm"], MASERATI_VIN))
+
+stelvio_bands = known_good.bands_for_vin(VIN)
+maserati_bands = known_good.bands_for_vin(MASERATI_VIN)
+
+check("bands_for_vin(Stelvio) keeps every row the module has today",
+      set(stelvio_bands) == set(known_good.KNOWN_GOOD))
+check("bands_for_vin(Maserati) drops engine_rpm and engine_coolant_temp",
+      "engine_rpm" not in maserati_bands and "engine_coolant_temp" not in maserati_bands)
+check("bands_for_vin(Maserati) still has the generic/UNKNOWN rows",
+      "battery_voltage" in maserati_bands and "commanded_evap_purge" in maserati_bands)
+check("bands_for_vin(Maserati) carries no stelvioforum citation anywhere",
+      not any("stelvioforum" in str(row.get("notes", "")) or
+              "stelvioforum" in str(row.get("source") or "")
+              for row in maserati_bands.values()))
+check("bands_for_vin(Stelvio) still carries its stelvioforum citations",
+      any("stelvioforum" in str(row.get("source") or "")
+          for row in stelvio_bands.values()))
+
+try:
+    known_good.bands_for_vin("")
+    check("bands_for_vin rejects an empty VIN", False)
+except ValueError:
+    check("bands_for_vin rejects an empty VIN", True)
 
 
 # --- KNOWN_GOOD: every id exists in the live-channel registry ------------------

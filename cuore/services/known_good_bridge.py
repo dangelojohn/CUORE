@@ -11,6 +11,18 @@ neither re-implements the confidence rules or banding data that live in
 Nothing here invents a number: :func:`sourced_band` returns ``None`` for a
 channel this library has nothing for, *or* whose only row is UNKNOWN --
 an unsourced band must never reach a gauge looking like a real one.
+
+2026-10-14 marque-port fix: :func:`known_good_for` and :func:`sourced_band`
+take an optional ``vin``. Omitted (``""``, the default), they are exactly
+as before -- every row, regardless of marque -- so every existing caller
+that does not pass one (``cuore.live.layouts``, ``cuore/web/systems_routes.py``,
+etc.) is unaffected. Given a ``vin``, a row whose ``mes.known_good``
+``applies_to`` does not cover that VIN's platform (:func:`mes.known_good.
+applies_to_vin`) is treated exactly like a missing row -- ``None`` -- so a
+Stelvio-forum-sourced citation never reaches a Maserati/Ferrari VIN's
+pages. :func:`bands_for_vin` and the vin-aware path through
+:func:`known_good_payload` are the bulk equivalent, used by
+``cuore/api/known_good.py``.
 """
 
 from __future__ import annotations
@@ -29,25 +41,48 @@ def all_known_good() -> dict[str, dict[str, Any]]:
     return known_good_mod.all_known_good()
 
 
-def known_good_for(channel_id: str) -> Optional[dict[str, Any]]:
+def bands_for_vin(vin: str) -> dict[str, dict[str, Any]]:
+    """Every channel's row that applies to this VIN's marque/platform --
+    see :func:`mes.known_good.bands_for_vin`. A row tagged for a platform
+    this VIN cannot be confirmed to share (e.g. a Stelvio-forum citation
+    on a Maserati VIN this project cannot place on a specific model) is
+    left out entirely, same as a channel with no row at all."""
+    return known_good_mod.bands_for_vin(vin)
+
+
+def known_good_for(channel_id: str, vin: str = "") -> Optional[dict[str, Any]]:
     """One channel's raw row, or ``None`` if this library has nothing for
-    it at all (distinct from a documented UNKNOWN row, which is returned)."""
-    return known_good_mod.known_good(channel_id)
+    it at all (distinct from a documented UNKNOWN row, which is returned).
 
-
-def sourced_band(channel_id: str) -> Optional[dict[str, Any]]:
-    """The widget-ready band for one channel, or ``None``.
-
-    ``None`` when this library has no row for ``channel_id``, or when its
-    only row is ``UNKNOWN`` -- callers (gauge layouts) must never render an
-    UNKNOWN row's absent numbers as if they were a real min/max. Otherwise:
-    ``{"min", "max", "warn", "alarm", "confidence", "source", "note",
-    "generic"}``, where ``min``/``max`` come from the row's ``normal`` band
-    (``None`` if the row sets no normal band even at non-UNKNOWN
-    confidence) and ``warn``/``alarm`` are passed through as ``[lo, hi]``
-    pairs or ``None``, matching ``cuore.live.layouts``' own band shape.
+    Pass ``vin`` to also gate on marque/platform: a row whose
+    ``applies_to`` does not cover ``vin`` (:func:`mes.known_good.
+    applies_to_vin`) comes back ``None``, same as a missing row. Omitted,
+    this is exactly today's unfiltered lookup.
     """
     row = known_good_mod.known_good(channel_id)
+    if row is None:
+        return None
+    if vin and not known_good_mod.applies_to_vin(row, vin):
+        return None
+    return row
+
+
+def sourced_band(channel_id: str, vin: str = "") -> Optional[dict[str, Any]]:
+    """The widget-ready band for one channel, or ``None``.
+
+    ``None`` when this library has no row for ``channel_id``, when its
+    only row is ``UNKNOWN``, or -- given a ``vin`` -- when the row does
+    not apply to that VIN's marque/platform (see :func:`known_good_for`).
+    Callers (gauge layouts) must never render an UNKNOWN row's absent
+    numbers, or another platform's row, as if they were this car's real
+    min/max. Otherwise: ``{"min", "max", "warn", "alarm", "confidence",
+    "source", "note", "generic"}``, where ``min``/``max`` come from the
+    row's ``normal`` band (``None`` if the row sets no normal band even at
+    non-UNKNOWN confidence) and ``warn``/``alarm`` are passed through as
+    ``[lo, hi]`` pairs or ``None``, matching ``cuore.live.layouts``' own
+    band shape.
+    """
+    row = known_good_for(channel_id, vin=vin)
     if row is None or row.get("confidence") == known_good_mod.UNKNOWN:
         return None
     # Two traps, fixed 2026-09-26:
@@ -93,17 +128,23 @@ def observed_ranges(vin: str) -> dict[str, Any]:
 def known_good_payload(vin: str = "") -> dict[str, Any]:
     """The full ``/api/live/known-good`` response.
 
-    Always includes every channel's reference band. Adds this VIN's
-    observed_ranges alongside it when a VIN is given -- kept as a separate
-    top-level key (``observed``), never merged into ``channels``, so a
-    client can never mistake an observed percentile for a sourced spec.
+    With no ``vin``, ``channels`` is every row, unfiltered (today's
+    behaviour). Given a ``vin``, ``channels`` is gated to
+    :func:`bands_for_vin` instead -- a row tagged for a platform this VIN
+    cannot be confirmed to share is left out entirely, same as a channel
+    with no row at all, so e.g. a Stelvio-forum citation never reaches a
+    Maserati/Ferrari VIN's response. ``observed_ranges`` is added
+    alongside it -- kept as a separate top-level key (``observed``), never
+    merged into ``channels``, so a client can never mistake an observed
+    percentile for a sourced spec.
     """
     out: dict[str, Any] = {"channels": all_known_good()}
     if vin.strip():
         out["vin"] = vin
+        out["channels"] = bands_for_vin(vin)
         out["observed"] = known_good_mod.observed_ranges(vin)
     return out
 
 
-__all__ = ["all_known_good", "known_good_for", "sourced_band", "observed_ranges",
-          "known_good_payload"]
+__all__ = ["all_known_good", "bands_for_vin", "known_good_for", "sourced_band",
+          "observed_ranges", "known_good_payload"]

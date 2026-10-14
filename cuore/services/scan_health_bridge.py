@@ -555,7 +555,12 @@ def build_systems_table(vin: str, norm: dict[str, Any]) -> list[dict[str, Any]]:
             known_good_bridge = None
         if known_good_bridge is not None:
             for sys_key, pid_key in pid_key_by_system.items():
-                known_good_by_system[sys_key] = known_good_bridge.known_good_for(pid_key)
+                # vin-gated (2026-10-14 marque-port fix): a band tagged
+                # for a platform this VIN cannot be confirmed to share
+                # (mes.known_good.applies_to_vin) comes back None here,
+                # same as a channel with no row at all.
+                known_good_by_system[sys_key] = known_good_bridge.known_good_for(
+                    pid_key, vin=vin)
 
     rows_out: list[dict[str, Any]] = []
     for sys_key, sys_def in systems_mod.SYSTEMS.items():

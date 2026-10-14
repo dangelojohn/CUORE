@@ -46,6 +46,25 @@ published.
 
 See ``docs/reference/STELVIO_20T_KNOWN_GOOD_VALUES.md`` for the
 human-readable writeup with the same data and full source links.
+
+2026-10-14 marque-port fix: every row also carries ``applies_to``, a tuple
+of :data:`PLATFORM_KEYS` saying which platform/engine this number was
+researched for -- ``("any",)`` for a generic (``generic=True``) or
+UNKNOWN row, an explicit, non-"any" tuple for anything else (:func:`_kg`
+raises if a non-generic, non-UNKNOWN row omits it). This Stelvio-forum-
+sourced module's own two model-specific, non-generic rows
+(``engine_rpm``, ``engine_coolant_temp``) are tagged
+``("giorgio_gme_2.0t", "grecale_2.0t")`` -- Grecale per the sourced,
+CORROBORATED Giorgio-platform/GME-engine-family relationship in
+``mes.platform``, flagged in each row's own notes as "shared engine
+family -- verify", never presented as Grecale's own confirmed figure.
+Nothing here is tagged for ``levante`` (not a Giorgio platform-mate, per
+``mes.platform``) or ``purosangue`` (no band exists for it yet).
+:func:`bands_for_vin` is the gated read: a Maserati VIN this project
+cannot place on a specific model (``mes.platform.model_for_vin`` returns
+UNKNOWN for the ambiguous Levante/Grecale WMI ZN6/ZN7) resolves to
+``{"any"}`` only, so a Stelvio-sourced citation never renders for it --
+see ``cuore/tests/check_marque_port.py``.
 """
 
 from __future__ import annotations
@@ -56,8 +75,29 @@ from .catalog import CATALOG
 from .errors import MesError
 from .service_specs import (CONFIDENCE_LEVELS, CONFIRMED, CORROBORATED,  # noqa: F401
                             SINGLE_SOURCE, TECHAUTHORITY, UNKNOWN, VEHICLE)
+from . import platform as platform_mod
 
 _DIRECTIONS = ("above", "below", "both")
+
+#: Platform/engine keys a band's ``applies_to`` may name -- the vocabulary
+#: this module uses to keep a model-specific number from rendering on a
+#: car this project cannot confirm shares it (2026-10-14 marque-port fix;
+#: see the module docstring note below and ``mes.platform`` for the
+#: sourced sibling-platform relationships this is built from). ``"any"``
+#: means "a generic OBD-II/SAE/physics/industry-practice value, not tied
+#: to one platform" -- the only key a band may default to without saying
+#: so explicitly (see :func:`_kg`). The named platform/engine keys cover
+#: this project's own Giorgio-platform GME 2.0T car (``giorgio_gme_2.0t``)
+#: and its sourced siblings (:mod:`mes.platform.PLATFORMS`): ``giulia_2.0t``,
+#: ``grecale_2.0t`` (genuine Giorgio/GME platform-mates), ``levante``
+#: (Chrysler LX platform -- NOT a Giorgio platform-mate, kept as its own
+#: key so nothing is ever tagged onto it by assumption) and ``purosangue``
+#: (no Ferrari-specific band exists yet; listed now, per the CUORE brand
+#: roadmap, so a future one has a key to use instead of inventing one).
+PLATFORM_KEYS = frozenset({
+    "giorgio_gme_2.0t", "giulia_2.0t", "grecale_2.0t", "levante",
+    "purosangue", "any",
+})
 
 KNOWN_GOOD: dict[str, dict[str, Any]] = {}
 
@@ -77,7 +117,8 @@ def _kg(channel_id: str, name: str, unit: str, conditions: str, *,
         alarm: Optional[tuple[float, float]] = None,
         direction: str = "both", confidence: str = UNKNOWN,
         source: Optional[str] = None, notes: str = "",
-        generic: bool = False) -> None:
+        generic: bool = False,
+        applies_to: Optional[tuple[str, ...]] = None) -> None:
     if confidence not in CONFIDENCE_LEVELS:
         raise ValueError(f"bad confidence {confidence!r} for {channel_id!r}")
     if direction not in _DIRECTIONS:
@@ -85,6 +126,23 @@ def _kg(channel_id: str, name: str, unit: str, conditions: str, *,
                          f"one of {_DIRECTIONS}")
     if not notes and confidence == UNKNOWN:
         notes = TECHAUTHORITY
+    if applies_to is None:
+        # A generic or UNKNOWN row makes no model-specific claim, so "any"
+        # is an honest default. A sourced, model-specific row (e.g. a
+        # stelvioforum figure) must say which platform/engine it was
+        # researched for -- never let that render for every marque by
+        # silent default (2026-10-14 marque-port fix).
+        if generic or confidence == UNKNOWN:
+            applies_to = ("any",)
+        else:
+            raise ValueError(
+                f"{channel_id!r}: a non-generic, sourced band needs an "
+                "explicit applies_to naming which platform/engine it was "
+                "researched for -- see PLATFORM_KEYS")
+    bad = [k for k in applies_to if k not in PLATFORM_KEYS]
+    if bad:
+        raise ValueError(f"bad applies_to key(s) {bad!r} for {channel_id!r}; "
+                         f"must be from {sorted(PLATFORM_KEYS)}")
     KNOWN_GOOD[channel_id] = {
         "id": channel_id,
         "name": name,
@@ -98,6 +156,7 @@ def _kg(channel_id: str, name: str, unit: str, conditions: str, *,
         "source": source,
         "notes": notes.strip(),
         "generic": generic,
+        "applies_to": tuple(applies_to),
     }
 
 
@@ -108,6 +167,7 @@ _kg("engine_rpm", "Engine RPM", "rpm",
     normal=(700, 900), warn=(600, 1050), alarm=(400, 1300), direction="both",
     confidence=SINGLE_SOURCE,
     source="https://www.stelvioforum.com/threads/correct-idle-speed-and-service-alarm.18670/",
+    applies_to=("giorgio_gme_2.0t", "grecale_2.0t"),
     notes="No published factory hot-idle RPM figure was located. Band is "
           "synthesized from forum reports (owners citing roughly 800 rpm "
           "warm idle on this platform's 2.0T/2.2D family; one Stelvio QV "
@@ -116,13 +176,18 @@ _kg("engine_rpm", "Engine RPM", "rpm",
           "(tollbit.stelvioforum.com) that could not be resolved during "
           "this pass -- read via the search engine's own summary only, not "
           "the full thread. Confirm against TechAuthority or this car's "
-          "own MES-logged idle RPM (see observed_ranges).")
+          "own MES-logged idle RPM (see observed_ranges). Also carried for "
+          "grecale_2.0t: Stelvio and Grecale share the Giorgio platform "
+          "and GME T4 2.0L engine family (mes.platform, CORROBORATED) -- "
+          "shared engine family, verify against the actual Grecale before "
+          "relying on it; this is not a Grecale-specific figure.")
 
 _kg("engine_coolant_temp", "Engine coolant temperature", "C",
     "warmed up, thermostat open, hot idle through cruise",
     normal=(88, 105), warn=(105, 115), alarm=(115, 130), direction="above",
     confidence=SINGLE_SOURCE,
     source="https://www.stelvioforum.com/threads/coolant-operating-temperature-2-0-engine.17855/",
+    applies_to=("giorgio_gme_2.0t", "grecale_2.0t"),
     notes="Forum-reported range (~190-220 F / ~88-104 C) for this "
           "platform's 2.0T, read via a search-engine summary only -- the "
           "thread redirected through a bot-gate that could not be resolved "
@@ -132,7 +197,11 @@ _kg("engine_coolant_temp", "Engine coolant temperature", "C",
           "01 05h) are the legislated coolant sensor regardless of what "
           "the dash shows, but do not assume forum posters quoting 'the "
           "temp gauge' were describing this PID. No FCA document for "
-          "either value was located. " + TECHAUTHORITY)
+          "either value was located. Also carried for grecale_2.0t: "
+          "Stelvio and Grecale share the Giorgio platform and GME T4 2.0L "
+          "engine family (mes.platform, CORROBORATED) -- shared engine "
+          "family, verify against the actual Grecale before relying on "
+          "it; this is not a Grecale-specific figure. " + TECHAUTHORITY)
 
 _kg("intake_air_temp", "Intake air temperature", "C",
     "any -- tracks ambient plus heat soak",
@@ -401,6 +470,57 @@ def all_known_good() -> dict[str, dict[str, Any]]:
     return {cid: dict(row) for cid, row in KNOWN_GOOD.items()}
 
 
+def _platform_keys_for_vin(vin: str) -> frozenset[str]:
+    """Platform/engine keys this VIN can be confidently banded against.
+
+    Always includes ``"any"`` (a generic band applies regardless of
+    marque). Never guesses a specific model from an ambiguous WMI --
+    mirrors :func:`mes.platform.model_for_vin`'s own refusal to split
+    Levante from Grecale on WMI ``ZN6``/``ZN7`` alone (see that module's
+    docstring): an ambiguous or unrecognised VIN resolves to ``{"any"}``
+    only, so a platform-specific band (e.g. this module's Stelvio-forum-
+    sourced ``engine_rpm``) never renders for a car this project cannot
+    confirm shares that platform/engine.
+    """
+    model = platform_mod.model_for_vin(vin)
+    keys = {"any"}
+    if model == "stelvio":
+        keys.add("giorgio_gme_2.0t")
+    elif model == "giulia":
+        keys.add("giulia_2.0t")
+        keys.add("giorgio_gme_2.0t")
+    # grecale / levante / purosangue: model_for_vin never resolves these
+    # confidently today (ambiguous ZN6/ZN7 WMI, or no WMI mapped yet) --
+    # nothing to add here until it can, per instruction never to guess.
+    return frozenset(keys)
+
+
+def applies_to_vin(row: dict[str, Any], vin: str) -> bool:
+    """Whether an already-fetched :data:`KNOWN_GOOD` row's ``applies_to``
+    covers this VIN's resolved platform/engine keys."""
+    keys = _platform_keys_for_vin(vin)
+    return bool(keys & set(row.get("applies_to") or ("any",)))
+
+
+def bands_for_vin(vin: str) -> dict[str, dict[str, Any]]:
+    """Every channel's band that applies to this VIN's marque/platform.
+
+    Same shape as :func:`all_known_good`, filtered to rows whose
+    ``applies_to`` includes ``"any"`` or one of this VIN's resolved keys
+    (:func:`_platform_keys_for_vin`). A channel whose only row does not
+    apply to this VIN is left out entirely here -- the same treatment a
+    caller gives a channel with no row at all, so e.g. the Stelvio-forum-
+    sourced idle-RPM citation never renders for a Maserati VIN this
+    project cannot place on a specific model (2026-10-14 marque-port fix;
+    see ``cuore/tests/check_marque_port.py``).
+    """
+    if not vin.strip():
+        raise ValueError("a VIN is required")
+    keys = _platform_keys_for_vin(vin)
+    return {cid: dict(row) for cid, row in KNOWN_GOOD.items()
+            if keys & set(row.get("applies_to") or ("any",))}
+
+
 # ===========================================================================
 # observed_ranges: what this car's own MES logs actually show
 # ===========================================================================
@@ -601,5 +721,6 @@ def observed_ranges(vin: str) -> dict[str, Any]:
 
 __all__ = [
     "KNOWN_GOOD", "known_good", "all_known_good", "PARAM_ALIASES",
-    "observed_ranges", "VEHICLE",
+    "observed_ranges", "VEHICLE", "PLATFORM_KEYS", "applies_to_vin",
+    "bands_for_vin",
 ]

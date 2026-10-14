@@ -39,16 +39,24 @@ Six checks:
      field, both ultimately fed by this fixture's synthetic log).
   6. Bench, Job and Tests contain no literal "Stelvio"/"Alfa" text at all.
      Systems gets a narrower version of the same check (title + data-marque
-     + vehicle bar only, not the full page): ``mes.known_good``'s reference
-     bands are a single always-the-same, confidence-labelled knowledge base
-     (see its own docstring -- "Nothing here invents a number") shown
-     identically regardless of marque, e.g. the idle-RPM band's "notes"
-     cites a real stelvioforum.com thread. That is sourced Alfa case-sample
-     material (MARQUE_PORT_AUDIT_2026-10-13.md classifies it (b), not a
-     drift bug) -- rebuilding an equivalent Maserati/Ferrari-sourced
-     knowledge base is out of this pass's scope, and inventing one would
-     violate the "never invented" experience-links rule. Flagged as a
-     follow-up in the audit doc, not fixed here.
+     + vehicle bar only, not the full page): ``cuore/web/systems_routes.py``'s
+     page body still reaches ``mes.known_good`` through a call path that
+     does not pass a VIN (``_live_channel_info`` -> ``known_good_bridge.
+     known_good_for``/``sourced_band`` with no ``vin``), so a Stelvio-forum
+     citation can still appear in that page's body -- out of this pass's
+     scope (that route file is not touched here).
+
+  7. (2026-10-14 marque-port fix) The data layer itself IS now gated: the
+     only two non-generic, Stelvio-forum-sourced rows ``mes.known_good``
+     has (``engine_rpm``, ``engine_coolant_temp``) carry an ``applies_to``
+     of ``("giorgio_gme_2.0t", "grecale_2.0t")`` (see that module's
+     docstring), and ``known_good_bridge.known_good_payload``/
+     ``bands_for_vin`` gate on it given a VIN. Checked directly against
+     ``cuore.services.known_good_bridge`` and the ``GET /api/live/
+     known-good?vin=...`` route (not the Systems page body, per item 6
+     above) for the synthetic Maserati VIN: no "stelvioforum" citation
+     anywhere in that payload, while the generic/UNKNOWN channels and the
+     Stelvio VIN's own full set of bands are unaffected.
 
 Run:
     .venv/Scripts/python.exe cuore/tests/check_marque_port.py
@@ -56,6 +64,7 @@ Run:
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
@@ -176,6 +185,33 @@ for label, url in PAGES.items():
     else:
         check(f"{label} page has no literal \"Stelvio\" text", "Stelvio" not in text)
         check(f"{label} page has no literal \"Alfa\" text", "Alfa" not in text)
+
+
+# --- 7. known_good gating itself (2026-10-14 marque-port fix) -------------
+#
+# Not the Systems page body (item 6 above, out of scope) -- the bridge and
+# its one HTTP surface, which this pass does own.
+
+from cuore.services import known_good_bridge  # noqa: E402
+
+payload = known_good_bridge.known_good_payload(vin=VIN)
+check("known-good payload for the Maserati VIN carries no stelvioforum "
+      "citation anywhere", "stelvioforum" not in json.dumps(payload))
+check("known-good payload for the Maserati VIN drops the Stelvio-forum "
+      "idle-RPM/coolant rows", "engine_rpm" not in payload["channels"]
+      and "engine_coolant_temp" not in payload["channels"])
+check("known-good payload for the Maserati VIN still has generic/UNKNOWN "
+      "channels", "battery_voltage" in payload["channels"])
+
+stelvio_payload = known_good_bridge.known_good_payload(vin="ZASFAKPN5J7B88115")
+check("known-good payload for the real Stelvio VIN keeps its "
+      "stelvioforum citations", "stelvioforum" in json.dumps(stelvio_payload))
+
+api_resp = client.get(f"/api/live/known-good?vin={VIN}")
+check("GET /api/live/known-good?vin=<Maserati VIN> responds 200",
+      api_resp.status_code == 200, str(api_resp.status_code))
+check("GET /api/live/known-good response for the Maserati VIN has no "
+      "stelvioforum citation", "stelvioforum" not in api_resp.text)
 
 
 # --- report ------------------------------------------------------------------
