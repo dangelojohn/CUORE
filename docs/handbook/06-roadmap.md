@@ -10,19 +10,24 @@
 - Tell CUORE mobile (`/m/{vin}`) rebuilt to the Ferrari benchmark: dark, intro reveal every open, 4 quick actions, 3-tap fill-up, camera + Snap & fill on every form; mobile API contract documented for a future native app (2026-10-13).
 - Live link: first real reads from the car -- active-probe fix for the gateway-silent bus, the 29-bit legislated route, the STFAC filter-reset fix (see 05-methods-and-gotchas.md); full-scan orchestrator, Scans log area with diff/export, scan health report generator, Live board freeze-frame panel, Test A in the Tests catalogue (2026-10-13).
 - Perf: workup/flow-state results shared across Report/Job/Tests/Timeline via one cache key (Report 30 s -> 5 s, Job 3.2 s -> 0.3 s) (2026-10-13).
+- Modifications layer: paddle-shift NA↔EU catalogue, per-car ledger, MES handoff cards, capability matrix; separated from diagnostics (2026-10-14).
+- Connect to car: adapter → bus → VIN → guided full scan inline (2026-10-14).
+- Review 5/6 fixes: mechanic wording, diff labels, dedup, mobile UX, cable pictogram; typography audit foundation pass (2026-10-14).
 
-## Next
+## Next (2026-10-14)
 
-1. First guided scan with the cables in hand: run the `/coverage` wizard (and a full scan) on the real Stelvio, not a temp-state server, now that the live link actually works on this car.
-2. Test A (hand vacuum on the ESIM while watching the switch PID), now that Mode $06 has shown the first direct measurement behind the chronic P0440/P0455 (0.090" leak test FAILED, 404 ms vs a 3965 ms minimum) -- then the wiTECH flash comparison. Do not clear codes first.
-3. UDS DID definitions from TechAuthority: the module sweep found live codes and module identities but several DIDs are still read raw/UNKNOWN (no decoder in the registry); get real TechAuthority values in rather than guessing.
-4. Native app: the owner has an Apple developer account and Xcode; `/m/{vin}` and `docs/mobile/API_CONTRACT.md` are the reference implementation and contract -- Location Services, a pump shortcut and push belong to the native app, not the web page.
-5. Fill known gaps with sources: EVAP purge and vapour-pressure limits, peak boost, tyre placard pressures, P052E/P04DB, UNKNOWN torques; Grecale and Levante experience links and parts; part images for the remaining 15 parts.
-6. Timeline: a media and inspections lane; replay of a recording on the gauges from the timeline.
-7. Labels: confirm Avery 6576/6578 margins from a print, then mark them verified.
-8. Port to Maserati and Ferrari: module maps and DID catalogues keyed by platform, VIN decoding for ZN6/ZN7, spec tables per model, experience and parts tables per marque (the theme variable and VIN-based marque detection are now built; data population is what's left). Keep the Stelvio data as the template.
-9. Hygiene: fix `electrical_inspections.latest()` (newest record), the clipped "..." strip button at 400 px, and keep agent tests to 4-5 checks each.
-10. Still on the owner (unchanged from the 2026-10-13 session record): readiness read in the 15-85% fuel window (now done once, repeat for any re-test), wiTECH flash check, recalls, service ledger entries (odometer, oil, filter, technician).
+1. First guided scan with cables in hand: run `/coverage` wizard + full scan on the real Stelvio (not temp-state), now that live link works and owner's rules are set.
+2. Test A (hand vacuum on ESIM while watching switch PID) + ESIM commanded test (post-mode 06 0.090" FAIL measurement, 404 ms vs 3965 ms min). Do not clear codes.
+3. wiTECH flash check and baseline comparison (TSB 18-030-17 Rev. B, ECM software P235QB39/52170619).
+4. Firewall rule + pre-push hook install (owner approval required; Windows Firewall TCP 5000 rule documented in session 2026-10-13).
+5. TechAuthority DID definitions: module sweep (ECM/TCM/BCM/IPC/RFHUB) found 25 decoded PIDs, several still raw/UNKNOWN; get real values from TechAuthority rather than guessing.
+6. Native app: owner has Apple developer account and Xcode; `/m/{vin}` and `docs/mobile/API_CONTRACT.md` are the reference implementation and contract (Location Services, pump shortcut, push belong to native app, not web).
+7. Fill known gaps: EVAP purge/vapour-pressure limits, peak boost, tyre placard pressures, P052E/P04DB, UNKNOWN torques; Grecale and Levante experience links and parts; part images for 15 remaining parts.
+8. Timeline: media and inspections lane; replay recording on gauges.
+9. Labels: confirm Avery 6576/6578 margins from print; mark verified.
+10. Port to Maserati and Ferrari: module maps/DID catalogues per platform, VIN decode ZN6/ZN7, spec/experience/parts tables per marque. Keep Stelvio as template.
+11. Hygiene: fix `electrical_inspections.latest()`, clipped "..." button at 400 px, keep agent tests to 4-5 checks each.
+12. Owner's responsibilities (unchanged from 2026-10-13): readiness read in 15-85% fuel window (repeat for any re-test), recalls, service ledger entries (odometer, oil, filter, technician).
 
 ## Mobile companion (decided 2026-10-13)
 

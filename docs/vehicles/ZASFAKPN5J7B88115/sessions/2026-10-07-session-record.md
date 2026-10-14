@@ -109,3 +109,41 @@ UDS works through the gateway on CAN-C. Modules answering: ECM (Magneti Marelli 
 - IPC: U1736-86, U1736-87 status 0x0C (pending + confirmed). RFHUB: B1040-64 status 0x08. TCM: clean.
 - ECM supports 46 Mode 01 PIDs; cuore decoded 25 tonight (the rest raw; decoders being added). IAT (0F) and oil temp (5C) are NOT supported by this ECM; IAT comes via PID 68. Module identities read (spare-part numbers: ECM 50544870, TCM 46337308, BCM 50554114, IPC 50551318).
 Software built from this: active probe + 29-bit route + STN filter fix (landed); full-scan orchestrator, Scans area, scan health report generator, PID/Mode 09/Mode 06 decoders, UDS snapshot decoder, failure-type bytes, Live board channels, Test A in the Tests catalogue (in flight).
+
+## 14. 2026-10-14
+
+### Features landed
+
+- Modifications layer: paddle-shift NA↔EU catalogue + per-car ledger, MES handoff cards, capability matrix; separated from diagnostics path.
+- Connect to car: adapter wiring → bus selection → VIN read → guided full scan (inline).
+- MES handoff: transmission data cards (label, entry point, 8HP family, shift programs); MIL diagnostics including the 2026-10-08 MES clear log reference.
+- CUORE log tools: archive scripts + pre-push hook (hook install pending owner).
+- Others' experience: driver/mechanic links with edit/delete, ratings, deduplication by max score.
+- Transmission label/entry/8HP reference data sourced and wired.
+- MIL diagnostics live reading (ECM commanded vs. owner-observed lamp state, history).
+- Printable test sheets (wiTECH Test A 1-page and full).
+- Connectivity primitives: multi-PID batching, held scan sessions, optional baud raise, ISO-TP timing, pass filters.
+- Coding/configuration writes: blocked on all modules by service rules.
+- Review 5/6 fixes: mechanic wording for adapter errors, diff labels, message dedup, mobile delete/undo, cable pictogram, splash tap.
+- Typography audit: font-size/weight scales, hero sizing, emphasis pass in progress.
+
+### Diagnostic state
+
+- EVAP: active fault persistent. Mode 06 0.090" leak test FAIL: 404 ms (vs 3965 ms min). ECM requesting MIL (status flag 0xCD) but owner has not observed lamp illumination.
+- BCM U1713-2F: status 0x0F (ACTIVE NOW — testFailed + failedThisCycle + pending + confirmed), a live network fault.
+- Morning MES scan (SCAN_2610140859): P0440 stored, P0455 pending; readiness all complete; fuel 20.8 % (in window).
+
+### Owner's rules added today
+
+- Fable analysis only; ≤2-4 agents per task; ≤10 suites per agent; ~10 scans planned.
+- Paddle-shift coding: NO-GO (owner directive).
+- Modifications: separate diagnostic ledger (not part of fault diagnosis flow).
+
+### Next steps
+
+- First guided scan with cables in hand (live /coverage wizard + full scan, not a temp-state server).
+- Test A (hand vacuum on ESIM while watching switch PID) + ESIM commanded test.
+- wiTECH flash check and comparison to baseline.
+- Firewall rule + pre-push hook install (owner approval).
+- TechAuthority DID definitions for live module reads (still several raw/UNKNOWN).
+- Native app path (owner has Apple developer account + Xcode; web page is reference implementation).
