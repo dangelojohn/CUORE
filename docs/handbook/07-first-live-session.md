@@ -409,3 +409,69 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 | ESL | unknown |
 
 <!-- cable-reference:end -->
+
+## 9. Learning module parameters from MES (a second adapter on CAN-C)
+
+Section 7 learns an *unscaled* broadcast signal from a bypass cable by
+watching what changed while you held a physical action. This is different:
+it learns a *scaled* module DID -- a named channel with a real unit, not
+"learned, unscaled" -- by overhearing MultiEcuScan's own UDS traffic on
+CAN-C while MES graphs and records a parameter you already trust MES to
+decode correctly. Nothing here replaces or edits a catalogue DID
+(`cuore.live.did_catalog`); every entry it produces is stamped confidence
+`SINGLE-SOURCE (learned)` and kept in its own store.
+
+### Hardware
+
+- **A Y-splitter on the OBD-II port**, wired to CAN-C (pins 6/14) so two
+  adapters can read the same bus at once.
+- **A second adapter**, on its *own* COM port, different from MES's own
+  interface port: another STN/vLinker, or a USB-CAN interface. This is the
+  one requirement the software cannot work around -- `mes_learn_start`
+  refuses outright, naming exactly this, if only one adapter is detected at
+  all, or if the port given is the same one MES is configured to use
+  (`Interface 0 Port` in MES's own settings).
+- MultiEcuScan, running its normal live view against its own adapter on its
+  own port, recording a CSV (MES's graph subsystem, up to 4 graphs of 10
+  parameters each -- see `docs/format/CSV_LOG_FORMAT.md`).
+
+### Procedure
+
+1. Fit the splitter and the second adapter; note its COM port (`list_ports()`
+   marks MES's own interface so you can tell them apart).
+2. `mes_learn_start(port="COM<n>")` (or the "Second adapter's port" field at
+   `/v/{vin}/learn-mes`). This opens the second adapter **passively**
+   (`STCMM 0`, receive-only, same as every other passive listen in this
+   project -- see `cuore.live.capture.listen`): it never acknowledges a
+   frame and never transmits a byte of its own onto the bus.
+3. In MES, start the live view/graph for the parameters you want decoded,
+   and record a CSV. Let it run long enough that each parameter you care
+   about actually moves through at least 20 distinct values -- a channel
+   that never leaves one value, or only ever takes a handful of discrete
+   states (a 9-position gear indicator, say), cannot be fitted with
+   confidence and is reported as such, not guessed.
+4. `mes_learn_stop(csv="<the CSV MES just wrote>")` (bare filename, or a
+   full path). This reassembles ISO-TP, pairs every UDS request/response
+   the second adapter overheard (`cuore.live.learn.uds_transactions` --
+   29-bit `18DAxxF1`/`18DAF1xx` and the 11-bit pair alike), groups by
+   `(module, DID)`, and fits each named CSV column against every
+   `(module, DID, byte offset, width, signedness)` seen, by ordinary least
+   squares over the whole session.
+5. `mes_learn_candidates()` (or the candidates table at `/v/{vin}/
+   learn-mes`) lists the result: a confident fit (R² >= 0.98 over >= 20
+   distinct raw values) per column, with its module, DID, field, scale,
+   offset and R²; anything short of that bar is listed `"no confident
+   match"` rather than a guessed scale.
+6. Review each candidate against what MES labelled that column, then
+   **Accept** (saves it through `cuore.live.learned.accept_mes` with source
+   `"learned from MES <csv name> <date>, fit R² <value>"` -- immediately
+   usable by the Live board as a named, scaled channel, the same hand-off
+   `cuore.live.ui_store.load_custom_channels` already uses for custom
+   channels) or **Reject** (kept observed-but-unscaled, never guessed, same
+   posture as rejecting a Section 7 broadcast candidate).
+
+The MCP tools are `mes_learn_start(port, vin="")`, `mes_learn_stop(csv="")`,
+`mes_learn_status()`, `mes_learn_candidates()` and `mes_learn_accept
+(candidate_id, vin, name)`; rejecting a candidate is a page/API action
+(`POST /api/mes-learn/candidates/{id}/reject`), not an MCP tool, same split
+as Section 7's learn-accept.

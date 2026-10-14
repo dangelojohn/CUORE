@@ -851,5 +851,61 @@ def learn_stop(bus: str) -> str:
     return _via("POST", f"/buscapture/{bus}/learn/stop", lambda: _buscapture.learn_stop(bus))
 
 
+# ===========================================================================
+# ADDITIVE: learn module DIDs by listening to MES over a second adapter
+# (cuore/api/mes_learn.py, cuore.live.mes_learn). New block, appended at the
+# end on purpose -- nothing above this line is touched. Same _via posture as
+# every other adapter tool above: cuore (the adapter's one owner) first,
+# in-process fallback only if cuore cannot be reached at all.
+# ===========================================================================
+
+from cuore.live import mes_learn as _mes_learn  # noqa: E402
+
+
+@mcp.tool()
+def mes_learn_start(port: str, vin: str = "") -> str:
+    """Start listening passively on ``port`` -- a SECOND adapter (another
+    STN/vLinker on its own COM port, or a USB-CAN interface) wired to a
+    Y-splitter on CAN-C (pins 6/14), alongside MultiEcuScan's own adapter.
+    Refuses if ``port`` is MES's own port or only one adapter is detected at
+    all -- both name exactly what hardware is missing. Never transmits."""
+    return _via("POST", "/mes-learn/start", lambda: _mes_learn.start(port, vin=vin),
+               body={"port": port, "vin": vin})
+
+
+@mcp.tool()
+def mes_learn_stop(csv: str = "") -> str:
+    """Stop the listener and align every UDS request/response it overheard
+    against ``csv`` (an MES CSV recording -- bare filename or full path).
+    Each named column MES graphed is fit by least squares against every
+    module/DID/byte-field this session saw; a column clears the bar at R²
+    >= 0.98 over >= 20 distinct raw values, else it is reported "no
+    confident match" rather than guessed."""
+    return _via("POST", "/mes-learn/stop", lambda: _mes_learn.stop(csv=csv), body={"csv": csv})
+
+
+@mcp.tool()
+def mes_learn_status() -> str:
+    """Poll the running (or just-stopped) MES-learn listener."""
+    return _via("GET", "/mes-learn/status", lambda: _mes_learn.status())
+
+
+@mcp.tool()
+def mes_learn_candidates() -> str:
+    """Fit candidates from the last alignment, with their fit numbers (R²,
+    scale, offset, sample count) -- review on ``/v/{vin}/learn-mes`` before
+    accepting."""
+    return _via("GET", "/mes-learn/candidates", lambda: _mes_learn.candidates())
+
+
+@mcp.tool()
+def mes_learn_accept(candidate_id: str, vin: str, name: str) -> str:
+    """Accept a fit candidate: saved through ``cuore.live.learned`` as a
+    MES-learned, scaled DID mapping (confidence ``SINGLE-SOURCE (learned)``,
+    never a catalogue DID) -- usable by the Live board as a named channel."""
+    return _via("POST", f"/mes-learn/candidates/{candidate_id}/accept",
+               lambda: _mes_learn.accept(candidate_id, vin, name), body={"vin": vin, "name": name})
+
+
 if __name__ == "__main__":
     mcp.run()

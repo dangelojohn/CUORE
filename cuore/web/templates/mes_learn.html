@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Learn from MES — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}<!-- learn-mes: own compact header below, no vbar/hero -->{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('liveboard.css') }}">
+
+<div id="lm-app" data-vin="{{ vin }}">
+
+  <div class="lb-status">
+    <span class="lb-status-name" title="{{ bar.name }}">{{ bar.name }}</span>
+    <span class="lb-status-vin mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-6:] }}</span>
+    <span class="lb-status-chip" id="lm-chip">idle</span>
+  </div>
+
+  <p class="lrn-intro">
+    Fit a Y-splitter on CAN-C (pins 6/14) and a SECOND adapter -- another STN/vLinker on its
+    own COM port, or a USB-CAN interface -- listening passively alongside MultiEcuScan's own
+    adapter. Name that adapter's port, press Start, run MES's live view and record a CSV,
+    Stop, then point this page at that CSV. Nothing here ever transmits; this only listens.
+  </p>
+
+  <div class="bc-panel" id="lm-panel">
+    <div class="bc-row">
+      <label for="lm-port">Second adapter's port</label>
+      <input type="text" id="lm-port" placeholder="e.g. COM5">
+    </div>
+
+    <div class="bc-controls" role="toolbar" aria-label="MES-learn capture controls">
+      <button type="button" id="lm-start" class="bc-btn bc-btn-primary">Start</button>
+      <button type="button" id="lm-stop" class="bc-btn bc-btn-stop" hidden>Stop</button>
+    </div>
+
+    <div class="bc-status" id="lm-status" hidden></div>
+    <div class="bc-notice" id="lm-notice" hidden></div>
+
+    <div class="bc-row" id="lm-csv-row" hidden>
+      <label for="lm-csv">MES CSV recording</label>
+      <input type="text" id="lm-csv" placeholder="bare filename, or a full path">
+      <button type="button" id="lm-align" class="bc-btn bc-btn-primary">Align</button>
+    </div>
+
+    <table class="bc-candidates" id="lm-candidates" hidden>
+      <thead>
+        <tr>
+          <th>column</th><th>module</th><th>DID</th><th>field</th>
+          <th>scale</th><th>offset</th><th>R&sup2;</th><th>n</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="lm-candidates-body"></tbody>
+    </table>
+
+    <div class="bc-row" id="lm-accept-row" hidden>
+      <label for="lm-name">Name this channel</label>
+      <input type="text" id="lm-name" placeholder="e.g. transmission fluid temp">
+      <button type="button" id="lm-accept" class="bc-btn bc-btn-primary">Accept</button>
+      <button type="button" id="lm-reject" class="bc-btn">Reject</button>
+    </div>
+
+    <div class="bc-result" id="lm-result" hidden></div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var vin = document.getElementById("lm-app").dataset.vin;
+  var picked = null;
+  var pollTimer = null;
+
+  function qs(id) { return document.getElementById(id); }
+  function show(el) { el.hidden = false; }
+  function hide(el) { el.hidden = true; }
+
+  function api(method, path, body) {
+    var opts = { method: method, headers: { "Content-Type": "application/json" } };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    return fetch(path, opts).then(function (r) {
+      return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; });
+    });
+  }
+
+  function notice(text, cls) {
+    var el = qs("lm-notice");
+    el.textContent = text;
+    el.className = "bc-notice" + (cls ? " " + cls : "");
+    show(el);
+  }
+
+  function renderStatus(st) {
+    var el = qs("lm-status");
+    el.textContent = "status: " + st.status + " · " + st.elapsed_s.toFixed(1) + "s · " +
+      st.frame_count + " frames" + (st.csv ? " · aligned against " + st.csv : "");
+    show(el);
+    qs("lm-chip").textContent = st.status;
+  }
+
+  function renderCandidates(cands) {
+    var body = qs("lm-candidates-body");
+    body.innerHTML = "";
+    (cands || []).forEach(function (c) {
+      var tr = document.createElement("tr");
+      var fieldText = c.field ? (c.field.width + "@" + c.field.offset + (c.field.signed ? " signed" : "")) : "";
+      var cells = [c.column, c.module || "", c.did || "", fieldText,
+        c.scale !== undefined ? Number(c.scale).toFixed(4) : "",
+        c.offset !== undefined ? Number(c.offset).toFixed(4) : "",
+        c.r2 !== undefined ? Number(c.r2).toFixed(4) : (c.best_r2 !== undefined && c.best_r2 !== null ? Number(c.best_r2).toFixed(4) : ""),
+        c.n !== undefined ? c.n : ""];
+      cells.forEach(function (v) {
+        var td = document.createElement("td");
+        td.textContent = v;
+        tr.appendChild(td);
+      });
+      var td = document.createElement("td");
+      if (c.status === "candidate") {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "bc-btn";
+        btn.textContent = "Review";
+        btn.addEventListener("click", function () {
+          picked = c.id;
+          show(qs("lm-accept-row"));
+          notice("reviewing " + c.column + " -> module " + c.module + " DID " + c.did + " -- name it and Accept, or Reject.", "");
+        });
+        td.appendChild(btn);
+      } else {
+        td.textContent = "no confident match";
+      }
+      tr.appendChild(td);
+      body.appendChild(tr);
+    });
+    if ((cands || []).length) show(qs("lm-candidates"));
+  }
+
+  function poll() {
+    api("GET", "/api/mes-learn/status").then(function (res) {
+      if (res.ok) renderStatus(res.body);
+    });
+  }
+
+  qs("lm-start").addEventListener("click", function () {
+    var port = qs("lm-port").value.trim();
+    if (!port) { notice("a port is required for the second adapter", "bc-notice-error"); return; }
+    api("POST", "/api/mes-learn/start", { port: port, vin: vin }).then(function (res) {
+      if (!res.ok) { notice((res.body && res.body.detail) || "could not start", "bc-notice-error"); return; }
+      show(qs("lm-stop"));
+      qs("lm-start").hidden = true;
+      notice("listening on " + port + " -- run MES's live view and record a CSV now.", "");
+      pollTimer = setInterval(poll, 1000);
+      poll();
+    });
+  });
+
+  qs("lm-stop").addEventListener("click", function () {
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    api("POST", "/api/mes-learn/stop", { csv: qs("lm-csv").value.trim() }).then(function (res) {
+      qs("lm-stop").hidden = true;
+      qs("lm-start").hidden = false;
+      if (!res.ok) { notice((res.body && res.body.detail) || "could not stop", "bc-notice-error"); return; }
+      renderStatus(res.body);
+      show(qs("lm-csv-row"));
+      if (res.body.aligned) {
+        api("GET", "/api/mes-learn/candidates").then(function (r2) {
+          if (r2.ok) renderCandidates(r2.body.candidates);
+        });
+      } else {
+        notice("stopped, not aligned yet -- enter the MES CSV recording and press Align.", "");
+      }
+    });
+  });
+
+  qs("lm-align").addEventListener("click", function () {
+    api("POST", "/api/mes-learn/stop", { csv: qs("lm-csv").value.trim() }).then(function (res) {
+      if (!res.ok) { notice((res.body && res.body.detail) || "could not align", "bc-notice-error"); return; }
+      renderStatus(res.body);
+      api("GET", "/api/mes-learn/candidates").then(function (r2) {
+        if (r2.ok) renderCandidates(r2.body.candidates);
+      });
+    });
+  });
+
+  qs("lm-accept").addEventListener("click", function () {
+    if (!picked) return;
+    var name = qs("lm-name").value.trim();
+    if (!name) { notice("a name is required", "bc-notice-error"); return; }
+    api("POST", "/api/mes-learn/candidates/" + picked + "/accept", { vin: vin, name: name })
+      .then(function (res) {
+        var el = qs("lm-result");
+        if (!res.ok) {
+          el.textContent = (res.body && res.body.detail) || "could not accept";
+        } else {
+          el.textContent = "accepted: " + name + " -- confidence " + res.body.confidence;
+        }
+        show(el);
+      });
+  });
+
+  qs("lm-reject").addEventListener("click", function () {
+    if (!picked) return;
+    api("POST", "/api/mes-learn/candidates/" + picked + "/reject", { vin: vin, reason: "" })
+      .then(function (res) {
+        var el = qs("lm-result");
+        el.textContent = res.ok ? "rejected -- kept observed-but-unscaled" :
+          ((res.body && res.body.detail) || "could not reject");
+        show(el);
+      });
+  });
+})();
+</script>
+{% endblock %}
