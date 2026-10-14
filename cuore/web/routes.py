@@ -396,22 +396,180 @@ def codes(request: Request, vin: str,
     return response
 
 
+#: same honest-never-invented text the report page uses (``report_routes.
+#: _UNKNOWN_TEXT``) -- kept as a second literal rather than imported from
+#: there because ``report_routes`` imports this module at load time
+#: (``from . import routes as web_routes``), so the reverse import would
+#: be circular.
+_CODE_UNKNOWN_TEXT = "UNKNOWN -- use the service manual (TechAuthority)"
+
+
+def _module_dtc_state(flags: dict[str, Any]) -> str | None:
+    """ACTIVE, HISTORY, or ``None`` -- same rule as ``dossier_bridge.
+    _module_dtc_state``, reimplemented here for the same reason ``_base``
+    is reimplemented there: one fewer cross-module private import."""
+    if flags.get("testFailed") or flags.get("pendingDTC"):
+        return "ACTIVE"
+    if flags.get("confirmedDTC") or flags.get("testFailedSinceLastClear"):
+        return "HISTORY"
+    return None
+
+
+def _code_failure_type(suffix: str) -> dict[str, Any]:
+    """The decoded meaning of one failure-type-byte suffix (``mes.dtc``),
+    or an honest ``UNKNOWN`` -- never invented, never raises."""
+    if not suffix:
+        return {"text": _CODE_UNKNOWN_TEXT, "confidence": "UNKNOWN"}
+    try:
+        from mes import dtc as dtc_mod
+    except Exception:  # noqa: BLE001 -- optional dependency
+        return {"text": _CODE_UNKNOWN_TEXT, "confidence": "UNKNOWN"}
+    try:
+        ft = dtc_mod.failure_type(suffix)
+    except Exception:  # noqa: BLE001
+        ft = None
+    if ft is None:
+        return {"text": _CODE_UNKNOWN_TEXT, "confidence": "UNKNOWN"}
+    d = ft.to_dict()
+    return {"text": d.get("text") or d.get("meaning") or _CODE_UNKNOWN_TEXT,
+            "confidence": d.get("confidence", "UNKNOWN"), "source": d.get("source")}
+
+
+def _code_description_fallback(code: str) -> dict[str, Any]:
+    """This platform's sourced description for ``code``, or an honest
+    ``UNKNOWN`` -- never invented, never raises. Covers a code never seen
+    in an FES log (a module code read only live, e.g. B10AA, U1736)."""
+    try:
+        from mes import dtc_descriptions
+    except Exception:  # noqa: BLE001 -- optional dependency
+        return {"code": code, "text": _CODE_UNKNOWN_TEXT, "source": "none", "confidence": "UNKNOWN"}
+    try:
+        return dtc_descriptions.code_description(code)
+    except Exception:  # noqa: BLE001 -- this page must never 500 on this
+        return {"code": code, "text": _CODE_UNKNOWN_TEXT, "source": "none", "confidence": "UNKNOWN"}
+
+
+def _code_fault_tree_steps(vin: str, code: str) -> list[dict[str, Any]]:
+    """Up to the first tree's first 6 steps for ``code`` (``mes_bridge.
+    fault_tree``, the same source the report's own fallback entry uses),
+    or ``[]`` when no tree covers it -- the template shows an explicit
+    UNKNOWN line in that case, never a silently-missing section."""
+    try:
+        result = mes_bridge.fault_tree(code, vin=vin)
+    except Exception:  # noqa: BLE001 -- this page must never 500 on this
+        result = {}
+    steps: list[dict[str, Any]] = []
+    for t in (result.get("trees") or [])[:1]:
+        for s in (t.get("steps") or [])[:6]:
+            steps.append({"text": s.get("title") or s.get("test") or "Step",
+                         "ref": s.get("source")})
+    return steps
+
+
+def _live_code_occurrences(vin: str, code_upper: str) -> list[dict[str, Any]]:
+    """Every from-car module (UDS 0x19) or generic OBD (Mode 03/07/0A) read
+    of ``code_upper`` this car has on file, newest first -- the live
+    stand-in for FES-log history when no log on file has ever carried the
+    code (e.g. B10AA, U1736: read live on 2026-10-13, never logged to a
+    file). ``[]`` on any failure, or when the code was never read live --
+    never raises, and an empty result is exactly what tells the caller to
+    fall back to the ordinary 404.
+    """
+    try:
+        from ..live import store as live_store
+    except Exception:  # noqa: BLE001 -- optional dependency
+        return []
+
+    out: list[dict[str, Any]] = []
+
+    try:
+        module_obs = live_store.recent_observations(1000, vin=vin, kind="module_dtcs")
+    except Exception:  # noqa: BLE001
+        module_obs = []
+    for o in module_obs:
+        if not live_store.is_from_car(o):
+            continue
+        data = o.get("data") or {}
+        ecu = data.get("ecu") or "?"
+        at = o.get("at") or ""
+        for d in data.get("dtcs") or []:
+            full = str(d.get("code") or "").strip().upper()
+            base, _, suffix = full.partition("-")
+            if base != code_upper:
+                continue
+            flags = d.get("flags") or {}
+            state = _module_dtc_state(flags)
+            out.append({"at": at, "module": ecu, "code": full,
+                       "status": d.get("status"), "flags": flags, "state": state,
+                       "state_class": {"ACTIVE": "status-active",
+                                       "HISTORY": "chronic"}.get(state, "plain"),
+                       "failure_type": _code_failure_type(suffix)})
+
+    try:
+        obd_obs = live_store.recent_observations(300, vin=vin, kind="obd_dtcs")
+    except Exception:  # noqa: BLE001
+        obd_obs = []
+    for o in obd_obs:
+        if not live_store.is_from_car(o):
+            continue
+        data = o.get("data") or {}
+        at = o.get("at") or ""
+        inner = str(data.get("kind") or "")
+        for c in data.get("dtcs") or []:
+            full = str(c).strip().upper()
+            base = full.split("-", 1)[0]
+            if base != code_upper:
+                continue
+            out.append({"at": at, "module": f"OBD ({inner})" if inner else "OBD",
+                       "code": full, "status": None, "flags": {},
+                       "state": inner.upper() if inner else None,
+                       "state_class": "plain", "failure_type": {}})
+
+    out.sort(key=lambda r: r.get("at") or "", reverse=True)
+    return out
+
+
 @router.get("/v/{vin}/code/{code}", response_class=HTMLResponse)
 def code_detail(request: Request, vin: str, code: str) -> HTMLResponse:
-    """One code's complete life, with its freeze frames beside it."""
+    """One code's complete life, with its freeze frames beside it.
+
+    A code with no FES-log history still renders here, rather than 404ing,
+    when this car's own live module (UDS 0x19) or OBD read ever reported
+    it -- e.g. U1736, B10AA, read live on 2026-10-13 but never logged to a
+    file. The live occurrence(s) stand in for the log-history table, with
+    the same description/fault-tree/parts(UNKNOWN) fallback blocks the
+    report page (``report_routes._fixes_fallback``/``_parts_section``)
+    already uses for exactly this situation. Only a code neither logged
+    nor ever read live on this car is still a 404.
+    """
     dossier = _dossier(vin)
-    history = mes_bridge.dtc_history(code, vin=vin)
+    code_upper = code.strip().upper()
+    live_only = False
+    live_occurrences: list[dict[str, Any]] = []
+    description: dict[str, Any] = {}
+    fault_tree_steps: list[dict[str, Any]] = []
+    try:
+        history = mes_bridge.dtc_history(code, vin=vin)
+    except BridgeError:
+        live_occurrences = _live_code_occurrences(vin, code_upper)
+        if not live_occurrences:
+            raise
+        live_only = True
+        history = {"code": code_upper, "matches": []}
+        description = _code_description_fallback(code_upper)
+        fault_tree_steps = _code_fault_tree_steps(vin, code_upper)
     try:
         frames = mes_bridge.freeze_frames(code=code, vin=vin)
     except BridgeError:
         frames = {"count": 0, "frames": []}
-    code_upper = code.upper()
     code_notes = mes_bridge.notes(vin, target_kind="code", target_id=code_upper)["notes"]
     response = _page(request, "code.html", vin=vin, code=code_upper,
                      records=history["matches"], frames=frames,
                      notes_list=code_notes, note_target_kind="code",
                      note_target_id=code_upper, note_redirect=f"/v/{vin}/code/{code_upper}",
                      note_kind_locked=True,
+                     live_only=live_only, live_occurrences=live_occurrences,
+                     description=description, fault_tree_steps=fault_tree_steps,
                      bar=_vehicle_bar(vin, dossier), tab="codes")
     _set_active_vehicle(response, vin)
     return response

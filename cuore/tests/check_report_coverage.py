@@ -44,6 +44,7 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore.app import create_app  # noqa: E402
 from cuore.web import report_routes  # noqa: E402
+from cuore.web import routes as web_routes  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio
 
@@ -127,6 +128,49 @@ if resp.status_code == 200:
     check("rendered page carries an explicit UNKNOWN/TechAuthority line "
          "for at least one module code with no catalogued part",
          "UNKNOWN" in body and "TechAuthority" in body)
+
+# === Code page: live-only codes with no FES-log history ===================
+# U1736 and B10AA were read live (UDS 0x19, the same 2026-10-13 sweep seeded
+# above) but never logged to an FES file -- cuore/web/routes.py's code page
+# used to 404 them outright. They must now render, with the live
+# occurrence(s) standing in for the log history and the same
+# description/fault-tree/parts(UNKNOWN) fallback the report page uses.
+
+occ_u1736 = web_routes._live_code_occurrences(VIN, "U1736")
+check("U1736: live occurrences carry the IPC ACTIVE read",
+     any(o["module"] == "IPC" and o["state"] == "ACTIVE" for o in occ_u1736),
+     occ_u1736)
+check("U1736: live occurrences carry the BCM HISTORY read",
+     any(o["module"] == "BCM" and o["state"] == "HISTORY" for o in occ_u1736),
+     occ_u1736)
+
+occ_b10aa = web_routes._live_code_occurrences(VIN, "B10AA")
+check("B10AA: live occurrences carry the BCM HISTORY read",
+     any(o["module"] == "BCM" and o["state"] == "HISTORY" for o in occ_b10aa),
+     occ_b10aa)
+
+for code in ("U1736", "B10AA"):
+    r = client.get(f"/v/{VIN}/code/{code}")
+    check(f"{code}: code page never 500s", r.status_code != 500, r.status_code)
+    check(f"{code}: code page renders 200 (live occurrence stands in for "
+         "the missing FES-log history)", r.status_code == 200, r.status_code)
+    if r.status_code != 200:
+        continue
+    text = r.text
+    check(f"{code}: page marks itself live-only (no FES log on file)",
+         "live-only" in text.lower())
+    check(f"{code}: page shows at least one live occurrence's module",
+         any(ecu in text for ecu in ("BCM", "IPC", "ECM", "RFHUB")))
+    check(f"{code}: page shows a fault-tree next step or an explicit UNKNOWN",
+         "Fault-tree next step" in text)
+    check(f"{code}: page carries a parts line, real or explicit UNKNOWN/TechAuthority",
+         "TechAuthority" in text or "Parts for" in text)
+
+# A code neither logged nor ever read live on this car is still a 404 -- the
+# live-occurrence fallback must never swallow a genuinely unknown code.
+r = client.get(f"/v/{VIN}/code/P9999")
+check("a code with no log history and no live occurrence is still a 404",
+     r.status_code == 404, r.status_code)
 
 print(f"checks run: {checks}")
 if failures:
