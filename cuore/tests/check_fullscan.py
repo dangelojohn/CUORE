@@ -28,6 +28,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from cuore.live import addressing, fullscan, interlock, ops, store  # noqa: E402
 from cuore.live.errors import LiveError, Refused  # noqa: E402
+from cuore.web.fullscan_routes import cable_reference_table  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"
 ECM_HDR = "18DAF110"
@@ -45,6 +46,24 @@ def check(label: str, cond: bool, detail: str = "") -> None:
 
 def check_eq(label: str, got, want) -> None:
     check(label, got == want, f"got {got!r} want {want!r}")
+
+
+#: "Which cable for which module" -- generated once from the live module
+#: registry (same function the wizard page and the handbook generator both
+#: call), so every phase of the wizard can be checked against it below
+#: instead of a hand-typed list that could drift from addressing.py.
+_CABLE_COLS = cable_reference_table()
+
+
+def check_cable_reference_rendered(label: str, html: str) -> None:
+    """Every module cable_reference_table() lists, for every bus, must
+    appear somewhere in this rendered wizard page -- the whole point of
+    generating the on-screen block from the registry is that it can never
+    silently drop a module the registry has."""
+    for col in _CABLE_COLS:
+        for m in col["modules"]:
+            check(f"{label}: cable reference lists {m['code']} ({col['bus_key']})",
+                  m["code"] in html)
 
 
 _SUPPORTED_PIDS = [f"{i:02X}" for i in range(1, 47)]  # 46 PIDs, tonight's ECM count
@@ -405,11 +424,13 @@ try:
     check_eq("wizard idle phase is 200", resp.status_code, 200)
     check("wizard idle phase shows the Start button", 'data-phase="idle"' in resp.text,
           resp.text[:200])
+    check_cable_reference_rendered("idle", resp.text)
 
     resp = client.post(f"/v/{VIN}/scan/start", follow_redirects=True)
     check_eq("wizard start redirects to 200", resp.status_code, 200)
     check("wizard pause_blue phase renders", 'data-phase="pause_blue"' in resp.text
           and "BLUE A5" in resp.text, resp.text[:200])
+    check_cable_reference_rendered("pause_blue", resp.text)
     page_scan_id = re.search(r'name="scan_id" value="([^"]+)"', resp.text).group(1)
 
     resp = client.post(f"/v/{VIN}/scan/continue",
@@ -418,12 +439,14 @@ try:
     check_eq("wizard continue (blue) redirects to 200", resp.status_code, 200)
     check("wizard pause_grey phase renders", 'data-phase="pause_grey"' in resp.text
           and "GREY A6" in resp.text, resp.text[:200])
+    check_cable_reference_rendered("pause_grey", resp.text)
 
     resp = client.post(f"/v/{VIN}/scan/skip", data={"scan_id": page_scan_id},
                       follow_redirects=True)
     check_eq("wizard skip redirects to 200", resp.status_code, 200)
     check("wizard remove_cable phase renders", 'data-phase="remove_cable"' in resp.text
           and "Remove the cable" in resp.text, resp.text[:200])
+    check_cable_reference_rendered("remove_cable", resp.text)
 
     resp = client.post(f"/v/{VIN}/scan/continue",
                       data={"scan_id": page_scan_id, "cable_fitted": "none"},
@@ -448,6 +471,31 @@ try:
     resp = client.post("/api/live/fullscan/guided/abandon", json={"scan_id": http_scan_id})
     check_eq("POST guided/abandon is 200", resp.status_code, 200)
     check_eq("POST guided/abandon closes it", resp.json()["status"], "abandoned")
+
+    # =======================================================================
+    # 7. handbook section matches the generator (never hand-edited out of sync)
+    # =======================================================================
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "docs" / "handbook"))
+    import generate_cable_reference  # noqa: E402
+
+    handbook_path = (Path(__file__).resolve().parents[2] / "docs" / "handbook" /
+                     "07-first-live-session.md")
+    handbook_text = handbook_path.read_text(encoding="utf-8")
+    check("handbook has the generated cable-reference block",
+          generate_cable_reference.START in handbook_text and
+          generate_cable_reference.END in handbook_text)
+    for col in _CABLE_COLS:
+        for m in col["modules"]:
+            check(f"handbook cable-reference lists {m['code']} ({col['bus_key']})",
+                  f"| {m['code']} | {m['confidence']} |" in handbook_text)
+    rendered_block = generate_cable_reference.render_block()
+    current_block = (generate_cable_reference.START +
+                     handbook_text.split(generate_cable_reference.START, 1)[1]
+                     .split(generate_cable_reference.END, 1)[0] +
+                     generate_cable_reference.END)
+    check_eq("handbook's cable-reference block matches a fresh render "
+            "(re-run docs/handbook/generate_cable_reference.py if this fails)",
+            current_block, rendered_block.rstrip("\n"))
 
 finally:
     _restore_all()

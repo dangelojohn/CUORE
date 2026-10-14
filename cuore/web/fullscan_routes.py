@@ -27,17 +27,64 @@ gets POSTed or rendered.
 
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..api.deps import require_token
+from ..live import buses as live_buses
 from ..live import fullscan
+from ..live import ops as live_ops
 from ..services import shop_bridge
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
 #: Server-rendered page: same posture as cuore.web.routes.router and
 #: cuore.web.tests_routes.router.
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
+
+#: Presentation-only labels for the three cable states. Never a source of
+#: which module goes under which cable -- that comes from cable_reference_table()
+#: below, generated straight from cuore.live.buses + cuore.live.ops.modules().
+_CABLE_LABELS = {"none": "Standard plug", "blue_a5": "Blue A5", "grey_a6": "Grey A6"}
+_CABLE_ORDER = {"none": 0, "blue_a5": 1, "grey_a6": 2}
+
+
+def cable_reference_table() -> list[dict[str, Any]]:
+    """"Which cable for which module" data, generated fresh every call.
+
+    Never hand-typed: the bus/cable pairing and the HS/MS adapter-switch
+    note come straight from ``cuore.live.buses`` (each ``Bus``'s own routes
+    and bitrate -- the bypass-cable route, where one exists, over the
+    no-cable alternate; HS for a 500k/HS-CAN bus, MS for a 125k/MS-CAN one,
+    per the "MS-CAN transceiver" wording in CAN_IHS's own route note), and
+    the module list plus each module's confidence chip come straight from
+    ``cuore.live.ops.modules()`` (itself reading the ``addressing.MODULES``
+    registry). Both the Full scan wizard (this module's ``scan_page``) and
+    ``docs/handbook/generate_cable_reference.py`` call this same function,
+    so the on-screen reference and the handbook copy can never disagree
+    with each other or with the registry they are both drawn from.
+    """
+    columns: list[dict[str, Any]] = []
+    for bus in live_buses.BUSES.values():
+        cable = "none"
+        for route in bus.routes:
+            if route.cable != "none":
+                cable = route.cable
+                break
+        switch = "HS" if bus.bitrate >= 400000 else "MS"
+        bus_label = bus.name.split(" (")[0]
+        mods = live_ops.modules(bus=bus.key)["modules"]
+        columns.append({
+            "cable": cable,
+            "cable_label": _CABLE_LABELS.get(cable, cable),
+            "bus_key": bus.key,
+            "bus_label": bus_label,
+            "switch": switch,
+            "modules": [{"code": m["code"], "confidence": m["confidence"]} for m in mods],
+        })
+    columns.sort(key=lambda c: _CABLE_ORDER.get(c["cable"], 99))
+    return columns
 
 
 def _bar(vin: str) -> dict:
@@ -81,7 +128,7 @@ def _state_for(vin: str) -> dict:
 def scan_page(request: Request, vin: str) -> HTMLResponse:
     state = _state_for(vin)
     response = _page(request, "fullscan.html", vin=vin, bar=_bar(vin), tab="scan",
-                     state=state, phase=_phase(state))
+                     state=state, phase=_phase(state), cable_table=cable_reference_table())
     _set_active_vehicle(response, vin)
     return response
 
@@ -111,4 +158,4 @@ def scan_abandon(request: Request, vin: str, scan_id: str = Form(...)) -> HTMLRe
     return RedirectResponse(url=f"/v/{vin}/scan", status_code=303)
 
 
-__all__ = ["router"]
+__all__ = ["router", "cable_reference_table"]

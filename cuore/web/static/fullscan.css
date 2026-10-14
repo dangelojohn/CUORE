@@ -78,3 +78,81 @@
   .fscan-actions .btn { width: 100%; }
   .fscan-pause { max-width: 100%; }
 }
+
+/* ---------- "Which cable for which module" reference ----------
+ * Compact on purpose -- this is a lookup card shown on the idle screen and
+ * on every pause card, not a primary action. Still shop-floor rules: no
+ * text under 12px anywhere in it (the .chip confidence tag is already
+ * 12px app-wide; everything else here is 13px or larger). */
+
+.fscan-cableref {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.fscan-cableref-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 650;
+  letter-spacing: .01em;
+  text-transform: none;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.fscan-cableref-cols {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.fscan-cableref-col {
+  flex: 1 1 180px;
+  min-width: 150px;
+}
+
+.fscan-cableref-head {
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.fscan-cableref-bus {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--ink-2);
+}
+
+.fscan-cableref-switch {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 2px 0 8px;
+}
+
+.fscan-cableref-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fscan-cableref-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.fscan-cableref-code {
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .fscan-cableref-cols { flex-direction: column; gap: 14px; }
+  .fscan-cableref-col { min-width: 100%; }
+}
