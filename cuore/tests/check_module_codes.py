@@ -1,15 +1,20 @@
-"""Checks for tonight's module-code sweep (2018 Stelvio, 2026-10-13):
+"""Checks for tonight's module-code sweep (2018 Stelvio, 2026-10-13), plus the
+14 Oct follow-up scan's two new codes (DTCM U0100, RFHUB U2054):
 
   1. ``mes.dtc.failure_type`` covers all seven failure-type bytes from the
      sweep (2F, 86, 87, 97, 4A, 64, 00), each with the standard SAE J2012-DA
      / ISO 14229-1 wording and a "...(CORROBORATED)" source.
-  2. ``mes.dtc_descriptions.code_description`` returns, for each of the six
-     module codes (U1713, U1736, U1765, B1176, B10AA, B1040), either a
-     sourced description or the honest UNKNOWN wording -- never an empty
-     string either way.
+  2. ``mes.dtc_descriptions.code_description`` returns, for each of the eight
+     module codes (U1713, U1736, U1765, B1176, B10AA, B1040, U0100, U2054),
+     either a sourced description or the honest UNKNOWN wording -- never an
+     empty string either way.
   3. ``cuore/web/templates/_code_brief.html`` renders the "-2F: signal
      erratic (...)" suffix line for "U1713-2F" when its context supplies a
      ``failure_type`` global and an occurrence record naming the full code.
+  4. U0100 (standard SAE lost-communication code) and U2054 (named member of
+     the BCM/RFHUB/DTCM cascade) both count toward the network family's
+     "one power or bus event" grouping -- ``mes.faulttree.NETWORK_CASCADE``
+     and ``mes.electrical.code_electrical_path``.
 
 Same posture as the other ``check_*`` scripts: plain script, ``check()``,
 exit 1 on failure, no pytest.
@@ -29,6 +34,8 @@ sys.path.insert(0, str(REPO_ROOT / "mes-log-mcp"))
 
 from mes import dtc as dtc_mod  # noqa: E402
 from mes import dtc_descriptions as dtc_desc  # noqa: E402
+from mes import electrical as electrical_mod  # noqa: E402
+from mes import faulttree  # noqa: E402
 
 failures: list[str] = []
 checks = 0
@@ -70,7 +77,8 @@ for byte, expect_substr in EXPECTED_FTB.items():
 
 # --- 2. code descriptions ---------------------------------------------------
 
-SWEEP_CODES = ["U1713", "U1736", "U1765", "B1176", "B10AA", "B1040"]
+SWEEP_CODES = ["U1713", "U1736", "U1765", "B1176", "B10AA", "B1040",
+               "U0100", "U2054"]
 
 for code in SWEEP_CODES:
     desc = dtc_desc.code_description(code)
@@ -92,6 +100,29 @@ check("code_description tolerates a full CODE-FTB token",
 _u_unknown = dtc_desc.code_description("U1799")
 check("an un-sourced U1xxx code still states the generic SAE J2012 range",
       "manufacturer-defined network" in _u_unknown["text"], _u_unknown["text"])
+
+# --- 2b. the 14 Oct scan's two new codes fold into the network family ------
+
+for new_code in ("U0100", "U2054"):
+    desc = dtc_desc.code_description(new_code)
+    check(f"{new_code} description is non-empty",
+          bool(desc.get("text", "").strip()), desc)
+    check(f"{new_code} carries a grade",
+          desc.get("confidence") in ("CONFIRMED", "SINGLE-SOURCE", "UNKNOWN"),
+          desc)
+    check(f"{new_code} is a named member of NETWORK_CASCADE",
+          new_code in faulttree.NETWORK_CASCADE.codes,
+          sorted(faulttree.NETWORK_CASCADE.codes))
+    path = electrical_mod.code_electrical_path(new_code)
+    check(f"{new_code} resolves to the 'network' electrical family",
+          path["family"] == "network", path)
+
+check("U0100's own description counts it as lost-communication",
+      "Lost Communication" in dtc_desc.code_description("U0100")["text"])
+check("U0100 is graded CONFIRMED (standard SAE code)",
+      dtc_desc.code_description("U0100")["confidence"] == "CONFIRMED")
+check("U2054's own description carries a sourced URL (dtcdecode.com match)",
+      bool(dtc_desc.code_description("U2054").get("url")))
 
 # --- 3. _code_brief.html renders the suffix ---------------------------------
 

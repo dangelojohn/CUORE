@@ -127,6 +127,49 @@ _DESCRIPTIONS: tuple[CodeDescription, ...] = (
         url="https://www.dtcdecode.com/Alfa-Romeo/B10AA-4A",
         checked="2026-10-13",
     ),
+
+    # --- from the 2026-10-14 MES scan ---------------------------------------
+    CodeDescription(
+        "U0100",
+        "SAE J2012 standard code: Lost Communication With ECM/PCM 'A'. "
+        "code_authority() already resolves U0xxx as the generic (SAE) "
+        "range, not manufacturer-defined, so this is the published "
+        "standard meaning, not a platform guess. On this car it was logged "
+        "by the DTCM (Magna Q4 transfer case control module) with FTB `87` "
+        "(missing message) -- the DTCM expected a periodic message from "
+        "the ECM/PCM and didn't get one. Same reading this repo already "
+        "gives it elsewhere: mes/drivetrain_specs.py TRANSFER_CASE_DTCS "
+        "calls U0100-87 a bystander code from whole-vehicle serial UDS "
+        "sweeps on this car's own scans, not a real transfer-case fault, "
+        "and it is one of the named members of the BCM/RFHUB/DTCM "
+        "lost-communication cascade (mes/faulttree.py NETWORK_CASCADE) "
+        "together with U1711/U1712/U1713/U1716/U1765/U1736/U2054/B1040 -- "
+        "one network event reported as many codes.",
+        source=("SAE J2012-DA generic U0xxx definition (mes/dtc.py "
+                "code_authority) + mes/drivetrain_specs.py "
+                "TRANSFER_CASE_DTCS (this car's own SCAN_2609041953) + "
+                "mes/faulttree.py NETWORK_CASCADE"),
+        confidence="CONFIRMED",
+    ),
+    CodeDescription(
+        "U2054",
+        "RFHUB (Continental RF hub): dtcdecode.com's Alfa Romeo entry for "
+        "U2054-87 gives the exact text \"Bcm_Command Message 2 - Missing "
+        "Message\" (listed under BCM, FTB 87/missing message) -- the "
+        "module expected a periodic BCM command message and didn't "
+        "receive it in time. code_authority() resolves U2xxx as "
+        "manufacturer-defined (FCA), so -- unlike U0100 -- there is no "
+        "SAE-published generic meaning behind this one, only the "
+        "dtcdecode.com entry itself. On this car it is one of the named "
+        "members of the BCM/RFHUB/DTCM lost-communication cascade (mes/"
+        "faulttree.py NETWORK_CASCADE) together with U1711/U1712/U1713/"
+        "U1716/U1765/U1736/U0100/B1040 -- one network event reported as "
+        "many codes, not a standalone RF-hub fault.",
+        source="dtcdecode.com Alfa Romeo U2054-87",
+        confidence="SINGLE-SOURCE",
+        url="https://www.dtcdecode.com/Alfa-Romeo/U2054-87",
+        checked="2026-10-14",
+    ),
 )
 
 DESCRIPTIONS: dict[str, CodeDescription] = {d.code: d for d in _DESCRIPTIONS}
