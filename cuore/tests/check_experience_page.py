@@ -1,7 +1,7 @@
 """Checks for the "Others' experience" feature: cuore/services/experience_bridge.py,
 cuore/api/experience.py, and the _experience.html card included on code.html,
-vehicle.html (dossier open-work), maintenance.html, service_hub.html and
-timeline.html.
+vehicle.html (dossier open-work), maintenance.html, service_hub.html,
+timeline.html and report.html.
 
 mes.experience (for_code/for_family/for_job/all) is built in parallel by
 another agent and may not exist yet -- experience_bridge degrades to an
@@ -11,6 +11,15 @@ result are checked by monkeypatching ``experience_bridge._experience_module``
 with a small fixture class -- the same function
 ``cuore.web.experience_globals``'s registered Jinja global calls through to,
 so one patch point covers the API and every page.
+
+Section 5 (added 2026-10-14) covers the driver/mechanic-added half of the
+feature: ``cuore.live.experience_inputs``, the ``/api/experience/{vin}/
+inputs`` round-trip, the merge-with-curated tiering, and the mobile entry
+point on ``m_home.html``. No COM3, no real browser: every row is added with
+``verify=False`` (the API's own ``"verify": false``) so :func:`cuore.live.
+experience_inputs.verify_entry` -- which would otherwise shell out to
+headless Edge for a forum URL -- is never invoked; TestClient only, same
+posture as every other ``check_*_page.py`` here.
 
 Run:
     .venv/Scripts/python.exe cuore/tests/check_experience_page.py
@@ -36,6 +45,7 @@ from cuore.app import create_app  # noqa: E402
 from cuore.services import experience_bridge  # noqa: E402
 from cuore.web import experience_globals  # noqa: E402, F401 -- side-effect import, registers the global
 from cuore.api import experience as experience_api  # noqa: E402
+from cuore.live import experience_inputs as experience_inputs_store  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"
 
@@ -128,7 +138,7 @@ try:
           ids[0] == "v1" and result["links"][0]["score"] == max(scores), str(ids) + " " + str(scores))
     empty = experience_bridge.links_for()
     check("no code/family/job given -> empty result, no error",
-          empty == {"links": [], "count": 0}, str(empty))
+          empty["links"] == [] and empty["count"] == 0, str(empty))
 finally:
     _unpatched()
 
@@ -149,7 +159,8 @@ try:
     check("API returns merged de-duplicated links", api_resp.json().get("count") == 3, api_resp.text)
     api_empty = client.get("/api/experience")
     check("API with no params returns empty, not an error",
-          api_empty.status_code == 200 and api_empty.json() == {"links": [], "count": 0})
+          api_empty.status_code == 200 and api_empty.json().get("links") == []
+          and api_empty.json().get("count") == 0)
 finally:
     _unpatched()
 
@@ -233,6 +244,139 @@ for script in ("check_dossier_page.py", "check_maintenance_page.py",
                           cwd=str(ROOT), capture_output=True, text=True)
     ok = proc.returncode == 0
     check(f"{script} exits 0", ok, (proc.stdout[-1200:] + proc.stderr[-1200:]) if not ok else "")
+
+
+# ===========================================================================
+# 5. driver/mechanic-added links: store, merge/tier, API round-trip,
+#    curated read-only, duplicates, edit/delete/undo, mobile entry point
+# ===========================================================================
+
+print("=== add a mechanic link: renders with the Mechanic chip + name ===")
+_patched()
+try:
+    add_resp = client.post(f"/api/experience/{VIN}/inputs", json={
+        "scope": {"code": "P0456"}, "url": "https://example.com/mechanic-find",
+        "title": "Mechanic fix video", "kind": "video", "role": "mechanic",
+        "name": "Luca", "note": "this is what fixed it", "rating": "helped",
+        "verify": False})
+    check("add: 200", add_resp.status_code == 200, add_resp.text)
+    mech_row = add_resp.json()
+    check("add: not flagged a duplicate", not mech_row.get("duplicate"), str(mech_row))
+    mech_id = mech_row["id"]
+
+    code_resp = client.get(f"/v/{VIN}/code/P0456")
+    check("code page: Mechanic chip + name render", "Mechanic" in code_resp.text
+          and "Luca" in code_resp.text, code_resp.text[:200])
+
+    report_resp = client.get(f"/v/{VIN}/report")
+    check("report: mechanic-added link renders with Mechanic chip + name",
+          "Mechanic fix video" in report_resp.text and "Mechanic" in report_resp.text
+          and "Luca" in report_resp.text)
+
+    print("=== driver link sorts after mechanic (tiered, not just by score) ===")
+    driver_resp = client.post(f"/api/experience/{VIN}/inputs", json={
+        "scope": {"code": "P0456"}, "url": "https://example.com/driver-find",
+        "title": "Driver's note", "kind": "note", "role": "driver", "name": "Sam",
+        "note": "heard this rattle too", "rating": "helped", "verify": False})
+    check("add driver link: 200", driver_resp.status_code == 200, driver_resp.text)
+    driver_id = driver_resp.json()["id"]
+
+    merged = experience_bridge.links_for(code="P0456", vin=VIN)
+    ids_in_order = [l["id"] for l in merged["links"]]
+    check("mechanic row present and before driver row",
+          mech_id in ids_in_order and driver_id in ids_in_order
+          and ids_in_order.index(mech_id) < ids_in_order.index(driver_id), str(ids_in_order))
+    check("curated rows (tier 0) all sort ahead of both user rows",
+          all(ids_in_order.index(l["id"]) < ids_in_order.index(mech_id)
+              for l in merged["links"] if l.get("curated")), str(ids_in_order))
+    check("counts tally mechanic/driver separately",
+          merged["counts"].get("mechanic") == 1 and merged["counts"].get("driver") == 1,
+          str(merged["counts"]))
+
+    print("=== edit changes the note, with an audit entry ===")
+    edit_resp = client.patch(f"/api/experience/{VIN}/inputs/{mech_id}",
+                             json={"by_role": "mechanic", "by_name": "Luca",
+                                   "note": "updated: torqued the fitting too"})
+    check("edit: 200", edit_resp.status_code == 200, edit_resp.text)
+    after_edit = experience_bridge.list_inputs(VIN)["inputs"]
+    edited_row = next((r for r in after_edit if r["id"] == mech_id), None)
+    check("edit: note actually changed", edited_row is not None
+          and edited_row["note"] == "updated: torqued the fitting too", str(edited_row))
+    check("edit: audit entry recorded who/when/what changed",
+          edited_row is not None and len(edited_row.get("audit") or []) == 1
+          and edited_row["audit"][0]["by"]["role"] == "mechanic"
+          and "note" in edited_row["audit"][0]["changes"], str(edited_row))
+
+    print("=== delete + undo ===")
+    del_resp = client.delete(f"/api/experience/{VIN}/inputs/{driver_id}")
+    check("delete: 200", del_resp.status_code == 200, del_resp.text)
+    after_delete = experience_bridge.list_inputs(VIN)["inputs"]
+    check("delete: row no longer in the default (non-deleted) list",
+          all(r["id"] != driver_id for r in after_delete), str(after_delete))
+    restore_resp = client.post(f"/api/experience/{VIN}/inputs/{driver_id}/restore")
+    check("undo: restore 200", restore_resp.status_code == 200, restore_resp.text)
+    after_restore = experience_bridge.list_inputs(VIN)["inputs"]
+    check("undo: row is back", any(r["id"] == driver_id for r in after_restore), str(after_restore))
+
+    print("=== duplicate URL is flagged, not silently re-added ===")
+    dup_resp = client.post(f"/api/experience/{VIN}/inputs", json={
+        "scope": {"code": "P0456"}, "url": "https://example.com/mechanic-find",
+        "kind": "video", "role": "driver", "verify": False})
+    check("duplicate: flagged with the existing row's attribution", dup_resp.status_code == 200
+          and dup_resp.json().get("duplicate") is True
+          and (dup_resp.json().get("existing") or {}).get("id") == mech_id, dup_resp.text)
+    confirm_resp = client.post(f"/api/experience/{VIN}/inputs", json={
+        "scope": {"code": "P0456"}, "url": "https://example.com/mechanic-find",
+        "kind": "video", "role": "driver", "verify": False, "confirm_duplicate": True})
+    check("duplicate: confirm_duplicate=true adds it anyway", confirm_resp.status_code == 200
+          and not confirm_resp.json().get("duplicate"), confirm_resp.text)
+
+    print("=== curated row stays uneditable (no Edit/Delete; Flag offered instead) ===")
+    curated_id = next(l["id"] for l in merged["links"] if l.get("curated"))
+    curated_page = client.get(f"/v/{VIN}/code/P0456")
+    check('curated row gets "Flag as wrong/outdated", not Edit/Delete',
+          f'data-exp-flag="{curated_id}"' in curated_page.text
+          and f'data-exp-edit="{curated_id}"' not in curated_page.text
+          and f'data-exp-delete="{curated_id}"' not in curated_page.text)
+    # curated ids were never written via add_input (they come from
+    # mes.experience, read-only), so edit_input must refuse one outright --
+    # that refusal, not any UI affordance, is what actually keeps a
+    # curated row uneditable.
+    try:
+        experience_inputs_store.edit_input(curated_id, by_role="owner", note="nope")
+        check("curated id rejected by edit_input", False, "no exception raised")
+    except ValueError:
+        check("curated id rejected by edit_input", True)
+
+    print("=== flag + worked tick round-trip against a curated id ===")
+    flag_resp = client.post(f"/api/experience/links/{curated_id}/flag",
+                            json={"by_role": "owner", "note": "canister P/N changed since",
+                                  "flag_kind": "outdated"})
+    check("flag curated row: 200", flag_resp.status_code == 200, flag_resp.text)
+    check("flag recorded against the curated id",
+          len(experience_inputs_store.flags_for(curated_id)) == 1)
+    worked_resp = client.post(f"/api/experience/links/{mech_id}/worked",
+                              json={"by_role": "mechanic", "job_ref": "P0456 EVAP smoke test"})
+    check("worked tick: 200", worked_resp.status_code == 200, worked_resp.text)
+    check("worked tick recorded against the mechanic row",
+          len(experience_inputs_store.worked_for(mech_id)) == 1)
+
+    print("=== export for curation review ===")
+    export_resp = client.get(f"/api/experience/{VIN}/inputs/export")
+    check("export: 200", export_resp.status_code == 200, export_resp.text)
+    export_rows = export_resp.json().get("export") or []
+    check("export: the helped mechanic row is offered for curation review",
+          any(r.get("found_by", {}).get("role") == "mechanic" for r in export_rows),
+          str(export_rows))
+finally:
+    _unpatched()
+
+print("=== mobile entry point: m_home.html renders the add form ===")
+mobile_resp = client.get(f"/m/{VIN}")
+check("mobile home: 200", mobile_resp.status_code == 200, str(mobile_resp.status_code))
+check('mobile home: "+ Add what you found" card renders, wired to experience.js',
+      "data-exp-add-form" in mobile_resp.text and "data-exp-card" in mobile_resp.text
+      and "experience.js" in mobile_resp.text)
 
 
 print()

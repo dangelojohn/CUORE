@@ -1,46 +1,84 @@
 {# Reusable "Others' experience" card: links other owners/forums/videos have
-   published about a code, family or job. Fed by the `experience_links`
-   Jinja global (registered as an import-time side effect by
-   cuore/web/experience_globals.py -- see that module's docstring) via a
-   page-local `exp = experience_links(...)` set before this include.
+   published about a code, family or job, merged with whatever a driver or
+   mechanic has typed in themselves. Fed by the `experience_links` Jinja
+   global (registered as an import-time side effect by
+   cuore/web/experience_globals.py -- see that module's docstring, and
+   cuore/services/experience_bridge.py for the merge/tier/score contract)
+   via a page-local `exp = experience_links(...)` set before this include.
    Guarded so a page still renders -- with the empty state below -- before
    that global lands, and before mes.experience itself lands.
 
    Collapsed by default (<details class="card-details">, no `open`) so the
    card doesn't crowd the page; the summary names the count and teases the
    top-scored link. Inside, four view links (?exp=relevant|videos|forums|
-   newest) re-render the already-scored list filtered/sorted without any
-   JS -- `request` is only defined when a route passes it into the
-   template context (it always does via `TemplateResponse(request, ...)`),
-   so this degrades to the default "relevant" view if it isn't. #}
-{% set exp = exp if exp is defined else {"links": [], "count": 0} %}
+   newest) re-render the already-tiered-then-scored list filtered/sorted
+   without any JS -- `request` is only defined when a route passes it into
+   the template context (it always does via `TemplateResponse(request,
+   ...)`), so this degrades to the default "relevant" view if it isn't.
+
+   The "+ Add what you found" form and every row's Edit/Delete/Flag/Worked
+   control are plain HTML (so the card still works with JS off, as a dead
+   end -- "could not load, try again" -- same posture as feedback.js's own
+   fallback note) enhanced by cuore/web/static/experience.js, which does
+   the actual fetch() round-trip to /api/experience/... and re-renders the
+   row in place. `vin` here is read from `document.body.dataset.vin` by
+   that script (same trick feedback.js uses), not from this template's own
+   `vin` variable -- the six call sites that include this partial use six
+   different variable names for the current code/family/job, which this
+   block also tries defensively (`is defined` guards) to prefill the
+   "+ Add" form's scope fields; a page with none of them just leaves scope
+   blank for the owner to fill in. #}
+{% set exp = exp if exp is defined else {"links": [], "count": 0, "counts": {}} %}
 {% set _exp_mode = (request.query_params.get('exp') if request is defined and request else none) or "relevant" %}
+
+{% set _exp_scope_code = code if code is defined and code else "" %}
+{% set _exp_scope_family = _family if _family is defined and _family else (c.key if c is defined and c.key is defined else (_fam_key if _fam_key is defined and _fam_key else (job.family if job is defined and job.family is defined and job.family else ""))) %}
+{% set _exp_scope_job = _job if _job is defined and _job else (job.key if job is defined and job.key is defined and job.key else "") %}
 
 {% set _exp_kind_icon = {
   "how_to_video": "[video]",
   "teardown": "[teardown]",
   "forum_thread": "[forum]",
   "owner_report": "[report]",
-  "sound_reference": "[sound]"
+  "sound_reference": "[sound]",
+  "video": "[video]",
+  "forum": "[forum]",
+  "article": "[article]",
+  "manual": "[manual]",
+  "audio": "[sound]",
+  "photo": "[photo]",
+  "note": "[note]"
 } %}
 
+{% set _exp_role_label = {"cuore": "CUORE curated", "mechanic": "Mechanic", "driver": "Driver", "owner": "Owner"} %}
+{% set _exp_role_chip_class = {"cuore": "ok", "mechanic": "warn", "driver": "plain", "owner": "plain"} %}
+
 {% if _exp_mode == "videos" %}
-  {% set _exp_shown = exp.links|selectattr("kind", "equalto", "how_to_video")|list %}
+  {% set _exp_shown = exp.links|selectattr("kind", "in", ["how_to_video", "video"])|list %}
 {% elif _exp_mode == "forums" %}
-  {% set _exp_shown = exp.links|selectattr("kind", "equalto", "forum_thread")|list %}
+  {% set _exp_shown = exp.links|selectattr("kind", "in", ["forum_thread", "forum"])|list %}
 {% elif _exp_mode == "newest" %}
   {% set _exp_shown = exp.links|sort(attribute="date", reverse=true)|list %}
 {% else %}
   {% set _exp_shown = exp.links %}
 {% endif %}
 
-<div class="panel experience-card">
+{% set _exp_counts = exp.counts or {} %}
+{% set _exp_count_bits = [] %}
+{% if _exp_counts.get("curated") %}{% set _ = _exp_count_bits.append(_exp_counts["curated"]|string ~ " curated") %}{% endif %}
+{% if _exp_counts.get("mechanic") %}{% set _ = _exp_count_bits.append(_exp_counts["mechanic"]|string ~ " mechanic") %}{% endif %}
+{% if _exp_counts.get("driver") %}{% set _ = _exp_count_bits.append(_exp_counts["driver"]|string ~ " driver") %}{% endif %}
+{% if _exp_counts.get("owner") %}{% set _ = _exp_count_bits.append(_exp_counts["owner"]|string ~ " owner") %}{% endif %}
+
+<div class="panel experience-card" data-exp-card{% if vin is defined and vin %} data-vin="{{ vin }}"{% endif %}
+    data-exp-scope-code="{{ _exp_scope_code }}" data-exp-scope-family="{{ _exp_scope_family }}"
+    data-exp-scope-job="{{ _exp_scope_job }}">
   {% if not exp.links %}
   <h3>Others' experience</h3>
   <p class="muted small">No experience links yet for this item.</p>
   {% else %}
   <details class="card-details">
-    <summary>Others' experience ({{ exp.count }}) &mdash; {{ exp.links[0].title }}</summary>
+    <summary>Others' experience ({{ exp.count }}){% if _exp_count_bits %} &mdash; {{ _exp_count_bits|join(" &middot; ")|safe }}{% endif %}</summary>
     <p class="small muted exp-views">
       view:
       <a href="?exp=relevant">relevant</a> &middot;
@@ -48,8 +86,9 @@
       <a href="?exp=forums">forums</a> &middot;
       <a href="?exp=newest">newest</a>
     </p>
+    <div data-exp-list>
     {% for l in _exp_shown %}
-      <div class="exp-row">
+      <div class="exp-row" data-exp-row data-exp-id="{{ l.id }}" data-exp-curated="{{ 'true' if l.curated else 'false' }}">
         <span class="small muted">#{{ loop.index }}</span>
         <span class="small">{{ _exp_kind_icon.get(l.kind, "[link]") }}</span>
         <div class="exp-main">
@@ -57,12 +96,75 @@
           <div class="small muted">{{ l.source }}{% if l.date %} &middot; {{ l.date }}{% endif %}</div>
           {% if l.reason %}<div class="small muted">{{ l.reason }}</div>{% endif %}
           {% if l.label %}<div class="small muted">{{ l.label }}</div>{% endif %}
+          <div class="small muted exp-attrib">
+            Found by {{ _exp_role_label.get((l.found_by or {}).get("role"), "Owner") }}{% if (l.found_by or {}).get("name") %} &middot; {{ l.found_by.name }}{% endif %}{% if l.found_at %} &middot; {{ l.found_at[:10] }}{% endif %}
+          </div>
+          {% if l.note %}<div class="small exp-note" data-exp-note>{{ l.note }}</div>{% endif %}
+          {% if l.verified and l.verified.status %}
+            <span class="chip {{ 'ok' if l.verified.status == 'verified' else 'plain' }} small" data-exp-verified>{{ l.verified.status }}</span>
+          {% endif %}
+          {% if l.rating and not l.curated %}
+            <span class="chip {{ 'ok' if l.rating == 'helped' else ('warn' if l.rating == 'wrong' else 'plain') }} small" data-exp-rating>{{ l.rating }}</span>
+          {% endif %}
+          {% if l.worked_count %}<span class="small muted">&middot; worked on this car: {{ l.worked_count }}</span>{% endif %}
+          {% if l.flags %}<span class="small muted">&middot; flagged {{ l.flags|length }}x</span>{% endif %}
         </div>
+        <span class="chip {{ _exp_role_chip_class.get((l.found_by or {}).get('role'), 'plain') }}" data-exp-role-chip>{{ _exp_role_label.get((l.found_by or {}).get("role"), "Owner") }}</span>
         {% if l.reputation %}<span class="chip {{ 'ok' if l.reputation == 'high' else 'plain' }}">{{ l.reputation }}</span>{% endif %}
+        <div class="exp-row-actions">
+          {% if l.curated %}
+            <button type="button" class="btn small" data-exp-flag="{{ l.id }}">Flag as wrong/outdated</button>
+          {% else %}
+            <button type="button" class="btn small" data-exp-edit="{{ l.id }}">Edit</button>
+            <button type="button" class="btn small" data-exp-delete="{{ l.id }}">Delete</button>
+          {% endif %}
+          <button type="button" class="btn small" data-exp-worked="{{ l.id }}">Worked on this car?</button>
+        </div>
       </div>
     {% else %}
       <p class="muted small">No links for this view.</p>
     {% endfor %}
+    </div>
   </details>
   {% endif %}
+
+  <details class="exp-add" data-exp-add>
+    <summary>+ Add what you found</summary>
+    <form data-exp-add-form novalidate>
+        <label class="small">URL<input type="url" name="url" required maxlength="2000" placeholder="https://..."></label>
+        <label class="small">Title (auto-fetched when reachable, else type it)<input type="text" name="title" maxlength="300"></label>
+        <label class="small">Kind
+          <select name="kind">
+            <option value="video">Video</option>
+            <option value="forum">Forum thread</option>
+            <option value="article">Article</option>
+            <option value="manual">Manual</option>
+            <option value="audio">Audio / sound reference</option>
+            <option value="photo">Photo</option>
+            <option value="note">Note</option>
+          </select>
+        </label>
+        <div class="small exp-role-chips" data-exp-role-picker role="group" aria-label="Who found it">
+          <button type="button" class="btn small" data-role-chip="driver" aria-pressed="false">Driver</button>
+          <button type="button" class="btn small" data-role-chip="mechanic" aria-pressed="true">Mechanic</button>
+          <input type="hidden" name="role" value="mechanic">
+        </div>
+        <label class="small">Your name<input type="text" name="name" maxlength="200" data-exp-name></label>
+        <label class="small">Code<input type="text" name="scope_code" value="{{ _exp_scope_code }}" maxlength="10"></label>
+        <label class="small">Family/system<input type="text" name="scope_family" value="{{ _exp_scope_family }}" maxlength="200"></label>
+        <label class="small">Job<input type="text" name="scope_job" value="{{ _exp_scope_job }}" maxlength="200"></label>
+        <label class="small">Note (why it helped)<textarea name="note" maxlength="2000"></textarea></label>
+        <label class="small">Rating
+          <select name="rating">
+            <option value="helped">Helped</option>
+            <option value="unsure" selected>Not sure yet</option>
+            <option value="wrong">Was wrong</option>
+          </select>
+        </label>
+        <div class="exp-add-status small muted" data-exp-add-status></div>
+        <div class="exp-add-actions">
+          <button type="submit" class="btn primary small">Save</button>
+        </div>
+      </form>
+  </details>
 </div>

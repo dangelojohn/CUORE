@@ -48,6 +48,15 @@ is no longer in the live schema.
 | POST | /api/media/{id}/hide | Hide a media item (soft delete) |
 | GET | /api/vision/status | Which photo-reading provider is configured |
 | POST | /api/vision/{vin}/read | Read one photo (odometer, fuel pump, oil bottle, part label, or receipt) |
+| GET | /api/experience | Others' experience: merged curated + driver/mechanic-added links for a code/family/job |
+| GET | /api/experience/{vin}/inputs | This vehicle's driver/mechanic-added links |
+| POST | /api/experience/{vin}/inputs | Add one driver/mechanic-found link |
+| PATCH | /api/experience/{vin}/inputs/{id} | Edit a driver/mechanic-added link (note/rating/title/kind/scope) |
+| DELETE | /api/experience/{vin}/inputs/{id} | Soft-delete a driver/mechanic-added link |
+| POST | /api/experience/{vin}/inputs/{id}/restore | Undo a soft-delete |
+| GET | /api/experience/{vin}/inputs/export | Export user-added links (curated-table shape) for review |
+| POST | /api/experience/links/{link_id}/flag | Flag any link (curated or added) as wrong/outdated |
+| POST | /api/experience/links/{link_id}/worked | "Worked on this car?" tick against any link |
 
 `/api/vision/*` landed mid-write of this document (it did not exist at the
 start of this pass; `cuore/services/vision_bridge.py` and `cuore/api/vision.py`
@@ -643,6 +652,58 @@ each event. A native app that pre-fills a field from `POST
 /api/vision/{vin}/read` stamps that key `"photo"` when the human saves; the
 value is still an attested record at `confidence: "reported"` -- the marker
 only remembers how the value got into the box.
+
+---
+
+## Others' experience: driver/mechanic-added links
+
+`cuore.live.experience_inputs` + `cuore.services.experience_bridge` +
+`cuore.api.experience` (added 2026-10-14). Answers the owner's own
+complaint: *"I need to add Others' experiences input data from driver and
+mechanic and identify which of the two found this external data; I am
+unable to modify these fields."* Same attested-record posture as owner
+events below -- every row carries `confidence: "reported"`.
+
+`GET /api/experience?code=&family=&job=&vin=` returns the merged,
+tiered-then-scored list (curated rows from the hand-maintained table, plus
+every matching driver/mechanic-added row): `{"links": [...], "count": n,
+"counts": {"curated": n, "mechanic": n, "driver": n, "owner": n, "cuore":
+n}}`. Each link carries `curated` (bool), `found_by: {role, name}`,
+`found_at`, `note`, `rating`, `verified: {status, at, method}`, `flags`,
+`worked_count`, `score`, `reason`. Tier order: curated first, then
+mechanic, then driver, then everything else (owner-added or unverified) --
+within a tier, highest `score` first.
+
+`POST /api/experience/{vin}/inputs` body:
+```json
+{"scope": {"code": "P0456", "family": "", "job": ""},
+ "url": "https://...", "title": "", "kind": "video",
+ "role": "mechanic", "name": "Luca", "note": "fixed it",
+ "rating": "helped", "verify": true, "confirm_duplicate": false}
+```
+`kind`: video\|forum\|article\|manual\|audio\|photo\|note. `role`:
+driver\|mechanic\|owner\|cuore. `rating`: helped\|unsure\|wrong. Returns the
+new row, or `{"duplicate": true, "existing": {...}}` without writing
+anything when the same URL (normalised) is already on file for this
+vehicle -- resubmit with `confirm_duplicate: true` to add anyway.
+
+`PATCH /api/experience/{vin}/inputs/{id}` body: `{"by_role": "mechanic",
+"by_name": "", "note": "...", "rating": "...", "title": "...", "kind":
+"...", "scope": {...}}` -- any subset; appends an audit entry, never
+rewrites the original row. `DELETE .../inputs/{id}` soft-deletes;
+`POST .../inputs/{id}/restore` undoes it (the mobile "Undo" pattern).
+
+`POST /api/experience/links/{link_id}/flag` body: `{"by_role": "...",
+"by_name": "", "note": "", "flag_kind": "wrong"}` (or `"outdated"`) --
+works against any link id, curated or user-added; curated rows stay
+read-only otherwise. `POST /api/experience/links/{link_id}/worked` body:
+`{"by_role": "...", "by_name": "", "job_ref": ""}` -- the "Worked on this
+car?" tick.
+
+`GET /api/experience/{vin}/inputs/export?role=mechanic&rating=helped`
+returns `{"vin": "...", "export": [...]}` in the curated table's own row
+shape -- a review export for the owner to hand-promote into the curated
+table, never an auto-promotion.
 
 ---
 

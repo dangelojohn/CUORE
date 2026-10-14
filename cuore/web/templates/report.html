@@ -303,11 +303,20 @@
 
   <section id="experience">
     <h2>Others' experience</h2>
+    {% set _rep_role_label = {"cuore": "CUORE curated", "mechanic": "Mechanic", "driver": "Driver", "owner": "Owner"} %}
     {% for group in experience %}
       <h4>{{ group.label }}</h4>
       <ul class="small">
         {% for l in group.links %}
-          <li><a href="{{ l.url }}">{{ l.title or l.url }}</a></li>
+          {# Role attribution + rating (added 2026-10-14, cuore.services.experience_bridge's
+             merge of driver/mechanic-added links alongside the curated table) --
+             curated rows show "CUORE curated" the same as the main card. #}
+          <li><a href="{{ l.url }}">{{ l.title or l.url }}</a>
+            <span class="chip small {{ 'ok' if (l.found_by or {}).get('role') == 'cuore' else 'plain' }}">{{ _rep_role_label.get((l.found_by or {}).get('role'), 'Owner') }}</span>
+            {% if (l.found_by or {}).get('name') %}<span class="muted">&middot; {{ l.found_by.name }}</span>{% endif %}
+            {% if l.found_at %}<span class="muted">&middot; {{ l.found_at[:10] }}</span>{% endif %}
+            {% if l.rating and not l.curated %}<span class="chip small {{ 'ok' if l.rating == 'helped' else ('warn' if l.rating == 'wrong' else 'plain') }}">{{ l.rating }}</span>{% endif %}
+          </li>
         {% endfor %}
       </ul>
     {% else %}

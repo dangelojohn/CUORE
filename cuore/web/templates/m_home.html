@@ -48,5 +48,62 @@
 </div>
 {% endif %}
 
+{# Additive mobile entry point for driver/mechanic-added "Others'
+   experience" links (cuore/live/experience_inputs.py,
+   cuore/api/experience.py) -- the owner's own complaint was "I am unable
+   to modify these fields" from a phone just as much as a desktop. No new
+   route: posts straight to the same JSON API the desktop card's own
+   "+ Add what you found" form uses (cuore/web/static/experience.js, which
+   wires any [data-exp-card] on the page the same way regardless of
+   markup) -- `data-vin` is set here directly since the mobile layout
+   (m_base.html) puts no vin on <body>. #}
+<p class="m-section-h">Others' experience</p>
+<div class="panel experience-card" data-exp-card data-vin="{{ vin }}">
+  <details class="exp-add" data-exp-add>
+    <summary>+ Add what you found</summary>
+    <form data-exp-add-form novalidate class="m-form">
+      <div class="m-field"><label class="m-label">URL</label>
+        <input class="m-input" type="url" name="url" required maxlength="2000" placeholder="https://..."></div>
+      <div class="m-field"><label class="m-label">Title (auto-fetched when reachable, else type it)</label>
+        <input class="m-input" type="text" name="title" maxlength="300"></div>
+      <div class="m-field"><label class="m-label">Kind</label>
+        <select class="m-input" name="kind">
+          <option value="video">Video</option>
+          <option value="forum">Forum thread</option>
+          <option value="article">Article</option>
+          <option value="manual">Manual</option>
+          <option value="audio">Audio / sound reference</option>
+          <option value="photo">Photo</option>
+          <option value="note">Note</option>
+        </select></div>
+      <div class="m-field"><label class="m-label">Who found it</label>
+        <div class="m-chips" role="group" aria-label="Who found it" data-exp-role-picker>
+          <label class="m-chip"><input type="radio" data-role-chip="driver" name="_role_radio" value="driver"><span>Driver</span></label>
+          <label class="m-chip"><input type="radio" data-role-chip="mechanic" name="_role_radio" value="mechanic" checked><span>Mechanic</span></label>
+          <input type="hidden" name="role" value="mechanic">
+        </div></div>
+      <div class="m-field"><label class="m-label">Your name</label>
+        <input class="m-input" type="text" name="name" maxlength="200" data-exp-name></div>
+      <div class="m-field"><label class="m-label">Code</label>
+        <input class="m-input" type="text" name="scope_code" maxlength="10"></div>
+      <div class="m-field"><label class="m-label">Family/system</label>
+        <input class="m-input" type="text" name="scope_family" maxlength="200"></div>
+      <div class="m-field"><label class="m-label">Job</label>
+        <input class="m-input" type="text" name="scope_job" maxlength="200"></div>
+      <div class="m-field"><label class="m-label">Note (why it helped)</label>
+        <textarea class="m-input m-textarea" name="note" maxlength="2000" rows="3"></textarea></div>
+      <div class="m-field"><label class="m-label">Rating</label>
+        <select class="m-input" name="rating">
+          <option value="helped">Helped</option>
+          <option value="unsure" selected>Not sure yet</option>
+          <option value="wrong">Was wrong</option>
+        </select></div>
+      <div class="exp-add-status small" data-exp-add-status></div>
+      <button type="submit" class="m-submit">Save</button>
+    </form>
+  </details>
+</div>
+<script src="{{ static_url('experience.js') }}" defer></script>
+
 <p class="m-links"><a href="/m/{{ vin }}/qr">Open this page on a phone (QR / LAN link)</a></p>
 {% endblock %}
