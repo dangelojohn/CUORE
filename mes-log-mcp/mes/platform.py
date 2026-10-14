@@ -289,6 +289,179 @@ def platform_for(model: str) -> Optional[dict[str, Any]]:
             "shared_with": siblings(key)}
 
 
+# --- Sibling-platform OBD bus topology (added 2026-10-14) ------------------
+#
+# Research pass: 2026-10-14, 12 web calls (4 WebSearch + 8 WebFetch), for
+# the full writeup see
+# ``docs/research/SIBLING_PLATFORMS_BUS_TOPOLOGY_2026-10-14.md``.
+#
+# This is additive to ``PLATFORMS`` above, not a replacement: it answers a
+# different question ("which OBD pins/bitrate/gateway/cables/modules") for
+# the three sibling platforms the CUORE roadmap names (Grecale, Levante,
+# Purosangue), none of which this project's own bench has ever been
+# connected to. Per the CUORE core directive ("diagnose on evidence"),
+# nothing here is inferred from the Giorgio pinout just because a car
+# shares that platform (Grecale does, per ``PLATFORMS["grecale"]`` -- but
+# its OWN pin assignment was not found sourced, so it stays UNKNOWN rather
+# than copied from Stelvio/Giulia).
+#
+# Headline: almost nothing at the pin/bitrate/module level survived
+# verification this pass. Every field below is either a sourced fact (with
+# its confidence and URL) or an explicit UNKNOWN with a ``note`` saying
+# what was looked for and why it did not clear the bar -- never a blank
+# or an inferred value.
+
+_MULTIECUSCAN_HOME = "https://www.multiecuscan.net/ (fetched 2026-10-14)"
+_SHOPEUROCOMPULSION_SGW = (
+    "https://shopeurocompulsion.net/blogs/installation-database/"
+    "fca-sgw-module-bypass-installation-info (fetched 2026-10-14)"
+)
+_PERDIESEL_LEVANTE_M161 = (
+    "https://perdieselsolutions.com/product/maserati-levante-m161-2017-2020-"
+    "workshop-manual-wiring-diagram-pdf/ (found via search 2026-10-14)"
+)
+_CARSTECH_LEVANTE_M161 = (
+    "https://cars-technical.com/product/maserati-levante-workshop-service-"
+    "repair-manual-wiring-diagram/ (found via search 2026-10-14)"
+)
+_DIAGPROG5_PUROSANGUE = (
+    "https://www.diagprog4.com/diagprog5-diagnostic-tester-update-2025-new-"
+    "software-ferrari (fetched 2026-10-14)"
+)
+_WIKI_CANBUS = "https://en.wikipedia.org/wiki/CAN_bus (fetched 2026-10-14)"
+
+
+def _bus_fact(value: Any, confidence: str, source: Optional[str],
+              note: str = "") -> dict[str, Any]:
+    if confidence not in CONFIDENCE_LEVELS:
+        raise ValueError(f"bad confidence {confidence!r} for a bus_topology fact")
+    if confidence != UNKNOWN and not source:
+        raise ValueError("a non-UNKNOWN bus_topology fact needs a source")
+    return {"value": value, "confidence": confidence, "source": source, "note": note}
+
+
+#: Sourced-or-explicit-UNKNOWN OBD bus topology notes, per sibling model.
+#: Each leaf is a ``_bus_fact`` dict: ``{value, confidence, source, note}``.
+#: Models not covered by this research pass (e.g. ``"stelvio"``,
+#: ``"giulia"``, whose bus topology lives in ``cuore.live.buses`` instead)
+#: are deliberately absent -- use :func:`bus_topology_for`, which returns
+#: ``None`` for anything not in this dict, never a guess.
+BUS_TOPOLOGY: dict[str, dict[str, Any]] = {
+    "grecale": {
+        "obd_pins_can_c": _bus_fact(
+            None, UNKNOWN, None,
+            "Giorgio platform (CORROBORATED, see PLATFORMS['grecale']) uses "
+            "pins 6/14 for CAN-C on Stelvio/Giulia (cuore.live.buses), but no "
+            "source found this pass names the Grecale's OWN OBD-port pin "
+            "assignment -- not carried over from the shared platform."),
+        "obd_pins_can_ihs": _bus_fact(None, UNKNOWN, None, "Same reasoning as obd_pins_can_c (would be 3/11 on Stelvio/Giulia)."),
+        "obd_pins_can_ch": _bus_fact(None, UNKNOWN, None, "Same reasoning as obd_pins_can_c (would be 12/13 on Stelvio/Giulia)."),
+        "bitrates": _bus_fact(None, UNKNOWN, None, "Not sourced for Grecale specifically."),
+        "security_gateway": _bus_fact(
+            None, UNKNOWN, None,
+            "A web-search summary claimed a 'built-in' SGW on 2021+ Grecale "
+            "vs. an external one on Ghibli/Levante/Quattroporte, but this "
+            "was the search tool's own synthesis, not a quoted line from a "
+            "fetched page -- could not trace to a primary source this "
+            "pass. The one SGW install doc actually fetched names only "
+            "Alfa Romeo Giulia/Stelvio, 'Manufactured 2018+' -- no "
+            "Maserati mention at all."),
+        "bypass_cables": _bus_fact(
+            [], UNKNOWN, _MULTIECUSCAN_HOME,
+            "MultiEcuScan's own front page (fetched 2026-10-14) names its "
+            "supported brands as 'Fiat, Alfa Romeo, Lancia, Chrysler, "
+            "Dodge, Jeep vehicles and also some Ducati bike models' -- "
+            "Maserati is not named. The absence itself is CONFIRMED "
+            "(it is the vendor's own page); what it means for A5/A6 "
+            "applicability to a Grecale is UNKNOWN, not assumed 'no'."),
+        "modules": _bus_fact([], UNKNOWN, None, "No published per-bus module/address list found this pass."),
+        "legislated_addressing": _bus_fact(
+            "11-bit generic SAE J1979 / ISO 15765-4 legislated pair "
+            "(7DF request, 7E8-7EF replies) is the general North American "
+            "OBD-II mandate for emissions-relevant systems on any "
+            "CAN-equipped vehicle sold there.",
+            CONFIRMED, _WIKI_CANBUS,
+            "General regulatory fact, not a Grecale-specific confirmation "
+            "of which modules actually answer on it."),
+    },
+    "levante": {
+        "chassis_code": _bus_fact(
+            "M161", CORROBORATED,
+            f"{_PERDIESEL_LEVANTE_M161} ; {_CARSTECH_LEVANTE_M161}",
+            "Two independent commercial workshop-manual listings both name "
+            "M161 as the Levante's own platform/chassis designation."),
+        "obd_pins_can_c": _bus_fact(None, UNKNOWN, None, "Not found."),
+        "obd_pins_can_ihs": _bus_fact(None, UNKNOWN, None, "Not found."),
+        "obd_pins_can_ch": _bus_fact(None, UNKNOWN, None, "Not found."),
+        "bitrates": _bus_fact(None, UNKNOWN, None, "Not found."),
+        "security_gateway": _bus_fact(
+            None, UNKNOWN, None,
+            "A search summary claimed an SGW 'above the scuttle panel near "
+            "the steering column' needing 'specialized bypass plugs' -- "
+            "again a search-tool synthesis, not a verified quote. A "
+            "promising lead (ghibliforum.com thread 'OBDstar security "
+            "gateway location') redirected through a tollbit.* bot-paywall "
+            "this pass could not get past within budget -- left as an open "
+            "lead, not used as a source."),
+        "bypass_cables": _bus_fact(
+            [], UNKNOWN, _MULTIECUSCAN_HOME,
+            "Same finding as Grecale: Maserati is absent from "
+            "MultiEcuScan's own supported-brand list."),
+        "modules": _bus_fact([], UNKNOWN, None, "No published per-bus module/address list found this pass."),
+        "legislated_addressing": _bus_fact(
+            "Same general 11-bit SAE J1979 / ISO 15765-4 legislated pair as "
+            "the Grecale entry -- a general regulatory fact, not "
+            "Levante-specific confirmation.",
+            CONFIRMED, _WIKI_CANBUS, ""),
+    },
+    "purosangue": {
+        "chassis_code": _bus_fact(
+            "F175", SINGLE_SOURCE, _DIAGPROG5_PUROSANGUE,
+            "One aftermarket tuning-tool vendor page, not cross-checked "
+            "against a second source this pass; the same page also names "
+            "SF90 Stradale as F173."),
+        "obd_pins_can_c": _bus_fact(None, UNKNOWN, None, "Not found. Purosangue is an all-new Ferrari platform, not Giorgio and not Chrysler LX -- no basis to infer anything from either sibling."),
+        "obd_pins_can_ihs": _bus_fact(None, UNKNOWN, None, "Not found."),
+        "obd_pins_can_ch": _bus_fact(None, UNKNOWN, None, "Not found."),
+        "bitrates": _bus_fact(None, UNKNOWN, None, "Not found."),
+        "security_gateway": _bus_fact(
+            None, UNKNOWN, None,
+            "Not found. Ferrari is not an FCA/Stellantis-platform car and "
+            "has no documented relationship to the FCA Serial/Security "
+            "Gateway Module found on Giorgio-platform cars -- no basis to "
+            "assume one applies."),
+        "bypass_cables": _bus_fact(
+            [], UNKNOWN, _MULTIECUSCAN_HOME,
+            "MultiEcuScan/AlfaOBD's supported-brand list does not name "
+            "Ferrari at all -- expected (MES targets FCA-family vehicles), "
+            "recorded rather than assumed."),
+        "modules": _bus_fact([], UNKNOWN, None, "No published per-bus module/address list found this pass."),
+        "legislated_addressing": _bus_fact(
+            "Same general 11-bit SAE J1979 / ISO 15765-4 legislated pair as "
+            "the Grecale entry -- a general regulatory fact, not "
+            "Purosangue-specific confirmation.",
+            CONFIRMED, _WIKI_CANBUS, ""),
+    },
+}
+
+
+def bus_topology_for(model: str) -> Optional[dict[str, Any]]:
+    """Sourced-or-explicit-UNKNOWN OBD bus topology notes for ``model``
+    (one of ``"grecale"``, ``"levante"``, ``"purosangue"`` -- the three
+    sibling platforms the 2026-10-14 research pass covers). Each value in
+    the returned dict is itself a dict with ``value``/``confidence``/
+    ``source``/``note`` keys -- never a bare guess. Returns ``None`` for
+    any other model, including this project's own Giorgio-platform cars
+    (``"stelvio"``/``"giulia"``), whose bus topology lives in
+    ``cuore.live.buses`` instead. See
+    ``docs/research/SIBLING_PLATFORMS_BUS_TOPOLOGY_2026-10-14.md`` for the
+    full writeup and every source.
+    """
+    key = (model or "").strip().lower()
+    return BUS_TOPOLOGY.get(key)
+
+
 __all__ = ["CONFIRMED", "CORROBORATED", "SINGLE_SOURCE", "UNKNOWN",
-          "CONFIDENCE_LEVELS", "SIBLING_MODELS", "PLATFORMS",
-          "siblings", "model_for_vin", "marque_for_vin", "platform_for"]
+          "CONFIDENCE_LEVELS", "SIBLING_MODELS", "PLATFORMS", "BUS_TOPOLOGY",
+          "siblings", "model_for_vin", "marque_for_vin", "platform_for",
+          "bus_topology_for"]

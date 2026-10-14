@@ -208,3 +208,42 @@ def buses_for_cable(cable: str) -> list[Bus]:
 def header_bits_for_protocol(stn_protocol: str) -> int:
     """11 or 29, per the STN STP preset (or ELM short form)."""
     return _HEADER_BITS_BY_PROTOCOL[stn_protocol]
+
+
+# --- Sibling-platform bus data (added 2026-10-14) ---------------------------
+#
+# Additive only: BUSES/CAN_C/CAN_IHS/CAN_CH above (this car's own
+# Giorgio-platform buses) are unchanged by anything below.
+#
+# See docs/research/SIBLING_PLATFORMS_BUS_TOPOLOGY_2026-10-14.md and
+# mes.platform.BUS_TOPOLOGY for the full sourced research pass into the
+# Grecale's, Levante's and Purosangue's own OBD bus topology. This dict is
+# meant to carry over only the facts that pass graded CONFIRMED or
+# CORROBORATED (the same bar PLATFORMS uses) -- which, for all three cars,
+# turned out to be none at the pin/bitrate/module level: every concrete
+# bus fact came back UNKNOWN; only a generic, non-car-specific regulatory
+# fact and two unrelated platform/chassis-code facts cleared CORROBORATED.
+# It is therefore empty BY DESIGN, not an oversight -- adding a ``Bus``
+# here that is not at least CORROBORATED would invent pin/bitrate data for
+# a car this bench has never been connected to, which the CUORE core
+# directive ("diagnose on evidence") forbids.
+#
+# NEVER selected for a Giorgio VIN: this car's own live-bus selection
+# (``cuore.live.ops`` and friends) reads ``BUSES`` only and never consults
+# this dict. Routing to a sibling platform at all happens one layer up,
+# via ``mes.platform.marque_for_vin()``/``model_for_vin()`` -- which, for a
+# Maserati SUV WMI (``ZN6``/``ZN7``), already returns ``UNKNOWN`` rather
+# than guessing Levante vs. Grecale (see that module's docstring), so a
+# Giorgio VIN can never land here even by mistake.
+SIBLING_PLATFORM_BUSES: dict[str, dict[str, Bus]] = {}
+
+
+def sibling_platform_bus(model: str, bus_key: str) -> Bus | None:
+    """A ``Bus`` record for a sibling platform (``"grecale"``,
+    ``"levante"``, ``"purosangue"``), if this project has ever recorded one
+    at CORROBORATED-or-better confidence. Always returns ``None`` today --
+    see :data:`SIBLING_PLATFORM_BUSES`'s docstring for why -- and is never
+    consulted by this car's own live-bus selection, which is keyed off
+    :data:`BUSES` only.
+    """
+    return SIBLING_PLATFORM_BUSES.get((model or "").strip().lower(), {}).get(bus_key)
