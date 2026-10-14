@@ -332,19 +332,35 @@ check_eq("resolve_module now finds DASM", _dasm_target, 0x7E)
 # 5. regressions for the 2026-09-25 live-link fixes
 # ===========================================================================
 
-check_eq("legislated OBD uses the 11-bit route", ops._obd_route().stn_protocol, "33")
+check_eq("legislated OBD uses the 11-bit route when nothing has verified the bus",
+         ops._obd_route().stn_protocol, "33")
 neg = ops._negative_responses({"all_ecus": {"18DAF110": ["7F", "01", "11"]}})
 check("NRC 0x11 on Mode 01 is named, not read as silence",
       bool(neg) and "serviceNotSupported" in neg[0], str(neg))
 
 bus.sent.clear()
-with lk.session("untarget-test", bus=CAN_C) as sess:
+with lk.session("untarget-test", bus=CAN_C, route=ops._obd_route()) as sess:
     sess.untarget()
-check("untarget always restates the functional header",
-      any(c in ("ATSH18DB33F1", "ATSH7DF") for c in bus.sent), str(bus.sent))
-check("untarget clears STN pass filters", "STFAC" in bus.sent, str(bus.sent))
+check("untarget restates the 11-bit functional header when unverified",
+      "ATSH7DF" in bus.sent, str(bus.sent))
+check("untarget clears STN pass filters", "STCFCPC" in bus.sent, str(bus.sent))
 check("a request session puts the adapter in normal CAN mode", "STCMM 1" in bus.sent,
       str(bus.sent))
+
+# This Stelvio answers legislated requests only on the 29-bit route (STP 34);
+# once the active probe has proven that, _obd_route() must follow it instead
+# of staying pinned to the 11-bit default used above.
+lk.mark_verified(CAN_C, 0, verified_by="active_probe_0100", probe_stn_protocol="34")
+check_eq("legislated OBD follows the route the active probe verified",
+         ops._obd_route().stn_protocol, "34")
+
+bus.sent.clear()
+with lk.session("untarget-test-verified", bus=CAN_C, route=ops._obd_route()) as sess:
+    sess.untarget()
+check("untarget restates the 29-bit functional header once the probe verified STP 34",
+      "ATCP18" in bus.sent and "ATSHDB33F1" in bus.sent, str(bus.sent))
+check("untarget clears STN pass filters on the verified 29-bit route too",
+      "STCFCPC" in bus.sent, str(bus.sent))
 
 
 class MonitorStream(BusStream):
