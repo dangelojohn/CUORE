@@ -83,6 +83,11 @@ _COMMENT_RE = re.compile(r"/\*.*?\*/", re.DOTALL)
 _FONT_SIZE_RE = re.compile(r"font-size\s*:\s*([^;}\n]+)")
 _ALLOWED_VALUE_RE = re.compile(
     r"^var\(--fs-(?:xs|sm|md|lg|xl|2xl|3xl)\)$|^0$|^inherit$"
+    r"|^var\(--mono-scale\)$"  # code/kbd/samp/.mono: a relative *scale* on
+                               # top of whichever --fs-* token is already in
+                               # play, not a competing absolute size
+    r"|^100%$"                 # html{font-size:100%} -- the rem base reset,
+                               # not a content font-size
 )
 _PT_RE = re.compile(r"^[0-9.]+pt$")
 
