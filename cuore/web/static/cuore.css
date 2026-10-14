@@ -99,7 +99,7 @@ body {
   background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: var(--fs-md);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
 }
@@ -132,8 +132,8 @@ textarea:focus-visible {
 }
 .top .brand {
   display: flex; align-items: center; gap: 8px; min-height: 44px;
-  font-weight: 700; letter-spacing: .06em; text-decoration: none;
-  font-size: 13px; text-transform: uppercase;
+  font-weight: var(--fw-bold); letter-spacing: .06em; text-decoration: none;
+  font-size: var(--fs-sm); text-transform: uppercase;
 }
 .top .brand span { color: var(--accent); }
 
@@ -143,7 +143,7 @@ textarea:focus-visible {
  * width (see .hero-tagline). Only re-appears on a wide enough desktop
  * header that there's real room beside the brand mark. */
 .top-tagline {
-  display: none; margin-left: 2px; font-size: 11px; color: var(--ink-3);
+  display: none; margin-left: 2px; font-size: var(--fs-xs); color: var(--ink-3);
   text-transform: uppercase; letter-spacing: .1em; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
@@ -166,7 +166,7 @@ textarea:focus-visible {
 .logo-slot::after {
   content: "LOGO"; position: absolute; inset: 0; display: flex;
   align-items: center; justify-content: center;
-  font-size: 8px; letter-spacing: .04em; color: var(--ink-3);
+  font-size: var(--fs-xs); letter-spacing: .04em; color: var(--ink-3);
   font-family: var(--mono); text-transform: uppercase; pointer-events: none;
 }
 @media (max-width: 759px) { .logo-slot { width: 32px; height: 32px; } }
@@ -179,7 +179,7 @@ textarea:focus-visible {
  * grows the hit area to 44px without growing the visible text. */
 .top nav a {
   display: inline-flex; align-items: center; min-height: 44px;
-  font-size: 12.5px; color: var(--ink-3); text-decoration: none;
+  font-size: var(--fs-xs); color: var(--ink-3); text-decoration: none;
   text-transform: uppercase; letter-spacing: .06em;
 }
 .top nav a:hover, .top nav a.on { color: var(--ink); }
@@ -199,7 +199,7 @@ textarea:focus-visible {
   color: var(--ink-3) !important; opacity: .8;
 }
 .top .profile {
-  font-family: var(--mono); font-size: 10.5px; color: var(--ink-3);
+  font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3);
   border: 1px solid var(--rule); border-radius: var(--radius);
   padding: 1px 6px; text-transform: uppercase; letter-spacing: .08em;
 }
@@ -214,10 +214,10 @@ textarea:focus-visible {
 .livestrip a {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   padding: 5px var(--pad);
-  text-decoration: none; color: var(--ink-2); font-size: 12px;
+  text-decoration: none; color: var(--ink-2); font-size: var(--fs-xs);
 }
 .livestrip a:hover { color: var(--ink); }
-.livestrip .mono { font-size: 11.5px; }
+.livestrip .mono { font-size: var(--fs-xs); }
 
 /* Vehicle context. Sticky under the top bar so which car you are looking at
  * never scrolls away -- the single most common way to misread a dossier. */
@@ -228,20 +228,20 @@ textarea:focus-visible {
   padding: 9px var(--pad);
 }
 .vbar .line1 { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.vbar .vname { font-weight: 650; font-size: 16px; }
+.vbar .vname { font-weight: var(--fw-semibold); font-size: var(--fs-md); }
 .vbar .vin {
-  font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+  font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3);
   letter-spacing: .02em;
 }
 .vbar .facts {
   display: flex; gap: 16px; flex-wrap: wrap; margin-top: 3px;
-  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3);
+  font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3);
   font-variant-numeric: tabular-nums;
 }
-.vbar .facts b { color: var(--ink-2); font-weight: 500; }
+.vbar .facts b { color: var(--ink-2); font-weight: var(--fw-medium); }
 .vtabs { display: flex; gap: 2px; margin-top: 8px; flex-wrap: wrap; }
 .vtabs a {
-  font-size: 12px; text-transform: uppercase; letter-spacing: .07em;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .07em;
   padding: 4px 10px; text-decoration: none; color: var(--ink-3);
   border: 1px solid transparent; border-radius: var(--radius);
 }
@@ -254,18 +254,18 @@ main { padding: var(--pad); max-width: 1240px; margin: 0 auto; }
 
 /* ---------- type ---------- */
 
-h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: -.01em; }
+h1 { font-size: var(--fs-xl); margin: 0 0 4px; letter-spacing: -.01em; }
 h2 {
-  font-size: 11.5px; text-transform: uppercase; letter-spacing: .12em;
-  color: var(--ink-3); margin: 26px 0 8px; font-weight: 600;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .12em;
+  color: var(--ink-3); margin: 26px 0 8px; font-weight: var(--fw-semibold);
 }
 h2:first-child { margin-top: 0; }
-h3 { font-size: 14px; margin: 16px 0 6px; font-weight: 650; }
+h3 { font-size: var(--fs-sm); margin: 16px 0 6px; font-weight: var(--fw-semibold); }
 p { margin: 0 0 10px; max-width: 76ch; }
 .muted { color: var(--ink-3); }
-.small { font-size: 12.5px; }
+.small { font-size: var(--fs-xs); }
 .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
-.lede { color: var(--ink-2); font-size: 14px; max-width: 80ch; }
+.lede { color: var(--ink-2); font-size: var(--fs-sm); max-width: 80ch; }
 
 /* ---------- panels ---------- */
 
@@ -295,10 +295,10 @@ p { margin: 0 0 10px; max-width: 76ch; }
 /* ---------- tables ---------- */
 
 .tw { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+table { border-collapse: collapse; width: 100%; font-size: var(--fs-sm); }
 th {
   position: sticky; top: 0;
-  text-align: left; font-size: 10.5px; font-weight: 600;
+  text-align: left; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
   text-transform: uppercase; letter-spacing: .1em; color: var(--ink-3);
   background: var(--surface-2);
   padding: 8px 10px; border-bottom: 1px solid var(--rule); white-space: nowrap;
@@ -312,7 +312,7 @@ tbody tr:hover td { background: var(--surface-2); }
 td.k { color: var(--ink-3); white-space: nowrap; width: 1%; }
 td.n, th.n { text-align: right; font-family: var(--mono);
              font-variant-numeric: tabular-nums; white-space: nowrap; }
-td .mono, td.mono { font-family: var(--mono); font-size: 12.5px;
+td .mono, td.mono { font-family: var(--mono); font-size: var(--fs-xs);
                     font-variant-numeric: tabular-nums; }
 tr.row-link { cursor: pointer; }
 tr.row-link:focus-within td { background: var(--surface-2); }
@@ -326,7 +326,7 @@ table a:hover { text-decoration: underline; }
 
 .chip {
   display: inline-block; font-family: var(--mono);
-  font-size: 10px; letter-spacing: .09em; text-transform: uppercase;
+  font-size: var(--fs-xs); letter-spacing: .09em; text-transform: uppercase;
   padding: 1px 6px; border-radius: var(--radius); white-space: nowrap;
   border: 1px solid transparent;
 }
@@ -350,14 +350,14 @@ table a:hover { text-decoration: underline; }
   border-left: 3px solid var(--ink-3);
   background: var(--surface-2);
   padding: 10px 14px; margin: 0 0 12px; border-radius: 0 var(--radius) var(--radius) 0;
-  font-size: 13.5px; color: var(--ink-2);
+  font-size: var(--fs-sm); color: var(--ink-2);
 }
 .note.warn  { border-left-color: var(--sev-chronic); background: var(--sev-chronic-bg); }
 .note.alert { border-left-color: var(--sev-returned); background: var(--sev-returned-bg); }
 .note.good  { border-left-color: var(--ok); background: var(--ok-bg); }
 .note b { color: var(--ink); }
 .note .lab {
-  display: block; font-family: var(--mono); font-size: 10px;
+  display: block; font-family: var(--mono); font-size: var(--fs-xs);
   letter-spacing: .11em; text-transform: uppercase; margin-bottom: 4px;
   color: var(--ink-3);
 }
@@ -366,10 +366,10 @@ table a:hover { text-decoration: underline; }
  * says no faults" being read as "there are no faults". */
 .blind { display: grid; gap: 1px; background: var(--rule-soft); }
 .blind .item { background: var(--surface); padding: 11px var(--pad); }
-.blind .q { font-weight: 600; color: var(--ink); margin-bottom: 3px; }
-.blind .why { font-size: 13px; color: var(--ink-3); }
+.blind .q { font-weight: var(--fw-semibold); color: var(--ink); margin-bottom: 3px; }
+.blind .why { font-size: var(--fs-sm); color: var(--ink-3); }
 .blind .fix {
-  font-family: var(--mono); font-size: 11.5px; color: var(--ok); margin-top: 4px;
+  font-family: var(--mono); font-size: var(--fs-xs); color: var(--ok); margin-top: 4px;
 }
 
 /* ---------- forms ---------- */
@@ -382,12 +382,12 @@ table a:hover { text-decoration: underline; }
  * field label (never a decorative small-caps heading -- those use
  * .section-h/.step-title instead), so "form labels" is the whole
  * population this selector touches. */
-label { display: block; font-size: 14px; text-transform: uppercase;
+label { display: block; font-size: var(--fs-sm); text-transform: uppercase;
         letter-spacing: .09em; color: var(--ink-3); margin-bottom: 4px; }
 input[type=text], input[type=search], textarea, select {
   width: 100%; background: var(--bg); color: var(--ink);
   border: 1px solid var(--rule); border-radius: var(--radius);
-  padding: 7px 9px; font-family: inherit; font-size: 14px;
+  padding: 7px 9px; font-family: inherit; font-size: var(--fs-sm);
 }
 textarea { min-height: 68px; resize: vertical; }
 .field { margin-bottom: 12px; }
@@ -395,7 +395,7 @@ textarea { min-height: 68px; resize: vertical; }
   display: inline-flex; align-items: center; justify-content: center;
   background: var(--raised); color: var(--ink);
   border: 1px solid var(--rule); border-radius: var(--radius);
-  padding: 7px 14px; font-size: 13px; font-family: inherit; cursor: pointer;
+  padding: 7px 14px; font-size: var(--fs-sm); font-family: inherit; cursor: pointer;
   text-decoration: none;
 }
 .btn:hover { border-color: var(--ink-3); }
@@ -413,26 +413,26 @@ textarea { min-height: 68px; resize: vertical; }
 .step:first-child { border-top: none; }
 .step .head { display: flex; gap: 10px; align-items: baseline; }
 .step .id {
-  font-family: var(--mono); font-size: 11px; color: var(--accent);
+  font-family: var(--mono); font-size: var(--fs-xs); color: var(--accent);
   min-width: 2.4em;
 }
-.step .title { font-weight: 650; }
+.step .title { font-weight: var(--fw-semibold); }
 .step .cost {
-  margin-left: auto; font-family: var(--mono); font-size: 11px;
+  margin-left: auto; font-family: var(--mono); font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 .step .body { margin-left: calc(2.4em + 10px); }
-.step .src { font-size: 11.5px; color: var(--ink-3); font-family: var(--mono); }
+.step .src { font-size: var(--fs-xs); color: var(--ink-3); font-family: var(--mono); }
 
 kbd {
-  font-family: var(--mono); font-size: 11px; background: var(--raised);
+  font-family: var(--mono); font-size: var(--fs-xs); background: var(--raised);
   border: 1px solid var(--rule); border-bottom-width: 2px;
   border-radius: var(--radius); padding: 0 4px;
 }
 
 .foot {
   margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--rule-soft);
-  font-family: var(--mono); font-size: 11px; color: var(--ink-3);
+  font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3);
   display: flex; gap: 16px; flex-wrap: wrap;
 }
 
@@ -461,7 +461,7 @@ kbd {
   display: inline-flex; align-items: center; justify-content: center;
   min-width: 44px; min-height: 44px; margin: 2px 0;
   background: transparent; border: 1px solid var(--rule); border-radius: var(--radius);
-  color: var(--ink-2); font-size: 15px; cursor: pointer; line-height: 1;
+  color: var(--ink-2); font-size: var(--fs-md); cursor: pointer; line-height: 1;
 }
 .icon-btn:hover { color: var(--ink); border-color: var(--ink-3); }
 #theme-toggle { margin-left: auto; }
@@ -509,11 +509,11 @@ kbd {
    * actually needing to overflow in the first place. */
 }
 .vline .vname {
-  font-weight: 650; font-size: 14px; white-space: nowrap; overflow: hidden;
+  font-weight: var(--fw-semibold); font-size: var(--fs-sm); white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; max-width: 38%; flex: 0 1 auto;
 }
-.vline .vin-tail { font-size: 11.5px; color: var(--ink-3); flex: none; }
-.vline .vkm { font-size: 11.5px; color: var(--ink-2); flex: none; white-space: nowrap; }
+.vline .vin-tail { font-size: var(--fs-xs); color: var(--ink-3); flex: none; }
+.vline .vkm { font-size: var(--fs-xs); color: var(--ink-2); flex: none; white-space: nowrap; }
 .vline .chip { flex: none; }
 
 /* Compact status strip (mechanic-UX review item 4): shown in .vline only
@@ -524,7 +524,7 @@ kbd {
 .vline .status-verdict, .vline .status-blocker { flex: none; }
 .vline .status-next {
   flex: 1 1 auto; min-width: 0; display: inline-flex; align-items: center;
-  font-family: var(--mono); font-size: 10px; letter-spacing: .04em;
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .04em;
   text-decoration: none; color: var(--ink-2); white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis;
 }
@@ -573,20 +573,20 @@ kbd {
 
 .chip-verdict {
   display: inline-flex; align-items: center; gap: 6px;
-  font-family: var(--mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
-  padding: 5px 10px; border-radius: var(--radius); font-weight: 650;
+  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .08em; text-transform: uppercase;
+  padding: 5px 10px; border-radius: var(--radius); font-weight: var(--fw-semibold);
 }
 .chip-verdict.v-active-faults { color: var(--sev-returned); background: var(--sev-returned-bg); }
 .chip-verdict.v-unverified-repair { color: var(--sev-chronic); background: var(--sev-chronic-bg); }
 .chip-verdict.v-verified-clean { color: var(--ok); background: var(--ok-bg); }
 .chip-verdict.v-no-data { color: var(--ink-3); background: var(--surface-2); }
 
-.verdict-sentence { font-size: 16px; color: var(--ink); margin: 10px 0 12px; max-width: 70ch; }
+.verdict-sentence { font-size: var(--fs-md); color: var(--ink); margin: 10px 0 12px; max-width: 70ch; }
 
 .verdict-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
 .btn-verdict {
   display: inline-flex; align-items: center; justify-content: center;
-  min-height: 48px; padding: 8px 18px; font-size: 14px; font-weight: 600;
+  min-height: 48px; padding: 8px 18px; font-size: var(--fs-sm); font-weight: var(--fw-semibold);
   border: 1px solid var(--rule); border-radius: var(--radius);
   background: var(--raised); color: var(--ink); text-decoration: none; text-align: center;
   flex: 1 1 auto;
@@ -600,9 +600,9 @@ kbd {
 
 .why-expander { margin-top: 6px; }
 .why-expander summary {
-  cursor: pointer; font-size: 12.5px; color: var(--ink-3); min-height: 44px; display: inline-flex; align-items: center;
+  cursor: pointer; font-size: var(--fs-xs); color: var(--ink-3); min-height: 44px; display: inline-flex; align-items: center;
 }
-.why-expander ul { margin: 6px 0 4px 18px; padding: 0; font-size: 13px; color: var(--ink-2); }
+.why-expander ul { margin: 6px 0 4px 18px; padding: 0; font-size: var(--fs-sm); color: var(--ink-2); }
 .why-expander li { margin-bottom: 4px; }
 
 /* ---------- jump row (R3) ---------- */
@@ -617,7 +617,7 @@ kbd {
 }
 .jump-chip {
   flex: none; display: inline-flex; align-items: center; min-height: 32px;
-  padding: 5px 12px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+  padding: 5px 12px; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em;
   background: var(--raised); color: var(--ink-2); border: 1px solid var(--rule);
   border-radius: 999px; text-decoration: none; cursor: pointer; font-family: inherit;
   white-space: nowrap;
@@ -629,19 +629,19 @@ kbd {
 /* ---------- open-work job cards (R4) ---------- */
 
 .section-h {
-  font-size: 11.5px; text-transform: uppercase; letter-spacing: .12em;
-  color: var(--ink-3); margin: 18px 0 8px; font-weight: 600;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .12em;
+  color: var(--ink-3); margin: 18px 0 8px; font-weight: var(--fw-semibold);
 }
 .job-card {
   background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
   padding: var(--pad); margin-bottom: 12px;
 }
 .job-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; margin-bottom: 8px; }
-.job-head h3 { margin: 0; font-size: 15px; }
+.job-head h3 { margin: 0; font-size: var(--fs-md); }
 .job-codes { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip-code, .chip-code.sm {
   display: inline-flex; align-items: center; min-height: 44px; padding: 3px 11px;
-  font-family: var(--mono); font-size: 12px; background: var(--surface-2); color: var(--ink);
+  font-family: var(--mono); font-size: var(--fs-xs); background: var(--surface-2); color: var(--ink);
   border: 1px solid var(--rule); border-radius: var(--radius); text-decoration: none;
 }
 .chip-code:hover { border-color: var(--accent); color: var(--accent); }
@@ -657,20 +657,20 @@ kbd {
 .step-check {
   width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
   background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius);
-  color: var(--ok); font-size: 18px; cursor: pointer;
+  color: var(--ok); font-size: var(--fs-lg); cursor: pointer;
 }
 .checklist-step.is-done .step-check { background: var(--ok-bg); border-color: var(--ok); }
-.step-text { flex: 1 1 auto; padding-top: 10px; font-size: 14px; }
-.step-ref { margin-left: 6px; font-size: 12px; }
+.step-text { flex: 1 1 auto; padding-top: 10px; font-size: var(--fs-sm); }
+.step-ref { margin-left: 6px; font-size: var(--fs-xs); }
 .step-meta { display: block; margin-top: 2px; }
 
 .job-foot { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
 .progress-pill {
-  font-family: var(--mono); font-size: 12px; font-weight: 650; color: var(--ink);
+  font-family: var(--mono); font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink);
   background: var(--surface-2); border: 1px solid var(--rule); border-radius: 999px;
   padding: 3px 10px;
 }
-.job-refs { font-size: 12px; color: var(--ink-3); }
+.job-refs { font-size: var(--fs-xs); color: var(--ink-3); }
 .job-refs a { color: var(--ink-3); }
 
 /* ---------- collapsed counted cards (R3) ---------- */
@@ -682,7 +682,7 @@ kbd {
 .card-details > summary {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   padding: 12px var(--pad); min-height: 44px; cursor: pointer;
-  font-size: 13px; font-weight: 650; color: var(--ink); list-style: none;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); color: var(--ink); list-style: none;
 }
 .card-details > summary::-webkit-details-marker { display: none; }
 .card-details > summary::before {
@@ -690,14 +690,14 @@ kbd {
 }
 .card-details[open] > summary::before { transform: rotate(90deg); }
 .count-badge {
-  font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); font-weight: 500;
+  font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3); font-weight: var(--fw-medium);
   display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap;
 }
-.count-badge .chip.sm { font-size: 9px; padding: 1px 5px; }
+.count-badge .chip.sm { font-size: var(--fs-xs); padding: 1px 5px; }
 .card-body { padding: 0 var(--pad) var(--pad); }
 .card-details > summary { border-bottom: 1px solid transparent; }
 .card-details[open] > summary { border-bottom: 1px solid var(--rule); }
-.subhead { font-size: 12.5px; color: var(--ink-3); margin: 14px 0 6px; }
+.subhead { font-size: var(--fs-xs); color: var(--ink-3); margin: 14px 0 6px; }
 .subhead:first-child { margin-top: 2px; }
 
 /* ---------- fixed-grammar code tables (R5) ---------- */
@@ -709,7 +709,7 @@ table.codes-table th:first-child, table.codes-table td:first-child { padding-lef
  * "ACTIVE" to clear a <=15% column at 360px without this; status stays
  * fully readable, which matters more here than matching the chip size
  * everywhere else in the app. */
-table.codes-table .chip { font-size: 9px; padding: 1px 4px; letter-spacing: .03em; }
+table.codes-table .chip { font-size: var(--fs-xs); padding: 1px 4px; letter-spacing: .03em; }
 table.codes-table .desc-cell { white-space: normal; word-break: break-word; }
 table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
   white-space: nowrap; text-overflow: ellipsis;
@@ -722,7 +722,7 @@ table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
 .code-cell { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
 .code-cell a { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .sys-badge {
-  flex: none; font-family: var(--mono); font-size: 8.5px; letter-spacing: .02em;
+  flex: none; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .02em;
   color: var(--ink-3); border: 1px solid var(--rule); border-radius: 2px; padding: 0 3px;
 }
 
@@ -735,10 +735,10 @@ table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
 .attempt-row { padding: 9px 0; border-top: 1px solid var(--rule-soft); }
 .attempt-row:first-child { border-top: none; }
 .attempt-row.is-fail { background: var(--sev-returned-bg); margin: 0 calc(-1 * var(--pad)); padding: 9px var(--pad); border-radius: var(--radius); }
-.attempt-main { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+.attempt-main { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-sm); }
 .attempt-footnote { margin-top: 4px; }
 .raw-rows { margin-top: 6px; }
-.raw-rows summary { cursor: pointer; font-size: 12px; color: var(--ink-3); min-height: 32px; display: inline-flex; align-items: center; }
+.raw-rows summary { cursor: pointer; font-size: var(--fs-xs); color: var(--ink-3); min-height: 32px; display: inline-flex; align-items: center; }
 .raw-rows td { white-space: nowrap; }
 
 /* ---------- freeze frames (R7) ---------- */
@@ -754,23 +754,23 @@ table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
   padding: 8px 10px;
 }
 .ff-pid.is-flag { border-color: var(--sev-chronic); background: var(--sev-chronic-bg); }
-.ff-name { font-size: 11px; color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; }
-.ff-value { font-size: 14px; margin-top: 2px; }
-.ff-flag { font-size: 12px; color: var(--sev-chronic); margin-top: 3px; font-weight: 650; }
+.ff-name { font-size: var(--fs-xs); color: var(--ink-3); text-transform: uppercase; letter-spacing: .05em; }
+.ff-value { font-size: var(--fs-sm); margin-top: 2px; }
+.ff-flag { font-size: var(--fs-xs); color: var(--sev-chronic); margin-top: 3px; font-weight: var(--fw-semibold); }
 .all-pids { margin-top: 10px; }
-.all-pids summary { cursor: pointer; font-size: 12px; color: var(--ink-3); min-height: 32px; display: inline-flex; align-items: center; }
+.all-pids summary { cursor: pointer; font-size: var(--fs-xs); color: var(--ink-3); min-height: 32px; display: inline-flex; align-items: center; }
 .ff-all-grid { margin-top: 6px; display: grid; grid-template-columns: 1fr; gap: 2px; }
 @media (min-width: 640px) { .ff-all-grid { grid-template-columns: 1fr 1fr; } }
-.ff-all-row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: 12.5px; border-bottom: 1px solid var(--rule-soft); }
+.ff-all-row { display: flex; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: var(--fs-xs); border-bottom: 1px solid var(--rule-soft); }
 .ff-all-row .k { color: var(--ink-3); }
 
 /* ---------- bulletins (R9) ---------- */
 
 .bulletin-card { border-top: 1px solid var(--rule-soft); padding: 12px 0; }
 .bulletin-card:first-child { border-top: none; }
-.bulletin-card h4 { margin: 0 0 4px; font-size: 13.5px; }
+.bulletin-card h4 { margin: 0 0 4px; font-size: var(--fs-sm); }
 .bulletin-codes { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
-.chip-code.sm { min-height: 44px; font-size: 11px; padding: 2px 9px; }
+.chip-code.sm { min-height: 44px; font-size: var(--fs-xs); padding: 2px 9px; }
 
 /* ---------- blind spots (R8) ---------- */
 
@@ -785,7 +785,7 @@ table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
 .fab-note {
   position: fixed; right: 18px; bottom: 18px; z-index: 40;
   width: 56px; height: 56px; border-radius: 50%;
-  background: var(--accent); color: #fff; border: none; font-size: 22px;
+  background: var(--accent); color: #fff; border: none; font-size: var(--fs-2xl);
   box-shadow: 0 4px 14px rgba(0,0,0,.4); cursor: pointer;
 }
 .fab-note:hover { filter: brightness(1.08); }
@@ -797,19 +797,19 @@ table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
 .readiness-panel .readiness-row:first-of-type { border-top: none; }
 .back-to-dossier {
   display: flex; align-items: center; justify-content: center;
-  min-height: 48px; margin-top: 16px; font-weight: 650; font-size: 14px;
+  min-height: 48px; margin-top: 16px; font-weight: var(--fw-semibold); font-size: var(--fs-sm);
 }
 
 /* ---------- ergonomics baseline (R10) ---------- */
 
-body { font-size: 16px; }
-.small { font-size: 13px; }
-table.codes-table td.n.mono, table.codes-table td.mono { font-size: 14px; }
+body { font-size: var(--fs-md); }
+.small { font-size: var(--fs-sm); }
+table.codes-table td.n.mono, table.codes-table td.mono { font-size: var(--fs-sm); }
 /* ...except the short last-seen date and the compact km figure, which are
  * labels rather than precision measurements and need the width back more
  * than they need the bump (title="" carries the exact value on tap). */
-table.codes-table td.lastseen-cell { font-size: 12px; }
-table.codes-table td.kmcell { font-size: 12.5px; }
+table.codes-table td.lastseen-cell { font-size: var(--fs-xs); }
+table.codes-table td.kmcell { font-size: var(--fs-xs); }
 .jump-chip, .vtabs a { min-height: 40px; }
 .btn { min-height: 44px; }
 input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: inline-flex; align-items: center; }
@@ -892,18 +892,18 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
             border-radius: var(--radius); background: var(--surface); overflow: hidden; }
 .tl-labels { flex: none; display: flex; flex-direction: column; min-width: 86px;
              max-width: 120px; border-right: 1px solid var(--rule); background: var(--surface-2); }
-.tl-label { display: flex; align-items: center; padding: 0 8px; font-size: 11.5px;
+.tl-label { display: flex; align-items: center; padding: 0 8px; font-size: var(--fs-xs);
             color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
             border-bottom: 1px solid var(--rule-soft); }
 .tl-scroll { flex: 1 1 auto; overflow-x: auto; overflow-y: hidden; max-width: 100%; min-width: 0; }
 .tl-scroll svg { display: block; }
 .tl-toolbar { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline;
-              margin: 8px 0 10px; font-size: 12.5px; }
+              margin: 8px 0 10px; font-size: var(--fs-xs); }
 .tl-toolbar .grp { display: inline-flex; gap: 4px; align-items: center; }
 .tl-toolbar a { padding: 3px 8px; border: 1px solid var(--rule); border-radius: var(--radius);
                 color: var(--ink-2); text-decoration: none; min-height: 28px; display: inline-flex;
                 align-items: center; }
-.tl-toolbar a.on { color: var(--ink); border-color: var(--accent); font-weight: 650; }
+.tl-toolbar a.on { color: var(--ink); border-color: var(--accent); font-weight: var(--fw-semibold); }
 
 /* Correlation table: verdict chips reuse the existing severity chip classes
  * (.chip.chronic amber, .chip.plain grey-neutral) rather than new colours --
@@ -921,15 +921,15 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 .tag-chip label {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   min-height: 44px; padding: 6px 14px; border: 1.5px solid var(--rule); border-radius: 999px;
-  background: var(--surface-2); color: var(--ink-2); font-size: 13.5px; cursor: pointer;
+  background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-sm); cursor: pointer;
   user-select: none; transition: background .1s ease, border-color .1s ease, color .1s ease;
 }
 .tag-chip input:checked + label {
-  background: var(--accent-dim); border-color: var(--accent); color: var(--ink); font-weight: 650;
+  background: var(--accent-dim); border-color: var(--accent); color: var(--ink); font-weight: var(--fw-semibold);
 }
-.tag-chip.normally label { border-color: var(--ok); color: var(--ok); font-weight: 650; }
+.tag-chip.normally label { border-color: var(--ok); color: var(--ok); font-weight: var(--fw-semibold); }
 .tag-chip.normally input:checked + label { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
-.tag-hint { font-size: 12px; color: var(--ink-3); margin: -6px 0 10px; }
+.tag-hint { font-size: var(--fs-xs); color: var(--ink-3); margin: -6px 0 10px; }
 
 /* "What did the driver feel?" dropdown (replaces the old tag chips above,
  * which stay defined for any other template still using .tag-grid/.tag-chip).
@@ -937,11 +937,11 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
  * once with no inner scrollbar -- the option padding/line-height below is
  * what gets each of those 12 rows close to a glove-friendly 44px, on every
  * width, not just under the old 760px-only rule. */
-.tag-select { width: 100%; font-size: 15px; }
+.tag-select { width: 100%; font-size: var(--fs-md); }
 .tag-select option { min-height: 44px; padding: 13px 8px; line-height: 1.2; }
 
 /* "What would the driver feel?" card on code.html. */
-.feel-card .feel-sentence { font-size: 15px; margin: 4px 0 10px; }
+.feel-card .feel-sentence { font-size: var(--fs-md); margin: 4px 0 10px; }
 .feel-card .feel-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
 .feel-card .feel-tags .chip.expect { color: var(--ok); background: var(--ok-bg); }
 .feel-card .feel-tags .chip.not-expect { color: var(--ink-3); background: var(--surface-2);
@@ -954,7 +954,7 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 
 @media (max-width: 400px) {
   .tl-labels { min-width: 70px; max-width: 92px; }
-  .tl-label { font-size: 10.5px; padding: 0 5px; }
+  .tl-label { font-size: var(--fs-xs); padding: 0 5px; }
 }
 
 /* =========================================================================
@@ -972,10 +972,10 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 .exp-icon {
   flex: none; display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border-radius: 999px; background: var(--surface-2);
-  color: var(--ink-2); font-size: 13px;
+  color: var(--ink-2); font-size: var(--fs-sm);
 }
 .exp-main { flex: 1 1 auto; min-width: 0; }
-.exp-main a { font-weight: 600; word-break: break-word; }
+.exp-main a { font-weight: var(--fw-semibold); word-break: break-word; }
 .exp-chips { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .exp-more summary { cursor: pointer; padding: 6px 0; color: var(--ink-2); }
 .exp-verified { margin: 8px 0 0; }
@@ -997,7 +997,7 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
   border-radius: var(--radius); background: var(--surface); color: var(--ink);
 }
 
-.part-card h4 { margin: 14px 0 6px; font-size: 13.5px; color: var(--ink-2); }
+.part-card h4 { margin: 14px 0 6px; font-size: var(--fs-sm); color: var(--ink-2); }
 
 /* Compact card: a tap target (anchor, not div) for inline use on code.html/
  * maintenance.html/oil_change.html/brakes_tires.html -- name + first OEM
@@ -1015,10 +1015,10 @@ a.part-compact:hover { border-color: var(--accent); }
 }
 .part-thumb-fallback {
   display: inline-flex; align-items: center; justify-content: center;
-  font-size: 9px; color: var(--ink-3); text-align: center; line-height: 1.1;
+  font-size: var(--fs-xs); color: var(--ink-3); text-align: center; line-height: 1.1;
 }
 .part-compact-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.part-compact-name { font-weight: 600; word-break: break-word; }
+.part-compact-name { font-weight: var(--fw-semibold); word-break: break-word; }
 
 /* Photos grid on the full card. */
 .part-image-grid {
@@ -1054,11 +1054,11 @@ a.part-compact:hover { border-color: var(--accent); }
 .hyp-status-btn {
   min-height: 44px; padding: 6px 14px; border: 1.5px solid var(--rule);
   border-radius: var(--radius); background: var(--surface-2); color: var(--ink-2);
-  font-size: 13px; font-family: inherit; cursor: pointer;
+  font-size: var(--fs-sm); font-family: inherit; cursor: pointer;
 }
 .hyp-status-btn.on {
   background: var(--accent-dim); border-color: var(--accent); color: var(--ink);
-  font-weight: 650;
+  font-weight: var(--fw-semibold);
 }
 
 @media (max-width: 400px) {
@@ -1089,7 +1089,7 @@ a.part-compact:hover { border-color: var(--accent); }
 .tool-row:last-child { border-bottom: none; }
 .tool-row-main { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tool-kind { text-transform: uppercase; letter-spacing: .03em; }
-.tool-required { font-weight: 650; color: var(--accent); }
+.tool-required { font-weight: var(--fw-semibold); color: var(--accent); }
 .tool-spec { margin: 2px 0; }
 .tool-note { color: var(--ink-2); }
 
@@ -1120,9 +1120,9 @@ a.part-compact:hover { border-color: var(--accent); }
 .tool-have-btn {
   min-height: 44px; padding: 4px 12px; border: 1.5px solid var(--rule);
   border-radius: var(--radius); background: var(--surface-2); color: var(--ink-2);
-  font-size: 13px; font-family: inherit; cursor: pointer;
+  font-size: var(--fs-sm); font-family: inherit; cursor: pointer;
 }
-.tool-have-btn.on { background: var(--accent-dim); border-color: var(--accent); color: var(--ink); font-weight: 650; }
+.tool-have-btn.on { background: var(--accent-dim); border-color: var(--accent); color: var(--ink); font-weight: var(--fw-semibold); }
 
 .tool-decision-card {
   margin-top: 8px; padding: 10px; border: 1.5px dashed var(--rule);
@@ -1159,21 +1159,21 @@ a.part-compact:hover { border-color: var(--accent); }
 }
 
 /* -- type: larger, lighter, more air -- */
-body { font-size: 16px; line-height: 1.6; }
-h1 { font-weight: 300; font-size: 32px; line-height: 1.3; letter-spacing: -.01em; }
+body { font-size: var(--fs-md); line-height: 1.6; }
+h1 { font-weight: var(--fw-semibold); font-size: var(--fs-3xl); line-height: 1.3; letter-spacing: -.01em; }
 /* One heading scale everywhere (report page review 2026-10-08): a bare h2 is
    a section heading, so it takes the .section-h style instead of the old
    11.5px tracked small caps; h3/h4 step down from it in the same face. */
 h2 {
-  font-size: 26px; font-weight: 300; letter-spacing: -.01em; text-transform: none;
+  font-size: var(--fs-2xl); font-weight: var(--fw-semibold); letter-spacing: -.01em; text-transform: none;
   color: var(--ink-2); margin: var(--space-5) 0 var(--space-2);
 }
-h3 { font-size: 19px; font-weight: 500; letter-spacing: 0; margin: var(--space-4) 0 var(--space-2); }
-h4 { font-size: 16px; font-weight: 600; margin: var(--space-3) 0 var(--space-1); }
+h3 { font-size: var(--fs-xl); font-weight: var(--fw-medium); letter-spacing: 0; margin: var(--space-4) 0 var(--space-2); }
+h4 { font-size: var(--fs-md); font-weight: var(--fw-semibold); margin: var(--space-3) 0 var(--space-1); }
 h3.small, h4.small { font-size: inherit; }
-h4.mono { font-size: 16px; }
+h4.mono { font-size: var(--fs-md); }
 .section-h, .step-title {
-  font-size: 11px; letter-spacing: .14em; margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--fs-xs); letter-spacing: .14em; margin: var(--space-4) 0 var(--space-2);
 }
 .step-title { padding-bottom: var(--space-1); border-bottom: 1px solid var(--rule-soft); }
 
@@ -1234,8 +1234,8 @@ details.vmore-tab:not([open]) .vmore-tab-panel { display: none; }
   background: linear-gradient(to top, rgba(0,0,0,.6), transparent);
   display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap;
 }
-.hero-name { font-size: 26px; font-weight: 300; color: #fff; }
-.hero-vin, .hero-km { font-family: var(--mono); font-size: 13px; color: rgba(255,255,255,.82); }
+.hero-name { font-size: var(--fs-2xl); font-weight: var(--fw-semibold); color: #fff; }
+.hero-vin, .hero-km { font-family: var(--mono); font-size: var(--fs-sm); color: rgba(255,255,255,.82); }
 .vline {
   position: sticky; top: 0; z-index: 15; background: var(--bg);
   border-bottom: 1px solid var(--rule-soft);
@@ -1243,7 +1243,7 @@ details.vmore-tab:not([open]) .vmore-tab-panel { display: none; }
 
 @media (max-width: 480px) {
   .hero-img { height: 120px; }
-  .hero-name { font-size: 21px; }
+  .hero-name { font-size: var(--fs-xl); }
 
   /* The per-fact "ask/correct" icon (feedback.js's .feedback-affordance,
    * glued with no break opportunity to a mono number inside a `white-space:
@@ -1279,22 +1279,22 @@ details.vmore-tab:not([open]) .vmore-tab-panel { display: none; }
   --ink-2:     #b8bec4;
 }
 
-body { font-size: 17px; }
+body { font-size: var(--fs-lg); }
 .lede, .verdict-sentence, .step-oneliner, .panel p { max-width: 72ch; }
 
-h1 { font-size: 40px; }
+h1 { font-size: var(--fs-3xl); }
 h2, .section-h, .step-title {
-  font-size: 26px; font-weight: 300; letter-spacing: -.01em; text-transform: none;
+  font-size: var(--fs-2xl); font-weight: var(--fw-semibold); letter-spacing: -.01em; text-transform: none;
   margin: var(--space-5) 0 var(--space-2); padding-bottom: var(--space-2);
   border-bottom: 2px solid var(--accent);
 }
 
 .step-oneliner {
-  font-size: 20px; font-weight: 300; color: var(--ink-2); margin: 0 0 var(--space-2);
+  font-size: var(--fs-xl); font-weight: var(--fw-semibold); color: var(--ink-2); margin: 0 0 var(--space-2);
 }
 .step-oneliner.is-blocked { color: var(--sev-chronic); }
 
-.chip { font-size: 12px; letter-spacing: .08em; }
+.chip { font-size: var(--fs-xs); letter-spacing: .08em; }
 
 /* -- hero: the car, stated, not just labelled -- */
 .vhero { overflow: visible; }
@@ -1305,14 +1305,14 @@ h2, .section-h, .step-title {
   padding: var(--space-4) var(--pad) var(--space-3);
 }
 .hero-head { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
-.hero-name { font-size: 56px; font-weight: 300; letter-spacing: .01em; color: #fff; }
+.hero-name { font-size: var(--fs-3xl); font-weight: var(--fw-semibold); letter-spacing: .01em; color: #fff; }
 .hero-tagline {
-  font-size: 16px; text-transform: uppercase; letter-spacing: .14em;
-  color: var(--accent); font-weight: 600;
+  font-size: var(--fs-md); text-transform: uppercase; letter-spacing: .14em;
+  color: var(--accent); font-weight: var(--fw-semibold);
 }
 .hero-verdict { margin-top: var(--space-2); }
 .hero-verdict-state {
-  display: block; font-size: 44px; font-weight: 300; text-transform: uppercase;
+  display: block; font-size: var(--fs-3xl); font-weight: var(--fw-semibold); text-transform: uppercase;
   letter-spacing: .02em; line-height: 1.15;
 }
 .hero-verdict-state.v-active-faults     { color: var(--sev-returned); }
@@ -1320,27 +1320,27 @@ h2, .section-h, .step-title {
 .hero-verdict-state.v-verified-clean    { color: var(--ok); }
 .hero-verdict-state.v-no-data           { color: var(--ink-3); }
 .hero-verdict-sentence {
-  font-size: 20px; font-weight: 300; color: rgba(255,255,255,.88);
+  font-size: var(--fs-xl); font-weight: var(--fw-semibold); color: rgba(255,255,255,.88);
   max-width: 72ch; margin: 6px 0 0;
 }
 .hero-figures { display: flex; gap: var(--space-5); flex-wrap: wrap; margin-top: var(--space-3); }
 .hero-figure { display: flex; flex-direction: column; }
-.hero-figure-value { font-size: 36px; font-weight: 300; color: #fff; line-height: 1.1; }
+.hero-figure-value { font-size: var(--fs-3xl); font-weight: var(--fw-semibold); color: #fff; line-height: 1.1; }
 .hero-figure-value.flagged { color: var(--sev-chronic); }
 .hero-figure-label {
-  font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .1em;
   color: rgba(255,255,255,.65); margin-top: 3px;
 }
 
 @media (max-width: 480px) {
-  h1 { font-size: 30px; }
-  h2, .section-h, .step-title { font-size: 22px; }
-  h3 { font-size: 18px; }
+  h1 { font-size: var(--fs-3xl); }
+  h2, .section-h, .step-title { font-size: var(--fs-2xl); }
+  h3 { font-size: var(--fs-lg); }
   .hero-img { height: 30vh; min-height: 30vh; }
-  .hero-name { font-size: 36px; }
-  .hero-verdict-state { font-size: 34px; }
+  .hero-name { font-size: var(--fs-3xl); }
+  .hero-verdict-state { font-size: var(--fs-3xl); }
   .hero-figures { gap: var(--space-4); }
-  .hero-figure-value { font-size: 28px; }
+  .hero-figure-value { font-size: var(--fs-3xl); }
 }
 
 /* =========================================================================
@@ -1367,12 +1367,12 @@ h2, .section-h, .step-title {
   min-width: 44px; min-height: 44px; padding: 4px 6px; text-decoration: none;
   border-radius: var(--radius); color: var(--ink-3);
 }
-.pm-step .pm-n { font-size: 10px; font-family: var(--mono); }
+.pm-step .pm-n { font-size: var(--fs-xs); font-family: var(--mono); }
 .pm-step.pm-done { color: var(--ok); }
-.pm-step.pm-current { color: var(--accent); font-weight: 650; }
+.pm-step.pm-current { color: var(--accent); font-weight: var(--fw-semibold); }
 .pm-step.pm-blocked { color: var(--sev-chronic); }
 .pm-step.pm-todo { color: var(--ink-3); }
-.pm-step.pm-current .pm-n { font-size: 11px; }
+.pm-step.pm-current .pm-n { font-size: var(--fs-xs); }
 .pm-step:hover { background: var(--surface-2); }
 
 /* ---------- step headline rows: the 11 steps that aren't the current
@@ -1383,8 +1383,8 @@ h2, .section-h, .step-title {
   border-bottom: 1px solid var(--rule-soft);
 }
 .step-headline:hover { background: var(--surface-2); }
-.step-headline-n { color: var(--ink-3); font-size: 12px; flex: none; }
-.step-headline-title { font-weight: 600; flex: none; }
+.step-headline-n { color: var(--ink-3); font-size: var(--fs-xs); flex: none; }
+.step-headline-title { font-weight: var(--fw-semibold); flex: none; }
 .step-headline-why {
   color: var(--ink-3); overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; min-width: 0; flex: 1 1 auto;
@@ -1393,7 +1393,7 @@ h2, .section-h, .step-title {
 .step-headline-done .step-headline-title { color: var(--ok); }
 .step-headline-current .step-headline-n,
 .step-headline-current .step-headline-title { color: var(--accent); }
-.step-headline-blocked .step-headline-why { color: var(--sev-chronic); font-weight: 600; }
+.step-headline-blocked .step-headline-why { color: var(--sev-chronic); font-weight: var(--fw-semibold); }
 
 /* ---------- priority marks (ACTIVE/CLEARED_UNVERIFIED/STALE -> p1/p2/p3),
  * job.html's own mapping, reusing icons.css's .ico-p1/.ico-p2/.ico-p3. */
@@ -1403,8 +1403,8 @@ h2, .section-h, .step-title {
  * no JS. ---------- */
 .lang-picker { display: inline-flex; gap: 4px; }
 .lang-btn {
-  min-height: 44px; min-width: 44px; padding: 0 10px; font-size: 12px;
-  font-weight: 650; border: 1px solid var(--rule); border-radius: var(--radius);
+  min-height: 44px; min-width: 44px; padding: 0 10px; font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold); border: 1px solid var(--rule); border-radius: var(--radius);
   background: transparent; color: var(--ink-2); cursor: pointer;
 }
 .lang-btn-active { color: var(--ink); border-color: var(--accent); background: var(--accent-dim); }
@@ -1425,12 +1425,12 @@ h2, .section-h, .step-title {
 .intro-mark { opacity: 0; animation: intro-in .9s ease-out .15s forwards; }
 .intro-logo { height: 64px; max-width: 70vw; display: block; }
 .intro-wordmark {
-  font-size: 40px; font-weight: 300; letter-spacing: .04em; color: #fff;
+  font-size: var(--fs-3xl); font-weight: var(--fw-semibold); letter-spacing: .04em; color: #fff;
 }
 .intro-wordmark span { color: var(--accent); }
 .intro-tagline {
   opacity: 0; animation: intro-in .9s ease-out .9s forwards;
-  color: rgba(255, 255, 255, .72); font-size: 12px; letter-spacing: .18em;
+  color: rgba(255, 255, 255, .72); font-size: var(--fs-xs); letter-spacing: .18em;
   text-transform: uppercase;
 }
 @keyframes intro-in { to { opacity: 1; } }
@@ -1536,12 +1536,12 @@ html.intro-skip .intro-overlay { display: none; }
   padding: var(--space-2) var(--pad) var(--space-2);
 }
 .vhero.vhero-compact .hero-head { display: flex; align-items: baseline; gap: var(--space-2); }
-.vhero.vhero-compact .hero-name { font-size: 28px; font-weight: 300; color: #fff; letter-spacing: 0; }
+.vhero.vhero-compact .hero-name { font-size: var(--fs-3xl); font-weight: var(--fw-semibold); color: #fff; letter-spacing: 0; }
 .vhero.vhero-compact .hero-verdict {
   margin-top: 2px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
 }
 .hero-verdict-chip {
-  display: inline-block; font-size: 12px; font-weight: 650; letter-spacing: .06em;
+  display: inline-block; font-size: var(--fs-xs); font-weight: var(--fw-semibold); letter-spacing: .06em;
   text-transform: uppercase; padding: 3px 8px; border-radius: var(--radius);
 }
 .hero-verdict-chip.v-active-faults     { color: var(--sev-returned); background: var(--sev-returned-bg); }
@@ -1549,7 +1549,7 @@ html.intro-skip .intro-overlay { display: none; }
 .hero-verdict-chip.v-verified-clean    { color: var(--ok); background: var(--ok-bg); }
 .hero-verdict-chip.v-no-data           { color: var(--ink-3); background: var(--surface-2); }
 .hero-next-sentence {
-  margin: 0; font-size: 20px; font-weight: 300; line-height: 1.3; max-width: 72ch;
+  margin: 0; font-size: var(--fs-xl); font-weight: var(--fw-semibold); line-height: 1.3; max-width: 72ch;
   color: rgba(255,255,255,.92); overflow-wrap: anywhere;
 }
 
@@ -1560,22 +1560,20 @@ html.intro-skip .intro-overlay { display: none; }
  * later wins) or is written to match/beat whatever it overrides, so
  * nothing above this comment needed to change.
  *
- * Item 14: body >= 16px (already true -- see the earlier `body { font-size:
- * 16px; }`), secondary text >= 14px, nothing below 12px, muted text at
- * least 4.5:1 (the dark theme's default --ink-3 was #79848c; #9aa4ac is the
- * same token everywhere it's used, lighter). Item 15: every interactive
- * element >= 48x48 (tabs, MORE, toggles); 44px is called out as the floor
- * only where 48 cannot fit without breaking a dense row (tables, inline
- * chip links) -- those are listed explicitly rather than swept in.
+ * Item 14: body >= 16px (true -- the foundation body rule at the top of
+ * this file), secondary text >= 14px, nothing below 12px, muted text at
+ * least 4.5:1 (--ink-3 is #8f99a1 in the foundation :root block, >= 4.5:1
+ * on --surface-2). Item 15: every interactive element >= 48x48 (tabs,
+ * MORE, toggles); 44px is called out as the floor only where 48 cannot fit
+ * without breaking a dense row (tables, inline chip links) -- those are
+ * listed explicitly rather than swept in.
  * ========================================================================= */
-
-:root { --ink-3: #9aa4ac; }
 
 /* Secondary text: raised from ~12.5-13px to the 14px floor everywhere it's
  * used as a label/caption rather than a reading paragraph. */
 .small, .bench-resume-row, .bench-resume-changes, .bench-job-shared,
 .bench-parts, .bench-tools, .bench-card-detail, .step-text, .job-refs {
-  font-size: 14px;
+  font-size: var(--fs-sm);
 }
 
 /* Nothing below 12px: the smallest labels this app has (table header caps,
@@ -1586,11 +1584,11 @@ html.intro-skip .intro-overlay { display: none; }
  * already writes normal prose with the code id as the only `.mono` run. */
 th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
 .chip.sm, table.codes-table .chip, .chip-code.sm, .tl-label {
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 .chip, .chip-verdict, .status-verdict, .bench-state-badge,
 .bench-shortcut, .hero-verdict-chip {
-  font-size: 12px; text-transform: none; letter-spacing: normal;
+  font-size: var(--fs-xs); text-transform: none; letter-spacing: normal;
 }
 
 /* Item 16: "Expected / Not expected" is said in words now (the template
@@ -1603,13 +1601,13 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
 
 .code-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 4px; }
 .code-head h1 { margin: 0; }
-.code-head-chip { font-size: 12px; }
+.code-head-chip { font-size: var(--fs-xs); }
 
 /* Item 16 cont'd: on job.html's compact code card, _code_brief.html drops
  * its own big <h1> (would duplicate the code) and leaves the single DTC
  * display to this caller-printed line -- so it needs the same ">=24px,
  * monospace" floor the big header would otherwise have provided. */
-.priority-code-row .mono { font-size: 24px; font-weight: 600; }
+.priority-code-row .mono { font-size: var(--fs-2xl); font-weight: var(--fw-semibold); }
 
 /* System chips are clickable (<a>) -- the 28px sysb-chip box is a table/
  * card decoration, not a touch target, everywhere else they're used, but
@@ -1624,7 +1622,7 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
  * omission. */
 .vtabs a, .vmore-tab summary, .vmore summary {
   min-height: 48px; min-width: 48px; display: inline-flex;
-  align-items: center; justify-content: center; font-size: 14px;
+  align-items: center; justify-content: center; font-size: var(--fs-sm);
 }
 .feedback-affordance, .fab-feedback { min-width: 48px; min-height: 48px; }
 .chip-code.sm, .raw-rows summary, .all-pids summary {
@@ -1651,7 +1649,7 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
   background: var(--accent); border-color: var(--accent); color: #fff;
   min-height: var(--space-5); padding: 0 var(--space-3);
   display: inline-flex; align-items: center; justify-content: center;
-  font-weight: 600; text-decoration: none; flex: none; white-space: nowrap;
+  font-weight: var(--fw-semibold); text-decoration: none; flex: none; white-space: nowrap;
 }
 #connect-car-btn:hover { filter: brightness(1.08); }
 #connect-car-btn[aria-busy="true"] { opacity: .7; pointer-events: none; }
@@ -1667,7 +1665,7 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
   padding: var(--space-2) var(--pad);
   border-bottom: 1px solid var(--rule-soft);
   background: var(--surface-2);
-  font-size: 14px;
+  font-size: var(--fs-sm);
 }
 .connect-drawer[hidden] { display: none; }
 .connect-step-list { list-style: none; margin: 0 0 var(--space-1); padding: 0; }
