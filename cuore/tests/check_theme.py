@@ -16,7 +16,11 @@ job page (tab == "job") never got a hero at all. The checks below were
 written against the hero's old layout, which showed the full hero on what
 is now the Bench's own route -- updated to look at the pages that actually
 carry each piece of hero chrome today, same intent as before):
-  1. Body computed font-size is >= 17px (job page).
+  1. Body computed font-size is >= 16px (job page) -- 16px is the single
+     body size the TYPE_AND_UI_AUDIT_2026-10-14 foundation pass settled on
+     (one body rule, one 7-step scale; this used to be 17px under the old
+     "Emphasis pass" override, one of the four competing body rules that
+     pass deleted).
   2. The hero shows the verdict state text on both pages that carry a
      hero: the full .hero-verdict-state on the Report, and the compact
      .hero-verdict-chip on the Bench.
@@ -259,7 +263,7 @@ try:
         cdp = navigate(devtools_port, job_url, 1400, 1800, dark=True)
         try:
             fs = cdp.eval_value("parseFloat(getComputedStyle(document.body).fontSize)")
-            check("body computed font-size is >= 17px", fs is not None and fs >= 17, str(fs))
+            check("body computed font-size is >= 16px", fs is not None and fs >= 16, str(fs))
 
             shot = cdp.send("Page.captureScreenshot", {"format": "png"})
             wide_path = SCRATCHPAD / "job_1400.png"
