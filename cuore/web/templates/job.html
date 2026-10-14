@@ -514,6 +514,7 @@
   <details class="step-collapse" open>
     <summary>{{ t('open_work_attachments') }}</summary>
     {% include "_open_work.html" %}
+    {% set mes_handoff_vin = vin %}{% include "_mes_handoff.html" %}
     {% set target_kind = "job" %}{% set target_id = job.id %}{% set compact = True %}
     {% include "_media_attach.html" %}
     <p class="small"><a href="/v/{{ vin }}/electrical">{{ t('electrical') }} &rarr;</a></p>

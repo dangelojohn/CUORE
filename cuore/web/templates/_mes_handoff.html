@@ -1,0 +1,149 @@
+{# MES handoff cards -- 2026-10-14 pass.
+
+   Included once per page (not once per row): ``tests.html`` sets
+   ``mes_handoff_vin = view.vin`` before including this; ``job.html``'s
+   step 6 section sets ``mes_handoff_vin = vin``. Everything else is
+   client-side -- this fetches the small MES-function catalogue once
+   (GET /api/tests/mes-handoff/candidates), matches it against whatever
+   test rows (``.ts-row[id^="test-"]``) or job checklist steps
+   (``.checklist-step[id^="fb-"]``) are already on the page, and injects a
+   card right after each match. Nothing here writes to the car -- the
+   "Import the MES log" button only reads a file MES already wrote
+   (POST /api/tests/{vin}/mes-import) and records it in this feature's own
+   ledger; the pass/fail buttons and done/outcome checkbox each row already
+   has are the only result-recording controls on either page. #}
+<style>
+  .mes-handoff-wrap { margin: 0.4em 0 0.8em; }
+  .mes-handoff-card { border: 1px solid var(--border, #ccc); border-left: 3px solid #b85c00;
+    border-radius: 4px; padding: 0.6em 0.8em; background: var(--panel-bg, rgba(184,92,0,0.06)); }
+  .mes-handoff-title { font-weight: 600; margin: 0 0 0.3em; }
+  .mes-handoff-fields { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.15em 0.6em; }
+  .mes-handoff-fields dt { font-size: 0.85em; opacity: 0.75; }
+  .mes-handoff-fields dd { margin: 0; }
+  .mes-handoff-import { margin-top: 0.5em; display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; }
+</style>
+<div id="mes-handoff-root" data-vin="{{ mes_handoff_vin or '' }}" hidden></div>
+<template id="mes-handoff-card-tpl">
+  <div class="mes-handoff-card">
+    <p class="mes-handoff-title"></p>
+    <dl class="mes-handoff-fields">
+      <dt>Menu path</dt><dd class="mes-handoff-menu"></dd>
+      <dt>Before</dt><dd class="mes-handoff-prereq"></dd>
+      <dt>After</dt><dd class="mes-handoff-record"></dd>
+    </dl>
+    <p class="mes-handoff-gap small muted"></p>
+    <p class="mes-handoff-source small muted"></p>
+    <form class="mes-handoff-import" hidden>
+      <label>MES log/recording filename
+        <input type="text" name="log_name" placeholder="SCAN_2610080920.txt" required>
+      </label>
+      <button type="submit" class="btn small">Import the MES log</button>
+      <span class="mes-handoff-import-result small" hidden></span>
+    </form>
+  </div>
+</template>
+<script>
+(function () {
+  "use strict";
+  var root = document.getElementById("mes-handoff-root");
+  if (!root) return;
+  var vin = root.getAttribute("data-vin") || "";
+  var tpl = document.getElementById("mes-handoff-card-tpl");
+
+  function buildCard(fn) {
+    var node = tpl.content.cloneNode(true);
+    var card = node.querySelector(".mes-handoff-card");
+    card.setAttribute("data-fn", fn.id);
+    node.querySelector(".mes-handoff-title").textContent = fn.title;
+    node.querySelector(".mes-handoff-menu").textContent = fn.menu_path;
+    node.querySelector(".mes-handoff-prereq").textContent =
+      (fn.prerequisites || []).join("; ") || "none noted";
+    node.querySelector(".mes-handoff-record").textContent = fn.record_after;
+    node.querySelector(".mes-handoff-gap").textContent =
+      "CUORE today: " + fn.cuore_today;
+    node.querySelector(".mes-handoff-source").textContent =
+      "Source: " + fn.source + " (confidence: " + fn.confidence + ")";
+    var form = node.querySelector(".mes-handoff-import");
+    if (fn.log_expected && vin) {
+      form.hidden = false;
+      form.addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        var name = form.querySelector("[name=log_name]").value.trim();
+        var out = form.querySelector(".mes-handoff-import-result");
+        if (!name) return;
+        out.hidden = false;
+        out.textContent = "Importing...";
+        fetch("/api/tests/" + encodeURIComponent(vin) + "/mes-import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: name }),
+        })
+          .then(function (r) {
+            if (!r.ok) {
+              return r.json().catch(function () { return {}; }).then(function (e) {
+                throw new Error(e.detail || ("import failed (" + r.status + ")"));
+              });
+            }
+            return r.json();
+          })
+          .then(function (data) {
+            out.textContent = "Imported " + data.scan.id + " -- " + data.health_line;
+          })
+          .catch(function (err) {
+            out.textContent = "Could not import: " + err.message;
+          });
+      });
+    }
+    return node;
+  }
+
+  function insertCard(afterEl, fn) {
+    if (afterEl.parentNode === null) return;
+    if (afterEl.nextElementSibling &&
+        afterEl.nextElementSibling.querySelector &&
+        afterEl.nextElementSibling.querySelector('[data-fn="' + fn.id + '"]')) {
+      return; // already inserted (e.g. a background refresh re-ran)
+    }
+    var wrap = document.createElement("div");
+    wrap.className = "mes-handoff-wrap";
+    wrap.appendChild(buildCard(fn));
+    afterEl.parentNode.insertBefore(wrap, afterEl.nextSibling);
+  }
+
+  fetch("/api/tests/mes-handoff/candidates")
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var fns = data.functions || [];
+      var byTestId = {};
+      fns.forEach(function (fn) { if (fn.test_id) byTestId[fn.test_id] = fn; });
+
+      // Tests page rows: id="test-<id>".
+      Array.prototype.slice.call(document.querySelectorAll('.ts-row[id^="test-"]'))
+        .forEach(function (row) {
+          var testId = row.id.slice(5);
+          var fn = byTestId[testId];
+          if (fn) insertCard(row.querySelector(".ts-details") || row, fn);
+        });
+
+      // Job step 6 checklist rows: id="fb-<step_id>", data-fact="checklist|<step_id>".
+      Array.prototype.slice.call(document.querySelectorAll('.checklist-step[id^="fb-"]'))
+        .forEach(function (li) {
+          var fact = li.getAttribute("data-fact") || "";
+          var stepId = fact.indexOf("checklist|") === 0 ? fact.slice(10) : "";
+          var fn = null;
+          if (stepId.indexOf("test:") === 0 && byTestId[stepId.slice(5)]) {
+            fn = byTestId[stepId.slice(5)];
+          } else {
+            var text = (li.querySelector(".step-text") || {}).textContent || "";
+            text = text.trim().toLowerCase();
+            fn = fns.filter(function (f) {
+              var name = f.name.toLowerCase();
+              return text.indexOf(name) !== -1 || name.indexOf(text) !== -1;
+            })[0] || null;
+          }
+          if (fn) insertCard(li, fn);
+        });
+    })
+    .catch(function () { /* handoff cards are a nice-to-have, never block the page */ });
+})();
+</script>
