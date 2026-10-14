@@ -159,6 +159,80 @@ _t("evap_smoke", "EVAP smoke test", "emissions", ["evap"], _applies(),
                           "boost-level pressure.",
   hazards=["fuel vapor"])
 
+# --- Review #6 item 1 (2026-10-14): the flooded-canister / vent-path-
+# restriction hypothesis (TSB 9100471, on file in
+# docs/reference/TSB_CATALOGUE.md and mes.knowledge.BULLETINS) gets its
+# own two tests, distinct from evap_smoke above -- a smoke test finds a
+# leak path, it does not find a canister already full of liquid fuel or
+# an internally disconnected vapour line, which a smoke test cannot see.
+
+_t("canister_liquid_fuel_weight_check", "EVAP canister liquid-fuel / weight check",
+  "emissions", ["evap"], _applies(grecale=False),
+  purpose="Check whether the vapor canister itself has flooded with liquid fuel -- "
+          "the failure mode TSB 9100471 describes, distinct from a leak a smoke "
+          "test would find. A flooded canister is heavier than a dry one and may "
+          "be felt to slosh.",
+  car_state="key-off",
+  when_to_use="P0440/P0441/P0455/P0456 with a hard-to-fill symptom (pump nozzle "
+              "clicks off early) or any recurring EVAP leak code before ordering a "
+              "canister or ESIM on a guess -- run before the smoke test (evap_smoke), "
+              "since a canister already full of fuel does not need smoke to prove.",
+  tools=["hands (canister is behind the driver's-side rear wheel liner)",
+        "shop scale (optional -- a new/dry canister for comparison weight)"],
+  procedure=[
+      "Remove the driver's-side rear wheel liner to access the canister.",
+      "With the canister still mounted, gently rock/tilt it and listen/feel for "
+      "liquid sloshing inside.",
+      "If accessible, disconnect the canister's lines and lift it: compare its "
+      "heft against a new/dry canister if one is on hand (a flooded canister is "
+      "noticeably heavier).",
+      "Open or drain a port if liquid is suspected and confirm visually whether "
+      "liquid fuel (not just dampness) is present.",
+  ],
+  pass_criteria=[_pc("liquid fuel in canister", "none found", "", TECHAUTHORITY, UNKNOWN)],
+  fail_means="Liquid fuel found in the canister: this is TSB 9100471's flooded-"
+             "canister mode -- the internal vapour line at the FDM port is "
+             "disconnected and needs reconnecting, and the bulletin calls for "
+             "replacing BOTH the canister and the ESIM (mes.parts evap_canister, "
+             "esim), not either alone.",
+  related_codes=["P0440", "P0441", "P0455", "P0456"],
+  supports_hypotheses=["EVAP: flooded canister / vent-path restriction"],
+  refutes_hypotheses=["EVAP: flooded canister / vent-path restriction"],
+  duration_min=20,
+  safety="Fuel vapor and liquid fuel at the canister -- no sparks or open flame; "
+         "ventilate the work area.",
+  hazards=["fuel vapor", "liquid fuel"])
+
+_t("vapour_line_fdm_kink_inspection", "Tank-to-canister vapour line inspection (FDM port)",
+  "emissions", ["evap", "fuel"], _applies(grecale=False),
+  purpose="Inspect the tank-to-canister vapour line for a kink or an internal "
+          "disconnect at the FDM (fuel delivery module) port -- the exact "
+          "mechanism TSB 9100471 documents for a flooded canister.",
+  car_state="key-off",
+  when_to_use="A flooded canister is found (canister_liquid_fuel_weight_check "
+              "fails), or this VIN has had fuel-pump/FDM work done (this car is in "
+              "fuel-pump recall 25V586000/93C -- verify this connection on "
+              "reassembly if that recall work is ever performed).",
+  tools=["hands", "the tank must come down to inspect the internal vapour line at "
+        "the FDM port"],
+  procedure=[
+      "With the tank lowered, locate the vapour line connection at the FDM port.",
+      "Confirm the line is connected, not kinked, and seated per the bulletin.",
+      "If disconnected: reconnect it per TSB 9100471 before closing up the tank.",
+  ],
+  pass_criteria=[_pc("vapour line at FDM port", "connected, unkinked", "",
+                     TECHAUTHORITY, UNKNOWN)],
+  fail_means="Line found disconnected or kinked at the FDM port: this is the "
+             "flooding mechanism TSB 9100471 describes -- reconnect it, and "
+             "replace BOTH the canister and the ESIM per the bulletin.",
+  related_codes=["P0440", "P0441", "P0455", "P0456"],
+  supports_hypotheses=["EVAP: flooded canister / vent-path restriction"],
+  refutes_hypotheses=["EVAP: flooded canister / vent-path restriction"],
+  duration_min=60,
+  safety="Fuel tank removal: depressurize/drain per the service manual, no sparks "
+         "or open flame, support the tank before releasing its straps.",
+  hazards=["fuel vapor", "liquid fuel"])
+
 _t("intake_boost_smoke_leak", "Intake/boost leak smoke test", "intake_boost",
   ["air_intake_boost"], _applies(),
   purpose="Find an air leak between the throttle body/MAF and the turbo/intercooler "

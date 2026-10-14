@@ -60,6 +60,40 @@ class Step:
 
 
 @dataclass(frozen=True)
+class Hypothesis:
+    """A named candidate root cause for a tree's codes -- distinct from a
+    :class:`Step` (one test in a sequence): this is the *conclusion* some
+    of those steps would support or refute, pre-packaged with the tests
+    (``mes.mechanic_tests`` ids) and parts (``mes.parts`` ids) that bear on
+    it, both sourced. Added 2026-10-14 (external review #6, item 1) so a
+    job page's suggested-hypotheses builder has a sourced template to
+    offer instead of inventing its own text -- never a replacement for the
+    tree's own step-by-step sequence above it.
+
+    ``tests``/``parts`` are ids into their own catalogues (never duplicated
+    data), looked up by whatever reads this, e.g.
+    ``mes.mechanic_tests.test(id)`` / ``mes.parts.get(id)``.
+    """
+
+    key: str
+    text: str
+    tests: tuple[str, ...]
+    parts: tuple[str, ...]
+    source: str
+    note: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        d: dict[str, Any] = {
+            "key": self.key, "text": self.text,
+            "tests": list(self.tests), "parts": list(self.parts),
+            "source": self.source,
+        }
+        if self.note:
+            d["note"] = self.note
+        return d
+
+
+@dataclass(frozen=True)
 class Tree:
     """One fault-isolation sequence for a code family."""
 
@@ -71,6 +105,7 @@ class Tree:
     verification: tuple[Step, ...]
     do_not: tuple[str, ...]
     generic: bool = False
+    hypotheses: tuple[Hypothesis, ...] = ()
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -82,6 +117,7 @@ class Tree:
             "verification": [s.to_dict() for s in self.verification],
             "do_not": list(self.do_not),
             "generic": self.generic,
+            "hypotheses": [h.to_dict() for h in self.hypotheses],
         }
 
 
@@ -245,6 +281,35 @@ EVAP_LEAK = Tree(
         "Do not read a clean post-clear scan as proof of repair.",
         "Do not replace the canister for an ESIM fault or vice versa "
         "(TSB 9100469 -- separate parts).",
+    ),
+    # Review #6 item 1 (2026-10-14): a flooded/saturated-canister hypothesis
+    # template, sourced to TSB 9100471 (on file in
+    # docs/reference/TSB_CATALOGUE.md and mes.knowledge.BULLETINS, which
+    # already cross-references it to P0440/P0441/P0455/P0456 -- the same
+    # codes this tree covers), distinct from step E6 above: E6 is one test
+    # in the sequence, this is the named conclusion that test (and the two
+    # mechanic_tests entries below, which E6's own test content duplicates
+    # as formal, orderable tests) would support. "Vent-path restriction" is
+    # named alongside "flooded canister" because a saturated/blocked
+    # canister IS the vent-path restriction on this platform (the vent
+    # function is integrated into the canister module on NA cars -- see
+    # mes.parts evap_canister's own notes).
+    hypotheses=(
+        Hypothesis(
+            key="evap-flooded-canister",
+            text="EVAP: flooded canister / vent-path restriction",
+            tests=("canister_liquid_fuel_weight_check",
+                  "vapour_line_fdm_kink_inspection"),
+            parts=("evap_canister", "esim"),
+            source="TSB 9100471 (2025-03-17), supersedes 9100469 for this "
+                  "mode (mes.knowledge.BULLETINS; mes.parts evap_canister/"
+                  "esim for the OEM numbers)",
+            note="The field signature for this mode is the owner reporting "
+                "the pump nozzle clicking off early / a hard-to-fill tank "
+                "(mes.symptoms tag 'hard_to_refuel') -- see this tree's own "
+                "step E4. P2422 alongside is close to pathognomonic (see "
+                "step E4's source).",
+        ),
     ),
 )
 
@@ -771,11 +836,15 @@ def _sae_generic_steps(base: str) -> list[tuple[str, str, str, str, str, str, st
              "generalised to a U-code not already in that tree's list)"),
         ]
     if base == "C104B":
-        # Review #6 item 5: C104B (ABS hydraulic leak) was offered only the
-        # generic B/C electrical-first step below -- a brake-safety code
-        # deserves the direct fluid-level/hydraulic-leak check this repo's
-        # own mechanic_tests catalogue already has (brake_hydraulic_pressure_
-        # bleed), checked before, not instead of, the module/electrical side.
+        # Review #6 item 3 (2026-10-14, EXTERNAL_REVIEW_6_2026-10-14.md):
+        # C104B (ABS hydraulic leak) was offered only the generic B/C
+        # electrical-first step -- a brake-safety code deserves the direct
+        # fluid-level/hydraulic-leak check this repo's own mechanic_tests
+        # catalogue already has (brake_hydraulic_pressure_bleed), checked
+        # before, not instead of, the module/electrical side. The actual
+        # reordering (this content placed FIRST in the generated tree,
+        # not last among the generic SAE-range steps) is done by
+        # generic_tree's own step 0, above -- see that comment.
         t = mechanic_tests.test("brake_hydraulic_pressure_bleed")
         tools = ", ".join(t.get("tools") or []) if t else "Brake pressure gauge set."
         return [
@@ -838,6 +907,24 @@ def generic_tree(code: str, description: str = "") -> Tree:
     def sid() -> str:
         counter[0] += 1
         return f"G{counter[0]}"
+
+    # 0. Review #6 item 3 (2026-10-14): C104B (ABS: leaks in hydraulic
+    #    group) is a brake-safety code -- its direct brake-fluid-level /
+    #    hydraulic-leak inspection goes FIRST, ahead of every
+    #    module/electrical check steps 1-5 below would otherwise lead
+    #    with, not appended last among the generic SAE-range steps where
+    #    _sae_generic_steps' own C104B branch would otherwise place it
+    #    (see step 6's own skip of base=="C104B" below -- this is that
+    #    same content, moved to the front rather than duplicated).
+    if base == "C104B":
+        for (title, test, tools, expect, if_abnormal, cost, source) in \
+                _sae_generic_steps(base):
+            steps.append(Step(sid(), title, test, tools, expect, if_abnormal,
+                              cost, source))
+        framing.append(
+            "C104B is an ABS hydraulic-leak code (safety-relevant): brake "
+            "fluid level and the hydraulic circuit are checked first, "
+            "before any module/electrical diagnosis below.")
 
     # 1. Systems implicated -- primary, then upstream (electrical supply
     #    first when one of the primaries depends on it).
@@ -938,10 +1025,13 @@ def generic_tree(code: str, description: str = "") -> Tree:
 
     # 6. Generic SAE-range step for the code's own prefix, last -- never
     #    standing in for a sourced step above, only supplementing it.
-    for (title, test, tools, expect, if_abnormal, cost, source) in \
-            _sae_generic_steps(base):
-        steps.append(Step(sid(), title, test, tools, expect, if_abnormal,
-                          cost, source))
+    #    C104B is skipped here: step 0 above already placed this exact
+    #    content first (Review #6 item 3, 2026-10-14).
+    if base != "C104B":
+        for (title, test, tools, expect, if_abnormal, cost, source) in \
+                _sae_generic_steps(base):
+            steps.append(Step(sid(), title, test, tools, expect, if_abnormal,
+                              cost, source))
 
     if not steps:
         steps.append(Step(

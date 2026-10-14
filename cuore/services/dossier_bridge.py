@@ -156,6 +156,37 @@ def _history_codes(dossier: dict[str, Any]) -> set[str]:
     return out
 
 
+def _demoted_single_session_codes(dossier: dict[str, Any]) -> list[dict[str, Any]]:
+    """Review #6 item 4 (2026-10-14): every ``seen_once`` code
+    :func:`_history_codes`' own 180-day rule (:data:`_STALE_SINGLE_SESSION_DAYS`)
+    left out of open work, paired with the exact wording the Codes/timeline
+    pages should show for it: "seen once on <date>, not since".
+
+    Never a deletion -- the record stays in ``dossier['history']['seen_once']``
+    exactly as before, and every page that reads history directly (Codes,
+    timeline) still shows it; this list exists only so the open-work view
+    can explain, in one place, why a code it would otherwise have grouped
+    is missing from a card tonight. A chronic or returned-after-clear code
+    is never demoted by this rule regardless of age (see
+    :func:`_history_codes`), so it never appears here either.
+    """
+    history = dossier.get("history") or {}
+    now = datetime.now()
+    out: list[dict[str, Any]] = []
+    for rec in history.get("seen_once", []):
+        b = _base(rec.get("dtc", ""))
+        if not b:
+            continue
+        last_seen = _parse_ts(rec.get("last_seen"))
+        if last_seen is None or (now - last_seen).days <= _STALE_SINGLE_SESSION_DAYS:
+            continue
+        out.append({
+            "code": b, "dtc": rec.get("dtc", ""), "last_seen": rec.get("last_seen"),
+            "wording": f"seen once on {_short_date(rec.get('last_seen'))}, not since",
+        })
+    return out
+
+
 def _generic_tree_steps(code: str, vin: str) -> list[dict[str, Any]]:
     """The first tree's steps for one code, via ``mes_bridge.fault_tree`` --
     the hand-written tree when ``mes.faulttree.tree_for`` has one, else its
@@ -184,8 +215,17 @@ def _base(code: str) -> str:
 #: component itself is broken" -- same set as ``mes.analysis.
 #: COMMUNICATION_FTBS``, reimplemented here (not imported) for the same
 #: never-import-``mes``-directly reason :func:`_base` already states.
-#: Drives the Body-group split (Review #6 item 5).
+#: Drives the Body-group split (Review #6 item 2, 2026-10-14).
 _COMMUNICATION_FTBS = frozenset({"2F", "86", "87", "88", "64"})
+
+#: Review #6 item 3 (2026-10-14): base codes whose open-work card must be
+#: flagged ``safety_relevant`` -- C104B is an ABS hydraulic-leak code
+#: (mes.faulttree's generic_tree already puts its brake-fluid/hydraulic
+#: inspection first, ahead of any electrical check; see that module's own
+#: step 0). A plain generic-family card gives no visual weight to "this
+#: one is a brake-safety matter, not a routine electrical lead" -- this
+#: flag is how the open-work card says so.
+_SAFETY_CODES = frozenset({"C104B"})
 
 
 def _ftb(code: str) -> str:
@@ -1334,6 +1374,8 @@ def _build_open_work(vin: str, dossier: dict[str, Any],
             "steps": steps, "refs": [],
             "progress": {"done": done, "total": len(steps)},
             "generic": True,
+            # Review #6 item 3 (2026-10-14): see :data:`_SAFETY_CODES`.
+            "safety_relevant": any(c in _SAFETY_CODES for c in codes),
         })
     return cards
 
@@ -1702,6 +1744,11 @@ def _build_view_core(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
     checklist = checklist_store.get(vin)
     open_work = _build_open_work(vin, dossier, checklist, live_module_codes,
                                  comms_like_bases)
+    # Review #6 item 4 (2026-10-14): the codes _build_open_work's own
+    # 180-day rule demoted out of the grouping above, with the wording a
+    # Codes/timeline row should carry for one -- see
+    # :func:`_demoted_single_session_codes`.
+    demoted_open_work = _demoted_single_session_codes(dossier)
 
     family_map = _family_map(dossier)
     try:
@@ -1729,6 +1776,7 @@ def _build_view_core(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "open_work": open_work,
+        "demoted_open_work": demoted_open_work,
         "codes": codes,
         "code_counts": code_counts,
         "attempted": _build_attempted(vin),
