@@ -45,9 +45,15 @@
     {% endfor %}
   </details>
   {% endif %}
-  {% if e.editable %}
-  <a class="m-event-edit" href="/m/{{ vin }}/edit/{{ e.id }}">Edit</a>
-  {% endif %}
+  <p class="m-event-actions">
+    {% if e.editable %}
+    <a class="m-event-edit" href="/m/{{ vin }}/edit/{{ e.id }}">Edit</a>
+    {% endif %}
+    {% if e.print_href %}
+    <a class="m-print-btn m-print-btn-row" href="{{ e.print_href }}">Print label</a>
+    {% endif %}
+  </p>
+  {% if e.print_href and iphone %}<p class="m-print-hint">Share &rarr; Print</p>{% endif %}
 </div>
 {% endfor %}
 {% endblock %}

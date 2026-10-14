@@ -105,6 +105,10 @@
   </div>
   {% endif %}
 </form>
+{% if is_edit and print_href %}
+<a class="m-print-btn" href="{{ print_href }}">Print label</a>
+{% if iphone %}<p class="m-print-hint">Share &rarr; Print</p>{% endif %}
+{% endif %}
 {% if is_edit %}
 <form method="post" action="{{ delete_action }}" class="m-delete-form">
   <button type="submit" class="m-delete-btn">Delete</button>

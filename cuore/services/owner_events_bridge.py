@@ -51,6 +51,16 @@ except Exception:  # noqa: BLE001
     live_obs_mod = None  # type: ignore[assignment]
     scan_health_mod = None  # type: ignore[assignment]
 
+# Best-effort: a ``fluids / driveline_fluid`` report also mirrors into
+# ``mes.service`` (category ``drivetrain``) -- see
+# :func:`_driveline_fluid_to_ledger`. Defensive import for the same reason
+# as the two blocks above: this is an extra hand-off, never required for
+# the owner event itself to save.
+try:
+    from mes import service as service_mod  # noqa: E402
+except Exception:  # noqa: BLE001
+    service_mod = None  # type: ignore[assignment]
+
 #: The inbox "page" every CUORE-generated and mechanic-asked owner question
 #: is filed under, in the same ``mes.feedback`` store the rest of cuore
 #: already uses for mechanic corrections/questions/confirms. Keeping these
@@ -86,6 +96,62 @@ def _base_code(code: str) -> str:
 #: the table itself now lives on the store (:data:`cuore.live.owner_events.
 #: PROMPT_RULES`), next to :data:`cuore.live.owner_events.TAXONOMY`.
 PROMPT_RULES = store.PROMPT_RULES
+
+#: ``fluids / driveline_fluid``'s ``which`` value -> the ``mes.service``
+#: drivetrain (section, job) it mirrors onto (see :func:`_driveline_fluid_
+#: to_ledger`). "differential" has no front/rear choice on the phone form,
+#: so it best-effort-defaults to the front job -- the mirrored record's own
+#: ``considerations_next`` says so, it is never silently assumed correct.
+_DRIVELINE_FLUID_TARGET: dict[str, tuple[str, str]] = {
+    "transmission": ("transmission", "transmission_fluid_service"),
+    "transfer case": ("transfer_case", "transfer_case_service"),
+    "differential": ("differentials", "differential_service_front"),
+}
+
+
+def _driveline_fluid_to_ledger(vin: str, fields: dict[str, Any], at: Optional[str],
+                               odometer_km: Optional[float], by_role: str,
+                               by_name: str) -> None:
+    """Best-effort mirror of a phone-reported driveline-fluid event into
+    ``mes.service`` (category ``drivetrain``) -- the ledger stays the one
+    source the drivetrain sheet reads, so a mechanic's own sheet also
+    picks up what an owner/driver reported from the phone. Called *in
+    addition to* the normal ``owner_events.jsonl`` row, never instead of
+    it (contrast ``delegate_to_symptoms`` above, which replaces storage).
+    Never raises: a missing odometer reading (required by the ledger,
+    optional on the phone form) or any other validation gap simply means
+    no ledger mirror for this one report, not a failed save of the owner
+    event itself, which has already happened by the time this runs.
+    """
+    if service_mod is None or not vin.strip():
+        return
+    target = _DRIVELINE_FLUID_TARGET.get(str(fields.get("which", "")).strip().lower())
+    if target is None or odometer_km is None:
+        return
+    section, job = target
+    parts = []
+    pan_part = str(fields.get("pan_filter_part_no", "")).strip()
+    if pan_part:
+        parts.append({"name": "pan/filter", "part_no": pan_part, "qty": 1})
+    data: dict[str, Any] = {
+        "section": section, "job": job,
+        "date": (at or datetime.now().isoformat(timespec="seconds"))[:10],
+        "odometer_km": odometer_km,
+        "technician": (by_name or by_role or "owner"),
+        "fluid": {"brand": fields.get("brand", ""), "spec": fields.get("fluid_spec", "")},
+        "quantity_added_l": fields.get("qty"),
+        "fluid_temp_c": fields.get("fill_temp_c"),
+        "parts_replaced": parts,
+        "discoveries": [f"method: {fields['method']}"] if fields.get("method") else [],
+        "considerations_next": (
+            ["owner reported 'differential' without front/rear -- confirm "
+             "which unit before relying on this mirrored record"]
+            if section == "differentials" else []),
+    }
+    try:
+        service_mod.record_drivetrain(vin, data)
+    except Exception:  # noqa: BLE001 -- best-effort mirror, never blocks the owner event
+        pass
 
 
 # --- plain pass-through: add/list/delete/taxonomy ----------------------------
@@ -135,11 +201,14 @@ def add(vin: str, category: str, kind: str, *, at: Optional[str] = None,
         return rec
 
     try:
-        return store.add(vin, category, kind, at=at, by_role=by_role, by_name=by_name,
-                         fields=fields, note=note, media_ids=media_ids,
-                         odometer_km=odometer_km, fields_meta=fields_meta)
+        rec = store.add(vin, category, kind, at=at, by_role=by_role, by_name=by_name,
+                        fields=fields, note=note, media_ids=media_ids,
+                        odometer_km=odometer_km, fields_meta=fields_meta)
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
+    if category == "fluids" and kind == "driveline_fluid":
+        _driveline_fluid_to_ledger(vin, fields or {}, at, odometer_km, by_role, by_name)
+    return rec
 
 
 def _symptom_as_event(vin: str, rec: dict[str, Any]) -> dict[str, Any]:
@@ -550,7 +619,23 @@ def _scan_done_text(vin: str) -> Optional[tuple[str, str]]:
     except Exception:  # noqa: BLE001
         plan = {"count": "?", "total": 10}
     when = _format_scan_at(newest.get("ended") or newest.get("started"))
-    lines = [f"Scan {plan['count']} of {plan['total']} done {when}."]
+    # Honesty fix (2026-10-14): the opening line must never claim "Scan n
+    # of 10 done" for the newest cluster unless THAT cluster was itself a
+    # complete scan -- see cuore.live.scanlog's own "Scan plan honesty"
+    # docstring section for what "complete"/"partial"/"attempt" mean.
+    # ``plan['count']`` (only complete scans) is still named in the
+    # partial/attempt cases so the owner always sees how many real scans
+    # are on file, never just a bare "it didn't work".
+    status = newest.get("status") or "partial"
+    if status == "complete":
+        lines = [f"Scan {plan['count']} of {plan['total']} done {when}."]
+    elif status == "attempt":
+        lines = [f"Scan attempt {when} -- the adapter could not be reached "
+                f"(no module answered). {plan['count']} of {plan['total']} "
+                f"complete scans on file so far."]
+    else:
+        lines = [f"Partial scan {when} (not a full bus sweep). {plan['count']} of "
+                f"{plan['total']} complete scans on file so far."]
 
     report = None
     if scan_health_bridge is not None:

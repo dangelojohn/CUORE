@@ -40,9 +40,9 @@
 <p class="m-section-h">Everything else</p>
 <div class="m-rowlist">
   {% for c in everything_else %}
-  <a class="m-row" href="/m/{{ vin }}/add/{{ c.key }}">
+  <a class="m-row" href="{{ c.href }}">
     <span class="m-row-label">{{ c.label }}</span>
-    <span class="m-row-count">{{ c.kind_count }}</span>
+    {% if c.kind_count is not none %}<span class="m-row-count">{{ c.kind_count }}</span>{% endif %}
   </a>
   {% endfor %}
 </div>

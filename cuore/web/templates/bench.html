@@ -188,7 +188,8 @@
         <span>{{ bench.last_scan.relative }}</span>
         <span class="muted small mono">{{ bench.last_scan.source }}</span>
         <span class="chip plain scanlog-plan-chip">Scan {{ bench.last_scan.plan.count }} of {{ bench.last_scan.plan.total }}</span>
-        {% if bench.last_scan.partial %}<span class="chip chronic">partial</span>{% endif %}
+        {% if bench.last_scan.status == "attempt" %}<span class="chip chronic">attempt &mdash; adapter not reachable</span>
+        {% elif bench.last_scan.partial %}<span class="chip chronic">partial</span>{% endif %}
       </div>
       <p class="bench-lastscan-codes">
         <b>Active:</b> {% if bench.last_scan.active_codes %}{% for c in bench.last_scan.active_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
@@ -196,6 +197,8 @@
       </p>
       {% if bench.last_scan.coverage_line %}
         <p class="bench-lastscan-coverage">{{ bench.last_scan.coverage_line }}</p>
+      {% elif bench.last_scan.status == "attempt" %}
+        <p class="bench-lastscan-coverage muted">No module answered on any bus -- the adapter could not be reached.</p>
       {% elif bench.last_scan.partial %}
         <p class="bench-lastscan-coverage muted">Manual read -- no bus-sweep coverage for this scan.</p>
       {% endif %}

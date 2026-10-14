@@ -717,6 +717,7 @@ def last_scan_summary(vin: str) -> dict[str, Any] | None:
         "history_codes": history,
         "coverage_line": (latest.get("coverage") or {}).get("line"),
         "partial": bool(latest.get("partial")),
+        "status": latest.get("status"),
         "plan": plan,
         "href": f"/v/{vin}/scans/{latest['id']}",
         "health_href": f"/v/{vin}/scans/{latest['id']}/health",

@@ -41,8 +41,13 @@ def _bar_for(vin: str) -> dict[str, Any]:
 def scans_page(request: Request, vin: str) -> HTMLResponse:
     scans = scanlog_bridge.list_scans(vin)["scans"]  # newest first
     # "Scan n" numbering runs oldest-to-newest (scan 1 is the first one run
-    # this diagnosis), the opposite order the list itself renders in.
-    oldest_first = sorted(scans, key=lambda s: s.get("started") or "")
+    # this diagnosis), the opposite order the list itself renders in. Only
+    # a COMPLETE scan is numbered -- a partial or failed-attempt scan is
+    # still listed (see cuore.live.scanlog's own docstring) but stays
+    # unnumbered, same honesty rule scan_plan() applies to the "Scan n of
+    # 10" chip just below.
+    oldest_first = sorted((s for s in scans if s.get("status") == "complete"),
+                          key=lambda s: s.get("started") or "")
     numbers = {s["id"]: i for i, s in enumerate(oldest_first, start=1)}
     for s in scans:
         s["number"] = numbers.get(s["id"])

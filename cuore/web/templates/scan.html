@@ -10,10 +10,13 @@
   <p class="small muted">As of {{ scan.started }}{% if scan.ended and scan.ended != scan.started %}
     &ndash; {{ scan.ended }}{% endif %}, source {{ scan.source.stream or "unknown" }}
     {% if scan.number %}&middot; Scan {{ scan.number }}{% endif %}
-    {% if scan.partial %}<span class="chip plain scanlog-partial">partial</span>{% endif %}</p>
+    {% if scan.status == "attempt" %}<span class="chip chronic">attempt &mdash; adapter not reachable</span>
+    {% elif scan.partial %}<span class="chip plain scanlog-partial">partial</span>{% endif %}</p>
 
   {% if scan.coverage %}
     <p class="small scanlog-coverage">{{ scan.coverage.line }}</p>
+  {% elif scan.status == "attempt" %}
+    <p class="small muted">No module answered on any bus -- the adapter could not be reached.</p>
   {% elif scan.partial %}
     <p class="small muted">Manual read -- no bus-sweep coverage for this scan.</p>
   {% endif %}

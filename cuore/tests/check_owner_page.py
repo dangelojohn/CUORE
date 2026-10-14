@@ -17,6 +17,7 @@ Run:
 
 from __future__ import annotations
 
+import io
 import json
 import os
 import re
@@ -523,7 +524,16 @@ msgs = r.json()["messages"]
 scan_msgs = [m for m in msgs if m.get("target", {}).get("section") == "scan"]
 check("exactly one scan-done message was filed", len(scan_msgs) == 1, str(scan_msgs)[:300])
 scan_text = scan_msgs[0]["text"] if scan_msgs else ""
-check("scan-done message says 'Scan 1 of 10'", "Scan 1 of 10" in scan_text, scan_text)
+# 2026-10-14 honesty fix: this fixture's cluster (obd_dtcs/readiness/mode06
+# only) carries no scan_coverage observation -- it is a manual, partial
+# read, never a full bus sweep -- so the opening line must say "Partial
+# scan", never claim a counted "Scan 1 of 10" that didn't happen.
+check("scan-done message says 'Partial scan' (no scan_coverage observation "
+      "on this cluster -- a manual read, not a counted scan)",
+      "Partial scan" in scan_text, scan_text)
+check("scan-done message says 0 of 10 complete scans on file (this partial "
+      "read doesn't count)",
+      "0 of 10 complete scans" in scan_text, scan_text)
 check("scan-done message asks not to clear the light", "don't clear" in scan_text, scan_text)
 check("scan-done message names the fuel-vapour system not holding vacuum",
       "fuel-vapour" in scan_text and "vacuum" in scan_text, scan_text)
@@ -560,7 +570,7 @@ if fillup_prompt:
 
 r = client.get(f"/m/{VIN}/messages")
 check("messages page responds 200 with the scan-done note and chips",
-      r.status_code == 200 and "Scan 1 of 10" in r.text and "m-chip-btn" in r.text,
+      r.status_code == 200 and "Partial scan" in r.text and "m-chip-btn" in r.text,
       str(r.status_code))
 
 # --- the later BCM scan: U1713-2F (active) fires the network prompt --------
@@ -628,6 +638,94 @@ if network_prompt and network_prompt.get("chips"):
                        and e.get("by", {}).get("role") == "mechanic"), None)
     check(f"the network chip answer created a {chip2['category']}/{chip2['kind']} owner event",
           new_event2 is not None, str(new_event2))
+
+
+# === 20. Print label (2026-10-14): the oil-change/service label route off
+# an owner event, reusing cuore.services.labels_bridge's own generator; the
+# 48px button on the confirm card, History and the edit screen; a
+# non-printable kind's clear 404. ============================================
+
+r = client.post(f"/api/owner/{VIN}/events", json={
+    "category": "fluids", "kind": "engine_oil_change", "by_role": "mechanic",
+    "fields": {"brand": "Selenia", "viscosity": "5W-30", "qty": 4.5,
+              "filter_changed": True, "filter_brand": "UFI",
+              "filter_part_no": "23.598.00"},
+    "odometer_km": 123456,
+})
+check("oil-change POST (for the print test) responds 200", r.status_code == 200,
+      str(r.status_code))
+oil_event = r.json()
+oil_id = oil_event.get("id")
+
+r = client.get(f"/m/{VIN}/labels/{oil_id}")
+check("the label route responds 200 for a saved oil change",
+      r.status_code == 200, str(r.status_code))
+check("the label route's content-type is application/pdf",
+      r.headers.get("content-type", "").startswith("application/pdf"),
+      r.headers.get("content-type"))
+check("the label PDF starts with the %PDF header", r.content[:5] == b"%PDF-",
+      str(r.content[:5]))
+try:
+    from pypdf import PdfReader
+    label_text = PdfReader(io.BytesIO(r.content)).pages[0].extract_text()
+    check("the printed label carries the filter brand (UFI)", "UFI" in label_text,
+          label_text)
+    check("the printed label carries the filter part number",
+          "23.598.00" in label_text, label_text)
+except ImportError:
+    check("pypdf available to verify label text content (optional)", True)
+
+r = client.post(f"/api/owner/{VIN}/events", json={
+    "category": "fluids", "kind": "engine_oil_topup", "by_role": "owner",
+    "fields": {"qty": 0.5},
+})
+check("oil top-up POST (non-printable kind) responds 200", r.status_code == 200,
+      str(r.status_code))
+topup_id = r.json().get("id")
+
+r = client.get(f"/m/{VIN}/labels/{topup_id}")
+check("a non-printable kind's label route is 404", r.status_code == 404,
+      str(r.status_code))
+check("the 404 names what IS printable, not just a bare 'not found'",
+      "printable" in r.json().get("detail", "").lower(), str(r.json()))
+
+r = client.get(f"/m/{VIN}/labels/not-a-real-id")
+check("an unknown event id's label route is 404", r.status_code == 404, str(r.status_code))
+
+confirm_href = f"/m/{VIN}/add/fluids/engine_oil_change/confirm/{oil_id}"
+confirm_html = client.get(confirm_href).text
+check("the confirm card carries a Print label button for a printable kind",
+      "Print label" in confirm_html and f"/m/{VIN}/labels/{oil_id}" in confirm_html,
+      confirm_href)
+
+history_html = client.get(f"/m/{VIN}/history").text
+check("the History page carries a Print label button for the oil-change entry",
+      "Print label" in history_html and f"/m/{VIN}/labels/{oil_id}" in history_html)
+
+edit_html = client.get(f"/m/{VIN}/edit/{oil_id}").text
+check("the edit screen carries a Print label button",
+      "Print label" in edit_html and f"/m/{VIN}/labels/{oil_id}" in edit_html)
+
+topup_edit_html = client.get(f"/m/{VIN}/edit/{topup_id}").text
+check("the edit screen shows no Print label button for a non-printable kind",
+      "Print label" not in topup_edit_html)
+
+print_list_html = client.get(f"/m/{VIN}/print").text
+check("/m/{vin}/print responds 200 and lists the printable oil-change record",
+      f"/m/{VIN}/labels/{oil_id}" in print_list_html)
+check("/m/{vin}/print offers at least one label-size chip",
+      'href="?size=' in print_list_html)
+
+home_html_print = client.get(f"/m/{VIN}").text
+check("home's 'Everything else' carries a Print entry",
+      f"/m/{VIN}/print" in home_html_print and ">Print<" in home_html_print)
+
+r_sized = client.get(f"/m/{VIN}/labels/{oil_id}", params={"size": "avery_5520"})
+check("the label route accepts an explicit ?size= and still returns a PDF",
+      r_sized.status_code == 200 and r_sized.content[:5] == b"%PDF-",
+      str(r_sized.status_code))
+check("the label route remembers the last-used size via a cookie",
+      "cuore_label_size" in r_sized.cookies, dict(r_sized.cookies))
 
 
 print(f"{checks} checks, {len(failures)} failures")

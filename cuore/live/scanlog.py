@@ -43,10 +43,34 @@ invented elsewhere:
   modules actually answered on each, and the raw counts. ``None`` when no
   such observation is in the cluster -- a manual single-purpose read
   (Codes/Live/Tests) never pretends to a coverage picture it does not have.
-* ``partial`` -- ``True`` exactly when ``coverage`` is ``None``: this scan
-  came from manual reads only (e.g. a freeze-frame save), not a guided/full
-  sweep. Still a scan -- still counted by :func:`scan_plan` -- just labelled
-  "partial" everywhere it is listed.
+* ``partial`` -- ``True`` whenever :func:`_coverage_status` does not say
+  ``"complete"`` (see below). Still a scan -- still listed -- just labelled
+  "partial" (or "attempt") everywhere it is shown, and never one of
+  :func:`scan_plan`'s own ``count``.
+
+**Scan plan honesty** (owner's correction, 2026-10-14: the "Scan n of 10"
+chip was counting partial/debug reads and failed attempts as if they were
+real scans, so after an evening of mostly manual reads plus one guided
+scan that never got past "opening COM3", the chip was overclaiming).
+:func:`_coverage_status` sorts every scan into exactly one of three states,
+from its ``scan_coverage`` observation's own raw ``coverage`` rows (one per
+module probed, each tagged ``"answered"``/``"silent"``/``"not_reachable"``
+by ``cuore.live.fullscan``):
+
+* ``"complete"`` -- the CAN-C sweep answered at least one module (a
+  fullscan or a guided scan, on any cable segment that reached CAN-C).
+  Only these count toward :func:`scan_plan`'s ``count`` and only these get
+  a "Scan n" number (``cuore.web.scanlog_routes``).
+* ``"partial"`` -- no ``scan_coverage`` observation at all (a manual,
+  single-purpose read -- Codes/Live/Tests -- was never a bus-sweep attempt
+  in the first place), or one exists but CAN-C itself never answered
+  (e.g. only IHS/CH responded). Still listed, labelled "partial",
+  unnumbered.
+* ``"attempt"`` -- a ``scan_coverage`` observation exists but NO module on
+  any bus answered (every row ``"not_reachable"`` -- an adapter/cable
+  error, most often COM3 failing to open). Listed, labelled "attempt --
+  adapter not reachable", unnumbered -- never silently folded into
+  "partial", which would read as "a read was taken" when nothing was.
 """
 
 from __future__ import annotations
@@ -297,16 +321,42 @@ def _build_source(cluster: list[dict[str, Any]]) -> dict[str, Any]:
     return {"stream": stream, "identity": identity}
 
 
-def _build_coverage(cluster: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
-    """The whole-bus-sweep summary from this cluster's own ``scan_coverage``
-    observation (latest one wins, same "latest in cluster" rule every other
-    ``_build_*`` helper here uses), or ``None`` when the cluster has none --
-    see the module docstring for what that means (:data:`PLAN_TOTAL`,
-    ``partial``)."""
+def _latest_coverage_obs(cluster: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """Raw ``data`` of this cluster's own ``scan_coverage`` observation
+    (latest one wins, same "latest in cluster" rule every other
+    ``_build_*`` helper here uses), or ``None`` when the cluster has
+    none -- shared by :func:`_build_coverage` (the display line) and
+    :func:`_coverage_status` (complete/partial/attempt) so they can never
+    disagree about which observation is "the" coverage for this scan."""
     latest = None
     for o in cluster:
         if o.get("kind") == "scan_coverage":
             latest = o.get("data") or {}
+    return latest
+
+
+def _coverage_status(latest: Optional[dict[str, Any]]) -> str:
+    """``"complete"``/``"partial"``/``"attempt"`` -- see the module
+    docstring's "Scan plan honesty" section. ``None`` (no ``scan_coverage``
+    observation at all) is always ``"partial"``: a manual read was never a
+    bus-sweep attempt to begin with, so it cannot have "failed" one."""
+    if latest is None:
+        return "partial"
+    rows = latest.get("coverage") or []
+    if not any(r.get("category") == "answered" for r in rows):
+        return "attempt"
+    can_c_answered = sum(1 for r in rows
+                        if r.get("bus") == "can_c" and r.get("category") == "answered")
+    if "can_c" in (latest.get("buses_attempted") or []) and can_c_answered >= 1:
+        return "complete"
+    return "partial"
+
+
+def _build_coverage(latest: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """The whole-bus-sweep summary line from one ``scan_coverage``
+    observation's raw data (see :func:`_latest_coverage_obs`), or ``None``
+    when there is none -- see the module docstring for what that means
+    (:data:`PLAN_TOTAL`, ``partial``)."""
     if latest is None:
         return None
 
@@ -350,7 +400,9 @@ def _scan_from_cluster(cluster: list[dict[str, Any]]) -> dict[str, Any]:
     mode06 = _build_mode06(cluster)
     freeze_frames = _build_freeze_frames(cluster, by_ecu_codes)
     pids = _build_pids(cluster)
-    coverage = _build_coverage(cluster)
+    raw_coverage = _latest_coverage_obs(cluster)
+    coverage = _build_coverage(raw_coverage)
+    status = _coverage_status(raw_coverage)
 
     return {
         "id": scan_id,
@@ -366,10 +418,15 @@ def _scan_from_cluster(cluster: list[dict[str, Any]]) -> dict[str, Any]:
         "mode06": mode06,
         "pids": pids,
         "coverage": coverage,
-        #: See the module docstring: a scan with no ``scan_coverage``
-        #: observation came from manual reads only -- still a scan, still
-        #: counted by :func:`scan_plan`, just labelled "partial".
-        "partial": coverage is None,
+        #: "complete"/"partial"/"attempt" -- see the module docstring's
+        #: "Scan plan honesty" section. Only "complete" counts toward
+        #: scan_plan() and gets a "Scan n" number.
+        "status": status,
+        #: Kept for every existing reader of this flag (templates, bench_
+        #: bridge, scan_health_bridge...): True for BOTH "partial" and
+        #: "attempt" -- "not a complete scan" -- read ``status`` for the
+        #: three-way distinction.
+        "partial": status != "complete",
         "counts": {
             "observations": len(cluster),
             "stored": len(dtcs["stored"]), "pending": len(dtcs["pending"]),
@@ -408,10 +465,14 @@ def get_scan(vin: str, scan_id: str) -> Optional[dict[str, Any]]:
 
 def scan_plan(vin: str) -> dict[str, Any]:
     """``{"count", "total"}`` for the "Scan n of 10" chip (Bench and the
-    scans list). Every scan on file for this VIN counts toward ``count``,
-    guided/full sweep or manual partial alike -- see the module docstring.
-    ``total`` is :data:`PLAN_TOTAL`, a target, never a cap."""
-    return {"count": len(list_scans(vin)), "total": PLAN_TOTAL}
+    scans list). Only a ``"complete"`` scan counts toward ``count`` -- a
+    partial (manual-read-only, or CAN-C never answered) or a failed
+    attempt (adapter not reachable) does not, so the chip never overclaims
+    how many real scans have been run -- see the module docstring's "Scan
+    plan honesty" section. ``total`` is :data:`PLAN_TOTAL`, a target, never
+    a cap."""
+    return {"count": sum(1 for s in list_scans(vin) if s.get("status") == "complete"),
+           "total": PLAN_TOTAL}
 
 
 # --- diff ---------------------------------------------------------------------

@@ -1,0 +1,28 @@
+{% extends "m_base.html" %}
+{% block title %}Print -- Tell CUORE{% endblock %}
+{% block content %}
+<h1 class="m-h1">Print</h1>
+<p class="m-sub">Recent oil-change and fluid-service reports, printable as a shop label.</p>
+
+{% if sizes %}
+<p class="m-section-h">Label size</p>
+<div class="m-chips" role="group">
+  {% for t in sizes %}
+  <a class="m-chip{{ ' m-chip-on' if t.id == current_size else '' }}" href="?size={{ t.id }}"><span>{{ t.name }}</span></a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not events %}
+<p class="m-empty">Nothing printable yet -- log an oil change or a fluid service first.</p>
+{% else %}
+{% for e in events %}
+<div class="m-event">
+  <p class="m-event-head"><strong>{{ e.kind_label }}</strong></p>
+  <p class="m-event-meta">{{ e.at }}</p>
+  <a class="m-print-btn" href="{{ e.print_href }}">Print label</a>
+</div>
+{% endfor %}
+{% if iphone %}<p class="m-print-hint">Share &rarr; Print</p>{% endif %}
+{% endif %}
+{% endblock %}

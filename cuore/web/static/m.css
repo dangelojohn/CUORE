@@ -526,6 +526,30 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 /* Last-used values under a remembered free-text field (one tap fills the box). */
 .m-recent { margin-top: -2px; }
 
+/* ---------- Print label (owner's request, 2026-10-14) ----------
+   Shop-floor rule: a 48px tap target everywhere this button appears
+   (confirm card, History row, edit screen, the /print list) -- the PDF
+   itself is print-white (cuore.labels.render draws on a plain white page),
+   this button is the one dark-theme chrome around it. */
+.m-print-btn {
+  -webkit-appearance: none; appearance: none;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 0 18px; margin-top: 14px;
+  border: 1px solid var(--accent); border-radius: var(--radius, 3px);
+  background: transparent; color: var(--accent);
+  text-decoration: none;
+  font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+}
+/* Inline, next to Edit, on a History row -- not full-width. */
+.m-print-btn-row { display: inline-flex; min-height: 48px; margin-top: 6px; margin-left: 10px; }
+.m-event-actions { display: flex; flex-wrap: wrap; gap: 0; margin: 0; }
+.m-print-hint { font-size: 12px; color: var(--ink-3); margin: 6px 0 0; }
+/* Selected label-size chip on /m/{vin}/print (not a radio/checkbox -- a
+   plain link that re-GETs the page with ?size=..., same no-JS posture as
+   every other page here). */
+.m-chip-on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.m-chip-on span { color: #fff; }
+
 /* Nothing in this file goes below 400px without staying inside the gutter;
    the two-column quick-action grid still fits at 390px with 20px side
    padding (see .m-main) plus a 12px gap. */

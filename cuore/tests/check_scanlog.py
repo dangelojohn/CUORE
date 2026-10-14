@@ -157,14 +157,32 @@ _write(NEWER + timedelta(minutes=14), "scan_coverage", {
 NEWER_ID = NEWER.strftime(scanlog.ID_FMT)
 OLDER_ID = OLDER.strftime(scanlog.ID_FMT)
 
+# A failed full-scan attempt (2026-10-14 honesty fix): a scan_coverage
+# observation exists -- this WAS a fullscan/guided attempt, not a manual
+# read -- but every row is "not_reachable" (adapter/cable error, e.g.
+# COM3 failing to open): no module answered on any bus. Placed well
+# before OLDER so it stays the OLDEST scan and never disturbs "newest"
+# (NEWER_ID) in the checks below.
+ATTEMPT = OLDER - timedelta(hours=2)
+_write(ATTEMPT, "scan_coverage", {
+    "scan_id": "SCAN_" + ATTEMPT.strftime("%y%m%d%H%M"), "vin": VIN, "cable": "none",
+    "buses_attempted": ["can_c"], "duration_s": 1.0, "steps": [],
+    "coverage": [{"bus": "can_c", "module": m, "category": "not_reachable",
+                 "why": "LinkUnavailable: could not open COM3", "active": 0,
+                 "history": 0, "not_run": 0}
+                for m in ("ECM", "IPC", "TCM", "DTCM", "ESM")],
+    "counts": {"active": 0, "history": 0, "not_run": 0},
+}, vin=VIN)
+ATTEMPT_ID = ATTEMPT.strftime(scanlog.ID_FMT)
+
 
 # ===========================================================================
 # cuore.live.scanlog -- direct
 # ===========================================================================
 
 scans = scanlog.list_scans(VIN)
-check("exactly 3 scans are grouped for this VIN (older, partial, newer)",
-      len(scans) == 3, str(len(scans)))
+check("exactly 4 scans are grouped for this VIN (attempt, older, partial, newer)",
+      len(scans) == 4, str(len(scans)))
 check("newest scan listed first", bool(scans) and scans[0]["id"] == NEWER_ID,
       str([s["id"] for s in scans]))
 check("no scan carries the demo-stream P9999 code",
@@ -198,6 +216,8 @@ if older:
     check("older scan has no stored codes", older["dtcs"]["stored"] == [], str(older["dtcs"]))
     check("older scan is not partial (it has a scan_coverage observation)",
           older["partial"] is False, str(older["partial"]))
+    check("older scan's status is 'complete' (CAN-C answered modules)",
+          older["status"] == "complete", str(older["status"]))
     check("older scan's coverage line matches the owner's own spec wording",
           older["coverage"]["line"] ==
           "CAN-C 5 modules · IHS not scanned (blue A5) · CH not scanned (grey A6)",
@@ -207,6 +227,8 @@ check("newest scan's coverage shows the IHS pass (guided scan)",
       bool(newest) and "IHS 2 modules" in (newest["coverage"] or {}).get("line", ""),
       str((newest or {}).get("coverage")))
 check("newest scan is not partial", bool(newest) and newest["partial"] is False)
+check("newest scan's status is 'complete'", bool(newest) and newest["status"] == "complete",
+      str((newest or {}).get("status")))
 
 partial = scanlog.get_scan(VIN, PARTIAL_ID)
 check("the manual freeze-panel-only scan is found by id", partial is not None)
@@ -214,16 +236,32 @@ if partial:
     check("it has no scan_coverage observation -> coverage is None",
           partial["coverage"] is None, str(partial["coverage"]))
     check("it is labelled partial", partial["partial"] is True, str(partial["partial"]))
+    check("its status is 'partial', not 'attempt' (never ran a bus sweep at all)",
+          partial["status"] == "partial", str(partial["status"]))
+
+attempt = scanlog.get_scan(VIN, ATTEMPT_ID)
+check("the failed full-scan attempt is found by id", attempt is not None)
+if attempt:
+    check("it has a scan_coverage observation (it WAS a bus-sweep attempt)",
+          attempt["coverage"] is not None, str(attempt["coverage"]))
+    check("its status is 'attempt' (no module answered on any bus)",
+          attempt["status"] == "attempt", str(attempt["status"]))
+    check("it is still marked partial for display purposes (not a complete scan)",
+          attempt["partial"] is True, str(attempt["partial"]))
 
 check("unknown scan id resolves to None", scanlog.get_scan(VIN, "SCAN_0000000000") is None)
 check("a different VIN sees no scans", scanlog.list_scans("UNKNOWNVIN0000000") == [])
 
 
 # --- scan plan (the "Scan n of 10" chip) --------------------------------------
+# 2026-10-14 honesty fix: only a COMPLETE scan counts -- the manual partial
+# read and the failed COM3 attempt do not, so of the 4 scans on file only
+# OLDER and NEWER (both complete) count toward "Scan n of 10".
 
 plan = scanlog.scan_plan(VIN)
-check("scan_plan counts every scan, guided/full and partial alike",
-      plan == {"count": 3, "total": 10}, str(plan))
+check("scan_plan counts only COMPLETE scans (2 of 4 -- the manual partial "
+      "read and the failed attempt don't count)",
+      plan == {"count": 2, "total": 10}, str(plan))
 check("a vehicle with no scans plans 0 of 10",
       scanlog.scan_plan("UNKNOWNVIN0000000") == {"count": 0, "total": 10})
 
@@ -286,7 +324,7 @@ check("bridge mes export is text containing the stored code",
       "P0440" in export_mes["content"], export_mes["content"][:200])
 
 check("bridge scan_plan matches cuore.live.scanlog.scan_plan",
-      scanlog_bridge.scan_plan(VIN) == {"count": 3, "total": 10},
+      scanlog_bridge.scan_plan(VIN) == {"count": 2, "total": 10},
       str(scanlog_bridge.scan_plan(VIN)))
 
 
@@ -296,7 +334,7 @@ check("bridge scan_plan matches cuore.live.scanlog.scan_plan",
 
 r = client.get(f"/api/scans/{VIN}")
 check("GET /api/scans/{vin} is 200", r.status_code == 200, str(r.status_code))
-check("it lists all 3 scans", len(r.json()["scans"]) == 3, str(r.json()))
+check("it lists all 4 scans", len(r.json()["scans"]) == 4, str(r.json()))
 
 r = client.get(f"/api/scans/{VIN}/{NEWER_ID}")
 check("GET /api/scans/{vin}/{id} is 200", r.status_code == 200, str(r.status_code))
@@ -319,10 +357,12 @@ r = client.get(f"/v/{VIN}/scans")
 check("GET /v/{vin}/scans page is 200", r.status_code == 200, str(r.status_code))
 check("the list page shows the newest scan's stored code",
       "P0440" in r.text, "P0440 not in page body")
-check("the list page shows the scan plan chip (3 scans on file, out of 10)",
-      "Scan 3 of 10" in r.text, "'Scan 3 of 10' not in page body")
+check("the list page shows the scan plan chip (2 complete scans on file, out of 10)",
+      "Scan 2 of 10" in r.text, "'Scan 2 of 10' not in page body")
 check("the list page marks the manual scan partial",
       "partial" in r.text, "'partial' not in page body")
+check("the list page marks the failed attempt distinctly, not just 'partial'",
+      "adapter not reachable" in r.text, "'adapter not reachable' not in page body")
 check("the list page offers a per-scan Health report link",
       f"/v/{VIN}/scans/{NEWER_ID}/health" in r.text,
       "no Health report link for the newest scan")

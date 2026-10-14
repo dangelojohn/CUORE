@@ -28,6 +28,10 @@
       Reported by {{ event.by.role }}{% if event.by.name %} ({{ event.by.name }}){% endif %}
       -- attested, not measured.
     </p>
+    {% if print_href %}
+    <a class="m-print-btn" href="{{ print_href }}">Print label</a>
+    {% if iphone %}<p class="m-print-hint">Share &rarr; Print</p>{% endif %}
+    {% endif %}
     {% if audit %}
     <details class="m-audit">
       <summary>Edit history ({{ audit|length }})</summary>

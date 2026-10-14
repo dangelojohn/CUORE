@@ -59,14 +59,16 @@ from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from ..api.deps import require_token, settings_of
+from ..labels import render as label_render
 from ..live import media as media_store
 from ..live import owner_events as store
-from ..services import dossier_bridge, mes_bridge, owner_events_bridge as bridge, shop_bridge
+from ..services import (dossier_bridge, labels_bridge, mes_bridge,
+                        owner_events_bridge as bridge, shop_bridge)
 from ..services.errors import BridgeError
 
 HERE = Path(__file__).resolve().parent
@@ -120,6 +122,107 @@ SNAP_HINT_LABELS: dict[str, str] = {
 #: it) survives even when the person still has to tap through to a specific
 #: kind by hand.
 _CARRY_KEYS = ("media_id", "hint", "odometer_km", "source_odometer_km")
+
+
+# --- Print label (owner's request, 2026-10-14): a "Print label" button on
+# the oil-change/service confirmation card, History, and the edit screen,
+# reusing cuore.services.labels_bridge / cuore.labels.render -- the exact
+# same generator the desktop /v/{vin}/labels page uses -- rather than a
+# second PDF path. Only a (category, kind) in this table is printable; see
+# print_label() below for the 404 an owner event outside it gets. Each
+# value is (label_kind, section_label) -- label_kind is one of
+# cuore.labels.render.KINDS, section_label is only meaningful for
+# label_kind == "service" (draw_service's own header line).
+_PRINTABLE_KINDS: dict[tuple[str, str], tuple[str, str]] = {
+    ("fluids", "engine_oil_change"): ("oil_change", ""),
+    ("fluids", "coolant_change"): ("service", "Coolant change"),
+    ("fluids", "brake_fluid"): ("service", "Brake fluid"),
+    ("fluids", "driveline_fluid"): ("service", "Driveline fluid"),
+}
+
+#: Remembers the last Avery size tapped on the ``/m/{vin}/print`` size-chip
+#: row (or on a size chip elsewhere) so a plain "Print label" button -- no
+#: size in its own URL -- reprints at the garage's usual size without
+#: asking every time. Same cookie convention as ``_VIN_COOKIE`` above.
+_LABEL_SIZE_COOKIE = "cuore_label_size"
+_DEFAULT_LABEL_TEMPLATE = "avery_5520"  # same default cuore.web.labels_routes.labels_page uses
+
+
+def _is_iphone(request: Request) -> bool:
+    """True on an iPhone's own Safari/WebKit -- gates the one-line "Share ->
+    Print" hint under a Print label button: that's the AirPrint path on iOS
+    (there is no print dialog on the PDF tab itself), and the hint would
+    only confuse a desktop or Android reader. A plain User-Agent sniff, not
+    a feature the rest of this page needs -- never used to change what
+    renders, only whether this one hint line does."""
+    return "iPhone" in request.headers.get("user-agent", "")
+
+
+def _label_work_done(kind: str, fields: dict[str, Any]) -> str:
+    """A one-line "work done" summary for a ``service``-kind label from the
+    owner event's own fields -- draw_service's free-text body line. Returns
+    "" (the label then prints "(no summary recorded)") when the event
+    carries none of the fields a given kind would normally have."""
+    if kind == "coolant_change":
+        bits = [fields.get("type"), (f"{fields.get('qty')} L" if fields.get("qty") else None)]
+    elif kind == "brake_fluid":
+        bits = [fields.get("action"), (f"{fields.get('qty')} L" if fields.get("qty") else None)]
+    elif kind == "driveline_fluid":
+        bits = [fields.get("which"), fields.get("action"),
+               (f"{fields.get('qty')} L" if fields.get("qty") else None)]
+    else:
+        bits = []
+    return " / ".join(str(x) for x in bits if x)
+
+
+def _event_label_data(vin: str, event: dict[str, Any], label_kind: str,
+                      section_label: str) -> dict[str, Any]:
+    """The label field dict for one owner event, via the exact same
+    ``labels_bridge.oil_change_label_data``/``service_label_data`` the
+    desktop Labels page's own ``oil_change``/``service`` kinds use --
+    ``record=None`` (this event is never a ``mes.service`` ledger row) and
+    every real value passed as an override, so the generator's own
+    "no odometer on file" guard still applies.
+
+    Oil brand (there is no "brand" field on the ``oil_change`` label --
+    only viscosity/spec) is carried in ``oil_spec``; filter brand and part
+    number both land in the one ``filter_part_no`` slot
+    (``draw_oil_change`` prints a single "Filter <text>" line), e.g.
+    ``"UFI 23.598.00"``.
+    """
+    fields = event.get("fields") or {}
+    by = event.get("by") or {}
+    technician = by.get("name") or by.get("role") or ""
+    overrides: dict[str, Any] = {"date": _fmt_day(event.get("at")), "technician": technician}
+    if event.get("odometer_km") is not None:
+        overrides["odometer_km"] = event["odometer_km"]
+
+    if label_kind == "oil_change":
+        if fields.get("viscosity"):
+            overrides["oil_viscosity"] = fields["viscosity"]
+        if fields.get("brand"):
+            overrides["oil_spec"] = fields["brand"]
+        if fields.get("qty"):
+            overrides["quantity_l"] = fields["qty"]
+        filter_bits = " ".join(str(x) for x in
+                               (fields.get("filter_brand"), fields.get("filter_part_no")) if x)
+        if filter_bits:
+            overrides["filter_part_no"] = filter_bits
+        return labels_bridge.oil_change_label_data(vin, None, "CUORE", overrides)
+
+    overrides["section"] = section_label
+    overrides["work_done"] = _label_work_done(event.get("kind", ""), fields)
+    return labels_bridge.service_label_data(vin, None, overrides)
+
+
+def _print_href(vin: str, event: dict[str, Any]) -> Optional[str]:
+    """``/m/{vin}/labels/{id}`` for a printable event, ``None`` otherwise --
+    the one guard every "Print label" button below shares, so a non-
+    printable kind never renders a button that would only 404."""
+    key = (event.get("category", ""), event.get("kind", ""))
+    if key not in _PRINTABLE_KINDS:
+        return None
+    return f"/m/{vin}/labels/{event['id']}"
 
 
 def _page(request: Request, name: str, vin: str, active: str, **ctx: Any) -> HTMLResponse:
@@ -218,9 +321,16 @@ def home(request: Request, vin: str) -> HTMLResponse:
 
     tax = store.TAXONOMY
     everything_else = [
-        {"key": k, "label": tax[k]["label"], "kind_count": len(tax[k]["kinds"])}
+        {"key": k, "label": tax[k]["label"], "kind_count": len(tax[k]["kinds"]),
+         "href": f"/m/{vin}/add/{k}"}
         for k in CATEGORY_ORDER if k in tax and k not in _QUICK_ACTION_CATEGORIES
     ]
+    #: "Print" (owner's request, 2026-10-14): not a report category -- a
+    #: shortcut to the recent-printable-records list -- so it is appended
+    #: here rather than folded into CATEGORY_ORDER/TAXONOMY, which only
+    #: ever enumerate kinds of REPORT.
+    everything_else.append({"key": "print", "label": "Print", "kind_count": None,
+                            "href": f"/m/{vin}/print"})
 
     quick_actions = [
         {"key": "fillup", "label": "Fill-up", "icon": "sys_fuel",
@@ -397,7 +507,8 @@ def add_confirm(request: Request, vin: str, category: str, kind: str, id: str) -
         })
 
     return _page(request, "m_confirm.html", vin, "add", category=category, kind=kind,
-                kd=kd, event=event, fields_disp=fields_disp)
+                kd=kd, event=event, fields_disp=fields_disp,
+                print_href=_print_href(vin, event), iphone=_is_iphone(request))
 
 
 # --- Snap & fill --------------------------------------------------------------
@@ -516,6 +627,7 @@ def edit_form(request: Request, vin: str, id: str) -> HTMLResponse:
         delete_action=f"/m/{vin}/history/{id}/delete",
         prefill=prefill, media_id="", odometer_prefill=odometer_prefill,
         odometer_from_photo=False,
+        print_href=_print_href(vin, event), iphone=_is_iphone(request),
     )
 
     if category == "fuel" and kind == "fill_up":
@@ -626,7 +738,8 @@ def edit_confirm(request: Request, vin: str, id: str) -> HTMLResponse:
 
     return _page(request, "m_confirm.html", vin, "history", category=event.get("category"),
                 kind=event.get("kind"), kd=kd, event=event, fields_disp=fields_disp,
-                edited=True, audit=audit, edited_at_fmt=edited_at_fmt)
+                edited=True, audit=audit, edited_at_fmt=edited_at_fmt,
+                print_href=_print_href(vin, event), iphone=_is_iphone(request))
 
 
 @router.post("/m/{vin}/history/{id}/delete", response_class=HTMLResponse)
@@ -675,8 +788,110 @@ def history(request: Request, vin: str) -> HTMLResponse:
         rows.append({**e, "category_label": cat.get("label", e.get("category")),
                     "kind_label": kd.get("label", e.get("kind")),
                     "edited_at_fmt": _fmt_day_time(edited_at) if edited_at else None,
-                    "editable": not e.get("delegated_to")})
-    return _page(request, "m_history.html", vin, "history", events=rows)
+                    "editable": not e.get("delegated_to"),
+                    "print_href": _print_href(vin, e)})
+    return _page(request, "m_history.html", vin, "history", events=rows,
+                iphone=_is_iphone(request))
+
+
+# --- Print label -----------------------------------------------------------------
+#
+# "Print label" (owner's request, 2026-10-14): print the oil-change/fluid-
+# service label for one owner event straight from the phone, reusing the
+# desktop Labels page's own generator (cuore.services.labels_bridge,
+# cuore.labels.render) -- never a second PDF path. Opens in the SAME tab on
+# purpose (a plain <a href>, no target/download attribute) so iOS Safari's
+# own Share -> Print (AirPrint) is reachable; see _is_iphone's docstring for
+# why the on-page hint is gated the way it is.
+
+
+@router.get("/m/{vin}/print", response_class=HTMLResponse)
+def print_list(request: Request, vin: str) -> HTMLResponse:
+    """Recent printable records -- the "Print" entry on the home screen's
+    "Everything else" list -- plus the label-size chip row the desktop
+    Labels page already offers (the same Avery catalogue,
+    ``labels_bridge.list_templates()``); tapping a size chip remembers it
+    (``_LABEL_SIZE_COOKIE``) for every "Print label" button elsewhere on
+    this phone, not just the ones on this page."""
+    size_param = request.query_params.get("size") or ""
+    current_size = request.cookies.get(_LABEL_SIZE_COOKIE) or _DEFAULT_LABEL_TEMPLATE
+    if size_param:
+        try:
+            labels_bridge.get_template(size_param)
+            current_size = size_param
+        except BridgeError:
+            size_param = ""
+
+    events = [e for e in store.load(vin)
+             if (e.get("category", ""), e.get("kind", "")) in _PRINTABLE_KINDS]
+    events = sorted(events, key=lambda e: e.get("at") or "", reverse=True)[:20]
+    tax = store.TAXONOMY
+    rows = []
+    for e in events:
+        cat = tax.get(e.get("category", ""), {})
+        kd = cat.get("kinds", {}).get(e.get("kind", ""), {})
+        rows.append({**e, "kind_label": kd.get("label", e.get("kind")),
+                    "print_href": f"/m/{vin}/labels/{e['id']}?size={current_size}"})
+
+    sizes = labels_bridge.list_templates()["templates"]
+    response = _page(request, "m_print.html", vin, "add", events=rows, sizes=sizes,
+                     current_size=current_size, iphone=_is_iphone(request))
+    if size_param:
+        response.set_cookie(_LABEL_SIZE_COOKIE, current_size, max_age=60 * 60 * 24 * 365,
+                            samesite="lax")
+    return response
+
+
+@router.get("/m/{vin}/labels/{event_id}")
+def print_label(request: Request, vin: str, event_id: str) -> Response:
+    """The print-ready PDF for one owner event -- an oil change or a fluid
+    service (see :data:`_PRINTABLE_KINDS`); 404s, with a message naming
+    what IS printable, for any other kind (a fill-up, a top-up, an
+    incident report...) rather than printing a label with nothing on it.
+    ``?size=<template id>`` picks the Avery layout (same catalogue the
+    desktop Labels page offers); left off, this uses whatever size was
+    last picked on this phone (``_LABEL_SIZE_COOKIE``), or
+    :data:`_DEFAULT_LABEL_TEMPLATE` the first time.
+    """
+    event = _find_event(vin, event_id)
+    if event is None or event.get("deleted"):
+        raise HTTPException(status_code=404, detail="that report no longer exists")
+
+    category, kind = event.get("category", ""), event.get("kind", "")
+    mapping = _PRINTABLE_KINDS.get((category, kind))
+    if mapping is None:
+        try:
+            kind_label = store.kind_def(category, kind)["label"]
+        except ValueError:
+            kind_label = kind or "this report"
+        raise HTTPException(
+            status_code=404,
+            detail=(f"{kind_label!r} reports aren't printable as a service label -- "
+                    "only an engine oil change or a fluid service (coolant, brake "
+                    "fluid, transmission/transfer-case/differential) can be printed."))
+    label_kind, section_label = mapping
+
+    template_id = (request.query_params.get("size") or request.cookies.get(_LABEL_SIZE_COOKIE)
+                  or _DEFAULT_LABEL_TEMPLATE)
+    try:
+        template = labels_bridge.get_template(template_id)
+    except BridgeError:
+        template_id = _DEFAULT_LABEL_TEMPLATE
+        template = labels_bridge.get_template(template_id)
+
+    try:
+        data = _event_label_data(vin, event, label_kind, section_label)
+        pdf = label_render.generate_labels_pdf(template, label_kind, data, copies=1,
+                                               start_index=0)
+    except BridgeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    response = Response(content=pdf, media_type="application/pdf",
+                        headers={"Content-Disposition":
+                                f'inline; filename="label-{kind}-{vin}.pdf"'})
+    response.set_cookie(_LABEL_SIZE_COOKIE, template_id, max_age=60 * 60 * 24 * 365,
+                        samesite="lax")
+    return response
 
 
 # --- QR / LAN link ---------------------------------------------------------------
