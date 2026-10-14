@@ -651,7 +651,9 @@ kbd {
   overflow: hidden; text-overflow: ellipsis;
 }
 .vline .status-next:hover { color: var(--ink); }
-@media (max-width: 400px) {
+@media (max-width: 500px) {
+  /* R6: widened from 400px -- the audit's own scrollWidth measurement at
+   * 485px needs this too, not just narrower phones. */
   .vline .status-blocker .status-blocker-label { display: none; }
 }
 .vmore { margin-left: auto; flex: none; position: relative; }
@@ -668,7 +670,8 @@ kbd {
   padding: 10px 14px; min-width: 240px; box-shadow: 0 6px 18px rgba(0,0,0,.35);
 }
 .vmore-panel .small { margin-bottom: 4px; }
-.vtabs { margin-top: 4px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; }
+/* R6: .vtabs already scrolls inside its own box (overflow-x:auto) rather than widening the page -- min-width:0 keeps a long tab row from stretching the flex/grid ancestor it sits in instead of scrolling. */
+.vtabs { margin-top: 4px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; min-width: 0; }
 .vtabs a {
   flex: none; min-height: 30px; display: inline-flex; align-items: center;
   padding: 6px 10px;
@@ -940,19 +943,20 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 /* data-theme is set/read by cuore.js; the actual palettes are the
  * :root[data-theme="light"] / @media blocks already defined above. */
 
-@media (max-width: 400px) {
+@media (max-width: 500px) {
   .vline .vname { max-width: 32%; }
   .verdict-actions { flex-direction: column; }
-  /* Item 4 (400px clipping report): .vline's chips (scanner/live/verdict/
-   * blocker) are all flex:none -- they refuse to shrink -- so on a
-   * crowded page (job/dossier/report, which also carry the verdict and
-   * blocker chips .vline hides on bench/report) the row's natural width
-   * can exceed 400px even with .vname's own ellipsis doing its job.
-   * Wrapping onto a second line (rather than the old overflow:hidden
-   * truncation) means every chip, and the "..." vmore button after them,
-   * stays fully visible and reachable -- never clipped, and never a
-   * reason for the page itself to grow a horizontal scrollbar, since
-   * nothing needs to run off the right edge any more. */
+  /* Item 4 (400px clipping report) / R6 (widened to 500px -- the audit's
+   * own 485px measurement): .vline's chips (scanner/live/verdict/blocker)
+   * are all flex:none -- they refuse to shrink -- so on a crowded page
+   * (job/dossier/report, which also carry the verdict and blocker chips
+   * .vline hides on bench/report) the row's natural width can exceed the
+   * viewport even with .vname's own ellipsis doing its job. Wrapping onto
+   * a second line (rather than the old overflow:hidden truncation) means
+   * every chip, and the "..." vmore button after them, stays fully
+   * visible and reachable -- never clipped, and never a reason for the
+   * page itself to grow a horizontal scrollbar, since nothing needs to
+   * run off the right edge any more. */
   .vline { flex-wrap: wrap; row-gap: 4px; }
 }
 
