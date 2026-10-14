@@ -6,7 +6,7 @@ plain script, no mocking framework, ``CUORE_STATE_DIR`` pointed at a
 throwaway directory BEFORE anything is imported so this never touches the
 bench's real job ledger.
 
-Seven checks:
+Seven checks, plus a Freeze frame panel group (9):
   1. ``board`` groups ``engine_coolant_temp`` under "temperatures" and
      ``battery_voltage`` under "voltage".
   2. A coolant value above its sourced alarm grades "excessive" with text
@@ -19,6 +19,13 @@ Seven checks:
      attaches to that same hypothesis rather than duplicating it.
   7. A fuel level inside the 15-85% window adds evidence_for on an open
      EVAP hypothesis.
+  9. Freeze frame panel (``cuore.live.ops`` monkeypatched with tonight's real
+     shapes -- stored P0440, 46 PIDs, including fuel_level 28.6 and
+     commanded_evap_purge 18.0): a capture reaches "done" and its frame
+     table carries both; Save writes "obd_dtcs"/"freeze_frame"/"pid"/
+     "readiness" observations all with ``is_from_car`` true and returns a
+     ``SCAN_`` id; Stop mid-capture ends with ``partial=True``; the
+     liveboard page renders Start/Stop/Save/Discard.
 
 Run:
     .venv/Scripts/python.exe cuore/tests/check_liveboard.py
@@ -30,6 +37,7 @@ import os
 import re
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-liveboard-")
@@ -43,6 +51,8 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore import bootstrap  # noqa: E402,F401  -- side effect: mes on sys.path
 from cuore.app import create_app  # noqa: E402
+from cuore.live import ops as live_ops_mod  # noqa: E402
+from cuore.live import store as live_store_mod  # noqa: E402
 from cuore.services import cache, liveboard_bridge  # noqa: E402
 
 from mes import jobs as jobs_mod  # noqa: E402
@@ -200,6 +210,123 @@ print("--- F4: readability floor -- liveboard.css never renders text under 12px 
 lb_css = (ROOT / "cuore" / "web" / "static" / "liveboard.css").read_text(encoding="utf-8")
 small_fonts = [m for m in re.findall(r"font-size:\s*([0-9.]+)px", lb_css) if float(m) < 12]
 check("no font-size under 12px in liveboard.css", not small_fonts, str(small_fonts))
+
+
+# --- 9. Freeze frame panel --------------------------------------------------
+
+print("--- 9. Freeze frame: capture, Save, Stop (cuore.live.ops monkeypatched) ---")
+
+FF_ECU = "7E8"
+#: hex PID -> (name, value, unit); 46 total, including the two tonight's
+#: real capture actually showed (fuel_level 28.6%, commanded_evap_purge 18.0%).
+FF_PID_VALUES = {f"{i:02X}": (f"PID {i:02X}", float(i), "") for i in range(1, 45)}
+FF_PID_VALUES["2F"] = ("Fuel level", 28.6, "%")
+FF_PID_VALUES["2E"] = ("Commanded EVAP purge", 18.0, "%")
+FF_PIDS = sorted(FF_PID_VALUES)
+check_eq("fixture carries 46 supported PIDs", len(FF_PIDS), 46)
+
+
+def _fake_obd_dtcs(kind: str = "stored", **kw):
+    if kind != "stored":
+        return {"kind": kind, "dtcs": [], "by_ecu": {}, "bus": "can_c", "cable": "ELM327", "raw": ""}
+    return {"kind": "stored", "dtcs": ["P0440"], "by_ecu": {FF_ECU: ["P0440"]},
+           "bus": "can_c", "cable": "ELM327", "raw": "43 01 04 40"}
+
+
+def _fake_obd_supported_pids(**kw):
+    return {"by_ecu": {FF_ECU: {"count": len(FF_PIDS), "pids": FF_PIDS, "known_names": []}},
+           "raw": {}}
+
+
+def _fake_obd_readiness(**kw):
+    return {"since_clear": {"mil_on": True, "monitors": []}, "this_drive_cycle": {}}
+
+
+def _make_fake_pid_reader(sleep_s: float = 0.0):
+    def _reader(pid: str, **kw):
+        if sleep_s:
+            time.sleep(sleep_s)
+        name, value, unit = FF_PID_VALUES.get(pid, (f"PID {pid}", 0.0, ""))
+        return {"pid": pid, "name": name, "raw": "", "by_ecu": {FF_ECU: {"value": value, "unit": unit}},
+               "value": value, "unit": unit, "bus": "can_c", "cable": "ELM327"}
+    return _reader
+
+
+def _patch_ops(pid_sleep: float = 0.0) -> None:
+    live_ops_mod.obd_dtcs = _fake_obd_dtcs
+    live_ops_mod.obd_supported_pids = _fake_obd_supported_pids
+    live_ops_mod.obd_readiness = _fake_obd_readiness
+    live_ops_mod.obd_pid = _make_fake_pid_reader(pid_sleep)
+    live_ops_mod.obd_freeze_frame = _make_fake_pid_reader(pid_sleep)
+
+
+def _wait_done(vin: str, capture_id: str, timeout: float = 5.0) -> dict:
+    deadline = time.time() + timeout
+    cap = liveboard_bridge.freeze_capture_status(vin, capture_id)
+    while cap["status"] == "running" and time.time() < deadline:
+        time.sleep(0.02)
+        cap = liveboard_bridge.freeze_capture_status(vin, capture_id)
+    return cap
+
+
+# -- fast fakes: full capture, frame table, Save -----------------------------
+
+_patch_ops(pid_sleep=0.0)
+
+cap1 = liveboard_bridge.freeze_capture_start(VIN)
+cap1 = _wait_done(VIN, cap1["id"])
+check_eq("fast capture reaches done", cap1["status"], "done", repr(cap1.get("error")))
+check("fast capture is not partial", cap1["partial"] is False)
+check_eq("fast capture carries the stored code", cap1["codes"], ["P0440"])
+
+fuel_rows = [r for t in cap1["frame_tables"] for r in t["rows"] if r["pid"] == "2F"]
+purge_rows = [r for t in cap1["frame_tables"] for r in t["rows"] if r["pid"] == "2E"]
+check("frame table carries fuel_level 28.6", any(r["value"] == 28.6 for r in fuel_rows), repr(fuel_rows))
+check("frame table carries commanded_evap_purge 18.0",
+     any(r["value"] == 18.0 for r in purge_rows), repr(purge_rows))
+check("frame table is attributed to P0440", all(t["code"] == "P0440" for t in cap1["frame_tables"]))
+
+save1 = liveboard_bridge.freeze_capture_save(VIN, cap1["id"], note="bench capture")
+check("save returns a SCAN_ id", str(save1.get("scan_id", "")).startswith("SCAN_"), repr(save1))
+check("save returns a Scans link", f"/v/{VIN}/scans/" in (save1.get("scans_url") or ""))
+
+saved_kinds = {"obd_dtcs", "freeze_frame", "pid", "readiness"}
+recent = live_store_mod.recent_observations(10_000, vin=VIN)
+by_kind = {k: [o for o in recent if o["kind"] == k] for k in saved_kinds}
+for k in saved_kinds:
+    check(f"save wrote at least one {k!r} observation", len(by_kind[k]) > 0)
+    check(f"every saved {k!r} observation is is_from_car",
+         all(live_store_mod.is_from_car(o) for o in by_kind[k]), repr(by_kind[k][:1]))
+
+save1_again = liveboard_bridge.freeze_capture_save(VIN, cap1["id"])
+check_eq("saving twice is idempotent (same scan id)", save1_again["scan_id"], save1["scan_id"])
+check("saving twice is reported as already_saved", save1_again["already_saved"] is True)
+
+# -- slow fakes: Stop mid-capture ends partial -------------------------------
+
+_patch_ops(pid_sleep=0.03)
+
+cap2 = liveboard_bridge.freeze_capture_start(VIN)
+check_eq("slow capture starts running", cap2["status"], "running")
+stopped = liveboard_bridge.freeze_capture_stop(VIN, cap2["id"])
+cap2 = _wait_done(VIN, cap2["id"])
+check_eq("stopped capture settles to done", cap2["status"], "done", repr(cap2))
+check("stopped capture is partial", cap2["partial"] is True, repr(cap2))
+
+liveboard_bridge.freeze_capture_discard(VIN, cap2["id"])
+try:
+    liveboard_bridge.freeze_capture_status(VIN, cap2["id"])
+    check("discarded capture is gone", False)
+except Exception:  # noqa: BLE001 -- NotFound is the services.errors.NotFound subclass
+    check("discarded capture is gone", True)
+
+# -- page renders the panel ---------------------------------------------------
+
+ff_client = TestClient(create_app())
+ff_page = ff_client.get(f"/v/{VIN}/liveboard")
+check_eq("liveboard page 200 with the freeze frame panel", ff_page.status_code, 200)
+for needle in ('id="ff-start"', 'id="ff-stop"', 'id="ff-save"', 'id="ff-discard"'):
+    check(f"liveboard page renders {needle}", needle in ff_page.text)
 
 
 # --- summary -----------------------------------------------------------------

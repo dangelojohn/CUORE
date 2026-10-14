@@ -90,6 +90,34 @@ check("tests_for_systems finds EVAP tests for system 'evap'", any(
     t["id"] == "evap_smoke" for t in mechanic_tests.tests_for_systems(["evap"])))
 check("test() returns None for an unknown id", mechanic_tests.test("not-a-real-id") is None)
 
+# --- Stelvio EVAP decisive tests (2026-10-13 pass) ---------------------------
+print("=== EVAP decisive tests (ESIM / ECM calibration) ===")
+check("catalogue has at least 44 tests (post-EVAP-decisive-tests pass)",
+     len(catalog) >= 44, str(len(catalog)))
+
+_EVAP_DECISIVE_IDS = ("evap_test_a_esim_switch", "esim_bench_test", "esim_wiring_test",
+                     "witech_flash_check", "ecm_flash", "evap_mode06_review")
+missing_decisive = [i for i in _EVAP_DECISIVE_IDS if mechanic_tests.test(i) is None]
+check("all six EVAP decisive tests exist in the catalogue", not missing_decisive,
+     str(missing_decisive))
+
+for _id in _EVAP_DECISIVE_IDS:
+    _t = mechanic_tests.test(_id)
+    if _t is None:
+        continue
+    bad_sys = [s for s in _t["systems"] if s not in mechanic_tests.SYSTEMS]
+    check(f"{_id}: every systems entry is a real SYSTEMS key", not bad_sys, str(bad_sys))
+    bad_conf = [pc["confidence"] for pc in _t["pass_criteria"]
+               if pc["confidence"] not in mechanic_tests.CONFIDENCE_LEVELS]
+    check(f"{_id}: every pass_criteria confidence is allowed", not bad_conf, str(bad_conf))
+
+test_a = mechanic_tests.test("evap_test_a_esim_switch")
+check("Test A (evap_test_a_esim_switch) exists", test_a is not None)
+if test_a is not None:
+    check("Test A's supports_hypotheses includes an 'ESIM' hypothesis",
+         any("ESIM" in h for h in test_a["supports_hypotheses"]),
+         str(test_a["supports_hypotheses"]))
+
 
 # ===========================================================================
 # 2. the page

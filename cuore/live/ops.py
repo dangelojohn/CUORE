@@ -468,7 +468,7 @@ def obd_freeze_frame(pid: str = "", **kw: Any) -> dict[str, Any]:
         out["by_ecu"] = by_ecu
         if not by_ecu:
             out["warning"] = "no ECU returned a freeze frame (none stored, or ignition off)"
-        return _stamp(sess, out)
+        return _observe(sess, "freeze_frame", out)
 
 
 def obd_vin(**kw: Any) -> dict[str, Any]:

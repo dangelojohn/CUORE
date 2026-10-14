@@ -1,0 +1,131 @@
+/* Scan health report -- shop-floor rules: big tap targets, high contrast,
+   legible gloves-on. Printing is handled mostly by the global print.css
+   (buttons/.no-print hidden, tables gridded, colors forced to black on
+   white); the overrides below just keep this page's own chip colors from
+   fighting that reset. */
+
+.sh-page {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 0 0 2rem;
+}
+
+.sh-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.sh-header h1 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.sh-asof {
+  color: var(--muted, #5b6770);
+  font-size: 0.95rem;
+}
+
+.sh-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sh-btn {
+  display: inline-block;
+  padding: 0.5rem 0.9rem;
+  min-height: 2.5rem;
+  border: 1px solid var(--rule, #c9d1d6);
+  border-radius: 6px;
+  background: var(--shade, #f1f4f6);
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.sh-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--muted, #5b6770);
+}
+
+.sh-verdict {
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  margin: 0.75rem 0 1.5rem;
+  border: 1px solid var(--rule, #c9d1d6);
+}
+
+.sh-verdict-label {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.sh-verdict-primary {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.sh-verdict-basis {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.sh-verdict-active_faults   { background: #f4dedf; border-color: #d99aa0; }
+.sh-verdict-unverified_repair { background: #f5e8cd; border-color: #d9bf7a; }
+.sh-verdict-verified_clean  { background: #dcefe1; border-color: #9fcdad; }
+.sh-verdict-no_data         { background: #e2e6e9; border-color: #b7bfc4; }
+
+.sh-table-wrap { overflow-x: auto; }
+
+.sh-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.sh-table th, .sh-table td {
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid var(--rule, #c9d1d6);
+  vertical-align: top;
+}
+
+.sh-table th {
+  background: var(--shade, #f1f4f6);
+  position: sticky;
+  top: 0;
+}
+
+.chip {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sh-chip-fault        { background: #f4dedf; color: #7a1a21; }
+.sh-chip-ok           { background: #dcefe1; color: #1f5c33; }
+.sh-chip-reading-only { background: #e3e9f5; color: #2a3f73; }
+.sh-chip-not-assessed { background: #e2e6e9; color: #4a5258; }
+.sh-chip-gap          { background: #e2e6e9; color: #4a5258; font-style: italic; }
+
+.sh-issues { padding-left: 1.5rem; }
+.sh-issues li { margin-bottom: 0.6rem; }
+
+@media (max-width: 480px) {
+  .sh-header { flex-direction: column; align-items: flex-start; }
+  .sh-actions { margin-left: 0; }
+}
+
+@media print {
+  .sh-verdict { border: 1px solid #000 !important; }
+  .chip { border: 1px solid #000; }
+}

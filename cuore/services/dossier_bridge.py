@@ -369,7 +369,188 @@ def _evap_from_readiness(obs: dict[str, Any] | None) -> dict[str, Any] | None:
     else:
         state = "complete" if evap.get("complete") else "incomplete"
     return {"at": obs.get("at"), "evap_monitor": state,
-            "all_complete": bool(since.get("all_complete"))}
+            "all_complete": bool(since.get("all_complete")),
+            "mil_on": since.get("mil_on")}
+
+
+# --- DTCs read directly from the car -----------------------------------------
+
+
+def _latest_live_dtcs(vin: str, after: str | None) -> dict[str, dict[str, Any]]:
+    """``{"stored"|"pending"|"permanent": {"at":..., "dtcs": [base codes]}}``
+    -- the newest *from-car* ``obd_dtcs`` observation of each inner kind,
+    after ``after`` (the last clear). A read taken before the clear says
+    nothing about the car now, same reasoning as :func:`_latest_readiness`.
+    Never raises -- a broken store must never break the verdict."""
+    try:
+        obs = live_store.recent_observations(300, vin=vin, kind="obd_dtcs")
+    except Exception:  # noqa: BLE001
+        return {}
+    best: dict[str, dict[str, Any]] = {}
+    for o in obs:
+        if not live_store.is_from_car(o):
+            continue
+        at = o.get("at") or ""
+        if after and at <= after:
+            continue
+        data = o.get("data") or {}
+        inner = data.get("kind")
+        if not inner:
+            continue
+        if inner not in best or at > best[inner]["at"]:
+            best[inner] = {"at": at, "dtcs": [_base(c) for c in data.get("dtcs") or []]}
+    return best
+
+
+# --- module DTCs (UDS 0x19), read directly from the car ----------------------
+
+
+def _module_dtc_state(flags: dict[str, Any]) -> str | None:
+    """ACTIVE (currently failed or pending), HISTORY (confirmed/matured at
+    some point but not currently failing or pending), or ``None`` (not run
+    this cycle, or no meaningful bit set -- never listed as a fault)."""
+    if flags.get("testFailed") or flags.get("pendingDTC"):
+        return "ACTIVE"
+    if flags.get("confirmedDTC") or flags.get("testFailedSinceLastClear"):
+        return "HISTORY"
+    return None
+
+
+def _live_module_dtcs(vin: str, after: str | None) -> list[dict[str, Any]]:
+    """Every base code this car's own modules (UDS 0x19, one ECU per
+    observation) reported ACTIVE or HISTORY on a from-car read after
+    ``after``, newest read per (ecu, code) winning. Never raises."""
+    try:
+        obs = live_store.recent_observations(500, vin=vin, kind="module_dtcs")
+    except Exception:  # noqa: BLE001
+        return []
+    best: dict[tuple[str, str], dict[str, Any]] = {}
+    for o in obs:
+        if not live_store.is_from_car(o):
+            continue
+        at = o.get("at") or ""
+        if after and at <= after:
+            continue
+        data = o.get("data") or {}
+        ecu = data.get("ecu") or ""
+        for d in data.get("dtcs") or []:
+            code = _base(d.get("code") or "")
+            if not code:
+                continue
+            state = _module_dtc_state(d.get("flags") or {})
+            if state is None:
+                continue
+            key = (ecu, code)
+            if key not in best or at > best[key]["at"]:
+                best[key] = {"ecu": ecu, "code": code, "state": state, "at": at,
+                            "status": d.get("status")}
+    return sorted(best.values(), key=lambda r: (r["ecu"], r["code"]))
+
+
+# --- freeze frames read directly from the car (Mode 02 sweep) ---------------
+
+
+def _build_live_freeze_frames(vin: str, after: str | None) -> dict[str, Any] | None:
+    """The latest from-car Mode 02 sweep, one row per PID, or ``None`` when
+    nothing has been read since the clear. Reads the ``freeze_frame``
+    observation kind :func:`cuore.live.ops.obd_freeze_frame` records."""
+    try:
+        obs = live_store.recent_observations(1000, vin=vin, kind="freeze_frame")
+    except Exception:  # noqa: BLE001
+        return None
+    frames: dict[str, dict[str, Any]] = {}
+    latest_at: str | None = None
+    for o in obs:
+        if not live_store.is_from_car(o):
+            continue
+        at = o.get("at") or ""
+        if after and at <= after:
+            continue
+        data = o.get("data") or {}
+        pid = data.get("pid")
+        if not pid:
+            continue
+        by_ecu = data.get("by_ecu") or {}
+        first = next(iter(by_ecu.values()), None)
+        if not first:
+            continue
+        entry = {"pid": pid, "name": data.get("name") or first.get("name") or pid,
+                 "value": first.get("value"), "unit": first.get("unit"),
+                 "dtc": first.get("dtc")}
+        if pid not in frames or at > frames[pid].get("_at", ""):
+            entry["_at"] = at
+            frames[pid] = entry
+        if latest_at is None or at > latest_at:
+            latest_at = at
+    if not frames:
+        return None
+    for e in frames.values():
+        e.pop("_at", None)
+    params = sorted(frames.values(), key=lambda p: p["pid"])
+    at_short = (latest_at[:16].replace("T", " ") if latest_at else None)
+    return {"at": latest_at, "at_short": at_short, "params": params}
+
+
+# --- Mode $06, read directly from the car ------------------------------------
+
+_MODE06_FRIENDLY = {"3A": "large-leak test", "3C": "small-leak test (0.020\")"}
+
+
+def _mode06_fail_label(mid: str, name: str, value: Any, unit: str | None,
+                       min_: Any, date_short: str | None) -> str:
+    unit = unit or ""
+
+    def fmt(v: Any) -> str:
+        if isinstance(v, (int, float)):
+            s = f"{v:g}"
+            return f"{s} {unit}".strip()
+        return str(v)
+    return f"Mode 06 {name}: FAIL {fmt(value)} vs min {fmt(min_)} (car, {date_short})"
+
+
+def _build_mode06_view(vin: str, after: str | None) -> dict[str, Any] | None:
+    """The latest from-car Mode $06 read since the clear, shaped into a
+    flat list of MID/TID rows plus the failing EVAP rows as ready-made
+    evidence items -- never auto-attached, just offered."""
+    try:
+        obs = live_store.recent_observations(50, vin=vin, kind="mode06")
+    except Exception:  # noqa: BLE001
+        return None
+    best = None
+    for o in obs:
+        if not live_store.is_from_car(o):
+            continue
+        at = o.get("at") or ""
+        if after and at <= after:
+            continue
+        if best is None or at > (best.get("at") or ""):
+            best = o
+    if best is None:
+        return None
+    data = best.get("data") or {}
+    results = data.get("results") or {}
+    at = best.get("at")
+    date_short = at[:10] if at else None
+    rows: list[dict[str, Any]] = []
+    fails: list[dict[str, Any]] = []
+    for mid, r in sorted(results.items()):
+        for entries in (r.get("by_ecu") or {}).values():
+            for e in entries:
+                name = (e.get("mid_name") or f"MID {mid}").replace("EVAP monitor ", "EVAP ")
+                row = {"mid": mid, "tid": e.get("tid"), "name": name,
+                      "value": e.get("value"), "unit": e.get("unit"),
+                      "min": e.get("min"), "max": e.get("max"),
+                      "passed": e.get("passed")}
+                rows.append(row)
+                if e.get("passed") is False and "EVAP" in name.upper():
+                    label = _mode06_fail_label(mid, name, e.get("value"), e.get("unit"),
+                                               e.get("min"), date_short)
+                    fails.append({"mid": mid, "name": name, "value": e.get("value"),
+                                 "unit": e.get("unit"), "min": e.get("min"),
+                                 "label": label,
+                                 "friendly": _MODE06_FRIENDLY.get(mid, name.lower())})
+    return {"at": at, "at_short": date_short, "rows": rows, "fails": fails,
+           "fail_count": len(fails)}
 
 
 # --- verdict -----------------------------------------------------------------
@@ -457,6 +638,28 @@ def _build_verdict(vin: str, dossier: dict[str, Any], live_status: dict[str, Any
         basis.append("returned after a clear: " + ", ".join(
             sorted(_base(r.get("dtc", "")) for r in history["returned_after_clear"])))
 
+    # From-car evidence always wins: a DTC the car itself reports now, or a
+    # module (UDS 0x19) code it reports ACTIVE, is active regardless of what
+    # the MES log history alone would otherwise conclude.
+    live_active_codes: dict[str, str] = {}
+    for rec in _latest_live_dtcs(vin, cleared_at).values():
+        for code in rec["dtcs"]:
+            if code not in live_active_codes or rec["at"] > live_active_codes[code]:
+                live_active_codes[code] = rec["at"]
+    if live_active_codes:
+        active = True
+        at_str = max(live_active_codes.values())
+        codes_str = ", ".join(sorted(live_active_codes))
+        basis.append(f"{codes_str} returned, read from the car {at_str}")
+
+    live_modules = _live_module_dtcs(vin, cleared_at)
+    active_modules = [m for m in live_modules if m["state"] == "ACTIVE"]
+    if active_modules:
+        active = True
+        at_str = max(m["at"] for m in active_modules)
+        codes_str = ", ".join(sorted(f"{m['code']} ({m['ecu']})" for m in active_modules))
+        basis.append(f"{codes_str} active on the module, read from the car {at_str}")
+
     readiness = None
     if cleared_at:
         readiness = _evap_from_readiness(_latest_readiness(vin, cleared_at))
@@ -484,13 +687,19 @@ def _build_verdict(vin: str, dossier: dict[str, Any], live_status: dict[str, Any
             basis.append(f"readiness read at {readiness['at']} -- EVAP monitor "
                          f"{readiness.get('evap_monitor') or 'unknown'}")
 
+    summary = _verdict_summary(state, open_work, cleared_at, dossier)
+    if (state == "ACTIVE_FAULTS" and readiness and readiness.get("evap_monitor") == "complete"
+            and any(c in _EVAP_CODES for c in live_active_codes)):
+        summary = "EVAP monitor ran and the code returned: fault is active."
+
     return {
         "state": state, "label": label,
-        "summary": _verdict_summary(state, open_work, cleared_at, dossier),
+        "summary": summary,
         "basis": basis,
         "cleared_at": cleared_at.split(" ")[0] if cleared_at else None,
         "cleared_by": cleared_by,
         "readiness": readiness,
+        "mil_on": readiness.get("mil_on") if readiness else None,
         "actions": _verdict_actions(vin, enabled),
     }
 
@@ -548,7 +757,8 @@ def _fuel_out_of_window(freeze_frames: list[dict[str, Any]]
 
 
 def _verdict_next_action(verdict: dict[str, Any], open_work: list[dict[str, Any]],
-                         freeze_frames: list[dict[str, Any]]
+                         freeze_frames: list[dict[str, Any]],
+                         mode06: dict[str, Any] | None = None
                          ) -> tuple[str, str, str | None]:
     """``(next_action sentence, blocker label, next_step_id)`` for one
     verdict. Never raises -- a missing open-work step or freeze frame just
@@ -576,6 +786,12 @@ def _verdict_next_action(verdict: dict[str, Any], open_work: list[dict[str, Any]
         return sentence, "awaiting drive cycle", step_id
 
     if state == "ACTIVE_FAULTS":
+        if mode06 and mode06.get("fails"):
+            f = mode06["fails"][0]
+            sentence = (f"The EVAP monitor has run and the {f['friendly']} failed. "
+                       f"Next: Test A (hand vacuum on the ESIM while watching the "
+                       f"switch PID).")
+            return sentence, "active faults", step_id
         if bit:
             return f"Start with {bit}.", "active faults", step_id
         return "Active faults on file -- open the codes to begin.", "active faults", None
@@ -606,7 +822,9 @@ def _family_refs(codes: list[str], per_code: dict[str, Any],
 
 
 def _build_open_work(vin: str, dossier: dict[str, Any],
-                     checklist: dict[str, Any]) -> list[dict[str, Any]]:
+                     checklist: dict[str, Any],
+                     live_active_codes: frozenset[str] = frozenset()
+                     ) -> list[dict[str, Any]]:
     tsb = dossier.get("tsb_matches") or {}
     findings = tsb.get("family_findings") or []
     per_code = tsb.get("per_code") or {}
@@ -646,7 +864,11 @@ def _build_open_work(vin: str, dossier: dict[str, Any],
     # richest, hand-curated example, but a misfire, fuel-trim, cooling,
     # body, chassis or ADAS code (or any other family) still gets a
     # sourced, actionable card instead of nothing.
-    remaining = sorted(_history_codes(dossier) - covered_codes)
+    # Live module (UDS 0x19) codes read tonight join this car's own MES-log
+    # history for the generic grouping below -- so, e.g., three or more
+    # from-car network (U-code) faults land on the same "network" card as
+    # one bus event, not three separate ones, the same as a logged family.
+    remaining = sorted((_history_codes(dossier) | set(live_active_codes)) - covered_codes)
     groups: dict[str, list[str]] = {}
     labels: dict[str, str] = {}
     for code in remaining:
@@ -986,8 +1208,14 @@ def _build_view_core(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
     I/O beyond what ``dossier`` already carries) to compute fresh on every
     call. Split out purely so it can be memoised -- see ``build_view``.
     """
+    cleared_at, _cleared_by, clear_assessment = _clear_info(dossier)
+
+    live_modules = _live_module_dtcs(vin, cleared_at)
+    live_active_module_codes = frozenset(
+        m["code"] for m in live_modules if m["state"] == "ACTIVE")
+
     checklist = checklist_store.get(vin)
-    open_work = _build_open_work(vin, dossier, checklist)
+    open_work = _build_open_work(vin, dossier, checklist, live_active_module_codes)
 
     family_map = _family_map(dossier)
     try:
@@ -995,7 +1223,6 @@ def _build_view_core(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
                     mes_bridge.list_logs(vin=vin, limit=3)["logs"]]
     except BridgeError:
         recent_ts = []
-    cleared_at, _cleared_by, clear_assessment = _clear_info(dossier)
     codes, code_counts = _code_rows(vin, dossier, cleared_at, clear_assessment,
                                     recent_ts, family_map)
 
@@ -1005,6 +1232,9 @@ def _build_view_core(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
         "code_counts": code_counts,
         "attempted": _build_attempted(vin),
         "freeze_frames": _build_freeze_frames(vin, dossier),
+        "live_freeze_frames": _build_live_freeze_frames(vin, cleared_at),
+        "mode06": _build_mode06_view(vin, cleared_at),
+        "live_module_dtcs": live_modules,
         "bulletins": _build_bulletins(dossier, open_work),
         "latest": _build_latest(dossier),
         "provenance_note": dossier.get("provenance_note", ""),
@@ -1041,7 +1271,7 @@ def build_view(vin: str, dossier: dict[str, Any],
     )
     verdict = _build_verdict(vin, dossier, live_status, core["open_work"])
     next_action, blocker, next_step_id = _verdict_next_action(
-        verdict, core["open_work"], core["freeze_frames"])
+        verdict, core["open_work"], core["freeze_frames"], core.get("mode06"))
     verdict["next_action"] = next_action
     verdict["blocker"] = blocker
     verdict["next_step_id"] = next_step_id

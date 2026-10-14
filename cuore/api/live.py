@@ -13,6 +13,7 @@ from typing import Any, Optional
 
 from fastapi import APIRouter, Body, Depends, Query
 
+from ..live import dtc_records
 from ..live import ops
 from ..live import audit as audit_mod
 from .deps import require_token
@@ -149,7 +150,11 @@ def live_obd_mode06(mids: str = Query(default="", description="e.g. 3C,3B; empty
 @router.get("/live/module/{code}/dtc/{dtc}", summary="One code's status, snapshots and counters")
 def live_module_dtc_detail(code: str, dtc: str, vin: str = Query(default=""),
                            confirm: bool = Query(default=False)) -> dict[str, Any]:
-    return ops.module_dtc_detail(code, dtc, vin=vin, confirm=confirm)
+    # Honest best-effort decode of whatever ops.module_dtc_detail's snapshot
+    # (19 04) / extended (19 06) walk stopped on and reported raw under
+    # "undecoded_from" -- see cuore.live.dtc_records module docstring. Every
+    # key dtc_detail already decoded is passed through unchanged.
+    return dtc_records.enrich_dtc_detail(ops.module_dtc_detail(code, dtc, vin=vin, confirm=confirm))
 
 
 @router.get("/live/module/{code}/all", summary="Identity plus every catalogued identifier, decoded")
@@ -266,6 +271,24 @@ def live_audit(n: int = Query(default=50, ge=1, le=1000)) -> dict[str, Any]:
             summary="Learned actuator-test procedures (list only; replay never over HTTP)")
 def live_actuators(vin: str = Query(default="")) -> dict[str, Any]:
     return ops.actuators(vin)
+
+
+# --- full scan: every subsystem the adapter can reach, read-only -------------------
+
+@router.post("/live/fullscan",
+            summary="One read-only full-vehicle scan; every reading recorded as an observation")
+def live_fullscan(vin: str = Body(default="", embed=True),
+                  buses: Optional[list[str]] = Body(default=None, embed=True),
+                  budget_s: Optional[float] = Body(default=None, embed=True),
+                  confirm: bool = Body(default=False, embed=True)) -> dict[str, Any]:
+    from ..live import fullscan
+    return fullscan.run(vin, buses=buses, budget_s=budget_s, confirm=confirm)
+
+
+@router.get("/live/fullscan/last", summary="The most recent full scan's result")
+def live_fullscan_last() -> dict[str, Any]:
+    from ..live import fullscan
+    return fullscan.last()
 
 
 # --- live-data engine: channels, poll sessions, alarms, recording ---------------

@@ -38,6 +38,14 @@ def _links(**kw: Any) -> dict[str, Any]:
 
 def _register(templates: Any) -> None:
     templates.env.globals["experience_links"] = _links
+    # ISO/SAE failure-type byte text for module codes (mes.dtc.failure_type),
+    # read by _code_brief.html; guarded there with `is defined`.
+    try:
+        from mes import dtc as _dtc
+        templates.env.globals["failure_type"] = lambda ftb: (
+            (_dtc.failure_type(ftb).to_dict() if _dtc.failure_type(ftb) else None))
+    except Exception:  # noqa: BLE001 -- a template global must never break a page
+        pass
 
 
 for _module_name in ("routes", "service_routes", "drivetrain_routes", "timeline_routes"):

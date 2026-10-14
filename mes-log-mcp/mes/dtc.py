@@ -108,7 +108,12 @@ class FailureType:
     confidence: str = "confirmed"
 
     def to_dict(self) -> dict[str, Any]:
-        return {"byte": self.byte, "meaning": self.text,
+        # "meaning" is the long-standing key (vehicle.html and others read
+        # it); "text" is added alongside, additively, so this also satisfies
+        # the {text, source, confidence} shape callers may expect from the
+        # name "failure_type". Never remove "meaning" without checking every
+        # template that reads it.
+        return {"byte": self.byte, "meaning": self.text, "text": self.text,
                 "source": self.source, "confidence": self.confidence}
 
 
@@ -146,9 +151,16 @@ FTB_GROUPS: dict[str, str] = {
 #               byte could be off by one. Reported as such rather than
 #               silently presented as fact.
 #
+#   corroborated - the byte is both corpus-printed on this platform's own
+#               ECUs AND matches the published SAE J2012-DA / ISO 14229-1
+#               failure-type wording verbatim. Two independent sources
+#               agreeing is the strongest tier this table has, stronger than
+#               plain 'corpus' (one source) -- so these carry their own
+#               source string naming both, rather than just "corpus".
+#
 # Bytes absent from this table are reported as unknown, never guessed at.
 _FTB_TABLE: tuple[tuple[str, str, str, str], ...] = (
-    ("00", "no sub-type information", "corpus", "confirmed"),
+    ("00", "no sub type", "SAE J2012-DA / ISO 14229-1 (CORROBORATED)", "confirmed"),
     # 0x0N general categories
     ("01", "general electrical failure", "mes-table", "likely"),
     ("02", "general signal failure", "mes-table", "likely"),
@@ -185,7 +197,7 @@ _FTB_TABLE: tuple[tuple[str, str, str, str], ...] = (
     ("2B", "wires shorted together", "mes-table", "offset"),
     ("2C", "circuit low", "mes-table", "offset"),
     ("2D", "circuit high", "mes-table", "offset"),
-    ("2F", "signal/message erratic", "corpus", "confirmed"),
+    ("2F", "signal erratic", "SAE J2012-DA / ISO 14229-1 (CORROBORATED)", "confirmed"),
     # 0x3N frequency / timing
     ("31", "no signal", "mes-table", "likely"),
     ("32", "signal low time below threshold", "mes-table", "likely"),
@@ -209,7 +221,7 @@ _FTB_TABLE: tuple[tuple[str, str, str, str], ...] = (
     ("47", "watchdog / safety failure", "mes-table", "likely"),
     ("48", "supervision software failure", "mes-table", "likely"),
     ("49", "internal electronic failure", "mes-table", "likely"),
-    ("4A", "incorrect component installed", "mes-table", "likely"),
+    ("4A", "incorrect component installed", "SAE J2012-DA / ISO 14229-1 (CORROBORATED)", "confirmed"),
     ("4B", "over temperature", "mes-table", "likely"),
     ("4C", "circuit low", "mes-table", "likely"),
     ("4D", "circuit high", "mes-table", "likely"),
@@ -222,7 +234,7 @@ _FTB_TABLE: tuple[tuple[str, str, str, str], ...] = (
     ("61", "signal calculation failure", "mes-table", "confirmed"),
     ("62", "signal compare failure", "mes-table", "confirmed"),
     ("63", "circuit / component protection time out", "mes-table", "confirmed"),
-    ("64", "signal/message plausibility failure", "corpus", "confirmed"),
+    ("64", "signal plausibility failure", "SAE J2012-DA / ISO 14229-1 (CORROBORATED)", "confirmed"),
     ("65", "signal has too few transitions / events", "mes-table", "likely"),
     ("66", "signal has too many transitions / events", "mes-table", "likely"),
     ("67", "signal incorrect after event", "mes-table", "likely"),
@@ -246,8 +258,8 @@ _FTB_TABLE: tuple[tuple[str, str, str, str], ...] = (
      "likely"),
     ("84", "signal below allowable range", "mes-table", "confirmed"),
     ("85", "signal above allowable range", "mes-table", "confirmed"),
-    ("86", "signal/message invalid", "corpus", "confirmed"),
-    ("87", "missing message", "corpus", "confirmed"),
+    ("86", "signal invalid", "SAE J2012-DA / ISO 14229-1 (CORROBORATED)", "confirmed"),
+    ("87", "missing message", "SAE J2012-DA / ISO 14229-1 (CORROBORATED)", "confirmed"),
     ("88", "bus off", "corpus", "confirmed"),
     ("89", "communication erratic", "mes-table", "confirmed"),
     # 0x9N component
@@ -256,8 +268,8 @@ _FTB_TABLE: tuple[tuple[str, str, str, str], ...] = (
     ("94", "unexpected operation", "mes-table", "offset"),
     ("95", "incorrect assembly", "mes-table", "offset"),
     ("96", "component internal failure", "mes-table", "offset"),
-    ("97", "component or system operation obstructed or blocked", "corpus",
-     "confirmed"),
+    ("97", "component or system operation obstructed/blocked",
+     "SAE J2012-DA / ISO 14229-1 (CORROBORATED)", "confirmed"),
     ("98", "component or system over temperature", "mes-table", "likely"),
     ("99", "component or system operating conditions", "mes-table", "likely"),
 )

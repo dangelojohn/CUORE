@@ -1,0 +1,52 @@
+/* cuore/web/static/scanlog.css
+ *
+ * The scan log (/v/{vin}/scans, /v/{vin}/scans/{id}). Loaded after
+ * cuore.css, same "new sheet, not a cuore.css touch" posture scan.css
+ * documents for the mechanic-UX pass -- this feature owns its own sheet so
+ * it never collides with another agent's edit to the shared one.
+ *
+ * Shop-floor rules for this feature specifically: nothing below 12px and
+ * every tap target at least 48px tall, even where the shared sheet's own
+ * existing chips/summaries run smaller (10px chips, 44px summaries) for
+ * density elsewhere in the app. Scoped to .scanlog-page so it never changes
+ * those other pages.
+ */
+
+.scanlog-page { font-size: 16px; }
+
+.scanlog-page .chip,
+.scanlog-page .count-badge,
+.scanlog-page .count-badge .chip.sm,
+.scanlog-page .chip-code,
+.scanlog-page .chip-code.sm {
+  font-size: 12px;
+}
+
+.scanlog-page .card-details > summary,
+.scanlog-page .chip-code,
+.scanlog-page .chip-code.sm,
+.scanlog-page .jump-chip,
+.scanlog-page tr.row-link {
+  min-height: 48px;
+}
+
+.scanlog-page tr.row-link td { padding-top: 10px; padding-bottom: 10px; }
+
+.scanlog-page .jump-chip-row {
+  display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 18px;
+}
+.scanlog-page .jump-chip-row .jump-chip {
+  display: inline-flex; align-items: center; padding: 0 16px; font-size: 13px;
+}
+
+.scanlog-page table th, .scanlog-page table td { font-size: 13.5px; }
+.scanlog-page .scanlog-table td { vertical-align: middle; }
+
+/* Every table on this page sits in its own horizontal-scroll container
+ * (the shared .tw rule) so the page itself never scrolls sideways on a
+ * phone, per the shop-floor rule. */
+.scanlog-page .tw { width: 100%; }
+
+@media print {
+  .scanlog-page .jump-chip-row { display: none !important; }
+}

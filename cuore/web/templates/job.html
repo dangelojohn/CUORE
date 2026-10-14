@@ -204,6 +204,7 @@
         <option value="">Choose evidence&hellip;</option>
         {% for c in active_codes %}<option value="code|{{ c }}|{{ c }}">{{ c }}</option>{% endfor %}
         {% for f in (view.freeze_frames or []) %}<option value="freeze_frame|{{ f.code }}|{{ f.code }} freeze frame">{{ f.code }} freeze frame</option>{% endfor %}
+        {% for m in (view.mode06.fails if view.mode06 else []) %}<option value="measurement|mode06-{{ m.mid }}|{{ m.label }}">{{ m.label }}</option>{% endfor %}
       </select>
       <input type="text" name="label" placeholder="{{ t('system_select_placeholder') }}" class="evidence-free-text">
       <input type="hidden" name="kind" value="observation" class="evidence-kind-field">

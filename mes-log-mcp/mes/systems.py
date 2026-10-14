@@ -248,7 +248,7 @@ SYSTEMS: dict[str, dict[str, Any]] = {
         "fuel", "Fuel",
         ["fuel tank", "fuel pump", "fuel pressure sensor", "fuel filter",
          "injectors", "fuel cap"],
-        live_channels=["fuel_level"],
+        live_channels=["fuel_level", "fuel_rail_abs_pressure"],
         maintenance_items=["fuel_filter"],
         parts=[],
         depends_on=[
@@ -269,7 +269,7 @@ SYSTEMS: dict[str, dict[str, Any]] = {
         ["ESIM", "purge valve", "canister", "vent valve", "fuel cap",
          "vapor lines", "recirculation-line quick-connect"],
         live_channels=["commanded_evap_purge", "evap_vapor_pressure",
-                      "evap_vapor_pressure_abs", "fuel_level"],
+                      "evap_vapor_pressure_abs", "fuel_level", "esim_status"],
         maintenance_items=[],
         parts=["esim", "purge_valve", "evap_canister", "evap_quick_connect"],
         depends_on=[
@@ -304,7 +304,9 @@ SYSTEMS: dict[str, dict[str, Any]] = {
          "boost hoses", "throttle body"],
         live_channels=["intake_map", "barometric_pressure", "boost",
                       "ecm_195a", "intake_air_temp", "absolute_load",
-                      "throttle_position"],
+                      "throttle_position", "intake_air_temp_b1",
+                      "boost_pressure_commanded", "boost_pressure_actual",
+                      "wastegate_commanded", "wastegate_actual"],
         maintenance_items=["engine_air_filter", "throttle_body_clean",
                            "intake_boost_hoses_inspect"],
         parts=["engine_air_filter", "turbo_intercooler_hose"],
@@ -344,7 +346,9 @@ SYSTEMS: dict[str, dict[str, Any]] = {
         "exhaust_emissions", "Exhaust / emissions",
         ["catalytic converter", "O2 sensors", "exhaust manifold",
          "turbo exhaust housing"],
-        live_channels=[],
+        live_channels=["o2_sensors_present", "o2_b1s2_voltage",
+                      "o2_wr_lambda_b1s1", "catalyst_temp_b1s1",
+                      "commanded_egr", "egr_error", "egr_temp"],
         maintenance_items=[],
         parts=[],
         depends_on=[
@@ -561,7 +565,8 @@ SYSTEMS: dict[str, dict[str, Any]] = {
     "engine_management": _system(
         "engine_management", "Engine management (ECM / sensors)",
         ["ECM", "crank/cam position sensors", "ECM-internal diagnostics"],
-        live_channels=[],
+        live_channels=["obd_standard", "monitor_status_this_cycle",
+                      "throttle_b", "accel_pedal_d", "accel_pedal_e"],
         maintenance_items=[],
         parts=[],
         depends_on=[

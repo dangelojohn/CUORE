@@ -1,0 +1,202 @@
+{% extends "base.html" %}
+{% block title %}{{ scan.id }} — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('scanlog.css') }}">
+
+<div class="scanlog-page scan-detail" data-vin="{{ vin }}" data-scan-id="{{ scan.id }}">
+  <p class="small"><a href="/v/{{ vin }}/scans">&larr; All scans</a></p>
+  <h1 class="mono">{{ scan.id }}</h1>
+  <p class="small muted">As of {{ scan.started }}{% if scan.ended and scan.ended != scan.started %}
+    &ndash; {{ scan.ended }}{% endif %}, source {{ scan.source.stream or "unknown" }}.</p>
+
+  <div class="jump-chip-row no-print">
+    <a class="jump-chip" href="/api/scans/{{ vin }}/{{ scan.id }}/export?fmt=json">Export JSON</a>
+    <a class="jump-chip" href="/api/scans/{{ vin }}/{{ scan.id }}/export?fmt=mes">Export MES log</a>
+    <a class="jump-chip" href="/v/{{ vin }}/scans/{{ scan.id }}/health">Health report</a>
+  </div>
+
+  {# --- Codes --------------------------------------------------------- #}
+  <details class="card-details" open>
+    <summary><h2 class="sysd-h">Codes</h2>
+      <span class="count-badge">{{ (scan.dtcs.stored|length) + (scan.dtcs.pending|length) + (scan.dtcs.permanent|length) }}</span></summary>
+    <div class="card-body">
+      {% if scan.mil is not none %}
+        <p>{% if scan.mil %}<span class="chip returned">MIL on</span>{% else %}<span class="chip ok">MIL off</span>{% endif %}</p>
+      {% endif %}
+      {% for bucket, label in [("stored", "Stored"), ("pending", "Pending"), ("permanent", "Permanent")] %}
+        {% if scan.dtcs[bucket] %}
+        <h4 class="subhead">{{ label }}</h4>
+        <p>{% for code in scan.dtcs[bucket] %}<span class="chip-code sm">{{ code }}</span>{% endfor %}</p>
+        {% endif %}
+      {% endfor %}
+      {% if not (scan.dtcs.stored or scan.dtcs.pending or scan.dtcs.permanent) %}
+        <p class="muted">No codes on this scan.</p>
+      {% endif %}
+    </div>
+  </details>
+
+  {# --- Readiness ------------------------------------------------------- #}
+  <details class="card-details" open>
+    <summary><h2 class="sysd-h">Readiness</h2></summary>
+    <div class="card-body">
+      {% set r = (scan.readiness or {}).since_clear %}
+      {% if not r %}
+        <p class="muted">No readiness read in this scan.</p>
+      {% else %}
+        <p>{% if r.all_complete %}<span class="chip ok">All monitors complete</span>
+           {% else %}<span class="chip chronic">Monitors incomplete</span>{% endif %}</p>
+        <div class="tw">
+        <table>
+          <thead><tr><th>Monitor</th><th>Complete</th></tr></thead>
+          <tbody>
+          {% for m in r.monitors or [] %}
+            <tr><td>{{ m.monitor }}</td>
+              <td>{% if m.complete %}<span class="chip ok">Complete</span>
+                  {% else %}<span class="chip chronic">Incomplete</span>{% endif %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      {% endif %}
+    </div>
+  </details>
+
+  {# --- Freeze frames ----------------------------------------------------- #}
+  <details class="card-details" {% if scan.freeze_frames %}open{% endif %}>
+    <summary><h2 class="sysd-h">Freeze frames</h2>
+      <span class="count-badge">{{ scan.freeze_frames|length }}</span></summary>
+    <div class="card-body">
+      {% if not scan.freeze_frames %}
+        <p class="muted">No freeze frame read in this scan.</p>
+      {% else %}
+        {% for ff in scan.freeze_frames %}
+        <h4 class="subhead">{% if ff.code %}<span class="chip-code sm">{{ ff.code }}</span>{% else %}Unidentified code{% endif %}
+          <span class="small mono muted">{{ ff.ecu }}</span></h4>
+        <div class="tw">
+        <table>
+          <thead><tr><th>PID</th><th>Name</th><th>Value</th><th>Unit</th></tr></thead>
+          <tbody>
+          {% for p in ff.pids %}
+            <tr><td class="mono small">{{ p.pid }}</td><td>{{ p.name }}</td>
+              <td class="mono">{{ p.value if p.value is not none else "—" }}</td>
+              <td class="small">{{ p.unit or "" }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </details>
+
+  {# --- Mode 06 ------------------------------------------------------------ #}
+  <details class="card-details" {% if scan.mode06 %}open{% endif %}>
+    <summary><h2 class="sysd-h">Mode $06</h2>
+      <span class="count-badge">{{ scan.mode06|length }}</span></summary>
+    <div class="card-body">
+      {% if not scan.mode06 %}
+        <p class="muted">No Mode $06 read in this scan.</p>
+      {% else %}
+      <div class="tw">
+      <table>
+        <thead><tr><th>MID</th><th>TID</th><th>Name</th><th>Value</th><th>Min</th><th>Max</th><th>Result</th></tr></thead>
+        <tbody>
+        {% for r in scan.mode06 %}
+          <tr><td class="mono small">{{ r.mid }}</td><td class="mono small">{{ r.tid or "" }}</td>
+            <td>{{ r.mid_name or "" }}</td>
+            <td class="mono">{{ r.value if r.value is not none else "—" }}{% if r.unit and r.unit != "raw" %} {{ r.unit }}{% endif %}</td>
+            <td class="mono">{{ r.min if r.min is not none else "—" }}</td>
+            <td class="mono">{{ r.max if r.max is not none else "—" }}</td>
+            <td>{% if r.passed is none %}<span class="chip plain">&mdash;</span>
+                {% elif r.passed %}<span class="chip ok">PASS</span>
+                {% else %}<span class="chip returned">FAIL</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% endif %}
+    </div>
+  </details>
+
+  {# --- Live PIDs ----------------------------------------------------------- #}
+  <details class="card-details">
+    <summary><h2 class="sysd-h">Live PIDs</h2>
+      <span class="count-badge">{{ scan.pids|length }}</span></summary>
+    <div class="card-body">
+      {% if not scan.pids %}
+        <p class="muted">No live PID reads in this scan.</p>
+      {% else %}
+      <div class="tw">
+      <table>
+        <thead><tr><th>PID</th><th>Name</th><th>Value</th><th>Unit</th></tr></thead>
+        <tbody>
+        {% for p in scan.pids %}
+          <tr><td class="mono small">{{ p.pid }}</td><td>{{ p.name }}</td>
+            <td class="mono">{{ p.value if p.value is not none else "—" }}</td>
+            <td class="small">{{ p.unit or "" }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% endif %}
+    </div>
+  </details>
+
+  {# --- Compare with previous scan -------------------------------------------- #}
+  <details class="card-details">
+    <summary><h2 class="sysd-h">Compare with previous scan</h2></summary>
+    <div class="card-body">
+      {% if not previous %}
+        <p class="muted">No earlier scan on file for this vehicle.</p>
+      {% else %}
+        <p class="small muted">Compared with <a class="mono" href="/v/{{ vin }}/scans/{{ previous.id }}">{{ previous.id }}</a> ({{ previous.started }}).</p>
+        {% set c = comparison %}
+        {% set any_codes = c.codes.stored.added or c.codes.stored.removed or c.codes.pending.added or c.codes.pending.removed or c.codes.permanent.added or c.codes.permanent.removed %}
+        {% if any_codes %}
+        <h4 class="subhead">Codes</h4>
+        <ul class="small">
+          {% for bucket in ("stored", "pending", "permanent") %}
+            {% for code in c.codes[bucket].added %}<li><span class="chip-code sm">{{ code }}</span> added ({{ bucket }})</li>{% endfor %}
+            {% for code in c.codes[bucket].removed %}<li><span class="chip-code sm">{{ code }}</span> removed ({{ bucket }})</li>{% endfor %}
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="small muted">No code changes.</p>
+        {% endif %}
+
+        {% if c.freeze_frame_deltas %}
+        <h4 class="subhead">Freeze frame</h4>
+        <ul class="small">
+          {% for d in c.freeze_frame_deltas %}
+          <li>{% if d.code %}<span class="chip-code sm">{{ d.code }}</span>{% endif %} {{ d.name }}:
+            {{ d.before if d.before is not none else "—" }} &rarr; {{ d.after if d.after is not none else "—" }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if c.mode06_changes %}
+        <h4 class="subhead">Mode $06</h4>
+        <ul class="small">
+          {% for m in c.mode06_changes %}
+          <li class="mono">{{ m.mid }}/{{ m.tid }}:
+            {% if m.before is none %}&mdash;{% elif m.before %}PASS{% else %}FAIL{% endif %} &rarr;
+            {% if m.after is none %}&mdash;{% elif m.after %}PASS{% else %}FAIL{% endif %}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% if c.readiness_changes %}
+        <h4 class="subhead">Readiness</h4>
+        <ul class="small">
+          {% for r in c.readiness_changes %}
+          <li>{{ r.monitor }}: {{ r.before }} &rarr; {{ r.after }}</li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      {% endif %}
+    </div>
+  </details>
+</div>
+{% endblock %}

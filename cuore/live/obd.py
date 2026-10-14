@@ -68,6 +68,34 @@ _PID_LIST: tuple[PID, ...] = (
     PID("53", "evap_vapor_pressure_abs", "kPa", 2, lambda d: _u16(d) / 200),
     PID("5C", "engine_oil_temp", "C", 1, lambda d: d[0] - 40),
     PID("5E", "engine_fuel_rate", "L/h", 2, lambda d: _u16(d) / 20),
+
+    # --- Added 2026-10-13: 46-supported/25-decoded gap from the live 18DAF110
+    # read. Every entry below is SAE J1979 (CORROBORATED) -- the standard
+    # Mode 01 PID table -- except 70/72 (boost/wastegate control), whose
+    # sub-field byte layout is this module's best reconstruction from the
+    # commonly published J1979-2 diesel-PID tables and was not independently
+    # cross-checked against a live multi-frame capture from this car (72 had
+    # no raw reply captured on the bench run that prompted this change).
+    PID("13", "o2_sensors_present", "bitmap", 1, lambda d: _decode_o2_present(d)),
+    PID("15", "o2_b1s2_voltage_trim", "V/%", 2, lambda d: _decode_o2_voltage_trim(d)),
+    PID("1C", "obd_standard", "enum", 1, lambda d: _decode_obd_standard(d)),
+    PID("2C", "commanded_egr", "%", 1, lambda d: d[0] * 100 / 255),
+    PID("2D", "egr_error", "%", 1, lambda d: (d[0] - 128) * 100 / 128),
+    PID("34", "o2_b1s1_wide_range", "lambda/mA", 4, lambda d: _decode_o2_wide_range(d)),
+    PID("3C", "catalyst_temp_b1s1", "C", 2, lambda d: _u16(d) / 10 - 40),
+    PID("40", "pids_supported_41_60", "bitmap", 4, lambda d: _decode_supported_block("40", d)),
+    PID("41", "monitor_status_drive_cycle", "bitmap", 4,
+        lambda d: _monitor_table(d[0], d[1], d[2], d[3])),
+    PID("47", "throttle_position_b", "%", 1, lambda d: d[0] * 100 / 255),
+    PID("49", "accelerator_pedal_d", "%", 1, lambda d: d[0] * 100 / 255),
+    PID("4A", "accelerator_pedal_e", "%", 1, lambda d: d[0] * 100 / 255),
+    PID("54", "evap_vapor_pressure_signed", "kPa", 2, lambda d: _s16(d) / 1000),
+    PID("59", "fuel_rail_pressure_abs", "kPa", 2, lambda d: _u16(d) * 10),
+    PID("60", "pids_supported_61_80", "bitmap", 4, lambda d: _decode_supported_block("60", d)),
+    PID("68", "intake_air_temp_sensors", "C", 1, lambda d: _decode_iat_sensors(d)),
+    PID("6B", "egr_temperature", "C", 3, lambda d: _decode_egr_temp(d)),
+    PID("70", "boost_pressure_control", "kPa", 1, lambda d: _decode_boost_control(d)),
+    PID("72", "wastegate_control", "%", 1, lambda d: _decode_wastegate_control(d)),
 )
 
 PIDS_BY_HEX: dict[str, PID] = {p.pid: p for p in _PID_LIST}
@@ -101,6 +129,134 @@ def decode_pid(hex_pid: str, spec: Optional[PID], data: list[str]) -> dict[str, 
         out["value"] = round(value, 3) if isinstance(value, float) else value
     except (ValueError, IndexError) as e:
         out["error"] = f"decode failed: {e}"
+    return out
+
+
+#: ISO 15031-5 Table O2 sensors present bitmap (PID 0x13), bit -> (bank, sensor).
+_O2_PRESENT_BITS: tuple[tuple[int, str], ...] = (
+    (0, "bank1_sensor1"), (1, "bank1_sensor2"), (2, "bank1_sensor3"), (3, "bank1_sensor4"),
+    (4, "bank2_sensor1"), (5, "bank2_sensor2"), (6, "bank2_sensor3"), (7, "bank2_sensor4"),
+)
+
+
+def _decode_o2_present(d: list[int]) -> dict[str, bool]:
+    """PID 0x13: which of the up to 8 O2 sensors are present."""
+    byte = d[0]
+    return {name: bool(byte & (1 << bit)) for bit, name in _O2_PRESENT_BITS}
+
+
+def _decode_o2_voltage_trim(d: list[int]) -> dict[str, Any]:
+    """PID 0x15 (and the 0x14-0x1B family): sensor voltage + short term fuel
+    trim. 0xFF in the trim byte means the sensor is not used for trim.
+    """
+    voltage = round(d[0] / 200, 3)
+    trim_raw = d[1]
+    trim = None if trim_raw == 0xFF else round(trim_raw / 1.28 - 100, 3)
+    return {"voltage_V": voltage, "stft_pct": trim}
+
+
+#: SAE J1979 Table "OBD requirements to which the vehicle is designed" (PID 0x1C).
+_OBD_STANDARDS: dict[int, str] = {
+    0x01: "OBD-II (California ARB)", 0x02: "OBD (Federal EPA)",
+    0x03: "OBD and OBD-II", 0x04: "OBD-I", 0x05: "Not OBD compliant",
+    0x06: "EOBD", 0x07: "EOBD and OBD-II", 0x08: "EOBD and OBD",
+    0x09: "EOBD, OBD and OBD II", 0x0A: "JOBD", 0x0B: "JOBD and OBD II",
+    0x0C: "JOBD and EOBD", 0x0D: "JOBD, EOBD, and OBD II",
+    0x11: "Engine Manufacturer Diagnostics (EMD)",
+    0x12: "Engine Manufacturer Diagnostics Enhanced (EMD+)",
+    0x13: "Heavy Duty On-Board Diagnostics (Child/Partial) (HD OBD-C)",
+    0x14: "Heavy Duty On-Board Diagnostics (HD OBD)",
+    0x15: "World Wide Harmonized OBD (WWH OBD)",
+    0x17: "Heavy Duty Euro OBD Stage I without NOx control (HD EOBD-I)",
+    0x18: "Heavy Duty Euro OBD Stage I with NOx control (HD EOBD-I N)",
+    0x19: "Heavy Duty Euro OBD Stage II without NOx control (HD EOBD-II)",
+    0x1A: "Heavy Duty Euro OBD Stage II with NOx control (HD EOBD-II N)",
+    0x1C: "Brazil OBD Phase 1 (OBDBr-1)", 0x1D: "Brazil OBD Phase 2 (OBDBr-2)",
+    0x1E: "Korean OBD (KOBD)", 0x1F: "India OBD I (IOBD I)",
+    0x20: "India OBD II (IOBD II)",
+    0x21: "Heavy Duty Euro OBD Stage VI (HD EOBD-IV)",
+}
+
+
+def _decode_obd_standard(d: list[int]) -> dict[str, Any]:
+    code = d[0]
+    return {"code": code, "standard": _OBD_STANDARDS.get(code, f"reserved/unassigned (0x{code:02X})")}
+
+
+def _decode_o2_wide_range(d: list[int]) -> dict[str, float]:
+    """PIDs 0x34-0x3B: wide-range O2 sensor equivalence ratio (lambda) + current."""
+    ab = _u16(d[0:2])
+    cd = _u16(d[2:4])
+    return {"lambda": round(ab / 32768, 5), "current_mA": round(cd / 256 - 128, 3)}
+
+
+def _decode_supported_block(base: str, d: list[int]) -> dict[str, Any]:
+    """Shared by PIDs 0x40/0x60: same supported-bitmap convention as PID 0x00."""
+    hexs = [format(b, "02X") for b in d]
+    supported, more = decode_supported_pids(base, hexs)
+    return {"supported": supported, "has_next": more}
+
+
+#: PID 0x68 (Intake Air Temperature Sensor): a presence bitmap byte followed
+#: by one raw-minus-40-degC byte per present sensor, in bit order.
+_IAT_SENSOR_BITS: tuple[tuple[int, str], ...] = (
+    (0, "bank1_sensor1"), (1, "bank1_sensor2"), (4, "bank2_sensor1"), (5, "bank2_sensor2"),
+)
+
+
+def _decode_iat_sensors(d: list[int]) -> dict[str, Any]:
+    bitmap = d[0]
+    out: dict[str, Any] = {"bitmap": bitmap}
+    idx = 1
+    for bit, name in _IAT_SENSOR_BITS:
+        if bitmap & (1 << bit):
+            out[name] = d[idx] - 40 if idx < len(d) else None
+            idx += 1
+    return out
+
+
+#: PID 0x6B (Exhaust Gas Recirculation Temperature): presence bitmap byte,
+#: then one 2-byte ((raw)/10 - 40) degC field per bank, in bit order -- the
+#: same scaling as catalyst temperature (PID 0x3C).
+_EGR_TEMP_BANKS: tuple[tuple[int, str], ...] = ((0, "bank1"), (1, "bank2"))
+
+
+def _decode_egr_temp(d: list[int]) -> dict[str, Any]:
+    bitmap = d[0]
+    out: dict[str, Any] = {"bitmap": bitmap}
+    idx = 1
+    for bit, name in _EGR_TEMP_BANKS:
+        if bitmap & (1 << bit):
+            out[f"egr_temp_{name}_C"] = (round(_u16(d[idx:idx + 2]) / 10 - 40, 3)
+                                          if idx + 1 < len(d) else None)
+            idx += 2
+    return out
+
+
+def _decode_boost_control(d: list[int]) -> dict[str, Any]:
+    """PID 0x70 (Boost Pressure Control): status byte + commanded/actual boost
+    pressure, 2 bytes each. Byte layout per commonly published J1979-2
+    diesel-PID tables; the 0.01 kPa/count scaling is this module's best
+    reconstruction, not corroborated against a live capture from this car.
+    """
+    out: dict[str, Any] = {"status": d[0]}
+    if len(d) >= 3:
+        out["commanded_boost_kPa"] = round(_u16(d[1:3]) * 0.01, 3)
+    if len(d) >= 5:
+        out["actual_boost_kPa"] = round(_u16(d[3:5]) * 0.01, 3)
+    return out
+
+
+def _decode_wastegate_control(d: list[int]) -> dict[str, Any]:
+    """PID 0x72 (Wastegate Control): status byte + commanded/actual wastegate
+    position, 1 byte each (same 0-255 -> 0-100% scaling as throttle/pedal
+    position). No raw reply from this car was captured to corroborate against.
+    """
+    out: dict[str, Any] = {"status": d[0]}
+    if len(d) >= 2:
+        out["commanded_pct"] = round(d[1] * 100 / 255, 3)
+    if len(d) >= 3:
+        out["actual_pct"] = round(d[2] * 100 / 255, 3)
     return out
 
 
@@ -194,22 +350,11 @@ _COMPRESSION = ((0, "NMHC catalyst"), (1, "NOx/SCR monitor"), (2, "reserved"),
                 (6, "PM filter"), (7, "EGR/VVT system"))
 
 
-def decode_readiness(pairs: list[str], response_byte: str = "41") -> Optional[dict[str, Any]]:
-    """Decode a Mode 01 PID 01 / 41 payload; picks the layout from byte B bit 3."""
-    idx = None
-    for i in range(len(pairs) - 1):
-        if pairs[i] == response_byte and pairs[i + 1] in ("01", "41"):
-            idx = i + 2
-            break
-    if idx is None:
-        return None
-    try:
-        data = [int(x, 16) for x in pairs[idx:idx + 4]]
-    except ValueError:
-        return None
-    if len(data) < 4:
-        return None
-    a, b, c, d = data
+def _monitor_table(a: int, b: int, c: int, d: int) -> dict[str, Any]:
+    """Shared by PID 01 (since-clear readiness) and PID 41 (this-drive-cycle
+    monitor status): same 4-byte layout, picking spark vs. compression-ignition
+    monitor names from byte B bit 3.
+    """
     compression = bool(b & 0x08)
     table = _COMPRESSION if compression else _SPARK
     monitors: list[dict[str, Any]] = []
@@ -230,6 +375,25 @@ def decode_readiness(pairs: list[str], response_byte: str = "41") -> Optional[di
     }
 
 
+def decode_readiness(pairs: list[str], response_byte: str = "41") -> Optional[dict[str, Any]]:
+    """Decode a Mode 01 PID 01 / 41 payload; picks the layout from byte B bit 3."""
+    idx = None
+    for i in range(len(pairs) - 1):
+        if pairs[i] == response_byte and pairs[i + 1] in ("01", "41"):
+            idx = i + 2
+            break
+    if idx is None:
+        return None
+    try:
+        data = [int(x, 16) for x in pairs[idx:idx + 4]]
+    except ValueError:
+        return None
+    if len(data) < 4:
+        return None
+    a, b, c, d = data
+    return _monitor_table(a, b, c, d)
+
+
 def evap_verdict(readiness: dict[str, Any]) -> Optional[str]:
     monitors = readiness.get("monitors") or []
     evap = next((m for m in monitors if m["monitor"] == "Evaporative system"), None)
@@ -246,4 +410,4 @@ def evap_verdict(readiness: dict[str, Any]) -> Optional[str]:
 __all__ = ["PID", "PIDS_BY_HEX", "PIDS_BY_NAME", "resolve_pid", "decode_pid",
            "decode_supported_pids", "dtc_from_two_bytes", "decode_obd_dtcs",
            "dtc_from_three_bytes", "DTC_STATUS_BITS", "decode_dtc_status",
-           "decode_uds_dtc_block", "decode_readiness", "evap_verdict"]
+           "decode_uds_dtc_block", "decode_readiness", "evap_verdict", "_monitor_table"]

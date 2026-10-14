@@ -11,6 +11,16 @@
   category. A result of PASS/FAIL that names a hypothesis is attached to it as
   evidence automatically, the same way a job-page test row already does.</p>
 
+{% if view.from_car %}
+<div class="ts-from-car" id="ts-from-car">
+  <h2 class="small">From the car</h2>
+  <p class="small muted">Mode 06 read {{ view.from_car.at_short }}:</p>
+  <ul class="small">
+    {% for f in view.from_car.fails %}<li>{{ f.label }}</li>{% else %}<li class="muted">No EVAP Mode 06 failures on this read.</li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
 <div class="ts-summary" id="ts-summary" data-vin="{{ view.vin }}">
   <span class="ts-summary-main">
     {{ view.counts.pass + view.counts.fail + view.counts.inconclusive + view.counts.not_possible }}

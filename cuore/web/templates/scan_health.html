@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Scan health -- {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('scan_health.css') }}">
+
+<div class="sh-page">
+{% if report is none %}
+  <div class="sh-empty">
+    <h1>Scan health report</h1>
+    <p>No scan on file for this vehicle yet. Connect the car and run a scan
+      -- a report renders here as soon as the first from-car read lands.</p>
+  </div>
+{% else %}
+  <div class="sh-header">
+    <h1>Scan health report</h1>
+    <div class="sh-asof">As of {{ report.header.as_of }} -- {{ report.header.adapter }}</div>
+    <div class="sh-actions no-print">
+      <a href="/api/scans/{{ vin }}/{{ scan_id }}/health.md" class="sh-btn">Markdown</a>
+      <button type="button" class="sh-btn" onclick="window.print()">Print / PDF</button>
+    </div>
+  </div>
+
+  <section class="sh-verdict sh-verdict-{{ report.verdict.state|lower }}">
+    <div class="sh-verdict-label">{{ report.verdict.label }}</div>
+    {% if report.verdict.primary_system %}
+    <div class="sh-verdict-primary">Primary system: {{ report.verdict.primary_system }}</div>
+    {% endif %}
+    <ul class="sh-verdict-basis">
+      {% for b in report.verdict.basis %}<li>{{ b }}</li>{% endfor %}
+    </ul>
+  </section>
+
+  <section>
+    <h2>System by system</h2>
+    <div class="sh-table-wrap">
+    <table class="sh-table">
+      <thead><tr><th>System</th><th>Reading</th><th>Band / spec</th><th>Health</th></tr></thead>
+      <tbody>
+        {% for row in report.systems %}
+        <tr class="sh-row sh-health-{{ row.health|lower|replace(' ', '-') }}">
+          <td>{{ row.label }}</td>
+          <td>{{ row.reading or "--" }}{% if row.margin %} ({{ row.margin }} margin){% endif %}</td>
+          <td>{% if row.spec_confidence == "UNKNOWN" %}{{ row.spec_source }}{% else %}{{ row.spec_source or "--" }}{% endif %}</td>
+          <td><span class="chip sh-chip-{{ row.health|lower|replace(' ', '-') }}">{{ row.health }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+
+  {% if report.measurement_notes %}
+  <section>
+    <h2>What the measurement tells us</h2>
+    {% for n in report.measurement_notes %}<p>{{ n }}</p>{% endfor %}
+  </section>
+  {% endif %}
+
+  <section>
+    <h2>Issues to address, in order</h2>
+    {% if report.issues %}
+    <ol class="sh-issues">
+      {% for issue in report.issues %}<li>{{ issue }}</li>{% endfor %}
+    </ol>
+    {% else %}
+    <p>None outstanding from this scan.</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Clean bill</h2>
+    {% if report.clean_bill %}
+    <p>{{ report.clean_bill|join(", ") }}.</p>
+    {% else %}
+    <p>Nothing passed with a spec to grade it against this scan.</p>
+    {% endif %}
+  </section>
+{% endif %}
+</div>
+{% endblock %}

@@ -39,6 +39,7 @@ from mcp.server.fastmcp import FastMCP  # noqa: E402
 from cuore.live import ops  # noqa: E402
 import cuore_client  # noqa: E402  -- sibling module; this directory is on sys.path
 from cuore.live import audit  # noqa: E402
+from cuore.live import fullscan  # noqa: E402
 from cuore.live.buses import CAN_C  # noqa: E402
 from cuore.live.config import state_dir  # noqa: E402
 from cuore.live.errors import LiveError  # noqa: E402
@@ -413,6 +414,32 @@ def learn_correlate(capture: str, marks_json: str) -> str:
 def learned_dids(vin: str = "") -> str:
     """Identifier mappings learned from dealer-tool captures."""
     return _via("GET", "/live/learned", lambda: ops.learned_dids(vin), query={"vin": vin})
+
+
+@mcp.tool()
+def full_scan(vin: str = "", buses: Optional[list[str]] = None, budget_s: float = 0,
+             confirm: bool = False) -> str:
+    """One read-only full-vehicle scan: VIN/cal, every DTC status plus freeze frame for
+    every supported PID, readiness, Mode 06, a Mode 01 snapshot, and a UDS sweep (DTCs,
+    identity, a short known-DID list) on every bus the declared cable reaches. Replaces
+    the 15-call manual sequence in docs/handbook/07-first-live-session.md; see that doc
+    for the fallback if a step needs to be run by hand. ``buses`` defaults to trying both
+    can_ihs and can_ch (only the ones the declared cable actually reaches run; the rest
+    show up in the result's coverage as not reachable, with why). Returns a coverage
+    summary; every reading is separately recorded as an observation (read_* tools/
+    the dossier/health report pick those up without replaying this call."""
+    return _via("POST", "/live/fullscan",
+                lambda: fullscan.run(vin, buses=buses, budget_s=budget_s or None,
+                                     confirm=confirm),
+                body={"vin": vin, "buses": buses, "budget_s": budget_s or None,
+                      "confirm": confirm},
+                timeout=max(300.0, (budget_s or 0) + 60))
+
+
+@mcp.tool()
+def read_fullscan_last() -> str:
+    """The most recent full_scan() result (coverage summary), without re-running it."""
+    return _via("GET", "/live/fullscan/last", fullscan.last)
 
 
 @mcp.tool()

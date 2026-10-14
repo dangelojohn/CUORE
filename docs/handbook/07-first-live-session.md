@@ -34,7 +34,43 @@ for reference only -- you call the MCP tools, not the HTTP routes directly.
 Do **not** clear any codes before Test A is run and recorded (see Safety,
 below). Clearing destroys the very evidence Test A and the verdict need.
 
-## 1. The exact MCP calls, in order
+## 1. The fast path: `full_scan()`, then Test A
+
+Run **`full_scan(vin="ZASFAKPN5J7B88115")`** once. It performs the whole
+read-only capture in section 2 below in a single call -- verify, VIN, every
+DTC status plus freeze frame for every PID the car actually supports,
+readiness, Mode 06, a Mode 01 snapshot, and a UDS sweep (DTCs, identity, a
+short known-DID list) on every bus the declared cable reaches -- and
+records every reading as an observation through
+`cuore.live.store.record_observation`, so the Scans area, the dossier and
+the health report all see it without the manual calls below. Its result is
+a coverage summary: which bus/module answered, which was silent, and which
+was not reachable and why (`"needs grey A6 cable"`, `"no known address: run
+discovery"`, an NRC, ...). Check that summary before trusting anything
+else: a module marked `not_reachable` for a fixable reason (wrong cable,
+needs discovery) is worth a second pass first.
+
+After `full_scan()`:
+- Drive or idle through the fuel window (step 11 in section 2), then call
+  `read_readiness()` again and compare -- `full_scan()` is a one-shot
+  baseline, not a monitor; there is no substitute for the second readiness
+  read.
+- Run **Test A** (step 15 in section 2) with wiTECH or MultiEcuScan --
+  `full_scan()` does not run actuator tests.
+- `read_fullscan_last()` returns the same coverage summary again without
+  re-running the scan, if you need to recheck it later in the session.
+
+`full_scan()` refuses outright (no partial scan, nothing recorded) while
+MultiEcuScan holds the port, or a live-data poll session (step 8 in section
+2) is running -- stop the poller (`live_session_stop()`) or disconnect MES
+first, same as every call below.
+
+## 2. The manual sequence (fallback)
+
+Use this when `full_scan()` cannot run (MES needs the port for something
+else, or one step needs to be repeated or inspected on its own) -- it is
+the same reads, one call at a time, in the same order `full_scan()` runs
+them.
 
 Each step names the tool, what it proves, and which cuore page should show
 the result afterward.
@@ -154,7 +190,7 @@ the result afterward.
     the pass/fail here regardless of which tool ran it, so the Tests
     surface and the dossier agree.
 
-## 2. Pass criteria
+## 3. Pass criteria
 
 **"Verified clean"** requires ALL of:
 
@@ -190,7 +226,7 @@ This matches the dossier's own computed states (`cuore/live/ops.py`,
 only a from-car readiness read with the relevant monitor complete can move
 a system from `CLEARED_UNVERIFIED` to `VERIFIED_CLEAN`.
 
-## 3. Test A procedure reference
+## 4. Test A procedure reference
 
 Primary procedure: `docs/vehicles/ZASFAKPN5J7B88115/pdf/Stelvio wiTECH Test
 A - ESIM Switch.pdf` (full version) or `...Test A - ESIM Switch (1
@@ -200,7 +236,7 @@ page).pdf`. Background and the full diagnostic story (why Test A is the
 next step after three clean smoke tests and all-new EVAP parts) is in
 `docs/vehicles/ZASFAKPN5J7B88115/CASE.md`.
 
-## 4. Safety
+## 5. Safety
 
 - **No clears before Test A runs and is recorded.** `clear_module_dtcs()`
   and `clear_dtcs()` are DESTRUCTIVE TO EVIDENCE -- they erase the exact
@@ -228,7 +264,7 @@ next step after three clean smoke tests and all-new EVAP parts) is in
   and `session_restored` in its result; if either flag is false, switch
   the ignition off immediately.
 
-## 5. Troubleshooting
+## 6. Troubleshooting
 
 | Symptom | Likely cause | What to do |
 |---|---|---|

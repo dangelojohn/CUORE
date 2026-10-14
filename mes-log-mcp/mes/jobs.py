@@ -75,7 +75,7 @@ LIKELIHOODS = ("low", "med", "high")
 ACTION_KINDS = ("test", "inspection", "repair", "part", "clear", "note", "understand")
 REF_KINDS = ("code", "freeze_frame", "actuator", "live", "inspection",
             "symptom", "note", "media", "dealer", "bulletin", "feedback",
-            "test", "observation")
+            "test", "observation", "measurement")
 TEST_RESULTS = ("pass", "fail", "inconclusive", "not_possible")
 
 #: Which job-level link list a ref kind attaches to when no hypothesis is

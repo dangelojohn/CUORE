@@ -313,6 +313,17 @@
         <p class="small muted" style="margin:0">{{ bench.readiness.note or "no readiness read yet" }}</p>
       {% endif %}
     </div>
+    {% if bench.mode06 %}
+    <div class="bench-gate">
+      <details>
+        <summary>Mode 06{% if bench.mode06.fails %}: {{ bench.mode06.fails[0].name }} FAIL{% if bench.mode06.fail_count > 1 %} (+{{ bench.mode06.fail_count - 1 }} more){% endif %}{% else %} -- all pass{% endif %}</summary>
+        <ul class="small">
+          {% for f in bench.mode06.fails %}<li>{{ f.label }}</li>{% else %}<li class="muted">No EVAP Mode 06 failures on this read.</li>{% endfor %}
+        </ul>
+        <p class="small muted" style="margin:0">read {{ bench.mode06.at_short }}</p>
+      </details>
+    </div>
+    {% endif %}
   </div>
 
   {# B6: shared parts/tools at job level #}

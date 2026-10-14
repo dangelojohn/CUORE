@@ -19,6 +19,18 @@ Three things this module does, and nothing else:
   becomes evidence against one, and a fuel level inside the EVAP
   verification window becomes evidence that an EVAP hypothesis can actually
   be checked right now.
+* :func:`freeze_capture_start` / :func:`freeze_capture_status` /
+  :func:`freeze_capture_stop` / :func:`freeze_capture_save` /
+  :func:`freeze_capture_discard` -- the Freeze frame panel's own read-then-
+  save flow: Mode 03 stored codes, then every supported PID's freeze frame
+  and a Mode 01 snapshot of the same PIDs, plus readiness, read in a
+  background thread so Stop can cut it short; held server-side for 30
+  minutes (unsaved) so Save works as a plain HTML form post, with no
+  client-held payload. See that group's own docstrings for the on-disk
+  observation shapes, which deliberately mirror ``cuore.live.ops``'s own
+  per-call return shapes (not a bespoke one) so :mod:`cuore.live.scanlog`'s
+  existing cluster-builders -- read, never edited here -- pick them up with
+  no changes on that side.
 
 Reuses :mod:`cuore.services.known_good_bridge` for every band (never touches
 ``mes.known_good`` directly -- that module's docstring reserves it to
@@ -31,15 +43,26 @@ workflow -- this module owns only the live-telemetry side of that ledger.
 
 from __future__ import annotations
 
+import threading
+import uuid
+from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from ..live import channels as channels_mod
+from ..live import ops as live_ops
+from ..live import store as live_store
+from ..live.errors import LiveError
 from . import known_good_bridge
 from .errors import BadRequest, NotFound
 
 from mes import jobs as jobs_mod  # noqa: E402
 from mes import systems as systems_mod  # noqa: E402
+
+try:  # defensive: this module is being built in parallel by another agent
+    from ..live import scanlog as scanlog_mod
+except Exception:  # noqa: BLE001 -- Save must still work with a bare computed id
+    scanlog_mod = None
 
 NOTICE = "Read-only session. In motion, a passenger operates this page."
 
@@ -374,5 +397,335 @@ def attach_snapshot_to_job(vin: str, snapshot_id: str,
            "attached": attached, "new_hypotheses": new_hypotheses}
 
 
+# ===========================================================================
+# 5. Freeze frame: capture (Start/Stop), status, Save to the CUORE log,
+#    Discard
+# ===========================================================================
+#
+# Owner's ask: capture a full freeze frame (every stored code's Mode 03,
+# every PID in the ECM's supported bitmap via Mode 02, a Mode 01 snapshot
+# of the same PIDs, and readiness) with Start/Stop, hold it unsaved on the
+# page, then Save it into the CUORE log as from-car observations.
+#
+# Every ``cuore.live.ops`` call this makes (``obd_dtcs``, ``obd_supported_pids``,
+# ``obd_readiness``, ``obd_pid``, ``obd_freeze_frame``) is already wrapped
+# with the poller guard and the MES-connected guard (``_obd_session``/
+# ``_poller_active_guard`` in that module) -- nothing here re-implements
+# those refusals, the first ``obd_dtcs`` call below simply surfaces them
+# (as the existing ``Refused``/``LinkUnavailable`` text) before any
+# background work starts.
+#
+# A capture is held server-side (``_CAPTURES``, keyed by capture id) for
+# ``_CAPTURE_TTL`` so Save can be a plain HTML form post of just the id --
+# no client-held payload -- and so Start/Stop can run the actual reads in a
+# background thread with a cancel flag, cut short cleanly by Stop.
+#
+# On Save, the raw per-call ``ops`` results captured are written through
+# unchanged via :func:`cuore.live.store.record_observation` under kinds
+# ``"obd_dtcs"``, ``"freeze_frame"`` (one per PID read, same shape
+# ``ops.obd_freeze_frame`` already returns) and ``"pid"`` (one per PID,
+# same shape ``ops.obd_pid`` already returns), plus ``"readiness"`` --
+# deliberately the same shapes :mod:`cuore.live.scanlog` already clusters
+# into browsable scans (see that module's ``_build_dtcs``/
+# ``_build_freeze_frames``/``_build_pids``/``_build_readiness``), so the
+# Scans area shows this capture with no changes to that module. ``stream``
+# is stamped ``"serial (freeze frame capture)"`` on every row -- this path
+# never has a demo/synthetic source, every reading came from a live
+# ``ops`` call against the real adapter or this capture would already have
+# been refused -- which satisfies ``store.is_from_car`` (its own check is
+# just "does ``stream`` start with ``serial``").
+
+#: How long an unsaved capture is held before it is reaped. Long enough for
+#: a mechanic to read the panel and decide, short enough this never
+#: accumulates into a real memory leak on a shop PC left running.
+_CAPTURE_TTL = timedelta(minutes=30)
+
+_CAP_LOCK = threading.Lock()
+_CAPTURES: dict[str, dict[str, Any]] = {}
+
+
+def _reap_expired() -> None:
+    cutoff = datetime.now() - _CAPTURE_TTL
+    with _CAP_LOCK:
+        dead = [cid for cid, c in _CAPTURES.items()
+               if _parse_iso(c.get("started_at")) is not None
+               and _parse_iso(c["started_at"]) < cutoff]
+        for cid in dead:
+            _CAPTURES.pop(cid, None)
+
+
+def _parse_iso(s: Optional[str]) -> Optional[datetime]:
+    if not s:
+        return None
+    try:
+        return datetime.fromisoformat(s)
+    except ValueError:
+        return None
+
+
+def _get_capture(capture_id: str) -> dict[str, Any]:
+    _reap_expired()
+    with _CAP_LOCK:
+        cap = _CAPTURES.get(capture_id)
+    if cap is None:
+        raise NotFound(f"no freeze-frame capture {capture_id!r} (never existed, already "
+                       "discarded/saved and cleared, or past its 30-minute hold)")
+    return cap
+
+
+def _union_pids(by_ecu_pids: dict[str, list[str]]) -> list[str]:
+    """Every PID seen in any ECU's supported bitmap, in first-seen order,
+    deduplicated -- one Mode 01/Mode 02 read per PID covers every ECU that
+    answers it (``ops.obd_pid``/``ops.obd_freeze_frame`` broadcast and
+    return every responding ECU's value in one call), so there is no
+    reason to re-read a PID twice because two ECUs both support it."""
+    seen: set[str] = set()
+    out: list[str] = []
+    for pids in by_ecu_pids.values():
+        for p in pids:
+            if p not in seen:
+                seen.add(p)
+                out.append(p)
+    return out
+
+
+def _frame_tables(cap: dict[str, Any]) -> list[dict[str, Any]]:
+    """The panel's own display shape: one table per (stored code, ECU),
+    each a list of ``{pid, name, value, unit}`` rows -- built from the raw
+    per-PID ``ops.obd_freeze_frame`` results, never stored twice. Mode 02
+    only ever has one stored frame per ECU regardless of how many codes
+    are stored (a real OBD2 limitation, not a bug here), so every code
+    shares the same rows -- the table is still shown under each code's own
+    heading, since that is what "the full freeze frame for this code"
+    means on the car."""
+    by_ecu: dict[str, dict[str, dict[str, Any]]] = {}
+    for r in cap.get("freeze_raw", []):
+        pid, name = r.get("pid"), r.get("name")
+        for ecu, val in (r.get("by_ecu") or {}).items():
+            if not isinstance(val, dict):
+                continue
+            by_ecu.setdefault(ecu, {})[pid] = {
+                "pid": pid, "name": name or val.get("name"),
+                "value": val.get("value"), "unit": val.get("unit"),
+            }
+    codes = cap.get("codes") or [None]
+    tables: list[dict[str, Any]] = []
+    for code in codes:
+        for ecu, pid_map in by_ecu.items():
+            tables.append({"code": code, "ecu": ecu,
+                           "rows": [pid_map[p] for p in sorted(pid_map)]})
+    return tables
+
+
+def _pids_table(cap: dict[str, Any]) -> list[dict[str, Any]]:
+    """The Mode 01 snapshot's own display shape, same per-ECU grouping as
+    :func:`_frame_tables` (but one reading, not one per code)."""
+    by_ecu: dict[str, dict[str, dict[str, Any]]] = {}
+    for r in cap.get("pid_raw", []):
+        pid, name = r.get("pid"), r.get("name")
+        for ecu, val in (r.get("by_ecu") or {}).items():
+            if not isinstance(val, dict):
+                continue
+            by_ecu.setdefault(ecu, {})[pid] = {
+                "pid": pid, "name": name or val.get("name"),
+                "value": val.get("value"), "unit": val.get("unit"),
+            }
+    return [{"ecu": ecu, "rows": [pid_map[p] for p in sorted(pid_map)]}
+           for ecu, pid_map in by_ecu.items()]
+
+
+def _public(cap: dict[str, Any]) -> dict[str, Any]:
+    """Everything the panel needs, minus internal bookkeeping (lock-free
+    snapshot read of the mutable fields; the thread only ever appends/sets,
+    never removes, so a read mid-capture is safe to show as "so far")."""
+    return {
+        "id": cap["id"], "vin": cap["vin"], "status": cap["status"],
+        "partial": cap["partial"], "started_at": cap["started_at"],
+        "finished_at": cap.get("finished_at"), "codes": cap.get("codes") or [],
+        "dtcs_by_ecu": (cap.get("dtcs_raw") or {}).get("by_ecu", {}),
+        "readiness": cap.get("readiness_raw"),
+        "frame_tables": _frame_tables(cap), "pids_table": _pids_table(cap),
+        "note": cap.get("note") or "", "saved": cap.get("saved", False),
+        "saved_scan_id": cap.get("saved_scan_id"), "error": cap.get("error"),
+    }
+
+
+def _run_capture(capture_id: str) -> None:
+    """The background thread body: every PID in the supported bitmap, read
+    for the Mode 01 snapshot and then the Mode 02 freeze frame, checking
+    the cancel flag between every single adapter call so Stop takes effect
+    within one read, not one whole pass."""
+    with _CAP_LOCK:
+        cap = _CAPTURES.get(capture_id)
+    if cap is None:
+        return
+    cancel = cap["_cancel"]
+
+    def cut() -> bool:
+        if cancel.is_set():
+            cap["partial"] = True
+            return True
+        return False
+
+    try:
+        if cut():
+            return
+        supported = live_ops.obd_supported_pids()
+        by_ecu_pids = {hdr: list(info.get("pids") or [])
+                       for hdr, info in (supported.get("by_ecu") or {}).items()}
+        cap["supported_pids"] = by_ecu_pids
+        all_pids = _union_pids(by_ecu_pids)
+
+        if cut():
+            return
+        cap["readiness_raw"] = live_ops.obd_readiness()
+
+        for pid in all_pids:
+            if cut():
+                return
+            cap["pid_raw"].append(live_ops.obd_pid(pid))
+
+        for pid in all_pids:
+            if cut():
+                return
+            cap["freeze_raw"].append(live_ops.obd_freeze_frame(pid))
+    except LiveError as e:
+        cap["status"], cap["error"] = "error", str(e)
+    except Exception as e:  # noqa: BLE001 -- the thread must never die silently
+        cap["status"], cap["error"] = "error", str(e)
+    finally:
+        if cap["status"] == "running":
+            cap["status"] = "done"
+        cap["finished_at"] = datetime.now().isoformat(timespec="seconds")
+
+
+def freeze_capture_start(vin: str) -> dict[str, Any]:
+    """Start (or restart) a freeze-frame capture for ``vin``: Mode 03
+    stored codes read synchronously (so a poller/MES refusal comes back
+    immediately, before anything else runs), then -- if any code is
+    stored -- supported PIDs, readiness, Mode 01 snapshot and every PID's
+    Mode 02 freeze frame read in a background thread. Raises whatever
+    :func:`cuore.live.ops.obd_dtcs` raises (``Refused``, ``LinkUnavailable``,
+    ...) unchanged; nothing here adds a second guard."""
+    vin = (vin or "").strip()
+    if not vin:
+        raise BadRequest("a VIN is required to start a freeze-frame capture")
+    _reap_expired()
+
+    dtcs_result = live_ops.obd_dtcs(kind="stored")
+    now = datetime.now()
+    cap_id = "ffcap_" + uuid.uuid4().hex[:12]
+    cap: dict[str, Any] = {
+        "id": cap_id, "vin": vin, "status": "running", "partial": False,
+        "started_at": now.isoformat(timespec="seconds"), "finished_at": None,
+        "bus": dtcs_result.get("bus") or "", "cable": dtcs_result.get("cable") or "",
+        "stream": "serial (freeze frame capture)",
+        "codes": sorted(dtcs_result.get("dtcs") or []), "dtcs_raw": dtcs_result,
+        "supported_pids": {}, "freeze_raw": [], "pid_raw": [], "readiness_raw": None,
+        "note": "", "saved": False, "saved_scan_id": None, "error": None,
+        "_cancel": threading.Event(),
+    }
+    if not cap["codes"]:
+        cap["status"] = "done"
+        cap["finished_at"] = now.isoformat(timespec="seconds")
+        cap["note"] = "No stored codes right now; nothing to capture a freeze frame for."
+        with _CAP_LOCK:
+            _CAPTURES[cap_id] = cap
+        return _public(cap)
+
+    with _CAP_LOCK:
+        _CAPTURES[cap_id] = cap
+    thread = threading.Thread(target=_run_capture, args=(cap_id,), daemon=True,
+                              name="cuore-freeze-capture")
+    cap["_thread"] = thread
+    thread.start()
+    return _public(cap)
+
+
+def freeze_capture_status(vin: str, capture_id: str) -> dict[str, Any]:
+    """Poll one capture's progress. Raises :class:`NotFound` for an unknown,
+    expired, or already-discarded id; :class:`BadRequest` for a capture id
+    that belongs to a different VIN (never leaks one car's readings onto
+    another's page)."""
+    cap = _get_capture(capture_id)
+    if cap["vin"] != (vin or "").strip():
+        raise BadRequest(f"capture {capture_id!r} was not taken for {vin!r}")
+    return _public(cap)
+
+
+def freeze_capture_stop(vin: str, capture_id: str) -> dict[str, Any]:
+    """Signal the background thread to stop after its current read; already-
+    read data is kept and the capture ends ``partial``."""
+    cap = _get_capture(capture_id)
+    if cap["vin"] != (vin or "").strip():
+        raise BadRequest(f"capture {capture_id!r} was not taken for {vin!r}")
+    cap["_cancel"].set()
+    return _public(cap)
+
+
+def freeze_capture_discard(vin: str, capture_id: str) -> dict[str, Any]:
+    """Drop an unsaved capture outright -- nothing was ever written to the
+    CUORE log, so there is nothing more to undo than forgetting the id."""
+    cap = _get_capture(capture_id)
+    if cap["vin"] != (vin or "").strip():
+        raise BadRequest(f"capture {capture_id!r} was not taken for {vin!r}")
+    with _CAP_LOCK:
+        _CAPTURES.pop(capture_id, None)
+    return {"id": capture_id, "discarded": True}
+
+
+def freeze_capture_save(vin: str, capture_id: str, note: str = "") -> dict[str, Any]:
+    """Save a finished capture into the CUORE log as from-car observations,
+    and hand back the scan id the Scans area (``/v/{vin}/scans/<id>``)
+    will show it under.
+
+    Refuses (:class:`BadRequest`) a capture that is still ``"running"`` --
+    Stop it or wait first -- and a capture id that belongs to a different
+    VIN. Saving twice is a no-op that returns the same scan id rather than
+    writing the same readings into the log again.
+    """
+    vin = (vin or "").strip()
+    cap = _get_capture(capture_id)
+    if cap["vin"] != vin:
+        raise BadRequest(f"capture {capture_id!r} was not taken for {vin!r}")
+    if cap["status"] == "running":
+        raise BadRequest("this capture is still running; Stop it or wait for it to "
+                         "finish before Save")
+    if cap.get("saved"):
+        return {"id": capture_id, "scan_id": cap["saved_scan_id"], "already_saved": True,
+               "scans_url": f"/v/{vin}/scans/{cap['saved_scan_id']}"}
+
+    common = dict(vin=vin, bus=cap.get("bus") or "", cable=cap.get("cable") or "",
+                  stream=cap.get("stream") or "serial")
+    if cap.get("dtcs_raw"):
+        live_store.record_observation("obd_dtcs", cap["dtcs_raw"], **common)
+    for r in cap.get("freeze_raw", []):
+        live_store.record_observation("freeze_frame", r, **common)
+    for r in cap.get("pid_raw", []):
+        live_store.record_observation("pid", r, **common)
+    if cap.get("readiness_raw"):
+        live_store.record_observation("readiness", cap["readiness_raw"], **common)
+
+    started = _parse_iso(cap["started_at"]) or datetime.now()
+    id_fmt = getattr(scanlog_mod, "ID_FMT", "SCAN_%y%m%d%H%M")
+    scan_id = started.strftime(id_fmt)
+    if scanlog_mod is not None:
+        try:  # best-effort: land on whatever id the real cluster actually got
+            if scanlog_mod.get_scan(vin, scan_id) is None:
+                scans = scanlog_mod.list_scans(vin)
+                if scans:
+                    scan_id = scans[0]["id"]
+        except Exception:  # noqa: BLE001 -- Save must still succeed either way
+            pass
+
+    cap["saved"], cap["saved_scan_id"] = True, scan_id
+    if note:
+        cap["note"] = note
+    return {"id": capture_id, "scan_id": scan_id, "already_saved": False,
+           "scans_url": f"/v/{vin}/scans/{scan_id}"}
+
+
 __all__ = ["NOTICE", "GROUP_ORDER", "GROUP_LABELS", "channel_system", "board",
-          "evaluate", "snapshot_recommendations", "attach_snapshot_to_job"]
+          "evaluate", "snapshot_recommendations", "attach_snapshot_to_job",
+          "freeze_capture_start", "freeze_capture_status", "freeze_capture_stop",
+          "freeze_capture_save", "freeze_capture_discard"]

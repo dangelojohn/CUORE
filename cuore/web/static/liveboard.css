@@ -97,6 +97,68 @@
 }
 .lb-job-line a { color: var(--accent); overflow-wrap: anywhere; }
 
+/* ---------- Freeze frame panel: Start/Stop/Save/Discard, 48px shop-floor
+   buttons (bigger than the 44px live controls above -- this is the one
+   that gets used gloved, mid-diagnosis), Save the lone red primary. Sits
+   above the channel groups, below the live Start/Stop/Snapshot/Demo row.
+   ---------- */
+.ff-panel {
+  margin-top: 16px; padding: 12px; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.ff-head {
+  font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-2); margin-bottom: 10px;
+}
+.ff-controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+.ff-controls form { display: contents; }
+.ff-btn {
+  min-height: 48px; min-width: 48px; padding: 0 22px; font-size: 16px; font-weight: 650;
+  font-family: inherit; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--raised); color: var(--ink); cursor: pointer; flex: 1 1 auto;
+}
+.ff-btn:hover { border-color: var(--ink-3); }
+.ff-btn[disabled] { opacity: .45; cursor: not-allowed; }
+.ff-btn-stop { background: var(--sev-chronic); border-color: var(--sev-chronic); color: #fff; }
+.ff-btn-primary { background: var(--sev-returned); border-color: var(--sev-returned); color: #fff; }
+.ff-btn-primary:hover { filter: brightness(1.08); }
+
+.ff-status {
+  margin-top: 10px; padding: 8px 10px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--rule-soft); color: var(--ink-2);
+  font-size: 14px;
+}
+.ff-status.is-unsaved { border-color: var(--sev-chronic); color: var(--sev-chronic); font-weight: 650; }
+.ff-status.is-error { border-color: var(--sev-returned); color: var(--sev-returned); }
+
+.ff-tables { margin-top: 10px; }
+.ff-frame-table { margin-top: 10px; border: 1px solid var(--rule-soft); border-radius: var(--radius); overflow: hidden; }
+.ff-frame-head {
+  padding: 6px 10px; font-size: 13px; font-weight: 700; color: var(--ink);
+  background: var(--surface); border-bottom: 1px solid var(--rule-soft);
+}
+.ff-frame-head .ff-frame-meta { color: var(--ink-3); font-weight: 500; }
+table.ff-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.ff-table th, table.ff-table td {
+  padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--rule-soft);
+}
+table.ff-table th { color: var(--ink-3); font-weight: 650; font-size: 12px; text-transform: uppercase; }
+table.ff-table td.ff-val { font-family: var(--mono); color: var(--ink); white-space: nowrap; }
+table.ff-table tr:last-child td { border-bottom: none; }
+
+.ff-result {
+  margin-top: 10px; padding: 10px 12px; border: 1px solid var(--ok); border-radius: var(--radius);
+  background: var(--surface); color: var(--ok); font-size: 14px; font-weight: 650;
+}
+.ff-result a { color: var(--accent); margin-left: 6px; }
+.ff-result.is-error { border-color: var(--sev-returned); color: var(--sev-returned); }
+
+@media (max-width: 480px) {
+  .ff-btn { padding: 0 16px; font-size: 15px; }
+  table.ff-table { font-size: 12px; }
+  table.ff-table th, table.ff-table td { padding: 5px 7px; }
+}
+
 /* ---------- groups + digital line items ---------- */
 .lb-groups { margin-top: 16px; }
 .lb-group { margin-bottom: 18px; }

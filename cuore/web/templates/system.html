@@ -334,7 +334,31 @@
   {% else %}
   <p class="small muted">No freeze frame on file for this system's codes.</p>
   {% endif %}
+  {% if view.live_freeze_frames %}
+  <h3 class="subhead">Read from the car {{ view.live_freeze_frames.at_short }}</h3>
+  <ul class="sysd-list sysd-freeze">
+    {% for p in view.live_freeze_frames.params %}
+    <li class="sysd-row"><span>{{ p.name }}</span>
+      <span class="mono">{{ p.value }}{% if p.unit %} {{ p.unit }}{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
 </details>
+
+{% if view.live_mode06 %}
+<details class="panel sysd-section" data-fact="system:{{ view.key }}|mode06" open>
+  <summary><h2 class="sysd-h">Monitor test results (Mode 06) ({{ view.live_mode06.fail_count }} fail)</h2></summary>
+  <p class="small muted">Read from the car {{ view.live_mode06.at_short }}.</p>
+  <ul class="sysd-list">
+    {% for r in view.live_mode06.rows %}
+    <li class="sysd-row {{ 'sysd-ff-hot' if r.passed == false else '' }}">
+      <span>{{ r.name }} (MID {{ r.mid }}/TID {{ r.tid }})</span>
+      <span class="mono">{{ r.value }}{% if r.unit %} {{ r.unit }}{% endif %} -- {{ 'PASS' if r.passed else 'FAIL' }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
 
 </div>
 <script>

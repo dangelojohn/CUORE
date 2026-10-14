@@ -106,6 +106,18 @@ def _fuel_gate(vin: str) -> dict[str, Any]:
         return {}
 
 
+def _from_car(vin: str, dossier: dict[str, Any]) -> dict[str, Any] | None:
+    """A read-only "From the car" strip: this vehicle's latest from-car
+    Mode $06 read, if any. Never marks any catalogue test's own row --
+    see the module docstring's cross-reference to the job-page evidence
+    path, which is the only thing allowed to do that."""
+    try:
+        from . import dossier_bridge
+        return dossier_bridge.build_view(vin, dossier, None).get("mode06")
+    except Exception:  # noqa: BLE001 -- the strip is a nice-to-have
+        return None
+
+
 def _result_entry(vin: str, test_id: str) -> dict[str, Any]:
     entry = checklist_store.get(vin).get(step_id(test_id)) or {}
     result = entry.get("result")
@@ -194,6 +206,7 @@ def build_tests_view(vin: str) -> dict[str, Any]:
         "open_codes": open_codes,
         "open_hypotheses": open_hypotheses_for_form(vin),
         "fuel_gate": fuel_gate,
+        "from_car": _from_car(vin, dossier),
     }
 
 

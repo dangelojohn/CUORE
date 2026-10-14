@@ -254,9 +254,16 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
 
     try:
         dossier = mes_bridge.workup(vin=vin)
-        dview_freeze = dossier_bridge.build_view(vin, dossier, None).get("freeze_frames") or []
+        _dview = dossier_bridge.build_view(vin, dossier, None)
+        dview_freeze = _dview.get("freeze_frames") or []
     except Exception:  # noqa: BLE001
+        _dview = {}
         dview_freeze = []
+    # EVAP only: this car's own from-car Mode $06 read and live freeze-frame
+    # sweep, read tonight -- see dossier_bridge.build_view's own "mode06"/
+    # "live_freeze_frames" keys. Other systems have neither today.
+    live_mode06 = _dview.get("mode06") if key == "evap" else None
+    live_freeze = _dview.get("live_freeze_frames") if key == "evap" else None
     live_values = []
     for ch in rec.get("live_channels") or []:
         try:
@@ -580,6 +587,8 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         "look_at_next": look_at_next,
         "learned": learned,
         "freeze_frames": freeze_frames_view,
+        "live_mode06": live_mode06,
+        "live_freeze_frames": live_freeze,
         "unknown_marker": UNKNOWN_MARKER,
         "attested_footnote": ("Mechanic inputs are attested claims, not car measurements: "
                               "they never replace the knowledge-table value shown beside them "

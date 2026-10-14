@@ -20,6 +20,9 @@
       <ul>
         {% for b in view.verdict.basis %}<li>{{ b }}</li>{% endfor %}
       </ul>
+      {% if view.verdict.mil_on is not none %}
+        <p class="small muted">MIL: {{ "on" if view.verdict.mil_on else "off" }} (from readiness read).</p>
+      {% endif %}
       {% if view.verdict.cleared_at %}
         <p class="small muted">Cleared {{ view.verdict.cleared_at }}{% if view.verdict.cleared_by %} by {{ view.verdict.cleared_by }}{% endif %}.</p>
       {% endif %}

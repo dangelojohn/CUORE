@@ -233,6 +233,302 @@ _t("esim_vacuum_test_a", "ESIM vacuum test (Test A)", "emissions", ["evap"],
   refutes_hypotheses=["ESIM signal path"],
   duration_min=10, hazards=[])
 
+_t("evap_test_a_esim_switch", "wiTECH Test A: ESIM switch", "emissions", ["evap"],
+  _applies(grecale=False),
+  purpose="Make the ESIM's vacuum switch close with a hand pump while watching the "
+          "ECU's own switch reading in wiTECH 2 -- checks the switch, connector, "
+          "wiring and ECU input in one pass without unplugging anything. This is "
+          "the next_test for the 'EVAP: ESIM signal path' hypothesis on the Stelvio "
+          "ZASFAKPN5J7B88115 EVAP case (three clean smoke tests, every EVAP part "
+          "new, P0440/P0455/P0456 still return).",
+  car_state="KOEO",
+  when_to_use="EVAP system already smoke-tested sealed and every EVAP part is new, "
+              "yet P0440/P0455/P0456 keep returning -- run this before the ESIM "
+              "wiring test or any further parts purchase, right after the wiTECH "
+              "flash check.",
+  tools=["wiTECH 2 account, laptop and interface",
+        "hand vacuum pump with a short hose that fits the ESIM's canister-side port",
+        "flat trim tool and torch for the driver-side rear wheel liner"],
+  procedure=[
+      "Park, engine off and cool, park brake on; disconnect MultiEcuScan/cuore so "
+      "only wiTECH is on the OBD port.",
+      "Open the driver-side rear wheel liner; find the ESIM on the vent side of the "
+      "canister. Leave it plugged in; identify its canister-side and fresh-air hoses.",
+      "Connect wiTECH, ignition RUN, engine off; sign in, select the vehicle, "
+      "confirm VIN ZASFAKPN5J7B88115.",
+      "Topology > ECM > live data; search for the ESIM/EVAP pressure or leak-"
+      "detection switch parameter (words: ESIM, EVAP, leak, pressure switch, NVLD) "
+      "and add fuel level too. If no such parameter exists, note it and fall back "
+      "to the ESIM wiring test's meter-based Test B.",
+      "Baseline: nothing on the ESIM hose -- record the switch state (expect open).",
+      "Disconnect the canister-side hose, fit the hand pump, pump slowly and watch "
+      "for wiTECH to show closed; hold ~30 s, then release and confirm it reopens. "
+      "Repeat three times, noting any delay.",
+      "While held closed with vacuum, gently flex the ESIM connector and harness "
+      "along the wheel well; any flicker to open is an intermittent connection.",
+      "Release vacuum, refit the hose and liner, ignition OFF, disconnect wiTECH. "
+      "Do not clear codes.",
+  ],
+  pass_criteria=[_pc(
+      "ESIM/EVAP switch parameter in wiTECH, under hand vacuum",
+      "closes with vacuum, holds closed about 30 s, reopens on release, every run, "
+      "no flicker on wiggle",
+      "", "Stelvio wiTECH Test A - ESIM Switch (repo procedure for VIN "
+          "ZASFAKPN5J7B88115 -- the exact wiTECH parameter name and switch "
+          "threshold are not from an FCA document; search for the parameter and "
+          "apply vacuum gently per the sheet)", UNKNOWN)],
+  fail_means="Never changes: the ECU does not see the switch -- go to the ESIM "
+             "wiring test. Changes but flickers on wiggle: intermittent connector "
+             "or harness fault -- same sheet, steps B1/B5. Closes, holds and "
+             "reopens cleanly every time with no flicker: the whole signal path "
+             "(switch, connector, wiring, ECU input) works, which moves the case to "
+             "the wiTECH flash check / ECM calibration.",
+  related_codes=["P0440", "P0455", "P0456"],
+  supports_hypotheses=["EVAP: ESIM signal path", "EVAP: ECM calibration"],
+  refutes_hypotheses=["EVAP: ESIM signal path"],
+  duration_min=20,
+  safety="Apply vacuum gently by hand; never use shop air on the ESIM. Fuel vapor "
+         "at the canister/wheel well -- no sparks or open flame.",
+  hazards=["fuel vapor"])
+
+_t("esim_bench_test", "ESIM bench test", "emissions", ["evap"],
+  _applies(grecale=False),
+  purpose="Bench-check the ESIM's vacuum switch, internal seal and pressure relief "
+          "off the car, against a new unit where possible, to decide whether the "
+          "ESIM itself (rather than its wiring or the ECM) is at fault.",
+  car_state="key-off",
+  when_to_use="After wiTECH Test A shows the switch never closes, or changes only "
+              "sluggishly/at high vacuum -- before condemning the ESIM on the scan "
+              "tool reading alone.",
+  tools=["multimeter (ohms/continuity)", "hand vacuum pump with short hose",
+        "low-range vacuum gauge or a water manometer", "rubber vacuum caps",
+        "flat trim tool and torch", "a new ESIM for side-by-side comparison "
+        "(optional but best)"],
+  procedure=[
+      "Remove the driver-side rear wheel liner; ignition off; unplug the ESIM "
+      "connector and inspect it for corrosion, water, bent pins or a loose lock.",
+      "Remove the ESIM or free both hoses, marking which port faces the canister "
+      "and which faces fresh air.",
+      "Meter across the switch terminals at atmospheric pressure: expect open "
+      "(OL / no continuity).",
+      "Apply gentle vacuum to the canister-side port (fresh-air side open): the "
+      "switch should close at a small vacuum, hold with the vacuum steady, and "
+      "reopen on release.",
+      "Apply gentle low pressure to the canister-side port: it should vent through "
+      "to the fresh-air side rather than holding.",
+      "With the meter connected and the switch held closed, tap the body and "
+      "wiggle the terminals, watching for a flickering or dropped-out reading.",
+  ],
+  pass_criteria=[_pc(
+      "ESIM bench behavior (rest / vacuum close / hold / release / relief / tap)",
+      "matches a new ESIM at every step; no factory threshold is published for "
+      "this part",
+      "", "Stelvio ESIM Bench Test (repo procedure; FCA bulletin 9100469 confirms "
+          "the ESIM is a separate, individually replaceable part, but publishes "
+          "no bench-test procedure, switch threshold or pinout)", UNKNOWN)],
+  fail_means="Switch never closes, vacuum bleeds away once closed, closes only at "
+             "much higher vacuum than a new unit, or the reading flickers when "
+             "tapped: the ESIM itself is the fault -- replace only the ESIM "
+             "(FCA bulletin 9100469). Behaves like a new unit on every step: the "
+             "ESIM is exonerated and the case moves to its wiring or the ECM "
+             "calibration.",
+  related_codes=["P0440", "P0455", "P0456"],
+  supports_hypotheses=["EVAP: ESIM signal path", "EVAP: ECM calibration"],
+  refutes_hypotheses=["EVAP: ESIM signal path"],
+  duration_min=30,
+  safety="Work outdoors or ventilated, away from sparks/flame; ignition OFF before "
+         "unplugging; apply vacuum/pressure gently -- never shop air, which can "
+         "damage the diaphragm.",
+  hazards=["fuel vapor"])
+
+_t("esim_wiring_test", "ESIM wiring test", "electrical", ["evap", "electrical_supply"],
+  _applies(grecale=False),
+  purpose="Trace the ESIM switch's signal and ground circuit from the ESIM "
+          "connector to the ECM -- connector condition, signal reference voltage, "
+          "ground, end-to-end resistance and a jumper test -- to localise a fault "
+          "that wiTECH Test A showed but a bench test of the ESIM itself cleared.",
+  car_state="KOEO",
+  when_to_use="Run only after the wiTECH flash check and Test A: if Test A never "
+              "changes or flickers, and no ESIM circuit DTC (e.g. P24D6) has set "
+              "(pointing at intermittent/high-resistance rather than a clean "
+              "break), this sheet isolates where in the circuit the fault is.",
+  tools=["digital multimeter with back-probe pins or a breakout lead",
+        "hand vacuum pump and short hose", "fused jumper lead (low-amp fuse)",
+        "the FCA wiring diagram for this VIN (connector/pin IDs, wire colours, "
+        "reference voltage -- fill in before testing; see the Stelvio ESIM "
+        "Wiring Diagram Lookup sheet)"],
+  procedure=[
+      "B1 Connector: ignition OFF, unplug the ESIM; check for corrosion, water, "
+      "bent/pushed-back pins, loose terminal grip, and harness chafe at the "
+      "wheel-well edge.",
+      "B2 Signal reference: connector unplugged, ignition RUN; harness-side signal "
+      "pin to chassis ground should read the diagram's reference voltage (0 V = "
+      "open/not driven; battery voltage where a low reference is expected = short "
+      "to power).",
+      "B3 Ground: harness-side ground pin to battery negative -- near 0 V "
+      "(ignition RUN) and a few ohms or less (ignition OFF).",
+      "B4 End to end: battery negative disconnected, ECU connector unplugged; each "
+      "wire ESIM pin to ECU pin should read a fraction of an ohm (several ohms = "
+      "high resistance, OL = break); each wire to ground/B+ should be open. "
+      "Reconnect ECU, battery last.",
+      "B5 Jumper: battery on, ignition RUN, ESIM unplugged, wiTECH ECM data "
+      "display open; fused jumper from signal pin to ground pin (what a closed "
+      "switch does) should make wiTECH show closed; wiggle the harness while "
+      "watching for a flicker.",
+  ],
+  pass_criteria=[_pc(
+      "ESIM signal/ground circuit (B2-B5) against the FCA wiring diagram for "
+      "this VIN",
+      "see the FCA wiring diagram for this VIN -- pin IDs, wire colours and "
+      "reference voltage are not published in this catalogue", "",
+      TECHAUTHORITY, UNKNOWN)],
+  fail_means="B5 stays open with a good B2-B4: fault is in the ECU input itself. "
+             "B2/B3/B4 out of range: open, short or high resistance in that "
+             "circuit -- repair with an FCA-approved terminal/splice repair. "
+             "Flicker on wiggle: intermittent connector or chafe point. B5 shows "
+             "closed while Test A failed: wiring and ECU input are good and the "
+             "ESIM switch/contacts are the fault -- bench-test or replace.",
+  related_codes=["P0440", "P0455", "P0456"],
+  supports_hypotheses=["EVAP: ESIM signal path"],
+  refutes_hypotheses=["EVAP: ESIM signal path"],
+  duration_min=40,
+  safety="Back-probe only, never spread terminals; battery negative OFF before "
+         "unplugging the ECU; use a fused jumper; fuel vapor at the canister -- "
+         "no sparks.",
+  hazards=["fuel vapor", "electrical"])
+
+_t("witech_flash_check", "wiTECH ECM flash check", "emissions", ["evap"],
+  _applies(grecale=False),
+  purpose="Compare the ECM's Current ECU Part Number against wiTECH's New ECU Part "
+          "Number on the Flash tab to decide, in minutes, whether an EVAP-relevant "
+          "calibration update is even outstanding before chasing hardware.",
+  car_state="KOEO",
+  when_to_use="First decisive step on the EVAP fault tree once smoke tests show the "
+              "system sealed -- before wiTECH Test A, the ESIM bench test or the "
+              "wiring test, since a 'different' result sends the case straight to "
+              "the ECM flash repair instead.",
+  tools=["wiTECH 2 account, laptop and MicroPod II (or wiTECH-supported) interface",
+        "stand-alone voltmeter"],
+  procedure=[
+      "Connect the wiTECH interface; ignition RUN, engine off.",
+      "Sign in to wiTECH 2, select the vehicle, confirm the VIN.",
+      "Topology > ECM > Flash tab.",
+      "Compare Current ECU Part Number with New ECU Part Number; record both.",
+  ],
+  pass_criteria=[_pc(
+      "ECM Current ECU Part Number vs New ECU Part Number on the wiTECH Flash tab",
+      "Current already equals New -- the ECM is on the latest calibration in the "
+      "18-030-17-family flash",
+      "", "TSB 18-030-17 REV. B (PCM flash family whose fixed-DTC lists include "
+          "P0440/P0441/P0455/P0456; applies to Giulia/Stelvio) -- compared "
+          "against the wiTECH Flash tab reading taken on this VIN", CONFIRMED)],
+  fail_means="Current differs from New: a newer calibration exists and has not "
+             "been applied -- proceed to the ECM flash repair step before any "
+             "further EVAP hardware is condemned. Current equals New and the "
+             "codes still return: the software lead is closed -- proceed to "
+             "wiTECH Test A.",
+  related_codes=["P0440", "P0455", "P0456"],
+  supports_hypotheses=["EVAP: ECM calibration"],
+  refutes_hypotheses=["EVAP: ECM calibration"],
+  duration_min=10, hazards=[])
+
+_t("ecm_flash", "ECM flash procedure (wiTECH)", "emissions", ["evap"],
+  _applies(giulia=False, grecale=False),
+  purpose="Repair step, not a diagnostic test: reprogram the PCM to the newest "
+          "calibration, then run the PROXI Alignment and Phonic Wheel Replacement "
+          "routines the flash requires, exactly as FCA's own dealer instructions "
+          "specify for this car.",
+  car_state="KOEO",
+  when_to_use="Only after the wiTECH flash check finds Current ECU Part Number "
+              "different from New -- this is the fix, run once that check says a "
+              "newer calibration exists.",
+  tools=["wiTECH 2 account, laptop and MicroPod II (or wiTECH-supported) interface",
+        "battery charger/maintainer able to hold 13.2-13.5 V",
+        "stand-alone voltmeter (not the charger's own meter)"],
+  procedure=[
+      "Connect a charger and confirm 13.2-13.5 V at the battery with a stand-alone "
+      "voltmeter; keep it there for the whole procedure.",
+      "Connect the wiTECH interface; ignition RUN, engine off; sign in, select the "
+      "vehicle, confirm the VIN.",
+      "Topology > ECM > Flash tab; confirm Current differs from New (if not, stop "
+      "-- nothing to flash).",
+      "Accept the flash agreement, select Flash ECU, follow the on-screen steps to "
+      "completion (about 8 minutes); watch the voltmeter throughout and never "
+      "interrupt the flash -- if it aborts, restart it.",
+      "BCM > Misc. Functions > PROXI Alignment.",
+      "View DTCs; Topology > Action Items > All DTCs > Clear All DTCs (the flash "
+      "sets codes in other modules -- expected).",
+      "ECM > Misc. Functions > Phonic Wheel Replacement, to completion -- if "
+      "skipped or done wrong, DTC P1300 stays active.",
+      "Clear All DTCs again; re-open the ECM Flash tab and confirm Current now "
+      "equals New.",
+      "BCM Flash tab: update the BCM too if its Current differs from New.",
+      "Ignition OFF, disconnect wiTECH, remove the charger.",
+  ],
+  pass_criteria=[_pc(
+      "ECM Current ECU Part Number after the flash, plus PROXI Alignment and "
+      "Phonic Wheel Replacement completion",
+      "Current equals New; both routines completed; no P1300 after the flash",
+      "", "FCA US LLC Customer Satisfaction Notification W05 (March 2020) and "
+          "TSB 18-026-20 (March 25, 2020), 2018 GU Stelvio 2.0L EC2", CONFIRMED)],
+  fail_means="Flash does not complete, P1300 sets (Phonic Wheel step missed or "
+             "wrong), or P0440/P0455/P0456 return after several verification "
+             "drives (fuel 15-85%, cold starts) with the ECM now current -- the "
+             "ECM calibration hypothesis is then disconfirmed for this code "
+             "family and the case returns to the ESIM signal path.",
+  related_codes=["P0440", "P0455", "P0456"],
+  supports_hypotheses=["EVAP: ECM calibration"],
+  refutes_hypotheses=["EVAP: ECM calibration"],
+  duration_min=45,
+  safety="Battery charger must hold 13.2-13.5 V for the whole flash (add electrical "
+         "load, e.g. lights/blower, if it reads high); never interrupt the flash; "
+         "only the wiTECH interface on the OBD port.",
+  hazards=["electrical"])
+
+_t("evap_mode06_review", "EVAP Mode $06 review", "emissions", ["evap"],
+  _applies(),
+  purpose="Read-only interpretation of the ECU's own on-board EVAP monitor test "
+          "results (OBDMIDs 0x39/0x3A/0x3C/0x3D) against its own stored pass/fail "
+          "limits, rather than a binary DTC -- turns 'no code yet' into 'test ran, "
+          "measured X against limit Y', without substituting any number of this "
+          "catalogue's own.",
+  car_state="KOEO",
+  when_to_use="Alongside or after the other EVAP tests, whenever a from-car Mode "
+              "$06 read is available, to see the ECU's own measured leak-test "
+              "values rather than only the DTC bucket.",
+  tools=["MCP obd2 read_mode06 tool, or cuore's /live/obd/mode06 route "
+        "(cuore.live.mode06) -- read-only, no actuation"],
+  procedure=[
+      "Confirm the car has driven since the last code clear, with fuel in the "
+      "15-85% window and at least one cold start, so the EVAP monitors have had "
+      "a chance to run.",
+      "Run Mode 06 (MCP obd2 read_mode06, or GET /live/obd/mode06) over the OBD "
+      "port.",
+      "Read OBDMID 0x39 (EVAP monitor, cap off / gross leak), 0x3A (0.090\" leak), "
+      "0x3C (0.020\" leak) and 0x3D (EVAP purge flow monitor) -- each record's "
+      "measured value and its own min/max limits exactly as the ECU reports them.",
+      "Note which MIDs responded with data, which came back NO DATA, and which "
+      "got a negative response (not supported) -- never guess a missing one.",
+      "Read the result together with the active/pending/permanent DTCs for the "
+      "same drive cycle, not alone.",
+  ],
+  pass_criteria=[_pc(
+      "EVAP OBDMID 0x39/0x3A/0x3C/0x3D measured value vs. min/max limit",
+      "limits come from the car -- read the ECU's own min/max fields in the Mode "
+      "$06 reply; no figure is published in this catalogue",
+      "", "SAE J1979 Appendix D / ISO 15031-5 OBDMID definitions "
+          "(cuore.live.mode06.OBDMID_NAMES); numeric limits are the ECU's own, "
+          "not a document figure", UNKNOWN)],
+  fail_means="A MID whose measured value falls outside its own reported min/max "
+             "window is a failed on-board monitor for that leak size or purge "
+             "flow -- corroborating evidence either for an active leak (ESIM "
+             "signal path) or for a calibration-level false fail, never decisive "
+             "alone.",
+  related_codes=["P0440", "P0455", "P0456"],
+  supports_hypotheses=["EVAP: ESIM signal path", "EVAP: ECM calibration"],
+  refutes_hypotheses=["EVAP: ESIM signal path", "EVAP: ECM calibration"],
+  duration_min=10, hazards=[])
+
 _t("fuel_trim_o2_observation", "Fuel trim / O2 sensor observation", "fuel",
   ["fuel", "engine_management"], _applies(),
   purpose="Watch live short/long-term fuel trim and O2 sensor voltage to spot a lean "

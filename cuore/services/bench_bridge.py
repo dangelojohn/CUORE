@@ -754,6 +754,7 @@ def build_bench(vin: str) -> dict[str, Any]:
         "case_hint": _case_hint(vin, open_codes),
         "fuel_gate": _fuel_gate(vin, view.get("freeze_frames") or []),
         "readiness": dossier_bridge.readiness_panel(vin, dossier),
+        "mode06": view.get("mode06"),
         "live_status": live_status,
         "scanner_label": scanner_label(live_status),
         "blocker_banner": _blocker_banner(verdict),

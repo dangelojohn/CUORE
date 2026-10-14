@@ -124,6 +124,13 @@ def _evap_suggestions(vin: str, view: dict[str, Any]) -> list[dict[str, Any]]:
     ]
     esim_evidence_for += actuator_evidence
 
+    mode06 = view.get("mode06") or {}
+    mode06_evidence = [
+        _ref("measurement", f"mode06-{f['mid']}", f["label"])
+        for f in mode06.get("fails", [])
+    ]
+    esim_evidence_for += mode06_evidence
+
     calibration_bulletins = [b for b in bulletins
                              if "calib" in (b.get("title") or "").lower()
                              or "calib" in (b.get("action") or "").lower()]

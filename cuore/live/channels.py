@@ -33,11 +33,21 @@ MED_HZ = 1.0
 SLOW_HZ = 0.5
 
 #: PIDs worth sampling quickly -- the ones that change fast enough to matter
-#: for a live dashboard (RPM, speed, throttle).
-_FAST_PIDS = {"engine_rpm", "vehicle_speed", "throttle_position"}
+#: for a live dashboard (RPM, speed, throttle). ``throttle_b``/
+#: ``accel_pedal_d``/``accel_pedal_e`` (new J1979 PIDs 47/49/4A) are added
+#: here on the same reasoning as ``throttle_position`` -- pedal/throttle
+#: position tracks driver input in real time. Harmless if the decoder for
+#: one of these names has not landed in ``cuore.live.obd`` yet: this set is
+#: just names, consulted only once the matching PID channel exists.
+_FAST_PIDS = {"engine_rpm", "vehicle_speed", "throttle_position",
+             "throttle_b", "accel_pedal_d", "accel_pedal_e"}
 #: Slow-moving readings: temperatures, ambient/barometric pressure, fuel level.
+#: ``intake_air_temp_b1`` (PID 68), ``egr_temp`` (PID 6B) and
+#: ``catalyst_temp_b1s1`` (PID 3C) are new J1979 temperature PIDs added on
+#: the same reasoning as ``intake_air_temp``/``engine_oil_temp`` above.
 _SLOW_PIDS = {"engine_coolant_temp", "intake_air_temp", "ambient_air_temp",
-             "barometric_pressure", "fuel_level", "engine_oil_temp"}
+             "barometric_pressure", "fuel_level", "engine_oil_temp",
+             "intake_air_temp_b1", "egr_temp", "catalyst_temp_b1s1"}
 
 #: Modules whose catalogued DIDs are worth exposing as channels.
 DID_MODULES: tuple[str, ...] = ("ECM", "TCM", "BCM", "IPC", "RFHUB")
@@ -162,6 +172,34 @@ def _did_channels() -> list[Channel]:
     return out
 
 
+#: Sentinel used by a placeholder channel's ``did`` field to mean "no real
+#: DID exists -- never poll this". A real catalogued DID is always nonzero,
+#: so 0 is safe as a deliberate "unknown" marker (see :func:`resolve_channels`,
+#: which refuses to add any channel using this sentinel to a poll list).
+UNKNOWN_DID = 0
+
+#: ``cuore.live.did_catalog``'s own research note: the EVAP vent/canister
+#: actuator is exposed on this car as an "ESIM" (Evaporative System
+#: Integrity Monitor) UDS 0x31 RoutineControl, not a readable DID -- and
+#: RoutineControl is a write service, refused outright by
+#: ``assert_read_only_uds`` before a byte leaves the adapter. There is no
+#: DID to catalogue, so this is a documented placeholder, not a real
+#: channel: present in the registry (so it is visible and self-explaining
+#: rather than silently missing) but never pollable (``did=UNKNOWN_DID``;
+#: :func:`resolve_channels` refuses it) and never added to any preset.
+def _placeholder_channels() -> list[Channel]:
+    return [
+        Channel(id="esim_status", name="ESIM status (no readable DID)", unit="",
+               kind="did", bus="can_c", confidence="unknown_did",
+               default_rate_hz=SLOW_HZ, module="ECM", did=UNKNOWN_DID,
+               note="ESIM (Evaporative System Integrity Monitor) is exposed only "
+                    "as a UDS 0x31 RoutineControl, not a readable DID, per "
+                    "cuore.live.did_catalog's own research note -- refused by "
+                    "assert_read_only_uds before a byte leaves the adapter. "
+                    "Placeholder only: resolve_channels() refuses to poll it."),
+    ]
+
+
 def _computed_channels() -> list[Channel]:
     return [
         Channel(id="boost", name="boost (MAP - baro)", unit="kPa", kind="computed",
@@ -174,7 +212,8 @@ def _computed_channels() -> list[Channel]:
 
 
 def _builtin_channels() -> list[Channel]:
-    return _pid_channels() + _did_channels() + [_battery_channel()] + _computed_channels()
+    return (_pid_channels() + _did_channels() + [_battery_channel()]
+           + _computed_channels() + _placeholder_channels())
 
 
 def builtin_channel_ids() -> set[str]:
@@ -237,6 +276,11 @@ PRESETS: dict[str, tuple[str, ...]] = {
     "tpms": ("rfhub_40b1_pressure", "rfhub_40b1_temp", "rfhub_40b2_pressure",
             "rfhub_40b2_temp", "rfhub_40b3_pressure", "rfhub_40b3_temp",
             "rfhub_40b4_pressure", "rfhub_40b4_temp"),
+    # Deliberately omits "esim_status": no DID exists for it (see
+    # _placeholder_channels), and resolve_channels() refuses to poll it --
+    # a preset listing it would make this whole preset unresolvable.
+    "evap_test_a": ("fuel_level", "commanded_evap_purge", "evap_vapor_pressure_abs",
+                    "engine_rpm", "engine_coolant_temp"),
 }
 
 
@@ -267,6 +311,10 @@ def resolve_channels(channel_ids: Optional[list[str]] = None, preset: str = "") 
         if cid in seen:
             return
         ch = by_id(cid)
+        if ch.kind == "did" and ch.did == UNKNOWN_DID:
+            raise BadCommand(
+                f"channel {cid!r} has no readable DID ({ch.note or 'unknown DID'}); "
+                "it cannot be polled")
         seen.add(cid)
         for dep in ch.depends_on:
             add(dep)
@@ -426,4 +474,4 @@ def eval_expr(expr: str, values: dict[str, float]) -> float:
 __all__ = ["Channel", "available_channels", "registry", "invalidate_registry",
           "builtin_channel_ids", "by_id", "PRESETS", "presets",
           "resolve_channels", "ComputedError", "eval_expr", "DID_MODULES",
-          "FAST_HZ", "MED_HZ", "SLOW_HZ"]
+          "FAST_HZ", "MED_HZ", "SLOW_HZ", "UNKNOWN_DID"]

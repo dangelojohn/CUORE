@@ -723,3 +723,333 @@
   global.CuoreLiveboard.FIXTURE_GROUPS = FIXTURE_GROUPS;
 
 })(typeof window !== "undefined" ? window : globalThis);
+
+/* ---------------------------------------------------------------------------
+ * Freeze frame panel -- Start/Stop a server-side capture (Mode 03 stored
+ * codes, then every supported PID's freeze frame + a Mode 01 snapshot, plus
+ * readiness; cuore/services/liveboard_bridge.py's freeze_capture_* group),
+ * show it unsaved on the page, Save it into the CUORE log.
+ *
+ * Deliberately its own small IIFE/global (CuoreFreezeFrame), independent of
+ * CuoreLiveboard above: the panel doesn't need the channel/band contract or
+ * the live-session plumbing, just its own four endpoints under
+ * /api/liveboard/{vin}/freeze/*. Start/Stop/polling need JS; Save is a real
+ * <form> (#ff-save-form) so it still works with JS off -- this module only
+ * intercepts that submit for a nicer inline result when JS *is* available.
+ * ---------------------------------------------------------------------------
+ */
+(function (global) {
+  "use strict";
+
+  var POLL_MS = 600;
+
+  function FreezeFramePanel(opts) {
+    opts = opts || {};
+    this.fetchFn = opts.fetch || (global.fetch ? global.fetch.bind(global) : null);
+    this.doc = opts.document || document;
+    this.root = opts.root || this.doc.getElementById("ff-panel");
+    this.vin = opts.vin || (this.root && this.root.getAttribute("data-vin")) || "";
+    this.token = opts.token || this._tokenFromLocation();
+    this.captureId = null;
+    this._pollTimer = null;
+  }
+
+  FreezeFramePanel.prototype._tokenFromLocation = function () {
+    try {
+      var q = new URLSearchParams(global.location.search);
+      return q.get("token") || "";
+    } catch (e) { return ""; }
+  };
+
+  FreezeFramePanel.prototype.apiUrl = function (path) {
+    if (!this.token) return path;
+    return path + (path.indexOf("?") === -1 ? "?" : "&") + "token=" + encodeURIComponent(this.token);
+  };
+
+  FreezeFramePanel.prototype.api = function (path, options) {
+    var self = this;
+    options = options || {};
+    if (!this.fetchFn) return Promise.reject(new Error("no fetch available"));
+    return this.fetchFn(this.apiUrl(path), options).then(function (resp) {
+      return resp.text().then(function (text) {
+        var body = null;
+        try { body = text ? JSON.parse(text) : null; } catch (e) { body = text; }
+        if (!resp.ok) {
+          var err = new Error((body && body.detail) || resp.statusText || ("HTTP " + resp.status));
+          err.status = resp.status; err.body = body;
+          throw err;
+        }
+        return body;
+      });
+    });
+  };
+
+  FreezeFramePanel.prototype._el = function (id) { return this.doc.getElementById(id); };
+
+  FreezeFramePanel.prototype.init = function () {
+    var self = this;
+    var startBtn = this._el("ff-start");
+    var stopBtn = this._el("ff-stop");
+    var discardBtn = this._el("ff-discard");
+    var saveForm = this._el("ff-save-form");
+    if (startBtn) startBtn.addEventListener("click", function () { self.start(); });
+    if (stopBtn) stopBtn.addEventListener("click", function () { self.stop(); });
+    if (discardBtn) discardBtn.addEventListener("click", function () { self.discard(); });
+    if (saveForm) saveForm.addEventListener("submit", function (ev) { self._onSaveSubmit(ev); });
+  };
+
+  // ---- Start / poll / Stop ------------------------------------------------
+
+  FreezeFramePanel.prototype.start = function () {
+    var self = this;
+    var startBtn = this._el("ff-start");
+    if (startBtn) { startBtn.disabled = true; startBtn.textContent = "Capturing…"; }
+    this._clearResult();
+    this._setStatus("Capturing…", false);
+    return this.api("/api/liveboard/" + encodeURIComponent(this.vin) + "/freeze/capture",
+      { method: "POST" })
+      .then(function (cap) {
+        self.captureId = cap.id;
+        self._render(cap);
+        if (cap.status === "running") {
+          self._showStop(true);
+          self._poll();
+        } else {
+          self._onCaptureSettled(cap);
+        }
+      })
+      .catch(function (err) {
+        if (startBtn) { startBtn.disabled = false; startBtn.textContent = "Start"; }
+        self._setStatus("Could not start the capture: " + (err && err.message ? err.message : err), true);
+      });
+  };
+
+  FreezeFramePanel.prototype._poll = function () {
+    var self = this;
+    this._pollTimer = global.setTimeout(function () {
+      if (!self.captureId) return;
+      self.api("/api/liveboard/" + encodeURIComponent(self.vin) + "/freeze/status" +
+               "?capture_id=" + encodeURIComponent(self.captureId))
+        .then(function (cap) {
+          self._render(cap);
+          if (cap.status === "running") {
+            self._poll();
+          } else {
+            self._onCaptureSettled(cap);
+          }
+        })
+        .catch(function (err) {
+          self._setStatus("Lost the capture: " + (err && err.message ? err.message : err), true);
+        });
+    }, POLL_MS);
+  };
+
+  FreezeFramePanel.prototype.stop = function () {
+    if (!this.captureId) return Promise.resolve();
+    var self = this;
+    var stopBtn = this._el("ff-stop");
+    if (stopBtn) stopBtn.disabled = true;
+    return this.api("/api/liveboard/" + encodeURIComponent(this.vin) + "/freeze/stop",
+      { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ capture_id: this.captureId }) })
+      .catch(function () { /* the next poll tick will show the real state either way */ });
+  };
+
+  FreezeFramePanel.prototype._onCaptureSettled = function (cap) {
+    var startBtn = this._el("ff-start");
+    var stopBtn = this._el("ff-stop");
+    if (startBtn) { startBtn.disabled = false; startBtn.textContent = "Start"; }
+    this._showStop(false);
+    if (cap.error) {
+      this._setStatus("Capture error: " + cap.error, true);
+      return;
+    }
+    if (!cap.codes || !cap.codes.length) {
+      this._setStatus(cap.note || "No stored codes right now; nothing captured.", false);
+      return;
+    }
+    var label = cap.partial
+      ? "Capture stopped early (partial) — Not saved yet."
+      : "Capture complete — Not saved yet.";
+    this._setStatus(label, false, true);
+    this._el("ff-discard").hidden = false;
+    var saveBtn = this._el("ff-save");
+    if (saveBtn) {
+      saveBtn.hidden = false;
+      this._el("ff-save-capture-id").value = cap.id;
+    }
+  };
+
+  // ---- Discard -------------------------------------------------------------
+
+  FreezeFramePanel.prototype.discard = function () {
+    if (!this.captureId) return Promise.resolve();
+    var self = this;
+    return this.api("/api/liveboard/" + encodeURIComponent(this.vin) + "/freeze/discard",
+      { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ capture_id: this.captureId }) })
+      .catch(function () { /* discarding a capture that already expired is fine too */ })
+      .then(function () { self._reset(); });
+  };
+
+  FreezeFramePanel.prototype._reset = function () {
+    this.captureId = null;
+    if (this._pollTimer) { global.clearTimeout(this._pollTimer); this._pollTimer = null; }
+    this._showStop(false);
+    this._el("ff-discard").hidden = true;
+    var saveBtn = this._el("ff-save");
+    if (saveBtn) saveBtn.hidden = true;
+    this._el("ff-save-capture-id").value = "";
+    var tables = this._el("ff-tables");
+    if (tables) { tables.hidden = true; tables.innerHTML = ""; }
+    var status = this._el("ff-status");
+    if (status) status.hidden = true;
+    this._clearResult();
+  };
+
+  // ---- Save (works with JS off too -- this just makes it inline) ----------
+
+  FreezeFramePanel.prototype._onSaveSubmit = function (ev) {
+    if (!this.fetchFn || !global.FormData) return; // let the native form post happen
+    ev.preventDefault();
+    var self = this;
+    var form = this._el("ff-save-form");
+    var saveBtn = this._el("ff-save");
+    if (saveBtn) saveBtn.disabled = true;
+    this.fetchFn(form.action, { method: "POST", body: new FormData(form) })
+      .then(function (resp) {
+        return resp.text().then(function (text) {
+          var body = null;
+          try { body = text ? JSON.parse(text) : null; } catch (e) { body = text; }
+          if (!resp.ok) {
+            var err = new Error((body && body.detail) || resp.statusText);
+            err.body = body; throw err;
+          }
+          return body;
+        });
+      })
+      .then(function (saved) { self._renderSaved(saved); })
+      .catch(function (err) {
+        if (saveBtn) saveBtn.disabled = false;
+        self._renderSaveError(err);
+      });
+  };
+
+  FreezeFramePanel.prototype._renderSaved = function (saved) {
+    var saveBtn = this._el("ff-save");
+    var discardBtn = this._el("ff-discard");
+    if (saveBtn) saveBtn.hidden = true;
+    if (discardBtn) discardBtn.hidden = true;
+    this._setStatus("Saved to the CUORE log.", false);
+    var el = this._el("ff-result");
+    if (!el) return;
+    el.hidden = false;
+    el.classList.remove("is-error");
+    el.innerHTML = "";
+    el.appendChild(this.doc.createTextNode(
+      "Saved to the CUORE log — " + (saved && saved.scan_id || "")));
+    var a = this.doc.createElement("a");
+    a.href = (saved && saved.scans_url) || ("/v/" + encodeURIComponent(this.vin) + "/scans/" +
+      encodeURIComponent((saved && saved.scan_id) || ""));
+    a.textContent = "open in Scans";
+    el.appendChild(this.doc.createTextNode(" · "));
+    el.appendChild(a);
+  };
+
+  FreezeFramePanel.prototype._renderSaveError = function (err) {
+    var el = this._el("ff-result");
+    if (!el) return;
+    el.hidden = false;
+    el.classList.add("is-error");
+    el.textContent = "Save failed: " + (err && err.message ? err.message : err);
+  };
+
+  // ---- rendering -----------------------------------------------------------
+
+  FreezeFramePanel.prototype._showStop = function (show) {
+    var stopBtn = this._el("ff-stop");
+    if (!stopBtn) return;
+    stopBtn.hidden = !show;
+    stopBtn.disabled = false;
+  };
+
+  FreezeFramePanel.prototype._setStatus = function (text, isError, isUnsaved) {
+    var el = this._el("ff-status");
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = text;
+    el.classList.toggle("is-error", !!isError);
+    el.classList.toggle("is-unsaved", !!isUnsaved);
+  };
+
+  FreezeFramePanel.prototype._clearResult = function () {
+    var el = this._el("ff-result");
+    if (el) { el.hidden = true; el.textContent = ""; el.classList.remove("is-error"); }
+  };
+
+  function fmtVal(v) {
+    if (typeof v === "number") return (Math.round(v * 100) / 100).toString();
+    return v === null || v === undefined ? "—" : String(v);
+  }
+
+  // One table per {code, ecu} -- PID, name, value, unit -- captioned with
+  // the capture time and the "read from the car" label the owner asked for
+  // explicitly (this is live-adapter data, never a replay/demo value).
+  FreezeFramePanel.prototype._render = function (cap) {
+    var wrap = this._el("ff-tables");
+    if (!wrap) return;
+    var rowsAny = (cap.frame_tables || []).some(function (t) { return (t.rows || []).length; });
+    if (!rowsAny) { wrap.hidden = true; wrap.innerHTML = ""; return; }
+    wrap.hidden = false;
+    wrap.innerHTML = "";
+    var self = this;
+    (cap.frame_tables || []).forEach(function (t) {
+      if (!t.rows || !t.rows.length) return;
+      var box = self.doc.createElement("div");
+      box.className = "ff-frame-table";
+      var head = self.doc.createElement("div");
+      head.className = "ff-frame-head";
+      var codeLabel = t.code ? ("Freeze frame — " + t.code) : "Freeze frame";
+      head.appendChild(self.doc.createTextNode(codeLabel + (t.ecu ? " (" + t.ecu + ")" : "") + " "));
+      var meta = self.doc.createElement("span");
+      meta.className = "ff-frame-meta";
+      meta.textContent = "captured " + (cap.started_at || "") + " — read from the car";
+      head.appendChild(meta);
+      box.appendChild(head);
+      var table = self.doc.createElement("table");
+      table.className = "ff-table";
+      var thead = self.doc.createElement("tr");
+      ["PID", "Name", "Value", "Unit"].forEach(function (h) {
+        var th = self.doc.createElement("th");
+        th.textContent = h;
+        thead.appendChild(th);
+      });
+      table.appendChild(thead);
+      t.rows.forEach(function (r) {
+        var tr = self.doc.createElement("tr");
+        var tdPid = self.doc.createElement("td"); tdPid.textContent = r.pid || "";
+        var tdName = self.doc.createElement("td"); tdName.textContent = r.name || "";
+        var tdVal = self.doc.createElement("td"); tdVal.className = "ff-val";
+        tdVal.textContent = fmtVal(r.value);
+        var tdUnit = self.doc.createElement("td"); tdUnit.textContent = r.unit || "";
+        tr.appendChild(tdPid); tr.appendChild(tdName); tr.appendChild(tdVal); tr.appendChild(tdUnit);
+        table.appendChild(tr);
+      });
+      box.appendChild(table);
+      wrap.appendChild(box);
+    });
+  };
+
+  var panel = null;
+
+  function init(opts) {
+    panel = new FreezeFramePanel(opts);
+    global.CuoreFreezeFrame.panel = panel;
+    return panel.init();
+  }
+
+  global.CuoreFreezeFrame = global.CuoreFreezeFrame || {};
+  global.CuoreFreezeFrame.init = init;
+  global.CuoreFreezeFrame.FreezeFramePanel = FreezeFramePanel;
+
+})(typeof window !== "undefined" ? window : globalThis);

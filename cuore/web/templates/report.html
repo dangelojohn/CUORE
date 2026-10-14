@@ -24,6 +24,9 @@
       {% if view.verdict.basis %}
         <ul class="small">{% for b in view.verdict.basis %}<li>{{ b }}</li>{% endfor %}</ul>
       {% endif %}
+      {% if view.verdict.mil_on is not none %}
+        <p class="small muted">MIL: {{ "on" if view.verdict.mil_on else "off" }} (from readiness read).</p>
+      {% endif %}
       {% if view.verdict.cleared_at %}
         <p class="small muted">Cleared {{ view.verdict.cleared_at }}{% if view.verdict.cleared_by %} by {{ view.verdict.cleared_by }}{% endif %}.</p>
       {% endif %}
@@ -124,6 +127,16 @@
 
   <section id="freeze-frames">
     <h2>Freeze frames</h2>
+    {% if view.live_freeze_frames %}
+      <div class="rpt-card">
+        <h4 class="mono">Read from the car {{ view.live_freeze_frames.at_short }}</h4>
+        <table class="rpt-table"><tbody>
+          {% for p in view.live_freeze_frames.params %}
+          <tr><td>{{ p.name }}</td><td class="mono">{{ p.value }}{% if p.unit %} {{ p.unit }}{% endif %}{% if p.dtc %} <span class="small muted">({{ p.dtc }})</span>{% endif %}</td></tr>
+          {% endfor %}
+        </tbody></table>
+      </div>
+    {% endif %}
     {% for ff in view.freeze_frames %}
       <div class="rpt-card">
         <h4 class="mono">{{ ff.code }}{% if ff.set_km_ago is not none %} <span class="small muted">set {{ ff.set_km_ago }} km ago</span>{% endif %}</h4>
@@ -134,9 +147,31 @@
         </tbody></table>
       </div>
     {% else %}
+      {% if not view.live_freeze_frames %}
       <p class="muted small">No freeze frames captured.</p>
+      {% endif %}
     {% endfor %}
   </section>
+
+  {% if view.mode06 %}
+  <section id="mode06">
+    <h2>Monitor test results (Mode 06)</h2>
+    <p class="small muted">Read from the car {{ view.mode06.at_short }}.</p>
+    <table class="rpt-table">
+      <thead><tr><th>MID</th><th>TID</th><th>Test</th><th>Value</th><th>Min</th><th>Max</th><th>Result</th></tr></thead>
+      <tbody>
+        {% for r in view.mode06.rows %}
+        <tr>
+          <td class="mono">{{ r.mid }}</td><td class="mono">{{ r.tid }}</td><td>{{ r.name }}</td>
+          <td class="mono">{{ r.value }}{% if r.unit %} {{ r.unit }}{% endif %}</td>
+          <td class="mono">{{ r.min }}</td><td class="mono">{{ r.max }}</td>
+          <td><span class="chip {{ 'ok' if r.passed else 'status-active' }}">{{ 'PASS' if r.passed else 'FAIL' }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
 
   <section id="attempted">
     <h2>Already attempted</h2>

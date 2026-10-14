@@ -271,12 +271,23 @@ def read_mode06(sess: Any, mids: Optional[list[str]] = None) -> dict[str, Any]:
         out["supported"] = {"requested": list(mids)}
     for mid in mids:
         q = sess.query(f"06{mid}", "46")
-        out["raw"][mid] = q["raw"]
+        retried = False
+        if q["error"] == "CAN ERROR":
+            retried = True
+            retry = sess.query(f"06{mid}", "46")
+            out["raw"][mid] = {"first_attempt": q["raw"], "retry": retry["raw"]}
+            q = retry
+        else:
+            out["raw"][mid] = q["raw"]
         entry: dict[str, Any] = {}
         if q["error"]:
-            entry["error"] = f"ADAPTER/BUS ERROR: {q['error']}; the read did not complete"
+            detail = (f"CAN ERROR on first attempt, retry failed: {q['error']}" if retried
+                       else f"ADAPTER/BUS ERROR: {q['error']}; the read did not complete")
+            entry["error"] = detail
             out["results"][mid] = entry
             continue
+        if retried:
+            entry["retried"] = "CAN ERROR on first attempt; retry succeeded"
         by_ecu: dict[str, list[dict[str, Any]]] = {}
         for hdr, data in q["ecus"].items():
             if len(data) < 2 or data[1] != mid:

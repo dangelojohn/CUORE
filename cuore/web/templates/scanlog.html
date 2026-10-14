@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ bar.name }} — Scans{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('scanlog.css') }}">
+
+<div class="scanlog-page">
+  <h1>Scans</h1>
+  <p class="lede">Every live read from this car, grouped into one scan per bench
+    session (reads within 15 minutes of each other). Nothing here is logged
+    anywhere but CUORE itself -- export a scan as an MES-style log to read it
+    with the rest of your MultiEcuScan tooling.</p>
+
+  {% if not scans %}
+    <p class="muted">No live scans on file for this vehicle yet. Read the car once
+      (Codes, Live or Tests) and it will show up here.</p>
+  {% else %}
+  <div class="tw">
+  <table class="scanlog-table">
+    <colgroup><col style="width:22%"><col style="width:20%"><col style="width:12%">
+      <col style="width:34%"><col style="width:12%"></colgroup>
+    <thead><tr><th>Date</th><th>Source</th><th>MIL</th><th>Codes</th><th class="n">Reads</th></tr></thead>
+    <tbody>
+      {% for s in scans %}
+      <tr class="row-link" data-href="/v/{{ vin }}/scans/{{ s.id }}" tabindex="0">
+        <td><a class="mono" href="/v/{{ vin }}/scans/{{ s.id }}">{{ s.started }}</a></td>
+        <td class="small mono">{{ s.source.stream or "unknown" }}</td>
+        <td>
+          {% if s.mil is none %}<span class="chip plain">&mdash;</span>
+          {% elif s.mil %}<span class="chip returned">MIL on</span>
+          {% else %}<span class="chip ok">MIL off</span>{% endif %}
+        </td>
+        <td>
+          {% for bucket in ("stored", "pending", "permanent") %}
+            {% for code in s.dtcs[bucket] %}
+              <span class="chip-code sm" title="{{ bucket }}">{{ code }}</span>
+            {% endfor %}
+          {% endfor %}
+          {% if not (s.dtcs.stored or s.dtcs.pending or s.dtcs.permanent) %}
+            <span class="small muted">clean</span>
+          {% endif %}
+        </td>
+        <td class="n mono">{{ s.counts.observations }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

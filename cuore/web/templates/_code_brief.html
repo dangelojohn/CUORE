@@ -35,6 +35,32 @@
   {% if cf.feel and cf.feel.confidence %}<span class="chip plain code-head-chip">Confidence: {{ cf.feel.confidence }}</span>{% endif %}
 </div>
 
+{# Failure-type-byte suffix, additive: when this code's occurrence history
+   (`records`, from code.html's own route -- see the top of this partial)
+   names a full "CODE-FTB" token, decode that suffix through mes.dtc's own
+   `failure_type` global (registered the same way `code_feel` is -- guarded
+   with `is defined` so this still renders on any page/route that does not
+   wire it in) and show it right next to the code, per Item: never a second,
+   differently-sourced restatement of the code itself. The module name is
+   shown alongside only when this code's own history actually names one. #}
+{% set _brief_rec0 = records[0] if records is defined and records else none %}
+{% set _brief_full = _brief_rec0.dtc if _brief_rec0 is defined and _brief_rec0
+                     and _brief_rec0.dtc is defined else none %}
+{% set _brief_ftb = _brief_full.split("-", 1)[1] if _brief_full
+                    and "-" in _brief_full else none %}
+{% set _brief_ft = failure_type(_brief_ftb) if _brief_ftb
+                   and failure_type is defined else none %}
+{% set _brief_module = _brief_rec0.modules[0] if _brief_rec0 is defined and _brief_rec0
+                       and _brief_rec0.modules is defined and _brief_rec0.modules
+                       else none %}
+{% if _brief_ftb and _brief_ft %}
+  <p class="small muted code-ftb-suffix">
+    <span class="mono">-{{ _brief_ftb }}</span>: {{
+      _brief_ft.text if _brief_ft.text is defined else _brief_ft.meaning }}{{
+      " (" ~ _brief_ft.source.split(" / ")[0] ~ ")" if _brief_ft.source else "" }}{%
+      if _brief_module %} &middot; module: {{ _brief_module }}{% endif %}</p>
+{% endif %}
+
 {% set badges = systems_for_code(code) if systems_for_code is defined else [] %}
 {% include "_system_badge.html" %}
 
