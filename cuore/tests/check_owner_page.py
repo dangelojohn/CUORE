@@ -222,7 +222,13 @@ check("mobile page sets a phone viewport meta",
 
 css_path = ROOT / "cuore" / "web" / "static" / "m.css"
 css_text = css_path.read_text(encoding="utf-8")
+# TYPE_AND_UI_AUDIT_2026-10-14's foundation pass (R1) moved every font-size
+# in this file from a raw px value onto the shared 7-step scale token --
+# var(--fs-xs) is 12px, var(--fs-sm) 14px, and so on (cuore.css's :root).
+# Recognise both forms so this 12px floor still means something.
+_SCALE_PX = {"xs": 12, "sm": 14, "md": 16, "lg": 18, "xl": 20, "2xl": 22, "3xl": 28}
 font_sizes = re.findall(r"font-size:\s*(\d+(?:\.\d+)?)px", css_text)
+font_sizes += [str(_SCALE_PX[tok]) for tok in re.findall(r"font-size:\s*var\(--fs-([a-z0-9]+)\)", css_text)]
 check("m.css declares at least one font-size", len(font_sizes) > 0)
 too_small = [v for v in font_sizes if float(v) < 12]
 check("no font-size in m.css is under 12px", not too_small, str(too_small))
