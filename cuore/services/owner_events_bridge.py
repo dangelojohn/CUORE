@@ -28,6 +28,29 @@ from ..live import owner_events as store
 from mes import feedback as feedback_mod  # noqa: E402
 from mes import symptoms as symptoms_mod  # noqa: E402
 
+# Best-effort: the scan-done message (see ``messages`` below) reads the
+# from-car live-scan surfaces -- ``cuore.live.scanlog``'s own grouping and
+# ``cuore.services.scan_health_bridge``'s report -- plus ``mes.live_obs``/
+# ``mes.scan_health`` directly, for the one piece (which Mode 06 MID failed)
+# the report's own public row does not carry. None of this is required for
+# the rest of the module: a corpus with no live link yet, or either import
+# failing, simply means no scan-done message and no live-scan contribution
+# to :func:`_active_codes` -- never an error on this page.
+try:
+    from . import scanlog_bridge  # noqa: E402
+except Exception:  # noqa: BLE001
+    scanlog_bridge = None  # type: ignore[assignment]
+try:
+    from . import scan_health_bridge  # noqa: E402
+except Exception:  # noqa: BLE001
+    scan_health_bridge = None  # type: ignore[assignment]
+try:
+    from mes import live_obs as live_obs_mod  # noqa: E402
+    from mes import scan_health as scan_health_mod  # noqa: E402
+except Exception:  # noqa: BLE001
+    live_obs_mod = None  # type: ignore[assignment]
+    scan_health_mod = None  # type: ignore[assignment]
+
 #: The inbox "page" every CUORE-generated and mechanic-asked owner question
 #: is filed under, in the same ``mes.feedback`` store the rest of cuore
 #: already uses for mechanic corrections/questions/confirms. Keeping these
@@ -59,25 +82,10 @@ def _base_code(code: str) -> str:
     return m.group(1) if m else (code or "").strip().upper()
 
 
-PROMPT_RULES: dict[str, list[tuple[str, str]]] = {
-    "evap": [
-        ("evap_fillup_recent", "Did you fill up in the last 2 days? Was the cap clicked "
-                               "until it clicked?"),
-        ("evap_short_trips", "Is this car mostly short trips lately (under ~15 minutes)?"),
-    ],
-    "electrical_supply": [
-        ("elec_recent_work", "Any battery work, jump start, or aftermarket electrical "
-                             "fitted recently (dashcam, lights, audio, tracker)?"),
-    ],
-    "starting_charging": [
-        ("start_conditions", "When it's hard to start, is that cold, hot, or after the "
-                             "car has been sitting a while?"),
-    ],
-    "security_immobiliser": [
-        ("security_recent", "Any key fob battery change, module work, or anything unusual "
-                            "around the doors/locks recently?"),
-    ],
-}
+#: Re-exported for any existing caller that imported this name from here --
+#: the table itself now lives on the store (:data:`cuore.live.owner_events.
+#: PROMPT_RULES`), next to :data:`cuore.live.owner_events.TAXONOMY`.
+PROMPT_RULES = store.PROMPT_RULES
 
 
 # --- plain pass-through: add/list/delete/taxonomy ----------------------------
@@ -298,17 +306,79 @@ def correlate(vin: str) -> dict[str, Any]:
 # --- messages: CUORE prompts + the mechanic's own asks, one inbox -----------
 
 
+def _vin_or_untagged(entry: dict[str, Any], vin: str) -> bool:
+    """Same single-car-install convention ``cuore.services.scan_health_
+    bridge._vin_matches`` already documents: a live-scan read's own ``vin``
+    field is blank more often than not (Mode 03/06 reads, mostly), so an
+    untagged read is kept for this vin rather than dropped."""
+    v = entry.get("vin") or ""
+    return v in ("", vin)
+
+
+def _live_active_codes(vin: str) -> set[str]:
+    """Base codes this car's live-scan link (``mes.live_obs``) currently
+    carries, independent of the MES log catalog :func:`_active_codes`
+    already reads: the newest ``obd_dtcs`` read of each kind (stored/
+    pending/permanent -- by definition the car's current answer, no flags
+    to grade), plus any UDS module DTC whose own status flags still read
+    ``"active"`` (never a bare history bit) per
+    ``mes.scan_health.module_dtc_category``. Best-effort: no live link, or
+    no reads yet, is an empty set, never an error -- the "Scan done"
+    message and these prompts share this one reason a quiet car shows
+    nothing."""
+    if live_obs_mod is None or scan_health_mod is None:
+        return set()
+    try:
+        obs = live_obs_mod.load(from_car_only=True)
+    except Exception:  # noqa: BLE001
+        return set()
+
+    out: set[str] = set()
+    latest_dtc: dict[str, list[str]] = {}
+    for o in obs:
+        if o.get("kind") != "obd_dtcs" or not _vin_or_untagged(o, vin):
+            continue
+        data = o.get("data") or {}
+        k = data.get("kind")
+        if k in ("stored", "pending", "permanent"):
+            latest_dtc[k] = list(data.get("dtcs") or [])
+    for codes in latest_dtc.values():
+        out.update(_base_code(c) for c in codes)
+
+    latest_module: dict[str, dict[str, Any]] = {}
+    for o in obs:
+        if o.get("kind") != "module_dtcs" or not _vin_or_untagged(o, vin):
+            continue
+        data = o.get("data") or {}
+        ecu = data.get("ecu")
+        if ecu and not data.get("error"):
+            latest_module[ecu] = data
+    for data in latest_module.values():
+        for rec in data.get("dtcs") or []:
+            code = rec.get("code")
+            if code and scan_health_mod.module_dtc_category(rec.get("flags")) == "active":
+                out.add(_base_code(code))
+
+    out.discard("")
+    return out
+
+
 def _active_codes(vin: str) -> list[str]:
     """Base codes (module suffix stripped) this car currently carries that
     are not simply cleared -- chronic, returned-after-clear, recurring, or
-    a plain uncleared seen-once. Normalized to the base code so a prompt
-    filed here lines up with :func:`correlate`'s own base-code keys."""
+    a plain uncleared seen-once from the MES log catalog, plus whatever the
+    live-scan link (:func:`_live_active_codes`) currently shows. Normalized
+    to the base code so a prompt filed here lines up with :func:`correlate`'s
+    own base-code keys."""
     try:
         data = mes_bridge.extract_dtcs(vin=vin)
+        codes = {_base_code(d["dtc"]) for d in data.get("dtcs", [])
+                if d.get("severity") != "cleared"}
     except Exception:  # noqa: BLE001
-        return []
-    return sorted({_base_code(d["dtc"]) for d in data.get("dtcs", [])
-                  if d.get("severity") != "cleared"})
+        codes = set()
+    codes |= _live_active_codes(vin)
+    codes.discard("")
+    return sorted(codes)
 
 
 def _families_for_code(code: str) -> set[str]:
@@ -317,6 +387,18 @@ def _families_for_code(code: str) -> set[str]:
     except Exception:  # noqa: BLE001
         return set()
     return {h.get("system") for h in hits if h.get("system")}
+
+
+#: question id -> its chips, flattened once from :data:`PROMPT_RULES` --
+#: what :func:`messages` attaches to an unanswered CUORE row so the page
+#: can render one-tap buttons, and what :func:`reply_message` matches a
+#: reply's exact text against to decide whether to also create an owner
+#: event. Built once at import time; ``PROMPT_RULES`` is static config, not
+#: something any caller mutates at runtime.
+_CHIPS_BY_QID: dict[str, list[dict[str, Any]]] = {
+    q["id"]: q.get("chips") or []
+    for family in PROMPT_RULES.values() for q in family
+}
 
 
 def _ensure_prompts_filed(vin: str) -> None:
@@ -328,7 +410,8 @@ def _ensure_prompts_filed(vin: str) -> None:
                     for r in existing if r.get("target", {}).get("page") == MESSAGE_PAGE}
     for code in _active_codes(vin):
         for family in _families_for_code(code):
-            for qid, text in PROMPT_RULES.get(family, []):
+            for q in PROMPT_RULES.get(family, []):
+                qid, text = q["id"], q["text"]
                 if (code, qid) in existing_keys:
                     continue
                 try:
@@ -341,27 +424,256 @@ def _ensure_prompts_filed(vin: str) -> None:
                 existing_keys.add((code, qid))
 
 
+# --- messages: the "Scan done" note -----------------------------------------
+#
+# A plain-language, owner-facing note generated on read from the newest
+# from-car scan (``scanlog_bridge.list_scans`` for which scan and when,
+# ``scan_health_bridge.build`` for what it found) -- filed into the same
+# inbox as the code prompts above, deduped per scan id the same way a code
+# prompt is deduped per (code, question id), so a page visit never refiles
+# the same scan twice. Either bridge failing to import, or this vin having
+# no scan on file, means no scan-done message -- never an error.
+#
+# Wording rules (owner-facing, graded): never "cause" or "fixed" -- a
+# failed self-test is reported, not diagnosed; one line per system this
+# scan's own verdict marks FAULT; a "What you can do" line only when EVAP
+# is among them (the one family with owner-actionable habits); the closing
+# line is always the same "please don't clear the light" request, since a
+# cleared code erases the evidence this whole page exists to keep.
+
+_MONTH_ABBR = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+#: EVAP's own Mode 06 leak-test family (``mes.scan_health.MODE06_MIDS``) ->
+#: the plain-language leak-size word for "<word> test failed".
+_EVAP_LEAK_MID_SIZE = {"39": "cap-off", "3A": "large-leak", "3C": "small-leak"}
+
+#: ``mes.mechanic_tests`` id -> a short owner-facing name for the "Next:"
+#: line. A ``next_test`` id not in this table falls back to a generic
+#: phrase rather than guessing a name for a test this table doesn't know.
+_NEXT_TEST_PLAIN = {
+    "esim_vacuum_test_a": "the ESIM switch test",
+    "evap_smoke": "a smoke test to find the leak",
+    "purge_vent_actuation": "a check that the EVAP valves open and close correctly",
+    "fuel_trim_o2_observation": "a fuel-trim/oxygen-sensor check",
+    "misfire_counters": "a misfire check",
+}
+
+_EVAP_WHAT_YOU_CAN_DO = (
+    "What you can do: keep the fuel level between about 1/4 and 3/4 tank, "
+    "click the fuel cap until it clicks, and don't keep topping off after "
+    "the pump stops on its own."
+)
+
+
+def _format_scan_at(at: Optional[str]) -> str:
+    """``"2026-10-13T20:59:23"`` -> ``"13 Oct 20:59"`` -- no year (today's
+    scan), no seconds (an owner doesn't need them)."""
+    text = str(at or "").strip().replace("T", " ")
+    try:
+        dt = datetime.strptime(text[:19], "%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return text or "an unknown time"
+    return f"{dt.day} {_MONTH_ABBR[dt.month - 1]} {dt.strftime('%H:%M')}"
+
+
+def _mode06_fail_rows(vin: str) -> list[dict[str, Any]]:
+    """Every Mode 06 row that failed on this car's newest ``mode06`` live
+    read, with its own MID id kept on the row -- read directly off
+    ``mes.live_obs`` because the row ``scan_health_bridge.build``'s own
+    systems table returns does not carry the MID (see
+    ``mes.scan_health.classify_system``'s return shape). Used only to add
+    the EVAP leak-size/next-test detail onto a system the report has
+    *already* marked FAULT, never to decide FAULT/OK on its own."""
+    if live_obs_mod is None:
+        return []
+    try:
+        obs = live_obs_mod.load(from_car_only=True)
+    except Exception:  # noqa: BLE001
+        return []
+    latest = None
+    for o in obs:
+        if o.get("kind") == "mode06" and _vin_or_untagged(o, vin):
+            latest = o.get("data") or {}
+    if not latest:
+        return []
+    out: list[dict[str, Any]] = []
+    for mid, entry in (latest.get("results") or {}).items():
+        for ecu_rows in (entry.get("by_ecu") or {}).values():
+            for r in ecu_rows or []:
+                if r.get("passed") is False:
+                    out.append({**r, "mid": r.get("mid", mid)})
+    return out
+
+
+def _plain_system_line(vin: str, sys_key: str, sys_label: str) -> tuple[str, Optional[str]]:
+    """``(owner-facing sentence, next-step phrase or None)`` for one system
+    this scan's own verdict marks FAULT. EVAP's own leak-test family gets
+    its sourced plain wording (see :data:`_EVAP_LEAK_MID_SIZE`); every other
+    system gets a plain, still-sourced-by-name generic sentence -- never
+    "cause"/"fixed"."""
+    if sys_key == "evap" and scan_health_mod is not None:
+        for row in _mode06_fail_rows(vin):
+            mid = str(row.get("mid") or "")
+            size = _EVAP_LEAK_MID_SIZE.get(mid)
+            if not size:
+                continue
+            sentence = ("The engine computer's own test says the fuel-vapour "
+                       f"system is not holding vacuum ({size} test failed).")
+            meta = scan_health_mod.MODE06_MIDS.get(mid) or {}
+            next_id = meta.get("next_test")
+            return sentence, (_NEXT_TEST_PLAIN.get(next_id, "a further test")
+                              if next_id else None)
+        return ("The engine computer's own test flags the fuel-vapour (EVAP) "
+                "system.", None)
+    return (f"The engine computer's own test flags the {sys_label.lower()} system.",
+           None)
+
+
+def _scan_done_text(vin: str) -> Optional[tuple[str, str]]:
+    """``(scan_id, message text)`` for the newest from-car scan on file, or
+    ``None`` when ``scanlog_bridge`` didn't import or this vin has no scan
+    on file yet. ``scan_health_bridge``'s report is read best-effort for
+    the verdict detail -- missing it still gives the "scan done" line and
+    the closing request, just no per-system detail."""
+    if scanlog_bridge is None:
+        return None
+    try:
+        scans = scanlog_bridge.list_scans(vin).get("scans") or []
+    except Exception:  # noqa: BLE001
+        return None
+    if not scans:
+        return None
+    newest = scans[0]  # newest first, per cuore.live.scanlog.list_scans
+    try:
+        plan = scanlog_bridge.scan_plan(vin)
+    except Exception:  # noqa: BLE001
+        plan = {"count": "?", "total": 10}
+    when = _format_scan_at(newest.get("ended") or newest.get("started"))
+    lines = [f"Scan {plan['count']} of {plan['total']} done {when}."]
+
+    report = None
+    if scan_health_bridge is not None:
+        try:
+            report = scan_health_bridge.build(vin)
+        except Exception:  # noqa: BLE001
+            report = None
+
+    fail_rows = [r for r in (report or {}).get("systems") or [] if r.get("health") == "FAULT"]
+    try:
+        labels = systems_bridge.systems()
+    except Exception:  # noqa: BLE001
+        labels = {}
+    next_phrase: Optional[str] = None
+    for row in fail_rows:
+        sys_key = row.get("system") or ""
+        sys_label = (labels.get(sys_key) or {}).get("label") or sys_key.replace("_", " ")
+        sentence, nxt = _plain_system_line(vin, sys_key, sys_label)
+        lines.append(sentence)
+        next_phrase = next_phrase or nxt
+
+    if report is not None:
+        if not fail_rows:
+            lines.append("Nothing failed.")
+        elif len(fail_rows) == 1:
+            lines.append("Nothing else failed.")
+    if next_phrase:
+        lines.append(f"Next: the mechanic runs {next_phrase}.")
+    if any(r.get("system") == "evap" for r in fail_rows):
+        lines.append(_EVAP_WHAT_YOU_CAN_DO)
+    lines.append("Please don't clear the light.")
+    return str(newest.get("id") or ""), " ".join(lines)
+
+
+def _ensure_scan_done_filed(vin: str) -> None:
+    """Generate-on-read, deduped per scan id -- the same posture
+    :func:`_ensure_prompts_filed` takes per (code, question id), so a page
+    visit never refiles the same scan's note twice."""
+    result = _scan_done_text(vin)
+    if result is None:
+        return
+    scan_id, text = result
+    if not scan_id:
+        return
+    existing = feedback_mod.load(vin, status=None)
+    already = any(r.get("target", {}).get("page") == MESSAGE_PAGE
+                 and r.get("target", {}).get("section") == "scan"
+                 and r.get("target", {}).get("item") == scan_id
+                 for r in existing)
+    if already:
+        return
+    try:
+        feedback_mod.add(vin, "question",
+                         {"page": MESSAGE_PAGE, "section": "scan", "item": scan_id,
+                          "label": text[:200]},
+                         text=text, author="cuore")
+    except ValueError:
+        pass
+
+
 def messages(vin: str) -> dict[str, Any]:
-    """Questions for the owner: CUORE's own code-triggered prompts (filed
-    fresh on this read, deduped) plus anything a mechanic has already asked
-    on the same ``owner`` page -- one inbox, oldest open first."""
+    """Questions for the owner: the "Scan done" note for the newest scan
+    (filed fresh on this read, deduped per scan id), CUORE's own code-
+    triggered prompts (filed fresh, deduped per code+question), plus
+    anything a mechanic has already asked on the same ``owner`` page -- one
+    inbox, oldest open first. An unanswered CUORE-authored row carries its
+    own ``chips`` (one-tap answers; empty when the question has none) for
+    the page to render as buttons."""
     if not vin.strip():
         raise BadRequest("a VIN is required")
+    _ensure_scan_done_filed(vin)
     _ensure_prompts_filed(vin)
-    rows = [r for r in feedback_mod.load(vin, status=None)
+    rows = [dict(r) for r in feedback_mod.load(vin, status=None)
            if r.get("target", {}).get("page") == MESSAGE_PAGE]
+    for r in rows:
+        if r.get("status") == "open" and r.get("author") == "cuore":
+            r["chips"] = _CHIPS_BY_QID.get(r.get("target", {}).get("item") or "", [])
+        else:
+            r["chips"] = []
     rows.sort(key=lambda r: (r.get("status") != "open", r.get("at") or ""))
     return {"vin": vin, "messages": rows}
+
+
+def _event_for_reply(row: dict[str, Any], text: str) -> Optional[dict[str, Any]]:
+    """The chip (if any) this reply's exact text matches, for this row's
+    question -- ``None`` when the row isn't a CUORE prompt with chips, or
+    the text doesn't match one of them (a free-typed reply, most often)."""
+    if row.get("target", {}).get("page") != MESSAGE_PAGE:
+        return None
+    qid = row.get("target", {}).get("item") or ""
+    text_norm = text.strip().lower()
+    for chip in _CHIPS_BY_QID.get(qid, []):
+        if chip.get("label", "").strip().lower() == text_norm:
+            return chip
+    return None
 
 
 def reply_message(id: str, text: str, by: str = "owner") -> dict[str, Any]:
     """The owner's (or mechanic's) reply to one message -- recorded as the
     feedback row's answer, same ``mes.feedback`` lifecycle every other
-    answered question in cuore already uses."""
+    answered question in cuore already uses.
+
+    When ``text`` is an exact match for one of this message's own one-tap
+    chips (see :data:`PROMPT_RULES`), and that chip names a category/kind,
+    this also files the matching owner event -- the one-tap answer reuses
+    this module's own :func:`add`, never a second write path. A chip with
+    no category (e.g. "none of these"), or a free-typed reply that matches
+    no chip, only records the reply -- same as it always has."""
     try:
-        return feedback_mod.answer(id, by, text)
+        row = next((r for r in feedback_mod.load(status=None) if r.get("id") == id), None)
+        answered = feedback_mod.answer(id, by, text)
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
+    if row is not None:
+        chip = _event_for_reply(row, text)
+        if chip and chip.get("category") and chip.get("kind"):
+            try:
+                add(row.get("vin", ""), chip["category"], chip["kind"], by_role=by,
+                   fields=chip.get("fields") or {},
+                   note=f"from a reply to a CUORE message: {text}"[:store.MAX_NOTE])
+            except BadRequest:
+                pass  # the reply itself is still recorded; a bad chip mapping must not 400 it
+    return answered
 
 
 __all__ = ["MESSAGE_PAGE", "CORRELATION_WINDOW_DAYS", "PROMPT_RULES",

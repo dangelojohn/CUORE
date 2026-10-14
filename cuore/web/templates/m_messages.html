@@ -19,6 +19,18 @@
   {% if m.answer %}
   <p class="m-msg-answer"><strong>Reply:</strong> {{ m.answer.text }} ({{ m.answer.by }}, {{ m.answer.at }})</p>
   {% else %}
+  {% if m.chips %}
+  <div class="m-chips m-msg-chips" role="group">
+    {% for c in m.chips %}
+    <form method="post" action="/m/{{ vin }}/messages/{{ m.id }}/reply" class="m-chip-form">
+      <input type="hidden" name="text" value="{{ c.label }}">
+      <input type="hidden" name="by" value="owner">
+      <button type="submit" class="m-chip m-chip-btn"><span>{{ c.label }}</span></button>
+    </form>
+    {% endfor %}
+  </div>
+  <p class="m-msg-chips-or">Or answer in your own words:</p>
+  {% endif %}
   <form method="post" action="/m/{{ vin }}/messages/{{ m.id }}/reply" class="m-form m-inline-form">
     <textarea class="m-input m-textarea" name="text" rows="2" placeholder="Your reply" required></textarea>
     <div class="m-chips" role="group">

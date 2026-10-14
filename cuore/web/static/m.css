@@ -374,6 +374,22 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 .m-msg-meta { font-size: 13px; color: var(--ink-3); margin: 0 0 10px; }
 .m-msg-answer { font-size: 15px; color: var(--ink-2); }
 
+/* One-tap chip answers (2026-10-14): each chip is its own tiny form (a
+   plain submit button styled like the existing .m-chip pill, no hidden
+   radio/checkbox needed since tapping it submits immediately). */
+.m-msg-chips { margin: 0 0 10px; }
+.m-chip-form { display: contents; }
+.m-chip-btn {
+  -webkit-appearance: none; appearance: none;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--ink-2);
+  font: inherit;
+  cursor: pointer;
+}
+.m-chip-btn:active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.m-msg-chips-or { font-size: 13px; color: var(--ink-3); margin: 0 0 8px; }
+
 /* ---------- history ---------- */
 
 .m-event {

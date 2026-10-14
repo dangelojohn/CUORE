@@ -595,6 +595,93 @@ TAXONOMY: dict[str, dict[str, Any]] = {
 }
 
 
+#: code family (a ``mes.systems`` key -- see ``mes.systems.systems_for_code``)
+#: -> the CUORE-generated questions worth asking the owner when a code in
+#: that family is active. Moved here from ``cuore.services.owner_events_
+#: bridge`` (2026-10-14) to sit with :data:`TAXONOMY`, the other static
+#: config this feature's pages/API read whole.
+#:
+#: Each question is ``{"id", "text", "chips"}``:
+#:
+#: * ``id`` is part of the dedup key ``owner_events_bridge.messages`` uses
+#:   (together with the active code) so the same question is never refiled
+#:   for the same code twice.
+#: * ``text`` is the owner-facing question, plain language, no jargon.
+#: * ``chips`` is zero or more one-tap answers, each
+#:   ``{"label", "category", "kind", "fields"}``: tapping it sends ``label``
+#:   back as the reply text (the same free-text reply path every message
+#:   already has) and, when ``category``/``kind`` are not ``None``, that
+#:   reply text is recognised by ``owner_events_bridge.reply_message`` and
+#:   turned into exactly the owner event ``add(vin, category, kind,
+#:   fields=fields, ...)`` would create by hand -- no second, parallel
+#:   "chip answer" store. A chip with ``category=None`` (e.g. "none of
+#:   these") records the reply only, same as typing it.
+PROMPT_RULES: dict[str, list[dict[str, Any]]] = {
+    "evap": [
+        {"id": "evap_fillup_recent",
+         "text": "Did you fill up in the last 2 days? Did the cap click? Did the "
+                 "pump stop early or did you top off?",
+         "chips": [
+             {"label": "Filled up, cap clicked, pump stopped normally",
+              "category": "fuel", "kind": "fill_up",
+              "fields": {"cap_clicked": True, "overfilled": False}},
+             {"label": "Filled up, but the cap did NOT click",
+              "category": "fuel", "kind": "fill_up", "fields": {"cap_clicked": False}},
+             {"label": "Filled up, pump stopped early / topped off",
+              "category": "fuel", "kind": "fill_up", "fields": {"overfilled": True}},
+             {"label": "Haven't filled up in the last 2 days",
+              "category": None, "kind": None, "fields": {}},
+         ]},
+        {"id": "evap_short_trips",
+         "text": "Is this car mostly short trips lately (under ~15 minutes)?",
+         "chips": [
+             {"label": "Yes, mostly short trips",
+              "category": "driving_pattern", "kind": "short_trips_only", "fields": {}},
+             {"label": "No, a regular mix of trips",
+              "category": None, "kind": None, "fields": {}},
+         ]},
+    ],
+    "electrical_supply": [
+        {"id": "elec_recent_work",
+         "text": "Any battery work, jump start, or aftermarket electrical fitted "
+                 "recently (dashcam, lights, audio, tracker)?",
+         "chips": []},
+    ],
+    "network": [
+        {"id": "network_recent_elec",
+         "text": "Any aftermarket electrical fitted recently (dashcam, lights, "
+                 "charger)? Battery changed or jump-started? Car washed with the "
+                 "engine bay open?",
+         "chips": [
+             {"label": "Aftermarket electrical fitted",
+              "category": "battery_electrical", "kind": "aftermarket_electrical",
+              "fields": {}},
+             {"label": "Battery changed/replaced",
+              "category": "battery_electrical", "kind": "battery_replaced", "fields": {}},
+             {"label": "Jump-started",
+              "category": "battery_electrical", "kind": "jump_started", "fields": {}},
+             {"label": "Car washed, engine bay open",
+              "category": "environment_exposure", "kind": "car_wash",
+              "fields": {"type": "engine bay"}},
+             {"label": "None of these",
+              "category": None, "kind": None, "fields": {}},
+         ]},
+    ],
+    "starting_charging": [
+        {"id": "start_conditions",
+         "text": "When it's hard to start, is that cold, hot, or after the car "
+                 "has been sitting a while?",
+         "chips": []},
+    ],
+    "security_immobiliser": [
+        {"id": "security_recent",
+         "text": "Any key fob battery change, module work, or anything unusual "
+                 "around the doors/locks recently?",
+         "chips": []},
+    ],
+}
+
+
 def state_path() -> Path:
     return state_dir() / "owner_events.jsonl"
 
@@ -961,8 +1048,8 @@ def load(vin: str = "", *, include_deleted: bool = False) -> list[dict[str, Any]
     return out
 
 
-__all__ = ["TAXONOMY", "BY_ROLES", "MAX_NOTE", "MAX_FIELD_TEXT", "state_path",
-          "kind_def", "add", "delete", "restore", "edit", "load"]
+__all__ = ["TAXONOMY", "PROMPT_RULES", "BY_ROLES", "MAX_NOTE", "MAX_FIELD_TEXT",
+          "state_path", "kind_def", "add", "delete", "restore", "edit", "load"]
 
 
 def recent_values(vin: str, kind: str, field: str, limit: int = 6) -> list[str]:

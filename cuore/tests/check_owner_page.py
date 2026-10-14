@@ -17,6 +17,7 @@ Run:
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import sys
@@ -451,6 +452,182 @@ check("Undo (restore) redirects back to history", r.status_code == 303, str(r.st
 restored = next((e for e in store.load(VIN) if e.get("id") == html_edit_id), None)
 check("restore brings the event back (not deleted)", restored is not None
       and not restored.get("deleted"), str(restored))
+
+
+# === 19. Scan-done message + live-scan EVAP/network prompts with one-tap
+# chip answers (2026-10-14). Fixture: real ``obd_dtcs``/``mode06``/
+# ``module_dtcs`` observation lines for this VIN, read verbatim from
+# ``C:\ProgramData\cuore\observations.jsonl`` at test time and appended to
+# this test's own isolated ``CUORE_STATE_DIR`` -- the real file is only
+# ever read, never written. ====================================================
+
+_REAL_OBSERVATIONS = Path(r"C:\ProgramData\cuore\observations.jsonl")
+
+#: The 2026-10-13 ~20:02-20:03 cluster: P0440 stored/pending/permanent, the
+#: readiness read that tags the cluster with this VIN, and the Mode 06 read
+#: carrying MID 3A's (large-leak) failed row.
+_SCAN_DONE_AT = {"2026-10-13T20:02:56", "2026-10-13T20:02:57", "2026-10-13T20:02:58",
+                "2026-10-13T20:03:00", "2026-10-13T20:03:54"}
+#: The later BCM module scan carrying the active U1713-2F network code.
+_BCM_AT = {"2026-10-13T20:24:25"}
+
+
+def _copy_real_observation_lines(wanted_ats: set, ecu: str = "") -> list[str]:
+    """Verbatim JSON lines from the real observations file whose own
+    ``at`` is in ``wanted_ats`` (and, when ``ecu`` is given, whose
+    ``data.ecu`` matches -- the 20:24:25 timestamp carries five separate
+    ``module_dtcs`` rows, one per ECU). Read-only: this never opens the
+    real file for writing."""
+    if not _REAL_OBSERVATIONS.exists():
+        return []
+    out: list[str] = []
+    for line in _REAL_OBSERVATIONS.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if obj.get("at") not in wanted_ats:
+            continue
+        if ecu and (obj.get("data") or {}).get("ecu") != ecu:
+            continue
+        out.append(line)
+    return out
+
+
+def _append_test_observations(lines: list[str]) -> None:
+    from cuore.live import store as live_store
+    p = live_store.observations_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("a", encoding="utf-8") as f:
+        for line in lines:
+            f.write(line + "\n")
+
+
+def _badge_count(html: str) -> "int | None":
+    m = re.search(r'class="m-badge">(\d+)<', html)
+    return int(m.group(1)) if m else None
+
+
+scan_fixture_lines = _copy_real_observation_lines(_SCAN_DONE_AT)
+check("fixture: found the real P0440 + Mode 06 (MID 3A) lines to copy",
+      len(scan_fixture_lines) == 5, str(len(scan_fixture_lines)))
+_append_test_observations(scan_fixture_lines)
+
+r = client.get(f"/api/owner/{VIN}/messages")
+check("messages endpoint responds 200 after the scan fixture", r.status_code == 200, str(r.status_code))
+msgs = r.json()["messages"]
+
+scan_msgs = [m for m in msgs if m.get("target", {}).get("section") == "scan"]
+check("exactly one scan-done message was filed", len(scan_msgs) == 1, str(scan_msgs)[:300])
+scan_text = scan_msgs[0]["text"] if scan_msgs else ""
+check("scan-done message says 'Scan 1 of 10'", "Scan 1 of 10" in scan_text, scan_text)
+check("scan-done message asks not to clear the light", "don't clear" in scan_text, scan_text)
+check("scan-done message names the fuel-vapour system not holding vacuum",
+      "fuel-vapour" in scan_text and "vacuum" in scan_text, scan_text)
+check("scan-done message names the large-leak test, not small/gross",
+      "large-leak" in scan_text, scan_text)
+check("scan-done message says nothing else failed",
+      "Nothing else failed" in scan_text, scan_text)
+check("scan-done message points at the ESIM switch test next",
+      "ESIM switch test" in scan_text, scan_text)
+check("scan-done message carries the EVAP owner actions (fill level/cap/overfill)",
+      "cap" in scan_text and "top" in scan_text, scan_text)
+check("scan-done message never says 'cause' or 'fixed'",
+      "cause" not in scan_text.lower() and "fixed" not in scan_text.lower(), scan_text)
+
+# Re-reading must not refile the same scan's note a second time.
+r2 = client.get(f"/api/owner/{VIN}/messages")
+scan_msgs2 = [m for m in r2.json()["messages"] if m.get("target", {}).get("section") == "scan"]
+check("the scan-done message is deduped per scan id on a second read",
+      len(scan_msgs2) == 1, str(scan_msgs2)[:300])
+
+p0440_prompts = [m for m in msgs if m.get("author") == "cuore"
+                and m.get("target", {}).get("section") == "P0440"]
+check("a CUORE prompt fired for the active P0440", len(p0440_prompts) >= 1, str(p0440_prompts)[:300])
+fillup_prompt = next((m for m in p0440_prompts
+                      if m.get("target", {}).get("item") == "evap_fillup_recent"), None)
+check("the fill-up/cap/pump question fired for P0440", fillup_prompt is not None,
+      str(p0440_prompts)[:300])
+if fillup_prompt:
+    check("question covers fill-up, cap and pump-stop",
+          all(s in fillup_prompt["text"] for s in ("fill up", "cap", "pump")),
+          fillup_prompt["text"])
+    check("the open question carries its one-tap chips",
+          len(fillup_prompt.get("chips") or []) >= 3, str(fillup_prompt.get("chips")))
+
+r = client.get(f"/m/{VIN}/messages")
+check("messages page responds 200 with the scan-done note and chips",
+      r.status_code == 200 and "Scan 1 of 10" in r.text and "m-chip-btn" in r.text,
+      str(r.status_code))
+
+# --- the later BCM scan: U1713-2F (active) fires the network prompt --------
+
+bcm_fixture_lines = _copy_real_observation_lines(_BCM_AT, ecu="BCM")
+check("fixture: found the real BCM module_dtcs line (U1713-2F)",
+      len(bcm_fixture_lines) == 1, str(len(bcm_fixture_lines)))
+_append_test_observations(bcm_fixture_lines)
+
+r = client.get(f"/api/owner/{VIN}/messages")
+msgs = r.json()["messages"]
+u1713_prompts = [m for m in msgs if m.get("author") == "cuore"
+                and m.get("target", {}).get("section") == "U1713"]
+check("a CUORE prompt fired for the active BCM network code U1713",
+      len(u1713_prompts) >= 1, str(msgs)[:400])
+network_prompt = next((m for m in u1713_prompts
+                       if m.get("target", {}).get("item") == "network_recent_elec"), None)
+check("network prompt text covers aftermarket electrical, battery and car wash",
+      network_prompt is not None
+      and all(s in network_prompt["text"] for s in
+             ("aftermarket electrical", "Battery changed", "Car washed")),
+      str(network_prompt))
+
+# --- reply -> matching owner event, via the JSON API (EVAP chip) -----------
+
+if fillup_prompt:
+    chip = next(c for c in fillup_prompt["chips"] if c.get("category"))
+    open_before = sum(1 for m in msgs if m.get("status") == "open")
+    home_before = _badge_count(client.get(f"/m/{VIN}").text)
+
+    r = client.post(f"/api/owner/{VIN}/messages/{fillup_prompt['id']}/reply",
+                    json={"text": chip["label"], "by": "owner"})
+    check("chip-answer reply (JSON API) responds 200", r.status_code == 200, str(r.status_code))
+    check("message is now answered", r.json().get("status") == "answered", str(r.json()))
+
+    r = client.get(f"/api/owner/{VIN}/messages")
+    open_after = sum(1 for m in r.json()["messages"] if m.get("status") == "open")
+    check("open/unread message count drops by 1 after the reply",
+          open_after == open_before - 1, f"{open_before} -> {open_after}")
+    home_after = _badge_count(client.get(f"/m/{VIN}").text)
+    check("home badge count drops by 1 after the reply",
+          home_before is not None and home_after == home_before - 1,
+          f"{home_before} -> {home_after}")
+
+    new_event = next((e for e in store.load(VIN) if e.get("category") == "fuel"
+                      and e.get("kind") == "fill_up"
+                      and (e.get("fields") or {}).get("cap_clicked") is True
+                      and (e.get("fields") or {}).get("overfilled") is False), None)
+    check("the chip answer created the matching fuel/fill_up owner event",
+          new_event is not None, str(new_event))
+
+# --- reply -> matching owner event, via the HTML chip form (network chip) --
+
+if network_prompt and network_prompt.get("chips"):
+    chip2 = next(c for c in network_prompt["chips"] if c.get("category"))
+    r = client.post(f"/m/{VIN}/messages/{network_prompt['id']}/reply",
+                    data={"text": chip2["label"], "by": "mechanic"},
+                    follow_redirects=False)
+    check("HTML chip-form reply redirects to messages#saved",
+          r.status_code == 303 and "messages#saved" in r.headers.get("location", ""),
+          f"{r.status_code} {r.headers.get('location')}")
+    new_event2 = next((e for e in store.load(VIN)
+                       if e.get("category") == chip2["category"]
+                       and e.get("kind") == chip2["kind"]
+                       and e.get("by", {}).get("role") == "mechanic"), None)
+    check(f"the network chip answer created a {chip2['category']}/{chip2['kind']} owner event",
+          new_event2 is not None, str(new_event2))
 
 
 print(f"{checks} checks, {len(failures)} failures")
