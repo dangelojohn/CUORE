@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Learn a signal — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}<!-- learn: own compact header below, no vbar/hero -->{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('liveboard.css') }}">
+
+<div id="lrn-app" data-vin="{{ vin }}">
+
+  <div class="lb-status">
+    <span class="lb-status-name" title="{{ bar.name }}">{{ bar.name }}</span>
+    <span class="lb-status-vin mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-6:] }}</span>
+    <span class="lb-status-chip" id="lrn-cable-chip">cable —</span>
+  </div>
+
+  <p class="lrn-intro">
+    Pick the bus the fitted bypass cable reaches, name the physical action you're about to
+    do, press Start, hold the action for a few seconds, press Stop. The bytes that changed
+    the most while you held it are ranked below — name the one that matches and save it.
+    Nothing here ever transmits onto the bus; this only listens.
+  </p>
+
+  <div class="bc-panel" id="lrn-panel">
+    <div class="bc-row">
+      <label for="lrn-bus">Bus</label>
+      <select id="lrn-bus">
+        {% for b in buses %}
+        <option value="{{ b.key }}">{{ b.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="bc-row" id="lrn-suggested"></div>
+
+    <div class="bc-row">
+      <label for="lrn-action">Action (what you're about to do)</label>
+      <input type="text" id="lrn-action" placeholder="e.g. press the brake pedal">
+    </div>
+
+    <div class="bc-controls" role="toolbar" aria-label="Learn capture controls">
+      <button type="button" id="lrn-start" class="bc-btn bc-btn-primary">Start</button>
+      <button type="button" id="lrn-stop" class="bc-btn bc-btn-stop" hidden>Stop</button>
+    </div>
+
+    <div class="bc-status" id="lrn-status" hidden></div>
+    <div class="bc-notice" id="lrn-notice" hidden></div>
+
+    <table class="bc-candidates" id="lrn-candidates" hidden>
+      <thead>
+        <tr><th>CAN id</th><th>byte</th><th>distinct values</th><th>transitions</th><th></th></tr>
+      </thead>
+      <tbody id="lrn-candidates-body"></tbody>
+    </table>
+
+    <div class="bc-row" id="lrn-accept-row" hidden>
+      <label for="lrn-name">Name this signal</label>
+      <input type="text" id="lrn-name" placeholder="e.g. brake pedal switch">
+      <button type="button" id="lrn-accept" class="bc-btn bc-btn-primary">Save as learned signal</button>
+    </div>
+
+    <div class="bc-result" id="lrn-result" hidden></div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var vin = document.getElementById("lrn-app").dataset.vin;
+  var suggested = {{ (buses | map(attribute="suggested_actions") | list) | tojson }};
+  var busKeys = {{ (buses | map(attribute="key") | list) | tojson }};
+  var picked = null;
+  var pollTimer = null;
+
+  function qs(id) { return document.getElementById(id); }
+  function show(el) { el.hidden = false; }
+  function hide(el) { el.hidden = true; }
+
+  function api(method, path, body) {
+    var opts = { method: method, headers: { "Content-Type": "application/json" } };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    return fetch(path, opts).then(function (r) {
+      return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; });
+    });
+  }
+
+  function renderSuggested() {
+    var bus = qs("lrn-bus").value;
+    var idx = busKeys.indexOf(bus);
+    var acts = idx >= 0 ? (suggested[idx] || []) : [];
+    var row = qs("lrn-suggested");
+    row.innerHTML = "";
+    acts.forEach(function (a) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "bc-chip-btn";
+      b.textContent = a;
+      b.addEventListener("click", function () { qs("lrn-action").value = a; });
+      row.appendChild(b);
+    });
+  }
+  qs("lrn-bus").addEventListener("change", renderSuggested);
+  renderSuggested();
+
+  function notice(text, cls) {
+    var el = qs("lrn-notice");
+    el.textContent = text;
+    el.className = "bc-notice" + (cls ? " " + cls : "");
+    show(el);
+  }
+
+  function renderStatus(st) {
+    var el = qs("lrn-status");
+    el.textContent = "status: " + st.status + " · " + st.elapsed_s.toFixed(1) + "s · " +
+      st.frame_count + " frames · " + st.distinct_ids + " distinct ids · " +
+      st.rate_hz + " Hz";
+    show(el);
+  }
+
+  function renderCandidates(cands) {
+    var body = qs("lrn-candidates-body");
+    body.innerHTML = "";
+    (cands || []).slice().reverse().forEach(function (c) {
+      var tr = document.createElement("tr");
+      tr.innerHTML = "<td class=\"mono\"></td><td></td><td></td><td></td><td></td>";
+      tr.children[0].textContent = c.id;
+      tr.children[1].textContent = c.offset;
+      tr.children[2].textContent = c.score;
+      tr.children[3].textContent = c.transitions;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "bc-btn";
+      btn.textContent = "Use this";
+      btn.addEventListener("click", function () {
+        picked = { id: c.id, offset: c.offset };
+        show(qs("lrn-accept-row"));
+        notice("picked " + c.id + " byte " + c.offset + " — name it and save.", "");
+      });
+      var td = document.createElement("td");
+      td.appendChild(btn);
+      tr.appendChild(td);
+      body.appendChild(tr);
+    });
+    if ((cands || []).length) show(qs("lrn-candidates"));
+  }
+
+  function poll() {
+    var bus = qs("lrn-bus").value;
+    api("GET", "/api/buscapture/" + bus + "/learn/status").then(function (res) {
+      if (res.ok) renderStatus(res.body);
+    });
+  }
+
+  qs("lrn-start").addEventListener("click", function () {
+    var bus = qs("lrn-bus").value;
+    var action = qs("lrn-action").value.trim();
+    if (!action) { notice("name the action first.", "bc-notice-error"); return; }
+    api("POST", "/api/buscapture/" + bus + "/learn/start", { action: action }).then(function (res) {
+      if (!res.ok) { notice(res.body.error || "could not start.", "bc-notice-error"); return; }
+      hide(qs("lrn-start"));
+      show(qs("lrn-stop"));
+      renderStatus(res.body);
+      pollTimer = setInterval(poll, 1000);
+    });
+  });
+
+  qs("lrn-stop").addEventListener("click", function () {
+    var bus = qs("lrn-bus").value;
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    api("POST", "/api/buscapture/" + bus + "/learn/stop").then(function (res) {
+      show(qs("lrn-start"));
+      hide(qs("lrn-stop"));
+      if (!res.ok) { notice(res.body.error || "could not stop.", "bc-notice-error"); return; }
+      renderStatus(res.body);
+      renderCandidates(res.body.candidates);
+      if (!(res.body.candidates || []).length) {
+        notice("nothing changed during the capture — hold the action longer, or check the "
+              + "cable/bus.", "");
+      }
+    });
+  });
+
+  qs("lrn-accept").addEventListener("click", function () {
+    var bus = qs("lrn-bus").value;
+    var name = qs("lrn-name").value.trim();
+    if (!picked || !name) { notice("pick a candidate and name it first.", "bc-notice-error"); return; }
+    api("POST", "/api/buscapture/" + bus + "/learn/accept",
+        { vin: vin, can_id: picked.id, offset: picked.offset, name: name }).then(function (res) {
+      var el = qs("lrn-result");
+      if (!res.ok) {
+        el.textContent = res.body.error || "could not save.";
+        el.className = "bc-result bc-notice-error";
+      } else {
+        el.textContent = "saved \"" + name + "\" (" + picked.id + " byte " + picked.offset
+          + ") as a learned broadcast signal, scale unknown. Shows on the Live board as "
+          + "a raw channel, labelled \"learned, unscaled\".";
+        el.className = "bc-result";
+      }
+      show(el);
+    });
+  });
+})();
+</script>
+{% endblock %}

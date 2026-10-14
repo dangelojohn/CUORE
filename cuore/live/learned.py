@@ -102,4 +102,66 @@ def learned(vin: Optional[str] = None) -> dict[str, list[dict[str, Any]]]:
     return {vin: data.get(vin, [])}
 
 
-__all__ = ["path", "accept", "reject", "learned", "CONFIDENCE"]
+# --- broadcast signals: learned from watching a bus, not a UDS request ------
+#
+# A DID mapping (above) is learned by correlating wiTECH's own UDS reads; a
+# *broadcast* signal is learned by correlating a raw CAN id's bytes against a
+# physical action a mechanic performed while a bus capture ran (see
+# :mod:`cuore.live.buscapture`). There is no scale: nothing here ever
+# measures or fits one, so every entry is stamped ``scale="unknown"`` and the
+# Live board must show it as "learned, unscaled" rather than inventing a
+# decoded value.
+
+#: The only scale value this section ever writes.
+UNSCALED = "unknown"
+
+
+def _broadcast_key(bus: str, can_id: str, field: dict[str, Any]) -> tuple[str, str, str]:
+    return (bus.lower(), can_id.upper(), json.dumps(field or {}, sort_keys=True))
+
+
+def accept_broadcast(vin: str, bus: str, can_id: str, name: str, field: dict[str, Any],
+                     evidence: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
+    """Record an accepted broadcast-signal mapping for ``vin``.
+
+    ``field`` is the byte-level location within the frame, e.g.
+    ``{"offset": 2, "width": "byte"}`` -- whatever
+    :func:`cuore.live.buscapture.rank_changed_bytes` reported for the chosen
+    candidate. Replaces any prior *accepted* entry for the same
+    ``(bus, can_id, field)`` on this VIN; rejected entries and other fields
+    are kept.
+    """
+    entry = {
+        "kind": "broadcast", "bus": bus.lower(), "id": can_id.upper(), "name": name,
+        "field": field, "scale": UNSCALED, "offset": None, "unit": "",
+        "evidence": evidence or [], "confidence": CONFIDENCE, "status": "accepted",
+        "at": datetime.now().isoformat(timespec="seconds"),
+    }
+    key = _broadcast_key(bus, can_id, field)
+    with _LOCK:
+        data = _load()
+        entries = data.setdefault(vin, [])
+        entries[:] = [e for e in entries
+                     if not (e.get("status") == "accepted" and e.get("kind") == "broadcast"
+                             and _broadcast_key(e.get("bus", ""), e.get("id", ""),
+                                                e.get("field")) == key)]
+        entries.append(entry)
+        _save(data)
+    return entry
+
+
+def learned_broadcast(vin: Optional[str] = None, bus: str = "") -> dict[str, list[dict[str, Any]]]:
+    """Accepted broadcast entries only (``kind == "broadcast"``), optionally
+    narrowed to one bus. Same ``{vin: [...]}`` shape as :func:`learned`."""
+    data = learned(vin)
+    out: dict[str, list[dict[str, Any]]] = {}
+    for v, entries in data.items():
+        rows = [e for e in entries if e.get("kind") == "broadcast" and e.get("status") == "accepted"]
+        if bus:
+            rows = [e for e in rows if e.get("bus") == bus.lower()]
+        out[v] = rows
+    return out
+
+
+__all__ = ["path", "accept", "reject", "learned", "CONFIDENCE",
+          "accept_broadcast", "learned_broadcast", "UNSCALED"]

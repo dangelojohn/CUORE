@@ -1053,3 +1053,237 @@
   global.CuoreFreezeFrame.FreezeFramePanel = FreezeFramePanel;
 
 })(typeof window !== "undefined" ? window : globalThis);
+
+
+// ===========================================================================
+// ADDITIVE: Cable header + Bus capture panel + per-bus presets
+// (cuore/api/buscapture.py -- cable declaration, passive bus capture,
+// learn-a-signal and per-bus presets). New section, does not touch
+// anything above this line.
+// ===========================================================================
+
+(function (global) {
+  "use strict";
+
+  function api(method, path, body) {
+    var opts = { method: method, headers: { "Content-Type": "application/json" } };
+    if (body !== undefined) opts.body = JSON.stringify(body);
+    return fetch(path, opts).then(function (r) {
+      return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; });
+    });
+  }
+
+  // ---------------------------------------------------------------------
+  // Cable header
+  // ---------------------------------------------------------------------
+
+  function CableHeader(doc) {
+    this.doc = doc || document;
+  }
+
+  CableHeader.prototype._el = function (id) { return this.doc.getElementById(id); };
+
+  CableHeader.prototype.init = function () {
+    var self = this;
+    var change = this._el("bc-cable-change");
+    if (change) change.addEventListener("click", function () { self._changeCable(); });
+    return this.refresh();
+  };
+
+  CableHeader.prototype.refresh = function () {
+    var self = this;
+    return api("GET", "/api/buscapture/cable").then(function (res) {
+      if (res.ok) self._render(res.body);
+    });
+  };
+
+  CableHeader.prototype._render = function (state) {
+    var header = this._el("bc-cable-header");
+    if (!header) return;
+    header.hidden = false;
+    var bar = this._el("bc-cable-bar");
+    if (bar) bar.className = "bc-cable-bar cable-" + state.cable;
+    var label = this._el("bc-cable-label");
+    if (label) label.textContent = "cable: " + state.cable;
+    var buses = this._el("bc-cable-buses");
+    if (buses) {
+      buses.innerHTML = "";
+      var self2 = this;
+      (state.buses || []).forEach(function (b) {
+        var chip = self2.doc.createElement("span");
+        chip.className = "bc-bus-chip" + (b.reachable_with_cable ? " is-reachable" : "");
+        chip.textContent = b.bus;
+        buses.appendChild(chip);
+      });
+    }
+  };
+
+  CableHeader.prototype._changeCable = function () {
+    var self = this;
+    api("GET", "/api/buscapture/cable").then(function (res) {
+      if (!res.ok) return;
+      var options = ["none", "blue_a5", "grey_a6"];
+      var enabled = (res.body.presets || []).map(function (p) {
+        return p.preset + " needs " + p.cable_required;
+      }).join("; ");
+      var next = global.prompt(
+        "Declare the fitted cable (none, blue_a5, grey_a6).\n" + enabled,
+        res.body.cable || "none");
+      if (!next || options.indexOf(next) === -1) return;
+      api("POST", "/api/buscapture/cable", { cable: next }).then(function (res2) {
+        if (res2.ok) self._render(res2.body);
+      });
+    });
+  };
+
+  global.CuoreCableHeader = global.CuoreCableHeader || {};
+  global.CuoreCableHeader.init = function (doc) { return new CableHeader(doc).init(); };
+  global.CuoreCableHeader.CableHeader = CableHeader;
+
+  // ---------------------------------------------------------------------
+  // Bus capture panel: Start / Stop / Save, live frame-rate + id counts,
+  // plus the per-bus preset list (chassis_a6 / body_a5).
+  // ---------------------------------------------------------------------
+
+  function BusCapturePanel(doc) {
+    this.doc = doc || document;
+    var panelEl = this._el("bc-panel");
+    this.vin = (panelEl && panelEl.dataset) ? panelEl.dataset.vin : "";
+    this.pollTimer = null;
+  }
+
+  BusCapturePanel.prototype._el = function (id) { return this.doc.getElementById(id); };
+
+  BusCapturePanel.prototype.init = function () {
+    var self = this;
+    var bus = this._el("bc-bus");
+    if (bus) bus.addEventListener("change", function () { self._renderBusName(); });
+    this._renderBusName();
+    var start = this._el("bc-start");
+    if (start) start.addEventListener("click", function () { self.start(); });
+    var stop = this._el("bc-stop");
+    if (stop) stop.addEventListener("click", function () { self.stop(); });
+    var save = this._el("bc-save");
+    if (save) save.addEventListener("click", function () { self.save(); });
+    this._renderPresets();
+  };
+
+  BusCapturePanel.prototype._renderBusName = function () {
+    var bus = this._el("bc-bus");
+    var name = this._el("bc-bus-name");
+    if (bus && name) name.textContent = "(" + bus.value + ")";
+  };
+
+  BusCapturePanel.prototype._notice = function (text, isError) {
+    var el = this._el("bc-notice");
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = text;
+    el.classList.toggle("bc-notice-error", !!isError);
+  };
+
+  BusCapturePanel.prototype._renderStatus = function (st) {
+    var el = this._el("bc-status");
+    if (!el) return;
+    el.hidden = false;
+    el.textContent = "status: " + st.status + " . " + st.elapsed_s.toFixed(1) + "s . " +
+      st.frame_count + " frames . " + st.distinct_ids + " distinct ids . " +
+      st.rate_hz + " Hz";
+  };
+
+  BusCapturePanel.prototype.start = function () {
+    var self = this;
+    var bus = this._el("bc-bus").value;
+    api("POST", "/api/buscapture/" + bus + "/start").then(function (res) {
+      if (!res.ok) { self._notice(res.body.error || "could not start.", true); return; }
+      self._el("bc-start").hidden = true;
+      self._el("bc-stop").hidden = false;
+      self._el("bc-save").hidden = true;
+      self._renderStatus(res.body);
+      self.pollTimer = setInterval(function () { self._poll(bus); }, 1000);
+    });
+  };
+
+  BusCapturePanel.prototype._poll = function (bus) {
+    var self = this;
+    api("GET", "/api/buscapture/" + bus + "/status").then(function (res) {
+      if (res.ok) self._renderStatus(res.body);
+    });
+  };
+
+  BusCapturePanel.prototype.stop = function () {
+    var self = this;
+    var bus = this._el("bc-bus").value;
+    if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
+    api("POST", "/api/buscapture/" + bus + "/stop").then(function (res) {
+      self._el("bc-start").hidden = false;
+      self._el("bc-stop").hidden = true;
+      if (!res.ok) { self._notice(res.body.error || "could not stop.", true); return; }
+      self._renderStatus(res.body);
+      self._el("bc-save").hidden = false;
+    });
+  };
+
+  BusCapturePanel.prototype.save = function () {
+    var self = this;
+    var bus = this._el("bc-bus").value;
+    api("POST", "/api/buscapture/" + bus + "/save", { vin: this.vin }).then(function (res) {
+      var el = self._el("bc-result");
+      if (!el) return;
+      el.hidden = false;
+      if (!res.ok) {
+        el.textContent = res.body.error || "could not save.";
+      } else {
+        el.textContent = "saved " + res.body.saved_name + " (" + res.body.frame_count +
+          " frames, " + res.body.distinct_ids + " distinct ids)";
+        self._el("bc-save").hidden = true;
+      }
+    });
+  };
+
+  BusCapturePanel.prototype._renderPresets = function () {
+    var self = this;
+    var wrap = this._el("bc-presets");
+    if (!wrap) return;
+    ["chassis_a6", "body_a5"].forEach(function (name) {
+      var q = self.vin ? ("?vin=" + encodeURIComponent(self.vin)) : "";
+      fetch("/api/buscapture/presets/" + name + q)
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (preset) {
+          if (!preset) return;
+          var box = self.doc.createElement("div");
+          box.className = "bc-preset";
+          var head = self.doc.createElement("div");
+          head.className = "bc-preset-head";
+          var headName = self.doc.createElement("span");
+          headName.textContent = preset.name;
+          var headCable = self.doc.createElement("span");
+          headCable.textContent = "needs " + preset.cable_required;
+          head.appendChild(headName);
+          head.appendChild(headCable);
+          box.appendChild(head);
+          var items = self.doc.createElement("div");
+          items.className = "bc-preset-items";
+          (preset.items || []).forEach(function (it) {
+            var row = self.doc.createElement("div");
+            row.className = "bc-preset-item status-" + it.status;
+            var st = self.doc.createElement("span");
+            st.className = "bc-item-status";
+            st.textContent = it.status.replace("_", " ");
+            var lbl = self.doc.createElement("span");
+            lbl.textContent = it.label;
+            row.appendChild(st);
+            row.appendChild(lbl);
+            items.appendChild(row);
+          });
+          box.appendChild(items);
+          wrap.appendChild(box);
+        });
+    });
+  };
+
+  global.CuoreBusCapture = global.CuoreBusCapture || {};
+  global.CuoreBusCapture.init = function (doc) { return new BusCapturePanel(doc).init(); };
+  global.CuoreBusCapture.BusCapturePanel = BusCapturePanel;
+
+})(typeof window !== "undefined" ? window : globalThis);

@@ -15,6 +15,13 @@
   <div class="sh-header">
     <h1>Scan health report</h1>
     <div class="sh-asof">As of {{ report.header.as_of }} -- {{ report.header.adapter }}</div>
+    {% if report.header.calibration_ids or report.header.cvns %}
+    <div class="sh-asof sh-mode09">
+      {% if report.header.calibration_ids %}Calibration ID{{ "s" if report.header.calibration_ids|length > 1 else "" }}: {{ report.header.calibration_ids|join(", ") }}{% endif %}
+      {% if report.header.calibration_ids and report.header.cvns %} &middot; {% endif %}
+      {% if report.header.cvns %}CVN{{ "s" if report.header.cvns|length > 1 else "" }}: {{ report.header.cvns|join(", ") }}{% endif %}
+    </div>
+    {% endif %}
     <div class="sh-actions no-print">
       <a href="/api/scans/{{ vin }}/{{ scan_id }}/health.md" class="sh-btn">Markdown</a>
       <button type="button" class="sh-btn" onclick="window.print()">Print / PDF</button>

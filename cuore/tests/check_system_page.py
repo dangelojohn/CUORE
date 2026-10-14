@@ -87,6 +87,18 @@ check("evap page responds 200", evap_resp.status_code == 200, str(evap_resp.stat
 for code in ("P0440", "P0455", "P0456"):
     check(f"evap page lists {code}", f">{code}<" in evap_resp.text)
 
+print("=== EVAP status strip shows P0440 from the car (2026-10-13 live module sweep) ===")
+check("evap page shows P0440's live chip (from tonight's ECM UDS read)",
+      "from the car" in evap_resp.text and "P0440-00" in evap_resp.text)
+
+print("=== network-cascade system (body/BCM) shows the BCM-supply test ===")
+body_resp = client.get(f"/v/{VIN}/systems/body_comfort")
+check("body_comfort page responds 200", body_resp.status_code == 200, str(body_resp.status_code))
+check("body_comfort page carries the U1713-2F live chip",
+      "U1713-2F" in body_resp.text and "BCM" in body_resp.text)
+check("body_comfort's 'how it fails here' names the network-cascade's own first test",
+      "check BCM supply and grounds first" in body_resp.text)
+
 print("=== unknown key 404s ===")
 bad_resp = client.get(f"/v/{VIN}/systems/not_a_real_system")
 check("unknown system key responds 404", bad_resp.status_code == 404, str(bad_resp.status_code))

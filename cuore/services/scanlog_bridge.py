@@ -20,6 +20,12 @@ def list_scans(vin: str) -> dict[str, Any]:
     return {"vin": vin, "scans": scanlog.list_scans(vin)}
 
 
+def scan_plan(vin: str) -> dict[str, Any]:
+    """``{"count", "total"}`` for the "Scan n of 10" chip -- see
+    ``cuore.live.scanlog``'s own docstring for what counts."""
+    return scanlog.scan_plan(vin)
+
+
 def scan(vin: str, scan_id: str) -> dict[str, Any]:
     found = scanlog.get_scan(vin, scan_id)
     if found is None:
@@ -54,4 +60,4 @@ def export(vin: str, scan_id: str, fmt: str = "json") -> dict[str, Any]:
            "path": str(path) if path else None}
 
 
-__all__ = ["list_scans", "scan", "diff", "export", "EXPORT_FORMATS"]
+__all__ = ["list_scans", "scan_plan", "scan", "diff", "export", "EXPORT_FORMATS"]

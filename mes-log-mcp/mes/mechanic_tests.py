@@ -1500,6 +1500,49 @@ def tests_for_systems(ids: list[str]) -> list[dict[str, Any]]:
     return [dict(TESTS[i]) for i in _ORDER if want & set(TESTS[i]["systems"])]
 
 
+#: ``marque_for_vin`` (:mod:`mes.platform`) only resolves to "alfa"/
+#: "maserati"/"ferrari"/"unknown" -- coarser than this catalogue's own
+#: per-model ``applies_to`` (see :data:`_MODELS`/:func:`_applies`). This is
+#: the sourced, not-guessed bridge between the two: which of this
+#: catalogue's model keys a given marque's ``applies_to`` entry should be
+#: read from. Alfa covers both its own models (``stelvio_2.0t_2018`` is
+#: always ``True`` -- the catalogue's home car -- and ``giulia_2.0t``
+#: defaults ``True`` too, so this is a no-op for Alfa in practice); Maserati
+#: reads ``grecale_2.0t`` -- the only Maserati model this catalogue models
+#: at all (Levante has no sourced platform/component overlap, per
+#: ``mes.platform``, so there is nothing to key a Levante entry to; using
+#: ``grecale_2.0t`` for every Maserati VIN is this module's best honest
+#: proxy, not a claim that an unidentified Maserati SUV is specifically a
+#: Grecale). Ferrari and "unknown" marques have no modelled key at all --
+#: this catalogue was built for the Giorgio-platform car and never claims
+#: coverage there, so nothing is hidden for them (hiding would need a
+#: sourced reason this pass does not have).
+_MARQUE_MODEL_KEYS: dict[str, tuple[str, ...]] = {
+    "alfa": ("stelvio_2.0t_2018", "giulia_2.0t"),
+    "maserati": ("grecale_2.0t",),
+}
+
+
+def tests_for_marque(marque: str) -> list[dict[str, Any]]:
+    """Every test whose ``applies_to`` does not explicitly rule out
+    ``marque`` (see :data:`_MARQUE_MODEL_KEYS`) -- catalogue order.
+
+    Fixes the marque-port regression this catalogue's own Test A/ESIM-bench
+    additions introduced: those two tests set ``applies_to["grecale_2.0t"]
+    = False`` (genuinely Stelvio/FCA-procedure-specific, and their
+    ``pass_criteria`` source text names this project's own real Stelvio VIN
+    verbatim) but nothing called that flag until this function existed --
+    every vehicle's Tests page, Alfa or not, got the same unfiltered
+    :func:`all_tests`. See ``cuore/tests/check_marque_port.py``.
+    """
+    keys = _MARQUE_MODEL_KEYS.get((marque or "").strip().lower())
+    if not keys:
+        return all_tests()
+    return [dict(TESTS[i]) for i in _ORDER
+           if any(TESTS[i]["applies_to"].get(k, True) for k in keys)]
+
+
 __all__ = ["TESTS", "CATEGORIES", "CAR_STATES", "RESULTS", "POSTABLE_RESULTS",
           "TECHAUTHORITY", "INDUSTRY_PRACTICE", "all_tests", "test",
+          "tests_for_marque",
           "tests_for_codes", "tests_for_systems"]

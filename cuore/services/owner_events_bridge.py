@@ -22,7 +22,7 @@ from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from . import mes_bridge, systems_bridge
-from .errors import BadRequest
+from .errors import BadRequest, NotFound
 from ..live import owner_events as store
 
 from mes import feedback as feedback_mod  # noqa: E402
@@ -168,6 +168,42 @@ def list_events(vin: str, *, include_deleted: bool = False) -> dict[str, Any]:
 def delete(id: str) -> dict[str, Any]:
     try:
         return store.delete(id)
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+def restore(id: str) -> dict[str, Any]:
+    """Undo a soft-delete -- the Mobile page's "Undo" on the post-delete
+    confirmation screen."""
+    try:
+        return store.restore(id)
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
+def edit(vin: str, id: str, patch: dict[str, Any], by: str = "owner",
+        by_name: str = "") -> dict[str, Any]:
+    """Apply one edit (``patch`` may carry ``fields``/``note``/
+    ``odometer_km``/``at``) to an existing owner event on ``vin``.
+
+    Raises :class:`NotFound` (404) when ``id`` doesn't resolve to a
+    non-deleted event on this ``vin`` -- checked here, against this VIN's
+    own event list, rather than left to ``cuore.live.owner_events.edit``,
+    so an id that belongs to a *different* vin 404s the same as an unknown
+    one rather than leaking cross-vehicle existence. Raises
+    :class:`BadRequest` (400) for a bad key/value in ``patch`` (e.g. a field
+    not in this event's kind's taxonomy) -- the one case the store layer
+    itself still catches.
+    """
+    if not vin.strip():
+        raise BadRequest("a VIN is required")
+    current = next((e for e in store.load(vin, include_deleted=True) if e.get("id") == id), None)
+    if current is None or current.get("deleted"):
+        raise NotFound(f"no owner event with id {id!r}")
+    try:
+        return store.edit(id, fields=patch.get("fields"), note=patch.get("note"),
+                          odometer_km=patch.get("odometer_km"), at=patch.get("at"),
+                          by_role=by, by_name=by_name)
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
 
@@ -329,5 +365,5 @@ def reply_message(id: str, text: str, by: str = "owner") -> dict[str, Any]:
 
 
 __all__ = ["MESSAGE_PAGE", "CORRELATION_WINDOW_DAYS", "PROMPT_RULES",
-          "taxonomy", "add", "list_events", "delete", "events_for_system",
-          "correlate", "messages", "reply_message"]
+          "taxonomy", "add", "list_events", "delete", "restore", "edit",
+          "events_for_system", "correlate", "messages", "reply_message"]

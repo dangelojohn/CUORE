@@ -58,6 +58,11 @@ try:
 except Exception:  # noqa: BLE001
     live_ops = None
 
+try:
+    from . import scanlog_bridge
+except Exception:  # noqa: BLE001
+    scanlog_bridge = None
+
 
 #: Capped the same way the spec caps each bench card: 3 next actions, each
 #: with at most 3 parts and 4 tools.
@@ -153,12 +158,22 @@ def _blocker_banner(verdict: dict[str, Any]) -> dict[str, Any] | None:
 
 
 def _parse_full_ts(ts: str | None) -> datetime | None:
+    """Parses both the MES-log timestamp shape (``"YYYY-MM-DD HH:MM:SS"``,
+    from :mod:`mes.workup`'s ``current_picture``) and the live-observation
+    shape (``"YYYY-MM-DDTHH:MM:SS"``, straight off ``observations.jsonl``'s
+    own ``at`` field via :mod:`cuore.live.scanlog`) -- the two clocks the
+    resume card's "how recent is this" has to compare (see N1,
+    MECHANIC_REVIEW_4_SCANS_HEALTH_2026-10-13.md). Returns ``None`` for
+    anything neither shape parses, same as before."""
     if not ts:
         return None
-    try:
-        return datetime.strptime(str(ts)[:19], "%Y-%m-%d %H:%M:%S")
-    except ValueError:
-        return None
+    raw = str(ts)[:19]
+    for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(raw, fmt)
+        except ValueError:
+            continue
+    return None
 
 
 def _relative_time(ts: str | None) -> str | None:
@@ -657,6 +672,59 @@ def _tank_capacity_litres(vin: str) -> float | None:
     return None
 
 
+def last_scan_summary(vin: str) -> dict[str, Any] | None:
+    """The Bench "Last scan" card (owner's guidance, 2026-10-13: "we do not
+    need many scans, just 10" -- one guided scan per visit, about ten over
+    a diagnosis): the newest scan on file for this VIN, by
+    ``cuore.live.scanlog``'s own grouping (see that module's docstring for
+    what a "scan" is and what makes one "partial"), shaped for the card --
+    id, relative time, source adapter, codes by status, the coverage line,
+    and the scan-plan chip. ``None`` when ``cuore.services.scanlog_bridge``
+    is unavailable or no live scan is on file yet; the template then shows
+    its own "no scan yet" line rather than fabricate a card.
+
+    Codes are grouped "active" (stored + permanent -- a fault the car is
+    reporting right now) vs "history" (pending -- not yet confirmed) purely
+    as a display grouping over the scan's own stored/pending/permanent
+    buckets (``cuore.live.scanlog``'s OBD vocabulary); it invents no new
+    DTC status of its own.
+    """
+    if scanlog_bridge is None:
+        return None
+    try:
+        scans = scanlog_bridge.list_scans(vin)["scans"]  # newest first
+    except Exception:  # noqa: BLE001 -- the bench must still render without it
+        return None
+    if not scans:
+        return None
+
+    latest = scans[0]
+    previous = scans[1] if len(scans) > 1 else None
+    dtcs = latest.get("dtcs") or {}
+    active = sorted(set(dtcs.get("stored") or []) | set(dtcs.get("permanent") or []))
+    history = sorted(dtcs.get("pending") or [])
+
+    try:
+        plan = scanlog_bridge.scan_plan(vin)
+    except Exception:  # noqa: BLE001
+        plan = {"count": len(scans), "total": 10}
+
+    return {
+        "id": latest["id"],
+        "relative": _relative_time(latest.get("started")) or latest.get("started"),
+        "source": (latest.get("source") or {}).get("stream") or "unknown",
+        "active_codes": active,
+        "history_codes": history,
+        "coverage_line": (latest.get("coverage") or {}).get("line"),
+        "partial": bool(latest.get("partial")),
+        "plan": plan,
+        "href": f"/v/{vin}/scans/{latest['id']}",
+        "health_href": f"/v/{vin}/scans/{latest['id']}/health",
+        "compare_href": (f"/v/{vin}/scans/diff?a={previous['id']}&b={latest['id']}"
+                        if previous else None),
+    }
+
+
 def build_bench(vin: str) -> dict[str, Any]:
     """Everything ``bench.html`` needs, computed once.
 
@@ -706,7 +774,29 @@ def build_bench(vin: str) -> dict[str, Any]:
     cp = dossier.get("current_picture") or {}
     scan_ts = (cp.get("latest_scan") or {}).get("timestamp")
     session_ts = (cp.get("latest_session") or {}).get("timestamp")
-    newest_ts = max([t for t in (scan_ts, session_ts) if t], default=None)
+
+    # N1 (MECHANIC_REVIEW_4_SCANS_HEALTH_2026-10-13.md): the resume card's
+    # "last scan ... ago"/stale flag used to be computed only from the
+    # MES-log-derived current_picture, so a from-car live scan newer than
+    # the newest MES log (the common case right after a bench session, and
+    # tonight's exact repro) never moved it -- the card could read "6 d
+    # ago, stale" one line above a card naming a scan from minutes ago.
+    # Fold in the newest live scan on file (cuore.live.scanlog, by way of
+    # scanlog_bridge) and take whichever of the three is actually newest,
+    # comparing by parsed time (not string order -- the two sources use
+    # different timestamp shapes; see _parse_full_ts).
+    live_scan_ts = None
+    if scanlog_bridge is not None:
+        try:
+            live_scans = scanlog_bridge.list_scans(vin)["scans"]
+            if live_scans:
+                live_scan_ts = live_scans[0].get("started")
+        except Exception:  # noqa: BLE001 -- the bench must still render without it
+            live_scan_ts = None
+
+    candidates = [t for t in (scan_ts, session_ts, live_scan_ts) if t]
+    newest_ts = (max(candidates, key=lambda t: _parse_full_ts(t) or datetime.min)
+                 if candidates else None)
     hours_since = _hours_since(newest_ts)
 
     done_total = sum((c.get("progress") or {}).get("done", 0) for c in open_work)
@@ -758,6 +848,7 @@ def build_bench(vin: str) -> dict[str, Any]:
         "live_status": live_status,
         "scanner_label": scanner_label(live_status),
         "blocker_banner": _blocker_banner(verdict),
+        "last_scan": last_scan_summary(vin),
     }
 
 
@@ -793,4 +884,4 @@ def regenerate_for_live_codes(vin: str) -> None:
 
 
 __all__ = ["build_bench", "FAMILY_ICON", "LABELS", "scanner_label",
-          "regenerate_for_live_codes"]
+          "last_scan_summary", "regenerate_for_live_codes"]

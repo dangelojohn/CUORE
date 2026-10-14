@@ -101,6 +101,45 @@ check("unknown VIN has no sessions", (mbody.get("sessions") or []) == [], "")
 check("unknown VIN edges list is still a valid (possibly non-empty) list",
       isinstance(mbody.get("edges"), list), "")
 
+print("=== live module sweep overlay (2026-10-13 fixture) ===")
+
+body_sys = systems.get("body_comfort") or {}
+check("body system state is ACTIVE from tonight's module sweep",
+      body_sys.get("state") == "ACTIVE", str(body_sys.get("state")))
+body_chips = [c.get("chip_text") for c in (body_sys.get("module_codes") or [])]
+check("body carries the U1713-2F / BCM / failing-now chip",
+      "U1713-2F · BCM · failing now" in body_chips, str(body_chips))
+
+instruments = systems.get("infotainment_cluster") or {}
+check("instruments (IPC) is history-only, not ACTIVE",
+      instruments.get("state") != "ACTIVE", str(instruments.get("state")))
+check("instruments carries a history chip",
+      any(c.get("state") == "HISTORY" for c in (instruments.get("module_codes") or [])),
+      str(instruments.get("module_codes")))
+
+keys_rf = systems.get("security_immobiliser") or {}
+check("keys/RF (RFHUB) is history, not ACTIVE",
+      keys_rf.get("state") != "ACTIVE", str(keys_rf.get("state")))
+check("keys/RF carries a history chip",
+      any(c.get("state") == "HISTORY" for c in (keys_rf.get("module_codes") or [])),
+      str(keys_rf.get("module_codes")))
+
+coverage = body.get("coverage") or {}
+check("ABS (brakes_abs) is hatched 'needs grey A6 cable' after the coverage observation",
+      (coverage.get("brakes_abs") or {}).get("why") == "needs grey A6 cable",
+      str(coverage.get("brakes_abs")))
+check("EPS (steering) is hatched 'needs grey A6 cable' after the coverage observation",
+      (coverage.get("steering") or {}).get("why") == "needs grey A6 cable",
+      str(coverage.get("steering")))
+check("a system with tonight's real module data is never also marked not-reachable",
+      "body_comfort" not in coverage, str(coverage.get("body_comfort")))
+
+hot_body_instruments = [e for e in edges
+                        if {e.get("a"), e.get("b")} == {"body_comfort", "infotainment_cluster"}
+                        and (e.get("sessions_together") or 0) > 0]
+check("hot edge body <-> instruments present (same module-sweep scan window)",
+      bool(hot_body_instruments), str(hot_body_instruments))
+
 print("=== MECHANIC_REVIEW_3_TESTS_SYSTEMS_LIVE_2026-10-13.md regressions ===")
 
 print("--- F6: a failed/slow /api/systems/{vin}/state fetch must not vanish silently ---")

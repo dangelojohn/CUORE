@@ -8,12 +8,23 @@
   <p class="small"><a href="/v/{{ vin }}/scans">&larr; All scans</a></p>
   <h1 class="mono">{{ scan.id }}</h1>
   <p class="small muted">As of {{ scan.started }}{% if scan.ended and scan.ended != scan.started %}
-    &ndash; {{ scan.ended }}{% endif %}, source {{ scan.source.stream or "unknown" }}.</p>
+    &ndash; {{ scan.ended }}{% endif %}, source {{ scan.source.stream or "unknown" }}
+    {% if scan.number %}&middot; Scan {{ scan.number }}{% endif %}
+    {% if scan.partial %}<span class="chip plain scanlog-partial">partial</span>{% endif %}</p>
+
+  {% if scan.coverage %}
+    <p class="small scanlog-coverage">{{ scan.coverage.line }}</p>
+  {% elif scan.partial %}
+    <p class="small muted">Manual read -- no bus-sweep coverage for this scan.</p>
+  {% endif %}
 
   <div class="jump-chip-row no-print">
     <a class="jump-chip" href="/api/scans/{{ vin }}/{{ scan.id }}/export?fmt=json">Export JSON</a>
     <a class="jump-chip" href="/api/scans/{{ vin }}/{{ scan.id }}/export?fmt=mes">Export MES log</a>
     <a class="jump-chip" href="/v/{{ vin }}/scans/{{ scan.id }}/health">Health report</a>
+    {% if previous %}
+      <a class="jump-chip" href="/v/{{ vin }}/scans/diff?a={{ previous.id }}&b={{ scan.id }}">Compare with previous</a>
+    {% endif %}
   </div>
 
   {# --- Codes --------------------------------------------------------- #}

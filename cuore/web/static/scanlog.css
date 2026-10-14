@@ -47,6 +47,27 @@
  * phone, per the shop-floor rule. */
 .scanlog-page .tw { width: 100%; }
 
+/* Scan plan chip (bench's own "Scan n of 10" chip reuses this same look,
+ * see bench.html's scoped <style>) and the partial-scan badge. */
+.scanlog-page .scanlog-plan-chip { font-weight: 650; }
+.scanlog-page .scanlog-partial {
+  color: var(--sev-chronic); background: var(--sev-chronic-bg); margin-left: 4px;
+}
+.scanlog-page .scanlog-partial.sm { font-size: 11px; padding: 0 6px; }
+.scanlog-page .scanlog-coverage { margin: 2px 0 10px; color: var(--ink-2); }
+
+.scanlog-page .jump-chip.sm { padding: 0 10px; font-size: 12px; min-height: 36px; }
+
+/* Compare picker: two selects + a button, each a real 48px tap target. */
+.scanlog-page .scanlog-compare {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 14px 0;
+}
+.scanlog-page .scanlog-compare select { min-height: 48px; }
+.scanlog-page .scanlog-compare .btn { min-height: 48px; }
+
 @media print {
-  .scanlog-page .jump-chip-row { display: none !important; }
+  .scanlog-page .jump-chip-row,
+  .scanlog-page .scanlog-compare,
+  .scanlog-page td.no-print,
+  .scanlog-page th.no-print { display: none !important; }
 }

@@ -392,6 +392,30 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 }
 .m-event-fields { margin: 0 0 8px; padding-left: 18px; font-size: 15px; }
 .m-event-note { font-size: 15px; color: var(--ink-2); }
+.m-edited-badge { text-transform: uppercase; font-size: 12px; letter-spacing: .06em; color: var(--accent); }
+
+/* Edit (history row) -- a plain 48px tap target, same house style as
+   .m-ghost-btn but inline rather than full-width. */
+.m-event-edit {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 0 16px; margin-top: 6px;
+  border: 1px solid var(--rule); border-radius: var(--radius, 3px);
+  color: var(--ink); text-decoration: none;
+  font-size: 13px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em;
+}
+
+/* Audit disclosure -- same native <details> convention as .m-more, reused
+   on both the history row and the post-edit record card. */
+.m-audit { border-top: 1px solid var(--rule-soft); margin-top: 10px; padding-top: 10px; }
+.m-audit summary {
+  font-size: 12px; text-transform: uppercase; letter-spacing: .1em; font-weight: 650;
+  color: var(--ink-3); cursor: pointer; list-style: none; min-height: 32px; display: flex; align-items: center;
+}
+.m-audit summary::-webkit-details-marker { display: none; }
+.m-audit-entry { padding: 8px 0; border-bottom: 1px solid var(--rule-soft); }
+.m-audit-entry:last-child { border-bottom: none; }
+.m-audit-meta { font-size: 12px; color: var(--ink-3); margin: 0 0 4px; }
+.m-audit-changes { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); }
 
 .m-lan-url {
   font-family: var(--mono);
@@ -428,7 +452,29 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 }
 .m-card-field-value { font-size: 16px; color: var(--ink); }
 .m-card-attested { font-size: 13px; color: var(--ink-3); margin: 0; }
+.m-card-edited { font-size: 13px; color: var(--accent); margin: 0 0 4px; }
 .m-confirm-actions { display: flex; gap: 10px; }
+
+/* ---------- edit screen (Cancel/Delete) + deleted/undo screen ---------- */
+
+.m-edit-actions { display: flex; gap: 10px; margin-top: 14px; }
+.m-delete-form { margin-top: 18px; border-top: 1px solid var(--rule-soft); padding-top: 18px; }
+.m-delete-btn {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; min-height: 48px;
+  border: 1px solid var(--accent); border-radius: var(--radius, 3px);
+  background: transparent; color: var(--accent);
+  font-size: 14px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em;
+  cursor: pointer;
+}
+.m-undo-btn {
+  -webkit-appearance: none; appearance: none;
+  min-height: 48px; padding: 0 18px;
+  border: 1px solid var(--rule); border-radius: var(--radius, 3px);
+  background: transparent; color: var(--ink);
+  font-size: 13px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em;
+  cursor: pointer;
+}
 
 /* ---------- footer + bottom nav ---------- */
 

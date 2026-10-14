@@ -128,6 +128,69 @@
   cursor: pointer;
 }
 
+/* Tonight's (or newest) live module sweep -- one chip per cell naming the
+ * worst code found for that system: solid red for a code failing right
+ * now, amber-outline for one only confirmed/pending since the last clear.
+ * Never the same visual as the Phase-4 "brand-new DTC" chip above (that one
+ * pulses and is only ever shown while a live session is polling); these
+ * are static and show from the very first paint. */
+.smap-module-chip-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.smap-module-chip {
+  position: absolute;
+  font-family: var(--mono), monospace;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 3px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.smap-module-chip-active {
+  background: var(--sev-returned);
+  color: var(--surface);
+}
+
+.smap-module-chip-history {
+  background: var(--surface);
+  color: var(--sev-chronic);
+  border: 2px solid var(--sev-chronic);
+}
+
+/* Coverage: cells whose module(s) the newest whole-car scan could not
+ * reach -- grey diagonal hatch, never a state colour, never "clean". */
+.smap-coverage-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.smap-coverage-hatch {
+  position: absolute;
+  pointer-events: auto;
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--ink-3) 0, var(--ink-3) 2px,
+    transparent 2px, transparent 8px
+  );
+  opacity: 0.55;
+  border-radius: 4px;
+}
+
 /* --- Phase 4: live overlay ---------------------------------------------- */
 
 .smap-live-bar {

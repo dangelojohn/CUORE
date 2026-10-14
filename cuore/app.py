@@ -25,6 +25,7 @@ from fastapi.staticfiles import StaticFiles  # noqa: E402
 from mes.errors import MesError  # noqa: E402  -- needs bootstrap to have run
 
 from .api import attested as attested_api  # noqa: E402
+from .api import buscapture as buscapture_api  # noqa: E402
 from .api import scan_health as scan_health_api  # noqa: E402
 from .api import cases as cases_api, checklists as checklists_api, dossier as dossier_api, electrical as electrical_api, feedback as feedback_api, flow as flow_api, jobs as jobs_api, known_good, live, live_ui, liveboard, logs, media as media_api, parts as parts_api, recordings, reference, shop as shop_api, system, systems as systems_api, systems_map as systems_map_api, tests as tests_api, timeline as timeline_api, tools as tools_api, tools_kb as tools_kb_api, experience as experience_api, vehicles  # noqa: E402
 from .config import Settings, load  # noqa: E402
@@ -35,9 +36,11 @@ from .web import dashboard_routes  # noqa: E402
 from .web import drivetrain_routes  # noqa: E402
 from .web import dossier_routes  # noqa: E402
 from .web import electrical_routes  # noqa: E402
+from .web import fullscan_routes  # noqa: E402
 from .web import labels_routes  # noqa: E402
 from .web import live_dashboard_routes  # noqa: E402
 from .web import liveboard_routes  # noqa: E402
+from .web import learn_routes  # noqa: E402
 from .web import owner_routes  # noqa: E402
 from .api import owner_events as owner_events_api  # noqa: E402
 from .api import scanlog as scanlog_api  # noqa: E402
@@ -140,6 +143,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(live.router, prefix="/api")
     app.include_router(live_ui.router, prefix="/api")
     app.include_router(liveboard.router, prefix="/api")
+    app.include_router(buscapture_api.router, prefix="/api")
     app.include_router(owner_events_api.router, prefix="/api")
     app.include_router(scanlog_api.router, prefix="/api")
     app.include_router(vision_api.router, prefix="/api")
@@ -180,6 +184,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(jobs_routes.router)
     app.include_router(live_dashboard_routes.router)
     app.include_router(liveboard_routes.router)
+    app.include_router(learn_routes.router)
     app.include_router(owner_routes.router)
     app.include_router(tests_routes.router)
     app.include_router(media_routes.router)
@@ -190,6 +195,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(electrical_routes.router)
     app.include_router(modules_routes.router)
     app.include_router(scan_health_routes.router)
+    app.include_router(fullscan_routes.router)
 
     # Every /static URL is already cache-busted by static_version.static_url's
     # ``?v=<mtime hash>`` query string, so a long max-age would be safe -- but

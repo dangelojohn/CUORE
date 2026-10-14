@@ -1,0 +1,80 @@
+/* =========================================================================
+ * Full scan wizard (cuore/web/templates/fullscan.html). Appended, new file
+ * -- kept separate from cuore.css per that file's own convention of
+ * appending feature sections rather than interleaving them.
+ *
+ * Shop-floor rules for this page specifically, same posture as shop.css's
+ * own ".release-btn"/".release-cb": true to the app's existing dark tokens
+ * (--bg is already near-black; this file never redefines a colour token,
+ * only reads them), every tap target >=48px, every bit of text on the
+ * pause card >=16px -- a mechanic reading this with a cable in one hand
+ * should never have to come back for a second look.
+ * ========================================================================= */
+
+.fscan { font-size: 16px; }
+.fscan .lede { font-size: 16px; }
+
+.fscan-btn {
+  min-height: 48px;
+  font-size: 16px;
+  padding: 12px 22px;
+}
+
+.fscan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0;
+}
+.fscan-abandon { margin-top: 18px; opacity: .7; }
+
+.fscan-pause {
+  text-align: left;
+  max-width: 480px;
+}
+
+.fscan-pictogram {
+  height: 56px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+}
+.fscan-pic-blue_a5 { background: #2f6fed; }
+.fscan-pic-grey_a6 { background: #8a9099; }
+.fscan-pic-none    { background: var(--rule); }
+
+.fscan-cable-name {
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: .01em;
+  margin: 0 0 8px;
+}
+.fscan-bus-label {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--ink-2);
+  margin-left: 6px;
+}
+
+.fscan-instruction {
+  font-size: 18px;
+  margin: 14px 0 18px;
+}
+
+.fscan-counts { font-size: 17px; }
+
+.fscan-sofar { margin-top: 18px; }
+.fscan-sofar summary {
+  cursor: pointer;
+  font-size: 16px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .fscan-actions { flex-direction: column; }
+  .fscan-actions .btn { width: 100%; }
+  .fscan-pause { max-width: 100%; }
+}

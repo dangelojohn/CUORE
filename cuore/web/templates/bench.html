@@ -128,6 +128,20 @@
 
 .bench-links { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
 .bench-links .btn { min-height: 48px; display: inline-flex; align-items: center; }
+
+/* "Last scan" card (owner's guidance 2026-10-08: about 10 scans over a
+ * diagnosis, not fifty single reads) -- right after the verdict block. */
+.bench-lastscan {
+  background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius);
+  padding: 10px; display: flex; flex-direction: column; gap: 6px; max-width: 100%;
+}
+.bench-lastscan-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; font-size: 13px; }
+.bench-lastscan-row .scanlog-plan-chip { font-weight: 650; }
+.bench-lastscan-coverage { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+.bench-lastscan-codes { margin: 0; font-size: 13px; }
+.bench-lastscan-codes b { font-weight: 650; }
+.bench-lastscan-links { display: flex; gap: 8px; flex-wrap: wrap; }
+.bench-lastscan-links .btn { min-height: 44px; display: inline-flex; align-items: center; font-size: 12.5px; }
 </style>
 
 <div class="bench" data-vin="{{ vin }}">
@@ -162,6 +176,37 @@
 
   {% if bench.case_hint %}
     <p class="bench-case-hint small muted">{{ bench.case_hint }}</p>
+  {% endif %}
+
+  {# "Last scan" card -- cuore/services/bench_bridge.py:last_scan_summary().
+     Owner's guidance: about 10 scans over a diagnosis, not fifty single
+     reads, so this card always shows "Scan n of 10", not a raw count. #}
+  {% if bench.last_scan %}
+    <div class="bench-lastscan">
+      <div class="bench-lastscan-row">
+        <a class="mono" href="{{ bench.last_scan.href }}">{{ bench.last_scan.id }}</a>
+        <span>{{ bench.last_scan.relative }}</span>
+        <span class="muted small mono">{{ bench.last_scan.source }}</span>
+        <span class="chip plain scanlog-plan-chip">Scan {{ bench.last_scan.plan.count }} of {{ bench.last_scan.plan.total }}</span>
+        {% if bench.last_scan.partial %}<span class="chip chronic">partial</span>{% endif %}
+      </div>
+      <p class="bench-lastscan-codes">
+        <b>Active:</b> {% if bench.last_scan.active_codes %}{% for c in bench.last_scan.active_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
+        &middot; <b>History:</b> {% if bench.last_scan.history_codes %}{% for c in bench.last_scan.history_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
+      </p>
+      {% if bench.last_scan.coverage_line %}
+        <p class="bench-lastscan-coverage">{{ bench.last_scan.coverage_line }}</p>
+      {% elif bench.last_scan.partial %}
+        <p class="bench-lastscan-coverage muted">Manual read -- no bus-sweep coverage for this scan.</p>
+      {% endif %}
+      <div class="bench-lastscan-links">
+        <a class="btn" href="{{ bench.last_scan.href }}">Open scan</a>
+        <a class="btn" href="{{ bench.last_scan.health_href }}">Health report</a>
+        {% if bench.last_scan.compare_href %}
+          <a class="btn" href="{{ bench.last_scan.compare_href }}">Compare with previous</a>
+        {% endif %}
+      </div>
+    </div>
   {% endif %}
 
   {# Bench order (item 17): status line (vbar) -> blocker banner (above) ->

@@ -11,18 +11,24 @@
     anywhere but CUORE itself -- export a scan as an MES-style log to read it
     with the rest of your MultiEcuScan tooling.</p>
 
+  {% if plan %}
+    <p class="small"><span class="chip plain scanlog-plan-chip">Scan {{ plan.count }} of {{ plan.total }}</span>
+      <span class="muted">&mdash; about {{ plan.total }} scans over a diagnosis, not fifty single reads.</span></p>
+  {% endif %}
+
   {% if not scans %}
     <p class="muted">No live scans on file for this vehicle yet. Read the car once
       (Codes, Live or Tests) and it will show up here.</p>
   {% else %}
   <div class="tw">
   <table class="scanlog-table">
-    <colgroup><col style="width:22%"><col style="width:20%"><col style="width:12%">
-      <col style="width:34%"><col style="width:12%"></colgroup>
-    <thead><tr><th>Date</th><th>Source</th><th>MIL</th><th>Codes</th><th class="n">Reads</th></tr></thead>
+    <colgroup><col style="width:8%"><col style="width:18%"><col style="width:16%"><col style="width:10%">
+      <col style="width:28%"><col style="width:10%"><col style="width:10%"></colgroup>
+    <thead><tr><th>Scan</th><th>Date</th><th>Source</th><th>MIL</th><th>Codes</th><th class="n">Reads</th><th class="no-print"></th></tr></thead>
     <tbody>
       {% for s in scans %}
       <tr class="row-link" data-href="/v/{{ vin }}/scans/{{ s.id }}" tabindex="0">
+        <td class="mono">{{ s.number or "" }}{% if s.partial %}<span class="chip plain scanlog-partial sm">partial</span>{% endif %}</td>
         <td><a class="mono" href="/v/{{ vin }}/scans/{{ s.id }}">{{ s.started }}</a></td>
         <td class="small mono">{{ s.source.stream or "unknown" }}</td>
         <td>
@@ -41,11 +47,30 @@
           {% endif %}
         </td>
         <td class="n mono">{{ s.counts.observations }}</td>
+        <td class="no-print"><a class="jump-chip sm" href="/v/{{ vin }}/scans/{{ s.id }}/health">Health report</a></td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   </div>
+
+  {% if scans|length > 1 %}
+  <form class="scanlog-compare no-print" method="get" action="/v/{{ vin }}/scans/diff">
+    <span class="small">Compare</span>
+    <select name="a" aria-label="First scan">
+      {% for s in scans|reverse %}
+        <option value="{{ s.id }}" {% if loop.index == 1 %}selected{% endif %}>Scan {{ s.number }} &mdash; {{ s.started }}</option>
+      {% endfor %}
+    </select>
+    <span class="small">with</span>
+    <select name="b" aria-label="Second scan">
+      {% for s in scans %}
+        <option value="{{ s.id }}" {% if loop.index == 1 %}selected{% endif %}>Scan {{ s.number }} &mdash; {{ s.started }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn">Compare</button>
+  </form>
+  {% endif %}
   {% endif %}
 </div>
 {% endblock %}

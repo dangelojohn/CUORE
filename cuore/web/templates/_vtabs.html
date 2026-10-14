@@ -32,7 +32,8 @@
    six tabs now stay visible on a phone-width strip. #}
 {% set _visible = ("bench", "job", "codes", "liveboard", "tests", "systems", "report", "mobile") %}
 {% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "parts", "media",
-                 "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard", "scans") %}
+                 "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard", "scans",
+                 "scan") %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
 {% set _flow_key = (flow.steps|selectattr("n", "equalto", flow.current)|map(attribute="key")|first)
                     if flow and flow.steps else none %}
@@ -83,6 +84,7 @@
       {{ vtab("labels", "/v/" + bar.vin + "/labels", _lbl("labels", "Labels")) }}
       {{ vtab("logs", "/logs?vin=" + bar.vin, _lbl("logs", "Logs")) }}
       {{ vtab("scans", "/v/" + bar.vin + "/scans", _lbl("scans", "Scans")) }}
+      {{ vtab("scan", "/v/" + bar.vin + "/scan", _lbl("full_scan", "Full scan")) }}
       {{ vtab("dashboard", "/v/" + bar.vin + "/dashboard", _lbl("dashboard", "Dashboard")) }}
       {# "Tell CUORE" (cuore/web/owner_routes.py) lives on its own /m/{vin}
          phone-first layout, not under /v/{vin} -- so this is a plain link,

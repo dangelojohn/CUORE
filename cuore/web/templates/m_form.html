@@ -1,12 +1,17 @@
 {% extends "m_base.html" %}
-{% block title %}{{ kd.label }} -- Tell CUORE{% endblock %}
+{% block title %}{{ 'Edit ' + kd.label if is_edit else kd.label }} -- Tell CUORE{% endblock %}
 {% block content %}
+{% if is_edit %}
+<p class="m-back"><a href="{{ cancel_href }}">&larr; History</a></p>
+<h1 class="m-h1">Edit {{ kd.label }} &middot; {{ edit_date }}</h1>
+{% else %}
 <p class="m-back"><a href="/m/{{ vin }}/add/{{ category }}">&larr; {{ category|replace('_',' ')|title }}</a></p>
 <h1 class="m-h1">{{ kd.label }}</h1>
+{% endif %}
 <p class="m-why">{{ kd.why_it_matters }}</p>
 
-<form method="post" action="/m/{{ vin }}/add/{{ category }}/{{ kind }}" class="m-form"
-     enctype="multipart/form-data">
+<form method="post" action="{{ form_action if is_edit else '/m/' + vin + '/add/' + category + '/' + kind }}"
+     class="m-form" enctype="multipart/form-data">
   {% include "_camera_tile.html" %}
   {% if media_id %}<input type="hidden" name="media_id" value="{{ media_id }}">{% endif %}
 
@@ -29,7 +34,7 @@
 
     {% elif spec.type == "bool" %}
     <label class="m-toggle">
-      <input type="checkbox" name="{{ key }}" value="on"{% if pf and pf.value in ('on', 'true', '1', 'yes') %} checked{% endif %}>
+      <input type="checkbox" name="{{ key }}" value="on"{% if pf and pf.value in ('on', 'true', '1', 'yes', 'True') %} checked{% endif %}>
       <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
       <span class="m-toggle-label">Yes</span>
     </label>
@@ -90,9 +95,19 @@
 
   <div class="m-field">
     <label class="m-label">Anything else</label>
-    <textarea class="m-input m-textarea" name="note" rows="3"></textarea>
+    <textarea class="m-input m-textarea" name="note" rows="3">{{ event_note|default('') }}</textarea>
   </div>
 
   <button type="submit" class="m-submit">Save</button>
+  {% if is_edit %}
+  <div class="m-edit-actions">
+    <a class="m-ghost-btn" href="{{ cancel_href }}">Cancel</a>
+  </div>
+  {% endif %}
 </form>
+{% if is_edit %}
+<form method="post" action="{{ delete_action }}" class="m-delete-form">
+  <button type="submit" class="m-delete-btn">Delete</button>
+</form>
+{% endif %}
 {% endblock %}

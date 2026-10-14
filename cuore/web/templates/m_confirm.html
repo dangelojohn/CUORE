@@ -1,10 +1,13 @@
 {% extends "m_base.html" %}
-{% block title %}Saved -- Tell CUORE{% endblock %}
+{% block title %}{{ 'Edited' if edited else 'Saved' }} -- Tell CUORE{% endblock %}
 {% block content %}
 <div class="m-confirm">
-  <p class="m-confirm-check">Saved</p>
+  <p class="m-confirm-check">{{ 'Edited' if edited else 'Saved' }}</p>
   <div class="m-card">
     <p class="m-card-date mono">{{ event.at }}</p>
+    {% if edited and edited_at_fmt %}
+    <p class="m-card-edited">Edited {{ edited_at_fmt }}</p>
+    {% endif %}
     <p class="m-card-kind">{{ kd.label }}</p>
     <div class="m-card-fields">
       {% for f in fields_disp %}
@@ -25,10 +28,33 @@
       Reported by {{ event.by.role }}{% if event.by.name %} ({{ event.by.name }}){% endif %}
       -- attested, not measured.
     </p>
+    {% if audit %}
+    <details class="m-audit">
+      <summary>Edit history ({{ audit|length }})</summary>
+      {% for a in audit %}
+      <div class="m-audit-entry">
+        <p class="m-audit-meta mono">{{ a.at }} &middot; {{ a.by.role }}{% if a.by.name %} ({{ a.by.name }}){% endif %}</p>
+        <ul class="m-audit-changes">
+          {% for fk, fc in (a.changes.fields or {}).items() %}
+          <li>{{ fk|replace('_',' ') }}: {{ fc.from }} &rarr; {{ fc.to }}</li>
+          {% endfor %}
+          {% if a.changes.note %}<li>note: {{ a.changes.note.from }} &rarr; {{ a.changes.note.to }}</li>{% endif %}
+          {% if a.changes.odometer_km %}<li>odometer: {{ a.changes.odometer_km.from }} &rarr; {{ a.changes.odometer_km.to }}</li>{% endif %}
+          {% if a.changes.at %}<li>when: {{ a.changes.at.from }} &rarr; {{ a.changes.at.to }}</li>{% endif %}
+        </ul>
+      </div>
+      {% endfor %}
+    </details>
+    {% endif %}
   </div>
   <div class="m-confirm-actions">
+    {% if edited %}
+    <a class="m-ghost-btn" href="/m/{{ vin }}/edit/{{ event.id }}">Edit again</a>
+    <a class="m-ghost-btn" href="/m/{{ vin }}/history">Done</a>
+    {% else %}
     <a class="m-ghost-btn" href="/m/{{ vin }}/add/{{ category }}/{{ kind }}">Add another</a>
     <a class="m-ghost-btn" href="/m/{{ vin }}">Done</a>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

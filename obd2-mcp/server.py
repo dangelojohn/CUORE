@@ -443,6 +443,42 @@ def read_fullscan_last() -> str:
 
 
 @mcp.tool()
+def guided_scan_start(vin: str = "") -> str:
+    """Start a resumable guided full scan for the coloured bypass cables: runs CAN-C in full
+    (no cable needed) then pauses, returning which cable to fit next (blue A5 -> CAN-IHS)
+    and the modules it unlocks. One scan_id covers the whole session. Refuses if a guided
+    scan is already open -- continue, skip, or abandon it first."""
+    return _via("POST", "/live/fullscan/guided/start", lambda: fullscan.run_guided(vin),
+               body={"vin": vin})
+
+
+@mcp.tool()
+def guided_scan_state() -> str:
+    """The open (or most recently closed) guided scan: scan_id, which segments are done/
+    skipped/pending, coverage so far, and what to do next (if anything)."""
+    return _via("GET", "/live/fullscan/guided/state", fullscan.guided_state)
+
+
+@mcp.tool()
+def guided_scan_continue(scan_id: str, cable_fitted: str) -> str:
+    """Declare the cable just fitted (blue_a5, grey_a6, or "none" on the closing step),
+    verify its bus with a passive listen, sweep its modules, and pause for the next step --
+    or close the session on the final "remove the cable" step. cable_fitted must match what
+    the open session is waiting for."""
+    return _via("POST", "/live/fullscan/guided/continue",
+               lambda: fullscan.continue_guided(scan_id, cable_fitted),
+               body={"scan_id": scan_id, "cable_fitted": cable_fitted})
+
+
+@mcp.tool()
+def guided_scan_skip(scan_id: str) -> str:
+    """Skip the guided scan's currently paused-on cable segment (no cable on hand) --
+    recorded as "not reachable: skipped, needs <cable>", never silently dropped."""
+    return _via("POST", "/live/fullscan/guided/skip", lambda: fullscan.skip_guided(scan_id),
+               body={"scan_id": scan_id})
+
+
+@mcp.tool()
 def learn_actuator(capture: str, module: str, name: str, tool: str = "MES") -> str:
     """Extract a replayable actuator-test procedure for one module from a learn_capture file.
 
@@ -755,6 +791,64 @@ def media_note(id: str, caption: str = "", tags: str = "") -> str:
         return json.dumps({"error": str(e), "kind": "Timeout"}, indent=2)
     except cuore_client.CuoreUnavailable as e:
         return json.dumps({"error": str(e), "kind": "Unavailable"}, indent=2)
+
+
+# ===========================================================================
+# ADDITIVE: bus capture + learn-a-signal (cuore/api/buscapture.py,
+# cuore.live.buscapture). New block, appended at the end on purpose --
+# nothing above this line is touched. Same _via posture as every other
+# adapter tool above: cuore (the adapter's one owner) first, in-process
+# fallback only if cuore cannot be reached at all.
+# ===========================================================================
+
+from cuore.live import buscapture as _buscapture  # noqa: E402
+
+
+@mcp.tool()
+def bus_capture_start(bus: str) -> str:
+    """Start a passive bus capture on ``bus`` (``can_ihs`` or ``can_ch``).
+
+    Refuses if no bypass cable is declared for that bus (blue A5 for
+    CAN-IHS, grey A6 for CAN-CH -- see ``set_cable``) or if the adapter is
+    held by the live poller or MultiEcuScan.
+    """
+    return _via("POST", f"/buscapture/{bus}/start", lambda: _buscapture.capture_start(bus))
+
+
+@mcp.tool()
+def bus_capture_stop(bus: str) -> str:
+    """Stop a running bus capture on ``bus``. Frames already read are kept
+    for ``bus_capture_save``."""
+    return _via("POST", f"/buscapture/{bus}/stop", lambda: _buscapture.capture_stop(bus))
+
+
+@mcp.tool()
+def bus_capture_save(bus: str, vin: str = "") -> str:
+    """Save a stopped bus capture on ``bus`` to a CSV recording (same wire
+    format cuore's own live sessions use) tagged with the bus, declared
+    cable and time, and log it as a from-car ``"bus_capture"`` observation
+    for ``vin`` so the Scans area can show it."""
+    return _via("POST", f"/buscapture/{bus}/save", lambda: _buscapture.capture_save(bus, vin=vin),
+               body={"vin": vin})
+
+
+@mcp.tool()
+def learn_start(bus: str, action: str) -> str:
+    """Start a learn capture on ``bus``: the same passive listen as
+    ``bus_capture_start``, tagged with the physical action about to be
+    performed (e.g. "press the brake pedal") so ``learn_stop`` can rank
+    which CAN id/byte changed with it."""
+    return _via("POST", f"/buscapture/{bus}/learn/start",
+               lambda: _buscapture.learn_start(bus, action), body={"action": action})
+
+
+@mcp.tool()
+def learn_stop(bus: str) -> str:
+    """Stop a learn capture on ``bus`` and return the ranked ``(CAN id, byte
+    offset)`` candidates -- the bytes that changed the most while the
+    action was held. Naming and saving one is a web action (``/v/{vin}/
+    learn``), not exposed here."""
+    return _via("POST", f"/buscapture/{bus}/learn/stop", lambda: _buscapture.learn_stop(bus))
 
 
 if __name__ == "__main__":

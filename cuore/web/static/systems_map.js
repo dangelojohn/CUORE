@@ -68,8 +68,18 @@
     var title = a.querySelector("title");
     var label = (a.querySelector("text") || {}).textContent || sys.key || "";
     if (title) {
-      title.textContent = label + " -- " + (STATE_LABEL[sys.state] || sys.state)
+      var titleText = label + " -- " + (STATE_LABEL[sys.state] || sys.state)
         + ", " + sys.open_code_count + " open code(s)";
+      // Tonight's (or newest) live module sweep: each chip names the exact
+      // from-car code/ECU/state behind an ACTIVE/history colouring that
+      // the MES-log corpus alone would not explain (a network U-code is
+      // rarely logged against a real system key). Never silently folded
+      // into the plain state label above -- the mechanic should be able
+      // to tell, just from the tooltip, which evidence is live tonight.
+      (sys.module_codes || []).forEach(function (c) {
+        titleText += "\n" + c.chip_text;
+      });
+      title.textContent = titleText;
     }
 
     // Open-code badge: drop any badge the server-rendered SVG drew (that
@@ -100,6 +110,36 @@
     }
   }
 
+  function paintModuleChips(root, state) {
+    var layer = root.querySelector(".smap-module-chip-layer");
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.className = "smap-module-chip-layer";
+      root.appendChild(layer);
+    }
+    layer.innerHTML = "";
+    var rootRect = root.getBoundingClientRect();
+    cellEls(root).forEach(function (a) {
+      var key = a.getAttribute("data-system");
+      var sys = state.systems[key];
+      var chips = sys && sys.module_codes;
+      if (!chips || !chips.length) return;
+      // One chip per cell: the worst (ACTIVE beats HISTORY) tonight's sweep
+      // found for this system -- "U1713-2F -- BCM -- failing now", the
+      // exact wording the fault came in with, never reworded here.
+      var worst = chips.reduce(function (best, c) {
+        return (!best || (c.state === "ACTIVE" && best.state !== "ACTIVE")) ? c : best;
+      }, null);
+      var r = a.getBoundingClientRect();
+      var chip = document.createElement("span");
+      chip.className = "smap-module-chip smap-module-chip-" + (worst.state === "ACTIVE" ? "active" : "history");
+      chip.textContent = worst.chip_text;
+      chip.style.left = (r.left - rootRect.left) + "px";
+      chip.style.top = (r.top - rootRect.top + r.height - 4) + "px";
+      layer.appendChild(chip);
+    });
+  }
+
   function paintAll(root, state, dimSet) {
     cellEls(root).forEach(function (a) {
       var key = a.getAttribute("data-system");
@@ -107,6 +147,7 @@
       var dim = dimSet ? !dimSet.has(key) : false;
       paintCell(a, sys, dim);
     });
+    paintModuleChips(root, state);
   }
 
   // --- hot-edge overlay ---------------------------------------------------
@@ -163,6 +204,42 @@
         text.textContent = lift + "x";
         overlay.appendChild(text);
       }
+    });
+  }
+
+  // --- coverage overlay ---------------------------------------------------
+  //
+  // A cell whose module(s) the newest whole-car scan could not reach (grey
+  // A6 cable never fitted, COM3 dropped mid-sweep, ...) gets a grey hatch
+  // and the scan_coverage observation's own "why" as a tooltip -- never
+  // painted as a state colour (that would claim evidence that does not
+  // exist) and never worded "clean".
+
+  function paintCoverage(wrap, coverage) {
+    var layer = wrap.querySelector(".smap-coverage-layer");
+    if (!layer) {
+      layer = document.createElement("div");
+      layer.className = "smap-coverage-layer";
+      wrap.appendChild(layer);
+    }
+    layer.innerHTML = "";
+    if (!coverage) return;
+    cellEls(wrap).forEach(function (a) {
+      var key = a.getAttribute("data-system");
+      var gap = coverage[key];
+      if (!gap) return;
+      var rect = a.querySelector("rect");
+      if (!rect) return;
+      var hatch = document.createElement("div");
+      hatch.className = "smap-coverage-hatch";
+      hatch.title = (gap.module ? gap.module + ": " : "") + gap.why;
+      var wrapRect = wrap.getBoundingClientRect();
+      var r = a.getBoundingClientRect();
+      hatch.style.left = (r.left - wrapRect.left) + "px";
+      hatch.style.top = (r.top - wrapRect.top) + "px";
+      hatch.style.width = r.width + "px";
+      hatch.style.height = r.height + "px";
+      layer.appendChild(hatch);
     });
   }
 
@@ -467,8 +544,9 @@
         clearMapNotice(wrap);
         var root = wrap;
         paintAll(root, state, null);
+        paintCoverage(wrap, state.coverage);
         var overlay = buildOverlay(wrap);
-        var redraw = function () { drawEdges(root, wrap, overlay, state); };
+        var redraw = function () { drawEdges(root, wrap, overlay, state); paintCoverage(wrap, state.coverage); };
         redraw();
         window.addEventListener("resize", redraw);
 

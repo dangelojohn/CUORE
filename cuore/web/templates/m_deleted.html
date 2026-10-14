@@ -1,0 +1,25 @@
+{% extends "m_base.html" %}
+{% block title %}Deleted -- Tell CUORE{% endblock %}
+{% block content %}
+{# Post-delete confirmation, owner's own request: soft-delete lands here,
+   not straight back on History, so "Undo" has somewhere to live. Deleting
+   again from here isn't offered -- Undo (restore) or Done (back to
+   History) are the only two ways off this screen. #}
+<div class="m-confirm">
+  <p class="m-confirm-check">Deleted</p>
+  <div class="m-card">
+    <p class="m-card-date mono">{{ event.at }}</p>
+    <p class="m-card-kind">{{ kind_label }}</p>
+    <p class="m-card-attested">
+      This report has been removed from History. It is kept on file, soft-
+      deleted, never erased -- Undo brings it straight back.
+    </p>
+  </div>
+  <div class="m-confirm-actions">
+    <form method="post" action="/m/{{ vin }}/history/{{ event.id }}/restore" class="m-inline-form">
+      <button type="submit" class="m-undo-btn">Undo</button>
+    </form>
+    <a class="m-ghost-btn" href="/m/{{ vin }}/history">Done</a>
+  </div>
+</div>
+{% endblock %}

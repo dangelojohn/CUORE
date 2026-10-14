@@ -46,7 +46,7 @@ Read-only: nothing here writes state.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401 -- side effect: puts `mes` on sys.path
 
@@ -55,7 +55,13 @@ from datetime import datetime
 from . import dossier_bridge, mes_bridge, systems_bridge
 
 from mes import analysis as analysis_mod  # noqa: E402
+from mes import dtc as dtc_mod  # noqa: E402
 from mes import systems as systems_mod  # noqa: E402
+
+try:
+    from mes import live_obs as live_obs_mod  # noqa: E402
+except Exception:  # noqa: BLE001 -- the map must still render without it
+    live_obs_mod = None
 
 from ..live import poller as poller_mod  # noqa: E402
 
@@ -151,6 +157,188 @@ def _edge_kind(dep: dict[str, Any]) -> str:
     return "UNKNOWN"
 
 
+# --- 0. tonight's live module sweep -----------------------------------------
+#
+# ``module_dtcs`` observations (one per ECU per scan, see ``mes.live_obs``)
+# are a second, independent evidence source from the MES log corpus
+# ``system_states``/``edges`` otherwise read -- a direct from-car UDS read,
+# not a workshop log file. Every reporting module reports hundreds of codes
+# it merely *tracks*; only the UDS status byte says which are a fault now.
+
+#: Reporting ECU -> the real vehicle system its own codes belong to. Needed
+#: because a U-code's own ``systems_for_code`` resolution is the generic
+#: "network" catch-all (any lost-communication code, regardless of which
+#: module threw it) and a body/chassis B-code's SAE fallback is the equally
+#: generic "body_comfort" -- neither says *which* system actually has the
+#: problem. The reporting module does. P-codes are excluded from this table's
+#: use (see :func:`_module_system_for`) because ``systems_for_code``'s
+#: exact-code table already resolves them specifically (P0440 -> evap, not
+#: ECM's own "engine_management").
+_MODULE_SYSTEM: dict[str, str] = {
+    "ECM": "engine_management",
+    "TCM": "transmission_driveline",
+    "DTCM": "transmission_driveline",
+    "BCM": "body_comfort",
+    "IPC": "infotainment_cluster",
+    "RFHUB": "security_immobiliser",
+    "ABS": "brakes_abs",
+    "EPS": "steering",
+    "ORC": "restraints",
+    "AFLS": "lighting",
+    "PAM": "adas_sensors",
+    "HALF": "adas_sensors",
+    "LBSS": "adas_sensors",
+    "RBSS": "adas_sensors",
+    "CSWM": "body_comfort",
+    "CRSM": "body_comfort",
+    "PLGM": "body_comfort",
+    "TVM": "transmission_driveline",
+    "ESL": "security_immobiliser",
+}
+
+
+def _module_dtc_observations(vin: str) -> list[dict[str, Any]]:
+    if live_obs_mod is None:
+        return []
+    try:
+        return live_obs_mod.load(vin, "module_dtcs")
+    except Exception:  # noqa: BLE001 -- an unreadable observations file is an honest empty state
+        return []
+
+
+def _module_code_state(flags: dict[str, Any]) -> Optional[str]:
+    """"ACTIVE" / "HISTORY" / ``None`` (never shown) from a UDS status byte's
+    decoded flags.
+
+    ``testFailed`` is the only bit that means "failing right now" --
+    ``confirmedDTC``/``pendingDTC`` alone (with ``testFailed`` false) is a
+    code the module once confirmed but is not currently failing: history.
+    A record with none of those three set -- the overwhelming majority,
+    carrying only ``testNotCompletedThisOperationCycle``/
+    ``testNotCompletedSinceLastClear`` -- is a code the module merely
+    tracks and has never actually found; it is never shown at all.
+    """
+    if flags.get("testFailed"):
+        return "ACTIVE"
+    if flags.get("confirmedDTC") or flags.get("pendingDTC") or flags.get("testFailedSinceLastClear"):
+        return "HISTORY"
+    return None
+
+
+def _module_system_for(ecu: str, base: str) -> Optional[str]:
+    """The system a module-reported code belongs on.
+
+    P-codes (powertrain) use ``systems_for_code``'s own exact-code table,
+    which is specific per code (P0440 -> evap) -- the reporting ECU would
+    only make that worse. Every other family (U/B/C) uses the reporting
+    module's own system (see ``_MODULE_SYSTEM``'s docstring) when the ECU is
+    known, falling back to ``systems_for_code`` otherwise.
+    """
+    if not base.startswith("P"):
+        mapped = _MODULE_SYSTEM.get((ecu or "").upper())
+        if mapped:
+            return mapped
+    for entry in systems_mod.systems_for_code(base, ""):
+        if entry.get("role") == "primary" and entry.get("system") not in (None, "UNKNOWN"):
+            return entry["system"]
+    return _MODULE_SYSTEM.get((ecu or "").upper())
+
+
+def module_dtc_overlay(vin: str) -> dict[str, Any]:
+    """Tonight's (or the newest) live module sweep, projected onto the
+    systems graph.
+
+    Returns ``{"by_system": {system_key: [chip, ...]}, "scan_pairs":
+    {frozenset({a, b}): count}}``. Each chip: ``{"code", "full", "ecu",
+    "state" ("ACTIVE"/"HISTORY"), "at", "failure_type", "chip_text"}``.
+    ``scan_pairs`` counts, across every distinct scan timestamp
+    (``module_dtcs`` observations sharing one ``at``), how many times two
+    different systems both had a code (any state) reported in that same
+    scan -- the module-sweep half of the hot-edge overlay (see
+    :func:`edges`).
+    """
+    by_system: dict[str, list[dict[str, Any]]] = {}
+    scan_systems: dict[str, set[str]] = {}
+    for obs in _module_dtc_observations(vin):
+        data = obs.get("data") or {}
+        ecu = str(data.get("ecu") or "").upper()
+        at = obs.get("at")
+        for rec in data.get("dtcs") or []:
+            flags = rec.get("flags") or {}
+            state = _module_code_state(flags)
+            if state is None:
+                continue
+            full = str(rec.get("code") or "")
+            base = systems_mod.base_code(full)
+            sys_key = _module_system_for(ecu, base)
+            if not sys_key:
+                continue
+            ftb = full.split("-")[-1] if "-" in full else None
+            try:
+                ft = dtc_mod.failure_type(ftb) if ftb else None
+            except Exception:  # noqa: BLE001
+                ft = None
+            chip_text = (f"{full} · {ecu} · failing now" if state == "ACTIVE"
+                        else f"{full} · {ecu} · history since clear")
+            by_system.setdefault(sys_key, []).append({
+                "code": base, "full": full, "ecu": ecu, "state": state, "at": at,
+                "failure_type": ft.to_dict() if ft else None, "chip_text": chip_text,
+            })
+            if at:
+                scan_systems.setdefault(at, set()).add(sys_key)
+
+    scan_pairs: dict[frozenset, int] = {}
+    for sys_keys in scan_systems.values():
+        keys = sorted(sys_keys)
+        for i, a in enumerate(keys):
+            for b in keys[i + 1:]:
+                pair = frozenset((a, b))
+                scan_pairs[pair] = scan_pairs.get(pair, 0) + 1
+    return {"by_system": by_system, "scan_pairs": scan_pairs}
+
+
+def _latest_scan_coverage(vin: str) -> Optional[dict[str, Any]]:
+    if live_obs_mod is None:
+        return None
+    try:
+        obs = live_obs_mod.load(vin, "scan_coverage")
+    except Exception:  # noqa: BLE001
+        return None
+    return live_obs_mod.newest(obs)
+
+
+def module_coverage(vin: str) -> dict[str, dict[str, Any]]:
+    """system key -> ``{"reachable": False, "why": ..., "module": ...}`` for
+    every system whose module was reported ``not_reachable`` in the newest
+    ``scan_coverage`` observation. A system every one of whose modules was
+    actually read (or that has no entry in ``_MODULE_SYSTEM`` at all) is
+    simply absent from this dict -- never asserted "clean" here, the map
+    just has nothing to grey out for it.
+
+    A system that already carries a real module-sweep chip (see
+    :func:`module_dtc_overlay`) is excluded even if a *later* coverage
+    attempt could not reach it -- a cable swap or a dropped serial link
+    between scans must never grey out a cell the car already answered for
+    tonight.
+    """
+    obs = _latest_scan_coverage(vin)
+    if not obs:
+        return {}
+    data = obs.get("data") or {}
+    had_live_data = set(module_dtc_overlay(vin)["by_system"])
+    out: dict[str, dict[str, Any]] = {}
+    for row in data.get("coverage") or []:
+        if row.get("category") != "not_reachable":
+            continue
+        module = str(row.get("module") or "").upper()
+        sys_key = _MODULE_SYSTEM.get(module)
+        if not sys_key or sys_key in out or sys_key in had_live_data:
+            continue
+        out[sys_key] = {"reachable": False, "why": row.get("why") or "not reachable",
+                        "module": module, "bus": row.get("bus")}
+    return out
+
+
 # --- 1. per-system state -------------------------------------------------------
 
 def system_states(vin: str) -> dict[str, dict[str, Any]]:
@@ -208,6 +396,23 @@ def system_states(vin: str) -> dict[str, dict[str, Any]]:
             "open_code_count": sum(1 for s in statuses if s in ("ACTIVE", "CLEARED_UNVERIFIED")),
             "codes": codes_out,
         }
+
+    # tonight's (or newest) live module sweep: an independent from-car read,
+    # never folded into "codes"/"open_code_count" above (those stay the
+    # corpus-sourced counts other callers already rely on) -- carried
+    # separately as "module_codes" chips. An ACTIVE module code always wins
+    # the cell's colour; a HISTORY-only one never promotes NO_DATA past
+    # CLEARED_UNVERIFIED (still honest that it is not currently failing).
+    overlay = module_dtc_overlay(vin)
+    for key, chips in overlay["by_system"].items():
+        row = out.setdefault(key, {"state": "NO_DATA", "open_code_count": 0, "codes": []})
+        row["module_codes"] = chips
+        if any(c["state"] == "ACTIVE" for c in chips):
+            row["state"] = "ACTIVE"
+        elif row["state"] == "NO_DATA" and any(c["state"] == "HISTORY" for c in chips):
+            row["state"] = "CLEARED_UNVERIFIED"
+    for key, row in out.items():
+        row.setdefault("module_codes", [])
     return out
 
 
@@ -258,6 +463,31 @@ def edges(vin: str) -> list[dict[str, Any]]:
             "source": "corpus co-occurrence, this VIN only -- not a dependency",
             "kind": "co-occurrence",
         })
+        seen_pairs.add(pair)
+
+    # tonight's (or newest) live module sweep: two systems whose modules
+    # both reported a code (any state) in the same scan window count as a
+    # hot edge too -- "seen together on this car", same wording and the
+    # same sessions_together-counts-as-hot convention the corpus
+    # co-occurrence edges above already use, just counting scans instead of
+    # MES log files.
+    scan_pairs = module_dtc_overlay(vin)["scan_pairs"]
+    by_pair_in_out: dict[frozenset, dict[str, Any]] = {
+        frozenset((e["a"], e["b"])): e for e in out if e.get("a") and e.get("b")
+    }
+    for pair, count in scan_pairs.items():
+        a, b = tuple(pair) if len(pair) == 2 else (next(iter(pair)), next(iter(pair)))
+        existing = by_pair_in_out.get(pair)
+        if existing is not None:
+            existing["sessions_together"] = (existing.get("sessions_together") or 0) + count
+        else:
+            out.append({
+                "a": a, "b": b, "lift": None, "sessions_together": count,
+                "confidence": "UNKNOWN",
+                "source": "seen together on this car (module sweep), this VIN only -- not a dependency",
+                "kind": "co-occurrence",
+            })
+            by_pair_in_out[pair] = out[-1]
     return out
 
 
@@ -305,7 +535,8 @@ def sessions(vin: str) -> list[dict[str, Any]]:
 
 def build_state(vin: str) -> dict[str, Any]:
     """Everything ``GET /api/systems/{vin}/state`` returns."""
-    return {"systems": system_states(vin), "edges": edges(vin), "sessions": sessions(vin)}
+    return {"systems": system_states(vin), "edges": edges(vin), "sessions": sessions(vin),
+           "coverage": module_coverage(vin)}
 
 
 # ===========================================================================
@@ -484,4 +715,4 @@ def live_state(vin: str) -> dict[str, Any]:
 
 
 __all__ = ["ALLOWED_STATES", "system_states", "edges", "sessions", "build_state",
-          "new_live_codes", "live_state"]
+          "new_live_codes", "live_state", "module_dtc_overlay", "module_coverage"]

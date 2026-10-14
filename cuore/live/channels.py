@@ -290,6 +290,94 @@ def presets() -> dict[str, list[dict[str, Any]]]:
             for name, ids in PRESETS.items()}
 
 
+# ===========================================================================
+# per-bus capture presets -- what a bypass cable unlocks, catalogue only
+# ===========================================================================
+#
+# Distinct from PRESETS above: those are active-poll channel groups for the
+# dashboard (a Mode 01 PID or a UDS DID the adapter is asked for at a rate).
+# These describe what a *bus capture* (passive listen, see
+# :mod:`cuore.live.buscapture`) is worth starting on CAN-IHS/CAN-CH once a
+# bypass cable is declared. Every wanted item resolves against
+# :data:`did_catalog.BROADCAST_SIGNALS` (public passive-signal research) or
+# an accepted :mod:`cuore.live.learned` broadcast entry for the VIN -- never
+# invented. An item with neither is reported ``"unknown_did"`` and is never
+# polled or implied to exist.
+
+#: ``bus``/``cable`` say what :func:`cuore.live.buses.route_for` must allow
+#: before this preset may start. ``wanted`` is ``(label, signal_name)``;
+#: ``signal_name`` is a ``did_catalog.BROADCAST_SIGNALS`` ``"signal"`` value,
+#: or ``None`` when no public broadcast-signal source was found for it (the
+#: item is still listed, as ``"unknown_did"``, never silently dropped).
+BUS_CAPTURE_PRESETS: dict[str, dict[str, Any]] = {
+    "chassis_a6": {
+        "bus": "can_ch", "cable": "grey_a6",
+        "name": "Chassis / ADAS (CAN-CH)",
+        "wanted": (
+            ("Wheel speed FL", "WHEEL_SPEED_FL"),
+            ("Wheel speed FR", "WHEEL_SPEED_FR"),
+            ("Wheel speed RL", "WHEEL_SPEED_RL"),
+            ("Wheel speed RR", "WHEEL_SPEED_RR"),
+            ("Brake pressure", None),
+            ("Steering angle", "STEERING_ANGLE"),
+            ("Yaw rate", "YAW_RATE"),
+        ),
+    },
+    "body_a5": {
+        "bus": "can_ihs", "cable": "blue_a5",
+        "name": "Body / comfort (CAN-IHS)",
+        "wanted": (
+            ("HVAC temperature", None),
+            ("Battery monitor", None),
+            ("Driver door state", None),
+            ("Passenger door state", None),
+        ),
+    },
+}
+
+
+def bus_capture_preset(name: str, vin: str = "") -> dict[str, Any]:
+    """One bus-capture preset: its bus/cable requirement and every wanted
+    item resolved against the broadcast-signal catalogue, then (for anything
+    the catalogue does not cover) this VIN's accepted learned broadcast
+    signals. Never invents a scale or a channel for an item neither source
+    has -- that item comes back ``status: "unknown_did"``."""
+    spec = BUS_CAPTURE_PRESETS.get(name)
+    if spec is None:
+        raise BadCommand(f"unknown bus-capture preset {name!r}; one of "
+                         f"{sorted(BUS_CAPTURE_PRESETS)}")
+    by_signal = {s["signal"]: s for s in did_catalog.BROADCAST_SIGNALS}
+    learned_by_name: dict[str, Any] = {}
+    if vin:
+        from . import learned as learned_mod
+        for e in learned_mod.learned_broadcast(vin, bus=spec["bus"]).get(vin, []):
+            learned_by_name[(e.get("name") or "").lower()] = e
+
+    items: list[dict[str, Any]] = []
+    for label, signal_key in spec["wanted"]:
+        sig = by_signal.get(signal_key) if signal_key else None
+        learned_entry = learned_by_name.get(label.lower())
+        if sig is not None:
+            items.append({
+                "label": label, "status": "known", "signal": signal_key,
+                "can_id": sig["can_id"], "unit": sig.get("unit", ""),
+                "confidence": sig.get("confidence", "unverified"),
+                "source": sig.get("source", ""), "note": sig.get("note", ""),
+            })
+        elif learned_entry is not None:
+            items.append({
+                "label": label, "status": "learned", "can_id": learned_entry.get("id"),
+                "field": learned_entry.get("field"), "scale": learned_entry.get("scale"),
+                "note": "learned, unscaled",
+            })
+        else:
+            items.append({"label": label, "status": "unknown_did",
+                          "note": "no DID or broadcast signal in the catalogue, and nothing "
+                                  "learned yet for this VIN -- not polled"})
+    return {"preset": name, "name": spec["name"], "bus": spec["bus"],
+           "cable_required": spec["cable"], "items": items}
+
+
 def resolve_channels(channel_ids: Optional[list[str]] = None, preset: str = "") -> list[Channel]:
     """``channel_ids`` and/or a named preset, deduplicated, computed channels'
     dependencies pulled in automatically so they are always polled too."""
@@ -473,5 +561,6 @@ def eval_expr(expr: str, values: dict[str, float]) -> float:
 
 __all__ = ["Channel", "available_channels", "registry", "invalidate_registry",
           "builtin_channel_ids", "by_id", "PRESETS", "presets",
+          "BUS_CAPTURE_PRESETS", "bus_capture_preset",
           "resolve_channels", "ComputedError", "eval_expr", "DID_MODULES",
           "FAST_HZ", "MED_HZ", "SLOW_HZ", "UNKNOWN_DID"]

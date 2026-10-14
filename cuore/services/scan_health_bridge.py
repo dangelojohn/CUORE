@@ -115,6 +115,142 @@ def _vin_matches(entry: dict[str, Any], vin: str) -> bool:
     return v in ("", vin)
 
 
+# --- enrichment: module codes / coverage / mode09 / PID readings -----------
+#
+# ``module_dtcs``, ``scan_coverage``, ``mode09``, ``pids_snapshot``, ``pid``
+# and ``freeze_frame`` observations are read straight off ``mes.live_obs``
+# here, independent of which 15-minute scan session (``_scan_for``, above)
+# this report is built around. Two reasons, not one:
+#
+# * A whole-car module sweep, a coverage sweep and the DTC/Mode 06 read a
+#   mechanic actually cares about routinely land in *different* sessions in
+#   this project's own corpus (a module sweep minutes after the main read,
+#   a coverage probe run stand-alone later) -- gating this data to one
+#   session's own window would silently drop most of it on a normal night's
+#   work, not just an edge case.
+# * ``cuore.live.scanlog``'s own per-cluster view (read through
+#   ``scanlog_bridge``, the preferred path above) folds ``module_dtcs``
+#   into a bare code list for its MES-export surface and collapses
+#   ``scan_coverage`` into a one-line summary for its own scan-list view --
+#   both lose exactly the detail this report needs (status flags, the
+#   per-module ``why``), so re-deriving them from the same ``mes.live_obs``
+#   rows this project's other direct readers (``_dtc_lists``/``_mode06_by_mid``
+#   above) already use is the only way to get it without a second,
+#   drifting copy of ``cuore.live.scanlog``'s own logic.
+#
+# "Latest wins" per key, same rule every ``_latest*`` helper in this
+# project's live-observation readers already uses.
+
+def _latest_kind_data(vin: str, kind: str) -> Optional[dict[str, Any]]:
+    """The newest observation of ``kind`` for this VIN, or ``None``."""
+    data: Optional[dict[str, Any]] = None
+    for o in live_obs.load(from_car_only=True):
+        if o.get("kind") == kind and _vin_matches(o, vin):
+            data = o.get("data") or {}
+    return data
+
+
+def _module_dtc_entries(vin: str) -> dict[str, dict[str, Any]]:
+    """``{ecu: data}`` -- the newest ``module_dtcs`` read of each ECU for
+    this VIN, regardless of session. An ADAPTER/BUS-ERROR read (``data.error``
+    set, ``mes.live_obs``'s own "this is not 'no codes'" case) is skipped:
+    it answers nothing, so it must never look like a module that was swept
+    clean."""
+    out: dict[str, dict[str, Any]] = {}
+    for o in live_obs.load(from_car_only=True):
+        if o.get("kind") != "module_dtcs" or not _vin_matches(o, vin):
+            continue
+        data = o.get("data") or {}
+        ecu = data.get("ecu")
+        if ecu and not data.get("error"):
+            out[ecu] = data
+    return out
+
+
+def _module_dtc_systems(vin: str) -> tuple[dict[str, list[dict[str, Any]]],
+                                           dict[str, list[dict[str, Any]]], int]:
+    """``(active_by_system, history_by_system, live_u_code_count)`` from
+    every module DTC on file for this VIN (see :func:`_module_dtc_entries`).
+
+    A code's system is its own ``mes.systems.systems_for_code`` primary --
+    the same rule already used for stored/pending/permanent DTCs below --
+    so a U-code always lands on ``"network"`` no matter which physical
+    module answered it; only when that resolves to nothing does the
+    reporting module's own :data:`mes.scan_health.ECU_SYSTEM` bucket stand
+    in. ``live_u_code_count`` counts every ``"active"``/``"history"``
+    U-code (never a bare status-64 placeholder), for
+    :func:`mes.scan_health.network_bus_event_note`.
+    """
+    active: dict[str, list[dict[str, Any]]] = {}
+    history: dict[str, list[dict[str, Any]]] = {}
+    live_u = 0
+    for ecu, data in _module_dtc_entries(vin).items():
+        for rec in data.get("dtcs") or []:
+            code = rec.get("code")
+            if not code:
+                continue
+            category = scan_health.module_dtc_category(rec.get("flags"))
+            if category is None:
+                continue
+            if code.upper().startswith("U"):
+                live_u += 1
+            sys_key = _primary_system_for_codes([code]) or scan_health.ECU_SYSTEM.get(ecu)
+            if not sys_key:
+                continue
+            bucket = active if category == "active" else history
+            bucket.setdefault(sys_key, []).append({"code": code, "module": ecu})
+    return active, history, live_u
+
+
+def _coverage_by_system(vin: str) -> dict[str, str]:
+    """``{system: gap_text}`` from this VIN's newest ``scan_coverage``
+    observation -- one GAP row's reading per UDS-module system this
+    coverage sweep did not get an answer from. A module that *did*
+    answer (category ``"answered"``) contributes nothing here; everything
+    else (``"not_reachable"``, ``"silent"``) is real, sourced GAP wording,
+    via :func:`mes.scan_health.coverage_gap_text` -- never invented."""
+    coverage = _latest_kind_data(vin, "scan_coverage")
+    out: dict[str, str] = {}
+    if not coverage:
+        return out
+    for row in coverage.get("coverage") or []:
+        sys_key = scan_health.ECU_SYSTEM.get(row.get("module"))
+        if not sys_key or sys_key in out or row.get("category") == "answered":
+            continue
+        out[sys_key] = scan_health.coverage_gap_text(row.get("category"), row.get("why"))
+    return out
+
+
+def _pid_readings(vin: str) -> dict[str, dict[str, Any]]:
+    """``{pid_key: {"value", "unit"}}`` merged from this VIN's newest
+    ``pids_snapshot`` (a full-scan PID battery), per-PID ``pid`` reads (the
+    freeze panel), and ``freeze_frame`` rows -- whichever of the three
+    this install's live link has actually logged (``pid``/``freeze_frame``
+    are still speculative kinds on this install; see ``mes.scan_health``'s
+    own module docstring). Latest observation wins per key, read in file
+    (chronological) order."""
+    out: dict[str, dict[str, Any]] = {}
+    for o in live_obs.load(from_car_only=True):
+        if not _vin_matches(o, vin):
+            continue
+        kind = o.get("kind")
+        data = o.get("data") or {}
+        if kind == "pids_snapshot":
+            for name, reading in (data.get("readings") or {}).items():
+                if isinstance(reading, dict) and reading.get("value") is not None:
+                    out[name] = {"value": reading.get("value"), "unit": reading.get("unit", "")}
+        elif kind == "pid":
+            name = data.get("pid") or data.get("name")
+            if name and data.get("value") is not None:
+                out[name] = {"value": data.get("value"), "unit": data.get("unit", "")}
+        elif kind == "freeze_frame":
+            for row in data.get("pids") or []:
+                name = row.get("pid") or row.get("name")
+                if name and row.get("value") is not None:
+                    out[name] = {"value": row.get("value"), "unit": row.get("unit", "")}
+    return out
+
+
 def sessions_for(vin: str) -> list[list[dict[str, Any]]]:
     """Every from-car observation for this VIN (or untagged), grouped into
     scan sessions by the 15-minute-gap rule, oldest session first."""
@@ -262,6 +398,55 @@ def _normalize_from_scanlog(found: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _scan_has_mode06_or_readiness(found: dict[str, Any]) -> bool:
+    return bool(found.get("mode06") or found.get("readiness"))
+
+
+def _scan_has_any_dtc(found: dict[str, Any]) -> bool:
+    dtcs = found.get("dtcs") or {}
+    return any(dtcs.get(k) for k in ("stored", "pending", "permanent"))
+
+
+def _pick_latest_scan(scans: list[dict[str, Any]]) -> dict[str, Any]:
+    """``scans`` is newest-first (``scanlog_bridge.list_scans``'s own
+    order). "Latest" means the newest scan that actually read Mode 06 or
+    readiness -- the two signals this report's own verdict/system-table
+    logic is built around -- not simply the newest timestamp: a module
+    sweep (``module_dtcs`` folds into ``dtcs["stored"]`` too, in
+    ``cuore.live.scanlog``'s own per-cluster view -- a plain DTC check is
+    not enough to tell the two apart) or a stand-alone coverage/mode09
+    probe routinely lands in its own, later session on this project's own
+    corpus, and must not silently blank out the DTC/Mode 06 read a
+    mechanic actually came here to see. Falls back to the newest with any
+    DTC signal, then to the newest overall -- so the common case (one
+    scan on file) behaves exactly as before."""
+    for pred in (_scan_has_mode06_or_readiness, _scan_has_any_dtc):
+        found = next((s for s in scans if pred(s)), None)
+        if found is not None:
+            return found
+    return scans[0]
+
+
+def _session_has_mode06_or_readiness(session: list[dict[str, Any]]) -> bool:
+    return bool(_mode06_by_mid(session) or _readiness_since_clear(session))
+
+
+def _session_has_any_dtc(session: list[dict[str, Any]]) -> bool:
+    dtcs = _dtc_lists(session)
+    return any(dtcs.get(k) for k in ("stored", "pending", "permanent"))
+
+
+def _pick_latest_session(sessions: list[list[dict[str, Any]]]) -> list[dict[str, Any]]:
+    """Same "latest with real signal" preference as :func:`_pick_latest_scan`,
+    for this file's own 15-minute-grouping fallback. ``sessions`` is
+    oldest-first (:func:`sessions_for`'s own order)."""
+    for pred in (_session_has_mode06_or_readiness, _session_has_any_dtc):
+        found = next((s for s in reversed(sessions) if pred(s)), None)
+        if found is not None:
+            return found
+    return sessions[-1]
+
+
 def _scan_for(vin: str, scan_id: Optional[str]) -> tuple[str, dict[str, Any]]:
     """``(scan_id, normalized)`` -- via ``scanlog_bridge`` when it imports,
     else this file's own 15-minute grouping over the raw observations."""
@@ -270,7 +455,7 @@ def _scan_for(vin: str, scan_id: Optional[str]) -> tuple[str, dict[str, Any]]:
         if not scans:
             raise NotFound(f"no from-car scan on file for {vin}")
         if scan_id is None or scan_id == "latest":
-            found = scans[0]
+            found = _pick_latest_scan(scans)
         else:
             found = next((s for s in scans
                          if s["id"] == scan_id or s["id"].startswith(scan_id)), None)
@@ -282,7 +467,7 @@ def _scan_for(vin: str, scan_id: Optional[str]) -> tuple[str, dict[str, Any]]:
     if not sessions:
         raise NotFound(f"no from-car scan on file for {vin}")
     if scan_id is None or scan_id == "latest":
-        session = sessions[-1]
+        session = _pick_latest_session(sessions)
     else:
         session = next((s for s in sessions if _session_id(s) == scan_id
                        or _session_id(s).startswith(scan_id)), None)
@@ -323,7 +508,7 @@ def build_verdict(norm: dict[str, Any]) -> dict[str, Any]:
     return v
 
 
-def build_systems_table(norm: dict[str, Any]) -> list[dict[str, Any]]:
+def build_systems_table(vin: str, norm: dict[str, Any]) -> list[dict[str, Any]]:
     mode06 = norm["mode06_by_mid"]
     dtcs = norm["dtcs"]
     codes = list(dict.fromkeys((dtcs.get("stored") or []) + (dtcs.get("permanent") or [])
@@ -351,6 +536,26 @@ def build_systems_table(norm: dict[str, Any]) -> list[dict[str, Any]]:
             monitor_by_system[sys_key] = mon
 
     answered = norm["answered"]
+    module_active, module_history, _live_u = _module_dtc_systems(vin)
+    coverage_by_system = _coverage_by_system(vin)
+
+    pid_readings = _pid_readings(vin)
+    pid_by_system: dict[str, dict[str, Any]] = {}
+    pid_key_by_system: dict[str, str] = {}
+    for pid_key, reading in pid_readings.items():
+        sys_key = scan_health.PID_SYSTEM.get(pid_key)
+        if sys_key and sys_key not in pid_by_system:
+            pid_by_system[sys_key] = reading
+            pid_key_by_system[sys_key] = pid_key
+    known_good_by_system: dict[str, Optional[dict[str, Any]]] = {}
+    if pid_key_by_system:
+        try:
+            from . import known_good_bridge
+        except Exception:  # noqa: BLE001 -- a PID reading with no band is still a reading
+            known_good_bridge = None
+        if known_good_bridge is not None:
+            for sys_key, pid_key in pid_key_by_system.items():
+                known_good_by_system[sys_key] = known_good_bridge.known_good_for(pid_key)
 
     rows_out: list[dict[str, Any]] = []
     for sys_key, sys_def in systems_mod.SYSTEMS.items():
@@ -359,20 +564,25 @@ def build_systems_table(norm: dict[str, Any]) -> list[dict[str, Any]]:
             sys_key,
             mode06_rows=mid_system.get(sys_key),
             dtc_fault=sys_key in fault_systems,
-            pid_reading=None,
-            known_good_row=None,
+            module_active=module_active.get(sys_key),
+            module_history=module_history.get(sys_key),
+            pid_reading=pid_by_system.get(sys_key),
+            known_good_row=known_good_by_system.get(sys_key),
             ecu_answered=ecu_answered,
             readiness_reading=monitor_by_system.get(sys_key),
+            coverage_text=coverage_by_system.get(sys_key),
         )
         row["label"] = sys_def["label"]
         rows_out.append(row)
     return rows_out
 
 
-def _what_it_tells_us(norm: dict[str, Any]) -> list[str]:
+def _what_it_tells_us(vin: str, norm: dict[str, Any]) -> list[str]:
     """Rule-based, hedged prose for every failing Mode 06 MID this scan
     logged -- never "cause"/"proven", only what the ECM's own test measured
-    (:data:`mes.scan_health.MODE06_MIDS`'s ``fail_meaning`` for that MID)."""
+    (:data:`mes.scan_health.MODE06_MIDS`'s ``fail_meaning`` for that MID) --
+    plus one network "bus event" note when three or more live U-codes are
+    on file for this VIN (:func:`mes.scan_health.network_bus_event_note`)."""
     mode06 = norm["mode06_by_mid"]
     out: list[str] = []
     seen_systems: set[str] = set()
@@ -392,6 +602,11 @@ def _what_it_tells_us(norm: dict[str, Any]) -> list[str]:
         sentence = (f"Mode 06 {meta['name']} (MID {mid}): {meta['fail_meaning']} "
                    f"-- {measured}")
         out.append(sentence)
+
+    _active, _history, live_u = _module_dtc_systems(vin)
+    bus_event = scan_health.network_bus_event_note(live_u)
+    if bus_event:
+        out.append(bus_event)
     return out
 
 
@@ -433,13 +648,32 @@ def _issues(vin: str, verdict: dict[str, Any], systems_table: list[dict[str, Any
             issues.append(f"{test['name']} now -- {test.get('purpose', '')} "
                           f"Do not clear codes before it.")
 
+    # 1b. an ACTIVE network-system module DTC this scan (e.g. U1713-2F on
+    #     the BCM) -- right after EVAP/Mode06 in the active-faults tier,
+    #     pointing at the documented upstream cause before the bus itself.
+    module_active, _history, _live_u = _module_dtc_systems(vin)
+    network_issue = scan_health.network_active_issue(module_active.get("network"))
+    if network_issue:
+        issues.append(network_issue)
+
     # 2. unverified repairs (open/supported hypotheses on the job ledger).
     issues.extend(_hypothesis_lines(vin))
 
-    # 3. gaps -- systems this scan did not read at all.
-    gaps = [r["label"] for r in systems_table if r["health"] == scan_health.GAP]
-    if gaps:
-        issues.append("Not read this scan: " + ", ".join(gaps) + ".")
+    # 3. gaps -- systems this scan did not read at all, grouped by the
+    #    scan_coverage reason when one is on file (naturally "per cable",
+    #    since every module behind the same missing cable shares the same
+    #    reason) -- falls back to one flat list of system labels when no
+    #    coverage observation narrows it down.
+    gap_rows = [r for r in systems_table if r["health"] == scan_health.GAP]
+    if gap_rows:
+        by_reason: dict[Optional[str], list[str]] = {}
+        for r in gap_rows:
+            by_reason.setdefault(r.get("reading"), []).append(r["label"])
+        for reason, labels in by_reason.items():
+            if reason:
+                issues.append(f"Not read this scan ({reason}): " + ", ".join(labels) + ".")
+            else:
+                issues.append("Not read this scan: " + ", ".join(labels) + ".")
 
     # 4. maintenance overdue -- best effort; omitted when it cannot be computed.
     if service_bridge is not None:
@@ -490,14 +724,30 @@ def build(vin: str, scan_id: Optional[str] = None) -> dict[str, Any]:
         raise NotFound("a VIN is required")
     sid, norm = _scan_for(vin, scan_id)
     verdict = build_verdict(norm)
-    systems_table = build_systems_table(norm)
+    systems_table = build_systems_table(vin, norm)
+
+    # Mode 09: calibration IDs/CVNs in the header, EVAP's own IUPR
+    # completion numerator/denominator folded into its row -- both only
+    # when the ECM actually answered that PID this install (neither is
+    # on file yet; see mes.scan_health.mode09_header_extras/evap_iupr).
+    mode09_obs = _latest_kind_data(vin, "mode09")
+    header = dict(norm["header"])
+    header.update(scan_health.mode09_header_extras(mode09_obs))
+    iupr = scan_health.evap_iupr(mode09_obs)
+    if iupr:
+        for row in systems_table:
+            if row["system"] == "evap" and row.get("reading"):
+                row["reading"] += (f" [EVAP IUPR {iupr.get('numerator')}/"
+                                   f"{iupr.get('denominator')}]")
+                break
+
     return {
         "vin": vin,
         "scan_id": sid,
-        "header": norm["header"],
+        "header": header,
         "verdict": verdict,
         "systems": systems_table,
-        "measurement_notes": _what_it_tells_us(norm),
+        "measurement_notes": _what_it_tells_us(vin, norm),
         "issues": _issues(vin, verdict, systems_table, norm),
         "clean_bill": _clean_bill(systems_table),
     }

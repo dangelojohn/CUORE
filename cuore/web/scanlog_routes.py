@@ -39,9 +39,35 @@ def _bar_for(vin: str) -> dict[str, Any]:
 
 @router.get("/v/{vin}/scans", response_class=HTMLResponse)
 def scans_page(request: Request, vin: str) -> HTMLResponse:
-    scans = scanlog_bridge.list_scans(vin)["scans"]
+    scans = scanlog_bridge.list_scans(vin)["scans"]  # newest first
+    # "Scan n" numbering runs oldest-to-newest (scan 1 is the first one run
+    # this diagnosis), the opposite order the list itself renders in.
+    oldest_first = sorted(scans, key=lambda s: s.get("started") or "")
+    numbers = {s["id"]: i for i, s in enumerate(oldest_first, start=1)}
+    for s in scans:
+        s["number"] = numbers.get(s["id"])
     response = _page(request, "scanlog.html", vin=vin, bar=_bar_for(vin),
-                     tab="scans", scans=scans)
+                     tab="scans", scans=scans, plan=scanlog_bridge.scan_plan(vin))
+    _set_active_vehicle(response, vin)
+    return response
+
+
+@router.get("/v/{vin}/scans/diff", response_class=HTMLResponse)
+def scan_diff_page(request: Request, vin: str, a: str, b: str) -> HTMLResponse:
+    """The diff page proper -- ``cuore.live.scanlog.diff`` is the one place
+    the comparison itself is computed (codes added/removed/changed-status,
+    freeze-frame deltas, Mode $06 flips, readiness and coverage changes);
+    this just picks the two scans named by the ``a``/``b`` query params.
+    404s (via ``NotFound``) when either id is not a scan on file for this
+    VIN -- same as ``scan_page``. Registered BEFORE ``{scan_id}`` below:
+    FastAPI matches path routes in registration order, so a literal
+    ``/scans/diff`` must be declared ahead of the ``{scan_id}`` catch-all or
+    it would be swallowed as a request for a scan literally named "diff"."""
+    comparison = scanlog_bridge.diff(vin, a, b)  # raises NotFound -> 404
+    scan_a = scanlog_bridge.scan(vin, a)
+    scan_b = scanlog_bridge.scan(vin, b)
+    response = _page(request, "scan_diff.html", vin=vin, bar=_bar_for(vin), tab="scans",
+                     a=scan_a, b=scan_b, comparison=comparison)
     _set_active_vehicle(response, vin)
     return response
 

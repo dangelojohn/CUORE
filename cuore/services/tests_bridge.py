@@ -166,6 +166,14 @@ def build_tests_view(vin: str) -> dict[str, Any]:
     fuel_gate = _fuel_gate(vin)
     fuel_blocked = fuel_gate.get("in_window") is False
 
+    # Marque-filtered catalogue (MECHANIC_REVIEW_4/check_marque_port.py):
+    # a test whose own applies_to rules out this vehicle's marque (e.g. the
+    # Stelvio-specific wiTECH/ESIM-bench tests, which name the real Stelvio
+    # VIN in their sourced pass_criteria text) must never render on another
+    # marque's Tests page. mechanic_tests.all_tests() is the unfiltered
+    # catalogue; tests_for_marque() is the one this page actually shows.
+    catalogue = mechanic_tests.tests_for_marque(mes_bridge.marque_for_vin(vin))
+
     code_test_ids = {t["id"] for t in mechanic_tests.tests_for_codes(open_codes)}
     hyp_systems = [h.get("system") or "" for h in open_hyps if h.get("system")]
     sys_test_ids = {t["id"] for t in mechanic_tests.tests_for_systems(hyp_systems)} if hyp_systems else set()
@@ -173,7 +181,7 @@ def build_tests_view(vin: str) -> dict[str, Any]:
 
     rows: list[dict[str, Any]] = []
     counts = {k: 0 for k in RESULT_COUNT_KEYS}
-    for t in mechanic_tests.all_tests():
+    for t in catalogue:
         rid = t["id"]
         latest = _result_entry(vin, rid)
         counts[latest["result"]] = counts.get(latest["result"], 0) + 1
@@ -195,7 +203,7 @@ def build_tests_view(vin: str) -> dict[str, Any]:
         })
 
     rows.sort(key=lambda r: (0 if r["recommended"] else 1, r["category"], r["name"]))
-    categories = sorted({t["category"] for t in mechanic_tests.all_tests()})
+    categories = sorted({t["category"] for t in catalogue})
 
     return {
         "vin": vin,

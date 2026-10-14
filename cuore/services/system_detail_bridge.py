@@ -54,7 +54,15 @@ from . import (
     mes_bridge,
     parts_bridge,
     systems_bridge,
+    systems_map_bridge,
 )
+
+#: Fault trees whose ranked causes lead with the BCM supply feed (fuse F82,
+#: TSB S1808000005) then the inline connector/frame grounds (TSB
+#: S2008000032) -- see ``mes.faulttree.NETWORK_CASCADE`` steps N5/N6. Only
+#: this one tree exists today; keyed by its own ``key`` rather than hunting
+#: its steps at render time.
+_NETWORK_CASCADE_TEST = "check BCM supply and grounds first"
 
 #: The one marker every sourcing gap renders as -- never a guess, never a
 #: blank. Matches the wording already used across maintenance.html /
@@ -231,6 +239,38 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
             "status_label": (drow or {}).get("status_label") or "Stale",
             "description": (drow or {}).get("description") or "",
             "href": f"/v/{vin}/code/{base}",
+        })
+
+    # tonight's (or newest) live module sweep -- a direct from-car UDS read,
+    # independent of the MES-log corpus the loop above reads. A code already
+    # listed above (from the corpus) gets this merged on as "live"; a code
+    # the module sweep saw that the corpus has no row for yet (common for a
+    # network/body U- or B-code) becomes its own row, so it still shows up in
+    # "This car's codes" and still feeds "how it fails here" below.
+    live_chips = systems_map_bridge.module_dtc_overlay(vin)["by_system"].get(key, [])
+    live_by_base: dict[str, list[dict[str, Any]]] = {}
+    for chip in live_chips:
+        live_by_base.setdefault(chip["code"], []).append(chip)
+    for row in codes_status:
+        hits = live_by_base.get(row["code"])
+        if not hits:
+            continue
+        newest = max(hits, key=lambda c: c.get("at") or "")
+        row["live"] = {"state": newest["state"], "at": newest["at"], "ecu": newest["ecu"],
+                       "chip_text": newest["chip_text"], "failure_type": newest["failure_type"]}
+    matched_bases = {row["code"] for row in codes_status}
+    for base, hits in live_by_base.items():
+        if base in matched_bases:
+            continue
+        newest = max(hits, key=lambda c: c.get("at") or "")
+        is_active = newest["state"] == "ACTIVE"
+        codes_status.append({
+            "code": base, "dtc": newest["full"],
+            "status": "ACTIVE" if is_active else "CLEARED_UNVERIFIED",
+            "status_label": "Active (live)" if is_active else "History since clear (live)",
+            "description": "", "href": f"/v/{vin}/code/{base}",
+            "live": {"state": newest["state"], "at": newest["at"], "ecu": newest["ecu"],
+                     "chip_text": newest["chip_text"], "failure_type": newest["failure_type"]},
         })
 
     monitor_keywords = _MONITOR_KEYWORDS.get(key)
@@ -464,6 +504,15 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         except Exception:  # noqa: BLE001
             pass
 
+    # A matched network-cascade tree (BCM/RFHUB/DTCM lost-communication
+    # U-codes, or B1040) always offers its own ranked first real test --
+    # fuse F82/BCM supply (N5), then the connector/grounds (N6) -- ahead of
+    # whatever mechanic_tests found, since a generic per-code test would
+    # send the mechanic chasing one of the U-codes as its own component
+    # fault rather than the one real network event behind all of them.
+    if fault_tree and any(t.get("tree") == "network-cascade" for t in (fault_tree.get("trees") or [])):
+        next_test_label = _NETWORK_CASCADE_TEST
+
     how_it_fails = {"fault_tree": fault_tree, "open_codes": open_codes,
                     "next_test_label": next_test_label, "do_it_now_href": do_it_now_href}
 
@@ -549,9 +598,12 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         learned_data = {}
         learned_available = False
     learned_entries = (learned_data.get(vin) or []) if isinstance(learned_data, dict) else []
+    learned_broadcasts: list[dict[str, Any]] = []
     for entry in learned_entries:
         if entry.get("status") != "accepted":
             continue
+        if entry.get("kind") == "broadcast":
+            continue  # a different shape (bus/id, no module/did) -- handled below
         name = (entry.get("name") or "").strip().lower()
         if name and name in chan_names:
             learned_dids.append({
@@ -560,7 +612,21 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
                 "confidence": entry.get("confidence"), "at": entry.get("at"),
                 "watch_href": f"/v/{vin}/liveboard?watch={entry.get('did')}",
             })
-    learned = {"available": learned_available, "dids": learned_dids}
+    # broadcast signals -- learned from watching a bus, never from a UDS
+    # request, so there is no scale: cuore.live.learned stamps every one
+    # "unknown" and the page must say so plainly, same wording the Live
+    # board itself uses for these ("learned, unscaled").
+    for entry in learned_entries:
+        if entry.get("status") != "accepted" or entry.get("kind") != "broadcast":
+            continue
+        name = (entry.get("name") or "").strip().lower()
+        if name and name in chan_names:
+            learned_broadcasts.append({
+                "bus": entry.get("bus"), "id": entry.get("id"), "name": entry.get("name"),
+                "confidence": entry.get("confidence"), "at": entry.get("at"),
+                "text": "learned, unscaled, raw",
+            })
+    learned = {"available": learned_available, "dids": learned_dids, "broadcasts": learned_broadcasts}
 
     # --- 10. freeze frame, this system's channels highlighted ----------------
     mapped_codes = {r["code"] for r in codes_status}

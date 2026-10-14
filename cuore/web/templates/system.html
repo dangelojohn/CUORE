@@ -57,6 +57,10 @@
       <a class="chip-code sm" href="{{ c.href }}">{{ c.code }}</a>
       <span class="chip status-{{ c.status|lower }}">{{ c.status_label }}</span>
       <span class="small muted">{{ c.description }}</span>
+      {% if c.live %}
+      <span class="chip {{ 'status-active' if c.live.state == 'ACTIVE' else 'status-cleared_unverified' }} sysd-live-chip">{{ c.live.chip_text }}</span>
+      <span class="small muted">from the car {{ c.live.at }}{% if c.live.failure_type %} &middot; {{ c.live.failure_type.meaning }}{% endif %}</span>
+      {% endif %}
     </li>
     {% endfor %}
   </ul>
@@ -93,6 +97,21 @@
   </ul>
   {% else %}
   <p class="small muted">No live channels defined for this system.</p>
+  {% endif %}
+
+  <h3 class="subhead">Live channels — learned broadcast signals</h3>
+  {% if view.learned.broadcasts %}
+  <ul class="sysd-list">
+    {% for b in view.learned.broadcasts %}
+    <li class="sysd-row">
+      <span class="mono">{{ b.bus }} &middot; {{ b.id }}</span>
+      <span>{{ b.name }}</span>
+      <span class="small muted">{{ b.text }} &middot; learned {{ b.at }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No learned broadcast signals yet for this system's live channels.</p>
   {% endif %}
 
   <h3 class="subhead">Active blocker</h3>

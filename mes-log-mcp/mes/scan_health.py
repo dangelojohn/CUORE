@@ -52,6 +52,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from . import dtc as dtc_mod
+
 UNKNOWN_SPEC = "UNKNOWN — use the service manual (TechAuthority)"
 
 FAULT = "FAULT"
@@ -233,6 +235,181 @@ READINESS_MONITOR_NOTE = {
 }
 
 
+# --- module DTC status -> active/history/never-listed ----------------------
+#
+# A UDS module answers "every code it tracks", not "every fault on the
+# car" -- the ECM alone reports hundreds, nearly all of them the
+# ``testNotCompletedThisOperationCycle``-only placeholder (this platform's
+# own ``module_dtcs`` reads: status ``64``). The status *flags* a module
+# read already decodes (``cuore.live.obd``'s own ``flags`` dict) say which
+# of the rest are a fault right now versus a fault on file from before:
+#
+# * ``testFailed`` true  -- failing on this very read -> ``"active"``.
+# * ``confirmedDTC`` or ``pendingDTC`` true (``testFailed`` false) -- the
+#   module has this on file, but it is not failing right now ->
+#   ``"history"``.
+# * neither -- the ``testNotCompletedThisOperationCycle``-only placeholder
+#   (or an empty/unset status) -- ``None``, never surfaced as a finding.
+
+def module_dtc_category(flags: Optional[dict[str, Any]]) -> Optional[str]:
+    """``"active"`` / ``"history"`` / ``None`` for one module DTC record's
+    own decoded status flags. See the section note above for the rule."""
+    flags = flags or {}
+    if flags.get("testFailed"):
+        return "active"
+    if flags.get("confirmedDTC") or flags.get("pendingDTC"):
+        return "history"
+    return None
+
+
+def _split_code(code: str) -> tuple[str, Optional[str]]:
+    """``"U1713-2F"`` -> ``("U1713", "2F")``; a code with no failure-type
+    suffix comes back with ``None`` for it, never a guessed byte."""
+    code = (code or "").strip()
+    if "-" in code:
+        base, ftb = code.rsplit("-", 1)
+        return base, ftb or None
+    return code, None
+
+
+def module_active_reading(entries: list[dict[str, Any]]) -> str:
+    """One FAULT row's reading for every module DTC ``"active"`` on this
+    system this scan -- the module, the code, and the failure-type byte's
+    own decoded meaning (:func:`mes.dtc.failure_type`), never a hand-written
+    guess at what the code means. ``entries`` is ``[{"code", "module"}, ...]``."""
+    parts: list[str] = []
+    for e in entries:
+        code = e.get("code", "")
+        module = e.get("module", "")
+        _, ftb = _split_code(code)
+        ft = dtc_mod.failure_type(ftb)
+        meaning = ft.text if ft else "failure-type byte not decoded"
+        parts.append(f"{module}: {code} ACTIVE -- {meaning}")
+    return "; ".join(parts)
+
+
+def module_history_reading(entries: list[dict[str, Any]]) -> str:
+    """One OK row's reading for every module DTC that is ``"history"`` on
+    this system this scan (on file, not currently failing). ``entries`` is
+    ``[{"code", "module"}, ...]``."""
+    codes = "; ".join(f"{e.get('module', '')}: {e.get('code', '')}" for e in entries)
+    return f"{codes} -- history since last clear, not failing now"
+
+
+def network_active_issue(entries: list[dict[str, Any]]) -> Optional[str]:
+    """One "what to check next" issue line for an ACTIVE network-system
+    module DTC this scan (``entries`` as :func:`module_active_reading`
+    takes them; ``None`` when there are none). Points at the documented
+    upstream check on this project's own system graph
+    (``mes.systems.SYSTEMS["network"]``'s own ``depends_on`` edge: BCM
+    power feeds and chassis grounds are a documented, sourced lead for
+    multi-module U-code cascades) rather than the bus itself, which is
+    where a cascade like this gets chased first and wastes the most time."""
+    if not entries:
+        return None
+    first = entries[0]
+    code, module = first.get("code", ""), first.get("module", "")
+    return (f"{module}: {code} (network) ACTIVE this scan -- check BCM supply "
+           "and grounds first, then the bus (mes.systems network system's "
+           "own documented depends_on edge). Do not clear codes before it.")
+
+
+def network_bus_event_note(live_u_code_count: int) -> Optional[str]:
+    """One hedged "what the measurement tells us" sentence when three or
+    more *live* (non-placeholder: ``"active"`` or ``"history"``, never a
+    bare status-64) U-codes are on file this scan -- ``None`` below that
+    count. Reuses this project's own existing family-level judgement
+    (``mes.analysis``'s module docstring: "A network event is one fault,
+    not five... several modules each report only 'missing message' or
+    'erratic' against *other* modules, that is one power or bus event")
+    rather than inventing new wording for the same finding; see
+    :func:`mes.analysis.detect_network_event` for the corpus-grounded,
+    multi-module version of this same judgement."""
+    if live_u_code_count < 3:
+        return None
+    return (f"{live_u_code_count} live U-codes on file this scan, across more "
+           "than one module -- this project's own network-event finding "
+           "(mes.analysis: several modules each reporting only a "
+           "communication fault against other modules is usually one power "
+           "or bus event, not several separate module failures) applies "
+           "here; see mes.analysis.detect_network_event for the "
+           "corpus-grounded version of this same judgement.")
+
+
+# --- scan_coverage -> GAP row wording ---------------------------------------
+
+def coverage_gap_text(category: Optional[str], why: Optional[str]) -> str:
+    """One GAP row's reading, taken verbatim from a ``scan_coverage``
+    observation's own ``why`` for that module -- never rephrased or
+    invented. ``cuore.live.fullscan``'s own coverage rows already write
+    ``why`` as a complete reason in two different shapes: a cable-gated
+    module reads ``"needs grey A6 cable"`` / ``"skipped, needs <cable>"``,
+    an unaddressed module reads ``"no known address: run discovery"`` --
+    both already read as a full sentence fragment and are shown as-is. A
+    ``"not_reachable"`` row whose ``why`` is instead a raw adapter/bus
+    error gets a ``"not reachable -- "`` prefix so the row still reads as
+    a sentence."""
+    why = (why or "").strip()
+    category = category or ""
+    if not why:
+        return category.replace("_", " ") or "not read this scan"
+    lowered = why.lower()
+    if lowered.startswith("skipped") or lowered.startswith("no known address"):
+        return why
+    if category == "not_reachable":
+        return f"not reachable -- {why}"
+    return why
+
+
+# --- Mode 09 (calibration IDs / CVNs / IUPR) --------------------------------
+#
+# Shape matches ``cuore.live.mode09.read_mode09``'s own return value, as
+# written onto the ``mode09`` observation by ``cuore.live.fullscan``:
+# ``{"mode09": {"results": {"04": {ecu: {"calibration_ids": [...]}}, "06":
+# {ecu: {"cvns": [...]}}, "08": {ecu: {"monitors": {"EVAP": {"numerator",
+# "denominator", "completion_rate"}}}}}}, "gaps": [...], "gap_reason": ...}``.
+# Every field is read defensively -- this install's own mode09 reads on
+# file answer nothing yet (every PID comes back in ``gaps``), and that is
+# reported as an absence (``{}`` / ``None``), never a placeholder number.
+
+def mode09_header_extras(mode09_obs: Optional[dict[str, Any]]) -> dict[str, Any]:
+    """``{"calibration_ids": [...], "cvns": [...]}`` for whichever of PID
+    04/06 actually answered this scan -- keys omitted (not ``None``/``[]``)
+    when that PID did not answer, so a caller can test with a plain ``in``
+    check rather than distinguishing "answered empty" from "did not
+    answer"."""
+    out: dict[str, Any] = {}
+    if not mode09_obs:
+        return out
+    results = (mode09_obs.get("mode09") or {}).get("results") or {}
+    cal_ids: list[str] = []
+    for entry in (results.get("04") or {}).values():
+        cal_ids.extend(entry.get("calibration_ids") or [])
+    if cal_ids:
+        out["calibration_ids"] = cal_ids
+    cvns: list[str] = []
+    for entry in (results.get("06") or {}).values():
+        cvns.extend(entry.get("cvns") or [])
+    if cvns:
+        out["cvns"] = cvns
+    return out
+
+
+def evap_iupr(mode09_obs: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """The EVAP monitor's own in-use-performance-tracking numerator/
+    denominator/completion_rate (PID 08), when the ECM actually answered
+    it this scan -- ``None`` otherwise (this install's own mode09 reads on
+    file answer nothing yet)."""
+    if not mode09_obs:
+        return None
+    results = (mode09_obs.get("mode09") or {}).get("results") or {}
+    for entry in (results.get("08") or {}).values():
+        evap = (entry.get("monitors") or {}).get("EVAP")
+        if evap:
+            return evap
+    return None
+
+
 def margin(value: Optional[float], limit: Optional[float]) -> Optional[str]:
     """``"N.N×"`` for ``value`` against ``limit``, or ``None`` when the
     limit is missing or zero (a ratio against zero is not a number)."""
@@ -242,6 +419,21 @@ def margin(value: Optional[float], limit: Optional[float]) -> Optional[str]:
         return f"{value / limit:.1f}×"
     except (TypeError, ZeroDivisionError):
         return None
+
+
+def symmetric_margin(value: Optional[float], half: Optional[float],
+                     unit: str = "") -> Optional[str]:
+    """``"+3.1% of ±10%"`` -- the margin phrasing for a known-good band
+    that is symmetric around zero (``mes.known_good``'s fuel-trim rows: a
+    ``normal`` of ``(-10, 10)``, ``direction="both"``). A ratio
+    (:func:`margin`'s own "N.N×") means nothing for a band centred on
+    zero -- 3.1 / 10 reads as "0.3×", which hides the one number a
+    technician actually wants: how much headroom is left inside the ±
+    band. ``half`` is the band's own half-width (``10`` for ±10%), not the
+    raw value -- callers pass ``kg["normal"][1]`` directly."""
+    if value is None or half is None or half == 0:
+        return None
+    return f"{value:+g}{unit} of ±{half:g}{unit}"
 
 
 #: A Mode 06 row carries ``min``/``max``, not a single ``limit`` -- the ECU's
@@ -296,37 +488,60 @@ def mode06_reading(row: dict[str, Any]) -> str:
 def classify_system(system_key: str, *,
                     mode06_rows: Optional[list[dict[str, Any]]] = None,
                     dtc_fault: bool = False,
+                    module_active: Optional[list[dict[str, Any]]] = None,
+                    module_history: Optional[list[dict[str, Any]]] = None,
                     pid_reading: Optional[dict[str, Any]] = None,
                     known_good_row: Optional[dict[str, Any]] = None,
                     ecu_answered: bool = False,
-                    readiness_reading: Optional[dict[str, Any]] = None
+                    readiness_reading: Optional[dict[str, Any]] = None,
+                    coverage_text: Optional[str] = None,
                     ) -> dict[str, Any]:
     """One system's health for one scan.
 
     Resolution order, most specific evidence first:
 
-    1. Any Mode 06 row for this system that failed, or ``dtc_fault`` true
-       (an active DTC's primary system is this one) -> ``FAULT``.
+    1. Any Mode 06 row for this system that failed, ``dtc_fault`` true (an
+       active DTC's primary system is this one), or ``module_active``
+       (a UDS module DTC ``"active"`` on this system -- see
+       :func:`module_dtc_category`) -> ``FAULT``. The reading quotes the
+       Mode 06 row when there is one, else the module DTC(s)
+       (:func:`module_active_reading`), else nothing (a plain
+       stored/pending/permanent DTC with neither).
     2. A Mode 06 row for this system, all passed -> ``OK``, with a margin
        when the row carries numeric value/limit.
-    3. A PID/DID reading with a known-good band (confidence != UNKNOWN) --
-       inside the normal band is ``OK`` (with margin against whichever
-       bound it is closer to), outside is ``FAULT``.
-    4. A PID/DID reading with no usable band, or a readiness-monitor
+    3. ``module_history`` (a UDS module DTC on file for this system but
+       not failing now) -> ``OK``, reading from
+       :func:`module_history_reading` -- real evidence that the module was
+       read, distinct from a module answering with nothing on file at all
+       (tier 6, below).
+    4. A PID/DID reading with a known-good band (confidence != UNKNOWN) --
+       inside the normal band is ``OK`` (margin as :func:`symmetric_margin`
+       for a band symmetric around zero such as fuel trim, else as
+       :func:`margin`'s ratio against whichever bound it is closer to),
+       outside is ``FAULT``.
+    5. A PID/DID reading with no usable band, or a readiness-monitor
        completion flag -- ``READING ONLY``, spec rendered as
        :data:`UNKNOWN_SPEC`.
-    5. A module answered a DTC query for this system (even with nothing
+    6. A module answered a DTC query for this system (even with nothing
        found) -- ``OK``, noted as engine-OBD/UDS-DTC-only, not a full
        live-channel check.
-    6. Nothing above applies -- ``GAP``.
+    7. Nothing above applies -- ``GAP``, with ``coverage_text`` (a
+       ``scan_coverage`` observation's own wording for this system's
+       module, via :func:`coverage_gap_text`) as the reading when one
+       exists, else ``None``.
     """
     rows = mode06_rows or []
     failed = sorted((r for r in rows if r.get("passed") is False), key=_mid_priority)
     passed = sorted((r for r in rows if r.get("passed") is True), key=_mid_priority)
 
-    if failed or dtc_fault:
+    if failed or dtc_fault or module_active:
         row = failed[0] if failed else None
-        reading = _mode06_reading(row) if row is not None else None
+        if row is not None:
+            reading = _mode06_reading(row)
+        elif module_active:
+            reading = module_active_reading(module_active)
+        else:
+            reading = None
         return {"system": system_key, "health": FAULT, "reading": reading,
                 "spec_confidence": MODE06_CONFIDENCE if row is not None else None,
                 "spec_source": MODE06_SOURCE if row is not None else None,
@@ -340,6 +555,11 @@ def classify_system(system_key: str, *,
                 "spec_confidence": MODE06_CONFIDENCE, "spec_source": MODE06_SOURCE,
                 "margin": m}
 
+    if module_history:
+        return {"system": system_key, "health": OK,
+                "reading": module_history_reading(module_history),
+                "spec_confidence": None, "spec_source": None, "margin": None}
+
     if pid_reading is not None:
         value = pid_reading.get("value")
         unit = pid_reading.get("unit", "")
@@ -347,9 +567,14 @@ def classify_system(system_key: str, *,
         if kg and kg.get("confidence") != "UNKNOWN" and kg.get("normal") and value is not None:
             lo, hi = kg["normal"]
             ok = lo <= value <= hi
-            dist_lo = abs(value - lo) if lo else None
-            dist_hi = abs(hi - value) if hi else None
-            m = margin(value, hi) if ok and hi else margin(value, lo) if ok and lo else None
+            m: Optional[str] = None
+            if ok:
+                if kg.get("direction") == "both" and lo is not None and hi is not None and lo == -hi:
+                    m = symmetric_margin(value, hi, unit)
+                elif hi:
+                    m = margin(value, hi)
+                elif lo:
+                    m = margin(value, lo)
             return {"system": system_key, "health": OK if ok else FAULT,
                     "reading": f"{value}{unit}",
                     "spec_confidence": kg.get("confidence"), "spec_source": kg.get("source"),
@@ -376,7 +601,7 @@ def classify_system(system_key: str, *,
                           "not a full UDS/live-channel check)",
                 "spec_confidence": None, "spec_source": None, "margin": None}
 
-    return {"system": system_key, "health": GAP, "reading": None,
+    return {"system": system_key, "health": GAP, "reading": coverage_text,
             "spec_confidence": None, "spec_source": None, "margin": None}
 
 
@@ -453,7 +678,10 @@ __all__ = [
     "FAULT", "OK", "READING_ONLY", "NOT_ASSESSED", "GAP", "HEALTH_STATES",
     "UNKNOWN_SPEC", "MODE06_CONFIDENCE", "MODE06_SOURCE", "mode06_confidence",
     "MODE06_MIDS", "PID_SYSTEM", "ECU_SYSTEM", "READINESS_MONITOR_SYSTEM",
-    "READINESS_MONITOR_NOTE", "margin", "mode06_threshold", "mode06_reading",
+    "READINESS_MONITOR_NOTE", "margin", "symmetric_margin", "mode06_threshold",
+    "mode06_reading", "module_dtc_category", "module_active_reading",
+    "module_history_reading", "network_active_issue", "network_bus_event_note",
+    "coverage_gap_text", "mode09_header_extras", "evap_iupr",
     "classify_system",
     "ACTIVE_FAULTS", "VERIFIED_CLEAN", "UNVERIFIED_REPAIR", "NO_DATA", "verdict",
 ]

@@ -65,6 +65,43 @@ MultiEcuScan holds the port, or a live-data poll session (step 8 in section
 2) is running -- stop the poller (`live_session_stop()`) or disconnect MES
 first, same as every call below.
 
+### Guided scan with the coloured cables
+
+`full_scan()` needs the mechanic to physically fit two bypass cables mid-
+scan -- the blue A5 for CAN-IHS, the grey A6 for CAN-CH -- which used to
+mean stopping the tool and running three separate scans by hand. The guided
+scan turns that into one resumable session that pauses exactly when a
+cable swap is needed, instead of stopping:
+
+1. **`guided_scan_start(vin="ZASFAKPN5J7B88115")`** (or the wizard page,
+   `/v/{vin}/scan`, "Start full scan") runs the no-cable segment in full
+   (verify CAN-C, VIN, DTCs, freeze frames, readiness, Mode 06, PID
+   snapshot, and the UDS sweep of every CAN-C module) under one `scan_id`,
+   then pauses. Its result's `next` field says which cable to fit
+   (`blue_a5`), which bus it unlocks (`can_ihs`), and the modules on it.
+2. Fit the blue A5 cable, then **`guided_scan_continue(scan_id,
+   cable_fitted="blue_a5")`** -- declares the cable (the same
+   `set_cable()` path, a declaration only; writes stay blocked), verifies
+   CAN-IHS with a passive listen, sweeps its modules, and pauses again for
+   the grey A6 cable (`can_ch`).
+3. No grey A6 cable on hand? **`guided_scan_skip(scan_id)`** records that
+   segment as `"not reachable: skipped, needs grey A6 cable"` -- honest,
+   never invented -- and moves on to the closing step.
+4. Fit the grey A6 cable and repeat step 2 for `cable_fitted="grey_a6"`, or
+   skip it the same way.
+5. Remove the cable, then **`guided_scan_continue(scan_id,
+   cable_fitted="none")`** redeclares no cable, re-verifies CAN-C, and
+   closes the session.
+
+`guided_scan_state()` (or reloading the wizard page) shows exactly where a
+session is at any point -- it persists to disk, so a page reload or an MCP
+reconnect resumes the same session rather than losing it. Every segment
+records under the one `scan_id` picked at step 1, and the coverage summary
+is rewritten at the end of every segment, so the Scans area and the health
+report always see one scan, not three. `abandon_guided(scan_id)` (API only;
+the wizard page's "Abandon this scan" button) closes a session honestly
+without pretending it finished.
+
 ## 2. The manual sequence (fallback)
 
 Use this when `full_scan()` cannot run (MES needs the port for something
@@ -275,3 +312,52 @@ next step after three clean smoke tests and all-new EVAP parts) is in
 | `connect()` fails citing a stale adapter lock | A previous cuore/obd2-mcp process crashed without releasing `cuore/live/interlock.py`'s lock file | `status()` or `audit_log()` to confirm the lock's PID is dead; the lock is advisory and self-heals once the dead PID is detected, but if it does not, the lock file path is reported in the error -- remove it only after confirming the PID is not a live process. |
 | Readiness read looks fine but the Systems page still shows `CLEARED_UNVERIFIED`, not `VERIFIED_CLEAN` | The read was not actually from the car (demo/replay/simulated stream), or the monitor the system needs is not among the ones reported complete | Re-run `read_readiness()` live, with the adapter connected to the real car, and confirm the result's `at` timestamp is recent and the source stream starts with `serial`. |
 | Live board / gauges page shows values but they never change | Session may be using a replay recording instead of the live poller, or the channel's rate is slower than you are watching | Confirm which session is active via `status()`/`live_snapshot()` HTTP equivalents; check the channel's configured rate in `live_channels()`. |
+
+## 7. Bus capture, learn-a-signal and per-bus presets (blue A5 / grey A6)
+
+The garage has two bypass cables: the **blue A5** re-pins the adapter onto
+CAN-IHS (pins 3/11 -- body/comfort/infotainment); the **grey A6** re-pins
+it onto CAN-CH (pins 12/13 -- chassis/ADAS: ABS, EPS, ORC...). Everything
+below is read-only (passive listen, `STCMM 0` + `STM`/`ATMA`) -- the
+existing write guards for ABS/EPS/ORC and anything on CAN-CH are untouched
+and still refuse without explicit confirmation.
+
+**Declare the cable first.** Fit the cable, then `set_cable("blue_a5")` or
+`set_cable("grey_a6")` (MCP tool, or the Live board's "Change cable"
+control at `/v/{vin}/liveboard`, which also lists what the new declaration
+enables before you confirm). Every bus-capture and learn call below
+refuses with `Refused` if the bus it targets is not reachable with the
+currently declared cable, or if the poller/MultiEcuScan holds the adapter.
+
+**Bus capture** -- the Live board's "Bus capture" panel (same Start/Stop/
+Save shape as the Freeze frame panel above it): pick the bus the fitted
+cable reaches, Start, watch the live frame rate and distinct-ID count,
+Stop, then Save. Save writes a CSV recording in the same wire format
+cuore's own live sessions use, named `buscapture_<bus>_<cable>_<time>.csv`
+under the recordings directory, and logs a from-car observation (kind
+`"bus_capture"`) carrying the recording path and id counts. The MCP tools
+are `bus_capture_start(bus)`, `bus_capture_stop(bus)`,
+`bus_capture_save(bus, vin=...)`.
+
+**Learn a signal** -- `/v/{vin}/learn`: pick the bus, name the physical
+action you're about to do (the page suggests a few per bus -- "press the
+brake pedal", "turn the wheel", "open the driver door", "switch the HVAC
+fan"), Start, hold the action for a few seconds, Stop. The page ranks
+every `(CAN id, byte offset)` by how much it changed during that window
+and lets you name the best candidate and save it. A saved signal is
+logged with `scale: "unknown"` -- nothing here ever guesses a physical
+unit from one capture -- and shows on the Live board as a raw channel
+labelled "learned, unscaled". The MCP tools are `learn_start(bus,
+action)` and `learn_stop(bus)`; naming and saving the chosen candidate is
+a page action (`POST /api/buscapture/{bus}/learn/accept`), not an MCP
+tool.
+
+**Per-bus presets** -- `chassis_a6` (CAN-CH: ABS wheel speeds, steering
+angle, yaw rate) and `body_a5` (CAN-IHS: HVAC temperature, battery
+monitor, door states) list only what a public broadcast-signal source
+(`cuore.live.did_catalog.BROADCAST_SIGNALS`) or this VIN's own learned
+signals actually cover; anything else is shown `unknown_did` and is never
+polled or implied to exist (brake pressure, for example, has no known
+broadcast signal or DID on this platform and always shows `unknown_did`
+in `chassis_a6`). The Live board shows each preset's required cable and
+refuses to start it (`Refused`) without that cable declared.

@@ -17,6 +17,7 @@
   <p class="m-event-meta">
     {{ e.at }} &middot; by {{ e.by.role }}{% if e.by.name %} ({{ e.by.name }}){% endif %}
     &middot; <span class="m-reported-badge">reported</span>
+    {% if e.edited_at_fmt %}&middot; <span class="m-edited-badge">Edited {{ e.edited_at_fmt }}</span>{% endif %}
   </p>
   {% if e.fields %}
   <ul class="m-event-fields">
@@ -26,6 +27,27 @@
   </ul>
   {% endif %}
   {% if e.note %}<p class="m-event-note">{{ e.note }}</p>{% endif %}
+  {% if e.audit %}
+  <details class="m-audit">
+    <summary>Edit history ({{ e.audit|length }})</summary>
+    {% for a in e.audit %}
+    <div class="m-audit-entry">
+      <p class="m-audit-meta mono">{{ a.at }} &middot; {{ a.by.role }}{% if a.by.name %} ({{ a.by.name }}){% endif %}</p>
+      <ul class="m-audit-changes">
+        {% for fk, fc in (a.changes.fields or {}).items() %}
+        <li>{{ fk|replace('_',' ') }}: {{ fc.from }} &rarr; {{ fc.to }}</li>
+        {% endfor %}
+        {% if a.changes.note %}<li>note: {{ a.changes.note.from }} &rarr; {{ a.changes.note.to }}</li>{% endif %}
+        {% if a.changes.odometer_km %}<li>odometer: {{ a.changes.odometer_km.from }} &rarr; {{ a.changes.odometer_km.to }}</li>{% endif %}
+        {% if a.changes.at %}<li>when: {{ a.changes.at.from }} &rarr; {{ a.changes.at.to }}</li>{% endif %}
+      </ul>
+    </div>
+    {% endfor %}
+  </details>
+  {% endif %}
+  {% if e.editable %}
+  <a class="m-event-edit" href="/m/{{ vin }}/edit/{{ e.id }}">Edit</a>
+  {% endif %}
 </div>
 {% endfor %}
 {% endblock %}

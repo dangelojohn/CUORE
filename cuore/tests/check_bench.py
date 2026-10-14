@@ -37,6 +37,7 @@ import sys
 import tempfile
 import time
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-bench-")
@@ -49,9 +50,44 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore.app import create_app  # noqa: E402
 from cuore.live import checklists as checklist_store  # noqa: E402
+from cuore.live import store as live_store  # noqa: E402
 from cuore.services import bench_bridge, mes_bridge  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio -- real corpus, chronic P0455/P0440/P0456
+
+# --- Last scan card fixture: one guided scan, dated 2026-10-13, so the
+# bench's own "Scan n of 10" chip reads "Scan 1 of 10" and the coverage line
+# matches the owner's own spec wording exactly. Hand-built and appended to a
+# throwaway observations.jsonl (CUORE_STATE_DIR above), same posture as
+# cuore/tests/check_scanlog.py's own fixture -- never COM3, never the real
+# C:\ProgramData\cuore\observations.jsonl. -------------------------------
+
+SCAN_AT = datetime(2026, 10, 13, 9, 0, 0)
+SCAN_ID = "SCAN_" + SCAN_AT.strftime("%y%m%d%H%M")
+
+
+def _write_obs(at: datetime, kind: str, data: dict, *, stream: str = "serial COM3@115200") -> None:
+    entry = {"at": at.strftime("%Y-%m-%dT%H:%M:%S"), "kind": kind, "vin": VIN,
+             "bus": "can_c", "cable": "none", "stream": stream, "data": data}
+    with live_store.observations_path().open("a", encoding="utf-8") as f:
+        f.write(json.dumps(entry) + "\n")
+
+
+#: No ``obd_dtcs`` observation here on purpose: a live DTC read for this
+#: VIN would merge into the dossier's own live overlay and shift the
+#: verdict this suite's other checks depend on (85% fuel wording,
+#: CLEARED_UNVERIFIED) -- the scan_coverage observation alone is already
+#: enough to produce one scan with a coverage line (empty DTC buckets on
+#: the scan itself, which is fine: the card's own "active/history" grouping
+#: is exercised directly in cuore/tests/check_scanlog.py).
+_write_obs(SCAN_AT, "scan_coverage", {
+    "scan_id": SCAN_ID, "vin": VIN, "cable": "none", "buses_attempted": ["can_c"],
+    "duration_s": 10.0, "steps": [],
+    "coverage": [{"bus": "can_c", "module": m, "category": "answered", "why": None,
+                 "active": 0, "history": 0, "not_run": 0}
+                for m in ("ECM", "IPC", "TCM", "DTCM", "ESM")],
+    "counts": {"active": 0, "history": 0, "not_run": 0},
+})
 
 failures: list[str] = []
 checks = 0
@@ -79,6 +115,26 @@ check("at most 3 next actions", len(bench["next_actions"]) <= 3,
       str(len(bench["next_actions"])))
 check("at most 6 shortcuts", len(bench["shortcuts"]) <= 6, str(len(bench["shortcuts"])))
 
+# --- Last scan card (bench_bridge.last_scan_summary) -----------------------
+
+last_scan = bench.get("last_scan")
+check("bench carries a last_scan summary for this VIN", last_scan is not None, str(last_scan))
+if last_scan:
+    check("last_scan id matches the fixture scan", last_scan["id"] == SCAN_ID,
+          str(last_scan["id"]))
+    check("last_scan plan chip reads 'Scan 1 of 10' (one scan on file)",
+          last_scan["plan"] == {"count": 1, "total": 10}, str(last_scan["plan"]))
+    check("last_scan is not partial (it has a scan_coverage observation)",
+          last_scan["partial"] is False, str(last_scan["partial"]))
+    check("last_scan's coverage line matches the owner's own spec wording",
+          last_scan["coverage_line"] ==
+          "CAN-C 5 modules · IHS not scanned (blue A5) · CH not scanned (grey A6)",
+          str(last_scan["coverage_line"]))
+    check("last_scan source names the adapter", last_scan["source"] == "serial COM3@115200",
+          str(last_scan["source"]))
+    check("last_scan has no 'compare with previous' link (only one scan on file)",
+          last_scan["compare_href"] is None, str(last_scan["compare_href"]))
+
 
 # --- 1. the real route: GET /v/{vin} is the bench, GET /v/{vin}/dossier is
 #    still the full dossier -----------------------------------------------
@@ -90,6 +146,38 @@ check("bench status line never shows the unnamed placeholder",
       "(unnamed vehicle)" not in page.text)
 check("bench status line carries the VIN tail",
       VIN[-6:] in page.text, VIN[-6:])
+
+check("the Last scan card shows the scan id", SCAN_ID in page.text, "scan id not on page")
+check("the Last scan card shows the scan plan chip 'Scan 1 of 10'",
+      "Scan 1 of 10" in page.text, "'Scan 1 of 10' not on page")
+check("the Last scan card shows the coverage wording",
+      "CAN-C 5 modules" in page.text and "not scanned" in page.text,
+      "coverage wording not on page")
+check("the Last scan card links Open scan and Health report",
+      f'href="/v/{VIN}/scans/{SCAN_ID}"' in page.text
+      and f'href="/v/{VIN}/scans/{SCAN_ID}/health"' in page.text,
+      "Last scan card links missing")
+
+
+# --- N1 (MECHANIC_REVIEW_4_SCANS_HEALTH_2026-10-13.md): the resume card's
+# own "last scan ... ago"/stale flag must track whichever clock is newer --
+# the live scan above (SCAN_AT, dated today) or the MES-log-derived
+# current_picture (this VIN's real corpus tops out 2026-10-08/2026-10-04,
+# days before SCAN_AT) -- never silently answer from the older MES-log
+# clock alone while a same-day live scan is named one card above it.
+resume = bench["resume"]
+check("resume card's last_scan_at is the live scan's own timestamp (today), "
+      "not an older MES-log date",
+      resume["last_scan_at"] == SCAN_AT.strftime("%Y-%m-%dT%H:%M:%S"),
+      f"{resume['last_scan_at']!r} vs live scan {SCAN_AT.isoformat()!r}")
+check("resume card is not flagged stale when today's live scan is the newest read",
+      bench["scan_stale"] is False, str(bench["scan_stale"]))
+check("resume card's 'last scan ... ago' wording does not say days ago "
+      "when the live scan itself was today",
+      "d ago" not in resume["last_scan_relative"], resume["last_scan_relative"])
+check("no 'stale (> 24 h)' badge renders on the page next to today's live scan",
+      "stale (&gt; 24 h)" not in page.text and "stale (> 24 h)" not in page.text,
+      "stale badge found on page despite today's live scan")
 
 dossier_page = client.get(f"/v/{VIN}/dossier")
 check("the old dossier still responds 200 at /v/{vin}/dossier",

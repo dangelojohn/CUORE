@@ -633,6 +633,74 @@ else:
 
 
 # ===========================================================================
+# 8. N2 (MECHANIC_REVIEW_4_SCANS_HEALTH_2026-10-13.md): GET /live must
+#    never 500, even when cuore.live.ops raises something that is not a
+#    cuore.live.errors.LiveError -- the one shape cuore.web.routes._live_
+#    snapshot used to catch. Reproduced with a TestClient against a real
+#    server (no adapter, no COM3) seeded with tonight's real 2026-10-13
+#    observations (copied -- never edited -- out of the live install's
+#    C:\ProgramData\cuore\observations.jsonl, same posture as the review
+#    itself), plus ops functions monkeypatched to raise a bare exception
+#    the way a real unwrapped adapter failure would. An "unknown" status/
+#    cable/module panel must render; the page itself must not raise.
+# ===========================================================================
+
+import json as _json  # noqa: E402
+import shutil as _shutil  # noqa: E402
+
+_REAL_OBS = Path(r"C:\ProgramData\cuore\observations.jsonl")
+if not _REAL_OBS.exists():
+    print(f"SKIP: {_REAL_OBS} not present -- no real 2026-10-13 observations to copy")
+else:
+    _real_lines = [ln for ln in _REAL_OBS.read_text(encoding="utf-8").splitlines()
+                   if _json.loads(ln).get("at", "").startswith("2026-10-13")]
+    check("found tonight's 2026-10-13 observations to copy (never editing the original)",
+          bool(_real_lines), str(_REAL_OBS))
+
+    from fastapi.testclient import TestClient  # noqa: E402
+    from cuore.app import create_app  # noqa: E402
+    from cuore.live import store as live_store  # noqa: E402
+    from cuore.web import routes as web_routes  # noqa: E402
+
+    with live_store.observations_path().open("a", encoding="utf-8") as f:
+        for ln in _real_lines:
+            f.write(ln + "\n")
+
+    def _unwrapped_failure(*_a, **_k):
+        # Not a LiveError -- an adapter-level failure (serial/OS error on a
+        # port that is not there) exactly as it would arrive from a real
+        # disconnected adapter, never caught by the old except LiveError-only
+        # clause.
+        raise OSError("COM3: could not open port (simulated, no adapter)")
+
+    _orig_status, _orig_buses, _orig_modules = (web_routes.live_ops.status,
+                                                web_routes.live_ops.buses,
+                                                web_routes.live_ops.modules)
+    web_routes.live_ops.status = _unwrapped_failure
+    web_routes.live_ops.buses = _unwrapped_failure
+    web_routes.live_ops.modules = _unwrapped_failure
+    try:
+        n2_client = TestClient(create_app(), raise_server_exceptions=False)
+        resp = n2_client.get("/live")
+        check_eq("GET /live never 500s on an unwrapped ops exception "
+                 "(was: a bare OSError from status()/buses()/modules() crashed the page)",
+                 resp.status_code, 200, resp.text[:300])
+        check("the status panel renders its own error line instead of raising",
+              "Could not read status" in resp.text)
+        check("the module panel renders its own error line instead of raising",
+              "Could not read the module table" in resp.text)
+
+        resp2 = n2_client.get(f"/v/{VIN}/liveboard")
+        check_eq("GET /v/{vin}/liveboard also survives the same seeded "
+                 "2026-10-13 observations + unwrapped ops failure",
+                 resp2.status_code, 200, resp2.text[:300])
+    finally:
+        web_routes.live_ops.status = _orig_status
+        web_routes.live_ops.buses = _orig_buses
+        web_routes.live_ops.modules = _orig_modules
+
+
+# ===========================================================================
 # report
 # ===========================================================================
 

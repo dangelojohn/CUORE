@@ -19,11 +19,27 @@ both places instead of forking into a second, drifting copy. See
 
 Append-only JSONL under ``cuore.live.config.state_dir()`` (``CUORE_STATE_DIR``,
 same precedence as every other cuore live store), one file,
-``owner_events.jsonl``, two record shapes distinguished by ``op``:
+``owner_events.jsonl``, three record shapes distinguished by ``op``:
 
 * ``event`` -- {op, id, vin, at, recorded_at, by: {role, name}, category,
   kind, fields, fields_meta, note, media_ids, odometer_km, confidence="reported"}
 * ``delete``-- {op, id, at} -- marks an event hidden (soft delete)
+* ``restore`` -- {op, id, at} -- undoes a ``delete`` (the Mobile page's own
+  "Undo" on the post-delete confirmation screen); folded against ``delete``
+  in append order, so a delete/restore/delete... history is read correctly
+  regardless of how many times it happened
+* ``event_edit`` (added 2026-10-13) -- {op, id, at (the EDIT's own
+  timestamp, never the event's own occurrence time unless ``changes.at``
+  says so), by: {role, name}, changes: {fields: {key: {from, to}},
+  note: {from, to}, odometer_km: {from, to}, at: {from, to}}} -- never
+  rewrites the original ``event`` row; :func:`load` folds every
+  ``event_edit`` for an id onto its ``event`` row, in append order, and
+  keeps the folded result's ``audit`` list (one entry per edit: who, when,
+  what changed) for the UI's disclosure. A changed field's ``fields_meta``
+  becomes ``"typed"`` -- it is a hand edit now, even if the field started
+  life as a photo read -- **unless the edit resubmits the exact same value
+  it already had** ("keeps the photo value"), in which case the field's
+  existing provenance tag (photo or typed, or none) is left alone.
 
 ``fields_meta`` (added 2026-10-13, additive -- older rows simply have none)
 is ``{field_key: "photo"|"typed"}``, one entry per field whose provenance
@@ -737,15 +753,48 @@ def delete(id: str) -> dict[str, Any]:
     return entry
 
 
-def load(vin: str = "", *, include_deleted: bool = False) -> list[dict[str, Any]]:
-    """Owner-event rows for ``vin`` (or every vin when empty), oldest ``at``
-    first. Deleted rows are dropped unless ``include_deleted``."""
-    vin = (vin or "").strip()
+def restore(id: str) -> dict[str, Any]:
+    """Undo a soft-delete: append a ``restore`` amendment. The Mobile page's
+    own "Undo" action on the post-delete confirmation screen is the only
+    caller today; kept here (not a second rewrite of the ``delete`` row)
+    for the exact same append-only reason ``delete`` itself documents."""
+    eid = (id or "").strip()
+    if not eid:
+        raise ValueError("id is required")
     with _LOCK:
         rows = _raw_records()
-    deleted_ids: set[str] = set()
+        if not any(r.get("op") == "event" and r.get("id") == eid for r in rows):
+            raise ValueError(f"no owner event with id {eid!r}")
+        entry = {"op": "restore", "id": eid, "at": datetime.now().isoformat(timespec="seconds")}
+        _append(entry)
+    return entry
+
+
+def _clean_one_field(v: Any) -> Any:
+    """Same stringify/cap/blank-drops-to-None rule :func:`add` applies to
+    every ``fields`` value, reused by :func:`edit` so a hand edit is held to
+    the same shape -- ``None`` means "clear this field"."""
+    if v is None:
+        return None
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (int, float)):
+        return v
+    sv = str(v).strip()
+    return sv[:MAX_FIELD_TEXT] if sv else None
+
+
+def _fold(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Reduce raw ``event``/``delete``/``event_edit`` rows to one current
+    view per event id, in append order: every ``event_edit`` for an id is
+    applied on top of its ``event`` row in the order it was appended, and
+    the folded view carries a ``deleted`` flag and an ``audit`` list (one
+    entry per edit: ``at``, ``by``, ``changes``) -- never a rewrite of the
+    original rows on disk."""
+    deleted: dict[str, bool] = {}
     events: dict[str, dict[str, Any]] = {}
     order: list[str] = []
+    edits_by_id: dict[str, list[dict[str, Any]]] = {}
     for rec in rows:
         op = rec.get("op")
         rid = rec.get("id")
@@ -757,25 +806,163 @@ def load(vin: str = "", *, include_deleted: bool = False) -> list[dict[str, Any]
             events[rid] = dict(rec)
             order.append(rid)
         elif op == "delete":
-            deleted_ids.add(rid)
+            # A dict toggled in append order (not a write-once set) so a
+            # delete -> restore -> delete... history folds correctly
+            # regardless of how many times it happened.
+            deleted[rid] = True
+        elif op == "restore":
+            deleted[rid] = False
+        elif op == "event_edit":
+            edits_by_id.setdefault(rid, []).append(rec)
+
+    out: dict[str, dict[str, Any]] = {}
+    for rid in order:
+        view = dict(events[rid])
+        fields = dict(view.get("fields") or {})
+        fields_meta = dict(view.get("fields_meta") or {})
+        note = view.get("note", "")
+        odometer_km = view.get("odometer_km")
+        at = view.get("at")
+        audit: list[dict[str, Any]] = []
+        for e in edits_by_id.get(rid, []):
+            changes = e.get("changes") or {}
+            summary: dict[str, Any] = {}
+            for k, ch in (changes.get("fields") or {}).items():
+                old_v, new_v = ch.get("from"), ch.get("to")
+                if new_v is None:
+                    fields.pop(k, None)
+                    fields_meta.pop(k, None)
+                else:
+                    fields[k] = new_v
+                    if old_v != new_v:
+                        # A value actually changed by hand -> no longer the
+                        # unconfirmed photo read it may have started as.
+                        fields_meta[k] = "typed"
+                    # else: edit resubmitted the same value ("kept the
+                    # photo value") -- existing fields_meta tag, if any,
+                    # is left exactly as it was.
+                summary[k] = {"from": old_v, "to": new_v}
+            out_changes: dict[str, Any] = {}
+            if summary:
+                out_changes["fields"] = summary
+            if "note" in changes:
+                note = changes["note"].get("to", note)
+                out_changes["note"] = changes["note"]
+            if "odometer_km" in changes:
+                odometer_km = changes["odometer_km"].get("to", odometer_km)
+                out_changes["odometer_km"] = changes["odometer_km"]
+            if "at" in changes:
+                at = changes["at"].get("to", at)
+                out_changes["at"] = changes["at"]
+            audit.append({"at": e.get("at"), "by": e.get("by"), "changes": out_changes})
+
+        view["fields"] = fields
+        view["fields_meta"] = fields_meta
+        view["note"] = note
+        view["odometer_km"] = odometer_km
+        view["at"] = at
+        view["audit"] = audit
+        view["edited_at"] = audit[-1]["at"] if audit else None
+        view["deleted"] = deleted.get(rid, False)
+        out[rid] = view
+    return out
+
+
+def edit(id: str, *, fields: Optional[dict[str, Any]] = None, note: Optional[str] = None,
+        odometer_km: Optional[float] = None, at: Optional[str] = None,
+        by_role: str = "owner", by_name: str = "") -> dict[str, Any]:
+    """Append an ``event_edit`` amendment changing one or more of
+    ``fields``/``note``/``odometer_km``/``at`` on an existing, non-deleted
+    event. Never rewrites the original row.
+
+    Raises ``ValueError`` on: no such event, the event is deleted, a key in
+    ``fields`` that isn't one of this event's kind's real taxonomy fields,
+    a bad ``odometer_km``/``at``, a note over :data:`MAX_NOTE`, or an edit
+    that changes nothing at all. The API layer turns "no such event"/
+    "deleted" into a 404 and everything else into a 400 -- see
+    :func:`cuore.services.owner_events_bridge.edit`.
+    """
+    eid = (id or "").strip()
+    if not eid:
+        raise ValueError("id is required")
+    by_role = (by_role or "owner").strip().lower()
+    if by_role not in BY_ROLES:
+        raise ValueError("by_role must be one of: " + ", ".join(BY_ROLES))
+
+    with _LOCK:
+        rows = _raw_records()
+        current = _fold(rows).get(eid)
+        if current is None:
+            raise ValueError(f"no owner event with id {eid!r}")
+        if current.get("deleted"):
+            raise ValueError(f"owner event {eid!r} is deleted")
+
+        kd = kind_def(current["category"], current["kind"])
+
+        changes: dict[str, Any] = {}
+        if fields:
+            field_changes: dict[str, Any] = {}
+            cur_fields = current.get("fields") or {}
+            for k, v in fields.items():
+                k = str(k)
+                if k not in kd["fields"]:
+                    raise ValueError(
+                        f"unknown field {k!r} for kind {current['kind']!r}; use one of: "
+                        + ", ".join(kd["fields"]))
+                field_changes[k] = {"from": cur_fields.get(k), "to": _clean_one_field(v)}
+            if field_changes:
+                changes["fields"] = field_changes
+        if note is not None:
+            note_v = (note or "").strip()
+            if len(note_v) > MAX_NOTE:
+                raise ValueError(f"note must be {MAX_NOTE} characters or fewer")
+            changes["note"] = {"from": current.get("note", ""), "to": note_v}
+        if odometer_km is not None:
+            try:
+                odo_v: Optional[float] = float(odometer_km)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("odometer_km must be numeric") from exc
+            changes["odometer_km"] = {"from": current.get("odometer_km"), "to": odo_v}
+        if at is not None:
+            at_v = _parse_iso_or_date(at)
+            changes["at"] = {"from": current.get("at"), "to": at_v}
+
+        if not changes:
+            raise ValueError("edit must change at least one of: fields, note, odometer_km, at")
+
+        entry = {
+            "op": "event_edit",
+            "id": eid,
+            "at": datetime.now().isoformat(timespec="seconds"),
+            "by": {"role": by_role, "name": (by_name or "").strip()[:200]},
+            "changes": changes,
+        }
+        _append(entry)
+    return entry
+
+
+def load(vin: str = "", *, include_deleted: bool = False) -> list[dict[str, Any]]:
+    """Owner-event rows for ``vin`` (or every vin when empty), oldest ``at``
+    first, with every ``event_edit`` folded in (see :func:`_fold`). Deleted
+    rows are dropped unless ``include_deleted``."""
+    vin = (vin or "").strip()
+    with _LOCK:
+        rows = _raw_records()
+    folded = _fold(rows)
 
     out: list[dict[str, Any]] = []
-    for rid in order:
-        rec = events[rid]
-        is_deleted = rid in deleted_ids
-        if is_deleted and not include_deleted:
+    for view in folded.values():
+        if view["deleted"] and not include_deleted:
             continue
-        if vin and rec.get("vin") != vin:
+        if vin and view.get("vin") != vin:
             continue
-        view = dict(rec)
-        view["deleted"] = is_deleted
-        out.append(view)
+        out.append(dict(view))
     out.sort(key=lambda r: r.get("at") or "")
     return out
 
 
 __all__ = ["TAXONOMY", "BY_ROLES", "MAX_NOTE", "MAX_FIELD_TEXT", "state_path",
-          "kind_def", "add", "delete", "load"]
+          "kind_def", "add", "delete", "restore", "edit", "load"]
 
 
 def recent_values(vin: str, kind: str, field: str, limit: int = 6) -> list[str]:

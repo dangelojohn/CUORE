@@ -60,6 +60,43 @@
     <div class="ff-result" id="ff-result" hidden></div>
   </div>
 
+  {# Cable header -- declared cable, colour bar, which buses it reaches, a
+     Change cable control. Additive: cuore.live.buscapture.cable_header()
+     via /api/buscapture/cable. JS-only (CuoreCableHeader, liveboard.js). #}
+  <div class="bc-cable-header" id="bc-cable-header" hidden>
+    <span class="bc-cable-bar" id="bc-cable-bar"></span>
+    <span class="bc-cable-label" id="bc-cable-label">cable —</span>
+    <span class="bc-cable-buses" id="bc-cable-buses"></span>
+    <button type="button" id="bc-cable-change" class="bc-cable-change">Change cable</button>
+  </div>
+
+  {# Bus capture panel -- Start/Stop a passive listen on whichever bus the
+     declared cable reaches, Save to a tagged CSV recording + from-car
+     observation. Same Start/Stop/Save shape as the Freeze frame panel
+     above. JS-only (CuoreBusCapture, liveboard.js). #}
+  <div class="bc-panel" id="bc-panel" data-vin="{{ vin }}">
+    <div class="bc-panel-head">Bus capture
+      <span class="bc-bus-name" id="bc-bus-name"></span>
+    </div>
+    <div class="bc-row">
+      <label for="bc-bus">Bus</label>
+      <select id="bc-bus">
+        <option value="can_ihs">CAN-IHS (body / comfort) -- blue A5</option>
+        <option value="can_ch">CAN-CH (chassis / ADAS) -- grey A6</option>
+      </select>
+    </div>
+    <div class="bc-controls" role="toolbar" aria-label="Bus capture controls">
+      <button type="button" id="bc-start" class="bc-btn bc-btn-primary">Start</button>
+      <button type="button" id="bc-stop" class="bc-btn bc-btn-stop" hidden>Stop</button>
+      <button type="button" id="bc-save" class="bc-btn" hidden>Save</button>
+    </div>
+    <div class="bc-status" id="bc-status" hidden></div>
+    <div class="bc-notice" id="bc-notice" hidden></div>
+    <div class="bc-result" id="bc-result" hidden></div>
+
+    <div class="bc-presets" id="bc-presets"></div>
+  </div>
+
   <div class="lb-groups" id="lb-groups"></div>
 
 </div>
@@ -69,6 +106,8 @@
   document.addEventListener("DOMContentLoaded", function () {
     if (window.CuoreLiveboard) window.CuoreLiveboard.init();
     if (window.CuoreFreezeFrame) window.CuoreFreezeFrame.init();
+    if (window.CuoreCableHeader) window.CuoreCableHeader.init();
+    if (window.CuoreBusCapture) window.CuoreBusCapture.init();
   });
 </script>
 {% endblock %}

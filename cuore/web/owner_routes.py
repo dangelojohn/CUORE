@@ -54,6 +54,7 @@ needed there, beside the other ``web`` routers::
 from __future__ import annotations
 
 import socket
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 from urllib.parse import quote
@@ -129,6 +130,30 @@ def _page(request: Request, name: str, vin: str, active: str, **ctx: Any) -> HTM
 
 def _field(form: Any, name: str, default: str = "") -> str:
     return str(form.get(name, default) or "").strip()
+
+
+def _fmt_day(at: Optional[str]) -> str:
+    """"Oct 10" from an ISO date/timestamp -- the edit screen's title and
+    the record card's date line. Falls back to the raw string on anything
+    that doesn't parse (never raises -- this is display only)."""
+    s = (at or "").strip()
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        return s
+    return f"{dt.strftime('%b')} {dt.day}"
+
+
+def _fmt_day_time(at: Optional[str]) -> str:
+    """"Oct 10, 16:57" -- same as :func:`_fmt_day` but with the time, for
+    the "Edited <time>" marker (the edit's own timestamp, not the event's
+    occurrence time)."""
+    s = (at or "").strip()
+    try:
+        dt = datetime.fromisoformat(s)
+    except ValueError:
+        return s
+    return f"{_fmt_day(s)}, {dt.strftime('%H:%M')}"
 
 
 def _carry_qs(request: Request) -> str:
@@ -439,6 +464,201 @@ async def reply(request: Request, vin: str, id: str) -> RedirectResponse:
     return RedirectResponse(url=f"/m/{vin}/messages#saved", status_code=303)
 
 
+# --- Edit / Delete (soft, with Undo) -----------------------------------------
+#
+# "Tell CUORE"'s own edit, owner's request 2026-10-13: every history entry
+# can be corrected (a typo'd octane, a wrong litres figure...) or soft-
+# deleted, without ever rewriting the original append-only row -- see
+# cuore.live.owner_events's "event_edit"/"restore" ops. The edit screen
+# reuses the exact same m_fillup.html/m_form.html the Add flow uses, just
+# pre-filled from the saved event instead of "last used"/photo values, via
+# the same `prefill` context key both templates already read.
+#
+# One kind is deliberately NOT editable here: a symptoms-delegated
+# ("incidents/noise_smell_vibration") row lives in mes.symptoms, not this
+# module's own store -- out of scope for this agent's owned files (see
+# owner_events_bridge.add's own docstring on the hand-off). _find_event
+# below only ever looks in cuore.live.owner_events, so such a row 404s/
+# redirects the same as an unknown id; m_history.html hides the Edit action
+# for it via the `editable` flag computed in history() below.
+
+
+def _find_event(vin: str, id: str, *, include_deleted: bool = True) -> Optional[dict[str, Any]]:
+    return next((e for e in store.load(vin, include_deleted=include_deleted) if e.get("id") == id),
+                None)
+
+
+@router.get("/m/{vin}/edit/{id}", response_class=HTMLResponse)
+def edit_form(request: Request, vin: str, id: str) -> HTMLResponse:
+    event = _find_event(vin, id)
+    if event is None or event.get("deleted"):
+        return RedirectResponse(url=f"/m/{vin}/history?error=that+report+no+longer+exists",
+                                status_code=303)
+    category, kind = event.get("category", ""), event.get("kind", "")
+    try:
+        kd = store.kind_def(category, kind)
+    except ValueError:
+        return RedirectResponse(url=f"/m/{vin}/history?error=unknown+category+or+kind",
+                                status_code=303)
+
+    fields_meta = event.get("fields_meta") or {}
+    prefill: dict[str, dict[str, str]] = {
+        key: {"value": "" if v is None else str(v), "source": fields_meta.get(key, "")}
+        for key, v in (event.get("fields") or {}).items()
+    }
+    recents = {key: store.recent_values(vin, kind, key)
+              for key, spec in kd["fields"].items() if spec.get("remember")}
+    odometer_prefill = "" if event.get("odometer_km") is None else str(event.get("odometer_km"))
+    edit_date = _fmt_day(event.get("at"))
+    ctx = dict(
+        is_edit=True, edit_date=edit_date, event_note=event.get("note") or "",
+        form_action=f"/m/{vin}/edit/{id}", cancel_href=f"/m/{vin}/history",
+        delete_action=f"/m/{vin}/history/{id}/delete",
+        prefill=prefill, media_id="", odometer_prefill=odometer_prefill,
+        odometer_from_photo=False,
+    )
+
+    if category == "fuel" and kind == "fill_up":
+        station_recents = store.recent_values(vin, kind, "station")
+        return _page(request, "m_fillup.html", vin, "history", category=category, kind=kind,
+                    kd=kd, station_recents=station_recents, **ctx)
+
+    return _page(request, "m_form.html", vin, "history", category=category, kind=kind, kd=kd,
+                recents=recents, **ctx)
+
+
+@router.post("/m/{vin}/edit/{id}", response_class=HTMLResponse)
+async def edit_submit(request: Request, vin: str, id: str) -> RedirectResponse:
+    form = await request.form()
+    current = _find_event(vin, id)
+    if current is None or current.get("deleted"):
+        return RedirectResponse(url=f"/m/{vin}/history?error=that+report+no+longer+exists",
+                                status_code=303)
+    category, kind = current.get("category", ""), current.get("kind", "")
+    try:
+        kd = store.kind_def(category, kind)
+    except ValueError as exc:
+        return RedirectResponse(url=f"/m/{vin}/history?error={quote(str(exc))}", status_code=303)
+
+    # Only a field that actually differs from the stored value is sent on
+    # -- an untouched field (the form always re-submits every one of them)
+    # must never show up as a spurious no-op audit entry.
+    cur_fields = current.get("fields") or {}
+    field_patch: dict[str, Any] = {}
+    for key, spec in kd["fields"].items():
+        if spec["type"] == "bool":
+            new_v: Any = _field(form, key) in ("on", "true", "1", "yes")
+            if bool(cur_fields.get(key)) != new_v:
+                field_patch[key] = new_v
+        else:
+            raw = _field(form, key)
+            new_v = raw if raw else None
+            old_s = "" if cur_fields.get(key) is None else str(cur_fields.get(key))
+            new_s = "" if new_v is None else str(new_v)
+            if old_s != new_s:
+                field_patch[key] = new_v
+
+    note_raw = _field(form, "note")
+    note_patch = note_raw if note_raw != (current.get("note") or "") else None
+
+    odo_raw = _field(form, "odometer_km")
+    odometer_patch: Optional[float] = None
+    if odo_raw:
+        try:
+            odo_v = float(odo_raw)
+        except ValueError:
+            return RedirectResponse(
+                url=f"/m/{vin}/edit/{id}?error=odometer+must+be+a+number", status_code=303)
+        if current.get("odometer_km") != odo_v:
+            odometer_patch = odo_v
+
+    # "When" (m_form.html's own `at` input; m_fillup.html carries none) --
+    # blank means "didn't touch it," same convention as Add; a value that
+    # merely echoes the stored one (compared on its own length, since the
+    # input may be date-only while the stored value carries a time) is
+    # likewise not a change.
+    at_raw = _field(form, "at")
+    cur_at = current.get("at") or ""
+    at_patch = at_raw if at_raw and at_raw != cur_at[:len(at_raw)] else None
+
+    by_role = _field(form, "by_role") or "owner"
+    by_name = _field(form, "by_name")
+
+    if not (field_patch or note_patch is not None or odometer_patch is not None or at_patch):
+        # Nothing actually changed -- a harmless re-save, not an error.
+        return RedirectResponse(url=f"/m/{vin}/edit/{id}/confirm", status_code=303)
+
+    patch = {"fields": field_patch or None, "note": note_patch, "odometer_km": odometer_patch,
+             "at": at_patch}
+    try:
+        bridge.edit(vin, id, patch, by=by_role, by_name=by_name)
+    except BridgeError as exc:
+        return RedirectResponse(url=f"/m/{vin}/edit/{id}?error={quote(str(exc))}", status_code=303)
+
+    return RedirectResponse(url=f"/m/{vin}/edit/{id}/confirm", status_code=303)
+
+
+@router.get("/m/{vin}/edit/{id}/confirm", response_class=HTMLResponse)
+def edit_confirm(request: Request, vin: str, id: str) -> HTMLResponse:
+    """The same record-card screen Add uses after Save, re-purposed to show
+    what an edit changed: "Edited <time>" plus the full audit trail under a
+    disclosure (owner's own request)."""
+    event = _find_event(vin, id)
+    if event is None:
+        return RedirectResponse(url=f"/m/{vin}/history", status_code=303)
+    try:
+        kd = store.kind_def(event.get("category", ""), event.get("kind", ""))
+    except ValueError:
+        return RedirectResponse(url=f"/m/{vin}/history", status_code=303)
+
+    fields_meta = event.get("fields_meta") or {}
+    fields_disp = []
+    for key, val in (event.get("fields") or {}).items():
+        spec = kd["fields"].get(key, {})
+        label = spec.get("label") or key.replace("_", " ").title()
+        fields_disp.append({
+            "label": label, "value": val, "unit": spec.get("unit", ""),
+            "from_photo": fields_meta.get(key) == "photo",
+        })
+
+    audit = event.get("audit") or []
+    edited_at_fmt = _fmt_day_time(audit[-1]["at"]) if audit else None
+
+    return _page(request, "m_confirm.html", vin, "history", category=event.get("category"),
+                kind=event.get("kind"), kd=kd, event=event, fields_disp=fields_disp,
+                edited=True, audit=audit, edited_at_fmt=edited_at_fmt)
+
+
+@router.post("/m/{vin}/history/{id}/delete", response_class=HTMLResponse)
+async def history_delete(request: Request, vin: str, id: str) -> RedirectResponse:
+    try:
+        bridge.delete(id)
+    except BridgeError as exc:
+        return RedirectResponse(url=f"/m/{vin}/history?error={quote(str(exc))}", status_code=303)
+    return RedirectResponse(url=f"/m/{vin}/deleted/{id}", status_code=303)
+
+
+@router.get("/m/{vin}/deleted/{id}", response_class=HTMLResponse)
+def deleted_confirm(request: Request, vin: str, id: str) -> HTMLResponse:
+    event = _find_event(vin, id)
+    if event is None:
+        return RedirectResponse(url=f"/m/{vin}/history", status_code=303)
+    tax = store.TAXONOMY
+    cat = tax.get(event.get("category", ""), {})
+    kd = cat.get("kinds", {}).get(event.get("kind", ""), {})
+    return _page(request, "m_deleted.html", vin, "history", event=event,
+                kind_label=kd.get("label", event.get("kind")))
+
+
+@router.post("/m/{vin}/history/{id}/restore", response_class=HTMLResponse)
+async def history_restore(request: Request, vin: str, id: str) -> RedirectResponse:
+    try:
+        bridge.restore(id)
+    except BridgeError as exc:
+        return RedirectResponse(url=f"/m/{vin}/history?error={quote(str(exc))}", status_code=303)
+    return RedirectResponse(url=f"/m/{vin}/history", status_code=303)
+
+
 # --- History --------------------------------------------------------------------
 
 
@@ -451,8 +671,11 @@ def history(request: Request, vin: str) -> HTMLResponse:
     for e in events:
         cat = tax.get(e.get("category", ""), {})
         kd = cat.get("kinds", {}).get(e.get("kind", ""), {})
+        edited_at = e.get("edited_at")
         rows.append({**e, "category_label": cat.get("label", e.get("category")),
-                    "kind_label": kd.get("label", e.get("kind"))})
+                    "kind_label": kd.get("label", e.get("kind")),
+                    "edited_at_fmt": _fmt_day_time(edited_at) if edited_at else None,
+                    "editable": not e.get("delegated_to")})
     return _page(request, "m_history.html", vin, "history", events=rows)
 
 

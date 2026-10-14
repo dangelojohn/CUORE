@@ -76,6 +76,99 @@ _FALLBACK_LINES = [
              {"mid": "3C", "mid_name": "EVAP monitor 0.020\" leak", "tid": "90",
               "value": 6096, "min": 0, "max": 6000, "passed": False}]}},
      }}},
+    # module_dtcs / scan_coverage / mode09 -- same shape as this VIN's own
+    # real 2026-10-13T20:24:25 (module_dtcs) / 20:59:23 (scan_coverage,
+    # mode09) observations, trimmed to the records the checks below
+    # actually exercise. Flags only (status int omitted, same as real
+    # module_dtcs reads) -- testFailed true is ACTIVE, confirmedDTC/
+    # pendingDTC true with testFailed false is history, neither is the
+    # status-64-only placeholder that must never be listed.
+    {"at": "2026-10-13T20:24:25", "kind": "module_dtcs", "vin": VIN, "bus": "can_c",
+     "cable": "none", "stream": "serial COM3@115200",
+     "data": {"ecu": "BCM", "bus": "can_c", "mask": "FF", "error": None, "nrc": None,
+              "dtcs": [
+                  {"code": "U1713-2F", "raw": "19022F", "flags": {
+                      "testFailed": True, "testFailedThisOperationCycle": True,
+                      "pendingDTC": True, "confirmedDTC": True,
+                      "testNotCompletedSinceLastClear": False,
+                      "testFailedSinceLastClear": False,
+                      "testNotCompletedThisOperationCycle": False,
+                      "warningIndicatorRequested": False}},
+                  {"code": "U1765-86", "raw": "190286", "flags": {
+                      "testFailed": False, "testFailedThisOperationCycle": False,
+                      "pendingDTC": False, "confirmedDTC": True,
+                      "testNotCompletedSinceLastClear": False,
+                      "testFailedSinceLastClear": False,
+                      "testNotCompletedThisOperationCycle": False,
+                      "warningIndicatorRequested": False}},
+                  {"code": "B1176-97", "raw": "110297", "flags": {
+                      "testFailed": False, "testFailedThisOperationCycle": False,
+                      "pendingDTC": False, "confirmedDTC": True,
+                      "testNotCompletedSinceLastClear": False,
+                      "testFailedSinceLastClear": False,
+                      "testNotCompletedThisOperationCycle": False,
+                      "warningIndicatorRequested": False}},
+                  {"code": "B10AA-4A", "raw": "10024A", "flags": {
+                      "testFailed": False, "testFailedThisOperationCycle": False,
+                      "pendingDTC": False, "confirmedDTC": True,
+                      "testNotCompletedSinceLastClear": False,
+                      "testFailedSinceLastClear": False,
+                      "testNotCompletedThisOperationCycle": False,
+                      "warningIndicatorRequested": False}},
+                  {"code": "U1772-87", "raw": "190287", "flags": {
+                      "testFailed": False, "testFailedThisOperationCycle": False,
+                      "pendingDTC": False, "confirmedDTC": False,
+                      "testNotCompletedSinceLastClear": False,
+                      "testFailedSinceLastClear": False,
+                      "testNotCompletedThisOperationCycle": True,
+                      "warningIndicatorRequested": False}},
+              ]}},
+    {"at": "2026-10-13T20:24:25", "kind": "module_dtcs", "vin": VIN, "bus": "can_c",
+     "cable": "none", "stream": "serial COM3@115200",
+     "data": {"ecu": "RFHUB", "bus": "can_c", "mask": "FF", "error": None, "nrc": None,
+              "dtcs": [
+                  {"code": "B1040-64", "raw": "904064", "flags": {
+                      "testFailed": False, "testFailedThisOperationCycle": False,
+                      "pendingDTC": False, "confirmedDTC": True,
+                      "testNotCompletedSinceLastClear": False,
+                      "testFailedSinceLastClear": False,
+                      "testNotCompletedThisOperationCycle": False,
+                      "warningIndicatorRequested": False}},
+              ]}},
+    {"at": "2026-10-13T20:59:23", "kind": "scan_coverage", "vin": VIN, "bus": "",
+     "cable": "none", "stream": "serial COM3@115200",
+     "data": {"scan_id": "SCAN_2610132059", "vin": VIN, "cable": "none",
+              "buses_attempted": ["can_c", "can_ihs"], "coverage": [
+                  {"bus": "can_ch", "module": "EPS", "category": "not_reachable",
+                   "why": "needs grey A6 cable", "active": 0, "history": 0, "not_run": 0},
+                  {"bus": "can_ch", "module": "ABS", "category": "not_reachable",
+                   "why": "needs grey A6 cable", "active": 0, "history": 0, "not_run": 0},
+              ], "counts": {"active": 0, "history": 0, "not_run": 0}}},
+    {"at": "2026-10-13T20:59:23", "kind": "mode09", "vin": VIN, "bus": "can_c",
+     "cable": "none", "stream": "serial COM3@115200",
+     "data": {"mode09": {}, "gaps": [
+         "calibration IDs (PID 04)", "CVNs (PID 06)", "ECU names (PID 0A)",
+         "in-use performance tracking / IUPR (PID 08)"],
+         "gap_reason": "PID not answered by the ECM"}},
+]
+
+#: Speculative kinds this install's live link has never actually logged
+#: yet (``mes.scan_health``'s own module docstring already says so --
+#: "pid"/"freeze_frame"/"pids_snapshot" are anticipated shapes, not
+#: produced by today's link) -- so there is no real line to copy for the
+#: fuel-trim/charging-voltage checks below. Added unconditionally (real
+#: file present or not), clearly marked as fabricated via its own
+#: ``stream`` text rather than pretending to be a copied line.
+_SYNTHETIC_PID_LINES = [
+    {"at": "2026-10-13T20:03:55", "kind": "pids_snapshot", "vin": VIN, "bus": "can_c",
+     "cable": "none",
+     "stream": "serial COM3@115200 (synthetic fixture line -- no real "
+              "pids_snapshot/pid observation exists for this VIN yet; see "
+              "mes.scan_health's own module docstring)",
+     "data": {"readings": {
+         "short_fuel_trim_b1": {"value": 3.1, "unit": "%"},
+         "battery_voltage": {"value": 14.0, "unit": "V"},
+     }}},
 ]
 
 
@@ -93,13 +186,19 @@ def _build_fixture_file() -> str:
                     except ValueError:
                         continue
                     at = str(obj.get("at", ""))
-                    if (at.startswith("2026-10-13T20:0") and at <= "2026-10-13T20:04:00"
-                            and obj.get("kind") in ("obd_dtcs", "readiness", "mode06")):
+                    kind = obj.get("kind")
+                    if not at.startswith("2026-10-13"):
+                        continue
+                    if (kind in ("obd_dtcs", "readiness", "mode06")
+                            and at <= "2026-10-13T20:04:00"):
+                        lines.append(line)
+                    elif kind in ("module_dtcs", "scan_coverage", "mode09"):
                         lines.append(line)
         except OSError:
             lines = []
     if not lines:
         lines = [json.dumps(o) for o in _FALLBACK_LINES]
+    lines.extend(json.dumps(o) for o in _SYNTHETIC_PID_LINES)
     fd, path = tempfile.mkstemp(prefix="cuore-check-scan-health-obs-", suffix=".jsonl")
     with os.fdopen(fd, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
@@ -168,8 +267,50 @@ body_row = by_label.get("Body / comfort")
 network_row = by_label.get("Network / CAN buses")
 check("body/network rows exist", body_row is not None and network_row is not None)
 if body_row and network_row:
-    check("body row is GAP", body_row["health"] == "GAP", body_row["health"])
-    check("network row is GAP", network_row["health"] == "GAP", network_row["health"])
+    # Module codes (U1713-2F ACTIVE on BCM; U1765-86/B1176-97/B10AA-4A
+    # history-only) now fill these rows instead of leaving them GAP.
+    check("network row is FAULT", network_row["health"] == "FAULT", network_row["health"])
+    net_reading = network_row.get("reading") or ""
+    check("network row cites U1713-2F", "U1713-2F" in net_reading, net_reading)
+    check("network row cites the FTB 2F meaning (signal erratic)",
+          "signal erratic" in net_reading, net_reading)
+
+    check("body row is OK (history only, nothing active)",
+          body_row["health"] == "OK", body_row["health"])
+    body_reading = body_row.get("reading") or ""
+    check("body row lists B1176-97 as history", "B1176-97" in body_reading, body_reading)
+    check("body row says 'history'", "history" in body_reading, body_reading)
+
+fuel_row = by_label.get("Fuel")
+check("Fuel row exists", fuel_row is not None)
+if fuel_row:
+    check("fuel row is OK (3.1% is inside the +/-10% trim band)",
+          fuel_row["health"] == "OK", fuel_row["health"])
+    check("fuel row shows the trim margin text", fuel_row.get("margin") == "+3.1% of ±10%",
+          str(fuel_row.get("margin")))
+
+charging_row = by_label.get("Electrical supply")
+check("Electrical supply row exists", charging_row is not None)
+if charging_row:
+    check("charging row is OK (14.0 V is inside the 13.5-14.7 V band)",
+          charging_row["health"] == "OK", charging_row["health"])
+    check("charging row shows 14.0 V", "14.0" in (charging_row.get("reading") or ""),
+          str(charging_row.get("reading")))
+
+steering_row = by_label.get("Steering")
+check("Steering row exists", steering_row is not None)
+if steering_row:
+    check("steering row is GAP (EPS needs the grey A6 cable)",
+          steering_row["health"] == "GAP", steering_row["health"])
+    steering_reading = steering_row.get("reading") or ""
+    check("steering row carries the scan_coverage wording verbatim",
+          "needs grey A6 cable" in steering_reading and "not reachable" in steering_reading,
+          steering_reading)
+
+check("issues list has at least 2 entries", len(report["issues"]) >= 2, str(report["issues"]))
+if len(report["issues"]) >= 2:
+    check("issues[1] names U1713 (network, after the EVAP active fault)",
+          "U1713" in report["issues"][1], report["issues"][1])
 
 check("issues list is non-empty", bool(report["issues"]))
 if report["issues"]:

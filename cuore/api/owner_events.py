@@ -63,6 +63,25 @@ class ReplyRequest(BaseModel):
     by: str = Field(default="owner")
 
 
+class OwnerEventPatchRequest(BaseModel):
+    """``PATCH`` body for editing one already-saved owner event. Every key
+    is optional -- send only what changed. ``fields`` is validated against
+    the taxonomy of the event's own (fixed, un-editable) ``category``/
+    ``kind`` by :func:`cuore.live.owner_events.edit`; an unknown key there
+    becomes a 400, same ``ValueError`` -> ``BadRequest`` convention as
+    :class:`OwnerEventRequest`."""
+
+    fields: Optional[dict[str, Any]] = Field(
+        default=None, description="{field_key: new_value}, keys only from this event's "
+                                  "own kind -- an unknown key is a 400.")
+    note: Optional[str] = Field(default=None)
+    odometer_km: Optional[float] = Field(default=None)
+    at: Optional[str] = Field(default=None, description="ISO date or timestamp.")
+    by_role: str = Field(default="owner", description="owner | driver | mechanic -- who made "
+                                                       "this edit.")
+    by_name: str = Field(default="")
+
+
 @router.get("/owner/{vin}/taxonomy", summary="Category/kind table for the Tell CUORE form")
 def get_taxonomy(vin: str) -> dict[str, Any]:
     return bridge.taxonomy()
@@ -84,6 +103,13 @@ def post_event(vin: str, body: OwnerEventRequest) -> dict[str, Any]:
 @router.delete("/owner/{vin}/events/{id}", summary="Soft-delete one owner event")
 def delete_event(vin: str, id: str) -> dict[str, Any]:
     return bridge.delete(id)
+
+
+@router.patch("/owner/{vin}/events/{id}", summary="Edit one owner-reported event")
+def patch_event(vin: str, id: str, body: OwnerEventPatchRequest) -> dict[str, Any]:
+    patch = {"fields": body.fields, "note": body.note, "odometer_km": body.odometer_km,
+            "at": body.at}
+    return bridge.edit(vin, id, patch, by=body.by_role, by_name=body.by_name)
 
 
 @router.get("/owner/{vin}/messages", summary="Questions for the owner, CUORE's and the mechanic's")

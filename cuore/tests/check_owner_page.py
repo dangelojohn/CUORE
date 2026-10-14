@@ -339,6 +339,120 @@ check("the photo taken on the snap screen carries through as media_id",
       "media_id=" in snap_post.headers.get("location", ""))
 
 
+# === 15. Edit (2026-10-13): PATCH octane 91 -> 94, history shows it, audit
+# has one entry, fields_meta flips to typed for the edited key only ========
+
+r = client.post(f"/api/owner/{VIN}/events", json={
+    "category": "fuel", "kind": "fill_up", "by_role": "owner",
+    "fields": {"octane": "91", "litres": 40.0, "cap_clicked": True},
+    "fields_meta": {"octane": "photo"},
+})
+check("fill-up to edit POSTs 200", r.status_code == 200, str(r.status_code))
+edit_id = r.json()["id"]
+
+r = client.patch(f"/api/owner/{VIN}/events/{edit_id}", json={
+    "fields": {"octane": "94"}, "by_role": "mechanic",
+})
+check("PATCH edit responds 200", r.status_code == 200, str(r.status_code))
+edited = r.json()
+
+r = client.get(f"/api/owner/{VIN}/events")
+stored = next((e for e in r.json()["events"] if e["id"] == edit_id), None)
+check("stored event now shows octane 94", stored is not None
+      and stored.get("fields", {}).get("octane") == "94", str(stored))
+check("audit has exactly one entry", stored is not None and len(stored.get("audit") or []) == 1,
+      str(stored.get("audit") if stored else None))
+if stored:
+    entry = stored["audit"][0]
+    check("audit entry's by.role is the editor ('mechanic')",
+          entry.get("by", {}).get("role") == "mechanic", str(entry))
+    check("audit entry records only the octane change",
+          list((entry.get("changes", {}).get("fields") or {}).keys()) == ["octane"], str(entry))
+    check("fields_meta.octane flips to 'typed' (value actually changed)",
+          (stored.get("fields_meta") or {}).get("octane") == "typed", str(stored.get("fields_meta")))
+check("edited_at is set on the stored event", stored is not None and stored.get("edited_at"),
+      str(stored.get("edited_at") if stored else None))
+
+r = client.get(f"/m/{VIN}/history")
+check("history page shows the edited octane (94)", "94" in r.text)
+check("history page shows the 'Edited' marker", "Edited" in r.text)
+
+
+# === 16. PATCH with an unknown field key -> 400 =============================
+
+r = client.patch(f"/api/owner/{VIN}/events/{edit_id}", json={"fields": {"not_a_real_field": "x"}})
+check("PATCH with an unknown field key returns 400", r.status_code == 400, str(r.status_code))
+
+
+# === 17. PATCH on a deleted event -> 404 =====================================
+
+r = client.post(f"/api/owner/{VIN}/events", json={
+    "category": "fuel", "kind": "fill_up", "by_role": "owner", "fields": {"litres": 20.0},
+})
+to_delete_id = r.json()["id"]
+r = client.delete(f"/api/owner/{VIN}/events/{to_delete_id}")
+check("DELETE responds 200", r.status_code == 200, str(r.status_code))
+
+r = client.patch(f"/api/owner/{VIN}/events/{to_delete_id}", json={"fields": {"litres": 25.0}})
+check("PATCH on a deleted event returns 404", r.status_code == 404, str(r.status_code))
+
+r = client.patch(f"/api/owner/{VIN}/events/not-a-real-id", json={"fields": {"litres": 25.0}})
+check("PATCH on an unknown id returns 404", r.status_code == 404, str(r.status_code))
+
+
+# === 18. Edit via the HTML form: GET prefills, POST stores, history shows it,
+# and the Delete-at-bottom web action soft-deletes with an Undo screen =======
+
+r = client.post(f"/m/{VIN}/add/fuel/fill_up", data={
+    "station": "Costco", "octane": "91", "litres": "35", "price": "50",
+}, follow_redirects=False)
+html_edit_id = r.headers.get("location", "").rsplit("/", 1)[-1]
+
+edit_form_html = client.get(f"/m/{VIN}/edit/{html_edit_id}").text
+check("edit form responds and is titled 'Edit fill-up'", "Edit fill-up" in edit_form_html)
+check("edit form prefills the saved octane (91)", 'value="91" checked' in edit_form_html)
+check("edit form carries a Delete action", 'm-delete-btn' in edit_form_html
+      and f"/m/{VIN}/history/{html_edit_id}/delete" in edit_form_html)
+check("edit form carries a Cancel action", "Cancel" in edit_form_html)
+
+r = client.post(f"/m/{VIN}/edit/{html_edit_id}", data={
+    "station": "Costco", "octane": "94", "litres": "35", "price": "50",
+    "by_role": "owner",
+}, follow_redirects=False)
+check("HTML edit form POST redirects to the edit confirm screen",
+      r.status_code == 303 and f"/m/{VIN}/edit/{html_edit_id}/confirm" in r.headers.get("location", ""),
+      f"{r.status_code} {r.headers.get('location')}")
+
+confirm2 = client.get(r.headers.get("location", ""))
+check("edit confirm screen shows 'Edited' and the audit disclosure",
+      "Edited" in confirm2.text and "m-audit" in confirm2.text)
+
+html_event = next((e for e in store.load(VIN) if e.get("id") == html_edit_id), None)
+check("HTML-form edit actually stored octane 94",
+      html_event is not None and html_event.get("fields", {}).get("octane") == "94",
+      str(html_event))
+check("HTML-form edit: litres/station/cap_clicked re-submitted unchanged add no spurious changes",
+      html_event is not None and len(html_event.get("audit") or []) == 1
+      and list((html_event["audit"][0].get("changes", {}).get("fields") or {}).keys()) == ["octane"],
+      str(html_event.get("audit") if html_event else None))
+
+r = client.post(f"/m/{VIN}/history/{html_edit_id}/delete", follow_redirects=False)
+check("web Delete action redirects to the deleted/Undo screen",
+      r.status_code == 303 and f"/m/{VIN}/deleted/{html_edit_id}" in r.headers.get("location", ""),
+      f"{r.status_code} {r.headers.get('location')}")
+deleted_html = client.get(r.headers.get("location", "")).text
+check("deleted screen offers Undo", "Undo" in deleted_html)
+
+r = client.get(f"/m/{VIN}/history")
+check("deleted event no longer shows on history", html_edit_id not in r.text or "Costco" not in r.text)
+
+r = client.post(f"/m/{VIN}/history/{html_edit_id}/restore", follow_redirects=False)
+check("Undo (restore) redirects back to history", r.status_code == 303, str(r.status_code))
+restored = next((e for e in store.load(VIN) if e.get("id") == html_edit_id), None)
+check("restore brings the event back (not deleted)", restored is not None
+      and not restored.get("deleted"), str(restored))
+
+
 print(f"{checks} checks, {len(failures)} failures")
 for f in failures:
     print(" -", f)

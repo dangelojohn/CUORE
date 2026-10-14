@@ -277,6 +277,178 @@ try:
     check_eq("GET /api/live/fullscan/last matches the last run",
              resp.json().get("scan_id"), fullscan.last().get("scan_id"))
 
+    # =======================================================================
+    # 5. guided scan: the coloured-cable pause/resume workflow
+    # =======================================================================
+    # HVAC/ETM answer on can_ihs, ABS on can_ch -- a dedicated scan_modules
+    # fake for the two bypass buses; can_c keeps using _fake_scan_modules's
+    # own ECM/TCM/BCM/... reply (segment 1 is otherwise identical to run()).
+    def _fake_scan_modules_guided(bus, vin="", mask=0xFF, confirm=False, detail=True):
+        if bus == "can_ihs":
+            return {"bus": bus, "cable": "blue_a5", "modules": [
+                {"ecu": "HVAC", "bus": "can_ihs", "mask": "FF", "dtcs": [], "codes": []},
+                {"ecu": "ETM", "bus": "can_ihs", "mask": "FF", "dtcs": [], "codes": []},
+            ]}
+        if bus == "can_ch":
+            return {"bus": bus, "cable": "grey_a6", "modules": [
+                {"ecu": "ABS", "bus": "can_ch", "mask": "FF", "dtcs": [], "codes": []},
+            ]}
+        return _fake_scan_modules(bus, vin=vin, mask=mask, confirm=confirm, detail=detail)
+
+    _cable_box = {"cable": "none"}
+    _patch(ops, "scan_modules", _fake_scan_modules_guided)
+    _patch(ops, "set_cable",
+          lambda c: _cable_box.update(cable=c) or {"cable": c, "buses": {}})
+    _patch(ops, "cable_state", lambda: {"cable": _cable_box["cable"], "buses": {}})
+
+    g1 = fullscan.run_guided(VIN)
+    check("guided segment 1 scan_id matches SCAN_<yymmddHHMM>",
+          bool(re.fullmatch(r"SCAN_\d{10}", g1["scan_id"])), g1.get("scan_id"))
+    check_eq("guided segment 1 segment_done is just can_c", g1["segment_done"], ["can_c"])
+    check_eq("guided segment 1 pauses for blue_a5", g1["next"]["cable"], "blue_a5")
+    check_eq("guided segment 1 next bus is can_ihs", g1["next"]["bus"], "can_ihs")
+    check("guided segment 1 next lists the IHS module table",
+          {"HVAC", "ETM", "AMP", "ESEM", "CSWM", "CRSM", "LBSS", "RBSS", "PLGM"} <=
+          {m["code"] for m in g1["next"]["modules"]},
+          str(g1["next"]["modules"]))
+    check("guided segment 1 instruction names the blue A5 cable and CAN-IHS",
+          "BLUE A5" in g1["next"]["instruction"] and "CAN-IHS" in g1["next"]["instruction"],
+          g1["next"]["instruction"])
+
+    guided_scan_id = g1["scan_id"]
+
+    # State survives a fresh import -- persisted to fullscan_guided.json, not
+    # held in a module-level variable.
+    import importlib
+    fullscan_reloaded = importlib.reload(fullscan)
+    resumed = fullscan_reloaded.guided_state()
+    check_eq("guided state survives a fresh import (scan_id)", resumed["scan_id"],
+             guided_scan_id)
+    check_eq("guided state survives a fresh import (next cable)",
+             resumed["next"]["cable"], "blue_a5")
+
+    # A mismatched cable is rejected, not silently accepted.
+    try:
+        fullscan_reloaded.continue_guided(guided_scan_id, "grey_a6")
+        check("continue_guided rejects the wrong cable", False)
+    except LiveError:
+        check("continue_guided rejects the wrong cable", True)
+
+    g2 = fullscan_reloaded.continue_guided(guided_scan_id, "blue_a5")
+    check_eq("guided segment 2 keeps the same scan_id", g2["scan_id"], guided_scan_id)
+    check_eq("guided segment 2 segment_done adds can_ihs", g2["segment_done"],
+             ["can_c", "can_ihs"])
+    check_eq("guided segment 2 pauses for grey_a6", g2["next"]["cable"], "grey_a6")
+    ihs_rows = {r["module"]: r for r in g2["coverage"] if r["bus"] == "can_ihs"}
+    check("guided segment 2 swept HVAC as answered",
+          ihs_rows.get("HVAC", {}).get("category") == "answered", str(ihs_rows.get("HVAC")))
+    check("guided segment 2 swept ETM as answered",
+          ihs_rows.get("ETM", {}).get("category") == "answered", str(ihs_rows.get("ETM")))
+    verify_ihs_steps = [s for s in g2["steps"] if s["step"] == "verify_bus can_ihs"]
+    check("guided segment 2 verified can_ihs", len(verify_ihs_steps) == 1,
+          str(verify_ihs_steps))
+
+    g3 = fullscan_reloaded.skip_guided(guided_scan_id)
+    check_eq("guided skip keeps the same scan_id", g3["scan_id"], guided_scan_id)
+    check_eq("guided skip pauses for the final removal step (cable none)",
+             g3["next"]["cable"], "none")
+    ch_rows = {r["module"]: r for r in g3["coverage"] if r["bus"] == "can_ch"}
+    check("guided skip records ABS as not reachable", ch_rows.get("ABS", {}).get("category")
+          == "not_reachable", str(ch_rows.get("ABS")))
+    check("guided skip's why says skipped, needs grey A6",
+          "skipped, needs grey A6" in (ch_rows.get("ABS", {}).get("why") or ""),
+          str(ch_rows.get("ABS")))
+
+    g4 = fullscan_reloaded.continue_guided(guided_scan_id, "none")
+    check_eq("guided final step keeps the same scan_id", g4["scan_id"], guided_scan_id)
+    check_eq("guided final step declares the cable back to none", g4["cable"], "none")
+    check_eq("guided final step closes the session", g4["status"], "done")
+    check("guided final step has nothing left to do next", g4["next"] is None)
+    verify_final = [s for s in g4["steps"] if s["step"] == "verify_bus can_c"]
+    check("guided final step re-verified can_c", len(verify_final) >= 2, str(verify_final))
+
+    # Every segment recorded under the one scan_id picked at segment 1.
+    guided_obs = [e for e in store.recent_observations(10000, vin=VIN)
+                 if e["data"].get("scan_id") == guided_scan_id]
+    check("every guided scan_coverage observation shares one scan_id",
+          len(guided_obs) >= 1, str(len(guided_obs)))
+
+    # --- abandon clears an open session honestly -----------------------------
+    g5 = fullscan_reloaded.run_guided(VIN)
+    check("a second guided scan can start once the first is done", bool(g5["scan_id"]))
+    other_scan_id = g5["scan_id"]
+    g6 = fullscan_reloaded.abandon_guided(other_scan_id)
+    check_eq("abandon_guided marks the session abandoned", g6["status"], "abandoned")
+    check("abandon_guided leaves nothing pending", g6["next"] is None)
+    try:
+        fullscan_reloaded.run_guided(VIN)
+    except LiveError as e:
+        check("starting a new guided scan after abandon is not blocked", False, str(e))
+    else:
+        check("starting a new guided scan after abandon is not blocked", True)
+    # ...and that fresh session is itself open, so a second start now refuses.
+    try:
+        fullscan_reloaded.run_guided(VIN)
+        check("a second run_guided while one is paused refuses", False)
+    except LiveError:
+        check("a second run_guided while one is paused refuses", True)
+
+    # =======================================================================
+    # 6. wizard page: 200 in every phase
+    # =======================================================================
+    # Fresh guided session for the page walk, independent scan_id from the
+    # one above.
+    client.post(f"/v/{VIN}/scan/abandon",
+               data={"scan_id": fullscan_reloaded.guided_state()["scan_id"]})
+
+    resp = client.get(f"/v/{VIN}/scan")
+    check_eq("wizard idle phase is 200", resp.status_code, 200)
+    check("wizard idle phase shows the Start button", 'data-phase="idle"' in resp.text,
+          resp.text[:200])
+
+    resp = client.post(f"/v/{VIN}/scan/start", follow_redirects=True)
+    check_eq("wizard start redirects to 200", resp.status_code, 200)
+    check("wizard pause_blue phase renders", 'data-phase="pause_blue"' in resp.text
+          and "BLUE A5" in resp.text, resp.text[:200])
+    page_scan_id = re.search(r'name="scan_id" value="([^"]+)"', resp.text).group(1)
+
+    resp = client.post(f"/v/{VIN}/scan/continue",
+                      data={"scan_id": page_scan_id, "cable_fitted": "blue_a5"},
+                      follow_redirects=True)
+    check_eq("wizard continue (blue) redirects to 200", resp.status_code, 200)
+    check("wizard pause_grey phase renders", 'data-phase="pause_grey"' in resp.text
+          and "GREY A6" in resp.text, resp.text[:200])
+
+    resp = client.post(f"/v/{VIN}/scan/skip", data={"scan_id": page_scan_id},
+                      follow_redirects=True)
+    check_eq("wizard skip redirects to 200", resp.status_code, 200)
+    check("wizard remove_cable phase renders", 'data-phase="remove_cable"' in resp.text
+          and "Remove the cable" in resp.text, resp.text[:200])
+
+    resp = client.post(f"/v/{VIN}/scan/continue",
+                      data={"scan_id": page_scan_id, "cable_fitted": "none"},
+                      follow_redirects=True)
+    check_eq("wizard final continue redirects to 200", resp.status_code, 200)
+    check("wizard summary phase renders", 'data-phase="summary"' in resp.text
+          and "complete" in resp.text, resp.text[:200])
+
+    resp = client.get(f"/v/{VIN}/scan")
+    check_eq("wizard page reload keeps the summary phase", resp.status_code, 200)
+    check("wizard reload still shows the summary", 'data-phase="summary"' in resp.text)
+
+    # --- abandon through the HTTP surface, and the MCP-facing routes --------
+    resp = client.post("/api/live/fullscan/guided/start", json={"vin": VIN})
+    check_eq("POST guided/start is 200", resp.status_code, 200)
+    http_scan_id = resp.json()["scan_id"]
+
+    resp = client.get("/api/live/fullscan/guided/state")
+    check_eq("GET guided/state is 200", resp.status_code, 200)
+    check_eq("GET guided/state matches the open session", resp.json()["scan_id"], http_scan_id)
+
+    resp = client.post("/api/live/fullscan/guided/abandon", json={"scan_id": http_scan_id})
+    check_eq("POST guided/abandon is 200", resp.status_code, 200)
+    check_eq("POST guided/abandon closes it", resp.json()["status"], "abandoned")
+
 finally:
     _restore_all()
 

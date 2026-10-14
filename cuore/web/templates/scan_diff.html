@@ -1,0 +1,137 @@
+{# The scan diff page: its own route (/v/{vin}/scans/diff?a=&b=), not a
+   fragment inside scan.html's own "Compare with previous scan" details
+   block -- that inline comparison still exists (scan.html keeps it, and
+   links here too) for the one-click "what changed since the last scan"
+   case; this page is the one a mechanic shares, prints, or opens for any
+   two scans, not just adjacent ones. cuore.live.scanlog.diff() computes
+   every value below; nothing here recomputes a delta. #}
+{% extends "base.html" %}
+{% block title %}{{ a.id }} vs {{ b.id }} — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('scanlog.css') }}">
+
+<div class="scanlog-page scan-diff-page">
+  <p class="small no-print"><a href="/v/{{ vin }}/scans">&larr; All scans</a></p>
+  <h1 class="mono">{{ a.id }} &rarr; {{ b.id }}</h1>
+  <p class="small muted">
+    Scan {{ a.number }} ({{ a.started }}{% if a.partial %}, partial{% endif %})
+    vs Scan {{ b.number }} ({{ b.started }}{% if b.partial %}, partial{% endif %}).
+  </p>
+
+  <div class="jump-chip-row no-print">
+    <button type="button" class="jump-chip" onclick="window.print()">Print / PDF</button>
+    <a class="jump-chip" href="/v/{{ vin }}/scans/{{ a.id }}">Open {{ a.id }}</a>
+    <a class="jump-chip" href="/v/{{ vin }}/scans/{{ b.id }}">Open {{ b.id }}</a>
+  </div>
+
+  {% set c = comparison %}
+
+  {# --- Codes: added / removed / changed status ------------------------ #}
+  <details class="card-details" open>
+    <summary><h2 class="sysd-h">Codes</h2></summary>
+    <div class="card-body">
+      {% set any_codes = c.codes.stored.added or c.codes.stored.removed
+                        or c.codes.pending.added or c.codes.pending.removed
+                        or c.codes.permanent.added or c.codes.permanent.removed
+                        or c.status_changes %}
+      {% if not any_codes %}
+        <p class="muted">No code changes between these two scans.</p>
+      {% else %}
+        <ul class="small">
+          {% for bucket in ("stored", "pending", "permanent") %}
+            {% for code in c.codes[bucket].added %}
+              <li><span class="chip-code sm">{{ code }}</span> added ({{ bucket }})</li>
+            {% endfor %}
+            {% for code in c.codes[bucket].removed %}
+              <li><span class="chip-code sm">{{ code }}</span> removed ({{ bucket }})</li>
+            {% endfor %}
+          {% endfor %}
+          {% for s in c.status_changes %}
+            <li><span class="chip-code sm">{{ s.code }}</span> status changed: {{ s.before }} &rarr; {{ s.after }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </details>
+
+  {# --- Freeze-frame field deltas, with units --------------------------- #}
+  <details class="card-details" {% if c.freeze_frame_deltas %}open{% endif %}>
+    <summary><h2 class="sysd-h">Freeze frame</h2>
+      <span class="count-badge">{{ c.freeze_frame_deltas|length }}</span></summary>
+    <div class="card-body">
+      {% if not c.freeze_frame_deltas %}
+        <p class="muted">No freeze-frame field changed between these two scans.</p>
+      {% else %}
+        <div class="tw">
+        <table>
+          <thead><tr><th>Code</th><th>Field</th><th>Before</th><th>After</th></tr></thead>
+          <tbody>
+          {% for d in c.freeze_frame_deltas %}
+            <tr>
+              <td>{% if d.code %}<span class="chip-code sm">{{ d.code }}</span>{% else %}&mdash;{% endif %}</td>
+              <td>{{ d.name }}</td>
+              <td class="mono">{{ d.before if d.before is not none else "—" }}</td>
+              <td class="mono">{{ d.after if d.after is not none else "—" }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      {% endif %}
+    </div>
+  </details>
+
+  {# --- Mode $06 pass/fail flips ----------------------------------------- #}
+  <details class="card-details" {% if c.mode06_changes %}open{% endif %}>
+    <summary><h2 class="sysd-h">Mode $06</h2>
+      <span class="count-badge">{{ c.mode06_changes|length }}</span></summary>
+    <div class="card-body">
+      {% if not c.mode06_changes %}
+        <p class="muted">No Mode $06 pass/fail change between these two scans.</p>
+      {% else %}
+        <ul class="small">
+          {% for m in c.mode06_changes %}
+          <li class="mono">{{ m.mid }}/{{ m.tid }} ({{ m.ecu }}):
+            {% if m.before is none %}&mdash;{% elif m.before %}PASS{% else %}FAIL{% endif %} &rarr;
+            {% if m.after is none %}&mdash;{% elif m.after %}PASS{% else %}FAIL{% endif %}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </details>
+
+  {# --- Readiness changes -------------------------------------------------- #}
+  <details class="card-details" {% if c.readiness_changes %}open{% endif %}>
+    <summary><h2 class="sysd-h">Readiness</h2>
+      <span class="count-badge">{{ c.readiness_changes|length }}</span></summary>
+    <div class="card-body">
+      {% if not c.readiness_changes %}
+        <p class="muted">No readiness/MIL change between these two scans.</p>
+      {% else %}
+        <ul class="small">
+          {% for r in c.readiness_changes %}
+          <li>{{ r.monitor }}: {{ r.before }} &rarr; {{ r.after }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </details>
+
+  {# --- Coverage changes ---------------------------------------------------- #}
+  <details class="card-details" {% if c.coverage_changes %}open{% endif %}>
+    <summary><h2 class="sysd-h">Coverage</h2></summary>
+    <div class="card-body">
+      {% if not c.coverage_changes %}
+        <p class="muted">No change in bus coverage between these two scans.</p>
+      {% else %}
+        <ul class="small">
+          {% for cov in c.coverage_changes %}
+          <li>{{ cov.before or "no coverage recorded" }} &rarr; {{ cov.after or "no coverage recorded" }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </details>
+</div>
+{% endblock %}

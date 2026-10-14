@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Full scan — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('fullscan.css') }}">
+
+<div class="fscan" data-phase="{{ phase }}"{% if state.scan_id %} data-scan-id="{{ state.scan_id }}"{% endif %}>
+
+<h1>Full scan</h1>
+<p class="lede">
+  Reads everything the adapter can reach. The main diagnostic bus (CAN-C)
+  needs no cable at all; the body/comfort bus (CAN-IHS) needs the blue A5
+  bypass cable; the chassis/safety bus (CAN-CH) needs the grey A6 one. One
+  scan, paused for each cable swap instead of three separate reads -- what
+  has already been captured stays on screen the whole time.
+</p>
+
+{% if phase == "idle" %}
+
+  {% if state.scan_id and state.status == "abandoned" %}
+  <div class="note warn"><span class="lab">Abandoned</span>
+    Scan {{ state.scan_id }} was stopped early
+    ({{ state.segment_done|length }} of 4 segments captured).</div>
+  {% endif %}
+
+  <div class="panel">
+    <form method="post" action="/v/{{ vin }}/scan/start">
+      <button class="btn primary fscan-btn" type="submit">Start full scan</button>
+    </form>
+  </div>
+
+{% elif phase in ("pause_blue", "pause_grey", "remove_cable") %}
+
+  {% set nxt = state.next %}
+  <div class="panel fscan-pause">
+    {% if phase == "remove_cable" %}
+      <div class="fscan-pictogram fscan-pic-none" aria-hidden="true"></div>
+      <h2 class="fscan-cable-name">Remove the cable</h2>
+      <p class="small muted">Back to no cable -- re-verifying CAN-C one more time.</p>
+    {% else %}
+      <div class="fscan-pictogram fscan-pic-{{ nxt.cable }}" aria-hidden="true"></div>
+      <h2 class="fscan-cable-name">{{ "BLUE A5" if nxt.cable == "blue_a5" else "GREY A6" }}
+        <span class="fscan-bus-label">({{ nxt.bus|upper|replace("_", "-") }})</span></h2>
+      <p class="small">Unlocks:
+        {{ nxt.modules|map(attribute="name")|join(", ") }}</p>
+    {% endif %}
+    <p class="fscan-instruction">{{ nxt.instruction }}</p>
+
+    <form method="post" action="/v/{{ vin }}/scan/continue" class="fscan-actions">
+      <input type="hidden" name="scan_id" value="{{ state.scan_id }}">
+      <input type="hidden" name="cable_fitted" value="{{ nxt.cable }}">
+      <button class="btn primary fscan-btn" type="submit">Continue</button>
+    </form>
+
+    {% if phase != "remove_cable" %}
+    <form method="post" action="/v/{{ vin }}/scan/skip" class="fscan-actions">
+      <input type="hidden" name="scan_id" value="{{ state.scan_id }}">
+      <button class="btn fscan-btn" type="submit">Skip this bus</button>
+    </form>
+    {% endif %}
+
+    <form method="post" action="/v/{{ vin }}/scan/abandon" class="fscan-actions fscan-abandon">
+      <input type="hidden" name="scan_id" value="{{ state.scan_id }}">
+      <button class="btn small" type="submit">Abandon this scan</button>
+    </form>
+  </div>
+
+{% elif phase == "summary" %}
+
+  <div class="panel">
+    <h2 style="margin-top:0">Scan {{ state.scan_id }} complete</h2>
+    <p>
+      {% for seg in state.segments %}
+        <span class="chip {{ 'ok' if seg.status == 'done' else ('plain' if seg.status == 'skipped' else 'returned') }}">
+          {{ seg.bus }}{% if seg.status == "skipped" %} skipped{% endif %}</span>
+      {% endfor %}
+    </p>
+    <p class="fscan-counts">
+      <strong>{{ state.counts.active }}</strong> active ·
+      <strong>{{ state.counts.history }}</strong> history ·
+      <strong>{{ state.counts.not_run }}</strong> not run since clear
+    </p>
+    <p class="fscan-actions">
+      <a class="btn fscan-btn" href="/v/{{ vin }}/scans/{{ state.scan_id }}">Open in Scans</a>
+      <a class="btn fscan-btn" href="/v/{{ vin }}/scans/{{ state.scan_id }}/health">Health report</a>
+    </p>
+    <form method="post" action="/v/{{ vin }}/scan/start" class="fscan-actions">
+      <button class="btn fscan-btn" type="submit">Start another full scan</button>
+    </form>
+  </div>
+
+{% endif %}
+
+{% if phase != "idle" and state.coverage %}
+  <details class="fscan-sofar"{% if phase == "summary" %} open{% endif %}>
+    <summary>Captured so far
+      <span class="chip ok">{{ state.coverage|selectattr("category", "equalto", "answered")|list|length }} answered</span>
+      <span class="chip returned">{{ state.counts.active }} active</span>
+      <span class="chip plain">{{ state.coverage|selectattr("category", "equalto", "not_reachable")|list|length }} not reachable</span>
+    </summary>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Bus</th><th>Module</th><th>Status</th><th>Active</th><th>History</th><th>Why</th></tr></thead>
+      <tbody>
+      {% for r in state.coverage %}
+        <tr>
+          <td class="mono small">{{ r.bus }}</td>
+          <td class="mono">{{ r.module }}</td>
+          <td><span class="chip {{ {'answered': 'ok', 'silent': 'returned', 'not_reachable': 'plain'}.get(r.category, 'plain') }}">{{ r.category|replace("_", " ") }}</span></td>
+          <td class="mono small">{{ r.active }}</td>
+          <td class="mono small">{{ r.history }}</td>
+          <td class="small muted">{{ r.why or "" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+{% endif %}
+
+</div>
+<script src="{{ static_url('fullscan.js') }}"></script>
+{% endblock %}

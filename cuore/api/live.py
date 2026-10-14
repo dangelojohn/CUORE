@@ -291,6 +291,43 @@ def live_fullscan_last() -> dict[str, Any]:
     return fullscan.last()
 
 
+# --- guided full scan: paused at each coloured-cable swap --------------------
+
+@router.post("/live/fullscan/guided/start",
+            summary="Start a guided scan: CAN-C in full, then pause for the blue A5 cable")
+def live_fullscan_guided_start(vin: str = Body(default="", embed=True)) -> dict[str, Any]:
+    from ..live import fullscan
+    return fullscan.run_guided(vin)
+
+
+@router.get("/live/fullscan/guided/state",
+           summary="The open (or most recently closed) guided scan")
+def live_fullscan_guided_state() -> dict[str, Any]:
+    from ..live import fullscan
+    return fullscan.guided_state()
+
+
+@router.post("/live/fullscan/guided/continue",
+            summary="Declare the cable just fitted, sweep its bus, and pause for the next step")
+def live_fullscan_guided_continue(scan_id: str = Body(..., embed=True),
+                                  cable_fitted: str = Body(..., embed=True)) -> dict[str, Any]:
+    from ..live import fullscan
+    return fullscan.continue_guided(scan_id, cable_fitted)
+
+
+@router.post("/live/fullscan/guided/skip",
+            summary="Skip the guided scan's currently paused-on cable segment")
+def live_fullscan_guided_skip(scan_id: str = Body(..., embed=True)) -> dict[str, Any]:
+    from ..live import fullscan
+    return fullscan.skip_guided(scan_id)
+
+
+@router.post("/live/fullscan/guided/abandon", summary="Close an open guided scan honestly")
+def live_fullscan_guided_abandon(scan_id: str = Body(..., embed=True)) -> dict[str, Any]:
+    from ..live import fullscan
+    return fullscan.abandon_guided(scan_id)
+
+
 # --- live-data engine: channels, poll sessions, alarms, recording ---------------
 
 @router.get("/live/channels", summary="Channel registry (PID/DID/computed/battery) and presets")

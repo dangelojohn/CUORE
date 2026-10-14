@@ -199,3 +199,98 @@ table.ff-table tr:last-child td { border-bottom: none; }
   .lb-chan-name { font-size: 14px; }
   .lb-btn { padding: 0 14px; font-size: 15px; }
 }
+
+/* ---------- Cable header: declared cable + colour bar + reachable buses,
+   plus bus capture / learn-a-signal panels. Additive section -- same
+   tokens as the Freeze frame panel (.ff-*) above, new ".bc-" prefix so
+   nothing here collides with it. ---------- */
+.bc-cable-header {
+  margin-top: 12px; padding: 10px 12px; border-radius: var(--radius);
+  background: var(--surface-2); border: 1px solid var(--rule);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px;
+}
+.bc-cable-bar { width: 6px; height: 28px; border-radius: 3px; flex: none; background: var(--ink-3); }
+.bc-cable-bar.cable-blue_a5 { background: #2d7ff9; }
+.bc-cable-bar.cable-grey_a6 { background: #8a8f98; }
+.bc-cable-bar.cable-none { background: var(--rule); }
+.bc-cable-label { font-weight: 650; color: var(--ink); }
+.bc-cable-buses { display: flex; gap: 6px; flex-wrap: wrap; }
+.bc-bus-chip {
+  padding: 2px 8px; border-radius: var(--radius); background: var(--surface);
+  border: 1px solid var(--rule); font-size: 12px; color: var(--ink-3);
+}
+.bc-bus-chip.is-reachable { color: var(--ok); border-color: var(--ok); }
+.bc-cable-change {
+  margin-left: auto; min-height: 32px; padding: 0 12px; font-size: 13px; font-weight: 600;
+  font-family: inherit; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--raised); color: var(--ink); cursor: pointer;
+}
+
+.bc-panel {
+  margin-top: 16px; padding: 12px; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.bc-panel-head {
+  font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--ink-2); margin-bottom: 10px; display: flex; align-items: baseline; gap: 10px;
+}
+.bc-panel-head .bc-bus-name { text-transform: none; font-weight: 500; color: var(--ink-3); font-size: 13px; }
+.bc-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.bc-row label { font-size: 13px; color: var(--ink-2); flex: none; }
+.bc-row select, .bc-row input[type="text"] {
+  font-family: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--rule);
+  border-radius: var(--radius); background: var(--surface); color: var(--ink); flex: 1 1 160px;
+}
+.bc-chip-btn {
+  padding: 4px 10px; font-size: 12px; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--surface); color: var(--ink-2); cursor: pointer;
+}
+.bc-chip-btn:hover { border-color: var(--ink-3); color: var(--ink); }
+.bc-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.bc-btn {
+  min-height: 44px; min-width: 44px; padding: 0 20px; font-size: 15px; font-weight: 650;
+  font-family: inherit; border: 1px solid var(--rule); border-radius: var(--radius);
+  background: var(--raised); color: var(--ink); cursor: pointer; flex: 1 1 auto;
+}
+.bc-btn:hover { border-color: var(--ink-3); }
+.bc-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.bc-btn-stop { background: var(--sev-returned); border-color: var(--sev-returned); color: #fff; }
+.bc-btn[disabled] { opacity: .45; cursor: not-allowed; }
+
+.bc-status {
+  margin-top: 10px; padding: 8px 10px; border-radius: var(--radius); font-family: var(--mono);
+  background: var(--surface); border: 1px solid var(--rule-soft); color: var(--ink-2); font-size: 13px;
+}
+.bc-notice {
+  margin-top: 10px; padding: 8px 10px; border-radius: var(--radius);
+  background: var(--surface); border: 1px solid var(--rule-soft); color: var(--ink-2); font-size: 13px;
+}
+.bc-notice-error { border-color: var(--sev-returned); color: var(--sev-returned); }
+
+table.bc-candidates { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+table.bc-candidates th, table.bc-candidates td {
+  padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--rule-soft);
+}
+table.bc-candidates th { color: var(--ink-3); font-weight: 650; font-size: 12px; text-transform: uppercase; }
+table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
+
+.bc-result {
+  margin-top: 10px; padding: 10px 12px; border: 1px solid var(--ok); border-radius: var(--radius);
+  background: var(--surface); color: var(--ok); font-size: 14px; font-weight: 650;
+}
+
+.bc-preset { margin-top: 12px; padding: 10px; border: 1px solid var(--rule-soft); border-radius: var(--radius); }
+.bc-preset-head { display: flex; justify-content: space-between; gap: 8px; font-weight: 650; color: var(--ink); }
+.bc-preset-items { margin-top: 6px; font-size: 13px; }
+.bc-preset-item { display: flex; gap: 8px; padding: 3px 0; color: var(--ink-2); }
+.bc-preset-item .bc-item-status { flex: none; font-size: 12px; text-transform: uppercase; font-weight: 650; }
+.bc-preset-item.status-known .bc-item-status { color: var(--ok); }
+.bc-preset-item.status-learned .bc-item-status { color: var(--sev-chronic); }
+.bc-preset-item.status-unknown_did .bc-item-status { color: var(--ink-3); }
+
+.lrn-intro { margin-top: 10px; color: var(--ink-2); font-size: 14px; max-width: 640px; }
+
+@media (max-width: 480px) {
+  .bc-cable-change { margin-left: 0; width: 100%; }
+  .bc-row select, .bc-row input[type="text"] { flex: 1 1 100%; }
+}

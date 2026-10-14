@@ -36,6 +36,7 @@ is no longer in the live schema.
 | GET | /api/owner/{vin}/events | This VIN's owner-reported events |
 | POST | /api/owner/{vin}/events | Record one owner-reported event |
 | DELETE | /api/owner/{vin}/events/{id} | Soft-delete one owner event |
+| PATCH | /api/owner/{vin}/events/{id} | Edit one owner-reported event |
 | GET | /api/owner/{vin}/messages | Questions for the owner, CUORE's and the mechanic's |
 | POST | /api/owner/{vin}/messages/{id}/reply | Owner's (or mechanic's) reply to one message |
 | GET | /api/owner/{vin}/correlations | Owner events near each code's first/returned occurrence |
@@ -249,6 +250,10 @@ gap a native app needs to fill.
 {"vin": "ZASFAKPN5J7B88115", "events": []}
 ```
 
+Each event now also carries `audit` (`[]` if never edited -- one entry per
+edit applied via `PATCH .../events/{id}`, see below) and `edited_at` (the
+most recent edit's own timestamp, or `null`).
+
 ### `POST /api/owner/{vin}/events`
 
 **Params:** `vin` (path). **Body** (`OwnerEventRequest`):
@@ -314,6 +319,67 @@ returned `id`s here).
 Soft-delete (sets a `delete` marker; `include_deleted=true` on the list call
 still returns it). **Params:** `vin`, `id` (path). **Response 200:** the
 same shape as `GET` with `op: "delete"`.
+
+### `PATCH /api/owner/{vin}/events/{id}` (added 2026-10-13)
+
+Edit an already-saved owner event -- a typo'd octane, a corrected litres
+figure, a note added after the fact. The original append-only row is never
+rewritten: this appends an `event_edit` amendment
+(`cuore.live.owner_events`'s own op, folded on every read, same posture as
+soft-delete) and the folded event keeps a full audit trail (`audit`: one
+entry per edit -- `at`, `by`, `changes` -- plus a top-level `edited_at`) that
+`GET /api/owner/{vin}/events` now returns on every event.
+
+**Params:** `vin`, `id` (path). **Body** (all optional -- send only what
+changed):
+
+```json
+{
+  "fields": {"octane": "94"},
+  "note": null,
+  "odometer_km": null,
+  "at": null,
+  "by_role": "owner",
+  "by_name": ""
+}
+```
+
+`fields` keys are validated against the *event's own, fixed* kind's
+taxonomy (the category/kind itself is not editable) -- an unknown key is a
+`400`. `by_role`/`by_name` identify who made *this edit* (the audit
+entry's `by`), separate from the original report's own `by`.
+
+A changed field's `fields_meta` entry becomes `"typed"` -- it is a hand
+edit now -- **unless the edit resubmits the exact same value the field
+already had** ("keeps the photo value"), in which case its existing
+provenance tag (`"photo"` or `"typed"`, or none) is left untouched.
+
+**Response 200:** the updated, folded event (same shape as `POST`'s
+response, plus `audit` and `edited_at`).
+
+**Errors:**
+
+* `404` -- unknown `id`, or an `id` that resolves to an already-deleted
+  event (checked against this `vin`'s own events, so an id belonging to a
+  *different* vin also 404s rather than leaking cross-vehicle existence):
+
+  ```json
+  {"error": "NotFound", "detail": "no owner event with id '...'", "status": 404}
+  ```
+
+* `400` -- a `fields` key that isn't one of this event's kind's real
+  fields, a non-numeric `odometer_km`, a bad `at`, a note over
+  `MAX_NOTE`, or a patch that changes nothing at all:
+
+  ```json
+  {"error": "BadRequest", "detail": "unknown field 'bogus' for kind 'fill_up'; use one of: station, octane, ...", "status": 400}
+  ```
+
+One kind is **not** editable through this route: `incidents/
+noise_smell_vibration` is delegated to `mes.symptoms`, not stored in
+`cuore.live.owner_events` at all (see [Owner events](#owner-events-tell-cuore)
+above) -- its id always `404`s here. The web page itself (`/m/{vin}/history`)
+hides its own Edit action for that one kind for the same reason.
 
 ### `GET /api/owner/{vin}/messages`
 

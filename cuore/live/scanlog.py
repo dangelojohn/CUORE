@@ -30,6 +30,23 @@ today's live link (``cuore.live.ops``) does not yet call ``_observe`` for
 exists in the real corpus yet. When wiring that up, the shapes already
 produced by those two functions (``{"pid", "name", "by_ecu": {ecu:
 {...}}}``) are exactly what is read here -- nothing to change on this side.
+
+Owner's guidance (2026-10-13): "we do not need many scans, just 10" -- one
+complete guided scan per visit, about ten over the whole diagnosis, not
+fifty single reads. Two things follow from that, both derived here, never
+invented elsewhere:
+
+* ``coverage`` -- when a cluster carries a ``scan_coverage`` observation
+  (written by ``cuore.live.fullscan.run``/``run_guided``, itself part of
+  the same cluster because it is a from-car observation too), this is the
+  whole-bus-sweep summary: which of CAN-C/IHS/CH were attempted, how many
+  modules actually answered on each, and the raw counts. ``None`` when no
+  such observation is in the cluster -- a manual single-purpose read
+  (Codes/Live/Tests) never pretends to a coverage picture it does not have.
+* ``partial`` -- ``True`` exactly when ``coverage`` is ``None``: this scan
+  came from manual reads only (e.g. a freeze-frame save), not a guided/full
+  sweep. Still a scan -- still counted by :func:`scan_plan` -- just labelled
+  "partial" everywhere it is listed.
 """
 
 from __future__ import annotations
@@ -50,6 +67,17 @@ WINDOW = timedelta(minutes=15)
 ID_FMT = "SCAN_%y%m%d%H%M"
 
 _DTC_KINDS = ("stored", "pending", "permanent")
+
+#: The owner's own number ("just 10") -- the plan chip's denominator, never
+#: a hard cap: nothing here refuses an 11th scan, it only keeps counting.
+PLAN_TOTAL = 10
+
+#: Short label for the coverage line, and the bypass cable a bus not yet
+#: attempted still needs -- same vocabulary ``cuore.live.fullscan``/
+#: ``cuore.live.buses`` already use (grey A6 -> CAN-CH, blue A5 -> CAN-IHS).
+_BUS_ORDER = ("can_c", "can_ihs", "can_ch")
+_BUS_SHORT = {"can_c": "CAN-C", "can_ihs": "IHS", "can_ch": "CH"}
+_BUS_CABLE_NOTE = {"can_ihs": "blue A5", "can_ch": "grey A6"}
 
 #: PID parameter name -> sentence-case display name, same convention
 #: ``dossier_bridge._KEY_FRAME_PARAMS`` already uses ("Fuel level", not
@@ -269,6 +297,43 @@ def _build_source(cluster: list[dict[str, Any]]) -> dict[str, Any]:
     return {"stream": stream, "identity": identity}
 
 
+def _build_coverage(cluster: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """The whole-bus-sweep summary from this cluster's own ``scan_coverage``
+    observation (latest one wins, same "latest in cluster" rule every other
+    ``_build_*`` helper here uses), or ``None`` when the cluster has none --
+    see the module docstring for what that means (:data:`PLAN_TOTAL`,
+    ``partial``)."""
+    latest = None
+    for o in cluster:
+        if o.get("kind") == "scan_coverage":
+            latest = o.get("data") or {}
+    if latest is None:
+        return None
+
+    attempted = set(latest.get("buses_attempted") or [])
+    modules_by_bus: dict[str, set[str]] = {}
+    for row in latest.get("coverage") or []:
+        if row.get("category") in ("answered", "silent"):
+            modules_by_bus.setdefault(row.get("bus"), set()).add(row.get("module"))
+
+    parts: list[str] = []
+    for bus in _BUS_ORDER:
+        label = _BUS_SHORT[bus]
+        if bus in attempted:
+            n = len(modules_by_bus.get(bus, set()))
+            parts.append(f"{label} {n} module{'' if n == 1 else 's'}")
+        else:
+            note = _BUS_CABLE_NOTE.get(bus)
+            parts.append(f"{label} not scanned" + (f" ({note})" if note else ""))
+
+    return {
+        "line": " · ".join(parts),
+        "buses_attempted": sorted(attempted),
+        "counts": latest.get("counts") or {},
+        "guided": bool(latest.get("guided")),
+    }
+
+
 def _scan_from_cluster(cluster: list[dict[str, Any]]) -> dict[str, Any]:
     vin = next((o.get("vin") for o in cluster if o.get("vin")), "")
     started_dt = _parse_at(cluster[0].get("at"))
@@ -285,6 +350,7 @@ def _scan_from_cluster(cluster: list[dict[str, Any]]) -> dict[str, Any]:
     mode06 = _build_mode06(cluster)
     freeze_frames = _build_freeze_frames(cluster, by_ecu_codes)
     pids = _build_pids(cluster)
+    coverage = _build_coverage(cluster)
 
     return {
         "id": scan_id,
@@ -299,6 +365,11 @@ def _scan_from_cluster(cluster: list[dict[str, Any]]) -> dict[str, Any]:
         "freeze_frames": freeze_frames,
         "mode06": mode06,
         "pids": pids,
+        "coverage": coverage,
+        #: See the module docstring: a scan with no ``scan_coverage``
+        #: observation came from manual reads only -- still a scan, still
+        #: counted by :func:`scan_plan`, just labelled "partial".
+        "partial": coverage is None,
         "counts": {
             "observations": len(cluster),
             "stored": len(dtcs["stored"]), "pending": len(dtcs["pending"]),
@@ -335,6 +406,14 @@ def get_scan(vin: str, scan_id: str) -> Optional[dict[str, Any]]:
     return next((s for s in list_scans(vin) if s["id"] == scan_id), None)
 
 
+def scan_plan(vin: str) -> dict[str, Any]:
+    """``{"count", "total"}`` for the "Scan n of 10" chip (Bench and the
+    scans list). Every scan on file for this VIN counts toward ``count``,
+    guided/full sweep or manual partial alike -- see the module docstring.
+    ``total`` is :data:`PLAN_TOTAL`, a target, never a cap."""
+    return {"count": len(list_scans(vin)), "total": PLAN_TOTAL}
+
+
 # --- diff ---------------------------------------------------------------------
 
 
@@ -354,6 +433,25 @@ def diff(vin: str, id_a: str, id_b: str) -> Optional[dict[str, Any]]:
     for bucket in _DTC_KINDS:
         sa, sb = set(a["dtcs"][bucket]), set(b["dtcs"][bucket])
         codes[bucket] = {"added": sorted(sb - sa), "removed": sorted(sa - sb)}
+
+    # Same code, different bucket (e.g. pending -> stored) -- a status
+    # change, not an add/remove. A code is not expected to sit in two
+    # buckets of the same scan at once; if it somehow does, the last
+    # bucket in _DTC_KINDS order (permanent) wins.
+    bucket_a = {c: bucket for bucket in _DTC_KINDS for c in a["dtcs"][bucket]}
+    bucket_b = {c: bucket for bucket in _DTC_KINDS for c in b["dtcs"][bucket]}
+    status_changes = [
+        {"code": c, "before": bucket_a[c], "after": bucket_b[c]}
+        for c in sorted(set(bucket_a) & set(bucket_b))
+        if bucket_a[c] != bucket_b[c]
+    ]
+
+    cov_a, cov_b = a.get("coverage"), b.get("coverage")
+    line_a = (cov_a or {}).get("line") or ("partial scan -- no bus-sweep coverage" if a.get("partial") else None)
+    line_b = (cov_b or {}).get("line") or ("partial scan -- no bus-sweep coverage" if b.get("partial") else None)
+    coverage_changes: list[dict[str, Any]] = []
+    if line_a != line_b:
+        coverage_changes.append({"before": line_a, "after": line_b})
 
     ff_a = {(f["code"], f["ecu"]): {p["pid"]: p for p in f["pids"]} for f in a["freeze_frames"]}
     ff_b = {(f["code"], f["ecu"]): {p["pid"]: p for p in f["pids"]} for f in b["freeze_frames"]}
@@ -391,9 +489,10 @@ def diff(vin: str, id_a: str, id_b: str) -> Optional[dict[str, Any]]:
         readiness_changes.append({"monitor": "MIL", "before": a.get("mil"),
                                   "after": b.get("mil")})
 
-    return {"a": a["id"], "b": b["id"], "codes": codes,
+    return {"a": a["id"], "b": b["id"], "codes": codes, "status_changes": status_changes,
            "freeze_frame_deltas": freeze_frame_deltas,
-           "mode06_changes": mode06_changes, "readiness_changes": readiness_changes}
+           "mode06_changes": mode06_changes, "readiness_changes": readiness_changes,
+           "coverage_changes": coverage_changes}
 
 
 # --- MES-format export ---------------------------------------------------------
@@ -471,5 +570,5 @@ def write_mes_export(vin: str, scan_id: str) -> Optional[Path]:
     return path
 
 
-__all__ = ["WINDOW", "list_scans", "get_scan", "diff", "export_mes_text",
-           "export_path", "write_mes_export"]
+__all__ = ["WINDOW", "PLAN_TOTAL", "list_scans", "get_scan", "scan_plan", "diff",
+           "export_mes_text", "export_path", "write_mes_export"]

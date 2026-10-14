@@ -1,14 +1,21 @@
 {% extends "m_base.html" %}
-{% block title %}Fill-up -- Tell CUORE{% endblock %}
+{% block title %}{{ 'Edit fill-up' if is_edit else 'Fill-up' }} -- Tell CUORE{% endblock %}
 {% block content %}
+{% if is_edit %}
+<p class="m-back"><a href="{{ cancel_href }}">&larr; History</a></p>
+<h1 class="m-h1">Edit fill-up &middot; {{ edit_date }}</h1>
+{% else %}
 <p class="m-back"><a href="/m/{{ vin }}">&larr; Home</a></p>
 <h1 class="m-h1">Fill-up</h1>
+{% endif %}
 
 {# The flagship 3-tap form: station/octane preselected from last time
    (recents/prefill, computed in owner_routes.add_form), litres/price
    prefilled with last time's numbers too -- Save is the only red button,
-   and nothing below "More details" is required to finish. #}
-<form method="post" action="/m/{{ vin }}/add/{{ category }}/{{ kind }}"
+   and nothing below "More details" is required to finish. Reused as-is
+   for the edit screen (owner_routes.edit_form), with `prefill` carrying
+   the saved event's own values instead of "last used". #}
+<form method="post" action="{{ form_action if is_edit else '/m/' + vin + '/add/' + category + '/' + kind }}"
      class="m-form m-fillup-form" enctype="multipart/form-data">
   {% include "_camera_tile.html" %}
   {% if media_id %}<input type="hidden" name="media_id" value="{{ media_id }}">{% endif %}
@@ -73,7 +80,12 @@
   </div>
 
   {% set cc_pf = prefill.get('cap_clicked') %}
+  {% if is_edit %}
+  {# Edit reflects exactly what was saved -- no "assume clicked" default. #}
+  {% set cc_checked = cc_pf and cc_pf.value in ('on', 'true', '1', 'yes', 'True') %}
+  {% else %}
   {% set cc_checked = (cc_pf and cc_pf.source == 'photo' and cc_pf.value in ('on', 'true', '1', 'yes')) or not (cc_pf and cc_pf.source == 'photo') %}
+  {% endif %}
   <label class="m-toggle m-toggle-big">
     <input type="checkbox" name="cap_clicked" value="on"{% if cc_checked %} checked{% endif %}>
     <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
@@ -89,28 +101,35 @@
           name="odometer_km" value="{{ odometer_prefill }}">
   </div>
 
-  <details class="m-more">
+  {% set ethanol_pf = prefill.get('ethanol') %}
+  {% set additive_pf = prefill.get('additive_used') %}
+  {% set overfilled_pf = prefill.get('overfilled') %}
+  {% set engine_running_pf = prefill.get('filled_engine_running') %}
+  <details class="m-more"{% if is_edit %} open{% endif %}>
     <summary>More details</summary>
     <div class="m-field">
       <label class="m-label">Ethanol</label>
       <div class="m-chips" role="group">
         {% for choice in kd.fields.ethanol.choices %}
-        <label class="m-chip"><input type="radio" name="ethanol" value="{{ choice }}"><span>{{ choice }}</span></label>
+        <label class="m-chip">
+          <input type="radio" name="ethanol" value="{{ choice }}"{% if ethanol_pf and ethanol_pf.value == choice %} checked{% endif %}>
+          <span>{{ choice }}</span>
+        </label>
         {% endfor %}
       </div>
     </div>
     <label class="m-toggle">
-      <input type="checkbox" name="additive_used" value="on">
+      <input type="checkbox" name="additive_used" value="on"{% if additive_pf and additive_pf.value in ('on', 'true', '1', 'yes', 'True') %} checked{% endif %}>
       <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
       <span class="m-toggle-label">Fuel additive used</span>
     </label>
     <label class="m-toggle">
-      <input type="checkbox" name="overfilled" value="on">
+      <input type="checkbox" name="overfilled" value="on"{% if overfilled_pf and overfilled_pf.value in ('on', 'true', '1', 'yes', 'True') %} checked{% endif %}>
       <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
       <span class="m-toggle-label">Pump stopped early / overfilled</span>
     </label>
     <label class="m-toggle">
-      <input type="checkbox" name="filled_engine_running" value="on">
+      <input type="checkbox" name="filled_engine_running" value="on"{% if engine_running_pf and engine_running_pf.value in ('on', 'true', '1', 'yes', 'True') %} checked{% endif %}>
       <span class="m-toggle-track"><span class="m-toggle-thumb"></span></span>
       <span class="m-toggle-label">Filled with engine running</span>
     </label>
@@ -124,10 +143,20 @@
     </div>
     <div class="m-field">
       <label class="m-label">Anything else</label>
-      <textarea class="m-input m-textarea" name="note" rows="3"></textarea>
+      <textarea class="m-input m-textarea" name="note" rows="3">{{ event_note|default('') }}</textarea>
     </div>
   </details>
 
   <button type="submit" class="m-submit">Save</button>
+  {% if is_edit %}
+  <div class="m-edit-actions">
+    <a class="m-ghost-btn" href="{{ cancel_href }}">Cancel</a>
+  </div>
+  {% endif %}
 </form>
+{% if is_edit %}
+<form method="post" action="{{ delete_action }}" class="m-delete-form">
+  <button type="submit" class="m-delete-btn">Delete</button>
+</form>
+{% endif %}
 {% endblock %}

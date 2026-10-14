@@ -627,6 +627,19 @@ def _live_snapshot() -> dict[str, Any]:
 
     Each call is independently wrapped -- one failing (say, no port
     configured) must not blank the other two panels.
+
+    N2 (MECHANIC_REVIEW_4_SCANS_HEALTH_2026-10-13.md): this used to catch
+    only :class:`cuore.live.errors.LiveError`. ``cuore.live.ops`` wraps the
+    refusals it anticipates (no port, no cable declared, bus unverified) as
+    ``LiveError``, but the adapter itself can fail in ways that never pass
+    through that wrapper -- a serial/OS-level error opening the port, or any
+    other exception the ops layer did not foresee. Any of those used to
+    propagate straight out of this function and 500 the whole ``/live``
+    page (verified: a fake raising a bare ``OSError`` reproduces it) instead
+    of leaving just the one panel unreadable, which is the one thing this
+    function's own docstring already promised. Catching ``Exception`` here
+    keeps that promise for real: every panel always renders, as data,
+    "unknown", or this panel's own error line -- never a 500.
     """
     out: dict[str, Any] = {}
     try:
@@ -635,18 +648,27 @@ def _live_snapshot() -> dict[str, Any]:
     except LiveError as exc:
         out["status"] = None
         out["status_error"] = str(exc)
+    except Exception as exc:  # noqa: BLE001 -- see docstring: never 500 this page
+        out["status"] = None
+        out["status_error"] = f"{type(exc).__name__}: {exc}"
     try:
         out["cable_data"] = live_ops.buses()
         out["cable_error"] = None
     except LiveError as exc:
         out["cable_data"] = None
         out["cable_error"] = str(exc)
+    except Exception as exc:  # noqa: BLE001 -- see docstring: never 500 this page
+        out["cable_data"] = None
+        out["cable_error"] = f"{type(exc).__name__}: {exc}"
     try:
         out["module_rows"] = live_ops.modules()["modules"]
         out["module_error"] = None
     except LiveError as exc:
         out["module_rows"] = []
         out["module_error"] = str(exc)
+    except Exception as exc:  # noqa: BLE001 -- see docstring: never 500 this page
+        out["module_rows"] = []
+        out["module_error"] = f"{type(exc).__name__}: {exc}"
     return out
 
 
