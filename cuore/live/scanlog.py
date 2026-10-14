@@ -454,9 +454,32 @@ def _all_scans() -> list[dict[str, Any]]:
 # --- public read surface -----------------------------------------------------
 
 
+def _assign_numbers(scans: list[dict[str, Any]]) -> None:
+    """Mutates ``scans`` (one VIN's own list, any order) in place, setting
+    ``"number"`` on each -- "Scan n" numbering runs oldest-to-newest (scan 1
+    is the first one run this diagnosis), the opposite order the list itself
+    is usually shown in. Only a ``"complete"`` scan is numbered -- a partial
+    or failed-attempt scan is still listed (see the module docstring) but
+    stays unnumbered (``None``), same honesty rule :func:`scan_plan` applies
+    to the "Scan n of 10" chip. Centralised here (rather than left to each
+    caller to recompute, as ``cuore.web.scanlog_routes`` once did only for
+    the list page) so every reader of a scan dict -- the list, the detail
+    page, and the diff page -- agrees on the same number for the same scan,
+    never recomputed, never silently left off one reader at a time."""
+    oldest_first = sorted((s for s in scans if s.get("status") == "complete"),
+                         key=lambda s: s.get("started") or "")
+    numbers = {s["id"]: i for i, s in enumerate(oldest_first, start=1)}
+    for s in scans:
+        s["number"] = numbers.get(s["id"])
+
+
 def list_scans(vin: str) -> list[dict[str, Any]]:
-    """Scan summaries for one VIN, newest first."""
-    return [s for s in _all_scans() if s["vin"] == vin]
+    """Scan summaries for one VIN, newest first, each carrying its own
+    "Scan n" ``number`` (``None`` when unnumbered -- see
+    :func:`_assign_numbers`)."""
+    scans = [s for s in _all_scans() if s["vin"] == vin]
+    _assign_numbers(scans)
+    return scans
 
 
 def get_scan(vin: str, scan_id: str) -> Optional[dict[str, Any]]:

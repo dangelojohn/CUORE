@@ -31,6 +31,32 @@
 </div>
 {% endmacro %}
 
+{# The pause-card pictogram -- a plain drawn cable (not a stock photo, not a
+   flat colour block -- see N1 in docs/research/MECHANIC_REVIEW_5_2026-10-14.md:
+   no cable/connector symbol exists yet in static/icons.svg, so this draws
+   one here). Colour-coded the same blue/grey this page always has, but the
+   shape (connected cable with its own "A5"/"A6" lettering, vs. a dashed gap
+   with an X for "no cable") now carries the distinction too, not colour
+   alone -- a mechanic colour-deficient to blue/grey still reads it, same
+   as the heading text one line below always already did. #}
+{% macro cable_pictogram(variant) %}
+<div class="fscan-pictogram fscan-pic-{{ variant }}" aria-hidden="true">
+  <svg viewBox="0 0 120 56" width="160" height="56" preserveAspectRatio="xMidYMid meet" focusable="false">
+    {% if variant == "none" %}
+      <rect x="10" y="22" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M30 28 L 46 28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-dasharray="4 5"/>
+      <line x1="56" y1="16" x2="78" y2="40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      <line x1="78" y1="16" x2="56" y2="40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    {% else %}
+      <rect x="4" y="22" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M22 28 C 46 8, 74 48, 98 28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+      <rect x="98" y="22" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2.5"/>
+      <text x="60" y="29" text-anchor="middle" dominant-baseline="middle" font-size="15" font-weight="700" fill="currentColor">{{ "A5" if variant == "blue_a5" else "A6" }}</text>
+    {% endif %}
+  </svg>
+</div>
+{% endmacro %}
+
 <div class="fscan" data-phase="{{ phase }}"{% if state.scan_id %} data-scan-id="{{ state.scan_id }}"{% endif %}>
 
 <h1>Full scan</h1>
@@ -63,11 +89,11 @@
   {% set nxt = state.next %}
   <div class="panel fscan-pause">
     {% if phase == "remove_cable" %}
-      <div class="fscan-pictogram fscan-pic-none" aria-hidden="true"></div>
+      {{ cable_pictogram("none") }}
       <h2 class="fscan-cable-name">Remove the cable</h2>
       <p class="small muted">Back to no cable -- re-verifying CAN-C one more time.</p>
     {% else %}
-      <div class="fscan-pictogram fscan-pic-{{ nxt.cable }}" aria-hidden="true"></div>
+      {{ cable_pictogram(nxt.cable) }}
       <h2 class="fscan-cable-name">{{ "BLUE A5" if nxt.cable == "blue_a5" else "GREY A6" }}
         <span class="fscan-bus-label">({{ nxt.bus|upper|replace("_", "-") }})</span></h2>
       <p class="small">Unlocks:

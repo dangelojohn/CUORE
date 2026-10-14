@@ -601,11 +601,71 @@ def _verdict_summary(state: str, open_work: list[dict[str, Any]],
 
 #: Mode 01 PID $21 (distance travelled with the MIL commanded on) has no
 #: dedicated field in the live-observation schema yet -- ``since_clear``
-#: only carries ``mil_on``/``stored_dtc_count``/the monitor list. This is
-#: the one value read directly off the car in the same 2026-10-13 20:03
-#: session as the readiness observation below; it belongs here, not
-#: invented into that schema, until a PID $21 reader exists.
-_MIL_DISTANCE_KM: dict[str, float] = {"ZASFAKPN5J7B88115": 34}
+#: only carries ``mil_on``/``stored_dtc_count``/the monitor list. Read
+#: straight off ``cuore.live.store``'s own observations file instead (see
+#: :func:`_mil_distance_km`) -- this used to be a hard-coded, single-VIN
+#: literal (``{"ZASFAKPN5J7B88115": 34}``); a value that happens to be
+#: true for one VIN today must never silently become every other car's
+#: answer tomorrow.
+_MIL_DISTANCE_PID = "21"
+_MIL_DISTANCE_NAME = "distance_with_mil"
+
+
+def _mil_distance_from_data(data: dict[str, Any]) -> float | None:
+    """One PID $21 (distance with MIL) reading out of a ``pids_snapshot``/
+    ``pid`` observation's own ``data``, whichever shape this install's live
+    link actually wrote it in: ``cuore.live.fullscan``'s own nested
+    ``{"by_ecu": {ecu: {"21": {"value", "unit", ...}}}}`` (today's real
+    shape), or a flatter ``{"pid"|"name": "21"|"distance_with_mil",
+    "value": ...}`` some other live-read path may use (same posture
+    ``scan_health_bridge._pid_readings`` already takes for other PIDs).
+    The first ECU that answers it wins -- never averaged, never guessed at
+    when more than one module reports it."""
+    by_ecu = data.get("by_ecu")
+    if isinstance(by_ecu, dict):
+        for reading in by_ecu.values():
+            if not isinstance(reading, dict):
+                continue
+            entry = reading.get(_MIL_DISTANCE_PID)
+            if isinstance(entry, dict) and entry.get("value") is not None:
+                return entry.get("value")
+        return None
+    name = str(data.get("pid") or data.get("name") or "")
+    if name in (_MIL_DISTANCE_PID, _MIL_DISTANCE_NAME) and data.get("value") is not None:
+        return data.get("value")
+    readings = data.get("readings")
+    if isinstance(readings, dict):
+        entry = readings.get(_MIL_DISTANCE_PID) or readings.get(_MIL_DISTANCE_NAME)
+        if isinstance(entry, dict):
+            return entry.get("value")
+    return None
+
+
+def _mil_distance_km(vin: str) -> float | None:
+    """The newest PID $21 (distance travelled with the MIL commanded on)
+    this VIN's live link has actually read from the car, from
+    ``cuore.live.store``'s own observations file -- kind ``pids_snapshot``
+    or ``pid``, a real serial read only (:func:`cuore.live.store.
+    is_from_car`), untagged reads kept (same single-car-install convention
+    every other live reader here documents). ``None`` -- never a
+    placeholder, never a hand-written number -- when nothing has read it
+    yet for this car."""
+    best_at = ""
+    km: float | None = None
+    for kind in ("pids_snapshot", "pid"):
+        for o in live_store.recent_observations(10_000_000, kind=kind):
+            if not live_store.is_from_car(o):
+                continue
+            v = o.get("vin") or ""
+            if v not in ("", vin):
+                continue
+            value = _mil_distance_from_data(o.get("data") or {})
+            if value is None:
+                continue
+            at = str(o.get("at") or "")
+            if at >= best_at:
+                best_at, km = at, value
+    return km
 
 
 def _mil_short_date(ts: str | None) -> str | None:
@@ -678,7 +738,7 @@ def _build_mil_block(vin: str, cleared_at: str | None) -> dict[str, Any] | None:
     if ecm is None:
         return None
     ecm_since_short = _mil_short_date(ecm.get("at"))
-    km = _MIL_DISTANCE_KM.get(vin)
+    km = _mil_distance_km(vin)
 
     dash = _latest_dash_lamp_report(vin, cleared_at)
     dash_text = None
@@ -693,6 +753,8 @@ def _build_mil_block(vin: str, cleared_at: str | None) -> dict[str, Any] | None:
     ecm_line = f"ECM: MIL commanded ON since {ecm_since_short}"
     if km is not None:
         ecm_line += f", {km:g} km with MIL (read from the car {ecm_since_short})"
+    else:
+        ecm_line += ", distance with MIL: not read"
     dash_line = f"Dash lamp: owner reports {dash_text or 'no report on file'}"
     if dash_attested_short:
         dash_line += f" (attested {dash_attested_short})"

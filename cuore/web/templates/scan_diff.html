@@ -15,8 +15,8 @@
   <p class="small no-print"><a href="/v/{{ vin }}/scans">&larr; All scans</a></p>
   <h1 class="mono">{{ a.id }} &rarr; {{ b.id }}</h1>
   <p class="small muted">
-    Scan {{ a.number }} ({{ a.started }}{% if a.partial %}, partial{% endif %})
-    vs Scan {{ b.number }} ({{ b.started }}{% if b.partial %}, partial{% endif %}).
+    Scan {{ a.number or "" }} ({{ a.started }}{% if a.status == "attempt" %}, attempt &mdash; adapter not reachable{% elif a.partial %}, partial{% endif %})
+    vs Scan {{ b.number or "" }} ({{ b.started }}{% if b.status == "attempt" %}, attempt &mdash; adapter not reachable{% elif b.partial %}, partial{% endif %}).
   </p>
 
   <div class="jump-chip-row no-print">

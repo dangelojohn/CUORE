@@ -33,14 +33,22 @@
   max-width: 480px;
 }
 
+/* N1, 2026-10-14: this used to be a flat colour block (background only,
+   no shape) -- now a drawn cable glyph (fullscan.html's own
+   cable_pictogram() macro), coloured via `color` so the inline SVG's
+   `stroke="currentColor"`/`fill="currentColor"` picks it up. Shape (a
+   connected cable with its own "A5"/"A6" lettering, vs. a dashed gap with
+   an X) carries the distinction now, not colour alone. */
 .fscan-pictogram {
   height: 56px;
-  border-radius: var(--radius);
   margin-bottom: 16px;
+  display: flex;
+  align-items: center;
 }
-.fscan-pic-blue_a5 { background: #2f6fed; }
-.fscan-pic-grey_a6 { background: #8a9099; }
-.fscan-pic-none    { background: var(--rule); }
+.fscan-pictogram svg { width: 160px; max-width: 100%; height: 56px; }
+.fscan-pic-blue_a5 { color: #2f6fed; }
+.fscan-pic-grey_a6 { color: #8a9099; }
+.fscan-pic-none    { color: var(--ink-3); }
 
 .fscan-cable-name {
   font-size: 28px;

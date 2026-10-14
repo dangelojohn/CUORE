@@ -469,28 +469,86 @@ _CHIPS_BY_QID: dict[str, list[dict[str, Any]]] = {
     for family in PROMPT_RULES.values() for q in family
 }
 
+#: question id -> the family it belongs to, flattened once from
+#: :data:`PROMPT_RULES` the same way :data:`_CHIPS_BY_QID` is -- every
+#: question id in the table is unique across families (checked by
+#: construction: a dict comprehension would silently drop a collision, but
+#: there are none today), so this is also how a *stored* row's family is
+#: recovered on read, whether that row was filed before or after the N5 fix
+#: below (pre-fix rows carry the triggering *code* in ``target.section``,
+#: post-fix rows carry the *family* -- this map makes either one resolve to
+#: the same family for dedup/collapse purposes).
+_FAMILY_BY_QID: dict[str, str] = {
+    q["id"]: family for family, qs in PROMPT_RULES.items() for q in qs
+}
+
 
 def _ensure_prompts_filed(vin: str) -> None:
     """Generate-on-read: file any CUORE prompt that doesn't already exist
-    for this (vin, code, question_id). Idempotent -- safe to call on every
-    ``messages()`` read."""
+    for this (vin, family, question_id) -- **not** per *code* (N5, fixed
+    2026-10-14: see docs/research/MECHANIC_REVIEW_5_2026-10-14.md). Several
+    distinct codes routinely map into the same question family (several
+    distinct U-/B-codes on one module all meaning "network"/"electrical_
+    supply"), and the old per-(code, question_id) key let each one
+    independently refile the identical shared question text -- the same
+    electrical question was filed 21 separate times on this VIN's own real
+    corpus. Keying on the family instead means one question is asked once
+    per concern, never once per code that happens to touch it. Idempotent --
+    safe to call on every ``messages()`` read. Existing rows filed under the
+    old per-code key are recognised too (via :data:`_FAMILY_BY_QID`), so a
+    corpus that already has per-code duplicates on file does not grow a 22nd
+    copy the next time this runs -- see :func:`_collapse_duplicate_prompts`
+    for cleaning up the duplicates already on file."""
     existing = feedback_mod.load(vin, status=None)
-    existing_keys = {(r["target"].get("section"), r["target"].get("item"))
-                    for r in existing if r.get("target", {}).get("page") == MESSAGE_PAGE}
+    existing_keys = {
+        (_FAMILY_BY_QID.get(r["target"].get("item") or "") or r["target"].get("section"),
+         r["target"].get("item"))
+        for r in existing if r.get("target", {}).get("page") == MESSAGE_PAGE
+    }
     for code in _active_codes(vin):
         for family in _families_for_code(code):
             for q in PROMPT_RULES.get(family, []):
                 qid, text = q["id"], q["text"]
-                if (code, qid) in existing_keys:
+                key = (family, qid)
+                if key in existing_keys:
                     continue
                 try:
                     feedback_mod.add(vin, "question",
-                                     {"page": MESSAGE_PAGE, "section": code, "item": qid,
-                                      "label": f"{code}: {text}"[:200]},
+                                     {"page": MESSAGE_PAGE, "section": family, "item": qid,
+                                      "label": text[:200]},
                                      text=text, author="cuore")
                 except ValueError:
                     continue
-                existing_keys.add((code, qid))
+                existing_keys.add(key)
+
+
+def _collapse_duplicate_prompts(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Collapse pre-existing duplicate open CUORE prompts that share the
+    same (family, question_id) identity -- the read-time half of the N5 fix,
+    for an inbox that already has per-code duplicates filed on it from
+    before :func:`_ensure_prompts_filed` was corrected. Never rewrites or
+    deletes anything in the store (the duplicate feedback rows stay on
+    disk, same as any other append-only history here) -- this only decides
+    what :func:`messages` shows: the earliest-filed row of each duplicate
+    group, every later copy dropped from the rendered list. Answered rows,
+    and the per-scan "Scan done" rows (``target.section == "scan"``, keyed
+    by scan id, never duplicated by this bug), are left alone."""
+    keep: dict[tuple[str, str], dict[str, Any]] = {}
+    out: list[dict[str, Any]] = []
+    for r in rows:
+        target = r.get("target", {})
+        if not (r.get("status") == "open" and r.get("author") == "cuore"
+               and target.get("page") == MESSAGE_PAGE and target.get("section") != "scan"):
+            out.append(r)
+            continue
+        qid = target.get("item") or ""
+        family = _FAMILY_BY_QID.get(qid) or target.get("section") or qid
+        key = (family, qid)
+        current = keep.get(key)
+        if current is None or (r.get("at") or "") < (current.get("at") or ""):
+            keep[key] = r
+    out.extend(keep.values())
+    return out
 
 
 # --- messages: the "Scan done" note -----------------------------------------
@@ -710,6 +768,7 @@ def messages(vin: str) -> dict[str, Any]:
     _ensure_prompts_filed(vin)
     rows = [dict(r) for r in feedback_mod.load(vin, status=None)
            if r.get("target", {}).get("page") == MESSAGE_PAGE]
+    rows = _collapse_duplicate_prompts(rows)
     for r in rows:
         if r.get("status") == "open" and r.get("author") == "cuore":
             r["chips"] = _CHIPS_BY_QID.get(r.get("target", {}).get("item") or "", [])

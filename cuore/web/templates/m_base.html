@@ -19,6 +19,33 @@
    not its desktop component styles. #}
 <link rel="stylesheet" href="{{ static_url('cuore.css') }}">
 <link rel="stylesheet" href="{{ static_url('m.css') }}">
+{# N2, 2026-10-14: the opening splash (_intro.html, unmodified -- see the
+   include below) can sit on top of the very first real tap of a session.
+   cuore.css's own .intro-overlay animation only sets pointer-events:none
+   at 100% (fully invisible); for the visible fade-out stretch just before
+   that (72%-100% of the 2.2s animation) the overlay is still fading but
+   still catches a tap, which the label/checkbox dismiss trick then
+   swallows instead of passing through to the real control underneath.
+   This page's own override (``.m-body .intro-overlay``, two classes --
+   beats cuore.css's single-class rule on specificity with no !important
+   needed) moves pointer-events:none to the start of that same fade-out
+   stretch instead of its end, so a tap landing anywhere during the
+   visible fade reaches the page underneath rather than just dismissing
+   the splash. Scoped to this template only, per this fix's own ownership
+   -- cuore.css's shared rule (also used by the desktop app's base.html)
+   is untouched. #}
+<style>
+@keyframes m-intro-fade-passthrough {
+  0% { opacity: 1; pointer-events: auto; }
+  72% { opacity: 1; pointer-events: auto; }
+  72.01% { pointer-events: none; }
+  100% { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+.m-body .intro-overlay { animation: m-intro-fade-passthrough 2.2s ease-in forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .m-body .intro-overlay { animation: none; display: none; }
+}
+</style>
 </head>
 <body class="m-body">
 

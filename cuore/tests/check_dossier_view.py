@@ -5,8 +5,9 @@ Same posture as ``cuore/tests/check_dealer_page.py``/``check_notes_page.py``:
 ``CUORE_STATE_DIR`` is pointed at a throwaway directory BEFORE cuore is
 imported, so nothing here ever touches the bench's real state. The MES log
 corpus is NOT overridden -- VIN ZASFAKPN5J7B88115's real corpus (chronic
-EVAP trio, cleared 2026-09-29, never re-verified) is the fixture, same as
-every other dossier test in this suite.
+EVAP trio, newest MES clear 2026-10-08 09:20, never re-verified -- fixed in
+2210d76; was 2026-09-29 before that commit) is the fixture, same as every
+other dossier test in this suite.
 
 ``cuore.app.create_app`` may not yet wire ``cuore.api.checklists``,
 ``cuore.api.dossier`` or ``cuore.web.dossier_routes`` (another agent owns
@@ -40,7 +41,7 @@ from cuore.web import dossier_routes  # noqa: E402
 from cuore.live import store as live_store  # noqa: E402
 from cuore.services import dossier_bridge, mes_bridge  # noqa: E402
 
-VIN = "ZASFAKPN5J7B88115"  # the Stelvio -- real corpus, EVAP trio cleared 2026-09-29
+VIN = "ZASFAKPN5J7B88115"  # the Stelvio -- real corpus, EVAP trio, newest clear 2026-10-08 09:20
 
 failures: list[str] = []
 checks = 0
@@ -72,8 +73,8 @@ view = dossier_bridge.build_view(VIN, dossier, None)
 
 check("verdict state is UNVERIFIED_REPAIR today",
       view["verdict"]["state"] == "UNVERIFIED_REPAIR", view["verdict"]["state"])
-check("verdict cleared_at is 2026-09-29",
-      view["verdict"]["cleared_at"] == "2026-09-29", str(view["verdict"]["cleared_at"]))
+check("verdict cleared_at is 2026-10-08 (the newest MES clear, 09:20, fixed in 2210d76)",
+      view["verdict"]["cleared_at"] == "2026-10-08", str(view["verdict"]["cleared_at"]))
 
 p0455 = next((f for f in view["freeze_frames"] if f["code"] == "P0455-00"), None)
 check("a P0455 freeze frame is present", p0455 is not None, str(view["freeze_frames"]))

@@ -48,6 +48,9 @@
   <p class="m-event-actions">
     {% if e.editable %}
     <a class="m-event-edit" href="/m/{{ vin }}/edit/{{ e.id }}">Edit</a>
+    <form method="post" action="/m/{{ vin }}/history/{{ e.id }}/delete" class="m-event-delete-form">
+      <button type="submit" class="m-event-delete">Delete</button>
+    </form>
     {% endif %}
     {% if e.print_href %}
     <a class="m-print-btn m-print-btn-row" href="{{ e.print_href }}">Print label</a>

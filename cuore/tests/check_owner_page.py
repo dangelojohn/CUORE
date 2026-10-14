@@ -177,9 +177,13 @@ cuore_prompts = [m for m in msgs if m.get("author") == "cuore"]
 check("messages include at least one CUORE-authored prompt", len(cuore_prompts) > 0,
       str(msgs)[:300])
 if evap_code:
-    evap_prompt = [m for m in cuore_prompts if m.get("target", {}).get("section") == evap_code]
-    check(f"a CUORE prompt targets the active EVAP code {evap_code}", len(evap_prompt) > 0,
-          str(cuore_prompts)[:300])
+    # Filed/deduped per (family, question_id), not per code (N5, fixed
+    # 2026-10-14 -- see docs/research/MECHANIC_REVIEW_5_2026-10-14.md), so
+    # this filters on the "evap" family section rather than the literal
+    # code that triggered it.
+    evap_prompt = [m for m in cuore_prompts if m.get("target", {}).get("section") == "evap"]
+    check(f"a CUORE prompt targets the EVAP family triggered by the active code {evap_code}",
+          len(evap_prompt) > 0, str(cuore_prompts)[:300])
 
 r = client.get(f"/m/{VIN}/messages")
 check("messages page responds 200", r.status_code == 200, str(r.status_code))
@@ -555,8 +559,9 @@ check("the scan-done message is deduped per scan id on a second read",
       len(scan_msgs2) == 1, str(scan_msgs2)[:300])
 
 p0440_prompts = [m for m in msgs if m.get("author") == "cuore"
-                and m.get("target", {}).get("section") == "P0440"]
-check("a CUORE prompt fired for the active P0440", len(p0440_prompts) >= 1, str(p0440_prompts)[:300])
+                and m.get("target", {}).get("section") == "evap"]
+check("a CUORE prompt fired for the evap family triggered by the active P0440",
+      len(p0440_prompts) >= 1, str(p0440_prompts)[:300])
 fillup_prompt = next((m for m in p0440_prompts
                       if m.get("target", {}).get("item") == "evap_fillup_recent"), None)
 check("the fill-up/cap/pump question fired for P0440", fillup_prompt is not None,
@@ -583,8 +588,8 @@ _append_test_observations(bcm_fixture_lines)
 r = client.get(f"/api/owner/{VIN}/messages")
 msgs = r.json()["messages"]
 u1713_prompts = [m for m in msgs if m.get("author") == "cuore"
-                and m.get("target", {}).get("section") == "U1713"]
-check("a CUORE prompt fired for the active BCM network code U1713",
+                and m.get("target", {}).get("section") == "network"]
+check("a CUORE prompt fired for the network family triggered by the active BCM code U1713",
       len(u1713_prompts) >= 1, str(msgs)[:400])
 network_prompt = next((m for m in u1713_prompts
                        if m.get("target", {}).get("item") == "network_recent_elec"), None)

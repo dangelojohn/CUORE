@@ -50,6 +50,7 @@ Health values, exactly four plus the baseline:
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 from . import dtc as dtc_mod
@@ -338,17 +339,56 @@ def network_bus_event_note(live_u_code_count: int) -> Optional[str]:
 
 # --- scan_coverage -> GAP row wording ---------------------------------------
 
+#: A raw Python exception class name (``FileNotFoundError``, ``LinkUnavailable``,
+#: ...), either bare (``"LinkUnavailable: could not open ..."``) or in its own
+#: ``repr()`` form (``"FileNotFoundError(2, '...', None, 2)"``) -- the two
+#: shapes a driver/adapter failure actually raises as a string onto a
+#: ``scan_coverage`` row's ``why``. Matched, never guessed at, so a plain
+#: mechanic-language ``why`` (``"skipped, needs grey A6 cable"``) never false-
+#: positives into this branch.
+_EXCEPTION_REPR_RE = re.compile(r"\b[A-Za-z_][A-Za-z0-9_]*(?:Error|Exception|Unavailable)\s*[:(]")
+
+#: A serial port name, when the exception text happens to carry one -- folded
+#: into the mechanic wording so "reconnect and rescan" still names the port,
+#: without rendering the exception around it.
+_PORT_RE = re.compile(r"\bCOM\d+\b", re.IGNORECASE)
+
+
+def _looks_like_raw_exception(why: str) -> bool:
+    """True when ``why`` is (or contains) a raw Python exception class name
+    and/or its own ``repr()`` -- never a plain-English reason this project's
+    own ``cuore.live.fullscan`` already writes."""
+    return bool(_EXCEPTION_REPR_RE.search(why))
+
+
+def _adapter_not_reachable_text(why: str) -> str:
+    """Mechanic wording for a raw adapter/link exception, in place of the
+    exception string itself (see :func:`_looks_like_raw_exception`) -- the
+    port name is kept when the exception text carries one, the exception's
+    own class name/args/repr are not."""
+    port = _PORT_RE.search(why)
+    if port:
+        return f"Adapter not reachable on {port.group(0).upper()} during this scan -- reconnect and rescan."
+    return "Adapter not reachable during this scan -- reconnect and rescan."
+
+
 def coverage_gap_text(category: Optional[str], why: Optional[str]) -> str:
     """One GAP row's reading, taken verbatim from a ``scan_coverage``
     observation's own ``why`` for that module -- never rephrased or
-    invented. ``cuore.live.fullscan``'s own coverage rows already write
-    ``why`` as a complete reason in two different shapes: a cable-gated
-    module reads ``"needs grey A6 cable"`` / ``"skipped, needs <cable>"``,
-    an unaddressed module reads ``"no known address: run discovery"`` --
-    both already read as a full sentence fragment and are shown as-is. A
-    ``"not_reachable"`` row whose ``why`` is instead a raw adapter/bus
-    error gets a ``"not reachable -- "`` prefix so the row still reads as
-    a sentence."""
+    invented, with one exception (literally): ``cuore.live.fullscan``'s own
+    coverage rows already write ``why`` as a complete reason in two
+    different shapes for the normal case -- a cable-gated module reads
+    ``"needs grey A6 cable"`` / ``"skipped, needs <cable>"``, an unaddressed
+    module reads ``"no known address: run discovery"`` -- both already read
+    as a full sentence fragment and are shown as-is. But when the adapter/
+    driver itself failed to open the link, ``why`` is instead a raw Python
+    exception string (``"LinkUnavailable: ... FileNotFoundError(2, '...',
+    None, 2)."``) -- see N3 in ``docs/research/MECHANIC_REVIEW_5_2026-10-14.md``:
+    that must never reach a mechanic's issue list verbatim, so it is mapped
+    to plain mechanic wording (:func:`_adapter_not_reachable_text`) instead.
+    A ``"not_reachable"`` row whose ``why`` is some other (non-exception)
+    string still gets the existing ``"not reachable -- "`` prefix so the row
+    reads as a sentence."""
     why = (why or "").strip()
     category = category or ""
     if not why:
@@ -356,6 +396,8 @@ def coverage_gap_text(category: Optional[str], why: Optional[str]) -> str:
     lowered = why.lower()
     if lowered.startswith("skipped") or lowered.startswith("no known address"):
         return why
+    if _looks_like_raw_exception(why):
+        return _adapter_not_reachable_text(why)
     if category == "not_reachable":
         return f"not reachable -- {why}"
     return why
