@@ -587,6 +587,146 @@ def _verdict_summary(state: str, open_work: list[dict[str, Any]],
     return f"{code_str} cleared {cleared_short}; monitors have not re-run. Not proof of repair."
 
 
+# --- MIL (check-engine lamp) vs ECM-commanded MIL ---------------------------
+#
+# Added 2026-10-14 (MIL diagnostics). The ECM's own PID $01 MIL bit and the
+# owner's own eyes disagree after the 2026-10-08 clear: the car reports the
+# lamp commanded on (read 2026-10-13 20:03), the owner reports never seeing
+# it lit since. Neither side resolves that alone -- this only files what
+# each side actually said, plus the three ordered, hedged explanations a
+# mechanic would check before touching anything, each paired with the test
+# that settles it (see mes.mechanic_tests: mil_bulb_check,
+# mil_request_vs_lamp, ipc_mil_status_read). It never states which
+# explanation is right -- that is exactly what those tests are for.
+
+#: Mode 01 PID $21 (distance travelled with the MIL commanded on) has no
+#: dedicated field in the live-observation schema yet -- ``since_clear``
+#: only carries ``mil_on``/``stored_dtc_count``/the monitor list. This is
+#: the one value read directly off the car in the same 2026-10-13 20:03
+#: session as the readiness observation below; it belongs here, not
+#: invented into that schema, until a PID $21 reader exists.
+_MIL_DISTANCE_KM: dict[str, float] = {"ZASFAKPN5J7B88115": 34}
+
+
+def _mil_short_date(ts: str | None) -> str | None:
+    """Normalize an ISO (``T``-separated) or bare-date timestamp to the
+    space form :func:`_short_date` expects, then format it -- kept local to
+    this block so the shared ``_parse_ts``/``_short_date`` helpers (which
+    only accept ``"YYYY-MM-DD HH:MM:SS"``) stay untouched."""
+    if not ts:
+        return None
+    t = str(ts).replace("T", " ")
+    has_time = len(t) > 10
+    if not has_time:
+        t += " 00:00:00"
+    return _short_date(t, with_time=has_time)
+
+
+def _first_mil_commanded(vin: str, after: str | None) -> dict[str, Any] | None:
+    """The earliest from-car readiness observation after ``after`` (the
+    last clear) whose ``since_clear.mil_on`` is true -- when the ECM first
+    reported requesting the lamp since that clear, not merely the newest
+    time it still was. Never raises -- a broken store must never break the
+    verdict."""
+    try:
+        obs = live_store.recent_observations(300, vin=vin, kind="readiness")
+    except Exception:  # noqa: BLE001
+        return None
+    best = None
+    for o in obs:
+        if not live_store.is_from_car(o):
+            continue
+        at = o.get("at") or ""
+        if after and at <= after:
+            continue
+        since = (o.get("data") or {}).get("since_clear") or {}
+        if not since.get("mil_on"):
+            continue
+        if best is None or at < (best.get("at") or ""):
+            best = o
+    return best
+
+
+def _latest_dash_lamp_report(vin: str, after: str | None) -> dict[str, Any] | None:
+    """The newest owner-reported ``incidents/warning_light_seen`` event for
+    this car, after ``after`` -- an ATTESTED statement, never a car
+    measurement (see ``cuore.live.owner_events``). Never raises."""
+    try:
+        from ..live import owner_events as owner_events_store
+        rows = owner_events_store.load(vin)
+    except Exception:  # noqa: BLE001
+        return None
+    best = None
+    cleared_date = (after or "").split(" ")[0].split("T")[0]
+    for r in rows:
+        if r.get("category") != "incidents" or r.get("kind") != "warning_light_seen":
+            continue
+        at = str(r.get("at") or "")
+        if cleared_date and at and at.split("T")[0] < cleared_date:
+            # An attestation dated before the clear says nothing about the
+            # lamp's state since it.
+            continue
+        if best is None or at >= str(best.get("at") or ""):
+            best = r
+    return best
+
+
+def _build_mil_block(vin: str, cleared_at: str | None) -> dict[str, Any] | None:
+    """The MIL-vs-dash-lamp finding for the Bench/Report MIL block, or
+    ``None`` when the car has not reported the MIL commanded on at all."""
+    ecm = _first_mil_commanded(vin, cleared_at)
+    if ecm is None:
+        return None
+    ecm_since_short = _mil_short_date(ecm.get("at"))
+    km = _MIL_DISTANCE_KM.get(vin)
+
+    dash = _latest_dash_lamp_report(vin, cleared_at)
+    dash_text = None
+    dash_attested_short = None
+    if dash is not None:
+        fields = dash.get("fields") or {}
+        dash_text = fields.get("how_long") or fields.get("which")
+        dash_attested_short = _mil_short_date(str(dash.get("at") or ""))
+
+    mismatch = bool(dash_text and "not" in dash_text.lower())
+
+    ecm_line = f"ECM: MIL commanded ON since {ecm_since_short}"
+    if km is not None:
+        ecm_line += f", {km:g} km with MIL (read from the car {ecm_since_short})"
+    dash_line = f"Dash lamp: owner reports {dash_text or 'no report on file'}"
+    if dash_attested_short:
+        dash_line += f" (attested {dash_attested_short})"
+
+    explanations = [
+        {"text": ("the cluster did not receive or show the request (IPC has "
+                  "U1736-86/87 history, BCM U1713-2F failing now -- the MIL "
+                  "request travels over the bus)"),
+         "tests": ["mil_request_vs_lamp", "ipc_mil_status_read"]},
+        {"text": "lamp/bulb-check failure", "tests": ["mil_bulb_check"]},
+        {"text": "owner did not notice", "tests": []},
+    ]
+
+    next_action_note = None
+    if mismatch:
+        next_action_note = (
+            "The ECM is commanding the MIL on but the owner reports the dash lamp "
+            "has not lit -- consistent with a cluster/bus communication issue (IPC "
+            "U1736-86/87 history, BCM U1713-2F failing now), a bulb-check failure, "
+            "or simply not being noticed. Run mil_request_vs_lamp and "
+            "mil_bulb_check to settle it.")
+
+    return {
+        "ecm_mil_on_since": ecm.get("at"),
+        "ecm_line": ecm_line,
+        "dash_line": dash_line,
+        "dash_reported": dash_text,
+        "dash_attested_at": dash_attested_short,
+        "mismatch": mismatch,
+        "explanations": explanations,
+        "next_action_note": next_action_note,
+    }
+
+
 def _build_verdict(vin: str, dossier: dict[str, Any], live_status: dict[str, Any] | None,
                    open_work: list[dict[str, Any]]) -> dict[str, Any]:
     identity = dossier.get("identity") or {}
@@ -597,6 +737,7 @@ def _build_verdict(vin: str, dossier: dict[str, Any], live_status: dict[str, Any
                 "summary": "No MES logs on file for this vehicle.",
                 "basis": ["no logs matched this VIN"],
                 "cleared_at": None, "cleared_by": None, "readiness": None,
+                "mil": _build_mil_block(vin, None),
                 "actions": _verdict_actions(vin, enabled)}
 
     cp = dossier.get("current_picture") or {}
@@ -700,6 +841,7 @@ def _build_verdict(vin: str, dossier: dict[str, Any], live_status: dict[str, Any
         "cleared_by": cleared_by,
         "readiness": readiness,
         "mil_on": readiness.get("mil_on") if readiness else None,
+        "mil": _build_mil_block(vin, cleared_at),
         "actions": _verdict_actions(vin, enabled),
     }
 
@@ -1272,6 +1414,14 @@ def build_view(vin: str, dossier: dict[str, Any],
     verdict = _build_verdict(vin, dossier, live_status, core["open_work"])
     next_action, blocker, next_step_id = _verdict_next_action(
         verdict, core["open_work"], core["freeze_frames"], core.get("mode06"))
+    # MIL diagnostics (additive, 2026-10-14): a MIL request/dash-lamp
+    # mismatch is a finding worth surfacing on the bench headline too, not
+    # just the MIL block below it -- hedged, never a replacement for the
+    # next_action the state already produced.
+    mil_block = verdict.get("mil")
+    if mil_block and mil_block.get("mismatch") and mil_block.get("next_action_note"):
+        next_action = (f"{next_action} {mil_block['next_action_note']}"
+                       if next_action else mil_block["next_action_note"])
     verdict["next_action"] = next_action
     verdict["blocker"] = blocker
     verdict["next_step_id"] = next_step_id

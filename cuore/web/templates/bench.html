@@ -58,6 +58,18 @@
 .bench-resume-changes { margin: 0; padding-left: 18px; font-size: 13px; }
 .bench-resume-next { margin: 2px 0 0; font-weight: 600; }
 
+/* MIL diagnostics (additive, 2026-10-14): ECM-commanded MIL vs the dash
+   lamp the owner actually saw, shown right under the verdict banner. */
+.bench-mil {
+  background: var(--surface-2); border: 1px solid var(--rule);
+  border-radius: var(--radius); padding: 8px 10px; display: flex;
+  flex-direction: column; gap: 2px; font-size: 13px; max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.bench-mil.is-mismatch { border-color: var(--sev-returned); }
+.bench-mil-line { margin: 0; }
+.bench-mil-explanations { margin: 4px 0 0; padding-left: 18px; }
+
 /* Fuel gate + readiness (C10) */
 .bench-gates { display: flex; flex-wrap: wrap; gap: 8px; }
 .bench-gate {
@@ -169,6 +181,28 @@
               {% for b in bench.blocker_banner.basis %}<li>{{ b }}</li>{% endfor %}
             </ul>
           {% endif %}
+        </details>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {# MIL diagnostics (additive, 2026-10-14): ECM-commanded MIL vs the dash
+     lamp the owner actually saw, filed right under the verdict/blocker
+     banner. Built in cuore/services/dossier_bridge.py's MIL section; never
+     states which explanation is right -- each is paired with the
+     mes.mechanic_tests entry that settles it. #}
+  {% if bench.verdict.mil %}
+    <div class="bench-mil{{ ' is-mismatch' if bench.verdict.mil.mismatch }}">
+      <p class="bench-mil-line">{{ bench.verdict.mil.ecm_line }}</p>
+      <p class="bench-mil-line">{{ bench.verdict.mil.dash_line }}</p>
+      {% if bench.verdict.mil.mismatch %}
+        <details class="bench-why">
+          <summary>Possible explanations</summary>
+          <ol class="small muted bench-mil-explanations">
+            {% for e in bench.verdict.mil.explanations %}
+              <li>{{ e.text }}{% if e.tests %} &mdash; settled by {{ e.tests|join(", ") }}{% endif %}</li>
+            {% endfor %}
+          </ol>
         </details>
       {% endif %}
     </div>

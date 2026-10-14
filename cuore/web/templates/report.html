@@ -30,6 +30,25 @@
       {% if view.verdict.cleared_at %}
         <p class="small muted">Cleared {{ view.verdict.cleared_at }}{% if view.verdict.cleared_by %} by {{ view.verdict.cleared_by }}{% endif %}.</p>
       {% endif %}
+      {# MIL diagnostics (additive, 2026-10-14): ECM-commanded MIL vs the
+         dash lamp the owner actually saw. Built in
+         cuore/services/dossier_bridge.py's MIL section; never states which
+         explanation is right -- each is paired with the mes.mechanic_tests
+         entry that settles it. #}
+      {% if view.verdict.mil %}
+        <div class="small muted" style="margin-top:6px">
+          <p style="margin:0">{{ view.verdict.mil.ecm_line }}</p>
+          <p style="margin:0">{{ view.verdict.mil.dash_line }}</p>
+          {% if view.verdict.mil.mismatch %}
+            <p style="margin:4px 0 0">Possible explanations, in order (never stated which):</p>
+            <ol style="margin:2px 0 0 18px">
+              {% for e in view.verdict.mil.explanations %}
+                <li>{{ e.text }}{% if e.tests %} &mdash; settled by {{ e.tests|join(", ") }}{% endif %}</li>
+              {% endfor %}
+            </ol>
+          {% endif %}
+        </div>
+      {% endif %}
     </div>
   </section>
 

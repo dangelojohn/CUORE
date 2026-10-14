@@ -755,6 +755,7 @@ def build_bench(vin: str) -> dict[str, Any]:
         "next_action": verdict_raw.get("next_action"),
         "blocker": verdict_raw.get("blocker"),
         "basis": verdict_raw.get("basis") or [],
+        "mil": verdict_raw.get("mil"),
     }
 
     codes = view.get("codes") or []

@@ -1525,6 +1525,94 @@ _t("listening_test_chassis_ears", "Listening test (chassis ears / stethoscope)",
   related_codes=[], supports_hypotheses=["unexplained noise"],
   refutes_hypotheses=["unexplained noise"], duration_min=30, hazards=[])
 
+# ===========================================================================
+# MIL diagnostics (added 2026-10-14) -- the ECM's PID $01 MIL-commanded bit
+# vs what the dash lamp actually shows. SAE J1979 defines the MIL command
+# bit itself (byte A, bit 7 of PID $01); the bulb-check and request-vs-lamp
+# procedures below are standard shop practice with no single named
+# document, so they are marked SINGLE-SOURCE rather than CONFIRMED.
+# ===========================================================================
+
+_t("mil_bulb_check", "MIL bulb check (key on, engine off)", "inspection",
+  ["infotainment_cluster"], _applies(),
+  purpose="Confirm the MIL bulb/LED and its drive circuit in the instrument cluster "
+          "can light at all, independent of whether the ECM is currently requesting "
+          "it -- the self-test every cluster runs for a few seconds at key-on.",
+  car_state="KOEO",
+  when_to_use="Any time the ECM reports the MIL commanded on (PID $01) but the lamp "
+              "was not seen lit -- before assuming the request never reached the "
+              "cluster, confirm the cluster CAN light the lamp at all.",
+  tools=["none (visual)"],
+  procedure=[
+      "Key to ON (engine not running).",
+      "Watch the instrument cluster's check-engine/MIL segment during its few-second "
+      "bulb-check: it must light along with the other warning lamps.",
+      "Note whether it lit, how long, and whether it then went out before/with "
+      "cranking as expected.",
+  ],
+  pass_criteria=[_pc("MIL lights during key-on bulb check", "yes", "", INDUSTRY_PRACTICE,
+                     SINGLE_SOURCE)],
+  fail_means="No MIL segment during the key-on bulb check points at the cluster's own "
+             "lamp/LED or its drive circuit, independent of anything the ECM is "
+             "requesting over the bus.",
+  related_codes=[], supports_hypotheses=["MIL request/lamp mismatch"],
+  refutes_hypotheses=["MIL request/lamp mismatch"], duration_min=2, hazards=[])
+
+_t("mil_request_vs_lamp", "MIL request vs dash lamp (live compare)", "network",
+  ["network", "infotainment_cluster"], _applies(),
+  purpose="Compare the ECM's own PID $01 MIL-commanded bit, read live with a scan "
+          "tool, against what the dash lamp is actually showing at the same moment "
+          "-- the direct test for a request that never reaches (or never displays "
+          "on) the cluster.",
+  car_state="KOER",
+  when_to_use="The ECM reports the MIL commanded on but the lamp was not seen lit "
+              "(or vice versa), especially on a car with a documented IPC/BCM "
+              "communication-fault history (U1736-86/87 on the IPC, U1713-2F on the "
+              "BCM) -- the MIL request travels from the ECM to the cluster over that "
+              "same bus.",
+  tools=["scan tool capable of live PID $01 (MES or CUORE's own obd2 live read)"],
+  procedure=[
+      "With the engine running (or key-on), read PID $01 live and watch the MIL-"
+      "commanded bit.",
+      "At the same moment, look directly at the dash: is the MIL lamp lit?",
+      "Record both states together, with the timestamp -- not from two separate "
+      "reads.",
+  ],
+  pass_criteria=[_pc("PID $01 MIL bit matches the dash lamp state", "yes", "",
+                     "SAE J1979 (PID $01 MIL command bit definition)", CONFIRMED)],
+  fail_means="A mismatch (ECM requesting the lamp while the dash shows it off, or the "
+             "reverse) isolates the fault to the request's path to the cluster "
+             "(wiring/bus/cluster), not to whether the ECM has a reason to request "
+             "it at all.",
+  related_codes=["U1736", "U1713"], supports_hypotheses=["MIL request/lamp mismatch"],
+  refutes_hypotheses=["MIL request/lamp mismatch"], duration_min=10, hazards=[])
+
+_t("ipc_mil_status_read", "IPC MIL status read (UDS DID)", "network",
+  ["infotainment_cluster", "network"], _applies(),
+  purpose="Read the instrument cluster's own record of the MIL/telltale state "
+          "directly over UDS, rather than inferring it from what the ECM requested "
+          "or what the lamp was seen to do.",
+  car_state="KOEO",
+  when_to_use="Only once a catalogued DID for this telltale on the IPC exists -- "
+              "today it does not (cuore/live/did_catalog.py's EXTRA_DIDS covers ECM "
+              "only; no IPC entry is catalogued).",
+  tools=["UDS tool capable of addressing the IPC (0x19/0x22 service) -- not usable "
+        "yet for this telltale, see when_to_use"],
+  procedure=[
+      "Confirm a DID for the MIL/telltale status exists in the catalogue for this "
+      "IPC before attempting this read -- none is catalogued as of this pass.",
+      "If one is added, address the IPC and read that DID, compare against the "
+      "dash lamp and the ECM's PID $01 bit read at the same time.",
+  ],
+  pass_criteria=[_pc("IPC MIL/telltale status DID", "no DID catalogued for the IPC -- "
+                     "UNKNOWN DID, not polled; see service manual/TechAuthority",
+                     "", TECHAUTHORITY, UNKNOWN)],
+  fail_means="Not yet runnable -- filed so the gap is visible rather than silently "
+             "skipped; use mil_request_vs_lamp and mil_bulb_check until a DID is "
+             "catalogued.",
+  related_codes=[], supports_hypotheses=["MIL request/lamp mismatch"],
+  refutes_hypotheses=[], duration_min=5, hazards=[])
+
 
 def all_tests() -> list[dict[str, Any]]:
     """Every test in catalogue order."""

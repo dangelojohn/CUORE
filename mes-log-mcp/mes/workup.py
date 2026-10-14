@@ -78,6 +78,156 @@ def _latest(entries, kind):
     return None
 
 
+def _newest_global_clear(entries: list[Any]) -> tuple[str, Any, Any] | None:
+    """(timestamp, entry, loaded log) of the single most recent clear event
+    anywhere in the corpus, FES or SCAN alike.
+
+    The per-session detection above is anchored to the latest FES session
+    (and, within it, to a SCAN found strictly *between* that session and an
+    older informative one). A SCAN-only clear with no FES session after it
+    at all falls entirely outside that window: on 2026-10-08 the owner
+    cleared 4 DTCs with MES (SCAN_2610080920.txt, confirmed clean by
+    SCAN_2610080926.txt six minutes later) while the newest FES engineering
+    session on file stayed dated 2026-10-04 -- older than the clear itself.
+    The anchored logic above never looks that far forward, so this scans
+    every entry directly instead of trusting any one session as the anchor.
+    """
+    best: tuple[str, Any, Any] | None = None
+    for e in entries:
+        if e.parse_error or not e.timestamp:
+            continue
+        if e.kind == "scan":
+            try:
+                log = scan_mod.load_scan(e.path, timestamp=e.timestamp)
+            except Exception:
+                continue
+            if not log.clear_results:
+                continue
+        elif e.kind == "fes":
+            try:
+                log = fes_mod.load_fes(e.path, timestamp=e.timestamp)
+            except Exception:
+                continue
+            if not log.clear_events:
+                continue
+        else:
+            continue
+        ts = str(e.timestamp)
+        if best is None or ts > best[0]:
+            best = (ts, e, log)
+    return best
+
+
+def _nearest_entry_after(entries: list[Any], ts: str, exclude_name: str) -> Any | None:
+    """The chronologically-nearest log entry strictly after ``ts``, if any."""
+    best = None
+    for e in entries:
+        if e.parse_error or not e.timestamp or e.name == exclude_name:
+            continue
+        et = str(e.timestamp)
+        if et <= ts:
+            continue
+        if best is None or et < str(best.timestamp):
+            best = e
+    return best
+
+
+def _clear_dict_from_global(entries: list[Any], entry: Any, log: Any,
+                            ts: str) -> dict[str, Any]:
+    """Build the ``clear_assessment`` dict for a clear found by
+    :func:`_newest_global_clear`, in the same shape ``_scan_clear_between``
+    and :class:`analysis.ClearAssessment` already produce, so every reader
+    of ``current_picture.clear_assessment`` keeps working unchanged.
+    """
+    if entry.kind == "fes":
+        ca = analysis.post_clear_assessment(log)
+        if ca:
+            return ca.to_dict()
+        return {
+            "source": entry.name, "cleared_at": ts, "codes_cleared": [],
+            "verdict": f"Codes were cleared in {entry.name} at {ts}.",
+            "next_step": "Drive until the monitors re-run, then re-check.",
+        }
+
+    # SCAN: a module's clear can be reported more than once in one file when
+    # an earlier clear attempt is incomplete (announced but cut short by a
+    # rescan) before a second attempt actually completes -- as on
+    # 2026-10-08, where the Engine/ECM block appears once with no result at
+    # all and again later. The last reported result per module is the one
+    # that actually happened.
+    last_by_key: dict[str, Any] = {}
+    for m in log.clear_results:
+        last_by_key[m.key] = m
+    pre_by_key = {m.key: m for m in log.modules}
+    codes_cleared = sorted({d.full for d in log.all_dtcs})
+
+    nxt = _nearest_entry_after(entries, ts, entry.name)
+    re_read_after_clear = False
+    tail_note = ""
+    still_present: set[str] = set()
+    if nxt is not None:
+        try:
+            if nxt.kind == "scan":
+                nlog = scan_mod.load_scan(nxt.path, timestamp=nxt.timestamp)
+                still_present = {d.full for d in nlog.all_dtcs} & set(codes_cleared)
+            else:
+                nlog = fes_mod.load_fes(nxt.path, timestamp=nxt.timestamp)
+                still_present = {d.full for d in nlog.dtcs} & set(codes_cleared)
+            re_read_after_clear = True
+            if still_present:
+                tail_note = (f" {nxt.name} at {nxt.timestamp} still shows "
+                             f"{', '.join(sorted(still_present))} -- not cleared.")
+            else:
+                tail_note = (f" {nxt.name} at {nxt.timestamp} read clean. This is NOT "
+                             f"proof of repair: after a clear the ECU reports nothing "
+                             f"until the monitor that governs the code actually re-runs.")
+        except Exception:
+            pass
+
+    # A result of "SUCCESS"/"FAILED" is taken at face value. A blank result
+    # -- the transcript's own SUCCESS/FAILED line sits one line further
+    # down than the parser's per-module read stops, past an extra blank
+    # line, as happens on the Engine/ECM block above -- is resolved from
+    # evidence instead of guessed: cleared if this module's own pre-clear
+    # codes are confirmed gone on the next read, refused if any persist.
+    ok: list[str] = []
+    refused: dict[str, list[str]] = {}
+    for m in last_by_key.values():
+        result = (m.clear_result or "").upper()
+        if result == "FAILED":
+            refused[m.name] = [x.full for x in m.dtcs]
+        elif result == "SUCCESS":
+            ok.append(m.name)
+        elif nxt is not None:
+            pre = pre_by_key.get(m.key)
+            pre_codes = {d.full for d in pre.dtcs} if pre else set()
+            persisted = sorted(pre_codes & still_present)
+            if persisted:
+                refused[m.name] = persisted
+            else:
+                ok.append(m.name)
+        else:
+            # No later read to confirm against -- can't be called cleared.
+            pre = pre_by_key.get(m.key)
+            refused[m.name] = [d.full for d in pre.dtcs] if pre else []
+
+    return {
+        "source": entry.name,
+        "cleared_at": ts,
+        "modules_cleared": ok,
+        "modules_refused": refused,
+        "codes_cleared": codes_cleared,
+        "re_read_after_clear": re_read_after_clear,
+        "verdict": (f"Codes were cleared by the all-systems scan {entry.name} at {ts} "
+                    f"({', '.join(codes_cleared) if codes_cleared else 'no codes listed'})."
+                    + tail_note),
+        "next_step": ("Drive until the monitors re-run (EVAP: fuel 15-85 %, cold starts, "
+                      "several drives), then read the status bytes (verify_repair) or "
+                      "re-scan. A returning code is the answer; silence right after a "
+                      "clear is not."),
+    }
+
+
 def build(vin: str = "", vehicle: str = "",
           name: str = "") -> dict[str, Any]:
     """Assemble the full workup for one vehicle.
@@ -166,6 +316,18 @@ def build(vin: str = "", vehicle: str = "",
                   for d in informative.dtcs if d.freeze_frame}
         if frames:
             current["freeze_frames"] = frames
+
+    # The FES-anchored detection above can miss a newer, SCAN-only clear
+    # entirely (see _newest_global_clear). Let the newest clear found
+    # anywhere in the corpus supersede a stale one.
+    newest_clear = _newest_global_clear(entries)
+    if newest_clear is not None:
+        newest_ts, newest_entry, newest_log = newest_clear
+        existing_ts = (current.get("clear_assessment") or {}).get("cleared_at") or ""
+        if newest_ts > existing_ts:
+            current["clear_assessment"] = _clear_dict_from_global(
+                entries, newest_entry, newest_log, newest_ts)
+
     latest_scan = _latest(entries, "scan")
     if latest_scan:
         slog = scan_mod.load_scan(latest_scan.path,
