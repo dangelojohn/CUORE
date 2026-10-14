@@ -62,6 +62,19 @@ _SCAN_NAME = "SCAN_2610080920.txt"
     encoding="utf-8",
 )
 
+#: 2026-10-14 addition: the real morning-of all-systems scan, copied (never
+#: moved, never read from the real MultiEcuScan install path at test time)
+#: into this check's own throwaway MES root -- same posture as the synthetic
+#: fixture above, just real car data instead of a hand-written one. If the
+#: real file is not present on this machine (a CI box, say) that half of the
+#: check is skipped rather than failed.
+_REAL_SCAN_NAME = "SCAN_2610140859.txt"
+_REAL_SCAN_SRC = Path(r"C:\Program Files (x86)\MultiEcuScan") / _REAL_SCAN_NAME
+_HAVE_REAL_SCAN = _REAL_SCAN_SRC.is_file()
+if _HAVE_REAL_SCAN:
+    import shutil
+    shutil.copy(_REAL_SCAN_SRC, _MES_DIR / _REAL_SCAN_NAME)
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
@@ -214,6 +227,45 @@ try:
 except Exception as exc:  # noqa: BLE001
     check("importing a log for the wrong VIN raises BadRequest",
          "VIN" in str(exc), str(exc))
+
+# ===========================================================================
+# 6. the real 2026-10-14 08:59 morning scan (real car data, not a fixture)
+# ===========================================================================
+
+print("=== real morning scan: SCAN_2610140859.txt ===")
+if not _HAVE_REAL_SCAN:
+    print("  [skip] real file not found at", _REAL_SCAN_SRC, "-- skipping this group")
+else:
+    real_scan = mes_handoff_bridge.import_mes_log(VIN, _REAL_SCAN_NAME)
+    check("the real scan is tagged source.kind == MES",
+         real_scan.get("source", {}).get("kind") == "MES", str(real_scan.get("source")))
+    real_codes = set(real_scan["dtcs"]["stored"])
+    expected_codes = {"P0455-00", "P0440-00", "U1736-86", "U1736-87", "U0100-87",
+                      "U1765-86", "U1713-2F", "B1176-97", "B10AA-4A", "U2054-87",
+                      "B1040-64", "C141B-97"}
+    check("the real scan's codes list contains every code this check expects "
+         "(P0440/P0455 EVAP plus the network/body family)",
+         expected_codes <= real_codes, str(real_codes))
+    real_line = mes_handoff_bridge.health_line(real_scan)
+    check("the real scan produces a non-empty health line", bool(real_line.strip()),
+         repr(real_line))
+    check("the real scan's health line names an active fault (13 codes stored)",
+         "active fault" in real_line.lower(), repr(real_line))
+
+    real_listed = mes_handoff_bridge.list_mes_scans(VIN)
+    check("list_mes_scans shows the real imported scan alongside the synthetic one",
+         any(s["id"] == real_scan["id"] for s in real_listed), str(real_listed))
+
+    real_import_resp = client.post(f"/api/tests/{VIN}/mes-import",
+                                   json={"name": _REAL_SCAN_NAME})
+    check("POST mes-import on the real file responds 200",
+         real_import_resp.status_code == 200, str(real_import_resp.status_code))
+    real_scans_resp = client.get(f"/api/tests/{VIN}/mes-scans")
+    real_scans_body = real_scans_resp.json()
+    check("GET mes-scans lists the real scan with a non-empty line over HTTP too",
+         any(s["id"] == real_scan["id"] and (l or "").strip()
+             for s, l in zip(real_scans_body.get("scans", []), real_scans_body.get("lines", []))),
+         str(real_scans_body))
 
 print("=== job page step 6 wires in the MES handoff include ===")
 open_resp = client.post(f"/v/{VIN}/job/open",
