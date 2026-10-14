@@ -207,6 +207,11 @@ def board(vin: str = "") -> dict[str, Any]:
             "system": channel_system(ch.id),
         }
         by_group[_classify(ch)].append(entry)
+        # A placeholder with no readable DID (e.g. esim_status, a 0x31
+        # routine only) is shown but never polled: resolve_channels()
+        # refuses it, and one refused id fails the whole session start.
+        if ch.kind == "did" and ch.did == channels_mod.UNKNOWN_DID:
+            continue
         rates[ch.id] = ch.default_rate_hz
         all_ids.append(ch.id)
     groups = [{"id": g, "label": GROUP_LABELS[g], "channels": by_group[g]}

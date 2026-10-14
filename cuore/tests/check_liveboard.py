@@ -89,6 +89,16 @@ for g in board["groups"]:
 check_eq("coolant grouped under temperatures", group_of.get("engine_coolant_temp"), "temperatures")
 check_eq("battery grouped under voltage", group_of.get("battery_voltage"), "voltage")
 check("board lists all_channel_ids", len(board["all_channel_ids"]) > 0)
+# 2026-10-14 car: Start on the board was refused (HTTP 400) because
+# all_channel_ids carried esim_status, a placeholder with no readable DID.
+from cuore.live import channels as _ch
+try:
+    _ch.resolve_channels(board["all_channel_ids"], "")
+    _ok, _err = True, ""
+except Exception as _e:  # noqa: BLE001
+    _ok, _err = False, str(_e)
+check("every id the board asks the poller for is pollable", _ok, _err)
+check("esim_status placeholder is not polled", "esim_status" not in board["all_channel_ids"])
 check("board carries the read-only notice", "passenger" in board["notice"].lower())
 
 # A learned, unscaled TCM DID (cuore.live.fullscan's discovery sweep,
