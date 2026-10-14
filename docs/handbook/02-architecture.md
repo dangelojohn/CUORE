@@ -1,6 +1,6 @@
 # Architecture
 
-Generated from the code on 2026-10-07. Re-run the greps noted inline if this drifts.
+Generated from the code on 2026-10-07, refreshed 2026-10-13. Re-run the greps noted inline if this drifts.
 
 ## The three programs
 
@@ -64,13 +64,27 @@ Generated from the code on 2026-10-07. Re-run the greps noted inline if this dri
 | Report | `/v/{vin}/report` | `cuore/web/report_routes.py` | `dossier_bridge`, `timeline_bridge`, `experience_bridge`, `parts_bridge` | `report.html` | `cuore/tests/check_report.py` |
 | Inbox | `/v/{vin}/inbox` | `cuore/web/inbox_routes.py` | `feedback_bridge` | `inbox.html`, `_feedback_panel.html` | `cuore/tests/check_feedback_page.py`, `check_feedback.py` |
 | Logs (link, not a `/v/` tab) | `/logs?vin={vin}` | `cuore/web/routes.py` | `mes_bridge` | `logs.html` | -- |
+| Tests (2026-10-08, visible tab) | `/v/{vin}/tests` | `cuore/web/tests_routes.py` | `tests_bridge` (via `GET /api/tests/{vin}`) | `tests.html` | `cuore/tests/check_tests_page.py` |
+| Scans (2026-10-13) | `/v/{vin}/scans`, `/v/{vin}/scans/{scan_id}` | `cuore/web/scanlog_routes.py` | `scanlog_bridge` over `cuore/live/scanlog.py` (groups `observations.jsonl` into sessions, writes nothing) | `scanlog.html`, `scan.html` | `cuore/tests/check_scanlog_page.py` |
+| Health report (2026-10-13, link from Scans, not its own vbar tab) | `/v/{vin}/health`, `/v/{vin}/scans/{scan_id}/health` | `cuore/web/scan_health_routes.py` | `scan_health_bridge` | `scan_health.html` | `cuore/tests/check_scan_health.py` |
 
-Not on the vbar but under `/v/{vin}/...`: `verify` (`dossier_routes.py`), `oil-change`/`service`/`brakes-tires`/`torque`/`maintenance` (`service_routes.py`), `drivetrain/{section}` (`drivetrain_routes.py`), `labels`/`labels.pdf` (`labels_routes.py`), `notes` (`routes.py`), `dealer` (`routes.py`), `live-vs-log` (`routes.py`).
+Vehicle tab strip is now `cuore/web/templates/_vtabs.html` (included from `_vbar.html`), not the old inline list: visible row is Bench, Job, Codes, Live (liveboard), Tests, Systems, Report, Mobile; everything else (Dossier, Modules, Timeline, Gauges, Electrical, Parts, Media, Service, Fault tree, Evidence gate, Inbox, Labels, Logs, Scans, Dashboard, plus a plain link to Tell CUORE) sits behind "More...". Health report and the Systems dive-in (`/v/{vin}/systems/{key}`, below) are reached by links from Scans/Systems, not tab entries of their own.
+
+Not on the vbar but under `/v/{vin}/...`: `verify` (`dossier_routes.py`), `oil-change`/`service`/`brakes-tires`/`torque`/`maintenance` (`service_routes.py`), `drivetrain/{section}` (`drivetrain_routes.py`), `labels`/`labels.pdf` (`labels_routes.py`), `notes` (`routes.py`), `dealer` (`routes.py`), `live-vs-log` (`routes.py`), `systems/{key}` (`cuore/web/system_routes.py` -- Systems dive-in phase 1, per-system status/relationship ring/fault tree page built from `cuore/services/system_detail_bridge.py`).
+
+## Mobile companion: Tell CUORE (`/m/{vin}`), 2026-10-13
+
+`cuore/web/owner_routes.py` -- its own phone-first layout (own `Jinja2Templates`, `m_*.html` templates, no desktop chrome), rebuilt 2026-10-13 to the "Ferrari benchmark" (dark, intro reveal every open, hero with odometer/verdict, four quick actions, 3-tap fill-up, camera on every form). Routes: `GET /m/{vin}`, `/add`, `/add/{category}`, `/add/{category}/{kind}` (+ `POST`), `/add/{category}/{kind}/confirm/{id}`, `/snap` (+ `POST`), `/messages` (+ reply `POST`), `/history`, `/qr`.
+
+Every record it writes is **attested, never a car measurement** -- backed by `cuore/live/owner_events.py` (taxonomy: 9 categories, 62 kinds) via `cuore/services/owner_events_bridge.py`, exposed at `/api/owner/{vin}/taxonomy`, `/events` (GET/POST), `/messages` (GET, reply POST), `/correlations` (`cuore/api/owner_events.py`). No route in this chain ever reaches `cuore.live.actuate`/`clear`/`learn`.
+
+"Snap & fill" photo reading: `POST /api/vision/{vin}/read` (`cuore/api/vision.py` -> `cuore/services/vision_bridge.py`), provider `CUORE_VISION_PROVIDER` = `none` (default, offline) | `claude` (opt-in, sends the photo to Anthropic) | `tesseract` (probe stub, nothing installed). Every value returned is a suggestion a human confirms; a confirmed value saved from a photo is stamped `fields_meta[key] = "photo"`. `docs/mobile/API_CONTRACT.md` is the documented contract for a future Swift/Flutter app, guarded by `check_api_contract.py`.
 
 ## API router files (`cuore/api/*.py`)
 
 | File | Prefix | Purpose (from docstring) |
 |---|---|---|
+| `cases.py` (2026-10-13) | `/api` | `GET /vehicles/{vin}/cases/match`, `/cases/prefill` -- case memory read-only, via `cases_bridge` -> `mes.cases` |
 | `checklists.py` | `/api` | Shop-visible checklist state over HTTP: GET/POST one step at a time |
 | `deps.py` | n/a | Shared route dependencies (the single shared-token auth) |
 | `dossier.py` | `/api` | `GET /api/vehicles/{vin}/view` -- the redesigned dossier's data as JSON, read-only |
@@ -79,18 +93,61 @@ Not on the vbar but under `/v/{vin}/...`: `verify` (`dossier_routes.py`), `oil-c
 | `feedback.py` | `/api` | Mechanic feedback on a fact cuore showed; mirrors the MCP feedback tools call-for-call |
 | `jobs.py` | `/api` | JSON face of the Job (case) workflow; writes are thin pass-through to the bridge |
 | `known_good.py` | `/api` | `GET /api/live/known-good`: known-good reference bands for live channels |
-| `live.py` | `/api` | The live link over HTTP; no write route, read-only UDS allowlist enforced |
+| `live.py` | `/api` | The live link over HTTP; no write route, read-only UDS allowlist enforced; also hosts `/live/fullscan`, `/live/fullscan/last`, `/live/capture`, `/live/learn/*` (below) |
 | `live_ui.py` | `/api` | Layouts, replay, custom channels, snapshots and triggers for the live-data dashboard UI |
 | `logs.py` | `/api` | Raw log access: index, one file verbatim, regex search (filename-resolution security note) |
 | `media.py` | `/api` | Mechanic evidence media library: upload, browse, recover photos/scans/clips |
+| `owner_events.py` (2026-10-13) | `/api` | HTTP face of Tell CUORE (`/owner/{vin}/taxonomy`, `/events`, `/messages`, `/correlations`); every row attested, no route reaches the car |
 | `parts.py` | `/api` | Parts catalog (names, numbers, supersessions, torque, price, images) |
 | `recordings.py` | `/api` | CSV recordings from MES's graph subsystem; only MES output with real per-sample timestamps |
 | `reference.py` | `/api` | Static reference data: module registry and failure-type table |
+| `scan_health.py` (2026-10-13) | `/api` | `GET /scans/{vin}/{scan_id}/health`(`.md`), `POST .../health/save` -- the scan health report, via `scan_health_bridge` |
+| `scanlog.py` (2026-10-13) | `/api` | `GET /{vin}/diff`, `/{vin}/{scan_id}`, `/{vin}/{scan_id}/export` -- one scan in full or diffed, exported as JSON or an MES-style log; the only writer, and only under `CUORE_STATE_DIR/scans/<vin>/` |
 | `system.py` | `/api` | Capabilities, health and corpus status; `/api/capabilities` is the first call any client makes |
 | `systems.py` | `/api` | Vehicle-systems graph and DTC-system correlation |
+| `systems_map.py` (2026-10-13) | `/api` | `GET /systems/{vin}/state` (Systems map overlay: per-system colour, hot edges, session time slider) and `/systems/{vin}/live` (live overlay: worst live colour grade per system, any brand-new DTC); via `systems_map_bridge`, never writes to the car |
+| `tests.py` (2026-10-08) | `/api` | `GET /tests/catalog`, `/tests/{vin}`, `POST /tests/{vin}/{test_id}/result` -- the mechanic-test catalogue (`mes.mechanic_tests`) and per-VIN results, via `tests_bridge` |
 | `timeline.py` | `/api` | Mechanic-vs-driver timeline: codes on one axis, felt symptoms on the other |
 | `tools.py` | `/api` | Read-only data for the Tools catalogue page; writes to the car listed only as inert cards |
 | `vehicles.py` | `/api` | Per-vehicle diagnostics: the dossier and everything it points at |
+| `vision.py` (2026-10-13) | `/api` | `GET /vision/status`, `POST /vision/{vin}/read` -- "read this photo" for Tell CUORE, via `vision_bridge`; never writes an owner event itself, never touches the car |
+
+## Full scan, bus capture and learn (`cuore/live/*`, 2026-10-13)
+
+- **Full scan** (`cuore/live/fullscan.py`, `POST /api/live/fullscan`, `GET /api/live/fullscan/last`): one read-only pass over every subsystem the adapter can reach -- OBD DTCs/readiness/Mode $06/Mode $09, every freeze-frame PID, a UDS module sweep with status flags, and a coverage rollup -- sequenced through the existing `cuore/live/ops.py` readers (no new adapter traffic of its own) and recorded as from-car observations so the Scans area, dossier and health report all see it without fifteen separate manual calls. Each step is wrapped so one failure doesn't sink the scan.
+- **Guided cable wizard** is the pre-existing `/coverage` page (`cuore/web/routes.py`, `coverage.html`, not VIN-scoped itself): a guided three-pass, three-bus session (main bus with no cable, chassis bus through the grey cable, body bus through the blue cable, main bus again) with a bystander diff, backed by `/api/live/coverage*`. Full scan's own `scan_coverage` observation and this wizard's coverage session are two different mechanisms over the same `cuore/live/coverage.py` state.
+- **Bus capture**: `POST /api/live/capture` (`cuore/live/capture.py`) listens passively (`STCMM 0`, no CAN ACK) and returns the raw frame list; it does **not** persist an observation today -- the frames go back to the caller only.
+- **Learn**: `cuore/live/learn.py` (pure functions, reconstructs ISO-TP/UDS request-response pairs and DID time series from a passive capture) + `cuore/live/learned.py` (saves accepted mappings to `learned_dids.json`), reached at `POST /api/live/learn/capture`, `/live/learn/correlate`, `/live/learn/accept`, `GET /api/live/learned` -- how a wiTECH capture becomes a DID mapping cuore can read on its own, without ever talking to the adapter itself.
+- **Live board freeze-frame panel** (`cuore/api/liveboard.py` `/liveboard/{vin}/freeze/capture|status|stop|save|discard`, `cuore/services/liveboard_bridge.py`): starts a capture of stored codes + every supported PID's freeze frame + a Mode 01 snapshot; on save, writes `obd_dtcs`, `freeze_frame`, `pid` (one per channel) and `readiness` observations and hands back a Scans-area scan id.
+
+## Observation kinds (`cuore/live/store.py:record_observation`, `observations.jsonl`)
+
+No kind is an enum -- any string is accepted; this is what the code actually writes and reads as of 2026-10-13.
+
+| Kind | Written by | Read by |
+|---|---|---|
+| `adapter_identity` | `fullscan.py` | `dossier_bridge`/health report (adapter/session context) |
+| `mode09` | `fullscan.py` | scan health report (coverage gaps) |
+| `obd_dtcs` | `fullscan.py`, `ops.py` (single reads), `liveboard_bridge.py` (freeze save) | `dossier_bridge`, `scan_health_bridge`, `scanlog.py` (scan grouping) |
+| `freeze_frame` | `fullscan.py`, `ops.py`, `liveboard_bridge.py` | `dossier_bridge`, `scanlog.py` |
+| `readiness` | `fullscan.py`, `ops.py`, `liveboard_bridge.py` | `dossier_bridge`, `scanlog.py` |
+| `mode06` | `fullscan.py`, `ops.py` | `dossier_bridge`, `scanlog.py` |
+| `pids_snapshot` | `fullscan.py` | `scan_health_bridge` |
+| `pid` | `liveboard_bridge.py` (freeze capture, one per channel) | `scanlog.py` (latest-value-per-PID in a window) |
+| `module_dtcs` | `fullscan.py`, `ops.py` | `dossier_bridge`, `scan_health_bridge`, `scanlog.py` |
+| `module_identity` | `fullscan.py` | `scan_health_bridge` |
+| `did` | `fullscan.py`, `ops.py` | scan health report (DID coverage) |
+| `scan_coverage` | `fullscan.py` | `scan_health_bridge` (the report's coverage section) |
+
+`capture()`'s passive bus listen is not recorded under any kind (see above) -- that is a real gap, not an undocumented one.
+
+## Case close-out (2026-10-13 commit 31c0d71)
+
+Closing a Job (`cuore/services/jobs_bridge.py:close_job`, step 12) builds and saves a Case (`mes.cases.case_from_job`/`record_case`): confirmed/ruled-out hypotheses, tests run, parts fitted, verification state, pitfalls. `mes.cases.match(vin, codes)`/`prefill(vin, codes)`, exposed read-only at `GET /api/vehicles/{vin}/cases/match` and `/cases/prefill` (`cuore/api/cases.py`, `cuore/services/cases_bridge.py` -- the only module that imports `mes.cases`), rank real recorded cases above the seed data and feed Job prefill from the Systems pages; wording always says "on the last `<Model>` with these codes", never presenting a prior car's fix as this car's answer.
+
+## Marque theming (`marque_for_vin`, 2026-10-13 commit 003d6a4)
+
+`cuore/web/routes.py`'s `_page()` computes `data-marque` once per request from `cuore.services.mes_bridge.marque_for_vin(vin)` (pure passthrough to `mes.platform.marque_for_vin`, confidence-graded VIN-WMI decode: `alfa`/`maserati`/`ferrari`/`unknown`, never guessed) and every `/v/{vin}/*` page inherits it from that one call, instead of each route guessing (previously `data-marque` was hardcoded to `"alfa"`).
 
 ## MCP tools
 

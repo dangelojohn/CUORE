@@ -17,6 +17,13 @@ CUORE is a diagnostic assistant for a mechanic who specialises in one brand and 
 9. Branding: Alfa Romeo first; later ported to Alfa, Maserati and Ferrari. Keep marque specifics in data and config. The Stelvio's sibling cars are the Maserati Grecale (shares the Giorgio platform and GME 2.0T engine family) and Levante (different platform, component-level overlap only).
 10. Working method: the main model decides and reviews; low-cost subagents (Sonnet) build. Half the tokens: 4-5 focused checks per feature, one screenshot pass, short reports, one suite run per commit. Commit when agents finish; push only to the `github` remote with the owner's approval; never push to `forge`; never commit koch-mcp/.
 
+## Owner's standing rules added 2026-10-13
+
+11. Fable (the top-level model) does analysis and decisions only -- it never builds. All building goes to Sonnet/Haiku agents, at most about five running concurrently, and the whole working set stays at roughly half the main model's own token budget. (Also in Claude memory: "Low-cost subagents only" -- haiku/sonnet for Agent calls, never Fable forks.)
+12. About ten complete (full-vehicle) scans over the course of one diagnosis is the right order of magnitude -- not one scan per question. One guided scan (the `/coverage` cable wizard, or a full scan) per shop visit, not per code or per hypothesis.
+13. Mobile is held to the same standard as the main app: the Ferrari benchmark, not a form. Design and finish matter there exactly as much as on the bench pages -- dark theme, an intro reveal on every open, a camera on every form, prestige over utility-app defaults. (Tell CUORE's first pass was rejected and rebuilt to this standard, 2026-10-13.)
+14. The photo-reading (vision) provider stays off by default (`CUORE_VISION_PROVIDER=none`) because CUORE runs offline by rule. Turning on the `claude` provider is the owner's own explicit, informed opt-in -- it is the one path in the app that deliberately leaves the LAN and sends data (a photo) to Anthropic -- never a default, never silently enabled by another feature.
+
 ## Design decisions
 
 - Safety: no HTTP route ever writes to the car. Clears, actuator tests and routines are MCP-only, need an exact consent phrase (CLEAR <MODULE>, ACTUATE <MODULE> <NAME>, RUN ROUTINE <MODULE> <NAME>), and are refused on blocked modules (ABS, EPS, ORC, HALF, DASM, ESL, TVM, TCM, ESM, DTCM, RFHUB, anything on CAN-CH). The live poller only reads (OBD Mode 01/03/07, UDS 0x22) and every other adapter operation is refused while it holds the port.
