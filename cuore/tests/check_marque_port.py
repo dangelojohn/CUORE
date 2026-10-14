@@ -39,12 +39,17 @@ Six checks:
      field, both ultimately fed by this fixture's synthetic log).
   6. Bench, Job and Tests contain no literal "Stelvio"/"Alfa" text at all.
      Systems gets a narrower version of the same check (title + data-marque
-     + vehicle bar only, not the full page): ``cuore/web/systems_routes.py``'s
-     page body still reaches ``mes.known_good`` through a call path that
-     does not pass a VIN (``_live_channel_info`` -> ``known_good_bridge.
-     known_good_for``/``sourced_band`` with no ``vin``), so a Stelvio-forum
-     citation can still appear in that page's body -- out of this pass's
-     scope (that route file is not touched here).
+     + vehicle bar only, not the full page) for "Stelvio"/"Alfa" prose --
+     a system's own label/description text is not this check's concern.
+
+  6b. (2026-10-14 fix) The Systems page's own *body* -- not just its title
+     chrome -- now carries zero literal "stelvioforum" citations for the
+     Maserati fixture: ``cuore/web/systems_routes.py``'s ``_live_channel_info``
+     now passes ``vin`` through to ``known_good_bridge.known_good_for``/
+     ``sourced_band``, the same gate the known-good API route already
+     applies, so a Stelvio-forum-sourced row (e.g. ``engine_rpm``,
+     ``engine_coolant_temp``) reached through a system's ``live_channels``
+     never surfaces on another marque's Systems page.
 
   7. (2026-10-14 marque-port fix) The data layer itself IS now gated: the
      only two non-generic, Stelvio-forum-sourced rows ``mes.known_good``
@@ -182,6 +187,9 @@ for label, url in PAGES.items():
               "literal \"Stelvio\" text", "Stelvio" not in title_and_chrome)
         check("systems page's <title>/data-marque chrome has no "
               "literal \"Alfa\" text", "Alfa" not in title_and_chrome)
+        check("systems page's full body has zero \"stelvioforum\" citations "
+              "(vin now threaded through known_good_bridge)",
+              "stelvioforum" not in text.lower())
     else:
         check(f"{label} page has no literal \"Stelvio\" text", "Stelvio" not in text)
         check(f"{label} page has no literal \"Alfa\" text", "Alfa" not in text)

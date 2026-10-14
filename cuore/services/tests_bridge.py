@@ -209,6 +209,24 @@ def build_tests_view(vin: str) -> dict[str, Any]:
     hyp_systems = [h.get("system") or "" for h in open_hyps if h.get("system")]
     sys_test_ids = {t["id"] for t in mechanic_tests.tests_for_systems(hyp_systems)} if hyp_systems else set()
     recommended_ids = code_test_ids | sys_test_ids
+
+    # Catalogue siblings (2026-10-14 fix): a test that shares a
+    # supports_hypotheses tag with an already-recommended test surfaces too,
+    # even when it has no related_codes/system of its own to match on --
+    # e.g. mil_bulb_check is inherently code-less (a bulb check, not a DTC
+    # symptom) and its only system (infotainment_cluster) never matches an
+    # open EVAP hypothesis, yet it shares "MIL request/lamp mismatch" with
+    # mil_request_vs_lamp, which the open U1713 code already recommends --
+    # both must surface together, same as the evap_test_a_esim_switch/
+    # esim_commanded_vent_test/esim_wiring_test family already does via
+    # their shared "evap" system.
+    by_id = {t["id"]: t for t in catalogue}
+    active_tags = {tag for tid in recommended_ids
+                  for tag in (by_id.get(tid, {}).get("supports_hypotheses") or [])}
+    sibling_ids = ({t["id"] for t in catalogue
+                   if active_tags & set(t["supports_hypotheses"])}
+                  if active_tags else set()) - recommended_ids
+    recommended_ids |= sibling_ids
     next_test_ids = {h["next_test"] for h in open_hyps if h.get("next_test")}
 
     rows: list[dict[str, Any]] = []
@@ -232,12 +250,17 @@ def build_tests_view(vin: str) -> dict[str, Any]:
                     "at": fuel_gate.get("at"),
                     "source": fuel_gate.get("source"),
                 }
+        why = _why_for(t, open_codes, open_hyps, next_test_ids) if rid in recommended_ids else []
+        if not why and rid in sibling_ids:
+            shared_tag = next(iter(active_tags & set(t["supports_hypotheses"])), None)
+            if shared_tag:
+                why = [f"shares hypothesis '{shared_tag}' with another recommended test"]
         rows.append({
             **t,
             "step_id": step_id(rid),
             "latest_result": latest,
             "recommended": rid in recommended_ids,
-            "why": _why_for(t, open_codes, open_hyps, next_test_ids) if rid in recommended_ids else [],
+            "why": why,
             "blocker": blocker,
         })
 

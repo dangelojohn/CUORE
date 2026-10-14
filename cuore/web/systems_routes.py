@@ -211,20 +211,26 @@ def _correlate(vin: str) -> dict[str, Any]:
         return _fixture_correlate(vin)
 
 
-def _live_channel_info(channel_id: str) -> dict[str, Any]:
+def _live_channel_info(channel_id: str, vin: str = "") -> dict[str, Any]:
     """One system's ``live_channels`` entry (a bare known-good channel key,
     e.g. ``"battery_voltage"``) resolved to a display name and its
     known-good band note, via :mod:`cuore.services.known_good_bridge` --
     the same source ``cuore.live.layouts``' gauges read. Never raises: an
     unresolvable or UNKNOWN-confidence channel still shows (by its id) with
-    a plain "no sourced band yet" note rather than vanishing or 500ing."""
+    a plain "no sourced band yet" note rather than vanishing or 500ing.
+
+    2026-10-14 marque-port fix: ``vin`` is passed through to
+    ``known_good_for``/``sourced_band`` so a Stelvio-forum-sourced row
+    (e.g. ``engine_rpm``, ``engine_coolant_temp``) is gated the same way
+    the known-good API route already gates it -- never surfaced on a
+    Maserati/Ferrari VIN's Systems page."""
     row, band = None, None
     try:
-        row = known_good_bridge.known_good_for(channel_id)
+        row = known_good_bridge.known_good_for(channel_id, vin=vin)
     except Exception:  # noqa: BLE001
         pass
     try:
-        band = known_good_bridge.sourced_band(channel_id)
+        band = known_good_bridge.sourced_band(channel_id, vin=vin)
     except Exception:  # noqa: BLE001
         pass
     name = (row or {}).get("name") or channel_id.replace("_", " ").title()
@@ -292,7 +298,7 @@ def _build_view(vin: str, show_all: bool = True) -> dict[str, Any]:
             "codes": codes, "sessions": row.get("sessions"),
             "first": row.get("first"), "last": row.get("last"),
             "components": s.get("components") or [],
-            "live_channels": [_live_channel_info(ch) for ch in (s.get("live_channels") or [])],
+            "live_channels": [_live_channel_info(ch, vin=vin) for ch in (s.get("live_channels") or [])],
             "maintenance_items": [m.replace("_", " ") for m in (s.get("maintenance_items") or [])],
             "parts": _system_parts(s.get("parts") or []),
             "depends_on": [

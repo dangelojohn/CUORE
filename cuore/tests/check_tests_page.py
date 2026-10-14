@@ -321,6 +321,22 @@ check("Test A's 'why' names it as the hypothesis's own next test",
      any("next test for hypothesis" in w for w in order_view["tests"][i_a]["why"]),
      str(order_view["tests"][i_a]["why"]))
 
+# --- 2026-10-14 fix: the full recommended order now also carries the
+# flooded-canister pair after the ESIM family, and the MIL pair after
+# that -- mil_bulb_check has no related_codes/system of its own to match
+# on (a bulb check is inherently code-less) but must surface via the
+# catalogue-sibling rule (shares "MIL request/lamp mismatch" with
+# mil_request_vs_lamp, itself recommended via the real open U1713 code).
+print("=== full recommended order: ESIM family, then canister, then MIL ===")
+_ordered_ids = ["evap_test_a_esim_switch", "esim_commanded_vent_test", "esim_wiring_test",
+                "canister_liquid_fuel_weight_check", "vapour_line_fdm_kink_inspection",
+                "mil_bulb_check", "mil_request_vs_lamp"]
+_idx = {i: order_ids.index(i) for i in _ordered_ids}
+for _id in _ordered_ids:
+    check(f"{_id} is recommended", order_view["tests"][_idx[_id]]["recommended"] is True)
+for _a, _b in zip(_ordered_ids, _ordered_ids[1:]):
+    check(f"{_a} ranks ahead of {_b}", _idx[_a] < _idx[_b], str(_idx))
+
 
 # ===========================================================================
 # 4. no regressions in the other step-6/live checks
