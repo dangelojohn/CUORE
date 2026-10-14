@@ -924,7 +924,7 @@ table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
 
 /* ---------- ergonomics baseline (R10) ---------- */
 
-body { font-size: var(--fs-md); }
+/* body font-size now set once, in the foundation :root/body block above. */
 .small { font-size: var(--fs-sm); }
 table.codes-table td.n.mono, table.codes-table td.mono { font-size: var(--fs-sm); }
 /* ...except the short last-seen date and the compact km figure, which are
@@ -968,43 +968,9 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 /* =========================================================================
  * TIMELINE -- "Codes vs. what the driver notices" (/v/{vin}/timeline)
  * Appended section; everything above this line predates the timeline page.
+ * (--fam-* tokens now live in the single foundation :root block at the top
+ * of this file -- see R2.)
  * ========================================================================= */
-
-/* Per-code-family colours for cuore/web/timeline_svg.py. Same convention as
- * the --sev-* / --ok ramp above: dark-first in :root, mirrored in the light
- * media query and the explicit [data-theme="light"] override, so the SVG's
- * var(--fam-*) references resolve correctly in both themes without the
- * Python module knowing which is active. Chosen to stay visually distinct
- * from --accent and from each other, and from --sev-cleared's blue (chassis
- * uses a steeper, darker blue than evap's teal or network's violet). */
-:root {
-  --fam-mil:          #e8565c;
-  --fam-evap:          #3fb0ae;
-  --fam-network:       #a986ef;
-  --fam-body:           #d98a3c;
-  --fam-chassis:        #5b8fd9;
-  --fam-engine:  #8fae4a;
-}
-
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --fam-mil:          #9e1b21;
-    --fam-evap:          #1f7a78;
-    --fam-network:       #6b4fb0;
-    --fam-body:           #a85a10;
-    --fam-chassis:        #2a5ea8;
-    --fam-engine:  #5c7a1e;
-  }
-}
-
-:root[data-theme="light"] {
-  --fam-mil:          #9e1b21;
-  --fam-evap:          #1f7a78;
-  --fam-network:       #6b4fb0;
-  --fam-body:           #a85a10;
-  --fam-chassis:        #2a5ea8;
-  --fam-engine:  #5c7a1e;
-}
 
 /* The swimlane chart: a fixed, non-scrolling label column (so a lane's name
  * is always on screen) beside a horizontally-scrolling SVG. This is what
@@ -1265,23 +1231,11 @@ a.part-compact:hover { border-color: var(--accent); }
  * data-marque on <html> ("alfa" default, "maserati", "ferrari") only ever
  * swaps --accent/--accent-dim -- the severity and --ok tokens above are
  * deliberately marque-invariant, same reasoning as the dark/light split.
+ * (--space-1..5 and the data-marque accent swaps now live in the single
+ * foundation :root block at the top of this file -- see R2.)
  * ===================================================================== */
 
-:root {
-  --space-1: 6px; --space-2: 12px; --space-3: 20px; --space-4: 32px; --space-5: 48px;
-}
-
-:root[data-marque="maserati"]  { --accent: #3d6ea5; --accent-dim: #16263a; }
-:root[data-marque="ferrari"]   { --accent: #d2001f; --accent-dim: #331014; }
-:root[data-theme="light"][data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
-:root[data-theme="light"][data-marque="ferrari"]  { --accent: #a3001a; --accent-dim: #f3d9db; }
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"])[data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
-  :root:not([data-theme="dark"])[data-marque="ferrari"]  { --accent: #a3001a; --accent-dim: #f3d9db; }
-}
-
 /* -- type: larger, lighter, more air -- */
-body { font-size: var(--fs-md); line-height: 1.6; }
 h1 { font-weight: var(--fw-semibold); font-size: var(--fs-3xl); line-height: 1.3; letter-spacing: -.01em; }
 /* One heading scale everywhere (report page review 2026-10-08): a bare h2 is
    a section heading, so it takes the .section-h style instead of the old
@@ -1389,19 +1343,12 @@ details.vmore-tab:not([open]) .vmore-tab-panel { display: none; }
  * /.hero-figure*, .step-oneliner). Nothing above this point is rewritten.
  * Bare `:root` here still loses to the light-theme selectors above
  * (`:root[data-theme="light"]` / the prefers-color-scheme block), which
- * are more specific -- so light stays untouched and usable. */
+ * are more specific -- so light stays untouched and usable.
+ * (The true-black bg/surface/ink values this section used to override
+ * here are now the dark theme's own values in the single foundation
+ * :root block at the top of this file -- see R2. Same for the lone
+ * `body { font-size: 17px }` that used to follow.) */
 
-:root {
-  --bg:        #000;
-  --surface:   #0a0a0a;
-  --surface-2: #111;
-  --rule:      #2a2a2a;
-  --rule-soft: #1c1c1c;
-  --ink:       #fff;
-  --ink-2:     #b8bec4;
-}
-
-body { font-size: var(--fs-lg); }
 .lede, .verdict-sentence, .step-oneliner, .panel p { max-width: 72ch; }
 
 h1 { font-size: var(--fs-3xl); }
