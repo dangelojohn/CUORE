@@ -30,6 +30,8 @@ Run:
 from __future__ import annotations
 
 import os
+import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -39,6 +41,31 @@ os.environ.pop("CUORE_AUDIT_PATH", None)
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
+
+# MES_LOG_DIR: an isolated copy of the real MultiEcuScan corpus (never the
+# real install dir itself -- this test must never write there), same
+# posture as check_mil.py's own ``_place_scan``. This whole suite's
+# scenario is anchored to the review-6 write-up's own dates (MES clear
+# 2026-10-08 09:20, car read back 2026-10-13 20:02-20:24) -- it must never
+# drift just because the real shop corpus keeps growing day to day (e.g.
+# the 2026-10-14 08:59 SCAN that showed up the day after this suite was
+# written, which otherwise becomes the new "newest log" and silently
+# flips the clear-vs-returned picture under every check below). Freezing
+# the copy at the scenario's own cutoff date, rather than hard-coding
+# "latest", keeps the fixture correct both today and after any number of
+# further real scans land in the corpus.
+_REAL_MES_DIR = Path(r"C:\Program Files (x86)\MultiEcuScan")
+_MES_LOG_DIR = Path(tempfile.mkdtemp(prefix="cuore-check-review6-logs-"))
+os.environ["MES_LOG_DIR"] = str(_MES_LOG_DIR)
+_SCENARIO_CUTOFF = "261013"  # YYMMDD -- the review-6 scenario's own last day
+if _REAL_MES_DIR.exists():
+    for _f in _REAL_MES_DIR.iterdir():
+        if not _f.is_file():
+            continue
+        _m = re.search(r"_(\d{6})\d{4}", _f.name)
+        if _m and _m.group(1) > _SCENARIO_CUTOFF:
+            continue  # newer than the scenario's own cutoff -- never copied
+        shutil.copyfile(_f, _MES_LOG_DIR / _f.name)
 
 from fastapi.testclient import TestClient  # noqa: E402
 

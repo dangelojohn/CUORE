@@ -31,6 +31,7 @@ import itertools
 import json
 import os
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -46,6 +47,27 @@ os.environ.pop("CUORE_AUDIT_PATH", None)
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+# MES_LOG_DIR: an isolated copy of the real corpus, frozen before this
+# suite's own 2026-10-13 live-scan fixture (SCAN_AT below) -- same posture
+# as check_mil.py's ``_place_scan`` and check_review6_logic.py. Without
+# this, a later real scan landing in the corpus (e.g. 2026-10-14 08:59's
+# SCAN_2610140859.txt) becomes the newest log, newer than SCAN_AT, and
+# silently flips the "which clock is newer" check below even though the
+# real logic (pick whichever read is actually newest) is working exactly
+# as intended.
+_REAL_MES_DIR = Path(r"C:\Program Files (x86)\MultiEcuScan")
+_MES_LOG_DIR = Path(tempfile.mkdtemp(prefix="cuore-check-bench-logs-"))
+os.environ["MES_LOG_DIR"] = str(_MES_LOG_DIR)
+_SCENARIO_CUTOFF = "261013"  # YYMMDD -- this suite's own scenario cutoff
+if _REAL_MES_DIR.exists():
+    for _f in _REAL_MES_DIR.iterdir():
+        if not _f.is_file():
+            continue
+        _m = re.search(r"_(\d{6})\d{4}", _f.name)
+        if _m and _m.group(1) > _SCENARIO_CUTOFF:
+            continue
+        shutil.copyfile(_f, _MES_LOG_DIR / _f.name)
+
 from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore.app import create_app  # noqa: E402
@@ -55,14 +77,17 @@ from cuore.services import bench_bridge, mes_bridge  # noqa: E402
 
 VIN = "ZASFAKPN5J7B88115"  # the Stelvio -- real corpus, chronic P0455/P0440/P0456
 
-# --- Last scan card fixture: one guided scan, dated 2026-10-13, so the
-# bench's own "Scan n of 10" chip reads "Scan 1 of 10" and the coverage line
-# matches the owner's own spec wording exactly. Hand-built and appended to a
+# --- Last scan card fixture: one guided scan, dated "right now" (never a
+# hard-coded calendar date -- the N1 check below is specifically about
+# today's live scan beating an older MES-log date, so the fixture must
+# always actually be today, whatever day this runs), so the bench's own
+# "Scan n of 10" chip reads "Scan 1 of 10" and the coverage line matches
+# the owner's own spec wording exactly. Hand-built and appended to a
 # throwaway observations.jsonl (CUORE_STATE_DIR above), same posture as
 # cuore/tests/check_scanlog.py's own fixture -- never COM3, never the real
 # C:\ProgramData\cuore\observations.jsonl. -------------------------------
 
-SCAN_AT = datetime(2026, 10, 13, 9, 0, 0)
+SCAN_AT = datetime.now().replace(microsecond=0)
 SCAN_ID = "SCAN_" + SCAN_AT.strftime("%y%m%d%H%M")
 
 

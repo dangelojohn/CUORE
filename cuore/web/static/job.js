@@ -371,8 +371,14 @@
         '<input type="number" step="any" name="value" style="width:48%"> ' +
         '<input type="text" name="unit" placeholder="unit" style="width:40%"></div>' +
         (spec ? '<p class="small muted spec-line">' + spec + '</p>' : '') +
+        // Review 6 UI: a reason is often more than one clause worth
+        // writing ("leak found at the canister purge valve; vapour line
+        // also looks kinked near the tank" -- the kind of detail a
+        // mechanic actually wants to leave for the next person on this
+        // car) -- a single-line <input> clipped that. <textarea>, same
+        // field name so the POST body/validation below are untouched.
         '<div class="field"><label>Reason<span class="reason-required-mark" hidden> (required)</span></label>' +
-        '<input type="text" name="reason" style="width:100%"></div>' +
+        '<textarea name="reason" rows="3" style="width:100%;resize:vertical"></textarea></div>' +
         '<div class="field"><label>Supports/refutes which hypothesis?</label>' +
         '<select name="hypothesis_id" style="width:100%"><option value="">Choose a hypothesis&hellip;</option>' +
         hyps.map(function (h) {
@@ -443,7 +449,7 @@
       dlg.querySelector("[data-save]").addEventListener("click", function () {
         var result = (dlg.querySelector('input[name="result"]:checked') || {}).value;
         if (!result) { showToast("Pick a result first.", "err"); return; }
-        var reasonVal = dlg.querySelector('input[name="reason"]').value.trim();
+        var reasonVal = dlg.querySelector('textarea[name="reason"]').value.trim();
         if (result !== "pass" && !reasonVal) {
           showToast("A reason is required for " + RESULT_LABEL[result].toLowerCase() + ".", "err");
           return;
@@ -526,13 +532,29 @@
         textEl.appendChild(unlinkedChip);
       }
 
+      // Review 6 UI: a Fail result must never render with the same
+      // struck-through/green-tick "done" look a Pass gets -- that is
+      // exactly the "FAIL rows render struck-through with a green tick
+      // and 'done'" bug the mechanic review called out. "Done" (the row
+      // was worked -- same tick-box fact set_result() itself flips, true
+      // for pass and fail alike) and "the test came back clean" (the
+      // green look) are two different facts: aria-pressed/the hidden
+      // ``done`` field stay accurate to the real done state either way,
+      // but the *visual* class is is-fail, not is-done, whenever the
+      // result is a fail -- red, same family as the result chip itself
+      // and .attempt-row.is-fail elsewhere in this app. CSS for
+      // `.job-page .checklist-step.is-fail` and
+      // `.job-page .checklist-step.is-fail .step-check` still needs
+      // adding by whoever owns job.css; this only ever toggles the class.
+      var isFail = result === "fail";
       var done = !entry || entry.done !== false;
-      li.classList.toggle("is-done", done);
+      li.classList.toggle("is-done", done && !isFail);
+      li.classList.toggle("is-fail", done && isFail);
       var check = li.querySelector(".step-check");
       if (check) {
         check.setAttribute("aria-pressed", done ? "true" : "false");
         var mark = check.querySelector("span[aria-hidden]");
-        if (mark) mark.textContent = done ? "✓" : "";
+        if (mark) mark.textContent = done ? (isFail ? "!" : "✓") : "";
         check.title = done ? "Mark not done" : "Mark done";
         setCheckAriaLabel(check);
         var doneInput = li.querySelector('input[name="done"]');
@@ -592,5 +614,30 @@
       btn.addEventListener("click", function () { buildSheet(li, stepId, stepText); });
       li.appendChild(btn);
     });
+
+    // Review 6 UI: "Do it now ->" (hyp_card's own link, job.html) sends the
+    // mechanic to /v/{vin}/job?step=6&hypothesis=<id> -- landing on the
+    // right *page* was already true, but the row that hypothesis's own
+    // next_test actually names was left for the mechanic to go find by eye
+    // on a 22-row list. Reuses the exact same matching heuristic the
+    // result sheet itself preselects by (matchByNextTest, defined above --
+    // function declarations hoist within this IIFE, so it's already
+    // available here) so the row highlighted is always the same one the
+    // sheet would have preselected a hypothesis for, never a second,
+    // disagreeing guess.
+    if (fromHyp) {
+      var _doItNowTarget = null;
+      qsa(".checklist-step", section).forEach(function (li) {
+        if (_doItNowTarget) return;
+        var m = matchByNextTest(rowLabel(li));
+        if (m && m.id === fromHyp) _doItNowTarget = li;
+      });
+      if (_doItNowTarget) {
+        _doItNowTarget.classList.add("is-prefill-selected", "do-it-now-target");
+        if (_doItNowTarget.scrollIntoView) {
+          _doItNowTarget.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+    }
   })();
 })();

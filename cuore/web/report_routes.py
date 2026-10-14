@@ -19,12 +19,27 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, Response
 
 from ..api.deps import require_token
-from ..services import dossier_bridge, experience_bridge, mes_bridge, timeline_bridge
+from ..services import dossier_bridge, experience_bridge, mes_bridge, shop_bridge, timeline_bridge
 from ..services.errors import BridgeError, NotFound
 from . import report_pdf
 from . import routes as web_routes
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
+
+# Review 6 UI: code.html/codes.html (routes.py, not owned by this file)
+# build their own ``bar`` straight off ``_vehicle_bar``, with no
+# ``resolve_vehicle_name`` patch -- so their titles ("P0455 -- (unnamed
+# vehicle)") regress exactly the way tests.html/the bench page used to
+# before that patch was added there. ``web_routes.templates`` is the one
+# shared Jinja environment every ``/v/`` page (routes.py, report_routes.py,
+# and every other *_routes.py that does ``from . import routes as
+# web_routes``) renders through, so registering a global here reaches
+# every template, code.html/codes.html included, without editing
+# routes.py itself. The templates use it defensively (``is defined``)
+# so they would still render, just with the old fallback, if this module
+# were ever not imported.
+web_routes.templates.env.globals.setdefault(
+    "vehicle_display_name", shop_bridge.resolve_vehicle_name)
 
 
 # --- lazy, optional data sources -------------------------------------------
@@ -253,6 +268,13 @@ def _parts_section(codes: list[str]) -> list[dict[str, Any]]:
 def _report_context(vin: str) -> dict[str, Any]:
     dossier = web_routes._dossier(vin)
     bar = web_routes._vehicle_bar(vin, dossier)
+    # Review 6 UI: _vehicle_bar falls back to "(unnamed vehicle)" straight
+    # off dossier.identity -- same regression as tests_routes.py/
+    # system_routes.py/liveboard_routes.py; resolve_vehicle_name adds the
+    # corpus name / WMI decode fallback bench_routes.py already relies on,
+    # so the report's own title (and every other bar.name use on this
+    # page) gets the same real vehicle name Bench shows.
+    bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
     live_status = web_routes._status_strip()
     view = dossier_bridge.build_view(vin, dossier, live_status)
 
@@ -289,6 +311,7 @@ def _code_report_context(vin: str, code: str) -> dict[str, Any]:
     code_upper = code.strip().upper()
     dossier = web_routes._dossier(vin)
     bar = web_routes._vehicle_bar(vin, dossier)
+    bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
     live_status = web_routes._status_strip()
     view = dossier_bridge.build_view(vin, dossier, live_status)
 

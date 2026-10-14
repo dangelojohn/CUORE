@@ -1,5 +1,10 @@
 {% extends "base.html" %}
-{% block title %}{{ code }} — {{ bar.name }}{% endblock %}
+{# Review 6 UI: routes.py's own ``bar`` for this page has no
+   resolve_vehicle_name patch (unlike Bench/Tests), so bar.name alone can
+   still be "(unnamed vehicle)" -- vehicle_display_name (report_routes.py's
+   global, same resolver Bench uses) is tried first; bar.name is still the
+   fallback if that global isn't registered for any reason. #}
+{% block title %}{{ code }} — {{ (vehicle_display_name(vin) if vehicle_display_name is defined else none) or bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('media.css') }}">

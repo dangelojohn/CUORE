@@ -116,8 +116,35 @@
         {% if code not in _elec_codes %}{% set _ = _elec_codes.append(code) %}{% endif %}
       {% endfor %}
     {% endfor %}
+    {# Review 6 UI: several open codes can share the exact same wiring --
+       P0440/P0455/P0456 all trace the same EVAP purge-valve/canister/ESIM
+       run, and U1711/U1712/U1713/U0100 all trace the same BCM feed/ground
+       -- and used to print the whole stepper once per code (three near-
+       -identical EVAP copies, four near-identical U-code copies: ~88,000
+       chars on this VIN alone). Grouped here by the path's own hop-id
+       sequence (electrical_path_for -- the same global _electrical_path.html
+       itself calls, registered by electrical_routes.py), so the partial is
+       included once per *distinct* path; every other code sharing that
+       path is named in a plain "also applies to" line instead of a second
+       (or third, or fourth) copy of the same stepper. A code with no known
+       path at all keeps its own one-item group, same as before this pass. #}
+    {% set _elec_groups = [] %}
     {% for code in _elec_codes %}
+      {% set _epath = electrical_path_for(vin, code) if electrical_path_for is defined else None %}
+      {% set _key = (_epath.path|map(attribute='id')|list) if _epath and _epath.found else [code] %}
+      {% set _match = _elec_groups|selectattr('key', 'equalto', _key)|list %}
+      {% if _match %}
+        {% set _ = _match[0].also.append(code) %}
+      {% else %}
+        {% set _ = _elec_groups.append({"key": _key, "primary": code, "also": []}) %}
+      {% endif %}
+    {% endfor %}
+    {% for grp in _elec_groups %}
+      {% set code = grp.primary %}
       {% include "_electrical_path.html" %}
+      {% if grp.also %}
+        <p class="small muted elec-also-applies">Also applies to {{ grp.also|join(", ") }}.</p>
+      {% endif %}
     {% else %}
       <p class="muted small">No open codes to trace electrically.</p>
     {% endfor %}

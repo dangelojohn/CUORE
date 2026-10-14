@@ -3,11 +3,15 @@ and the routers over it (the checklist store, the view JSON, "verify repair").
 
 Same posture as ``cuore/tests/check_dealer_page.py``/``check_notes_page.py``:
 ``CUORE_STATE_DIR`` is pointed at a throwaway directory BEFORE cuore is
-imported, so nothing here ever touches the bench's real state. The MES log
-corpus is NOT overridden -- VIN ZASFAKPN5J7B88115's real corpus (chronic
-EVAP trio, newest MES clear 2026-10-08 09:20, never re-verified -- fixed in
-2210d76; was 2026-09-29 before that commit) is the fixture, same as every
-other dossier test in this suite.
+imported, so nothing here ever touches the bench's real state. VIN
+ZASFAKPN5J7B88115's real corpus (chronic EVAP trio, newest MES clear
+2026-10-08 09:20, never re-verified -- fixed in 2210d76; was 2026-09-29
+before that commit) is the fixture, same as every other dossier test in
+this suite -- copied (never the real install itself) into an isolated
+``MES_LOG_DIR``, frozen at that same 2026-10-08 scenario's cutoff date so a
+later real scan landing in the corpus (e.g. 2026-10-14's SCAN_2610140859.txt)
+can never silently become the new "newest log" and shift the picture these
+checks below assert.
 
 ``cuore.app.create_app`` may not yet wire ``cuore.api.checklists``,
 ``cuore.api.dossier`` or ``cuore.web.dossier_routes`` (another agent owns
@@ -21,6 +25,8 @@ Run:
 from __future__ import annotations
 
 import os
+import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -31,6 +37,24 @@ os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-dossier-vie
 os.environ.pop("CUORE_AUDIT_PATH", None)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+
+# MES_LOG_DIR: an isolated copy of the real corpus, frozen at the
+# 2026-10-08 clear scenario's own cutoff date -- same posture as
+# check_mil.py's ``_place_scan`` and check_review6_logic.py. Never the
+# real install dir itself, and never affected by a real scan landing in
+# the corpus after this scenario's own date.
+_REAL_MES_DIR = Path(r"C:\Program Files (x86)\MultiEcuScan")
+_MES_LOG_DIR = Path(tempfile.mkdtemp(prefix="cuore-check-dossier-view-logs-"))
+os.environ["MES_LOG_DIR"] = str(_MES_LOG_DIR)
+_SCENARIO_CUTOFF = "261013"  # YYMMDD -- this suite's own scenario cutoff
+if _REAL_MES_DIR.exists():
+    for _f in _REAL_MES_DIR.iterdir():
+        if not _f.is_file():
+            continue
+        _m = re.search(r"_(\d{6})\d{4}", _f.name)
+        if _m and _m.group(1) > _SCENARIO_CUTOFF:
+            continue
+        shutil.copyfile(_f, _MES_LOG_DIR / _f.name)
 
 from fastapi.testclient import TestClient  # noqa: E402
 

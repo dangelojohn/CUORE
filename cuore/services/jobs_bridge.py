@@ -1011,6 +1011,23 @@ def build_job_view(vin: str, job_id: Optional[str] = None, *,
         if not (job.get("complaint") or "").strip() and symptoms:
             job["complaint"] = symptoms[-1].get("text") or job.get("complaint")
 
+        # Review 6 UI: liveboard_bridge.snapshot_recommendations() records
+        # a live-data snapshot into the repair log via
+        # ``jobs_mod.add_action(job_id, "test", ...)`` -- a snapshot is a
+        # passive read of whatever the car happened to be doing, never a
+        # pass/fail test someone ran, so step 9 must not list it as one.
+        # Same display-only posture as the ``next_test`` remap above:
+        # never mutates the stored action (the "test" kind is still what
+        # add_action's own kind vocabulary allows and what evidence links
+        # elsewhere key on), only the copy this page renders.
+        if job.get("actions"):
+            job["actions"] = [
+                {**a, "kind": "observation"}
+                if a.get("kind") == "test" and (a.get("ref") or {}).get("kind") == "live"
+                else a
+                for a in job["actions"]
+            ]
+
     return {
         "vin": vin,
         "vehicle": _vehicle_name(vin),

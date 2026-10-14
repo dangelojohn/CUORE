@@ -48,6 +48,28 @@ if resp.status_code == 200:
     check("print.css linked in base", "/static/print.css" in body)
     check("Report tab present", ">Report<" in body)
 
+    # EXTERNAL_REVIEW_6_2026-10-14.md's UI items: the title names the real
+    # vehicle (the same resolver Bench uses), never the unnamed placeholder,
+    # and the electrical path is printed once per *distinct* path (grouped
+    # by the path's own hop-id sequence) with an "also applies to" line for
+    # every other code sharing it -- never three near-identical copies for
+    # the EVAP P0440/P0455/P0456 trio.
+    check("report title names the Stelvio, never '(unnamed vehicle)'",
+          "<title>" in body and "(unnamed vehicle)" not in body.split("</title>")[0]
+          and "Stelvio" in body.split("</title>")[0], body.split("</title>")[0])
+    check("the EVAP trio's electrical path prints once, not three times",
+          body.count("Electrical path for P0440") + body.count("Electrical path for P0455")
+          + body.count("Electrical path for P0456") == 1,
+          str((body.count("Electrical path for P0440"), body.count("Electrical path for P0455"),
+               body.count("Electrical path for P0456"))))
+    check("the other two EVAP codes are named in an 'also applies to' line "
+          "instead of their own copy",
+          "Also applies to" in body
+          and any("P0455" in ln and "P0456" in ln
+                  for ln in body.split("Also applies to")[1:2]),
+          body[body.find("Also applies to") - 40:body.find("Also applies to") + 80]
+          if "Also applies to" in body else "no 'Also applies to' line found")
+
 
 # --- vehicle PDF --------------------------------------------------------------
 

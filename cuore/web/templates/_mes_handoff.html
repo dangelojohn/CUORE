@@ -59,8 +59,16 @@
     node.querySelector(".mes-handoff-prereq").textContent =
       (fn.prerequisites || []).join("; ") || "none noted";
     node.querySelector(".mes-handoff-record").textContent = fn.record_after;
+    // Review 6 UI: this card is mechanic-facing (it sits right on a test
+    // row / job checklist row), and `fn.cuore_today` is an internal
+    // implementation note written for the next developer, not the
+    // mechanic at the bench -- e.g. "no -- MCP-only via obd2.run_actuator
+    // with the ACTUATE ECM ..." (see mes-log-mcp/mes/mes_functions.py).
+    // That detail stays here, in this comment, for whoever maintains this
+    // handoff next; the card itself only ever says what the mechanic
+    // needs to know: do the step in MES, CUORE will record it.
     node.querySelector(".mes-handoff-gap").textContent =
-      "CUORE today: " + fn.cuore_today;
+      "Run in MES: " + fn.menu_path + "; CUORE records the result.";
     node.querySelector(".mes-handoff-source").textContent =
       "Source: " + fn.source + " (confidence: " + fn.confidence + ")";
     var form = node.querySelector(".mes-handoff-import");

@@ -36,6 +36,7 @@ import tempfile
 import shutil
 import time
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 
 os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-jobux-")
@@ -49,10 +50,15 @@ os.environ.pop("CUORE_AUDIT_PATH", None)
 # 2026-10-14 the real corpus's own later clears/rescans have carried every
 # chronic code to STALE/CLEARED_UNVERIFIED (none left ACTIVE at all), which
 # would make the ?codes= highlight check below untestable against the real
-# corpus alone. One extra scan, dated after the newest real clear, that
-# reports P0456 again -- the exact "returned after clear" shape the real
-# corpus itself held on 2026-10-08/13 -- keeps this check deterministic
-# without weakening it and without touching the real install's own files.
+# corpus alone. One extra scan, that reports P0456 again -- the exact
+# "returned after clear" shape the real corpus itself held on 2026-10-08/13
+# -- keeps this check deterministic without weakening it and without
+# touching the real install's own files. Its own timestamp is "right now"
+# (never a hard-coded date) so it is always the newest scan on file,
+# whatever day this runs -- a hard-coded date (even one a day ahead of the
+# scenario it was first written against) is exactly what let a later real
+# scan quietly become newer and flip P0456 back off ACTIVE from under this
+# check, the same drift bug this file's own comment above describes.
 _REAL_MES_DIR = Path(r"C:\Program Files (x86)\MultiEcuScan")
 _MES_LOG_DIR = Path(tempfile.mkdtemp(prefix="cuore-check-jobux-logs-"))
 os.environ["MES_LOG_DIR"] = str(_MES_LOG_DIR)
@@ -60,7 +66,8 @@ if _REAL_MES_DIR.exists():
     for _f in _REAL_MES_DIR.iterdir():
         if _f.is_file():
             shutil.copyfile(_f, _MES_LOG_DIR / _f.name)
-(_MES_LOG_DIR / "SCAN_2610140800.txt").write_text(
+_jobux_scan_at = datetime.now()
+(_MES_LOG_DIR / f"SCAN_{_jobux_scan_at.strftime('%y%m%d%H%M')}.txt").write_text(
     "Scan vehicle for available modules and check each module for errors...\n\n"
     "Engine / ECM\n"
     "Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)\n"
@@ -900,7 +907,7 @@ else:
                                 "var dlg = document.querySelector('dialog.result-sheet');"
                                 "var fail = dlg.querySelector('input[name=\"result\"][value=\"fail\"]');"
                                 "fail.checked = true; fail.dispatchEvent(new Event('change'));"
-                                "dlg.querySelector('input[name=\"reason\"]').value = 'cdp check leak';"
+                                "dlg.querySelector('textarea[name=\"reason\"]').value = 'cdp check leak';"
                                 "var sel = dlg.querySelector('select[name=\"hypothesis_id\"]');"
                                 "for (var i = 0; i < sel.options.length; i++) {"
                                 "  if (sel.options[i].textContent.indexOf('cdp-check hypothesis') !== -1) { sel.selectedIndex = i; break; }"
