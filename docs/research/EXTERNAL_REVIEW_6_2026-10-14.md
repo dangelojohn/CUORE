@@ -1,0 +1,23 @@
+# External mechanic walk-through #6 (2026-10-14)
+
+Walked all 12 job steps plus Bench, Codes, Tests, Systems, Scan, Report and a code page at ~485 px; recorded one Mode $06 FAIL and one hypothesis (ESIM signal path) through the UI. Test data left on the VIN: step 6 shows 1/25 results, step 7 one open hypothesis; visit left open.
+
+## Diagnostic reading (reviewer's view)
+- Primary: a real large EVAP leak on the tank/canister side, most likely a saturated/flooded canister or ESIM: owner reports a strong fuel smell after fill-up and the pump nozzle clicking off (vent-path restriction), P0455 frame at 93.73 % fuel, 63 C, 50 km/h in 6th; Mode $06 0.090" test 404 ms vs 3965 min (13 Oct); P0440/P0455/P0456 recurring across 5-11 sessions; P0456 a year old / 28 000 km, so the small leak predates the large one. TSB 9100471 (flooded canister: replace canister + ESIM, check the tank-to-canister vapour line for kinks) fits better than purge valve or ECM calibration; the 18-030-17 flash level is the cheap first check. Fuel above the 85 % window, so no leak test can be trusted until burned down.
+- Secondary: the MIL request may not reach the cluster (ECM commanded on since 13 Oct 20:03; owner has not seen the lamp since the 8 Oct clear; BCM U1713-2F active, IPC U1736 history). Bulb check and request-vs-lamp are the right next steps.
+- Network cascade: the 17 seen-once U/B/C codes cluster on 27 Aug and 4 Sep, the cable-swap days; chronic U1711/U1712/U1713 (BCM) and U0100 (DTCM) remain to prove: F82/XY201/G003A-B checks as one job.
+- Under-weighted: C104B (ABS hydraulic leak) is a brake-safety code offered only electrical steps; B1176 is a mechanical window-regulator fault grouped with comms codes; P0098/P00F5/P105E/P1189 are one 2025 session and should not drive six live-channel checks today.
+
+## Logic problems
+1. The system disagrees with itself about the latest data: header/report say "through 2026-10-08", Codes/step 4 show P0455/P0456 CLEARED_UNVERIFIED, while Verdict/step 7/step 10 say active from the car 2026-10-13. The 13 Oct read is not treated as a scan log, so "returned: erased and set again" is never computed for P0440/P0455.
+2. Step 5 "No active codes to explain" between steps 3/7 "Active faults"; step 1 "(no complaint recorded)" vs step 2 symptom on file; U1736 in open work but absent from the 29-code Codes list; C1408-86 in Codes and Systems but not in the job's chassis group; bench "KOEO BLOCKED: MES running" beside "Scanner: not running".
+3. Fuel gate stale: 93.73 % equals the 25 Sep freeze frame; readiness 8/8 on 13 Oct is impossible above 85 %. Show timestamp and source; warn, not block, when older than the latest readiness read.
+4. Mode $06 0.020" reads "FAIL 6096 ms vs min 0 ms": limit is a max or min/max swapped.
+5. "Above 85 %: monitor could not run" freeze frames listed as evidence FOR the ESIM hypothesis; they are test-condition evidence. The card says "none is a pass/fail result" while two Mode $06 FAILs sit above it.
+6. Test results and hypotheses cannot meet: step 6 hypothesis dropdown empty before step 7; a recorded Mode $06 FAIL not offered in "+ Evidence for"; Tests page promises auto-attachment that did not happen.
+
+## UI problems
+485 px: job page overflows horizontally; stepper wraps 10-12. Steps dropdown sends "1. Intake" to /start and "3. Verdict" to Bench while the stepper goes to step=1/3; invisible dropdown items do nothing. FAIL rows render struck-through with a green tick and "done"; value only in toast/hover; reason is single-line. "Do it now" lands at the top of step 6 without scrolling/highlighting the row. Codes and Report titles say "(unnamed vehicle)". Report prints the 13-node electrical path three times for P0440/P0455/P0456 and once per U-code (88 000 chars). The ESIM commanded vent test card exposes internal notes ("CUORE today: no -- MCP-only via obd2.run_actuator..."). Step 9 lists live snapshots as "test" actions.
+
+## Recommendations (reviewer's order)
+Ingest the 13 Oct read as a scan log; one "data through" date; derive step 1 complaint and step 5 active codes from the verdict's source. Timestamp/source the fuel gate; warn not block when stale. Fix Mode $06 limit decoding. Let a test result create/pick a suggested hypothesis inline; include recorded results in the evidence picker. Red FAIL state distinct from done. Split Body group; promote C104B to a brake-fluid/hydraulic inspection; demote old single-session codes from open work. Fix Steps hrefs, responsive layout, titles; strip developer notes. Car: burn fuel below 85 %, read DTC EX on everything before clearing, check calibration against 18-030-17, smoke/vacuum the canister/ESIM branch with the vapour line inspected for kinks, bulb check and request-vs-lamp on the lift.
