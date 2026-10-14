@@ -36,7 +36,14 @@
   text-transform: uppercase;
   color: var(--muted, #8a8f96);
 }
-.job-page .pm-cap { flex: 0 0 auto; text-align: left; white-space: nowrap; overflow: hidden; margin-right: 10px; }
+/* R6: was `flex: 0 0 auto` -- flex-shrink:0 plus the flexbox default
+   min-width:auto (= the text's own min-content width) meant the four
+   caption spans' percentage flex-basis values never actually won against
+   long phase names, and the row (no overflow-x of its own) pushed the
+   whole job page a few px past the viewport at narrow widths. flex-shrink:1
+   + min-width:0 let the percentage basis -- and this element's own
+   overflow:hidden -- actually take effect. */
+.job-page .pm-cap { flex: 0 1 auto; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; margin-right: 10px; }
 .job-page .pm-cap-4 { flex-basis: 33%; }
 .job-page .pm-cap-3 { flex-basis: 25%; }
 .job-page .pm-cap-2 { flex-basis: 16.6%; }
