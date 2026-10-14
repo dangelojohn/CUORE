@@ -141,13 +141,32 @@ class Session:
         # Always restate the functional header: the adapter remembers the last
         # ATSH across port closes and protocol switches, and a process restart
         # forgets what that was.
-        self.cmd("ATSH18DB33F1" if self.header_bits == 29 else "ATSH7DF", 2)
+        if self.header_bits == 29:
+            # 29-bit functional header the way the ELM/STN command set takes
+            # it: priority byte via ATCP, lower 24 bits via ATSH. A single
+            # 8-digit ATSH is not accepted by every firmware and silently
+            # leaves the last header in force (read as NO DATA on the bench,
+            # 2026-10-13, while the probe built this way got answers).
+            self.cmd("ATCP18", 2)
+            self.cmd("ATSHDB33F1", 2)
+            self.cmd("ATSTFF", 2)
+        else:
+            self.cmd("ATSH7DF", 2)
         self.cmd("ATCRA", 2)
         if self.link.is_stn:
-            # ATCRA on an STN is a pass filter; a bare ATCRA does not reliably
-            # remove it, and it survives port closes. Clear every filter.
-            self.cmd("STFAC", 2)
+            # Bench finding 2026-10-13 (vLinker FS r2, STN1170 v4.3.2): STFAC
+            # removes the firmware's default pass filters too, after which
+            # every reply is dropped and each request reads NO DATA. Re-issuing
+            # the protocol select restores the defaults, and the functional
+            # header must then be restated because STP resets it as well.
             self.cmd("STCFCPC", 2)
+            self.cmd(f"STP {self.route.stn_protocol}", 2)
+            if self.header_bits == 29:
+                self.cmd("ATCP18", 2)
+                self.cmd("ATSHDB33F1", 2)
+                self.cmd("ATSTFF", 2)
+            else:
+                self.cmd("ATSH7DF", 2)
         self._target = None
         self.link._last_target = None
 
@@ -411,7 +430,12 @@ class AdapterLink:
                 f"almost always the wrong speed")
         if "TIMEOUT" in r and not r.replace("TIMEOUT", "").strip():
             raise LinkUnavailable(f"no reply from the adapter on {self.port}; is it plugged in?")
-        for c in ("ATL0", "ATS0", "ATH1", "ATAT1"):
+        # ATCAF1 is restated every session: the adapter keeps settings across
+        # port closes, a monitor session may have switched formatting off,
+        # and a request sent without the ISO-TP PCI byte is ignored by every
+        # ECU -- read as NO DATA on the bench (2026-10-13) while the probe,
+        # which set ATCAF1 itself, got answers on the same bus.
+        for c in ("ATL0", "ATS0", "ATH1", "ATAT1", "ATCAF1"):
             sess.cmd(c, 2)
         if not self.identity:
             self._probe_identity(sess)

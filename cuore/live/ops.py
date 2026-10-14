@@ -152,28 +152,50 @@ def _active_probe_0100(lk: AdapterLink, b: Bus, port: str, baud: int,
     Uses ``_bypass_silence_guard`` because this request is what *establishes*
     verification -- it cannot itself be gated on being verified already.
     """
-    route = None
+    # The adapter's own auto-detect on this car reports "ISO 15765 500K/29B":
+    # Giorgio answers legislated requests on 29-bit addressing (functional
+    # 18DB33F1, replies 18DAF1xx), so that route is probed first; the 11-bit
+    # pair (7DF / 7E8-7EF) second. Either reply proves the bus alive.
+    plans = []
+    for r in routes_for(b, lk.cable):
+        if r.stn_protocol == "34":
+            plans.append((r, ["ATCAF1", "ATCP18", "ATSHDB33F1"]))
     for r in routes_for(b, lk.cable):
         if r.stn_protocol == "33":
-            route = r
-            break
-    if route is None:
+            plans.append((r, ["ATCAF1", "ATSH7DF"]))
+    if not plans:
         return {"ok": False, "responders": [], "raw": None, "error": None,
-                "note": "no 11-bit (STP 33) route for cable " + repr(lk.cable)}
-    with lk.session("active_probe_0100", bus=b, port=port, baud=baud, passive=False,
-                    allow_while_mes_connected=allow_while_mes_connected, route=route,
-                    _bypass_silence_guard=True) as sess:
-        sess.cmd("ATCAF1", 2)
-        sess.cmd("ATSH7DF", 2)
-        q = sess.query("0100", "41", timeout=1.0)
-        responders = sorted(h.upper() for h in q["all_ecus"] if h.upper() in _OBD_FUNCTIONAL_REPLIES)
-        ok = bool(responders) and bool(q["ecus"])
-        audit.record("active_probe", bus=b.key, request="0100", ok=ok,
-                     reply_ecus=responders, raw=q["raw"])
-        if ok:
-            return {"ok": True, "responders": responders, "raw": q["raw"], "error": q["error"]}
-        return {"ok": False, "responders": [], "raw": q["raw"], "error": q["error"],
-                "note": "active probe 0100 got no reply"}
+                "note": "no CAN-C route for cable " + repr(lk.cable)}
+    last: dict[str, Any] = {"raw": None, "error": None}
+    for route, setup in plans:
+        with lk.session("active_probe_0100", bus=b, port=port, baud=baud, passive=False,
+                        allow_while_mes_connected=allow_while_mes_connected, route=route,
+                        _bypass_silence_guard=True) as sess:
+            for c in setup:
+                sess.cmd(c, 2)
+            # The adapter answers "NO DATA" from its own reply timer (default
+            # ~200 ms, adaptive); give it the full ~1 s window and ask twice.
+            sess.cmd("ATAT0", 2)
+            sess.cmd("ATSTFF", 2)
+            q = sess.query("0100", "41", timeout=1.5)
+            if not q.get("ecus"):
+                q = sess.query("0100", "41", timeout=1.5)
+            responders = sorted(h.upper() for h in q["all_ecus"] if _is_obd_reply(h))
+            ok = bool(responders) and bool(q["ecus"])
+            audit.record("active_probe", bus=b.key, request="0100", ok=ok,
+                         stn_protocol=route.stn_protocol, reply_ecus=responders, raw=q["raw"])
+            last = q
+            if ok:
+                return {"ok": True, "responders": responders, "raw": q["raw"],
+                        "error": q["error"], "stn_protocol": route.stn_protocol}
+    return {"ok": False, "responders": [], "raw": last.get("raw"), "error": last.get("error"),
+            "note": "active probe 0100 got no reply"}
+
+
+def _is_obd_reply(header: str) -> bool:
+    """A legislated OBD-II reply id: 7E8-7EF (11-bit) or 18DAF1xx (29-bit)."""
+    h = (header or "").upper()
+    return h in _OBD_FUNCTIONAL_REPLIES or (len(h) == 8 and h.startswith("18DAF1"))
 
 
 def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
@@ -232,6 +254,7 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                          "responders": probe.get("responders", [])})
         if probe["ok"]:
             lk.mark_verified(b, 0, verified_by="active_probe_0100",
+                             probe_stn_protocol=probe.get("stn_protocol"),
                              responders=probe["responders"])
             return _stamp(sess, {"verified": True, "frames": 0, "rate_hz": 0.0, "ids": {},
                                  "error": None, "attempts": attempts,
@@ -270,7 +293,17 @@ def _obd_route() -> Any:
     29-bit UDS address answers every legislated request with NRC 0x11
     (serviceNotSupported), which read as silence until 2026-09-25.
     """
-    for route in routes_for(CAN_C, link().cable):
+    lk = link()
+    # 2026-10-13, live on the bench: this Stelvio answered Mode 01 PID 00 on
+    # the 29-bit functional address (18DAF110/18DAF118) and gave NO DATA on
+    # the 11-bit pair -- the opposite of the 2026-09-25 note above. The route
+    # that actually proved the bus alive is the one legislated reads use.
+    ver = (getattr(lk, "verified", {}) or {}).get(CAN_C.key) or {}
+    want = ver.get("probe_stn_protocol") if ver.get("verified_by") == "active_probe_0100" else None
+    for route in routes_for(CAN_C, lk.cable):
+        if route.stn_protocol == (want or "33"):
+            return route
+    for route in routes_for(CAN_C, lk.cable):
         if route.stn_protocol == "33":
             return route
     return None
