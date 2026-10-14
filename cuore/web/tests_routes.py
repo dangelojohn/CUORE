@@ -52,6 +52,22 @@ def tests_page(request: Request, vin: str) -> HTMLResponse:
     return response
 
 
+@router.get("/v/{vin}/tests/{test_id}/print", response_class=HTMLResponse)
+def tests_print_page(request: Request, vin: str, test_id: str) -> HTMLResponse:
+    """A standalone, one-page printable sheet for a single test: the
+    procedure as a tick list, pass criteria with sources and confidence,
+    hazards, and a results box matching the fields the result form stores.
+    ``tests_bridge.build_test_print_view`` raises ``NotFound`` (-> 404) for
+    an unknown test id, same contract as every other single-item lookup."""
+    dossier = _dossier(vin)
+    bar = _vehicle_bar(vin, dossier)
+    bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
+    view = tests_bridge.build_test_print_view(vin, test_id)
+    response = _page(request, "tests_print.html", vin=vin, bar=bar, view=view)
+    _set_active_vehicle(response, vin)
+    return response
+
+
 @router.post("/v/{vin}/tests/{test_id}/result", response_class=HTMLResponse)
 def tests_result_form(request: Request, vin: str, test_id: str,
                       result: str = Form(...), value: str = Form(""),

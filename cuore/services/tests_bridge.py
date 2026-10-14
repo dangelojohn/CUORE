@@ -22,10 +22,12 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from datetime import datetime, timezone
+
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from ..live import checklists as checklist_store
 from . import cache, mes_bridge
-from .errors import BadRequest
+from .errors import BadRequest, NotFound
 
 from mes import mechanic_tests  # noqa: E402
 
@@ -139,8 +141,11 @@ def _base_code(code: str) -> str:
 
 
 def _why_for(t: dict[str, Any], open_codes: list[str],
-            open_hyps: list[dict[str, Any]]) -> list[str]:
+            open_hyps: list[dict[str, Any]], next_test_ids: set[str]) -> list[str]:
     why: list[str] = []
+    for h in open_hyps:
+        if h.get("next_test") and h["next_test"] == t["id"]:
+            why.append(f"next test for hypothesis: {h.get('text') or h['id']}")
     bases = [_base_code(c) for c in open_codes if c]
     for rel in t["related_codes"]:
         rel_u = rel.strip().upper()
@@ -148,9 +153,31 @@ def _why_for(t: dict[str, Any], open_codes: list[str],
         if matched:
             why.append(f"open code {', '.join(matched)}")
     for h in open_hyps:
+        if h.get("next_test") == t["id"]:
+            continue  # already named above
         if (h.get("system") or "").strip().lower() in t["systems"]:
             why.append(f"open hypothesis: {h.get('text') or h['id']}")
     return why
+
+
+def _hyp_rank(t: dict[str, Any], open_hyps: list[dict[str, Any]],
+             next_test_ids: set[str]) -> int:
+    """How strongly this test lines up with the job's open hypotheses --
+    the ranking key for "Recommended for this car": 0 when the test is the
+    fault tree's own ``next_test`` for an open hypothesis, 1 when the test's
+    ``supports_hypotheses`` names one of those hypotheses' own text even
+    without being the designated next test, 2 otherwise (an open-code match
+    only). Catalogue order (``mechanic_tests._ORDER``, preserved by the
+    stable sort in :func:`build_tests_view`) breaks every remaining tie --
+    the same order this catalogue's own cross-references
+    (:func:`_why_for`'s ``why`` strings, each test's own ``when_to_use``
+    prose) were written in."""
+    if t["id"] in next_test_ids:
+        return 0
+    hyp_texts = {(h.get("text") or "").strip() for h in open_hyps if h.get("text")}
+    if hyp_texts & set(t["supports_hypotheses"]):
+        return 1
+    return 2
 
 
 def build_tests_view(vin: str) -> dict[str, Any]:
@@ -178,6 +205,7 @@ def build_tests_view(vin: str) -> dict[str, Any]:
     hyp_systems = [h.get("system") or "" for h in open_hyps if h.get("system")]
     sys_test_ids = {t["id"] for t in mechanic_tests.tests_for_systems(hyp_systems)} if hyp_systems else set()
     recommended_ids = code_test_ids | sys_test_ids
+    next_test_ids = {h["next_test"] for h in open_hyps if h.get("next_test")}
 
     rows: list[dict[str, Any]] = []
     counts = {k: 0 for k in RESULT_COUNT_KEYS}
@@ -198,11 +226,22 @@ def build_tests_view(vin: str) -> dict[str, Any]:
             "step_id": step_id(rid),
             "latest_result": latest,
             "recommended": rid in recommended_ids,
-            "why": _why_for(t, open_codes, open_hyps) if rid in recommended_ids else [],
+            "why": _why_for(t, open_codes, open_hyps, next_test_ids) if rid in recommended_ids else [],
             "blocker": blocker,
         })
 
-    rows.sort(key=lambda r: (0 if r["recommended"] else 1, r["category"], r["name"]))
+    # Recommended rows rank by the fault tree's next test, then by
+    # supports_hypotheses match (_hyp_rank), with the catalogue's own order
+    # (mechanic_tests._ORDER, already the order `rows` was built in) as the
+    # stable tiebreak -- e.g. the EVAP: ESIM signal path line reads Test A
+    # (evap_test_a_esim_switch, the hypothesis's own next_test), then the
+    # ESIM commanded vent test, then the ESIM wiring test, exactly the
+    # sequence those three tests' own when_to_use text cross-references.
+    # Everything not recommended keeps the prior category/name grouping.
+    rows.sort(key=lambda r: (
+        (0, _hyp_rank(r, open_hyps, next_test_ids), "", "")
+        if r["recommended"] else (1, 0, r["category"], r["name"])
+    ))
     categories = sorted({t["category"] for t in catalogue})
 
     return {
@@ -215,6 +254,27 @@ def build_tests_view(vin: str) -> dict[str, Any]:
         "open_hypotheses": open_hypotheses_for_form(vin),
         "fuel_gate": fuel_gate,
         "from_car": _from_car(vin, dossier),
+    }
+
+
+def build_test_print_view(vin: str, test_id: str) -> dict[str, Any]:
+    """Everything ``tests_print.html`` needs for one test's printable sheet:
+    the test itself, this vehicle's latest recorded result (same
+    ``step_id``/result-entry contract as :func:`build_tests_view`'s rows),
+    and an as-of stamp. Raises :class:`NotFound` for an unknown test id --
+    same posture as every other single-item lookup in this package."""
+    vin = (vin or "").strip()
+    if not vin:
+        raise BadRequest("a VIN is required")
+    t = mechanic_tests.test(test_id)
+    if t is None:
+        raise NotFound(f"unknown test id {test_id!r}")
+    return {
+        "vin": vin,
+        "test": t,
+        "step_id": step_id(test_id),
+        "latest_result": _result_entry(vin, test_id),
+        "generated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     }
 
 
@@ -255,5 +315,5 @@ def record_result(vin: str, test_id: str, result: Optional[str], *, reason: str 
     return {"vin": vin, "test_id": test_id, "step_id": sid, **entry}
 
 
-__all__ = ["build_tests_view", "record_result", "step_id", "test_id_from_step",
-          "open_hypotheses_for_form", "RESULT_COUNT_KEYS"]
+__all__ = ["build_tests_view", "build_test_print_view", "record_result", "step_id",
+          "test_id_from_step", "open_hypotheses_for_form", "RESULT_COUNT_KEYS"]

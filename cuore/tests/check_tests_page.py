@@ -40,6 +40,21 @@ os.environ.pop("CUORE_AUDIT_PATH", None)
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+# --- live fixture: real captured data, never fabricated (2026-10-13 pass) --
+# This VIN's real install keeps live-link observations at the path below;
+# copy its 2026-10-13 lines into this check's own throwaway CUORE_STATE_DIR
+# so the recommended-order check below runs against a real recorded
+# snapshot rather than no live data at all. The real file is only ever read
+# here -- never opened for write, never modified.
+_REAL_OBSERVATIONS = Path(r"C:\ProgramData\cuore\observations.jsonl")
+if _REAL_OBSERVATIONS.exists():
+    _fixture_lines = [ln for ln in
+                      _REAL_OBSERVATIONS.read_text(encoding="utf-8").splitlines()
+                      if '"2026-10-13' in ln]
+    if _fixture_lines:
+        (Path(os.environ["CUORE_STATE_DIR"]) / "observations.jsonl").write_text(
+            "\n".join(_fixture_lines) + "\n", encoding="utf-8")
+
 from fastapi.testclient import TestClient  # noqa: E402
 
 from cuore.app import create_app  # noqa: E402
@@ -119,6 +134,47 @@ if test_a is not None:
          str(test_a["supports_hypotheses"]))
 
 
+print("=== ESIM commanded vent test (additive) ===")
+check("catalogue has at least 45 tests (post-ESIM-commanded-vent-test pass)",
+     len(catalog) >= 45, str(len(catalog)))
+
+cvt = mechanic_tests.test("esim_commanded_vent_test")
+check("esim_commanded_vent_test exists in the catalogue", cvt is not None)
+if cvt is not None and test_a is not None:
+    check("esim_commanded_vent_test has the same key schema as the rest of the catalogue",
+         set(cvt.keys()) == set(test_a.keys()), str(sorted(cvt.keys())))
+    check("esim_commanded_vent_test's systems are exactly evap + electrical_supply",
+         cvt["systems"] == ["evap", "electrical_supply"], str(cvt["systems"]))
+    bad_sys = [s for s in cvt["systems"] if s not in mechanic_tests.SYSTEMS]
+    check("esim_commanded_vent_test: every systems entry is a real SYSTEMS key",
+         not bad_sys, str(bad_sys))
+    bad_conf = [pc["confidence"] for pc in cvt["pass_criteria"]
+               if pc["confidence"] not in mechanic_tests.CONFIDENCE_LEVELS]
+    check("esim_commanded_vent_test: every pass_criteria confidence is allowed",
+         not bad_conf, str(bad_conf))
+    numeric_unknown_cvt = [pc["parameter"] for pc in cvt["pass_criteria"]
+                          if pc["confidence"] == mechanic_tests.UNKNOWN
+                          and isinstance(pc["spec"], (int, float))]
+    check("esim_commanded_vent_test never pairs a numeric spec with UNKNOWN confidence",
+         not numeric_unknown_cvt, str(numeric_unknown_cvt))
+    check("esim_commanded_vent_test states the MCP consent phrase",
+         "ACTUATE ECM" in cvt["when_to_use"] or "ACTUATE ECM" in cvt["safety"],
+         cvt["safety"])
+    check("esim_commanded_vent_test supports the ESIM signal path hypothesis",
+         "EVAP: ESIM signal path" in cvt["supports_hypotheses"],
+         str(cvt["supports_hypotheses"]))
+    check("evap_test_a_esim_switch's when_to_use links forward to the commanded vent test",
+         "esim_commanded_vent_test" in test_a["when_to_use"])
+    check("esim_commanded_vent_test's when_to_use links back to Test A",
+         "evap_test_a_esim_switch" in cvt["when_to_use"])
+    ids_in_order = [t["id"] for t in catalog]
+    check("esim_commanded_vent_test sits right after evap_test_a_esim_switch in "
+         "catalogue order",
+         ids_in_order.index("esim_commanded_vent_test")
+         == ids_in_order.index("evap_test_a_esim_switch") + 1,
+         str(ids_in_order))
+
+
 # ===========================================================================
 # 2. the page
 # ===========================================================================
@@ -150,6 +206,35 @@ view = view_resp.json()
 check("the view's total matches the catalogue size", view.get("total") == len(catalog), str(view.get("total")))
 check("the view carries a counts dict with not_done == total before any result",
      view.get("counts", {}).get("not_done") == len(catalog), str(view.get("counts")))
+
+
+# ===========================================================================
+# 2b. the print view
+# ===========================================================================
+
+print("=== print view ===")
+print_resp = client.get(f"/v/{VIN}/tests/esim_commanded_vent_test/print")
+check("print view responds 200", print_resp.status_code == 200, str(print_resp.status_code))
+check("no template error leaked onto the print view",
+     "Jinja2" not in print_resp.text and "Traceback" not in print_resp.text)
+check("print view shows the test name", "ESIM commanded vent test" in print_resp.text)
+check("print view carries an as-of stamp", "As of " in print_resp.text)
+check("print view names the vehicle", VIN in print_resp.text)
+check("print view shows the procedure as a tick list",
+     'class="ts-print-steps"' in print_resp.text and "&#9633;" in print_resp.text)
+check("print view shows pass criteria with source and confidence",
+     'class="ts-criteria"' in print_resp.text and "ts-conf-chip" in print_resp.text)
+check("print view shows hazards", 'id="ts-print-hazards"' in print_resp.text)
+check("print view shows a results box matching the result-form's own fields",
+     'id="ts-results-box"' in print_resp.text
+     and "Pass" in print_resp.text and "Fail" in print_resp.text
+     and "Inconclusive" in print_resp.text and "Not possible" in print_resp.text
+     and "Value" in print_resp.text and "Notes" in print_resp.text
+     and "By" in print_resp.text and "Date" in print_resp.text)
+
+bad_print = client.get(f"/v/{VIN}/tests/not-a-real-test-id/print")
+check("print view 404s for an unknown test id", bad_print.status_code == 404,
+     str(bad_print.status_code))
 
 
 # ===========================================================================
@@ -200,6 +285,41 @@ check("the hypothesis gained a 'test' evidence_for ref from the test result",
      any(r.get("kind") == "test" and r.get("id") == f"test:{test_id}"
         for r in hyp_after.get("evidence_for", [])),
      str(hyp_after.get("evidence_for")))
+
+
+# ===========================================================================
+# 3b. EVAP recommended order: Test A, then the ESIM commanded vent test,
+#     then the ESIM wiring test -- fault tree's next test first, then
+#     supports_hypotheses match, with P0440/P0455/P0456 active (this VIN's
+#     real corpus) and the ESIM signal-path hypothesis open.
+# ===========================================================================
+
+print("=== EVAP recommended order (next_test, then supports_hypotheses match) ===")
+esim_hyp = client.post(f"/api/jobs/{job['id']}/hypotheses",
+                       json={"text": "EVAP: ESIM signal path", "system": "evap",
+                             "next_test": "evap_test_a_esim_switch"}).json()
+check("ESIM signal path hypothesis created with its own next_test",
+     esim_hyp.get("next_test") == "evap_test_a_esim_switch", str(esim_hyp))
+
+order_view = client.get(f"/api/tests/{VIN}").json()
+order_ids = [t["id"] for t in order_view["tests"]]
+check("open codes for this VIN include an EVAP code (P0440/P0455/P0456)",
+     any(c in ("P0440", "P0455", "P0456") for c in order_view.get("open_codes", [])),
+     str(order_view.get("open_codes")))
+i_a = order_ids.index("evap_test_a_esim_switch")
+i_cmd = order_ids.index("esim_commanded_vent_test")
+i_wire = order_ids.index("esim_wiring_test")
+check("Test A ranks ahead of the ESIM commanded vent test", i_a < i_cmd,
+     f"evap_test_a_esim_switch at {i_a}, esim_commanded_vent_test at {i_cmd}")
+check("the ESIM commanded vent test ranks ahead of the ESIM wiring test", i_cmd < i_wire,
+     f"esim_commanded_vent_test at {i_cmd}, esim_wiring_test at {i_wire}")
+check("Test A is recommended", order_view["tests"][i_a]["recommended"] is True)
+check("the ESIM commanded vent test is recommended",
+     order_view["tests"][i_cmd]["recommended"] is True)
+check("the ESIM wiring test is recommended", order_view["tests"][i_wire]["recommended"] is True)
+check("Test A's 'why' names it as the hypothesis's own next test",
+     any("next test for hypothesis" in w for w in order_view["tests"][i_a]["why"]),
+     str(order_view["tests"][i_a]["why"]))
 
 
 # ===========================================================================

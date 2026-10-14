@@ -139,6 +139,65 @@
 .ts-status.is-ok { color: var(--ok); }
 .ts-status.is-error { color: var(--sev-returned); }
 
+.ts-duration + .ts-print-link,
+.ts-result-chip + .ts-print-link {
+  font-size: 12px;
+}
+.ts-print-link {
+  margin-left: auto; padding: 2px 8px; border-radius: var(--radius);
+  border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-2);
+  text-decoration: none; white-space: nowrap;
+}
+.ts-print-link:hover { color: var(--ink); border-color: var(--ink-3); }
+
 @media (max-width: 480px) {
   .ts-btn { flex: 1 1 45%; }
+}
+
+/* ---------- print sheet (/v/{vin}/tests/{id}/print) ----------
+ * One test per page, 12pt body text on screen and on paper -- the mechanic
+ * reads this at the car exactly as printed. print.css (base.html, every
+ * page) already strips header/nav chrome and opens every <details>; this
+ * page has none of those elements to begin with. */
+.ts-print {
+  font-size: 12pt; line-height: 1.45; max-width: 760px; margin: 0 auto;
+  padding: 12px 0 32px;
+}
+.ts-print h1 { font-size: 1.5em; margin: 0 0 4px; }
+.ts-print h2 { font-size: 1.1em; margin: 18px 0 6px; }
+.ts-print-head { margin-bottom: 10px; }
+.ts-print-purpose { margin: 10px 0 4px; }
+
+.ts-print-steps { margin: 6px 0; padding-left: 4px; list-style: none; }
+.ts-print-steps li { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+.ts-print-box {
+  display: inline-block; width: 1em; flex: 0 0 auto; font-size: 1.1em;
+  line-height: 1; transform: translateY(1px);
+}
+
+.ts-hazards-box {
+  margin-top: 14px; padding: 8px 10px; border: 1px solid var(--sev-returned);
+  border-radius: var(--radius); background: var(--sev-returned-bg);
+}
+.ts-hazards-box h2 { margin-top: 0; color: var(--sev-returned); }
+
+.ts-results-box {
+  margin-top: 18px; padding: 10px 12px; border: 1px solid var(--ink-3);
+  border-radius: var(--radius);
+}
+.ts-results-box h2 { margin-top: 0; }
+.ts-results-grid {
+  display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 10px; font-weight: 600;
+}
+.ts-results-line { margin: 10px 0; }
+.ts-fill-line {
+  display: inline-block; min-width: 140px; border-bottom: 0.75pt solid var(--ink-3);
+  margin: 0 4px;
+}
+.ts-fill-line.short { min-width: 70px; }
+.ts-fill-line.long { min-width: 420px; max-width: 100%; }
+
+@media print {
+  .ts-print { font-size: 12pt; max-width: none; }
+  .ts-fill-line.long { min-width: 60%; }
 }

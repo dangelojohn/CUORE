@@ -243,9 +243,11 @@ _t("evap_test_a_esim_switch", "wiTECH Test A: ESIM switch", "emissions", ["evap"
           "new, P0440/P0455/P0456 still return).",
   car_state="KOEO",
   when_to_use="EVAP system already smoke-tested sealed and every EVAP part is new, "
-              "yet P0440/P0455/P0456 keep returning -- run this before the ESIM "
-              "wiring test or any further parts purchase, right after the wiTECH "
-              "flash check.",
+              "yet P0440/P0455/P0456 keep returning -- run this first, right after "
+              "the wiTECH flash check; then the ESIM commanded vent test "
+              "(esim_commanded_vent_test) as the second step, corroborating this "
+              "hand-pump result under real engine-running vacuum, before the ESIM "
+              "wiring test or any further parts purchase.",
   tools=["wiTECH 2 account, laptop and interface",
         "hand vacuum pump with a short hose that fits the ESIM's canister-side port",
         "flat trim tool and torch for the driver-side rear wheel liner"],
@@ -290,6 +292,69 @@ _t("evap_test_a_esim_switch", "wiTECH Test A: ESIM switch", "emissions", ["evap"
   safety="Apply vacuum gently by hand; never use shop air on the ESIM. Fuel vapor "
          "at the canister/wheel well -- no sparks or open flame.",
   hazards=["fuel vapor"])
+
+_t("esim_commanded_vent_test", "ESIM commanded vent test", "emissions",
+  ["evap", "electrical_supply"], _applies(grecale=False),
+  purpose="Second step on the ESIM signal-path line, right after wiTECH Test A "
+          "(evap_test_a_esim_switch): with the engine running and purge active, "
+          "command the ESIM vent closed through the scan tool's actuator control "
+          "rather than a hand pump, and watch both the switch parameter and "
+          "whether vacuum actually builds -- corroborates Test A's hand-pump "
+          "result under real operating vacuum, in one pass.",
+  car_state="KOER",
+  when_to_use="Run as the second step after wiTECH Test A (evap_test_a_esim_switch) "
+              "-- whether Test A passed, failed, or wasn't available (no wiTECH on "
+              "hand) -- before the ESIM wiring test or any further parts purchase. "
+              "In CUORE this test is MCP-only and needs the consent phrase "
+              "ACTUATE ECM <name>; it is never available through the HTTP job/"
+              "tests API because it writes a live command to the car.",
+  tools=["MCP obd2 run_actuator tool (consent phrase ACTUATE ECM <name>), or the "
+        "MES Actuators tab / wiTECH bidirectional control, for a scan tool "
+        "without MCP",
+        "scan tool live data: the ESIM/EVAP switch parameter (see "
+        "cuore.live.channels -- no readable OBD DID exists for it; the reading "
+        "comes only from the actuator-test screen or wiTECH live data), "
+        "evap_vapor_pressure_abs, commanded_evap_purge, fuel_level"],
+  procedure=[
+      "Confirm fuel level is in the 15-85% EVAP-verification window.",
+      "Start the engine and let it idle until the EVAP purge monitor is actively "
+      "purging (commanded_evap_purge > 0% on live data).",
+      "In CUORE this step is MCP-only: command the ESIM/EVAP vent solenoid closed "
+      "through the obd2 run_actuator tool (or the MES Actuators tab / wiTECH), "
+      "which refuses the command unless the operator states the consent phrase "
+      "exactly as 'ACTUATE ECM <name>' (the actuator's own name).",
+      "With the vent held closed and purge still running, watch for vacuum to "
+      "build (evap_vapor_pressure_abs) and for the ESIM/EVAP switch parameter to "
+      "report sealed.",
+      "Command the vent back open; confirm vacuum bleeds down and the switch "
+      "parameter returns to its baseline (not-sealed) state.",
+      "Record whether the switch changed within the ECM's own reported window, "
+      "not a number from this catalogue.",
+  ],
+  pass_criteria=[_pc(
+      "ESIM/EVAP switch parameter vs. vacuum build, vent commanded closed, "
+      "engine running and purging",
+      "switch reports sealed within the ECM's own measured-value/limit window",
+      "", "SAE J1979 Appendix D / ISO 15031-5 Mode $06 MID 0x3A (0.090\" leak) "
+          "definition (cuore.live.mode06); the numeric window is the ECU's own, "
+          "read back from Mode $06 MID 3A, not a figure in this catalogue",
+          UNKNOWN)],
+  fail_means="No vacuum builds: the vent itself is not sealing -- solenoid, its "
+             "driver circuit, or the connector. Vacuum builds but the switch "
+             "never reports sealed: the fault is in the switch or its signal "
+             "path (connector, wiring, ECU input), not the vent hardware -- the "
+             "same signal-path hypothesis wiTECH Test A targets.",
+  related_codes=["P0440", "P0455", "P0456"],
+  supports_hypotheses=["EVAP: ESIM signal path", "EVAP valve stuck", "EVAP leak"],
+  refutes_hypotheses=["EVAP: ESIM signal path", "EVAP valve stuck"],
+  duration_min=15,
+  safety="HTTP surface is read-only; this test is only available through the MCP "
+         "actuator-control tool (or MES/wiTECH bidirectional control), never "
+         "through the HTTP job/tests API -- it writes a live command to the car "
+         "and is refused without the operator stating the consent phrase exactly "
+         "as 'ACTUATE ECM <name>'. Fuel vapor at the canister/wheel well -- no "
+         "sparks or open flame.",
+  hazards=["fuel vapor", "electrical"])
 
 _t("esim_bench_test", "ESIM bench test", "emissions", ["evap"],
   _applies(grecale=False),

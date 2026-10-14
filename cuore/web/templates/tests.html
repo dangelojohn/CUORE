@@ -51,6 +51,8 @@
       <span class="ts-duration">{{ t.duration_min }} min</span>
       <span class="chip ts-result-chip ts-result-{{ t.latest_result.result }}"
             data-role="result-chip">{{ t.latest_result.result.replace('_', ' ')|upper }}</span>
+      <a class="ts-print-link no-print" href="/v/{{ view.vin }}/tests/{{ t.id }}/print"
+         title="Printable sheet for this test">Print this test</a>
     </div>
 
     {% if t.recommended and t.why %}

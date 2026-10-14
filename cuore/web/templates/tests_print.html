@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ view.test.name }} — Print — {{ bar.name }}{% endblock %}
+{# Standalone printable sheet: no vbar/hero/tab row, one test per page --
+   same posture as liveboard.html's own empty-vehiclebar trick, done so the
+   generic /live status banner in base.html never falls back in either. #}
+{% block vehiclebar %}<!-- tests print sheet: no vbar/hero --> {% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('tests.css') }}">
+
+<div class="ts-print" data-vin="{{ vin }}" data-test="{{ view.test.id }}">
+
+  <div class="ts-print-head">
+    <h1>{{ view.test.name }}</h1>
+    <p class="mono small">{{ bar.name }} &middot; VIN {{ vin }}
+      {% if bar.odo_last is not none %} &middot; {{ "{:,}".format(bar.odo_last|int) }} km{% endif %}</p>
+    <p class="small muted">As of {{ view.generated }}.</p>
+    <a class="jump-chip no-print" href="/v/{{ vin }}/tests#test-{{ view.test.id }}">&larr; Back to Tests</a>
+    <button type="button" class="jump-chip no-print" onclick="window.print()">Print</button>
+  </div>
+
+  <p class="ts-print-purpose">{{ view.test.purpose }}</p>
+  <p class="small muted">When to use: {{ view.test.when_to_use }}</p>
+  <p class="small">
+    <b>Car state:</b> {{ view.test.car_state }} &middot;
+    <b>Duration:</b> {{ view.test.duration_min }} min &middot;
+    <b>Tools:</b> {{ view.test.tools|join(', ') }}
+  </p>
+
+  <section id="ts-print-procedure">
+    <h2>Procedure</h2>
+    <ol class="ts-print-steps">
+      {% for step in view.test.procedure %}
+      <li><span class="ts-print-box" aria-hidden="true">&#9633;</span> {{ step }}</li>
+      {% endfor %}
+    </ol>
+  </section>
+
+  {% if view.test.pass_criteria %}
+  <section id="ts-print-criteria">
+    <h2>Pass criteria</h2>
+    <div class="ts-criteria-wrap">
+      <table class="ts-criteria">
+        <thead><tr><th>Parameter</th><th>Spec</th><th>Source</th><th>Confidence</th></tr></thead>
+        <tbody>
+          {% for pc in view.test.pass_criteria %}
+          <tr>
+            <td>{{ pc.parameter }}</td>
+            <td>{{ pc.spec }}{% if pc.unit %} {{ pc.unit }}{% endif %}</td>
+            <td class="small muted">{{ pc.source }}</td>
+            <td><span class="chip ts-conf-chip ts-conf-{{ pc.confidence|lower|replace('-', '_') }}">{{ pc.confidence }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  {% endif %}
+
+  <p class="small"><b>A fail means:</b> {{ view.test.fail_means }}</p>
+
+  {% if view.test.hazards %}
+  <section id="ts-print-hazards" class="ts-hazards-box">
+    <h2>Hazards</h2>
+    <ul>{% for h in view.test.hazards %}<li>{{ h }}</li>{% endfor %}</ul>
+    {% if view.test.safety %}<p class="small">{{ view.test.safety }}</p>{% endif %}
+  </section>
+  {% endif %}
+
+  <section id="ts-results-box" class="ts-results-box">
+    <h2>Result</h2>
+    <div class="ts-results-grid">
+      <span><span class="ts-print-box" aria-hidden="true">&#9633;</span> Pass</span>
+      <span><span class="ts-print-box" aria-hidden="true">&#9633;</span> Fail</span>
+      <span><span class="ts-print-box" aria-hidden="true">&#9633;</span> Inconclusive</span>
+      <span><span class="ts-print-box" aria-hidden="true">&#9633;</span> Not possible</span>
+    </div>
+    <p class="ts-results-line">Value: <span class="ts-fill-line"></span> Unit: <span class="ts-fill-line short"></span></p>
+    <p class="ts-results-line">Notes: <span class="ts-fill-line long"></span></p>
+    <p class="ts-results-line">By: <span class="ts-fill-line"></span> Date: <span class="ts-fill-line"></span></p>
+
+    {% if view.latest_result.result != "not_done" %}
+    <p class="small muted">On file: {{ view.latest_result.result.replace('_', ' ') }}
+      {% if view.latest_result.value is not none %}&middot; {{ view.latest_result.value }}{{ view.latest_result.unit }}{% endif %}
+      {% if view.latest_result.reason %}&middot; {{ view.latest_result.reason }}{% endif %}
+      {% if view.latest_result.when %}&middot; {{ view.latest_result.when }}{% endif %}
+      {% if view.latest_result.by %}&middot; {{ view.latest_result.by }}{% endif %}</p>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}
