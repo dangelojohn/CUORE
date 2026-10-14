@@ -1,0 +1,31 @@
+  [ok] confirm screen carries a Print label link
+  [ok] the ATF/pan label PDF responds 200
+  [ok] the ATF/pan label is a PDF
+31/31 checks passed
+OK
+===check_system_page===
+  [ok] network page marks U1713-2F failing now
+  [ok] network page gives U1713's FTB meaning (signal erratic)
+  [ok] network page names the reporting modules (BCM/IPC/RFHUB)
+  [ok] network page collapses >=3 comms codes into one event (mes.analysis wording)
+  [ok] network page has a Network event section
+  [ok] the network event section lists at least 3 codes
+=== U1713's fault tree: diagnostic order before suspecting the bus ===
+  [ok] network page's fault tree checks supply/ground/connector before the bus
+  [ok] that diagnostic-order line carries both confidence qualifiers
+=== BCM check-first checklist (body_comfort page) ===
+  [ok] body_comfort page has a Check first section
+  [ok] BCM check-first checklist has >=5 rows
+  [ok] check-first rows link to the inspection form or the test page
+  [ok] check-first checklist includes the battery, a BCM ground and the CAN termination test
+=== EVAP <-> network cross-reference ===
+  [ok] evap page shows the network/EVAP cross-reference line
+  [ok] cross-reference counts are real (positive, together <= total)
+  [ok] evap cross-reference links to the network event, never claims a cause
+
+115/115 checks passed
+===check_owner_page===
+139 checks, 1 failures
+ - home responds with the four quick-action tiles -- 5
+
+[exited with code 0]

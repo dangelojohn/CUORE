@@ -1,0 +1,4 @@
+FAIL: cuore/tests/check_dossier_view.py
+FAIL: cuore/tests/check_job_ux.py
+
+[killed]

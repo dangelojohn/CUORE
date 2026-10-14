@@ -1,0 +1,52 @@
+=== check_scan_health ===
+50 checks, 0 failures
+
+=== check_scanlog ===
+  [ok] the list page offers a per-scan Health report link
+  [ok] the list page offers a compare picker (two selects + a Compare button)
+  [ok] GET /v/{vin}/scans/{id} page is 200
+  [ok] the detail page shows the fuel_level freeze frame
+  [ok] the detail page shows the Mode 06 FAIL chip
+  [ok] the detail page shows its own coverage line
+  [ok] the detail page offers a compare-with-previous section, linking the nearest earlier scan
+  [ok] GET /v/{vin}/scans/{unknown id} page is 404
+  [ok] GET /v/{vin}/scans/diff is 200
+  [ok] the diff page shows the added stored code
+  [ok] the diff page shows the Mode 06 flip
+  [ok] the diff page shows the coverage change
+  [ok] GET /v/{vin}/scans/diff with an unknown scan id is 404
+
+all 75 checks passed
+
+=== check_owner_page ===
+132 checks, 5 failures
+ - a CUORE prompt targets the active EVAP code P0456 -- [{'id': '2dd33d4ebc72', 'vin': 'ZASFAKPN5J7B88115', 'at': '2026-10-14T07:52:08', 'author': 'cuore', 'kind': 'question', 'target': {'page': 'owner', 'section': 'network', 'item': 'network_recent_elec', 'label': 'Any aftermarket electrical fitted recently (dashcam, lights, charger)? Battery changed or
+ - a CUORE prompt fired for the active P0440 -- []
+ - the fill-up/cap/pump question fired for P0440 -- []
+ - a CUORE prompt fired for the active BCM network code U1713 -- [{'id': '50c41f8d36fa', 'vin': 'ZASFAKPN5J7B88115', 'at': '2026-10-14T07:52:08', 'author': 'cuore', 'kind': 'question', 'target': {'page': 'owner', 'section': 'electrical_supply', 'item': 'elec_recent_work', 'label': 'Any battery work, jump start, or aftermarket electrical fitted recently (dashcam, lights, audio, tracker)?'}, 'text': 'Any battery work, jump start, or aftermarket electrical fitted 
+ - network prompt text covers aftermarket electrical, battery and car wash -- None
+
+=== check_fullscan ===
+checks run: 222
+FAILURES: 4
+  - freeze_frame frame has all 46 supported PIDs -- got [] want ['01', '02', '03', '04', '05', '06', '07', '08', '09', '0A', '0B', '0C', '0D', '0E', '0F', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1A', '1B', '1C', '1D', '1E', '1F', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '2A', '2B', '2C', '2D', '2E']
+  - pids_snapshot has all 46 supported PIDs for the ECM header -- got [] want ['01', '02', '03', '04', '05', '06', '07', '08', '09', '0A', '0B', '0C', '0D', '0E', '0F', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '1A', '1B', '1C', '1D', '1E', '1F', '20', '21', '22', '23', '24', '25', '26', '27', '28', '29', '2A', '2B', '2C', '2D', '2E']
+  - guided segment 2 swept HVAC as answered -- {'bus': 'can_ihs', 'module': 'HVAC', 'category': 'not_reachable', 'why': 'Refused: bus can_ihs has not been verified under the current cable; run a passive listen first (verify_bus / POST /api/live/verify)', 'active': 0, 'history': 0, 'not_run': 0}
+  - guided segment 2 swept ETM as answered -- {'bus': 'can_ihs', 'module': 'ETM', 'category': 'not_reachable', 'why': 'Refused: bus can_ihs has not been verified under the current cable; run a passive listen first (verify_bus / POST /api/live/verify)', 'active': 0, 'history': 0, 'not_run': 0}
+
+=== check_dossier_view ===
+
+all 35 checks passed
+
+=== check_bench ===
+=== 400px screenshot (cleanup via _edge_cleanup.kill_edge_profile) ===
+
+all 74 checks passed
+
+=== check_screens ===
+=== overflow check at 400px (no screenshot) ===
+
+all 28 checks passed
+
+
+[exited with code 0]

@@ -1,0 +1,102 @@
+=== catalogue ===
+  [ok] catalogue has at least 30 tests
+  [ok] catalogue has no duplicate ids
+  [ok] every pass_criteria confidence is one of CONFIDENCE_LEVELS
+  [ok] no pass_criteria pairs a numeric spec with UNKNOWN confidence
+  [ok] tests_for_codes finds EVAP tests for P0455
+  [ok] tests_for_systems finds EVAP tests for system 'evap'
+  [ok] test() returns None for an unknown id
+=== EVAP decisive tests (ESIM / ECM calibration) ===
+  [ok] catalogue has at least 44 tests (post-EVAP-decisive-tests pass)
+  [ok] all six EVAP decisive tests exist in the catalogue
+  [ok] evap_test_a_esim_switch: every systems entry is a real SYSTEMS key
+  [ok] evap_test_a_esim_switch: every pass_criteria confidence is allowed
+  [ok] esim_bench_test: every systems entry is a real SYSTEMS key
+  [ok] esim_bench_test: every pass_criteria confidence is allowed
+  [ok] esim_wiring_test: every systems entry is a real SYSTEMS key
+  [ok] esim_wiring_test: every pass_criteria confidence is allowed
+  [ok] witech_flash_check: every systems entry is a real SYSTEMS key
+  [ok] witech_flash_check: every pass_criteria confidence is allowed
+  [ok] ecm_flash: every systems entry is a real SYSTEMS key
+  [ok] ecm_flash: every pass_criteria confidence is allowed
+  [ok] evap_mode06_review: every systems entry is a real SYSTEMS key
+  [ok] evap_mode06_review: every pass_criteria confidence is allowed
+  [ok] Test A (evap_test_a_esim_switch) exists
+  [ok] Test A's supports_hypotheses includes an 'ESIM' hypothesis
+=== ESIM commanded vent test (additive) ===
+  [ok] catalogue has at least 45 tests (post-ESIM-commanded-vent-test pass)
+  [ok] esim_commanded_vent_test exists in the catalogue
+  [ok] esim_commanded_vent_test has the same key schema as the rest of the catalogue
+  [ok] esim_commanded_vent_test's systems are exactly evap + electrical_supply
+  [ok] esim_commanded_vent_test: every systems entry is a real SYSTEMS key
+  [ok] esim_commanded_vent_test: every pass_criteria confidence is allowed
+  [ok] esim_commanded_vent_test never pairs a numeric spec with UNKNOWN confidence
+  [ok] esim_commanded_vent_test states the MCP consent phrase
+  [ok] esim_commanded_vent_test supports the ESIM signal path hypothesis
+  [ok] evap_test_a_esim_switch's when_to_use links forward to the commanded vent test
+  [ok] esim_commanded_vent_test's when_to_use links back to Test A
+  [ok] esim_commanded_vent_test sits right after evap_test_a_esim_switch in catalogue order
+=== page ===
+  [ok] tests page responds 200
+  [ok] tests page shows the Tests tab link
+  [ok] no template error leaked onto the page
+  [ok] every test has a row anchor on the page
+  [ok] the page carries PASS/FAIL buttons
+  [ok] the page carries Inconclusive/Not possible buttons
+  [ok] GET /api/tests/catalog responds 200
+  [ok] GET /api/tests/catalog carries every test
+  [ok] GET /api/tests/{vin} responds 200
+  [ok] the view's total matches the catalogue size
+  [ok] the view carries a counts dict with not_done == total before any result
+=== print view ===
+  [ok] print view responds 200
+  [ok] no template error leaked onto the print view
+  [ok] print view shows the test name
+  [ok] print view carries an as-of stamp
+  [ok] print view names the vehicle
+  [ok] print view shows the procedure as a tick list
+  [ok] print view shows pass criteria with source and confidence
+  [ok] print view shows hazards
+  [ok] print view shows a results box matching the result-form's own fields
+  [ok] print view 404s for an unknown test id
+=== recording a result ===
+  [ok] POSTing a fail result responds 200
+  [ok] the response reports result=fail
+  [ok] the result is on file under step_id 'test:<id>'
+  [ok] the page now shows that row as FAIL
+  [ok] an invalid result value responds 400
+  [ok] POSTing to an unknown test id responds 400
+  [ok] recording a result with a hypothesis_id responds 200
+  [ok] the hypothesis gained a 'test' evidence_for ref from the test result
+=== EVAP recommended order (next_test, then supports_hypotheses match) ===
+  [ok] ESIM signal path hypothesis created with its own next_test
+  [ok] open codes for this VIN include an EVAP code (P0440/P0455/P0456)
+  [ok] Test A ranks ahead of the ESIM commanded vent test
+  [ok] the ESIM commanded vent test ranks ahead of the ESIM wiring test
+  [ok] Test A is recommended
+  [ok] the ESIM commanded vent test is recommended
+  [ok] the ESIM wiring test is recommended
+  [ok] Test A's 'why' names it as the hypothesis's own next test
+=== no regressions ===
+  [ok] check_jobs_rules.py still passes
+  [ok] check_live_dashboard_page.py still passes
+=== F2: vehicle name is never (unnamed vehicle), cold server ===
+  [ok] cold /tests responds 200
+  [ok] cold /tests never shows (unnamed vehicle)
+  [ok] cold /tests names the Stelvio
+=== F3: Liveboard Snapshot refuses honestly on zero live channels ===
+  [ok] liveboard.js guards an empty values dict before POSTing a snapshot
+  [ok] liveboard.js's empty-snapshot refusal matches the map's own wording
+=== F4: readability floor -- tests.css never renders text under 12px ===
+  [ok] no font-size under 12px in tests.css
+=== F5: .ts-filter-chip is a >=44px tap target ===
+  [ok] tests.css has a .ts-filter-chip rule
+  [ok] '.ts-filter-chip' min-height is >= 44px
+=== F6 (locked in): a hypothesis_id test result lands on /job?step=7 ===
+  [ok] GET /v/{vin}/job?step=7 responds 200
+  [ok] step 7 shows the test result's own evidence chip label
+  [ok] step 7 shows the linked evidence on the hypothesis card
+85/85 checks passed
+OK
+
+[exited with code 0]

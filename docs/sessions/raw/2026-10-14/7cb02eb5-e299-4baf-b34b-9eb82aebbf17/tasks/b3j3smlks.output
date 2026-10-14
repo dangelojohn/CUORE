@@ -1,0 +1,23 @@
+check_screens section likely done
+
+all 35 checks passed
+
+=== check_bench ===
+=== 400px screenshot (cleanup via _edge_cleanup.kill_edge_profile) ===
+
+all 75 checks passed
+
+=== check_jobs_rules ===
+27/27 checks passed
+OK
+
+=== check_tests_page ===
+  [ok] GET /v/{vin}/job?step=7 responds 200
+  [ok] step 7 shows the test result's own evidence chip label
+  [ok] step 7 shows the linked evidence on the hypothesis card
+85/85 checks passed
+OK
+
+=== check_screens ===
+
+[exited with code 0]

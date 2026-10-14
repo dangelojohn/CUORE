@@ -1,0 +1,214 @@
+{
+  "HEAD/bench/light": {
+    "htmlDataTheme": null,
+    "bodyBg": "rgb(238, 240, 242)",
+    "rootBg": "rgba(0, 0, 0, 0)",
+    "h1": null,
+    "heroName": {
+      "fontWeight": "300",
+      "fontSize": "36px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(255, 255, 255)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    },
+    "sectionH": {
+      "fontWeight": "300",
+      "fontSize": "25.28px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(61, 70, 76)",
+      "letterSpacing": "-0.2528px",
+      "textTransform": "none"
+    },
+    "chip": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "fontFamily": "ui-monospace, SFMono-Regular, \"Cascadia Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "color": "rgb(30, 107, 63)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    }
+  },
+  "HEAD/bench/dark": {
+    "htmlDataTheme": null,
+    "bodyBg": "rgb(0, 0, 0)",
+    "rootBg": "rgba(0, 0, 0, 0)",
+    "h1": null,
+    "heroName": {
+      "fontWeight": "300",
+      "fontSize": "36px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(255, 255, 255)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    },
+    "sectionH": {
+      "fontWeight": "300",
+      "fontSize": "25.28px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(185, 192, 197)",
+      "letterSpacing": "-0.2528px",
+      "textTransform": "none"
+    },
+    "chip": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "fontFamily": "ui-monospace, SFMono-Regular, \"Cascadia Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "color": "rgb(82, 181, 121)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    }
+  },
+  "HEAD/job/light": {
+    "htmlDataTheme": null,
+    "bodyBg": "rgb(238, 240, 242)",
+    "rootBg": "rgba(0, 0, 0, 0)",
+    "h1": null,
+    "heroName": null,
+    "sectionH": {
+      "fontWeight": "300",
+      "fontSize": "25.28px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(91, 101, 108)",
+      "letterSpacing": "-0.2528px",
+      "textTransform": "none"
+    },
+    "chip": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "fontFamily": "ui-monospace, SFMono-Regular, \"Cascadia Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "color": "rgb(30, 107, 63)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    }
+  },
+  "HEAD/job/dark": {
+    "htmlDataTheme": null,
+    "bodyBg": "rgb(0, 0, 0)",
+    "rootBg": "rgba(0, 0, 0, 0)",
+    "h1": null,
+    "heroName": null,
+    "sectionH": {
+      "fontWeight": "300",
+      "fontSize": "25.28px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(143, 153, 161)",
+      "letterSpacing": "-0.2528px",
+      "textTransform": "none"
+    },
+    "chip": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "fontFamily": "ui-monospace, SFMono-Regular, \"Cascadia Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "color": "rgb(82, 181, 121)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    }
+  },
+  "b87ecfe/bench/light": {
+    "htmlDataTheme": null,
+    "bodyBg": "rgb(238, 240, 242)",
+    "rootBg": "rgba(0, 0, 0, 0)",
+    "h1": null,
+    "heroName": {
+      "fontWeight": "300",
+      "fontSize": "28px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(255, 255, 255)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    },
+    "sectionH": {
+      "fontWeight": "300",
+      "fontSize": "26px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(61, 70, 76)",
+      "letterSpacing": "-0.26px",
+      "textTransform": "none"
+    },
+    "chip": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "fontFamily": "ui-monospace, SFMono-Regular, \"Cascadia Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "color": "rgb(30, 107, 63)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    }
+  },
+  "b87ecfe/bench/dark": {
+    "htmlDataTheme": null,
+    "bodyBg": "rgb(0, 0, 0)",
+    "rootBg": "rgba(0, 0, 0, 0)",
+    "h1": null,
+    "heroName": {
+      "fontWeight": "300",
+      "fontSize": "28px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(255, 255, 255)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    },
+    "sectionH": {
+      "fontWeight": "300",
+      "fontSize": "26px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(184, 190, 196)",
+      "letterSpacing": "-0.26px",
+      "textTransform": "none"
+    },
+    "chip": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "fontFamily": "ui-monospace, SFMono-Regular, \"Cascadia Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "color": "rgb(82, 181, 121)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    }
+  },
+  "b87ecfe/job/light": {
+    "htmlDataTheme": null,
+    "bodyBg": "rgb(238, 240, 242)",
+    "rootBg": "rgba(0, 0, 0, 0)",
+    "h1": null,
+    "heroName": null,
+    "sectionH": {
+      "fontWeight": "300",
+      "fontSize": "26px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(104, 115, 122)",
+      "letterSpacing": "-0.26px",
+      "textTransform": "none"
+    },
+    "chip": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "fontFamily": "ui-monospace, SFMono-Regular, \"Cascadia Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "color": "rgb(30, 107, 63)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    }
+  },
+  "b87ecfe/job/dark": {
+    "htmlDataTheme": null,
+    "bodyBg": "rgb(0, 0, 0)",
+    "rootBg": "rgba(0, 0, 0, 0)",
+    "h1": null,
+    "heroName": null,
+    "sectionH": {
+      "fontWeight": "300",
+      "fontSize": "26px",
+      "fontFamily": "system-ui, -apple-system, \"Segoe UI\", Roboto, \"Helvetica Neue\", Arial, sans-serif",
+      "color": "rgb(154, 164, 172)",
+      "letterSpacing": "-0.26px",
+      "textTransform": "none"
+    },
+    "chip": {
+      "fontWeight": "400",
+      "fontSize": "12px",
+      "fontFamily": "ui-monospace, SFMono-Regular, \"Cascadia Mono\", Menlo, Consolas, \"Liberation Mono\", monospace",
+      "color": "rgb(82, 181, 121)",
+      "letterSpacing": "normal",
+      "textTransform": "none"
+    }
+  }
+}

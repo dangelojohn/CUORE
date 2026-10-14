@@ -1,0 +1,48 @@
+=== check_mes_handoff ===
+  [ok] opening a case responds 200
+  [ok] job page step 6 responds 200
+  [ok] job page step 6 wires in the MES handoff include
+
+45 checks, 0 failures
+All checks passed.
+=== check_experience_page ===
+=== mobile entry point: m_home.html renders the add form ===
+  [ok] mobile home: 200
+  [ok] mobile home: "+ Add what you found" card renders, wired to experience.js
+
+1/53 check(s) failed:
+  - check_api.py exits 0
+=== check_scanlog ===
+  [ok] the diff page shows the added stored code
+  [ok] the diff page shows the Mode 06 flip
+  [ok] the diff page shows the coverage change
+  [ok] GET /v/{vin}/scans/diff with an unknown scan id is 404
+
+all 75 checks passed
+=== check_mods ===
+  [ok] DELETE /api/mods/{vin}/{entry_id} still supports that method
+  [ok] POST /api/mods/{vin}/{entry_id}/restore is in the live schema
+  [ok] POST /api/mods/{vin}/{entry_id}/restore still supports that method
+
+84 checks, 0 failures
+All checks passed.
+=== check_theme ===
+
+all 6 checks passed
+=== check_screens ===
+=== overflow check at 400px (no screenshot) ===
+
+all 28 checks passed
+=== check_bench ===
+=== 400px screenshot (cleanup via _edge_cleanup.kill_edge_profile) ===
+
+all 75 checks passed
+=== check_job_ux ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_step7_400.png (47521 bytes)
+=== same tab: step 6 result sheet, N1 (no-race dropdown) + N2 (counter) ===
+
+2/69 check(s) failed:
+  - job page (step=7) loaded in the headless browser -- loading
+  - the result-sheet dialog actually closes after Save (save completed) -- dialog.result-sheet still present after 5s
+
+[exited with code 0]

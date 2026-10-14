@@ -1,0 +1,72 @@
+=== anything named 'cuore' anywhere obvious ===
+C:/Users/User/.claude/projects/C--Users-User/memory/project_cuore_brand_roadmap.md
+C:/Users/User/.claude/projects/C--Users-User/memory/project_cuore_core_directive.md
+C:/Users/User/.claude/projects/C--Users-User-AppData-Roaming-Claude-scratch-workspaces-e84ab2f9-60fc-4a75-adbf-987214fa980d-cb2ac333-d653-4f94-8917-a4e8e2fc9b8e-scratch-2026-09-14-bf7e38/memory/cuore-live-link.md
+C:/Users/User/.claude/projects/C--Users-User-mcp-servers/memory/cuore-build-direction.md
+C:/Users/User/.cuore
+C:/Users/User/AppData/Local/cuore
+C:/Users/User/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/CUORE
+C:/Users/User/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/CUORE/CUORE (restart server).lnk
+C:/Users/User/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/CUORE/CUORE Home.lnk
+C:/Users/User/AppData/Roaming/Microsoft/Windows/Start Menu/Programs/CUORE/CUORE Live Link.lnk
+C:/Users/User/Desktop/CUORE Bench.lnk
+C:/Users/User/Downloads/cuore-ux-improvements.md
+C:/Users/User/Downloads/CUORE_UX_fixes.md
+C:/Users/User/Downloads/CUORE_UX_fixes_run2.md
+C:/Users/User/mcp-servers/cuore
+C:/Users/User/mcp-servers/cuore/tests/check_cuore_log.py
+C:/Users/User/mcp-servers/cuore/web/static/cuore.css
+C:/Users/User/mcp-servers/cuore/web/static/cuore.js
+C:/Users/User/mcp-servers/cuore-keepalive.ps1
+C:/Users/User/mcp-servers/CUORE.md
+C:/Users/User/mcp-servers/docs/design/cuore-bay-tablet.html
+C:/Users/User/mcp-servers/docs/design/CUORE_LIVE_LINK_PLAN.md
+C:/Users/User/mcp-servers/docs/design/CUORE_UI_CENTRALIZATION_OPTIONS.md
+C:/Users/User/mcp-servers/docs/design/review-2026-09-14/cuore_survey.md
+C:/Users/User/mcp-servers/docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md
+C:/Users/User/mcp-servers/install-cuore-autostart.ps1
+C:/Users/User/mcp-servers/make-cuore-shortcuts.ps1
+C:/Users/User/mcp-servers/mes-log-mcp/mes/cuore_log.py
+C:/Users/User/mcp-servers/mes-log-mcp/mes/__pycache__/cuore_log.cpython-310.pyc
+C:/Users/User/mcp-servers/mes-log-mcp/tests/check_cuore_log.py
+
+=== MES/mcp-servers project layout (for grounding) ===
+CUORE.md
+README.md
+cuore
+cuore-keepalive.ps1
+docs
+install-cuore-autostart.ps1
+koch-mcp
+make-cuore-shortcuts.ps1
+mes-log-mcp
+mes_proxi.md
+obd2-mcp
+report.png
+scripts
+start-cuore.ps1
+tsb_9100469.pdf
+
+=== grep 'cuore' inside MES project configs/code (shallow) ===
+C:/Users/User/mcp-servers/.claude/launch.json
+C:/Users/User/mcp-servers/.git/config
+C:/Users/User/mcp-servers/.git/FETCH_HEAD
+C:/Users/User/mcp-servers/.git/index
+C:/Users/User/mcp-servers/.git/logs/HEAD
+C:/Users/User/mcp-servers/.git/logs/refs/heads/live-link-coverage
+C:/Users/User/mcp-servers/.git/logs/refs/heads/main
+C:/Users/User/mcp-servers/cuore/api/attested.py
+C:/Users/User/mcp-servers/cuore/api/buscapture.py
+C:/Users/User/mcp-servers/cuore/api/cases.py
+C:/Users/User/mcp-servers/cuore/api/deps.py
+C:/Users/User/mcp-servers/cuore/api/dossier.py
+C:/Users/User/mcp-servers/cuore/api/electrical.py
+C:/Users/User/mcp-servers/cuore/api/experience.py
+C:/Users/User/mcp-servers/cuore/api/feedback.py
+C:/Users/User/mcp-servers/cuore/api/jobs.py
+C:/Users/User/mcp-servers/cuore/api/known_good.py
+C:/Users/User/mcp-servers/cuore/api/live.py
+C:/Users/User/mcp-servers/cuore/api/liveboard.py
+C:/Users/User/mcp-servers/cuore/api/live_ui.py
+
+[exited with code 0]

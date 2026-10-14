@@ -1,0 +1,70 @@
+=== check_mods ===
+exit=0
+  [ok] POST /api/mods/{vin}/{entry_id}/restore is in the live schema
+  [ok] POST /api/mods/{vin}/{entry_id}/restore still supports that method
+
+84 checks, 0 failures
+All checks passed.
+
+=== check_system_page ===
+exit=0
+  [ok] evap page shows the network/EVAP cross-reference line
+  [ok] cross-reference counts are real (positive, together <= total)
+  [ok] evap cross-reference links to the network event, never claims a cause
+
+115/115 checks passed
+
+=== check_mil ===
+exit=0
+  [ok] report shows the ECM MIL-commanded line
+  [ok] report shows the owner's dash-lamp statement
+  [ok] report shows all three explanations
+
+60 checks, 0 failures
+
+=== check_dossier_view ===
+exit=1
+
+1/35 check(s) failed:
+  - verdict cleared_at is 2026-10-08 (the newest MES clear, 09:20, fixed in 2210d76) -- 2026-10-14
+
+=== check_bench ===
+exit=1
+=== 400px screenshot (cleanup via _edge_cleanup.kill_edge_profile) ===
+
+1/75 check(s) failed:
+  - resume card's last_scan_at is the live scan's own timestamp (today), not an older MES-log date -- '2026-10-14 08:59:00' vs live scan '2026-10-13T09:00:00'
+
+=== check_jobs_page ===
+exit=0
+=== screenshot + overflow at 400px ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_phone.png (7901 bytes)
+
+all 24 checks passed
+
+=== check_tests_page ===
+exit=0
+  [ok] GET /v/{vin}/job?step=7 responds 200
+  [ok] step 7 shows the test result's own evidence chip label
+  [ok] step 7 shows the linked evidence on the hypothesis card
+85/85 checks passed
+OK
+
+=== check_scan_health ===
+exit=0
+50 checks, 0 failures
+
+=== check_screens ===
+exit=1
+=== overflow check at 400px (no screenshot) ===
+
+1/28 check(s) failed:
+  - no page-level horizontal overflow at 400px -- scrollWidth=404 clientWidth=400
+
+=== check_live_ingest ===
+exit=0
+
+all 30 checks passed
+
+
+[exited with code 0]

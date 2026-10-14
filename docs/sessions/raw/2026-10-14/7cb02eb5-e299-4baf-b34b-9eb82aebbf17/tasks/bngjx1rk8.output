@@ -1,0 +1,3 @@
+health 200 after 10s approx
+{"ok":true,"profile":"bench","version":"0.1.0","corpus_reachable":true,"cache":{"entries":0,"capacity":16}}
+[exited with code 0]

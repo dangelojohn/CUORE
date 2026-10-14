@@ -1,0 +1,68 @@
+=== check_coverage ===
+checks run: 126
+all green
+=== check_live ===
+checks run: 177
+all green
+=== check_live_data ===
+checks run: 88
+all green
+=== check_active_probe ===
+checks run: 23
+all green
+=== check_fullscan ===
+checks run: 222
+all green
+=== check_live_readiness ===
+  [ok] the demo readiness observation round-trips through the store
+  [ok] ...but is not from the car, however complete its monitors claim to be
+  [ok] no system is VERIFIED_CLEAN from a demo-only observation (the demo readiness row above must not have promoted anything)
+
+all 41 checks passed
+=== check_systems_live ===
+  [ok] the new code maps to the ignition system
+  [ok] the new code's since is the poller's own first_seen timestamp
+  [ok] P0304 still appears exactly once on a second poll, not twice
+
+all 22 checks passed
+=== check_detail ===
+checks run: 20
+all green
+=== check_module_codes ===
+63/63 checks passed
+=== check_readall ===
+checks run: 61
+all green
+=== check_learn ===
+checks run: 61
+all green
+=== check_clear ===
+checks run: 18
+all green
+=== check_actuate ===
+checks run: 62
+all green
+=== check_buscapture ===
+checks run: 44
+FAILURES: 1
+  - capture status shows frames while running -- {'bus': 'can_ihs', 'purpose': 'capture', 'action': '', 'status': 'running', 'cable': 'blue_a5', 'started_at': '2026-10-14T07:22:22', 'finished_at': None, 'elapsed_s': 0.55, 'frame_count': 0, 'distinct_ids': 0, 'ids': {}, 'rate_hz': 0.0, 'error': None, 'saved_path': None, 'saved_name': None}
+=== check_perf ===
+warm job: 0.851s, warm dossier: 1.255s
+
+all 6 checks passed
+=== check_scan_views ===
+  [ok] codes page responds 200 with ?system=EVAP
+  [ok] the EVAP system filter narrows the row count
+  [ok] a code row links to its dossier cluster (/v/{vin}/dossier#cluster-<family>)
+
+all 13 checks passed
+=== check_api ===
+checks run: 96
+all green
+=== check_api_contract ===
+checks run: 69
+all green
+
+[exited with code 0]
+
+[killed]

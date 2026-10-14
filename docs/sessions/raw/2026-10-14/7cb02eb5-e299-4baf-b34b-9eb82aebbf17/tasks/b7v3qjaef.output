@@ -1,0 +1,42 @@
+--- F2: vehicle name is never (unnamed vehicle), cold server ---
+  [ok] cold /systems/evap responds 200
+  [ok] cold /systems/evap never shows (unnamed vehicle)
+  [ok] cold /systems/evap names the Stelvio
+--- F2: visiting /tests first cannot poison the map's vehicle name ---
+  [ok] map (/systems) still responds 200 after /tests
+  [ok] map (/systems) still names the Stelvio after /tests was visited first
+--- F1: every system's 'Record inspection' href lands on a real id="el-*" ---
+  [ok] at least one 'Record inspection' link was found to check
+  [ok] every 'Record inspection' href lands on a page with a matching id="el-*"
+--- F5: the map's own SVG node links are >=44px tappable ---
+  [ok] the node <a> wraps a transparent hit rect
+  [ok] the node hit rect is >=44px on both axes
+--- F7: the dependency graph has a horizontal-scroll hint, no page-level overflow ---
+  [ok] map page responds 200
+  [ok] map page carries a scroll hint for the graph wrap
+  [ok] the graph wrap stays scoped to overflow-x (never page-level overflow)
+=== network event: U-codes across modules collapse into one event ===
+  [ok] network page responds 200
+  [ok] network page shows U1713-2F
+  [ok] network page marks U1713-2F failing now
+  [ok] network page gives U1713's FTB meaning (signal erratic)
+  [ok] network page names the reporting modules (BCM/IPC/RFHUB)
+  [ok] network page collapses >=3 comms codes into one event (mes.analysis wording)
+  [ok] network page has a Network event section
+  [ok] the network event section lists at least 3 codes
+=== U1713's fault tree: diagnostic order before suspecting the bus ===
+  [ok] network page's fault tree checks supply/ground/connector before the bus
+  [ok] that diagnostic-order line carries both confidence qualifiers
+=== BCM check-first checklist (body_comfort page) ===
+  [ok] body_comfort page has a Check first section
+  [ok] BCM check-first checklist has >=5 rows
+  [ok] check-first rows link to the inspection form or the test page
+  [ok] check-first checklist includes the battery, a BCM ground and the CAN termination test
+=== EVAP <-> network cross-reference ===
+  [ok] evap page shows the network/EVAP cross-reference line
+  [ok] cross-reference counts are real (positive, together <= total)
+  [ok] evap cross-reference links to the network event, never claims a cause
+
+115/115 checks passed
+
+[exited with code 0]
