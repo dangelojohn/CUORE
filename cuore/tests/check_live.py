@@ -244,9 +244,14 @@ check_eq("validate_command passes a plain command", validate_command(" 0100 "), 
 
 CLASSIFY_CASES = [
     ("04", "vehicle_write"), ("0400", "vehicle_write"), ("ATSH 7E0", "vehicle_write"),
-    ("2F0102", "vehicle_write"), ("31010203", "vehicle_write"), ("14FFFFFF", "vehicle_write"),
-    ("2E F190", "vehicle_write"), ("34", "vehicle_write"), ("1003", "vehicle_write"),
+    ("2F0102", "vehicle_write"), ("14FFFFFF", "vehicle_write"),
+    ("1003", "vehicle_write"),
     ("1101", "vehicle_write"), ("STPX h:7E0,d:0100", "vehicle_write"),
+    # Configuration/coding writes: blocked outright on every module, with no
+    # override flag -- NOT "vehicle_write" (2026-10-14 rule, see
+    # safety.CONFIGURATION_WRITE_SERVICES / assert_not_configuration_write).
+    ("2E F190", "blocked"), ("31010203", "blocked"), ("34", "blocked"),
+    ("27 01", "blocked"), ("36 00", "blocked"), ("37", "blocked"), ("85 02", "blocked"),
     ("ATRV", "read"), ("ATDP", "read"), ("ATDPN", "read"), ("ATI", "read"),
     ("0100", "read"), ("0902", "read"), ("19020C", "read"), ("22F190", "read"),
     ("3E00", "read"), ("STI", "read"), ("STDI", "read"), ("STPRS", "read"),
@@ -282,6 +287,45 @@ for service, payload in ((0x10, bytes([0x03])), (0x14, b""), (0x2E, b"\xF1\x90\x
     except Refused:
         ok = False
     check(f"assert_read_only_uds refuses 0x{service:02X}", not ok)
+
+# 2026-10-14 rule: a configuration/coding write is refused on EVERY module,
+# never consulting ACTUATION_BLOCKED_MODULES -- the gap that case closes is
+# a module (BCM) that is NOT, and should never need to be, on that list.
+# BCM carries no 0x2E in ACTUATION_BLOCKED_MODULES at all; prove the refusal
+# holds anyway, for BCM and for an arbitrary other module name.
+from cuore.live import safety  # noqa: E402
+check("BCM is not in ACTUATION_BLOCKED_MODULES (the module-list gate alone would miss it)",
+      "BCM" not in safety.ACTUATION_BLOCKED_MODULES)
+for module_code in ("BCM", "ECM", "ESIM"):
+    try:
+        safety.assert_not_configuration_write(0x2E, module_code)
+        ok = True
+    except Refused:
+        ok = False
+    check(f"assert_not_configuration_write refuses 0x2E to {module_code} "
+         f"(by service, regardless of any module blocklist)", not ok)
+
+# 0x22 (read) to BCM stays allowed -- the rule only ever touches writes.
+try:
+    assert_read_only_uds(0x22, b"\xF1\x90")
+    safety.assert_not_configuration_write(0x22, "BCM")
+    ok = True
+except Refused:
+    ok = False
+check("0x22 ReadDataByIdentifier to BCM stays allowed", ok)
+
+# The catalogued actuator-replay path (consent-phrase gated, in
+# cuore.live.actuate) is independent of this rule: a 0x31 RoutineControl
+# request for a module that is not in ACTUATION_BLOCKED_MODULES (e.g. the
+# ESIM, an EVAP actuator, never a config target) still runs -- the
+# 2026-10-14 rule only closes the raw send_raw/classify_command path.
+try:
+    safety.assert_actuation_allowed(0x31, bytes([0x01, 0x12, 0x34]))
+    safety.assert_actuation_module_allowed("ESIM", "can_c")
+    ok = True
+except Refused:
+    ok = False
+check("catalogued ESIM actuator (0x31 RoutineControl, consent path) still allowed", ok)
 
 TRANSMIT_MATRIX = [
     # (bus_cable_ok, verified, needs_confirmation, confirmed) -> should raise?

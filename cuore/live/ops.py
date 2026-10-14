@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import serial.tools.list_ports
 
@@ -413,6 +413,69 @@ def obd_pid(pid: str, **kw: Any) -> dict[str, Any]:
         return _stamp(sess, out)
 
 
+def obd_pids_snapshot(pids: list[str], **kw: Any) -> dict[str, Any]:
+    """Every Mode 01 PID in ``pids`` inside ONE held adapter session, via
+    :meth:`~cuore.live.transport.Session.query_pids` (<=6 PIDs per request,
+    per-ECU split, automatic per-PID fallback) -- the batched replacement
+    for calling :func:`obd_pid` once per PID, each of which pays its own
+    session open/close. See
+    docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md for the before/
+    after session-count estimate this removes.
+    """
+    with _obd_session("read_pids_snapshot", **kw) as sess:
+        sess.untarget()
+        q = sess.query_pids(pids)
+        by_ecu: dict[str, dict[str, Any]] = {}
+        for hdr, pid_data in q["by_ecu"].items():
+            readings: dict[str, Any] = {}
+            for pid, data in pid_data.items():
+                spec = PIDS_BY_HEX.get(pid)
+                dec = decode_pid(pid, spec, data)
+                readings[pid] = {"name": spec.name if spec else None,
+                                 "value": dec.get("value"), "unit": dec.get("unit")}
+            by_ecu[hdr] = readings
+        out = {"by_ecu": by_ecu, "requests_sent": q["requests_sent"],
+              "multi_pid_used": q["multi_pid_used"]}
+        return _observe(sess, "pids_snapshot", out)
+
+
+def obd_freeze_frames(pids: list[str], **kw: Any) -> dict[str, Any]:
+    """Every freeze-frame PID in ``pids`` (Mode 02, frame 0) inside ONE held
+    adapter session -- the batched replacement for calling
+    :func:`obd_freeze_frame` once per PID. PID "02" (the stored DTC itself)
+    is decoded as a DTC, exactly as :func:`obd_freeze_frame` does; every
+    other PID is decoded with :func:`~cuore.live.obd.decode_pid`. Mode 02
+    has no J1979 multi-PID batching the way Mode 01 does (one PID per
+    request, each naming its own frame number), so the saving here is the
+    held session, not fewer requests.
+    """
+    with _obd_session("read_freeze_frame_set", **kw) as sess:
+        sess.untarget()
+        by_ecu: dict[str, dict[str, Any]] = {}
+        requests = 0
+        for pid in dict.fromkeys(pids):
+            hex_pid, spec = resolve_pid(pid) if pid.strip() else ("02", None)
+            q = sess.query(f"02{hex_pid}00", "42")
+            requests += 1
+            if q["error"]:
+                continue
+            for hdr, data in q["ecus"].items():
+                if len(data) < 3 or data[1] != hex_pid:
+                    continue
+                payload = data[3:]
+                if hex_pid == "02":
+                    code = dtc_from_two_bytes(payload[0], payload[1]) if len(payload) >= 2 else None
+                    by_ecu.setdefault(hdr, {})[hex_pid] = {"name": spec.name if spec else None,
+                                                           "dtc": code, "bytes": payload}
+                else:
+                    dec = decode_pid(hex_pid, spec, payload)
+                    by_ecu.setdefault(hdr, {})[hex_pid] = {"name": spec.name if spec else None,
+                                                           "value": dec.get("value"),
+                                                           "unit": dec.get("unit")}
+        out = {"by_ecu": by_ecu, "requests_sent": requests}
+        return _observe(sess, "freeze_frame_set", out)
+
+
 def obd_voltage(**kw: Any) -> dict[str, Any]:
     with link().session("read_voltage", bus=CAN_C, passive=True, **kw) as sess:
         r = sess.cmd("ATRV", 2)
@@ -652,6 +715,45 @@ def scan_modules(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm: b
         if not detail:
             out = {**out, "modules": [_compact_dtc_result(m) for m in out.get("modules", [])]}
         return out
+
+
+def sweep_bus_full(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm: bool = False,
+                   known_did: Optional[Callable[[str], Optional[int]]] = None,
+                   **kw: Any) -> dict[str, Any]:
+    """DTCs, identity, and (when ``known_did`` names one) one DID per module
+    on ``bus`` -- all inside the ONE adapter session this opens, via
+    :func:`cuore.live.uds.sweep_bus_full`. The held-session replacement for
+    a full-vehicle scan's old per-module pattern of :func:`scan_modules`
+    (one open) then :func:`module_identity` (one open per module) then
+    :func:`module_did` (one open per module with a known DID) -- see
+    docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md for the timed
+    before/after. ``known_did`` is an optional ``code -> Optional[int]``
+    callable (e.g. ``fullscan._known_did`` bound to one car's VIN) naming
+    the one DID to also read per module.
+
+    Every module's ``dtcs``/``identity``/``did`` sub-result is recorded as
+    its own observation here too (``module_dtcs``, ``module_identity``,
+    ``did``) for a direct call to this function; a caller that monkeypatches
+    this whole function (as the fullscan test suite does, by design -- see
+    ``cuore.live.fullscan``'s own docstring) skips that silently and records
+    from the returned dict itself instead, which is harmless duplication,
+    never a gap.
+    """
+    b = _bus(bus)
+    with link().session(f"sweep_bus_full {b.key}", bus=b, confirm=confirm, **kw) as sess:
+        out = uds_mod.sweep_bus_full(sess, b, vin=vin or None, mask=mask, known_did=known_did)
+        v = vin or getattr(sess.link, "vin", "") or ""
+        for mod in out.get("modules", []):
+            if "codes" in mod:
+                store.record_observation("module_dtcs", mod, vin=v, bus=b.key,
+                                         cable=sess.link.cable, stream=sess.stream.describe)
+            if mod.get("identity") is not None:
+                store.record_observation("module_identity", mod["identity"], vin=v, bus=b.key,
+                                         cable=sess.link.cable, stream=sess.stream.describe)
+            if mod.get("did") is not None:
+                store.record_observation("did", mod["did"], vin=v, bus=b.key,
+                                         cable=sess.link.cable, stream=sess.stream.describe)
+        return _stamp(sess, out)
 
 
 def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
@@ -960,9 +1062,10 @@ def run_actuator(vin: str, module: str, name: str, consent: str, max_seconds: fl
 
 __all__ = ["observations", "status", "ports", "mes_settings", "set_cable", "cable_state", "buses", "modules",
            "probe", "verify_bus", "capture", "obd_dtcs", "obd_all_dtcs", "obd_pid",
-           "obd_voltage", "obd_supported_pids", "obd_freeze_frame", "obd_vin",
+           "obd_pids_snapshot", "obd_voltage", "obd_supported_pids", "obd_freeze_frame",
+           "obd_freeze_frames", "obd_vin",
            "readiness_in", "obd_readiness", "module_dtcs", "module_identity", "module_did",
-           "module_did_sweep",
+           "module_did_sweep", "sweep_bus_full",
            "scan_modules", "discover", "coverage_status", "coverage_start", "coverage_run",
            "coverage_skip", "coverage_report", "coverage_reset", "repair_status",
            "obd_mode06", "module_dtc_detail", "module_dtc_count", "clear_module_dtcs",

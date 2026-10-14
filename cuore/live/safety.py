@@ -83,6 +83,51 @@ def validate_command(cmd: str) -> str:
     return cmd.strip()
 
 
+#: Service codes that configure or code the vehicle -- refused on EVERY
+#: module, unconditionally, with no override flag and independent of
+#: :data:`ACTUATION_BLOCKED_MODULES`. 2026-10-14 rule: a module-name
+#: blocklist is not enough, because a module nobody thought to put on it can
+#: still carry safety-relevant CONFIGURATION. The case that forced this: the
+#: BCM's own "CAN Setup" PROXI byte 156 (paddle-shift NA/Euro characteristic
+#: -- see docs/research/MES_PADDLE_SHIFT_CODING_2026-10-14.md). BCM is not,
+#: and should never need to be, in ACTUATION_BLOCKED_MODULES -- it is not an
+#: actuator-test target -- yet a 0x2E WriteDataByIdentifier to it is exactly
+#: the class of write that belongs in MultiEcuScan/wiTECH, never here. So
+#: this gate is keyed on the SERVICE (the operation class), checked before
+#: any module lookup, and applies to every module whether or not anyone ever
+#: named it. Reads (0x22 ReadDataByIdentifier, 0x19 ReadDTCInformation, 0x3E
+#: TesterPresent, legislated OBD Modes 01-0A) are never affected -- they are
+#: not in this table at all. A catalogued actuator-test RoutineControl
+#: (0x31) still runs through its own module-and-consent gate in
+#: cuore.live.actuate (:func:`assert_actuation_allowed` /
+#: :func:`assert_actuation_module_allowed`) -- that path never reaches
+#: :func:`classify_command` or :func:`assert_read_only_uds` at all, so
+#: blocking 0x31 here never touches it.
+CONFIGURATION_WRITE_SERVICES: frozenset[int] = frozenset({0x27, 0x2E, 0x31, 0x34, 0x36, 0x37, 0x85})
+
+
+def assert_not_configuration_write(service: int, module_code: str = "") -> None:
+    """Raise :class:`Refused` for any service in
+    :data:`CONFIGURATION_WRITE_SERVICES`, regardless of ``module_code`` --
+    the point is that this check never consults a module list at all, so a
+    module nobody blocklisted by name is refused exactly the same as one
+    that is (see the rule documented on that constant). ``module_code`` is
+    accepted only to name the target in the refusal message; passing "" (the
+    default, e.g. from :func:`classify_command`, which has no module in
+    scope yet) still refuses every module equally once the request actually
+    reaches one.
+    """
+    if service in CONFIGURATION_WRITE_SERVICES:
+        why = WRITE_SERVICES.get(format(service, "02X"), "configuration/coding write")
+        where = f" to {module_code}" if module_code else ""
+        raise Refused(
+            f"UDS service 0x{service:02X}{where} is a configuration/coding write and is "
+            f"refused on every module, with no override and regardless of "
+            f"ACTUATION_BLOCKED_MODULES (2026-10-14 rule: a module-name blocklist alone missed "
+            f"the BCM 'CAN Setup' PROXI byte-156 case -- {why}); use MultiEcuScan or wiTECH for "
+            f"this.")
+
+
 def classify_command(cmd: str) -> tuple[str, str]:
     """Return ``(kind, reason)``; kind is read, vehicle_write, adapter_state or blocked."""
     compact = cmd.strip().upper().replace(" ", "")
@@ -119,6 +164,10 @@ def classify_command(cmd: str) -> tuple[str, str]:
         return "vehicle_write", ("OBD-II Mode 04 clears DTCs and resets readiness monitors; "
                                  "use the clear tool, which captures evidence first")
     service = compact[:2]
+    try:
+        assert_not_configuration_write(int(service, 16))
+    except Refused as e:
+        return "blocked", str(e)
     if service in WRITE_SERVICES:
         return "vehicle_write", WRITE_SERVICES[service]
     return "read", ""
@@ -136,6 +185,7 @@ READ_ONLY_UDS: dict[int, frozenset[int] | None] = {
 
 def assert_read_only_uds(service: int, payload: bytes = b"") -> None:
     """Raise :class:`Refused` unless the service is on the read-only allowlist."""
+    assert_not_configuration_write(service)
     allowed = READ_ONLY_UDS.get(service, "absent")
     if allowed == "absent":
         why = WRITE_SERVICES.get(format(service, "02X"), "not on the read-only allowlist")
@@ -236,7 +286,8 @@ def assert_actuation_module_allowed(module_code: str, bus_key: str) -> None:
 
 __all__ = [
     "WRITE_SERVICES", "AT_READ_ONLY", "ST_READ_ONLY", "MONITOR_COMMANDS", "READ_ONLY_UDS",
-    "ACTUATION_UDS", "ACTUATION_BLOCKED_MODULES",
+    "ACTUATION_UDS", "ACTUATION_BLOCKED_MODULES", "CONFIGURATION_WRITE_SERVICES",
     "validate_command", "classify_command", "is_adapter_only", "assert_read_only_uds",
     "assert_transmit_allowed", "assert_actuation_allowed", "assert_actuation_module_allowed",
+    "assert_not_configuration_write",
 ]

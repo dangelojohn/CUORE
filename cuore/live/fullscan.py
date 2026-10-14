@@ -261,18 +261,31 @@ def _make_step_runner(steps: list[dict[str, Any]], budget_left: Callable[[], boo
 
 
 def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
-                 budget_left: Callable[[], bool] = lambda: True) -> tuple[str, str]:
+                 budget_left: Callable[[], bool] = lambda: True,
+                 session_counter: Optional[list[int]] = None) -> tuple[str, str]:
     """CAN-C only: verify, adapter identity, Mode 09, DTCs + freeze frame,
     readiness, Mode 06, and a Mode 01 PID snapshot. Returns ``(car_vin,
     stream_desc)`` for every later recording in the same run/segment to
-    share. Shared by :func:`run` and ``run_guided``'s segment 1."""
+    share. Shared by :func:`run` and ``run_guided``'s segment 1.
+
+    ``session_counter`` (a one-element ``[int]`` box so it accumulates
+    across both this function and :func:`_sweep_bus_modules`) is bumped once
+    for every call made here that opens exactly one held adapter session --
+    see ``run()``'s own docstring note on ``sessions_opened``. Freeze frame
+    and the PID snapshot are each ONE such call (:func:`ops.obd_freeze_frames`
+    / :func:`ops.obd_pids_snapshot`), not one per PID as before.
+    """
+    counter = session_counter if session_counter is not None else [0]
     verify = _step("verify_bus can_c", ops.verify_bus, "can_c")
+    counter[0] += 1
     probe = _step("probe", ops.probe, allow_while_mes_connected=True)
+    counter[0] += 1
     stream_desc = _stream_desc()
     store.record_observation("adapter_identity", {"probe": probe, "verify_can_c": verify},
                              vin=vin, bus="can_c", cable=cable, stream=stream_desc)
 
     vin_result = _step("obd_vin", ops.obd_vin) or {}
+    counter[0] += 1
     car_vin = vin_result.get("vin") or vin
 
     def _mode09_rest() -> dict[str, Any]:
@@ -282,6 +295,7 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
         with ops._obd_session("fullscan_mode09") as sess:
             return _m09.read_mode09(sess, ["04", "06", "08", "0A"])
     m09 = _step("mode09 04/06/08/0A", _mode09_rest) or {}
+    counter[0] += 1
     gaps = [g for g in _MODE09_GAPS if not (m09.get(g) or m09.get("pids", {}).get(g))]
     store.record_observation(
         "mode09", {**vin_result, "mode09": m09, "gaps": gaps,
@@ -291,6 +305,7 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
     dtc_results: dict[str, dict[str, Any]] = {}
     for kind in ("stored", "pending", "permanent"):
         r = _step(f"obd_dtcs {kind}", ops.obd_dtcs, kind)
+        counter[0] += 1
         if r is None:
             continue
         dtc_results[kind] = r
@@ -298,6 +313,7 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
                                  cable=cable, stream=stream_desc)
 
     supported = _step("obd_supported_pids", ops.obd_supported_pids)
+    counter[0] += 1
     stored = dtc_results.get("stored") or {}
     by_ecu_codes: dict[str, list[str]] = {h: c for h, c in (stored.get("by_ecu") or {}).items()
                                           if c}
@@ -306,14 +322,22 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
         all_pids = sorted({p for h in by_ecu_codes for p in (by_ecu_pids.get(h) or {}).get(
             "pids", [])})
         frames: dict[str, dict[str, Any]] = {h: {} for h in by_ecu_codes}
-        for pid in all_pids:
-            ff = _step(f"freeze_frame {pid}", ops.obd_freeze_frame, pid)
-            if not ff:
-                continue
-            for h, reading in (ff.get("by_ecu") or {}).items():
-                if h in frames and isinstance(reading, dict) and "value" in reading:
-                    frames[h][pid] = {"name": ff.get("name"), "value": reading.get("value"),
-                                      "unit": reading.get("unit")}
+        if all_pids:
+            # ONE held session for every freeze-frame PID this scan wants,
+            # across every code -- was one ops.obd_freeze_frame() open PER
+            # PID (see this function's own docstring).
+            ff = _step("freeze_frame_set (held session, "
+                      f"{len(all_pids)} PIDs)", ops.obd_freeze_frames, all_pids) or {}
+            counter[0] += 1
+            for h, reading_map in (ff.get("by_ecu") or {}).items():
+                if h in frames:
+                    # Same gate the old per-PID loop used: only a reading that
+                    # actually carries "value" (pid "02", the stored DTC
+                    # itself, is decoded as a DTC, not a value -- see
+                    # ops.obd_freeze_frames).
+                    frames[h] = {pid: {"name": r.get("name"), "value": r.get("value"),
+                                       "unit": r.get("unit")}
+                                for pid, r in reading_map.items() if r.get("value") is not None}
         for h, codes in by_ecu_codes.items():
             for code in codes:
                 store.record_observation("freeze_frame",
@@ -322,11 +346,13 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
                                          stream=stream_desc)
 
     readiness = _step("obd_readiness", ops.obd_readiness)
+    counter[0] += 1
     if readiness is not None:
         store.record_observation("readiness", readiness, vin=car_vin, bus="can_c", cable=cable,
                                  stream=stream_desc)
 
     mode06 = _step("obd_mode06", ops.obd_mode06)
+    counter[0] += 1
     if mode06 is not None:
         store.record_observation("mode06", mode06, vin=car_vin, bus="can_c", cable=cable,
                                  stream=stream_desc)
@@ -336,16 +362,17 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
         snapshot: dict[str, dict[str, Any]] = {h: {} for h in by_ecu_pids}
         all_snapshot_pids = sorted({p for info in by_ecu_pids.values() for p in info.get(
             "pids", [])})
-        for pid in all_snapshot_pids:
-            if not budget_left():
-                break
-            r = _step(f"read_pid {pid}", ops.obd_pid, pid)
-            if not r:
-                continue
-            for h, reading in (r.get("by_ecu") or {}).items():
-                if h in snapshot and isinstance(reading, dict):
-                    snapshot[h][pid] = {"name": r.get("name"), "value": reading.get("value"),
-                                        "unit": reading.get("unit")}
+        if all_snapshot_pids and budget_left():
+            # ONE held session, Session.query_pids() batching <=6 PIDs per
+            # request with a per-PID fallback -- was one ops.obd_pid() open
+            # PER PID (see this function's own docstring).
+            snap = _step("pids_snapshot (held session, query_pids, "
+                        f"{len(all_snapshot_pids)} PIDs)", ops.obd_pids_snapshot,
+                        all_snapshot_pids) or {}
+            counter[0] += 1
+            for h, readings in (snap.get("by_ecu") or {}).items():
+                if h in snapshot:
+                    snapshot[h] = readings
         store.record_observation("pids_snapshot", {"by_ecu": snapshot}, vin=car_vin, bus="can_c",
                                  cable=cable, stream=stream_desc)
 
@@ -357,6 +384,7 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
     # one coverage-neutral step, never a failed scan.
     if budget_left():
         did_disc = _step("tcm_did_discovery", _tcm_did_discovery_sweep, car_vin)
+        counter[0] += 1
         if did_disc is not None:
             store.record_observation("did_discovery", {"module": "TCM", **did_disc},
                                      vin=car_vin, bus="can_c", cable=cable, stream=stream_desc)
@@ -366,17 +394,34 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
 
 def _sweep_bus_modules(bus_key: str, car_vin: str, cable: str, stream_desc: str, confirm: bool,
                        _step: Callable[..., Any], steps: list[dict[str, Any]],
-                       budget_left: Callable[[], bool] = lambda: True) -> list[dict[str, Any]]:
+                       budget_left: Callable[[], bool] = lambda: True,
+                       session_counter: Optional[list[int]] = None) -> list[dict[str, Any]]:
     """UDS sweep of every confirmed module on ``bus_key``: DTCs with status
     flags, identity, and the one known DID per module. Returns that bus's
     coverage rows. Assumes the caller has already established the current
     cable reaches this bus -- never checks reachability itself. Shared by
-    :func:`run`'s per-bus loop and every guided-scan cable segment."""
+    :func:`run`'s per-bus loop and every guided-scan cable segment.
+
+    ONE held adapter session for the whole bus, via
+    :func:`ops.sweep_bus_full` -- was :func:`ops.scan_modules` (one open)
+    then :func:`ops.module_identity` (one open per module) then
+    :func:`ops.module_did` (one open per module with a known DID); see
+    docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md for the timed
+    before/after. ``session_counter`` is bumped once here, same convention
+    as :func:`_obd_readout`.
+    """
+    counter = session_counter if session_counter is not None else [0]
     coverage_rows: list[dict[str, Any]] = []
-    scan_result = _step(f"scan_modules {bus_key}", ops.scan_modules, bus_key, vin=car_vin,
-                        mask=0xFF, confirm=confirm, detail=True)
+
+    def _known_did_int(code: str) -> Optional[int]:
+        known = _known_did(code, car_vin)
+        return known[0] if known else None
+
+    scan_result = _step(f"sweep_bus_full {bus_key}", ops.sweep_bus_full, bus_key, vin=car_vin,
+                        mask=0xFF, confirm=confirm, known_did=_known_did_int)
+    counter[0] += 1
     if scan_result is None:
-        why = steps[-1].get("error", "scan_modules failed") if steps else "scan_modules failed"
+        why = steps[-1].get("error", "sweep_bus_full failed") if steps else "sweep_bus_full failed"
         for ecu in on_bus(bus_key):
             coverage_rows.append({"bus": bus_key, "module": ecu.code,
                                   "category": "not_reachable", "why": why,
@@ -414,11 +459,10 @@ def _sweep_bus_modules(bus_key: str, car_vin: str, cable: str, stream_desc: str,
                      for r in records]},
             vin=car_vin, bus=bus_key, cable=cable, stream=stream_desc)
 
-        if category not in ("answered", "silent") or not budget_left():
+        if category not in ("answered", "silent"):
             continue
 
-        ident = _step(f"module_identity {code}", ops.module_identity, code, vin=car_vin,
-                     confirm=confirm)
+        ident = mod.get("identity")
         if ident is not None:
             store.record_observation("module_identity", ident, vin=car_vin, bus=bus_key,
                                      cable=cable, stream=stream_desc)
@@ -428,8 +472,7 @@ def _sweep_bus_modules(bus_key: str, car_vin: str, cable: str, stream_desc: str,
             row["did"] = "UNKNOWN: no known DID in the registry for this module"
         else:
             did_int, did_name, did_source = known
-            did_result = _step(f"module_did {code} {did_int:04X}", ops.module_did, code,
-                               f"{did_int:04X}", vin=car_vin, confirm=confirm)
+            did_result = mod.get("did")
             if did_result is not None:
                 store.record_observation("did", did_result, vin=car_vin, bus=bus_key,
                                          cable=cable, stream=stream_desc)
@@ -449,6 +492,14 @@ def run(vin: str = "", buses: Optional[list[str]] = None, budget_s: Optional[flo
     call on ``can_ch``, which refuses transmission without it by design
     (brakes/airbags/steering); a refusal there is one isolated coverage row,
     not a failed scan.
+
+    ``result["sessions_opened"]`` counts how many held adapter sessions this
+    run actually opened (one per :func:`_obd_readout` call that used to be
+    one-per-PID, now one for the whole PID snapshot and one for the whole
+    freeze-frame set; one per bus in the sweep below, now one for DTCs +
+    identity + DID together instead of one open per module per read) --
+    the measurable half of the 2026-10-14 connectivity-review wiring, next
+    to ``duration_s``, which was already here.
     """
     t0 = time.monotonic()
     deadline = (t0 + budget_s) if budget_s else None
@@ -475,10 +526,11 @@ def run(vin: str = "", buses: Optional[list[str]] = None, budget_s: Optional[flo
         return deadline is None or time.monotonic() <= deadline
 
     _step = _make_step_runner(steps, _budget_left)
+    session_counter = [0]
 
     # --- 1-4. verify, adapter identity, Mode 09, DTCs/freeze frame, readiness,
     #          Mode 06, PID snapshot -- all on CAN-C. ------------------------
-    car_vin, stream_desc = _obd_readout(vin, cable, _step, _budget_left)
+    car_vin, stream_desc = _obd_readout(vin, cable, _step, _budget_left, session_counter)
 
     # --- 5. UDS sweep: every bus the declared cable reaches ------------------
     coverage_rows: list[dict[str, Any]] = []
@@ -501,7 +553,8 @@ def run(vin: str = "", buses: Optional[list[str]] = None, budget_s: Optional[flo
             continue
 
         coverage_rows.extend(_sweep_bus_modules(bus_key, car_vin, cable, stream_desc, confirm,
-                                                _step, steps, budget_left=_budget_left))
+                                                _step, steps, budget_left=_budget_left,
+                                                session_counter=session_counter))
 
     # --- 6. coverage summary ---------------------------------------------------
     totals = {"active": sum(r["active"] for r in coverage_rows),
@@ -511,6 +564,7 @@ def run(vin: str = "", buses: Optional[list[str]] = None, budget_s: Optional[flo
     result = {
         "scan_id": scan_id, "vin": car_vin, "cable": cable,
         "buses_attempted": sorted(attempt), "duration_s": duration_s,
+        "sessions_opened": session_counter[0],
         "steps": steps, "coverage": coverage_rows, "counts": totals,
     }
     store.record_observation("scan_coverage", result, vin=car_vin, bus="", cable=cable,
@@ -650,6 +704,7 @@ def _record_guided_coverage(state: dict[str, Any]) -> None:
     result = {
         "scan_id": state["scan_id"], "vin": state["vin"], "cable": state["cable"],
         "buses_attempted": buses_done, "duration_s": _elapsed_s(state),
+        "sessions_opened": state.get("session_opens", 0),
         "steps": state["steps"], "coverage": state["coverage"], "counts": totals,
         "guided": True, "guided_status": state["status"],
     }
@@ -687,9 +742,11 @@ def run_guided(vin: str = "") -> dict[str, Any]:
     cable = ops.set_cable("none").get("cable", "none")
     steps: list[dict[str, Any]] = []
     _step = _make_step_runner(steps, lambda: True)
+    session_counter = [0]
 
-    car_vin, stream_desc = _obd_readout(vin, cable, _step)
-    coverage_rows = _sweep_bus_modules("can_c", car_vin, cable, stream_desc, False, _step, steps)
+    car_vin, stream_desc = _obd_readout(vin, cable, _step, session_counter=session_counter)
+    coverage_rows = _sweep_bus_modules("can_c", car_vin, cable, stream_desc, False, _step, steps,
+                                       session_counter=session_counter)
 
     # The other two buses are not reachable until their cable is fitted --
     # a pending gap, not a failure, so it is recorded the same honest way
@@ -710,7 +767,7 @@ def run_guided(vin: str = "") -> dict[str, Any]:
             {"n": 3, "cable": "grey_a6", "bus": "can_ch", "status": "pending", "why": None},
             {"n": 4, "cable": "none", "bus": "can_c", "status": "pending", "why": None},
         ],
-        "steps": steps, "coverage": coverage_rows,
+        "steps": steps, "coverage": coverage_rows, "session_opens": session_counter[0],
     }
     _save_guided(state)
     _record_guided_coverage(state)
@@ -755,7 +812,9 @@ def continue_guided(scan_id: str, cable_fitted: str) -> dict[str, Any]:
     steps: list[dict[str, Any]] = state["steps"]
     _step = _make_step_runner(steps, lambda: True)
 
+    session_counter = [state.get("session_opens", 0)]
     verify = _step(f"verify_bus {seg['bus']}", ops.verify_bus, seg["bus"])
+    session_counter[0] += 1
     store.record_observation("adapter_identity", {f"verify_{seg['bus']}": verify},
                              vin=state["vin"], bus=seg["bus"], cable=cable, stream=state["stream"])
 
@@ -770,10 +829,11 @@ def continue_guided(scan_id: str, cable_fitted: str) -> dict[str, Any]:
         # from the pause, then sweep it for real.
         state["coverage"] = [r for r in state["coverage"] if r["bus"] != seg["bus"]]
         new_rows = _sweep_bus_modules(seg["bus"], state["vin"], cable, state["stream"], False,
-                                      _step, steps)
+                                      _step, steps, session_counter=session_counter)
         state["coverage"].extend(new_rows)
         state["segments"][idx]["status"] = "done"
         state["pending_index"] = idx + 1
+    state["session_opens"] = session_counter[0]
 
     _save_guided(state)
     _record_guided_coverage(state)

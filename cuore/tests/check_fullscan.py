@@ -81,20 +81,35 @@ def _restore_all() -> None:
     _originals.clear()
 
 
-def _fake_scan_modules(bus, vin="", mask=0xFF, confirm=False, detail=True):
+def _identity_for(code):
+    return {"ecu": code, "bus": "can_c", "fields": {"F190": {"name": "VIN", "ascii": VIN}}}
+
+
+def _fake_sweep_bus_full(bus, vin="", mask=0xFF, confirm=False, known_did=None, **kw):
+    """Combined fake for the held-session ``ops.sweep_bus_full`` -- replaces
+    the old separate ``scan_modules``/``module_identity``/``module_did``
+    fakes with one function, same shape ``cuore.live.uds.sweep_bus_full``
+    returns: DTCs + identity + (when ``known_did`` names one) a DID, per
+    module, in one dict."""
+    def _with_did(code, dtcs=None, codes=None):
+        mod = {"ecu": code, "bus": bus, "mask": "FF", "dtcs": dtcs or [], "codes": codes or [],
+              "identity": _identity_for(code)}
+        did_int = known_did(code) if known_did else None
+        if did_int is not None:
+            mod["did"] = {"ecu": code, "bus": bus, "did": f"{did_int:04X}", "name": "x",
+                         "bytes": ["32"]}
+        return mod
+
     if bus == "can_c":
         modules = [
-            {"ecu": "ECM", "bus": "can_c", "mask": "FF", "dtcs": [], "codes": []},
-            {"ecu": "TCM", "bus": "can_c", "mask": "FF", "dtcs": [], "codes": []},
-            {"ecu": "BCM", "bus": "can_c", "mask": "FF", "codes": ["U1713-2F", "B1176-97"],
-             "dtcs": [
-                 {"code": "U1713-2F", "raw": "17132F", "status": 15,
-                  "flags": {"confirmedDTC": True, "testFailed": True}},
-                 {"code": "B1176-97", "raw": "117697", "status": 8,
-                  "flags": {"pending": True}},
-             ]},
-            {"ecu": "IPC", "bus": "can_c", "mask": "FF", "dtcs": [], "codes": []},
-            {"ecu": "RFHUB", "bus": "can_c", "mask": "FF", "dtcs": [], "codes": []},
+            _with_did("ECM"), _with_did("TCM"),
+            _with_did("BCM", codes=["U1713-2F", "B1176-97"], dtcs=[
+                {"code": "U1713-2F", "raw": "17132F", "status": 15,
+                 "flags": {"confirmedDTC": True, "testFailed": True}},
+                {"code": "B1176-97", "raw": "117697", "status": 8,
+                 "flags": {"pending": True}},
+            ]),
+            _with_did("IPC"), _with_did("RFHUB"),
             {"ecu": "DTCM", "skipped": "no confirmed address"},
             {"ecu": "ESM", "skipped": "no confirmed address"},
             {"ecu": "DASM", "skipped": "no confirmed address"},
@@ -104,14 +119,6 @@ def _fake_scan_modules(bus, vin="", mask=0xFF, confirm=False, detail=True):
     return {"bus": bus, "cable": "none",
             "modules": [{"ecu": m.code, "skipped": "no confirmed address"}
                        for m in addressing.on_bus(bus)]}
-
-
-def _fake_module_identity(code, vin="", confirm=False, **kw):
-    return {"ecu": code, "bus": "can_c", "fields": {"F190": {"name": "VIN", "ascii": VIN}}}
-
-
-def _fake_module_did(code, did, vin="", confirm=False, **kw):
-    return {"ecu": code, "bus": "can_c", "did": did, "name": "x", "bytes": ["32"]}
 
 
 def _fake_module_did_sweep(code, dids, vin="", per_did_timeout=0.3, confirm=False, **kw):
@@ -147,18 +154,18 @@ def _install_common_fakes() -> None:
     _patch(ops, "obd_supported_pids",
           lambda **kw: {"by_ecu": {ECM_HDR: {"count": len(_SUPPORTED_PIDS),
                                              "pids": list(_SUPPORTED_PIDS), "known_names": []}}})
-    _patch(ops, "obd_freeze_frame",
-          lambda pid, **kw: {"pid": pid, "name": f"name_{pid}",
-                             "by_ecu": {ECM_HDR: {"value": 1.23, "unit": "u"}}})
-    _patch(ops, "obd_pid",
-          lambda pid, **kw: {"pid": pid, "name": f"name_{pid}",
-                             "by_ecu": {ECM_HDR: {"value": 4.56, "unit": "u"}}})
+    _patch(ops, "obd_freeze_frames",
+          lambda pids, **kw: {"by_ecu": {ECM_HDR: {p: {"name": f"name_{p}", "value": 1.23,
+                                                       "unit": "u"} for p in pids}},
+                              "requests_sent": len(pids)})
+    _patch(ops, "obd_pids_snapshot",
+          lambda pids, **kw: {"by_ecu": {ECM_HDR: {p: {"name": f"name_{p}", "value": 4.56,
+                                                       "unit": "u"} for p in pids}},
+                              "requests_sent": -(-len(pids) // 6), "multi_pid_used": len(pids) > 1})
     _patch(ops, "obd_readiness", lambda **kw: {"since_clear": {"mil_on": False},
                                                "this_drive_cycle": {"mil_on": False}})
     _patch(ops, "obd_mode06", _fake_obd_mode06)
-    _patch(ops, "scan_modules", _fake_scan_modules)
-    _patch(ops, "module_identity", _fake_module_identity)
-    _patch(ops, "module_did", _fake_module_did)
+    _patch(ops, "sweep_bus_full", _fake_sweep_bus_full)
     _patch(ops, "module_did_sweep", _fake_module_did_sweep)
     _patch(ops, "learned_dids", lambda vin="": {"learned": {}})
 
@@ -187,6 +194,16 @@ try:
           "adapter timeout" in mode06_step.get("error", ""), str(mode06_step))
     check("scan still completed (coverage present) despite the mode06 failure",
           bool(result.get("coverage")))
+
+    # sessions_opened: held-session batching (query_pids for the 46-PID
+    # snapshot, one held session for the 46-PID freeze-frame set, one
+    # sweep_bus_full per bus for DTCs+identity+DID) must land far below the
+    # old one-session-per-PID/per-module count for this same fixture (46 +
+    # 46 PID opens alone, plus 5 identity + 3 did opens on can_c).
+    check("sessions_opened recorded on the result", isinstance(result.get("sessions_opened"), int))
+    check(f"sessions_opened ({result.get('sessions_opened')}) well below the old per-op count "
+         f"(46 PID + 46 freeze-frame + ~9 per-module opens alone)",
+         result.get("sessions_opened", 999) < 20, str(result.get("sessions_opened")))
 
     # Coverage: ABS (can_ch) not reachable without the grey cable.
     cov_by_module = {r["module"]: r for r in result["coverage"]}
@@ -328,20 +345,24 @@ try:
     # HVAC/ETM answer on can_ihs, ABS on can_ch -- a dedicated scan_modules
     # fake for the two bypass buses; can_c keeps using _fake_scan_modules's
     # own ECM/TCM/BCM/... reply (segment 1 is otherwise identical to run()).
-    def _fake_scan_modules_guided(bus, vin="", mask=0xFF, confirm=False, detail=True):
+    def _fake_sweep_bus_full_guided(bus, vin="", mask=0xFF, confirm=False, known_did=None, **kw):
         if bus == "can_ihs":
             return {"bus": bus, "cable": "blue_a5", "modules": [
-                {"ecu": "HVAC", "bus": "can_ihs", "mask": "FF", "dtcs": [], "codes": []},
-                {"ecu": "ETM", "bus": "can_ihs", "mask": "FF", "dtcs": [], "codes": []},
+                {"ecu": "HVAC", "bus": "can_ihs", "mask": "FF", "dtcs": [], "codes": [],
+                 "identity": _identity_for("HVAC")},
+                {"ecu": "ETM", "bus": "can_ihs", "mask": "FF", "dtcs": [], "codes": [],
+                 "identity": _identity_for("ETM")},
             ]}
         if bus == "can_ch":
             return {"bus": bus, "cable": "grey_a6", "modules": [
-                {"ecu": "ABS", "bus": "can_ch", "mask": "FF", "dtcs": [], "codes": []},
+                {"ecu": "ABS", "bus": "can_ch", "mask": "FF", "dtcs": [], "codes": [],
+                 "identity": _identity_for("ABS")},
             ]}
-        return _fake_scan_modules(bus, vin=vin, mask=mask, confirm=confirm, detail=detail)
+        return _fake_sweep_bus_full(bus, vin=vin, mask=mask, confirm=confirm, known_did=known_did,
+                                    **kw)
 
     _cable_box = {"cable": "none"}
-    _patch(ops, "scan_modules", _fake_scan_modules_guided)
+    _patch(ops, "sweep_bus_full", _fake_sweep_bus_full_guided)
     _patch(ops, "set_cable",
           lambda c: _cable_box.update(cable=c) or {"cable": c, "buses": {}})
     _patch(ops, "cable_state", lambda: {"cable": _cable_box["cable"], "buses": {}})
