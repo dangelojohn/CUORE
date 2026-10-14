@@ -119,6 +119,48 @@ def scan_bus(sess: Session, bus: Bus, vin: Optional[str] = None,
     return {"bus": bus.key, "cable": sess.link.cable, "modules": results}
 
 
+def sweep_bus_full(sess: Session, bus: Bus, *, vin: Optional[str] = None, mask: int = 0xFF,
+                   known_did: Optional[Any] = None) -> dict[str, Any]:
+    """DTCs, identity, and (when ``known_did`` names one) one DID per
+    module -- all inside the ONE session the caller is already holding.
+
+    This is the held-session equivalent of what a full-vehicle scan
+    currently does per module across three separate
+    :meth:`~cuore.live.transport.AdapterLink.session` opens (``scan_modules``,
+    then ``module_identity``, then ``module_did`` -- see
+    ``cuore.live.fullscan._sweep_bus_modules``): tonight's audit log
+    (2026-10-13) timed those opens at 2.45s/1.33s/5.22s/5.21s for
+    ECM/TCM/BCM/IPC's ``module_identity`` call alone, each paying its own
+    port-open + adapter re-init on top of the read. Folding DTCs + identity
+    + one DID into this single already-open session removes that
+    per-module open/_init cost entirely -- see
+    docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md for the full
+    before/after estimate. Read-only by construction, same as every other
+    function in this module.
+
+    ``known_did`` is an optional ``code -> Optional[int]`` callable (e.g.
+    ``fullscan._known_did`` bound to this car's VIN) naming the one DID to
+    also read per module; omit it to read DTCs + identity only.
+    """
+    results: list[dict[str, Any]] = []
+    for ecu in on_bus(bus.key):
+        target = _effective_target(ecu, vin)
+        if target is None:
+            results.append({"ecu": ecu.code, "skipped": "no confirmed address"})
+            continue
+        eff = _with_target(ecu, target)
+        row = read_dtcs(sess, eff, mask)
+        if not row.get("error"):
+            row["identity"] = identity(sess, eff)
+            did = known_did(eff.code) if known_did else None
+            if did is not None:
+                row["did"] = read_did(sess, eff, did)
+        results.append(row)
+    sess.untarget()
+    audit.record("sweep_bus_full", bus=bus.key, modules=len(results))
+    return {"bus": bus.key, "cable": sess.link.cable, "modules": results}
+
+
 def _effective_target(ecu: ECUAddress, vin: Optional[str]) -> Optional[int]:
     if vin:
         confirmed = store.confirmed_targets(vin).get(ecu.code)
@@ -251,4 +293,4 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
 
 
 __all__ = ["NRC_TEXT", "nrc_text", "request", "read_did", "identity", "read_dtcs",
-           "tester_present", "scan_bus", "resolve_module", "discover"]
+           "tester_present", "scan_bus", "sweep_bus_full", "resolve_module", "discover"]

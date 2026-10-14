@@ -434,44 +434,55 @@ class LivePoller:
                 try:
                     next_due = {cid: 0.0 for cid in self._channels}
                     next_dtc_due = 0.0
-                    while not self._stop_event.is_set():
-                        now = time.monotonic()
-                        due = [cid for cid, t in next_due.items() if t <= now]
-                        dtc_due = self._monitor_dtcs and next_dtc_due <= now
-                        if not due and not dtc_due:
+                    # Optional higher UART baud for the life of this held
+                    # session (CUORE_ADAPTER_BAUD; off by default, always
+                    # reverted on the way out) -- see
+                    # AdapterLink.raised_baud and
+                    # docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md.
+                    # The poller is the natural first caller: it already
+                    # holds one session open for the whole run, so a raised
+                    # baud here amortises over every tick instead of a
+                    # single short-lived request. A no-op (yields False
+                    # immediately) whenever CUORE_ADAPTER_BAUD is unset.
+                    with lk.raised_baud(sess):
+                        while not self._stop_event.is_set():
+                            now = time.monotonic()
+                            due = [cid for cid, t in next_due.items() if t <= now]
+                            dtc_due = self._monitor_dtcs and next_dtc_due <= now
+                            if not due and not dtc_due:
+                                time.sleep(MIN_TICK)
+                                continue
+                            pid_due = [c for c in due if self._channels[c].kind == "pid"]
+                            did_due = [c for c in due if self._channels[c].kind == "did"]
+                            batt_due = [c for c in due if self._channels[c].kind == "battery"]
+                            comp_due = [c for c in due if self._channels[c].kind == "computed"]
+                            touched: set[str] = set()
+                            if pid_due:
+                                self._switch_mode(sess, "pid")
+                                touched |= self._poll_pids(sess, pid_due)
+                            if did_due:
+                                self._switch_mode(sess, "did")
+                                touched |= self._poll_dids(sess, did_due)
+                            if batt_due:
+                                touched |= self._poll_battery(sess, batt_due)
+                            if comp_due:
+                                touched |= self._poll_computed(comp_due)
+                            # DTC monitoring runs only on its own (much slower) schedule,
+                            # after this tick's channel reads -- so it never displaces a
+                            # fast channel's due sample, only ever adds a bounded, rare
+                            # extra pair of requests once every dtc_interval seconds.
+                            if dtc_due:
+                                self._poll_dtcs(sess)
+                                next_dtc_due = time.monotonic() + self._dtc_interval
+                            later = time.monotonic()
+                            for cid in due:
+                                next_due[cid] = later + 1.0 / self._rates.get(cid, 1.0)
+                            if touched:
+                                with self._lock:
+                                    rec = self._recorder
+                                if rec is not None:
+                                    rec.write_row()
                             time.sleep(MIN_TICK)
-                            continue
-                        pid_due = [c for c in due if self._channels[c].kind == "pid"]
-                        did_due = [c for c in due if self._channels[c].kind == "did"]
-                        batt_due = [c for c in due if self._channels[c].kind == "battery"]
-                        comp_due = [c for c in due if self._channels[c].kind == "computed"]
-                        touched: set[str] = set()
-                        if pid_due:
-                            self._switch_mode(sess, "pid")
-                            touched |= self._poll_pids(sess, pid_due)
-                        if did_due:
-                            self._switch_mode(sess, "did")
-                            touched |= self._poll_dids(sess, did_due)
-                        if batt_due:
-                            touched |= self._poll_battery(sess, batt_due)
-                        if comp_due:
-                            touched |= self._poll_computed(comp_due)
-                        # DTC monitoring runs only on its own (much slower) schedule,
-                        # after this tick's channel reads -- so it never displaces a
-                        # fast channel's due sample, only ever adds a bounded, rare
-                        # extra pair of requests once every dtc_interval seconds.
-                        if dtc_due:
-                            self._poll_dtcs(sess)
-                            next_dtc_due = time.monotonic() + self._dtc_interval
-                        later = time.monotonic()
-                        for cid in due:
-                            next_due[cid] = later + 1.0 / self._rates.get(cid, 1.0)
-                        if touched:
-                            with self._lock:
-                                rec = self._recorder
-                            if rec is not None:
-                                rec.write_row()
-                        time.sleep(MIN_TICK)
                 finally:
                     with self._lock:
                         self._holding = False

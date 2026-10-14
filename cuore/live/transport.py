@@ -28,6 +28,7 @@ from .config import default_cable, resolve_baud, resolve_port
 from .errors import AdapterFault, BadCommand, LinkUnavailable, Refused
 from .framing import (adapter_error, looks_like_wrong_baud, negative_responses,
                       payloads_for, reassemble)
+from .obd import PIDS_BY_HEX
 from .safety import assert_transmit_allowed, validate_command
 from .stream import SerialStream, Stream
 
@@ -39,6 +40,36 @@ MIN_TIMEOUT, MAX_TIMEOUT = 0.2, 30.0
 
 #: STN preset -> ELM327 protocol number for adapters without ST commands.
 _ELM_EQUIVALENT = {"33": "6", "34": "7", "35": "8", "36": "9", "31": "6", "32": "7"}
+
+#: J1979 Mode 01 multi-PID cap: up to 6 PIDs may be requested in one frame.
+#: Shared with :mod:`cuore.live.poller`, which batches live-data channels
+#: the same way; this is the session-level primitive any other caller (the
+#: fullscan PID snapshot, a future dossier reader) can use for the same win
+#: without duplicating the ISO-TP splitting logic. See
+#: docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md.
+MAX_MULTI_PID = 6
+
+
+def _split_multi_pid(data: list[str], pids: list[str]) -> dict[str, list[str]]:
+    """Split one ECU's ``41 <pid> <data> 41 <pid> <data> ...`` reply by the
+    PIDs asked, in order. Stops at the first group that does not match the
+    next PID asked -- the ECU answered fewer than requested, which is how a
+    caller learns multi-PID does not fully work here and should fall back
+    to single requests for the rest. (Same contract as the private
+    ``_parse_multi_pid`` historically kept in ``poller.py``.)
+    """
+    out: dict[str, list[str]] = {}
+    i = 0
+    for pid in pids:
+        if i + 1 >= len(data) or data[i] != "41" or data[i + 1] != pid:
+            break
+        spec = PIDS_BY_HEX.get(pid)
+        n = spec.n_bytes if spec else 1
+        if i + 2 + n > len(data):
+            break
+        out[pid] = data[i + 2:i + 2 + n]
+        i += 2 + n
+    return out
 
 
 def clamp_timeout(t: float) -> float:
@@ -106,6 +137,57 @@ class Session:
         return {"raw": raw, "error": err or None, "ecus": payloads_for(ecus, response_byte),
                 "all_ecus": ecus}
 
+    def query_pids(self, pids: list[str], timeout: float = DEFAULT_TIMEOUT,
+                   allow_multi: bool = True) -> dict[str, Any]:
+        """Mode 01 multi-PID: up to :data:`MAX_MULTI_PID` PIDs per request
+        (J1979), split per responding ECU, with an automatic per-PID fallback
+        for whichever PIDs a batch left unanswered.
+
+        This is the session-level primitive behind the live-data poller's
+        own multi-PID batching (:mod:`cuore.live.poller`); it exists here so
+        any other caller holding a session -- a PID snapshot, a dossier
+        reader -- gets the same request-count reduction without re-deriving
+        the ISO-TP splitting. One session, one or more batched requests, then
+        singles only for the PIDs a batch did not answer in full.
+
+        Returns ``{"by_ecu": {header: {pid: [databytes]}}, "multi_pid_used":
+        bool, "requests_sent": int}``. ``multi_pid_used`` is False only when
+        every PID ended up needing its own request (``allow_multi=False``,
+        a single PID asked, or every batch came back short).
+        """
+        pids = list(dict.fromkeys(pids))  # de-dup, keep the caller's order
+        by_ecu: dict[str, dict[str, list[str]]] = {}
+        sent = 0
+        multi_used = False
+        singles: list[str] = list(pids)
+        if allow_multi and len(pids) > 1:
+            singles = []
+            for start in range(0, len(pids), MAX_MULTI_PID):
+                batch = pids[start:start + MAX_MULTI_PID]
+                q = self.query("01" + "".join(batch), "41", timeout)
+                sent += 1
+                if q["error"] or not q["ecus"]:
+                    singles.extend(batch)
+                    continue
+                for hdr, data in q["ecus"].items():
+                    parsed = _split_multi_pid(data, batch)
+                    if parsed:
+                        by_ecu.setdefault(hdr, {}).update(parsed)
+                        multi_used = True
+                    # Any PID this ECU's reply did not cover (short group,
+                    # or no reply at all) is retried as its own request --
+                    # one ECU's partial answer never drops a PID silently.
+                    for p in batch:
+                        if p not in parsed and p not in singles:
+                            singles.append(p)
+        for pid in singles:
+            q = self.query(f"01{pid}", "41", timeout)
+            sent += 1
+            for hdr, data in q["ecus"].items():
+                if len(data) >= 2 and data[1] == pid:
+                    by_ecu.setdefault(hdr, {})[pid] = data[2:]
+        return {"by_ecu": by_ecu, "multi_pid_used": multi_used, "requests_sent": sent}
+
     # --- addressing -----------------------------------------------------
 
     def target(self, ecu: ECUAddress) -> None:
@@ -122,6 +204,24 @@ class Session:
         self.cmd(f"ATCRA{pair[1]}", 2)
         if self.link.is_stn:
             self.cmd(f"STCFCPA {pair[0]},{pair[1]}", 2)
+            if self.header_bits == 29:
+                # Explicit ISO-TP flow control (STmin/BS) for the 29-bit UDS
+                # pair. STCFCPA alone only tells the adapter which header to
+                # answer flow control on; it does not state STmin/BS, so a
+                # gateway-routed 29-bit target is left on the adapter's
+                # un-stated default. STN chips are documented as an ELM327
+                # command-set superset, so the same ATFCSx commands proven on
+                # non-STN adapters below are sent here too (flag=0x30/CTS,
+                # BS=0, STmin=0 -- send consecutive frames back-to-back, no
+                # throttling expected from this side). Additive: on a
+                # firmware that does not honour ATFCSx under an ST protocol
+                # select, the adapter answers "?" and STCFCPA's own routing
+                # still holds, so this never removes working behaviour.
+                # UNVERIFIED on the real adapter -- see
+                # docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md.
+                self.cmd(f"ATFCSH{pair[0]}", 2)
+                self.cmd("ATFCSD300000", 2)
+                self.cmd("ATFCSM1", 2)
         else:
             self.cmd(f"ATFCSH{pair[0]}", 2)
             self.cmd("ATFCSD300000", 2)
@@ -154,19 +254,38 @@ class Session:
             self.cmd("ATSH7DF", 2)
         self.cmd("ATCRA", 2)
         if self.link.is_stn:
-            # Bench finding 2026-10-13 (vLinker FS r2, STN1170 v4.3.2): STFAC
-            # removes the firmware's default pass filters too, after which
-            # every reply is dropped and each request reads NO DATA. Re-issuing
-            # the protocol select restores the defaults, and the functional
-            # header must then be restated because STP resets it as well.
-            self.cmd("STCFCPC", 2)
-            self.cmd(f"STP {self.route.stn_protocol}", 2)
-            if self.header_bits == 29:
-                self.cmd("ATCP18", 2)
-                self.cmd("ATSHDB33F1", 2)
-                self.cmd("ATSTFF", 2)
+            mode = self.link._probe_pass_filter(self)
+            if mode == "pass_filter":
+                # Lighter restore: re-apply the functional header's own pass
+                # filter directly instead of clearing the whole filter table
+                # and reissuing STP (which also resets protocol/baud and
+                # costs a full re-init). Probe-gated by
+                # AdapterLink._probe_pass_filter; falls back to the proven
+                # STCFCPC+STP path below whenever that probe does not
+                # clearly confirm support, so a firmware that does not
+                # understand this path never loses the working behaviour.
+                if self.header_bits == 29:
+                    self.cmd("ATCP18", 2)
+                    self.cmd("ATSHDB33F1", 2)
+                    self.cmd("ATSTFF", 2)
+                    self.cmd("STFAP 1,DB33F1,FFFFFFFF", 2)
+                else:
+                    self.cmd("ATSH7DF", 2)
+                    self.cmd("STFAP 1,7DF,FFFFFFFF", 2)
             else:
-                self.cmd("ATSH7DF", 2)
+                # Bench finding 2026-10-13 (vLinker FS r2, STN1170 v4.3.2): STFAC
+                # removes the firmware's default pass filters too, after which
+                # every reply is dropped and each request reads NO DATA. Re-issuing
+                # the protocol select restores the defaults, and the functional
+                # header must then be restated because STP resets it as well.
+                self.cmd("STCFCPC", 2)
+                self.cmd(f"STP {self.route.stn_protocol}", 2)
+                if self.header_bits == 29:
+                    self.cmd("ATCP18", 2)
+                    self.cmd("ATSHDB33F1", 2)
+                    self.cmd("ATSTFF", 2)
+                else:
+                    self.cmd("ATSH7DF", 2)
         self._target = None
         self.link._last_target = None
 
@@ -229,6 +348,25 @@ class AdapterLink:
         self.last_auto_verify: Optional[dict[str, Any]] = None
         self.vin: str = ""                               # last VIN the car reported
         self.current: Optional[Session] = None
+        # Probe-based lighter pass-filter restore for untarget() (point d of
+        # docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md). None until
+        # the first untarget() on an STN link probes it; then "pass_filter"
+        # or "stp_reissue", cached for the life of this AdapterLink.
+        self.pass_filter_mode: Optional[str] = None
+        # Off by default: untarget() keeps its exact proven STCFCPC+STP
+        # path unless this is explicitly turned on. A generic fake adapter
+        # in a test (anything echoing "OK" to any AT/ST-prefixed command)
+        # cannot be told apart from real STFAP support, so this stays
+        # opt-in rather than auto-probed, to never change default
+        # behaviour. CUORE_PASS_FILTER_PROBE=1 to try it.
+        self.pass_filter_probe_enabled: bool = os.environ.get("CUORE_PASS_FILTER_PROBE", "0") == "1"
+        # Optional higher adapter UART baud, negotiated via STSBR and always
+        # reverted -- off by default (0). See AdapterLink.raised_baud().
+        try:
+            self.adapter_baud_requested: int = int(os.environ.get("CUORE_ADAPTER_BAUD", "0") or 0)
+        except ValueError:
+            self.adapter_baud_requested = 0
+        self.last_baud_raise: Optional[dict[str, Any]] = None
 
     # --- cable state ----------------------------------------------------
 
@@ -456,6 +594,115 @@ class AdapterLink:
             sess.cmd(f"ATSP{elm}", 2)
         sess.headers_on = True
 
+    def _probe_pass_filter(self, sess: Session) -> str:
+        """Once per link: can ``STFAP`` restore the functional pass filter
+        without the full ``STCFCPC`` clear + ``STP`` reissue that
+        :meth:`Session.untarget` otherwise needs (point d of
+        docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md)?
+
+        Returns ``"pass_filter"`` only on an unambiguous ``OK``; anything
+        else -- ``"?"`` (unrecognised), a timeout, an adapter error, or an
+        exception -- is ``"stp_reissue"``, which is the exact path this
+        codebase already proved works on the bench. The result is cached
+        on this link for its whole life, so the probe runs at most once per
+        process even though ``untarget()`` is called constantly.
+        """
+        if self.pass_filter_mode is not None:
+            return self.pass_filter_mode
+        if not self.pass_filter_probe_enabled:
+            self.pass_filter_mode = "stp_reissue"
+            return self.pass_filter_mode
+        target = "STFAP 1,DB33F1,FFFFFFFF" if sess.header_bits == 29 else "STFAP 1,7DF,FFFFFFFF"
+        try:
+            r = sess.cmd(target, 1.5)
+        except Exception as e:  # noqa: BLE001 -- a probe must never fail the caller
+            audit.record("pass_filter_probe", mode="stp_reissue", error=str(e))
+            self.pass_filter_mode = "stp_reissue"
+            return self.pass_filter_mode
+        mode = "pass_filter" if r.strip().upper() == "OK" else "stp_reissue"
+        audit.record("pass_filter_probe", mode=mode, reply=r)
+        self.pass_filter_mode = mode
+        return mode
+
+    @contextmanager
+    def raised_baud(self, sess: Session, target: int = 0) -> Iterator[bool]:
+        """Best-effort, self-reverting UART-speed raise for the life of this
+        ``with`` block (point c of
+        docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md).
+
+        Uses the STN's temporary ``STSBR`` (never ``STWBR``, so a lost
+        revert still clears itself at the adapter's next power cycle) and
+        the stream's own :meth:`~cuore.live.stream.Stream.set_baud`. Yields
+        ``True`` only once the new rate is confirmed with ``STI``; on any
+        failure along the way -- the command not acknowledged, the
+        transport unable to change its own baud live, or the post-switch
+        ``STI`` not coming back clean -- it yields ``False`` and the caller
+        just keeps going at the session's existing speed. Either way, the
+        adapter and host stream are back at the original baud when this
+        block exits; the revert itself never raises.
+
+        ``target`` defaults to :attr:`adapter_baud_requested`
+        (``CUORE_ADAPTER_BAUD``, 0 = feature off). Never engaged
+        automatically by :meth:`AdapterLink.session`/``_init`` -- a caller
+        (e.g. the live-data poller, once it holds a session) opts in per
+        block. UNVERIFIED on the real adapter.
+        """
+        target = target or self.adapter_baud_requested
+        original = self.baud
+        raised = False
+        result: dict[str, Any] = {"requested": target, "from": original, "ok": False}
+        try:
+            can_follow = getattr(sess.stream, "supports_set_baud", False)
+            if target and target != original and self.is_stn and can_follow:
+                # Ask the transport before the adapter: a transport that
+                # cannot change its own baud live is never asked to follow,
+                # which is how this avoids ever leaving the adapter at a
+                # rate the host side cannot speak back to it on.
+                r = sess.cmd(f"STSBR {target}", 1.5)
+                if "OK" in r.upper() or r.strip() == "":
+                    if sess.stream.set_baud(target):
+                        time.sleep(0.05)
+                        sess.stream.reset_input_buffer()
+                        check = sess.cmd("STI", 1.5)
+                        if (check and "TIMEOUT" not in check.upper()
+                                and not adapter_error(check)):
+                            raised = True
+                            result["ok"] = True
+                        else:
+                            result["note"] = f"STI check failed after switch: {check!r}"
+                            sess.stream.set_baud(original)
+                    else:
+                        # The adapter already switched; the host side could
+                        # not follow (rare -- supports_set_baud said it
+                        # could), so tell the adapter to go back immediately,
+                        # at the ORIGINAL baud the host is still speaking.
+                        result["note"] = "set_baud failed despite advertised support"
+                        try:
+                            sess.cmd(f"STSBR {original}", 1.5)
+                        except Exception:  # noqa: BLE001 -- best effort only
+                            pass
+                else:
+                    result["note"] = f"STSBR not acknowledged: {r!r}"
+            elif target and target != original and self.is_stn:
+                result["note"] = "transport cannot change baud live; adapter never asked"
+            self.last_baud_raise = result
+            if raised:
+                self.baud = target
+                audit.record("baud_raised", **result)
+            yield raised
+        finally:
+            if raised:
+                try:
+                    sess.stream.set_baud(original)
+                    time.sleep(0.02)
+                    sess.stream.reset_input_buffer()
+                    sess.cmd(f"STSBR {original}", 1.5)
+                    sess.cmd("STI", 1.0)
+                except Exception as e:  # noqa: BLE001 -- revert must never raise
+                    audit.record("baud_revert_failed", error=str(e))
+                self.baud = original
+                audit.record("baud_reverted", to=original)
+
     def _probe_identity(self, sess: Session) -> None:
         ident: dict[str, str] = {}
         for c in ("ATI", "AT@1", "STI", "STDI", "STMFR", "STSN"):
@@ -491,6 +738,9 @@ class AdapterLink:
             "lock_path": str(interlock.lock_path()),
             "cable": self.cable_state(), "vin": self.vin or None,
             "note": "the port is opened per operation and released after each call",
+            "pass_filter_mode": self.pass_filter_mode,
+            "adapter_baud_requested": self.adapter_baud_requested or None,
+            "last_baud_raise": self.last_baud_raise,
         }
 
 
@@ -514,4 +764,5 @@ def set_link(new: AdapterLink) -> None:
         _LINK = new
 
 
-__all__ = ["DEFAULT_TIMEOUT", "clamp_timeout", "Session", "AdapterLink", "link", "set_link"]
+__all__ = ["DEFAULT_TIMEOUT", "MAX_MULTI_PID", "clamp_timeout", "Session", "AdapterLink",
+           "link", "set_link"]

@@ -40,6 +40,13 @@ log = logging.getLogger(__name__)
 # ---- Stream interface -------------------------------------------------
 
 class Stream(ABC):
+    #: Whether this transport's set_baud() can ever succeed. Checked BEFORE
+    #: a caller (AdapterLink.raised_baud) sends any baud-change command to
+    #: the adapter, so a transport that cannot follow is never asked to --
+    #: avoiding a host/adapter baud mismatch rather than detecting one after
+    #: the fact. False for every transport here except SerialStream.
+    supports_set_baud: bool = False
+
     @abstractmethod
     def open(self) -> None: ...
 
@@ -69,6 +76,14 @@ class Stream(ABC):
         """Bytes known to be immediately available. Default 0 (unknown)."""
         return 0
 
+    def set_baud(self, baud: int) -> bool:
+        """Reconfigure this open stream's baud rate in place, without a
+        close/reopen. Returns True once the new rate is applied, False if
+        this transport cannot change baud live (the default) -- a caller
+        that gets False must assume the rate did NOT change and act
+        accordingly (see ``AdapterLink.raised_baud``), never assume success."""
+        return False
+
     @property
     def describe(self) -> str:
         """Short human-readable description, e.g. "serial COM3@115200"."""
@@ -79,6 +94,8 @@ class Stream(ABC):
 
 class SerialStream(Stream):
     """pyserial-backed COM port / virtual COM (e.g. Bluetooth pairing)."""
+
+    supports_set_baud = True
 
     def __init__(self, port: str, baudrate: int, *, timeout: float = 0.25, write_timeout: float = 2.0):
         self.port = port
@@ -133,6 +150,16 @@ class SerialStream(Stream):
         if self._ser is None:
             return 0
         return self._ser.in_waiting
+
+    def set_baud(self, baud: int) -> bool:
+        if self._ser is None:
+            return False
+        try:
+            self._ser.baudrate = baud
+            self.baudrate = baud
+            return True
+        except (serial.SerialException, ValueError, OSError):
+            return False
 
     @property
     def describe(self) -> str:
