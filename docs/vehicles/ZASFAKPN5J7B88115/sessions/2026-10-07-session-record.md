@@ -100,3 +100,12 @@ Facts read from the car (serial, 20:00-20:04):
 - Mode 06 EVAP: gross leak (MID 39) PASS; 0.090" leak (MID 3A) FAIL, 404 ms vs minimum 3965 ms; 0.020" (MID 3C) one test FAIL 6096 vs limit 6000, others pass; purge flow (MID 3D) PASS. Catalyst, O2, EGR, VVT, misfire (1 count per cylinder) all pass.
 
 Reading: the EVAP monitor has now run with fuel in window and FAILED the large-leak (0.090") test -- the vacuum decay/hold time was 404 ms against a 3965 ms minimum. That is the first direct measurement behind the chronic P0440/P0455: either a real leak larger than 0.090" that three smoke tests did not show, or the ESIM switch not reporting sealed (signal path / switch), which is exactly what Test A measures. Next decisive step unchanged: Test A (hand vacuum on the ESIM while watching the switch PID), then the wiTECH flash comparison. Do not clear codes.
+
+### 13b. Same evening: second and third live reads (module sweep)
+
+UDS works through the gateway on CAN-C. Modules answering: ECM (Magneti Marelli 10JA, 18DA10F1), TCM (ZF 8HP, 18), BCM (40), IPC (60), RFHUB (C7). DTCM/ESM/DASM: no address found by discovery (253 targets tried, 0 hits; they sit on other buses). Module codes with status flags (19 02):
+- ECM: P0440-00 status 0xCD (confirmed, failed now, pending, MIL requested); P0455-00 0x4D.
+- BCM: U1713-2F status 0x0F = ACTIVE NOW (testFailed + failedThisCycle + pending + confirmed) — a live network fault; U1765-86, U1736-87, B1176-97 (rear-left window riser), B10AA-4A: status 0x08 = failed since last clear, not failing now.
+- IPC: U1736-86, U1736-87 status 0x0C (pending + confirmed). RFHUB: B1040-64 status 0x08. TCM: clean.
+- ECM supports 46 Mode 01 PIDs; cuore decoded 25 tonight (the rest raw; decoders being added). IAT (0F) and oil temp (5C) are NOT supported by this ECM; IAT comes via PID 68. Module identities read (spare-part numbers: ECM 50544870, TCM 46337308, BCM 50554114, IPC 50551318).
+Software built from this: active probe + 29-bit route + STN filter fix (landed); full-scan orchestrator, Scans area, scan health report generator, PID/Mode 09/Mode 06 decoders, UDS snapshot decoder, failure-type bytes, Live board channels, Test A in the Tests catalogue (in flight).
