@@ -18,10 +18,23 @@ The index is cached per file on ``(mtime, size)``. MES writes into the same
 directory while it runs -- a new log appeared mid-session during development --
 so entries are re-read when they change, and a file touched within
 :data:`SETTLE_SECONDS` is flagged as possibly still being written.
+
+**A second root (added for CUORE log parity, 2026-10-14).** CUORE's own
+live link writes MES-format ``SCAN_YYMMDDHHMM.txt`` exports under
+``CUORE_STATE_DIR/scans/<vin>/`` (one subfolder per VIN; see
+``cuore.live.scanlog.write_mes_export``) whenever a scan is explicitly
+exported -- never for ``observations.jsonl`` itself, which is not MES-format
+and never enters this index. Those files are discovered here, alongside
+the configured MES roots, and tagged ``provenance="cuore live export"`` so
+a caller (and ``mes.workup``/the simulation filter) can tell a desktop MES
+scan from a from-car CUORE export without being told they are the same
+thing. They are never flagged ``simulation`` -- a live export is real,
+from-car data by construction -- only labelled where it came from.
 """
 
 from __future__ import annotations
 
+import os
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -46,6 +59,65 @@ def parse_stamp(raw: str) -> datetime | None:
         return None
 
 
+def _cuore_state_dir() -> Path | None:
+    """The existing ``CUORE_STATE_DIR`` (or its usual fallbacks), read-only:
+    this module never creates it, only looks for ``scans/`` inside one that
+    already exists. Same candidate order as ``mes.jobs.state_dir`` /
+    ``cuore.live.config.state_dir``, kept independent of both so ``mes``
+    still never *imports* ``cuore`` for this."""
+    env = os.environ.get("CUORE_STATE_DIR")
+    candidates: list[Path] = []
+    if env:
+        candidates.append(Path(env))
+    if os.environ.get("PROGRAMDATA"):
+        candidates.append(Path(os.environ["PROGRAMDATA"], "cuore"))
+    if os.environ.get("LOCALAPPDATA"):
+        candidates.append(Path(os.environ["LOCALAPPDATA"], "cuore"))
+    candidates.append(Path.home() / ".cuore")
+    for d in candidates:
+        if d.is_dir():
+            return d
+    return None
+
+
+def cuore_scan_export_root() -> Path | None:
+    """``CUORE_STATE_DIR/scans`` if it exists, else ``None``. This is
+    exports only (``cuore.live.scanlog.write_mes_export`` output, one
+    ``SCAN_YYMMDDHHMM.txt`` per exported live scan, grouped in a
+    per-VIN subfolder) -- ``observations.jsonl`` itself is never read or
+    linked from here."""
+    d = _cuore_state_dir()
+    if d is None:
+        return None
+    scans = d / "scans"
+    return scans if scans.is_dir() else None
+
+
+def iter_cuore_export_files() -> list[Path]:
+    """Every MES-format scan export under ``CUORE_STATE_DIR/scans/<vin>/``,
+    unsorted -- the second log root (see the module docstring)."""
+    root = cuore_scan_export_root()
+    if root is None:
+        return []
+    out: list[Path] = []
+    try:
+        vin_dirs = [p for p in root.iterdir() if p.is_dir()]
+    except OSError:
+        return []
+    for vd in vin_dirs:
+        try:
+            files = list(vd.iterdir())
+        except OSError:
+            continue
+        for p in files:
+            try:
+                if p.is_file() and paths.is_log_name(p.name):
+                    out.append(p)
+            except OSError:
+                continue
+    return out
+
+
 @dataclass
 class LogEntry:
     """One indexed log file and the cheap metadata read from it."""
@@ -68,6 +140,12 @@ class LogEntry:
     encoding_used: str = ""
     parse_error: str = ""
     possibly_incomplete: bool = False
+    #: "" for a log from a configured MES root; "cuore live export" for one
+    #: discovered under ``CUORE_STATE_DIR/scans/<vin>/`` -- see the module
+    #: docstring. Reported in :meth:`to_dict` instead of, never alongside,
+    #: the "unverifiable" SCAN-provenance note below (both say the same
+    #: "no simulation marker" thing; this one also says *where it came from*).
+    provenance: str = ""
 
     @property
     def timestamp(self) -> str:
@@ -111,7 +189,9 @@ class LogEntry:
         if self.simulation:
             d["simulation"] = True
             d["warning"] = "SIMULATION MODE - this data is not from a vehicle"
-        if not self.simulation_determinable:
+        if self.provenance:
+            d["provenance"] = self.provenance
+        elif not self.simulation_determinable:
             d["provenance"] = "unverifiable (no simulation marker in this format)"
         if self.encoding_used:
             d["encoding"] = self.encoding_used
@@ -159,13 +239,13 @@ class Catalog:
         except Exception as exc:  # a corrupt log must not sink the whole index
             entry.parse_error = f"{type(exc).__name__}: {exc}"
 
-    def _entry_for(self, path: Path) -> LogEntry:
+    def _entry_for(self, path: Path, *, provenance: str = "") -> LogEntry:
         try:
             st = path.stat()
         except OSError as exc:
             kind, raw, veh = paths.classify_name(path.name)
             e = LogEntry(path=path, name=path.name, kind=kind, raw_stamp=raw,
-                         stamp=parse_stamp(raw), vehicle=veh)
+                         stamp=parse_stamp(raw), vehicle=veh, provenance=provenance)
             e.parse_error = f"stat failed: {exc}"
             return e
 
@@ -176,7 +256,7 @@ class Catalog:
         kind, raw, veh = paths.classify_name(path.name)
         entry = LogEntry(path=path, name=path.name, kind=kind, raw_stamp=raw,
                          stamp=parse_stamp(raw), vehicle=veh,
-                         size=st.st_size, mtime=st.st_mtime)
+                         size=st.st_size, mtime=st.st_mtime, provenance=provenance)
         entry.possibly_incomplete = (time.time() - st.st_mtime) < SETTLE_SECONDS
         self._read_metadata(entry)
         # A file still being written is deliberately not cached, so the next
@@ -186,8 +266,18 @@ class Catalog:
         return entry
 
     def entries(self) -> list[LogEntry]:
-        """All indexed logs, newest first by filename timestamp."""
-        out = [self._entry_for(p) for p in paths.iter_log_files()]
+        """All indexed logs, newest first by filename timestamp: every
+        configured MES root, plus CUORE's own live-scan exports under
+        ``CUORE_STATE_DIR/scans/<vin>/`` (see the module docstring and
+        :func:`iter_cuore_export_files`) -- those never shadow a same-named
+        file already claimed by a configured MES root."""
+        mes_files = paths.iter_log_files()
+        claimed = {p.name.lower() for p in mes_files}
+        out = [self._entry_for(p) for p in mes_files]
+        for p in iter_cuore_export_files():
+            if p.name.lower() in claimed:
+                continue
+            out.append(self._entry_for(p, provenance="cuore live export"))
         out.sort(key=lambda e: e.sort_key, reverse=True)
         return out
 

@@ -151,7 +151,7 @@ Closing a Job (`cuore/services/jobs_bridge.py:close_job`, step 12) builds and sa
 
 ## MCP tools
 
-### `mes-log-mcp/server.py` (53 tools, via `@mcp.tool`)
+### `mes-log-mcp/server.py` (62 tools, via `@mcp.tool`)
 
 Corpus/log: `status`, `list_logs`, `latest_log`, `vehicles`, `read_log`, `search_logs`, `analyze_scan`, `analyze_session`, `get_freeze_frame`, `extract_dtcs`, `dtc_history`, `list_parameters`, `parameter_series`, `module_info`, `failure_type`, `dtc_description`, `log_dir`.
 
@@ -160,6 +160,8 @@ Diagnosis/knowledge: `experience_links`, `actuator_history`, `vehicle_report`, `
 Recordings: `list_recordings`, `read_recording`, `recording_series`, `recording_events`, `recording_snapshot`.
 
 Attested records (append-only): `record_dealer_result`/`dealer_results`, `add_note`/`notes`/`edit_note`/`hide_note`, `feedback_list`/`feedback_add`/`feedback_answer`/`feedback_status`, `add_symptom`/`symptoms`/`hide_symptom`, `electrical_inspection_add`/`electrical_inspections`, `job_open`/`job_current`/`job_add_action`/`job_set_hypothesis`.
+
+CUORE live-log parity (`mes.cuore_log`, new 2026-10-14): `cuore_list_scans`/`cuore_latest_scan`/`cuore_read_scan`/`cuore_export_scan` read `CUORE_STATE_DIR`'s live-scan log exactly as easily as the MES tools above read MultiEcuScan's -- reusing `cuore.live.scanlog`'s observation-clustering rule (imported defensively; `mes` never duplicates it) rather than re-deriving scans from `observations.jsonl`, and tagging each scan `full`/`guided`/`partial`/`attempt`. `cuore_search` extends `search_logs`'s regex-with-context shape across `observations.jsonl`, `owner_events.jsonl`, `attested.jsonl`, `jobs.jsonl` and recording headers, read directly off disk (not through `cuore.live`, so this still works if that package is not importable). `logs_timeline(vin)` merges the MES and CUORE lists into one newest-first, sourced view. Two things change in `mes.catalog` for this: `LogEntry` now carries a `provenance` field, and a second log root -- `CUORE_STATE_DIR/scans/<vin>/`, where `cuore.live.scanlog.write_mes_export` writes MES-format exports of a live scan on request -- is scanned alongside the configured MES roots and tagged `provenance="cuore live export"`; those exports are real, from-car data (never flagged `simulation`), so `select()`/`workup` include them by default, just labelled differently from a desktop MES scan. `observations.jsonl` itself never enters the MES catalog. Log hygiene: `cuore_log_dir` reports each store file's size; `cuore_log_archive` copies a dated, sha256-manifested snapshot of every CUORE log file into `CUORE_STATE_DIR/archive/` without ever truncating or deleting the originals; `cuore_log_integrity` parses every line of every store and reports counts per kind/op and per day. The same search, independently implemented for its own process, is also reachable over HTTP as `GET /api/scans/search` (`cuore/api/scanlog.py`, additive to the existing `/api/scans/*` routes).
 
 ### `obd2-mcp/server.py` (47 tools, via `@mcp.tool`)
 

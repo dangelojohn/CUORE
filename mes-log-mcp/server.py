@@ -24,6 +24,7 @@ from typing import Any, Optional
 from mcp.server.fastmcp import FastMCP
 
 from mes import analysis, catalog, code_feel, compact, csvlog, dtc as dtc_mod, dtc_text, electrical, electrical_inspections, experience, fes, layout_systems, modules, paths, scan
+from mes import cuore_log
 from mes import cases as cases_mod
 from mes import dealer as dealer_mod
 from mes import feedback as feedback_mod
@@ -1379,6 +1380,138 @@ def cases_prefill(vin: str, codes: str = "") -> str:
             ``cases_match``.
     """
     return _guard(lambda: cases_mod.prefill(vin, _codes_from_csv(codes)))
+
+
+# --- CUORE live log parity --------------------------------------------------
+#
+# CUORE's own live link writes a parallel log -- observations.jsonl, grouped
+# into "scans" by cuore.live.scanlog -- that a mechanic needs to read exactly
+# as easily as an MES log. Everything here is a thin wrapper over mes.cuore_log;
+# see that module's docstring for what is reused from cuore.live.scanlog
+# (the grouping rule) versus read directly off disk (raw stores, search).
+
+
+def _cuore_guard(fn, *args, **kwargs) -> str:
+    """Same posture as :func:`_guard`, plus a clean message when the
+    ``cuore`` package itself is not importable, instead of a bare traceback."""
+    try:
+        return _json(fn(*args, **kwargs))
+    except cuore_log.CuoreLiveUnavailable as exc:
+        return _error(exc)
+    except MesError as exc:
+        return _error(exc)
+    except Exception as exc:  # never take the server down over one bad line
+        return _error(exc)
+
+
+@mcp.tool()
+def cuore_list_scans(vin: str, since: str = "", until: str = "", kind: str = "") -> str:
+    """CUORE live-scan summaries for one VIN, newest first.
+
+    Args:
+        vin: the vehicle's VIN (scans are only ever returned for a named car).
+        since / until: "YYYY-MM-DD" or a full ISO timestamp.
+        kind: "full", "guided", "partial", "attempt", or "" for every kind.
+            See ``cuore.live.scanlog``'s own docstring for what each means --
+            only "full"/"guided" are a complete bus sweep.
+    """
+    return _cuore_guard(cuore_log.list_scans, vin, since=since, until=until, kind=kind)
+
+
+@mcp.tool()
+def cuore_latest_scan(vin: str) -> str:
+    """The newest CUORE live scan for one VIN, or null if this VIN has none."""
+    return _cuore_guard(cuore_log.latest_scan, vin)
+
+
+@mcp.tool()
+def cuore_read_scan(vin: str, scan_id: str) -> str:
+    """One CUORE live scan in full: codes by status (stored/pending/
+    permanent), freeze frames (every PID captured with each), readiness
+    monitors and MIL state, Mode 06 results, bus coverage, and a
+    ``health_verdict`` one-line summary from ``cuore.services.
+    scan_health_bridge`` when that module is importable.
+
+    Args:
+        scan_id: e.g. "SCAN_2610080920", from ``cuore_list_scans``/
+            ``cuore_latest_scan``.
+    """
+    return _cuore_guard(cuore_log.read_scan, vin, scan_id)
+
+
+@mcp.tool()
+def cuore_export_scan(vin: str, scan_id: str, fmt: str = "json") -> str:
+    """Export one CUORE live scan.
+
+    Args:
+        fmt: "json" (the full scan dict) or "mes" (the same
+            ``SCAN_YYMMDDHHMM.txt`` text ``cuore.live.scanlog.
+            write_mes_export`` writes to disk -- round-trips through
+            ``mes.scan.parse_scan_text``).
+    """
+    return _cuore_guard(cuore_log.export_scan, vin, scan_id, fmt=fmt)
+
+
+@mcp.tool()
+def cuore_search(pattern: str, since: str = "", until: str = "", kinds: str = "",
+                 context_lines: int = 2, max_matches: int = 40) -> str:
+    """Regex search (case-insensitive) across every CUORE log, newest first:
+    observations (any kind, any VIN), owner events, attested mechanic
+    inputs, the jobs/hypothesis audit trail, and recording file headers.
+
+    Args:
+        pattern: Python regex syntax.
+        kinds: comma-separated subset of observations,owner_events,attested,
+            jobs,recordings. Empty searches all five.
+        since / until: filters on each line's own "at" timestamp where it has
+            one (recording headers carry none and are never date-filtered).
+    """
+    def run():
+        return cuore_log.search(pattern, since=since, until=until,
+                                kinds=_codes_from_csv(kinds),
+                                context_lines=context_lines, max_matches=max_matches)
+    return _cuore_guard(run)
+
+
+@mcp.tool()
+def cuore_log_dir() -> str:
+    """Where CUORE's own state lives (observations/owner events/attested/
+    jobs/recordings/scan exports/archive), and how large each append-only
+    log has grown."""
+    return _cuore_guard(cuore_log.log_dir)
+
+
+@mcp.tool()
+def cuore_log_archive(label: str = "") -> str:
+    """Snapshot every CUORE log file as it stands right now into
+    ``CUORE_STATE_DIR/archive/<timestamp>[-label]/``, with a per-file
+    sha256 recorded in that snapshot's ``manifest.json``.
+
+    Read-only toward the originals: this only ever copies them, and never
+    truncates or deletes anything -- ``observations.jsonl`` keeps growing
+    exactly as before.
+    """
+    return _cuore_guard(cuore_log.log_archive, label)
+
+
+@mcp.tool()
+def cuore_log_integrity() -> str:
+    """Line-by-line integrity check of every CUORE JSONL log: total lines,
+    any that fail to parse (with line numbers), and counts per kind/op and
+    per calendar day."""
+    return _cuore_guard(cuore_log.log_integrity)
+
+
+@mcp.tool()
+def logs_timeline(vin: str, since: str = "", until: str = "") -> str:
+    """MES logs and CUORE live scans merged into one newest-first list for
+    one VIN, each row tagged with its ``source`` ("MES scan", "MES FES",
+    or "CUORE full"/"guided"/"partial"/"attempt") -- one visit, read end to
+    end without juggling two tools. A row whose MES-side provenance is a
+    CUORE live export (see ``mes.catalog``) carries that in its own
+    ``provenance`` field rather than a seventh source label.
+    """
+    return _cuore_guard(cuore_log.logs_timeline, vin, since=since, until=until)
 
 
 # --- resources -------------------------------------------------------------
