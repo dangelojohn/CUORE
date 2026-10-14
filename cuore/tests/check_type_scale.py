@@ -193,6 +193,50 @@ check("button/input/select/textarea inherit the page font (R3)",
       "button, input, select, textarea {" in cuore_css
       and "font: inherit" in cuore_css, "")
 
+# ---------------------------------------------------------------------------
+# Static check 4: marque look restored 2026-10-14 -- the typography pass
+# (ed31772..9cc0de0) unified every font-weight to --fw-semibold, including
+# the Marque-theme/Emphasis-pass display elements (d5772aa, 2583ef4) that
+# were deliberately set to a light 300 weight for a quiet, large-type,
+# Ferrari-model-page feel. Font FAMILY never changed across that pass --
+# this file has always used the system-ui/ui-monospace stacks declared
+# below ("No webfont, by choice") -- so only weight is asserted here.
+# ---------------------------------------------------------------------------
+
+DISPLAY_WEIGHT_SELECTORS = [
+    r"^h1\s*\{[^}]*font-weight:\s*var\(--fw-light\)",
+    r"^h2\s*\{[^}]*font-weight:\s*var\(--fw-light\)",
+    r"\.hero-name\s*\{[^}]*font-weight:\s*var\(--fw-light\)",
+    r"\.hero-verdict-state\s*\{[^}]*font-weight:\s*var\(--fw-light\)",
+    r"\.hero-verdict-sentence\s*\{[^}]*font-weight:\s*var\(--fw-light\)",
+    r"\.hero-figure-value\s*\{[^}]*font-weight:\s*var\(--fw-light\)",
+    r"\.step-oneliner\s*\{[^}]*font-weight:\s*var\(--fw-light\)",
+    r"\.intro-wordmark\s*\{[^}]*font-weight:\s*var\(--fw-light\)",
+    r"\.hero-next-sentence\s*\{[^}]*font-weight:\s*var\(--fw-light\)",
+    r'h2, \.section-h, \.step-title\s*\{[^}]*font-weight:\s*var\(--fw-light\)',
+]
+missing_light = [
+    pat for pat in DISPLAY_WEIGHT_SELECTORS
+    if not re.search(pat, cuore_css, re.MULTILINE | re.DOTALL)
+]
+check("hero/display selectors (h1, h2, .hero-name, .hero-verdict-state, "
+      ".hero-verdict-sentence, .hero-figure-value, .step-oneliner, "
+      ".intro-wordmark, .hero-next-sentence) use the light (300) marque "
+      "display weight, not --fw-semibold",
+      not missing_light, f"{len(missing_light)} selector(s) not found/not light")
+
+check('--fw-light: 300 token is declared in :root',
+      bool(re.search(r"--fw-light:\s*300", cuore_css)), "")
+
+# The system-font stack itself is unchanged by design (no @font-face, no
+# Google Fonts link ever existed in this repo's history) -- assert the
+# documented system stacks are still in force, so a future pass doesn't
+# mistake "no webfont" for drift and try to vendor one in.
+check("--sans is still the documented system-ui stack (no webfont)",
+      bool(re.search(r"--sans:\s*system-ui", cuore_css)), "")
+check("--mono is still the documented ui-monospace stack (no webfont)",
+      bool(re.search(r"--mono:\s*ui-monospace", cuore_css)), "")
+
 print(f"static checks done: {checks} so far, {len(failures)} failing")
 
 # ---------------------------------------------------------------------------
