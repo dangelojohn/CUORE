@@ -252,9 +252,14 @@ def _blind_spots_table(blind_spots: list[dict[str, Any]]) -> Table:
     return table(rows, [2.5 * inch, 3.0 * inch])
 
 
-def _fixes_block(open_work: list[dict[str, Any]], bulletins: list[dict[str, Any]]) -> list:
+def _fixes_block(open_work: list[dict[str, Any]], bulletins: list[dict[str, Any]],
+                 fixes_fallback: list[dict[str, Any]] | None = None) -> list:
     """Possible fixes: exactly the family checklist steps and bulletin
-    actions the dossier already carries. Never a new recommendation."""
+    actions the dossier already carries, plus -- wired the same way a
+    P-code's steps are -- one entry per live module code (U/B) not covered
+    by any open-work card above: a sourced fault-tree step sequence when
+    one exists, else an explicit UNKNOWN line. Never a new recommendation,
+    never a silently omitted code."""
     out = []
     for card in open_work:
         out.append(P(card.get("title", ""), BOLD))
@@ -266,12 +271,28 @@ def _fixes_block(open_work: list[dict[str, Any]], bulletins: list[dict[str, Any]
         if b.get("action"):
             conf = "confirmed" if b.get("verified") else "unverified"
             out.append(P(f"- {b['id']}: {b['action']} (source: bulletin, confidence: {conf})", SMALL))
+    for f in (fixes_fallback or []):
+        desc = f.get("description") or {}
+        ft = f.get("failure_type") or {}
+        out.append(P(f"{f.get('code', '')} -- {desc.get('text', '')}", BOLD))
+        out.append(P(f"Failure type: {ft.get('text', '')}", SMALL))
+        steps = f.get("steps") or []
+        if steps:
+            for s in steps:
+                out.append(P(f"- {s.get('text', '')} (source: {s.get('ref') or 'procedure'})", SMALL))
+        else:
+            out.append(P("UNKNOWN -- use the service manual (TechAuthority).", SMALL))
     return out or [P("No sourced fix steps for this vehicle's open codes.", SMALL)]
 
 
 def _parts_table(parts: list[dict[str, Any]]) -> list:
     out = []
     for group in parts:
+        out.append(P(group.get("code", ""), BOLD))
+        if group.get("unknown") or not group.get("parts"):
+            out.append(P("UNKNOWN -- use the service manual (TechAuthority).", SMALL))
+            out.append(Spacer(1, 3))
+            continue
         rows = [[P(x, BOLD) for x in ("Part", "OEM #", "Confidence", "Source")]]
         for p in group.get("parts", []):
             oem = ", ".join(o.get("number", "") for o in (p.get("oem") or []) if o.get("number")) or "-"
@@ -280,7 +301,6 @@ def _parts_table(parts: list[dict[str, Any]]) -> list:
             source = ", ".join((x.get("label") or x.get("url") or "") if isinstance(x, dict) else str(x)
                                for x in (p.get("buy") or [])) or "-"
             rows.append([P(p.get("name") or ""), P(oem), P(conf), P(source, SMALL)])
-        out.append(P(group.get("code", ""), BOLD))
         out.append(table(rows, [1.7 * inch, 1.3 * inch, 1.1 * inch, 1.8 * inch]))
         out.append(Spacer(1, 3))
     return out or [P("No parts data on file for these codes.", SMALL)]
@@ -338,7 +358,8 @@ def build_vehicle_pdf(ctx: dict[str, Any], size: str = "letter") -> bytes:
         P("Blind spots", H2), _blind_spots_table(view["blind_spots"]) if view["blind_spots"]
             else P("No open questions on record.", SMALL),
         Spacer(1, 6),
-        P("Possible fixes", H2), *_fixes_block(view["open_work"], view["bulletins"]),
+        P("Possible fixes", H2),
+        *_fixes_block(view["open_work"], view["bulletins"], ctx.get("fixes_fallback", [])),
         Spacer(1, 4),
         P("Parts for the open codes", H2), *_parts_table(ctx.get("parts", [])),
         P("Others' experience", H2), *_experience_block(ctx.get("experience", [])),

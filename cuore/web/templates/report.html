@@ -233,7 +233,27 @@
         (source: bulletin, confidence: {{ 'confirmed' if b.verified else 'unverified' }})</p>
       {% endif %}
     {% endfor %}
-    {% if not view.open_work and not view.bulletins %}
+    {% for f in fixes_fallback %}
+      {# A live code (module scan, UDS 0x19) not covered by any open-work
+         card above -- e.g. HISTORY-state only, never logged to an FES file.
+         Wired in the same way a P-code's steps are: a sourced fault-tree
+         sequence when one exists, else an explicit UNKNOWN line, never an
+         omitted code. #}
+      <h4 class="mono">{{ f.code }}
+        <span class="small muted">{{ f.description.text }}{% if f.description.source and f.description.source != "none" %} (source: {{ f.description.source }}, {{ f.description.confidence }}){% endif %}</span>
+      </h4>
+      <p class="small muted">Failure type: {{ f.failure_type.text }}{% if f.failure_type.confidence %} [{{ f.failure_type.confidence }}]{% endif %}</p>
+      {% if f.steps %}
+      <ul class="small">
+        {% for s in f.steps %}
+          <li>{{ s.text }} (source: {{ s.ref or "procedure" }})</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="muted small">UNKNOWN &mdash; use the service manual (TechAuthority).</p>
+      {% endif %}
+    {% endfor %}
+    {% if not view.open_work and not view.bulletins and not fixes_fallback %}
       <p class="muted small">No sourced fix steps for this vehicle's open codes.</p>
     {% endif %}
   </section>
@@ -242,6 +262,9 @@
     <h2>Parts for the open codes</h2>
     {% for group in parts %}
       <h4 class="mono">{{ group.code }}</h4>
+      {% if group.unknown %}
+      <p class="muted small">UNKNOWN &mdash; use the service manual (TechAuthority).</p>
+      {% else %}
       <table class="rpt-table">
         <thead><tr><th>Part</th><th>OEM #</th><th>Confidence</th><th>Source</th></tr></thead>
         <tbody>
@@ -253,6 +276,7 @@
           {% endfor %}
         </tbody>
       </table>
+      {% endif %}
     {% else %}
       <p class="muted small">No parts data on file for these codes.</p>
     {% endfor %}
