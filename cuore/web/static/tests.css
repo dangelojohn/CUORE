@@ -12,11 +12,11 @@
 .ts-summary {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
   padding: 10px 0; border-bottom: 1px solid var(--rule-soft);
-  font-size: 16px;
+  font-size: var(--fs-md);
 }
-.ts-summary-main { font-weight: 650; color: var(--ink); }
+.ts-summary-main { font-weight: var(--fw-semibold); color: var(--ink); }
 .ts-summary-chip {
-  padding: 3px 10px; border-radius: var(--radius); font-size: 13px;
+  padding: 3px 10px; border-radius: var(--radius); font-size: var(--fs-sm);
   border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-2);
 }
 .ts-chip-pass { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
@@ -33,9 +33,9 @@
      >=44px tall, not just wide. */
   min-height: 44px; padding: 4px 12px; border-radius: 999px;
   border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-2);
-  font-size: 13px; cursor: pointer;
+  font-size: var(--fs-sm); cursor: pointer;
 }
-.ts-filter-chip.is-on { color: var(--ink); border-color: var(--accent, var(--ink-3)); background: var(--surface); font-weight: 650; }
+.ts-filter-chip.is-on { color: var(--ink); border-color: var(--accent, var(--ink-3)); background: var(--surface); font-weight: var(--fw-semibold); }
 
 /* ---------- test rows ---------- */
 .ts-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 32px; }
@@ -46,18 +46,18 @@
 .ts-row[data-recommended="1"] { border-left: 3px solid var(--accent, var(--ok)); }
 
 .ts-row-head {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 16px;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-md);
 }
-.ts-row-name { font-weight: 650; color: var(--ink); flex: 1 1 auto; min-width: 0; }
+.ts-row-name { font-weight: var(--fw-semibold); color: var(--ink); flex: 1 1 auto; min-width: 0; }
 .ts-cat-chip, .ts-state-chip {
-  font-size: 12px; letter-spacing: .04em; text-transform: uppercase;
+  font-size: var(--fs-xs); letter-spacing: .04em; text-transform: uppercase;
   padding: 2px 8px; border-radius: var(--radius); background: var(--surface-2);
   border: 1px solid var(--rule); color: var(--ink-3);
 }
-.ts-duration { font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+.ts-duration { font-size: var(--fs-xs); color: var(--ink-3); white-space: nowrap; }
 
 .ts-result-chip {
-  font-size: 12px; font-weight: 700; letter-spacing: .04em;
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); letter-spacing: .04em;
   padding: 3px 9px; border-radius: var(--radius); border: 1px solid var(--rule);
   background: var(--surface-2); color: var(--ink-3);
 }
@@ -68,35 +68,35 @@
 .ts-result-not_done { color: var(--ink-3); background: transparent; }
 
 .ts-why {
-  margin-top: 6px; font-size: 13px; color: var(--ok); overflow-wrap: anywhere;
+  margin-top: 6px; font-size: var(--fs-sm); color: var(--ok); overflow-wrap: anywhere;
 }
 .ts-blocker {
   margin-top: 6px; padding: 6px 8px; border-radius: var(--radius);
   background: var(--sev-chronic-bg); border: 1px solid var(--sev-chronic);
-  color: var(--sev-chronic); font-size: 13px;
+  color: var(--sev-chronic); font-size: var(--fs-sm);
 }
 .ts-latest {
-  margin-top: 6px; font-size: 13px; color: var(--ink-2); overflow-wrap: anywhere;
+  margin-top: 6px; font-size: var(--fs-sm); color: var(--ink-2); overflow-wrap: anywhere;
 }
 
 /* ---------- details ---------- */
 .ts-details { margin-top: 8px; }
 .ts-details summary {
   cursor: pointer; min-height: 36px; display: flex; align-items: center;
-  font-size: 13px; color: var(--ink-2);
+  font-size: var(--fs-sm); color: var(--ink-2);
 }
-.ts-purpose { font-size: 14px; color: var(--ink); }
-.ts-procedure { margin: 6px 0; padding-left: 22px; font-size: 14px; }
+.ts-purpose { font-size: var(--fs-sm); color: var(--ink); }
+.ts-procedure { margin: 6px 0; padding-left: 22px; font-size: var(--fs-sm); }
 .ts-procedure li { margin-bottom: 4px; }
 .ts-hazards { color: var(--sev-returned); }
 
-.ts-criteria { width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; }
+.ts-criteria { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); margin: 8px 0; }
 .ts-criteria th, .ts-criteria td {
   text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--rule-soft);
 }
 .ts-criteria-wrap { overflow-x: auto; }
 .ts-conf-chip {
-  font-size: 12px; letter-spacing: .04em; padding: 1px 7px; border-radius: var(--radius);
+  font-size: var(--fs-xs); letter-spacing: .04em; padding: 1px 7px; border-radius: var(--radius);
   border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-3);
 }
 .ts-conf-confirmed    { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
@@ -109,14 +109,14 @@
 .ts-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
 .ts-btn {
   min-height: 48px; border-radius: var(--radius); border: 1px solid var(--rule);
-  background: var(--surface-2); color: var(--ink); font-size: 15px; font-weight: 650;
+  background: var(--surface-2); color: var(--ink); font-size: var(--fs-md); font-weight: var(--fw-semibold);
   cursor: pointer; flex: 1 1 120px;
 }
 .ts-btn-pass { color: var(--ok); border-color: var(--ok); }
 .ts-btn-pass:hover, .ts-btn-pass.is-chosen { background: var(--ok-bg); }
 .ts-btn-fail { color: var(--sev-returned); border-color: var(--sev-returned); }
 .ts-btn-fail:hover, .ts-btn-fail.is-chosen { background: var(--sev-returned-bg); }
-.ts-btn-sm { flex: 1 1 100px; font-size: 13px; font-weight: 500; min-height: 44px; }
+.ts-btn-sm { flex: 1 1 100px; font-size: var(--fs-sm); font-weight: var(--fw-medium); min-height: 44px; }
 .ts-btn-sm.is-chosen { border-color: var(--sev-chronic); color: var(--sev-chronic); }
 
 .ts-extra {
@@ -125,23 +125,23 @@
   border: 1px solid var(--rule);
 }
 .ts-field {
-  display: flex; flex-direction: column; gap: 2px; font-size: 12px;
+  display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-xs);
   color: var(--ink-2);
 }
 .ts-field input, .ts-field select {
-  min-height: 36px; font-size: 14px; padding: 4px 6px; border-radius: var(--radius);
+  min-height: 36px; font-size: var(--fs-sm); padding: 4px 6px; border-radius: var(--radius);
   border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
 }
 .ts-unit { width: 64px; margin-left: 4px; }
 .ts-save { min-height: 44px; flex: 0 0 auto; padding: 0 20px; }
 
-.ts-status { font-size: 13px; margin-top: 6px; }
+.ts-status { font-size: var(--fs-sm); margin-top: 6px; }
 .ts-status.is-ok { color: var(--ok); }
 .ts-status.is-error { color: var(--sev-returned); }
 
 .ts-duration + .ts-print-link,
 .ts-result-chip + .ts-print-link {
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 .ts-print-link {
   margin-left: auto; padding: 2px 8px; border-radius: var(--radius);
@@ -160,18 +160,18 @@
  * page) already strips header/nav chrome and opens every <details>; this
  * page has none of those elements to begin with. */
 .ts-print {
-  font-size: 12pt; line-height: 1.45; max-width: 760px; margin: 0 auto;
+  font-size: var(--fs-md); line-height: 1.45; max-width: 760px; margin: 0 auto;
   padding: 12px 0 32px;
 }
-.ts-print h1 { font-size: 1.5em; margin: 0 0 4px; }
-.ts-print h2 { font-size: 1.1em; margin: 18px 0 6px; }
+.ts-print h1 { font-size: var(--fs-2xl); margin: 0 0 4px; }
+.ts-print h2 { font-size: var(--fs-lg); margin: 18px 0 6px; }
 .ts-print-head { margin-bottom: 10px; }
 .ts-print-purpose { margin: 10px 0 4px; }
 
 .ts-print-steps { margin: 6px 0; padding-left: 4px; list-style: none; }
 .ts-print-steps li { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
 .ts-print-box {
-  display: inline-block; width: 1em; flex: 0 0 auto; font-size: 1.1em;
+  display: inline-block; width: 1em; flex: 0 0 auto; font-size: var(--fs-lg);
   line-height: 1; transform: translateY(1px);
 }
 
@@ -187,7 +187,7 @@
 }
 .ts-results-box h2 { margin-top: 0; }
 .ts-results-grid {
-  display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 10px; font-weight: 600;
+  display: flex; gap: 18px; flex-wrap: wrap; margin-bottom: 10px; font-weight: var(--fw-semibold);
 }
 .ts-results-line { margin: 10px 0; }
 .ts-fill-line {
@@ -198,6 +198,6 @@
 .ts-fill-line.long { min-width: 420px; max-width: 100%; }
 
 @media print {
-  .ts-print { font-size: 12pt; max-width: none; }
+  .ts-print { font-size: var(--fs-md); max-width: none; }
   .ts-fill-line.long { min-width: 60%; }
 }

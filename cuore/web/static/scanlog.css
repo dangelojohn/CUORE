@@ -12,14 +12,14 @@
  * those other pages.
  */
 
-.scanlog-page { font-size: 16px; }
+.scanlog-page { font-size: var(--fs-md); }
 
 .scanlog-page .chip,
 .scanlog-page .count-badge,
 .scanlog-page .count-badge .chip.sm,
 .scanlog-page .chip-code,
 .scanlog-page .chip-code.sm {
-  font-size: 12px;
+  font-size: var(--fs-xs);
 }
 
 .scanlog-page .card-details > summary,
@@ -36,10 +36,10 @@
   display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0 18px;
 }
 .scanlog-page .jump-chip-row .jump-chip {
-  display: inline-flex; align-items: center; padding: 0 16px; font-size: 13px;
+  display: inline-flex; align-items: center; padding: 0 16px; font-size: var(--fs-sm);
 }
 
-.scanlog-page table th, .scanlog-page table td { font-size: 13.5px; }
+.scanlog-page table th, .scanlog-page table td { font-size: var(--fs-sm); }
 .scanlog-page .scanlog-table td { vertical-align: middle; }
 
 /* Every table on this page sits in its own horizontal-scroll container
@@ -49,14 +49,14 @@
 
 /* Scan plan chip (bench's own "Scan n of 10" chip reuses this same look,
  * see bench.html's scoped <style>) and the partial-scan badge. */
-.scanlog-page .scanlog-plan-chip { font-weight: 650; }
+.scanlog-page .scanlog-plan-chip { font-weight: var(--fw-semibold); }
 .scanlog-page .scanlog-partial {
   color: var(--sev-chronic); background: var(--sev-chronic-bg); margin-left: 4px;
 }
-.scanlog-page .scanlog-partial.sm { font-size: 11px; padding: 0 6px; }
+.scanlog-page .scanlog-partial.sm { font-size: var(--fs-xs); padding: 0 6px; }
 .scanlog-page .scanlog-coverage { margin: 2px 0 10px; color: var(--ink-2); }
 
-.scanlog-page .jump-chip.sm { padding: 0 10px; font-size: 12px; min-height: 36px; }
+.scanlog-page .jump-chip.sm { padding: 0 10px; font-size: var(--fs-xs); min-height: 36px; }
 
 /* Compare picker: two selects + a button, each a real 48px tap target. */
 .scanlog-page .scanlog-compare {

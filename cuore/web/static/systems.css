@@ -16,9 +16,9 @@
 
 .sys-legend-row {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-  padding: 6px 2px; font-size: 12.5px; color: var(--ink-2);
+  padding: 6px 2px; font-size: var(--fs-xs); color: var(--ink-2);
 }
-.sys-legend-row b { flex: 0 0 100%; color: var(--ink); font-size: 12px; }
+.sys-legend-row b { flex: 0 0 100%; color: var(--ink); font-size: var(--fs-xs); }
 .sys-line-sample { display: inline-block; width: 28px; height: 0; border-top: 2px solid var(--ink-3); }
 .sys-line-dashed { border-top-style: dashed; }
 .sys-line-dotted { border-top-style: dotted; }
@@ -31,7 +31,7 @@
 
 .sys-card-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .sys-card-head h3 { margin: 0; }
-.sys-card .subhead { color: var(--ink-3); font-size: 12px; text-transform: uppercase;
+.sys-card .subhead { color: var(--ink-3); font-size: var(--fs-xs); text-transform: uppercase;
                       letter-spacing: .08em; margin: 10px 0 4px; }
 
 /* Compact badges: "EVAP (primary) · Electrical (upstream?)". */
@@ -39,13 +39,13 @@
 .sysb-chip {
   display: inline-flex; align-items: center; gap: 4px; min-height: 28px;
   padding: 3px 9px; border: 1px solid var(--rule); border-radius: 999px;
-  background: var(--surface-2); color: var(--ink-2); font-size: 12px; text-decoration: none;
+  background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); text-decoration: none;
 }
 .sysb-chip:hover { border-color: var(--accent); color: var(--ink); }
-.sysb-chip.sysb-primary { border-color: var(--ink-2); color: var(--ink); font-weight: 600; }
-.sysb-role { color: var(--ink-3); font-weight: 400; }
+.sysb-chip.sysb-primary { border-color: var(--ink-2); color: var(--ink); font-weight: var(--fw-semibold); }
+.sysb-role { color: var(--ink-3); font-weight: var(--fw-regular); }
 
 @media (max-width: 400px) {
-  .sys-legend-row { font-size: 12px; }
-  .sysb-chip { font-size: 12px; padding: 3px 7px; }
+  .sys-legend-row { font-size: var(--fs-xs); }
+  .sysb-chip { font-size: var(--fs-xs); padding: 3px 7px; }
 }

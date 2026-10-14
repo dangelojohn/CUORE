@@ -31,7 +31,7 @@
   display: flex;
   width: 100%;
   margin-bottom: 2px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   letter-spacing: .02em;
   text-transform: uppercase;
   color: var(--muted, #8a8f96);
@@ -51,10 +51,10 @@
   padding: 2px 3px;
   border-radius: 6px;
   text-decoration: none;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   line-height: 1;
 }
-.job-page .process-map .pm-n { margin-top: 1px; font-size: 12px; }
+.job-page .process-map .pm-n { margin-top: 1px; font-size: var(--fs-xs); }
 /* phase dividers at the fixed 4/3/2/3 boundaries -- no extra markup, just
    a border on the anchor that starts the next phase */
 .job-page .process-map a.pm-step:nth-child(6),  /* n=5, after caption row the 1st anchor is child 2 -> offset by 1 for .pm-captions */
@@ -75,7 +75,7 @@
   padding: 10px 14px;
   margin: 0 0 10px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   background: var(--panel, #1c1f24);
   border: 1px solid var(--border, #333);
 }
@@ -86,7 +86,7 @@
 .job-page .blocker-banner {
   margin: 0 0 12px;
 }
-.job-page .blocker-action { display: block; margin-top: 2px; font-size: 13px; }
+.job-page .blocker-action { display: block; margin-top: 2px; font-size: var(--fs-sm); }
 
 /* ---------- fix #6: "job is at step N" chip in the sticky flow-bar ------ */
 
@@ -125,15 +125,15 @@
   display: inline-block;
   padding: 4px 10px;
   border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   margin: 2px 0 10px;
 }
 .job-page .step6-status-not-started { background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac); }
 .job-page .step6-status-progress { background: #3a3010; color: #e0b84a; }
 .job-page .step6-status-complete { background: #163a1f; color: #4fbf74; }
 
-.job-page .result-chip { margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+.job-page .result-chip { margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-xs); font-weight: var(--fw-bold); }
 .job-page .result-chip-pass { background: #163a1f; color: #4fbf74; }
 .job-page .result-chip-fail { background: #3a1616; color: #e0574a; }
 .job-page .result-chip-inconclusive { background: #3a3010; color: #e0b84a; }
@@ -145,7 +145,7 @@
  * sits right next to .result-chip and says so out loud. */
 .job-page .result-chip-unlinked {
   margin-left: 4px; padding: 1px 7px; border-radius: 999px;
-  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); text-transform: uppercase;
   letter-spacing: .03em;
   background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac);
 }
@@ -177,14 +177,14 @@
  * from the car's own data -- a small tag so it never reads as a real
  * code/freeze-frame citation at a glance. */
 .job-page .chip-manual-tag {
-  font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); text-transform: uppercase;
   letter-spacing: .05em; padding: 1px 5px; border-radius: 999px;
   background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac);
 }
 .job-page .evidence-remove-form { display: inline; }
 .job-page .chip-remove {
   border: none; background: transparent; cursor: pointer;
-  font-size: 13px; line-height: 1; padding: 0 2px;
+  font-size: var(--fs-sm); line-height: 1; padding: 0 2px;
   min-width: 20px; min-height: 20px;
   color: inherit; opacity: .7;
 }
@@ -236,7 +236,7 @@
 .job-page .manual-hyp-form input,
 .job-page .manual-hyp-form select { width: 100%; min-height: 44px; box-sizing: border-box; }
 .job-page .manual-hyp-form select[multiple] { min-height: 90px; }
-.job-page .field-error { color: #e0574a; font-size: 12px; display: block; margin-top: 2px; }
+.job-page .field-error { color: #e0574a; font-size: var(--fs-xs); display: block; margin-top: 2px; }
 
 /* ---------- small toast (job.js-rendered) -------------------------------- */
 
@@ -253,7 +253,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
+  font-size: var(--fs-sm);
   z-index: 50;
   box-shadow: 0 6px 20px rgba(0,0,0,.35);
 }
@@ -274,7 +274,7 @@
 .result-sheet .result-radios { display: flex; flex-direction: column; gap: 4px; }
 .result-sheet .result-radios label {
   display: flex; align-items: center; gap: 8px;
-  min-height: 44px; padding: 2px 4px; font-size: 14px;
+  min-height: 44px; padding: 2px 4px; font-size: var(--fs-sm);
 }
 .result-sheet .result-radios input[type="radio"],
 .result-sheet input[name="supports"] { width: 24px; height: 24px; margin: 0; }
@@ -283,14 +283,14 @@
 /* N1: shown when hypotheses are open but none is chosen -- the sheet
  * must say so before Save, never save unlinked silently. */
 .result-sheet .unlinked-warning { color: #e0b84a; margin: 4px 0; }
-.result-sheet .reason-required-mark { color: #e0574a; font-weight: 400; }
+.result-sheet .reason-required-mark { color: #e0574a; font-weight: var(--fw-regular); }
 .result-sheet label:has(input[name="supports"]) {
   display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin-right: 10px;
 }
 
 /* ---------- R3: the row's own result chip shows the value too ---------- */
 
-.job-page .result-chip { font-size: 12px; }
+.job-page .result-chip { font-size: var(--fs-xs); }
 
 /* ---------- R8: evidence chips are sentence case, monospace only for the
    code-id prefix (e.g. "P0455: freeze frame") -- was all-caps monospace */

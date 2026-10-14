@@ -11,12 +11,12 @@
  * should never have to come back for a second look.
  * ========================================================================= */
 
-.fscan { font-size: 16px; }
-.fscan .lede { font-size: 16px; }
+.fscan { font-size: var(--fs-md); }
+.fscan .lede { font-size: var(--fs-md); }
 
 .fscan-btn {
   min-height: 48px;
-  font-size: 16px;
+  font-size: var(--fs-md);
   padding: 12px 22px;
 }
 
@@ -51,29 +51,29 @@
 .fscan-pic-none    { color: var(--ink-3); }
 
 .fscan-cable-name {
-  font-size: 28px;
-  font-weight: 650;
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-semibold);
   letter-spacing: .01em;
   margin: 0 0 8px;
 }
 .fscan-bus-label {
-  font-size: 16px;
-  font-weight: 400;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-regular);
   color: var(--ink-2);
   margin-left: 6px;
 }
 
 .fscan-instruction {
-  font-size: 18px;
+  font-size: var(--fs-lg);
   margin: 14px 0 18px;
 }
 
-.fscan-counts { font-size: 17px; }
+.fscan-counts { font-size: var(--fs-lg); }
 
 .fscan-sofar { margin-top: 18px; }
 .fscan-sofar summary {
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--fs-md);
   min-height: 48px;
   display: flex;
   align-items: center;
@@ -103,8 +103,8 @@
 
 .fscan-cableref-title {
   margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   letter-spacing: .01em;
   text-transform: none;
   border-bottom: none;
@@ -123,18 +123,18 @@
 }
 
 .fscan-cableref-head {
-  font-size: 14px;
-  font-weight: 650;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
 }
 
 .fscan-cableref-bus {
-  font-size: 13px;
-  font-weight: 400;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-regular);
   color: var(--ink-2);
 }
 
 .fscan-cableref-switch {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   color: var(--ink-2);
   margin: 2px 0 8px;
 }
@@ -157,7 +157,7 @@
 }
 
 .fscan-cableref-code {
-  font-size: 13px;
+  font-size: var(--fs-sm);
 }
 
 @media (max-width: 480px) {

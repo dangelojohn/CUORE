@@ -19,7 +19,7 @@
   /* external links show their destination on paper */
   a[href^="http"]::after, a[href^="https"]::after {
     content: " (" attr(href) ")";
-    font-size: 0.85em;
+    font-size: var(--fs-xs);
     color: #333 !important;
   }
   /* internal/relative links are navigable on screen only -- no URL noise */

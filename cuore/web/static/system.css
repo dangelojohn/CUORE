@@ -7,14 +7,14 @@
  * is introduced here, only layout.
  */
 
-.sysd-page { font-size: 16px; max-width: 72ch; margin: 0 auto; }
+.sysd-page { font-size: var(--fs-md); max-width: 72ch; margin: 0 auto; }
 
 .sysd-section { margin: 14px 0; }
 .sysd-section > summary { cursor: pointer; min-height: 48px; display: flex; align-items: center; }
-.sysd-h { display: inline; margin: 0; font-size: 16px; }
+.sysd-h { display: inline; margin: 0; font-size: var(--fs-md); }
 
 .subhead {
-  color: var(--ink-3); font-size: 12px; text-transform: uppercase;
+  color: var(--ink-3); font-size: var(--fs-xs); text-transform: uppercase;
   letter-spacing: .08em; margin: 14px 0 6px;
 }
 
@@ -27,7 +27,7 @@
 .sysd-row a, .sysd-row > span:first-child { min-height: 48px; display: inline-flex; align-items: center; }
 
 @media (max-width: 400px) {
-  .sysd-page { font-size: 16px; }
+  .sysd-page { font-size: var(--fs-md); }
   .sysd-row { gap: 6px; }
 }
 
@@ -36,7 +36,7 @@
 .sysd-unknown-mark {
   min-width: 32px; min-height: 32px; display: inline-flex; align-items: center;
   justify-content: center; border: 1px solid var(--rule); background: var(--surface);
-  border-radius: 4px; cursor: pointer; font-size: 16px; line-height: 1; color: var(--ink-3);
+  border-radius: 4px; cursor: pointer; font-size: var(--fs-md); line-height: 1; color: var(--ink-3);
 }
 .sysd-attest-prompt { cursor: default; }
 .sysd-attest-form {
@@ -45,7 +45,7 @@
 }
 .sysd-attest-form label { display: flex; flex-direction: column; gap: 2px; }
 .sysd-attest-form input, .sysd-attest-form select {
-  min-height: 32px; padding: 4px 6px; font-size: 14px;
+  min-height: 32px; padding: 4px 6px; font-size: var(--fs-sm);
 }
 .sysd-mechanic-input { width: 100%; }
 
@@ -53,5 +53,5 @@
 .sysd-part-img { max-width: 64px; max-height: 64px; border-radius: 4px; object-fit: cover; }
 
 /* --- phase 4 slice: freeze frame with this system's channels highlighted - */
-.sysd-freeze .sysd-ff-hot { font-weight: 600; }
+.sysd-freeze .sysd-ff-hot { font-weight: var(--fw-semibold); }
 .sysd-freeze .sysd-ff-dim { opacity: .55; }

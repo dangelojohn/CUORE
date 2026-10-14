@@ -22,7 +22,7 @@
   background: var(--bg);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 17px;
+  font-size: var(--fs-lg);
   line-height: 1.45;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
@@ -40,8 +40,8 @@
 .m-brand {
   color: var(--ink-2);
   text-decoration: none;
-  font-weight: 300;
-  font-size: 15px;
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-md);
   letter-spacing: .14em;
   text-transform: uppercase;
 }
@@ -52,22 +52,22 @@
   margin: 0 auto;
 }
 
-.m-h1 { font-size: 24px; font-weight: 300; letter-spacing: -.01em; margin: 4px 0 8px; }
-.m-sub, .m-why, .m-hint { color: var(--ink-2); font-size: 15px; margin: 0 0 18px; }
+.m-h1 { font-size: var(--fs-2xl); font-weight: var(--fw-semibold); letter-spacing: -.01em; margin: 4px 0 8px; }
+.m-sub, .m-why, .m-hint { color: var(--ink-2); font-size: var(--fs-md); margin: 0 0 18px; }
 .m-why { margin-bottom: 22px; }
 .m-empty { color: var(--ink-3); padding: 24px 0; }
 
 .m-back { margin: 0 0 18px; }
 .m-back a {
-  color: var(--ink-3); text-decoration: none; font-size: 12px;
-  text-transform: uppercase; letter-spacing: .1em; font-weight: 650;
+  color: var(--ink-3); text-decoration: none; font-size: var(--fs-xs);
+  text-transform: uppercase; letter-spacing: .1em; font-weight: var(--fw-semibold);
 }
 
 .m-flash {
   padding: 12px 14px;
   border-radius: var(--radius, 3px);
   margin-bottom: 16px;
-  font-size: 15px;
+  font-size: var(--fs-md);
 }
 .m-flash-ok { background: var(--ok-bg); color: var(--ok); }
 .m-flash-error { background: var(--accent-dim); color: var(--accent); }
@@ -76,29 +76,29 @@
 
 .m-hero { padding: 4px 0 28px; }
 .m-hero-name {
-  font-size: clamp(32px, 8.5vw, 40px);
-  font-weight: 300;
+  font-size: var(--fs-3xl);
+  font-weight: var(--fw-semibold);
   letter-spacing: .01em;
   color: var(--ink);
   margin: 0 0 18px;
   line-height: 1.1;
 }
 .m-hero-odo { display: flex; align-items: baseline; gap: 6px; margin: 0; }
-.m-hero-odo-fig { font-size: 32px; font-weight: 300; line-height: 1; color: var(--ink); }
-.m-hero-odo-unit { font-size: 15px; color: var(--ink-3); }
+.m-hero-odo-fig { font-size: var(--fs-3xl); font-weight: var(--fw-semibold); line-height: 1; color: var(--ink); }
+.m-hero-odo-unit { font-size: var(--fs-md); color: var(--ink-3); }
 .m-hero-odo-label {
-  font-size: 12px; text-transform: uppercase; letter-spacing: .12em;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .12em;
   color: var(--ink-3); margin: 4px 0 20px;
 }
 .m-hero-verdict-state {
-  font-size: 13px; text-transform: uppercase; letter-spacing: .1em;
-  font-weight: 700; margin: 0 0 6px;
+  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: .1em;
+  font-weight: var(--fw-bold); margin: 0 0 6px;
 }
 .m-hero-verdict-state.v-active-faults     { color: var(--sev-returned); }
 .m-hero-verdict-state.v-unverified-repair { color: var(--sev-chronic); }
 .m-hero-verdict-state.v-verified-clean    { color: var(--ok); }
 .m-hero-verdict-state.v-no-data           { color: var(--ink-3); }
-.m-hero-verdict-sentence { font-size: 15px; color: var(--ink-2); margin: 0; max-width: 34ch; }
+.m-hero-verdict-sentence { font-size: var(--fs-md); color: var(--ink-2); margin: 0; max-width: 34ch; }
 
 /* ---------- quick-action grid ---------- */
 
@@ -125,7 +125,7 @@
 }
 .m-quick-card:active { transform: scale(.97); }
 .m-quick-ico { width: 40px; height: 40px; stroke: var(--ink-2); fill: none; }
-.m-quick-label { font-size: 16px; font-weight: 600; line-height: 1.25; }
+.m-quick-label { font-size: var(--fs-md); font-weight: var(--fw-semibold); line-height: 1.25; }
 
 /* The one red tile -- the primary action (Fill-up), per the owner's own
    instruction: red reserved for a single primary action on this screen. */
@@ -150,19 +150,19 @@
   text-decoration: none;
 }
 .m-msg-row-ico { width: 22px; height: 22px; stroke: var(--ink-2); fill: none; flex: none; }
-.m-msg-row-label { font-size: 16px; font-weight: 600; flex: 1; }
-.m-msg-row-empty { font-size: 13px; color: var(--ink-3); }
+.m-msg-row-label { font-size: var(--fs-md); font-weight: var(--fw-semibold); flex: 1; }
+.m-msg-row-empty { font-size: var(--fs-sm); color: var(--ink-3); }
 .m-badge {
   min-width: 24px; height: 24px; padding: 0 7px;
   border-radius: 999px; background: var(--accent); color: #fff;
-  font-size: 12px; font-weight: 700; display: inline-flex; align-items: center;
+  font-size: var(--fs-xs); font-weight: var(--fw-bold); display: inline-flex; align-items: center;
   justify-content: center; font-variant-numeric: tabular-nums;
 }
 
 /* ---------- "Everything else" / plain row lists ---------- */
 
 .m-section-h {
-  font-size: 12px; text-transform: uppercase; letter-spacing: .12em;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .12em;
   color: var(--ink-3); margin: 28px 0 10px;
 }
 .m-rowlist { display: flex; flex-direction: column; margin-bottom: 20px; }
@@ -175,20 +175,20 @@
   border-bottom: 1px solid var(--rule-soft);
   color: var(--ink);
   text-decoration: none;
-  font-size: 16px;
+  font-size: var(--fs-md);
 }
-.m-row-label { font-weight: 500; }
-.m-row-count { color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+.m-row-label { font-weight: var(--fw-medium); }
+.m-row-count { color: var(--ink-3); font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 
 .m-links { margin-top: 24px; }
-.m-links a { color: var(--ink-3); font-size: 13px; text-decoration: none; }
+.m-links a { color: var(--ink-3); font-size: var(--fs-sm); text-decoration: none; }
 
 /* ---------- forms: large underlined fields, no boxes ---------- */
 
 .m-form { display: flex; flex-direction: column; gap: 22px; }
 .m-field { display: flex; flex-direction: column; gap: 10px; }
 .m-label {
-  font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .08em;
   color: var(--ink-3); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
 }
 .m-unit-inline { text-transform: none; letter-spacing: 0; }
@@ -208,7 +208,7 @@ input.m-input {
   -webkit-appearance: none; appearance: none;
   min-height: 48px;
   padding: 10px 2px;
-  font-size: 18px;
+  font-size: var(--fs-lg);
   font-family: var(--sans);
   background: transparent;
   border: none;
@@ -221,7 +221,7 @@ input.m-input {
 input.m-input:focus { outline: none; border-bottom-color: var(--accent); }
 textarea.m-textarea {
   min-height: 72px; resize: vertical; width: 100%;
-  background: transparent; color: var(--ink); font-size: 17px; font-family: var(--sans);
+  background: transparent; color: var(--ink); font-size: var(--fs-lg); font-family: var(--sans);
   border: none; border-bottom: 2px solid var(--rule); border-radius: 0; padding: 10px 2px;
 }
 textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
@@ -232,10 +232,10 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 .m-field-fig { flex: 1; }
 .m-figure-field { display: flex; align-items: baseline; gap: 6px; }
 .m-input-figure {
-  font-size: 30px; font-weight: 300; font-variant-numeric: tabular-nums;
+  font-size: var(--fs-3xl); font-weight: var(--fw-semibold); font-variant-numeric: tabular-nums;
   padding: 6px 2px;
 }
-.m-unit { font-size: 14px; color: var(--ink-3); white-space: nowrap; }
+.m-unit { font-size: var(--fs-sm); color: var(--ink-3); white-space: nowrap; }
 
 /* Chips: 12px letter-spaced small-caps labels, 48px tap target, selected
    state in the marque accent, 200ms transition -- never a native control. */
@@ -258,7 +258,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
 }
 .m-chip span {
-  font-size: 12px; font-weight: 650; text-transform: uppercase; letter-spacing: .08em;
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .08em;
 }
 .m-chip input {
   position: absolute;
@@ -282,8 +282,8 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   border-radius: var(--radius, 3px);
   background: var(--accent);
   color: #fff;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-bold);
   text-transform: uppercase;
   letter-spacing: .06em;
   cursor: pointer;
@@ -299,8 +299,8 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   background: transparent;
   color: var(--ink);
   text-decoration: none;
-  font-size: 14px;
-  font-weight: 650;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
   text-transform: uppercase;
   letter-spacing: .06em;
 }
@@ -325,13 +325,13 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 }
 .m-toggle input:checked + .m-toggle-track { background: var(--accent); border-color: var(--accent); }
 .m-toggle input:checked + .m-toggle-track .m-toggle-thumb { transform: translateX(20px); background: #fff; }
-.m-toggle-label { font-size: 16px; color: var(--ink); }
-.m-toggle-big .m-toggle-label { font-weight: 600; }
+.m-toggle-label { font-size: var(--fs-md); color: var(--ink); }
+.m-toggle-big .m-toggle-label { font-weight: var(--fw-semibold); }
 
 /* "More details" disclosure -- native <details>, no JS needed. */
 .m-more { border-top: 1px solid var(--rule-soft); padding-top: 18px; }
 .m-more summary {
-  font-size: 12px; text-transform: uppercase; letter-spacing: .1em; font-weight: 650;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .1em; font-weight: var(--fw-semibold);
   color: var(--ink-3); cursor: pointer; list-style: none; min-height: 32px; display: flex; align-items: center;
 }
 .m-more summary::-webkit-details-marker { display: none; }
@@ -342,7 +342,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
    for the primary action/selection state), always this one warm note. */
 .m-chip-photo {
   display: inline-flex; align-items: center;
-  font-size: 12px; text-transform: uppercase; letter-spacing: .06em; font-weight: 700;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; font-weight: var(--fw-bold);
   color: var(--sev-chronic); background: var(--sev-chronic-bg);
   padding: 2px 7px; border-radius: 999px; white-space: nowrap;
 }
@@ -356,7 +356,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   border-radius: var(--radius, 3px); cursor: pointer;
 }
 .m-camera-ico { width: 24px; height: 24px; stroke: var(--ink-2); fill: none; flex: none; }
-.m-camera-text { font-size: 15px; color: var(--ink-2); font-weight: 600; flex: 1; }
+.m-camera-text { font-size: var(--fs-md); color: var(--ink-2); font-weight: var(--fw-semibold); flex: 1; }
 .m-camera-preview {
   width: 44px; height: 44px; border-radius: var(--radius, 3px);
   object-fit: cover; flex: none;
@@ -370,9 +370,9 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   margin-bottom: 4px;
   border-bottom: 1px solid var(--rule-soft);
 }
-.m-msg-text { font-size: 16px; margin: 0 0 6px; }
-.m-msg-meta { font-size: 13px; color: var(--ink-3); margin: 0 0 10px; }
-.m-msg-answer { font-size: 15px; color: var(--ink-2); }
+.m-msg-text { font-size: var(--fs-md); margin: 0 0 6px; }
+.m-msg-meta { font-size: var(--fs-sm); color: var(--ink-3); margin: 0 0 10px; }
+.m-msg-answer { font-size: var(--fs-md); color: var(--ink-2); }
 
 /* One-tap chip answers (2026-10-14): each chip is its own tiny form (a
    plain submit button styled like the existing .m-chip pill, no hidden
@@ -388,7 +388,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   cursor: pointer;
 }
 .m-chip-btn:active { background: var(--accent); border-color: var(--accent); color: #fff; }
-.m-msg-chips-or { font-size: 13px; color: var(--ink-3); margin: 0 0 8px; }
+.m-msg-chips-or { font-size: var(--fs-sm); color: var(--ink-3); margin: 0 0 8px; }
 
 /* ---------- history ---------- */
 
@@ -397,18 +397,18 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   margin-bottom: 4px;
   border-bottom: 1px solid var(--rule-soft);
 }
-.m-event-head { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 4px; font-size: 16px; }
-.m-event-cat { color: var(--ink-3); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; }
-.m-event-meta { font-size: 12.5px; color: var(--ink-3); margin: 0 0 8px; }
+.m-event-head { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 4px; font-size: var(--fs-md); }
+.m-event-cat { color: var(--ink-3); font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em; }
+.m-event-meta { font-size: var(--fs-xs); color: var(--ink-3); margin: 0 0 8px; }
 .m-reported-badge {
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   letter-spacing: .06em;
   color: var(--ink-3);
 }
-.m-event-fields { margin: 0 0 8px; padding-left: 18px; font-size: 15px; }
-.m-event-note { font-size: 15px; color: var(--ink-2); }
-.m-edited-badge { text-transform: uppercase; font-size: 12px; letter-spacing: .06em; color: var(--accent); }
+.m-event-fields { margin: 0 0 8px; padding-left: 18px; font-size: var(--fs-md); }
+.m-event-note { font-size: var(--fs-md); color: var(--ink-2); }
+.m-edited-badge { text-transform: uppercase; font-size: var(--fs-xs); letter-spacing: .06em; color: var(--accent); }
 
 /* Edit (history row) -- a plain 48px tap target, same house style as
    .m-ghost-btn but inline rather than full-width. */
@@ -417,25 +417,25 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   min-height: 48px; padding: 0 16px; margin-top: 6px;
   border: 1px solid var(--rule); border-radius: var(--radius, 3px);
   color: var(--ink); text-decoration: none;
-  font-size: 13px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .06em;
 }
 
 /* Audit disclosure -- same native <details> convention as .m-more, reused
    on both the history row and the post-edit record card. */
 .m-audit { border-top: 1px solid var(--rule-soft); margin-top: 10px; padding-top: 10px; }
 .m-audit summary {
-  font-size: 12px; text-transform: uppercase; letter-spacing: .1em; font-weight: 650;
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .1em; font-weight: var(--fw-semibold);
   color: var(--ink-3); cursor: pointer; list-style: none; min-height: 32px; display: flex; align-items: center;
 }
 .m-audit summary::-webkit-details-marker { display: none; }
 .m-audit-entry { padding: 8px 0; border-bottom: 1px solid var(--rule-soft); }
 .m-audit-entry:last-child { border-bottom: none; }
-.m-audit-meta { font-size: 12px; color: var(--ink-3); margin: 0 0 4px; }
-.m-audit-changes { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); }
+.m-audit-meta { font-size: var(--fs-xs); color: var(--ink-3); margin: 0 0 4px; }
+.m-audit-changes { margin: 0; padding-left: 18px; font-size: var(--fs-sm); color: var(--ink-2); }
 
 .m-lan-url {
   font-family: var(--mono);
-  font-size: 16px;
+  font-size: var(--fs-md);
   padding: 12px;
   background: var(--surface-2);
   border: 1px solid var(--rule);
@@ -449,8 +449,8 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 .m-confirm { animation: m-fade-in .3s ease; }
 @keyframes m-fade-in { from { opacity: 0; } to { opacity: 1; } }
 .m-confirm-check {
-  font-size: 13px; text-transform: uppercase; letter-spacing: .14em;
-  color: var(--ok); font-weight: 700; margin: 0 0 18px;
+  font-size: var(--fs-sm); text-transform: uppercase; letter-spacing: .14em;
+  color: var(--ok); font-weight: var(--fw-bold); margin: 0 0 18px;
 }
 .m-card {
   border-top: 1px solid var(--rule);
@@ -458,17 +458,17 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   padding: 20px 0;
   margin-bottom: 24px;
 }
-.m-card-date { font-size: 13px; color: var(--ink-3); margin: 0 0 4px; }
-.m-card-kind { font-size: 24px; font-weight: 300; margin: 0 0 18px; }
+.m-card-date { font-size: var(--fs-sm); color: var(--ink-3); margin: 0 0 4px; }
+.m-card-kind { font-size: var(--fs-2xl); font-weight: var(--fw-semibold); margin: 0 0 18px; }
 .m-card-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
 .m-card-field { display: flex; align-items: baseline; gap: 8px; }
 .m-card-field-label {
-  font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3);
+  font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3);
   min-width: 11ch;
 }
-.m-card-field-value { font-size: 16px; color: var(--ink); }
-.m-card-attested { font-size: 13px; color: var(--ink-3); margin: 0; }
-.m-card-edited { font-size: 13px; color: var(--accent); margin: 0 0 4px; }
+.m-card-field-value { font-size: var(--fs-md); color: var(--ink); }
+.m-card-attested { font-size: var(--fs-sm); color: var(--ink-3); margin: 0; }
+.m-card-edited { font-size: var(--fs-sm); color: var(--accent); margin: 0 0 4px; }
 .m-confirm-actions { display: flex; gap: 10px; }
 
 /* ---------- edit screen (Cancel/Delete) + deleted/undo screen ---------- */
@@ -480,7 +480,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   width: 100%; min-height: 48px;
   border: 1px solid var(--accent); border-radius: var(--radius, 3px);
   background: transparent; color: var(--accent);
-  font-size: 14px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .06em;
   cursor: pointer;
 }
 .m-undo-btn {
@@ -488,7 +488,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   min-height: 48px; padding: 0 18px;
   border: 1px solid var(--rule); border-radius: var(--radius, 3px);
   background: transparent; color: var(--ink);
-  font-size: 13px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .06em;
   cursor: pointer;
 }
 
@@ -498,7 +498,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   max-width: 480px;
   margin: 0 auto;
   padding: 0 20px 16px;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   color: var(--ink-3);
 }
 
@@ -517,8 +517,8 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   min-height: 56px;
   color: var(--ink-3);
   text-decoration: none;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
 }
 .m-navicon { width: 22px; height: 22px; stroke: currentColor; fill: none; }
 .m-bottomnav a.on { color: var(--accent); }
@@ -538,7 +538,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   border: 1px solid var(--accent); border-radius: var(--radius, 3px);
   background: transparent; color: var(--accent);
   text-decoration: none;
-  font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+  font-size: var(--fs-sm); font-weight: var(--fw-bold); text-transform: uppercase; letter-spacing: .06em;
 }
 /* Inline, next to Edit, on a History row -- not full-width. */
 .m-print-btn-row { display: inline-flex; min-height: 48px; margin-top: 6px; margin-left: 10px; }
@@ -556,10 +556,10 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   min-height: 48px; padding: 0 16px;
   border: 1px solid var(--accent); border-radius: var(--radius, 3px);
   background: transparent; color: var(--accent);
-  font-size: 13px; font-weight: 650; text-transform: uppercase; letter-spacing: .06em;
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .06em;
   cursor: pointer;
 }
-.m-print-hint { font-size: 12px; color: var(--ink-3); margin: 6px 0 0; }
+.m-print-hint { font-size: var(--fs-xs); color: var(--ink-3); margin: 6px 0 0; }
 /* Selected label-size chip on /m/{vin}/print (not a radio/checkbox -- a
    plain link that re-GETs the page with ?size=..., same no-JS posture as
    every other page here). */

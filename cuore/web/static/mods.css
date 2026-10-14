@@ -18,7 +18,7 @@
   background: var(--accent-dim);
   padding: 0.55rem 0.8rem;
   border-radius: 4px;
-  font-size: 0.95rem;
+  font-size: var(--fs-md);
 }
 
 .mods-flash { display: inline-block; margin: 0.25rem 0 0.75rem; }
@@ -34,7 +34,7 @@
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
 }
 
-.mod-ledger-card h3 { margin: 0 0 0.3rem; font-size: 1.05rem; }
+.mod-ledger-card h3 { margin: 0 0 0.3rem; font-size: var(--fs-md); }
 .mod-ledger-card.mod-reported { border-left: 3px solid var(--ink-3); }
 .mod-inline-form { margin-top: 0.5rem; }
 
@@ -63,7 +63,7 @@
 .mod-handoff .mes-handoff-fields {
   margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.15rem 0.6rem;
 }
-.mod-handoff .mes-handoff-fields dt { font-size: 0.85em; opacity: 0.75; }
+.mod-handoff .mes-handoff-fields dt { font-size: var(--fs-sm); opacity: 0.75; }
 .mod-handoff .mes-handoff-fields dd { margin: 0; }
 
 /* --- record forms ---------------------------------------------------------- */
