@@ -108,6 +108,17 @@ def edit_input(vin: str, id: str, body: ExperienceInputEditRequest) -> dict[str,
         rating=body.rating, title=body.title, kind=body.kind, scope=body.scope)
 
 
+@router.post("/experience/{vin}/inputs/{id}/verify",
+             summary="Run the deferred link check and record its result")
+def verify_input(vin: str, id: str) -> dict[str, Any]:
+    """``vin`` is accepted for a stable REST shape but not otherwise used.
+    The add form saves with ``verify: false`` so the save never blocks on
+    an outbound check (2026-10-14, N3); this is the background call the
+    page makes right after, to swap the row's "Verifying..." badge for the
+    real result."""
+    return experience_bridge.verify_input(id)
+
+
 @router.delete("/experience/{vin}/inputs/{id}", summary="Soft-delete a driver/mechanic-added link")
 def delete_input(vin: str, id: str) -> dict[str, Any]:
     return experience_bridge.delete_input(id)

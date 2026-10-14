@@ -82,6 +82,22 @@
       main.appendChild(note);
     }
 
+    // Verification badge: the add form saves with verify:false (N3,
+    // 2026-10-14) so the row appears immediately; this starts as
+    // "Verifying..." and wireAddForm() swaps it for the real status once
+    // the deferred POST .../verify call below resolves. A row rebuilt
+    // from a later full-page load already carries a final status, so it
+    // skips straight to that (mirrors _experience.html's own badge).
+    var verifiedStatus = (l.verified || {}).status;
+    if (verifiedStatus) {
+      var vchip = document.createElement("span");
+      vchip.className = "chip " + (verifiedStatus === "verified" ? "ok" : "plain") + " small";
+      vchip.setAttribute("data-exp-verified", "");
+      vchip.textContent = (verifiedStatus === "unverified" || verifiedStatus === "skipped") ?
+        "Verifying…" : verifiedStatus;
+      main.appendChild(vchip);
+    }
+
     row.appendChild(main);
 
     var chip = document.createElement("span");
@@ -114,6 +130,25 @@
     row.appendChild(actions);
 
     return row;
+  }
+
+  // The deferred half of a verify:false save (N3, 2026-10-14): runs after
+  // the row is already on screen, never blocking it. Swaps the row's own
+  // "Verifying…" badge for the real status once the outbound check
+  // (up to ~10s server-side) comes back; a failed/aborted request just
+  // leaves the badge as-is rather than erroring the whole add.
+  function verifyInBackground(vin, id, row) {
+    if (!id || !row) return;
+    fetch(apiBase(vin) + "/" + encodeURIComponent(id) + "/verify", { method: "POST" })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var status = (data.verified || {}).status;
+        var chip = row.querySelector("[data-exp-verified]");
+        if (!status || !chip) return;
+        chip.className = "chip " + (status === "verified" ? "ok" : "plain") + " small";
+        chip.textContent = status;
+      })
+      .catch(function () { /* badge just stays at "Verifying…"; not fatal */ });
   }
 
   // -- "+ Add what you found" form ---------------------------------------
@@ -158,6 +193,11 @@
         name: name,
         note: String(fd.get("note") || "").trim(),
         rating: String(fd.get("rating") || "unsure"),
+        // N3 (2026-10-14): never let the save block on the server's own
+        // outbound link check (up to ~10s) -- save synchronously, then
+        // kick off the real check in the background (see below) and let
+        // the row's own "Verifying…" badge resolve whenever that lands.
+        verify: false,
         confirm_duplicate: form.getAttribute("data-exp-confirm-dup") === "1"
       };
       setStatus(card, "Saving…");
@@ -176,10 +216,12 @@
         }
         form.removeAttribute("data-exp-confirm-dup");
         var list = card.querySelector("[data-exp-list]");
-        if (list) list.insertBefore(buildRow(data), list.firstChild);
+        var newRow = buildRow(data);
+        if (list) list.insertBefore(newRow, list.firstChild);
         setStatus(card, "Saved. Thanks.");
         form.reset();
         if (nameInput) nameInput.value = name;
+        verifyInBackground(vin, data.id, newRow);
       }).catch(function () {
         setStatus(card, "Could not save — try again.");
       });

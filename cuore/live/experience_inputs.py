@@ -338,6 +338,7 @@ def _fold(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         title = view.get("title", "")
         kind = view.get("kind", "note")
         scope = dict(view.get("scope") or {})
+        verified = view.get("verified")
         audit: list[dict[str, Any]] = []
         for e in edits_by_id.get(rid, []):
             changes = e.get("changes") or {}
@@ -351,12 +352,15 @@ def _fold(rows: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
                 kind = changes["kind"].get("to", kind)
             if "scope" in changes:
                 scope = changes["scope"].get("to", scope) or {}
+            if "verified" in changes:
+                verified = changes["verified"].get("to", verified)
             audit.append({"at": e.get("at"), "by": e.get("by"), "changes": changes})
         view["note"] = note
         view["rating"] = rating
         view["title"] = title
         view["kind"] = kind
         view["scope"] = scope
+        view["verified"] = verified
         view["audit"] = audit
         view["edited_at"] = audit[-1]["at"] if audit else None
         view["deleted"] = deleted.get(rid, False)
@@ -487,6 +491,46 @@ def edit_input(id: str, *, by_role: str, by_name: str = "", note: Optional[str] 
         }
         _append(entry)
     return entry
+
+
+def verify_input(id: str) -> dict[str, Any]:
+    """Run :func:`verify_entry` against a row's own URL right now and
+    append the result as an ``input_edit`` amendment, same never-rewrite
+    convention as :func:`edit_input`. This is the deferred half of
+    ``add_input(verify=False)`` -- the add returns immediately with
+    ``verified: {"status": "unverified"/"skipped", ...}`` so the save never
+    blocks on an outbound network check (2026-10-14, N3); the caller (the
+    "+ Add what you found" form) calls this right after, in the
+    background, and swaps the row's "Verifying..." badge for whatever
+    comes back. Raises ``ValueError`` on: no such input, the input is
+    deleted."""
+    iid = (id or "").strip()
+    if not iid:
+        raise ValueError("id is required")
+    with _LOCK:
+        rows = _raw_records()
+        current = _fold(rows).get(iid)
+        if current is None:
+            raise ValueError(f"no experience input with id {iid!r}")
+        if current.get("deleted"):
+            raise ValueError(f"experience input {iid!r} is deleted")
+        url = current.get("url", "")
+    new_verified = verify_entry(url) if url else {"status": "unreachable", "at": _now(), "method": "no_url"}
+    with _LOCK:
+        rows = _raw_records()
+        current = _fold(rows).get(iid)
+        if current is None or current.get("deleted"):
+            return current or {}
+        changes = {"verified": {"from": current.get("verified"), "to": new_verified}}
+        entry = {
+            "op": "input_edit",
+            "id": iid,
+            "at": _now(),
+            "by": {"role": "cuore", "name": ""},
+            "changes": changes,
+        }
+        _append(entry)
+        return _fold(_raw_records())[iid]
 
 
 def delete_input(id: str) -> dict[str, Any]:

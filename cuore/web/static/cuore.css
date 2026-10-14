@@ -193,7 +193,28 @@
  * bleed (job.css's sticky .step-nav) adds a couple more -- neither is a
  * real layout bug a mechanic would ever see (nothing visible moves),
  * but both make the automated scrollWidth check fail, so the page itself
- * never grows a horizontal scrollbar regardless. */
+ * never grows a horizontal scrollbar regardless.
+ * Review 7, 2026-10-14: tried dropping BODY from this rule (`html {
+ * overflow-x: hidden; }` alone) after finding, by live CDP measurement,
+ * that `overflow-x: hidden` on BODY makes its *computed* overflow-y
+ * resolve to `auto` (the spec's visible/non-visible interaction rule),
+ * which turns BODY into a scroll container and quietly breaks
+ * `position: sticky` for .vline/.vbar/.flow-bar (their nearest scroll-
+ * container ancestor becomes the inert BODY box instead of HTML, which
+ * is where `document.scrollingElement` actually lives) -- confirmed:
+ * .vline moved in lock-step with scrollTop instead of pinning at top:0.
+ * Reverted: dropping BODY reopened exactly the overflow this rule exists
+ * to close -- re-measured scrollWidth 691px/514px vs a 485px viewport on
+ * Report/Job once BODY's own clip was gone, so the R6 acceptance line
+ * (document.scrollWidth === viewport) wins here over the sticky fix.
+ * Separately confirmed (still true with this rule as original): .vline
+ * itself only stays stuck for the ~95px .vbar is tall before .vbar's own
+ * (static) box scrolls fully past, at which point .vline exits with it
+ * and .flow-bar (not nested inside .vbar) carries the strip from there --
+ * a real but deeper pre-existing limitation, out of this pass's scope
+ * (R7's own bullet/acceptance line is the top:0 collision + offset, both
+ * confirmed fixed below; this is a sticky *containing-block* issue, not
+ * an offset one, and fixing it risks the look the owner approved). */
 html, body { overflow-x: hidden; }
 
 html {
@@ -1560,9 +1581,18 @@ h2, .section-h, .step-title {
   text-transform: uppercase;
 }
 @keyframes intro-in { to { opacity: 1; } }
+/* Review 7, 2026-10-14: pointer-events:none only fired at 100% (fully
+ * invisible), so the still-visible fade-out stretch (72%-100%) kept
+ * catching the very first real tap of a session -- confirmed on the
+ * Modifications detail page's own Record button (the same root cause
+ * m_base.html's .m-body override already fixes for the mobile app).
+ * Moving pointer-events:none to the start of that same stretch here, in
+ * the shared desktop rule every base.html page uses, fixes it everywhere
+ * at once rather than per-page. */
 @keyframes intro-fade {
   0% { opacity: 1; }
   72% { opacity: 1; }
+  72.01% { pointer-events: none; }
   100% { opacity: 0; visibility: hidden; pointer-events: none; }
 }
 /* Shown once per browser session -- _intro.html's inline script adds this

@@ -20,7 +20,7 @@
   .mes-handoff-fields { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.15em 0.6em; }
   .mes-handoff-fields dt { font-size: 0.85em; opacity: 0.75; }
   .mes-handoff-fields dd { margin: 0; }
-  .mes-handoff-import { margin-top: 0.5em; display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; }
+  .mes-handoff-import:not([hidden]) { margin-top: 0.5em; display: flex; flex-wrap: wrap; gap: 0.4em; align-items: center; }
 </style>
 <div id="mes-handoff-root" data-vin="{{ mes_handoff_vin or '' }}" hidden></div>
 <template id="mes-handoff-card-tpl">
@@ -33,7 +33,7 @@
     </dl>
     <p class="mes-handoff-gap small muted"></p>
     <p class="mes-handoff-source small muted"></p>
-    <form class="mes-handoff-import" hidden>
+    <form class="mes-handoff-import" hidden action="javascript:void(0)" onsubmit="return false">
       <label>MES log/recording filename
         <input type="text" name="log_name" placeholder="SCAN_2610080920.txt" required>
       </label>

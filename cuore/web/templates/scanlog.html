@@ -59,13 +59,13 @@
     <span class="small">Compare</span>
     <select name="a" aria-label="First scan">
       {% for s in scans|reverse %}
-        <option value="{{ s.id }}" {% if loop.index == 1 %}selected{% endif %}>Scan {{ s.number }} &mdash; {{ s.started }}</option>
+        <option value="{{ s.id }}" {% if loop.index == 1 %}selected{% endif %}>Scan {{ s.number or "" }} &mdash; {{ s.started }}</option>
       {% endfor %}
     </select>
     <span class="small">with</span>
     <select name="b" aria-label="Second scan">
       {% for s in scans %}
-        <option value="{{ s.id }}" {% if loop.index == 1 %}selected{% endif %}>Scan {{ s.number }} &mdash; {{ s.started }}</option>
+        <option value="{{ s.id }}" {% if loop.index == 1 %}selected{% endif %}>Scan {{ s.number or "" }} &mdash; {{ s.started }}</option>
       {% endfor %}
     </select>
     <button type="submit" class="btn">Compare</button>

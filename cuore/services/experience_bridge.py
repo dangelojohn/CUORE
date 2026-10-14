@@ -438,6 +438,15 @@ def edit_input(id: str, **kwargs: Any) -> dict[str, Any]:
         raise BadRequest(msg) from exc
 
 
+def verify_input(id: str) -> dict[str, Any]:
+    """The deferred half of ``add_input(verify=False)`` -- see
+    :func:`cuore.live.experience_inputs.verify_input`."""
+    try:
+        return _inputs_store.verify_input(id)
+    except ValueError as exc:
+        raise NotFound(str(exc)) from exc
+
+
 def delete_input(id: str) -> dict[str, Any]:
     try:
         return _inputs_store.delete_input(id)
