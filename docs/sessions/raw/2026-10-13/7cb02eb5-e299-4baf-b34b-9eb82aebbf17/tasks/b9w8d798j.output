@@ -1,0 +1,7 @@
+  [ok] unknown system key responds 404
+=== hot-only edges never say "depends on" ===
+  [ok] no "depends on" wording inside any hot-only-edges block
+
+82/82 checks passed
+
+[exited with code 0]

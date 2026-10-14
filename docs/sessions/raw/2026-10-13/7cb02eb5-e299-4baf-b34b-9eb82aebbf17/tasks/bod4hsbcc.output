@@ -1,0 +1,21 @@
+=== 768x1024 CDP: header-to-content gap + one screenshot of ?step=7 ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_step7.png (6986 bytes)
+
+3/20 check(s) failed:
+  - an action POST redirects to ?step=9#actions, not #open-work/another tab -- None
+  - its Confirm button is disabled -- id="hyp-18de11b7" data-hyp-id="18de11b7"
+       data-hyp-status="open" data-hyp-system=""
+       data-hyp-text="ux-check fresh hypothesis">
+    <div class="job-head">
+      <h3>ux-check fresh hypothesis</h3>
+      
+      <span class="chip plain">open</span>
+    </div>
+
+    
+  
+  <div class="likelihood-bar" title="Likelihood: (none)">
+    <span class="likelihood-fill likelihood-none" style="width:0
+  - step 7's content starts within 200px below the sticky header -- gap=-1px
+
+[exited with code 0]

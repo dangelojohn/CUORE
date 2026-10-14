@@ -1,0 +1,5 @@
+fails=0
+warning: in the working copy of 'cuore/web/templates/job.html', CRLF will be replaced by LF the next time Git touches it
+   608e752..d5772aa  main -> main
+
+[exited with code 0]

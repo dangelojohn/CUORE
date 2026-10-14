@@ -1,0 +1,18 @@
+=== check_owner_page ===
+136 checks, 0 failures
+=== check_scanlog ===
+  [ok] the diff page shows the Mode 06 flip
+  [ok] the diff page shows the coverage change
+  [ok] GET /v/{vin}/scans/diff with an unknown scan id is 404
+
+all 75 checks passed
+=== check_bench ===
+=== 400px screenshot (cleanup via _edge_cleanup.kill_edge_profile) ===
+
+all 74 checks passed
+=== check_labels ===
+203 checks, 0 failures
+OK
+=== check_screens ===
+
+[killed]

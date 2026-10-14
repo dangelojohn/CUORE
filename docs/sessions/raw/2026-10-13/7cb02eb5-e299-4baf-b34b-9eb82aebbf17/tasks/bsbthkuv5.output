@@ -1,0 +1,9 @@
+=== 768x1024 CDP: header-to-content gap + one screenshot of ?step=7 ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_step7.png (6847 bytes)
+=== 400px CDP: vbar "..." button + one screenshot ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_step7_400.png (7211 bytes)
+
+1/47 check(s) failed:
+  - step 7's content starts within 200px below the sticky header -- gap=-1px
+
+[exited with code 1]

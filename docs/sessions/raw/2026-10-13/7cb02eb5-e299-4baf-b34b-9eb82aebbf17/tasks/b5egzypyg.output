@@ -1,0 +1,11 @@
+=== 768x1024 CDP: header-to-content gap + one screenshot of ?step=7 ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_step7.png (7248 bytes)
+=== 400px CDP: vbar "..." button + one screenshot ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_step7_400.png (7211 bytes)
+
+3/47 check(s) failed:
+  - ?codes=P0440 pre-ticks the P0440 option in the linked-codes select -- value="P0440" not found
+  - P0440's step 5 card carries the highlight class -- no highlighted P0440 card found
+  - step 7's content starts within 200px below the sticky header -- gap=-1px
+
+[exited with code 0]

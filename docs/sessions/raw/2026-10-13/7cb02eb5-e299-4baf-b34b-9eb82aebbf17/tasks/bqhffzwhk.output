@@ -1,0 +1,32 @@
+  [ok] no pass_criteria pairs a numeric spec with UNKNOWN confidence
+  [ok] tests_for_codes finds EVAP tests for P0455
+  [ok] tests_for_systems finds EVAP tests for system 'evap'
+  [ok] test() returns None for an unknown id
+=== page ===
+  [ok] tests page responds 200
+  [ok] tests page shows the Tests tab link
+  [ok] no template error leaked onto the page
+  [ok] every test has a row anchor on the page
+  [ok] the page carries PASS/FAIL buttons
+  [ok] the page carries Inconclusive/Not possible buttons
+  [ok] GET /api/tests/catalog responds 200
+  [ok] GET /api/tests/catalog carries every test
+  [ok] GET /api/tests/{vin} responds 200
+  [ok] the view's total matches the catalogue size
+  [ok] the view carries a counts dict with not_done == total before any result
+=== recording a result ===
+  [ok] POSTing a fail result responds 200
+  [ok] the response reports result=fail
+  [ok] the result is on file under step_id 'test:<id>'
+  [ok] the page now shows that row as FAIL
+  [ok] an invalid result value responds 400
+  [ok] POSTing to an unknown test id responds 400
+  [ok] recording a result with a hypothesis_id responds 200
+  [ok] the hypothesis gained a 'test' evidence_for ref from the test result
+=== no regressions ===
+  [ok] check_jobs_rules.py still passes
+  [ok] check_live_dashboard_page.py still passes
+28/28 checks passed
+OK
+
+[exited with code 0]

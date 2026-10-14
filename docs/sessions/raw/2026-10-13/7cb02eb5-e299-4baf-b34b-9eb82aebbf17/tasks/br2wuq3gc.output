@@ -1,0 +1,10 @@
+
+[exited with code 0]
+FAIL cuore/tests/check_feedback_page.py
+FAIL cuore/tests/check_labels.py
+FAIL cuore/tests/check_live_dashboard_page.py
+FAIL cuore/tests/check_theme.py
+FAIL cuore/tests/check_tools_page.py
+half2 fails=1
+
+[exited with code 0]

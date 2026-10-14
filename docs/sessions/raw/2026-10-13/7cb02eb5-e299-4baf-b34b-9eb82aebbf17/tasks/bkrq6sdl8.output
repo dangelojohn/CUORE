@@ -1,0 +1,29 @@
+=== check_labels ===
+203 checks, 0 failures
+OK
+
+=== check_owner_page ===
+141 checks, 0 failures
+
+=== check_fullscan ===
+checks run: 222
+all green
+
+=== check_liveboard ===
+--- F2: vehicle name is never (unnamed vehicle), cold server ---
+--- F2: visiting /tests first cannot poison /liveboard's vehicle name ---
+--- F3: Snapshot refuses honestly on zero live channels (same as the map) ---
+--- F4: readability floor -- liveboard.css never renders text under 12px ---
+--- 9. Freeze frame: capture, Save, Stop (cuore.live.ops monkeypatched) ---
+62/62 checks passed
+
+=== check_scan_health ===
+50 checks, 0 failures
+
+=== check_screens ===
+=== overflow check at 400px (no screenshot) ===
+
+all 28 checks passed
+
+
+[exited with code 0]

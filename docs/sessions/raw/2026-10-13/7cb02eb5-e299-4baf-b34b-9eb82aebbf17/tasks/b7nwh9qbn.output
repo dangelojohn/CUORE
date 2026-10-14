@@ -1,0 +1,21 @@
+=== check_system_vocab ===
+  [ok] a no-monitor system (electrical_supply) stays CLEARED_UNVERIFIED even with a from-car EVAP-complete reading on file and a VERIFIED_CLEAN whole-car verdict
+
+all 19 checks passed
+=== check_jobs_rules ===
+27/27 checks passed
+OK
+=== check_tests_page ===
+  [ok] check_live_dashboard_page.py still passes
+28/28 checks passed
+OK
+=== check_systems_map_api ===
+  [ok] unknown VIN edges list is still a valid (possibly non-empty) list
+
+all 16 checks passed
+=== check_system_page ===
+  [ok] no "depends on" wording inside any hot-only-edges block
+
+82/82 checks passed
+
+[exited with code 0]

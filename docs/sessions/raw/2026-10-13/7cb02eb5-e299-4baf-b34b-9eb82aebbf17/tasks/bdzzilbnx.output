@@ -1,0 +1,137 @@
+LOG_HAS_DATA
+=== all 25 system keys render 200 with the 8 section headings ===
+  [ok] systems() returned the expected 25 keys
+  [ok] electrical_supply: page responds 200
+  [ok] electrical_supply: no template error leaked onto the page
+  [ok] electrical_supply: all 8 section headings present
+  [ok] network: page responds 200
+  [ok] network: no template error leaked onto the page
+  [ok] network: all 8 section headings present
+  [ok] ignition: page responds 200
+  [ok] ignition: no template error leaked onto the page
+  [ok] ignition: all 8 section headings present
+  [ok] fuel: page responds 200
+  [ok] fuel: no template error leaked onto the page
+  [ok] fuel: all 8 section headings present
+  [ok] evap: page responds 200
+  [ok] evap: no template error leaked onto the page
+  [ok] evap: all 8 section headings present
+  [ok] air_intake_boost: page responds 200
+  [ok] air_intake_boost: no template error leaked onto the page
+  [ok] air_intake_boost: all 8 section headings present
+  [ok] cooling: page responds 200
+  [ok] cooling: no template error leaked onto the page
+  [ok] cooling: all 8 section headings present
+  [ok] lubrication: page responds 200
+  [ok] lubrication: no template error leaked onto the page
+  [ok] lubrication: all 8 section headings present
+  [ok] exhaust_emissions: page responds 200
+  [ok] exhaust_emissions: no template error leaked onto the page
+  [ok] exhaust_emissions: all 8 section headings present
+  [ok] transmission_driveline: page responds 200
+  [ok] transmission_driveline: no template error leaked onto the page
+  [ok] transmission_driveline: all 8 section headings present
+  [ok] brakes_abs: page responds 200
+  [ok] brakes_abs: no template error leaked onto the page
+  [ok] brakes_abs: all 8 section headings present
+  [ok] steering: page responds 200
+  [ok] steering: no template error leaked onto the page
+  [ok] steering: all 8 section headings present
+  [ok] suspension: page responds 200
+  [ok] suspension: no template error leaked onto the page
+  [ok] suspension: all 8 section headings present
+  [ok] body_comfort: page responds 200
+  [ok] body_comfort: no template error leaked onto the page
+  [ok] body_comfort: all 8 section headings present
+  [ok] adas_sensors: page responds 200
+  [ok] adas_sensors: no template error leaked onto the page
+  [ok] adas_sensors: all 8 section headings present
+  [ok] hvac: page responds 200
+  [ok] hvac: no template error leaked onto the page
+  [ok] hvac: all 8 section headings present
+  [ok] pcv: page responds 200
+  [ok] pcv: no template error leaked onto the page
+  [ok] pcv: all 8 section headings present
+  [ok] engine_management: page responds 200
+  [ok] engine_management: no template error leaked onto the page
+  [ok] engine_management: all 8 section headings present
+  [ok] valve_control: page responds 200
+  [ok] valve_control: no template error leaked onto the page
+  [ok] valve_control: all 8 section headings present
+  [ok] starting_charging: page responds 200
+  [ok] starting_charging: no template error leaked onto the page
+  [ok] starting_charging: all 8 section headings present
+  [ok] security_immobiliser: page responds 200
+  [ok] security_immobiliser: no template error leaked onto the page
+  [ok] security_immobiliser: all 8 section headings present
+  [ok] infotainment_cluster: page responds 200
+  [ok] infotainment_cluster: no template error leaked onto the page
+  [ok] infotainment_cluster: all 8 section headings present
+  [ok] lighting: page responds 200
+  [ok] lighting: no template error leaked onto the page
+  [ok] lighting: all 8 section headings present
+  [ok] wheels_tpms: page responds 200
+  [ok] wheels_tpms: no template error leaked onto the page
+  [ok] wheels_tpms: all 8 section headings present
+  [ok] restraints: page responds 200
+  [ok] restraints: no template error leaked onto the page
+  [ok] restraints: all 8 section headings present
+=== EVAP page lists its chronic codes ===
+  [ok] evap page responds 200
+  [ok] evap page lists P0440
+  [ok] evap page lists P0455
+  [ok] evap page lists P0456
+=== EVAP status strip shows P0440 from the car (2026-10-13 live module sweep) ===
+  [ok] evap page shows P0440's live chip (from tonight's ECM UDS read)
+=== network-cascade system (body/BCM) shows the BCM-supply test ===
+  [ok] body_comfort page responds 200
+  [ok] body_comfort page carries the U1713-2F live chip
+  [ok] body_comfort's 'how it fails here' names the network-cascade's own first test
+=== unknown key 404s ===
+  [ok] unknown system key responds 404
+=== hot-only edges never say "depends on" ===
+  [ok] no "depends on" wording inside any hot-only-edges block
+=== MECHANIC_REVIEW_3_TESTS_SYSTEMS_LIVE_2026-10-13.md regressions ===
+--- F2: vehicle name is never (unnamed vehicle), cold server ---
+  [ok] cold /systems/evap responds 200
+  [ok] cold /systems/evap never shows (unnamed vehicle)
+  [ok] cold /systems/evap names the Stelvio
+--- F2: visiting /tests first cannot poison the map's vehicle name ---
+  [ok] map (/systems) still responds 200 after /tests
+  [ok] map (/systems) still names the Stelvio after /tests was visited first
+--- F1: every system's 'Record inspection' href lands on a real id="el-*" ---
+  [ok] at least one 'Record inspection' link was found to check
+  [ok] every 'Record inspection' href lands on a page with a matching id="el-*"
+--- F5: the map's own SVG node links are >=44px tappable ---
+  [ok] the node <a> wraps a transparent hit rect
+  [ok] the node hit rect is >=44px on both axes
+--- F7: the dependency graph has a horizontal-scroll hint, no page-level overflow ---
+  [ok] map page responds 200
+  [ok] map page carries a scroll hint for the graph wrap
+  [ok] the graph wrap stays scoped to overflow-x (never page-level overflow)
+=== network event: U-codes across modules collapse into one event ===
+  [ok] network page responds 200
+  [ok] network page shows U1713-2F
+  [ok] network page marks U1713-2F failing now
+  [ok] network page gives U1713's FTB meaning (signal erratic)
+  [ok] network page names the reporting modules (BCM/IPC/RFHUB)
+  [ok] network page collapses >=3 comms codes into one event (mes.analysis wording)
+  [ok] network page has a Network event section
+  [ok] the network event section lists at least 3 codes
+=== U1713's fault tree: diagnostic order before suspecting the bus ===
+  [ok] network page's fault tree checks supply/ground/connector before the bus
+  [ok] that diagnostic-order line carries both confidence qualifiers
+=== BCM check-first checklist (body_comfort page) ===
+  [ok] body_comfort page has a Check first section
+  [ok] BCM check-first checklist has >=5 rows
+  [ok] check-first rows link to the inspection form or the test page
+  [ok] check-first checklist includes the battery, a BCM ground and the CAN termination test
+=== EVAP <-> network cross-reference ===
+  [ok] evap page shows the network/EVAP cross-reference line
+  [ok] cross-reference counts are real (positive, together <= total)
+  [ok] evap cross-reference links to the network event, never claims a cause
+
+115/115 checks passed
+===END===
+
+[exited with code 0]

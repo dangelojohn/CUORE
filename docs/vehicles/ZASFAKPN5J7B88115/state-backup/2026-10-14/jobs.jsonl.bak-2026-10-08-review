@@ -1,0 +1,9 @@
+{"op": "open", "id": "76d3454bce75", "at": "2026-10-08T07:26:43", "vin": "ZASFAKPN5J7B88115", "technician": "JD", "complaint": ""}
+{"op": "hypothesis_add", "job_id": "76d3454bce75", "id": "bc8987f8", "at": "2026-10-08T14:46:38", "text": "Cracked EVAP purge line at canister causing small/large leak", "system": "EVAP", "next_test": "Smoke test EVAP system at 0.5 psi"}
+{"op": "hypothesis_set", "job_id": "76d3454bce75", "hyp_id": "bc8987f8", "at": "2026-10-08T14:46:57", "status": "confirmed"}
+{"op": "hypothesis_set", "job_id": "76d3454bce75", "hyp_id": "bc8987f8", "at": "2026-10-08T14:48:16", "status": "open"}
+{"op": "hypothesis_set", "job_id": "76d3454bce75", "hyp_id": "bc8987f8", "at": "2026-10-08T15:52:53", "status": "confirmed"}
+{"op": "hypothesis_set", "job_id": "76d3454bce75", "hyp_id": "bc8987f8", "at": "2026-10-08T15:53:10", "status": "open"}
+{"op": "attach", "job_id": "76d3454bce75", "hyp_id": "bc8987f8", "supports": true, "ref": {"kind": "test", "id": "evap-5", "label": "Run a smoke test to localise the leak: fail 0.5psi", "result": "fail"}, "by": null, "at": "2026-10-08T15:56:52"}
+{"op": "hypothesis_set", "job_id": "76d3454bce75", "hyp_id": "bc8987f8", "at": "2026-10-08T15:58:19", "status": "supported"}
+{"op": "hypothesis_set", "job_id": "76d3454bce75", "hyp_id": "bc8987f8", "at": "2026-10-08T15:58:41", "status": "confirmed"}

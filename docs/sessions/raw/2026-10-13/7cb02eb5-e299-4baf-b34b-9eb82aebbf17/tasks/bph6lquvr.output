@@ -1,0 +1,7 @@
+fails=0
+warning: in the working copy of 'cuore/app.py', CRLF will be replaced by LF the next time Git touches it
+warning: in the working copy of 'cuore/web/templates/job.html', CRLF will be replaced by LF the next time Git touches it
+0
+   2e7b8e2..608e752  main -> main
+
+[exited with code 0]

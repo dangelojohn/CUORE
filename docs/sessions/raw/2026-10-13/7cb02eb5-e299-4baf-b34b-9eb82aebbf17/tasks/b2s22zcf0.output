@@ -1,0 +1,15 @@
+--- full-changes run 1 ---
+  [ok] 5. 400px: no horizontal overflow, Run button >=44px, a disabled tool shows its reason
+all 6 checks passed
+--- full-changes run 2 ---
+  [FAIL] 5. 400px: no horizontal overflow, Run button >=44px, a disabled tool shows its reason -- {'sw': 400, 'cw': 400, 'runH': 0, 'disabledReason': ''}
+1/6 check(s) failed:
+  - 5. 400px: no horizontal overflow, Run button >=44px, a disabled tool shows its reason
+--- full-changes run 3 ---
+  [ok] 5. 400px: no horizontal overflow, Run button >=44px, a disabled tool shows its reason
+all 6 checks passed
+--- full-changes run 4 ---
+  [ok] 5. 400px: no horizontal overflow, Run button >=44px, a disabled tool shows its reason
+all 6 checks passed
+
+[exited with code 0]

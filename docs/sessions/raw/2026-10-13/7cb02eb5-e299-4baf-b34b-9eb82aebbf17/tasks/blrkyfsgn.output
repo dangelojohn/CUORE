@@ -1,0 +1,23 @@
+=== MECHANIC_REVIEW_3_TESTS_SYSTEMS_LIVE_2026-10-13.md regressions ===
+--- F2: vehicle name is never (unnamed vehicle), cold server ---
+  [ok] cold /systems/evap responds 200
+  [ok] cold /systems/evap never shows (unnamed vehicle)
+  [ok] cold /systems/evap names the Stelvio
+--- F2: visiting /tests first cannot poison the map's vehicle name ---
+  [ok] map (/systems) still responds 200 after /tests
+  [ok] map (/systems) still names the Stelvio after /tests was visited first
+--- F1: every system's 'Record inspection' href lands on a real id="el-*" ---
+  [ok] at least one 'Record inspection' link was found to check
+  [ok] every 'Record inspection' href lands on a page with a matching id="el-*"
+--- F5: the map's own SVG node links are >=44px tappable ---
+  [ok] the node <a> wraps a transparent hit rect
+  [ok] the node hit rect is >=44px on both axes
+--- F7: the dependency graph has a horizontal-scroll hint, no page-level overflow ---
+  [ok] map page responds 200
+  [ok] map page carries a scroll hint for the graph wrap
+  [ok] the graph wrap stays scoped to overflow-x (never page-level overflow)
+
+94/94 checks passed
+EXIT=0
+
+[exited with code 0]

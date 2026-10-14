@@ -1,0 +1,7 @@
+process exited (check for errors)
+---tail---
+[review] seeded 35 real 2026-10-13 lines into C:\Users\User\AppData\Local\Temp\cuore-mech-review-4-4ghk45vy\observations.jsonl
+[review] server up on port 62978: True
+[review] warmed bench page
+
+[exited with code 0]

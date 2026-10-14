@@ -1,0 +1,19 @@
+server up: False
+devtools up: True
+{}
+{}
+{}
+recv exc timed out in 25.0s
+TIMEOUT waiting for Page.navigate
+{}
+recv exc timed out in 25.0s
+TIMEOUT waiting for Runtime.evaluate
+data-theme attr: None
+recv exc timed out in 25.0s
+TIMEOUT waiting for Runtime.evaluate
+computed --bg: None
+recv exc no close frame received or sent
+TIMEOUT waiting for Runtime.evaluate
+body bg color: None
+
+[exited with code 0]

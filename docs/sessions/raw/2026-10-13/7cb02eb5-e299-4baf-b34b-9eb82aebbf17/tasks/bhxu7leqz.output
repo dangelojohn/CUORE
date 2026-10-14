@@ -1,0 +1,7 @@
+=== screenshot + overflow at 400px ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_phone.png (7220 bytes)
+
+1/25 check(s) failed:
+  - seeding a job on the screenshot server -- timed out
+
+[exited with code 0]

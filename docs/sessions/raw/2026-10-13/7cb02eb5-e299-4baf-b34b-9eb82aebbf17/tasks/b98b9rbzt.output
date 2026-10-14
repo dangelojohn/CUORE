@@ -1,0 +1,4 @@
+EXIT=1
+9 /tmp/job_ux_out.txt
+
+[exited with code 0]

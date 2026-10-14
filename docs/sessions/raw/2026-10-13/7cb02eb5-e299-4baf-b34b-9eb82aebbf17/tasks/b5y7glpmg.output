@@ -1,0 +1,4 @@
+FAIL mes-log-mcp/tests/check_dashboard.py
+half1 fails=1
+
+[exited with code 0]

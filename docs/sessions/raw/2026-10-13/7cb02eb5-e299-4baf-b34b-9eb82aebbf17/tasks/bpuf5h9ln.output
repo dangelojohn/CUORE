@@ -1,0 +1,7 @@
+  [ok] check_live_dashboard_page.py still passes
+28/28 checks passed
+OK
+warning: in the working copy of 'cuore/app.py', CRLF will be replaced by LF the next time Git touches it
+5f0957f Tests surface: 38-test platform catalogue with sourced pass criteria, PASS/FAIL per test feeding hypothesis evidence, Tests tab
+
+[exited with code 0]

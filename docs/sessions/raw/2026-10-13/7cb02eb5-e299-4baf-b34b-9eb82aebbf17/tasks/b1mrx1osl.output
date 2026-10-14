@@ -1,0 +1,53 @@
+=== check_bench.py ===
+=== 400px screenshot (cleanup via _edge_cleanup.kill_edge_profile) ===
+
+all 59 checks passed
+
+=== check_dossier_page.py ===
+
+all 42 checks passed
+
+=== check_jobs_page.py ===
+=== screenshot + overflow at 400px ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_phone.png (9306 bytes)
+
+all 24 checks passed
+
+=== check_tests_page.py ===
+  [ok] an invalid result value responds 400
+  [ok] POSTing to an unknown test id responds 400
+  [ok] recording a result with a hypothesis_id responds 200
+  [ok] the hypothesis gained a 'test' evidence_for ref from the test result
+=== no regressions ===
+  [ok] check_jobs_rules.py still passes
+  [ok] check_live_dashboard_page.py still passes
+=== F2: vehicle name is never (unnamed vehicle), cold server ===
+  [ok] cold /tests responds 200
+  [ok] cold /tests never shows (unnamed vehicle)
+  [ok] cold /tests names the Stelvio
+=== F3: Liveboard Snapshot refuses honestly on zero live channels ===
+  [ok] liveboard.js guards an empty values dict before POSTing a snapshot
+  [ok] liveboard.js's empty-snapshot refusal matches the map's own wording
+=== F4: readability floor -- tests.css never renders text under 12px ===
+  [ok] no font-size under 12px in tests.css
+=== F5: .ts-filter-chip is a >=44px tap target ===
+  [ok] tests.css has a .ts-filter-chip rule
+  [ok] '.ts-filter-chip' min-height is >= 44px
+=== F6 (locked in): a hypothesis_id test result lands on /job?step=7 ===
+  [ok] GET /v/{vin}/job?step=7 responds 200
+  [ok] step 7 shows the test result's own evidence chip label
+  [ok] step 7 shows the linked evidence on the hypothesis card
+55/55 checks passed
+OK
+
+=== check_job_ux.py ===
+=== 768x1024 CDP: header-to-content gap + one screenshot of ?step=7 ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_step7.png (65466 bytes)
+=== 400px CDP: vbar "..." button + one screenshot ===
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\job_step7_400.png (42354 bytes)
+=== same tab: step 6 result sheet, N1 (no-race dropdown) + N2 (counter) ===
+
+all 57 checks passed
+
+
+[exited with code 0]

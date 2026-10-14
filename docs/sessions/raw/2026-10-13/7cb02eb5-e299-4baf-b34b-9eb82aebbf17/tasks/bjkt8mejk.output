@@ -1,0 +1,81 @@
+=== attested POST stores and renders as "Mechanic input" ===
+  [ok] evap page responds 200
+  [ok] evap page carries at least one attest affordance
+  [ok] attested POST responds 200
+  [ok] stored row carries SINGLE-SOURCE (mechanic) confidence
+  [ok] "Mechanic input" renders on the page after filing
+  [ok] the attested value itself renders on the page
+=== UNKNOWN still shows UNKNOWN after an attested input (never replaced) ===
+  [ok] UNKNOWN marker count on the page is unchanged
+  [ok] the attested-input footnote is on the page
+=== a bad payload gives 400 ===
+  [ok] bad kind -> 400
+  [ok] missing value -> 400
+  [ok] missing system -> 400
+=== EVAP page shows the P0455 freeze frame, fuel level highlighted ===
+  [ok] P0455 freeze frame heading present
+  [ok] fuel level channel is highlighted (sysd-ff-hot)
+  [ok] some other channel is dimmed (sysd-ff-dim)
+  [ok] "Fuel level" appears inside the freeze-frame section
+=== Record inspection affordance present, pre-filled with element + system ===
+  [ok] "Record inspection" link present on a system with placed elements
+  [ok] network page responds 200
+  [ok] inspection link carries both an element anchor and a system filter
+=== learned DIDs: honest empty state when none correlate ===
+  [ok] honest empty state or a real learned-DID row is present
+=== all 25 system keys still 200 ===
+  [ok] systems() returned the expected 25 keys
+  [ok] electrical_supply: page responds 200
+  [ok] electrical_supply: no template error leaked onto the page
+  [ok] network: page responds 200
+  [ok] network: no template error leaked onto the page
+  [ok] ignition: page responds 200
+  [ok] ignition: no template error leaked onto the page
+  [ok] fuel: page responds 200
+  [ok] fuel: no template error leaked onto the page
+  [ok] evap: page responds 200
+  [ok] evap: no template error leaked onto the page
+  [ok] air_intake_boost: page responds 200
+  [ok] air_intake_boost: no template error leaked onto the page
+  [ok] cooling: page responds 200
+  [ok] cooling: no template error leaked onto the page
+  [ok] lubrication: page responds 200
+  [ok] lubrication: no template error leaked onto the page
+  [ok] exhaust_emissions: page responds 200
+  [ok] exhaust_emissions: no template error leaked onto the page
+  [ok] transmission_driveline: page responds 200
+  [ok] transmission_driveline: no template error leaked onto the page
+  [ok] brakes_abs: page responds 200
+  [ok] brakes_abs: no template error leaked onto the page
+  [ok] steering: page responds 200
+  [ok] steering: no template error leaked onto the page
+  [ok] suspension: page responds 200
+  [ok] suspension: no template error leaked onto the page
+  [ok] body_comfort: page responds 200
+  [ok] body_comfort: no template error leaked onto the page
+  [ok] adas_sensors: page responds 200
+  [ok] adas_sensors: no template error leaked onto the page
+  [ok] hvac: page responds 200
+  [ok] hvac: no template error leaked onto the page
+  [ok] pcv: page responds 200
+  [ok] pcv: no template error leaked onto the page
+  [ok] engine_management: page responds 200
+  [ok] engine_management: no template error leaked onto the page
+  [ok] valve_control: page responds 200
+  [ok] valve_control: no template error leaked onto the page
+  [ok] starting_charging: page responds 200
+  [ok] starting_charging: no template error leaked onto the page
+  [ok] security_immobiliser: page responds 200
+  [ok] security_immobiliser: no template error leaked onto the page
+  [ok] infotainment_cluster: page responds 200
+  [ok] infotainment_cluster: no template error leaked onto the page
+  [ok] lighting: page responds 200
+  [ok] lighting: no template error leaked onto the page
+  [ok] wheels_tpms: page responds 200
+  [ok] wheels_tpms: no template error leaked onto the page
+  [ok] restraints: page responds 200
+  [ok] restraints: no template error leaked onto the page
+
+70/70 checks passed
+
+[exited with code 0]

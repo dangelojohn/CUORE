@@ -1,0 +1,64 @@
+#!/bin/sh
+# pre-push hook. Versioned here so it survives a fresh clone; installed into
+# .git/hooks/pre-push by scripts/install-git-hooks.ps1 (run that once per
+# clone -- git never reads hooks from a tracked path, only from .git/hooks).
+#
+# What it does: runs scripts/backup-cuore-state.ps1 (CUORE car-state snapshot
+# + session/agent transcript sweep + discoveries digest) before every push,
+# so that data is captured as a side effect of normal work instead of a
+# separate chore.
+#
+# Why it aborts instead of trying to "sneak in" the archive commit: git
+# fixes the exact set of refs/commits a push will send *before* invoking
+# this hook. A commit made here, after that point, is not part of the push
+# already in flight -- that is a documented property of pre-push, not a bug
+# in this script. So when the archive step creates a new commit, this hook
+# deliberately fails the push (exit 1) with a message asking for a plain
+# `git push` re-run, which will then include it. See
+# docs/handbook/05-methods-and-gotchas.md for the one-line summary.
+#
+# This hook must never be the reason a push is blocked by its OWN failure:
+# any error from the archive step itself is logged to
+# docs/sessions/archive-errors.log and the hook exits 0 (push proceeds,
+# un-archived) rather than failing the push.
+
+set -u
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null) || exit 0
+cd "$repo_root" || exit 0
+
+script_path="$repo_root/scripts/backup-cuore-state.ps1"
+log_file="$repo_root/docs/sessions/archive-errors.log"
+
+# Drain stdin (git pipes the ref update list in); we don't need it.
+cat >/dev/null 2>&1 || true
+
+if [ ! -f "$script_path" ]; then
+    exit 0
+fi
+
+before_head=$(git rev-parse HEAD 2>/dev/null)
+
+archive_output=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$script_path" 2>&1)
+archive_status=$?
+
+if [ $archive_status -ne 0 ]; then
+    mkdir -p "$(dirname "$log_file")" 2>/dev/null
+    {
+        echo "---- $(date -u +%Y-%m-%dT%H:%M:%SZ) pre-push archive failed (exit $archive_status) ----"
+        printf '%s\n' "$archive_output"
+    } >> "$log_file" 2>/dev/null
+    echo "[pre-push] CUORE archive step failed (exit $archive_status); logged to docs/sessions/archive-errors.log. Push continuing anyway." >&2
+    exit 0
+fi
+
+after_head=$(git rev-parse HEAD 2>/dev/null)
+
+if [ "$before_head" != "$after_head" ]; then
+    echo "[pre-push] Archived today's CUORE state + session data as a new local commit ($after_head)." >&2
+    echo "[pre-push] Git already fixed the refs for THIS push before this hook ran, so that commit is not included in it." >&2
+    echo "[pre-push] Re-run: git push github main  -- it will pick up the archive commit along with your own." >&2
+    exit 1
+fi
+
+exit 0

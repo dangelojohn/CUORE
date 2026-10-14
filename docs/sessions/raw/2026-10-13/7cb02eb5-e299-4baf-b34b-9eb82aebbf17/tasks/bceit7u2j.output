@@ -1,0 +1,22 @@
+  [ok] lighting: page responds 200
+  [ok] lighting: no template error leaked onto the page
+  [ok] lighting: all 8 section headings present
+  [ok] wheels_tpms: page responds 200
+  [ok] wheels_tpms: no template error leaked onto the page
+  [ok] wheels_tpms: all 8 section headings present
+  [ok] restraints: page responds 200
+  [ok] restraints: no template error leaked onto the page
+  [ok] restraints: all 8 section headings present
+=== EVAP page lists its chronic codes ===
+  [ok] evap page responds 200
+  [ok] evap page lists P0440
+  [ok] evap page lists P0455
+  [ok] evap page lists P0456
+=== unknown key 404s ===
+  [ok] unknown system key responds 404
+=== hot-only edges never say "depends on" ===
+  [ok] no "depends on" wording inside any hot-only-edges block
+
+82/82 checks passed
+
+[exited with code 0]

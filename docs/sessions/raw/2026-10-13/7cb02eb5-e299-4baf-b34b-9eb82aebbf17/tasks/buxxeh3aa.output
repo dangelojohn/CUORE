@@ -1,0 +1,27 @@
+BOTH_READY
+--- electrical ---
+  [ok] electrical page responds 200
+  [ok] page has an inline SVG with the legend's 'never inspected' entry
+  [ok] page shows element cards
+  [ok] ?code=P0455 responds 200
+  [ok] highlighted page carries the path-hop class
+  [ok] inspection POST redirects (303)
+  [ok] the recorded condition appears back on the page
+  [ok] code page shows the electrical path stepper
+  [ok] ?system=evap shows only EVAP elements
+  [ok] ?code=P0455 highlights canister and ESIM (mes.layout_systems path)
+  [ok] ?code=P0171 path spans air and fuel
+  [ok] All view renders every system's elements
+  [ok] check_api.py exits 0
+  [ok] uvicorn came up on the free port
+  [ok] no page-level horizontal overflow at 400px
+  [ok] screenshot captured
+  wrote C:\Users\User\AppData\Local\Temp\claude\C--Users-User\7cb02eb5-e299-4baf-b34b-9eb82aebbf17\scratchpad\electrical_phone.png (8672 bytes)
+
+16/16 checks passed
+--- screens ---
+=== overflow check at 400px (no screenshot) ===
+
+all 28 checks passed
+
+[exited with code 0]

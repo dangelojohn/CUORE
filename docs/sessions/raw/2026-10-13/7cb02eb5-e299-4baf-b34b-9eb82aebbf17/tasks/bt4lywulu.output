@@ -1,0 +1,17 @@
+1
+23
+check_actuate: no summary
+check_api: no summary
+check_cases: 25 checks, 0 failures
+check_clear: no summary
+check_coverage: no summary
+check_detail: no summary
+check_dtc_detail: no summary
+check_feedback: 20 checks, 0 failures
+check_feedback_page: 25 checks, 0 failures
+check_icons_i18n: 1056 checks, 0 failures
+check_job_ux: 1/47 check(s) failed:
+check_labels: 200 checks, 0 failures
+SUITE-DONE
+
+[exited with code 0]

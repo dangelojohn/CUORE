@@ -1,0 +1,10 @@
+1:=== experience_bridge: merge / de-dup / order ===
+10:=== /api/experience ===
+14:=== code page card ===
+20:  [FAIL] ?exp=forums shows only forum threads -- <!doctype html>
+1379:=== dossier open-work card, maintenance, service hub, timeline ===
+1381:  [FAIL] maintenance page responds 200 with the card or the empty state
+1384:=== empty state (no fixture patched) ===
+1386:=== companion checks ===
+
+[exited with code 0]
