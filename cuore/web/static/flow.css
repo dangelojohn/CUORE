@@ -10,7 +10,11 @@
  * ========================================================================= */
 
 .flow-bar {
-  position: sticky; top: 0; z-index: 14; /* just under .vbar's z-index: 15 */
+  /* R7: used to be `top: 0`, the same offset .vline (cuore.css) sticks at
+   * -- whichever painted last covered the other, and the first line of
+   * page content under both was hidden. Sits directly below the vehicle
+   * strip now via the shared --vline-h token cuore.css defines. */
+  position: sticky; top: var(--vline-h); z-index: 14; /* just under .vbar's z-index: 15 */
   background: var(--surface); border-bottom: 1px solid var(--rule);
 }
 .flow-line {

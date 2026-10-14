@@ -60,6 +60,7 @@
   --tap: 44px;
   --space-6: 32px;
   --space-7: 48px;
+  --vline-h: 49px; /* R7: .vline's own rendered height -- flow.css's sticky .flow-bar sits at top:var(--vline-h) instead of also claiming top:0 */
 
   /* Colour: neutral true black (what users actually see), re-derived from
    * itself rather than left mixed with the blue-grey tokens the palette
@@ -179,7 +180,12 @@
 
 * { box-sizing: border-box; }
 
-html { font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+html {
+  font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
+  /* R7: a same-page anchor/focus jump lands below the sticky strip +
+   * flow bar instead of under them. */
+  scroll-padding-top: calc(var(--vline-h) + 45px + 8px);
+}
 
 body {
   margin: 0;
@@ -372,7 +378,10 @@ code, kbd, samp, .mono {
   color: var(--ink); background: var(--bg); border-color: var(--rule);
 }
 
-main { padding: var(--pad); max-width: 1240px; margin: 0 auto; }
+main {
+  padding: var(--pad); max-width: 1240px; margin: 0 auto;
+  scroll-padding-top: calc(var(--vline-h) + 45px + 8px);
+}
 
 /* ---------- type ---------- */
 

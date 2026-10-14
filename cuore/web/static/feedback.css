@@ -128,6 +128,12 @@ body:has(.feedback-page-panel[open]) .fab-feedback { display: none; }
   font-size: var(--fs-lg); box-shadow: 0 4px 14px rgba(0,0,0,.4); cursor: pointer;
 }
 .fab-feedback:hover { filter: brightness(1.08); }
+/* R7/G8: on job.html the sticky bottom step-nav (job.css, 65px incl. the
+ * safe-area inset) sits in this same bottom-right corner -- the FAB used
+ * to float on top of the Next button. Lifted clear whenever a .step-nav
+ * is actually present, no markup change required. */
+body:has(.step-nav) .fab-feedback { bottom: calc(65px + 16px); }
+body:has(.step-nav) main { padding-bottom: calc(65px + 16px + var(--feedback-sheet-reserve, 52px)); }
 
 /* The round FAB is the only page-level feedback affordance, and (item 17)
  * the only floating bottom-right element on the page at all -- it must
