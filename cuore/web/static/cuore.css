@@ -17,7 +17,7 @@
  * the identical set of values -- that pair is a mechanism, not a duplicate).
  * Every later "additive pass" in this file used to redeclare its own bare
  * :root with a handful of overriding values (true-black bg/surface/ink,
- * then a lone --ink-3, plus --space-*/--fam-* in their own blocks) -- that
+ * then a lone --ink-3, plus --space-* / --fam-* in their own blocks) -- that
  * is exactly R2's "colour tokens declared 3 times on :root" and "body
  * font-size declared 4 times" symptom. All of that is merged in here, at
  * its final (last-cascade-wins) value, so there is now exactly one place
