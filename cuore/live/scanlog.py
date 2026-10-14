@@ -92,6 +92,13 @@ ID_FMT = "SCAN_%y%m%d%H%M"
 
 _DTC_KINDS = ("stored", "pending", "permanent")
 
+#: UDS status bits that make a module DTC a fault now -- same rule as
+#: ``cuore.live.coverage.ACTIVE_MASK`` (testFailed | pendingDTC | confirmedDTC),
+#: kept local so this read-only module does not import the live-sweep one.
+ACTIVE_MASK = 0x01 | 0x04 | 0x08
+_PENDING_BIT = 0x04
+_CONFIRMED_BIT = 0x08
+
 #: The owner's own number ("just 10") -- the plan chip's denominator, never
 #: a hard cap: nothing here refuses an 11th scan, it only keeps counting.
 PLAN_TOTAL = 10
@@ -202,9 +209,24 @@ def _build_dtcs(cluster: list[dict[str, Any]], ecus: set[str]
             ecu = data.get("ecu") or (next(iter(ecus), "") if len(ecus) == 1 else "")
             for rec in data.get("dtcs") or []:
                 code = rec.get("code") if isinstance(rec, dict) else None
-                if code:
+                if not code:
+                    continue
+                # A UDS sweep reports every DTC the module knows, with a
+                # status byte; 0x40 alone ("not completed this cycle", ~250
+                # per module right after a clear) is no fault. Only the
+                # coverage ACTIVE bits count; a record without a status
+                # byte (older observations) is kept as before.
+                status = rec.get("status")
+                if isinstance(status, int):
+                    if not status & ACTIVE_MASK:
+                        continue
+                    if status & _PENDING_BIT and not status & _CONFIRMED_BIT:
+                        dtcs["pending"].append(code.split("-", 1)[0].upper())
+                    else:
+                        dtcs["stored"].append(code.split("-", 1)[0].upper())
+                else:
                     dtcs["stored"].append(code.split("-", 1)[0].upper())
-                    _add_dtc(by_ecu_codes, ecu or "unknown", code)
+                _add_dtc(by_ecu_codes, ecu or "unknown", code)
     dtcs["stored"] = sorted(dict.fromkeys(dtcs["stored"]))
     dtcs["pending"] = sorted(dict.fromkeys(dtcs["pending"]))
     dtcs["permanent"] = sorted(dict.fromkeys(dtcs["permanent"]))

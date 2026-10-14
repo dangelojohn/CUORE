@@ -123,6 +123,13 @@ _write(NEWER, "obd_dtcs",
       {"kind": "stored", "dtcs": ["P0440"], "by_ecu": {"18DAF110": ["P0440"]}})
 _write(NEWER + timedelta(minutes=3), "obd_dtcs",
       {"kind": "pending", "dtcs": ["P0455"], "by_ecu": {"18DAF110": ["P0455"]}})
+# A UDS sweep right after a clear (as on the real car, 2026-10-14): the
+# ECM's P0440 is a fault (0x4D) but the TCM's P1DAD is only "not completed
+# this cycle" (0x40) -- it must never be listed as a stored code.
+_write(NEWER + timedelta(minutes=4), "module_dtcs",
+      {"ecu": "ECM", "bus": "can_c", "dtcs": [{"code": "P0440-00", "status": 0x4D}]})
+_write(NEWER + timedelta(minutes=5), "module_dtcs",
+      {"ecu": "TCM", "bus": "can_c", "dtcs": [{"code": "P1DAD-00", "status": 0x40}]})
 _write(NEWER + timedelta(minutes=6), "readiness",
       {"since_clear": {"mil_on": True, "stored_dtc_count": 1,
                         "monitors": [{"monitor": "Evaporative system", "supported": True,
