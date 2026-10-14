@@ -55,3 +55,9 @@
 /* --- phase 4 slice: freeze frame with this system's channels highlighted - */
 .sysd-freeze .sysd-ff-hot { font-weight: var(--fw-semibold); }
 .sysd-freeze .sysd-ff-dim { opacity: .55; }
+
+/* --- transmission section (transmission_driveline page only), 2026-10-14 - */
+.tx-section .subhead:first-of-type { margin-top: 4px; }
+.tx-identity .mono { font-size: var(--fs-md); }
+.tx-handoff { margin: 8px 0; }
+.tx-section .btn { margin-right: 8px; margin-top: 6px; }

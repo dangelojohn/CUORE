@@ -1,0 +1,169 @@
+{# Transmission section -- transmission_driveline system page only.
+   Owner's request, 2026-10-14: "I don't see any transmission development."
+   Rendered first, right under the status strip. Every value here passes
+   through cuore.services.system_detail_bridge._transmission_section --
+   real data only, honest UNKNOWNs, no invented numbers. #}
+{% set tx = view.transmission %}
+{% if tx %}
+<details class="panel sysd-section tx-section" open data-fact="system:{{ view.key }}|transmission">
+  <summary><h2 class="sysd-h">Transmission</h2>
+    {% for chip in mods_non_stock(vin) if mods_non_stock is defined %}
+      {% if chip.mod_id == "paddle_shift_na_eu" %}
+      <span class="chip chronic" title="{{ chip.detail }}">{{ chip.label }}</span>
+      {% endif %}
+    {% endfor %}
+  </summary>
+
+  {# --- identity ------------------------------------------------------- #}
+  <h3 class="subhead">Identity, from the car</h3>
+  {% set id = tx.identity %}
+  <ul class="sysd-list tx-identity">
+    <li class="sysd-row"><span>ECU</span>
+      <span class="mono">{{ id.ecu }} &middot; {{ id.address }}</span>
+      <span class="small muted">{{ id.name }}</span></li>
+    <li class="sysd-row"><span>Hardware</span>
+      <span class="mono">{{ id.hardware_part_no }} {{ id.hardware_rev }}</span></li>
+    <li class="sysd-row"><span>Software</span>
+      <span class="mono">{{ id.software_part_no }} v{{ id.software_version }}</span></li>
+    <li class="sysd-row"><span>Spare part</span>
+      <span class="mono">{{ id.spare_part_no }}</span>
+      <span class="chip ok">{{ id.confidence }}</span></li>
+  </ul>
+  <p class="small muted">Source: {{ id.source }}.
+    {% if id.live_reread_on_file %}
+      A fresher module-identity read is on file for this VIN's own live link.
+    {% else %}
+      No live module-identity re-read on file for this VIN yet -- from the MES scans/platform
+      records above.
+    {% endif %}</p>
+
+  <div class="note plain tx-handoff">
+    <span class="lab">TSB {{ tx.flash_tsb.number }} -- TCM flash</span>
+    {{ tx.flash_tsb.summary }}
+    <div class="small muted">Source: {{ tx.flash_tsb.source }}</div>
+    <div class="small"><b>Status:</b> {{ tx.flash_tsb.status }}</div>
+  </div>
+
+  {# --- codes ----------------------------------------------------------- #}
+  <h3 class="subhead">Codes</h3>
+  {% set cx = tx.codes %}
+  <ul class="sysd-list">
+    <li class="sysd-row">
+      <b>TCM</b>
+      {% if cx.tcm_dtcs %}
+        <span class="chip status-active">{{ cx.tcm_dtcs|join(", ") }}</span>
+      {% else %}
+        <span class="chip ok">none</span>
+      {% endif %}
+      <span class="small muted">
+        {% if cx.tcm_live_at %}checked live {{ cx.tcm_live_at }}{% else %}no live module read on file yet{% endif %}
+        &middot; last MES corpus evidence for this system: {{ cx.tcm_mes_last or "none on file" }}</span>
+    </li>
+    {% if cx.dtcm_row %}
+    <li class="sysd-row">
+      <b>DTCM</b> <span class="mono">{{ cx.dtcm_row.full }}</span>
+      <span class="small muted">lost communication with ECM</span>
+      <span class="chip {{ 'status-active' if cx.dtcm_row.status == 'failing now' else 'status-cleared_unverified' }}">{{ cx.dtcm_row.status }}</span>
+      <a class="small" href="{{ cx.network_href }}">See the network event &rarr;</a>
+    </li>
+    {% else %}
+    <li class="sysd-row small muted">No DTCM U0100 lost-communication history on file for this VIN.</li>
+    {% endif %}
+  </ul>
+
+  {# --- live / learned / MES-recording data ------------------------------ #}
+  <h3 class="subhead">Live data</h3>
+  {% set lv = tx.live %}
+  {% if lv.serial_sourced %}
+  <ul class="sysd-list">
+    {% for p in lv.serial %}
+    <li class="sysd-row"><span>{{ p.name }}</span>
+      {% if p.latest %}<span class="mono">{{ p.latest.value }}</span>{% else %}<span class="small muted">{{ p.band_note }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">None from the serial stream -- no sourced TCM DIDs on this car's live link yet.</p>
+  {% endif %}
+
+  <h3 class="subhead">Learned DIDs</h3>
+  {% if lv.learned_dids %}
+  <ul class="sysd-list">
+    {% for d in lv.learned_dids %}
+    <li class="sysd-row">
+      <span class="mono">{{ d.module }} &middot; {{ d.did }}</span>
+      <span>{{ d.name }}{% if d.unit %} ({{ d.unit }}){% endif %}</span>
+      <span class="small muted">learned, unscaled &middot; {{ d.confidence }} &middot; {{ d.at }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No learned DIDs yet from the next full scan for this system's channels.</p>
+  {% endif %}
+
+  <h3 class="subhead">MES recordings (ATF temp, gear, slip)</h3>
+  {% if lv.recordings %}
+  <ul class="sysd-list">
+    {% for r in lv.recordings %}
+    <li class="sysd-row">
+      <span>{{ r.name }}</span>
+      <span class="chip {{ 'status-active' if r.grade in ('excessive','moderate') else ('ok' if r.grade == 'ok' else 'plain') }}">{{ r.value }}{% if r.unit %} {{ r.unit }}{% endif %} &middot; {{ r.grade }}</span>
+      <span class="small muted">{{ r.note }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="note plain tx-handoff">
+    No MES recording with a transmission channel on file yet.
+    <div class="small muted">Record ATF temperature / gear in MES &rarr; import.</div>
+  </div>
+  {% endif %}
+
+  {# --- service ---------------------------------------------------------- #}
+  <h3 class="subhead">Service</h3>
+  {% set sv = tx.service %}
+  <p class="small"><b>ZF 8HP fill / level-check window:</b> {{ sv.fill_window_c }}&deg;C ({{ sv.fill_window_f }}&deg;F).
+    <span class="small muted">Source: {{ sv.fill_window_source }}.</span></p>
+  {% if sv.specs %}
+  <div class="tw">
+  <table>
+    <thead><tr><th>Item</th><th>Value</th><th>Confidence</th></tr></thead>
+    <tbody>
+    {% for s in sv.specs %}
+      <tr><td class="k">{{ s.component }}</td>
+        <td>{{ s.value }}{% if s.unit %} {{ s.unit }}{% endif %}</td>
+        <td><span class="chip {{ 'ok' if s.confidence in ('CONFIRMED','CORROBORATED') else 'plain' }}">{{ s.confidence }}</span></td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p class="small muted">{{ view.unknown_marker }}</p>
+  {% endif %}
+
+  <ul class="sysd-list">
+    {% for skey, row in sv.ledger_counts.items() %}
+    <li class="sysd-row small">{{ row.label }}: {% if row.count %}{{ row.count }} ledger entr{{ "y" if row.count == 1 else "ies" }}{% else %}<span class="muted">none yet</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+
+  <p>
+    <a class="btn" href="{{ sv.record_href }}">Record a transmission service &rarr;</a>
+    <a class="btn" href="{{ sv.print_label_href }}">Print the ATF/pan label &rarr;</a>
+  </p>
+
+  {# --- modifications ------------------------------------------------------ #}
+  {% set paddle_chips = mods_non_stock(vin) if mods_non_stock is defined else [] %}
+  {% set paddle_chips = paddle_chips|selectattr("mod_id", "eq", "paddle_shift_na_eu")|list %}
+  {% if paddle_chips %}
+  <h3 class="subhead">Modifications</h3>
+  <ul class="sysd-list">
+    {% for chip in paddle_chips %}
+    <li class="sysd-row"><span class="chip chronic">{{ chip.label }}</span>
+      <span class="small muted">{{ chip.detail }}</span>
+      <a class="small" href="/v/{{ vin }}/mods">See Modifications &rarr;</a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</details>
+{% endif %}

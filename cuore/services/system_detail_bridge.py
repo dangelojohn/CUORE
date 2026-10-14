@@ -53,7 +53,9 @@ from . import (
     layout_bridge,
     liveboard_bridge,
     mes_bridge,
+    mes_recordings_bridge,
     parts_bridge,
+    service_bridge,
     systems_bridge,
     systems_map_bridge,
 )
@@ -443,6 +445,173 @@ def _evap_network_crossref(vin: str, corr: dict[str, Any]) -> Optional[dict[str,
             "href": f"/v/{vin}/systems/network",
         }
     return None
+
+
+# --- transmission section (transmission_driveline system page only) --------
+#
+# Owner's request, 2026-10-14: "I don't see any transmission development."
+# Everything here passes through already-sourced bridges or this platform's
+# own documented sources -- no new invented numbers. TCM identity (hardware/
+# software/spare-part numbers) is the one piece with no live bridge of its
+# own yet; sourced to the MES scans already on file for this platform
+# (``docs/reference/GIORGIO_MODULE_MAP.md``), confidence CONFIRMED, with an
+# honest note when this VIN's own live-link store already carries a fresher
+# ``module_identity``/``identity`` observation for the TCM (never read live
+# here -- this page only shows what has already been observed).
+
+_TCM_IDENTITY_SOURCE = ("docs/reference/GIORGIO_MODULE_MAP.md -- MES scans / "
+                        "module_identity observations")
+_TCM_IDENTITY: dict[str, Any] = {
+    "ecu": "TCM", "name": "ZF 8HP50/75 Automatic Gearbox", "address": "18DAF118",
+    "hardware_part_no": "10344202761", "hardware_rev": "(20)",
+    "software_part_no": "GK0902OE2HN", "software_version": "0003",
+    "spare_part_no": "46337308", "confidence": "CONFIRMED",
+    "source": _TCM_IDENTITY_SOURCE,
+}
+
+#: TSB 21-035-20 (TCM flash, 2020-05-08) -- the sourced text lives in
+#: ``mes.drivetrain_specs.TRANSMISSION_TSBS`` (never duplicated here); this
+#: module only adds the handoff card's status, since CUORE cannot read what
+#: software is actually flashed on this car's TCM today, only what the
+#: car's own identity report says is installed -- that comparison happens
+#: at the dealer or on wiTECH, never guessed here.
+_TCM_FLASH_TSB_NUMBER = "21-035-20"
+
+
+def _tcm_identity(vin: str) -> dict[str, Any]:
+    out = dict(_TCM_IDENTITY)
+    live_on_file = False
+    try:
+        from mes import live_obs as live_obs_mod3  # noqa: PLC0415
+        for kind in ("module_identity", "identity"):
+            for o in live_obs_mod3.load(vin=vin, kind=kind):
+                if str((o.get("data") or {}).get("ecu", "")).upper() == "TCM":
+                    live_on_file = True
+                    break
+    except Exception:  # noqa: BLE001
+        live_on_file = False
+    out["live_reread_on_file"] = live_on_file
+    return out
+
+
+def _tcm_flash_tsb() -> dict[str, Any]:
+    summary = source = UNKNOWN_MARKER
+    applies = None
+    try:
+        from mes import drivetrain_specs as dts_mod  # noqa: PLC0415
+        tsb = next((t for t in dts_mod.TRANSMISSION_TSBS
+                   if t.get("number") == _TCM_FLASH_TSB_NUMBER), None)
+        if tsb:
+            summary = tsb.get("summary") or UNKNOWN_MARKER
+            source = tsb.get("source") or UNKNOWN_MARKER
+            applies = tsb.get("applies_to_this_car")
+    except Exception:  # noqa: BLE001
+        pass
+    return {"number": _TCM_FLASH_TSB_NUMBER, "applies_to_this_car": applies,
+           "summary": summary, "source": source,
+           "status": "not checked -- compare at the dealer/wiTECH"}
+
+
+def _transmission_codes(vin: str, this_row: dict[str, Any]) -> dict[str, Any]:
+    """TCM's own reported codes (honestly checked, never assumed clean)
+    plus the DTCM U0100 lost-communication-with-ECM history row, linked to
+    the one network event page that already analyses it
+    (:func:`_network_event`) -- never a second analysis of the same
+    U-code here."""
+    tcm_latest_at = None
+    tcm_dtcs: list[str] = []
+    try:
+        from mes import live_obs as live_obs_mod4  # noqa: PLC0415
+        rows = [o for o in live_obs_mod4.load(vin=vin, kind="module_dtcs")
+               if str((o.get("data") or {}).get("ecu", "")).upper() == "TCM"]
+        if rows:
+            newest = max(rows, key=lambda o: o.get("at") or "")
+            tcm_latest_at = newest.get("at")
+            tcm_dtcs = [d.get("code") for d in (newest.get("data") or {}).get("dtcs") or []]
+    except Exception:  # noqa: BLE001
+        pass
+
+    dtcm_row = None
+    try:
+        net = _network_event(vin)
+    except Exception:  # noqa: BLE001
+        net = None
+    if net:
+        dtcm_row = next((c for c in net.get("codes") or []
+                        if c.get("module") == "DTCM" and (c.get("code") or "").startswith("U0100")),
+                       None)
+    return {
+        "tcm_live_at": tcm_latest_at, "tcm_dtcs": tcm_dtcs,
+        "tcm_mes_last": this_row.get("last"),
+        "dtcm_row": dtcm_row, "network_href": f"/v/{vin}/systems/network",
+    }
+
+
+def _transmission_live(rec: dict[str, Any], status_strip: dict[str, Any],
+                       learned: dict[str, Any]) -> dict[str, Any]:
+    """What CUORE can show live for this system today: the serial-stream
+    channels already computed for the status strip (filtered to this
+    system's own ``tcm_*`` ids), accepted learned DIDs for the same
+    channels (already filtered to this system by :func:`build_system_view`
+    step 9), and MES-recording channels (ATF temp/gear/slip) when a
+    recording on this install actually has a matching column -- each with
+    its own honest empty state, never merged into one false "live data"
+    claim."""
+    tcm_ids = set(rec.get("live_channels") or [])
+    serial = [lv for lv in status_strip.get("live_values") or [] if lv.get("id") in tcm_ids]
+    serial_sourced = any(lv.get("band_confidence") not in (None, "UNKNOWN") for lv in serial)
+    try:
+        recordings = mes_recordings_bridge.transmission_recording_channels()
+    except Exception:  # noqa: BLE001
+        recordings = []
+    return {"serial": serial, "serial_sourced": serial_sourced,
+           "learned_dids": learned.get("dids") or [], "recordings": recordings}
+
+
+def _transmission_service(vin: str) -> dict[str, Any]:
+    """Fill-window + sourced specs for the transmission drivetrain section,
+    plus how many ledger entries exist yet for each of the three units --
+    ``mes.service`` (category ``drivetrain``) stays the one ledger; this
+    never invents its own record store."""
+    sections = {"transmission": "Transmission", "transfer_case": "Transfer case",
+               "differentials": "Differential"}
+    ledger_counts: dict[str, dict[str, Any]] = {}
+    specs_rows: list[Any] = []
+    for skey, slabel in sections.items():
+        try:
+            checklist = service_bridge.drivetrain_section_checklist(vin, skey)
+        except Exception:  # noqa: BLE001
+            checklist = {}
+        ledger_counts[skey] = {"label": slabel, "count": len(checklist.get("history") or [])}
+        if skey == "transmission":
+            specs_rows = ((checklist.get("specs") or {}).get("specs")
+                         or checklist.get("specs") or [])
+    return {
+        "fill_window_c": "30-50", "fill_window_f": "86-122",
+        "fill_window_source": "docs/reference/ZF8HP_SERVICE_DATA.md; mes.service drivetrain",
+        "specs": specs_rows, "ledger_counts": ledger_counts,
+        "record_href": f"/m/{vin}/add/fluids/driveline_fluid",
+        "print_label_href": f"/v/{vin}/labels?kind=transmission_service",
+    }
+
+
+def _transmission_section(vin: str, key: str, rec: dict[str, Any], this_row: dict[str, Any],
+                          status_strip: dict[str, Any], learned: dict[str, Any]
+                          ) -> Optional[dict[str, Any]]:
+    """Everything the owner asked to see made visible on this system's own
+    page: TCM identity + the TCM-flash TSB handoff, codes (TCM/DTCM, never
+    duplicating the status strip's own generic codes list), live/learned/
+    MES-recording data states, and the service ledger + two action
+    buttons. Scoped to ``transmission_driveline`` only -- every other
+    system page gets ``None``."""
+    if key != "transmission_driveline":
+        return None
+    return {
+        "identity": _tcm_identity(vin), "flash_tsb": _tcm_flash_tsb(),
+        "codes": _transmission_codes(vin, this_row),
+        "live": _transmission_live(rec, status_strip, learned),
+        "service": _transmission_service(vin),
+    }
 
 
 # --- the view model -----------------------------------------------------------
@@ -891,6 +1060,9 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
     bcm_check_first = _bcm_check_first(vin, attested_map) if key == "body_comfort" else []
     evap_network_crossref = _evap_network_crossref(vin, corr) if key == "evap" else None
 
+    # --- 12. transmission section (transmission_driveline page only) --------
+    transmission = _transmission_section(vin, key, rec, this_row, status_strip, learned)
+
     return {
         "key": key, "label": label,
         "status_strip": status_strip,
@@ -908,6 +1080,7 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         "network_event": network_event,
         "bcm_check_first": bcm_check_first,
         "evap_network_crossref": evap_network_crossref,
+        "transmission": transmission,
         "unknown_marker": UNKNOWN_MARKER,
         "attested_footnote": ("Mechanic inputs are attested claims, not car measurements: "
                               "they never replace the knowledge-table value shown beside them "

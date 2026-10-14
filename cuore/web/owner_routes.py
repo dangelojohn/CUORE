@@ -372,12 +372,25 @@ def home(request: Request, vin: str) -> HTMLResponse:
          "href": f"/m/{vin}/add/battery_electrical", "primary": False},
         {"key": "snap", "label": "Snap & fill", "icon": "camera",
          "href": f"/m/{vin}/snap", "primary": False},
+        {"key": "transmission", "label": "Transmission", "icon": "sys_transmission_driveline",
+         "href": f"/m/{vin}/add/transmission", "primary": False},
     ]
 
     saved = "saved" in request.query_params
     return _page(request, "m_home.html", vin, "add", vehicle_name=vehicle_name, odo_last=odo_last,
                 verdict=verdict, quick_actions=quick_actions, unread=unread,
                 everything_else=everything_else, saved=saved, show_intro=True)
+
+
+@router.get("/m/{vin}/add/transmission")
+def add_transmission_alias(request: Request, vin: str) -> RedirectResponse:
+    """One-tap alias for the home screen's "Transmission" quick action --
+    owner's request, 2026-10-14 ("I don't see any transmission
+    development"). Opens the real ``fluids/driveline_fluid`` form directly;
+    carries any Snap & fill query params forward like every other tile."""
+    carry = _carry_qs(request)
+    url = f"/m/{vin}/add/fluids/driveline_fluid" + (f"?{carry}" if carry else "")
+    return RedirectResponse(url=url, status_code=303)
 
 
 @router.get("/m/{vin}/add", response_class=HTMLResponse)

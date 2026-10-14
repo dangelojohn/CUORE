@@ -163,7 +163,7 @@ TAXONOMY: dict[str, dict[str, Any]] = {
                 "wear.",
                 ("brakes_abs",)),
             "driveline_fluid": _kind(
-                "Transmission / transfer-case / differential oil",
+                "Transmission / transfer case / differential oil",
                 {"which": _f("choice", "Which unit",
                              choices=("transmission", "transfer case", "differential")),
                  "fluid_spec": _f("text", "Fluid spec (e.g. ZF LifeguardFluid 8)",

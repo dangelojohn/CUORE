@@ -135,6 +135,9 @@
     {% if ss.last_evidence %}{{ ss.last_evidence }}{% else %}no evidence on file yet{% endif %}</p>
 </details>
 
+{# --- 1c. transmission section (transmission_driveline page only) --------- #}
+{% include "_transmission.html" %}
+
 {# --- 1b. network event (network system page only) ------------------------ #}
 {% if view.network_event %}
 <details class="panel sysd-section" open data-fact="system:{{ view.key }}|network event">
