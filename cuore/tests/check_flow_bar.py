@@ -179,8 +179,12 @@ def check_flow_bar(env: Environment) -> None:
           and "Not yet: Waiting on the parts counter" in normal)
     check("flow_bar: blocked step's own why also reads 'Not yet: <why>'",
           "flow-step-why-blocked" in normal and "Not yet: Waiting on the parts counter" in normal)
-    check("flow_bar: step 1 links to /start", f'href="/start"' in normal)
-    check("flow_bar: step 12 links to /v/{vin}/release", f'href="/v/{VIN}/release"' in normal)
+    # The stepper list always links through job.html's own ?step=N
+    # convention now (see _flow_bar.html's own comment on this), never
+    # flow_bridge.py's per-step href -- step 1's old "/start" and step 12's
+    # old "/v/{vin}/release" are both superseded by that.
+    check("flow_bar: step 1 links to ?step=1", f'href="/v/{VIN}/job?step=1"' in normal)
+    check("flow_bar: step 12 links to ?step=12", f'href="/v/{VIN}/job?step=12"' in normal)
     check("flow_bar: done/current/blocked icons present",
           all(s in normal for s in ("&#10003;", "&#9675;", "&#9888;")))
 

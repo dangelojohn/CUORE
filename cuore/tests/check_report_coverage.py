@@ -21,6 +21,8 @@ Run:
 from __future__ import annotations
 
 import os
+import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -36,6 +38,26 @@ if _REAL_OBS.exists():
              if ln.startswith('{"at": "2026-10-13')]
     text = "\n".join(lines) + ("\n" if lines else "")
     Path(_TMP, "observations.jsonl").write_text(text, encoding="utf-8")
+
+# MES_LOG_DIR: an isolated copy of the real corpus, frozen at this test's own
+# 2026-10-13 scenario cutoff -- same posture as check_bench.py's own
+# _SCENARIO_CUTOFF/_MES_LOG_DIR. Without this, the comment above ("P-code
+# history comes from the real MES-log corpus on this machine directly")
+# meant a later real scan landing in the corpus (e.g. 2026-10-14) silently
+# changed which codes are "live" and broke the LIVE_CODES assertions below,
+# even though nothing about the feature itself had changed.
+_REAL_MES_DIR = Path(r"C:\Program Files (x86)\MultiEcuScan")
+_MES_LOG_DIR = Path(tempfile.mkdtemp(prefix="cuore-check-report-coverage-logs-"))
+os.environ["MES_LOG_DIR"] = str(_MES_LOG_DIR)
+_SCENARIO_CUTOFF = "261013"  # YYMMDD -- this suite's own scenario cutoff
+if _REAL_MES_DIR.exists():
+    for _f in _REAL_MES_DIR.iterdir():
+        if not _f.is_file():
+            continue
+        _m = re.search(r"_(\d{6})\d{4}", _f.name)
+        if _m and _m.group(1) > _SCENARIO_CUTOFF:
+            continue
+        shutil.copyfile(_f, _MES_LOG_DIR / _f.name)
 
 sys.path.insert(0, str(REPO_ROOT))
 sys.path.insert(0, str(REPO_ROOT / "mes-log-mcp"))

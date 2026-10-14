@@ -806,6 +806,14 @@ kbd {
 }
 .checklist-step:first-child { border-top: none; }
 .checklist-step.is-done .step-text { color: var(--ink-3); text-decoration: line-through; }
+/* Step 6 row with a failed result: same red row-tint convention as
+ * .attempt-row.is-fail (--sev-returned/-bg), distinct from .is-done's
+ * green -- a failed step must never read as merely "done". */
+.checklist-step.is-fail {
+  background: var(--sev-returned-bg); margin: 0 calc(-1 * var(--pad));
+  padding: 9px var(--pad); border-radius: var(--radius);
+}
+.checklist-step.is-fail .step-text { color: var(--ink); }
 .step-form { flex: none; }
 .step-check {
   width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
@@ -813,6 +821,9 @@ kbd {
   color: var(--ok); font-size: var(--fs-lg); cursor: pointer;
 }
 .checklist-step.is-done .step-check { background: var(--ok-bg); border-color: var(--ok); }
+.checklist-step.is-fail .step-check {
+  background: var(--sev-returned-bg); border-color: var(--sev-returned); color: var(--sev-returned);
+}
 .step-text { flex: 1 1 auto; padding-top: 10px; font-size: var(--fs-sm); }
 .step-ref { margin-left: 6px; font-size: var(--fs-xs); }
 .step-meta { display: block; margin-top: 2px; }
