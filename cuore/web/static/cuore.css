@@ -575,10 +575,16 @@ kbd {
 }
 
 .foot {
+  /* R8/G7: "CUORE 0.1.0 - profile bench - Simulation logs excluded - ?
+   * keys - Developer API" is sentence/label text, not codes or IDs --
+   * mono was being used as a decorative footer treatment rather than a
+   * semantic marker. Sans, same size; its one link gets a real tap
+   * target instead of the bare 13px-tall text it had. */
   margin-top: 32px; padding-top: 12px; border-top: 1px solid var(--rule-soft);
-  font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3);
-  display: flex; gap: 16px; flex-wrap: wrap;
+  font-family: var(--sans); font-size: var(--fs-xs); color: var(--ink-3);
+  display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
 }
+.foot a { display: inline-flex; align-items: center; min-height: var(--tap); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
