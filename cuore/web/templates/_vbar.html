@@ -134,6 +134,22 @@
     {% if bar.odo_last is not none %}
       <span class="mono vkm">{{ "{:,}".format(bar.odo_last|int) }} km</span>
     {% endif %}
+    {# "Connect to car" (owner spec 2026-10-14): one red 48px primary, left
+       of the scanner label, on every /v/{vin} page -- adapter -> bus -> VIN
+       -> guided full scan, with live progress in the drawer right below.
+       Plain <a href="/v/{vin}/scan"> is the whole no-JS story (the wizard
+       page already works with zero JS -- see fullscan_routes.py's own
+       docstring); connect.js intercepts the tap and runs the same sequence
+       inline instead, reusing /api/live/connect/start plus the existing
+       guided-scan endpoints (/api/live/fullscan/guided/*) for every step
+       after the kickoff. Never fires on page load, never clears a code. #}
+    {# Hardcoded English, same posture as flow_bar.html's "Tools away..."
+       and job.html's "Tools used review": i18n.py is outside this task's
+       file list, so this stays untranslated rather than adding a key
+       there (``t`` would otherwise just render the bare key, unmissed by
+       any error but a worse read than the plain string). #}
+    <a class="btn connect-btn" id="connect-car-btn" href="/v/{{ bar.vin }}/scan"
+       data-vin="{{ bar.vin }}">Connect to car</a>
     {% if live_strip %}
       {% if live_strip.error %}
         <span class="chip plain" title="{{ live_strip.error }}">Scanner: unknown</span>
@@ -188,6 +204,37 @@
       </div>
     </details>
   </div>
+  {# Job page UX pass 2026-10-14: a one-line "car state" sentence so the
+     mechanic sees the car before the steps -- the verdict (already a chip
+     in .vline above, restated here with the rest of the sentence so it
+     reads as one line rather than two disconnected facts), the ECM's own
+     MIL request (``view.verdict.mil_on``, the same readiness-derived field
+     _verdict_card.html already shows), and the last scan/log date already
+     on file (``bar.last_log``). The owner/dash-lamp comparison
+     (dossier_bridge._build_mil_block) is Bench/Report-only and not part of
+     this view -- never fabricated here, so this stays the ECM's own
+     request only, not a claim about what the lamp actually did. Job-page
+     only: the hero pages (bench/report) already carry their own verdict
+     sentence (hero-verdict-sentence) and other tabs have no step content
+     to orient before. #}
+  {% if tab == "job" and view is defined and view and view.verdict %}
+    {% set _vs2 = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
+    {% set _mil = view.verdict.mil_on %}
+    {% set _mil_text = "MIL requested ON by the ECM" if _mil
+                        else ("MIL requested OFF by the ECM" if _mil is not none
+                              else "MIL request: unknown") %}
+    <p class="car-state-line small">
+      <span class="chip-verdict chip-wrap v-{{ _vs2 }}">{{ view.verdict.label }}</span>
+      <span class="car-state-mil">{{ _mil_text }}</span>
+      {% if bar.last_log %}<span class="car-state-scan">&middot; last scan {{ bar.last_log }}</span>{% endif %}
+    </p>
+  {% endif %}
+  {# "Connect to car"'s own progress drawer -- hidden until the button is
+     tapped (connect.js toggles it), empty markup server-side so a no-JS
+     reader sees nothing extra and the button's own href keeps working. #}
+  <div class="connect-drawer" id="connect-drawer" hidden aria-live="polite"
+       data-vin="{{ bar.vin }}"></div>
   {% include "_vtabs.html" %}
 </div>
 {% if tab == "job" %}{% include "_flow_bar.html" %}{% endif %}
+<script src="{{ static_url('connect.js') }}" defer></script>

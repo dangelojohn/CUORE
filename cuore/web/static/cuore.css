@@ -1635,3 +1635,57 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
   .vtabs { gap: 4px; }
   .vtabs a { padding: 6px 10px; }
 }
+
+/* =====================================================================
+ * "Connect to car" (owner spec 2026-10-14): one red 48px primary in the
+ * vehicle status strip, its progress drawer right underneath, and the Job
+ * page's own one-line "car state" sentence. Additive only -- nothing above
+ * this point is rewritten. Styled by #id so it survives the Ferrari-
+ * benchmark pass above (".btn, .btn.primary ... { background: transparent
+ * ...}") untouched: that flattening rule intentionally stays the general
+ * case for every other button on the page; this is the one new exception,
+ * named explicitly, same posture that section's own comment already uses
+ * for .flow-next/.step-nav-next. ===================================== */
+
+#connect-car-btn {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+  min-height: var(--space-5); padding: 0 var(--space-3);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-weight: 600; text-decoration: none; flex: none; white-space: nowrap;
+}
+#connect-car-btn:hover { filter: brightness(1.08); }
+#connect-car-btn[aria-busy="true"] { opacity: .7; pointer-events: none; }
+
+.car-state-line {
+  display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+  margin: 0; padding: var(--space-1) var(--pad);
+  border-bottom: 1px solid var(--rule-soft);
+}
+.car-state-mil, .car-state-scan { color: var(--ink-2); }
+
+.connect-drawer {
+  padding: var(--space-2) var(--pad);
+  border-bottom: 1px solid var(--rule-soft);
+  background: var(--surface-2);
+  font-size: 14px;
+}
+.connect-drawer[hidden] { display: none; }
+.connect-step-list { list-style: none; margin: 0 0 var(--space-1); padding: 0; }
+.connect-step { display: flex; align-items: baseline; gap: var(--space-1); min-height: 20px; }
+.connect-step-icon { flex: none; width: 1.1em; }
+.connect-step.is-ok .connect-step-icon::before { content: "\2713"; color: var(--ok, #4fbf74); }
+.connect-step.is-err .connect-step-icon::before { content: "\26A0"; color: #e0574a; }
+.connect-pause-card {
+  margin-top: var(--space-2); padding: var(--space-2);
+  border: 1px solid var(--accent); border-radius: 8px;
+}
+.connect-pause-actions, .connect-done-actions {
+  display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2);
+}
+.connect-pause-actions .btn, .connect-done-actions .btn { min-height: 44px; }
+.connect-error { color: #e0574a; margin: var(--space-1) 0; }
+
+@media (max-width: 480px) {
+  .vline { row-gap: var(--space-1); }
+  #connect-car-btn { padding: 0 var(--space-2); }
+}

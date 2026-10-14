@@ -4,6 +4,16 @@ href (#7), the honest step-6 count (#4's own accept test, reused here since
 it's load-bearing for #11/#13's layout), and the confirm-gate's inline
 reason on a fresh hypothesis (#1).
 
+Also covers the 2026-10-14 "Connect to car" pass: the button (and its
+no-JS fallback href) renders on both the job page and the bench page
+(_vbar.html renders on every /v/{vin} page), the new additive
+POST /api/live/connect/start route (cuore/api/live.py) reaches a started
+guided scan and surfaces its first pause, and refuses with the live
+layer's own wording -- never invented copy -- when the adapter or the
+poller guard refuses. Same posture as cuore/tests/check_fullscan.py: every
+``cuore.live.ops``/``cuore.live.interlock`` call is monkeypatched with a
+canned reply, never a real adapter, never COM3.
+
 Same posture as ``check_jobs_page.py``/``check_screens.py``: ``CUORE_STATE_DIR``
 pointed at a throwaway directory before cuore is imported, the Stelvio (real
 corpus) as the fixture vehicle. One CDP session only (memory is limited on
@@ -51,6 +61,153 @@ def check(label: str, cond: bool, detail: str = "") -> None:
 
 
 client = TestClient(create_app())
+
+
+# ===========================================================================
+# "Connect to car": the button renders everywhere, the additive route
+# reaches a started scan and its first pause, and refusals carry the live
+# layer's own wording. Run first, before any job/hypothesis fixture state,
+# since it is independent of it; every ops/interlock call is faked, never
+# a real adapter.
+# ===========================================================================
+
+from cuore.live import fullscan as connect_fullscan  # noqa: E402
+from cuore.live import interlock as connect_interlock  # noqa: E402
+from cuore.live import ops as connect_ops  # noqa: E402
+from cuore.live.errors import LiveError as ConnectLiveError  # noqa: E402
+from cuore.live.errors import Refused as ConnectRefused  # noqa: E402
+
+_connect_originals: dict[tuple, object] = {}
+
+
+def _connect_patch(obj, name, fn) -> None:
+    _connect_originals.setdefault((obj, name), getattr(obj, name))
+    setattr(obj, name, fn)
+
+
+def _connect_restore_all() -> None:
+    for (obj, name), fn in _connect_originals.items():
+        setattr(obj, name, fn)
+    _connect_originals.clear()
+
+
+def _fake_scan_modules_connect(bus, vin="", mask=0xFF, confirm=False, detail=True):
+    if bus == "can_c":
+        return {"bus": "can_c", "cable": "none",
+                "modules": [{"ecu": "ECM", "bus": "can_c", "mask": "FF", "dtcs": [], "codes": []}]}
+    from cuore.live.addressing import on_bus as _on_bus
+    return {"bus": bus, "cable": "none",
+            "modules": [{"ecu": m.code, "skipped": "no confirmed address"} for m in _on_bus(bus)]}
+
+
+def _install_connect_fakes() -> None:
+    _connect_patch(connect_ops, "_poller_active_guard", lambda: None)
+    _connect_patch(connect_interlock, "mes_status",
+                   lambda: {"running": False, "pids": [], "state": "not_running", "label": None})
+    _connect_patch(connect_ops, "status", lambda: {"port": "COM3", "baud": 115200})
+    _connect_patch(connect_ops, "cable_state", lambda: {"cable": "none", "buses": {}})
+    _connect_patch(connect_ops, "set_cable", lambda c: {"cable": c, "buses": {}})
+    _connect_patch(connect_ops, "probe",
+                   lambda **kw: {"port": "COM3", "baud": 115200, "stn_chip": True,
+                                 "battery_voltage": 12.6, "identity": {"STI": "STN1170 v4.3.2"}})
+    _connect_patch(connect_ops, "verify_bus",
+                   lambda bus, **kw: {"verified": True, "frames": 12, "bus": bus, "cable": "none"})
+    _connect_patch(connect_ops, "obd_vin",
+                   lambda **kw: {"vin": VIN, "ecu": "18DAF110", "length_ok": True})
+    _connect_patch(connect_ops, "obd_dtcs",
+                   lambda kind, **kw: {"kind": kind, "dtcs": [], "by_ecu": {}, "raw": "NO DATA"})
+    _connect_patch(connect_ops, "obd_supported_pids", lambda **kw: {"by_ecu": {}})
+    _connect_patch(connect_ops, "obd_freeze_frame", lambda pid, **kw: {"pid": pid, "by_ecu": {}})
+    _connect_patch(connect_ops, "obd_pid", lambda pid, **kw: {"pid": pid, "by_ecu": {}})
+    _connect_patch(connect_ops, "obd_readiness",
+                   lambda **kw: {"since_clear": {"mil_on": False},
+                                 "this_drive_cycle": {"mil_on": False}})
+    _connect_patch(connect_ops, "obd_mode06", lambda **kw: {"mids": []})
+    _connect_patch(connect_ops, "scan_modules", _fake_scan_modules_connect)
+    _connect_patch(connect_ops, "module_identity",
+                   lambda code, vin="", confirm=False, **kw:
+                   {"ecu": code, "bus": "can_c", "fields": {}})
+    _connect_patch(connect_ops, "module_did",
+                   lambda code, did, vin="", confirm=False, **kw:
+                   {"ecu": code, "did": did, "bytes": []})
+    _connect_patch(connect_ops, "module_did_sweep",
+                   lambda code, dids, vin="", per_did_timeout=0.3, confirm=False, **kw:
+                   {"ecu": code, "tried": len(dids), "hits": []})
+    _connect_patch(connect_ops, "learned_dids", lambda vin="": {"learned": {}})
+
+
+# 1. the button (and its no-JS fallback href straight to the wizard) renders
+#    on both the job page and the bench page -- it lives in _vbar.html,
+#    included by every /v/{vin} page, not just job.html.
+for _page_label, _page_url in (("job page", f"/v/{VIN}/job"), ("bench page", f"/v/{VIN}")):
+    _btn_resp = client.get(_page_url)
+    check(f"the Connect to car button renders on the {_page_label}",
+          'id="connect-car-btn"' in _btn_resp.text, _page_label)
+    check(f"the {_page_label}'s button carries the no-JS fallback href to the wizard",
+          f'href="/v/{VIN}/scan"' in _btn_resp.text, _page_label)
+
+try:
+    # Never start over an already-open session left by an earlier run in
+    # this same throwaway state dir.
+    _leftover = connect_fullscan.guided_state()
+    if _leftover.get("status") == "paused":
+        connect_fullscan.abandon_guided(_leftover["scan_id"])
+
+    _install_connect_fakes()
+
+    # 2. the sequence reaches a started scan and surfaces its first pause.
+    connect_resp = client.post("/api/live/connect/start", json={"vin": VIN})
+    check("POST /api/live/connect/start is 200", connect_resp.status_code == 200,
+          str(connect_resp.status_code))
+    connect_data = connect_resp.json()
+    check("the connect sequence reports ok", connect_data.get("ok") is True, str(connect_data))
+    check("the connect sequence's own checks cover adapter/bus/VIN, in order",
+          [c.get("stage") for c in connect_data.get("checks", [])] == ["adapter", "bus", "vin", "scan"],
+          str(connect_data.get("checks")))
+    connect_guided = connect_data.get("guided") or {}
+    check("the connect sequence starts the guided scan (a real scan_id)",
+          bool(connect_guided.get("scan_id")), str(connect_guided))
+    check("the connect sequence surfaces a pause state (blue A5 cable next)",
+          connect_guided.get("status") == "paused"
+          and (connect_guided.get("next") or {}).get("cable") == "blue_a5",
+          str(connect_guided))
+
+    connect_fullscan.abandon_guided(connect_guided["scan_id"])
+
+    # 3. refusal wording: adapter missing -- the live layer's own message
+    #    (the real LinkUnavailable text transport.py raises), never invented.
+    _connect_patch(
+        connect_ops, "probe",
+        lambda **kw: (_ for _ in ()).throw(
+            ConnectLiveError("no reply from the adapter on COM3; is it plugged in?")))
+    refuse_resp = client.post("/api/live/connect/start", json={"vin": VIN})
+    check("a missing adapter still responds 200 (refused honestly, never a 500)",
+          refuse_resp.status_code == 200, str(refuse_resp.status_code))
+    refuse_data = refuse_resp.json()
+    check("the refusal is reported explicitly (ok: false, stage: adapter)",
+          refuse_data.get("ok") is False and refuse_data.get("stage") == "adapter",
+          str(refuse_data))
+    check("the refusal wording is the live layer's own adapter message, not invented copy",
+          "no reply from the adapter on COM3" in (refuse_data.get("error") or ""),
+          str(refuse_data.get("error")))
+
+    # 4. refusal wording: the live-data poller holds the adapter.
+    _connect_patch(connect_ops, "probe",
+                   lambda **kw: {"port": "COM3", "baud": 115200, "stn_chip": True,
+                                 "battery_voltage": 12.6, "identity": {}})
+    _connect_patch(
+        connect_ops, "_poller_active_guard",
+        lambda: (_ for _ in ()).throw(
+            ConnectRefused("a live-data poll session is running and holds the adapter; "
+                           "stop it first")))
+    poller_data = client.post("/api/live/connect/start", json={"vin": VIN}).json()
+    check("the poller-running refusal reaches the caller with the live layer's own wording",
+          poller_data.get("ok") is False
+          and "a live-data poll session is running" in (poller_data.get("error") or ""),
+          str(poller_data))
+finally:
+    _connect_restore_all()
+
 
 open_resp = client.post(f"/v/{VIN}/job/open",
                         data={"technician": "tester", "complaint": "CEL, smells like gas"},

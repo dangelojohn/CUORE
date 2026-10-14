@@ -382,6 +382,79 @@ def live_alarms_route(channel: str = Body(..., embed=True),
                               hysteresis=hysteresis)
 
 
+# --- Connect to car: one button, adapter -> bus -> VIN -> guided full scan --
+
+@router.post("/live/connect/start",
+            summary="Adapter probe, bus verify, VIN match, then start (or resume) the guided scan")
+def live_connect_start(vin: str = Body(..., embed=True)) -> dict[str, Any]:
+    """The vehicle status strip's "Connect to car" button: the same honest
+    checks a mechanic would do by hand, in order, each one a tick the
+    drawer can show before it moves on -- adapter found, bus verified, VIN
+    matches, then the guided full scan starts (``fullscan.run_guided``).
+
+    Refuses outright, at whichever stage it fails, with the live layer's own
+    wording (a live-data poll session holding the adapter, MultiEcuScan
+    connected, no reply from the adapter, the wrong VIN on the cable) --
+    never invented copy. Never starts anything on its own: this route is
+    reached only by the button's own tap (see ``connect.js``), never on page
+    load, and it never clears a code (there is no clear route behind it).
+
+    If a guided scan for this VIN is already open (paused mid cable-swap),
+    this reports that session instead of trying to start a second one --
+    :func:`cuore.live.fullscan.run_guided` already refuses a second start
+    outright, so this checks first and skips straight to the open session's
+    own state, same as a plain reload of ``/v/{vin}/scan`` would show.
+    """
+    from ..live import fullscan
+    from ..live.errors import LiveError
+
+    checks: list[dict[str, Any]] = []
+
+    def _refused(stage: str, label: str, error: str) -> dict[str, Any]:
+        checks.append({"stage": stage, "label": label, "ok": False, "error": error})
+        return {"ok": False, "stage": stage, "error": error, "checks": checks}
+
+    existing = fullscan.guided_state()
+    if existing.get("status") == "paused" and existing.get("vin") == vin:
+        checks.append({"stage": "resume", "label": "Guided scan already open", "ok": True})
+        return {"ok": True, "resumed": True, "checks": checks, "guided": existing}
+
+    try:
+        ops._poller_active_guard()
+        probe = ops.probe()
+    except LiveError as e:
+        return _refused("adapter", "Find the adapter", str(e))
+    checks.append({"stage": "adapter", "label": "Adapter found", "ok": True,
+                  "detail": {"port": probe.get("port"), "identity": probe.get("identity"),
+                             "voltage": probe.get("battery_voltage")}})
+
+    try:
+        verify = ops.verify_bus("can_c")
+    except LiveError as e:
+        return _refused("bus", "Verify the bus", str(e))
+    checks.append({"stage": "bus", "label": "Bus verified", "ok": True,
+                  "detail": {"bus": "can_c", "frames": verify.get("frames")}})
+
+    try:
+        vin_read = ops.obd_vin()
+    except LiveError as e:
+        return _refused("vin", "Read the VIN", str(e))
+    car_vin = (vin_read or {}).get("vin") or ""
+    if vin and car_vin and car_vin != vin:
+        return _refused("vin", "VIN matches",
+                        f"the car on the cable reads VIN {car_vin}, not {vin}; wrong car on "
+                        f"the cable?")
+    checks.append({"stage": "vin", "label": "VIN matches", "ok": True,
+                  "detail": {"vin": car_vin or vin}})
+
+    try:
+        guided = fullscan.run_guided(vin)
+    except LiveError as e:
+        return _refused("scan", "Start the guided scan", str(e))
+    checks.append({"stage": "scan", "label": "Guided scan started", "ok": True})
+    return {"ok": True, "resumed": False, "checks": checks, "guided": guided}
+
+
 @router.get("/live/stream", summary="Server-sent events: live channel samples and alarms")
 def live_stream_route():
     import json as _json
