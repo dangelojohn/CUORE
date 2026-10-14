@@ -1,0 +1,80 @@
+{
+  "id": "mes.body.can_setup.paddle_shift_na_eu",
+  "name": "Paddle shift NA/Euro characteristic (CAN Setup byte 156)",
+  "module": "BCM",
+  "module_notes": "MES groups this under its 'Body' control module, not TCM or ESM. Not present in cuore/live/did_catalog.py; no DID reverse-engineered yet.",
+  "kind": "coding",
+  "menu_path": [
+    "Connect",
+    "Body",
+    "Adjustments (F7)",
+    "CAN Setup",
+    "byte 156, bits 4-5"
+  ],
+  "proxi_alignment_required": true,
+  "proxi_alignment_function_name": "PROXI ALIGNMENT PROCEDURE",
+  "write_target": {
+    "type": "configuration_byte",
+    "byte_index": 156,
+    "bits": "4-5",
+    "did": null,
+    "did_note": "No ISO 14229 DID documented by any source; 'byte 156' is MES's internal PROXI-dataset index only. Do not treat as a confirmed DID."
+  },
+  "values": {
+    "north_america": {"bit_pattern": "xx01xxxx", "reported_byte": "0x50"},
+    "europe": {"bit_pattern": "xx00xxxx", "reported_byte": "0x40"}
+  },
+  "prerequisites": [
+    "Interface connected to OBD port, correct make/model/version selected, Connect (F10)",
+    "Back up current PROXI/config data to a text file before editing (community best practice, not vendor-documented)",
+    "Edit only bits 4-5 of byte 156; leave remaining bits untouched",
+    "Run PROXI ALIGNMENT PROCEDURE (F10) and confirm (Y) after the byte edit",
+    "Turn ignition key to OFF after successful PROXI alignment, per official manual's generic closing step"
+  ],
+  "verification": [
+    "Confirm both-paddles-pull reaches Neutral and right paddle returns to Drive (EU behaviour)",
+    "Re-scan all modules for new DTCs after the change"
+  ],
+  "risks": [
+    "No documented DID; write is to a vendor-internal byte inferred from one forum post",
+    "Adjacent bits in the same byte/config area reported to affect unrelated settings if mis-edited",
+    "Single-source procedure, not independently corroborated"
+  ],
+  "reversible": true,
+  "reversal_method": "Restore backed-up byte value and re-run PROXI ALIGNMENT PROCEDURE",
+  "confidence": "SINGLE-SOURCE",
+  "sources": [
+    {
+      "title": "Added Neutral to paddle shifters! (EU settings)",
+      "url": "https://www.giuliaforums.com/threads/added-neutral-to-paddle-shifters-eu-settings.56872/",
+      "author": "FizzGiGG",
+      "date": "2024-04-05",
+      "note": "Original claim; site now behind a paywall gateway (tollbit), content not directly fetchable as of 2026-10-14"
+    },
+    {
+      "title": "Multiecuscan (MES) - Popular Settings Compilation",
+      "url": "https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80",
+      "date": "accessed 2026-10-14",
+      "note": "Reproduces the same byte 156 / bit-pattern / module details as the giuliaforums.com original; same underlying claim, not an independent second source"
+    },
+    {
+      "title": "MultiEcuScan User Guide (vendor manual)",
+      "url": "local file: C:\\Program Files (x86)\\MultiEcuScan\\Multiecuscan User Guide.pdf",
+      "note": "Corroborates the generic PROXI Alignment mechanism (Adjustments -> edit value -> PROXI ALIGNMENT PROCEDURE -> confirm -> key OFF) via an unrelated Fiat Stilo cruise-control-light example. Does not mention paddle shift or byte 156."
+    },
+    {
+      "title": "Alfa Roimeo Stelvio 2.2 210 Paddle Shifter Enabling",
+      "url": "https://www.multiecuscan.net/forum/viewtopic.php?t=8494",
+      "note": "Thread exists on MultiEcuScan's own official forum per search results; content not fetchable in this pass (404 / TLS cert mismatch on alternate host). Open, unconfirmed lead -- not used to corroborate the byte value above."
+    }
+  ],
+  "cuore_read_support": {
+    "status": "needs_did_definition",
+    "note": "Not readable by CUORE today; no DID defined in cuore/live/did_catalog.py and none documented publicly."
+  },
+  "cuore_write_support": {
+    "status": "not_supported",
+    "recommendation": "MES-handoff only; see docs/research/MES_PADDLE_SHIFT_CODING_2026-10-14.md section 7"
+  },
+  "research_date": "2026-10-14"
+}

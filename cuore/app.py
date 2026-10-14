@@ -26,6 +26,7 @@ from mes.errors import MesError  # noqa: E402  -- needs bootstrap to have run
 
 from .api import attested as attested_api  # noqa: E402
 from .api import buscapture as buscapture_api  # noqa: E402
+from .api import modifications as modifications_api  # noqa: E402
 from .api import scan_health as scan_health_api  # noqa: E402
 from .api import cases as cases_api, checklists as checklists_api, dossier as dossier_api, electrical as electrical_api, feedback as feedback_api, flow as flow_api, jobs as jobs_api, known_good, live, live_ui, liveboard, logs, media as media_api, parts as parts_api, recordings, reference, shop as shop_api, system, systems as systems_api, systems_map as systems_map_api, tests as tests_api, timeline as timeline_api, tools as tools_api, tools_kb as tools_kb_api, experience as experience_api, vehicles  # noqa: E402
 from .config import Settings, load  # noqa: E402
@@ -46,6 +47,7 @@ from .api import owner_events as owner_events_api  # noqa: E402
 from .api import scanlog as scanlog_api  # noqa: E402
 from .api import vision as vision_api  # noqa: E402
 from .web import media_routes  # noqa: E402
+from .web import mods_routes  # noqa: E402
 from .web import modules_routes  # noqa: E402
 from .web import parts_routes  # noqa: E402
 from .web import report_routes  # noqa: E402
@@ -144,6 +146,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(live_ui.router, prefix="/api")
     app.include_router(liveboard.router, prefix="/api")
     app.include_router(buscapture_api.router, prefix="/api")
+    app.include_router(modifications_api.router, prefix="/api")
     app.include_router(owner_events_api.router, prefix="/api")
     app.include_router(scanlog_api.router, prefix="/api")
     app.include_router(vision_api.router, prefix="/api")
@@ -189,6 +192,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(tests_routes.router)
     app.include_router(media_routes.router)
     app.include_router(parts_routes.router)
+    app.include_router(mods_routes.router)
     app.include_router(report_routes.router)
     app.include_router(systems_routes.router)
     app.include_router(system_routes.router)

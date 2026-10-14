@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Modifications — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('mods.css') }}">
+
+<div class="mods-page">
+  <header class="mods-header">
+    <h1>Modifications</h1>
+    <p class="mods-rule"><b>Modifications — not diagnostics.</b> CUORE
+      diagnoses; it never performs coding or configuration writes itself —
+      a modification is done in MES/wiTECH (or the car's own menu) via a
+      handoff card below, and recorded here once it's done.</p>
+  </header>
+
+  {% if saved %}<p class="chip ok mods-flash">Saved.</p>{% endif %}
+  {% if error %}<p class="chip returned mods-flash">{{ error }}</p>{% endif %}
+
+  <section class="mods-this-car">
+    <h2>This car
+      <span class="chip {{ 'chronic' if status.status == 'modified' else 'ok' }}">{{ status.status|capitalize }}</span>
+    </h2>
+    {% if not status.modifications %}
+      <p class="muted small">No modifications recorded — stock configuration.</p>
+    {% else %}
+      <div class="mods-ledger">
+      {% for r in status.modifications %}
+        <div class="panel mod-ledger-card{{ ' mod-reported' if r.source == 'reported_by_owner' }}" id="rec-{{ r.id }}">
+          <h3>{{ r.mod_name }}</h3>
+          <p class="small muted">
+            {{ r.done_at or "date unknown" }} by {{ r.by.role }}{% if r.by.name %} ({{ r.by.name }}){% endif %}
+            {% if r.source == "reported_by_owner" %}<span class="chip plain">reported by owner</span>{% endif %}
+          </p>
+          {% if r.from_value or r.to_value %}
+          <p class="small">{{ r.from_value or "?" }} &rarr; {{ r.to_value or "?" }}</p>
+          {% endif %}
+          {% if r.tool %}<p class="small muted">Tool: {{ r.tool }}</p>{% endif %}
+          {% if r.backup and r.backup != "none" %}<p class="small muted">Backup: {{ r.backup }}</p>{% endif %}
+          {% if r.verification and (r.verification.how or r.verification.result) %}
+          <p class="small muted">Verification: {{ r.verification.how }}{% if r.verification.when %} ({{ r.verification.when }}){% endif %}{% if r.verification.result %} — {{ r.verification.result }}{% endif %}</p>
+          {% endif %}
+          {% if r.proxi_realigned is not none %}
+          <p class="small muted">PROXI realigned: {{ "yes" if r.proxi_realigned else "no" }}</p>
+          {% endif %}
+          {% if r.notes %}<p class="small muted">{{ r.notes }}</p>{% endif %}
+          {% if r.audit %}<p class="small muted">Edited {{ r.audit|length }} time{{ "s" if r.audit|length != 1 }}.</p>{% endif %}
+          {% if r.source != "reported_by_owner" %}
+          <form method="post" action="/v/{{ vin }}/mods/{{ r.id }}/delete" class="mod-inline-form">
+            <button class="btn small" type="submit">Remove</button>
+          </form>
+          {% endif %}
+        </div>
+      {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="mods-catalog">
+    <h2>Available modifications</h2>
+    <p class="small muted">Sourced catalogue for this platform — the "Do it
+      in MES" card and the record form below each entry are the handoff:
+      the write happens in MES/wiTECH, the record happens here.</p>
+    <div class="mods-catalog-list">
+    {% for m in catalog %}
+      {% set handoff = handoff_for(m.id) if handoff_for is defined else none %}
+      {% set full = True %}
+      {% include "_mod_card.html" %}
+    {% endfor %}
+    </div>
+  </section>
+
+  <section class="mods-elsewhere">
+    <h2>Record a modification done elsewhere</h2>
+    <p class="small muted">Not in the catalogue above — an aftermarket
+      part, a software flash, anything else done to this car outside of
+      what's catalogued.</p>
+    <form method="post" action="/v/{{ vin }}/mods/record" class="mod-record-form panel">
+      <label>What was done <input type="text" name="free_text" required maxlength="500"
+             placeholder="e.g. aftermarket turbo inlet pipe fitted"></label>
+      <label>Tool used
+        <select name="tool">
+          <option value="other" selected>Other</option>
+          <option value="MES">MES</option>
+          <option value="wiTECH">wiTECH</option>
+          <option value="dealer">Dealer</option>
+        </select>
+      </label>
+      <label>Recorded by (role)
+        <select name="by_role">
+          <option value="mechanic" selected>Mechanic</option>
+          <option value="dealer">Dealer</option>
+          <option value="owner">Owner</option>
+        </select>
+      </label>
+      <label>Name <input type="text" name="by_name" maxlength="200"></label>
+      <label>From <input type="text" name="from_value" maxlength="500"></label>
+      <label>To <input type="text" name="to_value" maxlength="500"></label>
+      <label>Backup (file/media id, or "none") <input type="text" name="backup" placeholder="none"></label>
+      <label>Verification &mdash; how <input type="text" name="verification_how" maxlength="500"></label>
+      <label>Verification &mdash; result <input type="text" name="verification_result" maxlength="500"></label>
+      <label>Notes <textarea name="notes" maxlength="4000"></textarea></label>
+      <button class="btn primary" type="submit">Record</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

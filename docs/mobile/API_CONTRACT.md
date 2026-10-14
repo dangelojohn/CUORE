@@ -57,6 +57,31 @@ is no longer in the live schema.
 | GET | /api/experience/{vin}/inputs/export | Export user-added links (curated-table shape) for review |
 | POST | /api/experience/links/{link_id}/flag | Flag any link (curated or added) as wrong/outdated |
 | POST | /api/experience/links/{link_id}/worked | "Worked on this car?" tick against any link |
+| GET | /api/mods/catalog | Every known modification (paddle shift NA/Euro first) |
+| GET | /api/mods/catalog/{mod_id} | One catalogue modification by id |
+| GET | /api/mods/catalog/{mod_id}/handoff | The "Do it in MES" handoff card for a catalogue modification, if one exists |
+| GET | /api/mods/{vin} | This car's modification status (stock/modified) and ledger |
+| GET | /api/mods/{vin}/non-stock | Chips for other surfaces: this car's non-stock configuration |
+| POST | /api/mods/{vin}/record | Record one modification done to this car |
+| PATCH | /api/mods/{vin}/{entry_id} | Edit one ledger entry |
+| DELETE | /api/mods/{vin}/{entry_id} | Soft-delete one ledger entry |
+| POST | /api/mods/{vin}/{entry_id}/restore | Undo a soft-delete |
+
+`/api/mods/*` landed 2026-10-14 (the Modifications layer -- see
+`docs/handbook/01-decisions-and-rules.md`'s own rule added that day). The
+catalogue (`/api/mods/catalog*`) is read-only, same convention as
+`/api/parts*` -- a sourced knowledge table, not something a client edits;
+the ledger (`/api/mods/{vin}*`) is the writable, attested record of what
+was actually done to one car. A ledger entry's `by_role` is one of
+`mechanic`/`dealer`/`owner`, and `tool` one of `MES`/`wiTECH`/`dealer`/
+`other` -- a bad value on either comes back as a 400, same `ValueError` ->
+`BadRequest` convention as `OwnerEventRequest`. `GET /api/mods/{vin}/
+non-stock` also merges in, read-side only, any owner-reported "part fitted
+elsewhere" / "module coded" event already filed through `POST /api/owner/
+{vin}/events` -- see `cuore/services/modifications_bridge.py`'s own
+docstring. CUORE never writes a coding/configuration change to the car
+itself through any of these routes, or any other: the write happens in
+MES/wiTECH, and these routes only ever record that it happened.
 
 `/api/vision/*` landed mid-write of this document (it did not exist at the
 start of this pass; `cuore/services/vision_bridge.py` and `cuore/api/vision.py`

@@ -1,0 +1,12 @@
+{# Modifications tab -- one line for _vtabs.html's "More" menu.
+   The owner of _vtabs.html: add this inside the <div class="vmore-tab-panel">
+   block (any position; e.g. right after the Parts line), as either
+       {% include "_mods_tab.html" %}
+   or, since it's one line, just copy the vtab() call below directly.
+   Needs `vtab` (the macro _vtabs.html defines above that point) and
+   `bar.vin` (already in scope there) -- both already true at that point
+   in the file, same as every other vtab(...) line in that block. Also
+   add "mods" to that file's own `_more` tuple (the set of tab keys that
+   belong behind the More menu) so the flow-bar highlight logic
+   (`flow_tab_key in _more`) recognises it. #}
+{{ vtab("mods", "/v/" + bar.vin + "/mods", _lbl("mods", "Modifications")) }}

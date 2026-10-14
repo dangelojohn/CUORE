@@ -1,0 +1,128 @@
+{# One modification-catalogue card: badges, (optionally) the full
+   prerequisites/risks/sources/handoff card, and the "Record that it was
+   done" form. Shared by mods.html (compact, linking out to the detail
+   page) and mod.html (full, ``full=True``) so the two pages render this
+   exactly once, never two drifting copies.
+
+   Context expected:
+     m        -- one cuore.services.modifications_bridge.mod()/all_mods()
+                 row (name, what_it_changes, module, kind, how, values,
+                 prerequisites, risks, reversible, reversal_method,
+                 verification, legal_warranty_note, sources, confidence).
+     handoff  -- the cuore.services.mes_handoff_bridge.card() dict for this
+                 modification, or None when no mes_function_id cross-ref
+                 exists.
+     vin      -- for the detail-page link and the record form's action.
+     full     -- optional; truthy renders prerequisites/risks/sources/
+                 handoff/record-form (the detail page); falsy renders the
+                 compact card (name links to the detail page, no form). #}
+{% set m = m if m is defined else None %}
+{% set handoff = handoff if handoff is defined else None %}
+{% set full = full if full is defined else False %}
+
+{% macro _conf_chip(c) -%}
+<span class="chip {{ 'ok' if c in ('CONFIRMED', 'CORROBORATED') else ('plain' if c == 'UNKNOWN' else 'chronic') }}">{{ c }}</span>
+{%- endmacro %}
+
+{% macro _rev_chip(r) -%}
+{% if r is sameas true %}<span class="chip ok">Reversible</span>
+{%- elif r is sameas false %}<span class="chip returned">Not reversible</span>
+{%- else %}<span class="chip plain">Reversible: UNKNOWN</span>
+{%- endif %}
+{%- endmacro %}
+
+{% if not m %}
+  <div class="panel mod-card"><p class="muted small">No modification data.</p></div>
+{% else %}
+  <div class="panel mod-card" id="mod-{{ m.id }}">
+    <h3>{% if not full %}<a href="/v/{{ vin }}/mods/{{ m.id }}">{{ m.name }}</a>{% else %}{{ m.name }}{% endif %}</h3>
+    <p class="small muted">{{ m.module }} &middot; {{ m.kind }}</p>
+    <p>{{ m.what_it_changes }}</p>
+    <p class="mod-badges">
+      {{ _conf_chip(m.confidence) }}
+      {{ _rev_chip(m.reversible) }}
+      <span class="chip chronic" title="{{ m.risks|join(' / ') }}">{{ m.risks|length }} risk{{ "s" if m.risks|length != 1 }} noted</span>
+    </p>
+
+    {% if full %}
+      <h4>How &mdash; in {{ m.how.method }}</h4>
+      <p class="mono small mod-how">{{ m.how.detail }}</p>
+
+      {% if m.prerequisites %}
+      <h4>Prerequisites</h4>
+      <ul class="small">{% for p in m.prerequisites %}<li>{{ p }}</li>{% endfor %}</ul>
+      {% endif %}
+
+      <h4>Risks</h4>
+      <ul class="small mod-risks">{% for r in m.risks %}<li>{{ r }}</li>{% endfor %}</ul>
+
+      {% if m.reversal_method %}<p class="small muted"><b>Reversal:</b> {{ m.reversal_method }}</p>{% endif %}
+
+      {% if m.verification %}
+      <h4>Verify after</h4>
+      <ul class="small">{% for v in m.verification %}<li>{{ v }}</li>{% endfor %}</ul>
+      {% endif %}
+
+      <p class="small muted"><b>Legal/warranty:</b> {{ m.legal_warranty_note }}</p>
+
+      {% if m.sources %}
+      <h4>Sources</h4>
+      <ul class="small">
+      {% for s in m.sources %}
+        <li>{% if s.url and s.url.startswith("http") %}<a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.title }}</a>{% else %}{{ s.title }}{% if s.url %} ({{ s.url }}){% endif %}{% endif %}{% if s.note %} &mdash; {{ s.note }}{% endif %}</li>
+      {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if handoff %}
+      <div class="mod-handoff">
+        <h4>{{ handoff.title }}</h4>
+        <dl class="mes-handoff-fields">
+          <dt>Menu path</dt><dd>{{ handoff.menu_path }}</dd>
+          <dt>Before</dt><dd>{{ handoff.prerequisites|join("; ") }}</dd>
+          <dt>After</dt><dd>{{ handoff.record_after }}</dd>
+        </dl>
+        <p class="small muted">Source: {{ handoff.source }} (confidence: {{ handoff.confidence }})</p>
+      </div>
+      {% endif %}
+
+      <h4>Record that it was done</h4>
+      <form method="post" action="/v/{{ vin }}/mods/record" class="mod-record-form">
+        <input type="hidden" name="mod_id" value="{{ m.id }}">
+        <label>Tool used
+          <select name="tool">
+            <option value="MES" selected>MES</option>
+            <option value="wiTECH">wiTECH</option>
+            <option value="dealer">Dealer</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label>Recorded by (role)
+          <select name="by_role">
+            <option value="mechanic" selected>Mechanic</option>
+            <option value="dealer">Dealer</option>
+            <option value="owner">Owner</option>
+          </select>
+        </label>
+        <label>Name <input type="text" name="by_name" maxlength="200"></label>
+        <label>From <input type="text" name="from_value" maxlength="500"></label>
+        <label>To <input type="text" name="to_value" maxlength="500"></label>
+        <label>Backup (file/media id, or "none") <input type="text" name="backup" placeholder="none"></label>
+        <label>Verification &mdash; how <input type="text" name="verification_how" maxlength="500"></label>
+        <label>Verification &mdash; when <input type="text" name="verification_when" maxlength="500"></label>
+        <label>Verification &mdash; result <input type="text" name="verification_result" maxlength="500"></label>
+        <label>PROXI realigned?
+          <select name="proxi_realigned">
+            <option value="">n/a</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </label>
+        <label>Notes <textarea name="notes" maxlength="4000"></textarea></label>
+        <button class="btn primary" type="submit">Record</button>
+      </form>
+    {% else %}
+      <a class="small" href="/v/{{ vin }}/mods/{{ m.id }}">Details, handoff card &amp; record form &rarr;</a>
+    {% endif %}
+  </div>
+{% endif %}
