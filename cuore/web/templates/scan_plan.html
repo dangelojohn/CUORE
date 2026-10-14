@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ bar.name }} — Scan plan{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<div class="scanlog-page">
+  <h1>Scan plan</h1>
+  <p class="lede">The ten scans this diagnosis is built on, in order -- one guided
+    scan per visit, not fifty single reads. Each row is settled against this
+    car's own evidence: what it still owes, what it proves, which cable it
+    needs.</p>
+
+  {% if plan.scan_plan %}
+    <p class="small"><span class="chip plain scanlog-plan-chip">Scan {{ plan.scan_plan.count }} of {{ plan.scan_plan.total }}</span>
+      <span class="muted">&mdash; complete scans on file for this car.</span></p>
+  {% endif %}
+
+  <div class="tw">
+  <table class="scanlog-table">
+    <thead>
+      <tr>
+        <th>#</th><th>Scan</th><th>Status</th><th>Purpose / proves</th>
+        <th>Cables</th><th class="no-print"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in plan.rows %}
+      <tr>
+        <td class="mono">{{ row.n }}</td>
+        <td>
+          <b>{{ row.title }}</b>
+          <details>
+            <summary class="small muted">Preconditions</summary>
+            <ul class="small muted">
+              {% for p in row.preconditions %}<li>{{ p }}</li>{% endfor %}
+            </ul>
+          </details>
+        </td>
+        <td>
+          {% if row.status == "done" %}
+            <span class="chip ok">done</span>
+            <div class="small mono"><a href="/v/{{ vin }}/scans/{{ row.scan_id }}">{{ row.scan_id }}</a></div>
+            <div class="small muted">{{ row.date }}</div>
+          {% elif row.status == "due" %}
+            <span class="chip plain">due</span>
+            {% if row.why %}<div class="small muted">{{ row.why }}</div>{% endif %}
+          {% else %}
+            <span class="chip chronic">blocked</span>
+            {% if row.why %}<div class="small muted">{{ row.why }}</div>{% endif %}
+          {% endif %}
+        </td>
+        <td class="small">
+          <div>{{ row.purpose }}</div>
+          <div class="muted">Proves: {{ row.proves }}</div>
+          {% if row.test_links %}
+            <div class="small">
+              {% for l in row.test_links %}<a class="jump-chip sm" href="{{ l.href }}">{{ l.label }}</a>{% endfor %}
+            </div>
+          {% endif %}
+        </td>
+        <td class="small">{{ row.cables|join(", ") if row.cables else "none" }}</td>
+        <td class="no-print">
+          {% if row.status == "due" and row.connect_href %}
+            <a class="btn connect-btn" href="{{ row.connect_href }}">Connect to car</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

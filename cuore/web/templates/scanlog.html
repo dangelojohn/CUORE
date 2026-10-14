@@ -13,7 +13,8 @@
 
   {% if plan %}
     <p class="small"><span class="chip plain scanlog-plan-chip">Scan {{ plan.count }} of {{ plan.total }}</span>
-      <span class="muted">&mdash; about {{ plan.total }} scans over a diagnosis, not fifty single reads.</span></p>
+      <span class="muted">&mdash; about {{ plan.total }} scans over a diagnosis, not fifty single reads.</span>
+      <a href="/v/{{ vin }}/scan-plan">View the scan plan</a></p>
   {% endif %}
 
   {% if not scans %}

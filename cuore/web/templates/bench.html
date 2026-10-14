@@ -239,6 +239,7 @@
       <div class="bench-lastscan-links">
         <a class="btn" href="{{ bench.last_scan.href }}">Open scan</a>
         <a class="btn" href="{{ bench.last_scan.health_href }}">Health report</a>
+        <a class="btn" href="/v/{{ vin }}/scan-plan">Scan plan</a>
         {% if bench.last_scan.compare_href %}
           <a class="btn" href="{{ bench.last_scan.compare_href }}">Compare with previous</a>
         {% endif %}
