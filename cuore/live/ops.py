@@ -23,6 +23,7 @@ from .buses import BUSES, CAN_C, Bus, routes_for
 from .config import mes_folders, mes_interfaces, mes_registry, resolve_port
 from .errors import BadCommand, LiveError, Refused
 from .framing import adapter_error, no_data
+from .safety import assert_read_only_uds
 from .obd import (decode_obd_dtcs, decode_pid, decode_readiness, decode_supported_pids,
                   dtc_from_two_bytes, evap_verdict, resolve_pid, PIDS_BY_HEX)
 from .transport import DEFAULT_TIMEOUT, AdapterLink, Session, link
@@ -147,8 +148,8 @@ def _active_probe_0100(lk: AdapterLink, b: Bus, port: str, baud: int,
     silent (ignition off, HS/MS switch, a half-seated plug), not a false
     negative from the gateway's silence.
 
-    Never called for can_ihs or can_ch: those have no legislated responder,
-    are reachable only with a bypass cable, and must stay passive-only.
+    Never called for can_ch (must stay passive-only); can_ihs under blue_a5 has
+    its own UDS probe, :func:`_active_probe_3e00`.
     Uses ``_bypass_silence_guard`` because this request is what *establishes*
     verification -- it cannot itself be gated on being verified already.
     """
@@ -192,6 +193,46 @@ def _active_probe_0100(lk: AdapterLink, b: Bus, port: str, baud: int,
             "note": "active probe 0100 got no reply"}
 
 
+def _active_probe_3e00(lk: AdapterLink, b: Bus, port: str, baud: int,
+                       allow_while_mes_connected: bool) -> dict[str, Any]:
+    """One functional UDS TesterPresent, the last resort for CAN-IHS under blue_a5.
+
+    IHS body modules are UDS, not OBD Mode 01, and a gateway-isolated or merely
+    quiet port can be 0 frames on a healthy car. ``3E 00`` (positive response
+    requested) on the 29-bit functional address 18DB33F1 at the route's bitrate
+    is read-only and harmless; any 18DAF1xx reply proves the bus alive. CAN-IHS
+    needs no human confirmation (transmit_needs_confirmation is False); can_ch
+    does, and never reaches this. Uses ``_bypass_silence_guard`` for the same
+    reason as :func:`_active_probe_0100`.
+    """
+    assert_read_only_uds(0x3E, bytes([0x00]))
+    plans = [r for r in routes_for(b, lk.cable) if r.stn_protocol == "34"]
+    if not plans:
+        return {"ok": False, "responders": [], "raw": None, "error": None,
+                "note": "no CAN-IHS 29-bit route for cable " + repr(lk.cable)}
+    last: dict[str, Any] = {"raw": None, "error": None}
+    for route in plans:
+        with lk.session("active_probe_3e00", bus=b, port=port, baud=baud, passive=False,
+                        allow_while_mes_connected=allow_while_mes_connected, route=route,
+                        _bypass_silence_guard=True) as sess:
+            for c in ("ATCAF1", "ATCP18", "ATSHDB33F1", "ATAT0", "ATSTFF"):
+                sess.cmd(c, 2)
+            q = sess.query("3E00", "7E", timeout=1.5)
+            if not q.get("all_ecus"):
+                q = sess.query("3E00", "7E", timeout=1.5)
+            responders = sorted(h.upper() for h in q["all_ecus"]
+                                if len(h) == 8 and h.upper().startswith("18DAF1"))
+            ok = bool(responders)
+            audit.record("active_probe", bus=b.key, request="3E00", ok=ok,
+                         stn_protocol=route.stn_protocol, reply_ecus=responders, raw=q["raw"])
+            last = q
+            if ok:
+                return {"ok": True, "responders": responders, "raw": q["raw"],
+                        "error": q["error"], "stn_protocol": route.stn_protocol}
+    return {"ok": False, "responders": [], "raw": last.get("raw"), "error": last.get("error"),
+            "note": "active probe 3E00 got no reply"}
+
+
 def _is_obd_reply(header: str) -> bool:
     """A legislated OBD-II reply id: 7E8-7EF (11-bit) or 18DAF1xx (29-bit)."""
     h = (header or "").upper()
@@ -212,8 +253,9 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
     the story: 2018+ Giorgio cars gateway-isolate that bus (see
     :func:`_active_probe_0100`) so a car behind the Security Gateway Module
     is silent even when perfectly healthy. One active Mode 01 PID 00 probe is
-    tried before reporting silence; ``can_ihs``/``can_ch`` never get this
-    treatment and stay passive-only.
+    tried before reporting silence; ``can_ihs`` under blue_a5 gets a functional
+    UDS ``3E 00`` probe instead (:func:`_active_probe_3e00`); ``can_ch`` never
+    gets one and stays passive-only.
     """
     b = _bus(bus)
     lk = link()
@@ -265,6 +307,24 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                                           "instead by a reply from " +
                                           ", ".join(probe["responders"]) +
                                           " to a single legislated Mode 01 PID 00 request")})
+        base_note += "; " + probe["note"]
+    elif b.key == "can_ihs" and lk.cable == "blue_a5":
+        probe = _active_probe_3e00(lk, b, port, baud, allow_while_mes_connected)
+        attempts.append({"stn_protocol": "34", "header_bits": 29, "frames": 0,
+                         "error": probe.get("error"), "ids": {}, "active_probe": True,
+                         "responders": probe.get("responders", [])})
+        if probe["ok"]:
+            lk.mark_verified(b, 0, verified_by="active_probe_3e00",
+                             probe_stn_protocol=probe.get("stn_protocol"),
+                             responders=probe["responders"])
+            return _stamp(sess, {"verified": True, "frames": 0, "rate_hz": 0.0, "ids": {},
+                                 "error": None, "attempts": attempts,
+                                 "verified_by": "active_probe_3e00",
+                                 "responders": probe["responders"],
+                                 "note": ("CAN-IHS carried no broadcast traffic; verified "
+                                          "instead by a reply from " +
+                                          ", ".join(probe["responders"]) +
+                                          " to a single functional UDS TesterPresent (3E 00)")})
         base_note += "; " + probe["note"]
     return _stamp(sess, {"verified": False, "frames": 0, "rate_hz": 0.0, "ids": {},
                          "error": attempts[-1]["error"] if attempts else None,

@@ -204,6 +204,54 @@ try:
           str(result3.get("attempts")))
 
     # =======================================================================
+    # (c2) can_ihs under blue_a5: silent listen -> one functional 3E 00.
+    # =======================================================================
+    script_3e = dict(_BASE)
+    script_3e["3E00"] = "18DAF1A0 02 7E 00"
+    lk5, scripted5 = _link(script_3e)
+    lk5.set_cable("blue_a5")
+    result5 = ops.verify_bus("can_ihs", seconds=0.05)
+    check("ihs probe: verified True", result5.get("verified") is True, str(result5))
+    check_eq("ihs probe: verified_by", result5.get("verified_by"), "active_probe_3e00")
+    check_eq("ihs probe: responders", result5.get("responders"), ["18DAF1A0"])
+    check("ihs probe: 3E00 sent on 18DB33F1 after the listen",
+          "3E00" in scripted5.sent and "ATCP18" in scripted5.sent
+          and "ATSHDB33F1" in scripted5.sent, str(scripted5.sent))
+    check("ihs probe: link.verified records verified_by",
+          lk5.verified.get("can_ihs", {}).get("verified_by") == "active_probe_3e00",
+          str(lk5.verified.get("can_ihs")))
+
+    script_3e_silent = dict(_BASE)
+    lk6, scripted6 = _link(script_3e_silent)
+    lk6.set_cable("blue_a5")
+    result6 = ops.verify_bus("can_ihs", seconds=0.05)
+    check_eq("ihs silent: verified False", result6.get("verified"), False)
+    check("ihs silent: note mentions the probe",
+          "active probe 3E00 got no reply" in (result6.get("note") or ""),
+          repr(result6.get("note")))
+    check("ihs silent: 3E00 was tried", "3E00" in scripted6.sent, str(scripted6.sent))
+    check("ihs silent: attempt tagged active_probe",
+          any(a.get("active_probe") for a in (result6.get("attempts") or [])))
+
+    script_ch = dict(_BASE)
+    script_ch["3E00"] = "18DAF1A0 02 7E 00"
+    script_ch["0100"] = "7E8 06 41 00 BE 3F A8 13"
+    for cable in ("blue_a5", "grey_a6"):
+        lk7, scripted7 = _link(script_ch)
+        lk7.set_cable(cable)
+        try:
+            result7 = ops.verify_bus("can_ch", seconds=0.05)
+        except Exception as e:  # noqa: BLE001 -- unreachable under this cable is fine too
+            result7 = {"verified": False, "exc": str(e)}
+        check(f"can_ch/{cable}: never verified by a probe", not result7.get("verified"),
+              str(result7))
+        check(f"can_ch/{cable}: no 3E00/0100 ever sent",
+              "3E00" not in scripted7.sent and "0100" not in scripted7.sent,
+              str(scripted7.sent))
+
+    lk7.set_cable("none")   # the declared cable persists in the state dir
+
+    # =======================================================================
     # (d) send_raw: ATRV (adapter-only) never triggers the silence guard,
     #     even on a totally unverified link.
     # =======================================================================

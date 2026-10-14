@@ -96,7 +96,9 @@ CAN_IHS = Bus(
             "34",
             125000,
             "untested",
-            "HS transceiver re-pinned onto 3/11 by the cable; never use STP 53/54 with the cable fitted",
+            "HS transceiver re-pinned onto 3/11 by the cable; never use STP 53/54 with the cable fitted. "
+            "If the passive listen hears nothing, ops.verify_bus() sends one functional UDS 3E 00 "
+            "(18DB33F1) and accepts any 18DAF1xx reply as proof the bus is alive.",
         ),
         Route(
             "none",
