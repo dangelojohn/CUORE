@@ -352,6 +352,66 @@ def draw_service(c: canvas.Canvas, x: float, y: float, w: float, h: float,
         _draw_qr(c, x + w - pad - qr_w, y + pad, qr_w, qr_w)
 
 
+def draw_transmission_service(c: canvas.Canvas, x: float, y: float, w: float, h: float,
+                              data: dict[str, Any], qr_url: Optional[str] = None) -> None:
+    """ATF + pan/filter drivetrain service label. The fill temperature
+    actually reached is the key line (ZF 8HP fill/level-check window is
+    30-50 C -- docs/reference/ZF8HP_SERVICE_DATA.md): a fill done outside
+    that window is the single fact most worth seeing again at the next
+    service, so it gets the biggest, boldest line on the label, same
+    "key line" treatment as :func:`draw_torque_tag`'s torque value."""
+    pad = _pad(w, h)
+    ix, iw = x + pad, w - 2 * pad
+    qr_w = mm_to_pt(h / PT_PER_MM * 0.4) if qr_url else 0.0
+    if qr_url:
+        iw -= qr_w + pad
+    top = y + h - pad
+
+    date = data.get("date") or ""
+    header_h = h * 0.14
+    draw_fit_line(c, ix, top - header_h * 0.8, iw * 0.65, "TRANSMISSION SERVICE",
+                 font=FONT_BOLD, max_size=10.0)
+    draw_fit_line(c, ix + iw * 0.65, top - header_h * 0.8, iw * 0.35, date, font=FONT,
+                 max_size=9.0, align="right")
+
+    temp = data.get("fill_temp_c")
+    temp_line = f"Fill temp: {temp} C (window 30-50 C)" if temp else "Fill temp: not recorded"
+    draw_fit_line(c, ix, top - header_h - h * 0.16, iw, temp_line, font=FONT_BOLD,
+                 max_size=11.0, min_size=KEY_LINE_MIN_FONT_PT)
+
+    fluid_line = " / ".join(v for v in (
+        data.get("fluid_spec"), data.get("fluid_brand"),
+        (f"{data.get('quantity_l')} L" if data.get("quantity_l") else None),
+    ) if v)
+    draw_fit_line(c, ix, top - header_h - h * 0.30, iw, fluid_line or "fluid: unknown",
+                 font=FONT, max_size=8.0)
+
+    pan_line = (f"Pan/filter {data.get('pan_filter_part_no')}"
+               if data.get("pan_filter_part_no") else "Pan/filter: unknown")
+    draw_fit_line(c, ix, top - header_h - h * 0.44, iw, pan_line, font=FONT, max_size=8.0)
+
+    odo_line = (f"Odo {data.get('odometer_km') or '?'} km "
+               f"({data.get('odometer_mi') or '?'} mi)")
+    draw_fit_line(c, ix, top - header_h - h * 0.58, iw, odo_line, font=FONT, max_size=7.5)
+
+    bits = []
+    if data.get("next_due_km"):
+        bits.append(f"{data['next_due_km']} km")
+    if data.get("next_due_date"):
+        bits.append(data["next_due_date"])
+    next_line = "Next due: " + (" / ".join(bits) if bits else "UNKNOWN")
+    draw_fit_line(c, ix, top - header_h - h * 0.72, iw, next_line, font=FONT_BOLD, max_size=8.0)
+
+    tail = " | ".join(t for t in (
+        (f"Tech {data.get('technician')}" if data.get("technician") else None),
+        (f"VIN..{data.get('vin_short')}" if data.get("vin_short") else None),
+    ) if t)
+    draw_fit_line(c, ix, y + pad, iw, tail, font=FONT, max_size=7.5)
+
+    if qr_url:
+        _draw_qr(c, x + w - pad - qr_w, y + pad, qr_w, qr_w)
+
+
 def draw_torque_tag(c: canvas.Canvas, x: float, y: float, w: float, h: float,
                     data: dict[str, Any], qr_url: Optional[str] = None) -> None:
     pad = _pad(w, h)
@@ -519,6 +579,7 @@ def draw_job_tag(c: canvas.Canvas, x: float, y: float, w: float, h: float,
 _DRAWERS: dict[str, Callable[..., None]] = {
     "oil_change": draw_oil_change,
     "service": draw_service,
+    "transmission_service": draw_transmission_service,
     "torque_tag": draw_torque_tag,
     "reminder": draw_reminder,
     "maintenance_reminder": draw_maintenance_reminder,

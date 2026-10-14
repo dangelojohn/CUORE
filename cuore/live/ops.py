@@ -603,6 +603,36 @@ def module_did(code: str, did: str, vin: str = "", confirm: bool = False, **kw: 
         return _observe(sess, "did", uds_mod.read_did(sess, ecu, did_int), vin)
 
 
+def module_did_sweep(code: str, dids: list[str], vin: str = "", per_did_timeout: float = 0.3,
+                     confirm: bool = False, **kw: Any) -> dict[str, Any]:
+    """Read-only 0x22 sweep of a caller-given candidate DID list against
+    one module, in one adapter session for the whole list (contrast
+    :func:`module_did`, one session per call). For a short, documented-
+    candidates-only discovery sweep (:mod:`cuore.live.fullscan`'s TCM DID
+    discovery is the first caller) -- never a blind scan of DID-space (see
+    :func:`module_discover_dids` for that, a different tool for a
+    different, broader job). Returns ``{"ecu", "bus", "tried", "hits":
+    [{"did", "bytes"}, ...]}``; a DID that times out or answers negative
+    is simply not a hit, never an error that stops the sweep.
+    """
+    ecu = uds_mod.resolve_module(code, vin or None)
+    with link().session(f"module_did_sweep {ecu.code}", bus=_bus(ecu.bus_key),
+                        confirm=confirm, **kw) as sess:
+        hits: list[dict[str, Any]] = []
+        tried = 0
+        for did in dids:
+            try:
+                did_int = int(did, 16)
+            except (TypeError, ValueError):
+                continue
+            tried += 1
+            r = uds_mod.read_did(sess, ecu, did_int, timeout=per_did_timeout)
+            if r.get("bytes"):
+                hits.append({"did": f"{did_int:04X}", "bytes": r["bytes"]})
+        result = {"ecu": ecu.code, "bus": sess.bus.key, "tried": tried, "hits": hits}
+        return _observe(sess, "did_discovery", result, vin)
+
+
 def scan_modules(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm: bool = False,
                  detail: bool = True, **kw: Any) -> dict[str, Any]:
     """UDS DTC sweep over every confirmed module on a bus. ``detail=False``
@@ -932,6 +962,7 @@ __all__ = ["observations", "status", "ports", "mes_settings", "set_cable", "cabl
            "probe", "verify_bus", "capture", "obd_dtcs", "obd_all_dtcs", "obd_pid",
            "obd_voltage", "obd_supported_pids", "obd_freeze_frame", "obd_vin",
            "readiness_in", "obd_readiness", "module_dtcs", "module_identity", "module_did",
+           "module_did_sweep",
            "scan_modules", "discover", "coverage_status", "coverage_start", "coverage_run",
            "coverage_skip", "coverage_report", "coverage_reset", "repair_status",
            "obd_mode06", "module_dtc_detail", "module_dtc_count", "clear_module_dtcs",

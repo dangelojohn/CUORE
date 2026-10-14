@@ -91,6 +91,27 @@ check_eq("battery grouped under voltage", group_of.get("battery_voltage"), "volt
 check("board lists all_channel_ids", len(board["all_channel_ids"]) > 0)
 check("board carries the read-only notice", "passenger" in board["notice"].lower())
 
+# A learned, unscaled TCM DID (cuore.live.fullscan's discovery sweep,
+# cuore.live.learned.record_did_answer) shows up under its own board key,
+# never mixed into the polled channel list, and never claims a meaning.
+from cuore.live import learned as learned_mod  # noqa: E402
+
+learned_mod.record_did_answer(VIN, "TCM", "1018", ["01", "02"], source="check_liveboard")
+board_with_did = liveboard_bridge.board(VIN)
+did_channels = board_with_did.get("learned_did_channels", [])
+check("liveboard lists the learned TCM DID", any(c.get("id") == "tcm_did_1018"
+                                                 for c in did_channels), did_channels)
+if did_channels:
+    ch = next(c for c in did_channels if c.get("id") == "tcm_did_1018")
+    check_eq("learned DID channel's system is transmission_driveline", ch.get("system"),
+             "transmission_driveline")
+    check("learned DID channel is labelled 'learned, unscaled'",
+         "learned, unscaled" in ch.get("label", ""), ch)
+    check("learned DID channel never claims a decoded meaning",
+         ch.get("scale") == "unknown" and "bytes" in ch, ch)
+    check("learned TCM DID is never in the polled channel list",
+         "tcm_did_1018" not in board_with_did.get("all_channel_ids", []))
+
 
 # --- 2. coolant above alarm -> excessive, text mentions coolant ------------
 

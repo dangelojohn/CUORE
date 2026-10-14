@@ -51,6 +51,25 @@ def _electrical_bridge():
 # --- templates -------------------------------------------------------------
 
 
+#: ``(owner_events category, kind)`` -> the label ``kind`` a mobile "Print a
+#: label" action on that owner-reported event should open. One entry today:
+#: the single ``fluids / driveline_fluid`` kind (transmission / transfer
+#: case / differential oil, whichever unit the ``which`` field names) maps
+#: onto the ``transmission_service`` label. Consumed by whichever print
+#: route the mobile page (``cuore.web.owner_routes``/``labels_routes``)
+#: ends up using -- not read from here yet, so add to this table rather
+#: than hand-rolling a second one when that route is built.
+OWNER_EVENT_LABEL_KIND: dict[tuple[str, str], str] = {
+    ("fluids", "driveline_fluid"): "transmission_service",
+}
+
+
+def label_kind_for_owner_event(category: str, kind: str) -> Optional[str]:
+    """The label kind a "Print a label" action on this owner-event
+    category/kind should open, or ``None`` if none is mapped."""
+    return OWNER_EVENT_LABEL_KIND.get((category, kind))
+
+
 def list_templates() -> dict[str, Any]:
     rows = []
     for t in label_templates.list_templates():
@@ -236,6 +255,42 @@ def service_label_data(vin: str, record: Optional[dict[str, Any]],
         "key_spec": overrides.get("key_spec") or "",
         "key_torque": overrides.get("key_torque") or "",
         "technician": overrides.get("technician") or d.get("technician") or "",
+    }
+
+
+def transmission_service_label_data(vin: str, overrides: dict[str, Any]) -> dict[str, Any]:
+    """ATF + pan/filter drivetrain service label. Prefills from the most
+    recent ``mes.service`` ``drivetrain`` record for the transmission
+    section (:func:`mes.service.last_drivetrain`) when ``vin`` has one and
+    the caller did not override a field directly -- same record-then-
+    override posture as :func:`oil_change_label_data`, just without a
+    ``record_id`` picker (this kind is reachable with overrides alone,
+    same as ``torque_tag``/``part_tag``)."""
+    d: dict[str, Any] = {}
+    if vin.strip():
+        try:
+            last = service_mod.last_drivetrain(vin, "transmission")
+            if last:
+                d = dict(last.get("data") or {})
+        except Exception:  # noqa: BLE001 -- a label must never 500 on a lookup miss
+            d = {}
+    fluid = d.get("fluid") or {}
+    parts = d.get("parts_replaced") or []
+    pan_part = next((p.get("part_no") for p in parts if p.get("part_no")), "")
+    odo_km = overrides.get("odometer_km") or d.get("odometer_km")
+    return {
+        "date": overrides.get("date") or d.get("date") or "",
+        "fluid_spec": overrides.get("fluid_spec") or fluid.get("spec") or "",
+        "fluid_brand": overrides.get("fluid_brand") or fluid.get("brand") or "",
+        "quantity_l": overrides.get("quantity_l") or d.get("quantity_added_l") or "",
+        "pan_filter_part_no": overrides.get("pan_filter_part_no") or pan_part or "",
+        "fill_temp_c": overrides.get("fill_temp_c") or d.get("fluid_temp_c") or "",
+        "odometer_km": _fmt_num(odo_km),
+        "odometer_mi": _fmt_num(label_render.km_to_mi(odo_km)),
+        "next_due_km": overrides.get("next_due_km") or "",
+        "next_due_date": overrides.get("next_due_date") or "",
+        "technician": overrides.get("technician") or d.get("technician") or "",
+        "vin_short": label_render.short_vin(vin),
     }
 
 
@@ -427,6 +482,8 @@ _LABEL_DATA_BUILDERS = {
     "oil_change": lambda vin, record, overrides: oil_change_label_data(
         vin, record, overrides.get("shop_name", ""), overrides),
     "service": lambda vin, record, overrides: service_label_data(vin, record, overrides),
+    "transmission_service": lambda vin, record, overrides: transmission_service_label_data(
+        vin, overrides),
     "torque_tag": lambda vin, record, overrides: torque_tag_label_data(overrides),
     "reminder": lambda vin, record, overrides: reminder_label_data(vin, overrides),
     "maintenance_reminder": lambda vin, record, overrides: _maintenance_reminder_preview(
@@ -495,4 +552,6 @@ __all__ = [
     "maintenance_due_items", "maintenance_reminder_label_data",
     "maintenance_reminder_batch_pdf", "part_tag_label_data",
     "inspection_tag_label_data", "job_tag_label_data",
+    "transmission_service_label_data", "OWNER_EVENT_LABEL_KIND",
+    "label_kind_for_owner_event",
 ]

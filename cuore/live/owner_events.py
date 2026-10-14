@@ -166,10 +166,20 @@ TAXONOMY: dict[str, dict[str, Any]] = {
                 "Transmission / transfer-case / differential oil",
                 {"which": _f("choice", "Which unit",
                              choices=("transmission", "transfer case", "differential")),
-                 "action": _f("choice", "Action", choices=("changed", "topped up")),
-                 "qty": _f("number", "Quantity", unit="L")},
+                 "fluid_spec": _f("text", "Fluid spec (e.g. ZF LifeguardFluid 8)",
+                                  remember=True),
+                 "brand": _f("text", "Fluid brand", remember=True),
+                 "qty": _f("number", "Quantity", unit="L"),
+                 "pan_filter_part_no": _f("text", "Pan/filter part number", remember=True),
+                 "fill_temp_c": _f("number", "Fluid temperature at fill/level check", unit="C"),
+                 "method": _f("choice", "Method",
+                              choices=("drain-fill", "pan drop", "flush"))},
                 "Driveline fluid history explains shift-quality complaints and some network/"
-                "module codes tied to a driveline control unit.",
+                "module codes tied to a driveline control unit. For the ZF 8HP transmission, "
+                "the documented fill/level-check window is 30-50 C (docs/reference/"
+                "ZF8HP_SERVICE_DATA.md) -- a fill temperature outside that range is worth a "
+                "mechanic's follow-up. Service interval: UNKNOWN -- not in "
+                "mes.maintenance_specs for this car.",
                 ("transmission_driveline",)),
             "washer_fluid": _kind(
                 "Washer fluid top-up",

@@ -80,6 +80,8 @@ _OVERRIDE_FIELDS = (
     "element", "condition", "by",
     # job_tag
     "job_id", "complaint", "opened_date",
+    # transmission_service (quantity_l is shared with oil_change, above)
+    "fluid_spec", "fluid_brand", "pan_filter_part_no", "fill_temp_c",
 )
 
 

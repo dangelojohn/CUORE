@@ -741,6 +741,24 @@ def build(vin: str, scan_id: Optional[str] = None) -> dict[str, Any]:
                                    f"{iupr.get('denominator')}]")
                 break
 
+    # Transmission: the newest ATF temperature any MES CSV recording on
+    # this install has (never the live serial stream -- see
+    # mes_recordings_bridge's own docstring), folded into the
+    # transmission_driveline row the same way EVAP's IUPR note is folded in
+    # above. No recording with that column yet (the common case today) ->
+    # the row is left exactly as classify_system built it.
+    try:
+        from . import mes_recordings_bridge
+        atf = mes_recordings_bridge.latest_atf_temp()
+    except Exception:  # noqa: BLE001 -- the report must render with or without this
+        atf = None
+    if atf:
+        for row in systems_table:
+            if row["system"] == "transmission_driveline":
+                note = f"ATF {atf['value_c']:g} C from MES recording {atf['recorded_at']}"
+                row["reading"] = f"{row['reading']} [{note}]" if row.get("reading") else note
+                break
+
     return {
         "vin": vin,
         "scan_id": sid,

@@ -163,5 +163,54 @@ def learned_broadcast(vin: Optional[str] = None, bus: str = "") -> dict[str, lis
     return out
 
 
+# --- DID discovery: answered during a read-only sweep, not yet decoded -----
+#
+# Different provenance from accept()/reject() above (which record a meaning
+# correlated against wiTECH's own traffic): a discovery sweep
+# (``cuore.live.fullscan``'s TCM DID discovery is the first caller) only
+# learns THAT a DID answered, never what the bytes mean. Same "unscaled"
+# posture as the broadcast section above -- stamped ``scale=UNSCALED`` and
+# shown by the Live board as "learned, unscaled", never a decoded value.
+
+
+def record_did_answer(vin: str, module_code: str, did: str, raw_bytes: list[str],
+                      source: str = "") -> dict[str, Any]:
+    """Record that ``did`` answered on ``module_code`` during a read-only
+    discovery sweep -- raw bytes only. Appends unconditionally (no
+    replace-by-key, contrast :func:`accept`): the same DID answering on a
+    later sweep is corroborating evidence, not a correction, and the raw
+    bytes may legitimately differ visit to visit (a live, if unscaled,
+    reading) so neither copy is "wrong"."""
+    entry = {
+        "kind": "did", "module": module_code.upper(), "did": did.upper(),
+        "scale": UNSCALED, "bytes": list(raw_bytes or []), "name": None,
+        "source": source, "status": "observed",
+        "at": datetime.now().isoformat(timespec="seconds"),
+    }
+    with _LOCK:
+        data = _load()
+        data.setdefault(vin, []).append(entry)
+        _save(data)
+    return entry
+
+
+def learned_did_discovery(vin: Optional[str] = None, module: str = ""
+                          ) -> dict[str, list[dict[str, Any]]]:
+    """``kind == "did"``, ``status == "observed"`` entries only (i.e. from
+    :func:`record_did_answer`, never :func:`accept`'s decoded ones),
+    optionally narrowed to one module -- the Live board's "learned,
+    unscaled" list under Transmission (module ``"TCM"``). Same ``{vin:
+    [...]}`` shape as :func:`learned`."""
+    data = learned(vin)
+    out: dict[str, list[dict[str, Any]]] = {}
+    for v, entries in data.items():
+        rows = [e for e in entries if e.get("kind") == "did" and e.get("status") == "observed"]
+        if module:
+            rows = [e for e in rows if e.get("module") == module.upper()]
+        out[v] = rows
+    return out
+
+
 __all__ = ["path", "accept", "reject", "learned", "CONFIDENCE",
-          "accept_broadcast", "learned_broadcast", "UNSCALED"]
+          "accept_broadcast", "learned_broadcast", "UNSCALED",
+          "record_did_answer", "learned_did_discovery"]

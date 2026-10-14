@@ -374,6 +374,40 @@ finally:
     os.environ["MES_LIVE_OBSERVATIONS"] = _FIXTURE_PATH
 
 
+# --- 5. transmission row reads a MES recording's ATF temperature ----------
+
+_CSV_DIR = Path(tempfile.mkdtemp(prefix="cuore-check-scan-health-csv-"))
+_csv_content = ('"Time"\t"Gearbox oil temperature"\t"TAG"\n'
+               '"sec"\t"C"\t" "\n'
+               '0.00\t35.0000\t""\n'
+               '1.00\t38.0000\t""\n')
+(_CSV_DIR / "rec.csv").write_bytes(b"\xff\xfe" + _csv_content.encode("utf-16-le"))
+os.environ["MES_CSV_DIR"] = str(_CSV_DIR)
+
+report_tx = scan_health_bridge.build(VIN, None)
+tx_row = {row["label"]: row for row in report_tx["systems"]}.get("Transmission / driveline")
+check("Transmission / driveline row exists", tx_row is not None)
+if tx_row:
+    tx_reading = tx_row.get("reading") or ""
+    check("transmission row cites the MES-recorded ATF temperature",
+         "38" in tx_reading and "MES recording" in tx_reading, tx_reading)
+
+from cuore.services import liveboard_bridge  # noqa: E402
+
+board = liveboard_bridge.board(VIN)
+rec_by_id = {c["id"]: c for c in board.get("recording_channels", [])}
+check("liveboard recording_channels has the ATF recording channel",
+     "rec_atf_temp" in rec_by_id, list(rec_by_id))
+if "rec_atf_temp" in rec_by_id:
+    atf_ch = rec_by_id["rec_atf_temp"]
+    check("ATF recording channel is kind 'recording' from source 'MES'",
+         atf_ch.get("kind") == "recording" and atf_ch.get("source") == "MES", atf_ch)
+    check("ATF recording channel value is the last sample (38.0)",
+         atf_ch.get("value") == 38.0, str(atf_ch.get("value")))
+    check("ATF recording channel is never in the polled channel list",
+         "rec_atf_temp" not in board.get("all_channel_ids", []))
+
+
 print(f"{checks} checks, {len(failures)} failures")
 for f in failures:
     print(f"FAIL: {f}")

@@ -148,6 +148,94 @@ def _known_did(module: str, vin: str) -> Optional[tuple[int, str, str]]:
     return None
 
 
+#: ISO 14229-1's standard "identification" DID block -- generic across any
+#: UDS ECU, never model-specific, and never assumed supported until the
+#: module actually answers one. Paired with this project's own catalogued
+#: TCM DIDs (``did_catalog.all_dids("TCM")``) as the candidate list for
+#: :func:`_tcm_did_candidates`: the whole point of :func:`_tcm_did_discovery`
+#: is that it tries ONLY documented candidates, never a blind scan of
+#: DID-space (contrast ``readall.discover_dids``'s contiguous-range sweep,
+#: a different tool for a different, broader job).
+_ISO14229_F1XX_IDS: tuple[tuple[int, str], ...] = (
+    (0xF180, "bootSoftwareIdentification"),
+    (0xF181, "applicationSoftwareIdentification"),
+    (0xF182, "applicationDataIdentification"),
+    (0xF183, "bootSoftwareFingerprint"),
+    (0xF184, "applicationSoftwareFingerprint"),
+    (0xF185, "applicationDataFingerprint"),
+    (0xF186, "activeDiagnosticSessionDataIdentifier"),
+    (0xF187, "vehicleManufacturerSparePartNumber"),
+    (0xF188, "vehicleManufacturerECUSoftwareNumber"),
+    (0xF189, "vehicleManufacturerECUSoftwareVersionNumber"),
+    (0xF18A, "systemSupplierIdentifier"),
+    (0xF18B, "ECUManufacturingDate"),
+    (0xF18C, "ECUSerialNumber"),
+    (0xF190, "VIN"),
+    (0xF191, "vehicleManufacturerECUHardwareNumber"),
+    (0xF192, "systemSupplierECUHardwareNumber"),
+    (0xF193, "systemSupplierECUHardwareVersionNumber"),
+    (0xF194, "systemSupplierECUSoftwareNumber"),
+    (0xF195, "systemSupplierECUSoftwareVersionNumber"),
+    (0xF197, "systemNameOrEngineType"),
+)
+
+#: Per-DID timeout and the hard cap on candidates tried, per the TCM DID
+#: discovery requirement this satisfies.
+_TCM_DID_DISCOVERY_TIMEOUT_S = 0.3
+_TCM_DID_DISCOVERY_MAX = 40
+
+
+def _tcm_did_candidates() -> list[tuple[int, str]]:
+    """Up to :data:`_TCM_DID_DISCOVERY_MAX` ``(did, name)`` candidates for
+    :func:`_tcm_did_discovery`: every TCM DID this project already has
+    documented (``did_catalog.all_dids("TCM")``, which folds in
+    ``addressing.DIDS`` -- TCM's own catalogued rows live there, not in
+    ``did_catalog.EXTRA_DIDS``, per that module's own docstring), plus the
+    ISO 14229-1 standard identification block above. De-duplicated by DID;
+    ``did_catalog``'s own rows win a collision.
+    """
+    seen: set[int] = set()
+    out: list[tuple[int, str]] = []
+    for spec in did_catalog.all_dids("TCM", include_diesel=False):
+        if spec.did not in seen:
+            seen.add(spec.did)
+            out.append((spec.did, spec.name))
+    for did, name in _ISO14229_F1XX_IDS:
+        if did not in seen:
+            seen.add(did)
+            out.append((did, name))
+    return out[:_TCM_DID_DISCOVERY_MAX]
+
+
+def _tcm_did_discovery_sweep(car_vin: str) -> dict[str, Any]:
+    """Read-only UDS ``0x22`` sweep of :func:`_tcm_did_candidates` against
+    the TCM, through :func:`ops.module_did_sweep` -- same "this module
+    never opens a session itself, it only calls ``ops``" posture as every
+    other step in :func:`_obd_readout` (see this module's own docstring),
+    which is also exactly what lets this step be checked against a
+    monkeypatched ``ops.module_did_sweep`` in the test suite rather than
+    a real adapter. Every DID that answers with a positive payload is
+    recorded as a *learned* entry
+    (:func:`cuore.live.learned.record_did_answer`) -- raw bytes only, kind
+    ``"did"``, module ``"TCM"``, scale ``"unknown"``: this sweep finds out
+    WHICH DIDs this TCM answers, never what the bytes mean (that still
+    needs watching a live MES recording against the raw bytes, same as
+    any other learned, unscaled entry). Returns ``{"tried", "answered"}``.
+    """
+    from . import learned
+    candidates = _tcm_did_candidates()
+    dids = [f"{did:04X}" for did, _name in candidates]
+    result = ops.module_did_sweep("TCM", dids, vin=car_vin,
+                                  per_did_timeout=_TCM_DID_DISCOVERY_TIMEOUT_S) or {}
+    hits = result.get("hits") or []
+    for hit in hits:
+        did_hex = hit.get("did", "")
+        if did_hex:
+            learned.record_did_answer(car_vin, "TCM", did_hex, hit.get("bytes") or [],
+                                      source="fullscan_tcm_discovery")
+    return {"tried": result.get("tried", len(dids)), "answered": len(hits)}
+
+
 def _make_step_runner(steps: list[dict[str, Any]], budget_left: Callable[[], bool]):
     """One ``_step(name, fn, *a, **kw)`` closure, shared by :func:`run` and
     the guided-scan functions: calls ``fn``, appends ``{"step", "ok"[,
@@ -260,6 +348,18 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
                                         "unit": reading.get("unit")}
         store.record_observation("pids_snapshot", {"by_ecu": snapshot}, vin=car_vin, bus="can_c",
                                  cable=cable, stream=stream_desc)
+
+    # Read-only TCM DID discovery: a documented-candidates-only 0x22 sweep
+    # (see _tcm_did_candidates), for the next guided scan to learn which of
+    # them this TCM actually answers -- never a meaning, just which DIDs
+    # are live. Skipped, like every other step here, once the time budget
+    # is spent; its own failure (e.g. the TCM has no confirmed address) is
+    # one coverage-neutral step, never a failed scan.
+    if budget_left():
+        did_disc = _step("tcm_did_discovery", _tcm_did_discovery_sweep, car_vin)
+        if did_disc is not None:
+            store.record_observation("did_discovery", {"module": "TCM", **did_disc},
+                                     vin=car_vin, bus="can_c", cable=cable, stream=stream_desc)
 
     return car_vin, stream_desc
 

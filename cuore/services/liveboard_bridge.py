@@ -56,6 +56,11 @@ from ..live.errors import LiveError
 from . import known_good_bridge
 from .errors import BadRequest, NotFound
 
+try:  # additive: MES-recording-sourced channels, never required for the board
+    from . import mes_recordings_bridge
+except Exception:  # noqa: BLE001
+    mes_recordings_bridge = None
+
 from mes import jobs as jobs_mod  # noqa: E402
 from mes import systems as systems_mod  # noqa: E402
 
@@ -181,9 +186,13 @@ def _board_band(channel_id: str) -> Optional[dict[str, Any]]:
 
 def board(vin: str = "") -> dict[str, Any]:
     """The liveboard layout: every ``can_c`` channel, grouped, rated and
-    banded. ``vin`` is accepted (and reserved for a future per-vehicle
-    override) but not required -- every band here is the same sourced
-    reference regardless of which car is asked about."""
+    banded, plus two kinds of read-only extras that are never polled: MES-
+    recording-sourced channels (:data:`recording_channels`, not
+    per-vehicle) and this vehicle's own learned-but-unscaled TCM DIDs
+    (:data:`learned_did_channels`, from :func:`cuore.live.fullscan`'s
+    discovery sweep -- this is the one part of the board that is actually
+    per-``vin``; every sourced band here is otherwise the same reference
+    regardless of which car is asked about)."""
     channels = [c for c in channels_mod.available_channels() if c.bus == "can_c"]
     by_group: dict[str, list[dict[str, Any]]] = {g: [] for g in GROUP_ORDER}
     rates: dict[str, float] = {}
@@ -200,8 +209,41 @@ def board(vin: str = "") -> dict[str, Any]:
         all_ids.append(ch.id)
     groups = [{"id": g, "label": GROUP_LABELS[g], "channels": by_group[g]}
              for g in GROUP_ORDER if by_group[g]]
+    # Recording-sourced channels (kind "recording", source "MES") are never
+    # polled -- deliberately kept out of all_channel_ids/rates, which drive
+    # the live poller, and out of groups/by_group, which are "this bus is
+    # live right now" by construction. Listed separately so a page can
+    # still show them (labelled "from MES recording ...", never mixed into
+    # a gauge that implies a live reading) without the poller ever seeing
+    # one of these ids. See cuore.services.mes_recordings_bridge.
+    recording_channels: list[dict[str, Any]] = []
+    if mes_recordings_bridge is not None:
+        try:
+            recording_channels = mes_recordings_bridge.transmission_recording_channels()
+        except Exception:  # noqa: BLE001 -- the live board must render with or without these
+            recording_channels = []
+    # Learned-but-unscaled TCM DIDs (cuore.live.fullscan's read-only
+    # discovery sweep, cuore.live.learned.record_did_answer): raw bytes
+    # only, never a meaning, so the board must show these as "learned,
+    # unscaled -- name it while watching MES", never alongside a graded
+    # value that implies a decoded one.
+    learned_did_channels: list[dict[str, Any]] = []
+    if vin:
+        try:
+            from ..live import learned as learned_mod
+            rows = learned_mod.learned_did_discovery(vin, module="TCM").get(vin, [])
+            learned_did_channels = [{
+                "id": f"tcm_did_{r.get('did', '').lower()}",
+                "name": f"TCM DID {r.get('did')}", "kind": "did", "module": "TCM",
+                "scale": "unknown", "bytes": r.get("bytes") or [],
+                "system": "transmission_driveline", "at": r.get("at"),
+                "label": "learned, unscaled -- name it while watching MES",
+            } for r in rows]
+        except Exception:  # noqa: BLE001 -- the live board must render with or without these
+            learned_did_channels = []
     return {"groups": groups, "all_channel_ids": all_ids, "rates": rates,
-           "notice": NOTICE}
+           "notice": NOTICE, "recording_channels": recording_channels,
+           "learned_did_channels": learned_did_channels}
 
 
 # ===========================================================================

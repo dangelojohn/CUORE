@@ -114,6 +114,12 @@ def _fake_module_did(code, did, vin="", confirm=False, **kw):
     return {"ecu": code, "bus": "can_c", "did": did, "name": "x", "bytes": ["32"]}
 
 
+def _fake_module_did_sweep(code, dids, vin="", per_did_timeout=0.3, confirm=False, **kw):
+    """Exactly two of the candidate DIDs answer -- the rest time out."""
+    hits = [{"did": d, "bytes": ["01", "02"]} for d in dids[:2]]
+    return {"ecu": code, "bus": "can_c", "tried": len(dids), "hits": hits}
+
+
 def _fake_obd_dtcs(kind, **kw):
     if kind == "stored":
         return {"kind": "stored", "dtcs": ["P0440"], "by_ecu": {ECM_HDR: ["P0440"]}, "raw": "43"}
@@ -153,6 +159,7 @@ def _install_common_fakes() -> None:
     _patch(ops, "scan_modules", _fake_scan_modules)
     _patch(ops, "module_identity", _fake_module_identity)
     _patch(ops, "module_did", _fake_module_did)
+    _patch(ops, "module_did_sweep", _fake_module_did_sweep)
     _patch(ops, "learned_dids", lambda vin="": {"learned": {}})
 
 
@@ -223,6 +230,25 @@ try:
               for e in store.recent_observations(1000, vin=VIN, kind="did")}
     check_eq("did reads: ECM/TCM/BCM resolved to the known registry DIDs", did_obs,
              {"ECM": "1302", "TCM": "04FE", "BCM": "1004"})
+
+    # TCM DID discovery (fake answering exactly two candidate DIDs): two
+    # learned entries, raw bytes only, never a meaning.
+    from cuore.live import learned as learned_mod  # noqa: E402
+    learned_rows = learned_mod.learned_did_discovery(VIN, module="TCM").get(VIN, [])
+    check_eq("TCM DID discovery recorded exactly two learned entries",
+             len(learned_rows), 2)
+    if learned_rows:
+        check("learned entries are unscaled raw bytes, never a decoded meaning",
+             all(r.get("scale") == "unknown" and r.get("name") is None and r.get("bytes")
+                 for r in learned_rows), str(learned_rows))
+        check("learned entries are tagged kind='did' module='TCM'",
+             all(r.get("kind") == "did" and r.get("module") == "TCM" for r in learned_rows),
+             str(learned_rows))
+
+    did_disc_obs = store.recent_observations(1000, vin=VIN, kind="did_discovery")
+    check("did_discovery observation recorded for TCM with answered=2",
+         any(o["data"].get("module") == "TCM" and o["data"].get("answered") == 2
+             for o in did_disc_obs), str(did_disc_obs))
 
     # freeze_frame: one observation for the one stored code, with all 46 supported
     # PIDs present in its frame.

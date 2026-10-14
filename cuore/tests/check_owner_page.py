@@ -727,6 +727,35 @@ check("the label route accepts an explicit ?size= and still returns a PDF",
 check("the label route remembers the last-used size via a cookie",
       "cuore_label_size" in r_sized.cookies, dict(r_sized.cookies))
 
+# driveline_fluid prints as the dedicated "transmission_service" label kind
+# (fluid spec/brand/pan-filter part no/fill temp), not the generic
+# "service" kind -- see cuore.web.owner_routes._PRINTABLE_KINDS.
+r = client.post(f"/api/owner/{VIN}/events", json={
+    "category": "fluids", "kind": "driveline_fluid", "by_role": "mechanic",
+    "fields": {"which": "transmission", "fluid_spec": "ZF LifeguardFluid 8",
+              "brand": "Mopar", "qty": 9.0, "pan_filter_part_no": "68227481AA",
+              "fill_temp_c": 38, "method": "pan drop"},
+    "odometer_km": 80000,
+})
+check("driveline_fluid POST (for the print test) responds 200", r.status_code == 200,
+      str(r.status_code))
+driveline_id = r.json().get("id")
+
+r = client.get(f"/m/{VIN}/labels/{driveline_id}")
+check("the label route responds 200 for a saved driveline_fluid event",
+     r.status_code == 200, str(r.status_code))
+try:
+    from pypdf import PdfReader as _PdfReader2
+    tx_label_text = _PdfReader2(io.BytesIO(r.content)).pages[0].extract_text()
+    check("the printed transmission label carries the fill temperature",
+         "38" in tx_label_text and "30-50" in tx_label_text, tx_label_text)
+    check("the printed transmission label carries the fluid spec",
+         "LifeguardFluid" in tx_label_text, tx_label_text)
+    check("the printed transmission label carries the pan/filter part number",
+         "68227481AA" in tx_label_text, tx_label_text)
+except ImportError:
+    check("pypdf available to verify transmission label text (optional)", True)
+
 
 print(f"{checks} checks, {len(failures)} failures")
 for f in failures:

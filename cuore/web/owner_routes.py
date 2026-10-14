@@ -137,7 +137,14 @@ _PRINTABLE_KINDS: dict[tuple[str, str], tuple[str, str]] = {
     ("fluids", "engine_oil_change"): ("oil_change", ""),
     ("fluids", "coolant_change"): ("service", "Coolant change"),
     ("fluids", "brake_fluid"): ("service", "Brake fluid"),
-    ("fluids", "driveline_fluid"): ("service", "Driveline fluid"),
+    # Transmission/transfer-case/differential oil gets its own ATF/pan-
+    # filter label kind (cuore.services.labels_bridge.transmission_service_
+    # label_data) rather than the generic "service" kind -- see
+    # cuore.services.labels_bridge.OWNER_EVENT_LABEL_KIND, the same mapping
+    # under its own name for any other caller that needs it; section_label
+    # is unused for this label_kind (only "service" reads it), same as
+    # "oil_change" above.
+    ("fluids", "driveline_fluid"): ("transmission_service", ""),
 }
 
 #: Remembers the last Avery size tapped on the ``/m/{vin}/print`` size-chip
@@ -168,7 +175,13 @@ def _label_work_done(kind: str, fields: dict[str, Any]) -> str:
     elif kind == "brake_fluid":
         bits = [fields.get("action"), (f"{fields.get('qty')} L" if fields.get("qty") else None)]
     elif kind == "driveline_fluid":
-        bits = [fields.get("which"), fields.get("action"),
+        # No longer reached via _PRINTABLE_KINDS (that kind now prints as
+        # "transmission_service", not "service" -- see _event_label_data),
+        # kept correct anyway in case anything else ever calls this with
+        # kind="driveline_fluid" directly. "action" was replaced by
+        # "method" when the taxonomy grew fluid_spec/brand/pan_filter_
+        # part_no/fill_temp_c (cuore.live.owner_events.TAXONOMY).
+        bits = [fields.get("which"), fields.get("method"),
                (f"{fields.get('qty')} L" if fields.get("qty") else None)]
     else:
         bits = []
@@ -209,6 +222,24 @@ def _event_label_data(vin: str, event: dict[str, Any], label_kind: str,
         if filter_bits:
             overrides["filter_part_no"] = filter_bits
         return labels_bridge.oil_change_label_data(vin, None, "CUORE", overrides)
+
+    if label_kind == "transmission_service":
+        # driveline_fluid's own fields (fluid_spec/brand/qty/pan_filter_
+        # part_no/fill_temp_c -- cuore.live.owner_events.TAXONOMY) map
+        # straight onto transmission_service_label_data's overrides; that
+        # function also prefills from the last mes.service drivetrain
+        # record when the event itself left a field blank.
+        if fields.get("fluid_spec"):
+            overrides["fluid_spec"] = fields["fluid_spec"]
+        if fields.get("brand"):
+            overrides["fluid_brand"] = fields["brand"]
+        if fields.get("qty"):
+            overrides["quantity_l"] = fields["qty"]
+        if fields.get("pan_filter_part_no"):
+            overrides["pan_filter_part_no"] = fields["pan_filter_part_no"]
+        if fields.get("fill_temp_c"):
+            overrides["fill_temp_c"] = fields["fill_temp_c"]
+        return labels_bridge.transmission_service_label_data(vin, overrides)
 
     overrides["section"] = section_label
     overrides["work_done"] = _label_work_done(event.get("kind", ""), fields)

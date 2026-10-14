@@ -259,8 +259,8 @@ check("JSON templates endpoint responds 200", r6.status_code == 200)
 body = r6.json()
 check("JSON templates endpoint lists templates", len(body.get("templates", [])) >= 7)
 check("JSON templates endpoint lists kinds", set(body.get("kinds", [])) == {
-    "oil_change", "service", "torque_tag", "reminder", "maintenance_reminder",
-    "part_tag", "inspection_tag", "job_tag"})
+    "oil_change", "service", "transmission_service", "torque_tag", "reminder",
+    "maintenance_reminder", "part_tag", "inspection_tag", "job_tag"})
 
 
 # --- summary ------------------------------------------------------------------
@@ -350,6 +350,21 @@ check("UNVERIFIED template shows 'calibrated' instead of the warning "
      "once a calibration is saved",
      "calibrated" in _cal_text.lower() and "UNVERIFIED" not in _cal_text,
      repr(_cal_text))
+
+
+# 6. transmission_service renders a PDF with the fill temperature.
+_tx_pdf = labels_bridge.render_pdf(
+    vin=VIN, kind="transmission_service", template_id="avery_5522",
+    overrides={"fluid_spec": "ZF LifeguardFluid 8", "fluid_brand": "Mopar",
+              "quantity_l": "9.0", "pan_filter_part_no": "68227481AA",
+              "fill_temp_c": "38", "odometer_km": "80000", "date": "2026-10-14"})
+_tx_text = _PdfReader(_io.BytesIO(_tx_pdf)).pages[0].extract_text()
+check("transmission_service PDF contains the fill temperature",
+     "38" in _tx_text and "30-50" in _tx_text, repr(_tx_text))
+check("transmission_service PDF contains the fluid spec",
+     "ZF LifeguardFluid 8" in _tx_text or "LifeguardFluid" in _tx_text, repr(_tx_text))
+check("transmission_service PDF contains the pan/filter part number",
+     "68227481AA" in _tx_text, repr(_tx_text))
 
 
 print(f"{checks} checks, {len(failures)} failures")
