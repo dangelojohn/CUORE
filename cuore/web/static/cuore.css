@@ -1298,15 +1298,26 @@ details.vmore-tab:not([open]) .vmore-tab-panel { display: none; }
 /* -- hero band above the vehicle strip (_vbar.html) --
  * .vbar held `position: sticky` as a whole further up this file; that is
  * overridden here so only .vline (the slim strip) sticks and the hero
- * scrolls away above it, per the mechanic-UX ask. */
+ * scrolls away above it, per the mechanic-UX ask.
+ * R4: .hero-text used to be `position: absolute; bottom: 0` inside a
+ * `.vhero{overflow:hidden}` box -- taken out of flow, .vhero's own height
+ * collapsed to just .hero-img's height, and whenever the text's own
+ * content was taller than that (a long vehicle name, the Report's
+ * verdict + figures), it grew upward past .vhero's top edge and painted
+ * over whatever sits above it in the page -- the site header. Fix: a CSS
+ * grid with the image and the text sharing one cell (`.vhero > *` both
+ * get `grid-area: 1/1`) -- .hero-text sits in normal flow, grid auto-sizes
+ * the row to its tallest child, so a tall name/verdict simply makes the
+ * hero band taller instead of overflowing it. */
 .vbar { position: static; padding: 0; }
-.vhero { position: relative; overflow: hidden; }
+.vhero { position: relative; display: grid; overflow: visible; }
+.vhero > * { grid-area: 1 / 1; }
 .hero-img {
   height: 176px; background-size: cover; background-position: center 35%;
   background-color: var(--surface-2); /* calm fallback -- stays invisible as a photo, just a flat panel, when the file is absent */
 }
 .hero-text {
-  position: absolute; left: 0; right: 0; bottom: 0; padding: var(--space-3) var(--pad);
+  align-self: end; padding: var(--space-3) var(--pad);
   background: linear-gradient(to top, rgba(0,0,0,.6), transparent);
   display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap;
 }
@@ -1595,7 +1606,8 @@ html.intro-skip .intro-overlay { display: none; }
  * .hero-img / .hero-name rules above regardless of source order, so this
  * section can simply be appended rather than threaded into those blocks.
  * ========================================================================= */
-.vhero.vhero-compact { overflow: hidden; }
+/* R4: no longer clips -- the shared :root fix above already keeps .hero-text in flow, so a 2-line vehicle name simply grows the band instead of being cut off. */
+.vhero.vhero-compact { overflow: visible; }
 .vhero.vhero-compact .hero-img {
   height: 18vh; max-height: 18vh; min-height: 0;
 }
