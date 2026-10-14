@@ -44,9 +44,18 @@
   dependency graph, and what to look at next. A dashed or unsourced value is marked, never guessed.</p>
 <p class="small muted">{{ view.attested_footnote }}</p>
 
+{% if view.evap_network_crossref %}
+<p class="small sysd-crossref" data-fact="system:{{ view.key }}|evap network crossref">
+  {{ view.evap_network_crossref.text }}
+  <a href="{{ view.evap_network_crossref.href }}">See the network event &rarr;</a>
+</p>
+{% endif %}
+
 {# --- 1. status strip ---------------------------------------------------- #}
 <details class="panel sysd-section" open data-fact="system:{{ view.key }}|status strip">
-  <summary><h2 class="sysd-h">Status</h2></summary>
+  <summary><h2 class="sysd-h">Status</h2>
+    {% for chip in mods_non_stock(vin) if mods_non_stock is defined %}<span class="chip chronic" title="{{ chip.detail }}">{{ chip.label }}</span>{% endfor %}
+  </summary>
   {% set ss = view.status_strip %}
 
   {% if ss.codes %}
@@ -125,6 +134,36 @@
   <p class="small muted">Last evidence from the car:
     {% if ss.last_evidence %}{{ ss.last_evidence }}{% else %}no evidence on file yet{% endif %}</p>
 </details>
+
+{# --- 1b. network event (network system page only) ------------------------ #}
+{% if view.network_event %}
+<details class="panel sysd-section" open data-fact="system:{{ view.key }}|network event">
+  <summary><h2 class="sysd-h">Network event ({{ view.network_event.codes|length }})</h2></summary>
+  {% set ne = view.network_event %}
+  {% if ne.statement %}
+  <p class="small"><span class="chip status-active">one power or bus event</span> {{ ne.statement }}</p>
+  {% else %}
+  <p class="small muted">Fewer than three lost-communication codes share one scan window on this car right
+    now -- not grouped into one event yet.</p>
+  {% endif %}
+  {% if ne.codes %}
+  <ul class="sysd-list">
+    {% for c in ne.codes %}
+    <li class="sysd-row">
+      <a class="chip-code sm" href="/v/{{ vin }}/code/{{ c.code }}">{{ c.full }}</a>
+      <span class="small muted">{{ c.module }}</span>
+      <span class="chip {{ 'status-active' if c.status == 'failing now' else 'status-cleared_unverified' }}">{{ c.status }}</span>
+      {% if c.failure_type %}<span class="small muted">{{ c.failure_type }}</span>{% endif %}
+      <div class="small muted">From the car: {{ c.car_first_seen or "—" }}
+        {% if c.car_last_seen and c.car_last_seen != c.car_first_seen %}&rarr; {{ c.car_last_seen }}{% endif %}
+        &middot; From MES logs: {{ c.mes_first_seen or "no corpus history yet" }}
+        {% if c.mes_last_seen and c.mes_last_seen != c.mes_first_seen %}&rarr; {{ c.mes_last_seen }}{% endif %}</div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</details>
+{% endif %}
 
 {# --- 2. relationship ring ------------------------------------------------ #}
 <details class="panel sysd-section" open data-fact="system:{{ view.key }}|relationships">
@@ -236,6 +275,33 @@
   {% endif %}
 </details>
 
+{# --- 3b. check first (BCM, body_comfort system page only) ---------------- #}
+{% if view.bcm_check_first %}
+<details class="panel sysd-section" open data-fact="system:{{ view.key }}|check first">
+  <summary><h2 class="sysd-h">Check first ({{ view.bcm_check_first|length }})</h2></summary>
+  <p class="small muted">Supply and ground/connector are checked before the bus itself is
+    suspected (TSB S1808000005, S2008000032 -- see How it fails here below).</p>
+  <ul class="sysd-list">
+    {% for r in view.bcm_check_first %}
+    <li class="sysd-row">
+      <input type="checkbox" disabled {% if r.latest_inspection %}checked{% endif %}>
+      <b>{{ r.group }}</b> <span>{{ r.label }}</span>
+      {% if r.location_confidence %}<span class="chip">{{ r.location_confidence|lower }}</span>{% endif %}
+      {% if r.location_note %}
+      <div class="small muted">{{ r.location_note }} {{ attest(vin, view, r.location_fact) }}</div>
+      {% endif %}
+      <div class="small muted">{{ r.inspection_hint }}{% if r.spec_text %} &mdash; pass: {{ r.spec_text }}{% endif %}</div>
+      {% if r.latest_inspection %}
+      <div class="small muted">Last inspected: {{ r.latest_inspection.at }} — {{ r.latest_inspection.condition }}
+        {% if r.latest_inspection.by %}(by {{ r.latest_inspection.by }}){% endif %}</div>
+      {% endif %}
+      <a class="small" href="{{ r.inspect_href }}">{{ "Run test" if r.is_test else "Record inspection" }} &rarr;</a>
+    </li>
+    {% endfor %}
+  </ul>
+</details>
+{% endif %}
+
 {# --- 4. how it fails here --------------------------------------------- #}
 <details class="panel sysd-section" open data-fact="system:{{ view.key }}|how it fails here">
   <summary><h2 class="sysd-h">How it fails here</h2></summary>
@@ -244,6 +310,16 @@
   <p class="small muted">No open codes on this system to build a fault tree from.</p>
   {% elif hf.fault_tree %}
   <p class="small">Fault tree for {{ hf.open_codes|join(', ') }}.</p>
+  {% for t in hf.fault_tree.trees or [] %}
+  <p class="small"><b>{{ t.title }}</b></p>
+  {% if t.framing %}
+  <ul class="sysd-list">
+    {% for f in t.framing %}
+    <li class="sysd-row small muted">{{ f }}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% endfor %}
   {% if hf.next_test_label %}
   <p class="small"><b>Next unresolved test:</b> {{ hf.next_test_label }}</p>
   {% endif %}

@@ -515,11 +515,30 @@ def mode06_threshold(row: dict[str, Any]) -> Optional[float]:
 
 
 def _mode06_reading(row: dict[str, Any]) -> str:
+    """"name: value V, limit {min|max} L -- PASS/FAIL" -- the single-sided
+    threshold from :func:`_threshold` named by which bound it actually is,
+    never a hardcoded "vs limit" that reads as a min when the real limit is
+    a max (Review #6 item 3: TID 90 is a max-limit test, 6096 vs 0..6000 --
+    ``cuore.services.dossier_bridge._mode06_fail_label`` renders the same
+    row from the live link in this exact shape; this is the MES-log/Scans
+    side of the same text). Falls back to showing both bounds for a
+    genuine two-sided band, where no single threshold applies."""
     name = row.get("mid_name") or ("MID " + str(row.get("mid")))
+    value = row.get("value")
+    verdict = None
+    if row.get("passed") is True:
+        verdict = "PASS"
+    elif row.get("passed") is False:
+        verdict = "FAIL"
     limit = _threshold(row)
     if limit is not None:
-        return f"{name}: {row.get('value')} vs limit {limit}"
-    return f"{name}: {row.get('value')} (min {row.get('min')}, max {row.get('max')})"
+        hi = row.get("max")
+        sentinel_max = isinstance(hi, (int, float)) and hi >= _SENTINEL_MAX
+        bound = "min" if sentinel_max else "max"
+        text = f"{name}: value {value}, limit {bound} {limit}"
+    else:
+        text = f"{name}: value {value} (min {row.get('min')}, max {row.get('max')})"
+    return f"{text} -- {verdict}" if verdict else text
 
 
 def mode06_reading(row: dict[str, Any]) -> str:

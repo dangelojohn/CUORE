@@ -41,6 +41,15 @@ class ChecklistResult(BaseModel):
     unit: str = Field(default="")
     hypothesis_id: Optional[str] = Field(
         default=None, description="which hypothesis this result bears on, if any")
+    hypothesis_text: Optional[str] = Field(
+        default=None, description="create-and-link (Review #6 item 4): when given and "
+                                  "hypothesis_id is not, create a new hypothesis with "
+                                  "this text -- picked from the suggested list, or typed "
+                                  "-- and attach this result to it in the same request. "
+                                  "Ignored when hypothesis_id is also given.")
+    hypothesis_system: str = Field(default="", description="system for the hypothesis "
+                                                           "created from hypothesis_text, "
+                                                           "if any")
     supports: str = Field(default="for", description="for | against -- which side of "
                                                      "hypothesis_id this result's evidence "
                                                      "counts toward; ignored unless "
@@ -116,7 +125,14 @@ def set_checklist_result(vin: str, step_id: str, body: ChecklistResult) -> dict[
     which hypothesis it bears on. When ``hypothesis_id`` is given and the
     result is pass/fail, this also attaches a ``kind="test"`` evidence ref
     to that hypothesis (for/against per ``supports``) -- only pass/fail
-    count as hypothesis test evidence."""
+    count as hypothesis test evidence.
+
+    Review #6 item 4: when no ``hypothesis_id`` is given but
+    ``hypothesis_text`` is, a new hypothesis is created from that text
+    (picked from the suggested list, or typed) and this result is attached
+    to it as evidence in this same request -- "pick OR create a
+    hypothesis inline," never a separate round trip.
+    """
     valid = dossier_bridge.checklist_step_ids(vin, _dossier(vin))
     if step_id not in valid:
         raise BadRequest(f"unknown checklist step id {step_id!r} for this vehicle")
@@ -124,20 +140,37 @@ def set_checklist_result(vin: str, step_id: str, body: ChecklistResult) -> dict[
         raise BadRequest(f"result must be one of {sorted(_RESULTS)}, got {body.result!r}")
     if body.supports not in ("for", "against"):
         raise BadRequest("supports must be 'for' or 'against'")
-    entry = checklist_store.set_result(vin, step_id, body.result, reason=body.reason,
-                                       value=body.value, unit=body.unit,
-                                       hypothesis_id=body.hypothesis_id,
-                                       media_ids=body.media_ids, by=body.by)
-    if body.hypothesis_id and body.result in ("pass", "fail"):
+    hypothesis_id = body.hypothesis_id
+    new_hyp: Optional[dict[str, Any]] = None
+    if not hypothesis_id and body.hypothesis_text and body.result in ("pass", "fail"):
         label = f"{_step_text(vin, step_id)}: {body.result}"
         if body.value is not None:
             label += f" {body.value:g}{body.unit}"
         try:
-            jobs_bridge.add_test_evidence(vin, body.hypothesis_id, step_id, label,
+            new_hyp = jobs_bridge.add_test_evidence_new_hypothesis(
+                vin, body.hypothesis_text, step_id, label, body.result,
+                supports=body.supports, system=body.hypothesis_system, by=body.by)
+        except Exception:  # noqa: BLE001 -- the result must still save
+            new_hyp = None
+        if new_hyp:
+            hypothesis_id = new_hyp.get("id")
+    entry = checklist_store.set_result(vin, step_id, body.result, reason=body.reason,
+                                       value=body.value, unit=body.unit,
+                                       hypothesis_id=hypothesis_id,
+                                       media_ids=body.media_ids, by=body.by)
+    if hypothesis_id and body.hypothesis_id and body.result in ("pass", "fail"):
+        label = f"{_step_text(vin, step_id)}: {body.result}"
+        if body.value is not None:
+            label += f" {body.value:g}{body.unit}"
+        try:
+            jobs_bridge.add_test_evidence(vin, hypothesis_id, step_id, label,
                                           body.result, supports=body.supports, by=body.by)
         except Exception:  # noqa: BLE001 -- the result must still save
             pass
-    return {"vin": vin, "step_id": step_id, **entry}
+    result = {"vin": vin, "step_id": step_id, **entry}
+    if new_hyp:
+        result["hypothesis"] = new_hyp
+    return result
 
 
 __all__ = ["router"]

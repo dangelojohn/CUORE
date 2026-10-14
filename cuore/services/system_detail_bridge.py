@@ -33,6 +33,7 @@ not in ``systems_bridge.systems()`` -- the route turns that into a 404.
 
 from __future__ import annotations
 
+import re
 from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401 -- side effect: puts `mes` on sys.path
@@ -63,6 +64,12 @@ from . import (
 #: this one tree exists today; keyed by its own ``key`` rather than hunting
 #: its steps at render time.
 _NETWORK_CASCADE_TEST = "check BCM supply and grounds first"
+
+#: The sourced CAN-C/IHS termination test (``mes.mechanic_tests``), always
+#: the last "check first" row -- the bus itself is suspected only after
+#: supply/ground/connector are ruled out (same order as ``mes.faulttree``'s
+#: NETWORK_CASCADE N5/N6 and the new framing bullet on that tree).
+_CAN_TERMINATION_TEST_ID = "can_bus_resistance_test"
 
 #: The one marker every sourcing gap renders as -- never a guess, never a
 #: blank. Matches the wording already used across maintenance.html /
@@ -204,6 +211,238 @@ def _channel_display_names(rec: dict[str, Any]) -> set[str]:
             cg = {}
         names.add((cg.get("name") or ch.replace("_", " ")).strip().lower())
     return names
+
+
+# --- network event (the ``network`` system page) ----------------------------
+#
+# Every module-reported communication-type code across *all* modules'
+# ``module_dtcs`` observations -- not just the ones ``systems_map_bridge.
+# module_dtc_overlay`` happens to attribute to the "network" systems-graph
+# key (it attributes a U-code to the *reporting module's own* system, e.g.
+# BCM -> body_comfort, by design -- see that module's docstring -- so a
+# U-code almost never lands on "network" there). This section is the one
+# place on the page that gathers them back up across modules, reusing
+# ``mes.analysis.is_communication_dtc`` (never a second, locally-invented
+# rule for "is this a comms code") and its module docstring's own wording
+# for the collapse: "that is one power or bus event [...] not N module
+# faults."
+
+def _network_event(vin: str) -> Optional[dict[str, Any]]:
+    try:
+        from mes import live_obs as live_obs_mod2  # noqa: PLC0415
+        from mes import analysis as analysis_mod2  # noqa: PLC0415
+        from mes import dtc as dtc_mod2  # noqa: PLC0415
+        from mes import dtc_descriptions as desc_mod2  # noqa: PLC0415
+    except Exception:  # noqa: BLE001 -- a missing mes module must never 500 the page
+        return None
+
+    try:
+        observations = live_obs_mod2.load(vin, "module_dtcs")
+    except Exception:  # noqa: BLE001
+        observations = []
+    try:
+        history = analysis_mod2.dtc_history(vin=vin)
+    except Exception:  # noqa: BLE001
+        history = {}
+
+    rows: dict[str, dict[str, Any]] = {}
+    window_members: dict[str, set[str]] = {}
+
+    for obs in observations:
+        data = obs.get("data") or {}
+        ecu = str(data.get("ecu") or "").upper()
+        at = obs.get("at")
+        for rec in data.get("dtcs") or []:
+            full = str(rec.get("code") or "")
+            if not full:
+                continue
+            base = full.split("-", 1)[0].strip().upper()
+            ftb = full.split("-")[-1] if "-" in full else None
+            try:
+                desc_text = desc_mod2.code_description(base).get("text") or ""
+            except Exception:  # noqa: BLE001
+                desc_text = ""
+            probe = dtc_mod2.Dtc(code=base, ftb=ftb, component=ecu, description=desc_text)
+            try:
+                is_comm = analysis_mod2.is_communication_dtc(probe)
+            except Exception:  # noqa: BLE001
+                is_comm = base.startswith("U")
+            if not is_comm:
+                continue
+            flags = rec.get("flags") or {}
+            if flags.get("testFailed"):
+                state = "failing now"
+            elif (flags.get("confirmedDTC") or flags.get("pendingDTC")
+                  or flags.get("testFailedSinceLastClear")):
+                state = "history"
+            else:
+                continue  # merely tracked -- the module has never actually found it
+            member_key = f"{ecu}:{full}"
+            if at:
+                window_members.setdefault(at, set()).add(member_key)
+            try:
+                ft = dtc_mod2.failure_type(ftb) if ftb else None
+            except Exception:  # noqa: BLE001
+                ft = None
+            hist = history.get(base)
+            row = rows.get(member_key)
+            if row is None:
+                rows[member_key] = row = {
+                    "code": base, "full": full, "module": ecu,
+                    "failure_type": ft.text if ft else None,
+                    "status": state,
+                    "car_first_seen": at, "car_last_seen": at,
+                    "mes_first_seen": hist.first_seen if hist and hist.first_seen else None,
+                    "mes_last_seen": hist.last_seen if hist and hist.last_seen else None,
+                }
+            else:
+                if at:
+                    row["car_first_seen"] = min(row["car_first_seen"] or at, at)
+                    row["car_last_seen"] = max(row["car_last_seen"] or at, at)
+                if state == "failing now":
+                    row["status"] = "failing now"  # failing-now on any read wins
+
+    code_rows = sorted(rows.values(), key=lambda r: (r["module"], r["full"]))
+
+    window_at, members = (max(window_members.items(), key=lambda kv: len(kv[1]))
+                          if window_members else (None, set()))
+    # Same threshold mes.analysis.NETWORK_EVENT_MIN_MODULES already uses for
+    # its own module-level collapse, applied here per-code (several codes
+    # on one module still name one event, same as several modules do).
+    min_codes = getattr(analysis_mod2, "NETWORK_EVENT_MIN_MODULES", 3)
+    is_event = len(members) >= min_codes
+    modules_involved = sorted({m.split(":", 1)[0] for m in members})
+    statement = None
+    if is_event:
+        statement = (
+            f"{len(members)} lost-communication codes across "
+            f"{len(modules_involved)} module(s) ({', '.join(modules_involved)}) "
+            f"share the scan at {window_at} -- mes.analysis's own family "
+            "rule: that is one power or bus event, not "
+            f"{len(members)} separate module faults."
+        )
+    return {
+        "codes": code_rows, "is_event": is_event, "window_at": window_at,
+        "modules_involved": modules_involved, "statement": statement,
+    }
+
+
+# --- BCM "check first" checklist (the ``body_comfort`` system page) ---------
+
+def _bcm_check_first(vin: str, attested_map: dict[str, dict[str, Any]]
+                     ) -> list[dict[str, Any]]:
+    """Battery -> BCM supply fuses -> BCM grounds -> connector, in that
+    order, reusing ``mes.electrical.network_check_first``'s own already-
+    placed elements -- the *same* path ``components.wiring_paths`` draws
+    for this page's own open network codes, never a second hand-picked
+    list -- then the one sourced CAN-C/IHS termination test last (the bus
+    is suspected only after supply/ground/connector are ruled out)."""
+    rows: list[dict[str, Any]] = []
+    try:
+        all_inspections = electrical_bridge.list_inspections(vin)
+    except Exception:  # noqa: BLE001
+        all_inspections = []
+    latest_by_el: dict[str, dict[str, Any]] = {}
+    for insp in all_inspections:
+        eid = insp.get("element")
+        if not eid:
+            continue
+        if eid not in latest_by_el or (insp.get("at") or "") > (latest_by_el[eid].get("at") or ""):
+            latest_by_el[eid] = insp
+
+    def _row_for(el: dict[str, Any], group: str) -> dict[str, Any]:
+        eid = el.get("id")
+        loc = el.get("location") or {}
+        location_note_raw = loc.get("description") or None
+        latest_insp = latest_by_el.get(eid)
+        return {
+            "id": eid, "group": group, "label": el.get("label") or eid,
+            "zone": loc.get("zone") or UNKNOWN_MARKER,
+            "location_note": location_note_raw or UNKNOWN_MARKER,
+            "location_fact": _fact(attested_map, f"element:{eid}:location", location_note_raw),
+            "location_confidence": loc.get("confidence") or "UNKNOWN",
+            "inspection_hint": el.get("inspection_hint") or UNKNOWN_MARKER,
+            "latest_inspection": ({
+                "condition": latest_insp.get("condition"), "at": latest_insp.get("at"),
+                "by": latest_insp.get("by"),
+            } if latest_insp else None),
+            "inspect_href": f"/v/{vin}/electrical?system={layout_bridge.canonical_system(el)}#el-{eid}",
+            "is_test": False,
+        }
+
+    try:
+        battery = electrical_bridge.get_element("battery")
+    except Exception:  # noqa: BLE001
+        battery = None
+    if battery:
+        rows.append(_row_for(battery, "Battery terminals"))
+
+    try:
+        from mes import electrical as electrical_mod2  # noqa: PLC0415
+        hops = electrical_mod2.network_check_first()
+    except Exception:  # noqa: BLE001
+        hops = []
+    _ROLE_GROUPS = {"supply": "BCM supply fuse", "protection": "BCM supply fuse",
+                    "connector": "Connector condition", "ground": "BCM ground"}
+    for hop in hops:
+        role = hop.get("role")
+        group = _ROLE_GROUPS.get(role)
+        el = hop.get("details")
+        if not group or not el:
+            continue  # "controller" (the BCM itself) is not a check-first row
+        rows.append(_row_for(el, group))
+
+    try:
+        from mes import mechanic_tests as _mech2  # noqa: PLC0415
+        can_test = _mech2.test(_CAN_TERMINATION_TEST_ID)
+    except Exception:  # noqa: BLE001
+        can_test = None
+    if can_test:
+        pcs = can_test.get("pass_criteria") or []
+        spec_text = None
+        if pcs:
+            pc = pcs[0]
+            spec_text = f"{pc.get('spec')} {pc.get('unit')}".strip()
+        rows.append({
+            "id": _CAN_TERMINATION_TEST_ID, "group": "CAN-C/IHS termination",
+            "label": can_test.get("name") or "CAN bus resistance test",
+            "zone": None, "location_note": None, "location_fact": None,
+            "location_confidence": None,
+            "inspection_hint": can_test.get("purpose") or "",
+            "spec_text": spec_text,
+            "latest_inspection": None,
+            "inspect_href": f"/v/{vin}/tests#test-{_CAN_TERMINATION_TEST_ID}",
+            "is_test": True,
+        })
+    return rows
+
+
+# --- EVAP <-> network cross-reference (the ``evap`` system page) ------------
+
+def _evap_network_crossref(vin: str, corr: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """EVAP's own one-line pointer at the network event, built from the
+    *same* evap/network co-occurrence row ``systems_bridge.correlate``
+    already computes (``mes.systems.correlate``'s own ``reading`` sentence
+    carries "{together} of {total} session(s)" -- parsed back out here
+    rather than recomputed) -- never a new correlation, and worded as
+    correlation only ("have appeared alongside"), never a cause claim."""
+    for row in corr.get("co_occurrence") or []:
+        if {row.get("a"), row.get("b")} != {"evap", "network"}:
+            continue
+        together = row.get("sessions_together")
+        m = re.search(r"in (\d+) of (\d+) session", row.get("reading") or "")
+        total = int(m.group(2)) if m else None
+        if not together or not total:
+            continue
+        return {
+            "sessions_together": together, "total_sessions": total,
+            "text": (f"Network codes have appeared alongside EVAP codes in "
+                    f"{together} of {total} sessions on this car; the "
+                    "fuel-level signal reaches the ECM over the bus — see "
+                    "the network event."),
+            "href": f"/v/{vin}/systems/network",
+        }
+    return None
 
 
 # --- the view model -----------------------------------------------------------
@@ -641,6 +880,17 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         freeze_frames_view.append({"code": ff.get("code"), "rows": rows,
                                    "href": f"/v/{vin}/code/{base}"})
 
+    # --- 11. network event / BCM check-first / EVAP<->network crossref -------
+    # Each is scoped to the one page it belongs on: the network event is a
+    # whole-car, cross-module picture that only makes sense on "network"
+    # itself; the check-first checklist is the BCM's own, on "body_comfort"
+    # (the system that holds the BCM, see systems_map_bridge._MODULE_SYSTEM);
+    # the crossref is EVAP's own pointer at the network page. A page outside
+    # its own scope gets the field's empty/`` None`` default, never a guess.
+    network_event = _network_event(vin) if key == "network" else None
+    bcm_check_first = _bcm_check_first(vin, attested_map) if key == "body_comfort" else []
+    evap_network_crossref = _evap_network_crossref(vin, corr) if key == "evap" else None
+
     return {
         "key": key, "label": label,
         "status_strip": status_strip,
@@ -655,6 +905,9 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         "freeze_frames": freeze_frames_view,
         "live_mode06": live_mode06,
         "live_freeze_frames": live_freeze,
+        "network_event": network_event,
+        "bcm_check_first": bcm_check_first,
+        "evap_network_crossref": evap_network_crossref,
         "unknown_marker": UNKNOWN_MARKER,
         "attested_footnote": ("Mechanic inputs are attested claims, not car measurements: "
                               "they never replace the knowledge-table value shown beside them "

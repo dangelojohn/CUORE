@@ -296,8 +296,16 @@ def _preconditions(text: str, live_status: dict[str, Any],
     low = (text or "").lower()
     out: list[dict[str, Any]] = []
     if "actuator" in low or "koeo" in low:
+        # Review #6 item 1: the BLOCKED banner shows this precondition's own
+        # "label" verbatim as the reason (``_task_state``) -- a static "MES
+        # running" read as the blocking reason exactly backwards whenever
+        # MES was in fact NOT running (ok=False), landing "KOEO BLOCKED: MES
+        # running" right beside a "Scanner: Not running" strip. Building the
+        # label from the same ``mes_state``/``scanner_label`` the strip uses
+        # keeps the two in agreement no matter which state it is.
         out.append({
-            "label": "MES running", "ok": live_status.get("mes_state") == "connected",
+            "label": f"MES {scanner_label(live_status).lower()}",
+            "ok": live_status.get("mes_state") == "connected",
             "fix_href": "/live", "fix_label": "Open Live", "fix_text": None,
         })
     needs_car = any(k in low for k in
@@ -642,12 +650,19 @@ def _case_hint(vin: str, open_codes: list[str]) -> str | None:
     return prefill.get("summary")
 
 
-def _fuel_gate(vin: str, freeze_frames: list[dict[str, Any]]) -> dict[str, Any]:
+def _fuel_gate(vin: str, freeze_frames: list[dict[str, Any]],
+               readiness_at: str | None = None) -> dict[str, Any]:
     """The live fuel gate (BENCH_UX_SPEC_2026-10-08.md C10): current fuel %,
     the 15-85% EVAP window, and litres to burn to reach 85% -- only when a
     sourced tank capacity exists for this VIN; ``None`` (UNKNOWN) otherwise,
-    never a guessed number."""
-    status = dossier_bridge.fuel_status(freeze_frames)
+    never a guessed number.
+
+    ``dossier_bridge.fuel_status`` is the one gate value (Review #6 item
+    2): the newest from-car PID $2F read when this car has ever reported
+    one, else the newest EVAP freeze frame -- always with its own
+    timestamp/source, and ``stale`` when it predates ``readiness_at`` (the
+    bench's own readiness panel reading)."""
+    status = dossier_bridge.fuel_status(freeze_frames, vin=vin, readiness_at=readiness_at)
     capacity = _tank_capacity_litres(vin)
     litres = None
     if (status["level"] is not None and status["direction"] == "above"
@@ -825,6 +840,11 @@ def build_bench(vin: str) -> dict[str, Any]:
     except Exception:  # noqa: BLE001
         open_codes = []
 
+    # Computed once, before the fuel gate: Review #6 item 2 wants the gate
+    # compared against "the latest readiness read", the same one this
+    # panel already shows -- never a second, independently-fetched value.
+    readiness = dossier_bridge.readiness_panel(vin, dossier)
+
     return {
         "vin": vin,
         "vehicle": _vehicle_name(vin, dossier),
@@ -844,8 +864,8 @@ def build_bench(vin: str) -> dict[str, Any]:
         "shortcuts": _shortcuts(vin, codes, open_work),
         "legend": _STATUS_LEGEND,
         "case_hint": _case_hint(vin, open_codes),
-        "fuel_gate": _fuel_gate(vin, view.get("freeze_frames") or []),
-        "readiness": dossier_bridge.readiness_panel(vin, dossier),
+        "fuel_gate": _fuel_gate(vin, view.get("freeze_frames") or [], readiness.get("at")),
+        "readiness": readiness,
         "mode06": view.get("mode06"),
         "live_status": live_status,
         "scanner_label": scanner_label(live_status),

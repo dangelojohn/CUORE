@@ -293,12 +293,21 @@ if bench["next_actions"]:
           str(checklist_store.get(VIN).get(fault_step_id)))
 
 # 4. preconditions show MES status
+# Review #6 item 1: the precondition's own label now tracks the same
+# mes_state/scanner_label() the "Scanner:" strip shows (was a static "MES
+# running" that read backwards -- "BLOCKED: MES running" -- whenever MES
+# was in fact not running), so the label text here is "MES " + whatever
+# scanner_label() currently says, not a fixed string.
 mes_task = next((a for a in bench["next_actions"]
-                 if any(p["label"] == "MES running" for p in a["preconditions"])), None)
+                 if any(p["label"].startswith("MES ") for p in a["preconditions"])), None)
 check("at least one task declares a live MES precondition",
       mes_task is not None, str([a["preconditions"] for a in bench["next_actions"]]))
 if mes_task:
-    check("the MES running precondition is shown on the page", "MES running" in page.text)
+    mes_precond = next(p for p in mes_task["preconditions"] if p["label"].startswith("MES "))
+    check("the precondition's label matches the Scanner strip's own wording",
+          mes_precond["label"] == f"MES {bench_bridge.scanner_label(bench['live_status']).lower()}",
+          str(mes_precond))
+    check("the MES precondition label is shown on the page", mes_precond["label"] in page.text)
 
 # 5. every task row has a labelled checkbox and data-task-id
 for a in bench["next_actions"]:

@@ -29,7 +29,9 @@
   </div>
 
   <section class="sh-verdict sh-verdict-{{ report.verdict.state|lower }}">
-    <div class="sh-verdict-label">{{ report.verdict.label }}</div>
+    <div class="sh-verdict-label">{{ report.verdict.label }}
+      {% for chip in mods_non_stock(vin) if mods_non_stock is defined %}<span class="chip chronic" title="{{ chip.detail }}">{{ chip.label }}</span>{% endfor %}
+    </div>
     {% if report.verdict.primary_system %}
     <div class="sh-verdict-primary">Primary system: {{ report.verdict.primary_system }}</div>
     {% endif %}

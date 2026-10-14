@@ -119,18 +119,40 @@ def _generic_family_for(base: str) -> tuple[str, str] | None:
     return None
 
 
+#: Review #6 item 5, documented rule: a single-session code (``seen_once``
+#: -- never chronic, never returned after a clear) with no occurrence in
+#: this many days is demoted from open work to history. One drive-by
+#: reading from over half a year ago with nothing since is not something
+#: a mechanic needs an actionable card for tonight; it still shows in the
+#: Codes table (as STALE), just not as open work. Chronic and
+#: returned-after-clear codes are never demoted by this rule regardless of
+#: age -- those are open on their own evidence, not on recency alone.
+_STALE_SINGLE_SESSION_DAYS = 180
+
+
 def _history_codes(dossier: dict[str, Any]) -> set[str]:
     """Every base code present anywhere in this car's own history -- the
     same ``chronic``/``returned_after_clear``/``seen_once`` buckets the code
     table reads -- so a generic open-work card can be offered for a family
-    the TSB family-finding rule above doesn't recognise."""
+    the TSB family-finding rule above doesn't recognise.
+
+    A ``seen_once`` code last seen more than :data:`_STALE_SINGLE_SESSION_DAYS`
+    ago is left out: see that constant's own docstring.
+    """
     history = dossier.get("history") or {}
     out: set[str] = set()
+    now = datetime.now()
     for bucket in ("chronic", "returned_after_clear", "seen_once"):
         for rec in history.get(bucket, []):
             b = _base(rec.get("dtc", ""))
-            if b:
-                out.add(b)
+            if not b:
+                continue
+            if bucket == "seen_once":
+                last_seen = _parse_ts(rec.get("last_seen"))
+                if (last_seen is not None
+                        and (now - last_seen).days > _STALE_SINGLE_SESSION_DAYS):
+                    continue
+            out.add(b)
     return out
 
 
@@ -156,6 +178,51 @@ def _base(code: str) -> str:
     ``mes`` package directly."""
     code = (code or "").strip().upper()
     return code.split("-", 1)[0] if "-" in code else code
+
+
+#: Failure-type bytes that mean "failed to communicate" rather than "this
+#: component itself is broken" -- same set as ``mes.analysis.
+#: COMMUNICATION_FTBS``, reimplemented here (not imported) for the same
+#: never-import-``mes``-directly reason :func:`_base` already states.
+#: Drives the Body-group split (Review #6 item 5).
+_COMMUNICATION_FTBS = frozenset({"2F", "86", "87", "88", "64"})
+
+
+def _ftb(code: str) -> str:
+    """"B1176-97" -> "97". Empty for a code with no suffix."""
+    code = (code or "").strip().upper()
+    return code.split("-", 1)[1] if "-" in code else ""
+
+
+def _comms_like_bases(dossier: dict[str, Any],
+                      live_modules: list[dict[str, Any]]) -> set[str]:
+    """Base codes (any SAE letter) for which at least one occurrence on
+    file -- a logged session or a live module read -- carries a
+    messaging-type failure-type byte (:data:`_COMMUNICATION_FTBS`).
+
+    Splits the generic Body group (Review #6 item 5): a B-code whose only
+    on-file occurrences are messaging-type (e.g. B1040-87, alongside the
+    BCM/DTCM comms cascade) is a communication event, not the mechanical
+    fault a plain base-letter classification would otherwise lump it with
+    (e.g. B1176, a window-regulator fault whose own FTB, -97, is not in
+    this set). Not a full re-implementation of ``mes.analysis.
+    is_communication_dtc`` (which also checks the description text for a
+    messaging-type FTB that could still be a real component fault) --
+    FTB-only, simpler, and good enough for a display grouping rather than
+    a diagnosis.
+    """
+    out: set[str] = set()
+    history = dossier.get("history") or {}
+    for bucket in ("chronic", "returned_after_clear", "seen_once"):
+        for rec in history.get(bucket, []):
+            full = rec.get("dtc", "")
+            if _ftb(full) in _COMMUNICATION_FTBS:
+                out.add(_base(full))
+    for m in live_modules:
+        ftb = m.get("ftb") or _ftb(m.get("code") or "")
+        if ftb in _COMMUNICATION_FTBS:
+            out.add(_base(m.get("code") or ""))
+    return out
 
 
 def _slug(text: str) -> str:
@@ -305,29 +372,100 @@ def readiness_result(raw: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def fuel_status(freeze_frames: list[dict[str, Any]]) -> dict[str, Any]:
+def _latest_live_fuel_pid(vin: str) -> dict[str, Any] | None:
+    """The newest from-car Mode 01 PID $2F (fuel level) read -- a single
+    ``obd2.read_pid`` read (kind ``"pid"``) or a multi-PID
+    ``obd2.read_pids_snapshot`` (kind ``"pids_snapshot"``), whichever is
+    newer -- as ``{"at": timestamp, "value": percent}``, or ``None`` when
+    this car has never reported PID $2F live. Never raises."""
+    if not vin.strip():
+        return None
+    try:
+        obs = (live_store.recent_observations(200, vin=vin, kind="pids_snapshot")
+              + live_store.recent_observations(200, vin=vin, kind="pid"))
+    except Exception:  # noqa: BLE001
+        return None
+    best: dict[str, Any] | None = None
+    for o in obs:
+        if not live_store.is_from_car(o):
+            continue
+        data = o.get("data") or {}
+        value = None
+        pid = str(data.get("pid") or "").upper()
+        name = str(data.get("name") or "").lower()
+        if pid == "2F" or name == "fuel_level":
+            first = next(iter((data.get("by_ecu") or {}).values()), None)
+            if isinstance(first, dict) and first.get("value") is not None:
+                value = first.get("value")
+            elif data.get("value") is not None:
+                value = data.get("value")
+        else:
+            for readings in (data.get("by_ecu") or {}).values():
+                entry = readings.get("2F") or readings.get("2f")
+                if entry and entry.get("value") is not None:
+                    value = entry.get("value")
+                    break
+        if value is None:
+            continue
+        at = o.get("at") or ""
+        if best is None or at > best["at"]:
+            best = {"at": at, "value": value}
+    return best
+
+
+def fuel_status(freeze_frames: list[dict[str, Any]], vin: str = "",
+                readiness_at: str | None = None) -> dict[str, Any]:
     """Current fuel % and EVAP-window state, for the bench's live fuel gate.
 
-    Reads the same EVAP freeze-frame "Fuel level" reading the verdict's own
-    ``next_action`` sentence already quotes (:func:`_fuel_out_of_window`
-    scans the same frames but only returns a value when the reading is
-    flagged out-of-window) -- never a second, disagreeing number. ``level``
-    is ``None`` (UNKNOWN) when no EVAP freeze frame carries a fuel reading;
-    nothing here is ever invented.
+    Review #6 item 2 -- one gate value, with its own timestamp and source,
+    computed in this order:
+
+    1. The newest from-car Mode 01 PID $2F read (:func:`_latest_live_fuel_pid`),
+       when this car has ever reported one.
+    2. Else the newest EVAP freeze-frame "Fuel level" reading -- the same
+       one the verdict's own ``next_action`` sentence quotes
+       (:func:`_fuel_out_of_window` scans the same frames).
+
+    ``level`` is ``None`` (UNKNOWN) when neither source has a reading;
+    nothing here is ever invented. When ``readiness_at`` (the latest
+    from-car readiness read) is newer than the fuel reading's own
+    timestamp, ``stale`` is true: the fuel level on file predates the
+    newest readiness read, so it cannot be trusted to explain whether the
+    EVAP monitor could run -- the caller's job is to turn that into a
+    warning, not a hard block.
     """
     lo, hi = _EVAP_FUEL_WINDOW
-    for ff in freeze_frames:
-        for p in ff.get("key") or []:
-            if p.get("name") != "Fuel level":
-                continue
-            level = _num(p.get("value"))
-            if level is None:
-                continue
-            in_window = lo <= level <= hi
-            direction = None if in_window else ("below" if level < lo else "above")
-            return {"level": level, "window": [lo, hi], "in_window": in_window,
-                    "direction": direction}
-    return {"level": None, "window": [lo, hi], "in_window": None, "direction": None}
+    level = at = source = None
+    live = _latest_live_fuel_pid(vin) if vin else None
+    if live is not None:
+        level = _num(live["value"]) if not isinstance(live["value"], (int, float)) \
+            else live["value"]
+        at = live["at"]
+        source = "PID $2F, read from the car"
+    else:
+        for ff in freeze_frames:
+            for p in ff.get("key") or []:
+                if p.get("name") != "Fuel level":
+                    continue
+                lvl = _num(p.get("value"))
+                if lvl is None:
+                    continue
+                level = lvl
+                at = ff.get("timestamp")
+                source = f"{ff.get('code') or 'freeze frame'} freeze frame"
+                break
+            if level is not None:
+                break
+    if level is None:
+        return {"level": None, "window": [lo, hi], "in_window": None, "direction": None,
+                "at": None, "source": None, "stale": None}
+    in_window = lo <= level <= hi
+    direction = None if in_window else ("below" if level < lo else "above")
+    at_cmp = (at or "").replace("T", " ")
+    readiness_cmp = (readiness_at or "").replace("T", " ")
+    stale = bool(at and readiness_at and at_cmp < readiness_cmp)
+    return {"level": level, "window": [lo, hi], "in_window": in_window,
+            "direction": direction, "at": at, "source": source, "stale": stale}
 
 
 def readiness_panel(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
@@ -443,8 +581,38 @@ def _live_module_dtcs(vin: str, after: str | None) -> list[dict[str, Any]]:
             key = (ecu, code)
             if key not in best or at > best[key]["at"]:
                 best[key] = {"ecu": ecu, "code": code, "state": state, "at": at,
-                            "status": d.get("status")}
+                            "status": d.get("status"), "ftb": _ftb(d.get("code") or "")}
     return sorted(best.values(), key=lambda r: (r["ecu"], r["code"]))
+
+
+def _live_code_signal(vin: str, after: str | None) -> dict[str, dict[str, Any]]:
+    """Every base code this car's own live reads (``obd_dtcs`` + Mode 03/07/
+    0A, and ``module_dtcs``, UDS 0x19) have reported since ``after`` (the
+    last clear): ``{base_code: {"at": newest timestamp, "active": whether
+    any of those reads found it currently active, not just HISTORY-state}}``.
+
+    The from-car stand-in for ``mes.workup``'s own MES-log-only history
+    (Review #6 item 1): a code read only live -- never logged to a file
+    (e.g. U1736), or read again from the car after a clear the log alone
+    would still call CLEARED_UNVERIFIED (e.g. P0440/P0455, cleared by MES
+    then read back from the car) -- is a real observation of this car
+    either way. Never raises.
+    """
+    signal: dict[str, dict[str, Any]] = {}
+
+    def _note(code: str, at: str, active: bool) -> None:
+        cur = signal.get(code)
+        if cur is None or at > cur["at"]:
+            signal[code] = {"at": at, "active": active or (cur or {}).get("active", False)}
+        elif active and not cur["active"]:
+            cur["active"] = True
+
+    for rec in _latest_live_dtcs(vin, after).values():
+        for code in rec["dtcs"]:
+            _note(code, rec["at"], True)
+    for m in _live_module_dtcs(vin, after):
+        _note(m["code"], m["at"], m["state"] == "ACTIVE")
+    return signal
 
 
 # --- freeze frames read directly from the car (Mode 02 sweep) ---------------
@@ -497,7 +665,19 @@ _MODE06_FRIENDLY = {"3A": "large-leak test", "3C": "small-leak test (0.020\")"}
 
 
 def _mode06_fail_label(mid: str, name: str, value: Any, unit: str | None,
-                       min_: Any, date_short: str | None) -> str:
+                       min_: Any, max_: Any, date_short: str | None) -> str:
+    """"value 6096 ms, limit max 6000 ms -- FAIL" -- whichever bound this
+    record actually exceeded, never a hardcoded "vs min" (Review #6 item
+    3: TID 90 is a max-limit test -- 6096 vs 0..6000 -- so "vs min 0 ms"
+    named the wrong bound and the one that was not exceeded). ``passed``
+    is always ``min_ <= value <= max_`` (unchanged, see
+    ``cuore.live.mode06.decode_mode06_records``); this only decides which
+    of the two bounds to name in the FAIL text:
+
+    * a sentinel-high max (no real upper bound) -> the min was exceeded.
+    * else, whichever bound the value actually fell outside of (the
+      common case: min is 0 and the value is above max, as in TID 90).
+    """
     unit = unit or ""
 
     def fmt(v: Any) -> str:
@@ -505,7 +685,27 @@ def _mode06_fail_label(mid: str, name: str, value: Any, unit: str | None,
             s = f"{v:g}"
             return f"{s} {unit}".strip()
         return str(v)
-    return f"Mode 06 {name}: FAIL {fmt(value)} vs min {fmt(min_)} (car, {date_short})"
+
+    v_num = value if isinstance(value, (int, float)) else None
+    min_num = min_ if isinstance(min_, (int, float)) else None
+    max_num = max_ if isinstance(max_, (int, float)) else None
+    sentinel_max = max_num is not None and max_num >= 65535
+    if sentinel_max:
+        # No real upper bound (a ">= min" style test) -- the only way to
+        # fail one is to fall below the floor.
+        bound, limit = "min", min_
+    elif not min_num:
+        # min is 0 (or absent) and max is real -- a "<= max" style test
+        # (TID 90: 6096 vs 0..6000), the common case.
+        bound, limit = "max", max_
+    elif v_num is not None and min_num is not None and v_num < min_num:
+        # A genuine two-sided band: name whichever side was actually
+        # exceeded rather than assuming it is always the max.
+        bound, limit = "min", min_
+    else:
+        bound, limit = "max", max_
+    return (f"Mode 06 {name}: value {fmt(value)}, limit {bound} {fmt(limit)} -- FAIL "
+           f"(car, {date_short})")
 
 
 def _build_mode06_view(vin: str, after: str | None) -> dict[str, Any] | None:
@@ -544,7 +744,7 @@ def _build_mode06_view(vin: str, after: str | None) -> dict[str, Any] | None:
                 rows.append(row)
                 if e.get("passed") is False and "EVAP" in name.upper():
                     label = _mode06_fail_label(mid, name, e.get("value"), e.get("unit"),
-                                               e.get("min"), date_short)
+                                               e.get("min"), e.get("max"), date_short)
                     fails.append({"mid": mid, "name": name, "value": e.get("value"),
                                  "unit": e.get("unit"), "min": e.get("min"),
                                  "label": label,
@@ -942,25 +1142,20 @@ def _step_bit(step: dict[str, Any] | None) -> str | None:
     return f"{step['text']} ({bulletin})"
 
 
-def _fuel_out_of_window(freeze_frames: list[dict[str, Any]]
-                        ) -> tuple[float, str, float] | None:
-    """``(level, "above"/"below", threshold)`` for the first EVAP freeze-frame
-    fuel reading outside :data:`_EVAP_FUEL_WINDOW` -- the same flag
-    :func:`_build_freeze_frames` already set on that reading -- or ``None``
-    when no freeze frame carries that flag."""
-    lo, hi = _EVAP_FUEL_WINDOW
-    for ff in freeze_frames:
-        for p in ff.get("key") or []:
-            if p.get("name") != "Fuel level" or not p.get("flag"):
-                continue
-            level = _num(p.get("value"))
-            if level is None:
-                continue
-            return level, ("below" if level < lo else "above"), (lo if level < lo else hi)
-    return None
+def _fuel_out_of_window(vin: str, freeze_frames: list[dict[str, Any]],
+                        readiness_at: str | None) -> dict[str, Any] | None:
+    """:func:`fuel_status` for this car, or ``None`` when there is no fuel
+    reading at all, or the reading is in-window. One gate value (Review #6
+    item 2), with the staleness flag :func:`_verdict_next_action` turns
+    into a warning instead of a hard block."""
+    status = fuel_status(freeze_frames, vin=vin, readiness_at=readiness_at)
+    if status.get("direction") is None:
+        return None
+    return status
 
 
-def _verdict_next_action(verdict: dict[str, Any], open_work: list[dict[str, Any]],
+def _verdict_next_action(vin: str, verdict: dict[str, Any],
+                         open_work: list[dict[str, Any]],
                          freeze_frames: list[dict[str, Any]],
                          mode06: dict[str, Any] | None = None
                          ) -> tuple[str, str, str | None]:
@@ -973,13 +1168,27 @@ def _verdict_next_action(verdict: dict[str, Any], open_work: list[dict[str, Any]
     bit = _step_bit(step)
 
     if state == "UNVERIFIED_REPAIR":
-        fuel = _fuel_out_of_window(freeze_frames)
+        readiness = verdict.get("readiness") or {}
+        fuel = _fuel_out_of_window(vin, freeze_frames, readiness.get("at"))
         if fuel is not None:
-            level, direction, threshold = fuel
+            level, direction = fuel["level"], fuel["direction"]
+            threshold = _EVAP_FUEL_WINDOW[1] if direction == "above" else _EVAP_FUEL_WINDOW[0]
+            cite = f" ({fuel['source']}, {fuel['at'][:10]})" if fuel.get("source") else ""
+            # Review #6 item 2: a fuel reading older than the newest
+            # readiness read cannot be trusted to explain whether the
+            # monitor could run since -- warn, never hard-block, on a
+            # stale reading.
+            if fuel.get("stale"):
+                sentence = (f"Fuel level last read {fuel['at'][:10]}{cite} -- verify "
+                           f"before trusting the EVAP monitor; this reading predates "
+                           f"the newest readiness read.")
+                if bit:
+                    sentence += f" Meanwhile: {bit}."
+                return sentence, "verify fuel reading", step_id
             sentence = (f"Cannot verify yet: the EVAP monitor will not run {direction} "
-                       f"{threshold:g} % fuel (set at {level:g} %). Burn fuel into the "
-                       f"{_EVAP_FUEL_WINDOW[0]:g}-{_EVAP_FUEL_WINDOW[1]:g} % window, then "
-                       f"complete a drive cycle.")
+                       f"{threshold:g} % fuel (set at {level:g} %){cite}. Burn fuel into "
+                       f"the {_EVAP_FUEL_WINDOW[0]:g}-{_EVAP_FUEL_WINDOW[1]:g} % window, "
+                       f"then complete a drive cycle.")
             if bit:
                 sentence += f" Meanwhile: {bit}."
             return sentence, "fuel out of window", step_id
@@ -1027,7 +1236,8 @@ def _family_refs(codes: list[str], per_code: dict[str, Any],
 
 def _build_open_work(vin: str, dossier: dict[str, Any],
                      checklist: dict[str, Any],
-                     live_active_codes: frozenset[str] = frozenset()
+                     live_module_codes: frozenset[str] = frozenset(),
+                     comms_like_bases: frozenset[str] = frozenset()
                      ) -> list[dict[str, Any]]:
     tsb = dossier.get("tsb_matches") or {}
     findings = tsb.get("family_findings") or []
@@ -1072,7 +1282,13 @@ def _build_open_work(vin: str, dossier: dict[str, Any],
     # history for the generic grouping below -- so, e.g., three or more
     # from-car network (U-code) faults land on the same "network" card as
     # one bus event, not three separate ones, the same as a logged family.
-    remaining = sorted((_history_codes(dossier) | set(live_active_codes)) - covered_codes)
+    # Review #6 item 1: ACTIVE and HISTORY-state live module codes both
+    # join this grouping, not ACTIVE alone -- a matured-but-not-currently-
+    # failing code (e.g. C1408-86) still has to land on a card here, or it
+    # shows on the Codes/Systems pages (which read every live module code
+    # regardless of state) while silently missing from the job's own
+    # family group, the exact disagreement this review flagged.
+    remaining = sorted((_history_codes(dossier) | set(live_module_codes)) - covered_codes)
     groups: dict[str, list[str]] = {}
     labels: dict[str, str] = {}
     for code in remaining:
@@ -1080,6 +1296,13 @@ def _build_open_work(vin: str, dossier: dict[str, Any],
         if fam is None:
             continue
         key, label = fam
+        # Review #6 item 5: split the generic Body group -- a B-code whose
+        # only on-file occurrences are messaging-type (comms, not a broken
+        # component) joins a "body_comms" card instead of sitting on the
+        # same card as a mechanical body fault like B1176 (window
+        # regulator).
+        if key == "body" and code in comms_like_bases:
+            key, label = "body_comms", "Body: communication"
         groups.setdefault(key, []).append(code)
         labels[key] = label
     for family_key in sorted(groups):
@@ -1146,7 +1369,8 @@ def _code_status(base: str, last_seen: str | None, cleared_at: str | None,
 
 def _code_rows(vin: str, dossier: dict[str, Any], cleared_at: str | None,
               clear_assessment: dict[str, Any] | None, recent_ts: list[str],
-              family_map: dict[str, str]
+              family_map: dict[str, str],
+              live_signal: dict[str, dict[str, Any]] | None = None,
               ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     history = dossier.get("history") or {}
     cp = dossier.get("current_picture") or {}
@@ -1160,16 +1384,41 @@ def _code_rows(vin: str, dossier: dict[str, Any], cleared_at: str | None,
                       (clear_assessment or {}).get("codes_returned_in_session", [])}
     codes_uncleared = {_base(c) for c in
                        (clear_assessment or {}).get("codes_that_would_not_clear", [])}
+    live_signal = live_signal or {}
 
     rows: list[dict[str, Any]] = []
+    seen_bases: set[str] = set()
     for bucket in ("chronic", "returned_after_clear", "seen_once"):
         for rec in history.get(bucket, []):
             full = rec.get("dtc", "")
             base = _base(full)
             last_seen = rec.get("last_seen")
-            status = _code_status(base, last_seen, cleared_at, codes_cleared,
-                                  codes_returned, codes_uncleared, last_findings,
-                                  last_findings_ts, recent_ts)
+            status_detail = None
+            live = live_signal.get(base)
+            # Review #6 item 1: a code this car's logs call cleared (the
+            # last MES-log occurrence is at/before the clear) but that the
+            # car itself has reported again since -- read straight off it,
+            # not through a second log file -- returned: erased and set
+            # again. The MES log alone would call this CLEARED_UNVERIFIED,
+            # disagreeing with the verdict, which already treats a live
+            # read as decisive (see ``_build_verdict``'s own
+            # ``live_active_codes``).
+            if live and cleared_at and base in codes_cleared and live["at"] > cleared_at:
+                status = "ACTIVE"
+                if not last_seen or live["at"] > last_seen:
+                    last_seen = live["at"]
+                cleared_short = _short_date(cleared_at)
+                live_short = live["at"][:16].replace("T", " ")
+                status_detail = (f"returned -- erased {cleared_short}, set again "
+                                 f"{live_short} (read from the car)")
+            else:
+                status = _code_status(base, last_seen, cleared_at, codes_cleared,
+                                      codes_returned, codes_uncleared, last_findings,
+                                      last_findings_ts, recent_ts)
+                if live and live["active"] and status != "ACTIVE":
+                    status = "ACTIVE"
+                    if not last_seen or live["at"] > last_seen:
+                        last_seen = live["at"]
             distance = rec.get("distance_span_km")
             rows.append({
                 "code": base, "dtc": full,
@@ -1177,6 +1426,7 @@ def _code_rows(vin: str, dossier: dict[str, Any], cleared_at: str | None,
                 "system": _SYSTEM_BY_LETTER.get(base[:1], base[:1] if base else None),
                 "bucket": bucket,
                 "status": status, "status_label": _STATUS_LABEL[status],
+                "status_detail": status_detail,
                 "sessions": rec.get("sessions"),
                 "last_seen_short": _short_date(last_seen),
                 "last_seen": last_seen, "first_seen": rec.get("first_seen"),
@@ -1184,6 +1434,31 @@ def _code_rows(vin: str, dossier: dict[str, Any], cleared_at: str | None,
                 "href": f"/v/{vin}/code/{base}",
                 "family": family_map.get(base),
             })
+            seen_bases.add(base)
+
+    # Review #6 item 1: a code read only live (U1736: never logged to a
+    # MES file, only ever seen in a from-car module sweep) still belongs
+    # on the Codes list -- the mechanic's own "every code this car has
+    # shown" list must not silently exclude it just because no log file
+    # ever carried it.
+    for base, live in sorted(live_signal.items()):
+        if base in seen_bases:
+            continue
+        status = "ACTIVE" if live["active"] else "STALE"
+        rows.append({
+            "code": base, "dtc": base,
+            "description": "",
+            "system": _SYSTEM_BY_LETTER.get(base[:1], base[:1] if base else None),
+            "bucket": "live_only",
+            "status": status, "status_label": _STATUS_LABEL[status],
+            "status_detail": "read live; never logged to a file",
+            "sessions": None,
+            "last_seen_short": live["at"][:16].replace("T", " "),
+            "last_seen": live["at"], "first_seen": live["at"],
+            "distance_km": None,
+            "href": f"/v/{vin}/code/{base}",
+            "family": family_map.get(base),
+        })
 
     counts = {"chronic": 0, "seen_once": 0, "returned_after_clear": 0,
              "active": 0, "stale": 0}
@@ -1272,6 +1547,7 @@ def _build_freeze_frames(vin: str, dossier: dict[str, Any]) -> list[dict[str, An
         out.append({
             "code": f.get("dtc"), "key": key, "set_km_ago": set_km_ago,
             "all": [{"name": n, "value": v} for n, v in ff.items()],
+            "timestamp": f.get("timestamp"),
         })
     return out
 
@@ -1415,11 +1691,17 @@ def _build_view_core(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
     cleared_at, _cleared_by, clear_assessment = _clear_info(dossier)
 
     live_modules = _live_module_dtcs(vin, cleared_at)
-    live_active_module_codes = frozenset(
-        m["code"] for m in live_modules if m["state"] == "ACTIVE")
+    # Review #6 item 1: ACTIVE *and* HISTORY-state live module codes both
+    # join the generic open-work grouping below -- see
+    # :func:`_build_open_work`'s own comment on why ACTIVE-only disagreed
+    # with the Codes/Systems pages, which list every live module code
+    # regardless of state.
+    live_module_codes = frozenset(m["code"] for m in live_modules)
+    comms_like_bases = frozenset(_comms_like_bases(dossier, live_modules))
 
     checklist = checklist_store.get(vin)
-    open_work = _build_open_work(vin, dossier, checklist, live_active_module_codes)
+    open_work = _build_open_work(vin, dossier, checklist, live_module_codes,
+                                 comms_like_bases)
 
     family_map = _family_map(dossier)
     try:
@@ -1427,15 +1709,32 @@ def _build_view_core(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
                     mes_bridge.list_logs(vin=vin, limit=3)["logs"]]
     except BridgeError:
         recent_ts = []
+    live_signal = _live_code_signal(vin, cleared_at)
     codes, code_counts = _code_rows(vin, dossier, cleared_at, clear_assessment,
-                                    recent_ts, family_map)
+                                    recent_ts, family_map, live_signal)
+
+    freeze_frames = _build_freeze_frames(vin, dossier)
+    # Review #6 item 4: a freeze frame flagged "could not run" (fuel
+    # outside the EVAP window at the moment the code set) is a
+    # test-condition fact, never itself evidence FOR a hypothesis -- split
+    # out here so a future evidence picker can offer the two groups
+    # separately ("evidence" vs "conditions") without re-deriving the
+    # flag. Additive only: ``freeze_frames`` itself is unchanged, since
+    # other pages (report, scan, system, vehicle) intentionally still show
+    # every frame, flag included.
+    evidence_freeze_frames = [f for f in freeze_frames
+                              if not any(p.get("flag") for p in f.get("key") or [])]
+    condition_freeze_frames = [f for f in freeze_frames
+                               if any(p.get("flag") for p in f.get("key") or [])]
 
     return {
         "open_work": open_work,
         "codes": codes,
         "code_counts": code_counts,
         "attempted": _build_attempted(vin),
-        "freeze_frames": _build_freeze_frames(vin, dossier),
+        "freeze_frames": freeze_frames,
+        "evidence_freeze_frames": evidence_freeze_frames,
+        "condition_freeze_frames": condition_freeze_frames,
         "live_freeze_frames": _build_live_freeze_frames(vin, cleared_at),
         "mode06": _build_mode06_view(vin, cleared_at),
         "live_module_dtcs": live_modules,
@@ -1475,7 +1774,7 @@ def build_view(vin: str, dossier: dict[str, Any],
     )
     verdict = _build_verdict(vin, dossier, live_status, core["open_work"])
     next_action, blocker, next_step_id = _verdict_next_action(
-        verdict, core["open_work"], core["freeze_frames"], core.get("mode06"))
+        vin, verdict, core["open_work"], core["freeze_frames"], core.get("mode06"))
     # MIL diagnostics (additive, 2026-10-14): a MIL request/dash-lamp
     # mismatch is a finding worth surfacing on the bench headline too, not
     # just the MIL block below it -- hedged, never a replacement for the

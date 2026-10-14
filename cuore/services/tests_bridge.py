@@ -191,7 +191,11 @@ def build_tests_view(vin: str) -> dict[str, Any]:
     open_codes = _open_codes(vin, dossier)
     open_hyps = _open_hypotheses(vin)
     fuel_gate = _fuel_gate(vin)
-    fuel_blocked = fuel_gate.get("in_window") is False
+    # Review #6 item 2: a stale fuel reading (older than the newest
+    # readiness read) warns, it never hard-blocks -- same rule the bench's
+    # own fuel gate already applies to its "fuel out of window" blocker.
+    fuel_stale = bool(fuel_gate.get("stale"))
+    fuel_blocked = fuel_gate.get("in_window") is False and not fuel_stale
 
     # Marque-filtered catalogue (MECHANIC_REVIEW_4/check_marque_port.py):
     # a test whose own applies_to rules out this vehicle's marque (e.g. the
@@ -214,13 +218,20 @@ def build_tests_view(vin: str) -> dict[str, Any]:
         latest = _result_entry(vin, rid)
         counts[latest["result"]] = counts.get(latest["result"], 0) + 1
         blocker = None
-        if fuel_blocked and rid in _EVAP_MONITOR_TEST_IDS:
-            blocker = {
-                "reason": "fuel out of window",
-                "window": fuel_gate.get("window"),
-                "level": fuel_gate.get("level"),
-                "direction": fuel_gate.get("direction"),
-            }
+        if rid in _EVAP_MONITOR_TEST_IDS:
+            if fuel_blocked:
+                blocker = {
+                    "reason": "fuel out of window",
+                    "window": fuel_gate.get("window"),
+                    "level": fuel_gate.get("level"),
+                    "direction": fuel_gate.get("direction"),
+                }
+            elif fuel_stale:
+                blocker = {
+                    "reason": "verify fuel reading",
+                    "at": fuel_gate.get("at"),
+                    "source": fuel_gate.get("source"),
+                }
         rows.append({
             **t,
             "step_id": step_id(rid),

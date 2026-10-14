@@ -284,11 +284,13 @@ uvicorn.run(app, host="127.0.0.1", port={port}, log_level="warning")
                     })
                     # Cold-cache first request (vehicle bar off the real MES
                     # corpus workup) plus the /api/liveboard fetch and the
-                    # first demo tick.
-                    time.sleep(3.0)
-
-                    # ---- check: demo mode renders >=5 groups with values ----
-                    counts = cdp.eval_json(
+                    # first demo tick -- a fixed sleep(3.0) here proved
+                    # flaky as the real corpus grew (same lesson
+                    # check_job_ux.py/check_electrical_page.py/
+                    # check_feedback_page.py already took: a short poll is
+                    # cheap and robust), so poll for window.CuoreLiveboard
+                    # instead of guessing a fixed warmup time.
+                    _counts_js = (
                         "(function(){"
                         "var groups=document.querySelectorAll('.lb-group').length;"
                         "var withVal=Array.prototype.filter.call("
@@ -297,7 +299,15 @@ uvicorn.run(app, host="127.0.0.1", port={port}, log_level="warning")
                         "return JSON.stringify({groups:groups, withVal:withVal});"
                         "})()"
                     )
-                    counts = json.loads(counts) if counts else {}
+                    _lb_deadline = time.time() + 20.0
+                    counts: dict = {}
+                    while time.time() < _lb_deadline:
+                        if cdp.eval_json("!!window.CuoreLiveboard") is True:
+                            raw_counts = cdp.eval_json(_counts_js)
+                            counts = json.loads(raw_counts) if raw_counts else {}
+                            if counts.get("groups", 0) >= 5 and counts.get("withVal", 0) >= 5:
+                                break
+                        time.sleep(0.3)
                     check("demo mode rendered a page (window.CuoreLiveboard present)",
                           cdp.eval_json("!!window.CuoreLiveboard") is True)
                     check("demo mode renders at least 5 groups",

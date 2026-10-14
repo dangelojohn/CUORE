@@ -29,6 +29,7 @@ from . import systems as systems_mod
 from . import layout_systems as layout_mod
 from . import parts as parts_mod
 from . import known_good as known_good_mod
+from . import mechanic_tests
 from .catalog import CATALOG
 
 
@@ -337,8 +338,14 @@ NETWORK_CASCADE = Tree(
     # U1765 (BCM: lost communication with RF Hub) is named in no document here,
     # but this car logged U1765-86 in SCAN_2609152048 alongside U1711/12/13 --
     # the same lost-communication family, so it takes the same sequence.
-    codes=frozenset({"U1711", "U1712", "U1713", "U1716", "U1765", "U2054", "U0100",
-                      "B1040"}),
+    # U1736 (ETM/LTM -- missing message) is likewise named in no document
+    # here, but this car's own 2026-10-13 live module sweep logged
+    # U1736-86/-87 on both BCM and IPC in the same scan as U1713-2F and
+    # U1765-86 -- the same lost-communication family (dtcdecode.com Alfa
+    # Romeo U1736-87, mes/dtc_descriptions.py), so it takes the same
+    # sequence too.
+    codes=frozenset({"U1711", "U1712", "U1713", "U1716", "U1765", "U1736", "U2054",
+                      "U0100", "B1040"}),
     framing=(
         "Every code in this family is a message-integrity failure type -- "
         "U-codes by definition, B1040's FTB `64` is 'plausibility' -- not a "
@@ -363,6 +370,12 @@ NETWORK_CASCADE = Tree(
         "knowledge.py already uses: BCM supply/fuse F82 (TSB S1808000005), "
         "inline connector XY201 + frame grounds G003A/B (TSB S2008000032), "
         "then spread/backed-out terminals (TSB S1708000262 REV. A).",
+        "U1713's own failure-type byte `2F` means \"signal erratic\" (SAE "
+        "J2012-DA / ISO 14229-1 -- CORROBORATED, mes/dtc.py's own FTB "
+        "table), not a bus failure on its own. This tree's own diagnostic "
+        "order (SINGLE-SOURCE, this repo's network cascade, N5/N6 above) "
+        "checks for an intermittent supply/ground or connector before "
+        "suspecting the bus.",
     ),
     steps=(
         Step("N1", "Engine-running rescan before chasing any of this as real",
@@ -756,6 +769,29 @@ def _sae_generic_steps(base: str) -> list[tuple[str, str, str, str, str, str, st
              "cheap-to-moderate / 30-60 min",
              "mes.faulttree.NETWORK_CASCADE (same ranked causes, "
              "generalised to a U-code not already in that tree's list)"),
+        ]
+    if base == "C104B":
+        # Review #6 item 5: C104B (ABS hydraulic leak) was offered only the
+        # generic B/C electrical-first step below -- a brake-safety code
+        # deserves the direct fluid-level/hydraulic-leak check this repo's
+        # own mechanic_tests catalogue already has (brake_hydraulic_pressure_
+        # bleed), checked before, not instead of, the module/electrical side.
+        t = mechanic_tests.test("brake_hydraulic_pressure_bleed")
+        tools = ", ".join(t.get("tools") or []) if t else "Brake pressure gauge set."
+        return [
+            ("Brake fluid level / hydraulic leak inspection",
+             "Check the brake fluid reservoir level and inspect each wheel, the "
+             "master cylinder and the ABS/HCU block for a hydraulic leak before "
+             "treating this as a module/electrical fault.",
+             tools,
+             "Fluid at the MAX mark; no leak found.",
+             "Low fluid or a leak found: this is a hydraulic fault, not an "
+             "electrical one -- repair the leak (see "
+             "mes.mechanic_tests.brake_hydraulic_pressure_bleed for the full "
+             "pressure-test/bleed procedure) before suspecting the ABS module "
+             "electrically.",
+             "cheap / 15 min",
+             "mes.mechanic_tests.brake_hydraulic_pressure_bleed"),
         ]
     if base.startswith("B") or base.startswith("C"):
         return [

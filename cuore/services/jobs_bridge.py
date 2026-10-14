@@ -26,10 +26,12 @@ _STOPWORDS = {"the", "a", "an", "of", "to", "and", "or", "in", "on", "at",
              "for", "with", "is", "that", "this", "it", "its"}
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
+from ..live import checklists as checklist_store
 from . import cache, dossier_bridge, mes_bridge, timeline_bridge, tools_kb_bridge
 from .errors import BadRequest, NotFound
 
 from mes import jobs as jobs_mod  # noqa: E402
+from mes import mechanic_tests  # noqa: E402
 from mes import tools_kb  # noqa: E402
 from mes.jobs import RuleViolation  # noqa: E402 -- re-exported for cuore.api.jobs
 
@@ -155,6 +157,17 @@ def _evap_suggestions(vin: str, view: dict[str, Any]) -> list[dict[str, Any]]:
         for r in returned
     ]
 
+    # Review #6 item 5: TSB 9100471 (flooded canister) was on file but
+    # cross-referenced to no DTC, so it never reached this car's bulletins
+    # list or a hypothesis of its own -- fixed at the source
+    # (mes.knowledge.BULLETINS' own dtcs=), surfaced here as a third,
+    # sourced EVAP hypothesis distinct from the ESIM-signal-path and
+    # ECM-calibration ones above.
+    flooded_bulletins = [b for b in bulletins if b.get("id") == "9100471"]
+    flooded_evidence_for = [
+        _ref("bulletin", b["id"], f"{b['id']}: {b['title']}") for b in flooded_bulletins
+    ]
+
     out = [
         {"text": "EVAP: ESIM signal path", "system": "EVAP",
          "evidence_for": esim_evidence_for, "evidence_against": [],
@@ -165,6 +178,13 @@ def _evap_suggestions(vin: str, view: dict[str, Any]) -> list[dict[str, Any]]:
          "evidence_against": calib_evidence_against,
          "next_test": "Check PCM calibration level against the latest EVAP "
                       "TSB before condemning hardware (SLVT or Mode $06)."},
+        {"text": "EVAP: flooded canister (TSB 9100471)", "system": "EVAP",
+         "evidence_for": flooded_evidence_for,
+         "evidence_against": [],
+         "next_test": "Inspect the vapour line at the FDM port for an internal "
+                      "disconnect/kink that would flood the canister with liquid "
+                      "fuel (TSB 9100471); if confirmed, replace both the "
+                      "canister and the ESIM."},
     ]
     return out
 
@@ -712,6 +732,118 @@ def add_test_evidence(vin: str, hyp_id: str, step_id: str, label: str, result: s
         return None
 
 
+def add_test_evidence_new_hypothesis(vin: str, text: str, step_id: str, label: str,
+                                     result: str, *, supports: str = "for",
+                                     system: str = "", job_id: Optional[str] = None,
+                                     by: Optional[str] = None
+                                     ) -> Optional[dict[str, Any]]:
+    """Step 6's result sheet, "or create one" path (Review #6 item 4): when
+    a test row names no existing hypothesis, create a new one from free
+    text (picked from the suggested list, or typed) and attach this test
+    result to it as evidence in the same step -- never a separate
+    "create, then remember to come back and attach" round trip. Returns
+    the new hypothesis dict, or ``None`` (never raises) when there is no
+    text, no job to attach it to, or the create itself is refused --
+    recording the result elsewhere must not be blocked by this failing.
+    """
+    text = (text or "").strip()
+    if not text:
+        return None
+    jid = job_id
+    if jid is None:
+        job = jobs_mod.current(vin)
+        if job is None:
+            jobs_for_vin = jobs_mod.load(vin)
+            job = jobs_for_vin[-1] if jobs_for_vin else None
+        jid = job["id"] if job else None
+    if not jid:
+        return None
+    try:
+        hyp = add_hypothesis(jid, text, system=system, by=by)
+    except BadRequest:
+        return None
+    hyp_id = hyp.get("id")
+    if not hyp_id:
+        return None
+    add_test_evidence(vin, hyp_id, step_id, label, result, supports=supports,
+                      job_id=jid, by=by)
+    return hyp
+
+
+#: Checklist step-id prefix the Tests surface writes under
+#: (``tests_bridge.step_id``) -- re-declared here (not imported, to avoid
+#: a tests_bridge<->jobs_bridge import cycle) since both modules write and
+#: read the same ``cuore.live.checklists`` entries under this namespace.
+_TEST_STEP_PREFIX = "test:"
+
+
+def _test_result_label(view: dict[str, Any], step_id: str) -> str:
+    """This checklist row's own human text: a fault-tree step's own text
+    off the open-work card that named it, or (for a Tests-surface row,
+    ``step_id`` = ``"test:<id>"``) that test's own catalogue name. Falls
+    back to the bare id -- never invented, same posture as
+    ``cuore.api.checklists._step_text``, which this mirrors for the ids
+    that one does not cover (Tests-surface ids)."""
+    if step_id.startswith(_TEST_STEP_PREFIX):
+        t = mechanic_tests.test(step_id[len(_TEST_STEP_PREFIX):])
+        return (t.get("name") or step_id) if t else step_id
+    for card in view.get("open_work", []):
+        for s in card.get("steps", []):
+            if s.get("id") == step_id:
+                return s.get("text") or step_id
+    return step_id
+
+
+def recorded_test_results(vin: str, view: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every checklist row with a recorded pass/fail result for this car --
+    step 6's own result sheet and the Tests surface both write through the
+    same ``cuore.live.checklists`` store under one step-id namespace, so
+    this is the one list that covers both (Review #6 item 4: "recorded
+    test results ... must appear in the + Evidence for/against picker").
+    Shaped with a ready-to-POST ``ref`` (the same ``kind="test"`` shape
+    :func:`add_test_evidence` attaches), whether or not a hypothesis
+    already claims the result -- ``linked_hypothesis_id`` says which, if
+    any. Never raises."""
+    try:
+        checklist = checklist_store.get(vin)
+    except Exception:  # noqa: BLE001
+        return []
+    out: list[dict[str, Any]] = []
+    for step_id, entry in (checklist or {}).items():
+        result = entry.get("result")
+        if result not in ("pass", "fail"):
+            continue
+        label = f"{_test_result_label(view, step_id)}: {result}"
+        if entry.get("value") is not None:
+            label += f" {entry['value']:g}{entry.get('unit') or ''}"
+        out.append({
+            "step_id": step_id, "result": result, "label": label,
+            "at": entry.get("done_at"),
+            "linked_hypothesis_id": entry.get("hypothesis_id"),
+            "ref": {"kind": "test", "id": step_id, "label": label, "result": result},
+        })
+    out.sort(key=lambda r: r.get("at") or "", reverse=True)
+    return out
+
+
+def evidence_candidates(vin: str, view: dict[str, Any]) -> dict[str, Any]:
+    """Every real, recorded result the job page's '+ Evidence for/against'
+    picker should be able to offer (Review #6 item 4) -- test results
+    (step 6 + the Tests surface), Mode $06 FAILs read from the car, and
+    freeze frames, with the ones that are test *conditions* (fuel out of
+    the EVAP window when the code set -- never themselves evidence FOR a
+    hypothesis) split into their own ``conditions`` key. The template
+    still decides how/whether to render each group -- this only exposes
+    the data; nothing here writes anything."""
+    mode06 = view.get("mode06") or {}
+    return {
+        "test_results": recorded_test_results(vin, view),
+        "mode06_fails": mode06.get("fails") or [],
+        "freeze_frames": view.get("evidence_freeze_frames") or [],
+        "conditions": view.get("condition_freeze_frames") or [],
+    }
+
+
 def _next_unresolved_test(h: dict[str, Any], view: dict[str, Any]) -> str:
     """Job UX run 2, R4: once the hypothesis's own next-test step has a
     linked result, the fault tree's *next* untested step for this system --
@@ -855,15 +987,29 @@ def build_job_view(vin: str, job_id: Optional[str] = None, *,
 
     reviewed = bool(job) and tools_kb_bridge.has_review(vin, job["id"])
 
+    symptoms = _symptoms(vin)
+
     # R4: the view's own display copy of each hypothesis gets its
     # next_test recomputed fresh every render -- never mutates the stored
     # job, same posture as jobs_routes.py's active/deleted split below it.
-    if job and job.get("hypotheses"):
+    if job:
         job = dict(job)
-        job["hypotheses"] = [
-            {**h, "next_test": _display_next_test(h, dossier_view)}
-            for h in job["hypotheses"]
-        ]
+        if job.get("hypotheses"):
+            job["hypotheses"] = [
+                {**h, "next_test": _display_next_test(h, dossier_view)}
+                for h in job["hypotheses"]
+            ]
+        # Review #6 item 1: step 1's complaint and step 2's symptom log are
+        # two different stores (``mes.jobs``' own ``complaint`` field, set
+        # only at intake, vs ``mes.symptoms`` via ``timeline_bridge`` --
+        # see ``_symptoms``); a job opened with no typed complaint showed
+        # "(no complaint recorded)" right above a real symptom already on
+        # file. Never overwrites a complaint that was actually typed --
+        # only fills the display copy when it is empty, from the newest
+        # symptom report (``_symptoms`` is oldest-first), the same source
+        # step 2 and the verdict's own basis already read.
+        if not (job.get("complaint") or "").strip() and symptoms:
+            job["complaint"] = symptoms[-1].get("text") or job.get("complaint")
 
     return {
         "vin": vin,
@@ -876,7 +1022,7 @@ def build_job_view(vin: str, job_id: Optional[str] = None, *,
         "suggested_hypotheses_top": suggestions_top,
         "suggested_hypotheses_rest": suggestions_rest,
         "step_registry": step_registry(),
-        "symptoms": _symptoms(vin),
+        "symptoms": symptoms,
         "notes": _notes(vin),
         "media_count": _media_count(vin),
         "feedback_open_count": _feedback_open_count(vin),
@@ -887,6 +1033,7 @@ def build_job_view(vin: str, job_id: Optional[str] = None, *,
         "tools_step_choices": TOOLS_STEP_CHOICES,
         "tools_panel": panel,
         "tools_reviewed": reviewed,
+        "evidence_candidates": evidence_candidates(vin, dossier_view),
     }
 
 
@@ -896,6 +1043,8 @@ __all__ = ["build_job_view", "suggested_hypotheses", "dedupe_suggestions",
           "add_hypothesis", "set_hypothesis", "edit_hypothesis",
           "delete_hypothesis", "undelete_hypothesis", "add_evidence",
           "remove_evidence", "resolve_evidence", "add_test_evidence",
+          "add_test_evidence_new_hypothesis", "recorded_test_results",
+          "evidence_candidates",
           "add_action", "attach", "get_job", "add_suggested_hypothesis",
           "step_registry", "RuleViolation", "TOOLS_STEP_CHOICES",
           "tools_panel", "add_tool_usage"]

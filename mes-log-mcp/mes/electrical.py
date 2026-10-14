@@ -596,9 +596,32 @@ def code_electrical_path(code: str) -> dict[str, Any]:
             "inspect_steps": steps}
 
 
+def network_check_first() -> list[dict[str, Any]]:
+    """The BCM/network family's own check-first order -- ``_NETWORK_PATH``,
+    the same supply -> protection -> controller -> connector -> ground
+    sequence already used by :func:`code_electrical_path` for every
+    network-family code (U1713, U1765, U0100, U1960, U2054, B1040, ...),
+    and ultimately the same ranking TSB S1808000005 (BCM power feed, fuse
+    F82) and S2008000032 (connector XY201, frame grounds G003A/G003B)
+    themselves give: supply and ground/connector are checked before the
+    bus itself is suspected.
+
+    One path, reused -- never a second, independently maintained check-
+    first order. Each hop carries its own element record (with that
+    element's own sourced/UNKNOWN location, per this module's house
+    rule) so a caller never has to re-look up the element separately.
+    """
+    out: list[dict[str, Any]] = []
+    for hop in _NETWORK_PATH:
+        out.append({"element": hop["element"], "role": hop["role"],
+                    "details": element(hop["element"])})
+    return out
+
+
 __all__ = [
     "CONFIRMED", "SINGLE_SOURCE", "INFERRED", "UNKNOWN", "CONFIDENCE_LEVELS",
     "TECHAUTHORITY", "ZONES", "KINDS", "ELEMENTS",
     "element", "elements_for_system", "code_electrical_path",
+    "network_check_first",
     "EVAP_CODES", "CHASSIS_CODES", "MISFIRE_CODES",
 ]

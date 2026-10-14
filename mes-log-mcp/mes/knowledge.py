@@ -82,6 +82,11 @@ BULLETINS: tuple[Bulletin, ...] = (
         "Vapour line disconnected internally at the FDM port floods the "
         "canister with liquid fuel; replace BOTH canister and ESIM. "
         "Supersedes/extends 9100469.",
+        # Review #6 item 5: this TSB was on file but cross-referenced to no
+        # DTC at all, so it never reached per-code matches/bulletins or the
+        # flooded-canister hypothesis -- same EVAP canister/ESIM hardware
+        # path as 18-030-17, which already carries this set.
+        dtcs=("P0440", "P0441", "P0455", "P0456"),
     ),
     Bulletin(
         "9100469", "2024-12-16",

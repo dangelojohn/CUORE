@@ -185,11 +185,60 @@ def search_logs(pattern: str, *, kind: str = "", vehicle: str = "",
 # --- per-vehicle analysis -------------------------------------------------
 
 
+#: Every from-car observation kind that counts as a scan session of this
+#: car, same as a MES log (Review #6 item 1: "one data date, one truth") --
+#: a live read on the car is not a second, disagreeing clock from the MES
+#: log corpus's own ``identity.last_log``.
+_LIVE_SCAN_KINDS = ("obd_dtcs", "module_dtcs", "readiness", "mode06",
+                   "freeze_frame", "freeze_frame_set", "pids_snapshot", "pid")
+
+
+def _newest_live_read(vin: str) -> str | None:
+    """The newest from-car observation timestamp across every kind that
+    counts as a scan session (see :data:`_LIVE_SCAN_KINDS`), in the MES
+    log corpus's own "YYYY-MM-DD HH:MM:SS" shape -- or ``None`` when the
+    live store is unavailable, untagged for this VIN, or simply has
+    nothing on file yet. Never raises."""
+    if not vin.strip():
+        return None
+    try:
+        from ..live import store as live_store
+    except Exception:  # noqa: BLE001 -- optional dependency, see module docstring
+        return None
+    best: str | None = None
+    for kind in _LIVE_SCAN_KINDS:
+        try:
+            obs = live_store.recent_observations(50, vin=vin, kind=kind)
+        except Exception:  # noqa: BLE001
+            continue
+        for o in obs:
+            if not live_store.is_from_car(o):
+                continue
+            at = o.get("at") or ""
+            if at and (best is None or at > best):
+                best = at
+    return best.replace("T", " ") if best else None
+
+
 def workup(vin: str = "", vehicle: str = "") -> dict[str, Any]:
-    """The pre-work dossier. Raises :class:`NotFound` when no logs match."""
+    """The pre-work dossier. Raises :class:`NotFound` when no logs match.
+
+    ``identity.last_log`` is bumped to the newest from-car live read (see
+    :func:`_newest_live_read`) when that read is newer than the newest MES
+    log on file -- so the header, the report, and every other page that
+    quotes "data through" agree with the date the verdict already uses
+    (Review #6 item 1): a live read taken straight off the car tonight is
+    itself a scan session, not a fact the "data through" date can ignore
+    just because it never passed through a MES log file.
+    """
     dossier = workup_mod.build(vin=vin, vehicle=vehicle)
     if "error" in dossier:
         raise NotFound(dossier["error"])
+    identity = dossier.get("identity")
+    if isinstance(identity, dict):
+        live_at = _newest_live_read(vin or identity.get("vin") or "")
+        if live_at and live_at > (identity.get("last_log") or ""):
+            identity["last_log"] = live_at
     return dossier
 
 

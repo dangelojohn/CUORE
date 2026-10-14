@@ -61,9 +61,18 @@
 
     {% if t.blocker %}
     <div class="ts-blocker">
+      {% if t.blocker.window %}
       Blocked: fuel level {{ t.blocker.level }}% is {{ t.blocker.direction }} the
       {{ t.blocker.window[0] }}-{{ t.blocker.window[1] }}% EVAP verification window --
       this test's result may not be meaningful until fuel level is back in range.
+      {% else %}
+      {# Review #6 item 2's "stale fuel reading" shape (tests_bridge.py's
+         own comment: "warns, it never hard-blocks") -- no window/level/
+         direction on this shape, only reason/at/source, so this never
+         reads as a hard block. #}
+      Note: {{ t.blocker.reason }}{% if t.blocker.at %} (fuel last read {{ t.blocker.at }}{% if t.blocker.source %} -- {{ t.blocker.source }}{% endif %}){% endif %} --
+      this test's result may not be meaningful until the fuel reading is reverified.
+      {% endif %}
     </div>
     {% endif %}
 

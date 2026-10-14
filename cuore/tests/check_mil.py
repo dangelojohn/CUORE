@@ -250,12 +250,26 @@ _FALLBACK_READINESS = (
     '"data": {"since_clear": {"mil_on": true, "stored_dtc_count": 1, '
     '"monitors": [], "all_complete": true}}}'
 )
+# PID $21 (distance travelled with the MIL commanded on), read from the car
+# in the same session as the readiness observation above. As of d5f9f2d,
+# dossier_bridge._mil_distance_km() no longer reads a hard-coded per-VIN
+# literal -- it reads this straight out of a real ``pids_snapshot``/``pid``
+# observation (``is_from_car`` -- a ``stream`` that starts with "serial").
+# Baked in unconditionally (never conditioned on the real observations
+# file), so this check stays deterministic whether or not a real PID $21
+# read happens to be on file for 2026-10-13 on this machine.
+_FALLBACK_PID21_DISTANCE = (
+    '{"at": "2026-10-13T20:03:05", "kind": "pids_snapshot", "vin": "' + VIN + '", '
+    '"bus": "can_c", "cable": "none", "stream": "serial COM3@115200", '
+    '"data": {"by_ecu": {"ECM": {"21": {"value": 34, "unit": "km"}}}}}'
+)
 if _REAL_OBSERVATIONS.exists():
     _fixture_lines = [ln for ln in
                       _REAL_OBSERVATIONS.read_text(encoding="utf-8").splitlines()
                       if '"2026-10-13' in ln]
 else:
     _fixture_lines = [_FALLBACK_READINESS]
+_fixture_lines.append(_FALLBACK_PID21_DISTANCE)
 if _fixture_lines:
     (Path(os.environ["CUORE_STATE_DIR"]) / "observations.jsonl").write_text(
         "\n".join(_fixture_lines) + "\n", encoding="utf-8")

@@ -33,7 +33,7 @@
 {% set _visible = ("bench", "job", "codes", "liveboard", "tests", "systems", "report", "mobile") %}
 {% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "parts", "media",
                  "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard", "scans",
-                 "scan") %}
+                 "scan", "mods") %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
 {% set _flow_key = (flow.steps|selectattr("n", "equalto", flow.current)|map(attribute="key")|first)
                     if flow and flow.steps else none %}
@@ -76,6 +76,7 @@
       {{ vtab("gauges", "/v/" + bar.vin + "/gauges", _lbl("gauges", "Gauges")) }}
       {{ vtab("electrical", "/v/" + bar.vin + "/electrical", _lbl("electrical", "Electrical")) }}
       {{ vtab("parts", "/v/" + bar.vin + "/parts", _lbl("parts", "Parts")) }}
+      {{ vtab("mods", "/v/" + bar.vin + "/mods", _lbl("mods", "Modifications")) }}
       {{ vtab("media", "/v/" + bar.vin + "/media", _lbl("media", "Media")) }}
       {{ vtab("service-hub", "/v/" + bar.vin + "/service-hub", _lbl("service", "Service")) }}
       {{ vtab("tree", "/v/" + bar.vin + "/tree", _lbl("fault_tree", "Fault tree")) }}

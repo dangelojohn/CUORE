@@ -23,6 +23,21 @@ from pathlib import Path
 os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-system-")
 os.environ.pop("CUORE_AUDIT_PATH", None)
 
+# Network-event / BCM check-first fixture: ``mes.live_obs.observations_path``
+# picks the first *writable* CUORE_STATE_DIR candidate that already holds a
+# file, else falls through to %PROGRAMDATA%\cuore\observations.jsonl. Copying
+# just the 2026-10-13 lines (tonight's live module sweep: BCM U1713-2F
+# failing now, U1765-86/U1736-87 history, IPC U1736-86/87, RFHUB B1040-64)
+# into CUORE_STATE_DIR makes this fixture deterministic -- read-only against
+# the real file, never modified, never relied on to still hold these exact
+# lines next time it is read.
+_REAL_OBSERVATIONS = Path(os.environ.get("PROGRAMDATA", r"C:\ProgramData")) / "cuore" / "observations.jsonl"
+if _REAL_OBSERVATIONS.exists():
+    _fixture_lines = [ln for ln in _REAL_OBSERVATIONS.read_text(encoding="utf-8").splitlines()
+                      if '"2026-10-13' in ln]
+    (Path(os.environ["CUORE_STATE_DIR"]) / "observations.jsonl").write_text(
+        "\n".join(_fixture_lines) + ("\n" if _fixture_lines else ""), encoding="utf-8")
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
@@ -183,6 +198,61 @@ check("map page responds 200", map_resp.status_code == 200, str(map_resp.status_
 check("map page carries a scroll hint for the graph wrap", "sys-graph-hint" in map_resp.text)
 check("the graph wrap stays scoped to overflow-x (never page-level overflow)",
      "overflow-x" in (ROOT / "cuore" / "web" / "static" / "systems.css").read_text(encoding="utf-8"))
+
+print("=== network event: U-codes across modules collapse into one event ===")
+network_resp = client.get(f"/v/{VIN}/systems/network")
+check("network page responds 200", network_resp.status_code == 200, str(network_resp.status_code))
+check("network page shows U1713-2F", "U1713-2F" in network_resp.text)
+check("network page marks U1713-2F failing now", "failing now" in network_resp.text)
+check("network page gives U1713's FTB meaning (signal erratic)",
+     "signal erratic" in network_resp.text)
+check("network page names the reporting modules (BCM/IPC/RFHUB)",
+     "BCM" in network_resp.text and "IPC" in network_resp.text and "RFHUB" in network_resp.text)
+check("network page collapses >=3 comms codes into one event (mes.analysis wording)",
+     "one power or bus event" in network_resp.text)
+
+_ne_marker = "Network event ("
+_ne_idx = network_resp.text.find(_ne_marker)
+check("network page has a Network event section", _ne_idx != -1)
+if _ne_idx != -1:
+    _ne_section = network_resp.text[_ne_idx:].split("</details>", 1)[0]
+    check("the network event section lists at least 3 codes",
+         _ne_section.count('class="sysd-row"') >= 3, str(_ne_section.count('class="sysd-row"')))
+
+print("=== U1713's fault tree: diagnostic order before suspecting the bus ===")
+check("network page's fault tree checks supply/ground/connector before the bus",
+     "before suspecting the bus" in network_resp.text)
+check("that diagnostic-order line carries both confidence qualifiers",
+     "CORROBORATED" in network_resp.text and "SINGLE-SOURCE" in network_resp.text)
+
+print("=== BCM check-first checklist (body_comfort page) ===")
+check("body_comfort page has a Check first section", "Check first (" in body_resp.text)
+_cf_idx = body_resp.text.find("Check first (")
+if _cf_idx != -1:
+    _cf_section = body_resp.text[_cf_idx:].split("</details>", 1)[0]
+    _cf_rows = _cf_section.count('class="sysd-row"')
+    check("BCM check-first checklist has >=5 rows", _cf_rows >= 5, str(_cf_rows))
+    check("check-first rows link to the inspection form or the test page",
+         "Record inspection" in _cf_section and "Run test" in _cf_section)
+    check("check-first checklist includes the battery, a BCM ground and the CAN termination test",
+         "Battery terminals" in _cf_section and "BCM ground" in _cf_section
+         and "CAN-C/IHS termination" in _cf_section)
+else:
+    check("BCM check-first checklist has >=5 rows", False)
+    check("check-first rows link to the inspection form or the test page", False)
+    check("check-first checklist includes the battery, a BCM ground and the CAN termination test", False)
+
+print("=== EVAP <-> network cross-reference ===")
+_xref_re = re.compile(
+    r"Network codes have appeared alongside EVAP codes in (\d+) of (\d+) sessions on this car")
+_xref_match = _xref_re.search(evap_resp.text)
+check("evap page shows the network/EVAP cross-reference line", bool(_xref_match))
+if _xref_match:
+    together, total = int(_xref_match.group(1)), int(_xref_match.group(2))
+    check("cross-reference counts are real (positive, together <= total)",
+         0 < together <= total, f"{together} of {total}")
+check("evap cross-reference links to the network event, never claims a cause",
+     f'/v/{VIN}/systems/network' in evap_resp.text and "the fuel-level signal reaches the ECM over the bus" in evap_resp.text)
 
 print()
 if failures:

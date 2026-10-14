@@ -33,12 +33,45 @@ import socket
 import subprocess
 import sys
 import tempfile
+import shutil
 import time
 import urllib.request
 from pathlib import Path
 
 os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-jobux-")
 os.environ.pop("CUORE_AUDIT_PATH", None)
+
+# MES_LOG_DIR: a read-only copy of the real MultiEcuScan corpus (never the
+# real install dir itself -- this test must never write there), plus one
+# synthetic scan this test owns. The corpus moves forward in real time as
+# the mechanic keeps working this car -- P0456 was the one still-ACTIVE
+# chronic EVAP code when fix item 1 below was written (2026-10-08), but by
+# 2026-10-14 the real corpus's own later clears/rescans have carried every
+# chronic code to STALE/CLEARED_UNVERIFIED (none left ACTIVE at all), which
+# would make the ?codes= highlight check below untestable against the real
+# corpus alone. One extra scan, dated after the newest real clear, that
+# reports P0456 again -- the exact "returned after clear" shape the real
+# corpus itself held on 2026-10-08/13 -- keeps this check deterministic
+# without weakening it and without touching the real install's own files.
+_REAL_MES_DIR = Path(r"C:\Program Files (x86)\MultiEcuScan")
+_MES_LOG_DIR = Path(tempfile.mkdtemp(prefix="cuore-check-jobux-logs-"))
+os.environ["MES_LOG_DIR"] = str(_MES_LOG_DIR)
+if _REAL_MES_DIR.exists():
+    for _f in _REAL_MES_DIR.iterdir():
+        if _f.is_file():
+            shutil.copyfile(_f, _MES_LOG_DIR / _f.name)
+(_MES_LOG_DIR / "SCAN_2610140800.txt").write_text(
+    "Scan vehicle for available modules and check each module for errors...\n\n"
+    "Engine / ECM\n"
+    "Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)\n"
+    "ISO Code: 00 01 50 40 18\n"
+    f"VIN code: {'ZASFAKPN5J7B88115'}\n"
+    "Hardware number: MM10JAHW232 - Ver: 00\n"
+    "Software number: P235QB39 - Ver: 0000\n"
+    "Errors found:\n"
+    "P0456-00 - Evaporation system leak\n",
+    encoding="utf-8",
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
