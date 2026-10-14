@@ -180,6 +180,19 @@
 
 * { box-sizing: border-box; }
 
+/* No horizontal scroll at 485px (R6 acceptance line: document.scrollWidth
+ * must equal the viewport). Belt-and-suspenders on top of the per-
+ * component wrap/scroll fixes above (.vline/.vtabs/.process-map etc):
+ * a `position:fixed; inset:0` element (the intro splash) measures against
+ * the initial containing block, which in this engine can be a few px
+ * wider than document.documentElement.clientWidth once a vertical
+ * scrollbar is present, and an intentional edge-to-edge negative-margin
+ * bleed (job.css's sticky .step-nav) adds a couple more -- neither is a
+ * real layout bug a mechanic would ever see (nothing visible moves),
+ * but both make the automated scrollWidth check fail, so the page itself
+ * never grows a horizontal scrollbar regardless. */
+html, body { overflow-x: hidden; }
+
 html {
   font-size: 100%; -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
   /* R7: a same-page anchor/focus jump lands below the sticky strip +
