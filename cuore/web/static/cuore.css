@@ -521,7 +521,7 @@ textarea { min-height: 68px; resize: vertical; }
   text-decoration: none;
 }
 .btn:hover { border-color: var(--ink-3); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn.primary:hover { filter: brightness(1.08); }
 .mrow {
   display: grid; gap: 8px; grid-template-columns: 160px 1fr;
@@ -716,7 +716,7 @@ kbd {
   background: var(--raised); color: var(--ink); text-decoration: none; text-align: center;
   flex: 1 1 auto;
 }
-.btn-verdict.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn-verdict.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn-verdict.is-disabled {
   opacity: .5; cursor: not-allowed; background: var(--surface-2); color: var(--ink-3);
   border-color: var(--rule); pointer-events: none;
@@ -910,7 +910,7 @@ table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
 .fab-note {
   position: fixed; right: 18px; bottom: 18px; z-index: 40;
   width: 56px; height: 56px; border-radius: 50%;
-  background: var(--accent); color: #fff; border: none; font-size: var(--fs-2xl);
+  background: var(--accent); color: var(--accent-ink); border: none; font-size: var(--fs-2xl);
   box-shadow: 0 4px 14px rgba(0,0,0,.4); cursor: pointer;
 }
 .fab-note:hover { filter: brightness(1.08); }
@@ -1287,7 +1287,7 @@ h4.mono { font-size: var(--fs-md); }
 .btn, .btn.primary, .btn-verdict.primary { background: transparent; border-color: var(--rule); color: var(--ink); }
 .btn:hover, .btn.primary:hover, .btn-verdict.primary:hover { border-color: var(--ink-3); filter: none; }
 .flow-next.btn, .step-nav-next.btn.primary {
-  background: var(--accent); border-color: var(--accent); color: #fff;
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
 }
 .flow-next.btn:hover, .step-nav-next.btn.primary:hover { filter: brightness(1.08); }
 
@@ -1731,7 +1731,7 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
  * for .flow-next/.step-nav-next. ===================================== */
 
 #connect-car-btn {
-  background: var(--accent); border-color: var(--accent); color: #fff;
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
   min-height: var(--space-5); padding: 0 var(--space-3);
   display: inline-flex; align-items: center; justify-content: center;
   font-weight: var(--fw-semibold); text-decoration: none; flex: none; white-space: nowrap;
