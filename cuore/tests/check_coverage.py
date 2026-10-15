@@ -391,6 +391,50 @@ check_eq("the DATA ERROR is still reported", v.get("error"), "DATA ERROR")
 check("a passive listen clears filters before monitoring", "STFAC" in mon.sent)
 
 
+class SleepStream(BusStream):
+    """CAN-CH 2026-10-15: awake => 11-bit route (STP 33) busy, 29-bit route
+    silent; asleep => 29-bit route hears only NM keep-alive, 11-bit silent."""
+
+    def __init__(self, awake: bool) -> None:
+        super().__init__({})
+        self.awake, self.proto = awake, ""
+
+    def _reply(self, cmd: str) -> str:
+        if cmd.startswith("STP "):
+            self.proto = cmd[4:]
+            return "OK"
+        if cmd in ("STM", "STMA"):
+            if self.proto == "34":
+                ids = ("1E340000", "1E36001E", "1E360018", "1E36001A", "1E360002",
+                       "1E360006", "1E36001D")
+                return "\r".join(f"{ids[i % 7]}0800112233445566" for i in range(22))
+            if not self.awake:
+                return ""
+            return "\r".join(f"{0x0DE + i % 29:03X}0800112233445566" for i in range(60))
+        return super()._reply(cmd)
+
+
+for awake_flag in (False, True):
+    ss = SleepStream(awake_flag)
+    lk3 = AdapterLink(stream_factory=lambda p, b, _s=ss: _s, process="check_coverage")
+    set_link(lk3)
+    lk3.set_cable("grey_a6")
+    va = ops.verify_bus("can_ch", seconds=0.3)
+    if not awake_flag:
+        check("NM-only listen still verifies the bus", va.get("verified") is True, str(va))
+        check("NM-only 29-bit plus silent 11-bit is judged asleep", va.get("awake") is False, str(va))
+        check("asleep verdict carries the ignition note",
+              "ignition" in (va.get("awake_note") or ""), str(va))
+        check("asleep verdict is stored on the link verification",
+              lk3.verified["can_ch"].get("awake") is False)
+    else:
+        check("29-bit NM keep-alive still present when awake", va["attempts"][0]["frames"] > 0)
+        check("busy 11-bit listen is judged awake", va.get("awake") is True, str(va))
+        check("busy 11-bit listen verified", va.get("verified") is True, str(va))
+    lk3.set_cable("none")
+set_link(lk2)
+
+
 # ===========================================================================
 # 6. the bench page renders every state
 # ===========================================================================

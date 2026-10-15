@@ -691,6 +691,9 @@ def _guided_next(state: dict[str, Any]) -> Optional[dict[str, Any]]:
                 "instruction": "Remove the cable, then press Continue"}
     modules = [{"code": m.code, "name": m.name} for m in on_bus(bus_key)]
     if state["segments"][idx].get("status") == "failed":
+        if (state["segments"][idx].get("why") or "").startswith("only network-management"):
+            return {"cable": cable, "bus": bus_key, "modules": modules,
+                    "instruction": state["segments"][idx]["why"]}
         if (state["segments"][idx].get("why") or "").startswith("bus verified alive"):
             return {"cable": cable, "bus": bus_key, "modules": modules,
                     "instruction": f"{_GUIDED_BUS_LABEL[bus_key]} is alive but no module "
@@ -874,6 +877,13 @@ def continue_guided(scan_id: str, cable_fitted: str) -> dict[str, Any]:
         state["segments"][idx]["status"] = "done"
         state["status"] = "done"
         state["pending_index"] = None
+    elif isinstance(verify, dict) and verify.get("awake") is False:
+        # Modules are asleep (network-management keep-alive only): a sweep now
+        # would record "silent" that means nothing. Hold the segment.
+        state["segments"][idx]["status"] = "failed"
+        state["segments"][idx]["why"] = verify.get("awake_note") or (
+            "only network-management frames heard: modules asleep -- cycle the "
+            "ignition (or start the engine) and retry")
     else:
         # Drop this bus's "not reachable: needs <cable>" placeholder rows
         # from the pause, then sweep it for real.

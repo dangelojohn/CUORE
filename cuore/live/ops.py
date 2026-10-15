@@ -239,6 +239,24 @@ def _is_obd_reply(header: str) -> bool:
     return h in _OBD_FUNCTIONAL_REPLIES or (len(h) == 8 and h.startswith("18DAF1"))
 
 
+def _judge_awake(attempts: list[dict[str, Any]]) -> tuple[Optional[bool], Optional[str]]:
+    """Are the modules awake? ``(True|False|None, note)``, judged from the
+    11-bit route. CAN-CH 2026-10-15: the 29-bit route hears only 1E3xxxxx
+    keep-alive (~12/s) awake or asleep; awake = 11-bit route hears ~400 frames/s
+    over ~30 ids, asleep = 11-bit route silent."""
+    short = [a for a in attempts if a["header_bits"] == 11 and not a.get("active_probe")]
+    if any(a["frames"] >= 50 or len(a["ids"]) >= 15 for a in short):
+        return True, None
+    wide = [a for a in attempts if a["header_bits"] != 11 and a["frames"] > 0]
+    if (short and all(a["frames"] < 10 for a in short) and wide
+            and all(str(i).upper().startswith("1E3") for a in wide for i in a["ids"])):
+        n = max(a["frames"] for a in wide)
+        return False, (f"only network-management frames at 10 Hz ({n} in the window) and "
+                       "nothing on the 11-bit route: modules asleep -- cycle the ignition "
+                       "(or start the engine) and retry")
+    return None, None
+
+
 def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                allow_while_mes_connected: bool = False) -> dict[str, Any]:
     """Passive listen; marks the bus verified under the current cable if traffic is seen.
@@ -262,6 +280,7 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
     candidates: list[Any] = list(routes_for(b, lk.cable)) or [None]
     attempts: list[dict[str, Any]] = []
     sess = None
+    first_ok: Optional[dict[str, Any]] = None
     for route in candidates:
         with lk.session("verify_bus", bus=b, port=port, baud=baud, passive=True,
                         allow_while_mes_connected=allow_while_mes_connected,
@@ -276,15 +295,20 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                              "header_bits": sess.header_bits,
                              "frames": cap["count"], "error": cap["error"],
                              "ids": cap["ids"]})
-            if ok:
-                lk.mark_verified(b, cap["count"])
-                return _stamp(sess, {"verified": True, "frames": cap["count"],
-                                     "rate_hz": cap["rate_hz"], "ids": cap["ids"],
-                                     "error": cap["error"],
-                                     "stn_protocol": sess.route.stn_protocol,
-                                     "header_bits": sess.header_bits,
-                                     "attempts": attempts, "verified_by": "passive_listen",
-                                     "note": None})
+            if ok and first_ok is None:
+                first_ok = {"sess": sess, "cap": cap}
+    if first_ok is not None:
+        cap, fsess = first_ok["cap"], first_ok["sess"]
+        awake, awake_note = _judge_awake(attempts)
+        lk.mark_verified(b, cap["count"], awake=awake, awake_note=awake_note)
+        return _stamp(fsess, {"verified": True, "frames": cap["count"],
+                              "rate_hz": cap["rate_hz"], "ids": cap["ids"],
+                              "error": cap["error"],
+                              "stn_protocol": fsess.route.stn_protocol,
+                              "header_bits": fsess.header_bits,
+                              "attempts": attempts, "verified_by": "passive_listen",
+                              "awake": awake, "awake_note": awake_note,
+                              "note": None})
     tried = ", ".join(f"STP {a['stn_protocol']} ({a['header_bits']}-bit)" for a in attempts)
     base_note = (f"no traffic on {b.key} with cable {lk.cable!r} on any route "
                  f"tried ({tried}); check the cable, ignition, and the route "
@@ -300,7 +324,7 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                              responders=probe["responders"])
             return _stamp(sess, {"verified": True, "frames": 0, "rate_hz": 0.0, "ids": {},
                                  "error": None, "attempts": attempts,
-                                 "verified_by": "active_probe_0100",
+                                 "verified_by": "active_probe_0100", "awake": True, "awake_note": None,
                                  "responders": probe["responders"],
                                  "note": ("CAN-C carries no broadcast traffic behind the "
                                           "Security Gateway Module on this platform; verified "
@@ -319,7 +343,7 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                              responders=probe["responders"])
             return _stamp(sess, {"verified": True, "frames": 0, "rate_hz": 0.0, "ids": {},
                                  "error": None, "attempts": attempts,
-                                 "verified_by": "active_probe_3e00",
+                                 "verified_by": "active_probe_3e00", "awake": True, "awake_note": None,
                                  "responders": probe["responders"],
                                  "note": ("CAN-IHS carried no broadcast traffic; verified "
                                           "instead by a reply from " +
@@ -328,7 +352,8 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
         base_note += "; " + probe["note"]
     return _stamp(sess, {"verified": False, "frames": 0, "rate_hz": 0.0, "ids": {},
                          "error": attempts[-1]["error"] if attempts else None,
-                         "attempts": attempts, "verified_by": None, "note": base_note})
+                         "attempts": attempts, "verified_by": None, "awake": None,
+                         "awake_note": None, "note": base_note})
 
 
 def capture(bus: str, seconds: float = 2.0, max_frames: int = 500,

@@ -165,7 +165,12 @@ CAN_CH = Bus(
         "whose 18V FEPS output is OBD pin 13, which on Giorgio is "
         "CAN-CH(-). Never issue any FEPS or programming-voltage command on "
         "this vehicle; whether the FS can be commanded to FEPS over serial "
-        "is UNVERIFIED, treat as live."
+        "is UNVERIFIED, treat as live. Awake vs asleep (car, 2026-10-15): the 29-bit "
+        "STP 34 route hears only ~12 frames/s of 1E34xxxx/1E36xxxx keep-alive ids "
+        "(1E340000, 1E36001E, 1E360018, 1E36001A, 1E360002, 1E360006, 1E36001D) in BOTH "
+        "states, so it cannot tell them apart; awake = STP 33 hears ~400 frames/s over "
+        "~30 11-bit ids (0DE, 0EE, 0FC, 106, 10E, 116, 11C, 122, ...), asleep (~25 min "
+        "after ignition-on, engine off) = STP 33 silent and the ABS stops answering UDS."
     ),
 )
 

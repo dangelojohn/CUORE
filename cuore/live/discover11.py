@@ -37,6 +37,7 @@ def _tp_reply(q: dict[str, Any]) -> tuple[bool, Optional[int]]:
 def discover_11bit(sess: Session, bus: Bus, *, candidates: Optional[list[int]] = None,
                    per_target_timeout: float = 0.25,
                    stop_after: Optional[int] = None) -> dict[str, Any]:
+    per_target_timeout = max(per_target_timeout, sess.adapter_wait + 0.2)
     targets = candidates if candidates is not None else DEFAULT_CANDIDATES
     bus_modules = on_bus(bus.key)
     hits: list[dict[str, Any]] = []

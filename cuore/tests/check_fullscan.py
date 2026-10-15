@@ -516,6 +516,34 @@ try:
     except LiveError:
         check("a second run_guided while one is paused refuses", True)
 
+    # Modules asleep (verify says awake False) => no sweep, segment failed.
+    open_id0 = fullscan_reloaded.guided_state()["scan_id"]
+    NOTE = ("only network-management frames at 10 Hz (22 in the window) and nothing on the "
+            "11-bit route: modules asleep -- cycle the ignition (or start the engine) and retry")
+    _orig_verify = ops.verify_bus
+    sweeps_called = []
+    _real_sweep2 = ops.sweep_bus_full
+    _patch(ops, "sweep_bus_full", lambda bus, **kw: (sweeps_called.append(bus),
+                                                     _real_sweep2(bus, **kw))[1])
+    _patch(ops, "verify_bus", lambda bus, **kw: {"verified": True, "frames": 22, "bus": bus,
+                                                 "awake": False, "awake_note": NOTE})
+    gz = fullscan_reloaded.continue_guided(open_id0, "blue_a5")
+    check_eq("asleep verify marks segment failed", gz["segments"][1]["status"], "failed")
+    check_eq("asleep verify why is the awake note", gz["segments"][1]["why"], NOTE)
+    check_eq("asleep verify leaves pending_index", gz["pending_index"], 1)
+    check("asleep verify never swept", sweeps_called == [], str(sweeps_called))
+    check("asleep instruction mentions the ignition", "ignition" in gz["next"]["instruction"],
+          gz["next"]["instruction"])
+    _patch(ops, "verify_bus", lambda bus, **kw: {"verified": True, "frames": 400, "bus": bus,
+                                                 "awake": True, "awake_note": None})
+    gw = fullscan_reloaded.continue_guided(open_id0, "blue_a5")
+    check_eq("awake verify sweeps as before", gw["segments"][1]["status"], "done")
+    check("awake verify swept can_ihs", "can_ihs" in sweeps_called, str(sweeps_called))
+    _patch(ops, "verify_bus", _orig_verify)
+    _patch(ops, "sweep_bus_full", _real_sweep2)
+    fullscan_reloaded.abandon_guided(open_id0)
+    fullscan_reloaded.run_guided(VIN)
+
     # Bus alive but no module answered => failed, not done.
     open_id = fullscan_reloaded.guided_state()["scan_id"]
 

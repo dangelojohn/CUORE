@@ -219,6 +219,7 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
     module into a confirmed one. Confirmed matches persist per VIN so the
     sweep runs once. Read-only by construction.
     """
+    per_target_timeout = max(per_target_timeout, sess.adapter_wait + 0.2)
     targets = candidates if candidates is not None else sweep_candidates(bus.key)
     bus_modules = on_bus(bus.key)
     hits: list[dict[str, Any]] = []

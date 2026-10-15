@@ -94,6 +94,11 @@ class Session:
         self.headers_on = True
         self.header_bits = header_bits_for_protocol(route.stn_protocol)
         self._target: Optional[tuple[str, str]] = None
+        #: Seconds the adapter itself waits for a reply (ATST x 4 ms).
+        #: Conservative default = ATSTFF (1.02 s): untarget() sets it and the
+        #: adapter keeps it across sessions, so it is assumed in force until
+        #: a later ATSTxx / reset says otherwise.
+        self.adapter_wait = 1.02
         self.opened_at = datetime.now().isoformat(timespec="seconds")
 
     # --- wire ----------------------------------------------------------
@@ -110,6 +115,7 @@ class Session:
         s.reset_input_buffer()
         s.write((command + "\r").encode("ascii"))
         s.flush()
+        self._track_adapter_wait(command)
         deadline = time.monotonic() + timeout
         buf = bytearray()
         got_prompt = False
@@ -126,11 +132,46 @@ class Session:
             text = text[len(command):].lstrip(" \n")
         if not got_prompt:
             text = (text + "\nTIMEOUT").strip()
+            self._interrupt_and_drain()
         return text
+
+    def _track_adapter_wait(self, command: str) -> None:
+        u = command.strip().upper()
+        if u in ("ATWS", "ATZ", "ATD"):
+            self.adapter_wait = 0.2  # firmware default ATST 0x32
+        elif u.startswith("ATST") and len(u) > 4:
+            try:
+                self.adapter_wait = int(u[4:], 16) * 0.004
+            except ValueError:
+                pass
+
+    def _interrupt_and_drain(self) -> None:
+        """After a python-side timeout the adapter may still be waiting on
+        the bus. Send one CR (any byte interrupts it) and read to the ``>``
+        prompt so the next command is not swallowed ("STOPPED")."""
+        s = self.stream
+        try:
+            s.write(b"\r")
+            s.flush()
+            deadline = time.monotonic() + min(1.5, self.adapter_wait + 0.3)
+            while time.monotonic() < deadline:
+                chunk = s.read(s.in_waiting() or 1)
+                if chunk and b">" in chunk:
+                    break
+        except Exception:  # noqa: BLE001 -- recovery must never fail the caller
+            pass
+        finally:
+            try:
+                s.reset_input_buffer()
+            except Exception:  # noqa: BLE001
+                pass
 
     def query(self, request_hex: str, response_byte: str,
               timeout: float = DEFAULT_TIMEOUT) -> dict[str, Any]:
         """Send a request; return raw text, error, and per-ECU positive payloads."""
+        # Never give up before the adapter does: an earlier python deadline
+        # interrupts the adapter mid-wait and desynchronises the next command.
+        timeout = max(float(timeout), self.adapter_wait + 0.2)
         raw = self.cmd(request_hex, timeout)
         err = adapter_error(raw)
         ecus = reassemble(raw, headers_on=self.headers_on) if not err else {}

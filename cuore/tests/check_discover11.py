@@ -134,6 +134,61 @@ check("identity read for the 7A0 hit", "F192" in hits["7A0"]["identity"])
 check("no write-capable service sent",
       all(c[:2] in ("3E", "22", "AT", "ST") for c in bus.sent), str(bus.sent))
 
+# --- timing/desync checks (silent bus, adapter still waiting) ---------------
+class Silent(Fake11):
+    """22F190 gets no reply until a bare CR interrupts it ("STOPPED")."""
+    def __init__(self) -> None:
+        super().__init__({})
+        self.pending = False
+        self.log: list[str] = []
+
+    def write(self, data: bytes) -> None:
+        raw = data.decode("ascii", errors="replace")
+        self.log.append(raw)
+        if raw == "\r":
+            self._buf.extend(b"STOPPED\r>" if self.pending else b"?\r>")
+            self.pending = False
+            return
+        cmd = raw.strip()
+        if self.pending:  # swallowed: a command sent mid-wait is lost
+            self._buf.extend(b"STOPPED\r>")
+            self.pending = False
+            return
+        if cmd == "22F190":
+            self.pending = True
+            return
+        self._buf.extend(self._reply(cmd).encode("ascii") + b"\r>")
+
+
+sil = Silent()
+lk2 = AdapterLink(stream_factory=lambda p, b: sil, process="check_discover11_sil")
+set_link(lk2)
+lk2.set_cable("grey_a6")
+lk2.mark_verified(CAN_CH, 10)
+with lk2.session("d11-sil", bus=CAN_CH, confirm=True, route=r33[0]) as sess2:
+    n0 = len(sil.log)
+    r = sess2.cmd("22F190", 0.2)
+    check("(a) python-side timeout is tagged and drains to the prompt",
+          "TIMEOUT" in r and sil.log[n0 + 1] == "\r" and not sil._buf and not sil.pending,
+          f"{r!r} {sil.log[n0:]}")
+    r2 = sess2.cmd("ATCP18", 2)
+    check("(b) next command after a timeout is sent intact and answered OK",
+          sil.log[-1] == "ATCP18\r" and r2 == "OK", f"{r2!r} {sil.log[-3:]}")
+    sess2.adapter_wait = 1.02
+    t0 = __import__("time").monotonic()
+    q = sess2.query("22F190", "62", 0.25)
+    dt = __import__("time").monotonic() - t0
+    check("(c) query deadline is never below the adapter wait", dt >= 1.2, f"{dt:.2f}s")
+    seen = []
+    orig = sess2.query
+    sess2.query = lambda req, rb, t=0.0, _o=orig: (seen.append(t), _o(req, rb, 0.2))[1]
+    discover11.discover_11bit(sess2, CAN_CH, candidates=[0x7A0], per_target_timeout=0.25)
+    check("(c) discover_11bit per-target wait >= adapter wait", seen and min(seen) >= 1.2,
+          str(seen))
+    sess2.cmd("ATST19", 2)
+    check("(c) ATSTxx updates the tracked adapter wait", abs(sess2.adapter_wait - 0.1) < 1e-6,
+          str(sess2.adapter_wait))
+
 if failures:
     print("FAILED:")
     for f in failures:
