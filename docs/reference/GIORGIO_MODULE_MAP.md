@@ -45,8 +45,8 @@ Sources: `SCAN_2609041953.txt`, `SCAN_2609042008.txt`,
 | DTCM | Magna Q4 Transfer Case | `00 43 50 91 14` | M0045027.01 (21) | M0099947 (0501) | CAN-C `CONFIRMED` | none | unknown (`0x29` in stelvio_scan, self-declared unsourced) | — | UNVERIFIED | `STP 34` |
 | ESM | ZF Electronic Gear Shift Module | `00 16 50 B4 14` | 1000597140 (08) | 1000678050 (0019) | CAN-C `CONFIRMED` | none | unknown | — | — | `STP 34` |
 | DASM | Driver assistance radar Bosch | `00 39 70 7E 15` | MRR1evo14F (00) | 52081920 (0500) | CAN-C `CONFIRMED` (7/7 scans without cable) | none | unknown | — | — | `STP 34` |
-| ABS | Continental ABS MK C1 | `00 06 50 5B 14` | 28554010535 (00) | XJ_RAL00165 (83C1) | CAN-CH `CONFIRMED` | grey A6 | `0x28` | stelvio_scan only | UNVERIFIED | `STP 34` (500 k assumed) |
-| EPS | ZF Electric Steering | `00 02 40 5F 14` | 7806277500 (30) | 880802D0243 (A410) | CAN-CH `CONFIRMED` | grey A6 | `0x2A` → `18DA2AF1` | danardi78 header `DA2AF1` returns steering angle; conflicts with stelvio_scan SAS `0x76` | INFERRED (medium) | `STP 34` |
+| ABS | Continental ABS MK C1 | `00 06 50 5B 14` | 28554010535 (00) | XJ_RAL00165 (83C1) | CAN-CH `CONFIRMED` | grey A6 | `0x2A` → `18DA2AF1` | discover 2026-10-15: VIN + F192 28554010535 + F194 XJ_RAL00165 | CONFIRMED | `STP 34` |
+| EPS | ZF Electric Steering | `00 02 40 5F 14` | 7806277500 (30) | 880802D0243 (A410) | CAN-CH `CONFIRMED` | grey A6 | unknown; 0x2A was wrong (it is the ABS) | danardi78 `DA2AF1` header was the ABS, not the EPS; stelvio_scan SAS `0x76` unadjudicated | UNKNOWN | `STP 34` |
 | ORC | Airbag / Occupant Restraint (MES: unsupported) | `00 1A 70 84 15` | 0285013327 (30) | BB70578 (0403) | CAN-CH `CONFIRMED` | grey A6 | `0x50` | stelvio_scan only | UNVERIFIED | `STP 34` |
 | AFLS | Automotive Lighting adaptive headlights | `00 1D 50 C7 14` | 1470000328 (02) | 1409910330 (000C) | CAN-CH `CONFIRMED` | grey A6 | unknown | — | — | `STP 34` |
 | PAM | Parking control Bosch | `00 18 50 87 15` | 19490108 (03) | 1.38 (0304) | CAN-CH `CONFIRMED` | grey A6 | unknown | — | — | `STP 34` |
@@ -107,6 +107,18 @@ pins, so only one bus can be active at a time (OBDLink FRPM rev F 8.6). A
 "scan all modules" flow is three sequential passes with two physical cable
 changes, and every change is a re-plug on a live bus, itself a documented
 source of bystander DTCs.
+
+### Keep-alive ids seen (2026-10-15, vLinker FS r2 STN1170 v4.3.2)
+
+- CAN-IHS (blue A5, 125k), 29-bit STP 34, ~9/s: 1E340000, 1E340003, 1E34000A,
+  1E340024, 1E340030, 1E340033, 1E340034, 1E340045, 1E340067. Awake, 11-bit
+  STP 33 route: 317 frames/2 s over 54 ids (3E2, 3E4, 3E6, 3E8, 2F0, 3DC, 3DE,
+  3E0, ...). 29-bit 22 F190 to 45,30,24,03,0A,33,34,67,00,68,6F,01,02 got no
+  reply; functional 3E 00 on 18DB33F1 got NO DATA.
+- CAN-CH (grey A6, 500k), 29-bit: 1E340000, 1E340006, 1E360002, 1E360006,
+  1E360018, 1E36001A, 1E36001D, 1E36001E.
+- **HYPOTHESIS (untested):** the low byte of a 1E34xxxx keep-alive id may be
+  the node's diagnostic address (AUTOSAR CAN NM style).
 
 ## Table C — known DIDs
 

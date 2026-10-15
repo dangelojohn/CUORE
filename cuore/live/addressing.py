@@ -299,7 +299,7 @@ MODULES: tuple[ECUAddress, ...] = (
         target=0x68,
         confidence=Confidence.UNVERIFIED,
         source=_STELVIO_SCAN_SOURCE,
-        note="never scanned",
+        note="never scanned; silent to 22 F190 on 29-bit 2026-10-15",
         present="unverified",
     ),
     ECUAddress(

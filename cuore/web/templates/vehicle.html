@@ -153,6 +153,19 @@
     </div>
   </details>
 
+  {% if view.capabilities %}
+  <details class="card-details" id="sec-capabilities" data-persist="capabilities">
+    <summary>Known limitations <span class="count-badge">{{ view.capabilities|length }}</span></summary>
+    <div class="card-body">
+      {% for c in view.capabilities %}
+        <div class="item"><div class="q">{{ c.key }}: {{ c.value }}
+          <span class="chip plain sm">{{ c.status }}</span></div>
+          <div class="why">{{ c.evidence }}</div></div>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+
   {% include "_codes_table.html" %}
 
   <details class="card-details" id="sec-attempted" data-persist="attempted">

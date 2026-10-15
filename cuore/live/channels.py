@@ -70,6 +70,7 @@ class Channel:
     expr: str = ""
     depends_on: tuple[str, ...] = ()
     note: str = ""
+    untrusted: bool = False         # decodes to junk on at least one car: never plot as a value
 
     def to_dict(self) -> dict[str, Any]:
         out: dict[str, Any] = {
@@ -91,6 +92,8 @@ class Channel:
             out["depends_on"] = list(self.depends_on)
         if self.note:
             out["note"] = self.note
+        if self.untrusted:
+            out["untrusted"] = True
         return out
 
 
@@ -107,12 +110,21 @@ def _pid_rate(name: str) -> float:
     return MED_HZ
 
 
+#: PIDs whose reply decodes to nonsense on a measured car. Channel id -> why.
+UNTRUSTED_PIDS: dict[str, str] = {
+    "egr_temperature": "PID 6B returned 2699.2 C on the 2018 Stelvio 2.0T (18DAF110, "
+                       "2026-10-14) -- junk. Do not plot as a temperature.",
+}
+
+
 def _pid_channels() -> list[Channel]:
     return [
         Channel(id=spec.name, name=spec.name.replace("_", " "), unit=spec.unit,
-               kind="pid", bus="can_c", confidence="legislated",
+               kind="pid", bus="can_c", confidence=("untrusted" if spec.name in UNTRUSTED_PIDS
+                                                   else "legislated"),
                default_rate_hz=_pid_rate(spec.name), pid=spec.pid,
-               note=spec.description)
+               note=UNTRUSTED_PIDS.get(spec.name, spec.description),
+               untrusted=spec.name in UNTRUSTED_PIDS)
         for spec in PIDS_BY_HEX.values()
     ]
 
@@ -282,6 +294,39 @@ PRESETS: dict[str, tuple[str, ...]] = {
     "evap_test_a": ("fuel_level", "commanded_evap_purge", "evap_vapor_pressure_abs",
                     "engine_rpm", "engine_coolant_temp"),
 }
+
+
+#: Offerable channel groups that are not one-click polls (their items mix
+#: channels, Mode 06 monitors and manual readings). ``evidence`` is "evidence"
+#: (can support a conclusion) or "weak" (trend hint only). Intake-valve
+#: deposits on a DI engine cannot be computed from any data -- borescope only.
+CHANNEL_GROUPS: dict[str, dict[str, Any]] = {
+    "deposit_risk_trend": {
+        "name": "Intake-valve deposit risk (trend proxies)",
+        "note": "Direct-injection engine: deposits are not calculable from data; "
+                "borescope is the only direct check. Compare like with like "
+                "(same coolant temp, RPM, load).",
+        "items": (
+            {"label": "Per-cylinder misfire counts, cold start", "source": "mode06",
+             "obdmids": ("A2", "A3", "A4", "A5", "A6", "A7", "A8", "A9", "AA", "AB", "AC", "AD"),
+             "evidence": "evidence"},
+            {"label": "Warm-idle LTFT at same coolant temp", "source": "channel",
+             "channels": ("long_fuel_trim_b1", "engine_coolant_temp"), "evidence": "weak"},
+            {"label": "Volumetric-efficiency ratio MAF vs MAP/RPM at fixed RPM/load",
+             "source": "channel", "channels": ("maf", "intake_map", "engine_rpm"),
+             "evidence": "weak"},
+            {"label": "Oil consumption / catch-can volume per km", "source": "manual",
+             "evidence": "weak"},
+        ),
+    },
+}
+
+
+def channel_groups() -> dict[str, dict[str, Any]]:
+    """Group definitions as plain dicts (tuples to lists) for the live board."""
+    return {k: {**g, "items": [{**i, **{f: list(v) for f, v in i.items()
+                                        if isinstance(v, tuple)}} for i in g["items"]]}
+            for k, g in CHANNEL_GROUPS.items()}
 
 
 def presets() -> dict[str, list[dict[str, Any]]]:
@@ -561,6 +606,7 @@ def eval_expr(expr: str, values: dict[str, float]) -> float:
 
 __all__ = ["Channel", "available_channels", "registry", "invalidate_registry",
           "builtin_channel_ids", "by_id", "PRESETS", "presets",
-          "BUS_CAPTURE_PRESETS", "bus_capture_preset",
+          "BUS_CAPTURE_PRESETS", "bus_capture_preset", "UNTRUSTED_PIDS",
+          "CHANNEL_GROUPS", "channel_groups",
           "resolve_channels", "ComputedError", "eval_expr", "DID_MODULES",
           "FAST_HZ", "MED_HZ", "SLOW_HZ", "UNKNOWN_DID"]

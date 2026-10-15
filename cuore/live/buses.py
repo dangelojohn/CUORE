@@ -37,6 +37,7 @@ class Bus:
     transmit_needs_confirmation: bool  # True for can_ch
     modules_seen: tuple[str, ...]  # MES codes actually observed on this bus on this car
     notes: str  # safety text from Table B
+    nm_ids_seen: tuple[str, ...] = ()  # keep-alive / network-management ids heard on the 29-bit route
 
 
 CAN_C = Bus(
@@ -104,8 +105,9 @@ CAN_IHS = Bus(
             "blue_a5",
             "33",
             125000,
-            "untested",
-            "11-bit broadcast listen route at 125k (STP 33 + STPBR 125000 + ATCAF0 + STMA), "
+            "confirmed",
+            "CONFIRMED on the car 2026-10-15 (awake): 317 frames/2 s over 54 ids (3E2, 3E4, "
+            "3E6, 3E8, 2F0, 3DC, 3DE, 3E0, ...). 11-bit broadcast listen route at 125k (STP 33 + STPBR 125000 + ATCAF0 + STMA), "
             "mirroring the CAN-CH finding of 2026-10-14 that Giorgio periodic traffic is "
             "11-bit and invisible to a 29-bit filtered monitor. Listen only; UDS stays on "
             "the 29-bit route above. Never any rate but 125k.",
@@ -124,7 +126,17 @@ CAN_IHS = Bus(
         "Do not mix routes: with the A5 fitted, adapter pins 3/11 map to "
         "nothing defined, so use the HS preset plus STPBR, never STP "
         "53/54. Opening a 500k preset on a 125k bus emits error frames; "
-        "set STCMM 0 before STPO when the rate is in doubt."
+        "set STCMM 0 before STPO when the rate is in doubt. Awake signature (car, "
+        "2026-10-15, blue A5, adapter switch HS): STP 33 + STPBR 125000 + ATCAF0 + STMA = "
+        "317 frames/2 s over 54 11-bit ids; the 29-bit STP 34 route hears only ~9/s keep-alive "
+        "ids. 29-bit 22 F190 discovery (1.5 s wait) to 45,30,24,03,0A,33,34,67,00,68,6F,01,02 "
+        "got no reply; functional 3E 00 on 18DB33F1 got NO DATA: no IHS module address is "
+        "confirmed. HYPOTHESIS (untested): the low byte of a 1E34xxxx keep-alive id may be "
+        "the node's diagnostic address (AUTOSAR CAN NM style)."
+    ),
+    nm_ids_seen=(
+        "1E340000", "1E340003", "1E34000A", "1E340024", "1E340030",
+        "1E340033", "1E340034", "1E340045", "1E340067",
     ),
 )
 
@@ -170,7 +182,15 @@ CAN_CH = Bus(
         "(1E340000, 1E36001E, 1E360018, 1E36001A, 1E360002, 1E360006, 1E36001D) in BOTH "
         "states, so it cannot tell them apart; awake = STP 33 hears ~400 frames/s over "
         "~30 11-bit ids (0DE, 0EE, 0FC, 106, 10E, 116, 11C, 122, ...), asleep (~25 min "
-        "after ignition-on, engine off) = STP 33 silent and the ABS stops answering UDS."
+        "after ignition-on, engine off) = STP 33 silent and the ABS stops answering UDS. "
+        "Keep-alive ids seen 2026-10-15 on the 29-bit route (grey A6, 500k): 1E340000, "
+        "1E340006, 1E360002, 1E360006, 1E360018, 1E36001A, 1E36001D, 1E36001E. HYPOTHESIS "
+        "(untested): the low byte of a 1E34xxxx keep-alive id may be the node's diagnostic "
+        "address (AUTOSAR CAN NM style)."
+    ),
+    nm_ids_seen=(
+        "1E340000", "1E340006", "1E360002", "1E360006",
+        "1E360018", "1E36001A", "1E36001D", "1E36001E",
     ),
 )
 

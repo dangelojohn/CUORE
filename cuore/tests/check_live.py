@@ -744,6 +744,15 @@ else:
         web_routes.live_ops.modules = _orig_modules
 
 
+# ---- bus facts 2026-10-15 ----
+check("nm_ids_seen can_ihs", "1E340067" in CAN_IHS.nm_ids_seen and len(CAN_IHS.nm_ids_seen) == 9)
+check("nm_ids_seen can_ch", "1E36001E" in CAN_CH.nm_ids_seen and len(CAN_CH.nm_ids_seen) == 8)
+check("can_c nm_ids_seen default empty", CAN_C.nm_ids_seen == ())
+check("blue_a5 STP 33 confirmed", any(r.cable == "blue_a5" and r.stn_protocol == "33" and r.status == "confirmed" for r in CAN_IHS.routes))
+check("IHS first route still 29-bit STP 34", CAN_IHS.routes[0].stn_protocol == "34")
+check("HVAC note mentions 2026-10-15", any(a.code == "HVAC" and "2026-10-15" in a.note for a in addressing.MODULES))
+
+
 # ===========================================================================
 # report
 # ===========================================================================

@@ -89,9 +89,15 @@ _PID_LIST: tuple[PID, ...] = (
     PID("47", "throttle_position_b", "%", 1, lambda d: d[0] * 100 / 255),
     PID("49", "accelerator_pedal_d", "%", 1, lambda d: d[0] * 100 / 255),
     PID("4A", "accelerator_pedal_e", "%", 1, lambda d: d[0] * 100 / 255),
+    # 4D/4E/7F: SAE J1979 run-time counters. NOT supported by the 2018 Stelvio
+    # ECM (18DAF110; 0x40 bitmap lacks 4D/4E, 0x60 bitmap advertises only
+    # 68/6B/70/72, measured 2026-10-14/15) -- decoded for cars that do.
+    PID("4D", "minutes_run_with_mil", "min", 2, _u16),
+    PID("4E", "minutes_since_codes_cleared", "min", 2, _u16),
     PID("54", "evap_vapor_pressure_signed", "kPa", 2, lambda d: _s16(d) / 1000),
     PID("59", "fuel_rail_pressure_abs", "kPa", 2, lambda d: _u16(d) * 10),
     PID("60", "pids_supported_61_80", "bitmap", 4, lambda d: _decode_supported_block("60", d)),
+    PID("7F", "engine_run_time", "s", 13, lambda d: _decode_engine_run_time(d)),
     PID("68", "intake_air_temp_sensors", "C", 1, lambda d: _decode_iat_sensors(d)),
     PID("6B", "egr_temperature", "C", 3, lambda d: _decode_egr_temp(d)),
     PID("70", "boost_pressure_control", "kPa", 1, lambda d: _decode_boost_control(d)),
@@ -231,6 +237,18 @@ def _decode_egr_temp(d: list[int]) -> dict[str, Any]:
                                           if idx + 1 < len(d) else None)
             idx += 2
     return out
+
+
+def _u32(d: list[int]) -> int:
+    return (d[0] << 24) | (d[1] << 16) | (d[2] << 8) | d[3]
+
+
+def _decode_engine_run_time(d: list[int]) -> dict[str, Any]:
+    """PID 0x7F (Engine Run Time), 13 bytes per SAE J1979: A = info byte,
+    B-E total, F-I idle, J-M with PTO engaged -- each a 32-bit count of seconds.
+    """
+    return {"info": d[0], "total_s": _u32(d[1:5]), "idle_s": _u32(d[5:9]),
+            "pto_s": _u32(d[9:13])}
 
 
 def _decode_boost_control(d: list[int]) -> dict[str, Any]:

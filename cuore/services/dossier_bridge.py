@@ -1835,7 +1835,13 @@ def build_view(vin: str, dossier: dict[str, Any],
     verdict["blocker"] = blocker
     verdict["next_step_id"] = next_step_id
     blind_spots = _build_blind_spots(vin, dossier, live_status)
-    return {"verdict": verdict, "blind_spots": blind_spots, **core}
+    try:
+        from ..live import capabilities as _caps
+        capabilities = _caps.capability_rows(vin)
+    except Exception:  # facts are additive; never break the page
+        capabilities = []
+    return {"verdict": verdict, "blind_spots": blind_spots, "capabilities": capabilities,
+            **core}
 
 
 __all__ = ["build_view", "checklist_step_ids", "live_available", "readiness_result",
