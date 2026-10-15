@@ -873,7 +873,12 @@ def continue_guided(scan_id: str, cable_fitted: str) -> dict[str, Any]:
         # Drop this bus's "not reachable: needs <cable>" placeholder rows
         # from the pause, then sweep it for real.
         state["coverage"] = [r for r in state["coverage"] if r["bus"] != seg["bus"]]
-        new_rows = _sweep_bus_modules(seg["bus"], state["vin"], cable, state["stream"], False,
+        # CAN-CH (brakes, airbag, steering) refuses to transmit without a
+        # human confirmation. In the guided flow that confirmation is the
+        # mechanic physically fitting the grey A6 cable and declaring it on
+        # this very call; the sweep itself is read-only UDS (0x19/0x22).
+        confirm = bool(BUSES[seg["bus"]].transmit_needs_confirmation)
+        new_rows = _sweep_bus_modules(seg["bus"], state["vin"], cable, state["stream"], confirm,
                                       _step, steps, session_counter=session_counter)
         state["coverage"].extend(new_rows)
         sweep_name = f"sweep_bus_full {seg['bus']}"
