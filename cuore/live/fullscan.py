@@ -649,6 +649,35 @@ def _elapsed_s(state: dict[str, Any]) -> float:
         return 0.0
 
 
+_OPEN_SEGMENT_STATUSES = ("pending", "failed")
+
+
+def _open_segment_indices(state: dict[str, Any]) -> list[int]:
+    """Indices of the cable segments (never the closing step) that still
+    need a sweep: not yet attempted, or attempted and silent."""
+    return [i for i, seg in enumerate(_GUIDED_SEGMENTS)
+            if not seg.get("final") and i < len(state["segments"])
+            and state["segments"][i].get("status") in _OPEN_SEGMENT_STATUSES]
+
+
+def _open_segment_for(state: dict[str, Any], cable: str) -> Optional[int]:
+    """The open cable segment that ``cable`` belongs to, or ``None``."""
+    for i in _open_segment_indices(state):
+        if _GUIDED_SEGMENTS[i]["cable"] == cable:
+            return i
+    return None
+
+
+def _next_pending_index(state: dict[str, Any]) -> int:
+    """Where the session pauses next: the lowest cable segment still open,
+    else the closing "remove the cable" step. Segments may be completed
+    out of order (see ``continue_guided``), so this is not "idx + 1"."""
+    open_idx = _open_segment_indices(state)
+    if open_idx:
+        return open_idx[0]
+    return len(_GUIDED_SEGMENTS) - 1
+
+
 def _guided_next(state: dict[str, Any]) -> Optional[dict[str, Any]]:
     """What the mechanic needs to do next, or ``None`` once the session is
     done or abandoned."""
@@ -803,8 +832,18 @@ def continue_guided(scan_id: str, cable_fitted: str) -> dict[str, Any]:
     idx = state["pending_index"]
     seg = _GUIDED_SEGMENTS[idx]
     if cable_fitted != seg["cable"]:
-        raise BadCommand(f"guided scan {scan_id!r} is waiting for cable {seg['cable']!r} "
-                         f"(got {cable_fitted!r})")
+        # Out of order is fine as long as the fitted cable's own segment is
+        # still open (pending or failed): a mechanic who could not get the
+        # body bus to answer and has already swapped to the grey cable is
+        # not sent back to refit the blue one. The pause comes back to the
+        # lowest unfinished segment afterwards, so nothing is lost.
+        alt = _open_segment_for(state, cable_fitted)
+        if alt is None:
+            open_cables = sorted({_GUIDED_SEGMENTS[i]["cable"]
+                                  for i in _open_segment_indices(state)})
+            raise BadCommand(f"guided scan {scan_id!r} is waiting for cable {seg['cable']!r} "
+                             f"(got {cable_fitted!r}); cables still open: {open_cables}")
+        idx, seg = alt, _GUIDED_SEGMENTS[alt]
 
     if not seg.get("final"):
         ms = interlock.mes_status()
@@ -847,7 +886,7 @@ def continue_guided(scan_id: str, cable_fitted: str) -> dict[str, Any]:
         else:
             state["segments"][idx]["status"] = "done"
             state["segments"][idx]["why"] = None
-            state["pending_index"] = idx + 1
+            state["pending_index"] = _next_pending_index(state)
     state["session_opens"] = session_counter[0]
 
     _save_guided(state)
@@ -878,7 +917,7 @@ def skip_guided(scan_id: str) -> dict[str, Any]:
                                   "active": 0, "history": 0, "not_run": 0})
     state["segments"][idx]["status"] = "skipped"
     state["segments"][idx]["why"] = why
-    state["pending_index"] = idx + 1
+    state["pending_index"] = _next_pending_index(state)
 
     _save_guided(state)
     _record_guided_coverage(state)

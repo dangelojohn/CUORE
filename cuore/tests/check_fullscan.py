@@ -409,12 +409,15 @@ try:
     check_eq("guided state survives a fresh import (next cable)",
              resumed["next"]["cable"], "blue_a5")
 
-    # A mismatched cable is rejected, not silently accepted.
+    # A cable with no open segment is rejected, not silently accepted: the
+    # closing "none" step cannot run while cable segments are still open.
     try:
-        fullscan_reloaded.continue_guided(guided_scan_id, "grey_a6")
-        check("continue_guided rejects the wrong cable", False)
-    except LiveError:
-        check("continue_guided rejects the wrong cable", True)
+        fullscan_reloaded.continue_guided(guided_scan_id, "none")
+        check("continue_guided rejects a cable with no open segment", False)
+    except LiveError as e:
+        check("continue_guided rejects a cable with no open segment", True)
+        check("rejection names the cables still open", "blue_a5" in str(e) and "grey_a6" in str(e),
+              str(e))
 
     # A refused (silent-bus) sweep => segment failed, same step offered again.
     _real_sweep = ops.sweep_bus_full
@@ -481,9 +484,20 @@ try:
     _patch(ops, "sweep_bus_full", _refusing_sweep)
     fullscan_reloaded.continue_guided(g5["scan_id"], "blue_a5")
     _patch(ops, "sweep_bus_full", _real_sweep)
+    # Out of order: blue failed, the mechanic swapped to grey instead of
+    # refitting blue. Grey's segment runs now; the pause comes back to blue.
+    go = fullscan_reloaded.continue_guided(g5["scan_id"], "grey_a6")
+    check_eq("out-of-order grey marks segment 3 done", go["segments"][2]["status"], "done")
+    check_eq("out-of-order grey leaves segment 2 failed", go["segments"][1]["status"], "failed")
+    check_eq("out-of-order grey pauses back on blue_a5", go["next"]["cable"], "blue_a5")
+    check("out-of-order grey offers the blue retry", "retry" in go["next"]["instruction"],
+          go["next"]["instruction"])
+    check_eq("out-of-order grey segment_done lists can_ch", go["segment_done"],
+             ["can_c", "can_ch"])
     gs = fullscan_reloaded.skip_guided(g5["scan_id"])
     check_eq("skip after failure records skipped", gs["segments"][1]["status"], "skipped")
-    check_eq("skip after failure moves to grey", gs["next"]["cable"], "grey_a6")
+    check_eq("skip after failure moves to the closing step once grey is done",
+             gs["next"]["cable"], "none")
     check("a second guided scan can start once the first is done", bool(g5["scan_id"]))
     other_scan_id = g5["scan_id"]
     g6 = fullscan_reloaded.abandon_guided(other_scan_id)
