@@ -556,6 +556,49 @@ check("but not persisted", not h.get("persisted") and bool(h.get("not_persisted"
 check_eq("and the store stays empty", store.confirmed_targets(VIN), {})
 
 
+# registry address vs identity: unconfirmed address entries yield, confirmed ones do not
+from dataclasses import replace as _replace  # noqa: E402
+
+check_eq("ABS resolves to 0x2A from the registry",
+         (addressing.by_code("ABS").target, addressing.by_code("ABS").confidence),
+         (0x2A, addressing.Confidence.CONFIRMED))
+check_eq("EPS has no target", addressing.by_code("EPS").target, None)
+
+
+def _clash(conf):
+    real = addressing.on_bus("can_c")
+    other = next(m for m in real if m.code != "DASM")
+    patched = [_replace(other, target=0x44, confidence=conf) if m is other else m
+               for m in real]
+    store.path().unlink(missing_ok=True)
+    node = BusStream({0x44: {"22F190": "62F190" + _ascii_hex(VIN),
+                             "22F192": "62F192" + _ascii_hex("MRR1evo14F"),
+                             "22F194": "62F194" + _ascii_hex("52081920")}})
+    lk6 = AdapterLink(stream_factory=lambda p, b: node, process="check_coverage")
+    set_link(lk6)
+    lk6.mark_verified(CAN_C, 10)
+    orig = uds_mod.on_bus
+    uds_mod.on_bus = lambda key: patched if key == "can_c" else orig(key)
+    try:
+        with lk6.session("clash", bus=CAN_C) as sess:
+            res = uds_mod.discover(sess, CAN_C, vin_expected=VIN, candidates=[0x44],
+                                   per_target_timeout=0.2)
+    finally:
+        uds_mod.on_bus = orig
+    return res["hits"][0], other.code
+
+
+h, other_code = _clash(addressing.Confidence.INFERRED)
+check("identity overrides an INFERRED registry address and persists",
+      h.get("module") == "DASM" and h.get("persisted") is True
+      and "registry_override" in h and "conflict" not in h, str(h))
+check_eq("override is recorded in the store", store.confirmed_targets(VIN).get("DASM"), 0x44)
+h, other_code = _clash(addressing.Confidence.CONFIRMED)
+check("a CONFIRMED clashing registry entry still refuses",
+      "conflict" in h and not h.get("persisted") and h.get("module") is None, str(h))
+check_eq("and nothing is stored", store.confirmed_targets(VIN), {})
+
+
 # ===========================================================================
 # 9. test reads never pass as evidence about the car
 # ===========================================================================

@@ -208,10 +208,11 @@ MODULES: tuple[ECUAddress, ...] = (
         name="Continental ABS MK C1",
         bus_key="can_ch",
         bus_confidence="confirmed",
-        target=0x28,
-        confidence=Confidence.UNVERIFIED,
-        source=_STELVIO_SCAN_SOURCE,
-        note="STP 34 (500k assumed)",
+        target=0x2A,
+        confidence=Confidence.CONFIRMED,
+        source=("discover 2026-10-15: 22 F190 at 18DA2AF1 returned this car's VIN; "
+                "F192/F194 match Table A exactly"),
+        note="STP 34, 500k confirmed",
         iso_code="00 06 50 5B 14",
         hw_number="28554010535 (00)",
         sw_number="XJ_RAL00165 (83C1)",
@@ -222,13 +223,12 @@ MODULES: tuple[ECUAddress, ...] = (
         name="ZF Electric Steering",
         bus_key="can_ch",
         bus_confidence="confirmed",
-        target=0x2A,
-        confidence=Confidence.INFERRED,
-        source=(
-            "danardi78 header DA2AF1 returns steering angle; conflicts "
-            "with stelvio_scan SAS 0x76"
-        ),
-        note="INFERRED (medium). STP 34",
+        target=None,
+        confidence=Confidence.UNKNOWN,
+        source="",
+        note=("WRONG: 0x2A is the ABS (discover 2026-10-15); EPS address unknown, silent "
+              "to 22 F190 on 29-bit. Old source: danardi78 header DA2AF1 returns steering "
+              "angle; conflicts with stelvio_scan SAS 0x76. STP 34"),
         iso_code="00 02 40 5F 14",
         hw_number="7806277500 (30)",
         sw_number="880802D0243 (A410)",

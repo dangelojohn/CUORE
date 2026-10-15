@@ -316,6 +316,12 @@ class Session:
             break
         mine = {h: d for h, d in q["ecus"].items()
                 if not ecu.response_hex or h == ecu.response_hex or h == ""}
+        # The audit log otherwise records only session open/close, so a
+        # module that answered discovery and then went silent to the sweep
+        # (ABS, 2026-10-15) left nothing to compare. Raw reply, capped.
+        audit.record("uds", ecu=ecu.code, bus=self.bus.key, req=req,
+                     header=ecu.request_hex, raw=(q["raw"] or "")[:200],
+                     error=q["error"], attempts=attempts)
         return {"request": req, "raw": q["raw"], "error": q["error"],
                 "positive": mine, "nrc": {h: int(c, 16) for h, c in nrc.items()},
                 "attempts": attempts, "ecu": ecu.code, "bus": self.bus.key}

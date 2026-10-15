@@ -833,6 +833,28 @@ def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
                                              stop_after=stop_after))
 
 
+def discover_11bit(bus: str = "can_ch", vin: str = "", confirm: bool = False,
+                   candidates: Optional[list[str]] = None, per_target_timeout: float = 0.25,
+                   stop_after: Optional[int] = None, **kw: Any) -> dict[str, Any]:
+    """Read-only 11-bit physical UDS sweep (3E 00 then identity), nothing persisted."""
+    from . import discover11
+    b = _bus(bus)
+    r11 = [r for r in routes_for(b, link().cable) if r.stn_protocol == "33"]
+    if not r11:
+        raise BadCommand(f"bus {b.key} has no 11-bit (STP 33) route for cable {link().cable!r}")
+    cands = None
+    if candidates:
+        try:
+            cands = [int(c, 16) for c in candidates]
+        except ValueError:
+            raise BadCommand("candidates must be hex 11-bit request ids")
+    with link().session(f"discover_11bit {b.key}", bus=b, confirm=confirm,
+                        route=r11[0], **kw) as sess:
+        return _stamp(sess, discover11.discover_11bit(
+            sess, b, candidates=cands, per_target_timeout=per_target_timeout,
+            stop_after=stop_after))
+
+
 def observations(n: int = 50, vin: str = "", kind: str = "") -> dict[str, Any]:
     return {"path": str(store.observations_path()),
             "entries": store.recent_observations(n, vin=vin, kind=kind)}

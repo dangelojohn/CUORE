@@ -691,6 +691,11 @@ def _guided_next(state: dict[str, Any]) -> Optional[dict[str, Any]]:
                 "instruction": "Remove the cable, then press Continue"}
     modules = [{"code": m.code, "name": m.name} for m in on_bus(bus_key)]
     if state["segments"][idx].get("status") == "failed":
+        if (state["segments"][idx].get("why") or "").startswith("bus verified alive"):
+            return {"cable": cable, "bus": bus_key, "modules": modules,
+                    "instruction": f"{_GUIDED_BUS_LABEL[bus_key]} is alive but no module "
+                                   f"answered -- run discovery for this bus (Scans > Discover) "
+                                   f"or Skip; press Continue to retry"}
         return {"cable": cable, "bus": bus_key, "modules": modules,
                "instruction": f"{_GUIDED_BUS_LABEL[bus_key]} was silent -- check the "
                               f"{_GUIDED_CABLE_NAME[cable]} cable is seated, the adapter switch "
@@ -888,6 +893,15 @@ def continue_guided(scan_id: str, cable_fitted: str) -> dict[str, Any]:
             # Stay on this segment so the same cable step is offered again.
             state["segments"][idx]["status"] = "failed"
             state["segments"][idx]["why"] = failed.get("error", "sweep failed")
+        elif new_rows and not any(r["category"] == "answered" for r in new_rows):
+            # The bus was verified alive and the sweep ran, but not one module
+            # answered: zero modules read is not a finished segment.
+            n_nr = sum(1 for r in new_rows if r["category"] == "not_reachable")
+            n_silent = sum(1 for r in new_rows if r["category"] == "silent")
+            state["segments"][idx]["status"] = "failed"
+            state["segments"][idx]["why"] = (
+                f"bus verified alive but no module answered: {n_nr} not reachable "
+                f"(no confirmed address), {n_silent} silent")
         else:
             state["segments"][idx]["status"] = "done"
             state["segments"][idx]["why"] = None

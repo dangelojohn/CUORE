@@ -516,6 +516,29 @@ try:
     except LiveError:
         check("a second run_guided while one is paused refuses", True)
 
+    # Bus alive but no module answered => failed, not done.
+    open_id = fullscan_reloaded.guided_state()["scan_id"]
+
+    def _unanswered_sweep(bus, **kw):
+        if bus == "can_ihs":
+            return {"modules": [{"ecu": "HVAC", "skipped": "no confirmed address"},
+                                {"ecu": "ETM", "warning": "no answer from the module",
+                                 "dtcs": []}]}
+        return _real_sweep(bus, **kw)
+    _patch(ops, "sweep_bus_full", _unanswered_sweep)
+    gu = fullscan_reloaded.continue_guided(open_id, "blue_a5")
+    check_eq("zero-answer sweep marks segment failed", gu["segments"][1]["status"], "failed")
+    check("zero-answer why says bus verified alive",
+          (gu["segments"][1]["why"] or "").startswith("bus verified alive but no module answered"),
+          str(gu["segments"][1]["why"]))
+    check_eq("zero-answer sweep leaves pending_index", gu["pending_index"], 1)
+    check("zero-answer instruction mentions discovery",
+          "discovery" in gu["next"]["instruction"], gu["next"]["instruction"])
+    _patch(ops, "sweep_bus_full", _real_sweep)
+    gu2 = fullscan_reloaded.continue_guided(open_id, "blue_a5")
+    check_eq("later answered sweep marks segment done", gu2["segments"][1]["status"], "done")
+    fullscan_reloaded.abandon_guided(open_id)
+
     # =======================================================================
     # 6. wizard page: 200 in every phase
     # =======================================================================

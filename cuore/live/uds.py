@@ -257,7 +257,17 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
         hit["identity_match"] = ident
         named = hit.get("registry_match")
         if ident.get("matched"):
-            if named and named != ident["matched"]:
+            reg = next((m for m in known if m.code == named), None)
+            if (named and named != ident["matched"] and reg is not None
+                    and reg.confidence != Confidence.CONFIRMED and ident.get("strong")
+                    and vin_expected and vin == vin_expected):
+                hit["registry_override"] = (
+                    f"registry address for {named} was {reg.confidence.value}, overridden "
+                    f"by strong identity match to {ident['matched']}")
+                named = ident["matched"]
+                hit["matched_by"] = (f"identity (registry address for {reg.code} was "
+                                     f"{reg.confidence.value}, overridden)")
+            elif named and named != ident["matched"]:
                 hit["conflict"] = (f"address says {named}, identity says {ident['matched']}; "
                                    f"nothing persisted")
                 named = None

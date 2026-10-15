@@ -402,8 +402,8 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 
 | Module | Confidence |
 |---|---|
-| ABS | unverified |
-| EPS | inferred |
+| ABS | confirmed |
+| EPS | unknown |
 | ORC | unverified |
 | AFLS | unknown |
 | PAM | unknown |
@@ -412,6 +412,7 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 | ESL | unknown |
 
 <!-- cable-reference:end -->
+
 
 
 ## 9. Learning module parameters from MES (a second adapter on CAN-C)
