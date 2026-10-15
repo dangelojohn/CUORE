@@ -375,7 +375,7 @@ class MonitorStream(BusStream):
         if cmd.startswith("STP "):
             self.proto = cmd[4:]
             return "OK"
-        if cmd == "STM":
+        if cmd in ("STM", "STMA"):
             return ("" if self.proto == "34" else
                     "1E36000100112233\rDATA ERROR\r1E36000B00112233")
         return super()._reply(cmd)
@@ -454,17 +454,17 @@ check("the read reports the route the listen found",
       out.get("auto_verified", {}).get("stn_protocol") == "33", str(out.get("auto_verified")))
 mon2.sent.clear()
 ops.obd_dtcs("stored")
-check("a fresh proof is reused, no second listen", "STM" not in mon2.sent)
+check("a fresh proof is reused, no second listen", not {"STM", "STMA"} & set(mon2.sent))
 
 lk3.verified["can_c"]["ts"] -= lk3.verify_ttl + 1
 mon2.sent.clear()
 ops.obd_dtcs("stored")
-check("a stale proof is re-checked", "STM" in mon2.sent)
+check("a stale proof is re-checked", bool({"STM", "STMA"} & set(mon2.sent)))
 
 
 class SilentStream(MonitorStream):
     def _reply(self, cmd: str) -> str:
-        if cmd == "STM":
+        if cmd in ("STM", "STMA"):
             return ""
         return super()._reply(cmd)
 

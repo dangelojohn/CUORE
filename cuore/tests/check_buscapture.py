@@ -158,7 +158,7 @@ class FakeBus(Stream):
             return "?"
         if cmd == "ATRV":
             return "12.4V"
-        if cmd == "STM":
+        if cmd in ("STM", "STMA"):
             i = min(self._stm_i, len(self.stm_replies) - 1)
             self._stm_i += 1
             return self.stm_replies[i]

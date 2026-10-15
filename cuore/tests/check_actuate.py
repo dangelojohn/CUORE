@@ -225,7 +225,7 @@ class FakeECU(Stream):
         if cmd.startswith("STP "):
             self.proto = cmd[4:]
             return "OK"
-        if cmd == "STM":
+        if cmd in ("STM", "STMA"):
             return "1E36000100112233\r1E36000B00112233"
         if cmd == "010C":
             return f"7E804410C{self.rpm_raw:04X}" if self.proto == "33" else "NO DATA"

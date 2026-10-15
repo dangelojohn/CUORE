@@ -80,7 +80,7 @@ class FakeCar(Stream):
         if cmd.startswith("STP "):
             self.proto = cmd[4:]
             return "OK"
-        if cmd == "STM":
+        if cmd in ("STM", "STMA"):
             return "1E36000100112233\r1E36000B00112233"
         if cmd.startswith(("AT", "ST")):
             return {"ATI": "ELM327 v2.3", "STI": "STN1170 v4.3.2", "ATRV": "12.4V"}.get(cmd, "OK")

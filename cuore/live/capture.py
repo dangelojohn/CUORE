@@ -55,9 +55,18 @@ def listen(sess: Session, *, seconds: float = 2.0, max_frames: int = 500,
     err = _add_filters(sess, filters or [])
     if err:
         return {"bus": sess.bus.key, "error": err, "frames": [], "count": 0}
+    # Raw frames, not ISO-TP: with auto-formatting on the adapter shows only
+    # ISO-TP-shaped frames (periodic broadcasts come out as <DATA ERROR> or
+    # not at all). Every request session restates ATCAF1 at open, so this
+    # never leaks into a later request.
+    sess.cmd("ATCAF0", 2)
     if sess.link.is_stn:
         sess.cmd("STPO", 3)
-        monitor = "STM"
+        # STMA ignores the filter table; STM honours it, and on the vLinker
+        # FS (STN1170 v4.3.2) a filtered monitor heard 0 frames on a chassis
+        # bus that STMA heard at 400 frames/s (on the car, 2026-10-14). Only
+        # a caller that asked for pass filters gets the filtered monitor.
+        monitor = "STM" if filters else "STMA"
     else:
         monitor = "ATMA"
     s = sess.stream

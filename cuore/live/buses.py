@@ -101,6 +101,16 @@ CAN_IHS = Bus(
             "(18DB33F1) and accepts any 18DAF1xx reply as proof the bus is alive.",
         ),
         Route(
+            "blue_a5",
+            "33",
+            125000,
+            "untested",
+            "11-bit broadcast listen route at 125k (STP 33 + STPBR 125000 + ATCAF0 + STMA), "
+            "mirroring the CAN-CH finding of 2026-10-14 that Giorgio periodic traffic is "
+            "11-bit and invisible to a 29-bit filtered monitor. Listen only; UDS stays on "
+            "the 29-bit route above. Never any rate but 125k.",
+        ),
+        Route(
             "none",
             "54",
             None,
@@ -123,7 +133,7 @@ CAN_CH = Bus(
     name="CAN-CH (chassis / ADAS / safety)",
     pins=(12, 13),
     bitrate=500000,
-    bitrate_confidence="inferred",
+    bitrate_confidence="confirmed",
     id_bits=29,
     routes=(
         Route(
@@ -131,7 +141,19 @@ CAN_CH = Bus(
             "34",
             None,
             "confirmed",
-            "bitrate inferred 500k; if silent try STP 36 then STPBR 125000",
+            "29-bit UDS route at 500k (STPBRR read 500000 on the car, 2026-10-14). "
+            "NEVER open CAN-CH at any other rate: three ~2 s receive-only windows at "
+            "250k/125k lit the AIRBAG lamp with a chime on the car (2026-10-14 23:58). "
+            "A silent 29-bit listen is normal here; the STP 33 route below hears the bus.",
+        ),
+        Route(
+            "grey_a6",
+            "33",
+            None,
+            "confirmed",
+            "11-bit broadcast listen route: STP 33 + ATCAF0 + STMA heard 818 frames in 2 s "
+            "over 29 IDs (0DE, 0EE, 0FC, 106, 10E, 116, 11C, 122, ...) at 500k on the car, "
+            "2026-10-14. Listen only; UDS stays on the 29-bit route above.",
         ),
     ),
     transmit_needs_confirmation=True,
@@ -139,7 +161,7 @@ CAN_CH = Bus(
     notes=(
         "Never transmit on CAN-CH without explicit human confirmation: "
         "brakes, airbag squibs and steering assist live here. Listen first "
-        "with STCMM 0 + STM. FEPS hazard: the vLinker FS is a Ford tool "
+        "with STCMM 0 + STMA (ATCAF0). FEPS hazard: the vLinker FS is a Ford tool "
         "whose 18V FEPS output is OBD pin 13, which on Giorgio is "
         "CAN-CH(-). Never issue any FEPS or programming-voltage command on "
         "this vehicle; whether the FS can be commanded to FEPS over serial "
