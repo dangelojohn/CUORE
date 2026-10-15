@@ -220,7 +220,9 @@ def _clear_dict_from_global(entries: list[Any], entry: Any, log: Any,
         "re_read_after_clear": re_read_after_clear,
         "verdict": (f"Codes were cleared by the all-systems scan {entry.name} at {ts} "
                     f"({', '.join(codes_cleared) if codes_cleared else 'no codes listed'})."
-                    + tail_note),
+                    + tail_note
+                    + " A clear is not proof of repair: it erases evidence and "
+                      "carries no information until the monitors re-run."),
         "next_step": ("Drive until the monitors re-run (EVAP: fuel 15-85 %, cold starts, "
                       "several drives), then read the status bytes (verify_repair) or "
                       "re-scan. A returning code is the answer; silence right after a "

@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{# The TSB layer (cuore/web/tsb_routes.py -> cuore/services/tsb_bridge.py):
+   every bulletin / recall / CSN / campaign / extended coverage on file for
+   this car, as a per-VIN checklist. Status + note persist per VIN in the
+   state dir (namespace "tsb_checklist"). Rows grouped by first system tag;
+   kind/system filters are plain GET links so the page works with no JS. #}
+{% block title %}TSB checklist — {{ vin }}{% endblock %}
+{% block vehiclebar %}{% if bar %}{% include "_vbar.html" %}{% endif %}{% endblock %}
+{% block content %}
+<style>
+  .tsb-counts{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .tsb-chip{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid currentColor;font-size:.85em}
+  .tsb-filters{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+  .tsb-filters a.on{font-weight:700;text-decoration:underline}
+  .tsb-wrap{overflow-x:auto}
+  .tsb-table{width:100%;border-collapse:collapse;font-size:.92em}
+  .tsb-table th,.tsb-table td{border-bottom:1px solid rgba(127,127,127,.3);padding:6px;vertical-align:top;text-align:left}
+  .tsb-table td.st form{display:flex;flex-direction:column;gap:4px;min-width:150px}
+  .tsb-row-done{opacity:.7}
+  .tsb-applies-yes{font-weight:700}
+</style>
+
+<h1>TSB checklist</h1>
+<p class="lede">Every technical service bulletin, recall, customer-satisfaction
+  notification, campaign and extended coverage on file for
+  {{ view.vehicle.year }} {{ view.vehicle.make }} {{ view.vehicle.model }} {{ view.vehicle.engine }}
+  ({{ view.vehicle.market }}). Tick each one for VIN <span class="mono">{{ vin }}</span>.
+  Catalogue updated {{ view.updated or "unknown" }}.</p>
+
+<div class="tsb-counts" id="tsb-counts">
+  <span class="tsb-chip">{{ view.total }} total</span>
+  <span class="tsb-chip" data-count="open">{{ view.counts.open }} open</span>
+  <span class="tsb-chip" data-count="done">{{ view.counts.done }} done</span>
+  <span class="tsb-chip" data-count="not_applicable">{{ view.counts.not_applicable }} n/a</span>
+  <span class="tsb-chip" data-count="to_verify">{{ view.counts.to_verify }} to verify</span>
+</div>
+
+{% set qv = "/tsb?vin=" ~ (vin|urlencode) %}
+<div class="tsb-filters small" aria-label="Filter by kind">
+  <span class="muted">Kind:</span>
+  <a href="{{ qv }}{% if system %}&system={{ system|urlencode }}{% endif %}" class="{{ 'on' if not kind }}">all</a>
+  {% for k in view.kinds %}
+    <a href="{{ qv }}&kind={{ k|urlencode }}{% if system %}&system={{ system|urlencode }}{% endif %}" class="{{ 'on' if kind == k }}">{{ kind_labels.get(k, k) }}</a>
+  {% endfor %}
+</div>
+<div class="tsb-filters small" aria-label="Filter by system">
+  <span class="muted">System:</span>
+  <a href="{{ qv }}{% if kind %}&kind={{ kind|urlencode }}{% endif %}" class="{{ 'on' if not system }}">all</a>
+  {% for s in view.systems %}
+    <a href="{{ qv }}&system={{ s|urlencode }}{% if kind %}&kind={{ kind|urlencode }}{% endif %}" class="{{ 'on' if system == s }}">{{ s }}</a>
+  {% endfor %}
+</div>
+<p class="small muted">Showing {{ shown }} of {{ view.total }}.</p>
+
+{% for g in groups %}
+<section class="panel" id="tsb-sys-{{ g.system|lower|replace(' ', '-') }}">
+  <h2>{{ g.system }} <span class="count-badge">{{ g.rows|length }}</span></h2>
+  <div class="tsb-wrap">
+  <table class="tsb-table">
+    <thead><tr>
+      <th>Number</th><th>Kind</th><th>Date</th><th>Title / what it is for</th>
+      <th>Systems</th><th>DTCs</th><th>Links</th><th>Applies</th><th>Status</th>
+    </tr></thead>
+    <tbody>
+    {% for r in g.rows %}
+      <tr id="{{ r.anchor }}" class="{{ 'tsb-row-done' if r.status in ('done', 'not_applicable') }}" data-item="{{ r.id }}">
+        <td class="mono">{{ r.number }}
+          {% if r.nhtsa_id %}<div class="small muted">NHTSA {{ r.nhtsa_id }}</div>{% endif %}
+          {% if r.dossier_link %}<div class="small"><a class="tsb-dossier-link" href="{{ r.dossier_link.href }}">in dossier</a></div>{% endif %}
+        </td>
+        <td>{{ kind_labels.get(r.kind, r.kind) }}</td>
+        <td class="mono small">{{ r.date or "—" }}</td>
+        <td><strong>{{ r.title }}</strong>
+          {% if r.summary %}<p class="small">{{ r.summary }}</p>{% endif %}
+          {% if r.remedy %}<p class="small"><span class="muted">Remedy:</span> {{ r.remedy }}</p>{% endif %}
+          {% if r.supersedes %}<div class="small muted">Supersedes {{ r.supersedes }}</div>{% endif %}
+          <div class="small muted">{{ r.source or "" }}{% if not r.verified %} · not verified against the document{% endif %}</div>
+        </td>
+        <td class="small">{{ r.systems|join(", ") }}</td>
+        <td>{% for c in r.dtcs %}<span class="chip-code sm">{{ c }}</span> {% else %}<span class="muted">—</span>{% endfor %}</td>
+        <td class="small">{% for l in r.links %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.label or "document" }}</a><br>{% else %}<span class="muted">no link on file</span>{% endfor %}</td>
+        <td class="small tsb-applies-{{ r.applies }}">{{ applies_labels.get(r.applies, r.applies) }}</td>
+        <td class="st">
+          <form method="post" action="/tsb/status">
+            <input type="hidden" name="vin" value="{{ vin }}">
+            <input type="hidden" name="item_id" value="{{ r.id }}">
+            {% if kind %}<input type="hidden" name="kind" value="{{ kind }}">{% endif %}
+            {% if system %}<input type="hidden" name="system" value="{{ system }}">{% endif %}
+            <label class="small" for="st-{{ r.anchor }}">Status</label>
+            <select id="st-{{ r.anchor }}" name="status">
+              {% for s in statuses %}<option value="{{ s }}"{% if r.status == s %} selected{% endif %}>{{ status_labels[s] }}</option>{% endfor %}
+            </select>
+            <input type="text" name="note" value="{{ r.note }}" placeholder="note" aria-label="Note">
+            <button class="btn" type="submit">Save</button>
+            {% if r.status_updated_at %}<span class="small muted">{{ r.status_updated_at }}</span>{% endif %}
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% else %}
+<p class="muted">No bulletins match this filter.</p>
+{% endfor %}
+{% endblock %}

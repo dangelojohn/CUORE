@@ -1,0 +1,824 @@
+{
+  "_schema": {
+    "vehicle": "{make, model, year, engine, market} -- the car this catalogue was compiled for",
+    "items[]": {
+      "id": "stable row id; the per-VIN checklist status is keyed by it (required)",
+      "kind": "tsb | recall | csn | campaign | extended_warranty | emissions",
+      "number": "bulletin/recall number exactly as the rest of CUORE spells it (dossier tsb_matches, knowledge.py) -- cross-links match on it",
+      "nhtsa_id": "NHTSA record id, or null",
+      "title": "short title",
+      "date": "ISO date, or null when the repo has none",
+      "summary": "what it is for, in plain words",
+      "condition": "the symptom/condition the bulletin addresses, or null",
+      "remedy": "what the dealer/mechanic does, or null",
+      "systems": "affected system tags, e.g. [\"EVAP\", \"ECM\"]",
+      "dtcs": "DTCs the bulletin mentions",
+      "links": "[{label, url}] or null when no link is on file",
+      "applies": "yes | no | vin_check -- does it apply to this car",
+      "source": "where the facts in this row came from",
+      "verified": "true when the source document itself was read; false when only indexed/inferred"
+    },
+    "notes": "Extra fields are tolerated and passed through; only id is required. Merge steps append rows to items[] and must keep ids unique. cuore_relevance, applies_to, transport_canada_id and similar extras are optional and ignored by the template."
+  },
+  "vehicle": {
+    "make": "Alfa Romeo",
+    "model": "Stelvio",
+    "year": 2018,
+    "engine": "2.0T Q4",
+    "market": "CA",
+    "vin": "ZASFAKPN5J7B88115"
+  },
+  "updated": "2026-10-15",
+  "items": [
+    {
+      "id": "tsb-18-030-17-rev-b",
+      "kind": "tsb",
+      "number": "18-030-17 REV. B",
+      "nhtsa_id": "10216318",
+      "title": "Flash: Powertrain Diagnostic and System Improvements (NHTSA copy is REV. D, Giulia-only)",
+      "date": "2017-11-17",
+      "summary": "The bulletin the project cited as the basis for the ECM-calibration verdict. The NHTSA copy (10216318) is REV. D and covers the 2017 Alfa Romeo GIULIA 2.0L I4 DI Turbo (EC2) built on or before 2017-06-29 only; Stelvio is NOT listed in the opened document and no Stelvio copy of 18-030-17 was found. Applicability to this car is unconfirmed, check by VIN/dealer. The directly applicable 2018 Stelvio ECM flash bulletin is 18-026-20, which lists P1CEA/P24D6 but not P0440/P0455/P0456.",
+      "condition": "MIL on with one or more listed DTCs (incl. P0455, P0456, P0440, P0441, P1CEA, P24D6); also misfire when cold, stall on restart after refuelling, idle stability.",
+      "remedy": "Reprogram ECM with latest software via wiTECH 2 (charger 13.2-13.5 V, flash about 9 min), run ECM Misc Functions Phonic Wheel Replacement (otherwise P1300 stays active), clear DTCs. Labour 18-19-06-SK inspect 0.2 h; 18-19-06-TW inspect and reprogram 0.4 h. Also RRT 17-043.",
+      "systems": [
+        "EVAP",
+        "ECM"
+      ],
+      "dtcs": [
+        "P04DB",
+        "P024A",
+        "P2097",
+        "P2B2F",
+        "P24D6",
+        "P01BA",
+        "P026E",
+        "P164E",
+        "P0191",
+        "P2299",
+        "U1008",
+        "P0455",
+        "P0087",
+        "P2172",
+        "P0171",
+        "P0236",
+        "P0363",
+        "P1CEA",
+        "P250B",
+        "P0139",
+        "P015A",
+        "P0440",
+        "P0441",
+        "P0002",
+        "P0244",
+        "P062A",
+        "P0128",
+        "P0514",
+        "P2AC0",
+        "P0402",
+        "P2B89",
+        "P0456"
+      ],
+      "links": [
+        {
+          "label": "NHTSA TSB 10216318 (REV. D, Giulia)",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2017/MC-10216318-9999.pdf"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "NHTSA PDF 10216318 opened in full (research 2026-10-15); earlier: docs/reference/TSB_CATALOGUE.md section 2; mes-log-mcp/mes/knowledge.py; mes-log-mcp/mes/ecm.py",
+      "verified": true,
+      "supersedes": "18-030-17 (REV. A and base)",
+      "family": "18-030-17 -> REV. B -> 18-097/098/101/103-19 -> 18-024/025/026/027-20 -> 18-045/046-23",
+      "applies_to": "2017 (GA) Giulia only, 2.0L I4 DI Turbo (EC2), built on or before 2017-06-29, NAFTA/LATAM. Stelvio NOT listed.",
+      "cuore_relevance": "The bulletin the project cites for P0440/P0455/P0456 on the 2.0T, but the NHTSA copy is Giulia-only; the Stelvio counterpart found is 18-026-20 (no P0455/P0456 in its list). Stelvio applicability of 18-030-17 is unconfirmed; check by VIN."
+    },
+    {
+      "id": "tsb-18-048-23",
+      "kind": "tsb",
+      "number": "18-048-23",
+      "nhtsa_id": "10236933",
+      "title": "EVAP small-leak verification requires wiTECH SLVT",
+      "date": "2023-04-15",
+      "summary": "The Small Leak Verification Test (SLVT). A road test cannot confirm a small EVAP leak repair; the dealer's wiTECH SLVT procedure is the verification. Mode $06 is the only non-dealer route to the measured value. Applies to 2012-2023 Stellantis US gas vehicles with SLVT (Stelvio not named individually); supersedes 18-095-21 (which superseded 18-089-19). SLVT must run first to confirm a leak and again after any repair or component replacement, including PCM software updates.",
+      "condition": "Confirming a small EVAP leak (P0456) repair.",
+      "remedy": "Run the wiTECH Small Leak Verification Test after the repair.",
+      "systems": [
+        "EVAP"
+      ],
+      "dtcs": [
+        "P0456"
+      ],
+      "links": [
+        {
+          "label": "NHTSA TSB 10236933",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10236933-9999.pdf"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "docs/research/EVAP_STELVIO.md (bulletin number 1804823); docs/reference/TSB_CATALOGUE.md section 2; cuore/web/templates/dealer.html; NHTSA PDF 10236933 opened in full (research 2026-10-15)",
+      "verified": true,
+      "supersedes": "18-089-19",
+      "cuore_relevance": "The acceptance test for the EVAP job: SLVT pass is the proof of fix."
+    },
+    {
+      "id": "tsb-9100471",
+      "kind": "tsb",
+      "number": "9100471",
+      "nhtsa_id": "11015810",
+      "title": "Hard to fill / EVAP canister flooded with fuel",
+      "date": "2025-03-17",
+      "summary": "Hard-to-fill diagnostic tree. A vapour line disconnected inside the tank at the fuel delivery module (FDM) port floods the EVAP canister with liquid fuel (fuel, not water).",
+      "condition": "Hard to fill; canister or recirculation line found with fuel in it.",
+      "remedy": "Check the clean-air hose ESIM to EVAP filter, the EVAP filter, and the tank-to-canister vapour hose; if fuel is found, drop the fuel tank, remove the FDM lock ring, check the internal vapour line at the FDM port, and replace BOTH the vapour canister and the ESIM.",
+      "systems": [
+        "EVAP",
+        "Fuel"
+      ],
+      "dtcs": [
+        "P0440",
+        "P0441",
+        "P0455",
+        "P0456"
+      ],
+      "links": null,
+      "applies": "yes",
+      "source": "docs/research/EVAP_STELVIO.md (covers GU 18-24 and GA; PDF retrieved); docs/reference/TSB_CATALOGUE.md section 2",
+      "verified": true,
+      "supersedes": "9100469 (extends it)",
+      "research_note_2026_10_15": "A later research pass could not find 9100471 on NHTSA or via search, so nothing was re-opened; the earlier retrieval recorded in the source field stands. Not re-verified."
+    },
+    {
+      "kind": "tsb",
+      "number": "18-026-20",
+      "nhtsa_id": "10174245",
+      "title": "Flash: Powertrain Control Module (PCM) Updates",
+      "date": "2020-03-25",
+      "summary": "Directly applicable 2018 Stelvio (GU) 2.0L I4 DI Turbo (EC2) ECM flash, North America. Lists P1CEA and P24D6 (EVAP pressure sensor family) but NOT P0455/P0456/P0440. Also: turbo coolant pump after-run update (turbo O-ring durability), S&S text change, better idle stability. Supersedes 18-103-19; also RRT 17-112. Another NHTSA copy: 10175165. Check the ECM software level before buying more EVAP parts.",
+      "condition": "MIL on with listed DTCs; may fail state inspection after reset, driveability issues, cold misfire.",
+      "remedy": "Reprogram ECM (about 8 min), wiTECH 2 Phonic Wheel Replacement, clear DTCs, confirm BCM on latest software. Labour 18-19-06-BF 0.4 h.",
+      "systems": [
+        "ECM",
+        "EVAP",
+        "Turbo"
+      ],
+      "dtcs": [
+        "P0106",
+        "P013A",
+        "P015A",
+        "P1CEA",
+        "P0096",
+        "P04DB",
+        "P024A",
+        "P2097",
+        "P2B2F",
+        "P24D6",
+        "P01BA",
+        "P026E",
+        "P164E",
+        "P0191",
+        "P2299",
+        "U1008"
+      ],
+      "links": [
+        {
+          "label": "NHTSA TSB 10174245",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174245-9999.pdf"
+        }
+      ],
+      "applies": "yes",
+      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+      "verified": true,
+      "id": "tsb-18-026-20",
+      "cuore_relevance": "Directly applicable 2018 Stelvio 2.0T ECM flash; covers P1CEA and P24D6 (EVAP pressure sensor) but not P0455/P0456/P0440, so check ECM software level before buying more EVAP parts."
+    },
+    {
+      "kind": "csn",
+      "number": "CSN W05",
+      "nhtsa_id": "10175524",
+      "title": "Customer Satisfaction Notification W05 - Reprogram Powertrain Control Module (turbo oil-feed weep)",
+      "date": "2020-03",
+      "summary": "PCM software on about 57,000 vehicles may not allow sufficient cooling time for the turbo oil feed, causing thermal stress on the feed line and eventual oil weep. Covers 2017-2019 Giulia and 2018-2019 Stelvio, 2.0L GME-T4 (EC2). Performed per VIN at the dealer; no parts. If it was done, the ECM was already reflashed in 2020.",
+      "condition": "Turbo oil-feed line thermal stress and oil weep (PCM cooling-time logic).",
+      "remedy": "2018 Stelvio: reprogram PCM, PROXI Alignment, Phonic Wheel Replacement routine (2019 Stelvio also TCM). Labour 18-W0-51-81 inspect 0.4 h; 18-W0-51-82 reprogram PCM/proxy/phonic wheel 0.5 h; 18-W0-51-83 PCM+TCM (time not captured).",
+      "systems": [
+        "ECM",
+        "Turbo",
+        "Engine oil"
+      ],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "NHTSA CSN W05 10175524",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175524-9999.pdf"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+      "verified": true,
+      "id": "csn-w05",
+      "cuore_relevance": "Turbo oil-feed weep on the 2.0T; also means the ECM may already have been reflashed (ask history)."
+    },
+    {
+      "kind": "tsb",
+      "number": "21-035-20",
+      "nhtsa_id": "10176569",
+      "title": "Flash: Transmission Control Module (TCM) Update",
+      "date": "2020-05-08",
+      "summary": "2018 Stelvio (GU) 2.0L EC2 TCM flash, North America. Improves 8HP shift quality; also includes the turbo coolant pump after-run update. Pair with ECM flash 18-026-20.",
+      "condition": "MIL with P0002, P026E, P1066, P26E4, P2B61, P2BC1, U1008; shift quality.",
+      "remedy": "Reprogram TCM (about 4 min), clear DTCs, verify PCM on latest software. Labour 18-19-05-MX 0.3 h.",
+      "systems": [
+        "TCM",
+        "Transmission"
+      ],
+      "dtcs": [
+        "P0002",
+        "P026E",
+        "P1066",
+        "P26E4",
+        "P2B61",
+        "P2BC1",
+        "U1008"
+      ],
+      "links": [
+        {
+          "label": "NHTSA TSB 10176569",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10176569-9999.pdf"
+        }
+      ],
+      "applies": "yes",
+      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+      "verified": true,
+      "id": "tsb-21-035-20",
+      "cuore_relevance": "Only 8HP shift-quality software bulletin found for the 2018 Stelvio; pair with ECM flash 18-026-20."
+    },
+    {
+      "kind": "tsb",
+      "number": "18-089-19",
+      "nhtsa_id": "10169219",
+      "title": "wiTECH SLVT - P0456 EVAP System Small Leak",
+      "date": "2019-11-01",
+      "summary": "Predecessor of 18-048-23 (via 18-095-21): the wiTECH Small Leak Verification Test is mandatory for P0456. Applies to 2015-2020 FCA gas vehicles generally; Stelvio not named. Only partially opened.",
+      "condition": "P0456 diagnosis.",
+      "remedy": "Run the SLVT.",
+      "systems": [
+        "EVAP"
+      ],
+      "dtcs": [
+        "P0456"
+      ],
+      "links": [
+        {
+          "label": "NHTSA TSB 10169219",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10169219-9999.pdf"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "NHTSA PDF partially opened (research 2026-10-15)",
+      "verified": false,
+      "id": "tsb-18-089-19",
+      "cuore_relevance": "Contemporary of the 2018 car; superseded by 18-095-21 then 18-048-23."
+    },
+    {
+      "kind": "tsb",
+      "number": "STAR S2025000004",
+      "nhtsa_id": "10175692",
+      "title": "P0456/P0455 analysis with wiTECH SLVT (dealer case record)",
+      "date": "2020-04-28",
+      "summary": "Dealer case record for P0456/P0455 set in the PCM on FCA gas vehicles (not model specific). Follow service diagnostics, run SLVT, smoke/air check if a leak is confirmed; keep the original gas cap fitted during the test (the EELD 8404 adapter o-ring may mask a leak). Only partially opened.",
+      "condition": "P0456 or P0455 set in PCM.",
+      "remedy": "Run SLVT; smoke/air check if a leak is confirmed; keep the original gas cap fitted.",
+      "systems": [
+        "EVAP"
+      ],
+      "dtcs": [
+        "P0456",
+        "P0455"
+      ],
+      "links": [
+        {
+          "label": "NHTSA 10175692",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175692-9999.pdf"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "NHTSA PDF partially opened (research 2026-10-15)",
+      "verified": false,
+      "id": "star-s2025000004",
+      "cuore_relevance": "Gas cap caution matters when smoke testing."
+    },
+    {
+      "kind": "tsb",
+      "number": "18-023-23 / 18-041-23 / 18-045-23",
+      "nhtsa_id": "10236922",
+      "title": "Flash: PCM Updates (P1CEA) - later model years",
+      "date": "2023",
+      "summary": "PCM reflash family for P1CEA Boost Side EVAP Purge Performance on 2.0L Stelvio, but for later model years only: 18-045-23 is 2019, 18-041-23 is 2022, 18-023-23 is 2023. NOT 2018. Shows EVAP-family codes on this engine are fixed by calibration, but not 2018-specific. Other NHTSA ids: 10241053 and 10248038 (18-023-23), 10236901 (18-041-23).",
+      "condition": "MIL + P1CEA (plus coil P230x, P2AC0 or knock P0331 depending on bulletin).",
+      "remedy": "PCM reprogram. 18-023-23 REV B labour 18-19-06-HE 0.2 h, 18-19-06-HF 0.4 h.",
+      "systems": [
+        "ECM",
+        "EVAP"
+      ],
+      "dtcs": [
+        "P1CEA",
+        "P0331",
+        "P0106",
+        "P013A",
+        "P015A",
+        "P026E",
+        "U1008",
+        "P2AC0",
+        "P2300",
+        "P2303",
+        "P2306",
+        "P2309"
+      ],
+      "links": [
+        {
+          "label": "NHTSA TSB 10236922 (18-045-23)",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10236922-9999.pdf"
+        }
+      ],
+      "applies": "no",
+      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+      "verified": true,
+      "id": "tsb-18-023-23-family",
+      "cuore_relevance": "Shows EVAP-family codes on this engine are fixed by calibration, but not 2018-specific."
+    },
+    {
+      "kind": "tsb",
+      "number": "18-017-21",
+      "nhtsa_id": "10220605",
+      "title": "Flash: PCM Updates (replace oil vapor recovery tube)",
+      "date": "2021-02-09",
+      "summary": "2018 Stelvio 2.9L V6 (EED) only; not the 2.0T, so it does not apply to this car. Listed so it is not mistaken for it.",
+      "condition": "MIL with P032D, P008A, P034C, P051B.",
+      "remedy": "Reflash PCM and ECM2, replace blowby tube K68499935AA and connector cap K68393276AA. PCM labour 0.7 h.",
+      "systems": [
+        "ECM",
+        "Engine"
+      ],
+      "dtcs": [
+        "P032D",
+        "P008A",
+        "P034C",
+        "P051B"
+      ],
+      "links": [
+        {
+          "label": "NHTSA TSB 10220605",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10220605-9999.pdf"
+        }
+      ],
+      "applies": "no",
+      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+      "verified": true,
+      "id": "tsb-18-017-21",
+      "cuore_relevance": "Not the 2.0T; listed so it is not mistaken for it."
+    },
+    {
+      "kind": "tsb",
+      "number": "18-088-19",
+      "nhtsa_id": "10169218",
+      "title": "Flash: PCM Updates",
+      "date": "2019-11-01",
+      "summary": "2019 Stelvio 2.9L V6 only; not the 2.0T and not 2018, so it does not apply to this car.",
+      "condition": "MIL with P032D, P008A, P034C.",
+      "remedy": "Flash ECM and ECM2; oil level sensor replacement routine.",
+      "systems": [
+        "ECM",
+        "Engine"
+      ],
+      "dtcs": [
+        "P032D",
+        "P008A",
+        "P034C"
+      ],
+      "links": [
+        {
+          "label": "NHTSA TSB 10169218",
+          "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10169218-9999.pdf"
+        }
+      ],
+      "applies": "no",
+      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+      "verified": true,
+      "id": "tsb-18-088-19",
+      "cuore_relevance": "Not the 2.0T."
+    },
+    {
+      "kind": "tsb",
+      "number": "S2018000004 / S2018000011 / 01-001-20 / D-17-21",
+      "nhtsa_id": null,
+      "title": "STAR/warranty/oil-monitor items listed for Stelvio",
+      "date": "2017-2020",
+      "summary": "Third-party index of items for 2017-2019 Giulia/Stelvio: 01-001-20 oil change light early (reset OLM); S2018000004 U04B1 invalid data from battery monitor after PCM flash; S2018000011 P0299-P0304 after PCM update. Summary only, no NHTSA PDF opened (only the recallcheck 01-001-20 page).",
+      "condition": "01-001-20: oil change light early. S2018000004: U04B1 after PCM flash. S2018000011: P0299-P0304 after PCM update.",
+      "remedy": null,
+      "systems": [
+        "ECM",
+        "Battery monitor"
+      ],
+      "dtcs": [
+        "U04B1",
+        "P0299",
+        "P0300",
+        "P0301",
+        "P0302",
+        "P0303",
+        "P0304"
+      ],
+      "links": [
+        {
+          "label": "recallcheck.net listing (third party)",
+          "url": "https://recallcheck.net/tsb/1480"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "third-party summary (research 2026-10-15)",
+      "verified": false,
+      "id": "tsb-star-s2018000004-group",
+      "cuore_relevance": "U04B1 (battery monitor) after a flash is relevant to any ECM reflash plan."
+    },
+    {
+      "id": "recall-18v636",
+      "kind": "recall",
+      "number": "18V636",
+      "nhtsa_id": "18V636",
+      "title": "2.0L engine misfire may overheat catalytic converter / damage wiring",
+      "date": "2018-09-14",
+      "summary": "2017-2018 Giulia and 2018 Stelvio with 2.0L; misfire can overheat catalytic converter, fire risk or stall. Strongest lead for 'was this ECM ever reflashed': it covers 2017-2018 Giulia and 2018 Stelvio with the 2.0L, and the remedy is an ECM software update. No Transport Canada number found. VIN-specific check needed.",
+      "condition": null,
+      "remedy": "Dealer checks for DTCs and updates ECM software",
+      "systems": [
+        "ECM",
+        "Engine"
+      ],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://www.nhtsa.gov/recalls?nhtsaId=18V636"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "cuore_relevance": "Strongest lead for 'was this ECM ever reflashed'. ECM reflash, relevant to the EVAP/ECM diagnosis; no Transport Canada number found. Ask the dealer whether it was performed on this VIN."
+    },
+    {
+      "id": "recall-18v635",
+      "kind": "recall",
+      "number": "18V635",
+      "nhtsa_id": "18V635",
+      "title": "Coolant hose (Quadrifoglio)",
+      "date": "2018-09-14",
+      "summary": "Cooling hose may leak coolant; NHTSA scope Stelvio Quadrifoglio. Stelvio Quadrifoglio only (coolant hose); this car is the 2.0T Q4, so it does not apply.",
+      "condition": null,
+      "remedy": "Replace hose",
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018505"
+        }
+      ],
+      "applies": "no",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "transport_canada_id": "2018505",
+      "cuore_relevance": "QV only; TC lists 32 units"
+    },
+    {
+      "id": "recall-18v147",
+      "kind": "recall",
+      "number": "18V147",
+      "nhtsa_id": "18V147",
+      "title": "Wiper motor limited to low speed",
+      "date": "2018-03-06",
+      "summary": "Wiper software misreads motor overheating, FMVSS 104 noncompliance (TC: 207 units)",
+      "condition": null,
+      "remedy": "Replace wiper motor",
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018116"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "transport_canada_id": "2018116"
+    },
+    {
+      "id": "recall-18v203",
+      "kind": "recall",
+      "number": "18V203",
+      "nhtsa_id": "18V203",
+      "title": "Liftgate wiring/switch water intrusion",
+      "date": "2018-03-29",
+      "summary": "Corrosion may cause liftgate to open unexpectedly",
+      "condition": null,
+      "remedy": "Add sealing/water protection",
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018150"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "transport_canada_id": "2018150"
+    },
+    {
+      "id": "recall-18v205",
+      "kind": "recall",
+      "number": "18V205",
+      "nhtsa_id": "18V205",
+      "title": "BCM water intrusion",
+      "date": "2018-03-29",
+      "summary": "Water corrodes BCM/A-pillar connector; wipers, lights, horn may fail. NHTSA: built 2017-03-20 to 2018-02-14",
+      "condition": null,
+      "remedy": "Add sealing at A-pillar/HVAC box",
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018151"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "transport_canada_id": "2018151"
+    },
+    {
+      "id": "recall-17v823",
+      "kind": "recall",
+      "number": "17V823",
+      "nhtsa_id": "17V823",
+      "title": "Contaminated brake fluid",
+      "date": "2017-12-20",
+      "summary": "2018 Giulia/Stelvio brake system may contain contaminated fluid",
+      "condition": null,
+      "remedy": "Inspect, replace parts as needed",
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://www.nhtsa.gov/recalls?nhtsaId=17V823"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "cuore_relevance": "No TC number found"
+    },
+    {
+      "id": "recall-19v148",
+      "kind": "recall",
+      "number": "19V148",
+      "nhtsa_id": "19V148",
+      "title": "Adaptive cruise cannot be disabled after wheel-slip event",
+      "date": "2019-03-01",
+      "summary": "BSM software issue, 2018-2019 Stelvio",
+      "condition": null,
+      "remedy": "BSM software update",
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://www.nhtsa.gov/recalls?nhtsaId=19V148"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "cuore_relevance": "No TC number found"
+    },
+    {
+      "id": "recall-19v551",
+      "kind": "recall",
+      "number": "19V551",
+      "nhtsa_id": "19V551",
+      "title": "BCM fuel level reads high",
+      "date": "2019-07-25",
+      "summary": "Fuel gauge may show more than actual, run-out risk",
+      "condition": null,
+      "remedy": "BCM software update",
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://www.nhtsa.gov/recalls?nhtsaId=19V551"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "cuore_relevance": "No TC number found"
+    },
+    {
+      "id": "recall-23v382",
+      "kind": "recall",
+      "number": "23V382",
+      "nhtsa_id": "23V382",
+      "title": "Carbon ceramic brake rotor fracture",
+      "date": "2023-05-30",
+      "summary": "Carbon ceramic brakes only. Carbon ceramic brakes only (unlikely on the 2.0T); applies only if the car has carbon ceramic brakes.",
+      "condition": null,
+      "remedy": "BSM software update",
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://www.nhtsa.gov/recalls?nhtsaId=23V382"
+        }
+      ],
+      "applies": "no",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "cuore_relevance": "Only if car has carbon ceramic brakes (unlikely on 2.0T)"
+    },
+    {
+      "id": "recall-24v510",
+      "kind": "recall",
+      "number": "24V510",
+      "nhtsa_id": "24V510",
+      "title": "Seat belt buckle switch sensor connector",
+      "date": "2024-07-03",
+      "summary": "Improper connection may prevent front airbag deployment; TC 8,387 units",
+      "condition": null,
+      "remedy": "Repair connector at dealer",
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://www.nhtsa.gov/recalls?nhtsaId=24V510"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "transport_canada_id": "2024390",
+      "cuore_relevance": "FCA US ref 82B"
+    },
+    {
+      "id": "recall-25v586",
+      "kind": "recall",
+      "number": "25V586",
+      "nhtsa_id": "25V586",
+      "title": "Fuel pump failure",
+      "date": "2025-09-09",
+      "summary": "2018-2019 Stelvio; loss of fuel flow and drive power; TC 3,289 units. Related TSB 18-001-18 (inspect/replace fuel pump module, 2018-01) was not located. Recall scope 24,382 MY2018 Stelvio (sources vary on 2019). Summary-level only, PDFs not opened.",
+      "condition": "Low-pressure fuel pump failure; P008A; stall / loss of motive power.",
+      "remedy": "Replace fuel delivery module; interim letters 2025-10-07; final remedy expected July 2026",
+      "systems": [
+        "Fuel"
+      ],
+      "dtcs": [
+        "P008A"
+      ],
+      "links": [
+        {
+          "label": "NHTSA recall 25V586",
+          "url": "https://www.nhtsa.gov/recalls?nhtsaId=25V586"
+        },
+        {
+          "label": "NHTSA investigation PE24003",
+          "url": "https://static.nhtsa.gov/odi/inv/2024/INOA-PE24003-10035.pdf"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "transport_canada_id": "2025463",
+      "cuore_relevance": "Check whether final remedy is now available. Fuel pump/stall symptoms can mimic purge faults; check 25V-586 by VIN."
+    },
+    {
+      "id": "recall-2024379",
+      "kind": "recall",
+      "number": "2024379",
+      "nhtsa_id": null,
+      "title": "Incorrect tire pressure/size labels",
+      "date": null,
+      "summary": "2017-2024 Giulia and 2021-2024 Stelvio, 686 units. Scope is 2017-2024 Giulia and 2021-2024 Stelvio; not the 2018 Stelvio.",
+      "condition": null,
+      "remedy": null,
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2024379-fiat-chrysler-automobiles"
+        }
+      ],
+      "applies": "no",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "transport_canada_id": "2024379"
+    },
+    {
+      "id": "recall-2024767",
+      "kind": "recall",
+      "number": "2024767",
+      "nhtsa_id": null,
+      "title": "Brake booster input rod",
+      "date": null,
+      "summary": "2019 Giulia and Stelvio, 82 units. Scope is 2019 Giulia and Stelvio; not 2018.",
+      "condition": null,
+      "remedy": null,
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://mobile.guideautoweb.com/en/recalls/2024767"
+        }
+      ],
+      "applies": "no",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false,
+      "transport_canada_id": "2024767"
+    },
+    {
+      "id": "csn-u24-u34-u36",
+      "kind": "csn",
+      "number": "U24/U34/U36",
+      "nhtsa_id": null,
+      "title": "Customer-satisfaction handling for 2018 wiper, liftgate, BCM recalls",
+      "date": "2018",
+      "summary": "Dealer notices tied to recalls above (loaner, wash, fuel); not standalone campaigns",
+      "condition": null,
+      "remedy": null,
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://static.nhtsa.gov/odi/rcl/2018/RCMN-18V205-2178.pdf"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false
+    },
+    {
+      "id": "campaign-lookup",
+      "kind": "campaign",
+      "number": null,
+      "nhtsa_id": null,
+      "title": "Standalone CSN/service campaign, extended warranty, EVAP or uConnect special coverage",
+      "date": null,
+      "summary": "None found in public search for 2018 Stelvio. Not confirmed absent: FCA/Mopar lookups are VIN-gated",
+      "condition": null,
+      "remedy": null,
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://www.mopar.com/en-us/my-vehicle/recalls/search.html"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false
+    },
+    {
+      "id": "emissions-lookup",
+      "kind": "emissions",
+      "number": null,
+      "nhtsa_id": null,
+      "title": "CARB/EPA emissions recall",
+      "date": null,
+      "summary": "Not searched in depth; none surfaced. 18V636 (ECM reflash) is the nearest emissions-adjacent item. Check CARB/EPA lookups by VIN",
+      "condition": null,
+      "remedy": null,
+      "systems": [],
+      "dtcs": [],
+      "links": [
+        {
+          "label": "Source",
+          "url": "https://www.nhtsa.gov/recalls"
+        }
+      ],
+      "applies": "vin_check",
+      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+      "verified": false
+    }
+  ]
+}
