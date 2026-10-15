@@ -83,3 +83,30 @@ The ABS answered discovery at 00:08 but was silent to the DTC sweep (`19 02 FF`,
 - Absence on one addressing scheme (29-bit) says nothing about the other (11-bit).
 - Audit what was actually sent and received (header + raw reply), or an unexplained silence cannot be investigated afterwards.
 - A segment that reached nothing is failed, not done.
+- Match the python-side wait to the adapter's own reply wait: after ATSTFF the adapter waits 1.02 s, and a python wait 0.25-0.5 s shorter turned the 29-bit and 11-bit sweeps into unreliable negatives (query-timing bug, fixed 2026-10-15).
+
+## 8. Blue A5 session 00:30-01:10 (added later)
+
+Guided scan SCAN_2610141901, 2026-10-15 00:30-01:10 local, read-only, through CUORE.
+
+Blue A5 cable, CAN-IHS at 125k:
+- Passive listen, 29-bit route: 17 frames in 2 s, all keep-alive ids 1E340000/03/0A/24/30/33/34/45/67.
+- Passive listen, 11-bit route: 317 frames in 2 s over 54 ids (3E2, 3E4, 3E6, 3E8, 2F0, 3DC, 3DE, 3E0 ...). The bus is alive.
+- `22 F190` (1.5 s wait each) to 29-bit targets 45, 30, 24, 03, 0A, 33, 34, 67, 00, 68, 6F, 01, 02: no reply.
+- One functional TesterPresent (`3E 00` on 18DB33F1): NO DATA.
+- No body module has a confirmed address, so the guided segment reached no module.
+
+Grey A6 cable, CAN-CH at 500k:
+- Alive: 438 frames in 2 s over 33 ids.
+- The ABS answered `22 F190` at 29-bit 0x2A once (00:08, VIN + identity) and never again, including after an ignition cycle and an adapter warm start.
+- Timing bug: the python-side wait was 0.25-0.5 s shorter than the adapter's 1.02 s reply wait after `ATSTFF`. The 253-address 29-bit sweep and the 239-address 11-bit sweep are therefore not reliable negative results. Fixed in code tonight.
+
+Meaning: on both bypass-cable buses listening works and transmitting gets nothing back (ABS once excepted), while MultiEcuScan reads EPS/HALF through the same grey cable. Suspect the request/receive path (adapter filters after `STCFCPC`/`STP`, flow control, `ATCAF` framing, 11-bit vs 29-bit diagnostics) rather than the modules. Neutral for the EVAP hypothesis.
+
+Next tests (read-only, engine running, through CUORE):
+1. Lone CR, then `ATI`.
+2. Repeat `22 F190` to ABS 0x2A with `ATST 19` + `ATAT0`.
+3. `ATCRA` off + explicit `STFAP 18DAF12A` pass filter.
+4. `22 F190` with `ATFCSM0`.
+5. Raw ISO-TP first frame with `ATCAF0`.
+6. Passive MES-learn capture of a MultiEcuScan session on CAN-CH, to read the ids MES uses for EPS/HALF.
