@@ -1,5 +1,129 @@
 # Alfa Romeo Stelvio / Giulia TSB Catalogue (NHTSA)
 
+# 0. The machine-readable catalogue (cuore/data/tsb_catalogue.json)
+
+`cuore/data/tsb_catalogue.json` is the structured twin of this document: one row per bulletin, recall, CSN or lookup placeholder for the 2018 Stelvio 2.0T Q4 (VIN ZASFAKPN5J7B88115), `updated` 2026-10-15, 99 rows. Row ids are stable (the per-VIN checklist is keyed on them); extra fields are tolerated.
+
+**Schema.** Required: `id`. Core fields: `kind` (tsb/recall/csn/campaign/extended_warranty/emissions), `number`, `nhtsa_id`, `title`, `date`, `summary`, `condition`, `remedy`, `systems` (display tags), `dtcs`, `links` ([{label,url}] or null), `applies`, `source`, `verified`. Cross-reference fields (optional, never invented, empty when the research is silent): `components` (parts/part numbers inspected, replaced or flashed), `symptoms` (plain-words conditions), `repair_implied` (`flash` | `replace:<part>` | `procedure:<name>` | `inspect` | `software_update` | `none`), `depends_on_systems` (keys from `mes.systems.SYSTEMS`, e.g. evap, fuel, engine_management, air_intake_boost, transmission_driveline).
+
+**Semantics.** `applies`: `yes` = scope covers this car; `no` = documented as a different engine/model year/trim; `vin_check` = scope plausible or unconfirmed, only a VIN lookup settles it. `verified`: true only when the source document itself was read; false when only indexed or inferred (summary-only rows).
+
+**Corrections of 2026-10-15.**
+- **18-030-17**: the opened NHTSA copy (REV. D, id 10216318) is Giulia-only (2017, built on or before 2017-06-29); Stelvio is not listed, so applicability is `vin_check`, not assumed.
+- **18-026-20** is the directly applicable 2018 Stelvio 2.0T ECM flash. It lists P1CEA/P24D6 but not P0440/P0455/P0456.
+- **18V636** (2.0L misfire/catalytic converter recall, ECM software update) covers 2018 Stelvio and is the best lead for "was the ECM ever reflashed"; VIN check required.
+- **W05** (CSN, PCM reprogram for turbo oil-feed weep) covers 2018-2019 Stelvio; if done, the ECM was already reflashed.
+
+| Number | Kind | Title | Applies | repair_implied | Link |
+|---|---|---|---|---|---|
+| 18-030-17 REV. B | tsb | Flash: Powertrain Diagnostic and System Improvements (NHTSA copy is REV. D, Giulia-only) | vin_check | flash | [NHTSA TSB 10216318 (REV. D, Giulia)](https://static.nhtsa.gov/odi/tsbs/2017/MC-10216318-9999.pdf) |
+| 18-048-23 | tsb | EVAP small-leak verification requires wiTECH SLVT | yes | procedure:wiTECH SLVT | [NHTSA TSB 10236933](https://static.nhtsa.gov/odi/tsbs/2023/MC-10236933-9999.pdf) |
+| 9100471 | tsb | Hard to fill / EVAP canister flooded with fuel | yes | replace:vapour canister and ESIM | none on file |
+| 18-026-20 | tsb | Flash: Powertrain Control Module (PCM) Updates | yes | flash | [NHTSA TSB 10174245](https://static.nhtsa.gov/odi/tsbs/2020/MC-10174245-9999.pdf) |
+| CSN W05 | csn | Customer Satisfaction Notification W05 - Reprogram Powertrain Control Module (turbo oil-feed weep) | vin_check | flash | [NHTSA CSN W05 10175524](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175524-9999.pdf) |
+| 21-035-20 | tsb | Flash: Transmission Control Module (TCM) Update | yes | flash | [NHTSA TSB 10176569](https://static.nhtsa.gov/odi/tsbs/2020/MC-10176569-9999.pdf) |
+| 18-089-19 | tsb | wiTECH SLVT - P0456 EVAP System Small Leak | yes | procedure:wiTECH SLVT | [NHTSA TSB 10169219](https://static.nhtsa.gov/odi/tsbs/2019/MC-10169219-9999.pdf) |
+| STAR S2025000004 | tsb | P0456/P0455 analysis with wiTECH SLVT (dealer case record) | vin_check | procedure:wiTECH SLVT | [NHTSA 10175692](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175692-9999.pdf) |
+| 18-023-23 / 18-041-23 / 18-045-23 | tsb | Flash: PCM Updates (P1CEA) - later model years | no | flash | [NHTSA TSB 10236922 (18-045-23)](https://static.nhtsa.gov/odi/tsbs/2023/MC-10236922-9999.pdf) |
+| 18-017-21 | tsb | Flash: PCM Updates (replace oil vapor recovery tube) | no | replace:blowby tube K68499935AA and connector cap K68393276AA | [NHTSA TSB 10220605](https://static.nhtsa.gov/odi/tsbs/2021/MC-10220605-9999.pdf) |
+| 18-088-19 | tsb | Flash: PCM Updates | no | flash | [NHTSA TSB 10169218](https://static.nhtsa.gov/odi/tsbs/2019/MC-10169218-9999.pdf) |
+| S2018000004 / S2018000011 / 01-001-20 / D-17-21 | tsb | STAR/warranty/oil-monitor items listed for Stelvio | vin_check | none | [recallcheck.net listing (third party)](https://recallcheck.net/tsb/1480) |
+| 18V636 | recall | 2.0L engine misfire may overheat catalytic converter / damage wiring | vin_check | software_update | [Source](https://www.nhtsa.gov/recalls?nhtsaId=18V636) |
+| 18V635 | recall | Coolant hose (Quadrifoglio) | no | replace:coolant hose | [Source](https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018505) |
+| 18V147 | recall | Wiper motor limited to low speed | vin_check | replace:wiper motor | [Source](https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018116) |
+| 18V203 | recall | Liftgate wiring/switch water intrusion | vin_check | procedure:add sealing / water protection | [Source](https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018150) |
+| 18V205 | recall | BCM water intrusion | vin_check | procedure:add sealing at A-pillar / HVAC box | [Source](https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018151) |
+| 17V823 | recall | Contaminated brake fluid | vin_check | inspect | [Source](https://www.nhtsa.gov/recalls?nhtsaId=17V823) |
+| 19V148 | recall | Adaptive cruise cannot be disabled after wheel-slip event | vin_check | software_update | [Source](https://www.nhtsa.gov/recalls?nhtsaId=19V148) |
+| 19V551 | recall | BCM fuel level reads high | vin_check | software_update | [Source](https://www.nhtsa.gov/recalls?nhtsaId=19V551) |
+| 23V382 | recall | Carbon ceramic brake rotor fracture | no | software_update | [Source](https://www.nhtsa.gov/recalls?nhtsaId=23V382) |
+| 24V510 | recall | Seat belt buckle switch sensor connector | vin_check | procedure:repair connector | [Source](https://www.nhtsa.gov/recalls?nhtsaId=24V510) |
+| 25V586 | recall | Fuel pump failure | vin_check | replace:fuel delivery module | [NHTSA recall 25V586](https://www.nhtsa.gov/recalls?nhtsaId=25V586) |
+| 2024379 | recall | Incorrect tire pressure/size labels | no | none | [Source](https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2024379-fiat-chrysler-automobiles) |
+| 2024767 | recall | Brake booster input rod | no | none | [Source](https://mobile.guideautoweb.com/en/recalls/2024767) |
+| U24/U34/U36 | csn | Customer-satisfaction handling for 2018 wiper, liftgate, BCM recalls | vin_check | none | [Source](https://static.nhtsa.gov/odi/rcl/2018/RCMN-18V205-2178.pdf) |
+| - | campaign | Standalone CSN/service campaign, extended warranty, EVAP or uConnect special coverage | vin_check | none | [Source](https://www.mopar.com/en-us/my-vehicle/recalls/search.html) |
+| - | emissions | CARB/EPA emissions recall | vin_check | none | [Source](https://www.nhtsa.gov/recalls) |
+| 9002519 | tsb | 82212076, 82203694 - Fabric Cleaner This "fabric cleaner" is not intended for sale in California, the otc... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2018/MC-10129008-9999.pdf) |
+| 05152029 | tsb | Washer Fluid Level Sensor Prior to replacing this part due to "Low Washer Fluid" tell tale light on the... | vin_check | - | none on file |
+| 9003696 | tsb | Door Hinge Assembly Side door hinge noisy. Only replace the door hinge with the integral check device. Do... | vin_check | - | none on file |
+| 9003109 | tsb | Washer Fluid Level Sensor Prior to replacing this part due to "Low Washer Fluid" tell tale light on the... | vin_check | - | none on file |
+| 9003293 | tsb | A/C Pressure Transducer A/C inoperative and diagnosis leads to pressure transducer. Call Steve Rice at... | vin_check | - | none on file |
+| 08-044-19 | tsb | Flash: Anti-Lock Brake System (ABS) Module Diagnostic and System Updates This bulletin involves... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2019/MC-10162530-9999.pdf) |
+| 08-081-19 | tsb | RAN RAP RAG and RSD 2.5 Radio Software Enhancements This bulletin involves inspecting and if required,... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2019/MC-10166576-9999.pdf) |
+| 9003220 | tsb | RADIO [RES] - New and/or Service Exchange For RES radio concerns. Use the wiTECH 2.0 and inspect the radio... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2019/MC-10166537-9999.pdf) |
+| 9004130 | tsb | Battery Prior to replacing the battery, please call Cary Powell at (248) 500-7751. If no response in 15... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2019/MC-10166551-9999.pdf) |
+| 31-004-19 | tsb | Authentic Mopar® Glass Replacement This bulletin involves discussing FCA US LLC position with regard to... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2019/MC-10169246-9999.pdf) |
+| 31-005-19 | tsb | Use of Aftermarket Parts This bulletin involves discussing FCA US LLC position with regard to collision... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2019/MC-10169249-9999.pdf) |
+| 3100319 | tsb | Use of Salvage/Recycled Parts This bulletin involves discussing FCA US LLC position with regard to... | vin_check | - | none on file |
+| 3100619 | tsb | Repair Parts Used For Structural Repairs This bulletin involves discussing FCA US LLC position with regard... | vin_check | - | none on file |
+| 9004022 | tsb | Air Suspension Components Star Parts Catalog has been updated to show individual service parts for the... | vin_check | - | none on file |
+| S2008000010 | tsb | Apple Carplay Inoperative Or Not Working, Phone Not Pairing, Carplay Lockup Or Freeze. | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10173305-9999.pdf), [NHTSA PDF (10178642)](https://static.nhtsa.gov/odi/tsbs/2020/MC-10178642-9999.pdf) |
+| S2008000013 | tsb | Key Programming, Security Pin Request, Pin Invalid | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10173328-9999.pdf) |
+| S2008000017 | tsb | ESS Unavailable In Areas 5,250 Feet (1600 Meters) Above Sea Level | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10174135-9999.pdf), [NHTSA PDF (10175055)](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175055-9999.pdf) |
+| 08-029-20 | tsb | RAN RAP RAJ RAG and RSD Radio Software Enhancements This bulletin involves inspecting and if required,... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10174204-9999.pdf), [NHTSA PDF (10175124)](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175124-9999.pdf) |
+| S2008000021 | tsb | PCM ESS Inhibits List Show Driver Door Condition Inhibiting The S&S | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10174150-9999.pdf), [NHTSA PDF (10175070)](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175070-9999.pdf) |
+| S1808000005 | tsb | No Start, Multiple Modules Are Not Responding | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175655-9999.pdf) |
+| S2019000002 | tsb | Hands On Steering Wheel Message In EVIC | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175674-9999.pdf) |
+| 18-039-20 | tsb | Possible Driveability Issues due to the Winter-Blend Fuel into the Warmer Season | yes | none | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175733-9999.pdf) |
+| 08-049-20 | tsb | Charging System, Battery Diagnostic Tools and Warranty This information only bulletin discusses using the... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175735-9999.pdf) |
+| 23-015-20 | tsb | Disinfectant Solution Recommended for COVID-19 | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10175743-9999.pdf) |
+| 08-065-20 | tsb | RAN RAP RAG and RSD 2.5 Radio Software Enhancements This bulletin involves inspecting and if required,... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10177540-9999.pdf) |
+| S2008000093 | tsb | Blind Spot Or Park Assist Warnings, False Activation | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10177504-9999.pdf) |
+| S2008000113 | tsb | No Start Intermittently, Vehicle Requires Multiple Keyless Push To Start Attempts To Start Vehicle | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10180203-9999.pdf), [NHTSA PDF (10194007)](https://static.nhtsa.gov/odi/tsbs/2021/MC-10194007-9999.pdf) |
+| 9003637 | tsb | USB PORT, Media Hub For Android Auto and Apple Carplay issues, do not replace this part. Android Auto and... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10180177-9999.pdf) |
+| S1908000028 | tsb | (Rev. A) Power Inverter Load Ratings | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10184399-9999.pdf), [NHTSA PDF (10184699)](https://static.nhtsa.gov/odi/tsbs/2020/MC-10184699-9999.pdf) |
+| S1908000102 | tsb | (Rev. A) Power Inverter Load Ratings | vin_check | - | none on file |
+| S2018000012 | tsb | Check engine lamp on. Fault code P0244- TURBOCHARGER/SUPERCHARGER WASTEGATE SOLENOID "A" RANGE/PERFORMANCE... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10184402-9999.pdf), [NHTSA PDF (10184702)](https://static.nhtsa.gov/odi/tsbs/2020/MC-10184702-9999.pdf) |
+| S1708000262 | tsb | (Rev. A) Check Engine Lamp Is On, Intermittent Module CAN Private Or LIN BUS Codes | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10184414-9999.pdf), [NHTSA PDF (10184714)](https://static.nhtsa.gov/odi/tsbs/2020/MC-10184714-9999.pdf) |
+| 9004335 | tsb | Turbocharger If the turbo is being replaced for an oil leak concern, please inspect the area around the... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2020/MC-10184380-9999.pdf), [NHTSA PDF (10184680)](https://static.nhtsa.gov/odi/tsbs/2020/MC-10184680-9999.pdf) |
+| 01-001-21 | tsb | Oil Change Monitor Displaying Prematurely This bulletin involves resetting the oil life monitor and if... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2021/MC-10188822-9999.pdf) |
+| S2123000016 | tsb | Creak Noise From Front Of Vehicle | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2021/MC-10190628-9999.pdf) |
+| S1809000007 | tsb | Customer complaint may include engine oil leak/consumption. | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2021/MC-10190667-9999.pdf) |
+| 9004009 | tsb | Transmission Kit with Torque Converter 1. All Promaster (VF) 3.6L/62TE equipped vehicles. If the... | no | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2022/MC-10221097-9999.pdf) |
+| S16080002261 | tsb | Battery Tester Warranty Code Procedures, Medtronic Update Process | vin_check | - | none on file |
+| S1821000001 | tsb | Gear Ratio DTC?s, Transmission Shift Concerns, Does Not Shift At Times, Shudders | vin_check | - | none on file |
+| S1608000226 | tsb | Battery Tester Warranty Code Procedures, Midtronics Charger Update Process | vin_check | - | none on file |
+| S1708000118 | tsb | Battery Drain Concern, Dual USB Port Normal Operational Draw, Extended Illumination After Key Off | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2021/MC-10194017-9999.pdf), [NHTSA PDF (10220697)](https://static.nhtsa.gov/odi/tsbs/2022/MC-10220697-9999.pdf) |
+| 9004386 | tsb | WIRING, Body Before replacing this harness, please contact FCA Redacted Content to see if a repair kit is... | vin_check | - | none on file |
+| S2109000004 | tsb | Issue involves overheating, running hot, coolant leaks and related symptoms after a Mopar replacement... | vin_check | - | none on file |
+| S2108000163 | tsb | No Start, Cannot Complete Module Replace, Proxi Or Module Proxi Configuration | vin_check | - | none on file |
+| S2108000198 | tsb | Media Device Connection Guidelines For Bluetooth, Apple CarPlay, Android Auto Or USB To The Radio Head Unit | vin_check | - | none on file |
+| S2208000073 | tsb | No Start, After Flash And Or PCM Replace, DTC P0513 Invalid Skim Key Setting | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2022/MC-10212318-9999.pdf), [NHTSA PDF (10220715)](https://static.nhtsa.gov/odi/tsbs/2022/MC-10220715-9999.pdf) |
+| S2209000004 | tsb | If a Mopar oil filter is not available, use a filter that meets or exceeds USCAR36 specification and is... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2022/MC-10227983-9999.pdf) |
+| S2223000047 | tsb | ACC Does Not Operate. Start Stop Unavailable, ACC Unavailable Service Required Messages. C1452-86 Engine... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2022/MC-10221417-9999.pdf) |
+| 3100122 | tsb | Approved Use of Weld Through Primers This bulletin documents the FCA US LLC position regarding the use of... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2022/MC-10225287-9999.pdf), [NHTSA PDF (10225424)](https://static.nhtsa.gov/odi/tsbs/2022/MC-10225424-9999.pdf) |
+| S2218000018 | tsb | Check engine lamp/Mil lamp-on. Engine misfires. | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2022/MC-10225219-9999.pdf), [NHTSA PDF (10225356)](https://static.nhtsa.gov/odi/tsbs/2022/MC-10225356-9999.pdf) |
+| 0100122 | tsb | Oil Change Monitor Displaying Prematurely This bulletin involves resetting the oil life monitor and if... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2022/MC-10226029-9999.pdf) |
+| 31-002-22 | tsb | Aluminum Body Panel Corrosion Repair Aluminum corrosion or bubbling along the leading edge of hood, hinges... | vin_check | - | none on file |
+| 3100123 | tsb | Aluminum Body Panel Corrosion Repair Aluminum corrosion or bubbling along the leading edge of hood, hinges... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2023/MC-10234468-9999.pdf) |
+| S1408000384 | tsb | Start Stop Charging Warning Lamp Illuminated On, Intelligent Battery Sensor (IBS) State of Charge (SOC)... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2023/MC-10234420-9999.pdf), [NHTSA PDF (10251783)](https://static.nhtsa.gov/odi/tsbs/2024/MC-10251783-9999.pdf) |
+| 0700723 | tsb | Water Quality When Mixed With Engine Coolant | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2023/MC-10239957-9999.pdf) |
+| 9100196 | tsb | Lubrication and Maintenance Fluids If MOPAR fluids and chemicals are not readily available, please review... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2023/MC-10242717-9999.pdf) |
+| 93023 | tsb | Warranty Bulletin D-16-03 - "Can / Am" Warranty Coverage - 594 / 595 / 596 WCC (Rev. B) | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2023/MC-10243208-9999.pdf) |
+| 93120 | tsb | FCA Caribbean Warranty Bulletin ID-23-20 "Can / Am" Warranty Coverage - 594 / 595 / 596 WCC | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2023/MC-10243209-9999.pdf) |
+| 9100226 | tsb | Connector kit Before ordering this connector repair kit 68018957A$, check it in the Mopar Connector Repair... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2023/MC-10244348-9999.pdf) |
+| 9100229 | tsb | LIFTER, Hydraulic Roller Deactivating Please do not replace MDS lifters because the disconnecting pin is... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2023/MC-10244356-9999.pdf) |
+| 31-001-24 | tsb | "Aluminum Body Panel Corrosion Repair Aluminum corrosion or bubbling along the leading edge of hood,... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2024/MC-11005320-0001.pdf) |
+| 01-002-24 | tsb | "Oil Change Monitor Displaying Prematurely Customers may experience the following: ● The oil change light... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2024/MC-11010645-0001.pdf) |
+| 9100469 | tsb | VAPOR CANISTER If an issue is detected with the EVAPORATIVE SYSTEM INTEGRITY MODULE DETECTOR and not the... | yes | replace:ESIM only (not the vapor canister, when the ESIM is the faulty part) | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2024/MC-11011985-0001.pdf) |
+| S1705000002 | tsb | Front Brake Pulsation and/or Clunk Noise | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2025/MC-11013151-0001.pdf) |
+| 31-001-25 | tsb | Aluminum Body Panel Corrosion Repair Aluminum corrosion or bubbling along the leading edge of hood, hinges... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2025/MC-11022003-0001.pdf), [NHTSA PDF (11022012)](https://static.nhtsa.gov/odi/tsbs/2025/MC-11022012-0001.pdf) |
+| 9100325 | tsb | Before replacing any parts please refer to SOL S2518000008 if it applies to the vehicle you are working on... | yes | inspect | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2025/MC-11024035-0001.pdf) |
+| S2621000003 | tsb | The vehicle will exhibit a service transmission/check engine warning indicator for the following... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2026/MC-11030138-0001.pdf) |
+| 01-001-26 | tsb | Oil Change Monitor Displaying Prematurely Customers may experience the following: ● The oil change light... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2026/MC-11032849-0001.pdf) |
+| S2623000037 | tsb | Condensation Or Water Infiltration In Headlights, Daytime Running Lights (DRL), Turn Signals, Fog Lights,... | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2026/MC-11033309-0001.pdf), [NHTSA PDF (11034923)](https://static.nhtsa.gov/odi/tsbs/2026/MC-11034923-0001.pdf) |
+| 112842 | tsb | BOLT - HEX FLANGE HEAD | vin_check | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2026/MC-11034335-0001.pdf) |
+| 22D Combo | emissions | Emissions Recall 22D - On Board Diagnostics - Dealer Notification | no | - | [NHTSA PDF](https://static.nhtsa.gov/odi/tsbs/2026/MC-11037271-0001.pdf), [NHTSA PDF (11037356)](https://static.nhtsa.gov/odi/tsbs/2026/MC-11037356-0001.pdf) |
+
+
+**Coverage (NHTSA merge, 2026-10-15).** The NHTSA flat files TSBS_RECEIVED_2015-2019, 2020-2024 and 2025-2026 (static.nhtsa.gov/odi/ffdd/tsbs) hold 144 records for the MY2018 Stelvio, which collapse to 81 distinct manufacturer numbers (revisions and duplicate component records share one row). Of the 144 records, 96 have a PDF on NHTSA and 48 do not; 6 of the PDFs are image-only (no extractable text; their rows carry the flat-file summary only). Pre-2015 flat files were not checked. Rows added from the flat file are `verified: false` and `applies: vin_check` unless the bulletin was opened (EVAP/ECM set: 9100469, 9100325, 18-039-20, 18-089-19, 18-048-23, 18-026-20, 18-017-21) or its title excludes the car (22D is 2.9L Quadrifoglio only; 9004009 is Promaster). Row counts are in the header of `tsb_catalogue.json` (`sources` lists the flat files).
+
+**9100469 (ESIM / vapor canister).** One-page GPOP note dated 2024-12-16, models MY 18-25 GA and MY 18-25 GU (Stelvio), no engine stated. Canister part numbers 68400620A, 68402531A, 68528496A, 68534104A. Text: if the issue is with the evaporative system integrity module detector and not the vapor canister, replace only the ESIM detector. No ESIM part number, DTC or symptom is named.
+
+---
+
+
 **Captured:** 2026-08-27. **295 unique NHTSA manufacturer-communication records → 201 unique FCA bulletin numbers.** All 295 PDFs retrieved; 287 yielded extractable text (8 are image-only scans).
 
 Full index CSV, PDFs and extracted text are in the session scratchpad:

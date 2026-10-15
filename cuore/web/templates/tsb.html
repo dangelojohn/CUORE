@@ -18,6 +18,9 @@
   .tsb-table td.st form{display:flex;flex-direction:column;gap:4px;min-width:150px}
   .tsb-row-done{opacity:.7}
   .tsb-applies-yes{font-weight:700}
+  .tsb-xref{margin-top:6px}
+  .tsb-xref-list{margin:4px 0;padding-left:18px}
+  .tsb-xref-suggest{display:flex;flex-wrap:wrap;gap:4px;align-items:center;margin:2px 0}
 </style>
 
 <h1>TSB checklist</h1>
@@ -75,6 +78,8 @@
           {% if r.remedy %}<p class="small"><span class="muted">Remedy:</span> {{ r.remedy }}</p>{% endif %}
           {% if r.supersedes %}<div class="small muted">Supersedes {{ r.supersedes }}</div>{% endif %}
           <div class="small muted">{{ r.source or "" }}{% if not r.verified %} · not verified against the document{% endif %}</div>
+          {% set xb = xmap.get(r.id) if xmap else none %}
+          {% if xb %}{% include "_tsb_xref.html" %}{% endif %}
         </td>
         <td class="small">{{ r.systems|join(", ") }}</td>
         <td>{% for c in r.dtcs %}<span class="chip-code sm">{{ c }}</span> {% else %}<span class="muted">—</span>{% endfor %}</td>

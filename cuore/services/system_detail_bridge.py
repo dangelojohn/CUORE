@@ -1063,8 +1063,22 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
     # --- 12. transmission section (transmission_driveline page only) --------
     transmission = _transmission_section(vin, key, rec, this_row, status_strip, learned)
 
+    bulletins: list[dict[str, Any]] = []
+    try:  # best-effort: a catalogue/xref failure never sinks the system page
+        from . import tsb_xref_bridge
+        xr = tsb_xref_bridge.safe_xref(vin)
+        if xr:
+            info = {b["id"]: b for b in xr["bulletins"]}
+            for e in tsb_xref_bridge.for_system(xr, key):
+                b = info.get(e["bulletin"]) or {}
+                bulletins.append({**e, "title": b.get("title"), "applies": b.get("applies"),
+                                  "flags": b.get("flags") or [], "href": b.get("href")})
+    except Exception:  # noqa: BLE001
+        bulletins = []
+
     return {
         "key": key, "label": label,
+        "bulletins": bulletins,
         "status_strip": status_strip,
         "relationship": relationship,
         "components": components,

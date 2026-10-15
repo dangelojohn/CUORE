@@ -1,824 +1,3633 @@
 {
-  "_schema": {
-    "vehicle": "{make, model, year, engine, market} -- the car this catalogue was compiled for",
-    "items[]": {
-      "id": "stable row id; the per-VIN checklist status is keyed by it (required)",
-      "kind": "tsb | recall | csn | campaign | extended_warranty | emissions",
-      "number": "bulletin/recall number exactly as the rest of CUORE spells it (dossier tsb_matches, knowledge.py) -- cross-links match on it",
-      "nhtsa_id": "NHTSA record id, or null",
-      "title": "short title",
-      "date": "ISO date, or null when the repo has none",
-      "summary": "what it is for, in plain words",
-      "condition": "the symptom/condition the bulletin addresses, or null",
-      "remedy": "what the dealer/mechanic does, or null",
-      "systems": "affected system tags, e.g. [\"EVAP\", \"ECM\"]",
-      "dtcs": "DTCs the bulletin mentions",
-      "links": "[{label, url}] or null when no link is on file",
-      "applies": "yes | no | vin_check -- does it apply to this car",
-      "source": "where the facts in this row came from",
-      "verified": "true when the source document itself was read; false when only indexed/inferred"
-    },
-    "notes": "Extra fields are tolerated and passed through; only id is required. Merge steps append rows to items[] and must keep ids unique. cuore_relevance, applies_to, transport_canada_id and similar extras are optional and ignored by the template."
+ "_schema": {
+  "vehicle": "{make, model, year, engine, market} -- the car this catalogue was compiled for",
+  "items[]": {
+   "id": "stable row id; the per-VIN checklist status is keyed by it (required)",
+   "kind": "tsb | recall | csn | campaign | extended_warranty | emissions",
+   "number": "bulletin/recall number exactly as the rest of CUORE spells it (dossier tsb_matches, knowledge.py) -- cross-links match on it",
+   "nhtsa_id": "NHTSA record id, or null",
+   "title": "short title",
+   "date": "ISO date, or null when the repo has none",
+   "summary": "what it is for, in plain words",
+   "condition": "the symptom/condition the bulletin addresses, or null",
+   "remedy": "what the dealer/mechanic does, or null",
+   "systems": "affected system tags, e.g. [\"EVAP\", \"ECM\"]",
+   "dtcs": "DTCs the bulletin mentions",
+   "links": "[{label, url}] or null when no link is on file",
+   "applies": "yes | no | vin_check -- does it apply to this car",
+   "source": "where the facts in this row came from",
+   "verified": "true when the source document itself was read; false when only indexed/inferred",
+   "components": "optional: part names/numbers the bulletin inspects, replaces or flashes",
+   "symptoms": "optional: plain-words symptoms/conditions the bulletin addresses",
+   "repair_implied": "optional: flash | replace:<part> | procedure:<name> | inspect | software_update | none",
+   "depends_on_systems": "optional: system keys (mes.systems.SYSTEMS, e.g. evap, fuel, engine_management) that are affected / must be healthy"
   },
-  "vehicle": {
-    "make": "Alfa Romeo",
-    "model": "Stelvio",
-    "year": 2018,
-    "engine": "2.0T Q4",
-    "market": "CA",
-    "vin": "ZASFAKPN5J7B88115"
-  },
-  "updated": "2026-10-15",
-  "items": [
+  "notes": "Extra fields are tolerated and passed through; only id is required. Merge steps append rows to items[] and must keep ids unique. cuore_relevance, applies_to, transport_canada_id and similar extras are optional and ignored by the template."
+ },
+ "vehicle": {
+  "make": "Alfa Romeo",
+  "model": "Stelvio",
+  "year": 2018,
+  "engine": "2.0T Q4",
+  "market": "CA",
+  "vin": "ZASFAKPN5J7B88115"
+ },
+ "updated": "2026-10-15",
+ "items": [
+  {
+   "id": "tsb-18-030-17-rev-b",
+   "kind": "tsb",
+   "number": "18-030-17 REV. B",
+   "nhtsa_id": "10216318",
+   "title": "Flash: Powertrain Diagnostic and System Improvements (NHTSA copy is REV. D, Giulia-only)",
+   "date": "2017-11-17",
+   "summary": "The bulletin the project cited as the basis for the ECM-calibration verdict. The NHTSA copy (10216318) is REV. D and covers the 2017 Alfa Romeo GIULIA 2.0L I4 DI Turbo (EC2) built on or before 2017-06-29 only; Stelvio is NOT listed in the opened document and no Stelvio copy of 18-030-17 was found. Applicability to this car is unconfirmed, check by VIN/dealer. The directly applicable 2018 Stelvio ECM flash bulletin is 18-026-20, which lists P1CEA/P24D6 but not P0440/P0455/P0456.",
+   "condition": "MIL on with one or more listed DTCs (incl. P0455, P0456, P0440, P0441, P1CEA, P24D6); also misfire when cold, stall on restart after refuelling, idle stability.",
+   "remedy": "Reprogram ECM with latest software via wiTECH 2 (charger 13.2-13.5 V, flash about 9 min), run ECM Misc Functions Phonic Wheel Replacement (otherwise P1300 stays active), clear DTCs. Labour 18-19-06-SK inspect 0.2 h; 18-19-06-TW inspect and reprogram 0.4 h. Also RRT 17-043.",
+   "systems": [
+    "EVAP",
+    "ECM"
+   ],
+   "dtcs": [
+    "P04DB",
+    "P024A",
+    "P2097",
+    "P2B2F",
+    "P24D6",
+    "P01BA",
+    "P026E",
+    "P164E",
+    "P0191",
+    "P2299",
+    "U1008",
+    "P0455",
+    "P0087",
+    "P2172",
+    "P0171",
+    "P0236",
+    "P0363",
+    "P1CEA",
+    "P250B",
+    "P0139",
+    "P015A",
+    "P0440",
+    "P0441",
+    "P0002",
+    "P0244",
+    "P062A",
+    "P0128",
+    "P0514",
+    "P2AC0",
+    "P0402",
+    "P2B89",
+    "P0456"
+   ],
+   "links": [
     {
-      "id": "tsb-18-030-17-rev-b",
-      "kind": "tsb",
-      "number": "18-030-17 REV. B",
-      "nhtsa_id": "10216318",
-      "title": "Flash: Powertrain Diagnostic and System Improvements (NHTSA copy is REV. D, Giulia-only)",
-      "date": "2017-11-17",
-      "summary": "The bulletin the project cited as the basis for the ECM-calibration verdict. The NHTSA copy (10216318) is REV. D and covers the 2017 Alfa Romeo GIULIA 2.0L I4 DI Turbo (EC2) built on or before 2017-06-29 only; Stelvio is NOT listed in the opened document and no Stelvio copy of 18-030-17 was found. Applicability to this car is unconfirmed, check by VIN/dealer. The directly applicable 2018 Stelvio ECM flash bulletin is 18-026-20, which lists P1CEA/P24D6 but not P0440/P0455/P0456.",
-      "condition": "MIL on with one or more listed DTCs (incl. P0455, P0456, P0440, P0441, P1CEA, P24D6); also misfire when cold, stall on restart after refuelling, idle stability.",
-      "remedy": "Reprogram ECM with latest software via wiTECH 2 (charger 13.2-13.5 V, flash about 9 min), run ECM Misc Functions Phonic Wheel Replacement (otherwise P1300 stays active), clear DTCs. Labour 18-19-06-SK inspect 0.2 h; 18-19-06-TW inspect and reprogram 0.4 h. Also RRT 17-043.",
-      "systems": [
-        "EVAP",
-        "ECM"
-      ],
-      "dtcs": [
-        "P04DB",
-        "P024A",
-        "P2097",
-        "P2B2F",
-        "P24D6",
-        "P01BA",
-        "P026E",
-        "P164E",
-        "P0191",
-        "P2299",
-        "U1008",
-        "P0455",
-        "P0087",
-        "P2172",
-        "P0171",
-        "P0236",
-        "P0363",
-        "P1CEA",
-        "P250B",
-        "P0139",
-        "P015A",
-        "P0440",
-        "P0441",
-        "P0002",
-        "P0244",
-        "P062A",
-        "P0128",
-        "P0514",
-        "P2AC0",
-        "P0402",
-        "P2B89",
-        "P0456"
-      ],
-      "links": [
-        {
-          "label": "NHTSA TSB 10216318 (REV. D, Giulia)",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2017/MC-10216318-9999.pdf"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "NHTSA PDF 10216318 opened in full (research 2026-10-15); earlier: docs/reference/TSB_CATALOGUE.md section 2; mes-log-mcp/mes/knowledge.py; mes-log-mcp/mes/ecm.py",
-      "verified": true,
-      "supersedes": "18-030-17 (REV. A and base)",
-      "family": "18-030-17 -> REV. B -> 18-097/098/101/103-19 -> 18-024/025/026/027-20 -> 18-045/046-23",
-      "applies_to": "2017 (GA) Giulia only, 2.0L I4 DI Turbo (EC2), built on or before 2017-06-29, NAFTA/LATAM. Stelvio NOT listed.",
-      "cuore_relevance": "The bulletin the project cites for P0440/P0455/P0456 on the 2.0T, but the NHTSA copy is Giulia-only; the Stelvio counterpart found is 18-026-20 (no P0455/P0456 in its list). Stelvio applicability of 18-030-17 is unconfirmed; check by VIN."
-    },
-    {
-      "id": "tsb-18-048-23",
-      "kind": "tsb",
-      "number": "18-048-23",
-      "nhtsa_id": "10236933",
-      "title": "EVAP small-leak verification requires wiTECH SLVT",
-      "date": "2023-04-15",
-      "summary": "The Small Leak Verification Test (SLVT). A road test cannot confirm a small EVAP leak repair; the dealer's wiTECH SLVT procedure is the verification. Mode $06 is the only non-dealer route to the measured value. Applies to 2012-2023 Stellantis US gas vehicles with SLVT (Stelvio not named individually); supersedes 18-095-21 (which superseded 18-089-19). SLVT must run first to confirm a leak and again after any repair or component replacement, including PCM software updates.",
-      "condition": "Confirming a small EVAP leak (P0456) repair.",
-      "remedy": "Run the wiTECH Small Leak Verification Test after the repair.",
-      "systems": [
-        "EVAP"
-      ],
-      "dtcs": [
-        "P0456"
-      ],
-      "links": [
-        {
-          "label": "NHTSA TSB 10236933",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10236933-9999.pdf"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "docs/research/EVAP_STELVIO.md (bulletin number 1804823); docs/reference/TSB_CATALOGUE.md section 2; cuore/web/templates/dealer.html; NHTSA PDF 10236933 opened in full (research 2026-10-15)",
-      "verified": true,
-      "supersedes": "18-089-19",
-      "cuore_relevance": "The acceptance test for the EVAP job: SLVT pass is the proof of fix."
-    },
-    {
-      "id": "tsb-9100471",
-      "kind": "tsb",
-      "number": "9100471",
-      "nhtsa_id": "11015810",
-      "title": "Hard to fill / EVAP canister flooded with fuel",
-      "date": "2025-03-17",
-      "summary": "Hard-to-fill diagnostic tree. A vapour line disconnected inside the tank at the fuel delivery module (FDM) port floods the EVAP canister with liquid fuel (fuel, not water).",
-      "condition": "Hard to fill; canister or recirculation line found with fuel in it.",
-      "remedy": "Check the clean-air hose ESIM to EVAP filter, the EVAP filter, and the tank-to-canister vapour hose; if fuel is found, drop the fuel tank, remove the FDM lock ring, check the internal vapour line at the FDM port, and replace BOTH the vapour canister and the ESIM.",
-      "systems": [
-        "EVAP",
-        "Fuel"
-      ],
-      "dtcs": [
-        "P0440",
-        "P0441",
-        "P0455",
-        "P0456"
-      ],
-      "links": null,
-      "applies": "yes",
-      "source": "docs/research/EVAP_STELVIO.md (covers GU 18-24 and GA; PDF retrieved); docs/reference/TSB_CATALOGUE.md section 2",
-      "verified": true,
-      "supersedes": "9100469 (extends it)",
-      "research_note_2026_10_15": "A later research pass could not find 9100471 on NHTSA or via search, so nothing was re-opened; the earlier retrieval recorded in the source field stands. Not re-verified."
-    },
-    {
-      "kind": "tsb",
-      "number": "18-026-20",
-      "nhtsa_id": "10174245",
-      "title": "Flash: Powertrain Control Module (PCM) Updates",
-      "date": "2020-03-25",
-      "summary": "Directly applicable 2018 Stelvio (GU) 2.0L I4 DI Turbo (EC2) ECM flash, North America. Lists P1CEA and P24D6 (EVAP pressure sensor family) but NOT P0455/P0456/P0440. Also: turbo coolant pump after-run update (turbo O-ring durability), S&S text change, better idle stability. Supersedes 18-103-19; also RRT 17-112. Another NHTSA copy: 10175165. Check the ECM software level before buying more EVAP parts.",
-      "condition": "MIL on with listed DTCs; may fail state inspection after reset, driveability issues, cold misfire.",
-      "remedy": "Reprogram ECM (about 8 min), wiTECH 2 Phonic Wheel Replacement, clear DTCs, confirm BCM on latest software. Labour 18-19-06-BF 0.4 h.",
-      "systems": [
-        "ECM",
-        "EVAP",
-        "Turbo"
-      ],
-      "dtcs": [
-        "P0106",
-        "P013A",
-        "P015A",
-        "P1CEA",
-        "P0096",
-        "P04DB",
-        "P024A",
-        "P2097",
-        "P2B2F",
-        "P24D6",
-        "P01BA",
-        "P026E",
-        "P164E",
-        "P0191",
-        "P2299",
-        "U1008"
-      ],
-      "links": [
-        {
-          "label": "NHTSA TSB 10174245",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174245-9999.pdf"
-        }
-      ],
-      "applies": "yes",
-      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
-      "verified": true,
-      "id": "tsb-18-026-20",
-      "cuore_relevance": "Directly applicable 2018 Stelvio 2.0T ECM flash; covers P1CEA and P24D6 (EVAP pressure sensor) but not P0455/P0456/P0440, so check ECM software level before buying more EVAP parts."
-    },
-    {
-      "kind": "csn",
-      "number": "CSN W05",
-      "nhtsa_id": "10175524",
-      "title": "Customer Satisfaction Notification W05 - Reprogram Powertrain Control Module (turbo oil-feed weep)",
-      "date": "2020-03",
-      "summary": "PCM software on about 57,000 vehicles may not allow sufficient cooling time for the turbo oil feed, causing thermal stress on the feed line and eventual oil weep. Covers 2017-2019 Giulia and 2018-2019 Stelvio, 2.0L GME-T4 (EC2). Performed per VIN at the dealer; no parts. If it was done, the ECM was already reflashed in 2020.",
-      "condition": "Turbo oil-feed line thermal stress and oil weep (PCM cooling-time logic).",
-      "remedy": "2018 Stelvio: reprogram PCM, PROXI Alignment, Phonic Wheel Replacement routine (2019 Stelvio also TCM). Labour 18-W0-51-81 inspect 0.4 h; 18-W0-51-82 reprogram PCM/proxy/phonic wheel 0.5 h; 18-W0-51-83 PCM+TCM (time not captured).",
-      "systems": [
-        "ECM",
-        "Turbo",
-        "Engine oil"
-      ],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "NHTSA CSN W05 10175524",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175524-9999.pdf"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
-      "verified": true,
-      "id": "csn-w05",
-      "cuore_relevance": "Turbo oil-feed weep on the 2.0T; also means the ECM may already have been reflashed (ask history)."
-    },
-    {
-      "kind": "tsb",
-      "number": "21-035-20",
-      "nhtsa_id": "10176569",
-      "title": "Flash: Transmission Control Module (TCM) Update",
-      "date": "2020-05-08",
-      "summary": "2018 Stelvio (GU) 2.0L EC2 TCM flash, North America. Improves 8HP shift quality; also includes the turbo coolant pump after-run update. Pair with ECM flash 18-026-20.",
-      "condition": "MIL with P0002, P026E, P1066, P26E4, P2B61, P2BC1, U1008; shift quality.",
-      "remedy": "Reprogram TCM (about 4 min), clear DTCs, verify PCM on latest software. Labour 18-19-05-MX 0.3 h.",
-      "systems": [
-        "TCM",
-        "Transmission"
-      ],
-      "dtcs": [
-        "P0002",
-        "P026E",
-        "P1066",
-        "P26E4",
-        "P2B61",
-        "P2BC1",
-        "U1008"
-      ],
-      "links": [
-        {
-          "label": "NHTSA TSB 10176569",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10176569-9999.pdf"
-        }
-      ],
-      "applies": "yes",
-      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
-      "verified": true,
-      "id": "tsb-21-035-20",
-      "cuore_relevance": "Only 8HP shift-quality software bulletin found for the 2018 Stelvio; pair with ECM flash 18-026-20."
-    },
-    {
-      "kind": "tsb",
-      "number": "18-089-19",
-      "nhtsa_id": "10169219",
-      "title": "wiTECH SLVT - P0456 EVAP System Small Leak",
-      "date": "2019-11-01",
-      "summary": "Predecessor of 18-048-23 (via 18-095-21): the wiTECH Small Leak Verification Test is mandatory for P0456. Applies to 2015-2020 FCA gas vehicles generally; Stelvio not named. Only partially opened.",
-      "condition": "P0456 diagnosis.",
-      "remedy": "Run the SLVT.",
-      "systems": [
-        "EVAP"
-      ],
-      "dtcs": [
-        "P0456"
-      ],
-      "links": [
-        {
-          "label": "NHTSA TSB 10169219",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10169219-9999.pdf"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "NHTSA PDF partially opened (research 2026-10-15)",
-      "verified": false,
-      "id": "tsb-18-089-19",
-      "cuore_relevance": "Contemporary of the 2018 car; superseded by 18-095-21 then 18-048-23."
-    },
-    {
-      "kind": "tsb",
-      "number": "STAR S2025000004",
-      "nhtsa_id": "10175692",
-      "title": "P0456/P0455 analysis with wiTECH SLVT (dealer case record)",
-      "date": "2020-04-28",
-      "summary": "Dealer case record for P0456/P0455 set in the PCM on FCA gas vehicles (not model specific). Follow service diagnostics, run SLVT, smoke/air check if a leak is confirmed; keep the original gas cap fitted during the test (the EELD 8404 adapter o-ring may mask a leak). Only partially opened.",
-      "condition": "P0456 or P0455 set in PCM.",
-      "remedy": "Run SLVT; smoke/air check if a leak is confirmed; keep the original gas cap fitted.",
-      "systems": [
-        "EVAP"
-      ],
-      "dtcs": [
-        "P0456",
-        "P0455"
-      ],
-      "links": [
-        {
-          "label": "NHTSA 10175692",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175692-9999.pdf"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "NHTSA PDF partially opened (research 2026-10-15)",
-      "verified": false,
-      "id": "star-s2025000004",
-      "cuore_relevance": "Gas cap caution matters when smoke testing."
-    },
-    {
-      "kind": "tsb",
-      "number": "18-023-23 / 18-041-23 / 18-045-23",
-      "nhtsa_id": "10236922",
-      "title": "Flash: PCM Updates (P1CEA) - later model years",
-      "date": "2023",
-      "summary": "PCM reflash family for P1CEA Boost Side EVAP Purge Performance on 2.0L Stelvio, but for later model years only: 18-045-23 is 2019, 18-041-23 is 2022, 18-023-23 is 2023. NOT 2018. Shows EVAP-family codes on this engine are fixed by calibration, but not 2018-specific. Other NHTSA ids: 10241053 and 10248038 (18-023-23), 10236901 (18-041-23).",
-      "condition": "MIL + P1CEA (plus coil P230x, P2AC0 or knock P0331 depending on bulletin).",
-      "remedy": "PCM reprogram. 18-023-23 REV B labour 18-19-06-HE 0.2 h, 18-19-06-HF 0.4 h.",
-      "systems": [
-        "ECM",
-        "EVAP"
-      ],
-      "dtcs": [
-        "P1CEA",
-        "P0331",
-        "P0106",
-        "P013A",
-        "P015A",
-        "P026E",
-        "U1008",
-        "P2AC0",
-        "P2300",
-        "P2303",
-        "P2306",
-        "P2309"
-      ],
-      "links": [
-        {
-          "label": "NHTSA TSB 10236922 (18-045-23)",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10236922-9999.pdf"
-        }
-      ],
-      "applies": "no",
-      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
-      "verified": true,
-      "id": "tsb-18-023-23-family",
-      "cuore_relevance": "Shows EVAP-family codes on this engine are fixed by calibration, but not 2018-specific."
-    },
-    {
-      "kind": "tsb",
-      "number": "18-017-21",
-      "nhtsa_id": "10220605",
-      "title": "Flash: PCM Updates (replace oil vapor recovery tube)",
-      "date": "2021-02-09",
-      "summary": "2018 Stelvio 2.9L V6 (EED) only; not the 2.0T, so it does not apply to this car. Listed so it is not mistaken for it.",
-      "condition": "MIL with P032D, P008A, P034C, P051B.",
-      "remedy": "Reflash PCM and ECM2, replace blowby tube K68499935AA and connector cap K68393276AA. PCM labour 0.7 h.",
-      "systems": [
-        "ECM",
-        "Engine"
-      ],
-      "dtcs": [
-        "P032D",
-        "P008A",
-        "P034C",
-        "P051B"
-      ],
-      "links": [
-        {
-          "label": "NHTSA TSB 10220605",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10220605-9999.pdf"
-        }
-      ],
-      "applies": "no",
-      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
-      "verified": true,
-      "id": "tsb-18-017-21",
-      "cuore_relevance": "Not the 2.0T; listed so it is not mistaken for it."
-    },
-    {
-      "kind": "tsb",
-      "number": "18-088-19",
-      "nhtsa_id": "10169218",
-      "title": "Flash: PCM Updates",
-      "date": "2019-11-01",
-      "summary": "2019 Stelvio 2.9L V6 only; not the 2.0T and not 2018, so it does not apply to this car.",
-      "condition": "MIL with P032D, P008A, P034C.",
-      "remedy": "Flash ECM and ECM2; oil level sensor replacement routine.",
-      "systems": [
-        "ECM",
-        "Engine"
-      ],
-      "dtcs": [
-        "P032D",
-        "P008A",
-        "P034C"
-      ],
-      "links": [
-        {
-          "label": "NHTSA TSB 10169218",
-          "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10169218-9999.pdf"
-        }
-      ],
-      "applies": "no",
-      "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
-      "verified": true,
-      "id": "tsb-18-088-19",
-      "cuore_relevance": "Not the 2.0T."
-    },
-    {
-      "kind": "tsb",
-      "number": "S2018000004 / S2018000011 / 01-001-20 / D-17-21",
-      "nhtsa_id": null,
-      "title": "STAR/warranty/oil-monitor items listed for Stelvio",
-      "date": "2017-2020",
-      "summary": "Third-party index of items for 2017-2019 Giulia/Stelvio: 01-001-20 oil change light early (reset OLM); S2018000004 U04B1 invalid data from battery monitor after PCM flash; S2018000011 P0299-P0304 after PCM update. Summary only, no NHTSA PDF opened (only the recallcheck 01-001-20 page).",
-      "condition": "01-001-20: oil change light early. S2018000004: U04B1 after PCM flash. S2018000011: P0299-P0304 after PCM update.",
-      "remedy": null,
-      "systems": [
-        "ECM",
-        "Battery monitor"
-      ],
-      "dtcs": [
-        "U04B1",
-        "P0299",
-        "P0300",
-        "P0301",
-        "P0302",
-        "P0303",
-        "P0304"
-      ],
-      "links": [
-        {
-          "label": "recallcheck.net listing (third party)",
-          "url": "https://recallcheck.net/tsb/1480"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "third-party summary (research 2026-10-15)",
-      "verified": false,
-      "id": "tsb-star-s2018000004-group",
-      "cuore_relevance": "U04B1 (battery monitor) after a flash is relevant to any ECM reflash plan."
-    },
-    {
-      "id": "recall-18v636",
-      "kind": "recall",
-      "number": "18V636",
-      "nhtsa_id": "18V636",
-      "title": "2.0L engine misfire may overheat catalytic converter / damage wiring",
-      "date": "2018-09-14",
-      "summary": "2017-2018 Giulia and 2018 Stelvio with 2.0L; misfire can overheat catalytic converter, fire risk or stall. Strongest lead for 'was this ECM ever reflashed': it covers 2017-2018 Giulia and 2018 Stelvio with the 2.0L, and the remedy is an ECM software update. No Transport Canada number found. VIN-specific check needed.",
-      "condition": null,
-      "remedy": "Dealer checks for DTCs and updates ECM software",
-      "systems": [
-        "ECM",
-        "Engine"
-      ],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://www.nhtsa.gov/recalls?nhtsaId=18V636"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "cuore_relevance": "Strongest lead for 'was this ECM ever reflashed'. ECM reflash, relevant to the EVAP/ECM diagnosis; no Transport Canada number found. Ask the dealer whether it was performed on this VIN."
-    },
-    {
-      "id": "recall-18v635",
-      "kind": "recall",
-      "number": "18V635",
-      "nhtsa_id": "18V635",
-      "title": "Coolant hose (Quadrifoglio)",
-      "date": "2018-09-14",
-      "summary": "Cooling hose may leak coolant; NHTSA scope Stelvio Quadrifoglio. Stelvio Quadrifoglio only (coolant hose); this car is the 2.0T Q4, so it does not apply.",
-      "condition": null,
-      "remedy": "Replace hose",
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018505"
-        }
-      ],
-      "applies": "no",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "transport_canada_id": "2018505",
-      "cuore_relevance": "QV only; TC lists 32 units"
-    },
-    {
-      "id": "recall-18v147",
-      "kind": "recall",
-      "number": "18V147",
-      "nhtsa_id": "18V147",
-      "title": "Wiper motor limited to low speed",
-      "date": "2018-03-06",
-      "summary": "Wiper software misreads motor overheating, FMVSS 104 noncompliance (TC: 207 units)",
-      "condition": null,
-      "remedy": "Replace wiper motor",
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018116"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "transport_canada_id": "2018116"
-    },
-    {
-      "id": "recall-18v203",
-      "kind": "recall",
-      "number": "18V203",
-      "nhtsa_id": "18V203",
-      "title": "Liftgate wiring/switch water intrusion",
-      "date": "2018-03-29",
-      "summary": "Corrosion may cause liftgate to open unexpectedly",
-      "condition": null,
-      "remedy": "Add sealing/water protection",
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018150"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "transport_canada_id": "2018150"
-    },
-    {
-      "id": "recall-18v205",
-      "kind": "recall",
-      "number": "18V205",
-      "nhtsa_id": "18V205",
-      "title": "BCM water intrusion",
-      "date": "2018-03-29",
-      "summary": "Water corrodes BCM/A-pillar connector; wipers, lights, horn may fail. NHTSA: built 2017-03-20 to 2018-02-14",
-      "condition": null,
-      "remedy": "Add sealing at A-pillar/HVAC box",
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018151"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "transport_canada_id": "2018151"
-    },
-    {
-      "id": "recall-17v823",
-      "kind": "recall",
-      "number": "17V823",
-      "nhtsa_id": "17V823",
-      "title": "Contaminated brake fluid",
-      "date": "2017-12-20",
-      "summary": "2018 Giulia/Stelvio brake system may contain contaminated fluid",
-      "condition": null,
-      "remedy": "Inspect, replace parts as needed",
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://www.nhtsa.gov/recalls?nhtsaId=17V823"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "cuore_relevance": "No TC number found"
-    },
-    {
-      "id": "recall-19v148",
-      "kind": "recall",
-      "number": "19V148",
-      "nhtsa_id": "19V148",
-      "title": "Adaptive cruise cannot be disabled after wheel-slip event",
-      "date": "2019-03-01",
-      "summary": "BSM software issue, 2018-2019 Stelvio",
-      "condition": null,
-      "remedy": "BSM software update",
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://www.nhtsa.gov/recalls?nhtsaId=19V148"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "cuore_relevance": "No TC number found"
-    },
-    {
-      "id": "recall-19v551",
-      "kind": "recall",
-      "number": "19V551",
-      "nhtsa_id": "19V551",
-      "title": "BCM fuel level reads high",
-      "date": "2019-07-25",
-      "summary": "Fuel gauge may show more than actual, run-out risk",
-      "condition": null,
-      "remedy": "BCM software update",
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://www.nhtsa.gov/recalls?nhtsaId=19V551"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "cuore_relevance": "No TC number found"
-    },
-    {
-      "id": "recall-23v382",
-      "kind": "recall",
-      "number": "23V382",
-      "nhtsa_id": "23V382",
-      "title": "Carbon ceramic brake rotor fracture",
-      "date": "2023-05-30",
-      "summary": "Carbon ceramic brakes only. Carbon ceramic brakes only (unlikely on the 2.0T); applies only if the car has carbon ceramic brakes.",
-      "condition": null,
-      "remedy": "BSM software update",
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://www.nhtsa.gov/recalls?nhtsaId=23V382"
-        }
-      ],
-      "applies": "no",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "cuore_relevance": "Only if car has carbon ceramic brakes (unlikely on 2.0T)"
-    },
-    {
-      "id": "recall-24v510",
-      "kind": "recall",
-      "number": "24V510",
-      "nhtsa_id": "24V510",
-      "title": "Seat belt buckle switch sensor connector",
-      "date": "2024-07-03",
-      "summary": "Improper connection may prevent front airbag deployment; TC 8,387 units",
-      "condition": null,
-      "remedy": "Repair connector at dealer",
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://www.nhtsa.gov/recalls?nhtsaId=24V510"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "transport_canada_id": "2024390",
-      "cuore_relevance": "FCA US ref 82B"
-    },
-    {
-      "id": "recall-25v586",
-      "kind": "recall",
-      "number": "25V586",
-      "nhtsa_id": "25V586",
-      "title": "Fuel pump failure",
-      "date": "2025-09-09",
-      "summary": "2018-2019 Stelvio; loss of fuel flow and drive power; TC 3,289 units. Related TSB 18-001-18 (inspect/replace fuel pump module, 2018-01) was not located. Recall scope 24,382 MY2018 Stelvio (sources vary on 2019). Summary-level only, PDFs not opened.",
-      "condition": "Low-pressure fuel pump failure; P008A; stall / loss of motive power.",
-      "remedy": "Replace fuel delivery module; interim letters 2025-10-07; final remedy expected July 2026",
-      "systems": [
-        "Fuel"
-      ],
-      "dtcs": [
-        "P008A"
-      ],
-      "links": [
-        {
-          "label": "NHTSA recall 25V586",
-          "url": "https://www.nhtsa.gov/recalls?nhtsaId=25V586"
-        },
-        {
-          "label": "NHTSA investigation PE24003",
-          "url": "https://static.nhtsa.gov/odi/inv/2024/INOA-PE24003-10035.pdf"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "transport_canada_id": "2025463",
-      "cuore_relevance": "Check whether final remedy is now available. Fuel pump/stall symptoms can mimic purge faults; check 25V-586 by VIN."
-    },
-    {
-      "id": "recall-2024379",
-      "kind": "recall",
-      "number": "2024379",
-      "nhtsa_id": null,
-      "title": "Incorrect tire pressure/size labels",
-      "date": null,
-      "summary": "2017-2024 Giulia and 2021-2024 Stelvio, 686 units. Scope is 2017-2024 Giulia and 2021-2024 Stelvio; not the 2018 Stelvio.",
-      "condition": null,
-      "remedy": null,
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2024379-fiat-chrysler-automobiles"
-        }
-      ],
-      "applies": "no",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "transport_canada_id": "2024379"
-    },
-    {
-      "id": "recall-2024767",
-      "kind": "recall",
-      "number": "2024767",
-      "nhtsa_id": null,
-      "title": "Brake booster input rod",
-      "date": null,
-      "summary": "2019 Giulia and Stelvio, 82 units. Scope is 2019 Giulia and Stelvio; not 2018.",
-      "condition": null,
-      "remedy": null,
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://mobile.guideautoweb.com/en/recalls/2024767"
-        }
-      ],
-      "applies": "no",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false,
-      "transport_canada_id": "2024767"
-    },
-    {
-      "id": "csn-u24-u34-u36",
-      "kind": "csn",
-      "number": "U24/U34/U36",
-      "nhtsa_id": null,
-      "title": "Customer-satisfaction handling for 2018 wiper, liftgate, BCM recalls",
-      "date": "2018",
-      "summary": "Dealer notices tied to recalls above (loaner, wash, fuel); not standalone campaigns",
-      "condition": null,
-      "remedy": null,
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://static.nhtsa.gov/odi/rcl/2018/RCMN-18V205-2178.pdf"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false
-    },
-    {
-      "id": "campaign-lookup",
-      "kind": "campaign",
-      "number": null,
-      "nhtsa_id": null,
-      "title": "Standalone CSN/service campaign, extended warranty, EVAP or uConnect special coverage",
-      "date": null,
-      "summary": "None found in public search for 2018 Stelvio. Not confirmed absent: FCA/Mopar lookups are VIN-gated",
-      "condition": null,
-      "remedy": null,
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://www.mopar.com/en-us/my-vehicle/recalls/search.html"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false
-    },
-    {
-      "id": "emissions-lookup",
-      "kind": "emissions",
-      "number": null,
-      "nhtsa_id": null,
-      "title": "CARB/EPA emissions recall",
-      "date": null,
-      "summary": "Not searched in depth; none surfaced. 18V636 (ECM reflash) is the nearest emissions-adjacent item. Check CARB/EPA lookups by VIN",
-      "condition": null,
-      "remedy": null,
-      "systems": [],
-      "dtcs": [],
-      "links": [
-        {
-          "label": "Source",
-          "url": "https://www.nhtsa.gov/recalls"
-        }
-      ],
-      "applies": "vin_check",
-      "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
-      "verified": false
+     "label": "NHTSA TSB 10216318 (REV. D, Giulia)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2017/MC-10216318-9999.pdf"
     }
-  ]
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF 10216318 opened in full (research 2026-10-15); earlier: docs/reference/TSB_CATALOGUE.md section 2; mes-log-mcp/mes/knowledge.py; mes-log-mcp/mes/ecm.py",
+   "verified": true,
+   "supersedes": "18-030-17 (REV. A and base)",
+   "family": "18-030-17 -> REV. B -> 18-097/098/101/103-19 -> 18-024/025/026/027-20 -> 18-045/046-23",
+   "applies_to": "2017 (GA) Giulia only, 2.0L I4 DI Turbo (EC2), built on or before 2017-06-29, NAFTA/LATAM. Stelvio NOT listed.",
+   "cuore_relevance": "The bulletin the project cites for P0440/P0455/P0456 on the 2.0T, but the NHTSA copy is Giulia-only; the Stelvio counterpart found is 18-026-20 (no P0455/P0456 in its list). Stelvio applicability of 18-030-17 is unconfirmed; check by VIN.",
+   "components": [
+    "ECM",
+    "ECM software (calibration)",
+    "wiTECH 2 Phonic Wheel Replacement"
+   ],
+   "symptoms": [
+    "MIL on",
+    "P0455 / P0456 / P0440 / P0441 EVAP codes",
+    "P1CEA / P24D6",
+    "misfire when cold",
+    "stall on restart after refuelling",
+    "idle instability"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management",
+    "evap"
+   ]
+  },
+  {
+   "id": "tsb-18-048-23",
+   "kind": "tsb",
+   "number": "18-048-23",
+   "nhtsa_id": "10236933",
+   "title": "EVAP small-leak verification requires wiTECH SLVT",
+   "date": "2023-04-15",
+   "summary": "The Small Leak Verification Test (SLVT). A road test cannot confirm a small EVAP leak repair; the dealer's wiTECH SLVT procedure is the verification. Mode $06 is the only non-dealer route to the measured value. Applies to 2012-2023 Stellantis US gas vehicles with SLVT (2012-2023 ALL; Stelvio not named individually); supersedes 18-095-21 (which superseded 18-089-19). SLVT must run first to confirm a leak and again after any repair or component replacement, including PCM software updates. NHTSA flat-file records: MC-10236933-9999 2023-04-15 (1804823). NHTSA flat-file records: MC-10236933-9999 2023-04-15 (1804823).",
+   "condition": "Confirming a small EVAP leak (P0456) repair.",
+   "remedy": "Run the wiTECH Small Leak Verification Test after the repair.",
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0456"
+   ],
+   "links": [
+    {
+     "label": "NHTSA TSB 10236933",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10236933-9999.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "docs/research/EVAP_STELVIO.md (bulletin number 1804823); docs/reference/TSB_CATALOGUE.md section 2; cuore/web/templates/dealer.html; NHTSA PDF 10236933 opened in full (research 2026-10-15)",
+   "verified": true,
+   "supersedes": "18-089-19",
+   "cuore_relevance": "The acceptance test for the EVAP job: SLVT pass is the proof of fix.",
+   "components": [
+    "wiTECH SLVT (Small Leak Verification Test)"
+   ],
+   "symptoms": [
+    "P0456 small leak repair cannot be confirmed by road test"
+   ],
+   "repair_implied": "procedure:wiTECH SLVT",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "tsb-9100471",
+   "kind": "tsb",
+   "number": "9100471",
+   "nhtsa_id": "11015810",
+   "title": "Hard to fill / EVAP canister flooded with fuel",
+   "date": "2025-03-17",
+   "summary": "Hard-to-fill diagnostic tree. A vapour line disconnected inside the tank at the fuel delivery module (FDM) port floods the EVAP canister with liquid fuel (fuel, not water).",
+   "condition": "Hard to fill; canister or recirculation line found with fuel in it.",
+   "remedy": "Check the clean-air hose ESIM to EVAP filter, the EVAP filter, and the tank-to-canister vapour hose; if fuel is found, drop the fuel tank, remove the FDM lock ring, check the internal vapour line at the FDM port, and replace BOTH the vapour canister and the ESIM.",
+   "systems": [
+    "EVAP",
+    "Fuel"
+   ],
+   "dtcs": [
+    "P0440",
+    "P0441",
+    "P0455",
+    "P0456"
+   ],
+   "links": null,
+   "applies": "yes",
+   "source": "docs/research/EVAP_STELVIO.md (covers GU 18-24 and GA; PDF retrieved); docs/reference/TSB_CATALOGUE.md section 2",
+   "verified": true,
+   "supersedes": "9100469 (extends it)",
+   "research_note_2026_10_15": "A later research pass could not find 9100471 on NHTSA or via search, so nothing was re-opened; the earlier retrieval recorded in the source field stands. Not re-verified.",
+   "components": [
+    "ESIM",
+    "EVAP vapour canister",
+    "EVAP filter",
+    "ESIM-to-EVAP-filter clean-air hose",
+    "tank-to-canister vapour hose",
+    "fuel delivery module (FDM)",
+    "FDM lock ring",
+    "fuel tank"
+   ],
+   "symptoms": [
+    "hard to fill",
+    "fuel in EVAP canister or recirculation line",
+    "P0440 / P0441 / P0455 / P0456"
+   ],
+   "repair_implied": "replace:vapour canister and ESIM",
+   "depends_on_systems": [
+    "evap",
+    "fuel"
+   ]
+  },
+  {
+   "kind": "tsb",
+   "number": "18-026-20",
+   "nhtsa_id": "10174245",
+   "title": "Flash: Powertrain Control Module (PCM) Updates",
+   "date": "2020-03-25",
+   "summary": "Directly applicable 2018 Stelvio (GU) 2.0L I4 DI Turbo (EC2) ECM flash, North America. Lists P1CEA and P24D6 (EVAP pressure sensor family) but NOT P0455/P0456/P0440. Also: turbo coolant pump after-run update (turbo O-ring durability), S&S text change, better idle stability. Supersedes 18-103-19 and is also released as Rapid Response Transmittal (RRT) 17-112 (sold and un-sold VINs loaded); this revision adds P0106. Another NHTSA copy: 10175165. Check the ECM software level before buying more EVAP parts. NHTSA flat-file records: MC-10174245-9999 2020-03-25 (18-026-20); MC-10175165-9999 2020-03-25 (18-026-20); MC-10175578-9999 2020-03-25 (18-026-20). NHTSA flat-file records: MC-10174245-9999 2020-03-25 (18-026-20); MC-10175165-9999 2020-03-25 (18-026-20); MC-10175578-9999 2020-03-25 (18-026-20).",
+   "condition": "MIL on with listed DTCs; may fail state inspection after reset, driveability issues, cold misfire.",
+   "remedy": "Reprogram ECM (about 8 min), wiTECH 2 Phonic Wheel Replacement, clear DTCs, confirm BCM on latest software. Labour 18-19-06-BF 0.4 h.",
+   "systems": [
+    "ECM",
+    "EVAP",
+    "Turbo"
+   ],
+   "dtcs": [
+    "P0096",
+    "P0106",
+    "P013A",
+    "P015A",
+    "P0191",
+    "P01BA",
+    "P024A",
+    "P026E",
+    "P04DB",
+    "P164E",
+    "P1CEA",
+    "P2097",
+    "P2299",
+    "P24D6",
+    "P2B2F",
+    "U1008"
+   ],
+   "links": [
+    {
+     "label": "NHTSA TSB 10174245",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174245-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10175165)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175165-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10175578)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175578-9999.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+   "verified": true,
+   "id": "tsb-18-026-20",
+   "cuore_relevance": "Directly applicable 2018 Stelvio 2.0T ECM flash; covers P1CEA and P24D6 (EVAP pressure sensor) but not P0455/P0456/P0440, so check ECM software level before buying more EVAP parts.",
+   "components": [
+    "ECM",
+    "BCM software level",
+    "wiTECH 2 Phonic Wheel Replacement",
+    "turbo coolant pump after-run"
+   ],
+   "symptoms": [
+    "MIL on",
+    "P1CEA / P24D6 EVAP pressure sensor family",
+    "may fail state inspection after reset",
+    "driveability issues",
+    "cold misfire",
+    "S&S Not Available text",
+    "idle stability on tip-in/out"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management",
+    "evap",
+    "air_intake_boost"
+   ],
+   "nhtsa_ids": [
+    "10174245",
+    "10175165",
+    "10175578"
+   ],
+   "cross_references": [
+    "RRT 17-112 (this bulletin is also released as Rapid Response Transmittal 17-112; sold and un-sold VINs loaded, check by VIN search in Service Library/VIP)",
+    "supersedes 18-103-19 (2019-12-19)",
+    "this revision adds P0106"
+   ]
+  },
+  {
+   "kind": "csn",
+   "number": "CSN W05",
+   "nhtsa_id": "10175524",
+   "title": "Customer Satisfaction Notification W05 - Reprogram Powertrain Control Module (turbo oil-feed weep)",
+   "date": "2020-03",
+   "summary": "PCM software on about 57,000 vehicles may not allow sufficient cooling time for the turbo oil feed, causing thermal stress on the feed line and eventual oil weep. Covers 2017-2019 Giulia and 2018-2019 Stelvio, 2.0L GME-T4 (EC2). Performed per VIN at the dealer; no parts. If it was done, the ECM was already reflashed in 2020. NHTSA flat-file records: MC-10174191-9999 2020-03-10 (W05); MC-10175111-9999 2020-03-10 (W05); MC-10175524-9999 2020-03-10 (W05). NHTSA flat-file records: MC-10174191-9999 2020-03-10 (W05); MC-10175111-9999 2020-03-10 (W05); MC-10175524-9999 2020-03-10 (W05).",
+   "condition": "Turbo oil-feed line thermal stress and oil weep (PCM cooling-time logic).",
+   "remedy": "2018 Stelvio: reprogram PCM, PROXI Alignment, Phonic Wheel Replacement routine (2019 Stelvio also TCM). Labour 18-W0-51-81 inspect 0.4 h; 18-W0-51-82 reprogram PCM/proxy/phonic wheel 0.5 h; 18-W0-51-83 PCM+TCM (time not captured).",
+   "systems": [
+    "ECM",
+    "Turbo",
+    "Engine oil"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA CSN W05 10175524",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175524-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174191-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10175111)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175111-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+   "verified": true,
+   "id": "csn-w05",
+   "cuore_relevance": "Turbo oil-feed weep on the 2.0T; also means the ECM may already have been reflashed (ask history).",
+   "components": [
+    "PCM",
+    "PROXI Alignment",
+    "wiTECH 2 Phonic Wheel Replacement",
+    "turbo oil feed line"
+   ],
+   "symptoms": [
+    "turbo oil weep",
+    "turbo oil-feed line thermal stress"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management",
+    "air_intake_boost",
+    "lubrication"
+   ],
+   "nhtsa_ids": [
+    "10174191",
+    "10175111",
+    "10175524"
+   ]
+  },
+  {
+   "kind": "tsb",
+   "number": "21-035-20",
+   "nhtsa_id": "10176569",
+   "title": "Flash: Transmission Control Module (TCM) Update",
+   "date": "2020-05-08",
+   "summary": "2018 Stelvio (GU) 2.0L EC2 TCM flash, North America. Improves 8HP shift quality; also includes the turbo coolant pump after-run update. Pair with ECM flash 18-026-20.",
+   "condition": "MIL with P0002, P026E, P1066, P26E4, P2B61, P2BC1, U1008; shift quality.",
+   "remedy": "Reprogram TCM (about 4 min), clear DTCs, verify PCM on latest software. Labour 18-19-05-MX 0.3 h.",
+   "systems": [
+    "TCM",
+    "Transmission"
+   ],
+   "dtcs": [
+    "P0002",
+    "P026E",
+    "P1066",
+    "P26E4",
+    "P2B61",
+    "P2BC1",
+    "U1008"
+   ],
+   "links": [
+    {
+     "label": "NHTSA TSB 10176569",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10176569-9999.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+   "verified": true,
+   "id": "tsb-21-035-20",
+   "cuore_relevance": "Only 8HP shift-quality software bulletin found for the 2018 Stelvio; pair with ECM flash 18-026-20.",
+   "components": [
+    "TCM",
+    "PCM software level",
+    "turbo coolant pump after-run"
+   ],
+   "symptoms": [
+    "MIL on",
+    "8HP shift quality"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "transmission_driveline"
+   ]
+  },
+  {
+   "kind": "tsb",
+   "number": "18-089-19",
+   "nhtsa_id": "10169219",
+   "title": "wiTECH SLVT - P0456 EVAP System Small Leak",
+   "date": "2019-11-01",
+   "summary": "Predecessor of 18-048-23 (via 18-095-21): the wiTECH Small Leak Verification Test is mandatory for P0456. Applies to 2015-2020 FCA gas vehicles generally; Stelvio not named individually, but the scope is 2015-2020 (ALL) FCA Group gas vehicles with the wiTECH SLVT (PDF opened in full). NHTSA flat-file records: MC-10169219-9999 2019-11-01 (18-089-19); no-pdf record 10220071 2019-11-01 (1808919). Revisions seen: 18-089-19, 1808919. NHTSA flat-file records: MC-10169219-9999 2019-11-01 (18-089-19); no-pdf record 10220071 2019-11-01 (1808919). Revisions seen: 18-089-19, 1808919.",
+   "condition": "P0456 EVAP system small leak diagnosis on 2015-2020 FCA gas vehicles with the wiTECH SLVT.",
+   "remedy": "Run the wiTECH SLVT first to verify a leak is present (mandatory during P0456 diagnosis), follow the Service Library diagnostic, and run the SLVT again after repairing or replacing any component. A road test will not confirm the repair because P0456 sets only after multiple engine-off and drive cycles. Warranty Bulletin D-19-23; Warranty Newsletter Vol 5 Issue 10; Master Tech MTCE1901 course. Policy: information only.",
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0456"
+   ],
+   "links": [
+    {
+     "label": "NHTSA TSB 10169219",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10169219-9999.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "NHTSA PDF 10169219 opened in full (2026-10-15); NHTSA flat file TSBS_RECEIVED",
+   "verified": true,
+   "id": "tsb-18-089-19",
+   "cuore_relevance": "Contemporary of the 2018 car; superseded by 18-095-21 then 18-048-23.",
+   "components": [
+    "wiTECH SLVT"
+   ],
+   "symptoms": [
+    "P0456 EVAP small leak"
+   ],
+   "repair_implied": "procedure:wiTECH SLVT",
+   "depends_on_systems": [
+    "evap"
+   ],
+   "nhtsa_ids": [
+    "10169219",
+    "10220071"
+   ]
+  },
+  {
+   "kind": "tsb",
+   "number": "STAR S2025000004",
+   "nhtsa_id": "10175692",
+   "title": "P0456/P0455 analysis with wiTECH SLVT (dealer case record)",
+   "date": "2020-04-28",
+   "summary": "Dealer case record for P0456/P0455 set in the PCM on FCA gas vehicles (not model specific). Follow service diagnostics, run SLVT, smoke/air check if a leak is confirmed; keep the original gas cap fitted during the test (the EELD 8404 adapter o-ring may mask a leak). Only partially opened.",
+   "condition": "P0456 or P0455 set in PCM.",
+   "remedy": "Run SLVT; smoke/air check if a leak is confirmed; keep the original gas cap fitted.",
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0456",
+    "P0455"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10175692",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175692-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF partially opened (research 2026-10-15)",
+   "verified": false,
+   "id": "star-s2025000004",
+   "cuore_relevance": "Gas cap caution matters when smoke testing.",
+   "components": [
+    "wiTECH SLVT",
+    "original gas cap"
+   ],
+   "symptoms": [
+    "P0456 / P0455 set in PCM"
+   ],
+   "repair_implied": "procedure:wiTECH SLVT",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "kind": "tsb",
+   "number": "18-023-23 / 18-041-23 / 18-045-23",
+   "nhtsa_id": "10236922",
+   "title": "Flash: PCM Updates (P1CEA) - later model years",
+   "date": "2023",
+   "summary": "PCM reflash family for P1CEA Boost Side EVAP Purge Performance on 2.0L Stelvio, but for later model years only: 18-045-23 is 2019, 18-041-23 is 2022, 18-023-23 is 2023. NOT 2018. Shows EVAP-family codes on this engine are fixed by calibration, but not 2018-specific. Other NHTSA ids: 10241053 and 10248038 (18-023-23), 10236901 (18-041-23).",
+   "condition": "MIL + P1CEA (plus coil P230x, P2AC0 or knock P0331 depending on bulletin).",
+   "remedy": "PCM reprogram. 18-023-23 REV B labour 18-19-06-HE 0.2 h, 18-19-06-HF 0.4 h.",
+   "systems": [
+    "ECM",
+    "EVAP"
+   ],
+   "dtcs": [
+    "P1CEA",
+    "P0331",
+    "P0106",
+    "P013A",
+    "P015A",
+    "P026E",
+    "U1008",
+    "P2AC0",
+    "P2300",
+    "P2303",
+    "P2306",
+    "P2309"
+   ],
+   "links": [
+    {
+     "label": "NHTSA TSB 10236922 (18-045-23)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10236922-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+   "verified": true,
+   "id": "tsb-18-023-23-family",
+   "cuore_relevance": "Shows EVAP-family codes on this engine are fixed by calibration, but not 2018-specific.",
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL on",
+    "P1CEA boost side EVAP purge performance",
+    "coil P230x",
+    "P2AC0",
+    "knock P0331"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management",
+    "evap"
+   ]
+  },
+  {
+   "kind": "tsb",
+   "number": "18-017-21",
+   "nhtsa_id": "10220605",
+   "title": "Flash: PCM Updates (replace oil vapor recovery tube)",
+   "date": "2021-02-09",
+   "summary": "2018 Stelvio 2.9L V6 (EED) only; not the 2.0T, so it does not apply to this car. Listed so it is not mistaken for it. NHTSA flat-file records: MC-10188809-9999 2021-02-09 (18-017-21); no-pdf record 10220605 2021-02-09 (1801721). Revisions seen: 18-017-21, 1801721. PDF re-read 2026-10-15: both ECMs (primary then ECM2) must be flashed, then the ECM2 oil level sensor replacement routine; labour 18-19-06-EA 0.7 h. NHTSA flat-file records: MC-10188809-9999 2021-02-09 (18-017-21); no-pdf record 10220605 2021-02-09 (1801721). Revisions seen: 18-017-21, 1801721. PDF re-read 2026-10-15: both ECMs (primary then ECM2) must be flashed, then the ECM2 oil level sensor replacement routine; labour 18-19-06-EA 0.7 h.",
+   "condition": "MIL with P032D, P008A, P034C, P051B.",
+   "remedy": "Reflash PCM and ECM2, replace blowby tube K68499935AA and connector cap K68393276AA. PCM labour 0.7 h.",
+   "systems": [
+    "ECM",
+    "Engine"
+   ],
+   "dtcs": [
+    "P032D",
+    "P008A",
+    "P034C",
+    "P051B"
+   ],
+   "links": [
+    {
+     "label": "NHTSA TSB 10220605",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10220605-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10188809-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+   "verified": true,
+   "id": "tsb-18-017-21",
+   "cuore_relevance": "Not the 2.0T; listed so it is not mistaken for it.",
+   "components": [
+    "PCM",
+    "ECM2",
+    "blowby tube K68499935AA",
+    "connector cap K68393276AA"
+   ],
+   "symptoms": [
+    "MIL on",
+    "P032D / P008A / P034C / P051B"
+   ],
+   "repair_implied": "replace:blowby tube K68499935AA and connector cap K68393276AA",
+   "depends_on_systems": [
+    "engine_management",
+    "pcv"
+   ],
+   "nhtsa_ids": [
+    "10188809",
+    "10220605"
+   ]
+  },
+  {
+   "kind": "tsb",
+   "number": "18-088-19",
+   "nhtsa_id": "10169218",
+   "title": "Flash: PCM Updates",
+   "date": "2019-11-01",
+   "summary": "2019 Stelvio 2.9L V6 only; not the 2.0T and not 2018, so it does not apply to this car.",
+   "condition": "MIL with P032D, P008A, P034C.",
+   "remedy": "Flash ECM and ECM2; oil level sensor replacement routine.",
+   "systems": [
+    "ECM",
+    "Engine"
+   ],
+   "dtcs": [
+    "P032D",
+    "P008A",
+    "P034C"
+   ],
+   "links": [
+    {
+     "label": "NHTSA TSB 10169218",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10169218-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF opened in full (research 2026-10-15, tsb_details.json)",
+   "verified": true,
+   "id": "tsb-18-088-19",
+   "cuore_relevance": "Not the 2.0T.",
+   "components": [
+    "ECM",
+    "ECM2",
+    "oil level sensor"
+   ],
+   "symptoms": [
+    "MIL on",
+    "P032D / P008A / P034C"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management",
+    "lubrication"
+   ]
+  },
+  {
+   "kind": "tsb",
+   "number": "S2018000004 / S2018000011 / 01-001-20 / D-17-21",
+   "nhtsa_id": "10217463",
+   "title": "STAR/warranty/oil-monitor items listed for Stelvio",
+   "date": "2017-2020",
+   "summary": "Third-party index of items for 2017-2019 Giulia/Stelvio: 01-001-20 oil change light early (reset OLM); S2018000004 U04B1 invalid data from battery monitor after PCM flash; S2018000011 P0299-P0304 after PCM update. Summary only, no NHTSA PDF opened (only the recallcheck 01-001-20 page). NHTSA flat-file records: no-pdf record 10217463 2017-11-08 (D-17-21). NHTSA flat-file records: MC-10175722-9999 2020-04-08 (01-001-20). NHTSA flat-file records: MC-10175670-9999 2020-04-15 (S2018000004). NHTSA flat-file records: MC-10183038-9999 2020-10-27 (S2018000011); no-pdf record 10223927 2020-10-27 (S2018000011). NHTSA flat-file records: no-pdf record 10217463 2017-11-08 (D-17-21). NHTSA flat-file records: MC-10175722-9999 2020-04-08 (01-001-20). NHTSA flat-file records: MC-10175670-9999 2020-04-15 (S2018000004). NHTSA flat-file records: MC-10183038-9999 2020-10-27 (S2018000011); no-pdf record 10223927 2020-10-27 (S2018000011).",
+   "condition": "01-001-20: oil change light early. S2018000004: U04B1 after PCM flash. S2018000011: P0299-P0304 after PCM update.",
+   "remedy": null,
+   "systems": [
+    "ECM",
+    "Battery monitor"
+   ],
+   "dtcs": [
+    "U04B1",
+    "P0299",
+    "P0300",
+    "P0301",
+    "P0302",
+    "P0303",
+    "P0304"
+   ],
+   "links": [
+    {
+     "label": "recallcheck.net listing (third party)",
+     "url": "https://recallcheck.net/tsb/1480"
+    },
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175722-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175670-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10183038-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "third-party summary (research 2026-10-15)",
+   "verified": false,
+   "id": "tsb-star-s2018000004-group",
+   "cuore_relevance": "U04B1 (battery monitor) after a flash is relevant to any ECM reflash plan.",
+   "components": [
+    "PCM",
+    "battery monitor",
+    "oil life monitor (OLM)"
+   ],
+   "symptoms": [
+    "oil change light early",
+    "U04B1 invalid data from battery monitor after PCM flash",
+    "P0299-P0304 after PCM update"
+   ],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "engine_management",
+    "electrical_supply"
+   ],
+   "nhtsa_ids": [
+    "10183038",
+    "10217463",
+    "10223927"
+   ]
+  },
+  {
+   "id": "recall-18v636",
+   "kind": "recall",
+   "number": "18V636",
+   "nhtsa_id": "18V636",
+   "title": "2.0L engine misfire may overheat catalytic converter / damage wiring",
+   "date": "2018-09-14",
+   "summary": "2017-2018 Giulia and 2018 Stelvio with 2.0L; misfire can overheat catalytic converter, fire risk or stall. Strongest lead for 'was this ECM ever reflashed': it covers 2017-2018 Giulia and 2018 Stelvio with the 2.0L, and the remedy is an ECM software update. No Transport Canada number found. VIN-specific check needed.",
+   "condition": null,
+   "remedy": "Dealer checks for DTCs and updates ECM software",
+   "systems": [
+    "ECM",
+    "Engine"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://www.nhtsa.gov/recalls?nhtsaId=18V636"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "cuore_relevance": "Strongest lead for 'was this ECM ever reflashed'. ECM reflash, relevant to the EVAP/ECM diagnosis; no Transport Canada number found. Ask the dealer whether it was performed on this VIN.",
+   "components": [
+    "ECM",
+    "catalytic converter"
+   ],
+   "symptoms": [
+    "engine misfire",
+    "catalytic converter overheat",
+    "fire risk",
+    "stall"
+   ],
+   "repair_implied": "software_update",
+   "depends_on_systems": [
+    "engine_management",
+    "ignition",
+    "exhaust_emissions"
+   ]
+  },
+  {
+   "id": "recall-18v635",
+   "kind": "recall",
+   "number": "18V635",
+   "nhtsa_id": "18V635",
+   "title": "Coolant hose (Quadrifoglio)",
+   "date": "2018-09-14",
+   "summary": "Cooling hose may leak coolant; NHTSA scope Stelvio Quadrifoglio. Stelvio Quadrifoglio only (coolant hose); this car is the 2.0T Q4, so it does not apply.",
+   "condition": null,
+   "remedy": "Replace hose",
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018505"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "transport_canada_id": "2018505",
+   "cuore_relevance": "QV only; TC lists 32 units",
+   "components": [
+    "coolant hose"
+   ],
+   "symptoms": [
+    "coolant leak"
+   ],
+   "repair_implied": "replace:coolant hose",
+   "depends_on_systems": [
+    "cooling"
+   ]
+  },
+  {
+   "id": "recall-18v147",
+   "kind": "recall",
+   "number": "18V147",
+   "nhtsa_id": "18V147",
+   "title": "Wiper motor limited to low speed",
+   "date": "2018-03-06",
+   "summary": "Wiper software misreads motor overheating, FMVSS 104 noncompliance (TC: 207 units)",
+   "condition": null,
+   "remedy": "Replace wiper motor",
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018116"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "transport_canada_id": "2018116",
+   "components": [
+    "wiper motor"
+   ],
+   "symptoms": [
+    "wipers limited to low speed"
+   ],
+   "repair_implied": "replace:wiper motor",
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "recall-18v203",
+   "kind": "recall",
+   "number": "18V203",
+   "nhtsa_id": "18V203",
+   "title": "Liftgate wiring/switch water intrusion",
+   "date": "2018-03-29",
+   "summary": "Corrosion may cause liftgate to open unexpectedly",
+   "condition": null,
+   "remedy": "Add sealing/water protection",
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018150"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "transport_canada_id": "2018150",
+   "components": [
+    "liftgate wiring",
+    "liftgate switch"
+   ],
+   "symptoms": [
+    "liftgate may open unexpectedly",
+    "corrosion from water intrusion"
+   ],
+   "repair_implied": "procedure:add sealing / water protection",
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "recall-18v205",
+   "kind": "recall",
+   "number": "18V205",
+   "nhtsa_id": "18V205",
+   "title": "BCM water intrusion",
+   "date": "2018-03-29",
+   "summary": "Water corrodes BCM/A-pillar connector; wipers, lights, horn may fail. NHTSA: built 2017-03-20 to 2018-02-14",
+   "condition": null,
+   "remedy": "Add sealing at A-pillar/HVAC box",
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018151"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "transport_canada_id": "2018151",
+   "components": [
+    "BCM",
+    "A-pillar connector",
+    "HVAC box"
+   ],
+   "symptoms": [
+    "wipers, lights, horn may fail",
+    "water intrusion"
+   ],
+   "repair_implied": "procedure:add sealing at A-pillar / HVAC box",
+   "depends_on_systems": [
+    "body_comfort",
+    "lighting"
+   ]
+  },
+  {
+   "id": "recall-17v823",
+   "kind": "recall",
+   "number": "17V823",
+   "nhtsa_id": "17V823",
+   "title": "Contaminated brake fluid",
+   "date": "2017-12-20",
+   "summary": "2018 Giulia/Stelvio brake system may contain contaminated fluid",
+   "condition": null,
+   "remedy": "Inspect, replace parts as needed",
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://www.nhtsa.gov/recalls?nhtsaId=17V823"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "cuore_relevance": "No TC number found",
+   "components": [
+    "brake fluid",
+    "brake system parts"
+   ],
+   "symptoms": [
+    "contaminated brake fluid"
+   ],
+   "repair_implied": "inspect",
+   "depends_on_systems": [
+    "brakes_abs"
+   ]
+  },
+  {
+   "id": "recall-19v148",
+   "kind": "recall",
+   "number": "19V148",
+   "nhtsa_id": "19V148",
+   "title": "Adaptive cruise cannot be disabled after wheel-slip event",
+   "date": "2019-03-01",
+   "summary": "BSM software issue, 2018-2019 Stelvio",
+   "condition": null,
+   "remedy": "BSM software update",
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://www.nhtsa.gov/recalls?nhtsaId=19V148"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "cuore_relevance": "No TC number found",
+   "components": [
+    "BSM"
+   ],
+   "symptoms": [
+    "adaptive cruise cannot be disabled after wheel-slip event"
+   ],
+   "repair_implied": "software_update",
+   "depends_on_systems": [
+    "adas_sensors",
+    "brakes_abs"
+   ]
+  },
+  {
+   "id": "recall-19v551",
+   "kind": "recall",
+   "number": "19V551",
+   "nhtsa_id": "19V551",
+   "title": "BCM fuel level reads high",
+   "date": "2019-07-25",
+   "summary": "Fuel gauge may show more than actual, run-out risk",
+   "condition": null,
+   "remedy": "BCM software update",
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://www.nhtsa.gov/recalls?nhtsaId=19V551"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "cuore_relevance": "No TC number found",
+   "components": [
+    "BCM"
+   ],
+   "symptoms": [
+    "fuel gauge reads high",
+    "run-out risk"
+   ],
+   "repair_implied": "software_update",
+   "depends_on_systems": [
+    "body_comfort",
+    "fuel"
+   ]
+  },
+  {
+   "id": "recall-23v382",
+   "kind": "recall",
+   "number": "23V382",
+   "nhtsa_id": "23V382",
+   "title": "Carbon ceramic brake rotor fracture",
+   "date": "2023-05-30",
+   "summary": "Carbon ceramic brakes only. Carbon ceramic brakes only (unlikely on the 2.0T); applies only if the car has carbon ceramic brakes.",
+   "condition": null,
+   "remedy": "BSM software update",
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://www.nhtsa.gov/recalls?nhtsaId=23V382"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "cuore_relevance": "Only if car has carbon ceramic brakes (unlikely on 2.0T)",
+   "components": [
+    "carbon ceramic brake rotors",
+    "BSM"
+   ],
+   "symptoms": [
+    "rotor fracture"
+   ],
+   "repair_implied": "software_update",
+   "depends_on_systems": [
+    "brakes_abs"
+   ]
+  },
+  {
+   "id": "recall-24v510",
+   "kind": "recall",
+   "number": "24V510",
+   "nhtsa_id": "24V510",
+   "title": "Seat belt buckle switch sensor connector",
+   "date": "2024-07-03",
+   "summary": "Improper connection may prevent front airbag deployment; TC 8,387 units",
+   "condition": null,
+   "remedy": "Repair connector at dealer",
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://www.nhtsa.gov/recalls?nhtsaId=24V510"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "transport_canada_id": "2024390",
+   "cuore_relevance": "FCA US ref 82B",
+   "components": [
+    "seat belt buckle switch sensor connector"
+   ],
+   "symptoms": [
+    "front airbag may not deploy"
+   ],
+   "repair_implied": "procedure:repair connector",
+   "depends_on_systems": [
+    "restraints"
+   ]
+  },
+  {
+   "id": "recall-25v586",
+   "kind": "recall",
+   "number": "25V586",
+   "nhtsa_id": "25V586",
+   "title": "Fuel pump failure",
+   "date": "2025-09-09",
+   "summary": "2018-2019 Stelvio; loss of fuel flow and drive power; TC 3,289 units. Related TSB 18-001-18 (inspect/replace fuel pump module, 2018-01) was not located. Recall scope 24,382 MY2018 Stelvio (sources vary on 2019). Summary-level only, PDFs not opened.",
+   "condition": "Low-pressure fuel pump failure; P008A; stall / loss of motive power.",
+   "remedy": "Replace fuel delivery module; interim letters 2025-10-07; final remedy expected July 2026",
+   "systems": [
+    "Fuel"
+   ],
+   "dtcs": [
+    "P008A"
+   ],
+   "links": [
+    {
+     "label": "NHTSA recall 25V586",
+     "url": "https://www.nhtsa.gov/recalls?nhtsaId=25V586"
+    },
+    {
+     "label": "NHTSA investigation PE24003",
+     "url": "https://static.nhtsa.gov/odi/inv/2024/INOA-PE24003-10035.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "transport_canada_id": "2025463",
+   "cuore_relevance": "Check whether final remedy is now available. Fuel pump/stall symptoms can mimic purge faults; check 25V-586 by VIN.",
+   "components": [
+    "fuel delivery module",
+    "low-pressure fuel pump"
+   ],
+   "symptoms": [
+    "P008A",
+    "stall",
+    "loss of motive power",
+    "loss of fuel flow"
+   ],
+   "repair_implied": "replace:fuel delivery module",
+   "depends_on_systems": [
+    "fuel"
+   ]
+  },
+  {
+   "id": "recall-2024379",
+   "kind": "recall",
+   "number": "2024379",
+   "nhtsa_id": null,
+   "title": "Incorrect tire pressure/size labels",
+   "date": null,
+   "summary": "2017-2024 Giulia and 2021-2024 Stelvio, 686 units. Scope is 2017-2024 Giulia and 2021-2024 Stelvio; not the 2018 Stelvio.",
+   "condition": null,
+   "remedy": null,
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2024379-fiat-chrysler-automobiles"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "transport_canada_id": "2024379",
+   "components": [
+    "tire pressure / size label"
+   ],
+   "symptoms": [
+    "incorrect tire labels"
+   ],
+   "repair_implied": "none",
+   "depends_on_systems": []
+  },
+  {
+   "id": "recall-2024767",
+   "kind": "recall",
+   "number": "2024767",
+   "nhtsa_id": null,
+   "title": "Brake booster input rod",
+   "date": null,
+   "summary": "2019 Giulia and Stelvio, 82 units. Scope is 2019 Giulia and Stelvio; not 2018.",
+   "condition": null,
+   "remedy": null,
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://mobile.guideautoweb.com/en/recalls/2024767"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "transport_canada_id": "2024767",
+   "components": [
+    "brake booster input rod"
+   ],
+   "symptoms": [
+    "brake booster input rod"
+   ],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "brakes_abs"
+   ]
+  },
+  {
+   "id": "csn-u24-u34-u36",
+   "kind": "csn",
+   "number": "U24/U34/U36",
+   "nhtsa_id": null,
+   "title": "Customer-satisfaction handling for 2018 wiper, liftgate, BCM recalls",
+   "date": "2018",
+   "summary": "Dealer notices tied to recalls above (loaner, wash, fuel); not standalone campaigns",
+   "condition": null,
+   "remedy": null,
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://static.nhtsa.gov/odi/rcl/2018/RCMN-18V205-2178.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "components": [
+    "wiper",
+    "liftgate",
+    "BCM"
+   ],
+   "symptoms": [],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "campaign-lookup",
+   "kind": "campaign",
+   "number": null,
+   "nhtsa_id": null,
+   "title": "Standalone CSN/service campaign, extended warranty, EVAP or uConnect special coverage",
+   "date": null,
+   "summary": "None found in public search for 2018 Stelvio. Not confirmed absent: FCA/Mopar lookups are VIN-gated",
+   "condition": null,
+   "remedy": null,
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://www.mopar.com/en-us/my-vehicle/recalls/search.html"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": "none",
+   "depends_on_systems": []
+  },
+  {
+   "id": "emissions-lookup",
+   "kind": "emissions",
+   "number": null,
+   "nhtsa_id": null,
+   "title": "CARB/EPA emissions recall",
+   "date": null,
+   "summary": "Not searched in depth; none surfaced. 18V636 (ECM reflash) is the nearest emissions-adjacent item. Check CARB/EPA lookups by VIN",
+   "condition": null,
+   "remedy": null,
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "Source",
+     "url": "https://www.nhtsa.gov/recalls"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": "none",
+   "depends_on_systems": []
+  },
+  {
+   "id": "tsb-9002519",
+   "kind": "tsb",
+   "number": "9002519",
+   "nhtsa_id": "10129008",
+   "title": "82212076, 82203694 - Fabric Cleaner This \"fabric cleaner\" is not intended for sale in California, the otc states (Connecticut, Delaware, Massachusetts, Maine, New Hampshire, New Jersey, New York, Pennsylvania, Virginia, and Washington dc), and some ladco states (Illinois, Michigan, and Ohio). Mopar offers an alternative product (82213192) which is a water based product approved for sale in the aforementioned states.~ ~ Please inform the customer & your prep dept that spraying excessive amounts of the fabric protector on load floors will result in the breaking down of the adhesive (glue) that is used to create the bond between the fabric (carpet) and the load floor. This will apply to any vehicles equipped with rear load floors such as WK, WD, PM, MK, KA, KK. The carpet will appear to be loose, wrinkly, or bunch up~",
+   "date": "2013-03-20",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT:OTHER:OWNERS/SERVICE/OTHER MANUAL. NHTSA flat-file records: MC-10129008-9999 2013-03-20 (9002519). NHTSA flat-file records: MC-10129008-9999 2013-03-20 (9002519).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2018/MC-10129008-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "tsb-05152029",
+   "kind": "tsb",
+   "number": "05152029",
+   "nhtsa_id": "10223855",
+   "title": "Washer Fluid Level Sensor Prior to replacing this part due to \"Low Washer Fluid\" tell tale light on the dash and the washer fluid bottle is full, please perform the this inspection. Inspect the sensor for a fluid coating on the sensor pins. Orange colored rain repellant can cause this fluid build-up. Clean the pins, drain the reservoir, and fill with Mopar approved washer fluid. Check to determine if the issue has been resolved. Continue with repair if necessary. Also, please inform the customer not to use Rain-X in the system to avoid this issue. Please contact Chuck Hood at cell (248) 613-7591 if you have questions or need additional information. Thank you.",
+   "date": "2016-09-07",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: VISIBILITY/WIPER. NHTSA flat-file records: no-pdf record 10223855 2016-09-07 (05152029). NHTSA flat-file records: no-pdf record 10223855 2016-09-07 (05152029).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "tsb-9003696",
+   "kind": "tsb",
+   "number": "9003696",
+   "nhtsa_id": "10139992",
+   "title": "Door Hinge Assembly Side door hinge noisy. Only replace the door hinge with the integral check device. Do not replace the simple hinge if it is not damaged it is not the source of the noise. Replacing it unnecessary and is an over-repair.",
+   "date": "2017-03-29",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: STRUCTURE:BODY:DOOR. NHTSA flat-file records: no-pdf record 10139992 2017-03-29 (9003696); no-pdf record 10217524 2017-03-29 (9003696). NHTSA flat-file records: no-pdf record 10139992 2017-03-29 (9003696); no-pdf record 10217524 2017-03-29 (9003696).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ],
+   "nhtsa_ids": [
+    "10139992",
+    "10217524"
+   ]
+  },
+  {
+   "id": "tsb-9003109",
+   "kind": "tsb",
+   "number": "9003109",
+   "nhtsa_id": "10138855",
+   "title": "Washer Fluid Level Sensor Prior to replacing this part due to \"Low Washer Fluid\" tell tale light on the dash and the washer fluid bottle is full, please perform this inspection: Check if float sensor is rotated off location from the bottle anti-rotation features that surround the SENSOR. Check to determine if the issue has been resolved. Continue with repair if necessary. Please contact Chris Koch at cell (248) 248-622-6417 if you have questions or need additional information.",
+   "date": "2017-06-07",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: VISIBILITY:WINDSHIELD WIPER/WASHER. NHTSA flat-file records: no-pdf record 10138855 2017-06-07 (9003109); no-pdf record 10219830 2017-06-07 (9003109). NHTSA flat-file records: no-pdf record 10138855 2017-06-07 (9003109); no-pdf record 10219830 2017-06-07 (9003109).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ],
+   "nhtsa_ids": [
+    "10138855",
+    "10219830"
+   ]
+  },
+  {
+   "id": "tsb-9003293",
+   "kind": "tsb",
+   "number": "9003293",
+   "nhtsa_id": "10216110",
+   "title": "A/C Pressure Transducer A/C inoperative and diagnosis leads to pressure transducer. Call Steve Rice at cell (248) 867-0061 before replacing the pressure transducer. If no response in 15 minutes, please proceed with repair.",
+   "date": "2017-11-08",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: VISIBILITY:DEFROSTER/DEFOGGER/HVAC SYSTEM; EQUIPMENT:APPLIANCE:AIR CONDITIONER. NHTSA flat-file records: no-pdf record 10216110 2017-11-08 (9003293); no-pdf record 10217451 2017-11-08 (9003293). NHTSA flat-file records: no-pdf record 10216110 2017-11-08 (9003293); no-pdf record 10217451 2017-11-08 (9003293).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "HVAC"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "hvac"
+   ],
+   "nhtsa_ids": [
+    "10216110",
+    "10217451"
+   ]
+  },
+  {
+   "id": "tsb-08-044-19",
+   "kind": "tsb",
+   "number": "08-044-19",
+   "nhtsa_id": "10162530",
+   "title": "Flash: Anti-Lock Brake System (ABS) Module Diagnostic and System Updates This bulletin involves reprogramming the ABS module with the latest available software. The following enhancement is included with this update:Improved brake pedal feel.",
+   "date": "2019-05-01",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: SERVICE BRAKES, HYDRAULIC:ANTILOCK/TRACTION CONTROL/ELECTRONIC LIMITED SLIP. NHTSA flat-file records: MC-10162530-9999 2019-05-01 (08-044-19). NHTSA flat-file records: MC-10162530-9999 2019-05-01 (08-044-19).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Brakes"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10162530-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "brakes_abs"
+   ]
+  },
+  {
+   "id": "tsb-08-081-19",
+   "kind": "tsb",
+   "number": "08-081-19",
+   "nhtsa_id": "10166576",
+   "title": "RAN RAP RAG and RSD 2.5 Radio Software Enhancements This bulletin involves inspecting and if required, updating the radio to software level MV 085.000.046. The customer should be informed that after the reprogram, the radio will need to have the phones paired to the Entertainment Telematics Module (ETM). The operative details for pairing telephones and settings are shown in the OwnerHandbook of the infotainment module. Some customers may experience one or more of the following:Radio may reboot while driving. Radio stays on if you exit the vehicle during a phone call. When the vehicle is remote started the radio will turn on at the previously set volume level.",
+   "date": "2019-08-02",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT; ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10166576-9999 2019-08-02 (08-081-19). NHTSA flat-file records: MC-10166576-9999 2019-08-02 (08-081-19).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10166576-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster"
+   ]
+  },
+  {
+   "id": "tsb-9003220",
+   "kind": "tsb",
+   "number": "9003220",
+   "nhtsa_id": "10166537",
+   "title": "RADIO [RES] - New and/or Service Exchange For RES radio concerns. Use the wiTECH 2.0 and inspect the radio part number and serial number under the Radio/ECU Details tab. Please verify that the radio part number and/or serial number is not \"FFFF\". If either field shows \"FFFF\", please contact Mike Wielgat at 248-576-6696 or Rohan Negandhi at 248-421-9608 If no response in 15 minutes, proceed with repair.",
+   "date": "2019-08-07",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT; EQUIPMENT:ELECTRICAL:RADIO/TAPE DECK/CD ETC.. NHTSA flat-file records: MC-10166537-9999 2019-08-07 (9003220). NHTSA flat-file records: MC-10166537-9999 2019-08-07 (9003220).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10166537-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster"
+   ]
+  },
+  {
+   "id": "tsb-9004130",
+   "kind": "tsb",
+   "number": "9004130",
+   "nhtsa_id": "10166551",
+   "title": "Battery Prior to replacing the battery, please call Cary Powell at (248) 500-7751. If no response in 15 minutes, proceed with repair.",
+   "date": "2019-08-28",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10166551-9999 2019-08-28 (9004130). NHTSA flat-file records: MC-10166551-9999 2019-08-28 (9004130).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10166551-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "starting_charging"
+   ]
+  },
+  {
+   "id": "tsb-31-004-19",
+   "kind": "tsb",
+   "number": "31-004-19",
+   "nhtsa_id": "10169246",
+   "title": "Authentic Mopar® Glass Replacement This bulletin involves discussing FCA US LLC position with regard to collision repair industry awareness regarding the recommended usage of Authentic Mopar® Glass.",
+   "date": "2019-11-20",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: VISIBILITY. NHTSA flat-file records: MC-10169246-9999 2019-11-20 (31-004-19); no-pdf record 10220098 2019-11-20 (3100419). Revisions seen: 31-004-19, 3100419. NHTSA flat-file records: MC-10169246-9999 2019-11-20 (31-004-19); no-pdf record 10220098 2019-11-20 (3100419). Revisions seen: 31-004-19, 3100419.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10169246-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ],
+   "nhtsa_ids": [
+    "10169246",
+    "10220098"
+   ]
+  },
+  {
+   "id": "tsb-31-005-19",
+   "kind": "tsb",
+   "number": "31-005-19",
+   "nhtsa_id": "10169249",
+   "title": "Use of Aftermarket Parts This bulletin involves discussing FCA US LLC position with regard to collision repair industry awareness regarding the use of aftermarket parts.",
+   "date": "2019-11-20",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT; STRUCTURE. NHTSA flat-file records: MC-10169249-9999 2019-11-20 (31-005-19); no-pdf record 10220101 2019-11-20 (3100519). Revisions seen: 31-005-19, 3100519. NHTSA flat-file records: MC-10169249-9999 2019-11-20 (31-005-19); no-pdf record 10220101 2019-11-20 (3100519). Revisions seen: 31-005-19, 3100519.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10169249-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ],
+   "nhtsa_ids": [
+    "10169249",
+    "10220101"
+   ]
+  },
+  {
+   "id": "tsb-3100319",
+   "kind": "tsb",
+   "number": "3100319",
+   "nhtsa_id": "10220099",
+   "title": "Use of Salvage/Recycled Parts This bulletin involves discussing FCA US LLC position with regard to collision repair industry awareness regarding the use of recycled or salvage parts.",
+   "date": "2019-11-20",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: STRUCTURE. NHTSA flat-file records: no-pdf record 10220099 2019-11-20 (3100319). NHTSA flat-file records: no-pdf record 10220099 2019-11-20 (3100319).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "tsb-3100619",
+   "kind": "tsb",
+   "number": "3100619",
+   "nhtsa_id": "10220097",
+   "title": "Repair Parts Used For Structural Repairs This bulletin involves discussing FCA US LLC position with regard to structural repair parts usage.",
+   "date": "2019-11-20",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: STRUCTURE; EQUIPMENT. NHTSA flat-file records: no-pdf record 10220097 2019-11-20 (3100619). NHTSA flat-file records: no-pdf record 10220097 2019-11-20 (3100619).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "tsb-9004022",
+   "kind": "tsb",
+   "number": "9004022",
+   "nhtsa_id": "10170314",
+   "title": "Air Suspension Components Star Parts Catalog has been updated to show individual service parts for the compressor assembly. This will allow service technicians to repair the root cause without over repairing the system. Replace only the part deemed failed by the diagnostics performed. Individual parts include: - Compressor - Valve block - Individual hoses - Temp sensor - Shield - Air line clips NOTE: in most situations when a new compressor is needed, the compressor as a separate part is the correct repair, and the assembly would not be required.",
+   "date": "2019-12-11",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: SUSPENSION. NHTSA flat-file records: no-pdf record 10170314 2019-12-11 (9004022). NHTSA flat-file records: no-pdf record 10170314 2019-12-11 (9004022).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Suspension"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "suspension"
+   ]
+  },
+  {
+   "id": "tsb-s2008000010",
+   "kind": "tsb",
+   "number": "S2008000010",
+   "nhtsa_id": "10173305",
+   "title": "Apple Carplay Inoperative Or Not Working, Phone Not Pairing, Carplay Lockup Or Freeze.",
+   "date": "2020-02-06",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT. NHTSA flat-file records: MC-10173305-9999 2020-02-06 (S2008000010); MC-10178642-9999 2020-07-03 (S2008000010); no-pdf record 10221715 2020-07-03 (S2008000010); no-pdf record 10229285 2020-07-03 (S2008000010). NHTSA flat-file records: MC-10173305-9999 2020-02-06 (S2008000010); MC-10178642-9999 2020-07-03 (S2008000010); no-pdf record 10221715 2020-07-03 (S2008000010); no-pdf record 10229285 2020-07-03 (S2008000010).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10173305-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10178642)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10178642-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster"
+   ],
+   "nhtsa_ids": [
+    "10173305",
+    "10178642",
+    "10221715",
+    "10229285"
+   ]
+  },
+  {
+   "id": "tsb-s2008000013",
+   "kind": "tsb",
+   "number": "S2008000013",
+   "nhtsa_id": "10173328",
+   "title": "Key Programming, Security Pin Request, Pin Invalid",
+   "date": "2020-02-26",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM; EQUIPMENT. NHTSA flat-file records: MC-10173328-9999 2020-02-26 (S2008000013). NHTSA flat-file records: MC-10173328-9999 2020-02-26 (S2008000013).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Immobiliser/keys"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10173328-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "security_immobiliser"
+   ]
+  },
+  {
+   "id": "tsb-s2008000017",
+   "kind": "tsb",
+   "number": "S2008000017",
+   "nhtsa_id": "10174135",
+   "title": "ESS Unavailable In Areas 5,250 Feet (1600 Meters) Above Sea Level",
+   "date": "2020-03-04",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10174135-9999 2020-03-04 (S2008000017); MC-10175055-9999 2020-03-04 (S2008000017); MC-10175467-9999 2020-03-04 (S2008000017). NHTSA flat-file records: MC-10174135-9999 2020-03-04 (S2008000017); MC-10175055-9999 2020-03-04 (S2008000017); MC-10175467-9999 2020-03-04 (S2008000017).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174135-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10175055)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175055-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10175467)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175467-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "starting_charging"
+   ],
+   "nhtsa_ids": [
+    "10174135",
+    "10175055",
+    "10175467"
+   ]
+  },
+  {
+   "id": "tsb-08-029-20",
+   "kind": "tsb",
+   "number": "08-029-20",
+   "nhtsa_id": "10174204",
+   "title": "RAN RAP RAJ RAG and RSD Radio Software Enhancements This bulletin involves inspecting and if required, updating the radio to software level MV-002.010.041.The customer should be informed that after the reprogram, the radio will need to have the phones paired to the Entertainment Telematics Module (ETM). The operative details for pairing telephones and settings are shown in theOwner Handbook of the infotainment module. Some customers may experience one or more of the following:Voice commands not recognized, especially in SiriusXM®. Can?t select certain character in navigation, character grayed out. Radio may reboot while driving. Tweeter noise during audio streaming. Ipod Nano® not recognized. Voice recognition does not work when setting an address in Spanish. In addition, the following improvements are included:Stability improvements, to help prevent the radios from rebooting and freezing. Preset management improvements, for better usability. Additional phone compatibility improvements on phones not tested in the past.",
+   "date": "2020-03-05",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10174204-9999 2020-03-05 (08-029-20); MC-10175124-9999 2020-03-05 (08-029-20); MC-10175537-9999 2020-03-05 (08-029-20). NHTSA flat-file records: MC-10174204-9999 2020-03-05 (08-029-20); MC-10175124-9999 2020-03-05 (08-029-20); MC-10175537-9999 2020-03-05 (08-029-20).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174204-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10175124)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175124-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10175537)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175537-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster"
+   ],
+   "nhtsa_ids": [
+    "10174204",
+    "10175124",
+    "10175537"
+   ]
+  },
+  {
+   "id": "tsb-s2008000021",
+   "kind": "tsb",
+   "number": "S2008000021",
+   "nhtsa_id": "10174150",
+   "title": "PCM ESS Inhibits List Show Driver Door Condition Inhibiting The S&S",
+   "date": "2020-03-13",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: AIR BAGS; VEHICLE SPEED CONTROL. NHTSA flat-file records: MC-10174150-9999 2020-03-13 (S2008000021); MC-10175070-9999 2020-03-13 (S2008000021); MC-10175482-9999 2020-03-13 (S2008000021). NHTSA flat-file records: MC-10174150-9999 2020-03-13 (S2008000021); MC-10175070-9999 2020-03-13 (S2008000021); MC-10175482-9999 2020-03-13 (S2008000021).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "ECM",
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174150-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10175070)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175070-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10175482)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175482-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "engine_management",
+    "starting_charging"
+   ],
+   "nhtsa_ids": [
+    "10174150",
+    "10175070",
+    "10175482"
+   ]
+  },
+  {
+   "id": "tsb-s1808000005",
+   "kind": "tsb",
+   "number": "S1808000005",
+   "nhtsa_id": "10175655",
+   "title": "No Start, Multiple Modules Are Not Responding",
+   "date": "2020-04-04",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE. NHTSA flat-file records: MC-10175655-9999 2020-04-04 (S1808000005). NHTSA flat-file records: MC-10175655-9999 2020-04-04 (S1808000005).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Network/wiring",
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175655-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "network",
+    "engine_management"
+   ]
+  },
+  {
+   "id": "tsb-s2019000002",
+   "kind": "tsb",
+   "number": "S2019000002",
+   "nhtsa_id": "10175674",
+   "title": "Hands On Steering Wheel Message In EVIC",
+   "date": "2020-04-17",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: STEERING. NHTSA flat-file records: MC-10175674-9999 2020-04-17 (S2019000002). NHTSA flat-file records: MC-10175674-9999 2020-04-17 (S2019000002).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Steering",
+    "Infotainment/cluster"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175674-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "steering",
+    "infotainment_cluster"
+   ]
+  },
+  {
+   "id": "tsb-18-039-20",
+   "kind": "tsb",
+   "number": "18-039-20",
+   "nhtsa_id": "10175733",
+   "title": "Possible Driveability Issues due to the Winter-Blend Fuel into the Warmer Season",
+   "date": "2020-04-21",
+   "summary": "Information-only bulletin (2020-04-21), 2010-current all FCA Group gasoline vehicles, North America. COVID-19 reduced fuel throughput, EPA waived seasonal fuel requirements, so higher-vapor-pressure winter-blend fuel may stay in the retail system into warm weather. Standard diagnostics may not find a root cause. No parts, DTC list or repair procedure.",
+   "condition": "Higher volatile (higher vapor pressure) fuel combined with warm ambient temperatures: refueling concerns, stalling, driveability issues, DTCs, increased evaporative emissions and fuel odor; most likely within 1-3 days of refueling in warm temperatures.",
+   "remedy": "None stated (POLICY: Information Only).",
+   "systems": [
+    "Fuel",
+    "EVAP"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175733-9999.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "NHTSA PDF opened in full (2026-10-15); NHTSA flat file TSBS_RECEIVED",
+   "verified": true,
+   "components": [
+    "fuel (winter-blend vapor pressure)"
+   ],
+   "symptoms": [
+    "refueling concerns",
+    "stalling",
+    "driveability issues",
+    "DTCs (none listed)",
+    "increased evaporative emissions",
+    "fuel odor"
+   ],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "fuel",
+    "evap"
+   ],
+   "cuore_relevance": "Context for EVAP/fuel symptoms that come and go after refueling in warm weather; a 2020 seasonal notice, not a part fix. Does not name P0440/P0455/P0456."
+  },
+  {
+   "id": "tsb-08-049-20",
+   "kind": "tsb",
+   "number": "08-049-20",
+   "nhtsa_id": "10175735",
+   "title": "Charging System, Battery Diagnostic Tools and Warranty This information only bulletin discusses using the correct test equipment for testing batteries and charging systems, and also warranty reimbursement when battery replacements are necessary.",
+   "date": "2020-04-22",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT; ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10175735-9999 2020-04-22 (08-049-20). NHTSA flat-file records: MC-10175735-9999 2020-04-22 (08-049-20).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175735-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "starting_charging"
+   ]
+  },
+  {
+   "id": "tsb-23-015-20",
+   "kind": "tsb",
+   "number": "23-015-20",
+   "nhtsa_id": "10175743",
+   "title": "Disinfectant Solution Recommended for COVID-19",
+   "date": "2020-04-30",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT; STRUCTURE. NHTSA flat-file records: MC-10175743-9999 2020-04-30 (23-015-20). NHTSA flat-file records: MC-10175743-9999 2020-04-30 (23-015-20).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175743-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "tsb-08-065-20",
+   "kind": "tsb",
+   "number": "08-065-20",
+   "nhtsa_id": "10177540",
+   "title": "RAN RAP RAG and RSD 2.5 Radio Software Enhancements This bulletin involves inspecting and if required, updating the radio to software level to MV 090.000.061The customer should be informed that after the reprogram, the radio will need to have the phones paired to theEntertainment Telematics Module (ETM). The operative details for pairing telephones and settings are shown in the Owner Handbook of the infotainment module. Some customers may experience one or more of the following: Radio may reboot while driving.Software update will help correct existing issue. Radio stays on if you exit the vehicle during a phone call. When the vehicle is remote started the radio will turn on at the previously set volume level.",
+   "date": "2020-06-24",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT:ELECTRICAL:RADIO/TAPE DECK/CD ETC.; ELECTRICAL SYSTEM:SOFTWARE. NHTSA flat-file records: MC-10177540-9999 2020-06-24 (08-065-20); no-pdf record 10223595 2020-06-24 (0806520). Revisions seen: 08-065-20, 0806520. NHTSA flat-file records: MC-10177540-9999 2020-06-24 (08-065-20); no-pdf record 10223595 2020-06-24 (0806520). Revisions seen: 08-065-20, 0806520.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10177540-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster"
+   ],
+   "nhtsa_ids": [
+    "10177540",
+    "10223595"
+   ]
+  },
+  {
+   "id": "tsb-s2008000093",
+   "kind": "tsb",
+   "number": "S2008000093",
+   "nhtsa_id": "10177504",
+   "title": "Blind Spot Or Park Assist Warnings, False Activation",
+   "date": "2020-06-30",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM:ADAS:BLINDSPOT:WARNING:LAMP; ELECTRICAL SYSTEM:ADAS:PARKING ASSIST:WARNING. NHTSA flat-file records: MC-10177504-9999 2020-06-30 (S2008000093); no-pdf record 10223559 2020-06-30 (S2008000093). NHTSA flat-file records: MC-10177504-9999 2020-06-30 (S2008000093); no-pdf record 10223559 2020-06-30 (S2008000093).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "ADAS"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10177504-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "adas_sensors"
+   ],
+   "nhtsa_ids": [
+    "10177504",
+    "10223559"
+   ]
+  },
+  {
+   "id": "tsb-s2008000113",
+   "kind": "tsb",
+   "number": "S2008000113",
+   "nhtsa_id": "10180203",
+   "title": "No Start Intermittently, Vehicle Requires Multiple Keyless Push To Start Attempts To Start Vehicle",
+   "date": "2020-08-01",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE; ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10180203-9999 2020-08-01 (S2008000113); no-pdf record 10221813 2020-08-01 (S2008000113); no-pdf record 10221154 2021-04-17 (S2008000113); MC-10194007-9999 2021-04-17 (S2008000113 Rev.). Revisions seen: S2008000113, S2008000113 Rev.. NHTSA flat-file records: MC-10180203-9999 2020-08-01 (S2008000113); no-pdf record 10221813 2020-08-01 (S2008000113); no-pdf record 10221154 2021-04-17 (S2008000113); MC-10194007-9999 2021-04-17 (S2008000113 Rev.). Revisions seen: S2008000113, S2008000113 Rev..",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Immobiliser/keys",
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10180203-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10194007)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10194007-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "security_immobiliser",
+    "engine_management"
+   ],
+   "nhtsa_ids": [
+    "10180203",
+    "10194007",
+    "10221154",
+    "10221813"
+   ]
+  },
+  {
+   "id": "tsb-9003637",
+   "kind": "tsb",
+   "number": "9003637",
+   "nhtsa_id": "10180177",
+   "title": "USB PORT, Media Hub For Android Auto and Apple Carplay issues, do not replace this part. Android Auto and Apple Carplay applications may not operate with the vehicle if an aftermarket cable is being used. Verify the functionality of these applications using an OEM Apple Lightning cable or an OEM provided USB cable for Android phones before performing any additional troubleshooting. For questions regarding Android Auto or Apply Carplay functionality, please contact FCA Redacted Content. If no response in 15 minutes, proceed with repair.",
+   "date": "2020-08-19",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT:ELECTRICAL:INFOTAINMENT; EQUIPMENT. NHTSA flat-file records: MC-10180177-9999 2020-08-19 (9003637); no-pdf record 10221787 2020-08-19 (9003637). NHTSA flat-file records: MC-10180177-9999 2020-08-19 (9003637); no-pdf record 10221787 2020-08-19 (9003637).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body",
+    "Infotainment/cluster"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10180177-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort",
+    "infotainment_cluster"
+   ],
+   "nhtsa_ids": [
+    "10180177",
+    "10221787"
+   ]
+  },
+  {
+   "id": "tsb-s1908000028",
+   "kind": "tsb",
+   "number": "S1908000028",
+   "nhtsa_id": "10184399",
+   "title": "(Rev. A) Power Inverter Load Ratings",
+   "date": "2020-11-05",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM:12V/24V/48V BATTERY. NHTSA flat-file records: MC-10184399-9999 2020-11-05 (S1908000028 Rev.); MC-10184699-9999 2020-11-05 (S1908000028 Rev.). NHTSA flat-file records: MC-10184399-9999 2020-11-05 (S1908000028 Rev.); MC-10184699-9999 2020-11-05 (S1908000028 Rev.).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184399-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10184699)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184699-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "starting_charging"
+   ],
+   "nhtsa_ids": [
+    "10184399",
+    "10184699"
+   ]
+  },
+  {
+   "id": "tsb-s1908000102",
+   "kind": "tsb",
+   "number": "S1908000102",
+   "nhtsa_id": "10224022",
+   "title": "(Rev. A) Power Inverter Load Ratings",
+   "date": "2020-11-05",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: POWER TRAIN. NHTSA flat-file records: no-pdf record 10224022 2020-11-05 (S1908000102). NHTSA flat-file records: no-pdf record 10224022 2020-11-05 (S1908000102).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "starting_charging"
+   ]
+  },
+  {
+   "id": "tsb-s2018000012",
+   "kind": "tsb",
+   "number": "S2018000012",
+   "nhtsa_id": "10184402",
+   "title": "Check engine lamp on. Fault code P0244- TURBOCHARGER/SUPERCHARGER WASTEGATE SOLENOID \"A\" RANGE/PERFORMANCE is set in the Powertrain Control Module (PCM a.k.a. ECM) after the turbocharger assembly has been replaced.",
+   "date": "2020-11-06",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM; POWER TRAIN:AUTOMATIC TRANSMISSION:CONTROL MODULE (TCM/PCM/TECM); ENGINE AND ENGINE COOLING:ENGINE:GASOLINE:TURBO/SUPERCHARGER. NHTSA flat-file records: MC-10184402-9999 2020-11-06 (S2018000012); MC-10184702-9999 2020-11-06 (S2018000012); no-pdf record 10224025 2020-11-06 (S2018000012). NHTSA flat-file records: MC-10184402-9999 2020-11-06 (S2018000012); MC-10184702-9999 2020-11-06 (S2018000012); no-pdf record 10224025 2020-11-06 (S2018000012).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Turbo",
+    "Transmission",
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184402-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10184702)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184702-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "air_intake_boost",
+    "transmission_driveline",
+    "engine_management"
+   ],
+   "nhtsa_ids": [
+    "10184402",
+    "10184702",
+    "10224025"
+   ]
+  },
+  {
+   "id": "tsb-s1708000262",
+   "kind": "tsb",
+   "number": "S1708000262",
+   "nhtsa_id": "10224037",
+   "title": "(Rev. A) Check Engine Lamp Is On, Intermittent Module CAN Private Or LIN BUS Codes",
+   "date": "2020-11-17",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: no-pdf record 10224037 2020-11-17 (S1708000262); MC-10184414-9999 2020-11-17 (S1708000262 Rev.); MC-10184714-9999 2020-11-17 (S1708000262 Rev.). Revisions seen: S1708000262, S1708000262 Rev.. NHTSA flat-file records: no-pdf record 10224037 2020-11-17 (S1708000262); MC-10184414-9999 2020-11-17 (S1708000262 Rev.); MC-10184714-9999 2020-11-17 (S1708000262 Rev.). Revisions seen: S1708000262, S1708000262 Rev..",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Network/wiring",
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184414-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10184714)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184714-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "network",
+    "engine_management"
+   ],
+   "nhtsa_ids": [
+    "10184414",
+    "10184714",
+    "10224037"
+   ]
+  },
+  {
+   "id": "tsb-9004335",
+   "kind": "tsb",
+   "number": "9004335",
+   "nhtsa_id": "10184380",
+   "title": "Turbocharger If the turbo is being replaced for an oil leak concern, please inspect the area around the turbo oil feed o-ring for a leak. The o-ring is serviced separately and complete turbo replacement may not be necessary.",
+   "date": "2020-11-25",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING:ENGINE:OTHER FUEL TYPES:TURBO/SUPERCHARGER; EQUIPMENT. NHTSA flat-file records: MC-10184380-9999 2020-11-25 (9004335); MC-10184680-9999 2020-11-25 (9004335); no-pdf record 10224003 2020-11-25 (9004335). NHTSA flat-file records: MC-10184380-9999 2020-11-25 (9004335); MC-10184680-9999 2020-11-25 (9004335); no-pdf record 10224003 2020-11-25 (9004335).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Turbo",
+    "Lubrication"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184380-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10184680)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184680-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "air_intake_boost",
+    "lubrication"
+   ],
+   "nhtsa_ids": [
+    "10184380",
+    "10184680",
+    "10224003"
+   ]
+  },
+  {
+   "id": "tsb-01-001-21",
+   "kind": "tsb",
+   "number": "01-001-21",
+   "nhtsa_id": "10188822",
+   "title": "Oil Change Monitor Displaying Prematurely This bulletin involves resetting the oil life monitor and if necessary changing the engine oil and filter. The customer may experience the oil change light illuminated on the dash shortly after taking delivery of the vehicle within 6,437 Km (4,000 miles).",
+   "date": "2021-02-20",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING. NHTSA flat-file records: MC-10188822-9999 2021-02-20 (01-001-21); no-pdf record 10220618 2021-02-20 (0100121). Revisions seen: 01-001-21, 0100121. NHTSA flat-file records: MC-10188822-9999 2021-02-20 (01-001-21); no-pdf record 10220618 2021-02-20 (0100121). Revisions seen: 01-001-21, 0100121.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster",
+    "Lubrication"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10188822-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster",
+    "lubrication"
+   ],
+   "nhtsa_ids": [
+    "10188822",
+    "10220618"
+   ]
+  },
+  {
+   "id": "tsb-s2123000016",
+   "kind": "tsb",
+   "number": "S2123000016",
+   "nhtsa_id": "10190628",
+   "title": "Creak Noise From Front Of Vehicle",
+   "date": "2021-03-17",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING. NHTSA flat-file records: MC-10190628-9999 2021-03-17 (S2123000016); no-pdf record 10220881 2021-03-17 (S2123000016). NHTSA flat-file records: MC-10190628-9999 2021-03-17 (S2123000016); no-pdf record 10220881 2021-03-17 (S2123000016).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10190628-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ],
+   "nhtsa_ids": [
+    "10190628",
+    "10220881"
+   ]
+  },
+  {
+   "id": "tsb-s1809000007",
+   "kind": "tsb",
+   "number": "S1809000007",
+   "nhtsa_id": "10190667",
+   "title": "Customer complaint may include engine oil leak/consumption.",
+   "date": "2021-03-31",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING. NHTSA flat-file records: MC-10190667-9999 2021-03-31 (S1809000007 Rev.); no-pdf record 10212473 2021-06-16 (S1809000007); no-pdf record 10221277 2021-06-16 (S1809000007RevC). Revisions seen: S1809000007, S1809000007 Rev., S1809000007RevC. NHTSA flat-file records: MC-10190667-9999 2021-03-31 (S1809000007 Rev.); no-pdf record 10212473 2021-06-16 (S1809000007); no-pdf record 10221277 2021-06-16 (S1809000007RevC). Revisions seen: S1809000007, S1809000007 Rev., S1809000007RevC.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Lubrication"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10190667-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "lubrication"
+   ],
+   "nhtsa_ids": [
+    "10190667",
+    "10212473",
+    "10221277"
+   ]
+  },
+  {
+   "id": "tsb-9004009",
+   "kind": "tsb",
+   "number": "9004009",
+   "nhtsa_id": "10221097",
+   "title": "Transmission Kit with Torque Converter 1. All Promaster (VF) 3.6L/62TE equipped vehicles. If the transmission bracket to the transmission case fasteners are removed during servicing, the fasteners (Part Number 06511385A$) are one-time usage. Vehicles built prior to 10/23/2015 requires Service Kit PN 68461214AA; includes Transmission Isolator PN 68264483AA, and Adaptation Bracket 68264479AA and Fastener Service Kit PN 68329056AA Vehicles built after on or after 10/23/2015 will require only the Fastener Service Kit PN 68329056AA. 2. All 3.6L/62TE equipped vehicles. If the vehicle you are repairing has a crack in the flex plate or failed pump bushing inspect and confirm that both (2) dowel pins are present in the engine block, which align the transmission center line to the crank shaft centerline and visually inspect the dowel alignment holes in the transmission case. If the holes are damaged or elongated the transmission should be replaced to prevent further damage to the transmission/flexplate or pump bushing due to the inability to properly align the engine to the transmission during the repair. 3. All 62TE equipped vehicles. If pump bushing is scored or damaged and the dowel pin alignment holes are ok, replace the pump assembly as opposed to complete transmission. 4. All 62TE equipped vehicles. If vehicle is jerking/slipping with MIL code(s) P0740 or P2764, check TCC Solenoid operation. If TCC Solenoid is ok, the codes are indicative of a torque converter failure. Replace the torque converter.",
+   "date": "2021-04-07",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: POWER TRAIN. NHTSA flat-file records: MC-10221097-9999 2021-04-07 (9004009). NHTSA flat-file records: MC-10221097-9999 2021-04-07 (9004009).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Transmission"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10221097-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "transmission_driveline"
+   ]
+  },
+  {
+   "id": "tsb-s16080002261",
+   "kind": "tsb",
+   "number": "S16080002261",
+   "nhtsa_id": "10221152",
+   "title": "Battery Tester Warranty Code Procedures, Medtronic Update Process",
+   "date": "2021-04-16",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: ELECTRICAL SYSTEM; EQUIPMENT. NHTSA flat-file records: no-pdf record 10221152 2021-04-16 (S16080002261). NHTSA flat-file records: no-pdf record 10221152 2021-04-16 (S16080002261).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "starting_charging"
+   ]
+  },
+  {
+   "id": "tsb-s1821000001",
+   "kind": "tsb",
+   "number": "S1821000001",
+   "nhtsa_id": "10221150",
+   "title": "Gear Ratio DTC?s, Transmission Shift Concerns, Does Not Shift At Times, Shudders",
+   "date": "2021-04-16",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: POWER TRAIN. NHTSA flat-file records: no-pdf record 10221150 2021-04-16 (S1821000001). NHTSA flat-file records: no-pdf record 10221150 2021-04-16 (S1821000001).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Transmission"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "transmission_driveline"
+   ]
+  },
+  {
+   "id": "tsb-s1608000226",
+   "kind": "tsb",
+   "number": "S1608000226",
+   "nhtsa_id": "10221153",
+   "title": "Battery Tester Warranty Code Procedures, Midtronics Charger Update Process",
+   "date": "2021-04-17",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: EQUIPMENT; ELECTRICAL SYSTEM. NHTSA flat-file records: no-pdf record 10221153 2021-04-17 (S1608000226). NHTSA flat-file records: no-pdf record 10221153 2021-04-17 (S1608000226).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "starting_charging"
+   ]
+  },
+  {
+   "id": "tsb-s1708000118",
+   "kind": "tsb",
+   "number": "S1708000118",
+   "nhtsa_id": "10221164",
+   "title": "Battery Drain Concern, Dual USB Port Normal Operational Draw, Extended Illumination After Key Off",
+   "date": "2021-04-24",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: no-pdf record 10221164 2021-04-24 (S1708000118); MC-10194017-9999 2021-04-24 (S1708000118 Rev.); MC-10220697-9999 2022-03-09 (S1708000118); MC-10223079-9999 2022-03-09 (S1708000118); no-pdf record 10229041 2022-03-09 (S1708000118); MC-10212300-9999 2022-03-09 (S1708000118 RevB). Revisions seen: S1708000118, S1708000118 Rev., S1708000118 RevB. NHTSA flat-file records: no-pdf record 10221164 2021-04-24 (S1708000118); MC-10194017-9999 2021-04-24 (S1708000118 Rev.); MC-10220697-9999 2022-03-09 (S1708000118); MC-10223079-9999 2022-03-09 (S1708000118); no-pdf record 10229041 2022-03-09 (S1708000118); MC-10212300-9999 2022-03-09 (S1708000118 RevB). Revisions seen: S1708000118, S1708000118 Rev., S1708000118 RevB.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster",
+    "Immobiliser/keys",
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10194017-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10220697)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10220697-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10223079)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10223079-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10212300)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10212300-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster",
+    "security_immobiliser",
+    "starting_charging"
+   ],
+   "nhtsa_ids": [
+    "10194017",
+    "10212300",
+    "10220697",
+    "10221164",
+    "10223079",
+    "10229041"
+   ]
+  },
+  {
+   "id": "tsb-9004386",
+   "kind": "tsb",
+   "number": "9004386",
+   "nhtsa_id": "10221228",
+   "title": "WIRING, Body Before replacing this harness, please contact FCA Redacted Content to see if a repair kit is available for your application. If no response in 15 minutes, proceed with repair. Please email pictures of harness defects to FCA Redacted Content",
+   "date": "2021-06-09",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: ELECTRICAL SYSTEM:WIRING. NHTSA flat-file records: no-pdf record 10221228 2021-06-09 (9004386). NHTSA flat-file records: no-pdf record 10221228 2021-06-09 (9004386).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Network/wiring"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "network"
+   ]
+  },
+  {
+   "id": "tsb-s2109000004",
+   "kind": "tsb",
+   "number": "S2109000004",
+   "nhtsa_id": "10221594",
+   "title": "Issue involves overheating, running hot, coolant leaks and related symptoms after a Mopar replacement engine has been installed in the vehicle.",
+   "date": "2021-07-06",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: ENGINE AND ENGINE COOLING. NHTSA flat-file records: no-pdf record 10221594 2021-07-06 (S2109000004); no-pdf record 10230180 2021-07-06 (S2109000004). NHTSA flat-file records: no-pdf record 10221594 2021-07-06 (S2109000004); no-pdf record 10230180 2021-07-06 (S2109000004).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Cooling"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "cooling"
+   ],
+   "nhtsa_ids": [
+    "10221594",
+    "10230180"
+   ]
+  },
+  {
+   "id": "tsb-s2108000163",
+   "kind": "tsb",
+   "number": "S2108000163",
+   "nhtsa_id": "10221597",
+   "title": "No Start, Cannot Complete Module Replace, Proxi Or Module Proxi Configuration",
+   "date": "2021-07-09",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: no-pdf record 10221597 2021-07-09 (S2108000163); no-pdf record 10230183 2021-07-09 (S2108000163). NHTSA flat-file records: no-pdf record 10221597 2021-07-09 (S2108000163); no-pdf record 10230183 2021-07-09 (S2108000163).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Immobiliser/keys",
+    "Network/wiring",
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "security_immobiliser",
+    "network",
+    "engine_management"
+   ],
+   "nhtsa_ids": [
+    "10221597",
+    "10230183"
+   ]
+  },
+  {
+   "id": "tsb-s2108000198",
+   "kind": "tsb",
+   "number": "S2108000198",
+   "nhtsa_id": "10218507",
+   "title": "Media Device Connection Guidelines For Bluetooth, Apple CarPlay, Android Auto Or USB To The Radio Head Unit",
+   "date": "2021-08-18",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: EQUIPMENT:ELECTRICAL. NHTSA flat-file records: no-pdf record 10218507 2021-08-18 (S2108000198). NHTSA flat-file records: no-pdf record 10218507 2021-08-18 (S2108000198).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster"
+   ]
+  },
+  {
+   "id": "tsb-s2208000073",
+   "kind": "tsb",
+   "number": "S2208000073",
+   "nhtsa_id": "10212318",
+   "title": "No Start, After Flash And Or PCM Replace, DTC P0513 Invalid Skim Key Setting",
+   "date": "2022-03-17",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10212318-9999 2022-03-17 (S2208000073); MC-10220715-9999 2022-03-17 (S2208000073); MC-10223097-9999 2022-03-17 (S2208000073); no-pdf record 10229059 2022-03-17 (S2208000073). NHTSA flat-file records: MC-10212318-9999 2022-03-17 (S2208000073); MC-10220715-9999 2022-03-17 (S2208000073); MC-10223097-9999 2022-03-17 (S2208000073); no-pdf record 10229059 2022-03-17 (S2208000073).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Immobiliser/keys",
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10212318-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10220715)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10220715-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10223097)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10223097-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "security_immobiliser",
+    "engine_management"
+   ],
+   "nhtsa_ids": [
+    "10212318",
+    "10220715",
+    "10223097",
+    "10229059"
+   ]
+  },
+  {
+   "id": "tsb-s2209000004",
+   "kind": "tsb",
+   "number": "S2209000004",
+   "nhtsa_id": "10227983",
+   "title": "If a Mopar oil filter is not available, use a filter that meets or exceeds USCAR36 specification and is compatible with semi and full synthetic oils.",
+   "date": "2022-04-02",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING; EQUIPMENT. NHTSA flat-file records: MC-10227983-9999 2022-04-02 (S2209000004). NHTSA flat-file records: MC-10227983-9999 2022-04-02 (S2209000004).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Lubrication"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10227983-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "lubrication"
+   ]
+  },
+  {
+   "id": "tsb-s2223000047",
+   "kind": "tsb",
+   "number": "S2223000047",
+   "nhtsa_id": "10221417",
+   "title": "ACC Does Not Operate. Start Stop Unavailable, ACC Unavailable Service Required Messages. C1452-86 Engine Torque DASM- Signal Invalid",
+   "date": "2022-06-09",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: POWER TRAIN. NHTSA flat-file records: MC-10221417-9999 2022-06-09 (S2223000047). NHTSA flat-file records: MC-10221417-9999 2022-06-09 (S2223000047).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Charging/start-stop",
+    "ADAS"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10221417-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "starting_charging",
+    "adas_sensors"
+   ]
+  },
+  {
+   "id": "tsb-3100122",
+   "kind": "tsb",
+   "number": "3100122",
+   "nhtsa_id": "10225287",
+   "title": "Approved Use of Weld Through Primers This bulletin documents the FCA US LLC position regarding the use of weld through primer when using Squeeze Type Resistance Spot Welding (STRSW) and Gas Metal Arc Welding (GMAW) processes when welding steel body panels and structural components.",
+   "date": "2022-08-19",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: STRUCTURE; UNKNOWN OR OTHER; STRUCTURE:INTERIOR PANELS:DOOR. NHTSA flat-file records: MC-10225287-9999 2022-08-19 (3100122); MC-10225424-9999 2022-08-19 (3100122); no-pdf record 10229572 2022-08-19 (3100122). NHTSA flat-file records: MC-10225287-9999 2022-08-19 (3100122); MC-10225424-9999 2022-08-19 (3100122); no-pdf record 10229572 2022-08-19 (3100122).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10225287-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10225424)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10225424-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ],
+   "nhtsa_ids": [
+    "10225287",
+    "10225424",
+    "10229572"
+   ]
+  },
+  {
+   "id": "tsb-s2218000018",
+   "kind": "tsb",
+   "number": "S2218000018",
+   "nhtsa_id": "10225219",
+   "title": "Check engine lamp/Mil lamp-on. Engine misfires.",
+   "date": "2022-08-20",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING. NHTSA flat-file records: MC-10225219-9999 2022-08-20 (S2218000018); MC-10225356-9999 2022-08-20 (S2218000018); no-pdf record 10229499 2022-08-20 (S2218000018). NHTSA flat-file records: MC-10225219-9999 2022-08-20 (S2218000018); MC-10225356-9999 2022-08-20 (S2218000018); no-pdf record 10229499 2022-08-20 (S2218000018).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10225219-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10225356)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10225356-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "engine_management"
+   ],
+   "nhtsa_ids": [
+    "10225219",
+    "10225356",
+    "10229499"
+   ]
+  },
+  {
+   "id": "tsb-0100122",
+   "kind": "tsb",
+   "number": "0100122",
+   "nhtsa_id": "10226029",
+   "title": "Oil Change Monitor Displaying Prematurely This bulletin involves resetting the oil life monitor and if necessary changing the engine oil and filter. The customer may experience the oil change light illuminated on the dash shortly after taking delivery of the vehicle within 6,437 Km (4,000 miles).",
+   "date": "2022-09-13",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT; ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10226029-9999 2022-09-13 (0100122). NHTSA flat-file records: MC-10226029-9999 2022-09-13 (0100122).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster",
+    "Lubrication"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10226029-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster",
+    "lubrication"
+   ]
+  },
+  {
+   "id": "tsb-31-002-22",
+   "kind": "tsb",
+   "number": "31-002-22",
+   "nhtsa_id": "10229810",
+   "title": "Aluminum Body Panel Corrosion Repair Aluminum corrosion or bubbling along the leading edge of hood, hinges or other exterior surface areas of the hinges, doors, fenders, swing gates or liftgates. NOTE: Digital imaging pre authorization is required for Smart Warranty Base dealers or Pre Approval is required from Regional Office depending on market. This bulletin involves inspecting and if necessary removing corrosion and refinishing the suspect aluminum panels on the vehicle, hood, door, fenders, hinges, swing gates or liftgate panels.",
+   "date": "2022-12-15",
+   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: STRUCTURE. NHTSA flat-file records: no-pdf record 10229810 2022-12-15 (31-002-22). NHTSA flat-file records: no-pdf record 10229810 2022-12-15 (31-002-22).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": null,
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "tsb-3100123",
+   "kind": "tsb",
+   "number": "3100123",
+   "nhtsa_id": "10234468",
+   "title": "Aluminum Body Panel Corrosion Repair Aluminum corrosion or bubbling along the leading edge of hood, hinges or other exterior surface areas of the hinges, doors, fenders, swing gates or liftgates. NOTE: **Verify current warranty policy to determine if digital imaging pre authorization is required or Pre Approval is required from Regional Office depending on market.** This bulletin involves inspecting and if necessary removing corrosion and refinishing the suspect aluminum panels on the vehicle, hood, door, fenders, hinges, swing gates or liftgate panels.",
+   "date": "2023-02-03",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: STRUCTURE. NHTSA flat-file records: MC-10234468-9999 2023-02-03 (3100123); no-pdf record 10247995 2023-02-03 (3100123). NHTSA flat-file records: MC-10234468-9999 2023-02-03 (3100123); no-pdf record 10247995 2023-02-03 (3100123).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10234468-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ],
+   "nhtsa_ids": [
+    "10234468",
+    "10247995"
+   ]
+  },
+  {
+   "id": "tsb-s1408000384",
+   "kind": "tsb",
+   "number": "S1408000384",
+   "nhtsa_id": "10234420",
+   "title": "Start Stop Charging Warning Lamp Illuminated On, Intelligent Battery Sensor (IBS) State of Charge (SOC) Inaccurate, Battery Charging Message, Presence of IBS related Diagnostic Trouble Codes (DTCs), or Battery Warning Lamp On",
+   "date": "2023-02-14",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10234420-9999 2023-02-14 (S1408000384); MC-10251783-9999 2024-01-10 (S1408000384); MC-11002828-0001 2024-06-25 (S1408000384 REV.F); MC-11012777-0001 2025-01-07 (S1408000384 REV.G); MC-11013171-0002 2025-01-25 (S1408000384 REV.H); MC-11028904-0001 2026-02-14 (S1408000384 REV.I); MC-11030035-0001 2026-03-04 (S1408000384 REV.J). Revisions seen: S1408000384, S1408000384 REV.F, S1408000384 REV.G, S1408000384 REV.H, S1408000384 REV.I, S1408000384 REV.J. NHTSA flat-file records: MC-10234420-9999 2023-02-14 (S1408000384); MC-10251783-9999 2024-01-10 (S1408000384); MC-11002828-0001 2024-06-25 (S1408000384 REV.F); MC-11012777-0001 2025-01-07 (S1408000384 REV.G); MC-11013171-0002 2025-01-25 (S1408000384 REV.H); MC-11028904-0001 2026-02-14 (S1408000384 REV.I); MC-11030035-0001 2026-03-04 (S1408000384 REV.J). Revisions seen: S1408000384, S1408000384 REV.F, S1408000384 REV.G, S1408000384 REV.H, S1408000384 REV.I, S1408000384 REV.J.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Charging/start-stop"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10234420-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (10251783)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-10251783-9999.pdf"
+    },
+    {
+     "label": "NHTSA PDF (11002828)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11002828-0001.pdf"
+    },
+    {
+     "label": "NHTSA PDF (11012777)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11012777-0001.pdf"
+    },
+    {
+     "label": "NHTSA PDF (11013171)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11013171-0002.pdf"
+    },
+    {
+     "label": "NHTSA PDF (11028904)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11028904-0001.pdf"
+    },
+    {
+     "label": "NHTSA PDF (11030035)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11030035-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "starting_charging"
+   ],
+   "nhtsa_ids": [
+    "10234420",
+    "10251783",
+    "11002828",
+    "11012777",
+    "11013171",
+    "11028904",
+    "11030035"
+   ]
+  },
+  {
+   "id": "tsb-0700723",
+   "kind": "tsb",
+   "number": "0700723",
+   "nhtsa_id": "10239957",
+   "title": "Water Quality When Mixed With Engine Coolant",
+   "date": "2023-05-18",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING. NHTSA flat-file records: MC-10239957-9999 2023-05-18 (0700723). NHTSA flat-file records: MC-10239957-9999 2023-05-18 (0700723).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Cooling"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10239957-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "cooling"
+   ]
+  },
+  {
+   "id": "tsb-9100196",
+   "kind": "tsb",
+   "number": "9100196",
+   "nhtsa_id": "10242717",
+   "title": "Lubrication and Maintenance Fluids If MOPAR fluids and chemicals are not readily available, please review Service Library for specifications so a suitable alternative can be used",
+   "date": "2023-07-27",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT:OTHER:OWNERS/SERVICE/OTHER MANUAL. NHTSA flat-file records: MC-10242717-9999 2023-07-27 (9100196). NHTSA flat-file records: MC-10242717-9999 2023-07-27 (9100196).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Lubrication"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10242717-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "lubrication"
+   ]
+  },
+  {
+   "id": "tsb-93023",
+   "kind": "tsb",
+   "number": "93023",
+   "nhtsa_id": "10243208",
+   "title": "Warranty Bulletin D-16-03 - \"Can / Am\" Warranty Coverage - 594 / 595 / 596 WCC (Rev. B)",
+   "date": "2023-08-30",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT:OTHER:OWNERS/SERVICE/OTHER MANUAL. NHTSA flat-file records: MC-10243208-9999 2023-08-30 (93023). NHTSA flat-file records: MC-10243208-9999 2023-08-30 (93023).",
+   "condition": null,
+   "remedy": null,
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10243208-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": []
+  },
+  {
+   "id": "tsb-93120",
+   "kind": "tsb",
+   "number": "93120",
+   "nhtsa_id": "10243209",
+   "title": "FCA Caribbean Warranty Bulletin ID-23-20 \"Can / Am\" Warranty Coverage - 594 / 595 / 596 WCC",
+   "date": "2023-08-30",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT:OTHER:OWNERS/SERVICE/OTHER MANUAL. NHTSA flat-file records: MC-10243209-9999 2023-08-30 (93120). NHTSA flat-file records: MC-10243209-9999 2023-08-30 (93120).",
+   "condition": null,
+   "remedy": null,
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10243209-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": []
+  },
+  {
+   "id": "tsb-9100226",
+   "kind": "tsb",
+   "number": "9100226",
+   "nhtsa_id": "10244348",
+   "title": "Connector kit Before ordering this connector repair kit 68018957A$, check it in the Mopar Connector Repair Kit Website to confirm part number and applicability. There is an error with the wiring diagrams in Service Library that is causing the incorrect repair kit part number to populate. Please use the Mopar Connector Repair Kit Website until this issue is resolved.",
+   "date": "2023-09-15",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM:WIRING. NHTSA flat-file records: MC-10244348-9999 2023-09-15 (9100226); no-pdf record 10248509 2023-09-15 (9100226). NHTSA flat-file records: MC-10244348-9999 2023-09-15 (9100226); no-pdf record 10248509 2023-09-15 (9100226).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Network/wiring"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10244348-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "network"
+   ],
+   "nhtsa_ids": [
+    "10244348",
+    "10248509"
+   ]
+  },
+  {
+   "id": "tsb-9100229",
+   "kind": "tsb",
+   "number": "9100229",
+   "nhtsa_id": "10244356",
+   "title": "LIFTER, Hydraulic Roller Deactivating Please do not replace MDS lifters because the disconnecting pin is not lined up, this is normal and not a defect.",
+   "date": "2023-09-20",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: SUSPENSION. NHTSA flat-file records: MC-10244356-9999 2023-09-20 (9100229). NHTSA flat-file records: MC-10244356-9999 2023-09-20 (9100229).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Valvetrain"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10244356-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "valve_control"
+   ]
+  },
+  {
+   "id": "tsb-31-001-24",
+   "kind": "tsb",
+   "number": "31-001-24",
+   "nhtsa_id": "11005320",
+   "title": "\"Aluminum Body Panel Corrosion Repair Aluminum corrosion or bubbling along the leading edge of hood, hinges or other exterior surface areas of the hinges, doors, fenders, swing gates or liftgates. NOTE: Verify current warranty policy to determine if digital imaging pre-authorization is required or pre-approval is required from the Regional Office; depending on market. This bulletin involves inspecting and if necessary removing corrosion and refinishing the suspect aluminum panels on the vehicle, hood, door, fenders, hinges, swing gates or liftgate panels.\"",
+   "date": "2024-07-24",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: STRUCTURE:BODY. NHTSA flat-file records: MC-11005320-0001 2024-07-24 (31-001-24). NHTSA flat-file records: MC-11005320-0001 2024-07-24 (31-001-24).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11005320-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ]
+  },
+  {
+   "id": "tsb-01-002-24",
+   "kind": "tsb",
+   "number": "01-002-24",
+   "nhtsa_id": "11010645",
+   "title": "\"Oil Change Monitor Displaying Prematurely Customers may experience the following: ● The oil change light illuminated on the dash shortly after taking delivery of the vehicle within 6,437 Km (4,000 miles). This bulletin involves resetting the oil life monitor and if necessary changing the engine oil and filter.\"",
+   "date": "2024-11-16",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE; UNKNOWN OR OTHER. NHTSA flat-file records: MC-11010645-0001 2024-11-16 (01-002-24). NHTSA flat-file records: MC-11010645-0001 2024-11-16 (01-002-24).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster",
+    "Lubrication"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11010645-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster",
+    "lubrication"
+   ]
+  },
+  {
+   "id": "tsb-9100469",
+   "kind": "tsb",
+   "number": "9100469",
+   "nhtsa_id": "11011985",
+   "title": "VAPOR CANISTER If an issue is detected with the EVAPORATIVE SYSTEM INTEGRITY MODULE DETECTOR and not the VAPOR CANISTER, only replace the EVAPORATIVE SYSTEM INTEGRITY MODULE DETECTOR.",
+   "date": "2024-12-16",
+   "summary": "One-page GPOP issue-review note (not a repair procedure) filed under part description VAPOR CANISTER, dated 2024-12-16. Models header: MY 18-25 GA (Giulia) and MY 18-25 GU (Stelvio); no engine, VIN range, symptom or DTC is stated. Lists canister part numbers 68400620A, 68402531A, 68528496A, 68534104A. It says only: if the fault is in the EVAPORATIVE SYSTEM INTEGRITY MODULE DETECTOR and not the VAPOR CANISTER, replace only the ESIM detector. It does NOT name any ESIM part number (04861961AD is not in the document) and does not describe how to tell the two apart. Extended by 9100471 (fuel-flooded canister: replace both).",
+   "condition": "An issue is detected with the EVAPORATIVE SYSTEM INTEGRITY MODULE DETECTOR (not the vapor canister). No DTC, symptom, engine or build-date range is stated.",
+   "remedy": "Replace only the evaporative system integrity module (ESIM) detector, not the vapor canister.",
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11011985-0001.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "NHTSA PDF opened in full (2026-10-15); NHTSA flat file TSBS_RECEIVED",
+   "verified": true,
+   "components": [
+    "EVAPORATIVE SYSTEM INTEGRITY MODULE DETECTOR (ESIM)",
+    "VAPOR CANISTER 68400620A",
+    "VAPOR CANISTER 68402531A",
+    "VAPOR CANISTER 68528496A",
+    "VAPOR CANISTER 68534104A"
+   ],
+   "symptoms": [],
+   "repair_implied": "replace:ESIM only (not the vapor canister, when the ESIM is the faulty part)",
+   "depends_on_systems": [
+    "evap"
+   ],
+   "cuore_relevance": "Lists GU MY 2018-25, so it covers the 2018 Stelvio (engine not stated, so the 2.0L is neither named nor excluded). Its guidance matches the owner's open job: ESIM 04861961AD fitted 2026-09-02 (ESIM only, canister left). The note names no ESIM part number and gives no test to separate ESIM from canister failure; it is a replace-the-right-part note, not a fix for any DTC. See 9100471 for the case where both parts go.",
+   "gpop_models": "MY 18-25 GA, 18-25 GU",
+   "canister_part_numbers": [
+    "68400620A",
+    "68402531A",
+    "68528496A",
+    "68534104A"
+   ]
+  },
+  {
+   "id": "tsb-s1705000002",
+   "kind": "tsb",
+   "number": "S1705000002",
+   "nhtsa_id": "11013151",
+   "title": "Front Brake Pulsation and/or Clunk Noise",
+   "date": "2025-01-25",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: SERVICE BRAKES. NHTSA flat-file records: MC-11013151-0001 2025-01-25 (S1705000002 REV.A). NHTSA flat-file records: MC-11013151-0001 2025-01-25 (S1705000002 REV.A).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Brakes"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11013151-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "brakes_abs"
+   ]
+  },
+  {
+   "id": "tsb-31-001-25",
+   "kind": "tsb",
+   "number": "31-001-25",
+   "nhtsa_id": "11022003",
+   "title": "Aluminum Body Panel Corrosion Repair Aluminum corrosion or bubbling along the leading edge of hood, hinges or other exterior surface areas of the hinges, doors, fenders, swing gates or liftgates",
+   "date": "2025-08-13",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: STRUCTURE:BODY. NHTSA flat-file records: MC-11022003-0001 2025-08-13 (31-001-25); MC-11022012-0001 2025-08-14 (31-001-25 REV. A); MC-11022011-0001 2025-08-16 (31-001-25 REV. B). Revisions seen: 31-001-25, 31-001-25 REV. A, 31-001-25 REV. B. NHTSA flat-file records: MC-11022003-0001 2025-08-13 (31-001-25); MC-11022012-0001 2025-08-14 (31-001-25 REV. A); MC-11022011-0001 2025-08-16 (31-001-25 REV. B). Revisions seen: 31-001-25, 31-001-25 REV. A, 31-001-25 REV. B.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11022003-0001.pdf"
+    },
+    {
+     "label": "NHTSA PDF (11022012)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11022012-0001.pdf"
+    },
+    {
+     "label": "NHTSA PDF (11022011)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11022011-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ],
+   "nhtsa_ids": [
+    "11022003",
+    "11022011",
+    "11022012"
+   ]
+  },
+  {
+   "id": "tsb-9100325",
+   "kind": "tsb",
+   "number": "9100325",
+   "nhtsa_id": "11024035",
+   "title": "Before replacing any parts please refer to SOL S2518000008 if it applies to the vehicle you are working on based on a VIN search in Service Library. Before replacing this part due to Engine Light On with P1CEA (Boost Side EVAP Purge System Performance), check for: 1) Improperly connected or kinked/pinched Purge Hoses at the Ejector Tees on the Air Box or Duct. 2) Improperly connected or kinked/pinched Purge Hose at the Purge Solenoid or OBD Valve. 3) Improperly connected or kinked/pinched Purge Hose at the Intake. 4) Check for the correct Purge Hoses installation.",
+   "date": "2025-10-02",
+   "summary": "One-page GPOP issue-review note (Rev 1, 2025-10-02) filed under part description VALVE, Purge Control (part numbers 05281586A, 68337662A, 68360098A, 68565193A). Models header includes GU MY 18-24 (Stelvio) among many Stellantis platforms; engine not stated. Before replacing the purge valve for Engine Light On with P1CEA (Boost Side EVAP Purge System Performance), first check SOL S2518000008 if it applies by VIN search in Service Library, then check purge hoses for improper connection or kinks/pinches at: the ejector tees on the air box or duct; the purge solenoid or OBD valve; the intake; and confirm correct hose installation.",
+   "condition": "Engine light on with P1CEA (Boost Side EVAP Purge System Performance) where replacement of the purge control valve is being considered.",
+   "remedy": "Do not replace the purge valve first: check SOL S2518000008 (VIN search in Service Library), then inspect purge hoses for improper connection / kinks / pinches at the ejector tees (air box or duct), the purge solenoid or OBD valve, and the intake; confirm correct hose installation.",
+   "systems": [
+    "EVAP",
+    "Turbo",
+    "ECM"
+   ],
+   "dtcs": [
+    "P1CEA"
+   ],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11024035-0001.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "NHTSA PDF opened in full (2026-10-15); NHTSA flat file TSBS_RECEIVED",
+   "verified": true,
+   "components": [
+    "VALVE, Purge Control 05281586A",
+    "VALVE, Purge Control 68337662A",
+    "VALVE, Purge Control 68360098A",
+    "VALVE, Purge Control 68565193A",
+    "purge hoses",
+    "ejector tees (air box / duct)",
+    "purge solenoid / OBD valve"
+   ],
+   "symptoms": [
+    "Engine light on with P1CEA (Boost Side EVAP Purge System Performance)"
+   ],
+   "repair_implied": "inspect",
+   "depends_on_systems": [
+    "evap",
+    "air_intake_boost",
+    "engine_management"
+   ],
+   "cuore_relevance": "P1CEA is a 2.0T boost-side purge code that 18-026-20 also lists; this note says to check hoses and SOL S2518000008 before buying a purge valve. Covers GU 2018-24 by its models header.",
+   "gpop_models": "MY 24 GG, 25 DT, 19-23/19-20 KL, 18-24/18-20 JL, 24 MP, 22-23 BV, 22-23 WL, 17-24/21-24 GA, 21-24 J6, 23-25 WS, 19-23/19-20 K8, 18-24 GU, 24 GV (reading: years precede platform)"
+  },
+  {
+   "id": "tsb-s2621000003",
+   "kind": "tsb",
+   "number": "S2621000003",
+   "nhtsa_id": "11030138",
+   "title": "The vehicle will exhibit a service transmission/check engine warning indicator for the following transmission models: 845RE, 8HP45, 850RE, 8HP50, 8HP70, 8HP75, 8HP75-PHEV, 8HP75-LCV, 8HP90, 8HP95. Transmissions may exhibit the following diagnostic codes: P07E4, P1DB2, P0716, P1B14, P0733, P1D90, P1DB7, P1B13.",
+   "date": "2026-03-09",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: POWER TRAIN. NHTSA flat-file records: MC-11030138-0001 2026-03-09 (S2621000003 REV.A). NHTSA flat-file records: MC-11030138-0001 2026-03-09 (S2621000003 REV.A).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Transmission",
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11030138-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "transmission_driveline",
+    "engine_management"
+   ]
+  },
+  {
+   "id": "tsb-01-001-26",
+   "kind": "tsb",
+   "number": "01-001-26",
+   "nhtsa_id": "11032849",
+   "title": "Oil Change Monitor Displaying Prematurely Customers may experience the following: ● The oil change light illuminated on the dash shortly after taking delivery of the vehicle within 6,437 Km (4,000 miles) This bulletin involves resetting the oil life monitor and if necessary changing the engine oil and filter.",
+   "date": "2026-05-16",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE. NHTSA flat-file records: MC-11032849-0001 2026-05-16 (01-001-26). NHTSA flat-file records: MC-11032849-0001 2026-05-16 (01-001-26).",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Infotainment/cluster",
+    "Lubrication"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11032849-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "infotainment_cluster",
+    "lubrication"
+   ]
+  },
+  {
+   "id": "tsb-s2623000037",
+   "kind": "tsb",
+   "number": "S2623000037",
+   "nhtsa_id": "11033309",
+   "title": "Condensation Or Water Infiltration In Headlights, Daytime Running Lights (DRL), Turn Signals, Fog Lights, Taillights.",
+   "date": "2026-05-28",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM; STRUCTURE:BODY. NHTSA flat-file records: MC-11033309-0001 2026-05-28 (S2623000037); MC-11034923-0001 2026-06-05 (2623000037 REV.A). Revisions seen: 2623000037 REV.A, S2623000037. NHTSA flat-file records: MC-11033309-0001 2026-05-28 (S2623000037); MC-11034923-0001 2026-06-05 (2623000037 REV.A). Revisions seen: 2623000037 REV.A, S2623000037.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "Body"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11033309-0001.pdf"
+    },
+    {
+     "label": "NHTSA PDF (11034923)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11034923-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "body_comfort"
+   ],
+   "nhtsa_ids": [
+    "11033309",
+    "11034923"
+   ]
+  },
+  {
+   "id": "tsb-112842",
+   "kind": "tsb",
+   "number": "112842",
+   "nhtsa_id": "11034335",
+   "title": "BOLT - HEX FLANGE HEAD",
+   "date": "2026-06-18",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE. NHTSA flat-file records: MC-11034335-0001 2026-06-18 (112842). NHTSA flat-file records: MC-11034335-0001 2026-06-18 (112842).",
+   "condition": null,
+   "remedy": null,
+   "systems": [],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11034335-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": []
+  },
+  {
+   "id": "tsb-22d-combo",
+   "kind": "emissions",
+   "number": "22D Combo",
+   "nhtsa_id": "11037271",
+   "title": "Emissions Recall 22D - On Board Diagnostics - Dealer Notification",
+   "date": "2026-09-02",
+   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: MC-11037271-0001 2026-09-02 (22D Combo); MC-11037356-0001 2026-09-10 (22D Combo Rev1). Revisions seen: 22D Combo, 22D Combo Rev1. NHTSA flat-file records: MC-11037271-0001 2026-09-02 (22D Combo); MC-11037356-0001 2026-09-10 (22D Combo Rev1). Revisions seen: 22D Combo, 22D Combo Rev1.",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "ECM",
+    "Emissions"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA PDF",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11037271-0001.pdf"
+    },
+    {
+     "label": "NHTSA PDF (11037356)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11037356-0001.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA flat file TSBS_RECEIVED",
+   "verified": false,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [
+    "engine_management",
+    "exhaust_emissions"
+   ],
+   "nhtsa_ids": [
+    "11037271",
+    "11037356"
+   ]
+  }
+ ],
+ "sources": [
+  "NHTSA flat file TSBS_RECEIVED_2015-2019",
+  "NHTSA flat file TSBS_RECEIVED_2020-2024",
+  "NHTSA flat file TSBS_RECEIVED_2025-2026",
+  "NHTSA TSB PDFs (static.nhtsa.gov/odi/tsbs)",
+  "docs/reference/TSB_CATALOGUE.md"
+ ]
 }

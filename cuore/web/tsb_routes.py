@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from ..api.deps import require_token
-from ..services import tsb_bridge
+from ..services import tsb_bridge, tsb_xref_bridge
 from ..services.errors import BadRequest
 from .routes import _active_vehicle, _dossier, _page, _set_active_vehicle, _vehicle_bar
 
@@ -61,13 +61,26 @@ def tsb_page(request: Request, vin: str = "", kind: str = "", system: str = "") 
             bar = _vehicle_bar(vin, dossier)
         except Exception:  # noqa: BLE001
             bar = None
-    response = _page(request, "tsb.html", vin=vin, bar=bar, tab="tsb", view=view,
+    xr = tsb_xref_bridge.safe_xref(vin)
+    xmap = {b["id"]: b for b in (xr or {}).get("bulletins") or []}
+    response = _page(request, "tsb.html", vin=vin, bar=bar, tab="tsb", view=view, xmap=xmap,
                      groups=_group(rows), shown=len(rows), kind=kind, system=system,
                      kind_labels=KIND_LABELS, applies_labels=APPLIES_LABELS,
                      status_labels=tsb_bridge.STATUS_LABELS,
                      statuses=tsb_bridge.STATUSES)
     _set_active_vehicle(response, vin)
     return response
+
+
+@router.get("/api/tsb/xref")
+def tsb_xref_api(request: Request, vin: str = "") -> JSONResponse:
+    """The bulletin cross-reference (``tsb_xref_bridge.xref``) as JSON."""
+    vin = _active_vehicle(request, vin).upper()
+    if not vin:
+        vin = (tsb_bridge.catalogue()["vehicle"].get("vin") or "").upper()
+    if not vin:
+        raise BadRequest("a VIN is required (/api/tsb/xref?vin=...)")
+    return JSONResponse(tsb_xref_bridge.xref(vin))
 
 
 @router.post("/tsb/status")

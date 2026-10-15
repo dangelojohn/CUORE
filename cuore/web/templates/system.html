@@ -396,6 +396,23 @@
   {% endif %}
 </details>
 
+{# --- 8b. bulletins touching this system and its dependencies (tsb_xref_bridge) #}
+<details class="panel sysd-section" id="sysd-bulletins" data-fact="system:{{ view.key }}|bulletins">
+  <summary><h2 class="sysd-h">Bulletins touching this system and its dependencies ({{ view.bulletins|length }})</h2></summary>
+  {% if view.bulletins %}
+  <ul class="sysd-list">
+    {% for b in view.bulletins %}
+    <li class="sysd-row"><span><a class="mono" href="{{ b.href }}">{{ b.number }}</a> {{ b.title }}
+      {% if b.flags %}<span class="small muted">({{ b.flags|join(', ')|replace('_', ' ') }})</span>{% endif %}</span>
+      <span class="small">score {{ b.score }}</span>
+      <div class="small muted">{{ b.relation }}: {{ b.reason }}</div></li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p class="small muted">No catalogue bulletin lists this system or one of its dependencies.</p>
+  {% endif %}
+</details>
+
 {# --- 9. learned DIDs correlated with this system's channels ------------- #}
 <details class="panel sysd-section" data-fact="system:{{ view.key }}|learned DIDs">
   <summary><h2 class="sysd-h">Learned DIDs ({{ view.learned.dids|length }})</h2></summary>

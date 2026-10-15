@@ -1,0 +1,28 @@
+{# One bulletin's cross-reference relations (cuore/services/tsb_xref_bridge.py).
+   Expects `xb` (a bulletins[] row) and `vin`. Suggested evidence is only a
+   form: nothing is written until the mechanic presses the button. #}
+<details class="tsb-xref small" data-xref="{{ xb.id }}"{% if xb.score > 0 %} open{% endif %}>
+  <summary>Cross-reference <span class="count-badge">score {{ xb.score }}</span>
+    {% for f in xb.flags %}<span class="tsb-chip">{{ f|replace('_', ' ') }}</span> {% endfor %}</summary>
+  <ul class="tsb-xref-list">
+    {% for r in xb.relations if r.type != 'applicability' or r.reason.startswith('bulletin text') or r.reason.startswith('applies_to') %}
+    <li data-rel="{{ r.relation or r.type }}"><b>{{ (r.relation or r.type)|replace('_', ' ') }}</b> &mdash; {{ r.reason }}
+      {% if r.code %} <a href="{{ r.code_href or ('/v/' ~ vin ~ '/code/' ~ r.code) }}">{{ r.code }}</a>{% if r.dossier_href %} · <a href="{{ r.dossier_href }}">dossier</a>{% endif %}{% endif %}
+      {% if r.href %} · <a href="{{ r.href }}">job</a>{% endif %}
+      {% if r.suggestion %}
+      <form method="post" action="{{ r.suggestion.action }}" class="tsb-xref-suggest">
+        <input type="hidden" name="side" value="{{ r.suggestion.side }}">
+        <input type="hidden" name="kind" value="{{ r.suggestion.kind }}">
+        <input type="hidden" name="ref_id" value="{{ r.suggestion.ref_id }}">
+        <input type="hidden" name="label" value="{{ r.suggestion.label }}">
+        <span class="muted">Suggested evidence {{ r.suggestion.side }}:</span> {{ r.suggestion.label }}
+        <button class="btn" type="submit">Add as evidence {{ r.suggestion.side }}</button>
+      </form>
+      {% endif %}
+    </li>
+    {% else %}
+    <li class="muted">No relation to this car's codes, repairs, hypotheses or systems.</li>
+    {% endfor %}
+  </ul>
+  <div class="muted">Score parts: {{ xb.score_parts|join(', ') or 'none' }}.</div>
+</details>

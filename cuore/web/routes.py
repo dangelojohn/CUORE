@@ -348,7 +348,14 @@ def vehicle(request: Request, vin: str) -> HTMLResponse:
     vehicle_notes = mes_bridge.notes(vin, target_kind="vehicle")["notes"]
     live_status = _status_strip()
     view = dossier_bridge.build_view(vin, dossier, live_status)
-    response = _page(request, "vehicle.html", vin=vin, d=dossier, bar=bar,
+    from ..services import tsb_xref_bridge  # local: keeps this module's import graph unchanged
+    xr = tsb_xref_bridge.safe_xref(vin)
+    tsb_xref = None
+    if xr:
+        tsb_xref = {"top": tsb_xref_bridge.top(xr, 5), "by_hypothesis": xr["by_hypothesis"],
+                    "hypotheses": xr["hypotheses"], "by_repair": xr["by_repair"][:10],
+                    "job_id": xr["job_id"]}
+    response = _page(request, "vehicle.html", vin=vin, d=dossier, bar=bar, tsb_xref=tsb_xref,
                      open_codes=codes, live_panel=_live_panel_for(vin, bar["ecus"]),
                      notes_list=vehicle_notes, note_target_kind="vehicle",
                      note_target_id="", note_redirect=f"/v/{vin}/dossier",

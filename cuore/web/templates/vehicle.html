@@ -263,6 +263,40 @@
     </div>
   </details>
 
+  {% if tsb_xref %}
+  <details class="card-details" id="sec-bulletin-xref" data-persist="bulletin-xref">
+    <summary>Bulletins by hypothesis / by repair <span class="count-badge">{{ tsb_xref.top|length }}</span></summary>
+    <div class="card-body">
+      <p class="small muted">Whole TSB catalogue scored against this car's codes, systems, job actions and hypotheses
+        (rules, each with its reason). <a href="/tsb?vin={{ vin|urlencode }}">Full checklist</a> · <a href="/api/tsb/xref?vin={{ vin|urlencode }}">JSON</a></p>
+      {% for b in tsb_xref.top %}
+        <div class="bulletin-card" data-xref-top="{{ b.id }}">
+          <h4><a class="mono" href="{{ b.href }}">{{ b.number }}</a> &mdash; {{ b.title }} <span class="count-badge">score {{ b.score }}</span></h4>
+          <ul class="small">
+            {% for r in b.relations if r.type != 'applicability' %}<li><b>{{ (r.relation or r.type)|replace('_', ' ') }}</b> &mdash; {{ r.reason }}</li>{% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        <p class="muted small">No bulletin scores above zero for this car.</p>
+      {% endfor %}
+      {% for hid, rows in tsb_xref.by_hypothesis.items() %}
+        <h4>Hypothesis <a href="/v/{{ vin }}/job/{{ tsb_xref.job_id }}#hyp-{{ hid }}">{{ tsb_xref.hypotheses.get(hid, hid) }}</a></h4>
+        <ul class="small">
+          {% for e in rows[:5] %}<li><b>{{ e.relation }}</b> {{ e.number }} &mdash; {{ e.reason }}</li>{% endfor %}
+        </ul>
+      {% endfor %}
+      {% if tsb_xref.by_repair %}
+        <h4>By repair</h4>
+        <ul class="small">
+          {% for e in tsb_xref.by_repair %}<li><b>{{ e.relation|replace('_', ' ') }}</b> {{ e.number }} &mdash; {{ e.reason }}</li>{% endfor %}
+        </ul>
+      {% else %}
+        <p class="small muted">No job repair, part or inspection matches a bulletin remedy yet.</p>
+      {% endif %}
+    </div>
+  </details>
+  {% endif %}
+
   <details class="card-details" id="sec-live" data-persist="live">
     <summary>Live {% if live_panel and not live_panel.error %}<span class="count-badge">{{ live_panel.buses|selectattr("verified")|list|length }}/{{ live_panel.buses|length }} buses verified</span>{% endif %}</summary>
     <div class="card-body">
