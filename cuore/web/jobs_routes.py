@@ -32,11 +32,12 @@ from typing import Any
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from ..api.deps import require_token
-from ..services import cases_bridge, dossier_bridge, jobs_bridge, tools_kb_bridge
+from ..services import (cases_bridge, dossier_bridge, jobs_bridge, mechanic_plan_bridge,
+                        tools_kb_bridge)
 from ..services.errors import BridgeError
 from . import routes as web_routes
 
@@ -173,6 +174,12 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
     if job_view.get("job"):
         job_view["job"]["hypotheses"] = active_hyps
     job_view["deleted_hypotheses"] = deleted_hyps
+    # Mechanic steps at the bottom of every hypothesis card: one xref per
+    # render, never a 500 (mechanic_plan_bridge.plans_for_job swallows).
+    try:
+        mechanic_plans = mechanic_plan_bridge.plans_for_job(vin, job_view.get("job"))
+    except Exception:  # noqa: BLE001
+        mechanic_plans = {}
 
     # Toast/flash state from a mutating route's redirect (fix #5) -- read
     # straight off the query string so this works with zero JavaScript;
@@ -206,7 +213,8 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
                                 confirm_pending=confirm_pending, undo_hyp=undo_hyp,
                                 systems_taxonomy=SYSTEMS_TAXONOMY,
                                 prefill_system=prefill_system, prefill_codes=prefill_codes,
-                                prefill_hypothesis=prefill_hypothesis, **extra)
+                                prefill_hypothesis=prefill_hypothesis,
+                                mechanic_plans=mechanic_plans, **extra)
     web_routes._set_active_vehicle(response, vin)
     return response
 
@@ -355,6 +363,34 @@ async def hypothesis_set_next_test(request: Request, vin: str, job_id: str, hyp_
     return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg="Saved.", mk="ok")
 
 
+@router.get("/api/jobs/{job_id}/hypotheses/{hyp_id}/plan")
+def hypothesis_plan_api(job_id: str, hyp_id: str, vin: str = "") -> JSONResponse:
+    """Mechanic steps for one hypothesis (``mechanic_plan_bridge.plan``).
+    Read-only; ``vin`` defaults to the job's own VIN."""
+    try:
+        job = jobs_bridge.get_job(job_id)
+    except BridgeError as exc:
+        return JSONResponse({"detail": str(exc)}, status_code=404)
+    try:
+        return JSONResponse(mechanic_plan_bridge.plan(vin or job.get("vin") or "", job_id, hyp_id, job=job))
+    except KeyError as exc:
+        return JSONResponse({"detail": str(exc).strip("'\"")}, status_code=404)
+
+
+@router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/plan/save", response_class=HTMLResponse)
+async def hypothesis_plan_save(request: Request, vin: str, job_id: str, hyp_id: str,
+                               step: str = Form(default="7")) -> RedirectResponse:
+    """"Save as next test": explicit button press only -- writes the
+    generated steps into this hypothesis's next_test via the jobs edit
+    function (audit: by 'CUORE mechanic plan')."""
+    try:
+        mechanic_plan_bridge.save_as_next_test(vin, job_id, hyp_id)
+    except (BridgeError, KeyError) as exc:
+        return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg=str(exc), mk="err")
+    return _step_redirect(vin, step, anchor=f"hyp-{hyp_id}", msg="Mechanic steps saved as next test.",
+                          mk="ok")
+
+
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/edit", response_class=HTMLResponse)
 async def hypothesis_edit(request: Request, vin: str, job_id: str, hyp_id: str,
                           text: str = Form(default=""), system: str = Form(default=""),
@@ -447,10 +483,14 @@ async def hypothesis_undelete(request: Request, vin: str, job_id: str, hyp_id: s
 @router.post("/v/{vin}/job/{job_id}/actions", response_class=HTMLResponse)
 async def action_add(request: Request, vin: str, job_id: str,
                      kind: str = Form(...), text: str = Form(...),
+                     event_date: str = Form(default=""),
                      step: str = Form(default="9")) -> RedirectResponse:
     """Step 9: record one repair action -- test, inspection, repair, part,
     clear, or a free-text note."""
-    jobs_bridge.add_action(job_id, kind, text)
+    try:
+        jobs_bridge.add_action(job_id, kind, text, event_date=event_date.strip() or None)
+    except BridgeError as exc:
+        return _step_redirect(vin, step, anchor="actions", msg=str(exc), mk="err")
     return _step_redirect(vin, step, anchor="actions", msg="Action recorded.", mk="ok")
 
 

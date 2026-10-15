@@ -63,6 +63,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -202,6 +203,63 @@ def _audit(hyp: dict[str, Any], at: str, by: Any, action: str, detail: str) -> N
                                         "detail": detail})
 
 
+_MONTHS = ("january february march april may june july august september "
+           "october november december").split()
+_ISO = r"(\d{4}-\d{2}-\d{2})"
+_RE_REPAIR_ISO = re.compile(r"^\s*REPAIR HISTORY,\s*" + _ISO, re.I)
+_RE_REPAIR_MONTH = re.compile(
+    r"^\s*REPAIR HISTORY,\s*(?:" + "|".join(m.capitalize() for m in _MONTHS)
+    + r")\s+\d{4}\b.*?\bdated\s+" + _ISO, re.I | re.S)
+_RE_LEADING = re.compile(r"^\s*" + _ISO + r"(?:[ T](\d{2}:\d{2}))?")
+_RE_BETWEEN = re.compile(r"\bbetween\s+" + _ISO + r"\s+and\s+" + _ISO, re.I)
+
+
+def effective_date(action: dict[str, Any]) -> dict[str, Any]:
+    """When the thing an action records actually happened.
+
+    Returns {date, source: "event_date"|"text"|"at", uncertain: bool}.
+    ``event_date`` wins; else a date parsed from the text (REPAIR HISTORY
+    forms, a leading ISO date/datetime, "between A and B" -> the LATER date,
+    uncertain); else ``at`` (when it was recorded)."""
+    ev = (action.get("event_date") or "").strip()
+    if ev:
+        return {"date": ev, "source": "event_date", "uncertain": False}
+    text = action.get("text") or ""
+    m = _RE_REPAIR_ISO.match(text)
+    if m:
+        return {"date": m.group(1), "source": "text", "uncertain": False}
+    m = _RE_REPAIR_MONTH.match(text)
+    if m:
+        return {"date": m.group(1), "source": "text", "uncertain": False}
+    m = _RE_LEADING.match(text)
+    if m:
+        d = m.group(1) + (" " + m.group(2) if m.group(2) else "")
+        return {"date": d, "source": "text", "uncertain": False}
+    m = _RE_BETWEEN.search(text)
+    if m:
+        return {"date": max(m.group(1), m.group(2)), "source": "text", "uncertain": True}
+    return {"date": action.get("at") or "", "source": "at", "uncertain": False}
+
+
+def _decorate_action(a: dict[str, Any]) -> dict[str, Any]:
+    info = effective_date(a)
+    a["effective_date"] = info["date"]
+    a["effective_date_source"] = info["source"]
+    a["date_uncertain"] = info["uncertain"]
+    return a
+
+
+def _check_event_date(event_date: Optional[str]) -> Optional[str]:
+    ev = (event_date or "").strip()
+    if not ev:
+        return None
+    try:
+        datetime.fromisoformat(ev)
+    except ValueError:
+        raise ValueError("event_date must be an ISO date or datetime (YYYY-MM-DD)")
+    return ev
+
+
 def _fold() -> dict[str, dict[str, Any]]:
     """Every record folded into current job state, keyed by job id, in the
     order jobs were opened. One bad/unknown-op line is skipped, never sinks
@@ -307,10 +365,17 @@ def _fold() -> dict[str, dict[str, Any]]:
             hyp["updated_at"] = rec["at"]
             _audit(hyp, rec["at"], rec.get("by"), "undeleted", "")
         elif op == "action_add":
-            job["actions"].append({
+            job["actions"].append(_decorate_action({
+                "id": rec.get("id"),
                 "at": rec["at"], "kind": rec.get("kind") or "note",
                 "text": rec.get("text") or "", "ref": rec.get("ref"),
-            })
+                "event_date": rec.get("event_date") or None,
+            }))
+        elif op == "action_event_date":
+            for a in job["actions"]:
+                if a.get("id") and a.get("id") == rec.get("action_id"):
+                    a["event_date"] = rec.get("event_date") or None
+                    _decorate_action(a)
         elif op == "attach":
             ref = rec.get("ref")
             hyp_id = rec.get("hyp_id")
@@ -664,7 +729,8 @@ def migrate_systems(job_id: Optional[str] = None) -> dict[str, Any]:
 
 
 def add_action(job_id: str, kind: str, text: str, *,
-              ref: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+              ref: Optional[dict[str, Any]] = None,
+              event_date: Optional[str] = None) -> dict[str, Any]:
     """Record one action taken against this job: a test, an inspection, a
     repair, a part, a clear, an explicit "understood the fault" mark, or a
     free-text note."""
@@ -674,11 +740,30 @@ def add_action(job_id: str, kind: str, text: str, *,
     text = (text or "").strip()
     if not text:
         raise ValueError("text is required")
+    ev = _check_event_date(event_date)
     _require_job(job_id)
     at = datetime.now().isoformat(timespec="seconds")
-    _append({"op": "action_add", "job_id": job_id, "id": uuid.uuid4().hex[:8],
-             "at": at, "kind": kind, "text": text, "ref": ref})
-    return {"at": at, "kind": kind, "text": text, "ref": ref}
+    aid = uuid.uuid4().hex[:8]
+    rec = {"op": "action_add", "job_id": job_id, "id": aid,
+           "at": at, "kind": kind, "text": text, "ref": ref}
+    if ev:
+        rec["event_date"] = ev
+    _append(rec)
+    return _decorate_action({"id": aid, "at": at, "kind": kind, "text": text,
+                             "ref": ref, "event_date": ev})
+
+
+def set_action_event_date(job_id: str, action_id: str, event_date: str) -> dict[str, Any]:
+    """Set (or, with "", clear) the event date of an existing action. Appends a
+    correction record; the original entry is never rewritten."""
+    ev = _check_event_date(event_date)
+    job = _require_job(job_id)
+    if not any(a.get("id") == action_id for a in job["actions"]):
+        raise ValueError(f"no action {action_id!r} on job {job_id!r}")
+    _append({"op": "action_event_date", "job_id": job_id, "action_id": action_id,
+             "event_date": ev or "",
+             "at": datetime.now().isoformat(timespec="seconds")})
+    return {"action_id": action_id, "event_date": ev}
 
 
 def attach(job_id: str, ref: dict[str, Any], *, hyp_id: Optional[str] = None,
@@ -796,5 +881,5 @@ __all__ = ["STATUSES", "OUTCOMES", "HYP_STATUSES", "LIKELIHOODS", "ACTION_KINDS"
           "state_dir", "store_path", "open", "close",
           "add_hypothesis", "set_hypothesis", "edit_hypothesis",
           "delete_hypothesis", "undelete_hypothesis", "migrate_systems",
-          "add_action", "attach", "add_evidence", "remove_evidence",
+          "add_action", "set_action_event_date", "effective_date", "attach", "add_evidence", "remove_evidence",
           "resolve_evidence", "load", "get", "current"]

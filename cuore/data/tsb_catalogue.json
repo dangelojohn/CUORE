@@ -3,7 +3,7 @@
   "vehicle": "{make, model, year, engine, market} -- the car this catalogue was compiled for",
   "items[]": {
    "id": "stable row id; the per-VIN checklist status is keyed by it (required)",
-   "kind": "tsb | recall | csn | campaign | extended_warranty | emissions",
+   "kind": "tsb | recall | csn | campaign | extended_warranty | emissions | field_report (sibling_engine only: forum/retailer claim, never verified)",
    "number": "bulletin/recall number exactly as the rest of CUORE spells it (dossier tsb_matches, knowledge.py) -- cross-links match on it",
    "nhtsa_id": "NHTSA record id, or null",
    "title": "short title",
@@ -20,7 +20,12 @@
    "components": "optional: part names/numbers the bulletin inspects, replaces or flashes",
    "symptoms": "optional: plain-words symptoms/conditions the bulletin addresses",
    "repair_implied": "optional: flash | replace:<part> | procedure:<name> | inspect | software_update | none",
-   "depends_on_systems": "optional: system keys (mes.systems.SYSTEMS, e.g. evap, fuel, engine_management) that are affected / must be healthy"
+   "depends_on_systems": "optional: system keys (mes.systems.SYSTEMS, e.g. evap, fuel, engine_management) that are affected / must be healthy",
+   "vehicle_scope": "this_model (default; a bulletin for this car) | sibling_engine (ANALOGUE: a bulletin/recall/field report from another model with the same FCA GME-T4 2.0L engine family; never a Stelvio bulletin, ranked below Stelvio rows)",
+   "sibling_vehicle": "sibling_engine rows: '<model years engine>' the bulletin was written for",
+   "transferability": "sibling_engine rows: 'inference: ...' why the analogue may or may not carry over to this car",
+   "stelvio_equivalent": "sibling_engine rows: number of the catalogue row for this car it parallels (linked in the cross-reference), or null",
+   "also_applies_to": "this_model rows: list of sibling vehicles the same bulletin number also covers"
   },
   "notes": "Extra fields are tolerated and passed through; only id is required. Merge steps append rows to items[] and must keep ids unique. cuore_relevance, applies_to, transport_canada_id and similar extras are optional and ignored by the template."
  },
@@ -112,7 +117,8 @@
    "depends_on_systems": [
     "engine_management",
     "evap"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-18-048-23",
@@ -150,6 +156,10 @@
    "repair_implied": "procedure:wiTECH SLVT",
    "depends_on_systems": [
     "evap"
+   ],
+   "vehicle_scope": "this_model",
+   "also_applies_to": [
+    "2012-2023 all Stellantis gas vehicles with wiTECH SLVT (incl. Alfa dealers if on wiTECH)"
    ]
   },
   {
@@ -197,7 +207,8 @@
    "depends_on_systems": [
     "evap",
     "fuel"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "kind": "tsb",
@@ -280,7 +291,8 @@
     "RRT 17-112 (this bulletin is also released as Rapid Response Transmittal 17-112; sold and un-sold VINs loaded, check by VIN search in Service Library/VIP)",
     "supersedes 18-103-19 (2019-12-19)",
     "this revision adds P0106"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "kind": "csn",
@@ -336,7 +348,8 @@
     "10174191",
     "10175111",
     "10175524"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "kind": "tsb",
@@ -383,7 +396,8 @@
    "repair_implied": "flash",
    "depends_on_systems": [
     "transmission_driveline"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "kind": "tsb",
@@ -424,7 +438,8 @@
    "nhtsa_ids": [
     "10169219",
     "10220071"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "kind": "tsb",
@@ -463,7 +478,8 @@
    "repair_implied": "procedure:wiTECH SLVT",
    "depends_on_systems": [
     "evap"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "kind": "tsb",
@@ -517,7 +533,8 @@
    "depends_on_systems": [
     "engine_management",
     "evap"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "kind": "tsb",
@@ -571,7 +588,8 @@
    "nhtsa_ids": [
     "10188809",
     "10220605"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "kind": "tsb",
@@ -615,7 +633,8 @@
    "depends_on_systems": [
     "engine_management",
     "lubrication"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "kind": "tsb",
@@ -681,7 +700,8 @@
     "10183038",
     "10217463",
     "10223927"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-18v636",
@@ -723,7 +743,8 @@
     "engine_management",
     "ignition",
     "exhaust_emissions"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-18v635",
@@ -757,7 +778,8 @@
    "repair_implied": "replace:coolant hose",
    "depends_on_systems": [
     "cooling"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-18v147",
@@ -790,7 +812,8 @@
    "repair_implied": "replace:wiper motor",
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-18v203",
@@ -825,7 +848,8 @@
    "repair_implied": "procedure:add sealing / water protection",
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-18v205",
@@ -862,7 +886,8 @@
    "depends_on_systems": [
     "body_comfort",
     "lighting"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-17v823",
@@ -896,7 +921,8 @@
    "repair_implied": "inspect",
    "depends_on_systems": [
     "brakes_abs"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-19v148",
@@ -930,7 +956,8 @@
    "depends_on_systems": [
     "adas_sensors",
     "brakes_abs"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-19v551",
@@ -965,7 +992,8 @@
    "depends_on_systems": [
     "body_comfort",
     "fuel"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-23v382",
@@ -999,7 +1027,8 @@
    "repair_implied": "software_update",
    "depends_on_systems": [
     "brakes_abs"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-24v510",
@@ -1033,7 +1062,8 @@
    "repair_implied": "procedure:repair connector",
    "depends_on_systems": [
     "restraints"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-25v586",
@@ -1079,7 +1109,8 @@
    "repair_implied": "replace:fuel delivery module",
    "depends_on_systems": [
     "fuel"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-2024379",
@@ -1110,7 +1141,8 @@
     "incorrect tire labels"
    ],
    "repair_implied": "none",
-   "depends_on_systems": []
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "recall-2024767",
@@ -1143,7 +1175,8 @@
    "repair_implied": "none",
    "depends_on_systems": [
     "brakes_abs"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "csn-u24-u34-u36",
@@ -1175,7 +1208,8 @@
    "repair_implied": "none",
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "campaign-lookup",
@@ -1201,7 +1235,8 @@
    "components": [],
    "symptoms": [],
    "repair_implied": "none",
-   "depends_on_systems": []
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "emissions-lookup",
@@ -1227,7 +1262,8 @@
    "components": [],
    "symptoms": [],
    "repair_implied": "none",
-   "depends_on_systems": []
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9002519",
@@ -1257,7 +1293,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-05152029",
@@ -1282,7 +1319,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9003696",
@@ -1311,7 +1349,8 @@
    "nhtsa_ids": [
     "10139992",
     "10217524"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9003109",
@@ -1340,7 +1379,8 @@
    "nhtsa_ids": [
     "10138855",
     "10219830"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9003293",
@@ -1369,7 +1409,8 @@
    "nhtsa_ids": [
     "10216110",
     "10217451"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-08-044-19",
@@ -1399,7 +1440,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "brakes_abs"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-08-081-19",
@@ -1429,7 +1471,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "infotainment_cluster"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9003220",
@@ -1459,7 +1502,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "infotainment_cluster"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9004130",
@@ -1489,7 +1533,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "starting_charging"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-31-004-19",
@@ -1523,7 +1568,8 @@
    "nhtsa_ids": [
     "10169246",
     "10220098"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-31-005-19",
@@ -1557,7 +1603,8 @@
    "nhtsa_ids": [
     "10169249",
     "10220101"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-3100319",
@@ -1582,7 +1629,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-3100619",
@@ -1607,7 +1655,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9004022",
@@ -1632,7 +1681,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "suspension"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2008000010",
@@ -1672,7 +1722,8 @@
     "10178642",
     "10221715",
     "10229285"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2008000013",
@@ -1702,7 +1753,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "security_immobiliser"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2008000017",
@@ -1745,7 +1797,8 @@
     "10174135",
     "10175055",
     "10175467"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-08-029-20",
@@ -1788,7 +1841,8 @@
     "10174204",
     "10175124",
     "10175537"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2008000021",
@@ -1833,7 +1887,8 @@
     "10174150",
     "10175070",
     "10175482"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1808000005",
@@ -1865,7 +1920,8 @@
    "depends_on_systems": [
     "network",
     "engine_management"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2019000002",
@@ -1897,7 +1953,8 @@
    "depends_on_systems": [
     "steering",
     "infotainment_cluster"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-18-039-20",
@@ -1939,7 +1996,8 @@
     "fuel",
     "evap"
    ],
-   "cuore_relevance": "Context for EVAP/fuel symptoms that come and go after refueling in warm weather; a 2020 seasonal notice, not a part fix. Does not name P0440/P0455/P0456."
+   "cuore_relevance": "Context for EVAP/fuel symptoms that come and go after refueling in warm weather; a 2020 seasonal notice, not a part fix. Does not name P0440/P0455/P0456.",
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-08-049-20",
@@ -1969,7 +2027,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "starting_charging"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-23-015-20",
@@ -1999,7 +2058,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-08-065-20",
@@ -2033,7 +2093,8 @@
    "nhtsa_ids": [
     "10177540",
     "10223595"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2008000093",
@@ -2067,7 +2128,8 @@
    "nhtsa_ids": [
     "10177504",
     "10223559"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2008000113",
@@ -2109,7 +2171,8 @@
     "10194007",
     "10221154",
     "10221813"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9003637",
@@ -2145,7 +2208,8 @@
    "nhtsa_ids": [
     "10180177",
     "10221787"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1908000028",
@@ -2183,7 +2247,8 @@
    "nhtsa_ids": [
     "10184399",
     "10184699"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1908000102",
@@ -2208,7 +2273,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "starting_charging"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2018000012",
@@ -2251,7 +2317,8 @@
     "10184402",
     "10184702",
     "10224025"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1708000262",
@@ -2292,7 +2359,8 @@
     "10184414",
     "10184714",
     "10224037"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9004335",
@@ -2333,7 +2401,8 @@
     "10184380",
     "10184680",
     "10224003"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-01-001-21",
@@ -2369,7 +2438,8 @@
    "nhtsa_ids": [
     "10188822",
     "10220618"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2123000016",
@@ -2403,7 +2473,8 @@
    "nhtsa_ids": [
     "10190628",
     "10220881"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1809000007",
@@ -2438,7 +2509,8 @@
     "10190667",
     "10212473",
     "10221277"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9004009",
@@ -2468,7 +2540,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "transmission_driveline"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s16080002261",
@@ -2493,7 +2566,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "starting_charging"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1821000001",
@@ -2518,7 +2592,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "transmission_driveline"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1608000226",
@@ -2543,7 +2618,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "starting_charging"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1708000118",
@@ -2597,7 +2673,8 @@
     "10221164",
     "10223079",
     "10229041"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9004386",
@@ -2622,7 +2699,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "network"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2109000004",
@@ -2651,7 +2729,8 @@
    "nhtsa_ids": [
     "10221594",
     "10230180"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2108000163",
@@ -2684,7 +2763,8 @@
    "nhtsa_ids": [
     "10221597",
     "10230183"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2108000198",
@@ -2709,7 +2789,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "infotainment_cluster"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2208000073",
@@ -2755,7 +2836,8 @@
     "10220715",
     "10223097",
     "10229059"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2209000004",
@@ -2785,7 +2867,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "lubrication"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2223000047",
@@ -2817,7 +2900,8 @@
    "depends_on_systems": [
     "starting_charging",
     "adas_sensors"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-3100122",
@@ -2856,7 +2940,8 @@
     "10225287",
     "10225424",
     "10229572"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2218000018",
@@ -2895,7 +2980,8 @@
     "10225219",
     "10225356",
     "10229499"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-0100122",
@@ -2927,7 +3013,8 @@
    "depends_on_systems": [
     "infotainment_cluster",
     "lubrication"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-31-002-22",
@@ -2952,7 +3039,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-3100123",
@@ -2986,7 +3074,8 @@
    "nhtsa_ids": [
     "10234468",
     "10247995"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1408000384",
@@ -3049,7 +3138,8 @@
     "11013171",
     "11028904",
     "11030035"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-0700723",
@@ -3079,7 +3169,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "cooling"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9100196",
@@ -3109,7 +3200,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "lubrication"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-93023",
@@ -3135,7 +3227,8 @@
    "components": [],
    "symptoms": [],
    "repair_implied": null,
-   "depends_on_systems": []
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-93120",
@@ -3161,7 +3254,8 @@
    "components": [],
    "symptoms": [],
    "repair_implied": null,
-   "depends_on_systems": []
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9100226",
@@ -3195,7 +3289,8 @@
    "nhtsa_ids": [
     "10244348",
     "10248509"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9100229",
@@ -3225,7 +3320,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "valve_control"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-31-001-24",
@@ -3255,7 +3351,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "body_comfort"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-01-002-24",
@@ -3287,7 +3384,8 @@
    "depends_on_systems": [
     "infotainment_cluster",
     "lubrication"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9100469",
@@ -3331,7 +3429,8 @@
     "68402531A",
     "68528496A",
     "68534104A"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s1705000002",
@@ -3361,7 +3460,8 @@
    "repair_implied": null,
    "depends_on_systems": [
     "brakes_abs"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-31-001-25",
@@ -3404,7 +3504,8 @@
     "11022003",
     "11022011",
     "11022012"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-9100325",
@@ -3452,7 +3553,8 @@
     "engine_management"
    ],
    "cuore_relevance": "P1CEA is a 2.0T boost-side purge code that 18-026-20 also lists; this note says to check hoses and SOL S2518000008 before buying a purge valve. Covers GU 2018-24 by its models header.",
-   "gpop_models": "MY 24 GG, 25 DT, 19-23/19-20 KL, 18-24/18-20 JL, 24 MP, 22-23 BV, 22-23 WL, 17-24/21-24 GA, 21-24 J6, 23-25 WS, 19-23/19-20 K8, 18-24 GU, 24 GV (reading: years precede platform)"
+   "gpop_models": "MY 24 GG, 25 DT, 19-23/19-20 KL, 18-24/18-20 JL, 24 MP, 22-23 BV, 22-23 WL, 17-24/21-24 GA, 21-24 J6, 23-25 WS, 19-23/19-20 K8, 18-24 GU, 24 GV (reading: years precede platform)",
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2621000003",
@@ -3484,7 +3586,8 @@
    "depends_on_systems": [
     "transmission_driveline",
     "engine_management"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-01-001-26",
@@ -3516,7 +3619,8 @@
    "depends_on_systems": [
     "infotainment_cluster",
     "lubrication"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-s2623000037",
@@ -3554,7 +3658,8 @@
    "nhtsa_ids": [
     "11033309",
     "11034923"
-   ]
+   ],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-112842",
@@ -3580,7 +3685,8 @@
    "components": [],
    "symptoms": [],
    "repair_implied": null,
-   "depends_on_systems": []
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model"
   },
   {
    "id": "tsb-22d-combo",
@@ -3620,6 +3726,1692 @@
    "nhtsa_ids": [
     "11037271",
     "11037356"
+   ],
+   "vehicle_scope": "this_model"
+  },
+  {
+   "id": "sib-18-018-20",
+   "kind": "tsb",
+   "number": "18-018-20 (supersedes 18-034-19 Rev A; RRT 18-137)",
+   "nhtsa_id": "10173382",
+   "title": "Flash: PCM Updates",
+   "date": "2020-02-29",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2018 Jeep Wrangler JL 2.0T eTorque (EC3): Flash: PCM Updates.",
+   "condition": "MIL, P0456 EVAP small leak, P061A, P0507; fan noise A/C max",
+   "remedy": "Reprogram PCM; use wiTECH SLVT to confirm leak; also update ABS/HCP",
+   "systems": [
+    "EVAP",
+    "ECM"
+   ],
+   "dtcs": [
+    "P0456",
+    "P061A",
+    "P0507"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10173382-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_evap.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2018 Jeep Wrangler JL 2.0T eTorque (EC3)",
+   "transferability": "inference: same 2.0T engine family and FCA EVAP monitor logic, but different ECM supplier/software than Stelvio; shows a PCM flash changes P0456 handling.",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM",
+    "wiTECH SLVT"
+   ],
+   "symptoms": [
+    "MIL, P0456 EVAP small leak, P061A, P0507",
+    "fan noise A/C max"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "evap",
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-18-014-20",
+   "kind": "tsb",
+   "number": "18-014-20 (supersedes 18-041-19)",
+   "nhtsa_id": "10173374",
+   "title": "Flash: PCM Updates",
+   "date": "2020-02-19",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2018 Jeep Wrangler JL 2.0T ESS (EC1): Flash: PCM Updates.",
+   "condition": "MIL, P0456 (plus P0128/P050B EMEA/APAC), fan noise, cold rough idle",
+   "remedy": "Reprogram PCM (EVP, fan noise, LSPI updates); SLVT for P0456",
+   "systems": [
+    "EVAP",
+    "ECM"
+   ],
+   "dtcs": [
+    "P0456",
+    "P0128",
+    "P050B"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10173374-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_evap.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2018 Jeep Wrangler JL 2.0T ESS (EC1)",
+   "transferability": "inference: same engine family; P0456 listed as a flash-fixable code, ECM supplier may differ.",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL, P0456 (plus P0128/P050B EMEA/APAC), fan noise, cold rough idle"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "evap",
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-14-005-22-rev-b",
+   "kind": "tsb",
+   "number": "14-005-22 Rev B (RSU 22-072)",
+   "nhtsa_id": "10225276",
+   "title": "Updated Fuel Filler Cap",
+   "date": "2022-08-12",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2021 Jeep Wrangler JL 2.0T EC1/ECX (built 2021-06-01 to 2021-10-06, non-locking cap), also 3.6, Gladiator, Challenger, Ram: Updated Fuel Filler Cap. Cause: Original cap leaks (implied).",
+   "condition": "MIL with P0455, P0456, P04EC, P04EE",
+   "remedy": "Replace fuel filler cap (PN 68484447AA / 52030381AA / 57008425AA / 68339343AA / 68412848AC by model); P0456 -> run SLVT after",
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0455",
+    "P0456",
+    "P04EC",
+    "P04EE"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10225276-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_evap.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2021 Jeep Wrangler JL 2.0T EC1/ECX (built 2021-06-01 to 2021-10-06, non-locking cap), also 3.6, Gladiator, Challenger, Ram",
+   "transferability": "inference: cap already replaced on Stelvio; low relevance, build range excludes it.",
+   "stelvio_equivalent": null,
+   "components": [
+    "fuel filler cap"
+   ],
+   "symptoms": [
+    "MIL with P0455, P0456, P04EC, P04EE"
+   ],
+   "repair_implied": "replace:fuel filler cap",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "sib-star-online-case-s2125000002-rev-a",
+   "kind": "tsb",
+   "number": "STAR Online case S2125000002 Rev A",
+   "nhtsa_id": "10219975",
+   "title": "EVAP codes - check mid-point quick-connect of recirculation lines",
+   "date": "2021-08",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2019-2021 Jeep Wrangler JL 2.0L and 3.6L, PHEV ECX: EVAP codes - check mid-point quick-connect of recirculation lines. Cause: Recirculation line quick-connect at mid-point loose (case record, not authorised repair).",
+   "condition": "MIL with P0456, P0455, P04EC, P04EE, P0441, P1CEA",
+   "remedy": "Reconnect quick-connect, rerun wiTECH EVAP leak test; else follow DTC diagnostics",
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0456",
+    "P0455",
+    "P0441",
+    "P04EC",
+    "P04EE",
+    "P1CEA"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10219975-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_evap.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2019-2021 Jeep Wrangler JL 2.0L and 3.6L, PHEV ECX",
+   "transferability": "inference: same architecture class; Stelvio has a quick-connect on the vapor line near the rear wheel well worth re-checking even after smoke tests.",
+   "stelvio_equivalent": null,
+   "components": [
+    "recirculation line quick-connect"
+   ],
+   "symptoms": [
+    "MIL with P0456, P0455, P04EC, P04EE, P0441, P1CEA"
+   ],
+   "repair_implied": "procedure:reconnect recirculation line quick-connect",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "sib-18-035-20",
+   "kind": "tsb",
+   "number": "18-035-20 (RRT 20-027)",
+   "nhtsa_id": "10175721",
+   "title": "Fuel Vapor Hose Not Connected",
+   "date": "2020-04-08",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2020 Jeep Grand Cherokee WK / Durango WD 3.6L ERC (built 2019-11-04 to 2020-03-09): Fuel Vapor Hose Not Connected. Cause: Vapor hose quick-connect not connected at left rear wheel well.",
+   "condition": "MIL P0441/P0456/P0455; fuel odor left rear wheel opening",
+   "remedy": "Remove LR wheel and liner, connect and lock quick connector",
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0441",
+    "P0455",
+    "P0456"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175721-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_evap.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2020 Jeep Grand Cherokee WK / Durango WD 3.6L ERC (built 2019-11-04 to 2020-03-09)",
+   "transferability": "inference: different engine and build range; same concept of a hidden vapor quick-connect in the wheel well.",
+   "stelvio_equivalent": null,
+   "components": [
+    "vapor hose quick-connector"
+   ],
+   "symptoms": [
+    "MIL P0441/P0456/P0455",
+    "fuel odor left rear wheel opening"
+   ],
+   "repair_implied": "procedure:connect and lock vapor hose quick-connector",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "sib-25-002-15-rev-b-rev-a",
+   "kind": "tsb",
+   "number": "25-002-15 Rev B / Rev A",
+   "nhtsa_id": "10217423",
+   "title": "Purge valve hose may split",
+   "date": "2015",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2015 Jeep Grand Cherokee WK / Dodge Durango WD (3.6/5.7): Purge valve hose may split. Cause: Split EVAP purge valve hose.",
+   "condition": "P0455/P0456",
+   "remedy": "Replace purge valve hose",
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0455",
+    "P0456"
+   ],
+   "links": [],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_evap.json; NOT opened (search result only)",
+   "verified": false,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2015 Jeep Grand Cherokee WK / Dodge Durango WD (3.6/5.7)",
+   "transferability": "inference: different engines, low relevance. Seen only in search results, not opened.",
+   "stelvio_equivalent": null,
+   "components": [
+    "purge valve hose"
+   ],
+   "symptoms": [
+    "P0455/P0456"
+   ],
+   "repair_implied": "replace:purge valve hose",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "sib-mas003111",
+   "kind": "tsb",
+   "number": "MAS003111 (MTB 22-15)",
+   "nhtsa_id": null,
+   "title": "P043E EVAP leak detection reference orifice low flow",
+   "date": "2022-05-02",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for MY22 Maserati V6 Levante/Ghibli/Quattroporte: P043E EVAP leak detection reference orifice low flow. Cause: ECM calibration false detection.",
+   "condition": "P043E false detection (DMTL)",
+   "remedy": "Clear DTC; new ECM SW to follow",
+   "systems": [
+    "EVAP",
+    "ECM"
+   ],
+   "dtcs": [
+    "P043E"
+   ],
+   "links": [],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_evap.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "MY22 Maserati V6 Levante/Ghibli/Quattroporte",
+   "transferability": "inference: shows an Italian-brand ECM calibration can falsely set EVAP monitor codes; DMTL not ESIM.",
+   "stelvio_equivalent": null,
+   "components": [
+    "DMTL reference orifice",
+    "ECM"
+   ],
+   "symptoms": [
+    "P043E false detection (DMTL)"
+   ],
+   "repair_implied": "software_update",
+   "depends_on_systems": [
+    "evap",
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-ua4",
+   "kind": "recall",
+   "number": "UA4",
+   "nhtsa_id": "18V636",
+   "title": "Engine control software, inadequate catalyst overheat protection",
+   "date": "2018-09-14",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2017-2018 Alfa Giulia and 2018 Stelvio 2.0L (EC2) [reference]: Engine control software, inadequate catalyst overheat protection. Cause: PCM calibration lets misfire overheat catalyst. Note: No Jeep safety recall for 2.0T misfire found; Jeep uses TSB flashes instead.",
+   "condition": "MIL, rough running, power loss, burning odor",
+   "remedy": "Inspect for DTCs, reflash PCM",
+   "systems": [
+    "ECM",
+    "Engine"
+   ],
+   "dtcs": [
+    "P0420",
+    "P0171",
+    "P2096",
+    "P2270",
+    "P0299"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/rcl/2018/RCLRPT-18V636-5273.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2017-2018 Alfa Giulia and 2018 Stelvio 2.0L (EC2) [reference]",
+   "transferability": "inference: same design",
+   "stelvio_equivalent": "18V636",
+   "components": [
+    "PCM",
+    "catalytic converter"
+   ],
+   "symptoms": [
+    "MIL, rough running, power loss, burning odor"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management",
+    "ignition",
+    "exhaust_emissions"
+   ]
+  },
+  {
+   "id": "sib-csn-46a",
+   "kind": "csn",
+   "number": "CSN 46A",
+   "nhtsa_id": null,
+   "title": "PCM software, ignition coil electrical overstress",
+   "date": "2023-06",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2023 Alfa Giulia and Stelvio 2.0L: PCM software, ignition coil electrical overstress. Cause: Ignition coil overstress in PCM.",
+   "condition": "Misfire, rough run",
+   "remedy": "Reprogram PCM, no parts",
+   "systems": [
+    "ECM",
+    "Ignition"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10241053-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2023 Alfa Giulia and Stelvio 2.0L",
+   "transferability": "inference: same design (sibling Alfa; MY2023 only, 2018 Stelvio not in scope)",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM",
+    "ignition coil"
+   ],
+   "symptoms": [
+    "Misfire, rough run"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management",
+    "ignition"
+   ]
+  },
+  {
+   "id": "sib-18-052-20",
+   "kind": "tsb",
+   "number": "18-052-20 (supersedes 18-050-19)",
+   "nhtsa_id": null,
+   "title": "Flash: PCM updates",
+   "date": "2020-07-09",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2019 Jeep Cherokee KL 2.0L (EC1): Flash: PCM updates. Cause: PCM software. Note: Superseded by 18-161-22",
+   "condition": "MIL; knock/pre-ignition noise; generator stops charging after ESS; LTR pump noise",
+   "remedy": "Reflash PCM",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P04FC",
+    "P152F",
+    "P0456",
+    "P050B",
+    "P258B",
+    "C1252",
+    "P2B95",
+    "P062A",
+    "P058C",
+    "P0607",
+    "P02EE",
+    "P02EF",
+    "P02F0",
+    "P02F1"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10178684-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2019 Jeep Cherokee KL 2.0L (EC1)",
+   "transferability": "inference (same engine family, Jeep calibration)",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL",
+    "knock/pre-ignition noise",
+    "generator stops charging after ESS",
+    "LTR pump noise"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-18-161-22",
+   "kind": "tsb",
+   "number": "18-161-22",
+   "nhtsa_id": null,
+   "title": "Flash: PCM updates",
+   "date": "2022-12-03",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2019 Jeep Cherokee KL 2.0L: Flash: PCM updates. Cause: PCM software.",
+   "condition": "MIL, injector circuit and crankcase vent faults",
+   "remedy": "Reflash PCM",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P02EE",
+    "P02EF",
+    "P02F0",
+    "P02F1",
+    "P2C90",
+    "P1D73",
+    "P04FC",
+    "P0456",
+    "P050B",
+    "P062A",
+    "P058C",
+    "P0607"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10229791-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2019 Jeep Cherokee KL 2.0L",
+   "transferability": "inference",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL, injector circuit and crankcase vent faults"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-18-090-21",
+   "kind": "tsb",
+   "number": "18-090-21",
+   "nhtsa_id": null,
+   "title": "Flash: PCM updates",
+   "date": "2021-11-06",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2020 Jeep Cherokee KL 2.0L: Flash: PCM updates. Cause: PCM software.",
+   "condition": "MIL; improved hot-restart idle",
+   "remedy": "Reflash PCM (0.3 h)",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P2172",
+    "P02EE",
+    "P02EF",
+    "P02F0",
+    "P02F1"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10204382-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2020 Jeep Cherokee KL 2.0L",
+   "transferability": "inference",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL",
+    "improved hot-restart idle"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-18-057-24",
+   "kind": "tsb",
+   "number": "18-057-24 (rev of 18-019-21)",
+   "nhtsa_id": null,
+   "title": "Flash: PCM updates",
+   "date": "2024-06-26",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2021 Jeep Cherokee KL 2.0L: Flash: PCM updates. Cause: PCM software.",
+   "condition": "MIL, cruise inoperable, power loss after prolonged heat, ESS not working",
+   "remedy": "Reflash PCM",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P02EE",
+    "P02EF",
+    "P02F0",
+    "P02F1"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11002762-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2021 Jeep Cherokee KL 2.0L",
+   "transferability": "inference",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL, cruise inoperable, power loss after prolonged heat, ESS not working"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-18-070-23",
+   "kind": "tsb",
+   "number": "18-070-23",
+   "nhtsa_id": null,
+   "title": "Flash: PCM updates",
+   "date": "2023-06-15",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2020 Jeep Wrangler JL 2.0L: Flash: PCM updates. Cause: PCM software.",
+   "condition": "MIL, injector/crank sensor/PCV/vacuum leak/idle codes",
+   "remedy": "Reflash PCM",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P02EE",
+    "P02EF",
+    "P02F0",
+    "P02F1",
+    "P0335",
+    "P0339",
+    "P2C90",
+    "P2172",
+    "P0441",
+    "P0607",
+    "P0506"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10241090-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2020 Jeep Wrangler JL 2.0L",
+   "transferability": "inference",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL, injector/crank sensor/PCV/vacuum leak/idle codes"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-18-011-25",
+   "kind": "tsb",
+   "number": "18-011-25",
+   "nhtsa_id": null,
+   "title": "Flash: PCM updates (cam/OCV/cat)",
+   "date": "2025-03-08",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2024 Jeep Wrangler JL 2.0L (EC1): Flash: PCM updates (cam/OCV/cat). Cause: PCM software.",
+   "condition": "MIL, possible no-crank/no-start; Smart Charge battery update",
+   "remedy": "Reflash PCM; possibly replace oil control valves and/or catalytic converter",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P0420",
+    "P0017",
+    "P000A",
+    "P219A"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11015523-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2024 Jeep Wrangler JL 2.0L (EC1)",
+   "transferability": "inference (cam timing codes; MultiAir relevance by analogy only)",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL, possible no-crank/no-start",
+    "Smart Charge battery update"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-18-037-24-rev-b",
+   "kind": "tsb",
+   "number": "18-037-24 Rev B",
+   "nhtsa_id": null,
+   "title": "Flash: PCM updates",
+   "date": "2024-11-23",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2024 Dodge Hornet 2.0L: Flash: PCM updates. Cause: PCM software.",
+   "condition": "MIL",
+   "remedy": "Reflash PCM",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P219A"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11010792-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2024 Dodge Hornet 2.0L",
+   "transferability": "inference",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-18-079-23",
+   "kind": "tsb",
+   "number": "18-079-23",
+   "nhtsa_id": null,
+   "title": "Engine misfire",
+   "date": "2023-06-29",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2023 Dodge Hornet 2.0L (built 2023-01-28 to 03-09): Engine misfire. Cause: Spark plug cracked during installation.",
+   "condition": "MIL, poor running, misfire",
+   "remedy": "Replace spark plugs",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P0300",
+    "P0301",
+    "P0302",
+    "P0303",
+    "P0304"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10241133-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2023 Dodge Hornet 2.0L (built 2023-01-28 to 03-09)",
+   "transferability": "inference (misfire only; narrow build window)",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL, poor running, misfire"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-u87",
+   "kind": "csn",
+   "number": "U87",
+   "nhtsa_id": "18V-524",
+   "title": "Powertrain Control Module (voltage regulator chip)",
+   "date": "2018-09",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2017-2019 Cherokee KL, 2018 Wrangler JL, others incl 2.0L EC1/EC3 (built 2017-08-30 to 2018-06-27): Powertrain Control Module (voltage regulator chip). Cause: Suspect voltage regulator chip on PCM board.",
+   "condition": "No-start, start/stall, stall while driving",
+   "remedy": "Replace and reprogram PCM",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/rcl/2018/RCRIT-18V524-7676.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2017-2019 Cherokee KL, 2018 Wrangler JL, others incl 2.0L EC1/EC3 (built 2017-08-30 to 2018-06-27)",
+   "transferability": "inference: not applicable (no Alfa listed; hardware lot)",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM",
+    "voltage regulator chip"
+   ],
+   "symptoms": [
+    "No-start, start/stall, stall while driving"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management",
+    "electrical_supply"
+   ]
+  },
+  {
+   "id": "sib-09-012-23-rev-a-rsu-23-201",
+   "kind": "tsb",
+   "number": "09-012-23 Rev A / RSU 23-201",
+   "nhtsa_id": null,
+   "title": "Oil leak from turbo oil return tube",
+   "date": "2023-07-26",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2022-2023 Grand Cherokee WL 2.0L PHEV (ECX), built to 2023-05-25: Oil leak from turbo oil return tube. Cause: Internally damaged oil return tube. Note: Part 05048756AA seen verbatim; not confirmed identical to Stelvio part.",
+   "condition": "Oil leak from turbo oil return tube",
+   "remedy": "Inspect, replace turbo oil drain tube 05048756AA (screws, seal, o-ring)",
+   "systems": [
+    "Turbo",
+    "Engine oil"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10242782-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2022-2023 Grand Cherokee WL 2.0L PHEV (ECX), built to 2023-05-25",
+   "transferability": "inference (same turbo family, return/drain line; Alfa routing differs)",
+   "stelvio_equivalent": "W05",
+   "components": [
+    "turbo oil return tube"
+   ],
+   "symptoms": [
+    "Oil leak from turbo oil return tube"
+   ],
+   "repair_implied": "replace:turbo oil return tube",
+   "depends_on_systems": [
+    "air_intake_boost",
+    "lubrication"
+   ]
+  },
+  {
+   "id": "sib-unknown",
+   "kind": "tsb",
+   "number": "unknown (Mitchell1 summary)",
+   "nhtsa_id": null,
+   "title": "Leaky turbo oil return line",
+   "date": "2025",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2025 Wrangler and Compass 2.0L (built 2024-11-20 to 2025-05-01): Leaky turbo oil return line. Note: Search-result summary only; page not opened.",
+   "condition": "Oil leak from turbo oil return line",
+   "remedy": "If leaking, replace with 05048756AB",
+   "systems": [
+    "Turbo",
+    "Engine oil"
+   ],
+   "dtcs": [],
+   "links": [],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NOT opened (search result only)",
+   "verified": false,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2025 Wrangler and Compass 2.0L (built 2024-11-20 to 2025-05-01)",
+   "transferability": "inference",
+   "stelvio_equivalent": "W05",
+   "components": [
+    "turbo oil return line"
+   ],
+   "symptoms": [
+    "Oil leak from turbo oil return line"
+   ],
+   "repair_implied": "replace:turbo oil return line",
+   "depends_on_systems": [
+    "air_intake_boost",
+    "lubrication"
+   ]
+  },
+  {
+   "id": "sib-09-017-26-rev-a",
+   "kind": "tsb",
+   "number": "09-017-26 Rev A",
+   "nhtsa_id": null,
+   "title": "Umbrella valve seal missing from cylinder head cover",
+   "date": "2026-08-19",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2026-27 Grand Cherokee WL 2.0L Hurricane4 (EC7): Umbrella valve seal missing from cylinder head cover. Cause: Missing umbrella valve seal in head cover (PCV).",
+   "condition": "MIL, low oil, misfire codes",
+   "remedy": "Replace cylinder head cover",
+   "systems": [
+    "PCV",
+    "Engine oil"
+   ],
+   "dtcs": [
+    "P0300",
+    "P0301",
+    "P0302",
+    "P0303",
+    "P0304"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11036357-0001.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2026-27 Grand Cherokee WL 2.0L Hurricane4 (EC7)",
+   "transferability": "inference: not applicable (Hurricane 4 is a different engine)",
+   "stelvio_equivalent": null,
+   "components": [
+    "cylinder head cover umbrella valve seal"
+   ],
+   "symptoms": [
+    "MIL, low oil, misfire codes"
+   ],
+   "repair_implied": "replace:umbrella valve seal",
+   "depends_on_systems": [
+    "pcv",
+    "lubrication"
+   ]
+  },
+  {
+   "id": "sib-18-052-20-18-161-22-18-070-23",
+   "kind": "tsb",
+   "number": "18-052-20 / 18-161-22 / 18-070-23",
+   "nhtsa_id": null,
+   "title": "PCV/crankcase vent DTCs cleared by PCM flash",
+   "date": "2020-2023",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2019 Cherokee KL, 2020 Wrangler JL 2.0L: PCV/crankcase vent DTCs cleared by PCM flash. Cause: PCM software. Note: No walnut-blast, intake carbon or oil consumption TSB found for 2.0T siblings.",
+   "condition": "MIL P04FC, P2C90",
+   "remedy": "Reflash",
+   "systems": [
+    "ECM",
+    "PCV"
+   ],
+   "dtcs": [
+    "P04FC",
+    "P2C90"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10229791-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2019 Cherokee KL, 2020 Wrangler JL 2.0L",
+   "transferability": "inference",
+   "stelvio_equivalent": null,
+   "components": [
+    "PCM"
+   ],
+   "symptoms": [
+    "MIL P04FC, P2C90"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "engine_management",
+    "pcv"
+   ]
+  },
+  {
+   "id": "sib-07-001-22-rev-b-rsu-22-085",
+   "kind": "tsb",
+   "number": "07-001-22 Rev B / RSU 22-085",
+   "nhtsa_id": null,
+   "title": "Water pump inlet tube fastener torque",
+   "date": "2022-04-28",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2018-2022 Wrangler JL 2.0L (EC1,EC3,ECX) built to 2022-03-10: Water pump inlet tube fastener torque. Cause: Inlet tube fasteners loose.",
+   "condition": "Coolant leak or low level",
+   "remedy": "Threadlocker 04318031AC and torque inlet tube fasteners",
+   "systems": [
+    "Cooling"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10228059-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2018-2022 Wrangler JL 2.0L (EC1,EC3,ECX) built to 2022-03-10",
+   "transferability": "inference (same engine; Stelvio routing not checked)",
+   "stelvio_equivalent": null,
+   "components": [
+    "water pump inlet tube fasteners"
+   ],
+   "symptoms": [
+    "Coolant leak or low level"
+   ],
+   "repair_implied": "procedure:threadlocker and torque inlet tube fasteners",
+   "depends_on_systems": [
+    "cooling"
+   ]
+  },
+  {
+   "id": "sib-07-001-24",
+   "kind": "tsb",
+   "number": "07-001-24",
+   "nhtsa_id": null,
+   "title": "Thermostat housing manifold coolant leak",
+   "date": "2024-01-19",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2022 Wrangler JL 2.0L (EC1,ECX) built 2021-06-01 to 2022-06-09: Thermostat housing manifold coolant leak. Cause: Improperly tightened fasteners.",
+   "condition": "Coolant leak at thermostat housing",
+   "remedy": "Torque manifold fasteners to 11 N-m, new gasket 05048427AA",
+   "systems": [
+    "Cooling"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-10251857-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2022 Wrangler JL 2.0L (EC1,ECX) built 2021-06-01 to 2022-06-09",
+   "transferability": "inference (same engine family)",
+   "stelvio_equivalent": null,
+   "components": [
+    "thermostat housing manifold",
+    "thermostat gasket"
+   ],
+   "symptoms": [
+    "Coolant leak at thermostat housing"
+   ],
+   "repair_implied": "procedure:torque manifold fasteners and replace gasket",
+   "depends_on_systems": [
+    "cooling"
+   ]
+  },
+  {
+   "id": "sib-09-018-25",
+   "kind": "tsb",
+   "number": "09-018-25",
+   "nhtsa_id": null,
+   "title": "Cylinder block porosity",
+   "date": "2025-07-16",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2021-2024 Wrangler JL, Compass MP, Grand Cherokee WL 2.0L: Cylinder block porosity. Cause: Block porosity. Note: Forum copy and Mitchell summary only.",
+   "condition": "Cold-start rough idle, low coolant",
+   "remedy": "Pressure test and borescope; replace long block if coolant in cylinder",
+   "systems": [
+    "Cooling",
+    "Engine"
+   ],
+   "dtcs": [],
+   "links": [],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NOT opened (search result only)",
+   "verified": false,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2021-2024 Wrangler JL, Compass MP, Grand Cherokee WL 2.0L",
+   "transferability": "inference (same block family; strongest coolant-loss/misfire overlap)",
+   "stelvio_equivalent": null,
+   "components": [
+    "cylinder block"
+   ],
+   "symptoms": [
+    "Cold-start rough idle, low coolant"
+   ],
+   "repair_implied": "inspect",
+   "depends_on_systems": [
+    "cooling",
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-09-016-23-rsu-23-225",
+   "kind": "tsb",
+   "number": "09-016-23 / RSU 23-225",
+   "nhtsa_id": null,
+   "title": "Incorrect coolant mix, low-temp system",
+   "date": "2023-07-28",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2023 Compass 2.0L (built 2023-02-27/28): Incorrect coolant mix, low-temp system. Cause: Wrong glycol/water mix.",
+   "condition": "Rising temp gauge, overheat message",
+   "remedy": "Drain and refill LT system",
+   "systems": [
+    "Cooling"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10242834-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2023 Compass 2.0L (built 2023-02-27/28)",
+   "transferability": "inference: not applicable (narrow build window)",
+   "stelvio_equivalent": null,
+   "components": [],
+   "symptoms": [
+    "Rising temp gauge, overheat message"
+   ],
+   "repair_implied": "procedure:drain and refill low-temperature coolant system",
+   "depends_on_systems": [
+    "cooling"
+   ]
+  },
+  {
+   "id": "sib-07-006-23",
+   "kind": "tsb",
+   "number": "07-006-23",
+   "nhtsa_id": null,
+   "title": "Mis-installed 3-way coolant valve",
+   "date": "2023-05-13",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2022 Wrangler PHEV 2.0L: Mis-installed 3-way coolant valve. Cause: Misrouted hoses.",
+   "condition": "MIL, intermittent no heat",
+   "remedy": "Correct hoses",
+   "systems": [
+    "Cooling"
+   ],
+   "dtcs": [
+    "P0E80"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10239945-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2022 Wrangler PHEV 2.0L",
+   "transferability": "inference: not applicable (PHEV)",
+   "stelvio_equivalent": null,
+   "components": [
+    "3-way coolant valve"
+   ],
+   "symptoms": [
+    "MIL, intermittent no heat"
+   ],
+   "repair_implied": "procedure:correct coolant hose routing",
+   "depends_on_systems": [
+    "cooling"
+   ]
+  },
+  {
+   "id": "sib-y10",
+   "kind": "recall",
+   "number": "Y10",
+   "nhtsa_id": "21V-665",
+   "title": "Fuel supply line connector may leak",
+   "date": "2021-08-26",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2020 Wrangler JL 2.0L: Fuel supply line connector may leak. Cause: Cracked connector.",
+   "condition": "Cracked connector on HP fuel line, fuel leak, fire risk",
+   "remedy": "Inspect and replace fuel supply line",
+   "systems": [
+    "Fuel"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/rcl/2021/RCAK-21V665-6670.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2020 Wrangler JL 2.0L",
+   "transferability": "inference (HP fuel line connector; Alfa part not verified)",
+   "stelvio_equivalent": null,
+   "components": [
+    "high-pressure fuel supply line connector"
+   ],
+   "symptoms": [
+    "Cracked connector on HP fuel line, fuel leak, fire risk"
+   ],
+   "repair_implied": "replace:fuel supply line",
+   "depends_on_systems": [
+    "fuel"
+   ]
+  },
+  {
+   "id": "sib-08-106-24-rev-c-rsu-24-075",
+   "kind": "tsb",
+   "number": "08-106-24 Rev C / RSU 24-075",
+   "nhtsa_id": null,
+   "title": "Performance Limited Fuel System, no DTCs",
+   "date": "2024-05-17",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2022-2023 Wrangler JL 2.0L (EC1,ECX) built 2022-01-01 to 2023-02-19: Performance Limited Fuel System, no DTCs. Cause: Hose clamp contacting N17 circuit of HP fuel pump solenoid harness.",
+   "condition": "Message with no DTC",
+   "remedy": "Inspect and reroute harness",
+   "systems": [
+    "Fuel"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11001255-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2022-2023 Wrangler JL 2.0L (EC1,ECX) built 2022-01-01 to 2023-02-19",
+   "transferability": "inference (HP pump solenoid harness)",
+   "stelvio_equivalent": null,
+   "components": [
+    "hose clamp",
+    "HP fuel pump solenoid harness"
+   ],
+   "symptoms": [
+    "Message with no DTC"
+   ],
+   "repair_implied": "inspect",
+   "depends_on_systems": [
+    "fuel"
+   ]
+  },
+  {
+   "id": "sib-93c",
+   "kind": "recall",
+   "number": "93C",
+   "nhtsa_id": "25V-586",
+   "title": "Fuel delivery module heat damage, loss of flow",
+   "date": "2025-09-09",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2017-2019 Giulia and 2018-2019 Stelvio 2.0L [reference]: Fuel delivery module heat damage, loss of flow. Cause: FDM internals susceptible to heat. Note: No Jeep equivalent found; in-tank low-pressure module is Alfa-specific.",
+   "condition": "Fuel starvation, loss of motive power",
+   "remedy": "Replace FDM (remedy pending at filing)",
+   "systems": [
+    "Fuel"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/rcl/2025/RCLRPT-25V586-6450.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2017-2019 Giulia and 2018-2019 Stelvio 2.0L [reference]",
+   "transferability": "inference: same design (Giulia is the direct sibling, same recall)",
+   "stelvio_equivalent": "25V586",
+   "components": [
+    "fuel delivery module"
+   ],
+   "symptoms": [
+    "Fuel starvation, loss of motive power"
+   ],
+   "repair_implied": "replace:fuel delivery module",
+   "depends_on_systems": [
+    "fuel"
+   ]
+  },
+  {
+   "id": "sib-08-106-21-rev-a",
+   "kind": "tsb",
+   "number": "08-106-21 Rev A",
+   "nhtsa_id": null,
+   "title": "12V battery low charge",
+   "date": "2021-06-30",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2021 Wrangler PHEV: 12V battery low charge. Cause: Battery.",
+   "condition": "Low charge",
+   "remedy": "Test/replace battery",
+   "systems": [
+    "Battery monitor"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10221355-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2021 Wrangler PHEV",
+   "transferability": "inference: not applicable (PHEV)",
+   "stelvio_equivalent": null,
+   "components": [
+    "12V battery"
+   ],
+   "symptoms": [
+    "Low charge"
+   ],
+   "repair_implied": "inspect",
+   "depends_on_systems": [
+    "starting_charging",
+    "electrical_supply"
+   ]
+  },
+  {
+   "id": "sib-09-009-26",
+   "kind": "extended_warranty",
+   "number": "09-009-26 (XC2)",
+   "nhtsa_id": null,
+   "title": "PHEV engine replacement warranty extension",
+   "date": "2026-05-13",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2024-25 Wrangler, 2023-25 Grand Cherokee PHEV 2.0L (ECX): PHEV engine replacement warranty extension.",
+   "condition": "Knock sensor codes",
+   "remedy": "Engine replacement",
+   "systems": [
+    "Engine"
+   ],
+   "dtcs": [
+    "P2336",
+    "P2337",
+    "P2338",
+    "P2339"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11032844-0001.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2024-25 Wrangler, 2023-25 Grand Cherokee PHEV 2.0L (ECX)",
+   "transferability": "inference: not applicable (PHEV)",
+   "stelvio_equivalent": null,
+   "components": [
+    "engine"
+   ],
+   "symptoms": [
+    "Knock sensor codes"
+   ],
+   "repair_implied": "replace:engine",
+   "depends_on_systems": [
+    "engine_management"
+   ]
+  },
+  {
+   "id": "sib-21-034-24",
+   "kind": "tsb",
+   "number": "21-034-24",
+   "nhtsa_id": null,
+   "title": "Flash: TCM updates",
+   "date": "2024-05-17",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2022 Wrangler JL 2.0L EC1 + 850RE (DFT): Flash: TCM updates. Cause: TCM software.",
+   "condition": "MIL",
+   "remedy": "Reflash TCM",
+   "systems": [
+    "Transmission",
+    "TCM"
+   ],
+   "dtcs": [
+    "P0701"
+   ],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11001258-0001.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2022 Wrangler JL 2.0L EC1 + 850RE (DFT)",
+   "transferability": "inference (850RE is ZF 8HP under licence)",
+   "stelvio_equivalent": "21-035-20",
+   "components": [
+    "TCM"
+   ],
+   "symptoms": [
+    "MIL"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "transmission_driveline"
+   ]
+  },
+  {
+   "id": "sib-21-022-20",
+   "kind": "tsb",
+   "number": "21-022-20",
+   "nhtsa_id": null,
+   "title": "Flash: TCM updates",
+   "date": "2020-03-24",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2020 Wrangler JL EC3 + 850RE built to 2020-02-20: Flash: TCM updates. Cause: TCM software.",
+   "condition": "Loud whistle at start-up",
+   "remedy": "Reflash TCM",
+   "systems": [
+    "Transmission",
+    "TCM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175572-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2020 Wrangler JL EC3 + 850RE built to 2020-02-20",
+   "transferability": "inference",
+   "stelvio_equivalent": "21-035-20",
+   "components": [
+    "TCM"
+   ],
+   "symptoms": [
+    "Loud whistle at start-up"
+   ],
+   "repair_implied": "flash",
+   "depends_on_systems": [
+    "transmission_driveline"
+   ]
+  },
+  {
+   "id": "sib-21-036-24-rev-a",
+   "kind": "tsb",
+   "number": "21-036-24 Rev A",
+   "nhtsa_id": null,
+   "title": "Flash: TCM (shift paddles)",
+   "date": "2024-09-05",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2024 Dodge Hornet 2.0L + 948TE: Flash: TCM (shift paddles). Cause: TCM software.",
+   "condition": "Paddles inactive in Drive",
+   "remedy": "Now information-only",
+   "systems": [
+    "Transmission",
+    "TCM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11007641-0001.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2024 Dodge Hornet 2.0L + 948TE",
+   "transferability": "inference: not applicable (different 9-speed)",
+   "stelvio_equivalent": null,
+   "components": [
+    "TCM"
+   ],
+   "symptoms": [
+    "Paddles inactive in Drive"
+   ],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "transmission_driveline"
+   ]
+  },
+  {
+   "id": "sib-21-027-26",
+   "kind": "extended_warranty",
+   "number": "21-027-26 (XX1)",
+   "nhtsa_id": null,
+   "title": "Two-speed PTU failure warranty extension",
+   "date": "2026-04-08",
+   "summary": "Analogue only, not a Stelvio bulletin. Written for 2017-2019 Cherokee KL 2.0L: Two-speed PTU failure warranty extension.",
+   "condition": "PTU failure",
+   "remedy": null,
+   "systems": [
+    "Transmission"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA document (sibling vehicle)",
+     "url": "https://static.nhtsa.gov/odi/rcl/2025/RCRIT-25V011-4648.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
+   "verified": true,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "2017-2019 Cherokee KL 2.0L",
+   "transferability": "inference: not applicable",
+   "stelvio_equivalent": null,
+   "components": [
+    "two-speed PTU"
+   ],
+   "symptoms": [
+    "PTU failure"
+   ],
+   "repair_implied": "replace:power transfer unit",
+   "depends_on_systems": [
+    "transmission_driveline"
+   ]
+  },
+  {
+   "id": "sib-field-report-1",
+   "kind": "field_report",
+   "number": "FIELD REPORT 1",
+   "nhtsa_id": null,
+   "title": "Jeep Wrangler JL 2.0T 2019: P0456 after trailer harness install; suspected knocked connector; shop fix in unreadable image",
+   "date": null,
+   "summary": "analogue only",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0456"
+   ],
+   "links": [],
+   "applies": "no",
+   "source": "forum/retailer claim, not opened by research: https://www.jlwranglerforums.com/forum/threads/p0456-code.121785/latest",
+   "verified": false,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "Jeep Wrangler JL 2.0T 2019",
+   "transferability": "inference: anecdote from another model, unverified; at most a pointer to what to inspect",
+   "stelvio_equivalent": null,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "sib-field-report-2",
+   "kind": "field_report",
+   "number": "FIELD REPORT 2",
+   "nhtsa_id": null,
+   "title": "Jeep Wrangler JL: Evaporative emissions leak MIL thread",
+   "date": null,
+   "summary": "analogue only",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [],
+   "links": [],
+   "applies": "no",
+   "source": "forum/retailer claim, not opened by research: https://www.jlwranglerforums.com/forum/threads/evaporative-emissions-leak-mil.28452/post-672624",
+   "verified": false,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "Jeep Wrangler JL",
+   "transferability": "inference: anecdote from another model, unverified; at most a pointer to what to inspect",
+   "stelvio_equivalent": null,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "sib-field-report-3",
+   "kind": "field_report",
+   "number": "FIELD REPORT 3",
+   "nhtsa_id": null,
+   "title": "Jeep (parts retailer guide): owner replaced ESIM after dealer found failed; cured P0456",
+   "date": null,
+   "summary": "analogue only",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0456"
+   ],
+   "links": [],
+   "applies": "no",
+   "source": "forum/retailer claim, not opened by research: https://www.go-parts.com/garage/obd-p0456-jeep-wrangler-2020-2023",
+   "verified": false,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "Jeep (parts retailer guide)",
+   "transferability": "inference: anecdote from another model, unverified; at most a pointer to what to inspect",
+   "stelvio_equivalent": null,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "sib-field-report-4",
+   "kind": "field_report",
+   "number": "FIELD REPORT 4",
+   "nhtsa_id": null,
+   "title": "Jeep Renegade/Fiat 500X (third-party): ESIM O-ring degrades/flattens causing small leak; ESIM must mount vertically",
+   "date": null,
+   "summary": "analogue only",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [],
+   "links": [],
+   "applies": "no",
+   "source": "forum/retailer claim, not opened by research: https://www.go-parts.com/garage/obd-p0456-jeep-renegade-2015-2021",
+   "verified": false,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "Jeep Renegade/Fiat 500X (third-party)",
+   "transferability": "inference: anecdote from another model, unverified; at most a pointer to what to inspect",
+   "stelvio_equivalent": null,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "sib-field-report-5",
+   "kind": "field_report",
+   "number": "FIELD REPORT 5",
+   "nhtsa_id": null,
+   "title": "Alfa Giulia 2.0: Giulia P0455 guide: cap, then canister; no Giulia ESIM-specific forum fix found",
+   "date": null,
+   "summary": "analogue only",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0455"
+   ],
+   "links": [],
+   "applies": "no",
+   "source": "forum/retailer claim, not opened by research: https://www.go-parts.com/garage/obd-p0455-alfa-romeo-giulia-2017-2018",
+   "verified": false,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "Alfa Giulia 2.0",
+   "transferability": "inference: anecdote from another model, unverified; at most a pointer to what to inspect",
+   "stelvio_equivalent": null,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "evap"
+   ]
+  },
+  {
+   "id": "sib-field-report-6",
+   "kind": "field_report",
+   "number": "FIELD REPORT 6",
+   "nhtsa_id": null,
+   "title": "Jeep Wrangler JK: P0456 fixed at canister connection / kinked seal (JK, not JL)",
+   "date": null,
+   "summary": "analogue only",
+   "condition": null,
+   "remedy": null,
+   "systems": [
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0456"
+   ],
+   "links": [],
+   "applies": "no",
+   "source": "forum/retailer claim, not opened by research: https://www.jk-forum.com/forums/stock-jk-tech-12/p0456-code-small-evap-leak-fixed-237480/page4/",
+   "verified": false,
+   "vehicle_scope": "sibling_engine",
+   "sibling_vehicle": "Jeep Wrangler JK",
+   "transferability": "inference: anecdote from another model, unverified; at most a pointer to what to inspect",
+   "stelvio_equivalent": null,
+   "components": [],
+   "symptoms": [],
+   "repair_implied": "none",
+   "depends_on_systems": [
+    "evap"
    ]
   }
  ],

@@ -61,7 +61,7 @@ ca = cp.get("clear_assessment")
 check("clear assessment says not proof of repair (when one applies -- the "
       "corpus is live, so the latest session may not contain a clear at "
       "all)",
-      ca is None or "NOT proof" in ca.get("verdict", ""))
+      ca is None or "not proof of repair" in ca.get("verdict", "").lower())
 check("P0456 classified chronic",
       any(r["dtc"] == "P0456-00" for r in d["history"]["chronic"]))
 check("TSBs matched for the EVAP codes",
@@ -108,7 +108,7 @@ check("findings session surfaced behind it", lf is not None
       and lf["file"] == WITH_FINDINGS
       and {x["code"] for x in lf["dtcs"]} == {"P0455", "P0440", "P0456"}, lf)
 check("pinned clear assessment says not proof of repair",
-      "NOT proof" in pc.get("clear_assessment", {}).get("verdict", ""),
+      "not proof of repair" in pc.get("clear_assessment", {}).get("verdict", "").lower(),
       pc.get("clear_assessment"))
 check("all three freeze frames attached",
       set(pc.get("freeze_frames", {})) ==

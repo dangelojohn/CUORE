@@ -488,7 +488,7 @@ def vehicle_summary(vin: str = "", vehicle: str = "") -> dict[str, Any]:
     newest = entries[0]
     return {
         "vin": newest.vin or vin,
-        "vehicle": newest.vehicle or vehicle,
+        "vehicle": next((e.vehicle for e in entries if e.vehicle), "") or vehicle,
         "ecu_seen": sorted({e.ecu for e in entries if e.ecu}),
         "log_count": len(entries),
         "first_log": min((e.timestamp for e in entries if e.stamp), default=""),

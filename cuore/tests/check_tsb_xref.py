@@ -49,6 +49,14 @@ CAT = {"vehicle": {"make": "Alfa Romeo", "model": "Stelvio", "year": 2018, "vin"
      "applies": "yes", "remedy": "Check hoses; replace canister and ESIM."},
     {"id": "rc-g", "kind": "recall", "number": "18V147", "title": "Wiper motor",
      "applies": "vin_check", "remedy": "Replace wiper motor."},
+    {"id": "sib-x", "kind": "tsb", "number": "SIB-001", "title": "Jeep purge valve",
+     "vehicle_scope": "sibling_engine", "sibling_vehicle": "2019 Jeep Wrangler JL 2.0T",
+     "systems": ["EVAP"], "dtcs": ["P0440"], "applies": "vin_check", "verified": True,
+     "stelvio_equivalent": "77-001-26", "remedy": "Replace the purge valve.",
+     "components": ["purge valve"], "transferability": "inference: same engine"},
+    {"id": "sib-fr", "kind": "field_report", "number": "FIELD REPORT 1", "title": "Forum: P0440 fixed",
+     "vehicle_scope": "sibling_engine", "sibling_vehicle": "Jeep Wrangler JL", "systems": ["EVAP"],
+     "dtcs": ["P0440"], "applies": "yes", "summary": "analogue only", "verified": False},
 ]}
 
 HIST = [
@@ -133,8 +141,110 @@ sc = {b["id"]: b["score"] for b in v["bulletins"]}
 order = [b["id"] for b in v["bulletins"]]
 check("f: score ordering", sc["tsb-a"] == 7 and sc["tsb-b"] == 2 and sc["tsb-e"] == 0
       and sc["rc-g"] == 0 and order[0] == "tsb-a"
-      and [s for s in (b["score"] for b in v["bulletins"])] == sorted(sc.values(), reverse=True)
+      and [b["score"] for b in v["bulletins"] if b["vehicle_scope"] == "this_model"]
+      == sorted((b["score"] for b in v["bulletins"] if b["vehicle_scope"] == "this_model"), reverse=True)
       and "not_applicable" in next(b for b in v["bulletins"] if b["id"] == "tsb-e")["flags"], str(sc))
+
+# (h) sibling-engine analogues: half score + own list; equivalent link; field_report cap
+SIB = next(x for x in v["bulletins"] if x["id"] == "sib-x")
+base = next(x for x in v["bulletins"] if x["id"] == "tsb-a")
+check("h: analogue scores half and lands in analogues", SIB["score"] == base["score"] // 2
+      and SIB["vehicle_scope"] == "sibling_engine" and has(v, "sib-x", "analogue") is not None
+      and [a["id"] for a in v["analogues"]][:1] == ["sib-x"]
+      and any(e["bulletin"] == "sib-x" for e in v["analogues_by"]["by_code"].get("P0440", []))
+      and all(e["bulletin"] != "sib-x" for e in v["by_code"].get("P0440", []))
+      and [b["vehicle_scope"] for b in v["bulletins"]] == sorted(
+          (b["vehicle_scope"] for b in v["bulletins"]), key=lambda t: t == "sibling_engine")
+      and any(a["id"] == "sib-x" for a in base["analogues"]), f"{SIB['score']} vs {base['score']}")
+r = has(v, "sib-x", "analogue")
+check("h2: stelvio_equivalent link in reason", "analogue of Stelvio 77-001-26" in r["reason"]
+      and r.get("stelvio_equivalent") == "tsb-a", str(r))
+FR = next(x for x in v["bulletins"] if x["id"] == "sib-fr")
+check("h3: field_report capped at 1", FR["score"] <= 1 and bool(has(v, "sib-fr", "field_report"))
+      and FR["score"] == 1, str(FR["score"]))
+
+# (i) date logic, remedy matching and relation names, on a second fake car
+CAT2 = {"vehicle": {"make": "Alfa Romeo", "model": "Stelvio", "year": 2018, "vin": VIN},
+        "updated": "2026-10-15", "items": [
+    {"id": "t-can", "number": "66-001-26", "title": "Canister", "systems": ["EVAP"],
+     "dtcs": ["P0440"], "applies": "yes", "repair_implied": "replace:vapour canister",
+     "components": ["EVAP vapour canister"]},
+    {"id": "t-cap", "number": "66-002-26", "title": "Fuel cap", "systems": ["EVAP"],
+     "dtcs": ["P0440"], "applies": "yes", "repair_implied": "replace:fuel cap",
+     "components": ["fuel cap"]},
+    {"id": "t-pv", "number": "66-003-26", "title": "Purge valve", "systems": ["EVAP"],
+     "dtcs": ["P0440"], "applies": "yes", "repair_implied": "replace:purge valve",
+     "components": ["purge valve"]},
+    {"id": "t-fl", "number": "66-004-26", "title": "Flash: PCM update", "systems": ["ECM"],
+     "dtcs": ["P0440"], "applies": "yes", "repair_implied": "flash", "nhtsa_id": "10170001",
+     "components": ["ECM", "wiTECH 2 Phonic Wheel Replacement"], "remedy": "Reprogram ECM."},
+    {"id": "t-pr", "number": "66-005-26", "title": "SLVT", "systems": ["EVAP"],
+     "dtcs": ["P0440"], "applies": "yes", "repair_implied": "procedure:wiTECH SLVT",
+     "components": ["wiTECH SLVT (Small Leak Verification Test)"]},
+    {"id": "t-yr", "number": "66-006-26", "title": "Later years", "systems": ["EVAP"],
+     "applies": "vin_check", "applies_to": "2020-2021 Stelvio"},
+]}
+HIST2 = [{"dtc": "P0440-00", "first_seen": "2026-08-01 10:00:00", "last_seen": "2026-10-05 09:00:00",
+          "sessions": 4, "modules": ["Engine / ECM"],
+          "occurrences": [{"timestamp": "2026-10-05 09:00:00", "status": "cleared"}]},
+         {"dtc": "P0300-00", "first_seen": "2026-10-14 10:00:00", "last_seen": "2026-10-14 10:00:00",
+          "sessions": 1, "modules": ["Engine / ECM"],
+          "occurrences": [{"timestamp": "2026-10-14 10:00:00", "status": "stored"}]}]
+REC = "2026-10-15T01:16:18"   # every action recorded now, for events in the past
+ACTS = [
+    {"at": REC, "kind": "part", "text": "REPAIR HISTORY, 2026-09-02. Done: EVAP canister replaced; "
+     "ECM connector cleaned, wiTECH 2 Phonic Wheel Replacement noted. Meaning: canister not the cause."},
+    {"at": REC, "kind": "part", "text": "2026-10-10: fuel cap replaced."},
+    {"at": REC, "kind": "part", "text": "REPAIR HISTORY, between 2026-09-02 and 2026-09-25 "
+     "(exact date unknown). Engine-side purge valve, part 68337662AC, replaced."},
+    {"at": REC, "kind": "test", "text": "2026-10-12: EVAP leak test performed with wiTECH, "
+     "verification of the small hose passed."},
+]
+
+
+def run2(extra: list[dict]) -> dict:
+    job = {"id": "job2", "vin": VIN, "status": "open", "hypotheses": [], "actions": ACTS + extra}
+    saved = (X._load_catalogue, X._load_dtc_history, X._load_live_active, X._load_jobs)
+    X._load_catalogue = lambda: load_tsb_catalogue(json.dumps(CAT2))  # type: ignore[assignment]
+    X._load_dtc_history = lambda vin: [dict(r) for r in HIST2]  # type: ignore[assignment]
+    X._load_live_active = lambda vin: set()  # type: ignore[assignment]
+    X._load_jobs = lambda vin: [json.loads(json.dumps(job))]  # type: ignore[assignment]
+    try:
+        return X.xref(VIN)
+    finally:
+        X._load_catalogue, X._load_dtc_history, X._load_live_active, X._load_jobs = saved
+
+
+v2 = run2([])
+a, d = has(v2, "t-can", "already_applied"), has(v2, "t-can", "did_not_resolve")
+ac, dc = has(v2, "t-cap", "already_applied"), has(v2, "t-cap", "did_not_resolve")
+check("i1: event date, not record date", bool(a) and bool(d) and "2026-09-02" in a["reason"]
+      and "recorded 2026-10-15" in a["reason"] and "'canister'" in a["reason"]
+      and d["reason"].startswith("canister replaced 2026-09-02 (recorded 2026-10-15); P0440 last seen 2026-10-05")
+      and "01:16" not in d["reason"]
+      and bool(ac) and "2026-10-10" in ac["reason"] and dc is None, f"{a} / {d} / {ac} / {dc}")
+pa, pd = has(v2, "t-pv", "already_applied"), has(v2, "t-pv", "did_not_resolve")
+check("i2: uncertain 'between' range uses the later date and says so", bool(pa) and bool(pd)
+      and "uncertain: between 2026-09-02 and 2026-09-25" in pa["reason"]
+      and "2026-09-25" in pd["reason"] and "uncertain" in pd["reason"], f"{pa} / {pd}")
+check("i3: flash not matched by a parts action", has(v2, "t-fl", "already_applied") is None
+      and bool(has(v2, "t-fl", "candidate")), str(rels(v2, "t-fl")))
+v3 = run2([{"at": REC, "kind": "repair", "text": "2026-10-13: dealer reflashed ECM to the latest calibration."}])
+fa = has(v3, "t-fl", "already_applied")
+check("i4: flash matched by 'reflashed ECM'", bool(fa) and "'reflashed' + 'ECM'" in fa["reason"]
+      and "flash/reprogram" in fa["reason"] and "2026-10-13" in fa["reason"]
+      and sum(1 for r in rels(v3, "t-fl") if r.get("relation") == "already_applied") == 1, str(fa))
+v4 = run2([{"at": REC, "kind": "test", "text": "2026-10-14: wiTECH Small Leak Verification Test passed."}])
+pr4 = has(v4, "t-pr", "already_applied")
+check("i5: procedure not matched by generic words, matched by its name",
+      has(v2, "t-pr", "already_applied") is None and bool(has(v2, "t-pr", "candidate"))
+      and bool(pr4) and "'Small Leak Verification Test'" in pr4["reason"], f"{rels(v2, 't-pr')} / {pr4}")
+appl = {b["id"]: [r.get("relation") for r in b["relations"] if r["type"] == "applicability"]
+        for vv in (v, v2) for b in vv["bulletins"]}
+check("i6: applicability relations are named", appl["tsb-a"] == ["applies"]
+      and appl["tsb-b"] == ["vin_check"] and appl["tsb-e"] == ["not_applicable"]
+      and "other_model_doubt" in appl["tsb-d"] and "model_year_doubt" in appl["t-yr"]
+      and all(all(x for x in lst) for lst in appl.values()), str(appl))
 
 # (g) /api/tsb/xref returns 200 and the pages render
 FAKE = {"identity": {}, "tsb_matches": {"per_code": {}}}

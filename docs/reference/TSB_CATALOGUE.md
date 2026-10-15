@@ -2,9 +2,9 @@
 
 # 0. The machine-readable catalogue (cuore/data/tsb_catalogue.json)
 
-`cuore/data/tsb_catalogue.json` is the structured twin of this document: one row per bulletin, recall, CSN or lookup placeholder for the 2018 Stelvio 2.0T Q4 (VIN ZASFAKPN5J7B88115), `updated` 2026-10-15, 99 rows. Row ids are stable (the per-VIN checklist is keyed on them); extra fields are tolerated.
+`cuore/data/tsb_catalogue.json` is the structured twin of this document: one row per bulletin, recall, CSN or lookup placeholder for the 2018 Stelvio 2.0T Q4 (VIN ZASFAKPN5J7B88115), `updated` 2026-10-15, 99 Stelvio rows (`vehicle_scope` this_model) plus 42 sibling-engine analogue rows (see *Sibling-engine analogues* below). Row ids are stable (the per-VIN checklist is keyed on them); extra fields are tolerated.
 
-**Schema.** Required: `id`. Core fields: `kind` (tsb/recall/csn/campaign/extended_warranty/emissions), `number`, `nhtsa_id`, `title`, `date`, `summary`, `condition`, `remedy`, `systems` (display tags), `dtcs`, `links` ([{label,url}] or null), `applies`, `source`, `verified`. Cross-reference fields (optional, never invented, empty when the research is silent): `components` (parts/part numbers inspected, replaced or flashed), `symptoms` (plain-words conditions), `repair_implied` (`flash` | `replace:<part>` | `procedure:<name>` | `inspect` | `software_update` | `none`), `depends_on_systems` (keys from `mes.systems.SYSTEMS`, e.g. evap, fuel, engine_management, air_intake_boost, transmission_driveline).
+**Schema.** Required: `id`. Core fields: `kind` (tsb/recall/csn/campaign/extended_warranty/emissions/field_report), `number`, `nhtsa_id`, `title`, `date`, `summary`, `condition`, `remedy`, `systems` (display tags), `dtcs`, `links` ([{label,url}] or null), `applies`, `source`, `verified`. Cross-reference fields (optional, never invented, empty when the research is silent): `components` (parts/part numbers inspected, replaced or flashed), `symptoms` (plain-words conditions), `repair_implied` (`flash` | `replace:<part>` | `procedure:<name>` | `inspect` | `software_update` | `none`), `depends_on_systems` (keys from `mes.systems.SYSTEMS`, e.g. evap, fuel, engine_management, air_intake_boost, transmission_driveline).
 
 **Semantics.** `applies`: `yes` = scope covers this car; `no` = documented as a different engine/model year/trim; `vin_check` = scope plausible or unconfirmed, only a VIN lookup settles it. `verified`: true only when the source document itself was read; false when only indexed or inferred (summary-only rows).
 
@@ -133,6 +133,61 @@ Groups: Electrical/BCM/Network **103** · Transmission/Driveline **26** · EVAP/
 *(Grouping is a keyword heuristic — treat the label as a filter aid, not authority.)*
 
 ---
+
+## Sibling-engine analogues
+
+**Rule.** When real Stelvio 2.0L information is lacking, bulletins and documented repairs from other vehicles with the same FCA GME-T4 2.0L engine family (Jeep Wrangler JL 2.0T, Cherokee KL 2.0T, Grand Cherokee WL 2.0T, Compass 2.0T, Dodge Hornet, Alfa Giulia 2.0T) are included as ANALOGUES. They are labelled as such, never presented as Stelvio bulletins, and ranked below Stelvio-specific evidence. Nothing here is a statement that the bulletin applies to this car.
+
+**Fields.** `vehicle_scope` (`this_model` on the 99 Stelvio rows, `sibling_engine` on analogues), `sibling_vehicle` (`<model years engine>` the document was written for), `transferability` (the research's inference sentence, prefixed `inference: `), `stelvio_equivalent` (number of the Stelvio row it parallels, or null), `also_applies_to` (on a `this_model` row: sibling vehicles covered by the same number; 18-048-23 gained the Wrangler JL SLVT entry instead of a duplicate row). `field_report` rows are forum/retailer claims: `verified` false, `applies` no, summary `analogue only`, no links. Links only where the research opened the NHTSA document. `applies` is `vin_check` for analogues (`no` where the research says not applicable, e.g. PHEV-only).
+
+**Scoring** (`cuore/services/tsb_xref_bridge.py`). Analogue rows get relation `analogue` (reason names the sibling vehicle, and `analogue of Stelvio <number>` when `stelvio_equivalent` exists in the catalogue); score = floor(score x 0.5), minimum 1 when a DTC matches; `field_report` rows carry relation `field_report` and never exceed 1. They sort after every Stelvio row, stay out of `by_code` / `by_hypothesis` / `by_system` / `by_repair` / `top()`, and appear in `analogues` and `analogues_by.{by_code,by_hypothesis,by_system}`; each Stelvio bulletin lists related analogues (same DTC, same system or declared equivalent) under *Same engine, other models (analogues)*. `/tsb` has a Scope filter (this model / sibling engine / field reports) and an `Analogue: <vehicle>` badge on sibling rows.
+
+**Rows (42).** Research gaps (no bulletin found): engine mounts, wastegate, timing chain/MultiAir, walnut blast/intake carbon, oil consumption, IBS, Cherokee oil/PCV. 18-048-23 is not repeated (already a Stelvio row).
+
+| Number | Kind | Sibling vehicle | Title | Stelvio equivalent | Opened |
+|---|---|---|---|---|---|
+| 18-018-20 (supersedes 18-034-19 Rev A; RRT 18-137) | tsb | 2018 Jeep Wrangler JL 2.0T eTorque (EC3) | Flash: PCM Updates |  | yes |
+| 18-014-20 (supersedes 18-041-19) | tsb | 2018 Jeep Wrangler JL 2.0T ESS (EC1) | Flash: PCM Updates |  | yes |
+| 14-005-22 Rev B (RSU 22-072) | tsb | 2021 Jeep Wrangler JL 2.0T EC1/ECX (built 2021-06-01 to 2021-10-06, non-locking cap), also | Updated Fuel Filler Cap |  | yes |
+| STAR Online case S2125000002 Rev A | tsb | 2019-2021 Jeep Wrangler JL 2.0L and 3.6L, PHEV ECX | EVAP codes - check mid-point quick-connect of recirculation lines |  | yes |
+| 18-035-20 (RRT 20-027) | tsb | 2020 Jeep Grand Cherokee WK / Durango WD 3.6L ERC (built 2019-11-04 to 2020-03-09) | Fuel Vapor Hose Not Connected |  | yes |
+| 25-002-15 Rev B / Rev A | tsb | 2015 Jeep Grand Cherokee WK / Dodge Durango WD (3.6/5.7) | Purge valve hose may split |  | no |
+| MAS003111 (MTB 22-15) | tsb | MY22 Maserati V6 Levante/Ghibli/Quattroporte | P043E EVAP leak detection reference orifice low flow |  | yes |
+| UA4 | recall | 2017-2018 Alfa Giulia and 2018 Stelvio 2.0L (EC2) [reference] | Engine control software, inadequate catalyst overheat protection | 18V636 | yes |
+| CSN 46A | csn | 2023 Alfa Giulia and Stelvio 2.0L | PCM software, ignition coil electrical overstress |  | yes |
+| 18-052-20 (supersedes 18-050-19) | tsb | 2019 Jeep Cherokee KL 2.0L (EC1) | Flash: PCM updates |  | yes |
+| 18-161-22 | tsb | 2019 Jeep Cherokee KL 2.0L | Flash: PCM updates |  | yes |
+| 18-090-21 | tsb | 2020 Jeep Cherokee KL 2.0L | Flash: PCM updates |  | yes |
+| 18-057-24 (rev of 18-019-21) | tsb | 2021 Jeep Cherokee KL 2.0L | Flash: PCM updates |  | yes |
+| 18-070-23 | tsb | 2020 Jeep Wrangler JL 2.0L | Flash: PCM updates |  | yes |
+| 18-011-25 | tsb | 2024 Jeep Wrangler JL 2.0L (EC1) | Flash: PCM updates (cam/OCV/cat) |  | yes |
+| 18-037-24 Rev B | tsb | 2024 Dodge Hornet 2.0L | Flash: PCM updates |  | yes |
+| 18-079-23 | tsb | 2023 Dodge Hornet 2.0L (built 2023-01-28 to 03-09) | Engine misfire |  | yes |
+| U87 | csn | 2017-2019 Cherokee KL, 2018 Wrangler JL, others incl 2.0L EC1/EC3 (built 2017-08-30 to 201 | Powertrain Control Module (voltage regulator chip) |  | yes |
+| 09-012-23 Rev A / RSU 23-201 | tsb | 2022-2023 Grand Cherokee WL 2.0L PHEV (ECX), built to 2023-05-25 | Oil leak from turbo oil return tube | W05 | yes |
+| unknown (Mitchell1 summary) | tsb | 2025 Wrangler and Compass 2.0L (built 2024-11-20 to 2025-05-01) | Leaky turbo oil return line | W05 | no |
+| 09-017-26 Rev A | tsb | 2026-27 Grand Cherokee WL 2.0L Hurricane4 (EC7) | Umbrella valve seal missing from cylinder head cover |  | yes |
+| 18-052-20 / 18-161-22 / 18-070-23 | tsb | 2019 Cherokee KL, 2020 Wrangler JL 2.0L | PCV/crankcase vent DTCs cleared by PCM flash |  | yes |
+| 07-001-22 Rev B / RSU 22-085 | tsb | 2018-2022 Wrangler JL 2.0L (EC1,EC3,ECX) built to 2022-03-10 | Water pump inlet tube fastener torque |  | yes |
+| 07-001-24 | tsb | 2022 Wrangler JL 2.0L (EC1,ECX) built 2021-06-01 to 2022-06-09 | Thermostat housing manifold coolant leak |  | yes |
+| 09-018-25 | tsb | 2021-2024 Wrangler JL, Compass MP, Grand Cherokee WL 2.0L | Cylinder block porosity |  | no |
+| 09-016-23 / RSU 23-225 | tsb | 2023 Compass 2.0L (built 2023-02-27/28) | Incorrect coolant mix, low-temp system |  | yes |
+| 07-006-23 | tsb | 2022 Wrangler PHEV 2.0L | Mis-installed 3-way coolant valve |  | yes |
+| Y10 | recall | 2020 Wrangler JL 2.0L | Fuel supply line connector may leak |  | yes |
+| 08-106-24 Rev C / RSU 24-075 | tsb | 2022-2023 Wrangler JL 2.0L (EC1,ECX) built 2022-01-01 to 2023-02-19 | Performance Limited Fuel System, no DTCs |  | yes |
+| 93C | recall | 2017-2019 Giulia and 2018-2019 Stelvio 2.0L [reference] | Fuel delivery module heat damage, loss of flow | 25V586 | yes |
+| 08-106-21 Rev A | tsb | 2021 Wrangler PHEV | 12V battery low charge |  | yes |
+| 09-009-26 (XC2) | extended_warranty | 2024-25 Wrangler, 2023-25 Grand Cherokee PHEV 2.0L (ECX) | PHEV engine replacement warranty extension |  | yes |
+| 21-034-24 | tsb | 2022 Wrangler JL 2.0L EC1 + 850RE (DFT) | Flash: TCM updates | 21-035-20 | yes |
+| 21-022-20 | tsb | 2020 Wrangler JL EC3 + 850RE built to 2020-02-20 | Flash: TCM updates | 21-035-20 | yes |
+| 21-036-24 Rev A | tsb | 2024 Dodge Hornet 2.0L + 948TE | Flash: TCM (shift paddles) |  | yes |
+| 21-027-26 (XX1) | extended_warranty | 2017-2019 Cherokee KL 2.0L | Two-speed PTU failure warranty extension |  | yes |
+| FIELD REPORT 1 | field_report | Jeep Wrangler JL 2.0T 2019 | Jeep Wrangler JL 2.0T 2019: P0456 after trailer harness install; suspected knocked connect |  | no |
+| FIELD REPORT 2 | field_report | Jeep Wrangler JL | Jeep Wrangler JL: Evaporative emissions leak MIL thread |  | no |
+| FIELD REPORT 3 | field_report | Jeep (parts retailer guide) | Jeep (parts retailer guide): owner replaced ESIM after dealer found failed; cured P0456 |  | no |
+| FIELD REPORT 4 | field_report | Jeep Renegade/Fiat 500X (third-party) | Jeep Renegade/Fiat 500X (third-party): ESIM O-ring degrades/flattens causing small leak; E |  | no |
+| FIELD REPORT 5 | field_report | Alfa Giulia 2.0 | Alfa Giulia 2.0: Giulia P0455 guide: cap, then canister; no Giulia ESIM-specific forum fix |  | no |
+| FIELD REPORT 6 | field_report | Jeep Wrangler JK | Jeep Wrangler JK: P0456 fixed at canister connection / kinked seal (JK, not JL) |  | no |
 
 # ⭐ 1. The communication cascade — settled, and my earlier ranking was wrong
 

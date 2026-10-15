@@ -16,13 +16,15 @@ from importlib import resources
 from pathlib import Path
 from typing import Any
 
-KINDS = ("tsb", "recall", "csn", "campaign", "extended_warranty", "emissions")
+KINDS = ("tsb", "recall", "csn", "campaign", "extended_warranty", "emissions", "field_report")
+SCOPES = ("this_model", "sibling_engine")
 APPLIES = ("yes", "no", "vin_check")
 
 _DEFAULTS: dict[str, Any] = {
     "kind": "tsb", "number": None, "nhtsa_id": None, "title": "", "date": None,
     "summary": "", "condition": None, "remedy": None, "systems": [], "dtcs": [],
     "links": [], "applies": "vin_check", "source": None, "verified": False,
+    "vehicle_scope": "this_model",
 }
 
 
@@ -43,6 +45,8 @@ def _norm_item(raw: Any) -> dict[str, Any] | None:
     item["id"] = str(item["id"]).strip()
     item["number"] = item["number"] or item["id"]
     item["kind"] = str(item["kind"]).strip().lower()
+    if item["vehicle_scope"] not in SCOPES:
+        item["vehicle_scope"] = "this_model"
     if item["applies"] not in APPLIES:
         item["applies"] = "vin_check"
     for k in ("systems", "dtcs"):
@@ -72,4 +76,4 @@ def load_tsb_catalogue(text: str | None = None) -> dict[str, Any]:
             "items": items}
 
 
-__all__ = ["KINDS", "APPLIES", "load_tsb_catalogue"]
+__all__ = ["KINDS", "SCOPES", "APPLIES", "load_tsb_catalogue"]

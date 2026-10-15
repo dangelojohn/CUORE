@@ -74,6 +74,16 @@ check("GET /tsb 200 with seed numbers", resp.status_code == 200 and all(n in htm
 check("dossier cross-link anchor", f'href="/v/{VIN}/dossier#tsb-18-048-23"' in html,
       "anchor missing")
 
+# 6. sibling-engine analogue rows carry a visible badge and the Scope filter works
+SIBROW = next(i for i in load_tsb_catalogue()["items"] if i.get("vehicle_scope") == "sibling_engine"
+              and i.get("kind") != "field_report")
+page_sib = client.get(f"/tsb?vin={VIN}&scope=sibling_engine").text
+page_this = client.get(f"/tsb?vin={VIN}&scope=this_model").text
+check("sibling analogue badge renders", f"Analogue: {SIBROW['sibling_vehicle']}" in html
+      and f"Analogue: {SIBROW['sibling_vehicle']}" in page_sib and "tsb-analogue-badge" not in page_this
+      and "Scope:" in html and SIBROW["number"] in page_sib and "18-048-23" not in page_sib,
+      f"{SIBROW['sibling_vehicle']}")
+
 # bonus (not counted in the five): form POST round-trips through the route
 r = client.post("/tsb/status", data={"vin": VIN, "item_id": "tsb-18-048-23", "status": "done",
                                      "note": "SLVT pass"}, follow_redirects=False)

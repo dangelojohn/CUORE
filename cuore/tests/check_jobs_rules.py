@@ -8,7 +8,7 @@ pointed at a throwaway directory BEFORE cuore is imported, and the real MES
 corpus on this machine (the Stelvio, VIN below -- chronic EVAP codes) is the
 fixture wherever real open-work/checklist data is needed.
 
-Six checks:
+Seven check groups (7 = action event_date / effective_date):
   1. POSTing ``confirmed`` straight from ``open`` is refused: HTTP 409 with
      ``{"detail": ..., "next_test": ...}`` in the body.
   2. A passed test linked as evidence_for -> ``supported`` is allowed ->
@@ -234,6 +234,30 @@ if merged:
          all(code in card.get("text", "") for code in codes), card.get("text"))
     check("6d. the merged card keeps the shared evidence_for (8 code refs)",
          len(card.get("evidence_for", [])) == len(codes), str(card.get("evidence_for")))
+
+
+# --- 7. action event_date / effective_date ------------------------------------
+
+_j7 = jobs_mod.open(VIN, technician="t7", complaint="dates")["id"]
+_a = jobs_mod.add_action(_j7, "repair", "something done", event_date="2025-08-15")
+_back = [x for x in jobs_mod.get(_j7)["actions"] if x["id"] == _a["id"]][0]
+check("7a. add_action with event_date round-trips through the store",
+      _back["event_date"] == "2025-08-15" and _back["effective_date_source"] == "event_date", str(_back))
+check("7b. effective_date prefers event_date over a date in the text",
+      jobs_mod.effective_date({"event_date": "2025-08-15", "text": "REPAIR HISTORY, 2026-09-02, x",
+                               "at": "2026-10-15T01:16:00"})["date"] == "2025-08-15")
+_p1 = jobs_mod.effective_date({"text": "REPAIR HISTORY, 2026-09-02, odometer about 141,059 km.", "at": "2026-10-15T01:16:00"})
+_p2 = jobs_mod.effective_date({"text": "REPAIR HISTORY, August 2025 (day unknown, dated 2025-08-15). x", "at": "z"})
+_p3 = jobs_mod.effective_date({"text": "2026-03-04 09:30 changed the cap", "at": "z"})
+check("7c. text parse: REPAIR HISTORY ISO, Month-YYYY dated, leading datetime",
+      (_p1["date"], _p2["date"], _p3["date"]) == ("2026-09-02", "2025-08-15", "2026-03-04 09:30")
+      and all(p["source"] == "text" and not p["uncertain"] for p in (_p1, _p2, _p3)), str((_p1, _p2, _p3)))
+_p4 = jobs_mod.effective_date({"text": "cap replaced between 2025-08-01 and 2025-09-10", "at": "z"})
+check("7d. 'between A and B' picks the later date and flags uncertain",
+      _p4 == {"date": "2025-09-10", "source": "text", "uncertain": True}, str(_p4))
+_leg = jobs_mod._decorate_action({"at": "2026-01-02T03:04:05", "kind": "note", "text": "plain", "ref": None})
+check("7e. legacy action (no event_date field) falls back to at",
+      _leg["effective_date"] == "2026-01-02T03:04:05" and _leg["effective_date_source"] == "at", str(_leg))
 
 
 # --- summary ------------------------------------------------------------------

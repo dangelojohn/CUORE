@@ -318,6 +318,9 @@
       <input type="hidden" name="step" value="7">
       <button class="btn danger" type="submit">{{ t('delete_word') }}</button>
     </form>
+
+    {% set mp = (mechanic_plans or {}).get(h.id) if mechanic_plans is defined else None %}
+    {% if mp %}{% include "_mechanic_plan.html" %}{% endif %}
   </div>
 {% endmacro %}
 
@@ -685,7 +688,7 @@
     {% for a in job.actions %}
       <li class="checklist-step"><span class="step-text">
         <span class="chip plain">{{ a.kind }}</span> {{ a.text }}
-        <span class="muted small step-meta">{{ a.at }}</span></span></li>
+        <span class="muted small step-meta">{{ a.effective_date or a.at }}{% if a.date_uncertain %} (approx.){% endif %}{% if a.effective_date_source != 'at' %} &middot; recorded {{ a.at }}{% endif %}</span></span></li>
     {% else %}
       <li class="muted small">{{ t('no_actions_recorded') }}</li>
     {% endfor %}
@@ -701,6 +704,8 @@
           {% endfor %}
         </select>
         <input type="text" name="text" placeholder="{{ t('what_was_done') }}" required>
+        <label class="muted small">when it happened (optional)
+          <input type="date" name="event_date"></label>
       </div>
       <p><button class="btn primary" type="submit">{{ t('record_action') }}</button></p>
     </form>

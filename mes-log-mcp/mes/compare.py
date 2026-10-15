@@ -97,6 +97,8 @@ def _log_picture(vin: str) -> dict[str, dict[str, Any]]:
                 slog = scan_mod.load_scan(entry.path, timestamp=entry.timestamp)
             except Exception:
                 continue
+            cleared_mods = {_canon_module(c.abbrev) for c in slog.clear_results
+                            if (c.clear_result or "").upper() == "SUCCESS"}
             for m in slog.modules:
                 code = _canon_module(m.abbrev)
                 if not code or code in out:
@@ -105,6 +107,9 @@ def _log_picture(vin: str) -> dict[str, dict[str, Any]]:
                     "file": entry.name,
                     "at": entry.timestamp,
                     "codes": {d.full: d.status.value for d in m.dtcs},
+                    # A scan-and-clear log proves its codes were present BEFORE
+                    # the clear and says nothing about afterwards.
+                    "cleared": code in cleared_mods,
                 }
         elif entry.kind == "fes":
             try:
@@ -119,6 +124,10 @@ def _log_picture(vin: str) -> dict[str, dict[str, Any]]:
                 codes[d.full] = d.status.value    # last write per code wins
             out[code] = {"file": entry.name, "at": entry.timestamp, "codes": codes}
     return out
+
+
+#: Class for a code a scan-and-clear log listed, with no live evidence of it.
+CLEARED_CLASS = "cleared_in_newest_log"
 
 
 def _live_picture(vin: str) -> dict[str, dict[str, Any]]:
@@ -276,26 +285,43 @@ def live_vs_log(vin: str, module: str = "") -> dict[str, Any]:
         live_entry = live_map.get(mod)
         log_codes = log_entry["codes"] if log_entry else {}
         live_codes = live_entry["codes"] if live_entry else {}
-        in_log_codes = {c for c, s in log_codes.items() if s in _PRESENT_STATUSES}
+        log_cleared = bool(log_entry and log_entry.get("cleared"))
+        listed = {c for c, s in log_codes.items() if s in _PRESENT_STATUSES}
+        # Codes from a scan+clear log are logged, never "standing now" on that
+        # log's strength: only a log without a clear (or a later read) counts.
+        in_log_codes = set() if log_cleared else listed
+        cleared_codes = listed if log_cleared else set()
         in_live_codes = set(live_codes)
         t_log = log_entry["at"] if log_entry else None
         t_live = live_entry["at"] if live_entry else None
 
         rows = []
-        for code in sorted(in_log_codes | in_live_codes):
+        for code in sorted(in_log_codes | in_live_codes | cleared_codes):
             in_log = code in in_log_codes
             in_live = code in in_live_codes
-            cls = _classify(in_log=in_log, in_live=in_live,
-                            t_log=t_log, t_live=t_live, newest_clear=newest_clear)
+            was_cleared = code in cleared_codes
+            if was_cleared and not in_live:
+                cls = CLEARED_CLASS
+            else:
+                cls = _classify(in_log=in_log, in_live=in_live,
+                                t_log=t_log, t_live=t_live,
+                                newest_clear=newest_clear)
             rows.append({
                 "code": code,
                 "class": cls,
+                "cleared_in_log": was_cleared,
                 "log_status": log_codes.get(code),
                 "live_status": live_codes.get(code),
-                "reading": _reading(code=code, cls=cls, module=mod,
+                "reading": (
+                    f"{code} was listed in {log_entry['file']} at {t_log} for "
+                    f"{mod}, but that log CLEARED the codes: it proves the code "
+                    f"was present before the clear and says nothing about "
+                    f"afterwards. Cleared in the newest log; present again only "
+                    f"if a later read says so."
+                    if cls == CLEARED_CLASS else _reading(code=code, cls=cls, module=mod,
                                     in_log=in_log, in_live=in_live,
                                     log_entry=log_entry, live_entry=live_entry,
-                                    newest_clear=newest_clear),
+                                    newest_clear=newest_clear)),
             })
             summary[cls] = summary.get(cls, 0) + 1
 

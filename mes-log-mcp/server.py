@@ -1130,7 +1130,8 @@ def job_current(vin: str) -> str:
 
 
 @mcp.tool()
-def job_add_action(job_id: str, kind: str, text: str, ref_json: str = "") -> str:
+def job_add_action(job_id: str, kind: str, text: str, ref_json: str = "",
+                   event_date: str = "") -> str:
     """Record one action taken against a job: a test, an inspection, a
     repair, a part swap, a clear, or a free-text note.
 
@@ -1138,10 +1139,13 @@ def job_add_action(job_id: str, kind: str, text: str, ref_json: str = "") -> str
         kind: one of test | inspection | repair | part | clear | note.
         ref_json: optional JSON object {"kind","id","label"} citing the
             real record this action refers to.
+        event_date: optional ISO date/datetime of when it actually happened
+            (e.g. a past repair); otherwise only the recorded time is kept.
     """
     def run():
         ref = json.loads(ref_json) if ref_json.strip() else None
-        return jobs_mod.add_action(job_id, kind, text, ref=ref)
+        return jobs_mod.add_action(job_id, kind, text, ref=ref,
+                                   event_date=event_date or None)
     return _guard(run)
 
 

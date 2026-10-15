@@ -5,7 +5,7 @@
   <summary>Cross-reference <span class="count-badge">score {{ xb.score }}</span>
     {% for f in xb.flags %}<span class="tsb-chip">{{ f|replace('_', ' ') }}</span> {% endfor %}</summary>
   <ul class="tsb-xref-list">
-    {% for r in xb.relations if r.type != 'applicability' or r.reason.startswith('bulletin text') or r.reason.startswith('applies_to') %}
+    {% for r in xb.relations if r.type != 'applicability' or r.relation in ('other_model_doubt', 'model_year_doubt') %}
     <li data-rel="{{ r.relation or r.type }}"><b>{{ (r.relation or r.type)|replace('_', ' ') }}</b> &mdash; {{ r.reason }}
       {% if r.code %} <a href="{{ r.code_href or ('/v/' ~ vin ~ '/code/' ~ r.code) }}">{{ r.code }}</a>{% if r.dossier_href %} · <a href="{{ r.dossier_href }}">dossier</a>{% endif %}{% endif %}
       {% if r.href %} · <a href="{{ r.href }}">job</a>{% endif %}
@@ -24,5 +24,17 @@
     <li class="muted">No relation to this car's codes, repairs, hypotheses or systems.</li>
     {% endfor %}
   </ul>
+  {% if xb.analogues %}
+  <div class="tsb-analogues" data-analogues="{{ xb.id }}">
+    <h4 class="small">Same engine, other models (analogues)</h4>
+    <p class="small muted">Bulletins written for other vehicles with the same GME-T4 2.0L engine. Not Stelvio bulletins; inference only, ranked below the rows above.</p>
+    <ul class="tsb-xref-list">
+      {% for a in xb.analogues %}
+      <li data-analogue="{{ a.id }}"><a href="{{ a.href }}">{{ a.number }}</a> <span class="tsb-chip">Analogue: {{ a.sibling_vehicle }}</span>
+        {{ a.title }} <span class="muted">(score {{ a.score }}; {{ a.reason }})</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
   <div class="muted">Score parts: {{ xb.score_parts|join(', ') or 'none' }}.</div>
 </details>

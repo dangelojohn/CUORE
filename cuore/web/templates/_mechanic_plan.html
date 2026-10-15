@@ -1,0 +1,40 @@
+{# Mechanic steps for one hypothesis (cuore/services/mechanic_plan_bridge.py).
+   Expects `mp` (a plan dict), `h` (the hypothesis), `job` and `vin`.
+   Read-only; the only write is the explicit "Save as next test" button. #}
+{% set _open = mp.steps|rejectattr('done')|list %}
+{% set _done = mp.steps|selectattr('done')|list %}
+<details class="mechanic-plan small" id="plan-{{ h.id }}" data-plan-hyp="{{ h.id }}">
+  <summary><b>Mechanic steps</b> <span class="count-badge">{{ _open|length }}</span>{% if _done %} <span class="muted">+ {{ _done|length }} already done</span>{% endif %}</summary>
+  <ol class="mechanic-plan-steps" start="{{ _open[0].n if _open else 0 }}">
+    {% for s in _open %}
+    <li class="mp-step" data-kind="{{ s.kind }}" value="{{ s.n }}">
+      <b>{{ s.title }}</b> <span class="chip plain">{{ s.kind|replace('_', ' ') }}</span>
+      {% for tl in s.tools %}<span class="chip plain">{{ tl }}</span> {% endfor %}
+      <div>{{ s.detail }}</div>
+      <div class="muted">Why: {{ s.source }}</div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% if _done %}
+  <h4 class="small">Already done</h4>
+  <ol class="mechanic-plan-done">
+    {% for s in _done %}
+    <li class="mp-step is-done" data-kind="{{ s.kind }}" value="{{ s.n }}">
+      <s>{{ s.title }}</s> &mdash; <span class="muted">done: {{ s.done_ref }}</span>
+      <div class="muted">Why: {{ s.source }}</div>
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+  {% if mp.rationale %}
+  <details class="mechanic-plan-rationale">
+    <summary class="muted">Rationale (excluded bulletins and why)</summary>
+    <pre class="small" style="white-space: pre-wrap">{{ mp.rationale }}</pre>
+  </details>
+  {% endif %}
+  <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/hypotheses/{{ h.id }}/plan/save" class="inline-form mechanic-plan-save">
+    <input type="hidden" name="step" value="7">
+    <button class="btn" type="submit">Save as next test</button>
+    <span class="muted">Overwrites this hypothesis's next test with the steps above.</span>
+  </form>
+</details>

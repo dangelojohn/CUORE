@@ -899,9 +899,11 @@ def step_registry() -> list[dict[str, Any]]:
 
 
 def add_action(job_id: str, kind: str, text: str, *,
-              ref: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+              ref: Optional[dict[str, Any]] = None,
+              event_date: Optional[str] = None) -> dict[str, Any]:
     try:
-        return jobs_mod.add_action(job_id, kind, text, ref=ref)
+        return jobs_mod.add_action(job_id, kind, text, ref=ref,
+                                   event_date=event_date or None)
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
 

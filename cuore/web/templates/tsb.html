@@ -39,23 +39,46 @@
 </div>
 
 {% set qv = "/tsb?vin=" ~ (vin|urlencode) %}
+{% set scope = (request.query_params.get('scope', '') if request else '') %}
+{% set scope = scope if scope in ('this_model', 'sibling_engine', 'field_reports') else '' %}
+{% set qs = ('&scope=' ~ scope) if scope else '' %}
+{% macro in_scope(r) -%}
+  {%- if not scope -%}1
+  {%- elif scope == 'this_model' and (r.vehicle_scope or 'this_model') == 'this_model' -%}1
+  {%- elif scope == 'sibling_engine' and r.vehicle_scope == 'sibling_engine' and r.kind != 'field_report' -%}1
+  {%- elif scope == 'field_reports' and r.kind == 'field_report' -%}1
+  {%- endif -%}
+{%- endmacro %}
+<div class="tsb-filters small" aria-label="Filter by scope">
+  <span class="muted">Scope:</span>
+  {% for sv, sl in (('', 'all'), ('this_model', 'this model'), ('sibling_engine', 'sibling engine'), ('field_reports', 'field reports')) %}
+    <a href="{{ qv }}{% if kind %}&kind={{ kind|urlencode }}{% endif %}{% if system %}&system={{ system|urlencode }}{% endif %}{% if sv %}&scope={{ sv }}{% endif %}" class="{{ 'on' if scope == sv }}">{{ sl }}</a>
+  {% endfor %}
+</div>
 <div class="tsb-filters small" aria-label="Filter by kind">
   <span class="muted">Kind:</span>
-  <a href="{{ qv }}{% if system %}&system={{ system|urlencode }}{% endif %}" class="{{ 'on' if not kind }}">all</a>
+  <a href="{{ qv }}{% if system %}&system={{ system|urlencode }}{% endif %}{{ qs }}" class="{{ 'on' if not kind }}">all</a>
   {% for k in view.kinds %}
-    <a href="{{ qv }}&kind={{ k|urlencode }}{% if system %}&system={{ system|urlencode }}{% endif %}" class="{{ 'on' if kind == k }}">{{ kind_labels.get(k, k) }}</a>
+    <a href="{{ qv }}&kind={{ k|urlencode }}{% if system %}&system={{ system|urlencode }}{% endif %}{{ qs }}" class="{{ 'on' if kind == k }}">{{ kind_labels.get(k, k) }}</a>
   {% endfor %}
 </div>
 <div class="tsb-filters small" aria-label="Filter by system">
   <span class="muted">System:</span>
-  <a href="{{ qv }}{% if kind %}&kind={{ kind|urlencode }}{% endif %}" class="{{ 'on' if not system }}">all</a>
+  <a href="{{ qv }}{% if kind %}&kind={{ kind|urlencode }}{% endif %}{{ qs }}" class="{{ 'on' if not system }}">all</a>
   {% for s in view.systems %}
-    <a href="{{ qv }}&system={{ s|urlencode }}{% if kind %}&kind={{ kind|urlencode }}{% endif %}" class="{{ 'on' if system == s }}">{{ s }}</a>
+    <a href="{{ qv }}&system={{ s|urlencode }}{% if kind %}&kind={{ kind|urlencode }}{% endif %}{{ qs }}" class="{{ 'on' if system == s }}">{{ s }}</a>
   {% endfor %}
 </div>
-<p class="small muted">Showing {{ shown }} of {{ view.total }}.</p>
-
+{% set ns = namespace(shown=0) %}
+{% set vgroups = [] %}
 {% for g in groups %}
+  {% set sel = [] %}
+  {% for r in g.rows %}{% if in_scope(r)|trim %}{% set _ = sel.append(r) %}{% endif %}{% endfor %}
+  {% if sel %}{% set _ = vgroups.append({'system': g.system, 'rows': sel}) %}{% set ns.shown = ns.shown + sel|length %}{% endif %}
+{% endfor %}
+<p class="small muted">Showing {{ ns.shown }} of {{ view.total }}.</p>
+
+{% for g in vgroups %}
 <section class="panel" id="tsb-sys-{{ g.system|lower|replace(' ', '-') }}">
   <h2>{{ g.system }} <span class="count-badge">{{ g.rows|length }}</span></h2>
   <div class="tsb-wrap">
@@ -66,8 +89,9 @@
     </tr></thead>
     <tbody>
     {% for r in g.rows %}
-      <tr id="{{ r.anchor }}" class="{{ 'tsb-row-done' if r.status in ('done', 'not_applicable') }}" data-item="{{ r.id }}">
+      <tr id="{{ r.anchor }}" class="{{ 'tsb-row-done' if r.status in ('done', 'not_applicable') }}" data-item="{{ r.id }}" data-scope="{{ r.vehicle_scope or 'this_model' }}">
         <td class="mono">{{ r.number }}
+          {% if r.vehicle_scope == 'sibling_engine' %}<div class="small"><span class="tsb-chip tsb-analogue-badge">Analogue: {{ r.sibling_vehicle }}</span></div>{% endif %}
           {% if r.nhtsa_id %}<div class="small muted">NHTSA {{ r.nhtsa_id }}</div>{% endif %}
           {% if r.dossier_link %}<div class="small"><a class="tsb-dossier-link" href="{{ r.dossier_link.href }}">in dossier</a></div>{% endif %}
         </td>
@@ -76,6 +100,8 @@
         <td><strong>{{ r.title }}</strong>
           {% if r.summary %}<p class="small">{{ r.summary }}</p>{% endif %}
           {% if r.remedy %}<p class="small"><span class="muted">Remedy:</span> {{ r.remedy }}</p>{% endif %}
+          {% if r.vehicle_scope == 'sibling_engine' and r.transferability %}<p class="small"><span class="muted">Transferability:</span> {{ r.transferability }}</p>{% endif %}
+          {% if r.also_applies_to %}<div class="small muted">Also covers (analogue): {{ r.also_applies_to|join('; ') }}</div>{% endif %}
           {% if r.supersedes %}<div class="small muted">Supersedes {{ r.supersedes }}</div>{% endif %}
           <div class="small muted">{{ r.source or "" }}{% if not r.verified %} · not verified against the document{% endif %}</div>
           {% set xb = xmap.get(r.id) if xmap else none %}

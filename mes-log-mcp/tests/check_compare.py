@@ -249,6 +249,38 @@ for code in ("P0455-00", "P0456-00", "P0440-00"):
           "passed" not in reading.replace("absent is not passed", "")
           and "not that the fault is fixed" in reading, reading)
 
+# --- the clear rule on synthetic logs ---------------------------------------
+print("\n=== scan+clear log never stands alone ===")
+tmp2 = tempfile.mkdtemp(prefix="mes_compare_clear_")
+CLR = f"""Engine / ECM
+Magneti Marelli Test ECU
+ISO Code: 00 01 50 40 18
+VIN code: {VIN}
+Hardware number: HW1 - Ver: 01
+Software number: SW1 - Ver: 01
+Errors found:
+P0455-00 - Evaporation system leak
+
+CLEARING STORED FAULT CODES...
+
+Engine / ECM
+Magneti Marelli Test ECU
+ISO Code: 00 01 50 40 18
+SUCCESS
+"""
+(Path(tmp2) / "SCAN_2602010000.txt").write_text(CLR, encoding="utf-8")
+os.environ["MES_LOG_DIR"] = tmp2
+r = row_for(compare.live_vs_log(VIN), "ECM", "P0455-00")
+check("scan+clear log alone never yields live_and_logged",
+      r and r["class"] != "live_and_logged" and r.get("cleared_in_log"), r)
+(Path(tmp2) / "SCAN_2602010100.txt").write_text(
+    CLR.split("CLEARING")[0], encoding="utf-8")
+r = row_for(compare.live_vs_log(VIN), "ECM", "P0455-00")
+check("a later non-clear log re-reading the code is evidence again",
+      r and r["class"] in ("live_and_logged", "logged_not_live", "no_live_read")
+      and not r.get("cleared_in_log"), r)
+os.environ.pop("MES_LOG_DIR", None)
+
 # --- restore environment -----------------------------------------------------
 if _orig_log_dir is None:
     os.environ.pop("MES_LOG_DIR", None)
