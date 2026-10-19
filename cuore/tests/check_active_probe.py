@@ -20,6 +20,7 @@ Run:
 from __future__ import annotations
 
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -105,6 +106,31 @@ class ScriptedStream(Stream):
         return "scripted"
 
 
+class RouteStream(ScriptedStream):
+    """ScriptedStream that tracks the selected ``STP n`` and answers every
+    hex (OBD request) command with ``NO DATA`` while on a protocol listed in
+    ``silent_on`` -- the way this ECM is silent to legislated requests on
+    one addressing flavour and answers on the other, depending on the day."""
+
+    def __init__(self, script: dict[str, str], silent_on=()):
+        super().__init__(script)
+        self.proto = ""
+        self.silent_on = set(silent_on)
+        self.requests: list[tuple[str, str]] = []   # (stn protocol, hex request)
+
+    def write(self, data: bytes) -> None:
+        cmd = data.decode("ascii", errors="replace").rstrip("\r\n")
+        if cmd.startswith("STP "):
+            self.proto = cmd[4:].strip()
+        if re.fullmatch(r"[0-9A-F]{2,}", cmd):
+            self.requests.append((self.proto, cmd))
+            if self.proto in self.silent_on:
+                self.sent.append(cmd)
+                self._buf.extend(b"NO DATA\r>")
+                return
+        super().write(data)
+
+
 #: Common adapter-init replies every session needs, STN1170-flavoured.
 _BASE = {
     "ATE0": "OK", "ATL0": "OK", "ATS0": "OK", "ATH1": "OK", "ATAT1": "OK",
@@ -116,8 +142,9 @@ _BASE = {
 }
 
 
-def _link(script: dict[str, str], port: str = "COM99") -> tuple[AdapterLink, ScriptedStream]:
-    scripted = ScriptedStream(script)
+def _link(script: dict[str, str], port: str = "COM99", stream: "ScriptedStream | None" = None
+          ) -> tuple[AdapterLink, ScriptedStream]:
+    scripted = stream or ScriptedStream(script)
     lk = AdapterLink(stream_factory=lambda p, b: scripted, process="check_active_probe")
     lk.auto_verify_seconds = 0.05
     set_link(lk)
@@ -274,6 +301,105 @@ try:
           str(scripted4.sent))
     check("send_raw ATRV: can_c still unverified afterwards (never auto-verified)",
           not lk4.is_verified(CAN_C), str(lk4.verified))
+
+    # =======================================================================
+    # (e) 2026-10-19 regression: STMA hears CAN-C keep-alive frames, so the
+    #     passive listen verifies the bus -- the 0100 probe must STILL run so
+    #     legislated reads know which route (29-bit / 11-bit) the ECM answers.
+    # =======================================================================
+    frames = "1E36000100112233\r1E36000B00112233"
+    script_pl = dict(_BASE)
+    script_pl["STMA"] = frames
+    script_pl["0100"] = "7E8 06 41 00 BE 3F A8 13"
+    rs_pl = RouteStream(script_pl, silent_on={"34"})     # only the 11-bit pair answers
+    lk8, scripted8 = _link(script_pl, stream=rs_pl)
+    lk8.set_cable("none")
+    result8 = ops.verify_bus("can_c", seconds=0.05)
+    check_eq("passive+probe: verified_by stays passive_listen",
+             result8.get("verified_by"), "passive_listen")
+    check("passive+probe: verified True", result8.get("verified") is True, str(result8))
+    check("passive+probe: 0100 probe still ran after the listen",
+          ("34", "0100") in rs_pl.requests and ("33", "0100") in rs_pl.requests,
+          str(rs_pl.requests))
+    check_eq("passive+probe: probe_ok", result8.get("probe_ok"), True)
+    check_eq("passive+probe: probe_stn_protocol in the result",
+             result8.get("probe_stn_protocol"), "33")
+    check_eq("passive+probe: responders in the result", result8.get("responders"), ["7E8"])
+    check_eq("passive+probe: probe_stn_protocol recorded on the link",
+             lk8.verified.get("can_c", {}).get("probe_stn_protocol"), "33")
+    check_eq("passive+probe: responders recorded on the link",
+             lk8.verified.get("can_c", {}).get("responders"), ["7E8"])
+    check_eq("passive+probe: link still says passive_listen",
+             lk8.verified.get("can_c", {}).get("verified_by"), "passive_listen")
+
+    # Probe silent on both routes: the passive verification stands, the note
+    # says the legislated route is unknown, and no route is recorded.
+    script_pl2 = dict(_BASE)
+    script_pl2["STMA"] = frames
+    lk8b, _s8b = _link(script_pl2)
+    lk8b.set_cable("none")
+    result8b = ops.verify_bus("can_c", seconds=0.05)
+    check("probe silent: still verified by the passive listen",
+          result8b.get("verified") is True and result8b.get("verified_by") == "passive_listen",
+          str(result8b))
+    check_eq("probe silent: probe_ok False", result8b.get("probe_ok"), False)
+    check("probe silent: note says the legislated route is unknown",
+          "legislated route unknown" in (result8b.get("note") or ""), repr(result8b.get("note")))
+    check_eq("probe silent: no route recorded",
+             lk8b.verified.get("can_c", {}).get("probe_stn_protocol"), None)
+
+    # =======================================================================
+    # (f) _obd_route() follows the probe's protocol whatever verified_by says;
+    #     with no probe result: 29-bit first, then 11-bit.
+    # =======================================================================
+    lk9, _s9 = _link(dict(_BASE))
+    lk9.set_cable("none")
+    lk9.mark_verified(CAN_C, 24, verified_by="passive_listen", probe_stn_protocol="33")
+    check_eq("route: probe's 11-bit protocol wins under passive_listen",
+             ops._obd_route().stn_protocol, "33")
+    check_eq("route: order puts the probe's protocol first",
+             [r.stn_protocol for r in ops._legislated_routes_in_order()], ["33", "34"])
+    lk9.mark_verified(CAN_C, 24, verified_by="passive_listen", probe_stn_protocol="34")
+    check_eq("route: probe's 29-bit protocol wins under passive_listen",
+             ops._obd_route().stn_protocol, "34")
+    lk9.mark_verified(CAN_C, 24, verified_by="passive_listen")
+    check_eq("route: no probe result -> 29-bit route first",
+             [r.stn_protocol for r in ops._legislated_routes_in_order()], ["34", "33"])
+
+    # =======================================================================
+    # (g) NO DATA on the preferred route retries ONCE on the other route.
+    # =======================================================================
+    script_fb = dict(_BASE)
+    script_fb["03"] = "7E8 02 43 00"
+    rs_fb = RouteStream(script_fb, silent_on={"34"})
+    lk10, _s10 = _link(script_fb, stream=rs_fb)
+    lk10.set_cable("none")
+    lk10.mark_verified(CAN_C, 24, verified_by="passive_listen")     # no probe route known
+    res_fb = ops.obd_dtcs("stored")
+    check_eq("fallback: mode 03 asked on 29-bit then once on 11-bit",
+             [r for r in rs_fb.requests if r[1] == "03"], [("34", "03"), ("33", "03")])
+    check("fallback: the 11-bit answer is returned, no warning",
+          "warning" not in res_fb and res_fb.get("dtcs") == [], str(res_fb))
+    check_eq("fallback: reported as answered on 33",
+             (res_fb.get("route_fallback") or {}).get("answered_on"), "33")
+    check_eq("fallback: working route remembered on the link",
+             lk10.verified.get("can_c", {}).get("probe_stn_protocol"), "33")
+    rs_fb.requests.clear()
+    ops.obd_dtcs("stored")
+    check_eq("fallback: the next read goes straight to the remembered route",
+             [r for r in rs_fb.requests if r[1] == "03"], [("33", "03")])
+
+    rs_dead = RouteStream(script_fb, silent_on={"34", "33"})
+    lk11, _s11 = _link(script_fb, stream=rs_dead)
+    lk11.set_cable("none")
+    lk11.mark_verified(CAN_C, 24, verified_by="passive_listen")
+    res_dead = ops.obd_dtcs("stored")
+    check_eq("fallback: both routes silent -> exactly one retry",
+             [r for r in rs_dead.requests if r[1] == "03"], [("34", "03"), ("33", "03")])
+    check("fallback: both silent -> the usual no-ECU warning, route_fallback answered_on None",
+          "no ECU answered" in (res_dead.get("warning") or "")
+          and (res_dead.get("route_fallback") or {}).get("answered_on", "x") is None,
+          str(res_dead))
 
 finally:
     for k, v in _saved_port_env.items():

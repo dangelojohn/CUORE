@@ -332,14 +332,17 @@ check_eq("resolve_module now finds DASM", _dasm_target, 0x7E)
 # 5. regressions for the 2026-09-25 live-link fixes
 # ===========================================================================
 
-check_eq("legislated OBD uses the 11-bit route when nothing has verified the bus",
-         ops._obd_route().stn_protocol, "33")
+check_eq("legislated OBD tries the 29-bit route first when nothing has verified the bus",
+         ops._obd_route().stn_protocol, "34")
+check_eq("and the 11-bit route second (one retry on NO DATA)",
+         [r.stn_protocol for r in ops._legislated_routes_in_order()], ["34", "33"])
 neg = ops._negative_responses({"all_ecus": {"18DAF110": ["7F", "01", "11"]}})
 check("NRC 0x11 on Mode 01 is named, not read as silence",
       bool(neg) and "serviceNotSupported" in neg[0], str(neg))
 
 bus.sent.clear()
-with lk.session("untarget-test", bus=CAN_C, route=ops._obd_route()) as sess:
+_route_11bit = [r for r in ops._legislated_routes_in_order() if r.stn_protocol == "33"][0]
+with lk.session("untarget-test", bus=CAN_C, route=_route_11bit) as sess:
     sess.untarget()
 check("untarget restates the 11-bit functional header when unverified",
       "ATSH7DF" in bus.sent, str(bus.sent))

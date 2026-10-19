@@ -300,7 +300,34 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
     if first_ok is not None:
         cap, fsess = first_ok["cap"], first_ok["sess"]
         awake, awake_note = _judge_awake(attempts)
-        lk.mark_verified(b, cap["count"], awake=awake, awake_note=awake_note)
+        extra: dict[str, Any] = {}
+        note: Optional[str] = None
+        if b.key == "can_c" and lk.cable == "none":
+            # Hearing keep-alive frames (STMA hears ~24 on STP 34) proves the
+            # bus alive but NOT which addressing the ECM answers legislated
+            # Mode 01/03/07/0A/06/09 on: this Stelvio answers on the 29-bit
+            # functional route some days and the 11-bit one on others. Always
+            # probe, so legislated reads start on the route that works.
+            try:
+                probe = _active_probe_0100(lk, b, port, baud, allow_while_mes_connected)
+            except Exception as exc:  # noqa: BLE001 -- the listen already verified the bus
+                probe = {"ok": False, "responders": [], "raw": None, "error": str(exc),
+                         "note": f"active probe 0100 failed: {exc}"}
+            attempts.append({"stn_protocol": probe.get("stn_protocol") or "33",
+                             "header_bits": 29 if probe.get("stn_protocol") == "34" else 11,
+                             "frames": 0, "error": probe.get("error"), "ids": {},
+                             "active_probe": True,
+                             "responders": probe.get("responders", [])})
+            extra = {"probe_ok": bool(probe["ok"]),
+                     "probe_stn_protocol": probe.get("stn_protocol") if probe["ok"] else None,
+                     "responders": probe.get("responders", []) if probe["ok"] else []}
+            if not probe["ok"]:
+                note = ("legislated route unknown: the passive listen verified the bus but "
+                        "the active Mode 01 PID 00 probe got no reply on either route; "
+                        "legislated reads will try the 29-bit route, then the 11-bit one")
+        lk.mark_verified(b, cap["count"], awake=awake, awake_note=awake_note,
+                         **({"probe_stn_protocol": extra["probe_stn_protocol"],
+                             "responders": extra["responders"]} if extra else {}))
         return _stamp(fsess, {"verified": True, "frames": cap["count"],
                               "rate_hz": cap["rate_hz"], "ids": cap["ids"],
                               "error": cap["error"],
@@ -308,7 +335,7 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
                               "header_bits": fsess.header_bits,
                               "attempts": attempts, "verified_by": "passive_listen",
                               "awake": awake, "awake_note": awake_note,
-                              "note": None})
+                              "note": note, **extra})
     tried = ", ".join(f"STP {a['stn_protocol']} ({a['header_bits']}-bit)" for a in attempts)
     base_note = (f"no traffic on {b.key} with cable {lk.cable!r} on any route "
                  f"tried ({tried}); check the cable, ignition, and the route "
@@ -371,32 +398,82 @@ def capture(bus: str, seconds: float = 2.0, max_frames: int = 500,
 
 # --- legislated OBD on CAN-C -------------------------------------------------
 
-def _obd_route() -> Any:
-    """The 11-bit legislated route on CAN-C, when the cable allows one.
+def _legislated_routes_in_order(ver: Optional[dict[str, Any]] = None) -> list[Any]:
+    """The CAN-C routes legislated OBD can use, preferred first (29-bit/11-bit).
 
-    Giorgio ECMs serve Modes 01/03/07/0A only on the 11-bit 7DF/7E8 pair; the
-    29-bit UDS address answers every legislated request with NRC 0x11
-    (serviceNotSupported), which read as silence until 2026-09-25.
+    Giorgio ECMs answer legislated Modes 01/03/07/0A/06/09 on EITHER the
+    29-bit functional pair (18DB33F1 -> 18DAF110/118, STP 34) or the 11-bit
+    one (7DF -> 7E8-7EF, STP 33), and which one varies by day (11-bit only on
+    2026-09-25, 29-bit only on 2026-10-13, both flavours seen since). The
+    route ``verify_bus``'s active probe proved is preferred whenever it is
+    recorded, however the bus was verified (a passive listen proves the bus
+    alive, not the legislated route); with no probe result the 29-bit route
+    goes first and the 11-bit one second. Callers retry once on the other
+    route when the preferred one is silent (:func:`_obd_read`).
     """
     lk = link()
-    # 2026-10-13, live on the bench: this Stelvio answered Mode 01 PID 00 on
-    # the 29-bit functional address (18DAF110/18DAF118) and gave NO DATA on
-    # the 11-bit pair -- the opposite of the 2026-09-25 note above. The route
-    # that actually proved the bus alive is the one legislated reads use.
-    ver = (getattr(lk, "verified", {}) or {}).get(CAN_C.key) or {}
-    want = ver.get("probe_stn_protocol") if ver.get("verified_by") == "active_probe_0100" else None
-    for route in routes_for(CAN_C, lk.cable):
-        if route.stn_protocol == (want or "33"):
-            return route
-    for route in routes_for(CAN_C, lk.cable):
-        if route.stn_protocol == "33":
-            return route
-    return None
+    if ver is None:
+        ver = (getattr(lk, "verified", {}) or {}).get(CAN_C.key) or {}
+    want = ver.get("probe_stn_protocol")
+    available = routes_for(CAN_C, lk.cable)
+    order: list[Any] = []
+    for proto in dict.fromkeys([p for p in (want, "34", "33") if p]):
+        for route in available:
+            if route.stn_protocol == proto and route not in order:
+                order.append(route)
+                break
+    return order
+
+
+def _obd_route() -> Any:
+    """The preferred legislated route on CAN-C (see :func:`_legislated_routes_in_order`)."""
+    order = _legislated_routes_in_order()
+    return order[0] if order else None
+
+
+_legislated_route = _obd_route
 
 
 def _obd_session(purpose: str, **kw: Any):
     kw.setdefault("route", _obd_route())
     return link().session(purpose, bus=CAN_C, **kw)
+
+
+def _obd_read(purpose: str, body: Callable[[Session], dict[str, Any]],
+              answered: Callable[[dict[str, Any]], bool], **kw: Any) -> dict[str, Any]:
+    """Run a legislated read on the preferred route; if no ECU answered it,
+    retry ONCE on the other route.
+
+    ``body(sess)`` does the read and returns its result; ``answered(result)``
+    says whether any ECU gave a positive answer. A route that answers is
+    remembered on the link's CAN-C verification so the next read starts there.
+    When neither route answers, the preferred route's result is returned (its
+    diagnostics are the ones the caller expects) with ``route_fallback``
+    added, so the second attempt is visible. A caller-supplied ``route`` pins
+    the read to that route with no retry.
+    """
+    if kw.get("route") is not None:
+        with link().session(purpose, bus=CAN_C, **kw) as sess:
+            return body(sess)
+    kw.pop("route", None)
+    order = _legislated_routes_in_order()[:2] or [None]
+    first: Optional[dict[str, Any]] = None
+    for i, route in enumerate(order):
+        with link().session(purpose, bus=CAN_C, route=route, **kw) as sess:
+            out = body(sess)
+        if answered(out):
+            if i:
+                out["route_fallback"] = {"tried": [r.stn_protocol for r in order[:i + 1]],
+                                         "answered_on": route.stn_protocol}
+                ver = (getattr(link(), "verified", {}) or {}).get(CAN_C.key)
+                if isinstance(ver, dict):
+                    ver["probe_stn_protocol"] = route.stn_protocol
+            return out
+        if first is None:
+            first = out
+    if len(order) > 1 and first is not None:
+        first["route_fallback"] = {"tried": [r.stn_protocol for r in order], "answered_on": None}
+    return first if first is not None else {}
 
 
 def _negative_responses(q: dict[str, Any]) -> list[str]:
@@ -469,18 +546,25 @@ def obd_dtcs(kind: str = "stored", **kw: Any) -> dict[str, Any]:
     if kind not in _KINDS:
         raise BadCommand(f"kind must be one of {list(_KINDS)}")
     mode, resp = _KINDS[kind]
-    with _obd_session(f"read_{kind}_dtcs", **kw) as sess:
-        return _dtc_read(sess, mode, resp, kind)
+    return _obd_read(f"read_{kind}_dtcs", lambda sess: _dtc_read(sess, mode, resp, kind),
+                     _dtc_answered, **kw)
+
+
+def _dtc_answered(r: dict[str, Any]) -> bool:
+    return "warning" not in r and "error" not in r
 
 
 def obd_all_dtcs(**kw: Any) -> dict[str, Any]:
-    with _obd_session("read_all_dtcs", **kw) as sess:
-        return _stamp(sess, {k: _dtc_read(sess, m, r, k) for k, (m, r) in _KINDS.items()})
+    return _obd_read(
+        "read_all_dtcs",
+        lambda sess: _stamp(sess, {k: _dtc_read(sess, m, r, k) for k, (m, r) in _KINDS.items()}),
+        lambda r: any(_dtc_answered(r[k]) for k in _KINDS if isinstance(r.get(k), dict)), **kw)
 
 
 def obd_pid(pid: str, **kw: Any) -> dict[str, Any]:
     hex_pid, spec = resolve_pid(pid)
-    with _obd_session("read_pid", **kw) as sess:
+
+    def body(sess: Session) -> dict[str, Any]:
         sess.untarget()
         q = sess.query(f"01{hex_pid}", "41")
         out: dict[str, Any] = {"pid": hex_pid, "name": spec.name if spec else None, "raw": q["raw"]}
@@ -497,6 +581,8 @@ def obd_pid(pid: str, **kw: Any) -> dict[str, Any]:
             out["warning"] = "no ECU answered this PID; " + _silence_reason(sess)
         return _stamp(sess, out)
 
+    return _obd_read("read_pid", body, lambda r: bool(r.get("by_ecu")), **kw)
+
 
 def obd_pids_snapshot(pids: list[str], **kw: Any) -> dict[str, Any]:
     """Every Mode 01 PID in ``pids`` inside ONE held adapter session, via
@@ -507,7 +593,7 @@ def obd_pids_snapshot(pids: list[str], **kw: Any) -> dict[str, Any]:
     docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md for the before/
     after session-count estimate this removes.
     """
-    with _obd_session("read_pids_snapshot", **kw) as sess:
+    def body(sess: Session) -> dict[str, Any]:
         sess.untarget()
         q = sess.query_pids(pids)
         by_ecu: dict[str, dict[str, Any]] = {}
@@ -522,6 +608,8 @@ def obd_pids_snapshot(pids: list[str], **kw: Any) -> dict[str, Any]:
         out = {"by_ecu": by_ecu, "requests_sent": q["requests_sent"],
               "multi_pid_used": q["multi_pid_used"]}
         return _observe(sess, "pids_snapshot", out)
+
+    return _obd_read("read_pids_snapshot", body, lambda r: bool(r.get("by_ecu")), **kw)
 
 
 def obd_freeze_frames(pids: list[str], **kw: Any) -> dict[str, Any]:
@@ -570,7 +658,7 @@ def obd_voltage(**kw: Any) -> dict[str, Any]:
 
 
 def obd_supported_pids(**kw: Any) -> dict[str, Any]:
-    with _obd_session("read_supported_pids", **kw) as sess:
+    def body(sess: Session) -> dict[str, Any]:
         sess.untarget()
         out: dict[str, Any] = {"by_ecu": {}, "raw": {}}
         for base in ("00", "20", "40", "60", "80", "A0", "C0"):
@@ -592,6 +680,8 @@ def obd_supported_pids(**kw: Any) -> dict[str, Any]:
             out["by_ecu"][hdr] = {"count": len(lst), "pids": lst,
                                   "known_names": [PIDS_BY_HEX[p].name for p in lst if p in PIDS_BY_HEX]}
         return _stamp(sess, out)
+
+    return _obd_read("read_supported_pids", body, lambda r: bool(r.get("by_ecu")), **kw)
 
 
 def obd_freeze_frame(pid: str = "", **kw: Any) -> dict[str, Any]:
@@ -620,7 +710,7 @@ def obd_freeze_frame(pid: str = "", **kw: Any) -> dict[str, Any]:
 
 
 def obd_vin(**kw: Any) -> dict[str, Any]:
-    with _obd_session("read_vin", **kw) as sess:
+    def body(sess: Session) -> dict[str, Any]:
         sess.untarget()
         q = sess.query("0902", "49", 6)
         out: dict[str, Any] = {"raw": q["raw"]}
@@ -637,6 +727,8 @@ def obd_vin(**kw: Any) -> dict[str, Any]:
         if "vin" not in out:
             out["warning"] = "no ECU answered Mode 09 PID 02; " + _silence_reason(sess)
         return _stamp(sess, out)
+
+    return _obd_read("read_vin", body, lambda r: "vin" in r, **kw)
 
 
 def readiness_in(sess: Session) -> dict[str, Any]:
@@ -678,8 +770,9 @@ def readiness_in(sess: Session) -> dict[str, Any]:
 
 
 def obd_readiness(**kw: Any) -> dict[str, Any]:
-    with _obd_session("read_readiness", **kw) as sess:
-        return readiness_in(sess)
+    return _obd_read("read_readiness", readiness_in,
+                     lambda r: any(isinstance(r.get(k), dict) and r[k].get("ecu")
+                                   for k in ("since_clear", "this_drive_cycle")), **kw)
 
 
 # --- UDS on any bus ----------------------------------------------------------
@@ -919,10 +1012,16 @@ def repair_status(codes: list[str], module: str = "ECM", vin: str = "",
 def obd_mode06(mids: Optional[list[str]] = None, **kw: Any) -> dict[str, Any]:
     """OBD Mode $06 on-board test results, with the EVAP tests summarised."""
     from . import mode06
-    with _obd_session("read_mode06", **kw) as sess:
+    def body(sess: Session) -> dict[str, Any]:
         out = mode06.read_mode06(sess, mids=[m.upper() for m in mids] if mids else None)
         out["evap_summary"] = mode06.evap_summary(out)
         return _observe(sess, "mode06", out)
+
+    def answered(r: dict[str, Any]) -> bool:
+        discovered = {h: v for h, v in (r.get("supported") or {}).items() if h != "requested"}
+        return bool(discovered) or any(e.get("by_ecu") for e in (r.get("results") or {}).values())
+
+    return _obd_read("read_mode06", body, answered, **kw)
 
 
 def module_dtc_detail(code: str, dtc: str, vin: str = "", confirm: bool = False,
