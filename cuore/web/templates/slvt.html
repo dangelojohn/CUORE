@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{# SLVT replica (cuore/web/slvt_routes.py -> cuore/services/slvt_bridge.py): a
+   read-only re-creation of the wiTECH Small Leak Verification Test from
+   bulletin 18-048-23. The checklist is the bulletin's own wording, each item
+   tagged with its source; Run does three read-only reads and the result card
+   shows the exact values and limits. No JS: plain form post, redirect, GET. #}
+{% block title %}SLVT replica — {{ vin }}{% endblock %}
+{% block vehiclebar %}{% if bar %}{% include "_vbar.html" %}{% endif %}{% endblock %}
+{% block content %}
+<style>
+  .slvt-wrap{overflow-x:auto}
+  .slvt-table{width:100%;border-collapse:collapse;font-size:.92em;margin:6px 0 12px}
+  .slvt-table th,.slvt-table td{border-bottom:1px solid rgba(127,127,127,.3);padding:6px;vertical-align:top;text-align:left}
+  .slvt-pre{list-style:none;margin:8px 0;padding:0}
+  .slvt-pre li{margin:0 0 10px}
+  .slvt-pre label{display:flex;gap:8px;align-items:flex-start}
+  .slvt-pre input{margin-top:4px;min-width:20px;min-height:20px}
+  .slvt-src{margin-left:4px}
+  .slvt-verdict{font-size:1.1em;font-weight:700}
+  .slvt-quote{margin:2px 0 0 28px}
+</style>
+{% set L = view.last %}
+{% set src_label = {"bulletin": "from bulletin " ~ view.bulletin, "cuore": "CUORE research, not the bulletin", "replica": "replica requirement, not the bulletin"} %}
+
+<h1>SLVT replica</h1>
+<p class="lede" id="slvt-header">{{ view.header }}</p>
+
+<div class="note" id="slvt-bulletin">
+  <span class="lab">Bulletin {{ view.bulletin }}</span>
+  Two pages, information only. It states no fuel-level range, temperatures, engine state,
+  soak time or numeric pass limit; it says to run the SLVT first, again after any repair, and
+  to follow the Service Library procedure, and its two figures show the wiTECH result screens.
+  Every item below says where it comes from.
+  <a href="{{ view.links.pdf }}" rel="noopener">Bulletin {{ view.bulletin }} (NHTSA PDF)</a> ·
+  <a href="/tsb?vin={{ vin|urlencode }}#{{ view.links.row_anchor }}">its row in the TSB checklist</a>
+</div>
+
+<h2>Sequence</h2>
+<h3>What the bulletin says</h3>
+<ol id="slvt-bulletin-seq">
+  {% for s in view.bulletin_sequence %}
+  <li>{{ s.step }}{% if s.quote %}<div class="small muted">“{{ s.quote }}”</div>{% endif %}</li>
+  {% endfor %}
+</ol>
+<h3>What the replica does</h3>
+<ol id="slvt-replica-seq">
+  {% for s in view.replica_sequence %}<li>{{ s }}</li>{% endfor %}
+</ol>
+
+<h2>Preconditions and run</h2>
+{% if ran == '0' %}
+<div class="note warn" id="slvt-nolink"><span class="lab">Nothing was read</span>
+  No live link: the adapter is not reachable, or MES or another process holds the port.
+  Nothing was read or recorded.</div>
+{% endif %}
+<form method="post" action="/slvt/run" id="slvt-form">
+  <input type="hidden" name="vin" value="{{ vin }}">
+  <ul class="slvt-pre">
+    {% for p in view.preconditions %}
+    <li>
+      <label><input type="checkbox" name="pre" value="{{ p.id }}" data-pre="{{ p.id }}">
+        <span>{{ p.text }}
+          <span class="chip plain sm slvt-src">{{ src_label[p.source] }}</span></span></label>
+      {% if p.quote %}<div class="small muted slvt-quote">“{{ p.quote }}”</div>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  <button type="submit" class="btn primary" id="slvt-run"{% if not view.link_available %} disabled{% endif %}>Run (read only)</button>
+  {% if not view.link_available %}
+  <span class="small muted">No live link right now (<a href="/live">Live link</a>).</span>
+  {% endif %}
+</form>
+
+<h2 id="result">Result</h2>
+<p class="small muted" id="slvt-criterion">{{ view.criterion }}</p>
+{% if L %}
+<div class="note {{ 'good' if L.verdict == 'pass' else ('alert' if L.verdict == 'fail' else 'warn') }}" id="slvt-result" data-verdict="{{ L.verdict }}">
+  <span class="lab">Read {{ L.observed_at }}{% if not L.from_car %} · not read from the car (test or replay){% endif %}</span>
+  <span class="slvt-verdict">{{ L.summary }}</span>
+  <ul>
+    {% for r in L.reasons %}<li>{{ r }}</li>{% endfor %}
+    {% for n in L.notes %}<li class="muted">{{ n }}</li>{% endfor %}
+  </ul>
+</div>
+
+<h3>EVAP monitor</h3>
+<p>State this cycle: <b>{{ L.monitor.state|replace('_', ' ') }}</b>
+  <span class="small muted">({{ L.monitor.source }})</span></p>
+
+<h3>Mode 06 EVAP tests</h3>
+{% if L.mode06.rows %}
+<div class="slvt-wrap"><table class="slvt-table" id="slvt-mode06">
+  <thead><tr><th>MID</th><th>Test</th><th>TID</th><th>Value</th><th>Min</th><th>Max</th><th>Unit</th><th>Within limits</th><th>Graded</th></tr></thead>
+  <tbody>
+  {% for r in L.mode06.rows %}
+  <tr data-mid="{{ r.mid }}"><td class="mono">{{ r.mid }}</td><td>{{ r.name }}</td><td class="mono">{{ r.tid }}</td>
+    <td class="mono">{{ r.value }}</td><td class="mono">{{ r.min }}</td><td class="mono">{{ r.max }}</td>
+    <td>{{ r.unit or '' }}</td>
+    <td>{% if r.within is none %}unknown{% elif r.within %}yes{% else %}<b>no</b>{% endif %}</td>
+    <td>{{ 'small leak' if r.graded else 'context' }}</td></tr>
+  {% endfor %}
+  </tbody></table></div>
+{% else %}
+<p class="small">The ECM returned no EVAP Mode 06 result.</p>
+{% endif %}
+{% if L.mode06.unsupported %}
+<p class="small muted">No result for MID {{ L.mode06.unsupported|join(', ') }}.</p>
+{% endif %}
+
+<h3>ECM DTC status (UDS 0x19 02)</h3>
+<div class="slvt-wrap"><table class="slvt-table" id="slvt-dtcs">
+  <thead><tr><th>Code</th><th>Status byte</th><th>testFailedThisOperationCycle</th><th>testNotCompletedThisOperationCycle</th><th>State</th></tr></thead>
+  <tbody>
+  {% for d in L.dtcs %}
+  <tr data-code="{{ d.code }}"><td class="mono">{{ d.code }}</td>
+    <td class="mono">{{ d.status_hex or '-' }}</td>
+    <td>{% if d.failed_this_cycle is none %}-{% elif d.failed_this_cycle %}<b>set</b>{% else %}clear{% endif %}</td>
+    <td>{% if d.not_completed_this_cycle is none %}-{% elif d.not_completed_this_cycle %}set{% else %}clear{% endif %}</td>
+    <td>{{ d.state|replace('_', ' ') }}</td></tr>
+  {% endfor %}
+  </tbody></table></div>
+
+{% if L.preconditions %}
+<p class="small" id="slvt-pre-record">Preconditions ticked at the run: {{ L.preconditions.confirmed|join(', ') or 'none' }}.
+  {% if L.preconditions.missing %}<b>Not ticked:</b> {{ L.preconditions.missing|join(', ') }}.{% endif %}</p>
+{% endif %}
+{% if L.job_id %}
+<p class="small">Recorded as a test action on <a href="/v/{{ vin }}/job/{{ L.job_id }}">the open job</a>.</p>
+{% else %}
+<p class="small muted">No open job for this VIN, so only the store observation was recorded.</p>
+{% endif %}
+{% else %}
+<p id="slvt-empty">No SLVT replica run is recorded for this VIN yet.</p>
+{% endif %}
+
+<h2>wiTECH reference screens</h2>
+<p class="small muted">{{ view.figure_note }} The replica does not run wiTECH's ESIM switch or
+  purge solenoid test.</p>
+{% for f in view.figures %}
+<div class="slvt-wrap"><table class="slvt-table">
+  <caption style="text-align:left"><b>{{ f.fig }} - {{ f.title }}:</b> {{ f.message }}</caption>
+  <thead><tr><th>Name</th><th>Value</th><th>Unit</th></tr></thead>
+  <tbody>{% for n, v, u in f.rows %}<tr><td>{{ n }}</td><td class="mono">{{ v }}</td><td>{{ u }}</td></tr>{% endfor %}</tbody>
+</table></div>
+{% endfor %}
+{% endblock %}

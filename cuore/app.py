@@ -65,6 +65,7 @@ from .web import tests_routes  # noqa: E402
 from .web import timeline_routes  # noqa: E402
 from .web import tools_routes  # noqa: E402
 from .web import tsb_routes  # noqa: E402
+from .web import slvt_routes  # noqa: E402
 from .web import inbox_routes  # noqa: E402
 from .web import jobs_routes  # noqa: E402
 from .web import flow_globals, tools_kb_globals  # noqa: F401
@@ -190,6 +191,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(timeline_routes.router)
     app.include_router(tools_routes.router)
     app.include_router(tsb_routes.router)
+    app.include_router(slvt_routes.router)
     app.include_router(inbox_routes.router)
     app.include_router(jobs_routes.router)
     app.include_router(live_dashboard_routes.router)
