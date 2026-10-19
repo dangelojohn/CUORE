@@ -56,6 +56,11 @@ except Exception:  # noqa: BLE001
     feedback_bridge = None
 
 try:
+    from . import mes_clear_watch
+except Exception:  # noqa: BLE001 -- the job page must render without it
+    mes_clear_watch = None
+
+try:
     from mes import shop as shop_mod
 except Exception:  # noqa: BLE001 -- the job page must still render
     shop_mod = None
@@ -954,6 +959,14 @@ def build_job_view(vin: str, job_id: Optional[str] = None, *,
     vin = (vin or "").strip()
     if not vin:
         raise BadRequest("a VIN is required")
+
+    if mes_clear_watch is not None:
+        # New MES clears land in the repair log as "clear" actions before the
+        # job is read below (mtime check only when nothing is new).
+        try:
+            mes_clear_watch.sync(vin)
+        except Exception:  # noqa: BLE001 -- the job page must still render
+            pass
 
     if job_id:
         job = get_job(job_id)

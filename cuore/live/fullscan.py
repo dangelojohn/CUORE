@@ -75,6 +75,7 @@ each function's own docstring).
 from __future__ import annotations
 
 import json
+import re
 import time
 from datetime import datetime
 from pathlib import Path
@@ -395,7 +396,9 @@ def _obd_readout(vin: str, cable: str, _step: Callable[..., Any],
 def _sweep_bus_modules(bus_key: str, car_vin: str, cable: str, stream_desc: str, confirm: bool,
                        _step: Callable[..., Any], steps: list[dict[str, Any]],
                        budget_left: Callable[[], bool] = lambda: True,
-                       session_counter: Optional[list[int]] = None) -> list[dict[str, Any]]:
+                       session_counter: Optional[list[int]] = None,
+                       records_out: Optional[dict[str, list[dict[str, Any]]]] = None
+                       ) -> list[dict[str, Any]]:
     """UDS sweep of every confirmed module on ``bus_key``: DTCs with status
     flags, identity, and the one known DID per module. Returns that bus's
     coverage rows. Assumes the caller has already established the current
@@ -438,6 +441,8 @@ def _sweep_bus_modules(bus_key: str, car_vin: str, cable: str, stream_desc: str,
             continue
 
         records = mod.get("dtcs") or []
+        if records_out is not None:
+            records_out[code] = records
         cls = coverage_mod.classify_records(records)
         if mod.get("error"):
             category, why = "not_reachable", f"ADAPTER/BUS ERROR: {mod['error']}"
@@ -479,6 +484,50 @@ def _sweep_bus_modules(bus_key: str, car_vin: str, cable: str, stream_desc: str,
                 row["did"] = {"did": f"{did_int:04X}", "name": did_name, "source": did_source}
 
     return coverage_rows
+
+
+_EVAP_CODE_RE = re.compile(r"^P04[456][0-9A-F]", re.IGNORECASE)
+
+
+def _active_evap(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [r for r in records if _EVAP_CODE_RE.match(str(r.get("code") or ""))
+            and int(r.get("status") or 0) & coverage_mod.ACTIVE_MASK]
+
+
+def _evap_bundle(scan_id: str, car_vin: str, cable: str, stream_desc: str,
+                 ecm_records: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """EVAP snapshot bundle for the guided scan: for every ECM code in
+    P044x/P045x/P046x whose status byte is active, the full detail read
+    (status flags, decoded snapshot, extended data), plus Mode $06 and
+    readiness, recorded as one ``evap_bundle`` observation. Returns ``None``
+    (nothing recorded) when the ECM holds no active EVAP code. Every inner
+    read is isolated: a failure lands as ``error`` in its own slot and never
+    stops the others, or the scan."""
+    active = _active_evap(ecm_records)
+    if not active:
+        return None
+
+    def _safe(fn: Callable[..., Any], *a: Any, **kw: Any) -> Any:
+        try:
+            return fn(*a, **kw)
+        except Exception as e:  # noqa: BLE001 -- one bad read must not lose the others
+            return {"error": f"{type(e).__name__}: {e}"}
+
+    codes: list[dict[str, Any]] = []
+    for rec in active:
+        d = _safe(ops.module_dtc_detail, "ECM", rec["code"], vin=car_vin)
+        d = d if isinstance(d, dict) else {"error": f"unexpected reply {d!r}"}
+        entry = {"code": rec["code"], "status": rec.get("status"),
+                 "flags": rec.get("flags") or d.get("flags"),
+                 "snapshot_decoded": d.get("snapshot"), "extended": d.get("extended")}
+        if d.get("error"):
+            entry["error"] = d["error"]
+        codes.append(entry)
+    bundle = {"scan_id": scan_id, "codes": codes,
+              "mode06": _safe(ops.obd_mode06), "readiness": _safe(ops.obd_readiness)}
+    store.record_observation("evap_bundle", bundle, vin=car_vin, bus="can_c", cable=cable,
+                             stream=stream_desc)
+    return bundle
 
 
 def run(vin: str = "", buses: Optional[list[str]] = None, budget_s: Optional[float] = None,
@@ -788,8 +837,15 @@ def run_guided(vin: str = "") -> dict[str, Any]:
     session_counter = [0]
 
     car_vin, stream_desc = _obd_readout(vin, cable, _step, session_counter=session_counter)
+    can_c_records: dict[str, list[dict[str, Any]]] = {}
     coverage_rows = _sweep_bus_modules("can_c", car_vin, cable, stream_desc, False, _step, steps,
-                                       session_counter=session_counter)
+                                       session_counter=session_counter,
+                                       records_out=can_c_records)
+    # EVAP snapshot bundle (only when the ECM sweep showed an active EVAP code).
+    if _active_evap(can_c_records.get("ECM", [])):
+        _step("evap_bundle", _evap_bundle, scan_id, car_vin, cable, stream_desc,
+              can_c_records["ECM"])
+        session_counter[0] += 1
 
     # The other two buses are not reachable until their cable is fitted --
     # a pending gap, not a failure, so it is recorded the same honest way

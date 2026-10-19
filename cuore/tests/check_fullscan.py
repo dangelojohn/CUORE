@@ -628,6 +628,66 @@ try:
     check_eq("POST guided/abandon closes it", resp.json()["status"], "abandoned")
 
     # =======================================================================
+    # 6b. EVAP snapshot bundle in the guided scan's CAN-C segment
+    # =======================================================================
+    _sweep_before_evap = ops.sweep_bus_full
+
+    def _evap_sweep(bus, **kw):
+        res = _sweep_before_evap(bus, **kw)
+        if bus == "can_c":
+            ecm = next(m for m in res["modules"] if m["ecu"] == "ECM")
+            ecm["dtcs"] = [
+                {"code": "P0456-00", "status": 0x09, "flags": {"testFailed": True}},
+                {"code": "P0440-00", "status": 0x20, "flags": {}},   # history only
+                {"code": "P0300-00", "status": 0x09, "flags": {}},   # active, not EVAP
+            ]
+        return res
+
+    _detail_calls: list[str] = []
+
+    def _fake_detail(code, dtc, vin="", confirm=False, **kw):
+        _detail_calls.append(dtc)
+        return {"ecu": code, "dtc": dtc, "status": 0x09, "flags": {"testFailed": True},
+                "snapshot": {"records": [{"record_number": 1, "identifiers": [
+                    {"did": "1302", "name": "Fuel level", "value": 41.0}]}]},
+                "extended": {"records": [{"record_number": 1, "bytes": ["03"]}]}}
+
+    _patch(ops, "sweep_bus_full", _evap_sweep)
+    _patch(ops, "module_dtc_detail", _fake_detail)
+    _patch(ops, "obd_mode06", lambda **kw: {"raw": "NO DATA", "results": {}})
+    ge = fullscan.run_guided(VIN)
+    # (scan ids have minute resolution, so two scans in this test can share one:
+    # tell the bundles apart by whether their detail read failed.)
+    bundles = [e["data"] for e in store.recent_observations(1000, vin=VIN, kind="evap_bundle")
+               if e["data"].get("scan_id") == ge["scan_id"]
+               and not e["data"]["codes"][0].get("error")]
+    check("evap_bundle recorded for the one active EVAP code (history-only and non-EVAP "
+          "codes left out), with decoded snapshot, extended, raw Mode 06 and readiness",
+          len(bundles) == 1 and _detail_calls == ["P0456-00"]
+          and [c["code"] for c in bundles[0]["codes"]] == ["P0456-00"]
+          and bundles[0]["codes"][0]["snapshot_decoded"]["records"][0]["identifiers"][0]["did"]
+          == "1302" and bundles[0]["codes"][0]["extended"]["records"]
+          and bundles[0]["mode06"]["raw"] == "NO DATA" and bundles[0]["readiness"],
+          str(bundles))
+    fullscan.abandon_guided(ge["scan_id"])
+
+    def _boom_detail(code, dtc, vin="", confirm=False, **kw):
+        raise RuntimeError("detail boom")
+    _patch(ops, "module_dtc_detail", _boom_detail)
+    gb = fullscan.run_guided(VIN)
+    bundles_b = [e["data"] for e in store.recent_observations(1000, vin=VIN, kind="evap_bundle")
+                 if e["data"].get("scan_id") == gb["scan_id"]
+                 and e["data"]["codes"][0].get("error")]
+    check("a failing evap detail read leaves the scan running (paused for the blue cable, "
+          "bundle still recorded with the error)",
+          gb["next"]["cable"] == "blue_a5" and len(bundles_b) == 1
+          and "detail boom" in bundles_b[0]["codes"][0].get("error", "")
+          and any(s["step"] == "evap_bundle" and s["ok"] for s in gb["steps"]),
+          str(gb["steps"]))
+    fullscan.abandon_guided(gb["scan_id"])
+    _patch(ops, "sweep_bus_full", _sweep_before_evap)
+
+    # =======================================================================
     # 7. handbook section matches the generator (never hand-edited out of sync)
     # =======================================================================
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "docs" / "handbook"))
