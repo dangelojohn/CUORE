@@ -19,6 +19,25 @@ length is genuinely unknown, and this module refuses to guess it: it stops
 walking the record and returns what is left as raw bytes under
 ``undecoded_from``.
 
+For the two ECUs whose live records have been read on this car (ECM = Magneti
+Marelli 10JA, BCM = Marelli 949; 2026-10-13 and 2026-10-19), the *snapshot*
+DID lengths are known empirically and live in ``_SNAPSHOT_LAYOUTS`` below.
+They are NOT the Table C live-read lengths (e.g. snapshot 0x1003 coolant is
+1 byte, Table C says 2). Derivation: the three ECM records (P0455, P0456,
+P0440) have identical length and identical DID bytes at identical offsets,
+only the values differ, so the layout is the unique tokenisation whose DID
+positions are constant across all three and which also parses the BCM record
+to its last byte. Names/scales are attached only where a value is anchored to
+a MultiEcuScan freeze-frame decode (FESLog_2609252002, SCAN/FES 2026-10-04:
+operating time, startups, odometer, fuel %, oil/coolant/air temperature,
+spark advance in 1/16 deg, UniAir mode) or is physically consistent across
+the three records (engine-off P0456: 0 rpm, 12.3 V, manifold at ambient).
+Everything else is returned as raw bytes with ``name=None``. Each identifier
+carries ``confidence`` ("high" = anchored to MES numbers, "medium" =
+physically consistent plus a source, "low" = identity or scale plausible
+only, "unknown") and ``basis``. For an ECU with a layout, a DID missing from
+it stops the walk exactly like before (Table C lengths are not trusted there).
+
 Extended data records (``19 06``) are explicitly manufacturer-specific in
 ISO 14229-1 Annex D, which gives no universal meaning for a record number.
 The one convention this module labels (record 1/2/3 as an occurrence /
@@ -40,6 +59,7 @@ Any record number outside that guessed set is returned raw, unlabelled.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from . import uds
@@ -137,6 +157,145 @@ def _did_name(ecu_code: str, did: int) -> Optional[str]:
 
 
 # ---------------------------------------------------------------------------
+# Empirical 19 04 snapshot layouts (ECM 10JA, BCM 949) -- see module docstring
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class _SnapField:
+    """One snapshot DID: byte length, and (only when earned) name + scaling.
+
+    ``value = raw * mul / div + offset`` (``raw`` big-endian, optionally
+    signed). ``div=None`` with a name means "identified, scale unverified":
+    the value is withheld rather than guessed. ``enum`` maps raw -> label.
+    """
+    length: int
+    name: Optional[str] = None
+    unit: Optional[str] = None
+    mul: int = 1
+    div: Optional[int] = 1
+    offset: float = 0
+    signed: bool = False
+    enum: Optional[dict[int, str]] = None
+    confidence: str = "unknown"
+    basis: str = ""
+
+
+def _U(length: int) -> _SnapField:
+    """Unknown field: length proven by the layout, meaning not."""
+    return _SnapField(length)
+
+
+_BOOST_NOTE = ("~ambient at idle / engine-off; 195A and 1956 are an interchangeable "
+               "pair (boost vs atmospheric) -- order from Table C, not proven")
+
+_ECM_SNAPSHOT: dict[int, _SnapField] = {
+    0x1008: _SnapField(4, "Operating time", "min", confidence="high",
+                       basis="MES 'Operating time': monotonic with startups at ~29 min/startup "
+                             "(MES 296066 min @ startup 14532 on 2026-10-04; 31 min/startup in Sept)"),
+    0x1009: _U(2),
+    0x200A: _SnapField(2, "Startups counter", None, confidence="high",
+                       basis="MES 'Startups counter' (14532 on 2026-10-04); record order matches"),
+    0x6082: _U(1),   # constant 60 82 00 in every record; could instead be part of 200A's value
+    0x1921: _U(9),   # flag bytes: 40 00 01 .. / 04 00 00 .. (P0456)
+    0x1000: _SnapField(2, "Engine RPM", "rpm", div=4, confidence="medium",
+                       basis="Table C /4; 764 rpm at warm idle, 0 in the engine-off P0456"),
+    0x1924: _U(1),
+    0x1802: _U(2),
+    0x1002: _SnapField(2, "Vehicle speed", "km/h", div=124, confidence="medium",
+                       basis="Table C /124 (/128 would read 3% lower); 0 at idle, 12 km/h in gear 3 "
+                             "at 921 rpm"),
+    0x192D: _SnapField(1, "Current engaged gear", None, confidence="medium",
+                       basis="Table C; 3 at 12 km/h, 0 at idle in P/N and engine-off (MES shows N)"),
+    0x2001: _SnapField(3, "Odometer", "km", div=10, confidence="medium",
+                       basis="0.1 km units; monotonic with startups; MES odometer was 142289.9 km "
+                             "@ startup 14457, +4.4k km by 14603 (204 km / 215 min between P0455 and P0456)"),
+    0x1812: _SnapField(2, "Spark advance", "deg", div=16, signed=True, confidence="low",
+                       basis="MES spark advance is an exact multiple of 1/16 deg; 0 engine-off, "
+                             "3.75 at idle; identity from three points only"),
+    0x1003: _SnapField(1, "Coolant temperature", "degC", offset=-40, confidence="medium",
+                       basis="A-40; cold record 17 = air 16 = oil 17; warm records above oil (MES pattern)"),
+    0x1004: _SnapField(2, "Battery voltage", "V", div=10, confidence="medium",
+                       basis="/10; 14.3/14.2 V running, 12.3 V engine-off (MES shows 14.3 V running)"),
+    0x1937: _SnapField(2, "Intake manifold pressure", "mbar", confidence="medium",
+                       basis="969 engine-off = ambient; 316-371 at idle/decel; airflow tracks rpm x this"),
+    0x1923: _U(1),
+    0x191E: _U(2),
+    0x182F: _SnapField(2, "Air flow rate", None, div=None, confidence="low",
+                       basis="tracks rpm x manifold pressure within 3% and is 0 engine-off; "
+                             "kg/h scale not verified (raw/10 would give 13.4 and 9.2)"),
+    0x1935: _SnapField(1, "Intake air temperature", "degC", offset=-40, confidence="medium",
+                       basis="A-40; cold-soak record 16 degC ~ coolant 17 (MES air temp pattern)"),
+    0x195A: _SnapField(2, "Boost pressure", "mbar", confidence="low", basis=_BOOST_NOTE),
+    0x1821: _U(1),
+    0x1818: _U(1),
+    0x1956: _SnapField(2, "Atmospheric pressure", "mbar", confidence="low", basis=_BOOST_NOTE),
+    0x1302: _SnapField(2, "Engine oil temperature", "degC", confidence="medium",
+                       basis="direct degC; oil < coolant warming up, = coolant cold (MES 63/51, 60/46, 15/15)"),
+    0x1B0D: _U(8),   # flag bytes (pedals/switches/status) -- bit meaning not derived
+    0x19BD: _SnapField(1, "IBS state of charge", "%", confidence="medium",
+                       basis="Table C; 100 % on the cold-start P0456 as in MES (63/81/100)"),
+    0x1B03: _U(1),
+    0x198C: _SnapField(1, "UniAir actuation mode", None, confidence="low",
+                       enum={0x20: "Hybrid", 0x01: "Late opening"},
+                       basis="0x20,0x20,0x01 mirrors MES Hybrid,Hybrid,Late opening (cold start)"),
+    0x19BE: _U(4),
+    0x1928: _U(1),
+    0x1001: _SnapField(1, "Fuel level", "%", mul=100, div=255, confidence="medium",
+                       basis="MES fuel % is n*100/255; falls 91.8 -> 62.7 -> 55.7 % over the three "
+                             "records in time order = 8 L/100 km over the 204 km between P0455 and P0456"),
+    0x3701: _U(1),
+}
+
+_BCM_SNAPSHOT: dict[int, _SnapField] = {
+    0x1008: _SnapField(4, "Operating time", "min", confidence="medium",
+                       basis="BCM's own counter, minutes; 245380 on 2026-10-13, 245986 on 2026-10-19"),
+    0x1009: _U(2),
+    0x200A: _SnapField(2, "Startups counter", None, confidence="high",
+                       basis="14583 on 2026-10-13, 14616 now, in step with the ECM's 14603-14612"),
+    0x6082: _U(1),
+    0x1921: _U(9),   # the same 9-byte flag block as the ECM; reading it as 12 B also parses
+    0x1002: _U(1),
+    0x1004: _U(2),
+    0x3700: _U(1),
+}
+
+#: Per ECU code: the proven snapshot DID lengths. Absent ECU -> Table C fallback.
+_SNAPSHOT_LAYOUTS: dict[str, dict[int, _SnapField]] = {
+    "ECM": _ECM_SNAPSHOT,
+    "BCM": _BCM_SNAPSHOT,
+}
+
+
+def _snapshot_value(field: _SnapField, value: list[str]) -> Any:
+    raw = int("".join(value), 16)
+    if field.enum is not None:
+        return field.enum.get(raw)
+    if field.div is None:
+        return None
+    if field.signed and raw >= 1 << (8 * len(value) - 1):
+        raw -= 1 << (8 * len(value))
+    out = raw * field.mul / field.div + field.offset
+    return int(out) if out == int(out) else round(out, 2)
+
+
+def _snapshot_identifier(ecu_code: str, did: int, did_hex: str, value: list[str],
+                         field: Optional[_SnapField]) -> dict[str, Any]:
+    """``{did, name|None, bytes, value|None, unit|None, confidence[, basis]}``."""
+    if field is None or field.name is None:
+        name = None if field is not None else _did_name(ecu_code, did)
+        return {"did": did_hex, "name": name, "bytes": value, "value": None, "unit": None,
+                "confidence": "low" if name else "unknown"}
+    out: dict[str, Any] = {"did": did_hex, "name": field.name, "bytes": value,
+                           "value": _snapshot_value(field, value),
+                           "unit": field.unit if field.div is not None else None,
+                           "confidence": field.confidence}
+    if field.basis:
+        out["basis"] = field.basis
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Pure decoders
 # ---------------------------------------------------------------------------
 
@@ -167,10 +326,12 @@ def decode_snapshot_identification(data: list[str]) -> list[dict[str, Any]]:
 def decode_snapshot_record(data: list[str], ecu_code: str) -> dict[str, Any]:
     """``59 04 DTC(3) status(1) (recordNum(1) numIds(1) (DID(2) data(?))*)*``.
 
-    A DID's data length is not in the frame. Where it is known (see
-    ``_did_length``) it is decoded; the first DID with an unknown length
-    stops the walk and the remaining bytes from there are returned raw
-    under ``undecoded_from`` -- never guessed.
+    A DID's data length is not in the frame. Where it is known (the ECM/BCM
+    ``_SNAPSHOT_LAYOUTS``, else ``_did_length``) it is decoded; the first DID
+    with an unknown length stops the walk and the remaining bytes from there
+    are returned raw under ``undecoded_from`` -- never guessed. Each
+    identifier is ``{did, name|None, bytes, value|None, unit|None,
+    confidence[, basis]}``; ``bytes`` is always the raw value.
     """
     if len(data) < 6 or data[0] != "59" or data[1] != "04":
         return {"error": "not a 59 04 reply", "raw": data}
@@ -198,7 +359,12 @@ def decode_snapshot_record(data: list[str], ecu_code: str) -> dict[str, Any]:
                 break
             did_hex = body[i] + body[i + 1]
             did = int(did_hex, 16)
-            length = _did_length(ecu_code, did)
+            layout = _SNAPSHOT_LAYOUTS.get(ecu_code)
+            field = layout.get(did) if layout is not None else None
+            if layout is None:
+                length = _did_length(ecu_code, did)
+            else:
+                length = field.length if field else _STANDARD_FIXED_LENGTHS.get(did)
             if length is None:
                 out["undecoded_from"] = (f"DID {did_hex} (length unknown); "
                                          f"{len(body) - i} raw byte(s) remain from here: "
@@ -212,8 +378,7 @@ def decode_snapshot_record(data: list[str], ecu_code: str) -> dict[str, Any]:
                                          f"{len(value)} remain: {value}")
                 stopped = True
                 break
-            record["identifiers"].append({"did": did_hex, "name": _did_name(ecu_code, did),
-                                          "bytes": value})
+            record["identifiers"].append(_snapshot_identifier(ecu_code, did, did_hex, value, field))
             i += length
         if stopped:
             break
