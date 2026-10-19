@@ -1,0 +1,59 @@
+{# What CUORE must capture at every scan -- cuore.services.scan_requirements_bridge.view(),
+   list from cuore/data/scan_requirements.json. Included once by fullscan.html. Items that
+   need a person (meter, wiTECH, eyes) are listed as "needs mechanic", never as failures. #}
+{% if scan_req %}
+<div class="panel fscan-req">
+  <h3 style="margin-top:0">Required at every scan</h3>
+  {% if scan_req.error %}
+    <div class="note warn"><span class="lab">Not checked</span> {{ scan_req.error }}</div>
+  {% elif scan_req.has_scan %}
+    <p>
+      <strong>Captured {{ scan_req.captured }} of {{ scan_req.required }} required</strong>{% if scan_req.gaps %}; gaps:
+      {% for g in scan_req.gaps %}{{ g.label }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %} &mdash; no gaps{% endif %}
+    </p>
+    {% if scan_req.non_car_observations %}
+    <p class="small muted">{{ scan_req.non_car_observations }} of this scan's observations did not come from a real serial link (test or replay).</p>
+    {% endif %}
+    {% if scan_req.gaps %}
+    <ul class="small">
+      {% for g in scan_req.gaps %}
+      <li><span class="chip returned">gap</span> <b>{{ g.label }}</b> <span class="muted">&mdash; {{ g.reason }}</span></li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if scan_req.met %}
+    <details class="small">
+      <summary>Captured ({{ scan_req.met|length }})</summary>
+      <ul>
+        {% for m in scan_req.met %}<li><span class="chip ok">ok</span> {{ m.label }}</li>{% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+    {% if scan_req.not_applicable %}
+    <details class="small">
+      <summary>Not applicable this scan ({{ scan_req.not_applicable|length }})</summary>
+      <ul>
+        {% for n in scan_req.not_applicable %}<li>{{ n.label }} <span class="muted">&mdash; {{ n.reason }}</span></li>{% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  {% else %}
+    <details class="small">
+      <summary>What the next scan must capture ({{ scan_req.to_capture|length }})</summary>
+      <ul>
+        {% for r in scan_req.to_capture %}<li><b>{{ r.label }}</b> <span class="muted">&mdash; {{ r.why }}</span></li>{% endfor %}
+      </ul>
+    </details>
+  {% endif %}
+  {% if not scan_req.error and scan_req.needs_mechanic %}
+  <details class="small" open>
+    <summary>Needs mechanic ({{ scan_req.needs_mechanic|length }}) &mdash; CUORE cannot read these</summary>
+    <ul>
+      {% for n in scan_req.needs_mechanic %}
+      <li><span class="chip plain">needs mechanic</span> <b>{{ n.label }}</b> <span class="muted">&mdash; {{ n.reason }}</span></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+</div>
+{% endif %}

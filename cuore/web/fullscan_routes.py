@@ -36,7 +36,7 @@ from ..api.deps import require_token
 from ..live import buses as live_buses
 from ..live import fullscan
 from ..live import ops as live_ops
-from ..services import shop_bridge
+from ..services import scan_requirements_bridge, shop_bridge
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
 #: Server-rendered page: same posture as cuore.web.routes.router and
@@ -129,7 +129,8 @@ def _state_for(vin: str) -> dict:
 def scan_page(request: Request, vin: str) -> HTMLResponse:
     state = _state_for(vin)
     response = _page(request, "fullscan.html", vin=vin, bar=_bar(vin), tab="scan",
-                     state=state, phase=_phase(state), cable_table=cable_reference_table())
+                     state=state, phase=_phase(state), cable_table=cable_reference_table(),
+                     scan_req=scan_requirements_bridge.view(vin, state.get("scan_id")))
     _set_active_vehicle(response, vin)
     return response
 

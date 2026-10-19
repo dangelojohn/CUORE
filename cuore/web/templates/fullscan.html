@@ -148,6 +148,8 @@
 
 {% endif %}
 
+{% include "_scan_requirements.html" %}
+
 {% if phase != "idle" and state.coverage %}
   <details class="fscan-sofar"{% if phase == "summary" %} open{% endif %}>
     <summary>Captured so far

@@ -1,0 +1,188 @@
+{
+  "_schema": "What CUORE must capture at every scan of this platform, as an explicit checked list. Each row: id; label; why (one sentence tied to the open EVAP job); source (legislated | uds | did | bundle | mes_sync | mechanic_input); evidence_kind (an object naming the observation kind in the live store that proves capture, the named checker in cuore/services/scan_requirements_bridge.py, and its parameters; 'step' optionally names the fullscan step whose failure explains an absent observation; 'window' is 'scan' (default: the scan's own time window) or 'after_start' (anything recorded since the scan began); not_capturable_reason is only on mechanic_input rows, which are never checked, only listed as 'needs mechanic'. Marque and car specifics live here, not in code.",
+  "platform": {
+    "key": "alfa_stelvio_2018_2_0t_q4",
+    "name": "2018 Alfa Romeo Stelvio 2.0T Q4 (GME-T4, Marelli IAW 10JA)",
+    "default_vin": "ZASFAKPN5J7B88115",
+    "open_job": "EVAP: P0440 / P0455 / P0456 on a sealed system (job 76d3454bce75)"
+  },
+  "silent_reason": "legislated route silent (tool fault, see docs/research/CEL_2026-10-19_DIAGNOSIS.md)",
+  "requirements": [
+    {
+      "id": "readiness",
+      "label": "Readiness since clear (Mode 01 PID 01)",
+      "why": "Shows whether the EVAP monitor has completed since the last clear, which decides if a P0440 status byte of 0xCD is a fresh failure or a leftover.",
+      "source": "legislated",
+      "evidence_kind": {
+        "kind": "readiness",
+        "check": "readiness_decoded",
+        "field": "since_clear",
+        "step": "obd_readiness"
+      }
+    },
+    {
+      "id": "mode06_evap",
+      "label": "Mode 06 EVAP tests 0x3A (0.090 in) and 0x3C (0.020 in)",
+      "why": "The 0.090 in and 0.020 in leak-test values (404 ms vs min 3965 ms on 2026-10-13) are the only numbers that separate a real leak from a switch that never reports vacuum.",
+      "source": "legislated",
+      "evidence_kind": {
+        "kind": "mode06",
+        "check": "mode06_mids",
+        "field": "results",
+        "mids": ["3A", "3C"],
+        "step": "obd_mode06"
+      }
+    },
+    {
+      "id": "pids_enabling",
+      "label": "PIDs 46, 2F, 42, 1F, 30, 31 (ambient, fuel, voltage, run time, warm-ups, distance since clear)",
+      "why": "These are the EVAP monitor's enabling conditions and the invalid-input check for hypothesis 8c659dfc (ambient and fuel level reaching the ECM over CAN).",
+      "source": "legislated",
+      "evidence_kind": {
+        "kind": "pids_snapshot",
+        "check": "pids",
+        "field": "by_ecu",
+        "pids": ["46", "2F", "42", "1F", "30", "31"],
+        "step": "pids_snapshot"
+      }
+    },
+    {
+      "id": "obd_dtcs",
+      "label": "Stored, pending and permanent codes (Modes 03, 07, 0A)",
+      "why": "A pending or permanent P0440 after a clear shows whether the lamp request is still owed, and the 2026-10-19 00:39 clear left no post-clear read to say.",
+      "source": "legislated",
+      "evidence_kind": {
+        "kind": "obd_dtcs",
+        "check": "dtc_modes",
+        "dtc_kinds": ["stored", "pending", "permanent"],
+        "step": "obd_dtcs"
+      }
+    },
+    {
+      "id": "mode09_cal",
+      "label": "Mode 09 calibration ID and CVN (PIDs 04, 06)",
+      "why": "The calibration ID and CVN say which ECM calibration is on the car, which the TSB 18-026-20 and 18-030-17 flash question depends on.",
+      "source": "legislated",
+      "evidence_kind": {
+        "kind": "mode09",
+        "check": "mode09_pids",
+        "field": "mode09.results",
+        "pids": ["04", "06"],
+        "step": "mode09"
+      }
+    },
+    {
+      "id": "ecm_dtcs",
+      "label": "ECM DTCs with status bytes (UDS 19 02)",
+      "why": "The ECM status bytes (P0440 0xCD, P0455 and P0456 0x4D on 2026-10-19) are the lamp-request and test-completion evidence for the open EVAP codes.",
+      "source": "uds",
+      "evidence_kind": {
+        "kind": "module_dtcs",
+        "check": "module_dtcs",
+        "ecu": "ECM",
+        "field": "dtcs[].status"
+      }
+    },
+    {
+      "id": "evap_bundle",
+      "label": "EVAP bundle: decoded snapshots for P044x / P045x",
+      "why": "The freeze-frame snapshot (fuel level, coolant, rpm, MAP at the moment each EVAP code set) is erased by a clear, and the 2026-10-19 store copy was the only one left.",
+      "source": "bundle",
+      "evidence_kind": {
+        "kind": "evap_bundle",
+        "check": "evap_bundle",
+        "field": "codes[].snapshot_decoded",
+        "code_regex": "^P04[45][0-9A-F]",
+        "applies_when": "ECM holds an active EVAP code (P044x / P045x / P046x with an active status bit)",
+        "applies_regex": "^P04[456][0-9A-F]"
+      }
+    },
+    {
+      "id": "ecm_identity",
+      "label": "ECM identity DIDs F188, F194, F187",
+      "why": "The ECM software numbers (52170619 / P235QB39) prove whether the calibration changed between scans, which is the C7 calibration branch of the EVAP diagnosis.",
+      "source": "did",
+      "evidence_kind": {
+        "kind": "module_identity",
+        "check": "identity",
+        "ecu": "ECM",
+        "field": "fields",
+        "dids": ["F188", "F194", "F187"]
+      }
+    },
+    {
+      "id": "ibs_dids",
+      "label": "Battery and IBS DIDs: BCM 1004, BCM 1005, ECM 19BD",
+      "why": "Supply voltage and IBS state of charge test the marginal-supply theory (H-B) that could abort the EVAP monitor mid-test; all three are catalogued but not yet read.",
+      "source": "did",
+      "evidence_kind": {
+        "kind": "did",
+        "check": "dids",
+        "field": "bytes",
+        "dids": [
+          {"ecu": "BCM", "did": "1004"},
+          {"ecu": "BCM", "did": "1005"},
+          {"ecu": "ECM", "did": "19BD"}
+        ]
+      }
+    },
+    {
+      "id": "bcm_dtcs",
+      "label": "BCM DTCs with status bytes, incl. U-codes (UDS 19 02)",
+      "why": "BCM U1713-2F (ECM signal erratic) has been live in the same cycle as most EVAP returns and is the lead in the CAN-input branch (C8, C10).",
+      "source": "uds",
+      "evidence_kind": {
+        "kind": "module_dtcs",
+        "check": "module_dtcs",
+        "ecu": "BCM",
+        "field": "dtcs[].status"
+      }
+    },
+    {
+      "id": "mes_clear_sync",
+      "label": "MES clear sync (MultiEcuScan clears recorded on the job)",
+      "why": "A clear done in MultiEcuScan lives only in its log, and an unrecorded clear makes a clean re-read look like a repair (11 ECM clears in 53 days).",
+      "source": "mes_sync",
+      "evidence_kind": {
+        "kind": "state_file",
+        "check": "state_stamp",
+        "file": "mes_clear_watch.json",
+        "path": ["vins", "{vin}", "synced_at"],
+        "window": "after_start",
+        "note": "mes_clear_watch.sync() stamps synced_at only when it finds a new MES log, so a gap can also mean there was nothing new to sync"
+      }
+    },
+    {
+      "id": "esim_switch_state",
+      "label": "ESIM switch state while hand vacuum is applied",
+      "why": "Whether the switch ever closes, holds and reopens under vacuum is the single reading that splits the ESIM and its wiring from a blockage or the ECM (wiTECH Test A).",
+      "source": "mechanic_input",
+      "evidence_kind": {"kind": "mechanic_input", "check": "none"},
+      "not_capturable_reason": "No DID is known for the switch state (esim_status is a non-pollable placeholder and the ESIM function is a 0x31 RoutineControl that CUORE refuses); read it in wiTECH or across the switch circuit with a meter, then record it."
+    },
+    {
+      "id": "esim_wire_voltage",
+      "label": "ESIM switch-wire voltage under vacuum",
+      "why": "Reference voltage, ground and the switch wire's voltage change under vacuum separate a dead switch (C5) from a wiring or ECM input fault (C6) in wiring test B1 to B5.",
+      "source": "mechanic_input",
+      "evidence_kind": {"kind": "mechanic_input", "check": "none"},
+      "not_capturable_reason": "Needs a meter at the ESIM connector (driver-side rear wheel liner); no OBD or UDS channel carries the switch-wire voltage."
+    },
+    {
+      "id": "esim_fit",
+      "label": "ESIM mounting orientation and part number",
+      "why": "The ESIM was swapped on 2026-09-02 and P0440 was back 2.2 days later, but its orientation (it should mount vertically) and part number (04861961AD vs 04861959xx) were never recorded.",
+      "source": "mechanic_input",
+      "evidence_kind": {"kind": "mechanic_input", "check": "none"},
+      "not_capturable_reason": "Visual check of the fitted unit and its label against the parts catalogue; the part cannot be read electronically."
+    },
+    {
+      "id": "slvt_result",
+      "label": "SLVT (small leak verification test) result",
+      "why": "TSB 18-048-23 says a road test cannot confirm a small-leak repair, so a clean SLVT is the only proof of fix for P0456 and has never been run.",
+      "source": "mechanic_input",
+      "evidence_kind": {"kind": "mechanic_input", "check": "none"},
+      "not_capturable_reason": "SLVT runs only in wiTECH; CUORE's replica at /slvt records a result the mechanic enters."
+    }
+  ]
+}
