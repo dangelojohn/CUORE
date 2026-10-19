@@ -653,3 +653,124 @@ No source maps OBDMID 0x3A TID 0x87 or OBDMID 0x3C TID 0x90 on an FCA ECM. V1 an
 - Smaller: V1 says a key-off result alone sets no leak DTC, which questions the "P0456 reported at next cold start" model in the freeze-frame section.
 
 Searches used: 8 of 8.
+
+---
+
+## Ranking after cross-check (2026-10-19)
+
+Written 2026-10-19 from the repo and the "External cross-check" section above. No car access, no new reads, no web, no clears. Tags as at the top: [E] evidence, [I] inference, [N] not in repo. V1 and V2 were read directly; S1 is a search snippet only. Every external source is Chrysler, Jeep or Dodge; none describes the Stelvio ESIM. [N]
+
+### What changed
+
+- [E] The Chrysler/FCA ESIM has no solenoid (V1; S1 snippet). It is a passive device: two weighted valves hold the vent shut at rest and a diaphragm switch closes at about 1 inH2O of vacuum. The "ESIM solenoid / commanded vent" premise of hypothesis 02c3c411 (H-A) is retracted; the old text stays on the job under "RETRACTED 2026-10-19: ESIM has no solenoid". The new claim is ESIM seal / mounting orientation / part fitment.
+- [E] P0440 on these cars means the ESIM switch did not close during the purge-vacuum test (V1). It is a failure-to-close code, not a circuit code, so it does not promote H-A (answers H-C f15ffa4f for the Chrysler ESIM; the Stelvio definition itself is [N]).
+- [E] This ECM tracks no code for the ESIM switch circuit (P0450, P0452, P0453 never returned in five reads) or the vent circuit (P0446 to P0449 not tracked); P0451 and P2422 never completed (0x40). The ECM cannot self-check that wiring, and silent circuit codes are not a pass.
+- [E] Ambient PID 0x46 read plausibly: 17, 25, 25, 24 C on 2026-10-13 and 14 C on 2026-10-14 19:01:35. Fuel level is coherent (20 readings on 9 dates; DID 1001 equals PID 2F at both 10-13 snapshots). V1 and V2 use both as test enable conditions (gates); no source found says bad inputs make a test fail.
+- [N] The Mode 06 times (404 ms vs min 3965; 6096 ms vs max 6000) are measurements whose test-ID meaning is unpublished (M4 to M6 stand). They neither show nor exclude that the switch closed.
+- [E] ESIM 04861961AD was fitted 2026-09-02; fitment was never VIN-verified (alternative 04861959xx exists); mounting orientation and port seating were not recorded. [N]
+
+### Ranked order
+
+1. **ESIM seal / orientation / part** (job 76d3454bce75, hypothesis 02c3c411, revised).
+   - For: V1 and S1 (snippet) say the ESIM must mount upright and the O-ring degrades [E, weak]; V1's valve openings (about 0.5 inH2O positive, about 2.2 inH2O negative) mean positive-pressure smoke does not load the vacuum seat [I]; three regimes with one outcome [E values, I that one cause fits]; fitment never verified [E]/[N].
+   - Against: the same codes were present with the original unit (2025-09-24 to 2026-09-02), so this needs that unit to have been faulty or mis-seated too, or the cause to lie elsewhere [I]; no Stelvio ESIM source [N].
+   - Confirm: check mounting orientation and part number against the FCA service procedure and the parts catalogue for this VIN; bench the ESIM with gentle vacuum at the tank-side port: the switch closes (continuity) near 1 inH2O and the valves hold vacuum. Refute: both correct and the bench passes.
+2. **ESIM switch circuit** (ce6bd236; status open, not weakened).
+   - For: the ECM cannot self-check this circuit (above) [E]; V1 documents a voltage check at the switch, about 4.5 to 5 V open and near 0 V closed [E]; the connector sits in the wheel-well splash area [I from CASE.md and the platform's water-intrusion recalls].
+   - Against: nothing measured either way; the wiring diagram and ECM pin-out are not in the repo. [N]
+   - Confirm: back-probe the ESIM switch wires at the ECM connector while applying vacuum at the ESIM. Refute: the voltage follows the switch on every run and a connector wiggle causes no flicker.
+3. **ECM calibration currency.**
+   - For: SW 52170619 / P235QB39 unchanged through 2026 [E]; TSB 18-090-23 (2022 Challenger) lists the same four codes with a PCM reprogram, and the Jeep JL/KL flashes list P0456 [E, search summary]; Giulia flashes carry build-date cutoffs, so a VIN check matters [E].
+   - Against: no Stelvio bulletin lists P0440 / P0455 / P0456 (18-026-20 lists P1CEA and P24D6; 18-030-17 is Giulia only) [E].
+   - Confirm: VIN checks for recall 18V636 and CSN W05; wiTECH Flash tab, current against latest, per TSB 18-026-20. Outdated: flash, then the SLVT. Current: the calibration stays an unproven suspect.
+4. **Vacuum supply: purge valve and hoses.**
+   - For: V1 and V2 say a switch that never closes can be a purge problem; smoke cannot show a blockage or a kink [E]/[I].
+   - Against: purge valve 68337662AC replaced, 18 actuator runs COMPLETED, Mode 06 purge flow PASS (168, within 57 to 328) on 2026-10-13 (before the 10-14 clear), purge routing OK 2026-09-16 [E].
+   - Confirm: command purge and watch the switch and fuel trim together (V2); low-pressure air through each hose leg. Refute: free legs, the switch closes on commanded purge.
+5. **Canister internal.** For: platform base rate, forum-grade [E weak]. Against: new 2025-08, no liquid fuel found 2026-09-26, normal refuelling [E]. Confirm: air through the canister, tank port to vent port, with the ESIM and hoses off; restricted means replace the canister (not the ESIM, per TSB 9100469).
+6. **CAN inputs** (8c659dfc; likelihood set to low, still open). For: External temperature -61 C in 61 of 61 samples on 2026-06-07 (one log, one date) and U1713-2F in 10 MES scans [E]. Against: PID 0x46 plausible on 10-13 and 10-14, fuel level coherent, U1713-2F points ECM to BCM (opposite to the inputs the monitor needs), absent from the 09-29 and 10-08 scans, and sources treat the inputs as gates [E]/[I]. Confirm: live read of MES External temperature, Air temperature and Fuel level against PID 0x46, the dash display and the fuel gauge; the BCM DTC EX before any clear.
+
+### Standing rules
+
+- [E] No clears: 11 ECM clears in 53 days, the codes returned after each. Every clear restarts the evidence.
+- Proof of any fix is the wiTECH Small Leak Verification Test per TSB 18-048-23 (the CUORE /slvt replica stands in until wiTECH) plus a completed EVAP monitor with P0440, P0455 and P0456 not returning; a road test alone does not confirm a repair (TSB summary, search snippet).
+- When P0440 reports 0xCD again, Mode 06 is read first (MIDs 39, 3A, 3C, 3D, all TIDs, 18DB33F1 route), with the raw frames stored.
+
+### What this supersedes in the sections above
+
+- "Also considered": the reasoning order that put H-A (solenoid) first, and the H-A paragraph's solenoid premise.
+- "Suggested run order" (E first, then A, B): the hands-on order is now the ranking above. Step E (the ambient read) is now step 6; it is still one live read and can share a sitting with any connected step.
+- "Next tests", test A: still the ESIM hand-vacuum test, now with the back-probe at the ECM connector in step 2 and the bench check in step 1.
+- Section "Mode 06 EVAP records" M6: unchanged; "never closes" wording in C5 and in the freeze-frame section remains unsupported by Mode 06 (rests on the codes only).
+
+### Job record (job 76d3454bce75, VIN ZASFAKPN5J7B88115)
+
+- 02c3c411: text and next_test edited (new claim; old text kept under "RETRACTED 2026-10-19: ESIM has no solenoid"; the ref about the never-run vent test stays attached but is not counted for the new claim).
+- ce6bd236: status open; text gets an UPDATE 2026-10-19 paragraph; next_test rewritten as a numbered mechanic plan in the order above, with tools and expected results.
+- 8c659dfc: likelihood low, still open; evidence against attached (ref `pid46-ambient-2026-10-13-14`).
+- Note action 23a35c18 records the new order and the standing rules.
+
+---
+
+## Verification pass (2026-10-19)
+
+Written 2026-10-19 about 01:35, after the sections above (including "Ranking after cross-check"). Method: tried to disprove each finding below from files on disk only: observation store (`C:\ProgramData\cuore\observations.jsonl`, `live_snapshots.jsonl`, `jobs.jsonl`, `owner_events.jsonl`, `audit.jsonl`), the MES folder, the 2026-10-13 live-read JSONs, and the two saved bulletin PDFs (pdftotext). No car access, no COM3, no web, no git, no subagents, no new theories. Tags as at the top: [E] evidence, [I] inference, [N] not known. Verdicts: CONFIRMED, CONTRADICTED, UNVERIFIABLE.
+
+### V1. Freeze-frame decoder scalings (`cuore/live/dtc_detail.py`): CONFIRMED, two limits
+
+- [E] Re-decoded the raw stored bytes by hand with the `_ECM_SNAPSHOT` lengths. Odometer raw 1465222 / 1467266 / 1467557 = 146,522.2 / 146,726.6 / 146,755.7 km (P0455 / P0456 / P0440). Startups 0x390B / 0x3910 / 0x3914 = 14603 / 14608 / 14612. Operating time 298114 / 298329 / 298445 min. All equal the table in "Tonight's freeze frames".
+- [E] Odometer scale outside the decoder: live DID 0x2001 (formula from the third-party catalogue, `did_catalog.py`) read 146,501.2 km at 10-13 20:09:08 and 146,509.9 km at 20:38:32 (`live_snapshots.jsonl`); the P0455 frame is 12.3 km after the second. ECM PID 31 read 9 km since clear at 10-14 19:01:35 while P0455 was still 0x40, so that frame cannot lie below 146,518.9 km (146,509.9 + 9); observed 146,522.2, a 3.3 km margin. A different scale would break both checks.
+- [E] MES September frames (FESLog_2609252002): startups / odometer / operating time = 14439 / 141,929.9 / 293,135; 14448 / 142,227.2 / 293,469; 14457 / 142,289.9 / 293,703. The three counters rise together in all six frames (Sept and tonight).
+
+| Interval | Starts | km | Minutes | km per start | min per start | km/h |
+|---|---|---|---|---|---|---|
+| Sep frame 1 to 2 | 9 | 297.3 | 334 | 33.0 | 37.1 | 53.4 |
+| Sep frame 2 to 3 | 9 | 62.7 | 234 | 7.0 | 26.0 | 16.1 |
+| Tonight P0455 to P0456 | 5 | 204.4 | 215 | 40.9 | 43.0 | 57.0 |
+| Tonight P0456 to P0440 | 4 | 29.1 | 116 | 7.3 | 29.0 | 15.1 |
+| 08-27 P0456 to 09-25 P0455 | 152 | 1,357.3 | 2,760 | 8.9 | 18.2 | 29.5 |
+| 09-25 P0456 to tonight P0455 | 146 | 4,232.3 | 4,411 | 29.0 | 30.2 | 57.6 |
+
+- [E] Each pair has the same shape in Sept and tonight: a long leg then a short leg (7.0 and 7.3 km per start). km per start is not constant (7 to 41), so it cannot validate the counter alone. The bridge 09-25 to tonight is 3.3 times the 08-27 to 09-25 km per start and 1.9 times its average speed; the car was used far harder in that stretch. [I] Not contradicted: ECM PID 31 read 1,663 km since clear on 10-13 20:03 (store readiness `drive_cycle_counters`), and 146,501.2 - 142,289.9 = 4,211.3 km between the Sept frame and the 10-13 live odometer.
+- [E] Operating time against distance: 146,755.7 km / (298,445 min / 60) = 29.5 km/h lifetime average, 10.0 km and 20.4 min per start. Same quotient from MES: 27.3 km/h (2025-09-24, 114,008.9 km / 250,423 min), 29.0 (2026-06-07, 136,536.7 km / 282,311 min), 29.05 (2026-09-25, 141,929.9 km / 293,135 min). Minutes per start since the last MES counters (10-04 11:16: 14532 starts, 296,066 min): 2,379 min / 80 starts = 29.7, against 31.3 between 09-25 20:28 and 10-04. Plausible and stable.
+- [E] The nearest MES "engine hours" values are the header lines "Operating time" and "Functioning time (EEPROM)" (296,066 and 296,041 min on 10-04). The one live parameter log (FESLog_2606071008) has Odometer 136,536.7 km, Odometer at last Oil change 131,823.0 km, Odometer at last programming 44,074.9 km and "Max. engine speed time", but no engine-hours parameter.
+- Limit 1 [E]: SCAN_2610190039.txt prints module identity, DTC lines and the clear result only; no odometer, operating time or counter. No MES file after 2026-10-04 11:16 (FESLog_2610041116: counters, no odometer) carries one, and the last MES odometer is 142,289.9 km on 09-25. Tonight's three values have no MES copy; the 10-13 live read is the nearest anchor.
+- Limit 2 [E]/[I]: BCM startups 14583 (10-13 20:28:23) to ECM 14603 (P0455 frame) is about 20 starts (the BCM and ECM counters differ by at most 4) for 12.3 km of odometer, far denser than any other interval. The counter evidently counts non-driving engine starts; it is not a distance proxy.
+
+### V2. "11 ECM clears in 53 days" and the lamp interval
+
+- 11 ECM clears: CONFIRMED. [E] Dates, from the MES folder: 2026-08-27 (FESLog_2608271119), 08-31 (FESLog_2608311823), 09-02 (FESLog_2609021454), 09-04 19:53 (SCAN_2609041953), 09-15 20:48 (SCAN_2609152048), 09-25 20:27 (SCAN_2609252027), 09-28 11:59 (SCAN_2609281159), 09-29 10:46 (SCAN_2609291046), 10-08 09:20 (SCAN_2610080920), 10-14 08:59 (SCAN_2610140859), 10-19 00:39 (SCAN_2610190039). 08-27 to 10-19 is 53 days. Eight have an ECM SUCCESS line. The first three come from ECM FES logs that show "CLEARING STORED FAULT CODES... READING ERROR CODES: No fault codes" with no SUCCESS line. SCAN_2610080920 has two clear blocks: the first (line 67) stops after the ECM ISO code with no SUCCESS and the re-scan still lists P0456 and P0455; the second (line 151) has ECM SUCCESS. The two 09-04 FES logs (2001, 2009) are the Continental ABS, not the ECM. `audit.jsonl` (1,899 events) holds no clear service, so CUORE added none.
+- "Codes returned after each clear" (Ranking section, Standing rules): CONFIRMED for 10 of 11. [E] The 11th (10-19 00:39) has no later read. The 09-29 clear was followed by a clean 10-04 scan (5.0 days) and codes by 10-08.
+- "Lamp request came back twice, 4.6 to 5.4 days after a clear": CONFIRMED. [E] 10-08 09:20 to 10-13 20:03:00 (readiness `since_clear.mil_on` true) is 5.45 days, and P0440 was 0xCD at 20:24:25. 10-14 08:59 to 10-19 00:23:42 (P0440 0xCD, repeated 00:30:25) is 4.64 days.
+- "Lamp returns about 5 days after each clear": CONTRADICTED as a rule. [E] The only other clears followed by a read that carries a lamp bit: 09-15 20:48 to 09-25 20:12 (9.97 days), P0440/P0455/P0456 all 0x4D, b7 clear; and 10-14 08:59 to 19:02 (0.42 day), 0x4D, `mil_on` false. No MES log has a lamp parameter (searched all 2025-09 and 2026 Stelvio FES logs), so the other clears have no lamp data. Two lamp-on cases, two lamp-off cases; the lamp is not a fixed function of days since clear.
+- "MIL-on first seen 2026-10-13": CONFIRMED as the first tool record. [E] Earlier decodable lamp data: 09-25 20:12 UDS b7 clear; the 09-25 readiness reads are undecodable (`7F 01 11`, NO DATA). Caveat: this is the ECM's request, not the dash. `owner_events` entry 1552e1755ecb (2026-10-14 06:54): "Owner attests the dash MIL has not lit since the 2026-10-08 09:20 MES clear"; session record line 132: "owner has not observed lamp illumination"; CASE.md line 38: "The check-engine light has not been on". Section 13 of the session record is headed "check-engine light on" (the OBD flag). So 10-13 is the first lamp REQUEST, not a first observed lamp.
+- [E] Side finding: the store DOES hold the 10-13 counters the "Gaps" section calls untraceable: readiness 2026-10-13T20:03:00 `drive_cycle_counters` = warmups_since_clear 8, distance_since_clear 1663 (10-14 19:01:26: 4 and 9). The "29 Sep clear" in the session record is not what the MES logs show: the ECM was cleared 09-29 10:46 and again 10-08 09:20. PID 21 "34 km with MIL" is still not in the store (freeze PID 21 errored, live has none).
+
+### V3. Ambient PID 46 and the -61 C parameter
+
+- [E] Every PID 46 value on record: 17 C in the stored Mode 02 frame read 10-13 (captured when P0440 set, 217 s after start, ECT 63 C; the frame's own date is somewhere between the 10-08 clear and the 10-13 read, so it is not a 10-13 measurement); live 25 C at 10-13 20:03:23 (1834 s since start, ECT 101 to 103 C), 25 C at 20:09:08, 24 C at 20:38:32; 14 C at 10-14 19:01:35 (74 s after start, ECT 72 C, 795 rpm). Nothing after: 10-19 OBD returned NO DATA.
+- Values quoted: CONFIRMED. "Plausible": UNVERIFIABLE as outdoor truth, because no outdoor temperature or weather record exists for any date in the repo. The values are not constant (14, 17, 24, 25) and sit near the ECM's own intake-air readings (MES freeze-frame Air temperature 13 to 22 C on 09-25; DID 1935 10 to 17 C in tonight's frames). [I]
+- [E] The -61 C parameter: MES "External temperature", ECM (Magneti Marelli IAW 10JA, ISO 00 01 50 40 18), FESLog_2606071008 (2026-06-07 10:03:48), -61 C in 61 of 61 samples (lines 271 to 5045) while "Air temperature" read 30 to 33 C in 60 samples. It appears in no other MES file. The October PID 46 values do not test it: different date (4 months), different interface (OBD PID versus MES parameter), and the MES parameter has not been read since. Neither confirmed nor contradicted; UNVERIFIABLE.
+
+### V4. "No ESIM switch-circuit, vent-circuit, ambient or 0.040-leak codes tracked": CONFIRMED, scope note
+
+- [E] Tonight's ECM read (module_dtcs 2026-10-19 00:23:42, 132 codes). P04xx present: P0401, P0402, P0403, P040B, P0420, P0425, P0426, P042A, P042B, P0440 (0xCD), P0441, P0451, P0455 (0x4D), P0456 (0x4D), P0457, P0458, P0459, P0461, P0471, P0472, P0473, P0489, P0490, P04DB. P045x present: P0451, P0455, P0456, P0457, P0458, P0459. P007x present: P007B only. P2422 present. All are 0x40 except P0440, P0455, P0456. The union of the five stored ECM reads is 282 codes.
+- [E] Absent from all five reads: P0442 (0.040 leak), P0443 to P0445, P0446 to P0449 (vent circuit), P0450, P0452, P0453, P0454, P0498, P0499, P2401 to P240B, P0070 to P0074 (ambient), P0460, P0462 to P0464, and P24D6.
+- Scope: P0451 (EVAP pressure sensor/switch range/performance) and P2422 (vent valve stuck closed) ARE tracked, at 0x40 in every read. P24D6 ("EVAP System Pressure Sensor/Switch B Circuit Range/Performance") is named in both saved bulletins yet never returned by this ECM. "Absent" means status 0x00 or not implemented; `19 02 FF` omits 0x00 codes, and the 09-25 list (278 of 282) is the best discriminator, so the two cannot be separated. [I]
+
+### V5. "Purge circuit and purge flow passed on 10-13 only": CONFIRMED (bytes), limited (meaning)
+
+- [E] P0458, P0459 and P0441: 0x40 at 09-25 20:12, 10-14 19:02, 10-19 00:23 and 10-19 00:30; absent from the 10-13 20:24 list (72 codes) only. Under the section's own rule (absent = 0x00 = completed with no failure in that cycle) 10-13 is the only one of the five stored UDS reads where they completed. MES scans carry no status bytes, so "only" says nothing about other dates. [I]
+- [E] Corroboration is thinner for the circuit than for flow. Mode 06 10-13 MID 3D: TID A1 = 168 (limits 57 to 328) PASS; TID A0 = 65535 (limits 19660 to 65535) PASS, a value equal to the maximum and to 0xFFFF, so the flow pass rests on one TID. [I] No Mode 06 value exists for P0458/P0459. The same 10-13 read left P0451, P2422 and P1CEA at 0x40 although readiness said the EVAP monitor had completed.
+
+### V6. Bulletin claims: CONFIRMED
+
+- [E] 18-030-17 is `MC-10216318-9999.pdf`: "NUMBER: 18-030-17 REV. D ... DATE: November 17, 2017". "MODELS: 2017 (GA) Alfa Romeo Giulia". "applies to vehicles built on or before **June 29, 2017 (MDH 0629XX)** equipped with a 2.0L I4 DI Turbo Engine (Sales Code EC2)". DTC list includes P0455-00 (Large Leak), P0440 ("Evaporative Emission System Incorrect Flow"), P0441, P0456 ("Very Small Leak"), and also P1CEA and P24D6. The Stelvio is not named. Only REV. D is saved; REV. B is not in the folder, so "REV B / D" in the bulletin table rests on REV. D alone.
+- [E] 18-026-20 is `MC-10174245-9999.pdf`: "DATE: March 25, 2020", supersedes 18-103-19. "MODELS: 2018 (GU) Alfa Romeo Stelvio", North America, 2.0L I4 DI Turbo (EC2). DTCs: P0106-00 (asterisked as the added code), P013A, P015A, P1CEA, P0096, P04DB, P024A, P2097, P2B2F, P24D6, P01BA, P026E, P164E, P0191, P2299, U1008. No P0440, P0441, P0455 or P0456 (grep of the extracted text returns only P0106, P1CEA, P24D6).
+
+### Corrections to earlier sections
+
+- "Gaps and inconsistencies", first bullet: the 1,663 km and 8 warm-ups ARE stored (V2). The "29 Sep clear" label does not match the MES logs. Only PID 21 "34 km with MIL" remains untraceable.
+- Conditions table row "2026-10-13 (OBD Mode 02)" and the fuel-level series: 10-13 is the read date; the frame's own date is unknown (V3).
+- Section 0 item 2 and the job note 0a1823c1 say the lamp "came back" 5.4 and 4.6 days after clears: true as an ECM request on those two occasions; the dash lamp on 10-13 is not evidenced (V2).
+- Bulletin table: "REV B / D" for 18-030-17 rests on REV. D only (V6).
