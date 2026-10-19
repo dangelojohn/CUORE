@@ -774,3 +774,159 @@ Written 2026-10-19 about 01:35, after the sections above (including "Ranking aft
 - Conditions table row "2026-10-13 (OBD Mode 02)" and the fuel-level series: 10-13 is the read date; the frame's own date is unknown (V3).
 - Section 0 item 2 and the job note 0a1823c1 say the lamp "came back" 5.4 and 4.6 days after clears: true as an ECM request on those two occasions; the dash lamp on 10-13 is not evidenced (V2).
 - Bulletin table: "REV B / D" for 18-030-17 rests on REV. D only (V6).
+
+---
+
+## Readings-only ledger and verdict (2026-10-19)
+
+Source: CUORE's observation store only, `C:\ProgramData\cuore\observations.jsonl`, all 222 lines parsed and every kind reviewed: 175 tagged VIN ZASFAKPN5J7B88115, 45 serial reads with an empty VIN tag (marked "untagged"; `recent_observations(vin=...)` would drop them), and 2 `stream=fake` actuator-test lines of 2026-09-26 that did not come from the car (excluded). No MES log, job note, owner statement, bulletin, web page or earlier section of this file is used as a fact below, and nothing was re-read from the car. Tags: **[E]** a store observation (timestamp and observation number given), **[I]** inference, **[N]** not in the store. Observation numbers are 0-based line numbers. WIR = warningIndicatorRequested (b7).
+
+### L1. OBD lists, Mode 03 / 07 / 0A (`obd_dtcs`, bus can_c)
+
+| Time (obs #) | Stored (03) | Pending (07) | Permanent (0A) |
+|---|---|---|---|
+| 2026-10-13T20:02:56 to :58 (#40-42, untagged) | 18DAF110: P0440; 18DAF118: none | 18DAF110: P0455, P0440; 18DAF118: none | 18DAF110: P0440, P0456; 18DAF118: none |
+| 2026-10-14T19:01:23 to :25 (#61-66) | none, both ECUs | P0440 | P0440, P0456 |
+| 2026-10-19T00:23:26 to :28 and 00:29:41 to :44 (#125-130, #175-180) | NO DATA | NO DATA | NO DATA |
+
+Reads with no content, all NO DATA: 2026-09-25T20:07 to 20:16 (CUORE note: ignition off), 2026-10-13T19:52:49 to 20:01:09 (untagged, port 14.0-14.1 V), 2026-10-14T19:09:19 (#101, 14.5 V). [E]
+
+### L2. Readiness (`readiness`)
+
+| Time (obs #) | Since clear | This drive cycle | Counters |
+|---|---|---|---|
+| 2026-10-13T20:03:00 (#43) | MIL on; stored count 1; all 8 monitors supported and complete, **Evaporative system complete** | MIL off; count 0; listed: Comprehensive components complete, EGR not complete; **no Evaporative entry** | warmups 8; distance 1663; CUORE verdict "EVAP monitor has COMPLETED since the last clear" |
+| 2026-10-14T19:01:26 (#67, #68 identical) | MIL off; count 0; **Evaporative NOT complete** (also Catalyst, Oxygen sensor, EGR not complete; Misfire, Fuel system, Comprehensive, O2 heater complete) | same two entries as above | warmups 4; distance 9; CUORE verdict "EVAP monitor has NOT run since the last clear" |
+| 2026-10-19T00:23:29, 00:29:51, 00:33:30, 00:33:34, 00:34:05, 00:34:06 (#131-132, #181-182, #215-216, #220-221) | NO DATA | NO DATA | none |
+
+### L3. Mode 06, ECM 18DAF110 (`mode06`; value [min..max]; the flag is CUORE's own value-vs-limit test; MID names are CUORE's labels)
+
+| MID / TID (UASID, unit) | 2026-10-13T20:03:54 (#44) | 2026-10-14T19:01:28 (#69, #70 identical) |
+|---|---|---|
+| 39 "cap off / gross leak" / 87 (10, ms) | 0 [0..0] pass | 0 [0..0] pass |
+| 3A "0.090 in" / 87 (10, ms) | **404 [3965..65535] FAIL** | 0 [0..0] pass |
+| 3C "0.020 in" / 85 (34, none) | 0 [0..0] pass | 0 [0..0] pass |
+| 3C / 86 (12, none) | 0 [0..0] pass | 0 [0..0] pass |
+| 3C / 90 (10, ms) | **6096 [0..6000] FAIL** | 6000 [0..6000] pass |
+| 3D "purge flow" / A0 (30, none) | 65535 [19660..65535] pass | 0 [0..0] pass |
+| 3D / A1 (FC, none) | 168 [57..328] pass | 0 [0..0] pass |
+
+- Supported MIDs on both dates: 01 02 20 21 31 35 39 3A 3C 3D 40 41 42 60 80 81 A0 A2 A3 A4 A5. MID 3B (0.040 in), 3E and 3F are not in the list. MID 01 returned CAN ERROR on 10-13. [E]
+- 2026-10-19T00:23:30 and 00:29:52 (#133-134, #183-184): the supported-MID request returned NO DATA; CUORE's "not supported by this ECU" lines there are a NO DATA artefact. [E]
+- The MID 39 and MID 3C TID 85/86 records are byte-identical on 10-13 (monitor complete) and 10-14 (monitor not run). [E] So a zero with 0/0 limits does not mean "ran and passed". [I]
+
+### L4. PIDs (`pids_snapshot`)
+
+One snapshot with data: 2026-10-14T19:01:35 (#71 and #72, identical copies; ECM 18DAF110; 46 PIDs, 52 requests). No PID snapshot exists for 10-13. 2026-10-19T00:23:30 and 00:29:52 (#135, #185): `by_ecu` empty, nothing returned. [E]
+
+| PID (store label) | Value, 2026-10-14T19:01:35 |
+|---|---|
+| 2C commanded_egr | 0.0 % |
+| 2D egr_error | 0.0 % |
+| 2E commanded_evap_purge | 0.0 % |
+| 54 evap_vapor_pressure_signed | 0.0 kPa (PID 54 is in the ECM's supported list; PID 32 has no entry in the snapshot) |
+| 46 ambient_air_temp | 14 deg C |
+| 2F fuel_level | 93.725 % |
+| 42 control_module_voltage | 14.25 V |
+| 06 / 07 fuel trim b1 short / long | +2.344 % / -0.781 % |
+| 05 / 0C / 0D / 1F | coolant 72 deg C / 795 rpm / 0 km/h / 74 s since start |
+| 30 / 31 / 33 | warmups since clear 4 / distance since clear 9 km / baro 99 kPa |
+| 0B / 43 / 11 | MAP 31 kPa / absolute load 21.176 % / throttle 12.157 % |
+
+PID 2C is the store's commanded-EGR; the purge command is PID 2E. [E] PID 41 (this drive cycle) lists no Evaporative entry (see L2). [E]
+
+### L5. UDS 19 02, ECM, request mask FF (`module_dtcs`; status byte in hex, "--" = not in the returned list)
+
+| Obs, time | Codes returned | P0440 | P0455 | P0456 | P0441 | P0458 | P0459 | P0451 | P0457 | P0461 | P1CEA | P2422 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| #13, 2026-09-25T20:12:02 | 278 | 4D | 4D | 4D | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 |
+| #46, 2026-10-13T20:24:25 | 72 | CD | 4D | 40 | -- | -- | -- | 40 | 40 | 40 | 40 | 40 |
+| #74 (copy #87), 2026-10-14T19:02:07 | 142 | 4D | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 |
+| #138 (copy #151), 2026-10-19T00:23:42 | 132 | CD | 4D | 4D | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 |
+| #188 (copy #201), 2026-10-19T00:30:25 | 121 | CD | 4D | 4D | 40 | 40 | 40 | 40 | 40 | 40 | 40 | 40 |
+
+- Bits: 0x40 = b6 only (testNotCompletedThisOperationCycle). 0x4D = b0 testFailed + b2 pending + b3 confirmed + b6. 0xCD = 0x4D + b7 (WIR). b1 (testFailedThisOperationCycle), b4 and b5 are never set in any ECM status in the store; the only ECM values ever returned are 0x40, 0x4D, 0xCD (no 0x00). The `availability_mask` the ECM returned is 0xCF in all five reads, which excludes b4 and b5. [E]
+- P0442 to P0450, P0452, P0453 appear in none of the five lists (282 distinct codes in their union, the 278-code list included). [E] "Not tracked by this ECM" is the likely reading, but list length swings from 72 to 278 between reads. [I]
+- TCM, IPC and RFHUB reads on these dates contain no EVAP-family code; for the BCM see L7. [E]
+
+### L6. UDS 19 04 / 19 06 detail (`dtc_detail`)
+
+| Time (obs #) | Module, code | Status | Flags |
+|---|---|---|---|
+| 2026-10-19T00:25:35 (#165) | ECM P0440-00 | 0xCD (205) | testFailed 1, failedThisCycle 0, pending 1, confirmed 1, notCompletedThisCycle 1, WIR 1, since-clear bits 0 |
+| 2026-10-19T00:25:36 (#166) | ECM P0455-00 | 0x4D (77) | same, WIR 0 |
+| 2026-10-19T00:25:38 (#167) | ECM P0456-00 | 0x4D (77) | same, WIR 0 |
+| 2026-10-19T00:25:39 (#168) | BCM U1713-2F | 0x0F (15) | testFailed 1, failedThisCycle 1, pending 1, confirmed 1, notCompletedThisCycle 0, WIR 0 |
+| 2026-10-13T20:28:23 (#55) | BCM U1713-2F | 0x0F (15) | as #168 |
+
+- **Decoded freeze-frame fields in the store: none.** All four snapshots carry `identifiers: []` and `undecoded_from: DID 1008 (length unknown)`; the bytes are stored raw (ECM 132 bytes each, BCM 38). Any decode needs a DID scaling table, which is not a reading. [E]
+- ECM raw snapshot bytes, verbatim: P0440 `100800048DCD1009000E200A3914608200192140000100000000040010000E641924001802002D100205E0192D0320011664A51812FF3410035B1004008F19370173192312191E0001182F0086193532195A03EC182103181800195603EC130200231B0D800000000000040119BD4C1B0384198C2019BE0020000019280010018E370100`; P0455 `100800048C8210090018200A390B608200192140000100000000040010000BF01924001802002310020000192D002001165B861812003C10036D1004008E1937013C192312191E0009182F005C193539195A03E9182103181800195603E8130200381B0DA00000000000040119BD3E1B0384198C2019BE002000001928001001EA370100`; P0456 `100800048D5910090000200A3910608200192104000000000000040010000000192400180200A010020000192D002001166382181200001003391004007B193703C9192322191E0100182F0000193538195A03CC182100181800195603D1130200111B0D000400000000000019BD641B0380198C0119BE002000001928001001A0370100`. [E]
+- Extended data: record 1 = `60` on all four (CUORE's own note: "occurrence counter ... unverified for FCA"); trailing raw `80 28 60 81 03 60 83 00` on P0440 and `80 28 60 81 00 60 83 00` on P0455 and P0456; BCM U1713-2F `60` with trailing `80 28 60 81 01` on both 10-13T20:28:23 and 10-19T00:25:39. Meanings not in the store. [E][N]
+
+### L7. BCM U1713-2F (`module_dtcs`, BCM, availability mask 0x4F)
+
+Present at 0x0F: 2026-10-13T20:24:25 (#48, 100 codes), 2026-10-19T00:23:42 (#144/#157, 148 codes), 2026-10-19T00:30:25 (#194/#207). Absent from the list: 2026-10-14T19:02:07 (#80/#93, 125 codes). [E] The store holds no text for U1713-2F and no link between it and the EVAP monitor. [N]
+
+### L8. ECM identity and context
+
+- `identity` / `module_identity`, ECM: F187 `50544870`, F188 `52170619`, F194 `P235QB39`, F191 `52055320`, F192 `MM10JAHW232`, F18C `TD4192427B17540`, F189 requestOutOfRange, F195 `00 00`. Identical at 2026-09-25T20:11:51 (#11), 2026-10-14T19:02:07 (#75), 2026-10-19T00:23:42 (#139), 2026-10-19T00:30:25 (#189); F187/F188 identical in the partial read 2026-10-13T20:25:15 (#51). [E]
+- Mode 09 (#60, 2026-10-14T19:01:23): ECM calibration ID `52170619`, CVN `D3E2AD62`. 2026-10-19T00:23:26 and 00:29:39 (#124, #174): NO DATA. The IUPR (PID 08) decode in #60 is not usable: its first field (OBDCOND 7177) is bytes `1C 09`, and `1C` is the item-count byte in the frame. [E]
+- Context: port or module voltage recorded at 14.0-14.5 V on 10-13, 10-14 and 10-19 (adapter probe, PID 42, CUORE warnings); CUORE's own warnings on 10-13 and 10-19 say the engine is running. ECM DID 1302 (catalogue label "Engine oil temperature", formula B, confidence unverified): 71 deg C at 2026-10-14T19:02:07, 47 deg C at 2026-10-19T00:23:42, 68 deg C at 2026-10-19T00:30:25. [E] So the 10-19 reads span a warm-up. [I]
+
+### L9. What the store does not contain [E]
+
+No ESIM, vent-valve, canister or tank-pressure DID or switch state ("ESIM" occurs 0 times in 222 lines); no actuator or routine test taken from the car (the only two are `stream=fake`); no PID snapshot on 10-13; no OBD-side data of any kind on 10-19; no decoded freeze-frame field; no record of a clear command (only counter resets); no Mode 06 MID 3B, 3E or 3F; no second Mode 06 read with the monitor complete.
+
+### (a) What the readings PROVE, and what they do not
+
+Proven [E]:
+1. The ECM held P0440, P0455 and P0456 as failed, pending and confirmed (b0, b2, b3): all three at 2026-09-25T20:12:02, 2026-10-19T00:23:42 and 00:30:25; P0440 and P0455 at 2026-10-13T20:24:25; P0440 alone at 2026-10-14T19:02:07. Mode 03/07/0A on 10-13T20:02:56-58 and 10-14T19:01:23-25 agree on the code names.
+2. Only P0440 ever asked for the lamp (b7): 2026-10-13T20:24:25 and the two 10-19 reads; readiness MIL on 2026-10-13T20:03:00, off 2026-10-14T19:01:26. P0455 and P0456 never carried b7.
+3. A reset happened between 2026-10-13T20:03:00 and 2026-10-14T19:01:26 (warmups 8 to 4, distance 1663 to 9, MIL on to off, EVAP monitor complete to not complete). That it was a code clear is [I]; the store has no clear command.
+4. P0440 was already 0x4D at 2026-10-14T19:02:07, 9 km after the reset, while readiness said the EVAP monitor had not completed. Whether it was re-detected or carried over cannot be told from these readings. [I]
+5. P0455 and P0456 went from 0x40 (2026-10-14T19:02:07) to 0x4D (2026-10-19T00:23:42): a new failure was recorded in between. P0440 gained b7 in the same interval.
+6. Purge side, 2026-10-13 only: Mode 06 MID 3D A1 168 inside 57..328 and A0 65535 inside 19660..65535 at 20:03:54; P0441, P0458, P0459 never failed in any read. PID 2E was 0.0 % in the only PID snapshot (2026-10-14T19:01:35), so no purge was commanded there.
+7. Both non-trivial leak records failed at 2026-10-13T20:03:54: 404 under a minimum of 3965 (MID 3A) and 6096 over a maximum of 6000 (MID 3C TID 90). What those two TIDs measure is not in the store. [N]
+8. ECM software identity did not change anywhere in the store, 2026-09-25T20:11:51 to 2026-10-19T00:30:25. That shows no reflash; it does not show the installed software is the right one.
+9. No ECM status read ever caught a test failing in the current cycle (b1 never set, five reads).
+
+NOT proven, with the reason:
+- **"The ECM never recorded the ESIM switch closed in any regime": not proven by the bits, and not provable from the store.** (i) No reading carries the switch, the solenoid or the vent state: no DID, no actuator test, one PID 54 sample of 0.0 kPa with no stimulus. (ii) The sense/vent codes P0451, P2422 (and P0457, P0461, P1CEA) read 0x40 in all five reads, which means "not completed this cycle", never a completed pass; the ECM does not implement b4/b5 (mask 0xCF), so it keeps no "ran since clear" memory. (iii) No switch-circuit or vent-circuit code (P0446-P0450, P0452, P0453) appears in any list, so there is no silent code to cite. (iv) The b0/b2/b3 bits on P0440/P0455/P0456 give the ECM's verdict, not the input that produced it. Grade: neither supported nor refuted. [I]
+- "0x40 means passed": false on this ECM. At 2026-10-14T19:02:07 P0441, P0458, P0459, P0451 and P2422 read 0x40 while readiness (19:01:26) said the EVAP monitor had not run since the reset. [E]
+- "Absent from the list means passed this cycle" (P0441/P0458/P0459 at 2026-10-13T20:24:25): inference only. It fits the same session's MID 3D pass, but list length varies 72 to 278 and CUORE never saw a 0x00 status. [I]
+- Status bytes are not a full history: P0456 sits in Mode 0A permanent (2026-10-13T20:02:58; 2026-10-14T19:01:25) while UDS shows 0x40 (2026-10-13T20:24:25; 2026-10-14T19:02:07); P0455 is pending-only at 2026-10-13T20:02:57 and 0x4D at 20:24:25. [E]
+- "Purge circuit and flow are healthy now": no. The only pass is pre-reset; every later read is 0x40, zeros or NO DATA. [E]
+- "Freeze frames show failures in three regimes": not in the store; no field is decoded (L6). [E]
+- "Mode 06 gross-leak (MID 39) passed": MID 39 on 10-13 is byte-identical to the 10-14 not-run record (L3), so it shows nothing. [E]
+
+### (b) Component the readings prove must be replaced
+
+**None.** No reading fails a part: there is no circuit code on any EVAP component, no commanded test, no measured output, and no stimulus-response pair. ESIM: no reading at all. Vent: P2422 never completed. Pressure/vacuum sense: P0451 never completed, PID 54 read once at rest. Purge valve: passed 10-13, never failed. Cap, hoses, canister, tank: zero readings. ECM: identity constant, no reading of misbehaviour. BCM: U1713-2F has no stated EVAP link. [E]
+
+### (c) Component the readings isolate as the test target
+
+The readings isolate a **function**, not a part: the leak-detection chain (what makes P0440, P0455, P0456 and the two failing leak records) rather than the purge chain. The part to test first is the **ESIM sense/vent assembly and its signal path**. The brief names the ESIM; the store never does, so that identification is premise, and the following is what the readings add [I]:
+1. The purge chain is the only part with a recorded pass (L3, L5 on 2026-10-13) and never a failure, so it is last in line.
+2. The three leak-class codes set together (2026-09-25T20:12:02; 2026-10-19T00:23:42 and 00:30:25), were all back after the reset (P0440 by 2026-10-14T19:02:07, P0455 and P0456 by 2026-10-19T00:23:42), and both leak records failed on 10-13. One shared upstream element fits that better than three independent faults. [I]
+3. The sense and vent codes (P0451, P2422) have never completed, so nothing exonerates that circuit, and no circuit code exists for it to have raised. [E]
+4. It is the one candidate with a stimulus that produces a reading on a route CUORE already has: PID 54 is in the ECM's supported list (2026-10-14T19:01:35). [E]
+5. A physical leak (cap, hoses, canister, tank) is not excluded by any reading; the readings cannot rank it against the sense/vent path. [E]
+
+### (d) Additional readings that would prove a replacement
+
+| Reading to take | Proves replacement if | Exonerates if |
+|---|---|---|
+| PID 54 (with 2E, 2F, 46 in the same minute) logged through a stimulus applied at the ESIM sense port and confirmed on an independent gauge (the gauge and stimulus are not store readings) | PID 54 stays 0.0 kPa through a verified stimulus, and the connector supply, ground and signal are in spec (also not store readings). The store does not say which sensor feeds PID 54 [N], so a flat PID 54 alone is not proof | PID 54 follows the stimulus and returns on release |
+| ESIM switch state, if a tool exposes it (no such parameter exists in the store) | Never closes under a verified stimulus | Closes, holds, reopens |
+| Commanded vent close, then a pressure hold reading (no actuator test of any EVAP part exists in the store) | Vent commanded closed, system does not hold, with the circuit verified | Holds |
+| ECM 19 02 for P0440/P0455/P0456 with b1 = 1, plus 19 04 and 19 06 in the same cycle, before any clear (never seen) | Does not prove a part; separates "test aborts" from "test ran and saw loss" | n/a |
+| Mode 06 MIDs 39, 3A, 3C, 3D, all TIDs, in two complete cycles with no reset between, readiness EVAP complete both times, PID 2F/46/54 beside each (the OBD route returned NO DATA on 10-19; it answered on 10-13 and 10-14) | Does not prove a part; identical values twice = a measured quantity, differing = condition-driven | n/a |
+| ECM 19 02 after a cycle containing the tests: P0451, P2422 (and P0441, P0458, P0459) leaving the list | n/a | They drop out while P0455/P0456 still fail: sense, vent and purge are exonerated and the leak becomes the target |
+
+Replacement of the ECM cannot be proven from OBD readings alone; it would need a correct PID 54 response to a verified stimulus while the leak records still fail in a cycle where the rest of the chain is shown sound. Cap, hose, canister and tank condition are not readable on any OBD route. [I]
+
+### Conflicts this ledger forces on earlier sections of this file
+
+- The "working model" under "Remaining candidate causes" (the ECM sees sealed/vacuum only through the ESIM switch and "on this car it never does"): unproven (grade NONE), see (a).
+- The "three regimes" freeze-frame statement and the "gross leak PASS" line under the status-bit verdict table rest on a repo scaling table and on a MID 39 record that is identical to a not-run record; neither is a reading.
+- The "passed this cycle" labels for P0441/P0458/P0459 on 10-13 are inference from list absence, corroborated only by the same session's MID 3D pass.
