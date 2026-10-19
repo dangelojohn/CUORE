@@ -315,3 +315,341 @@ Added on 2026-10-19:
 ## Sources
 
 Observation store `C:\ProgramData\cuore\observations.jsonl` (kinds module_dtcs, obd_dtcs, readiness, mode06, dtc_detail, pids_snapshot, module_identity, scan_coverage); job store `C:\ProgramData\cuore\jobs.jsonl` (job 76d3454bce75: 25 actions as of 2026-10-19 00:55, hypotheses bc8987f8 (soft-deleted reviewer test data), ce6bd236 and 8c659dfc); MES logs in `C:\Program Files (x86)\MultiEcuScan` (SCAN_26*.txt, FESLog_26*.txt) read through `mes.analysis`, `mes.catalog`, `mes.fes`; `cuore.services.tsb_xref_bridge.xref`; `cuore/data/tsb_catalogue.json`; `docs/research/EVAP_STELVIO.md`, `EVAP_SMOKE_TEST.md`, `GIORGIO_PLATFORM.md`; `docs/vehicles/ZASFAKPN5J7B88115/CASE.md`, `sessions/2026-10-07-session-record.md`, `reports/2026-10-13-scan-health-report.md`; `docs/reference/GIORGIO_MODULE_MAP.md`; `mes-log-mcp/mes/dtc_descriptions.py`, `faulttree.py`, `mechanic_tests.py`, `parts.py`.
+
+---
+
+## Also considered (2026-10-19)
+
+Four more hypotheses were added to job 76d3454bce75 after the write-up above, each open with no test result. Tags as at the top: [E] evidence, [I] inference, [N] unknown. Reasoning order: H-A first, because its test is the cheapest (one MES actuator command with a back-probe at the ESIM connector, no parts) and it appears to explain all the data at once [I]; then H-C (a lookup that can promote H-A), H-B, H-D.
+
+**H-A (02c3c411): ESIM solenoid (commanded vent) circuit or ECM driver never closes the vent.** The ESIM is taken to hold a switch that reports vacuum and a solenoid the ECM energises to seal the vent for its tests [I]; no FCA description confirms that split on this car [N]. If the solenoid or driver never works, no vacuum can build after a refuel (P0455, idle, 91.8 % fuel), in a cold soak (P0456, engine off, 17 C) or while driving (P0440, 3rd gear), the three frames of 2026-10-19 [E]. Three clean smoke tests and two ESIM units gave the same codes [E], which points at what the unit plugs into rather than the unit [I]. The repo's MES catalogue lists an "ESIM commanded vent test" (forum-corroborated) [E]; that this car's MES shows it on the ECM Actuators tab is not observed [N]. It was never run: the only EVAP actuator in the MES logs is "Evaporation control valve" x18, and the store's two actuator_test records are synthetic [E]. Against: none recorded; no circuit code (P2422 and others) has set, but whether the ECM monitors this driver is unknown [E]/[N]. Confirm: run the test with the solenoid back-probed; no click or no current means solenoid, wiring or driver, a click refutes. Next: then continuity from the ESIM connector to the ECM pin (no wiring diagram in the repo [N]).
+
+**H-B (4408d755): ECM supply/ground or resets.** BCM U1713-2F is listed in 10 scans since June and ECM "External temperature" read -61 C in FESLog_2606071008 [E]; a marginal ground or supply, or resets mid-test, would abort the monitors [I]. Against: on 2026-10-13 all monitors completed and Mode 06 returned real values, and the freeze-frame voltages look normal [E]. Confirm or refute: ECM ground strap and connector voltage drop under load (workshop limit not in repo [N]); startup counter (frames 14603, 14608, 14612) against a counted number of real starts; U1713 freeze-frame timing. The raw BCM U1713-2F frame (store dtc_detail 00:25:39) is the only copy and is not yet decoded [E].
+
+**H-C (f15ffa4f): P0440 definition.** MES names P0440 "Evaporation control valve" and P0455/P0456 "Evaporation system leak" [E]; P0440 alone carries the lamp bit (0xCD) [E]; the repo has no verified FCA definition [N]. If P0440 is the ESIM control-circuit code, H-A becomes the lead [I]. Confirm: obtain the FCA definition (dealer, wiring diagram, bulletin text) and record it; until then unknown.
+
+**H-D (9d8bb433): modifications or environment.** No intake, PCV, catch-can, tune or aftermarket-part change is recorded, and the per-car modifications ledger does not exist yet [E]; whether any exists is unknown, not excluded [N]. ECM software unchanged through 2026 and a passing purge-flow Mode 06 argue against some forms [E]/[I]. Confirm: ask the owner, record the answers (or "none") in the modifications ledger, and inspect the purge and intake path.
+
+Job action 7a84b151 (note) records the four and this order.
+
+---
+
+## Mode 06 EVAP records: unit, scaling and what 404 and 6096 can mean (added 2026-10-19, web research)
+
+Built from the stored 2026-10-13 20:03:54 `mode06` observation (raw ISO-TP frames, ECM reply address 18DAF110) and five web searches plus page fetches. No car access, no new reads. Tags as at the top: [E] evidence, [I] inference, [N] not known.
+
+### M1. The two failing records, byte by byte [E]
+
+Record layout (J1979 CAN, as decoded in `cuore/live/mode06.py`): OBDMID, TID, UASID, value (2 bytes), min (2), max (2). Source: store kind `mode06`, `data.raw["3A"]` and `data.raw["3C"]`.
+
+| Test | Raw frames (after the 18DAF110 header) | OBDMID | TID | UASID | value | min | max |
+|---|---|---|---|---|---|---|---|
+| 0.090 in | `10 0A 46 3A 87 10 01 94` then `21 0F 7D FF FF` | 0x3A | 0x87 | 0x10 | 0x0194 = 404 | 0x0F7D = 3965 | 0xFFFF = 65535 |
+| 0.020 in | `10 1C 46 3C 85 34 00 00`, `21 00 00 00 00 3C 86 12`, `22 00 00 00 00 00 00 3C`, `23 90 10 17 D0 00 00 17`, `24 70 ...` | 0x3C | 0x90 | 0x10 | 0x17D0 = 6096 | 0x0000 = 0 | 0x1770 = 6000 |
+
+- The 0x3C reply holds three 9-byte records: TID 0x85 (UASID 0x34) and TID 0x86 (UASID 0x12) are all zero (value 0, min 0, max 0); TID 0x90 is the failing one. The 0.020 limits are therefore min 0, max **6000**, and the value is 96 over the maximum. [E]
+- The 0.090 limits are a minimum of 3965 and no upper bound (0xFFFF is the usual "no limit" fill). The value is 3561 under the minimum. [E]/[I]
+
+### M2. UASID 0x10: unit and scaling
+
+- UASID 0x10 = time in **milliseconds, 1 ms per count, unsigned 16-bit (0 to 65535 ms)**. Bit 0x80 is clear, so not the signed mirror. Raw-to-value: value_ms = raw x 1. Not counts, not kPa. [E]/[I]
+- Support: the repo's `_UASID_TABLE` (0x10 = ms, 1.0), which the module author marks as a confident entry; and a GM Mode $06 reference as summarised by a search result: "UASID 0x10 means 1 ms per bit ... 0 to 65535 ms", with 0x24 = 1 count per bit (https://gsitlc.ext.gm.com/gmspo/mode6/pdf/GM%20CAN%20mode%20$06%20data%20final_dm.pdf; direct fetch returned HTTP 403 so the table itself was not read; the document describes itself as for information only). The authoritative table is SAE J1979-DA (https://saemobilus.sae.org/content/J1979DA_202203), paywalled, not read. Wikipedia's OBD-II PIDs page has no UASID table (checked). So the unit rests on two sources but is not checked against the SAE text.
+- `mode06.py` already decodes both records correctly; no code change needed.
+- The declared unit is the ECM's own claim in the UASID byte. A maker can reuse an ID for something else; nothing found says FCA does. [N]
+
+### M3. Two record-level caveats found while decoding [E]
+
+- **Gross-leak MID 0x39 is a zero-limit record, not a measured pass.** On 2026-10-13 it read TID 0x87, value 0, min 0, max 0 (and the same on 10-14). 0 sits inside 0..0, so the decoder prints PASS, but the ECM published no limit and no result. The "gross leak PASS" in the timeline and in the Mode 06 row of the repairs table rests on this and should be read as "no information". [I]
+- **Reset state, 10-14 19:01 (after the 10-14 08:59 clear):** 0x3A read 0/0/0 (limits wiped as well). 0x3C TID 0x90 read value **6000**, min 0, max 6000, so after a reset the value equals the maximum. That "PASS" on 10-14 is a reset artefact. The 10-13 value (6096) differs from the reset value, so it was written by a test, not left over from a reset. Whether 6000 is a preload, a ceiling or a timeout is not stated anywhere found. [E]/[I]/[N]
+
+### M4. What the two tests measure on an FCA ECM: unknown
+
+No source found states what OBDMID 0x3A TID 0x87 or OBDMID 0x3C TID 0x90 measures on a Chrysler/FCA ECM. Searches ("Chrysler mode 6 EVAP NVLD TID", "ESIM mode $06 0.020", UASID table, "OBDMID $3A 0.090 TID $87") returned only general ESIM/NVLD material. TIDs 0x80 and up being manufacturer-defined is taken from the brief; no page found states it. **Quantity: unknown for both.** [N]
+
+What the sources do say about the ESIM/NVLD tests, none of it Mode 06 and none of it naming a TID:
+- The switch is vacuum operated and normally open; it "closes with as little as 1" H2O" of vacuum. During an intrusive test the PCM must pull enough vacuum to close it. After the switch closes the PCM "will start an internal decay timer to determine the actual size of the leak". (FenderBender, NVLD, https://www.fenderbender.com/running-a-shop/operations/article/33024148/diagnosing-and-repairing-nvld-systems-can-present-unique-challenges; the page does not say how the timer is read out.)
+- ESIM: "when fuel tank vacuum reaches 1 in. of water, the switch closes". Large-leak test: manifold vacuum applied through the purge valve, and "the PCM measures the time required for the vacuum to decay enough for the NVLD or ESIM switch to open"; a switch that never closes "could mean there's a leak" or a purge problem. Small-leak test: starts after shutdown, watches for switch closure, "can take several hours". The article names time to switch closure/opening and vacuum decay time as the measured quantities but gives no numeric limits and no Mode 06 mapping. (Vehicle Service Pros, https://www.vehicleservicepros.com/industry-news/article/53090062/chrysler-evap-performance-codes-2016-10-13)
+- NVLD on the older LH platform: about five minutes to build 1 in. H2O of vacuum; the switch monitor may run half an hour before aborting. (FenderBender, https://www.fenderbender.com/running-a-shop/operations/article/33025468/evap-testing-working-behind-the-scenes; NVLD, key-off, not ESIM, not Mode 06.)
+- Other makers differ for the same OBDMID: a Saab Trionic 8 table lists MID $3A TID $81 and MID $3C TID $83 as "EVAP monitor leak factor", 0 to 65535 counts, 1 count/bit (https://saabwisonline.com/9-3-9440/2009/2-engine/4-cyl-petrol-e85/engine-management-system-trionic-t8/technical-data/trionic-8-mode-06). Not FCA evidence; it shows the same OBDMID can carry a different quantity per maker.
+- A forum-posted "Enhanced Evaporative System Monitor #2 (0.020" Leak)" table (TID 0A, CID 06 = 0.020 leak, CID 05 = 0.040) is the pre-CAN TID/CID format, names no maker and gives no units; it does not apply to a CAN OBDMID/TID record (https://forum.ih8mud.com/threads/pendragon.914649/page-6).
+- Older Chrysler LDP timing bands (under 0.9 s gross, 0.9 to 1.2 s medium, 1.2 to 6 s small) belong to the leak detection pump, not the ESIM; not used here (https://www.brakeandfrontend.com/pulling-codes-the-story-of-code-p0456/, as summarised by a search result; direct fetch 403).
+
+### M5. What the stored limits and timescales add [I]
+
+- The limits point in opposite directions: 0.090 TID 0x87 passes at **higher** values (at least 3965 ms); 0.020 TID 0x90 passes at **lower** values (at most 6000 ms). One quantity cannot be "higher is better" in one test and "lower is better" in the other, so the two TIDs probably measure different things.
+- A key-off small-leak closure takes minutes to hours in the sources above. A 6.1 s or 0.4 s figure therefore is not the whole key-off closure time; it could be an engine-running purge-vacuum timing (the large-leak method in the Vehicle Service Pros article) or a sub-interval such as a decay timer. The TID mapping for this ECM remains unstated.
+
+### M6. What each reading implies about the ESIM switch ever closing, by candidate meaning
+
+Candidates are the ones the question named. None is confirmed for these TIDs [N].
+
+| Candidate meaning of the ms value | 0.090 test, TID 0x87: 404 (needs >= 3965) | 0.020 test, TID 0x90: 6096 (needs <= 6000) |
+|---|---|---|
+| A. Time from vacuum applied to switch closure | Closure at 0.4 s. The switch closed. Limit shape contradicts it: a minimum on a closure time would fail the best case, so A is unlikely here. | Closure at 6.1 s, 96 ms late. The switch closed, late. Limit shape fits. Fits only an engine-running test (M5). |
+| B. Time the switch stayed closed / vacuum decay time until it reopened | The switch closed, then reopened after 0.4 s against a 4.0 s requirement. Closed but did not hold (leak, restriction or loss after closure, or contact chatter). Limit shape fits. | Held for 6.1 s, yet the limit is a maximum: a longer hold would be the good direction. Shape contradicts it, so B is unlikely here. If it held, the switch closed. |
+| C. Counts (leak-factor style, as the Saab table) | No closure information. Contradicts the declared UASID 0x10 (ms). | Same. |
+| D. Anything else, including the elapsed wait stored when the switch never closes | Compatible with never closed only if FCA stores a value on a no-closure abort. No source says so. [N] | Same. The reset value is exactly 6000 (M3), so a 6096 is not that value. |
+
+Reading across the table [I]:
+- Under A and B every nonzero value requires at least one closure event. Under C nothing can be said. Only D, with an undocumented stored-on-abort behaviour, lets either number mean "never closed".
+- The most self-consistent pair by limit direction is 0.090 = a hold/decay-type time that was too short, and 0.020 = a closure-type time that was slightly too long. Both would then say the switch input did change state in the 10-13 tests. That is a fit to limit shape only, not a source.
+- **The stored Mode 06 data does not show that the ESIM switch never closed.** The statement in the freeze-frame section above ("the switch closure was never seen by the ECM") and the "never closes" wording in C5 are not supported by this record, though not refuted either; they rest on the codes (P0440/P0455/P0456), not on Mode 06. If A or B holds, a dead switch or an open circuit is less likely than a closed-then-lost or late-closing vacuum (C1 to C4, C7). This does not separate H-A (a vent that does not seal could let vacuum form briefly and decay [I]) from the blockage candidates.
+- One refinement to the repairs table: "read as a hold or decay time it means vacuum was absent or lost within 0.4 s" should read "lost within 0.4 s of closure"; "absent" is not implied by B.
+
+### M7. What would settle it (no clearing, no new hardware)
+
+1. The FCA test-ID description for MID 0x3A TID 0x87 and MID 0x3C TID 0x90 on this ECM: wiTECH or dealer service information. Not found in public sources. [N]
+2. On the next return of P0440 0xCD, read Mode 06 first (standing rule above) and store the raw frames. A measured quantity varies between reads (compare against 404 and 6096); a fixed sentinel repeats.
+3. During Test A (hand vacuum at the ESIM port), read Mode 06 0x3A and 0x3C before and after one pump cycle; a changed 0x3A value after a deliberate closure tests candidate B directly.
+
+Searches used: five (standard mode). Fetches that failed: GM Mode $06 PDF (403), Brake & Front End article (403), motor.com Advanced Mode $06 PDF (unreadable binary).
+
+---
+
+## Stage 1 from archived data, 2026-10-19
+
+Compiled 2026-10-19 about 01:15 from files already on disk: no car access, no new reads, no web, no owner statements, no weather lookup. Stage 1 names two live reads that have not been made: (1) ECM external (ambient) temperature and fuel level against the body module's own values; (2) the ESIM switch state. This section says what the archive already answers for each. Tags as at the top ([E] evidence, [I] inference, [N] not known), plus a grade per conclusion: STRONG (several independent reads agree), WEAK (few reads or one source), NONE (no data in the archive). Mode 06 meaning is not repeated here: see M3 and M6 above.
+
+### S0. What was searched, and what exists
+
+- MES folder: 92 FESLog and 23 SCAN files, read with `mes.fes.load_fes` (`param_names`, `series`, freeze frames, actuator runs). No CSV export exists on disk (MES folder and home folder to depth 4); `mes/csvlog.py` says the same. [E]
+- Live parameters exist for this VIN in exactly one FES log: FESLog_2606071008 (2026-06-07 10:03:48 to about 10:08, ECM, 99 samples, engine idling). The three other FES logs with samples (2510150207, 2510150219, 2510271230) are flagged simulation (VIN 5188214) and carry no external-temperature or fuel-level parameter. [E]
+- No BCM or IPC live data exists: FESLog_2606070955 (BCM 949) is an identity header with no parameter block; SCAN files hold identity and DTC lines only. No MES header holds weather (headers carry version, time, vehicle, ECU, VIN, serials, counters), so no per-date weather is given. [E]
+- Store (`cuore.live.store.recent_observations`, this VIN, all from-car): pids_snapshot 4 (only 2026-10-14 19:01:35 has values; the two of 10-19 are empty), did 21 (ECM 1302 and 19BD, TCM 04FE, BCM 1004 and 1005), `module_did` 0 (no record of that kind exists), dtc_detail 5, mode06 5. Outside the store: `C:\ProgramData\cuore\live_snapshots.jsonl` (live-board snapshots 2026-10-13 20:09:08 and 20:38:32) and `docs/vehicles/ZASFAKPN5J7B88115/sessions/2026-10-13-live-read.json` (Mode 02 frame and live PIDs). [E]
+- No DID or PID for BCM ambient temperature or BCM fuel level has ever been read, and the repo's DID tables have none (ECM 1001 fuel tank level and 1956 atmospheric pressure only). [E]
+
+### S1. Part 1: ambient temperature and fuel level, ECM versus body module
+
+Ambient / external temperature, every value on record:
+
+| Date, time | Channel | Value | Source | Engine state |
+|---|---|---|---|---|
+| 2025-09-24 | MES freeze-frame "Air temperature" (intake, not external) | 15 C; 20 C | FESLog_2509241345 | cold start (ECT 16 C); engine-off frame (ECT 25 C) |
+| 2026-06-07 10:03 to 10:08 | MES live "External temperature" | **-61 C in 61 of 61 samples** | FESLog_2606071008 | idle 742 to 759 rpm, ECT 89 to 96 C, 0 km/h, 14.0 V |
+| same log | MES live "Air temperature" | 30 to 33 C | same | same |
+| 2026-08-27, 08-31, 09-02, 09-25 | MES freeze-frame "Air temperature" | 25/22/29; 26; 23/25; 15/22/13 C | FESLog_2608271119, 2608311823, 2609021454, 2609252002 | mixed (cold-start idle and driving) |
+| 2026-10-13 about 20:00 | OBD PID 46 in the Mode 02 frame | 17 C | live-read.json | 217 s after start, ECT 63 C |
+| 2026-10-13 20:03:23, 20:09:08, 20:38:32 | OBD PID 46, live | 25, 25, 24 C | live-read.json, live_snapshots | idling, ECT 101 to 103 C; 1834 s, 2134 s, 211 s since start |
+| same two snapshots | RFHUB tyre temperatures (body module) | 27 to 30 C; 27 to 34 C | live_snapshots | after driving |
+| 2026-10-14 19:01:35 | OBD PID 46 | 14 C | store pids_snapshot | 74 s after start, ECT 72 C, 795 rpm |
+| 2026-10-19 00:25 | freeze-frame intake air temperature (DID 1935, medium scaling) | 17 C; 16 C; 10 C | store dtc_detail | P0455 idle; P0456 engine off, cold soak; P0440 driving |
+| 2026-10-19 00:33:38 | BCM DID 1005 byte G minus 40 (formula unverified) | 15 C | store did | engine running; battery-sensor temperature, not an ambient channel |
+
+Fuel level, every value on record (ECM only; no BCM, IPC or gauge value exists):
+
+| Date | Fuel % (odometer km) | Source | Engine state |
+|---|---|---|---|
+| 2025-09-24 | 73.73 (114,008.9); 55.69 (114,116.9) | MES freeze frames | cold start 1307 rpm; engine off |
+| 2026-06-07 | 84.7 in 19 of 19 samples (136,536.7) | MES live | idle 750 rpm |
+| 2026-08-27 | 51.76 (140,471.2); 46.67 (140,565.5); 46.67 (140,572.6) | MES freeze frames | 24 km/h; 36 km/h; cold-start idle |
+| 2026-08-31 | 63.92 (140,883.2) | MES freeze frame | warm idle |
+| 2026-09-02 | 48.63 (141,005.6); 43.92 (141,059.1) | MES freeze frames | cold-start idle; 34 km/h |
+| 2026-09-25 | 93.73 (141,929.9); 91.76 (142,227.2); 80.00 (142,289.9) | MES freeze frames | 51 km/h; 40 km/h; cold-start idle |
+| 2026-10-13 | 28.6 (Mode 02 frame); 20.8 (about 20:00); 20.0 (20:09:08, 146,501.2); 17.647 (20:38:32, 146,509.9) | PID 2F; at 20:09 and 20:38 DID 1001 gave the same 20.0 and 17.647 | idling, ECT 101 to 103 C |
+| 2026-10-14 19:01 | 93.725 | PID 2F | idle 795 rpm, 74 s after start |
+| 2026-10-19 | 91.76 (146,522.2); 62.75 (146,726.6); 55.69 (146,755.7) | ECM freeze frames, DID 1001 raw EA, A0, 8E | idle; engine off, cold soak; driving 3rd gear |
+
+How the fuel series behaves [E]: 20 readings on 9 dates. Between points where no refill is needed the level falls 5.4 to 27 points per 100 km (median about 15, about 8 L/100 km if the tank is 53 L, the repo's unverified figure). It rises where a refill must have happened: 08-27 to 08-31 (+17.3 points over 311 km), 09-02 to 09-25 (+49.8 over 871 km), 10-13 20:38 to the 10-19 P0455 frame (+74 over 12 km, with 93.7 % read at 10-14 19:01 between), and net over 06-07 to 08-27. The 06-07 value is constant because five minutes of idle burns about 0.14 points, below the 0.39-point resolution. Two segments do not fit a simple burn rate: 08-27 (5.4 points per 100 km, about 3 L/100 km) and 09-25 P0455 to P0440 (-1.97 points over 297 km, so a refill or top-up must have happened between the frames; none is recorded). DID 1001 equals PID 2F at both 10-13 snapshots, which supports the A*100/255 scale used for the 10-19 freeze frames. The ECM tracks fuel-level performance codes P0461 and P2066 and both read 0x40 (never failed) in every ECM read on record. [E]
+
+**Conclusion 1a. Is the ECM's external temperature valid on any date other than 2026-06-07?**
+- Facts: the MES parameter "External temperature" was read on one date only (06-07, -61 C, 61 of 61, while "Air temperature" read 30 to 33 C). The same log shows other values that contradict the car's state: "Ignition key position: Stop" in 19 of 19 samples with the engine at 742 to 759 rpm and 14.0 V; "Relative humidity (MAF)" and "Atmospheric pressure signal" print a unit and no number. The BCM was cleared at the 09:54 scan and the 10:03 scan listed no BCM codes, so the -61 C (from 10:03:48) was read with no U1713-2F listed. The ECM's own ambient over OBD (PID 46) read 17, 25, 25, 24 C on 10-13 and 14 C on 10-14: plausible and not constant.
+- Inference: the archive can say neither "valid on another date" nor "invalid on another date" for the MES parameter. PID 46 is not a proven match for MES "External temperature" [N]. The 17 C (217 s after start) against 24 to 25 C (hot idle, same evening) fits heat soak of the sensor or its air rather than a stuck value [I]. Several MES values on 06-07 were wrong or blank at once, which fits MES showing placeholders for channels this ECM does not publish as well as it fits a bad CAN input [I].
+- Unknown: whether MES "External temperature" and PID 46 are one signal; whether -61 C persists; what the BCM and the cluster show for outside temperature (nothing of theirs was ever read); the real outside temperature on any date (no log records it).
+- Grade: validity of MES "External temperature" on any other date NONE (one date). PID 46 plausibility WEAK (five values, two days, one source, no outdoor reference); the tyre temperatures of 27 to 34 C after driving do not contradict PID 46 of 24 to 25 C, WEAK.
+
+**Conclusion 1b. Does fuel level reach the ECM plausibly, against freeze-frame fuel 91.8 / 62.7 / 55.7?**
+- Facts: as tabulated. The three 10-19 values fall 29.1 points over 204.4 km (14 per 100 km) and 7.0 points over 29.1 km (24 per 100 km, cold start and short trips), after a refill from 17.6 % on 10-13.
+- Inference: the ECM's fuel value is live and tracks consumption and refills, so it is neither frozen nor a default [I]. That says nothing about its source (hardwired sender, a BCM or fuel-module message, or the cluster). Recall 19V551 (BCM misreports fuel level) cannot be tested here, because a fixed offset or non-linearity would not show in this series.
+- A side finding: three EVAP codes set above the repo's working 15 to 85 % window (09-25 P0455 at 93.7 and P0440 at 91.8; 10-19 P0455 at 91.8). Either the window is wrong for this calibration (it is the repo's rough figure, not an FCA value) or the monitor sees a different fuel value than the one logged [I].
+- Unknown: any BCM, IPC or gauge fuel reading; the ECM's source for fuel.
+- Grade: the ECM's fuel value live and coherent STRONG (20 readings, 9 dates, two ECM paths equal); agreement with the body module or gauge NONE (no comparator).
+- One cross-module equality exists, for IBS rather than ambient or fuel: ECM DID 19BD read 71 % and BCM DID 1005 byte B read 71 % at 2026-10-19 00:33:36 to 00:33:38 (BCM formula unverified). It shows the comparison can be made, not that ambient or fuel agree. [E]
+
+**Exact live read that closes Part 1.** One sitting, engine idling, ideally the first start after an overnight soak, with the clock noted:
+1. MES, ECM (IAW 10JA), Read parameters: "External temperature", "Air temperature", "Fuel level", "Atmospheric pressure", "IBS Battery charge status", at least 30 samples.
+2. Same minute, MES, BCM (Marelli 949), Read parameters: copy the whole parameter list and note any outside-temperature or fuel entry (names unknown [N]). If it lists none, the cluster is the body-side reference: photograph its outside-temperature display and fuel gauge with the time.
+3. Same minute, CUORE on the 18DB33F1 route: PID 46, PID 2F, PID 33; UDS ECM DID 1001 and 19BD; BCM DID 1005.
+4. Reading it: ECM "External temperature" close to PID 46 and the cluster = the -61 C was transient or is gone, and C10 weakens. Still -61 C while PID 46 is plausible = MES "External temperature" is a different, dead channel, and the BCM-to-ECM path becomes the lead for C10. ECM fuel % against the gauge, within the gauge's graduation, closes the fuel input.
+
+### S2. Part 2: has the ECM ever seen the ESIM switch close?
+
+What the archive holds about the switch and the EVAP path [E]:
+- MES: the only EVAP-related ECM parameters (06-07 live log) are "Evaporation control valve opening" (0.0 % in 24 of 24 samples) and "Canister fill" (50.00 % in 24 of 24). There is no ESIM, leak-detection, EVAP-switch or tank-pressure parameter in the 133 names of that log.
+- MES actuators: "Evaporation control valve" COMPLETED 18 times, FAILED 0 (2025-09-24 x5, 2025-10-14 x1, 2026-09-15 x12), all on the ECM. The blocks carry only the word COMPLETED, no feedback value. This is the engine-side purge valve; the ESIM commanded vent test was never run (also stated under H-A).
+- OBD: PID 2E purge commanded 18.0 % (10-13 frame), 12.2 to 13.7 % (10-13 live), 0 % (10-14, 74 s after start); PID 54 EVAP vapour pressure 0.0 kPa (one read, 10-14 19:01); PID 32 NO DATA on 10-13; MAP 31 to 33 kPa at hot idle on 10-13 and 10-14. The ECM tracks P0451, P0457 and P2422 and all read 0x40 (never failed) in every ECM read on record. CUORE has no DID for the ESIM switch (`esim_status` is a placeholder).
+- Mode 06 (values only on 10-13; 10-14 reset; 10-19 NO DATA): see M1 to M6. Additions: zero is not a "did not run" marker (MID 39 and the 0x3C TIDs 85 and 86 read 0 with limits 0/0 on 10-13, when the EVAP monitor was complete, and again after the clear). The 0x3A limits were wiped by the clear while 0x3C TID 90 kept 0 to 6000. A 3965 minimum that is not a round number and that disappears on a clear fits a limit computed per run, possibly from fuel level or temperature [I, WEAK, one read]. If so, the Part 1 inputs reach the pass/fail threshold and not only the monitor's enable.
+
+ECM status bytes for the three codes, every stored read (bit order as in the status-byte section):
+
+| Read | P0440 | P0455 | P0456 |
+|---|---|---|---|
+| 2026-09-25 20:12 | 0x4D | 0x4D | 0x4D |
+| 2026-10-13 20:24 | 0xCD | 0x4D | 0x40 |
+| 2026-10-14 19:02 | 0x4D | 0x40 | 0x40 |
+| 2026-10-19 00:23 and 00:30 | 0xCD | 0x4D | 0x4D |
+
+- In all 15 values (5 reads x 3 codes) b6 testNotCompletedThisOperationCycle is set and b1 testFailedThisOperationCycle is never set; b4 and b5 never. The 10-13, 10-14 and 10-19 reads were made with the engine running (port 14.0 to 14.5 V). [E]
+- So no read has ever caught a test failing in the current cycle. The failed state (b0, b2, b3) is carried from earlier cycles; the reads show that it exists, not in which cycle, at which test step, or why. [I]
+
+**Conclusion 2.**
+- Facts: no log, store record or session file records the ESIM switch state, the ESIM solenoid, or any tank-pressure value other than one PID 54 read of 0.0 kPa. The EVAP monitor reached completion with stored results on 10-13 (readiness complete, Mode 06 values), and on 10-19 the three codes' freeze frames show failures in three regimes (idle after a refill, engine off in a cold soak, driving). One stretch had the codes absent with no recorded clear: ECM "no faults" reads on 2025-10-14 21:39 (20 days and 43 starts after the 2025-09-24 P0456 read) and on 2026-06-07 (x3, startups 13,865). The codes were back by 2026-08-27.
+- Inference: the archive proves nothing about whether the switch ever closed, in either direction. A nonzero Mode 06 time shows the ECM ran a test to a stored number; it does not show a switch edge (M6: meanings A and B imply a closure, D does not, and the TID definition decides). The 2025-10 to 2026-06 stretch is the only hint of a period when the tests did not fail, which would mean the vacuum path and switch worked then. An unlogged clear (another tool, a battery disconnect) fits equally, and the archive cannot separate them. [I, WEAK]
+- Unknown: the switch state at any time; the definitions of TIDs 0x87 and 0x90; what ended the 2025-10 to 2026-06 stretch; the ECM's own status during a key-off test (the three UDS status reads were all taken with the engine running).
+- Grade: "the ECM has never seen the switch close" NONE (neither supported nor refuted); "EVAP tests ran and stored values on 10-13" STRONG (one read, matches readiness).
+
+**Exact live read that closes Part 2.** Two items:
+1. The switch itself: wiTECH, ECM live data, the ESIM switch or EVAP vacuum-switch parameter (name not in the repo [N]), logged through Test A (hand vacuum at the ESIM port, three cycles). Neither MES nor CUORE can show it. It closes and reopens with the pump = the switch and its wiring work; it never closes = switch, mounting or circuit.
+2. What the ECM concluded, read the moment the codes return and before anything else, on the 18DB33F1 route, with no clear: Mode 06 MIDs 39, 3A, 3C, 3D (all TIDs); UDS 19 02, 19 04 and 19 06 for P0440, P0455, P0456; PID 54, 2E, 2F, 46 in the same minute. Compare with 10-13 (404, 6096, minimum 3965): a changed value, or a changed 3A minimum at a different fuel level or temperature, separates a measured quantity from a sentinel and tests the computed-limit idea above. A second read of the same frames after the next complete cycle, with fuel and PID 46 noted, closes it.
+
+### S3. Corrections and additions to earlier sections
+
+- Conditions table: with the three 10-19 frames, 11 of 14 EVAP frames are inside the 15 to 85 % window and 3 are above it (09-25 P0455, 09-25 P0440, 10-19 P0455).
+- C8 / C10 / H-B: the -61 C was read after the BCM codes had been cleared that morning and with none listed, so it did not track an active U1713-2F at that moment; whether the cause outlasts a clear is unknown. Other MES values on 06-07 were also wrong or blank, so -61 C alone is weak evidence of a CAN input fault.
+- Section "BCM U1713-2F and the inputs": "PID 46 (14 to 25 C on 10-13 and 10-14)" is now itemised (17, 25, 25, 24, 14 C); the gap between 17 and 25 C on the same evening is unexplained in the repo.
+- Freeze-frame section: the DID 1001 fuel scale is supported by two exact matches with PID 2F (10-13 20:09 and 20:38); the 91.8 % in the 10-19 P0455 frame and the 09-25 P0440 frame is the same raw count (EA = 234), not an error.
+
+---
+
+## ECM EVAP sub-tests by status bits (2026-10-19)
+
+Source: the five full ECM UDS 19 02 reads in the observation store (`module_dtcs`, ECM, request mask FF, VIN ZASFAKPN5J7B88115): 2026-09-25 20:12 (278 codes), 2026-10-13 20:24 (72), 2026-10-14 19:02 (142), 2026-10-19 00:23 (132) and 00:30 (121). Only the last three fall after the 2026-10-14 08:59 clear. The ECM was cleared again at 2026-10-19 00:39 (job action 0a1823c1), after all five reads; no ECM read exists after that clear. [E] Tags as at the top: [E] evidence, [I] inference, [N] unknown. Code texts: `mes/dtc_descriptions.py` holds no text for any code below [E]; texts are from `mes/code_feel.py` and EVAP_STELVIO.md where marked "repo", otherwise the SAE J2012 generic title, which is not repo-sourced and whose FCA mapping on this car is unverified [N].
+
+### How the status byte can and cannot be read on this ECM
+
+- [E] The ECM's own status availability mask is **0xCF** in all five reads. Bits b4 (0x10, testNotCompletedSinceLastClear) and b5 (0x20, testFailedSinceLastClear) are outside it: the ECM does not implement them. Across 745 stored status values only 0x40, 0x4D and 0xCD occur; b1, b4 and b5 are never set.
+- [E] Three further facts agree. (1) ISO 14229 sets b4 and b6 on every DTC at a clear; the 10-14 19:02 read (10 h after the clear) shows b6 only. (2) P0440 reads 0x4D (testFailed, confirmed) with b5 clear, which the standard forbids if b5 were implemented. (3) At 10-14 19:01 the OBD readiness read said the catalyst, O2 sensor, EGR and EVAP monitors had NOT run since the clear, while P0420, P0133, P0139 and P0401 read 0x40 with b4 clear in the UDS read of 19:02.
+- [I] So the rule "0x10 clear and failure bits clear = ran since the last clear and passed" cannot be used here: applied literally it would call every 0x40 code (including the four above) "passed", which the readiness read contradicts. **b4 clear carries no information on this ECM.**
+- [E] What does carry information: b0/b2/b3 (failed, pending, confirmed), b7 (lamp), and b6 together with presence in the returned list. A 19 02 FF request returns only DTCs whose status is non-zero, and the list changes between reads (206 codes dropped between 09-25 and 10-13; 11 dropped between 00:23 and 00:30 on 10-19, with the engine running at 14.4 V: P0111, P0116, P0196, P0199, P0521, P02EE to P02F1, P00D2, P1212).
+- [I] A code that drops out of the list went 0x40 to 0x00: its test completed this operation cycle with no failure. A code present at 0x40 has not completed this operation cycle, which says nothing about earlier cycles. **A code absent from one read but present in another therefore reads "passed this cycle"; a code never returned by any read is "no such code tracked"** (or it sits at 0x00 in every read; the 09-25 list is near-full, 278 of the 282 codes ever seen, so absence from it makes non-existence the likelier case).
+- [E] Failed-state bytes: 0x4D = b0 testFailed + b2 pending + b3 confirmed + b6 not completed this cycle (b1 clear: the failure is carried from an earlier completed cycle, the test has not re-run); 0xCD = the same plus b7 lamp requested. 0x40 = b6 only.
+
+### EVAP-related codes the ECM returns (status byte per read)
+
+Columns 10-14 19:02, 10-19 00:23 and 10-19 00:30 are after the 10-14 08:59 clear. "abs" = not in that read's list (status 0x00). The 00:23 and 00:30 values are identical for every EVAP code in this table.
+
+| Code | Description | 09-25 20:12 | 10-13 20:24 | 10-14 19:02 | 10-19 00:23 | 10-19 00:30 |
+|---|---|---|---|---|---|---|
+| P0440 | general EVAP fault; MES names it "Evaporation control valve", no verified FCA definition (H-C f15ffa4f) | 0x4D | 0xCD | 0x4D | 0xCD | 0xCD |
+| P0441 | incorrect EVAP purge flow (repo) | 0x40 | abs | 0x40 | 0x40 | 0x40 |
+| P0451 | EVAP pressure sensor/switch, range/performance (SAE generic) | 0x40 | 0x40 | 0x40 | 0x40 | 0x40 |
+| P0455 | large EVAP leak (repo) | 0x4D | 0x4D | 0x40 | 0x4D | 0x4D |
+| P0456 | small EVAP leak (repo) | 0x4D | 0x40 | 0x40 | 0x4D | 0x4D |
+| P0457 | leak consistent with loose/missing/faulty fuel cap (repo) | 0x40 | 0x40 | 0x40 | 0x40 | 0x40 |
+| P0458 | EVAP purge control valve circuit low (SAE generic) | 0x40 | abs | 0x40 | 0x40 | 0x40 |
+| P0459 | EVAP purge control valve circuit high (SAE generic) | 0x40 | abs | 0x40 | 0x40 | 0x40 |
+| P0461 | fuel level sensor, range/performance (SAE generic) | 0x40 | 0x40 | 0x40 | 0x40 | 0x40 |
+| P1CEA | insufficient vapour flow under boost, flow rationality, not a leak code (repo) | 0x40 | 0x40 | 0x40 | 0x40 | 0x40 |
+| P2422 | EVAP vent valve stuck closed (repo, EVAP_STELVIO.md) | 0x40 | 0x40 | 0x40 | 0x40 | 0x40 |
+| P018B | not sourced in this repo | 0x40 | abs | abs | abs | abs |
+| U04A0 | not sourced in this repo | 0x40 | abs | 0x40 | 0x40 | 0x40 |
+| U0684 | not sourced in this repo | 0x40 | 0x40 | 0x40 | 0x40 | 0x40 |
+| U1008 | not sourced in this repo | 0x40 | abs | 0x40 | 0x40 | 0x40 |
+| P0111 | intake air temperature range/performance (SAE generic); the ECM's own air-temperature sensor, not an ambient code | 0x40 | abs | 0x40 | 0x40 | abs |
+| P0116 | engine coolant temperature range/performance (SAE generic); context only | 0x40 | abs | 0x40 | 0x40 | abs |
+
+No other P1xxx code in the ECM list has EVAP, ESIM or purge text anywhere in the repo; P1CEA is the only one. [E] The three U-codes have no repo text and no stated link to the EVAP monitor; none is failed. [E] BCM U1713-2F is a BCM entry, not an ECM one.
+
+Not tracked (never returned in any of the five reads): P0442 to P0449, P0450, P0452 to P0454, P0460, P0462 to P0464, P0498, P0499, P2401 to P2421, P2423, P0070 to P0074, P0180 to P0189 (also P044A to P044F and P045A to P045F). [E] "No such code tracked" below means this.
+
+### Verdict per EVAP sub-system and read
+
+| Sub-system | Code(s) | 09-25 | 10-13 | 10-14 19:02 | 10-19 00:23 / 00:30 |
+|---|---|---|---|---|---|
+| ESIM switch circuit | P0450, P0452, P0453 | no such code tracked | no such code tracked | no such code tracked | no such code tracked |
+| ESIM switch / tank-pressure signal (range, performance) | P0451 | not run | not run | not run | not run |
+| ESIM solenoid / vent control circuit | P0446 to P0449 | no such code tracked | no such code tracked | no such code tracked | no such code tracked |
+| Vent valve stuck closed | P2422 | not run | not run | not run | not run |
+| Purge valve circuit | P0443 | no such code tracked | no such code tracked | no such code tracked | no such code tracked |
+| Purge valve circuit (SAE generic low/high) | P0458, P0459 | not run | passed this cycle | not run | not run |
+| Purge flow | P0441 | not run | passed this cycle | not run | not run |
+| Purge flow under boost | P1CEA | not run | not run | not run | not run |
+| Leak 0.020 in (small) | P0456 | FAILED | not run | not run | FAILED |
+| Leak 0.040 in | P0442 | no such code tracked | no such code tracked | no such code tracked | no such code tracked |
+| Leak 0.090 in / large | P0455 | FAILED | FAILED | not run | FAILED |
+| Fuel cap | P0457 | not run | not run | not run | not run |
+| General EVAP fault | P0440 | FAILED | FAILED, lamp | FAILED | FAILED, lamp |
+| Fuel level sensor / input | P0461 | not run | not run | not run | not run |
+| Fuel level, other | P0460, P0462 to P0464 | no such code tracked | no such code tracked | no such code tracked | no such code tracked |
+| Ambient temperature input | P0070 to P0074 | no such code tracked | no such code tracked | no such code tracked | no such code tracked |
+| Tank pressure | P0451 (row 2); P0450, P0452, P0453 (row 1) | as rows 1 and 2 | as rows 1 and 2 | as rows 1 and 2 | as rows 1 and 2 |
+
+The mapping of 0.020 to P0456 and 0.090 to P0455 is by SAE convention and the Mode 06 labels in `cuore/live/mode06.py` (MID 3C 0.020, 3B 0.040, 3A 0.090, 39 gross, 3D purge flow); the repo does not state which DTC each Mode 06 test feeds. [I] Mode 06 on 2026-10-13 (before the 10-14 clear) agrees with the bits: purge flow PASS, gross leak PASS, 0.090 and 0.020 FAIL. [E]
+
+### What the ECM has and has not verified since the 2026-10-14 08:59 clear
+
+- [E] Verified OK, EVAP side: **nothing.** In the three post-clear reads no EVAP circuit, flow, level or pressure code is absent from the list, so none completed clean; each sits at 0x40. The last clean completion of the purge circuit and purge flow tests (P0458, P0459, P0441) was 2026-10-13, before the clear, and the 10-13 Mode 06 purge-flow PASS (168, within 57 to 328) corroborates it for that day.
+- [E] Failed, post-clear: P0440 (first post-clear read, 10 h, 9 km), then P0455 and P0456 by 10-19; P0440 carried the lamp on 10-19.
+- [E] Verified OK, non-EVAP, in every cycle read (10-13, 10-14, 10-19 twice): the ECM's own system-voltage and processor monitors. P0562 and P0563 (system voltage low/high, SAE generic) and P0606 (ECM/PCM processor, SAE generic) read 0x40 on 09-25 and are absent from all four later lists, so they completed with no failure and no pending or confirmed bit.
+- [N] Not verified by any bit: ESIM switch and its wiring (no circuit code tracked; P0451 never completed), ESIM solenoid and vent (no circuit code tracked; P2422 never completed), purge valve and flow after the clear, fuel level input (P0461 never completed), ambient input (no code exists that would flag it), fuel cap.
+
+### Effect on the hypotheses on job 76d3454bce75
+
+- **ce6bd236, ESIM signal path:** neither supported nor weakened. No ESIM-switch circuit code (P0450/P0452/P0453) exists in the list, and P0451 has never completed in any read, so the silence of the circuit codes is not a pass. The failed bits on P0440/P0455/P0456 on a smoke-sealed system restate the case; they do not locate the fault. [I]
+- **8c659dfc, inputs invalid:** neither. P0461 never completed, and no ambient-temperature code is tracked, so the ECM has nothing that would flag a pinned -61 C external temperature; silence here is not evidence against. The three U-codes are 0x40 or absent, none failed, and none is described in the repo. [I]
+- **02c3c411, ESIM solenoid never closes the vent:** neither, and one correction. The hypothesis text counts "P2422, P0457, P0451, P0441, P0461 and P1CEA all read 0x40, no failure recorded" as evidence against. 0x40 means "not completed this operation cycle", not "passed". No vent-control circuit code (P0446 to P0449) is tracked, so a dead solenoid or driver would raise no circuit code of its own on this ECM; that is consistent with the hypothesis, not against it. [I] The purge side (P0458/P0459/P0441 clean on 10-13) is the only EVAP part with a recorded pass, and it is pre-clear.
+- **4408d755, ECM supply/resets:** weakened a little. The supply-voltage and processor monitors completed clean in all four cycles read since 10-13. It does not refute the hypothesis: a short dropout that set no code leaves no trace (b5, failed-since-clear, is not implemented; passes leave no history). The U1713-2F evidence on the BCM side is unchanged. [I]
+
+### Consequence for the next reads
+
+A post-clear status read shows "failed" and "carried over" reliably, "completed clean this cycle" only by a code dropping out of the list, and never "ran since the clear". To prove an EVAP circuit or flow test passed, read the list after a drive that includes a key-off test and look for P0451, P2422, P0458, P0459 and P0441 dropping out (0x40 to absent), together with the Mode 06 values. [I]
+
+---
+
+## External cross-check (2026-10-19)
+
+Method: 8 web searches (standard mode) plus page fetches. Read directly: V1 and V2 below. Fetch failed (404, 403 or unreadable PDF): Standard Brand ESIM PDF and page, Rick's Free Auto Repair pages, UnderhoodService, NHTSA MC-10236933-9999.pdf. Claims that rest only on a search-result summary are marked (snippet). Nothing found describes the Stelvio or Giulia ESIM itself; every source is Chrysler, Jeep or Dodge. Verdicts: AGREE / DISAGREE / UNKNOWN (not found, not guessed).
+
+- V1 = Vehicle Service Pros, "Chrysler ESIM": https://www.vehicleservicepros.com/industry-news/service-repair/article/53084355/chrysler-esim
+- V2 = Vehicle Service Pros, "Chrysler EVAP Performance Codes": https://www.vehicleservicepros.com/industry-news/article/53090062/chrysler-evap-performance-codes-2016-10-13
+- S1 = Standard Brand ESIM (snippet): https://www.standardbrand.com/media/12092/st11710-esim-r1.pdf and https://standardbrand.com/en/products/emission-controls/evap-emissions/esim
+
+### 1. ESIM operation and the three codes
+
+- Solenoid-closed vent during the test: **DISAGREE**. V1: the ESIM has no solenoid; it is a case, a vacuum-operated contact switch, a diaphragm and two weighted valves held shut by gravity; the PCM controls a separate purge valve. S1 (snippet) says the same ("does not contain a solenoid"). So the premise of H-A (02c3c411, ESIM solenoid or driver never closes the vent) is not supported for the Chrysler ESIM. A Stelvio ESIM with a different design: not found.
+- Switch closes at about 1 inH2O vacuum: **AGREE** (V1, V2). V1 adds: the large valve vents at about 0.5 inH2O positive, the small valve admits air at about 2.2 inH2O negative.
+- Natural-vacuum (cold soak) small-leak test: **AGREE** it exists (V1, V2: starts after shutdown, "can take several hours"). **DISAGREE** with how we use it: V1 says a key-off pass or inconclusive result alone does not set a leak DTC; an inconclusive result sends the monitor to the intrusive test on a later key cycle. S1 (snippet) says P0456 sets if the switch does not close within a calibrated time after key-off. The sources conflict. Tonight's engine-off P0456 frame fits S1, not V1.
+- Purge-driven large-leak test: **AGREE** (V1, V2): the purge valve pulls manifold vacuum, the PCM times the decay until the switch opens; a fast opening is a large leak; a switch that never closes means a leak or a purge problem.
+- P0440: V1 "will set if the ESIM switch does not close during the intrusive leak test"; a general fault, many causes. It is a failure-to-close code, not a circuit code. No ESIM circuit DTC is described. This answers H-C (f15ffa4f): P0440 is not documented as a control-circuit code, so it does not promote H-A.
+- P0455 / P0456: large and small leak. V1: P0456 only after the large/medium test has run. V2: two consecutive small-leak failures set the hard code and MIL. S1 (snippet): 0.090 in and 0.020 in thresholds.
+
+### 2. The signature (P0440 + P0455 + P0456, repeating, after parts and clean smoke)
+
+- A source or bulletin with this exact signature on any FCA car: **not found**.
+- Closest: TSB 18-090-23, 2022 Challenger 5.7 Hemi, lists P0455, P0456, P0440 and P0441 together; cause PCM software; repair is a PCM reprogram (search summary, exact PDF not isolated; NHTSA 2023 set at https://static.nhtsa.gov/odi/tsbs/2023/). Siblings 18-092-23 (Chrysler 300) and 18-019-23 (Compass, P0456): same summary.
+- Giulia 2017 reflash bulletins list P0456, and P0440/P0441, with build-date cutoffs (on or before 2017-02-27; on or before 2017-06-29) (search summary of https://static.nhtsa.gov/odi/tsbs/2017/MC-10140044-9999.pdf and https://static.nhtsa.gov/odi/tsbs/2017/MC-10216318-9999.pdf, not opened). An MY2018 VIN may sit outside both. Check the VIN.
+- TSB 18-048-23 (wiTECH SLVT): run it before and after any repair, keep the original cap fitted, a road test does not confirm a repair, P0456 sets only over multiple engine-off and drive cycles (search summary of https://static.nhtsa.gov/odi/tsbs/2023/MC-10236933-9999.pdf; direct read failed).
+- Causes named in parts guides and forums (anecdotal): ESIM internal failure, O-ring or diaphragm, which a smoke test may miss; ESIM must mount upright (V1; S1); wiring in the ESIM circuit; vent filter restriction (V1); split purge hose (bulletin 25-002-15 REV B, https://ricksfreeautorepairadvice.com/p0455-code-on-jeep-and-dodge-service-bulletin-fix/, snippet); stuck-open purge valve; cracked canister (less common); dust or charcoal on a check valve (forum threads https://www.jk-forum.com/forums/stock-jk-tech-12/persistent-p0456-363125/ and https://forum.powerwagonregistry.org/viewtopic.php?p=113691, snippet); ESIM guide https://ricksfreeautorepairadvice.com/dodge-p0456-common-causes-and-solutions/ (snippet).
+- Wrong ESIM part number as a cause: **not found**. Fuel level or ambient inputs as a cause of a failed result: **not found** (they appear only as enable conditions, item 4).
+
+### 3. Mode 06 TID meaning: UNKNOWN
+
+No source maps OBDMID 0x3A TID 0x87 or OBDMID 0x3C TID 0x90 on an FCA ECM. V1 and V2 say the PCM measures switch-closure and vacuum-decay times in the intrusive test, so a time in ms is plausible, but no mapping is stated. Sections M4 to M6 above stand unchanged.
+
+### 4. Gating inputs and the -61 C value
+
+- Fuel level and ambient gate the monitor: **AGREE**. V1 intrusive-test entry: coolant within 10 C of ambient, fuel 12 to 88 %, closed loop, adequate manifold vacuum, ambient 4 to 37 C, elevation under 2,591 m. V2: large leak fuel 15 to 85 %, ambient 4 to 37 C; small leak fuel 15 to 85 %, ambient 4 to 43 C. Gating means the test does not run; no source says bad inputs make it fail.
+- Tension in our own data [I]: the P0455 frame at 91.8 % (tonight) and the 09-25 frames at 93.7 % and 91.8 % are above both fuel windows, and the P0440/P0455 frames sit at ECT 51 to 69 C against ambient 14 to 17 C, against the "coolant within 10 C of ambient" entry. Either this ECM's windows differ, the frame records DTC logging not test start, or the scaling is off. UNKNOWN.
+- Ambient and fuel arrive over CAN from the BCM/IPC on this platform: **UNKNOWN** (not found). Sources describe other architectures; none is for Giulia/Stelvio.
+- -61 C is a default or invalid value: **UNKNOWN** (not found for any FCA ECU).
+
+### 5. Lamp cycle
+
+**AGREE** in rule, **UNKNOWN** in number. V2: the large-leak code is a two-trip code ("the test must fail on two consecutive trips if the right test conditions are met"); a small-leak failure stores a pending code, the large-leak test runs next, then two consecutive small-leak failures set the hard code and MIL. A "trip" only counts when the enable conditions are met, so about 5 days from clear to lamp is plausible (cold nights below 4 C would block the tests), but no source gives a Stelvio figure. Why only P0440 carries bit 0x80: not found.
+
+### Ranked causes the external evidence supports for this signature
+
+1. **ESIM unit does not seal or close under vacuum (mounting, orientation, O-ring, diaphragm, wrong part, port seating).** Supported by V1, S1 and parts guides. The ESIM's small valve opens on negative pressure and its large valve on positive, so a positive-pressure smoke test does not load the vacuum seat [I from V1]. Confirm: part number against VIN, upright mount, seating; hand vacuum at the ESIM with the switch back-probed (V1: about 4.5 to 5 V open, near 0 V and 0.5 to 2 ohm closed); bench test against a known-good unit.
+2. **ESIM switch circuit (connector, ground, wiring).** V1 gives the voltage and resistance check; guides list wiring. No circuit DTC is expected. Confirm: the same back-probe under vacuum, wiggle test, wiTECH switch state.
+3. **ECM calibration.** Same code set fixed by PCM reprogram on 18-090-23; Giulia flashes have build-date cutoffs. Confirm: wiTECH flash check, VIN recall check, SLVT per 18-048-23 after any change.
+4. **Vacuum supply or vapour-path blockage (purge valve, tank-canister line, vent filter).** V1/V2: a switch that never closes can be a purge problem; V1 says check the vent filter. Purge valve and filter already replaced; Mode 06 purge flow PASS. Confirm: command purge and watch the switch and fuel trim at once (V2), low-pressure flow through each leg.
+5. **Canister crack or contamination.** Low: new part, anecdotal sources. Confirm: flow check, smoke at the canister ports.
+6. **Invalid fuel, ambient or coolant inputs (CAN).** Weakest: external sources treat them as gates, not failure causes. Confirm: live read against dash and thermometer.
+
+### Where external evidence contradicts our ranking
+
+- "Solenoid first": the ESIM has no solenoid (V1, S1). H-A's solenoid premise is unsupported; the vent-seal idea survives only as the ESIM's passive valves and diaphragm (rank 1).
+- "Signal path weakened": nothing external weakens it. V1 defines P0440 as the switch failing to close, and the voltage and resistance check is the documented test; the Mode 06 argument (M6) has no external mapping behind it. The switch and circuit stay open until the back-probe test is done.
+- "Inputs second": no source ties bad inputs to failed results, and the CAN path is not found. Calibration and vacuum supply rank ahead of inputs.
+- Smaller: V1 says a key-off result alone sets no leak DTC, which questions the "P0456 reported at next cold start" model in the freeze-frame section.
+
+Searches used: 8 of 8.
