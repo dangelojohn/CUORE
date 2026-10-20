@@ -517,7 +517,7 @@ LINKS: tuple[dict[str, Any], ...] = (
     },
     {
         "id": "sf-network-cascade-odometer-dna-awd",
-        "keys": ["network_cascade", "U0102", "battery_12v"],
+        "keys": ["network_cascade", "U0102", "battery_12v", "C1408", "C141C"],
         "title": "Odometer blinking, DNA not working, C-1408-86 (ESC), C141C-86 (camera), "
                  "U0102-00 (AWD0 failure",
         "url": "https://www.stelvioforum.com/threads/odometer-blinking-dna-not-working-c-1408-86-esc-c141c-86-camera-u0102-00-awd0-failure.24275/",

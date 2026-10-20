@@ -62,14 +62,19 @@ _DESCRIPTIONS: tuple[CodeDescription, ...] = (
     # --- already sourced elsewhere in this repo; kept as-is -----------------
     CodeDescription(
         "U1713",
-        "Network/communication cascade code naming BCM -- a lost-"
-        "communication DTC, not a component-internal fault. Part of the "
-        "same BCM/RFHUB/DTCM comms-cascade family as U1711/U1712/U1716/"
-        "U2054/U0100/B1040 (one network event reported as many codes).",
-        source=("mes/faulttree.py NETWORK_CASCADE + this repo's "
-                "CONNECTIVITY_AND_SGW.md section 1 (platform doc: lost-"
-                "communication DTCs 'name exactly the modules on the "
-                "unreachable buses')"),
+        "BCM network code, MES text \"Engine control (NCM) - Signal/message "
+        "erratic\" (FTB 2F = signal erratic): the BCM reports that messages "
+        "it receives from the engine control module are erratic. Direction "
+        "is ECM to BCM; it names a received signal, not a component-"
+        "internal BCM fault. Listed in this repo's BCM/RFHUB/DTCM network "
+        "cascade family with U1711/U1712/U1716/U2054/U0100/B1040 (one "
+        "network event can be reported as many codes). Earlier wording "
+        "here called it a \"lost-communication\" code; the FTB says erratic, "
+        "not missing (a missing message is FTB 87).",
+        source=("MES SCAN text on this car (SCAN_2606070954 .. "
+                "SCAN_2610190039) + FTB 2F per mes/dtc.py (SAE J2012-DA) + "
+                "mes/faulttree.py NETWORK_CASCADE + CONNECTIVITY_AND_SGW.md "
+                "section 1"),
         confidence="SINGLE-SOURCE",
     ),
     CodeDescription(
@@ -169,6 +174,242 @@ _DESCRIPTIONS: tuple[CodeDescription, ...] = (
         confidence="SINGLE-SOURCE",
         url="https://www.dtcdecode.com/Alfa-Romeo/U2054-87",
         checked="2026-10-14",
+    ),
+
+    # --- added 2026-10-20 (docs/research/NON_EVAP_CODES_2026-10-20.md) -----
+    # Texts are the wording MES printed on this car's own logs; outside
+    # documents are labelled OUTSIDE LITERATURE. None is a service-manual
+    # definition: use TechAuthority / wiTECH for that.
+    CodeDescription(
+        "U1711",
+        "BCM network code, MES text \"Brake system (NFR) - Signal/message "
+        "erratic\" (FTB 2F): the BCM reports erratic messages from the brake "
+        "system module (MES label NFR; ABS/ESP). Same family as U1712, "
+        "which carries identical MES text. Seen only on the BCM, 2026-06-07 "
+        "to 2026-09-25, not since the 2026-09-29 BCM clear.",
+        source=("MES SCAN text on this car (SCAN_2606070954 .. "
+                "SCAN_2609252027) + FTB 2F per mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "U1712",
+        "BCM network code, MES text \"Brake system (NFR) - Signal/message "
+        "erratic\" (FTB 2F): identical MES wording to U1711; MES does not "
+        "say which message differs. Seen on the BCM 2026-06-07 to "
+        "2026-09-25.",
+        source=("MES SCAN text on this car (SCAN_2606070954 .. "
+                "SCAN_2609252027) + FTB 2F per mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "U1716",
+        "BCM network code, MES text \"Electric Steering (NGE) - "
+        "Signal/message erratic\" (FTB 2F): erratic messages from the "
+        "electric power steering module. Seen once, BCM, 2026-08-27.",
+        source=("MES SCAN text on this car (SCAN_2608271131) + FTB 2F per "
+                "mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "U1700",
+        "Network code naming the body computer. This car: ABS freeze-frame "
+        "record, MES FES text \"U1700-87 - Body computer (BCM/NBC)\" (FTB 87 "
+        "= missing message), seen once (ABS, 2026-09-04). OUTSIDE "
+        "LITERATURE: FCA bulletins 08-103-20 (2020 Stelvio) and 08-107-20 "
+        "(2019 Giulia) print \"U1700-87 Body Control Module (BCM) - Missing "
+        "Message\" as a code set in the DSCM (drive-mode selector) module; "
+        "other model years and another module, so context only.",
+        source=("MES FES text on this car (FESLog_2609042001) + FTB 87 per "
+                "mes/dtc.py; outside: NHTSA "
+                "static.nhtsa.gov/odi/tsbs/2020/MC-10187696-9999.pdf and "
+                "MC-10187708-9999.pdf, opened 2026-10-20"),
+        confidence="SINGLE-SOURCE",
+        url="https://static.nhtsa.gov/odi/tsbs/2020/MC-10187696-9999.pdf",
+        checked="2026-10-20",
+    ),
+    CodeDescription(
+        "U1701",
+        "DASM network code, MES text \"Error in communication with engine "
+        "control unit (ECU) - Signal/message invalid\" (FTB 86). Seen once, "
+        "2026-06-07 10:03, nine minutes after a DASM clear, during a MES "
+        "session that was reading other modules.",
+        source=("MES SCAN text on this car (SCAN_2606071003) + FTB 86 per "
+                "mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "U1702",
+        "DASM network code, MES text \"EPS electric steering (NGE) - Missing "
+        "message\" (FTB 87): the radar/driver-assist module did not receive "
+        "an expected message from the steering module. Seen once, DASM, "
+        "2026-10-19 00:39.",
+        source=("MES SCAN text on this car (SCAN_2610190039) + FTB 87 per "
+                "mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "U1960",
+        "EPS code, MES text \"Error in communication with engine control "
+        "unit (ECU) - Value of signal protection calculation incorrect\" "
+        "(FTB 83: the message protection value was wrong). Seen once, EPS, "
+        "read 2026-09-04 20:08, never re-read.",
+        source=("MES SCAN text on this car (SCAN_2609042008) + FTB 83 per "
+                "mes/dtc.py (mes-table)"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "U0422",
+        "DTCM (Magna Q4 transfer-case module) code, MES text \"Error in "
+        "communication with Body Computer Module (BCM) - Signal/message "
+        "invalid\" (FTB 86). U0xxx is the SAE J2012 generic network range. "
+        "Seen once, 2026-10-19 00:39, together with U0100-87.",
+        source=("MES SCAN text on this car (SCAN_2610190039) + FTB 86 per "
+                "mes/dtc.py + SAE generic U0xxx range (mes/dtc.py "
+                "code_authority)"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "U0418",
+        "HALF (haptic lane feedback module) code, MES text \"Error in "
+        "communication with ABS module - Signal/message invalid\" (FTB 86). "
+        "Seen once, read 2026-09-04 20:08 on the chassis sweep, never "
+        "re-read.",
+        source=("MES SCAN text on this car (SCAN_2609042008) + FTB 86 per "
+                "mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "U0428",
+        "AFLS (self-adaptive headlamp module) code, MES text \"Steering "
+        "angle sensor - Signal/message invalid\" (FTB 86): the headlamp "
+        "module judged the steering-angle message invalid. Seen once, read "
+        "2026-09-04 20:08, never re-read.",
+        source=("MES SCAN text on this car (SCAN_2609042008) + FTB 86 per "
+                "mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "B1029",
+        "IPC code, MES text \"Lost communication with Steering module (SCM) "
+        "- Signal/message plausibility\" (FTB 64). Seen once, IPC, "
+        "2026-08-27, in the same scan as B102E.",
+        source=("MES SCAN text on this car (SCAN_2608271131) + FTB 64 per "
+                "mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "B102E",
+        "IPC code, MES text \"Communication with Body Computer (BCM/NBC) - "
+        "Signal/message plausibility\" (FTB 64). Seen once, IPC, 2026-08-27, "
+        "with B1029.",
+        source=("MES SCAN text on this car (SCAN_2608271131) + FTB 64 per "
+                "mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "C141B",
+        "DASM code, MES text \"Camera blinded/obstructed/blocked - Component "
+        "or system operation obstructed or blocked\" (FTB 97). Read on 8 "
+        "scans from 2026-09-02 to 2026-10-19 (not on 2026-09-15 or "
+        "2026-09-29). MES text only; no outside document naming C141B was "
+        "found on 2026-10-20.",
+        source=("MES SCAN text on this car (SCAN_2609021445 .. "
+                "SCAN_2610190039) + FTB 97 per mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "C141C",
+        "DASM code, MES text \"Private CAN between HALF and DASM - "
+        "Signal/message invalid\" (FTB 86). OUTSIDE LITERATURE: FCA bulletin "
+        "08-045-20 (April 2020; 2020 Giulia/Stelvio, North America, GU "
+        "built on or before 2019-12-20) prints \"C141C-86 - Video Camera "
+        "Private Can Communication Failure - Signal Invalid\" with B1006-49 "
+        "and C1999-86 and an EVIC forward-collision-warning "
+        "limited-functionality message; its repair is a BCM Restore Vehicle "
+        "Configuration plus Proxi Configuration Alignment. Model year 2020, "
+        "not this 2018 car, and no record from this car shows that EVIC "
+        "message: context only.",
+        source=("MES SCAN text on this car (SCAN_2606070954 .. "
+                "SCAN_2610190039) + outside: NHTSA "
+                "static.nhtsa.gov/odi/tsbs/2020/MC-10175724-9999.pdf, opened "
+                "2026-10-20"),
+        confidence="SINGLE-SOURCE",
+        url="https://static.nhtsa.gov/odi/tsbs/2020/MC-10175724-9999.pdf",
+        checked="2026-10-20",
+    ),
+    CodeDescription(
+        "C1408",
+        "DASM code, MES text \"ESP control - Signal/message invalid\" (FTB "
+        "86): the radar module judged a stability-control message invalid. "
+        "Seen 2026-08-27, 2026-09-04 (DASM clear FAILED that evening) and "
+        "2026-10-19. A Stelvio owner thread listing \"C-1408-86 (ESC)\" with "
+        "C141C-86 traced to a low 12 V battery (stelvioforum.com thread "
+        "24275, in mes/experience.py).",
+        source=("MES SCAN text on this car (SCAN_2608271131, SCAN_2609041953, "
+                "SCAN_2610190039) + FTB 86 per mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "C1403",
+        "DASM code, MES text \"EPS electric steering (NGE) - Signal/message "
+        "invalid\" (FTB 86). Seen once, 2026-08-27.",
+        source=("MES SCAN text on this car (SCAN_2608271131) + FTB 86 per "
+                "mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "C1431",
+        "DASM code, MES text \"Lateral acceleration/YAW sensors - "
+        "Signal/message invalid\" (FTB 86). Seen once, 2026-08-27.",
+        source=("MES SCAN text on this car (SCAN_2608271131) + FTB 86 per "
+                "mes/dtc.py"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "C104B",
+        "ABS (Continental MK C1) code, MES FES text \"Leaks in hydraulic "
+        "group\" (FTB 92 = performance or incorrect operation). Brake-safety "
+        "code. Seen once, FESLog_2609042001 (2026-09-04 20:01): freeze "
+        "frame at standstill, brake pedal pressed, hydraulic circuit 11.1 "
+        "bar; cleared in that session; the ABS has not been read for DTCs "
+        "since (it was silent to CUORE sweep on 2026-10-15). MES text only; "
+        "the text does not say fluid was lost.",
+        source=("MES FES text on this car (FESLog_2609042001) + FTB 92 per "
+                "mes/dtc.py (mes-table)"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "P1189",
+        "ECM code, MES FES text \"Intake pressure sensor\". Seen once, "
+        "FESLog_2509241345 (2025-09-24): freeze frame at key-on, engine "
+        "off, 12.1 V, shared with P00F5, P0098 and P105E at the same "
+        "operating time; absent from every later ECM read.",
+        source=("MES FES text on this car (FESLog_2509241345)"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "P00F5",
+        "ECM code, MES FES text \"Humidity sensor\". Seen once, "
+        "FESLog_2509241345 (2025-09-24), key-on freeze frame shared with "
+        "P1189/P0098/P105E.",
+        source=("MES FES text on this car (FESLog_2509241345)"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "P105E",
+        "ECM code, MES FES text \"Humidity sensor\". Seen once, "
+        "FESLog_2509241345 (2025-09-24), key-on freeze frame shared with "
+        "P1189/P00F5/P0098.",
+        source=("MES FES text on this car (FESLog_2509241345)"),
+        confidence="SINGLE-SOURCE",
+    ),
+    CodeDescription(
+        "P0098",
+        "ECM code, MES FES text \"Air temperature sensor\". Seen once, "
+        "FESLog_2509241345 (2025-09-24), key-on freeze frame shared with "
+        "P1189/P00F5/P105E.",
+        source=("MES FES text on this car (FESLog_2509241345)"),
+        confidence="SINGLE-SOURCE",
     ),
 )
 
