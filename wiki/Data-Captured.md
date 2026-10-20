@@ -1,0 +1,47 @@
+# Data Captured
+
+`data/captures/` holds a snapshot of what CUORE and MultiEcuScan collected from the reference car. It exists so that the case ([[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]) can be re-read and re-analysed from the original readings. The index file is [data/captures/stelvio-2018/README.md](https://github.com/dangelojohn/CUORE/blob/main/data/captures/stelvio-2018/README.md).
+
+It is a **point-in-time copy**, made 2026-10-20. The live system keeps writing to the original locations.
+
+## Layout
+
+```
+data/captures/stelvio-2018/
+├── README.md
+├── cuore_state/     CUORE's state directory, copied (backups and machine logs excluded)
+└── mes_logs/        MultiEcuScan logs for this car
+```
+
+### `cuore_state/`
+
+| File | Content |
+|---|---|
+| `observations.jsonl` | Every reading with timestamps: the evidence record ([[Evidence Model|Evidence-Model]]) |
+| `audit.jsonl` | Sessions, cable declarations, verification, discovery, capture |
+| `jobs.jsonl` | Jobs, hypotheses and actions |
+| `cases.jsonl`, `shop_visits.jsonl` | Closed-job memory and visit records |
+| `fullscan_guided.json`, `fullscan_last.json` | Guided scan state and the last scan's coverage |
+| `learned_dids.json` | Data identifiers learned from passive capture |
+| `addresses.json` | Module addresses confirmed per car |
+| `live_snapshots.jsonl` | Saved live-data snapshots |
+| `mes_clear_watch.json`, `mes_imports.json` | Clear auto-sync point and imported MES scans |
+| `notes.jsonl`, `symptoms.jsonl`, `feedback.jsonl`, `owner_events.jsonl`, `experience_inputs.jsonl`, `checklists.json` | Attested human input and checklist state |
+
+### `mes_logs/`
+
+42 files: 23 live recordings and engineering sessions (`FESLog_*.txt`) and 19 scan reports (`SCAN_*.txt`) for this car, dating from 2025-09 to 2026-10. **MES simulation-mode logs** (those whose banner reads "SIMULATION MODE ... NOT REAL") are **excluded**: they do not describe the car ([[MES Integration|MES-Integration]]).
+
+## How to use it
+
+- Point `CUORE_STATE_DIR` at a copy of `cuore_state/`, and `MES_LOG_DIR` at a copy of `mes_logs/`, to run CUORE against this data. Work on copies: the app appends to these files.
+- The tests build fixtures from copies of this kind of data rather than reading the originals ([[Testing]]).
+- Time-sensitive facts in the case (for example, which clears came before which reads) can be rechecked directly from `observations.jsonl` and the SCAN files.
+
+## Notes on handling
+
+- The files contain the car's vehicle identifier and records typed by its owner. Treat them as personal vehicle data before sharing or republishing.
+- The observation store was never rotated or rewritten; the case notes record that some freeze frames exist **only** there because the car's own copies were cleared.
+- The logs are stored as written by MES; filenames carry the model name and a timestamp (`FESLog_YYMMDDHHMM_...`, `SCAN_YYMMDDHHMM`).
+
+Related: [[Architecture]] (state directory), [[Project History|Project-History]].
