@@ -36,7 +36,13 @@ def _tp_reply(q: dict[str, Any]) -> tuple[bool, Optional[int]]:
 
 def discover_11bit(sess: Session, bus: Bus, *, candidates: Optional[list[int]] = None,
                    per_target_timeout: float = 0.25,
-                   stop_after: Optional[int] = None) -> dict[str, Any]:
+                   stop_after: Optional[int] = None,
+                   rx_mode: str = "plus8") -> dict[str, Any]:
+    """``rx_mode``: response id = request + 8 ("plus8"), request - 0x280
+    ("minus280", seen on FCA; skipped when below 0x100), or "both" (plus8
+    first, then minus280)."""
+    if rx_mode not in ("plus8", "minus280", "both"):
+        raise ValueError("rx_mode must be plus8, minus280 or both")
     per_target_timeout = max(per_target_timeout, sess.adapter_wait + 0.2)
     targets = candidates if candidates is not None else DEFAULT_CANDIDATES
     bus_modules = on_bus(bus.key)
@@ -46,20 +52,32 @@ def discover_11bit(sess: Session, bus: Bus, *, candidates: Optional[list[int]] =
     for rid in targets:
         if rid == 0x7DF or 0x7E0 <= rid <= 0x7EF:
             continue
-        tried += 1
-        req_hex, resp_hex = f"{rid:03X}", f"{rid + 8:03X}"
-        sess.target_raw(req_hex, resp_hex)
-        assert_read_only_uds(0x3E, b"\x00")
-        q = sess.query("3E00", "7E", per_target_timeout)
-        if q["error"] and q["error"] != "TIMEOUT":
-            hits.append({"target": req_hex, "error": q["error"]})
-            if q["error"] in ("BUS ERROR", "CAN ERROR", "OUT OF MEMORY"):
+        offsets = {"plus8": [8], "minus280": [-0x280], "both": [8, -0x280]}[rx_mode]
+        req_hex = f"{rid:03X}"
+        resp_hex, positive, nrc, stop, tried_any = "", False, None, False, False
+        for off in offsets:
+            if rid + off < 0x100:
+                continue
+            if not tried_any:
+                tried += 1
+                tried_any = True
+            resp_hex = f"{rid + off:03X}"
+            sess.target_raw(req_hex, resp_hex)
+            assert_read_only_uds(0x3E, b"\x00")
+            q = sess.query("3E00", "7E", per_target_timeout)
+            if q["error"] and q["error"] != "TIMEOUT":
+                hits.append({"target": req_hex, "error": q["error"]})
+                stop = q["error"] in ("BUS ERROR", "CAN ERROR", "OUT OF MEMORY")
+                resp_hex = ""
                 break
+            positive, nrc = _tp_reply(q)
+            if positive or nrc is not None:
+                break
+        if stop:
+            break
+        if not resp_hex or (not positive and nrc is None):
             continue
-        positive, nrc = _tp_reply(q)
-        if not positive and nrc is None:
-            continue
-        hit: dict[str, Any] = {"target": req_hex, "request": req_hex, "response": resp_hex,
+        hit: dict[str, Any] = {"target": req_hex, "request": req_hex, "response": resp_hex, "rx_mode": rx_mode,
                                "tester_present": "positive" if positive else nrc_text(nrc)}
         fields: dict[str, Optional[str]] = {}
         for did in IDENTITY_DIDS:

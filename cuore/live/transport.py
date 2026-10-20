@@ -94,6 +94,7 @@ class Session:
         self.headers_on = True
         self.header_bits = header_bits_for_protocol(route.stn_protocol)
         self._target: Optional[tuple[str, str]] = None
+        self._reset_done = False
         #: Seconds the adapter itself waits for a reply (ATST x 4 ms).
         #: Conservative default = ATSTFF (1.02 s): untarget() sets it and the
         #: adapter keeps it across sessions, so it is assumed in force until
@@ -112,6 +113,7 @@ class Session:
         command = validate_command(command)
         timeout = clamp_timeout(timeout)
         s = self.stream
+        self._drain_stale(command)
         s.reset_input_buffer()
         s.write((command + "\r").encode("ascii"))
         s.flush()
@@ -134,6 +136,47 @@ class Session:
             text = (text + "\nTIMEOUT").strip()
             self._interrupt_and_drain()
         return text
+
+    _STALE_FUNCTIONAL = re.compile(r"^(?:7E[0-9A-F]|18DAF1[0-9A-F]{2})[0-9A-F]{4,}$")
+
+    def _drain_stale(self, before: str) -> None:
+        """Read and discard whatever is already in the input buffer before a
+        request goes out (non-blocking, bounded 100 ms). A late reply or a
+        late 0x78 left over from the previous request would otherwise be read
+        as this request's answer. If the discarded text holds a complete
+        reply frame for the current target, audit it as ``stale_input`` so
+        the car shows whether stale replies actually happen."""
+        s = self.stream
+        got = bytearray()
+        try:
+            deadline = time.monotonic() + 0.1
+            while time.monotonic() < deadline:
+                n = s.in_waiting()
+                if not n:
+                    break
+                chunk = s.read(n)
+                if not chunk:
+                    break
+                got.extend(chunk)
+        except Exception:  # noqa: BLE001 -- draining must never fail the caller
+            return
+        if not got:
+            return
+        text = got.decode("ascii", errors="replace")
+        want = self._target[1].upper() if self._target else ""
+        for line in re.split(r"[\r\n>]+", text):
+            frame = re.sub(r"\s+", "", line).upper()
+            if not frame:
+                continue
+            if want:
+                hit = frame.startswith(want) and re.fullmatch(r"[0-9A-F]+", frame) \
+                    and len(frame) >= len(want) + 4
+            else:
+                hit = bool(self._STALE_FUNCTIONAL.match(frame))
+            if hit:
+                audit.record("stale_input", bytes=text[:200], before=before,
+                             target=want or "functional", bus=self.bus.key)
+                break
 
     def _track_adapter_wait(self, command: str) -> None:
         u = command.strip().upper()
@@ -279,6 +322,11 @@ class Session:
         """
         if self._target is None:
             self._target = getattr(self.link, "_last_target", None)
+        if (self._target is not None and not self._reset_done
+                and getattr(self.link, "reset_before_legislated", False)):
+            # Opt-in (CUORE_RESET_BEFORE_LEGISLATED=1): physical -> functional
+            # switch gets one clean adapter reset per session.
+            self.hard_reset()
         # Always restate the functional header: the adapter remembers the last
         # ATSH across port closes and protocol switches, and a process restart
         # forgets what that was.
@@ -329,6 +377,38 @@ class Session:
                     self.cmd("ATSH7DF", 2)
         self._target = None
         self.link._last_target = None
+
+    def hard_reset(self) -> None:
+        """ATWS, verify the banner, then restate the session init and clear
+        targeting. Never called automatically; untarget() calls it once per
+        session only when ``AdapterLink.reset_before_legislated`` is set."""
+        self._reset_done = True
+        time.sleep(0.2)
+        r = self.cmd("ATWS", 3)
+        ok = "ELM327 v" in r
+        time.sleep(0.5)
+        route = self.route
+        for c in ("ATE0", "ATL0", "ATS0", "ATH1", "ATAT1", "ATCAF1"):
+            self.cmd(c, 2)
+        if self.link.is_stn:
+            self.cmd(f"STP {route.stn_protocol}", 2)
+            if route.bitrate_override:
+                self.cmd(f"STPBR {route.bitrate_override}", 2)
+            self.cmd("STCMM 0" if self.passive else "STCMM 1", 2)
+            self.cmd("ATCRA", 2)
+            self.cmd("STCFCPC", 2)
+            self.cmd(f"STP {route.stn_protocol}", 2)
+            if route.bitrate_override:
+                self.cmd(f"STPBR {route.bitrate_override}", 2)
+        else:
+            elm = _ELM_EQUIVALENT.get(route.stn_protocol)
+            if elm:
+                self.cmd(f"ATSP{elm}", 2)
+            self.cmd("ATCRA", 2)
+        self.headers_on = True
+        self._target = None
+        self.link._last_target = None
+        audit.record("hard_reset", bus=self.bus.key, ok=ok, reply=(r or "")[:120])
 
     # --- UDS primitive --------------------------------------------------
 
@@ -414,6 +494,10 @@ class AdapterLink:
         except ValueError:
             self.adapter_baud_requested = 0
         self.last_baud_raise: Optional[dict[str, Any]] = None
+        # Opt-in: one ATWS hard reset per session when untarget() switches
+        # from a physical target to functional (P1: NO DATA after UDS).
+        self.reset_before_legislated: bool = os.environ.get(
+            "CUORE_RESET_BEFORE_LEGISLATED", "0") == "1"
 
     # --- cable state ----------------------------------------------------
 

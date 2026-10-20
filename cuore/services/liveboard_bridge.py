@@ -49,7 +49,10 @@ from datetime import datetime, timedelta
 from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
+from ..live import capture as capture_mod
 from ..live import channels as channels_mod
+from ..live import chassis_decode
+from ..live.buses import CAN_CH, routes_for
 from ..live import ops as live_ops
 from ..live import store as live_store
 from ..live.errors import LiveError
@@ -788,7 +791,41 @@ def freeze_capture_save(vin: str, capture_id: str, note: str = "") -> dict[str, 
            "scans_url": f"/v/{vin}/scans/{scan_id}"}
 
 
+# --- CAN-CH passive panel source -----------------------------------------------
+#
+# Read-only: a short receive-only listen (passive session, STCMM 0, nothing is
+# ever transmitted) on the 11-bit CAN-CH broadcast route, decoded through the
+# Giorgio DBC (cuore/data/dbc/fca_giorgio.dbc). Needs the grey A6 cable
+# declared; with any other cable the answer is "unavailable", not an error.
+
+def _passive_listen(seconds: float) -> dict[str, Any]:
+    """One passive 2 s listen on CAN-CH over the STP 33 route (the seam the
+    tests replace)."""
+    routes = [r for r in routes_for(CAN_CH, "grey_a6") if r.stn_protocol == "33"]
+    if not routes:
+        raise BadRequest("no 11-bit (STP 33) route for CAN-CH")
+    lk = live_ops.link()
+    with lk.session("chassis_passive", bus=CAN_CH, passive=True, route=routes[0]) as sess:
+        return capture_mod.listen(sess, seconds=seconds, max_frames=2000)
+
+
+def chassis_passive(seconds: float = 2.0) -> dict[str, Any]:
+    cable = (live_ops.cable_state() or {}).get("cable")
+    if cable != "grey_a6":
+        return {"available": False, "cable": cable, "bus": CAN_CH.key,
+                "reason": "the grey A6 cable must be fitted and declared to listen on CAN-CH",
+                "messages": {}, "unknown_ids": {}}
+    seconds = max(0.5, min(float(seconds), 5.0))
+    cap = _passive_listen(seconds)
+    out = chassis_decode.decode_capture(cap.get("frames") or [],
+                                        seconds=cap.get("seconds") or seconds)
+    out.update({"available": True, "cable": cable, "bus": CAN_CH.key,
+                "passive": True, "listen_seconds": cap.get("seconds"),
+                "error": cap.get("error"), "source": "fca_giorgio.dbc (opendbc, MIT)"})
+    return out
+
+
 __all__ = ["NOTICE", "GROUP_ORDER", "GROUP_LABELS", "channel_system", "board",
           "evaluate", "snapshot_recommendations", "attach_snapshot_to_job",
           "freeze_capture_start", "freeze_capture_status", "freeze_capture_stop",
-          "freeze_capture_save", "freeze_capture_discard"]
+          "freeze_capture_save", "freeze_capture_discard", "chassis_passive"]

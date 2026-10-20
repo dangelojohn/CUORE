@@ -48,6 +48,7 @@ class Fake11(Stream):
     def __init__(self, nodes: dict[int, dict[str, str]]) -> None:
         self.nodes = nodes
         self.target: int | None = None
+        self.cra: int | None = None
         self.sent: list[str] = []
         self._buf = bytearray()
         self._open = False
@@ -62,8 +63,11 @@ class Fake11(Stream):
         return self._open
 
     def _reply(self, cmd: str) -> str:
-        if cmd.startswith("ATSH") and len(cmd) == 7:
+        if cmd.startswith("ATSH") and len(cmd) in (7, 12):
             self.target = int(cmd[4:], 16)
+            return "OK"
+        if cmd.startswith("ATCRA"):
+            self.cra = int(cmd[5:], 16) if len(cmd) > 5 else None
             return "OK"
         if cmd == "ATI":
             return "ELM327 v2.3"
@@ -74,7 +78,10 @@ class Fake11(Stream):
         node = self.nodes.get(self.target or -1)
         if node is None or cmd not in node:
             return "NO DATA"
-        return _frame(f"{self.target + 8:03X}", node[cmd])
+        rx = node.get("_rx", self.target + 8)
+        if self.cra is not None and self.cra != rx:
+            return "NO DATA"
+        return _frame(f"{rx:03X}" if rx < 0x800 else f"{rx:08X}", node[cmd])
 
     def write(self, data: bytes) -> None:
         cmd = data.decode("ascii", errors="replace").strip()
@@ -133,6 +140,60 @@ check("(e) nothing persisted", store.confirmed_targets("ZASFAKPN5J7B88115") == b
 check("identity read for the 7A0 hit", "F192" in hits["7A0"]["identity"])
 check("no write-capable service sent",
       all(c[:2] in ("3E", "22", "AT", "ST") for c in bus.sent), str(bus.sent))
+
+# --- rx_mode / probe_dids (FCA leads) ----------------------------------------
+from cuore.live import uds  # noqa: E402
+from cuore.live.addressing import address_pair  # noqa: E402
+
+
+def _run11(nodes_: dict, **kw):
+    fb = Fake11(nodes_)
+    l = AdapterLink(stream_factory=lambda p, b: fb, process="check_d11_rx")
+    set_link(l)
+    l.set_cable("grey_a6")
+    l.mark_verified(CAN_CH, 10)
+    with l.session("d11-rx", bus=CAN_CH, confirm=True, route=r33[0]) as s_:
+        return fb, discover11.discover_11bit(s_, CAN_CH, per_target_timeout=0.2, **kw)
+
+
+fca = {0x7A0: {"_rx": 0x7A0 - 0x280, "3E00": "7E00"}, 0x7B0: {"3E00": "7E00"}}
+fb1, r_p8 = _run11(fca, candidates=[0x7A0, 0x7B0])
+fb2, r_m = _run11(fca, candidates=[0x7A0, 0x7B0], rx_mode="minus280")
+fb3, r_b = _run11(fca, candidates=[0x7A0, 0x7B0], rx_mode="both")
+t_p8, t_m, t_b = ({h["target"]: h for h in r["hits"]} for r in (r_p8, r_m, r_b))
+check("(rx) default plus8 finds 7B0 only; minus280 finds 7A0 (rx 520) only",
+      set(t_p8) == {"7B0"} and set(t_m) == {"7A0"} and t_m["7A0"]["response"] == "520",
+      str((t_p8, t_m)))
+check("(rx) both finds each node on its own convention",
+      set(t_b) == {"7A0", "7B0"} and t_b["7A0"]["response"] == "520"
+      and t_b["7B0"]["response"] == "7B8", str(t_b))
+check("(rx) minus280 skips ids whose reply id would be < 0x100",
+      _run11(fca, candidates=[0x300], rx_mode="minus280")[1]["tried"] == 0)
+
+# 29-bit discover: node refuses F190 (silent) but answers F194
+req29, rsp29 = address_pair(0x40)
+node29 = {int(req29, 16): {"_rx": int(rsp29, 16), "22F194": "62F194" + _ascii_hex("SW123")}}
+
+
+def _run29(**kw):
+    fb = Fake11(node29)
+    l = AdapterLink(stream_factory=lambda p, b: fb, process="check_d11_29")
+    set_link(l)
+    l.set_cable("grey_a6")
+    l.mark_verified(CAN_CH, 10)
+    with l.session("d29", bus=CAN_CH, confirm=True) as s_:
+        return fb, uds.discover(s_, CAN_CH, candidates=[0x40, 0x41], per_target_timeout=0.2, **kw)
+
+
+fb29a, r29a = _run29()
+fb29b, r29b = _run29(probe_dids=("F190", "F132", "F194"))
+h29 = {h["target"]: h for h in r29b["hits"]}
+check("(probe) F194-only node: missed by default, found with probe_dids",
+      r29a["hits"] == [] and set(h29) == {"40"} and h29["40"]["probe_did"] == "F194"
+      and h29["40"]["probe_value"] == "SW123", str((r29a["hits"], r29b["hits"])))
+check("(probe/rx) only 22/3E services ever sent",
+      all(c[:2] in ("3E", "22", "AT", "ST") for fb_ in (fb1, fb2, fb3, fb29a, fb29b)
+          for c in fb_.sent), "non read-only service")
 
 # --- timing/desync checks (silent bus, adapter still waiting) ---------------
 class Silent(Fake11):

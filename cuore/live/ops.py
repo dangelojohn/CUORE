@@ -936,7 +936,8 @@ def sweep_bus_full(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm:
 
 def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
              candidates: Optional[list[str]] = None, per_target_timeout: float = 0.25,
-             stop_after: Optional[int] = None, **kw: Any) -> dict[str, Any]:
+             stop_after: Optional[int] = None,
+             probe_dids: Optional[list[str]] = None, **kw: Any) -> dict[str, Any]:
     b = _bus(bus)
     cands = None
     if candidates:
@@ -944,16 +945,20 @@ def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
             cands = [int(c, 16) for c in candidates]
         except ValueError:
             raise BadCommand("candidates must be hex target bytes")
+    pdids = tuple(d.upper() for d in probe_dids) if probe_dids else ("F190",)
+    if not all(len(d) == 4 and all(c in "0123456789ABCDEF" for c in d) for d in pdids):
+        raise BadCommand("probe_dids must be 4-hex-digit DIDs")
     with link().session(f"discover {b.key}", bus=b, confirm=confirm, **kw) as sess:
         return _stamp(sess, uds_mod.discover(sess, b, vin_expected=vin or None,
                                              candidates=cands,
                                              per_target_timeout=per_target_timeout,
-                                             stop_after=stop_after))
+                                             stop_after=stop_after, probe_dids=pdids))
 
 
 def discover_11bit(bus: str = "can_ch", vin: str = "", confirm: bool = False,
                    candidates: Optional[list[str]] = None, per_target_timeout: float = 0.25,
-                   stop_after: Optional[int] = None, **kw: Any) -> dict[str, Any]:
+                   stop_after: Optional[int] = None, rx_mode: str = "plus8",
+                   **kw: Any) -> dict[str, Any]:
     """Read-only 11-bit physical UDS sweep (3E 00 then identity), nothing persisted."""
     from . import discover11
     b = _bus(bus)
@@ -970,7 +975,7 @@ def discover_11bit(bus: str = "can_ch", vin: str = "", confirm: bool = False,
                         route=r11[0], **kw) as sess:
         return _stamp(sess, discover11.discover_11bit(
             sess, b, candidates=cands, per_target_timeout=per_target_timeout,
-            stop_after=stop_after))
+            stop_after=stop_after, rx_mode=rx_mode))
 
 
 def observations(n: int = 50, vin: str = "", kind: str = "") -> dict[str, Any]:

@@ -8,7 +8,7 @@ the MES vocabulary (``P0456-00``) so live codes join the corpus.
 from __future__ import annotations
 
 import time
-from typing import Any, Optional
+from typing import Any, Optional, Sequence
 
 from . import audit, store
 from . import identify
@@ -207,8 +207,13 @@ def _did_reply(q: dict[str, Any], did: str) -> tuple[Optional[list[str]], Option
 
 def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
              candidates: Optional[list[int]] = None, per_target_timeout: float = 0.25,
-             stop_after: Optional[int] = None) -> dict[str, Any]:
+             stop_after: Optional[int] = None,
+             probe_dids: Sequence[str] = ("F190",)) -> dict[str, Any]:
     """``22 F190`` at every candidate target; any reply is proof of a live node.
+
+    ``probe_dids`` lists the DIDs tried in order per candidate (FCA modules
+    that refuse F190 may answer F132/F194); any positive or ``7F 22 xx``
+    reply to any of them proves a live node.
 
     A positive VIN reply and a negative response (``7F 22 xx``) both prove a
     node lives at that address; only silence does not. Each live node is then
@@ -229,21 +234,41 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
         tried += 1
         req_hex, resp_hex = address_pair(ta)
         sess.target_raw(req_hex, resp_hex)
-        q = sess.query("22F190", "62", per_target_timeout)
-        if q["error"] and q["error"] != "TIMEOUT":
-            hits.append({"target": f"{ta:02X}", "error": q["error"]})
-            if q["error"] in ("BUS ERROR", "CAN ERROR", "OUT OF MEMORY"):
+        payload, nrc, probe, fatal, err = None, None, None, False, None
+        for pdid in probe_dids:
+            pdid = pdid.upper()
+            q = sess.query(f"22{pdid}", "62", per_target_timeout)
+            if q["error"] and q["error"] != "TIMEOUT":
+                err = q["error"]
+                fatal = err in ("BUS ERROR", "CAN ERROR", "OUT OF MEMORY")
+                break
+            payload, nrc = _did_reply(q, pdid)
+            if payload is not None or nrc is not None:
+                probe = pdid
+                break
+        if err:
+            hits.append({"target": f"{ta:02X}", "error": err})
+            if fatal:
                 break
             continue
-        payload, nrc = _did_reply(q, "F190")
-        if payload is None and nrc is None:
+        if probe is None:
             continue
+        if probe != "F190":
+            probe_payload, payload = payload, None
+        else:
+            probe_payload = None
         vin = _ascii(payload) if payload else ""
         hit: dict[str, Any] = {"target": f"{ta:02X}", "request": req_hex, "response": resp_hex,
                                "vin": vin or None,
-                               "vin_nrc": None if nrc is None else nrc_text(nrc),
+                               "vin_nrc": (None if nrc is None or probe != "F190"
+                                           else nrc_text(nrc)),
                                "vin_matches": (vin == vin_expected) if (vin_expected and vin)
-                               else None}
+                               else None,
+                               "probe_did": probe}
+        if probe != "F190" and nrc is not None:
+            hit["probe_nrc"] = nrc_text(nrc)
+        if probe != "F190":
+            hit["probe_value"] = _ascii(probe_payload) if probe_payload else None
         known = [m for m in bus_modules if m.target == ta]
         if known:
             hit["registry_match"] = known[0].code
