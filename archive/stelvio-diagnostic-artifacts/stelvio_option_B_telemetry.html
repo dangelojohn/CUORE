@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stelvio — Option B: Live Telemetry Correlation Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root{
+  --bg:#080a08;--bg2:#0d0f0d;--bg3:#121412;--bg4:#181b18;--bg5:#1e211e;
+  --b1:#222522;--b2:#2c2f2c;--b3:#383b38;--b4:#454845;
+  --t1:#bfc7bf;--t2:#889088;--t3:#535853;--t4:#333733;
+  --wh:#d8e0d8;
+  --r:#e24b4a;--r2:#ff6b6a;--rbg:rgba(226,75,74,.1);--rbg2:rgba(226,75,74,.06);
+  --a:#d4891a;--a2:#f0a030;--abg:rgba(212,137,26,.1);
+  --g:#3a9e68;--g2:#4ec87e;--gbg:rgba(58,158,104,.1);
+  --b:#3a7ec4;--b2:#5ba0e8;--bbg:rgba(58,126,196,.1);
+  --p:#7c5ea8;--p2:#a880e0;--pbg:rgba(124,94,168,.1);
+  --acc:#c8a855;--acc2:#e8c870;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t1);font-size:12px}
+.app{display:flex;flex-direction:column;height:100vh}
+/* HEADER */
+.hdr{background:var(--bg2);border-bottom:1px solid var(--b1);padding:10px 20px;flex-shrink:0}
+.hdr-title{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--wh);letter-spacing:.03em}
+.hdr-sub{font-family:var(--mono);font-size:9px;color:var(--t4);margin-top:2px}
+.pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+.pill{font-family:var(--mono);font-size:9px;font-weight:600;padding:2px 7px;border-radius:2px;letter-spacing:.04em}
+.p-r{background:var(--rbg);color:var(--r2);border:1px solid rgba(226,75,74,.3)}
+.p-a{background:var(--abg);color:var(--a2);border:1px solid rgba(212,137,26,.3)}
+.p-g{background:var(--gbg);color:var(--g2);border:1px solid rgba(58,158,104,.3)}
+.p-b{background:var(--bbg);color:var(--b2);border:1px solid rgba(58,126,196,.3)}
+.p-p{background:var(--pbg);color:var(--p2);border:1px solid rgba(124,94,168,.3)}
+/* TABS */
+.tabbar{background:var(--bg2);border-bottom:1px solid var(--b1);display:flex;padding:0 20px;overflow-x:auto;flex-shrink:0}
+.tab{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:9px 14px;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;transition:color .15s}
+.tab:hover{color:var(--t2)}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.panels{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.panel{display:none;flex:1;overflow-y:auto}
+.panel.on{display:flex;flex-direction:column}
+.sec{padding:16px 20px}
+.stitle{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;padding-bottom:5px;border-bottom:1px solid var(--b1)}
+.card{background:var(--bg2);border:1px solid var(--b1);border-radius:4px;padding:12px;margin-bottom:10px}
+.clabel{font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:800px){.grid2,.grid3{grid-template-columns:1fr}}
+.badge{display:inline-block;font-family:var(--mono);font-size:9px;font-weight:600;padding:1px 6px;border-radius:2px;margin:1px}
+.br{background:var(--rbg);color:var(--r2);border:1px solid rgba(226,75,74,.25)}
+.ba{background:var(--abg);color:var(--a2);border:1px solid rgba(212,137,26,.25)}
+.bg{background:var(--gbg);color:var(--g2);border:1px solid rgba(58,158,104,.25)}
+.bn{background:rgba(80,90,80,.1);color:var(--t2);border:1px solid var(--b1)}
+.bb{background:var(--bbg);color:var(--b2);border:1px solid rgba(58,126,196,.25)}
+.bp{background:var(--pbg);color:var(--p2);border:1px solid rgba(124,94,168,.25)}
+.mono{font-family:var(--mono)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{text-align:left;padding:5px 8px;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.05em;color:var(--t3);background:var(--bg3);border-bottom:1px solid var(--b2)}
+td{padding:4px 8px;border-bottom:1px solid var(--b1);vertical-align:top;line-height:1.5}
+tr:hover td{background:var(--bg3)}
+input[type=range]{-webkit-appearance:none;width:100%;height:3px;border-radius:2px;background:var(--b2);outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--acc);cursor:pointer;border:2px solid var(--bg)}
+select,input[type=file]{font-family:var(--mono);font-size:10px;background:var(--bg3);border:1px solid var(--b2);color:var(--t1);padding:5px 8px;border-radius:3px;width:100%}
+.btn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.04em;padding:6px 14px;border-radius:3px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;transition:all .15s}
+.btn:hover{background:var(--bg4);color:var(--t1);border-color:var(--b3)}
+.btn.primary{background:var(--abg);color:var(--a2);border-color:rgba(212,137,26,.4)}
+.btn.primary:hover{background:rgba(212,137,26,.2)}
+.btn.danger{background:var(--rbg);color:var(--r2);border-color:rgba(226,75,74,.4)}
+.prose{font-size:11px;line-height:1.8;color:var(--t2)}
+.prose b{color:var(--t1);font-weight:500}
+/* PID list */
+.pid-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-bottom:1px solid var(--b1);cursor:pointer;transition:background .1s}
+.pid-row:hover{background:var(--bg3)}
+.pid-row.selected{background:rgba(58,158,104,.06);border-left:2px solid var(--g2)}
+.pid-row.critical{border-left:2px solid var(--r2)}
+.pid-row.important{border-left:2px solid var(--a2)}
+.pid-check{width:14px;height:14px;border-radius:2px;border:1px solid var(--b3);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.pid-check.checked{background:var(--g2);border-color:var(--g2)}
+.pid-name{flex:1;font-family:var(--mono);font-size:10px;font-weight:500}
+.pid-module{font-family:var(--mono);font-size:9px;color:var(--t3);width:60px;text-align:right}
+.pid-unit{font-family:var(--mono);font-size:9px;color:var(--acc);width:40px;text-align:right}
+/* Correlation matrix */
+.corr-matrix{overflow:auto}
+.corr-cell{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;font-weight:600;cursor:pointer;transition:opacity .2s}
+/* PHM tracker */
+.measurement-row{display:grid;grid-template-columns:1fr 1fr 1fr 80px;gap:8px;margin-bottom:8px;align-items:center}
+.mval{font-family:var(--mono);font-size:13px;font-weight:600}
+/* Timeline */
+.timeline-bar{height:8px;border-radius:4px;margin-bottom:4px;transition:width .5s}
+/* Telemetry log */
+.tlog{font-family:var(--mono);font-size:10px;background:var(--bg3);border:1px solid var(--b1);border-radius:3px;padding:10px;max-height:200px;overflow-y:auto;line-height:1.8}
+.tlog-r{color:var(--r2)} .tlog-a{color:var(--a2)} .tlog-g{color:var(--g2)} .tlog-n{color:var(--t3)}
+/* Waveform */
+canvas{border-radius:3px;background:var(--bg3)}
+/* Upload zone */
+.upload-zone{border:2px dashed var(--b3);border-radius:6px;padding:30px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:14px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--acc);background:rgba(200,168,85,.04)}
+.upload-icon{font-size:32px;margin-bottom:8px;opacity:.4}
+/* Scenario buttons */
+.scenario-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.scenario-btn{background:var(--bg3);border:1px solid var(--b2);border-radius:4px;padding:10px;cursor:pointer;text-align:left;transition:all .15s}
+.scenario-btn:hover{border-color:var(--b3);background:var(--bg4)}
+.scenario-btn.active{border-color:var(--acc);background:rgba(200,168,85,.06)}
+.scenario-title{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--wh);margin-bottom:3px}
+.scenario-desc{font-size:10px;color:var(--t3);line-height:1.5}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.stat-box{background:var(--bg3);border:1px solid var(--b1);border-radius:4px;padding:10px}
+.stat-label{font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px}
+.stat-val{font-family:var(--mono);font-size:16px;font-weight:600}
+.stat-sub{font-size:10px;color:var(--t3);margin-top:2px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="hdr">
+  <div class="hdr-title">OPTION B — LIVE TELEMETRY CORRELATION ENGINE</div>
+  <div class="hdr-sub">Launch X431 · Predictive Health Monitoring · F1-Grade Cross-Correlation · Pre-Fault Detection · Weibull PHM</div>
+  <div class="pills">
+    <span class="pill p-r">2018 STELVIO 2.0T</span>
+    <span class="pill p-a">G102 MONITORING</span>
+    <span class="pill p-b">X431 CSV IMPORT</span>
+    <span class="pill p-g">PRE-FAULT DETECTION</span>
+    <span class="pill p-p">WEIBULL PHM TRACKER</span>
+  </div>
+</div>
+<div class="tabbar">
+  <button class="tab on" onclick="sw('protocol')">PID Protocol</button>
+  <button class="tab" onclick="sw('scenarios')">Test Scenarios</button>
+  <button class="tab" onclick="sw('import')">CSV Import + Analysis</button>
+  <button class="tab" onclick="sw('corr')">Correlation Matrix</button>
+  <button class="tab" onclick="sw('prefault')">Pre-Fault Detection</button>
+  <button class="tab" onclick="sw('phm')">PHM Weibull Tracker</button>
+  <button class="tab" onclick="sw('guide')">X431 Setup Guide</button>
+</div>
+<div class="panels">
+
+<!-- ===== TAB 1: PID PROTOCOL ===== -->
+<div id="protocol" class="panel on">
+<div class="sec">
+<div class="stitle">Structured PID Selection Protocol — Launch X431 Alfa Romeo Stelvio</div>
+<div class="card">
+<div class="clabel">Why this matters — F1 multi-channel telemetry principle</div>
+<div class="prose">
+F1 engineers never look at single channels. They compute <b>cross-correlations</b> between channels to find hidden causal relationships invisible in any individual signal. A Ferrari 458 ground fault was identified not from a ground-voltage sensor (there isn't one) but from the <b>phase relationship</b> between battery voltage sag and CAN error counter rate — the sag led the error by 180ms consistently. That 180ms lag was the causal proof. To replicate this on your Stelvio, you need to log the right channels simultaneously. The X431 supports 12-channel simultaneous logging with CSV export. These are the exact PIDs to select.
+</div>
+</div>
+
+<div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+  <button class="btn primary" onclick="selectAll('critical')">Select Critical (12 PIDs)</button>
+  <button class="btn" onclick="selectAll('all')">Select All (28 PIDs)</button>
+  <button class="btn" onclick="selectAll('none')">Clear All</button>
+  <span style="font-family:var(--mono);font-size:10px;color:var(--t3);padding:6px 0">Selected: <b id="pid-count" style="color:var(--acc)">12</b> / 28 PIDs</span>
+</div>
+
+<div style="background:var(--bg2);border:1px solid var(--b1);border-radius:4px;overflow:hidden">
+<div style="display:flex;padding:5px 8px;background:var(--bg3);border-bottom:1px solid var(--b2);font-family:var(--mono);font-size:9px;color:var(--t3);letter-spacing:.06em">
+  <span style="width:14px;margin-right:8px"></span>
+  <span style="flex:1">PID NAME</span>
+  <span style="width:80px">MODULE</span>
+  <span style="width:60px;text-align:right">UNIT</span>
+  <span style="width:50px;text-align:right">PRIORITY</span>
+</div>
+<div id="pid-list"></div>
+</div>
+
+<div class="card" style="margin-top:12px;border-color:rgba(200,168,85,.3)">
+<div class="clabel accent" style="color:var(--acc2)">X431 Setup — How to log these simultaneously</div>
+<div class="prose">
+<b>Step 1:</b> Connect X431 to OBD port. Navigate: Diagnose → Alfa Romeo → Stelvio → 2018 → Select all modules<br>
+<b>Step 2:</b> Navigate to BCM → Live Data. Select the PIDs from the list above.<br>
+<b>Step 3:</b> Navigate to ECM → Live Data. Add those PIDs to your selection.<br>
+<b>Step 4:</b> Navigate to ABS/BSM → Live Data. Add ABS CAN error counter and module comm status.<br>
+<b>Step 5:</b> On the Live Data screen, tap the <b>Record</b> button (circle icon) before starting the test drive.<br>
+<b>Step 6:</b> Complete the test scenario (see Scenarios tab). Stop recording.<br>
+<b>Step 7:</b> Export: User Info → My Reports → Recorded Data → select your session → Export CSV.<br>
+<b>Step 8:</b> Copy file from X431 via USB → File Transfer. Upload CSV to the Import tab above.
+</div>
+</div>
+</div>
+</div>
+
+<!-- ===== TAB 2: SCENARIOS ===== -->
+<div id="scenarios" class="panel">
+<div class="sec">
+<div class="stitle">Structured Test Scenarios — Fault Envelope Mapping</div>
+<div class="prose" style="margin-bottom:14px">
+These are not standard drive cycles. They are <b>deliberate fault provocation protocols</b> — each scenario is designed to maximise the variance of a specific parameter while logging all channels. The goal is to map the <b>fault envelope</b>: the operating conditions under which G102 resistance causes detectable module errors. This is how Ferrari identified their 458 cascade as occurring only above 7,000 RPM at specific temperatures.
+</div>
+<div class="scenario-grid" id="scenario-grid"></div>
+<div id="scenario-detail" class="card">
+<div class="clabel warn">Click a scenario above to see the detailed protocol</div>
+</div>
+<div class="card" style="margin-top:10px">
+<div class="clabel">Expected correlation signatures by scenario</div>
+<table>
+<thead><tr><th>Scenario</th><th>Primary correlation to find</th><th>Leading indicator</th><th>Lag (expected)</th><th>Fault signature if G102 degraded</th></tr></thead>
+<tbody>
+<tr><td class="mono" style="color:var(--r2)">CS-01</td><td>Battery V-sag → BSM comm error counter</td><td>V-sag during crank</td><td>50–180 ms</td><td>V-sag >0.8V correlates with BSM error spike r>0.85</td></tr>
+<tr><td class="mono" style="color:var(--r2)">CS-02</td><td>Electrical load → CAN error rate</td><td>Load current rise</td><td>200–500 ms</td><td>Error rate rises monotonically with load, not with speed</td></tr>
+<tr><td class="mono" style="color:var(--a2)">CS-03</td><td>Temperature → resistance proxy</td><td>Ambient temp drop</td><td>10–30 min</td><td>Error frequency higher in cold vs warm = R increases with cold</td></tr>
+<tr><td class="mono" style="color:var(--a2)">CS-04</td><td>Rain/humidity event → immediate error rate</td><td>Wiper activation</td><td>0–60 s</td><td>Errors cluster within 60s of wiper-on if moisture is the trigger</td></tr>
+<tr><td class="mono" style="color:var(--g2)">CS-05</td><td>Null test — post repair baseline</td><td>None (should be flat)</td><td>N/A</td><td>All correlations should drop to r<0.2 after G102 cleaned</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- ===== TAB 3: CSV IMPORT ===== -->
+<div id="import" class="panel">
+<div class="sec">
+<div class="stitle">CSV Import and Signal Analysis</div>
+<div class="upload-zone" id="upload-zone" onclick="document.getElementById('csv-input').click()"
+  ondragover="event.preventDefault();this.classList.add('drag')"
+  ondragleave="this.classList.remove('drag')"
+  ondrop="handleDrop(event)">
+  <div class="upload-icon">⬆</div>
+  <div style="font-family:var(--mono);font-size:11px;color:var(--t2);margin-bottom:4px">Drop Launch X431 CSV here or click to browse</div>
+  <div style="font-size:10px;color:var(--t3)">Export from: User Info → My Reports → Recorded Data → Export CSV</div>
+  <input type="file" id="csv-input" accept=".csv,.txt" style="display:none" onchange="loadCSV(this)">
+</div>
+
+<div id="demo-bar" style="display:flex;gap:8px;margin-bottom:14px;align-items:center">
+  <button class="btn primary" onclick="loadDemo()">Load Demo Dataset (pre-fault G102 scenario)</button>
+  <button class="btn" onclick="loadDemoClean()">Load Post-Repair Baseline</button>
+  <span style="font-family:var(--mono);font-size:9px;color:var(--t3)">No real X431 data? Use these synthetic datasets to explore the tool</span>
+</div>
+
+<div id="import-stats" class="stat-grid" style="display:none"></div>
+<div id="signal-charts" style="display:none"></div>
+</div>
+</div>
+
+<!-- ===== TAB 4: CORRELATION MATRIX ===== -->
+<div id="corr" class="panel">
+<div class="sec">
+<div class="stitle">Cross-Correlation Matrix — F1 Telemetry Method</div>
+<div class="prose" style="margin-bottom:12px">
+The Pearson correlation coefficient r between every pair of logged channels, computed over the full dataset. <b>r > 0.7 = strong positive</b>, <b>r < -0.7 = strong inverse</b>. The clinically significant finding is when a parameter that <em>should not</em> correlate with another shows r > 0.7 — that is the hidden causal relationship. In a healthy Stelvio, battery voltage and BSM error counter should have r ≈ 0. In a car with G102 degradation, they should correlate strongly. The first time you see that correlation, you have found the fault 3–6 months before a DTC fires.
+</div>
+<div id="corr-container">
+  <div style="font-family:var(--mono);font-size:10px;color:var(--t3);padding:20px;text-align:center">Load a CSV dataset in the Import tab to compute the correlation matrix</div>
+</div>
+</div>
+</div>
+
+<!-- ===== TAB 5: PRE-FAULT DETECTION ===== -->
+<div id="prefault" class="panel">
+<div class="sec">
+<div class="stitle">Pre-Fault Detection — BITE-Inspired Continuous Health Monitoring</div>
+<div class="prose" style="margin-bottom:14px">
+The F-35 ALIS system runs 10,000 parameter health checks per flight and flags parameters trending toward failure thresholds <em>before</em> they cross. This tab applies the same logic to your X431 data. For each monitored parameter, it computes a <b>degradation trend</b> (linear regression slope), a <b>time-to-threshold projection</b>, and a <b>health score</b>. Parameters currently within spec but degrading are flagged as pre-fault conditions — exactly the margin between "no DTC" and "active fault."
+</div>
+<div id="prefault-content">
+  <div style="font-family:var(--mono);font-size:10px;color:var(--t3);padding:20px;text-align:center">Load a CSV dataset in the Import tab to run pre-fault analysis</div>
+</div>
+</div>
+</div>
+
+<!-- ===== TAB 6: PHM WEIBULL TRACKER ===== -->
+<div id="phm" class="panel">
+<div class="sec">
+<div class="stitle">PHM — Prognostics and Health Management · G102 Resistance Weibull Degradation Model</div>
+
+<div class="card">
+<div class="clabel">How to use this tracker</div>
+<div class="prose">
+Each autumn, before salt season, measure G102 resistance with your DVOM (battery negative → G102 bolt head, engine off, Ω mode). Enter the reading below. The tracker fits a Weibull growth curve to your measurements and projects the <b>remaining useful life</b> before G102 crosses the 1.5Ω fire threshold. This converts "inspect periodically" into a <b>science-based maintenance interval</b>.
+</div>
+</div>
+
+<div class="grid2" style="margin-bottom:14px">
+<div class="card">
+<div class="clabel">Add measurement</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+  <div><label style="font-family:var(--mono);font-size:9px;color:var(--t3);display:block;margin-bottom:4px">DATE</label>
+  <input type="date" id="phm-date" style="width:100%" value="2025-04-01"></div>
+  <div><label style="font-family:var(--mono);font-size:9px;color:var(--t3);display:block;margin-bottom:4px">G102 RESISTANCE (Ω)</label>
+  <input type="number" id="phm-r102" step="0.01" min="0" max="5" placeholder="e.g. 0.82"
+    style="font-family:var(--mono);font-size:12px;background:var(--bg3);border:1px solid var(--b2);color:var(--t1);padding:5px 8px;border-radius:3px;width:100%"></div>
+  <div><label style="font-family:var(--mono);font-size:9px;color:var(--t3);display:block;margin-bottom:4px">G103 RESISTANCE (Ω)</label>
+  <input type="number" id="phm-r103" step="0.01" min="0" max="5" placeholder="e.g. 0.55"
+    style="font-family:var(--mono);font-size:12px;background:var(--bg3);border:1px solid var(--b2);color:var(--t1);padding:5px 8px;border-radius:3px;width:100%"></div>
+</div>
+<div style="display:flex;gap:8px">
+  <button class="btn primary" onclick="addPHMMeasurement()">Add Reading</button>
+  <button class="btn" onclick="loadDemoPHM()">Load Demo History (7yr)</button>
+</div>
+</div>
+<div class="card" id="phm-summary">
+<div class="clabel">Model output</div>
+<div style="font-family:var(--mono);font-size:10px;color:var(--t3)">Add at least 2 measurements to compute Weibull model</div>
+</div>
+</div>
+
+<div class="card">
+<div class="clabel">Measurement history + projection</div>
+<canvas id="phm-canvas" width="800" height="280" style="width:100%;height:280px"></canvas>
+</div>
+
+<div class="card">
+<div class="clabel">Weibull model parameters + maintenance decision</div>
+<div id="phm-weibull-output" style="font-family:var(--mono);font-size:10px;color:var(--t3)">Awaiting data...</div>
+</div>
+</div>
+</div>
+
+<!-- ===== TAB 7: X431 GUIDE ===== -->
+<div id="guide" class="panel">
+<div class="sec">
+<div class="stitle">Launch X431 Step-by-Step Setup Guide for Stelvio Telemetry Logging</div>
+<div class="grid2">
+<div>
+<div class="card">
+<div class="clabel warn">Pre-requisites</div>
+<table><tbody>
+<tr><td class="mono" style="color:var(--g2)">✓</td><td>Launch X431 Pro / Pro Elite / PROS Elite</td></tr>
+<tr><td class="mono" style="color:var(--g2)">✓</td><td>FCA AutoAuth account (free registration at autoauth.com)</td></tr>
+<tr><td class="mono" style="color:var(--g2)">✓</td><td>SGW bypass active (required for 2018 Stelvio bi-directional)</td></tr>
+<tr><td class="mono" style="color:var(--a2)">!</td><td>Alfa Romeo software updated to latest version in X431</td></tr>
+<tr><td class="mono" style="color:var(--a2)">!</td><td>System time on X431 tablet set to correct timezone (UTC-5 Toronto)</td></tr>
+</tbody></table>
+</div>
+<div class="card" style="margin-top:10px">
+<div class="clabel">Navigation path for multi-module data stream</div>
+<div style="font-family:var(--mono);font-size:10px;line-height:2;color:var(--t2)">
+<span style="color:var(--acc)">Local Diagnose</span> →<br>
+<span style="color:var(--acc)">Alfa Romeo</span> →<br>
+<span style="color:var(--acc)">Stelvio</span> →<br>
+<span style="color:var(--acc)">2018</span> →<br>
+<span style="color:var(--acc)">Body → BCM (Body Control Module)</span> →<br>
+<span style="color:var(--acc)">Live Data Stream</span> →<br>
+Select BCM PIDs from list →<br>
+<span style="color:var(--acc)">OK</span> → Live Data screen →<br>
+Tap <span style="color:var(--r2)">⬤ REC</span> button (bottom toolbar) →<br>
+Run test scenario (see Scenarios tab) →<br>
+Tap <span style="color:var(--r2)">⬛ STOP</span> →<br>
+<span style="color:var(--acc)">User Info → My Reports → Recorded Data</span> →<br>
+Select session → <span style="color:var(--acc)">Export CSV</span>
+</div>
+</div>
+</div>
+<div>
+<div class="card">
+<div class="clabel">CSV file format — what to expect</div>
+<div style="font-family:var(--mono);font-size:10px;background:var(--bg3);padding:10px;border-radius:3px;line-height:1.8;color:var(--t2)">
+Time,Batt_V,IBS_I,BSM_Err,ECM_CAN_Err,Hdlt_Angle,...<br>
+0.000,12.41,2.1,0,0,2.3,...<br>
+0.250,12.38,2.3,0,0,2.3,...<br>
+0.500,12.35,8.1,0,1,2.3,...<br>
+0.750,12.31,12.4,1,2,2.4,...<br>
+1.000,12.29,14.2,3,4,2.6,...<br>
+...
+</div>
+<div style="font-size:10px;color:var(--t3);margin-top:8px;line-height:1.6">
+The X431 exports one row per sample. Sample rate is approximately 2–4 Hz depending on number of PIDs selected and CAN bus speed. For the 12-PID critical set, expect ~3 Hz. A 20-minute drive at 3 Hz = ~3,600 data rows per PID. This is sufficient for meaningful cross-correlation analysis.
+</div>
+</div>
+<div class="card" style="margin-top:10px">
+<div class="clabel warn">Known X431 export quirks</div>
+<table><tbody>
+<tr><td style="color:var(--a2);font-family:var(--mono);font-size:9px">QUIRK 1</td><td style="font-size:10px">Time column may be missing or in ms not seconds. The import tool handles both formats.</td></tr>
+<tr><td style="color:var(--a2);font-family:var(--mono);font-size:9px">QUIRK 2</td><td style="font-size:10px">Some PIDs update at different rates — sparse columns normal. Tool interpolates linearly.</td></tr>
+<tr><td style="color:var(--a2);font-family:var(--mono);font-size:9px">QUIRK 3</td><td style="font-size:10px">Column headers may include units in brackets — e.g. "Battery_Voltage(V)". Tool strips these.</td></tr>
+<tr><td style="color:var(--a2);font-family:var(--mono);font-size:9px">QUIRK 4</td><td style="font-size:10px">.x431 binary files require the Launch PC software to export to CSV first. Cannot be dropped directly.</td></tr>
+<tr><td style="color:var(--g2);font-family:var(--mono);font-size:9px">TIP</td><td style="font-size:10px">Use the Demo Dataset button on the Import tab to explore all analysis features without real data.</td></tr>
+</tbody></table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+</div><!-- panels -->
+</div><!-- app -->
+
+<script>
+// ===== TAB SWITCHING =====
+function sw(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  event.target.classList.add('on');
+}
+
+// ===== PID DATA =====
+const PIDS=[
+  {id:'P01',name:'Battery Voltage (IBS)',module:'BCM',unit:'V',priority:'critical',
+   note:'Primary supply reference. Sag during crank is the leading indicator for G102-induced errors.',
+   threshold_low:11.8,threshold_high:14.8},
+  {id:'P02',name:'IBS Sensor Current Draw',module:'BCM',unit:'A',priority:'critical',
+   note:'Total electrical load. Cross-correlate with error counters to separate load-induced vs. resistance-induced faults.'},
+  {id:'P03',name:'BSM CAN Error Counter',module:'ABS/BSM',unit:'count',priority:'critical',
+   note:'PRIMARY FAULT INDICATOR. Increments when G102 V-drop corrupts CAN-L reference. Leading by 100-300ms vs DTC.',
+   threshold_high:3},
+  {id:'P04',name:'ECM CAN Communication Status',module:'ECM',unit:'flag',priority:'critical',
+   note:'Boolean: 0=OK, 1=error. Fires after BSM counter, confirming cascade. Use as confirmation, not trigger.'},
+  {id:'P05',name:'Alternator Output Voltage',module:'ECM',unit:'V',priority:'critical',
+   note:'Distinguishes charging system fault from ground fault. Should stay 13.8-14.4V. If low = alternator. If normal + errors = ground.'},
+  {id:'P06',name:'Headlight LH Leveling Angle',module:'BCM',unit:'deg',priority:'critical',
+   note:'Should be stable ±0.5° in normal operation. Drift or steps = G102 reference floating the potentiometer.'},
+  {id:'P07',name:'BCM Ground Integrity Flag',module:'BCM',unit:'flag',priority:'critical',
+   note:'Some BCM firmware versions expose a ground health flag. Value of 0=OK, 1=degraded. Check if your version reports this.'},
+  {id:'P08',name:'Engine Speed (RPM)',module:'ECM',unit:'rpm',priority:'critical',
+   note:'Control variable. Isolates load-induced (rpm-correlated) from resistance-induced (load-correlated but not RPM-correlated) errors.'},
+  {id:'P09',name:'Battery Voltage at ECM Reference',module:'ECM',unit:'V',priority:'critical',
+   note:'Compare to P01. If ECM reads lower than IBS = voltage drop in supply path. If same but errors = ground path.'},
+  {id:'P10',name:'CAN Bus Error Frame Count',module:'SGW',unit:'count',priority:'critical',
+   note:'SGW aggregates CAN errors from all buses. Rising count during load cycles = ground offset on CAN physical layer.',
+   threshold_high:5},
+  {id:'P11',name:'ETM Module Status',module:'BCM',unit:'flag',priority:'critical',
+   note:'BCM reports ETM communication status. Goes to "missing" (U1736) when CAN-B reference floats past threshold.'},
+  {id:'P12',name:'Coolant Temperature',module:'ECM',unit:'°C',priority:'critical',
+   note:'Temperature normalisation variable. Cold engine = higher resistance. Essential for separating temp vs corrosion effects.'},
+  {id:'P13',name:'Throttle Position (%)',module:'ECM',unit:'%',priority:'important',
+   note:'Load proxy. High throttle = high injector + ignition current = higher load on ground return path.'},
+  {id:'P14',name:'Fuel Injector Duty Cycle',module:'ECM',unit:'%',priority:'important',
+   note:'More precise load proxy than throttle. Injector current spikes are synchronous with CAN error opportunities.'},
+  {id:'P15',name:'ABS Wheel Speed FL',module:'ABS/BSM',unit:'kph',priority:'important',
+   note:'Cross-correlate with BSM error counter. Errors that cluster at specific speeds = vibration-induced (loose connector). Non-speed-dependent = resistance.'},
+  {id:'P16',name:'Brake Pedal Pressure',module:'ABS/BSM',unit:'bar',priority:'important',
+   note:'Brake circuit activates brake lights (additional load) and BSM hydraulics. Errors clustering with braking = G102 path.'},
+  {id:'P17',name:'Driver Door Module Status',module:'BCM',unit:'flag',priority:'important',
+   note:'0=online, 1=offline. Tracks G103 LIN bus reference. Should be constantly online. Dropout = G103 degraded.'},
+  {id:'P18',name:'Driver Speaker Amp Status',module:'ETM',unit:'flag',priority:'important',
+   note:'If ETM exposes amp health status. Goes offline when G103 amp ground reference fails.'},
+  {id:'P19',name:'Ignition Voltage',module:'ECM',unit:'V',priority:'important',
+   note:'Vs. battery voltage. Voltage drop = resistance in ignition circuit. Compare to battery to isolate supply vs. ground.'},
+  {id:'P20',name:'HVAC Blower Motor Speed',module:'BCM',unit:'rpm',priority:'important',
+   note:'High current load (up to 20A). Turning blower to max during test creates maximum load for G102 stress test.'},
+  {id:'P21',name:'Ambient Air Temperature',module:'ECM',unit:'°C',priority:'normal',
+   note:'Critical for seasonal analysis. Lower temp = denser electrolyte in corrosion = higher resistance.'},
+  {id:'P22',name:'Wiper Status',module:'BCM',unit:'flag',priority:'normal',
+   note:'Wiper ON = rain = moisture on loom. Cross-correlate errors with wiper-on events to confirm moisture trigger.'},
+  {id:'P23',name:'Seat Heater Status',module:'BCM',unit:'flag',priority:'normal',
+   note:'Additional load source. ~8A per seat. Useful for maximum-load scenario (CS-02).'},
+  {id:'P24',name:'Rear Defrost Status',module:'BCM',unit:'flag',priority:'normal',
+   note:'~20A load. Highest single non-starter load. Activating during logging maximises G102 V-drop.'},
+  {id:'P25',name:'Steering Angle',module:'BCM',unit:'deg',priority:'normal',
+   note:'Cross-correlate errors with steering angle. Errors at specific angles = chafed harness at steering column.'},
+  {id:'P26',name:'Vehicle Speed',module:'ABS/BSM',unit:'kph',priority:'normal',
+   note:'Cross-correlate with error rate. Speed-correlated errors = vibration source. Load-correlated = resistance source.'},
+  {id:'P27',name:'Transmission Gear',module:'TCM',unit:'gear',priority:'normal',
+   note:'Gear selection changes TCM load. Cross-correlate U1960 (TCM signal protection) with gear to isolate G1 terminal issue.'},
+  {id:'P28',name:'Short-Term Fuel Trim',module:'ECM',unit:'%',priority:'normal',
+   note:'EVAP-related. Cross-correlate with P0440/P0456 to determine if EVAP codes are G102-secondary or independent.'},
+];
+
+let selectedPIDs=new Set(PIDS.filter(p=>p.priority==='critical').map(p=>p.id));
+
+function renderPIDs(){
+  const list=document.getElementById('pid-list');
+  const priorityOrder={critical:0,important:1,normal:2};
+  const sorted=[...PIDS].sort((a,b)=>priorityOrder[a.priority]-priorityOrder[b.priority]);
+  list.innerHTML=sorted.map(p=>{
+    const sel=selectedPIDs.has(p.id);
+    const rowClass=p.priority==='critical'?'pid-row critical':p.priority==='important'?'pid-row important':'pid-row';
+    const priColor=p.priority==='critical'?'var(--r2)':p.priority==='important'?'var(--a2)':'var(--t3)';
+    return `<div class="${rowClass}${sel?' selected':''}" onclick="togglePID('${p.id}')">
+      <div class="pid-check${sel?' checked':''}">${sel?'✓':''}</div>
+      <div class="pid-name" style="color:${sel?'var(--t1)':'var(--t2)'}">${p.name}</div>
+      <div class="pid-module" style="color:${priColor}">${p.module}</div>
+      <div class="pid-unit">${p.unit}</div>
+      <div style="width:50px;text-align:right"><span class="badge ${p.priority==='critical'?'br':p.priority==='important'?'ba':'bn'}">${p.priority.toUpperCase()}</span></div>
+    </div>
+    <div style="font-size:10px;color:var(--t3);padding:2px 8px 6px 30px;border-bottom:1px solid var(--b1)">${p.note}</div>`;
+  }).join('');
+  document.getElementById('pid-count').textContent=selectedPIDs.size;
+}
+
+function togglePID(id){
+  if(selectedPIDs.has(id))selectedPIDs.delete(id);
+  else selectedPIDs.add(id);
+  renderPIDs();
+}
+
+function selectAll(mode){
+  if(mode==='none')selectedPIDs.clear();
+  else if(mode==='critical')selectedPIDs=new Set(PIDS.filter(p=>p.priority==='critical').map(p=>p.id));
+  else selectedPIDs=new Set(PIDS.map(p=>p.id));
+  renderPIDs();
+}
+
+// ===== SCENARIOS =====
+const SCENARIOS=[
+  {id:'CS-01',title:'Cold Start Stress Test',priority:'critical',duration:'15 min',
+   label:'Cold soak → crank → idle → drive',color:'var(--r2)',
+   steps:['Park overnight (min 4hr soak at ambient temp)','Connect X431. Start recording BEFORE starting engine.','All electrical loads OFF initially (baseline)','Start engine. Capture full crank sequence.','Observe first 30 seconds idle — all loads still off.','Activate: headlights → seat heater L → blower max → rear defrost','Hold max load for 5 minutes. Watch for BSM error spikes vs battery V-sag.','Drive 10km mixed urban.','Return, stop engine, stop recording.',
+    'EXPECTED FINDING: If G102 degraded — BSM error counter spikes within 150ms of battery V-sag during crank or blower max activation.']},
+  {id:'CS-02',title:'Maximum Load Sweep',priority:'critical',duration:'20 min',
+   label:'Systematic load increase',color:'var(--r2)',
+   steps:['Engine running. Start recording.','Loads all OFF. Record 2 min baseline.','Add load 1: Headlights. Record 2 min.','Add load 2: Rear defrost (highest load ~20A). Record 2 min.','Add load 3: Seat heater driver. Record 2 min.','Add load 4: HVAC blower max. Record 2 min.','Maintain maximum load. Drive 5km. Record.','Turn all loads OFF. Record 2 min.','Repeat add-load sequence. Confirm correlation is repeatable.',
+    'EXPECTED FINDING: Each load step should increase CAN error rate proportionally to load current if G102 is the path. Removing loads should immediately reduce errors.']},
+  {id:'CS-03',title:'Temperature Sensitivity Test',priority:'important',duration:'2 sessions',
+   label:'Cold morning vs. warm afternoon',color:'var(--a2)',
+   steps:['Session A: Record a CS-02 load sweep on a cold morning (ambient <5°C).','Session B: Record identical CS-02 sweep on same day, warm afternoon (ambient >15°C).','Compare: error rate at equivalent load in cold vs warm sessions.',
+    'EXPECTED FINDING: Cold session shows higher error rate at same load = G102 resistance increases with temperature drop (zinc oxide conductivity is temperature-dependent). This is Weibull seasonal evidence.']},
+  {id:'CS-04',title:'Rain Event Correlation',priority:'important',duration:'1 rain event',
+   label:'Real-rain trigger test',color:'var(--a2)',
+   steps:['Wait for sustained rain forecast.','Before leaving garage: start recording. All loads ON including wipers.','Drive in rain for 20 min — normal mixed driving.','Park for 10 min engine running in rain.','Return to dry garage. Continue recording 10 more min.',
+    'EXPECTED FINDING: If scuttle overflow is active — errors cluster within first 5 minutes of rain exposure, then may increase as water accumulates on loom. Errors may persist for 10-20 min after parking (loom still wet).']},
+  {id:'CS-05',title:'Post-Repair Null Test',priority:'normal',duration:'20 min',
+   label:'Baseline confirmation after CA-01',color:'var(--g2)',
+   steps:['After G102 and G103 cleaning. Battery reset performed.','Run identical CS-02 load sweep.','All correlations should be r < 0.2.','BSM error counter should stay at 0 throughout.',
+    'EXPECTED FINDING: Complete absence of load-correlated CAN errors. Battery voltage sag during load does NOT correlate with BSM errors. Headlight angle stable. This is your before/after proof.']},
+  {id:'CS-06',title:'Vibration Isolation Test',priority:'normal',duration:'20 min',
+   label:'Speed vs. vibration vs. load',color:'var(--b2)',
+   steps:['Drive constant low speed (30 kph) in a circle. Record.','Drive constant medium speed (80 kph) straight. Record.','Drive over rough surface at constant load. Record.','Compare: errors that appear at specific speeds = vibration/chafed connector. Errors that appear with load regardless of speed = resistance.',
+    'EXPECTED FINDING: G102/G103 resistance-induced errors are load-dependent and speed-independent. A chafed or loose connector is speed/vibration-dependent. This test separates the two failure modes definitively.']},
+];
+
+function renderScenarios(){
+  const grid=document.getElementById('scenario-grid');
+  grid.innerHTML=SCENARIOS.map(s=>`
+    <div class="scenario-btn" id="sb-${s.id}" onclick="showScenario('${s.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+        <div class="scenario-title" style="color:${s.color}">${s.id}: ${s.title}</div>
+        <span class="badge ${s.priority==='critical'?'br':s.priority==='important'?'ba':'bg'}">${s.priority}</span>
+      </div>
+      <div class="scenario-desc">${s.label} · ${s.duration}</div>
+    </div>`).join('');
+}
+
+function showScenario(id){
+  document.querySelectorAll('.scenario-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sb-'+id).classList.add('active');
+  const s=SCENARIOS.find(x=>x.id===id);
+  document.getElementById('scenario-detail').innerHTML=`
+    <div class="clabel" style="color:${s.color}">${s.id} — ${s.title}</div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <span class="badge ${s.priority==='critical'?'br':s.priority==='important'?'ba':'bg'}">${s.priority.toUpperCase()}</span>
+      <span class="badge bn">Duration: ${s.duration}</span>
+      <span class="badge bb">${s.label}</span>
+    </div>
+    <ol style="list-style:none;counter-reset:step">
+    ${s.steps.map((step,i)=>{
+      const isNote=step.startsWith('EXPECTED');
+      return `<li style="counter-increment:step;display:flex;gap:8px;margin-bottom:6px;font-size:11px;line-height:1.5">
+        <span style="font-family:var(--mono);font-size:9px;font-weight:600;width:18px;height:18px;border-radius:50%;background:${isNote?'var(--gbg)':'var(--bg3)'};border:1px solid ${isNote?'rgba(58,158,104,.3)':'var(--b2)'};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${isNote?'var(--g2)':'var(--t3)'}">${isNote?'★':i+1}</span>
+        <span style="color:${isNote?'var(--g2)':'var(--t2)'}">${step}</span></li>`;
+    }).join('')}
+    </ol>`;
+}
+
+// ===== DEMO DATA GENERATION =====
+function generateDemo(faulted=true){
+  const n=600; // ~200 seconds at 3Hz
+  const rows=[];
+  for(let i=0;i<n;i++){
+    const t=i/3;
+    const rpm=1500+800*Math.sin(t/30)+200*(Math.random()-.5);
+    const batt_v=13.8-0.002*rpm/100+(faulted?-0.3*Math.sin(t/8):0)+(Math.random()-.5)*0.08;
+    const load=0.3+0.5*Math.abs(Math.sin(t/40));
+    const g102r=faulted?0.85+0.1*Math.sin(t/60):0.02;
+    const vdrop=load*8*g102r;
+    const can_err=faulted?Math.max(0,Math.round((vdrop-0.4)*8+(Math.random()-.5)*2)):0;
+    const bsm_err=faulted?Math.max(0,Math.round((vdrop-0.5)*6+(Math.random()-.5)*1.5)):0;
+    const hdlt=faulted?2.3+g102r*(Math.random()*.8):2.3+(Math.random()-.5)*0.1;
+    const coolant=50+t*0.05;
+    rows.push({t:t.toFixed(2),batt_v:batt_v.toFixed(3),rpm:Math.round(rpm),load:load.toFixed(2),
+              can_err:can_err,bsm_err:bsm_err,hdlt:hdlt.toFixed(2),coolant:coolant.toFixed(1),
+              wiper:t>80&&t<160?1:0,blower:t>50&&t<180?8:2});
+  }
+  return rows;
+}
+
+let currentData=null;
+
+function loadDemo(){currentData=generateDemo(true);processData('Pre-fault G102 scenario (synthetic — G102 ≈ 0.85Ω)');}
+function loadDemoClean(){currentData=generateDemo(false);processData('Post-repair baseline (synthetic — G102 ≈ 0.02Ω)');}
+
+function loadCSV(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const lines=e.target.result.split('\n').filter(l=>l.trim());
+    const headers=lines[0].split(',').map(h=>h.trim().replace(/\([^)]+\)/g,'').trim());
+    const rows=lines.slice(1).map(line=>{
+      const vals=line.split(',');
+      const obj={};
+      headers.forEach((h,i)=>{obj[h]=parseFloat(vals[i])||vals[i]});
+      return obj;
+    }).filter(r=>Object.keys(r).length>1);
+    currentData=rows;
+    processData(file.name);
+  };
+  reader.readAsText(file);
+}
+
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file=e.dataTransfer.files[0];
+  if(file){const input={files:[file]};loadCSV(input);}
+}
+
+function processData(label){
+  const data=currentData;
+  if(!data||data.length<10)return;
+  const keys=Object.keys(data[0]).filter(k=>k!=='t'&&!isNaN(parseFloat(data[0][k])));
+  
+  // Stats
+  const statsDiv=document.getElementById('import-stats');
+  statsDiv.style.display='grid';
+  statsDiv.innerHTML=`
+    <div class="stat-box"><div class="stat-label">Dataset</div><div class="stat-val" style="font-size:13px;color:var(--acc)">${label.substring(0,30)}</div><div class="stat-sub">${data.length} samples</div></div>
+    <div class="stat-box"><div class="stat-label">Channels</div><div class="stat-val" style="color:var(--b2)">${keys.length}</div><div class="stat-sub">numeric PIDs logged</div></div>
+    <div class="stat-box"><div class="stat-label">Duration</div><div class="stat-val" style="color:var(--g2)">${(data.length/3).toFixed(0)}s</div><div class="stat-sub">at ~3Hz sample rate</div></div>
+    <div class="stat-box"><div class="stat-label">Max CAN Errors</div>
+      <div class="stat-val" style="color:${Math.max(...data.map(r=>+(r.can_err||0)))>2?'var(--r2)':'var(--g2)'}">${Math.max(...data.map(r=>+(r.can_err||0)))}</div>
+      <div class="stat-sub">${Math.max(...data.map(r=>+(r.can_err||0)))>2?'FAULT DETECTED':'Normal range'}</div></div>`;
+
+  // Signal chart
+  const chartDiv=document.getElementById('signal-charts');
+  chartDiv.style.display='block';
+  chartDiv.innerHTML=`
+    <div class="card"><div class="clabel">Signal overview — key channels</div>
+    <canvas id="sig-canvas" width="800" height="220" style="width:100%;height:220px"></canvas></div>`;
+  
+  setTimeout(()=>{
+    const c=document.getElementById('sig-canvas');
+    if(!c)return;
+    c.width=c.offsetWidth*2;c.height=440;
+    const ctx=c.getContext('2d');
+    drawSignals(ctx,c.width,c.height,data);
+  },100);
+
+  // Compute correlations and update other tabs
+  computeCorrelations(data,keys);
+  computePreFault(data);
+}
+
+function drawSignals(ctx,w,h,data){
+  const channels=['batt_v','can_err','bsm_err','hdlt'];
+  const colors=['#5ba0e8','#ff6b6a','#f0a030','#4ec87e'];
+  const labels=['Battery V','CAN Errors','BSM Errors','Hdlt Angle'];
+  ctx.fillStyle='#121412';ctx.fillRect(0,0,w,h);
+  const n=data.length;
+  channels.forEach((ch,ci)=>{
+    const vals=data.map(r=>+r[ch]||0);
+    const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
+    const yOffset=ci*(h/4)+10,yH=h/4-20;
+    ctx.strokeStyle=colors[ci];ctx.lineWidth=1.5;ctx.beginPath();
+    vals.forEach((v,i)=>{
+      const x=i/n*w,y=yOffset+yH-(v-mn)/range*yH;
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+    ctx.fillStyle=colors[ci];ctx.font='bold 22px IBM Plex Mono,monospace';
+    ctx.fillText(labels[ci],10,yOffset+16);
+    const avg=(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2);
+    ctx.fillStyle='rgba(180,190,180,0.5)';ctx.font='18px IBM Plex Mono,monospace';
+    ctx.fillText(`avg: ${avg}  max: ${Math.max(...vals).toFixed(2)}`,10,yOffset+yH-4);
+  });
+}
+
+function computeCorrelations(data,keys){
+  const chans=keys.slice(0,10);
+  const matrix={};
+  chans.forEach(a=>{
+    matrix[a]={};
+    chans.forEach(b=>{
+      const va=data.map(r=>+r[a]||0);
+      const vb=data.map(r=>+r[b]||0);
+      matrix[a][b]=pearson(va,vb);
+    });
+  });
+
+  const container=document.getElementById('corr-container');
+  const cellSize=Math.min(52,Math.floor((Math.min(window.innerWidth-60,900))/chans.length));
+  
+  let html=`<div style="overflow-x:auto"><div style="display:inline-flex;flex-direction:column;gap:2px">`;
+  // Header row
+  html+=`<div style="display:flex;gap:2px;margin-left:${cellSize+8}px">`;
+  chans.forEach(c=>{html+=`<div style="width:${cellSize}px;font-family:var(--mono);font-size:8px;color:var(--t3);text-align:center;overflow:hidden;white-space:nowrap">${c.substring(0,6)}</div>`});
+  html+=`</div>`;
+  
+  chans.forEach(a=>{
+    html+=`<div style="display:flex;gap:2px;align-items:center">`;
+    html+=`<div style="width:${cellSize}px;margin-right:8px;font-family:var(--mono);font-size:8px;color:var(--t3);text-align:right;overflow:hidden;white-space:nowrap">${a.substring(0,8)}</div>`;
+    chans.forEach(b=>{
+      const r=matrix[a][b];
+      const abs=Math.abs(r);
+      const intensity=Math.round(abs*255);
+      const bg=a===b?`rgba(80,90,80,0.3)`:
+        r>0.7?`rgba(226,75,74,${abs*0.7})`:
+        r<-0.7?`rgba(58,126,196,${abs*0.7})`:
+        r>0.4?`rgba(212,137,26,${abs*0.5})`:
+        `rgba(50,60,50,0.3)`;
+      const tc=abs>0.5?'var(--wh)':'var(--t3)';
+      const title=`${a} vs ${b}: r=${r.toFixed(3)}`;
+      html+=`<div title="${title}" style="width:${cellSize}px;height:${cellSize}px;background:${bg};display:flex;align-items:center;justify-content:center;border-radius:2px;font-family:var(--mono);font-size:8px;color:${tc};cursor:help;transition:opacity .2s">${r.toFixed(2)}</div>`;
+    });
+    html+=`</div>`;
+  });
+  html+=`</div></div>`;
+  
+  html+=`<div class="card" style="margin-top:12px">
+    <div class="clabel">Key correlation findings</div>
+    <div id="corr-findings"></div></div>`;
+  
+  container.innerHTML=html;
+  
+  // Find significant correlations
+  const findings=[];
+  chans.forEach(a=>{
+    chans.forEach(b=>{
+      if(a>=b)return;
+      const r=matrix[a][b];
+      if(Math.abs(r)>0.6){
+        const unexpected=!((a==='rpm'&&b==='batt_v')||(a==='load'&&b==='batt_v'));
+        findings.push({a,b,r,unexpected});
+      }
+    });
+  });
+  findings.sort((x,y)=>Math.abs(y.r)-Math.abs(x.r));
+  
+  const fd=document.getElementById('corr-findings');
+  if(fd) fd.innerHTML=findings.slice(0,8).map(f=>{
+    const sig=Math.abs(f.r)>0.7?'STRONG':'MODERATE';
+    const col=Math.abs(f.r)>0.7?'var(--r2)':'var(--a2)';
+    const badge=f.unexpected?`<span class="badge br">UNEXPECTED — INVESTIGATE</span>`:`<span class="badge bn">expected</span>`;
+    return `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--b1);align-items:center;font-size:11px">
+      <span class="badge ${Math.abs(f.r)>0.7?'br':'ba'}">${sig}</span>
+      <span style="font-family:var(--mono);color:var(--t1)">${f.a} ↔ ${f.b}</span>
+      <span style="font-family:var(--mono);color:${col}">r = ${f.r.toFixed(3)}</span>
+      ${badge}
+    </div>`;
+  }).join('') || '<div style="color:var(--t3);font-size:11px">No significant correlations found (all |r| < 0.6)</div>';
+}
+
+function pearson(a,b){
+  const n=Math.min(a.length,b.length);
+  const ma=a.slice(0,n).reduce((s,v)=>s+v,0)/n;
+  const mb=b.slice(0,n).reduce((s,v)=>s+v,0)/n;
+  let num=0,da=0,db=0;
+  for(let i=0;i<n;i++){
+    const dA=a[i]-ma,dB=b[i]-mb;
+    num+=dA*dB;da+=dA*dA;db+=dB*dB;
+  }
+  return da*db===0?0:num/Math.sqrt(da*db);
+}
+
+function computePreFault(data){
+  const params=[
+    {key:'batt_v',name:'Battery Voltage',unit:'V',warnLow:12.0,critLow:11.5,direction:'low',
+     desc:'Should stay >12.5V at idle. Trending down = alternator or parasitic drain.'},
+    {key:'can_err',name:'CAN Error Rate',unit:'cnt',warnHigh:2,critHigh:5,direction:'high',
+     desc:'Should be 0 when healthy. Any positive trend = ground degradation in progress.'},
+    {key:'bsm_err',name:'BSM Error Counter',unit:'cnt',warnHigh:1,critHigh:3,direction:'high',
+     desc:'BSM comm errors. First module to show G102 degradation. Trend >0 is pre-fault.'},
+    {key:'hdlt',name:'Headlight LH Angle',unit:'°',warnDrift:0.5,critDrift:1.5,direction:'drift',
+     desc:'Should be stable ±0.3°. Any drift or steps = G102 potentiometer reference shifting.'},
+    {key:'load',name:'Electrical Load',unit:'norm',warnHigh:0.9,critHigh:1.0,direction:'high',
+     desc:'Normalised electrical load. High constant load + errors = resistance-induced fault.'},
+  ];
+  
+  const div=document.getElementById('prefault-content');
+  div.innerHTML=params.map(p=>{
+    const vals=data.map(r=>+r[p.key]||0).filter(v=>!isNaN(v));
+    if(!vals.length)return '';
+    const avg=vals.reduce((a,b)=>a+b,0)/vals.length;
+    const max=Math.max(...vals);
+    const min=Math.min(...vals);
+    const range=max-min;
+    // Trend (linear regression slope)
+    const n=vals.length;
+    const sumX=n*(n-1)/2;
+    const sumX2=n*(n-1)*(2*n-1)/6;
+    const sumY=vals.reduce((a,b)=>a+b,0);
+    const sumXY=vals.reduce((a,b,i)=>a+b*i,0);
+    const slope=(n*sumXY-sumX*sumY)/(n*sumX2-sumX*sumX);
+    
+    // Health score 0-100
+    let health=100,status='OK',statusColor='var(--g2)',trending='stable';
+    if(Math.abs(slope)>0.001*avg)trending=slope>0?'increasing':'decreasing';
+    
+    if(p.direction==='high'){
+      const thresh=p.warnHigh;
+      if(avg>p.critHigh){health=10;status='CRITICAL';statusColor='var(--r2)';}
+      else if(avg>thresh){health=40;status='WARNING';statusColor='var(--a2)';}
+      else if(trending==='increasing'){health=70;status='PRE-FAULT';statusColor='var(--a2)';}
+    }else if(p.direction==='low'){
+      if(avg<p.critLow){health=10;status='CRITICAL';statusColor='var(--r2)';}
+      else if(avg<p.warnLow){health=40;status='WARNING';statusColor='var(--a2)';}
+      else if(trending==='decreasing'){health=70;status='PRE-FAULT';statusColor='var(--a2)';}
+    }else if(p.direction==='drift'){
+      if(range>p.critDrift){health=10;status='CRITICAL';statusColor='var(--r2)';}
+      else if(range>p.warnDrift){health=40;status='WARNING';statusColor='var(--a2)';}
+    }
+    
+    const slopePerMin=slope*3*60;
+    const healthBarW=health+'%';
+    const healthBarC=health<30?'var(--r2)':health<70?'var(--a2)':'var(--g2)';
+    
+    return `<div class="card" style="border-left:3px solid ${statusColor};margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div>
+          <span style="font-family:var(--mono);font-size:12px;font-weight:600;color:var(--wh)">${p.name}</span>
+          <span style="font-family:var(--mono);font-size:9px;color:var(--t3);margin-left:8px">${p.key}</span>
+        </div>
+        <span class="badge ${status==='OK'?'bg':status==='PRE-FAULT'?'ba':'br'}">${status}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px">
+        <div><div style="font-family:var(--mono);font-size:9px;color:var(--t3)">CURRENT AVG</div>
+          <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:${statusColor}">${avg.toFixed(3)}<span style="font-size:10px;color:var(--t3)"> ${p.unit}</span></div></div>
+        <div><div style="font-family:var(--mono);font-size:9px;color:var(--t3)">RANGE</div>
+          <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:var(--t1)">${range.toFixed(3)}</div></div>
+        <div><div style="font-family:var(--mono);font-size:9px;color:var(--t3)">TREND/MIN</div>
+          <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:${trending!=='stable'?'var(--a2)':'var(--t3)'}">
+          ${slopePerMin>0?'+':''}${slopePerMin.toFixed(4)}</div></div>
+        <div><div style="font-family:var(--mono);font-size:9px;color:var(--t3)">HEALTH SCORE</div>
+          <div style="font-family:var(--mono);font-size:15px;font-weight:600;color:${healthBarC}">${health}%</div></div>
+      </div>
+      <div style="height:4px;background:var(--b1);border-radius:2px;margin-bottom:8px">
+        <div style="height:100%;width:${healthBarW};background:${healthBarC};border-radius:2px;transition:width 0.5s"></div>
+      </div>
+      <div style="font-size:10px;color:var(--t3)">${p.desc}</div>
+    </div>`;
+  }).join('');
+}
+
+// ===== PHM WEIBULL TRACKER =====
+let phmData=[]; // [{date, r102, r103}]
+
+function loadDemoPHM(){
+  phmData=[
+    {date:'2019-10-01',r102:0.02,r103:0.02,label:'Factory fresh'},
+    {date:'2020-10-01',r102:0.05,r103:0.04,label:'Year 2'},
+    {date:'2021-10-01',r102:0.12,r103:0.08,label:'Year 3'},
+    {date:'2022-10-01',r102:0.24,r103:0.15,label:'Year 4'},
+    {date:'2023-10-01',r102:0.45,r103:0.28,label:'Year 5 — first DTCs stored'},
+    {date:'2024-10-01',r102:0.78,r103:0.52,label:'Year 6 — active DTCs'},
+    {date:'2025-04-01',r102:0.85,r103:0.58,label:'NOW — current measurement'},
+  ];
+  renderPHM();
+}
+
+function addPHMMeasurement(){
+  const d=document.getElementById('phm-date').value;
+  const r102=parseFloat(document.getElementById('phm-r102').value);
+  const r103=parseFloat(document.getElementById('phm-r103').value);
+  if(!d||isNaN(r102))return;
+  phmData.push({date:d,r102:r102,r103:r103||null,label:'Manual reading'});
+  phmData.sort((a,b)=>a.date.localeCompare(b.date));
+  renderPHM();
+}
+
+function renderPHM(){
+  if(phmData.length<2)return;
+  const canvas=document.getElementById('phm-canvas');
+  canvas.width=canvas.offsetWidth*2||1600;
+  canvas.height=560;
+  const ctx=canvas.getContext('2d');
+  drawPHM(ctx,canvas.width,canvas.height);
+  updatePHMSummary();
+}
+
+function drawPHM(ctx,w,h){
+  const pad={l:80,r:200,t:30,b:50};
+  const cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  ctx.fillStyle='#121412';ctx.fillRect(0,0,w,h);
+  
+  const FIRE=1.5, WARN=0.8, ACTION=0.5;
+  const dates=phmData.map(d=>new Date(d.date).getTime());
+  const dMin=Math.min(...dates),dMax=Math.max(...dates);
+  const futurePad=(dMax-dMin)*0.6;
+  const xMax=dMax+futurePad;
+  
+  const toX=d=>(d-dMin)/(xMax-dMin)*cw+pad.l;
+  const toY=v=>pad.t+ch-Math.min(v/1.8,1)*ch;
+  
+  // Grid
+  ctx.strokeStyle='#222522';ctx.lineWidth=0.5;
+  [0,0.3,0.6,0.9,1.2,1.5,1.8].forEach(v=>{
+    const y=toY(v);
+    ctx.beginPath();ctx.moveTo(pad.l,y);ctx.lineTo(pad.l+cw,y);ctx.stroke();
+    ctx.fillStyle='#454845';ctx.font='20px IBM Plex Mono,monospace';
+    ctx.fillText(v.toFixed(1)+' Ω',8,y+8);
+  });
+  
+  // Threshold zones
+  ctx.fillStyle='rgba(226,75,74,0.06)';ctx.fillRect(pad.l,toY(1.8),cw,toY(FIRE)-toY(1.8));
+  ctx.fillStyle='rgba(212,137,26,0.06)';ctx.fillRect(pad.l,toY(FIRE),cw,toY(WARN)-toY(FIRE));
+  ctx.fillStyle='rgba(200,168,85,0.04)';ctx.fillRect(pad.l,toY(WARN),cw,toY(ACTION)-toY(WARN));
+  
+  // Threshold lines
+  [[FIRE,'#e24b4a','FIRE THRESHOLD'],[WARN,'#d4891a','WARNING'],[ACTION,'#c8a855','ACTION']].forEach(([v,c,l])=>{
+    ctx.strokeStyle=c;ctx.lineWidth=1;ctx.setLineDash([6,4]);
+    ctx.beginPath();ctx.moveTo(pad.l,toY(v));ctx.lineTo(pad.l+cw+80,toY(v));ctx.stroke();
+    ctx.fillStyle=c;ctx.font='bold 18px IBM Plex Mono,monospace';
+    ctx.fillText(l+' '+v+'Ω',pad.l+cw+6,toY(v)+6);
+  });
+  ctx.setLineDash([]);
+  
+  // Weibull fit + projection
+  const r102s=phmData.map(d=>d.r102);
+  const xs=dates.map(d=>(d-dMin)/(1000*60*60*24*365)); // years
+  // Simple power-law fit: R = a * t^b
+  const logX=xs.map(x=>Math.log(Math.max(x,0.01)));
+  const logY=r102s.map(y=>Math.log(Math.max(y,0.001)));
+  const n=logX.length;
+  const sX=logX.reduce((a,b)=>a+b,0);
+  const sY=logY.reduce((a,b)=>a+b,0);
+  const sXY=logX.reduce((a,v,i)=>a+v*logY[i],0);
+  const sX2=logX.reduce((a,v)=>a+v*v,0);
+  const beta=(n*sXY-sX*sY)/(n*sX2-sX*sX);
+  const logA=(sY-beta*sX)/n;
+  const A=Math.exp(logA);
+  
+  // Draw projection curve
+  ctx.strokeStyle='rgba(200,168,85,0.6)';ctx.lineWidth=2;ctx.setLineDash([8,4]);
+  ctx.beginPath();
+  for(let year=0.1;year<10;year+=0.1){
+    const r=A*Math.pow(year,beta);
+    const tMs=dMin+year*365*24*60*60*1000;
+    const x=toX(tMs),y=toY(r);
+    year<0.2?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    if(r>1.8)break;
+  }
+  ctx.stroke();ctx.setLineDash([]);
+  
+  // Time to fire threshold
+  const tFire=Math.pow(FIRE/A,1/beta);
+  const tWarn=Math.pow(WARN/A,1/beta);
+  const tAction=Math.pow(ACTION/A,1/beta);
+  const yearsNow=(dMax-dMin)/(365*24*60*60*1000);
+  
+  // Shade unsafe future
+  const tFireMs=dMin+tFire*365*24*60*60*1000;
+  if(tFireMs<xMax){
+    ctx.fillStyle='rgba(226,75,74,0.04)';
+    ctx.fillRect(toX(tFireMs),pad.t,toX(xMax)-toX(tFireMs),ch);
+  }
+  
+  // Actual G102 data points
+  ctx.strokeStyle='#ff6b6a';ctx.lineWidth=2;ctx.setLineDash([]);
+  ctx.beginPath();
+  phmData.forEach((d,i)=>{
+    const x=toX(new Date(d.date).getTime()),y=toY(d.r102);
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  phmData.forEach(d=>{
+    const x=toX(new Date(d.date).getTime()),y=toY(d.r102);
+    ctx.fillStyle='#ff6b6a';ctx.beginPath();ctx.arc(x,y,5,0,Math.PI*2);ctx.fill();
+  });
+  
+  // G103 data
+  const hasG103=phmData.some(d=>d.r103);
+  if(hasG103){
+    ctx.strokeStyle='#f0a030';ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+    ctx.beginPath();
+    phmData.forEach((d,i)=>{
+      if(!d.r103)return;
+      const x=toX(new Date(d.date).getTime()),y=toY(d.r103);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    });
+    ctx.stroke();ctx.setLineDash([]);
+  }
+  
+  // Year axis labels
+  ctx.fillStyle='#454845';ctx.font='18px IBM Plex Mono,monospace';
+  for(let yr=2019;yr<=2028;yr++){
+    const ms=new Date(yr+'-01-01').getTime();
+    if(ms<dMin||ms>xMax)continue;
+    const x=toX(ms);
+    ctx.fillText(yr,x-20,h-8);
+    ctx.strokeStyle='#1e221e';ctx.lineWidth=0.5;
+    ctx.beginPath();ctx.moveTo(x,pad.t);ctx.lineTo(x,pad.t+ch);ctx.stroke();
+  }
+  
+  // Legend
+  ctx.fillStyle='#ff6b6a';ctx.font='bold 18px IBM Plex Mono,monospace';ctx.fillText('── G102',pad.l,h-28);
+  if(hasG103){ctx.fillStyle='#f0a030';ctx.fillText('── G103',pad.l+120,h-28);}
+  ctx.fillStyle='rgba(200,168,85,0.6)';ctx.fillText('- - Weibull projection',pad.l+240,h-28);
+  
+  // Store results for summary
+  window.phmResults={tFire,tWarn,tAction,yearsNow,A,beta};
+}
+
+function updatePHMSummary(){
+  const r=window.phmResults;
+  if(!r)return;
+  const yearsNow=(new Date('2025-04-01').getTime()-new Date('2019-01-01').getTime())/(365*24*60*60*1000);
+  const rul=r.tFire-yearsNow;
+  const rulMonths=Math.max(0,rul*12);
+  const rulColor=rulMonths<6?'var(--r2)':rulMonths<18?'var(--a2)':'var(--g2)';
+  
+  document.getElementById('phm-summary').innerHTML=`
+    <div class="clabel">Weibull model output</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><div style="font-family:var(--mono);font-size:9px;color:var(--t3)">REMAINING USEFUL LIFE</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:600;color:${rulColor}">${rulMonths.toFixed(1)} months</div>
+        <div style="font-size:10px;color:var(--t3)">to fire threshold (1.5Ω) without service</div></div>
+      <div><div style="font-family:var(--mono);font-size:9px;color:var(--t3)">WEIBULL β (shape)</div>
+        <div style="font-family:var(--mono);font-size:18px;font-weight:600;color:var(--b2)">${r.beta.toFixed(2)}</div>
+        <div style="font-size:10px;color:var(--t3)">${r.beta>2?'Wear-out dominated (β>2)':'Early degradation'}</div></div>
+      <div><div style="font-family:var(--mono);font-size:9px;color:var(--t3)">WARNING THRESHOLD</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--a2)">${new Date(new Date('2019-01-01').getTime()+r.tWarn*365*24*60*60*1000).toLocaleDateString('en-CA',{year:'numeric',month:'short'})}</div>
+        <div style="font-size:10px;color:var(--t3)">0.8Ω action threshold</div></div>
+      <div><div style="font-family:var(--mono);font-size:9px;color:var(--t3)">NEXT SERVICE DUE</div>
+        <div style="font-family:var(--mono);font-size:14px;font-weight:600;color:var(--acc)">Autumn 2025</div>
+        <div style="font-size:10px;color:var(--t3)">Annual V-drop measurement + inspect</div></div>
+    </div>`;
+  
+  document.getElementById('phm-weibull-output').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;font-size:10px;line-height:1.7">
+      <div><b style="color:var(--t1)">Model type:</b> Power-law degradation R = A × t<sup>β</sup><br>
+        <b style="color:var(--t1)">A (scale):</b> ${r.A.toFixed(4)} Ω<br>
+        <b style="color:var(--t1)">β (shape):</b> ${r.beta.toFixed(3)} — ${r.beta>2?'wear-out dominant':'transitional'}<br>
+        <b style="color:var(--t1)">Data points:</b> ${phmData.length} measurements</div>
+      <div><b style="color:var(--t1)">Threshold crossings:</b><br>
+        Action (0.5Ω): ${new Date(new Date('2019-01-01').getTime()+r.tAction*365*24*60*60*1000).toLocaleDateString('en-CA',{year:'numeric',month:'short'})}<br>
+        Warning (0.8Ω): ${new Date(new Date('2019-01-01').getTime()+r.tWarn*365*24*60*60*1000).toLocaleDateString('en-CA',{year:'numeric',month:'short'})}<br>
+        Fire risk (1.5Ω): ${new Date(new Date('2019-01-01').getTime()+r.tFire*365*24*60*60*1000).toLocaleDateString('en-CA',{year:'numeric',month:'short'})}</div>
+      <div><b style="color:var(--t1)">Salt-market maintenance protocol:</b><br>
+        • Measure G102+G103 every autumn before salt season<br>
+        • Service if V-drop >80mV (≈R >0.05Ω under load)<br>
+        • Full ground clean every 2 winters unconditionally<br>
+        • This model updates each time you add a measurement</div>
+    </div>`;
+}
+
+// ===== INIT =====
+renderPIDs();
+renderScenarios();
+showScenario('CS-01');
+</script>
+</body>
+</html>

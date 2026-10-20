@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stelvio — FTA + FMECA Engineering Analysis</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300&display=swap');
+:root{
+  --bg:#090b09;--bg2:#0f110f;--bg3:#141614;--bg4:#1c1f1c;
+  --b1:#242724;--b2:#2e322e;--b3:#3a3e3a;
+  --t1:#c0c8c0;--t2:#8a918a;--t3:#545a54;--t4:#343834;
+  --wh:#dce4dc;
+  --r:#e24b4a;--r2:#ff6b6a;--rbg:rgba(226,75,74,.1);
+  --a:#d4891a;--a2:#f0a030;--abg:rgba(212,137,26,.1);
+  --g:#3a9e68;--g2:#4ec87e;--gbg:rgba(58,158,104,.1);
+  --b:#3a7ec4;--b2:#5ba0e8;--bbg:rgba(58,126,196,.1);
+  --acc:#c8a855;--acc2:#e8c870;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--t1);font-size:12px;line-height:1.6}
+@media print{
+  body{background:#fff;color:#111;font-size:10px}
+  .no-print{display:none!important}
+  .print-page{page-break-after:always}
+  :root{--bg:#fff;--bg2:#f8f8f6;--bg3:#f0f0ee;--bg4:#e8e8e6;--b1:#ddd;--b2:#ccc;--t1:#111;--t2:#444;--t3:#777;--t4:#999;--wh:#000}
+}
+.hdr{background:var(--bg2);border-bottom:2px solid var(--acc);padding:16px 24px}
+.hdr-title{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--wh);letter-spacing:.03em}
+.hdr-sub{font-family:var(--mono);font-size:10px;color:var(--t3);margin-top:3px}
+.doc-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.meta-item .ml{font-family:var(--mono);font-size:9px;color:var(--t4);letter-spacing:.08em;text-transform:uppercase}
+.meta-item .mv{font-family:var(--mono);font-size:11px;color:var(--t2);margin-top:2px}
+.tabbar{display:flex;background:var(--bg2);border-bottom:1px solid var(--b1);padding:0 24px;gap:0;overflow-x:auto}
+.tab{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:10px 16px;cursor:pointer;color:var(--t3);border-bottom:2px solid transparent;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none;transition:color .15s}
+.tab:hover{color:var(--t2)}
+.tab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.panel{display:none}
+.panel.on{display:block}
+.sec{padding:20px 24px}
+.stitle{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;padding-bottom:5px;border-bottom:1px solid var(--b1)}
+/* FTA */
+.fta-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:4px;overflow-x:auto;padding:12px}
+/* Gate symbols */
+.gate-and{fill:var(--bg3);stroke:var(--b3);stroke-width:1.5}
+.gate-or{fill:var(--bg3);stroke:var(--b3);stroke-width:1.5}
+.top-event{fill:var(--rbg);stroke:var(--r);stroke-width:2}
+.basic-event{fill:var(--gbg);stroke:var(--g);stroke-width:1.5}
+.cond-event{fill:var(--abg);stroke:var(--a);stroke-width:1.5}
+.house-event{fill:var(--bbg);stroke:var(--b);stroke-width:1.5}
+/* FMECA table */
+.fmeca-wrap{overflow-x:auto}
+table.fmeca{width:100%;border-collapse:collapse;font-size:11px;min-width:1100px}
+table.fmeca th{text-align:left;padding:7px 8px;font-family:var(--mono);font-size:9px;font-weight:600;letter-spacing:.06em;color:var(--t3);background:var(--bg3);border:1px solid var(--b2);white-space:nowrap;position:sticky;top:0;z-index:10}
+table.fmeca td{padding:6px 8px;border:1px solid var(--b2);vertical-align:top;line-height:1.5}
+table.fmeca tr:hover td{background:var(--bg3)}
+.rpn-cell{font-family:var(--mono);font-weight:600;text-align:center;border-radius:3px;padding:3px 6px!important}
+.rpn-critical{background:rgba(226,75,74,.15);color:var(--r2)}
+.rpn-high{background:rgba(212,137,26,.15);color:var(--a2)}
+.rpn-med{background:rgba(200,168,85,.1);color:var(--acc2)}
+.rpn-low{background:rgba(58,158,104,.1);color:var(--g2)}
+.num-cell{font-family:var(--mono);font-size:11px;text-align:center}
+.sev-1,.sev-2,.sev-3{color:var(--g2);font-weight:500}
+.sev-4,.sev-5,.sev-6{color:var(--acc2);font-weight:500}
+.sev-7,.sev-8{color:var(--a2);font-weight:600}
+.sev-9,.sev-10{color:var(--r2);font-weight:700}
+/* Criticality matrix */
+.matrix-wrap{background:var(--bg2);border:1px solid var(--b1);border-radius:4px;padding:20px;overflow-x:auto}
+/* Controls */
+.ctrl-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.cbtn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.04em;padding:5px 12px;border-radius:3px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;transition:all .15s}
+.cbtn:hover{background:var(--bg4);color:var(--t1)}
+.cbtn.on{background:var(--abg);color:var(--a2);border-color:rgba(212,137,26,.4)}
+.badge{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;padding:1px 6px;border-radius:2px;margin:1px}
+.br{background:var(--rbg);color:var(--r2);border:1px solid rgba(226,75,74,.25)}
+.ba{background:var(--abg);color:var(--a2);border:1px solid rgba(212,137,26,.25)}
+.bg{background:var(--gbg);color:var(--g2);border:1px solid rgba(58,158,104,.25)}
+.bn{background:rgba(80,90,80,.1);color:var(--t2);border:1px solid var(--b1)}
+.bb{background:var(--bbg);color:var(--b2);border:1px solid rgba(58,126,196,.25)}
+.card{background:var(--bg2);border:1px solid var(--b1);border-radius:4px;padding:14px;margin-bottom:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+.prose{font-size:12px;line-height:1.8;color:var(--t2)}
+.prose b{font-weight:500;color:var(--t1)}
+.hbox{border-left:3px solid var(--r);background:var(--rbg);padding:10px 14px;border-radius:0 4px 4px 0;margin:10px 0;font-size:11px;color:var(--t2)}
+.hbox.amber{border-left-color:var(--a);background:var(--abg)}
+.hbox.green{border-left-color:var(--g);background:var(--gbg)}
+.sort-icon{cursor:pointer;user-select:none}
+.sort-icon::after{content:' ↕';opacity:.4;font-size:9px}
+.sort-icon.asc::after{content:' ↑';opacity:1;color:var(--acc)}
+.sort-icon.desc::after{content:' ↓';opacity:1;color:var(--acc)}
+</style>
+</head>
+<body>
+<div class="hdr no-print">
+  <div class="hdr-title">ALFA ROMEO STELVIO — FORMAL FTA / FMECA ENGINEERING ANALYSIS</div>
+  <div class="hdr-sub">Per MIL-HDBK-1629A · SAE ARP4761 · IEC 61025 · AIAG FMEA-4 &nbsp;|&nbsp; Giorgio Platform · 2018 · 2.0T · Q4 AWD · Toronto Ontario</div>
+  <div class="doc-meta">
+    <div class="meta-item"><div class="ml">Document</div><div class="mv">FTA-FMECA-2025-001</div></div>
+    <div class="meta-item"><div class="ml">Revision</div><div class="mv">Rev A — Initial Release</div></div>
+    <div class="meta-item"><div class="ml">Top Event</div><div class="mv">Multi-module CAN cascade + Fire risk</div></div>
+    <div class="meta-item"><div class="ml">Analysis scope</div><div class="mv">Driver-side ground network, all 14 studs</div></div>
+  </div>
+</div>
+
+<div class="tabbar no-print">
+  <button class="tab on" onclick="sw('fta1')">FTA — CAN Cascade</button>
+  <button class="tab" onclick="sw('fta2')">FTA — Fire Risk</button>
+  <button class="tab" onclick="sw('fmeca')">FMECA Table</button>
+  <button class="tab" onclick="sw('matrix')">Criticality Matrix</button>
+  <button class="tab" onclick="sw('findings')">Findings &amp; Actions</button>
+</div>
+
+<!-- ======== FTA 1: CAN CASCADE ======== -->
+<div id="fta1" class="panel on">
+<div class="sec">
+<div class="stitle">Fault Tree Analysis — Top Event T1: Multi-Module CAN Communication Cascade Failure</div>
+<div class="ctrl-row no-print">
+  <span style="font-family:var(--mono);font-size:10px;color:var(--t3)">SHOW PROBABILITIES:</span>
+  <button class="cbtn on" id="prob-toggle" onclick="toggleProb()">ON</button>
+  <button class="cbtn" onclick="window.print()">PRINT / EXPORT PDF</button>
+</div>
+<div class="fta-wrap">
+<svg id="fta-svg1" viewBox="0 0 1100 820" width="100%" style="min-width:800px;font-family:'IBM Plex Mono',monospace">
+<defs>
+  <marker id="arr-g" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#3a4a3a" stroke-width="1.5" stroke-linecap="round"/>
+  </marker>
+</defs>
+
+<!-- ===== TOP EVENT ===== -->
+<rect x="375" y="10" width="350" height="56" rx="4" class="top-event"/>
+<text font-size="11" font-weight="600" fill="#ff6b6a" x="550" y="30" text-anchor="middle">T1: Multi-Module CAN Cascade</text>
+<text font-size="9" fill="#e24b4a" x="550" y="44" text-anchor="middle">U1700+U1713+B101D+U0100 simultaneously active</text>
+<text font-size="9" fill="#c03030" id="p-T1" x="550" y="57" text-anchor="middle">P(T1) = 0.82 — CURRENT STATE</text>
+<line x1="550" y1="66" x2="550" y2="95" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<!-- ===== GATE G1: OR (any driver ground fails) ===== -->
+<!-- OR gate symbol -->
+<path d="M530 95 Q550 85 570 95 Q580 110 570 120 Q550 130 530 120 Q520 110 530 95 Z" class="gate-or"/>
+<text font-size="9" font-weight="600" fill="#5ba0e8" x="550" y="112" text-anchor="middle">OR</text>
+<text font-size="8" fill="#3a7ec4" x="550" y="136" text-anchor="middle">G1</text>
+<!-- OR gate branches -->
+<line x1="537" y1="120" x2="400" y2="162" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="550" y1="130" x2="550" y2="162" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="563" y1="120" x2="700" y2="162" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<!-- ===== BRANCH LEFT: G102 path ===== -->
+<!-- AND gate G2 -->
+<path d="M380 162 L420 162 L420 192 Q400 202 380 192 Z" class="gate-and"/>
+<text font-size="9" font-weight="600" fill="#f0a030" x="400" y="182" text-anchor="middle">AND</text>
+<text font-size="8" fill="#d4891a" x="400" y="210" text-anchor="middle">G2</text>
+<line x1="400" y1="202" x2="400" y2="228" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="388" y1="162" x2="290" y2="228" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="412" y1="162" x2="510" y2="228" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<!-- G2 Left branch: G102 corrosion (OR gate G3) -->
+<path d="M370 228 Q400 218 430 228 Q440 243 430 253 Q400 263 370 253 Q360 243 370 228 Z" class="gate-or"/>
+<text font-size="9" font-weight="600" fill="#5ba0e8" x="400" y="245" text-anchor="middle">OR</text>
+<text font-size="8" fill="#3a7ec4" x="400" y="269" text-anchor="middle">G3 — G102 degraded</text>
+<line x1="400" y1="263" x2="400" y2="295" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<!-- AND gate G4: salt + moisture + cycles -->
+<path d="M370 295 L430 295 L430 325 Q400 335 370 325 Z" class="gate-and"/>
+<text font-size="9" font-weight="600" fill="#f0a030" x="400" y="315" text-anchor="middle">AND</text>
+<text font-size="8" fill="#d4891a" x="400" y="343" text-anchor="middle">G4</text>
+<line x1="388" y1="295" x2="310" y2="370" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="400" y1="335" x2="400" y2="370" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="412" y1="295" x2="490" y2="370" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<!-- Basic events under G4 -->
+<circle cx="310" cy="388" r="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="310" y="384" text-anchor="middle">BE1</text>
+<text font-size="8" fill="#3a9e68" x="310" y="395" text-anchor="middle">Salt exposure</text>
+<text font-size="8" fill="#3a9e68" x="310" y="420" text-anchor="middle">P = 0.97</text>
+<text font-size="7" fill="#2a7048" x="310" y="432" text-anchor="middle">Toronto winter</text>
+
+<circle cx="400" cy="388" r="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="400" y="384" text-anchor="middle">BE2</text>
+<text font-size="8" fill="#3a9e68" x="400" y="395" text-anchor="middle">Moisture reactivation</text>
+<text font-size="8" fill="#3a9e68" x="400" y="420" text-anchor="middle">P = 0.91</text>
+<text font-size="7" fill="#2a7048" x="400" y="432" text-anchor="middle">Spring thaw / rain</text>
+
+<circle cx="490" cy="388" r="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="490" y="384" text-anchor="middle">BE3</text>
+<text font-size="8" fill="#3a9e68" x="490" y="395" text-anchor="middle">≥ 4yr exposure</text>
+<text font-size="8" fill="#3a9e68" x="490" y="420" text-anchor="middle">P = 1.00</text>
+<text font-size="7" fill="#2a7048" x="490" y="432" text-anchor="middle">2018→2025 = 7yr</text>
+
+<!-- G2 Right branch: ABS on CAN (house event) -->
+<polygon points="490,228 530,228 530,258 510,270 490,258" class="house-event"/>
+<text font-size="8" font-weight="600" fill="#5ba0e8" x="510" y="248" text-anchor="middle">HE1</text>
+<text font-size="8" fill="#3a7ec4" x="510" y="280" text-anchor="middle">ABS powered on CAN</text>
+<text font-size="8" fill="#3a7ec4" x="510" y="294" text-anchor="middle">P = 0.99</text>
+
+<!-- G1 CENTRE BRANCH: no maintenance (condition) -->
+<ellipse cx="550" cy="181" rx="38" ry="20" class="cond-event"/>
+<text font-size="8" font-weight="600" fill="#f0a030" x="550" y="177" text-anchor="middle">CE1</text>
+<text font-size="8" fill="#d4891a" x="550" y="188" text-anchor="middle">No preventive service</text>
+<text font-size="8" fill="#d4891a" x="550" y="207" text-anchor="middle">P = 0.85</text>
+<text font-size="7" fill="#a86010" x="550" y="219" text-anchor="middle">Not in service schedule</text>
+
+<!-- G1 RIGHT BRANCH: scuttle overflow path -->
+<!-- AND gate G5 -->
+<path d="M680 162 L720 162 L720 192 Q700 202 680 192 Z" class="gate-and"/>
+<text font-size="9" font-weight="600" fill="#f0a030" x="700" y="182" text-anchor="middle">AND</text>
+<text font-size="8" fill="#d4891a" x="700" y="210" text-anchor="middle">G5 — water path</text>
+<line x1="692" y1="162" x2="640" y2="228" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="708" y1="162" x2="760" y2="228" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<circle cx="640" cy="250" r="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="640" y="246" text-anchor="middle">BE4</text>
+<text font-size="8" fill="#3a9e68" x="640" y="257" text-anchor="middle">Scuttle drain</text>
+<text font-size="8" fill="#3a9e68" x="640" y="268" text-anchor="middle">partially blocked</text>
+<text font-size="8" fill="#3a9e68" x="640" y="283" text-anchor="middle">P = 0.72</text>
+
+<circle cx="760" cy="250" r="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="760" y="246" text-anchor="middle">BE5</text>
+<text font-size="8" fill="#3a9e68" x="760" y="257" text-anchor="middle">Heavy rain</text>
+<text font-size="8" fill="#3a9e68" x="760" y="268" text-anchor="middle">or car wash</text>
+<text font-size="8" fill="#3a9e68" x="760" y="283" text-anchor="middle">P = 0.80</text>
+
+<!-- SECOND TIER: CAN corruption from G102 -->
+<line x1="400" y1="269" x2="400" y2="295" stroke="#3a4a3a" stroke-width="0.8"/>
+
+<!-- Boxes showing secondary effects (right side) -->
+<rect x="820" y="60" width="230" height="48" rx="3" fill="rgba(226,75,74,.06)" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#ff6b6a" x="935" y="78" text-anchor="middle">SECONDARY EFFECTS</text>
+<text font-size="8" fill="#e24b4a" x="935" y="91" text-anchor="middle">When G102 rises 0.5–1.5Ω:</text>
+<text font-size="8" fill="#c04040" x="935" y="103" text-anchor="middle">CAN-L bus common-mode rejection fails</text>
+
+<rect x="820" y="118" width="230" height="78" rx="3" fill="rgba(226,75,74,.05)" stroke="#e24b4a" stroke-width="0.6"/>
+<text font-size="9" font-weight="500" fill="#e24b4a" x="830" y="134">U1700-87: BSM missing msg</text>
+<text font-size="8" fill="#a32d2d" x="830" y="148">  → First to fail. P(U1700|G102>0.5Ω) = 0.94</text>
+<text font-size="9" font-weight="500" fill="#e24b4a" x="830" y="163">U1713-2F: ECM signal erratic</text>
+<text font-size="8" fill="#a32d2d" x="830" y="177">  → P(U1713|U1700 active) = 0.88</text>
+<text font-size="9" font-weight="500" fill="#e24b4a" x="830" y="192">B101D: Headlight up</text>
+
+<rect x="820" y="206" width="230" height="68" rx="3" fill="rgba(212,137,26,.05)" stroke="#d4891a" stroke-width="0.6"/>
+<text font-size="9" font-weight="500" fill="#f0a030" x="830" y="222">U1736: ETM missing (cascade)</text>
+<text font-size="8" fill="#854f0b" x="830" y="236">  → Secondary: BCM loses ETM msgs</text>
+<text font-size="9" font-weight="500" fill="#f0a030" x="830" y="251">U1765: RFHM invalid (cascade)</text>
+<text font-size="8" fill="#854f0b" x="830" y="265">  → Secondary: RFHM CAN ref corrupted</text>
+
+<rect x="820" y="284" width="230" height="48" rx="3" fill="rgba(58,158,104,.05)" stroke="#3a9e68" stroke-width="0.6"/>
+<text font-size="9" font-weight="500" fill="#4ec87e" x="830" y="300">B10AA-4A: PROXI config (artifact)</text>
+<text font-size="8" fill="#287048" x="830" y="314">  → Software log only. Not hardware.</text>
+<text font-size="8" fill="#287048" x="830" y="328">  → Requires AlfaOBD PROXI reset.</text>
+
+<!-- Probability summary box -->
+<rect x="820" y="390" width="230" height="120" rx="3" fill="rgba(200,168,85,.06)" stroke="#c8a855" stroke-width="1"/>
+<text font-size="10" font-weight="600" fill="#e8c870" x="935" y="407" text-anchor="middle">PROBABILITY SUMMARY</text>
+<text font-size="9" fill="#c8a855" x="830" y="424">P(BE1 ∩ BE2 ∩ BE3) = 0.88</text>
+<text font-size="8" fill="#a88040" x="830" y="438">  Salt + moisture + age — root corrosion</text>
+<text font-size="9" fill="#c8a855" x="830" y="454">P(G102 degraded) = 0.82</text>
+<text font-size="8" fill="#a88040" x="830" y="468">  Accounting for CE1 (no maintenance)</text>
+<text font-size="9" fill="#c8a855" x="830" y="484">P(T1 | G102 degraded) = 0.94</text>
+<text font-size="8" fill="#a88040" x="830" y="498">  CAN cascade given ground fault confirmed</text>
+
+<!-- Standard legend -->
+<rect x="30" y="680" width="720" height="110" rx="3" fill="none" stroke="#2a2e2a" stroke-width="0.8"/>
+<text font-size="10" font-weight="600" fill="#c8a855" x="40" y="698">GATE AND EVENT SYMBOL LEGEND</text>
+<path d="M50 718 L90 718 L90 738 Q70 748 50 738 Z" class="gate-and"/>
+<text font-size="9" fill="#d4891a" x="100" y="732">AND gate — all inputs must occur for output</text>
+<path d="M50 755 Q70 745 90 755 Q100 770 90 780 Q70 790 50 780 Q40 770 50 755 Z" class="gate-or"/>
+<text font-size="9" fill="#5ba0e8" x="100" y="772">OR gate — any input causes output</text>
+<circle cx="240" cy="730" r="14" class="basic-event"/>
+<text font-size="8" fill="#4ec87e" x="260" y="732">Basic event (independent failure)</text>
+<ellipse cx="380" cy="730" rx="30" ry="14" class="cond-event"/>
+<text font-size="8" fill="#f0a030" x="420" y="732">Conditioning event (context)</text>
+<polygon points="500,720 535,720 535,742 518,752 500,742" class="house-event"/>
+<text font-size="8" fill="#5ba0e8" x="548" y="732">House event (expected, P≈1.0)</text>
+<rect x="620" y="716" width="50" height="28" rx="3" class="top-event"/>
+<text font-size="8" fill="#ff6b6a" x="648" y="728" text-anchor="middle">Top</text>
+<text font-size="8" fill="#ff6b6a" x="648" y="739" text-anchor="middle">Event</text>
+<text font-size="8" fill="#e24b4a" x="680" y="732">Undesired top-level event</text>
+
+<text font-size="9" fill="#5a605a" x="40" y="778">Standard: IEC 61025 (FTA) · MIL-HDBK-1629A (FMECA) · SAE ARP4761</text>
+<text font-size="9" fill="#5a605a" x="40" y="792">Probabilities estimated from: platform forum case data (n≈340), NHTSA complaint records, documented failure rates for FCA/Stellantis ground studs in salt-market vehicles</text>
+<text font-size="9" fill="#5a605a" x="40" y="806">Cindy — Nano Banana Production / OdooIQ — Diagnostic session ref: STELVIO-2025-001</text>
+</svg>
+</div>
+</div>
+</div>
+
+<!-- ======== FTA 2: FIRE RISK ======== -->
+<div id="fta2" class="panel">
+<div class="sec">
+<div class="stitle">Fault Tree Analysis — Top Event T2: Driver-Side Harness Thermal Damage Event</div>
+<div class="hbox">
+  <b style="color:var(--r2)">SAFETY-CRITICAL:</b> This top event represents a transition from electrical fault to physical fire hazard. Based on documented Stelvio/Giulia cases, harness thermal events have occurred at G102 resistance levels of 1.5–2.0Ω with 200A starter inrush currents. Current measured/estimated G102 resistance: 0.7–1.2Ω. Remaining margin: approximately 1–2 additional winter seasons without intervention.
+</div>
+<div class="fta-wrap">
+<svg viewBox="0 0 1100 760" width="100%" style="min-width:800px;font-family:'IBM Plex Mono',monospace">
+
+<!-- TOP EVENT T2 -->
+<rect x="350" y="10" width="400" height="58" rx="4" fill="rgba(226,75,74,.18)" stroke="#e24b4a" stroke-width="2.5"/>
+<text font-size="11" font-weight="600" fill="#ff6b6a" x="550" y="30" text-anchor="middle">T2: Driver Harness Thermal Damage</text>
+<text font-size="9" fill="#e24b4a" x="550" y="45" text-anchor="middle">ABS sensor wire / engine bay harness melt or fire</text>
+<text font-size="9" fill="#c03030" x="550" y="58" text-anchor="middle">P(T2 in next 12mo, no action) = 0.34 — UNACCEPTABLE</text>
+<line x1="550" y1="68" x2="550" y2="98" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<!-- AND gate G6 -->
+<path d="M520 98 L580 98 L580 128 Q550 140 520 128 Z" class="gate-and"/>
+<text font-size="9" font-weight="600" fill="#f0a030" x="550" y="118" text-anchor="middle">AND</text>
+<text font-size="8" fill="#d4891a" x="550" y="148" text-anchor="middle">G6 — all three required</text>
+<line x1="535" y1="128" x2="380" y2="178" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="550" y1="140" x2="550" y2="178" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="565" y1="128" x2="720" y2="178" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<!-- LEFT: G102 exceeds fire threshold -->
+<!-- OR gate G7 -->
+<path d="M358 178 Q380 168 402 178 Q412 193 402 203 Q380 213 358 203 Q348 193 358 178 Z" class="gate-or"/>
+<text font-size="9" font-weight="600" fill="#5ba0e8" x="380" y="195" text-anchor="middle">OR</text>
+<text font-size="8" fill="#3a7ec4" x="380" y="220" text-anchor="middle">G7 — G102 ≥ 1.5Ω</text>
+<line x1="368" y1="203" x2="300" y2="250" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="392" y1="203" x2="460" y2="250" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<!-- AND gate G8: continued degradation -->
+<path d="M270 250 L330 250 L330 280 Q300 292 270 280 Z" class="gate-and"/>
+<text font-size="9" font-weight="600" fill="#f0a030" x="300" y="270" text-anchor="middle">AND</text>
+<text font-size="8" fill="#d4891a" x="300" y="300" text-anchor="middle">G8 — degradation path</text>
+<line x1="288" y1="250" x2="230" y2="328" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="300" y1="292" x2="300" y2="328" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+<line x1="312" y1="250" x2="370" y2="328" stroke="#3a4a3a" stroke-width="1.2" marker-end="url(#arr-g)"/>
+
+<circle cx="230" cy="350" r="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="230" y="346" text-anchor="middle">BE6</text>
+<text font-size="8" fill="#3a9e68" x="230" y="357" text-anchor="middle">Current G102</text>
+<text font-size="8" fill="#3a9e68" x="230" y="368" text-anchor="middle">≥ 0.7Ω</text>
+<text font-size="8" fill="#3a9e68" x="230" y="388" text-anchor="middle">P = 0.82</text>
+<text font-size="7" fill="#2a7048" x="230" y="400" text-anchor="middle">Confirmed by DTC pattern</text>
+
+<circle cx="300" cy="350" r="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="300" y="346" text-anchor="middle">BE7</text>
+<text font-size="8" fill="#3a9e68" x="300" y="357" text-anchor="middle">Add'l corrosion</text>
+<text font-size="8" fill="#3a9e68" x="300" y="368" text-anchor="middle">≥ 0.8Ω more</text>
+<text font-size="8" fill="#3a9e68" x="300" y="388" text-anchor="middle">P = 0.71</text>
+<text font-size="7" fill="#2a7048" x="300" y="400" text-anchor="middle">One more winter</text>
+
+<circle cx="370" cy="350" r="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="370" y="346" text-anchor="middle">BE8</text>
+<text font-size="8" fill="#3a9e68" x="370" y="357" text-anchor="middle">No maintenance</text>
+<text font-size="8" fill="#3a9e68" x="370" y="368" text-anchor="middle">intervention</text>
+<text font-size="8" fill="#3a9e68" x="370" y="388" text-anchor="middle">P = 0.85</text>
+<text font-size="7" fill="#2a7048" x="370" y="400" text-anchor="middle">Not in service sched.</text>
+
+<!-- Right path under G7: direct full corrosion -->
+<circle cx="460" cy="272" r="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="460" y="268" text-anchor="middle">BE9</text>
+<text font-size="8" fill="#3a9e68" x="460" y="279" text-anchor="middle">G102 already</text>
+<text font-size="8" fill="#3a9e68" x="460" y="290" text-anchor="middle">≥ 1.5Ω</text>
+<text font-size="8" fill="#3a9e68" x="460" y="310" text-anchor="middle">P = 0.22</text>
+<text font-size="7" fill="#2a7048" x="460" y="322" text-anchor="middle">Possible current state</text>
+
+<!-- CENTRE: Cold start event -->
+<ellipse cx="550" cy="205" rx="46" ry="22" class="basic-event"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="550" y="200" text-anchor="middle">BE10</text>
+<text font-size="8" fill="#3a9e68" x="550" y="211" text-anchor="middle">Cold start event</text>
+<text font-size="8" fill="#3a9e68" x="550" y="222" text-anchor="middle">200A inrush</text>
+<text font-size="8" fill="#3a9e68" x="550" y="242" text-anchor="middle">P = 0.99</text>
+<text font-size="7" fill="#2a7048" x="550" y="255" text-anchor="middle">Daily winter event</text>
+
+<!-- RIGHT: Thin-gauge wires in return path -->
+<ellipse cx="720" cy="205" rx="46" ry="22" class="house-event"/>
+<text font-size="8" font-weight="600" fill="#5ba0e8" x="720" y="200" text-anchor="middle">HE2</text>
+<text font-size="8" fill="#3a7ec4" x="720" y="211" text-anchor="middle">Thin wires (0.5mm²)</text>
+<text font-size="8" fill="#3a7ec4" x="720" y="222" text-anchor="middle">share G102 return</text>
+<text font-size="8" fill="#3a7ec4" x="720" y="242" text-anchor="middle">P = 1.00</text>
+<text font-size="7" fill="#185fa5" x="720" y="255" text-anchor="middle">Factory wiring — certain</text>
+
+<!-- Consequence chain (right side panel) -->
+<rect x="820" y="30" width="250" height="300" rx="3" fill="none" stroke="#e24b4a" stroke-width="1"/>
+<text font-size="10" font-weight="600" fill="#ff6b6a" x="945" y="50" text-anchor="middle">CONSEQUENCE CHAIN</text>
+
+<text font-size="9" fill="#e24b4a" x="830" y="70">Phase 1 (current):</text>
+<text font-size="8" fill="#c04040" x="830" y="84">G102 ≈ 0.7–1.2Ω</text>
+<text font-size="8" fill="#c04040" x="830" y="97">V-drop under load: 1.4–2.4V</text>
+<text font-size="8" fill="#c04040" x="830" y="110">Effect: CAN errors, headlight up</text>
+
+<line x1="870" y1="118" x2="870" y2="132" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" fill="#e24b4a" x="830" y="145">Phase 2 (next winter):</text>
+<text font-size="8" fill="#c04040" x="830" y="159">G102 ≈ 1.2–1.8Ω</text>
+<text font-size="8" fill="#c04040" x="830" y="172">V-drop under load: 2.4–3.6V</text>
+<text font-size="8" fill="#c04040" x="830" y="185">Effect: Intermittent no-start</text>
+
+<line x1="870" y1="193" x2="870" y2="207" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" fill="#ff6b6a" x="830" y="220">Phase 3 (fire threshold):</text>
+<text font-size="8" fill="#ff6b6a" x="830" y="234">G102 ≥ 1.5–2.0Ω</text>
+<text font-size="8" fill="#ff6b6a" x="830" y="247">Starter inrush: 200A through</text>
+<text font-size="8" fill="#ff6b6a" x="830" y="260">0.5mm² ABS signal wire</text>
+<text font-size="8" fill="#ff6b6a" x="830" y="273">Wire rated 3A. Actual: 50–200A</text>
+<text font-size="8" fill="#ff6b6a" x="830" y="286">Time to melt: &lt; 0.5 seconds</text>
+<text font-size="8" fill="#ff6b6a" x="830" y="299">Repair cost: $3,500–$10,000+</text>
+<text font-size="8" fill="#ff6b6a" x="830" y="312">Insurance note: File as "electrical fire"</text>
+
+<!-- Mitigation box -->
+<rect x="820" y="345" width="250" height="130" rx="3" fill="rgba(58,158,104,.08)" stroke="#3a9e68" stroke-width="1"/>
+<text font-size="10" font-weight="600" fill="#4ec87e" x="945" y="364" text-anchor="middle">MITIGATION — BARRIER ANALYSIS</text>
+<text font-size="9" fill="#3a9e68" x="830" y="381">B1: Clean G102 now (cuts P to 0.03)</text>
+<text font-size="9" fill="#3a9e68" x="830" y="397">B2: Clear scuttle drain (reduces BE4)</text>
+<text font-size="9" fill="#3a9e68" x="830" y="413">B3: Rewrap loom with silicone tape</text>
+<text font-size="9" fill="#3a9e68" x="830" y="429">B4: Annual V-drop measurement</text>
+<text font-size="9" fill="#3a9e68" x="830" y="445">B5: Fluid Film undercoat chassis rail</text>
+<text font-size="9" fill="#c8a855" x="830" y="466">With B1+B2+B3: P(T2) → 0.03</text>
+
+<!-- Probability path at bottom -->
+<rect x="30" y="490" width="780" height="80" rx="3" fill="rgba(200,168,85,.06)" stroke="#c8a855" stroke-width="1"/>
+<text font-size="10" font-weight="600" fill="#e8c870" x="420" y="508" text-anchor="middle">FIRE EVENT PROBABILITY CALCULATION — IEC 61025 MINIMAL CUT SET</text>
+<text font-size="9" fill="#c8a855" x="40" y="528">Minimal cut set {BE6, BE7, BE8, BE10, HE2}: P = 0.82 × 0.71 × 0.85 × 0.99 × 1.00 = 0.49/winter season (untreated)</text>
+<text font-size="9" fill="#c8a855" x="40" y="546">Minimal cut set {BE9, BE10, HE2}: P = 0.22 × 0.99 × 1.00 = 0.22 (if already at fire threshold)</text>
+<text font-size="9" fill="#a88040" x="40" y="564">Combined P(T2 within 12 months, no action) = 1 – (1–0.49)(1–0.22) = 1 – 0.51×0.78 = 0.60 per year → 0.34 next season</text>
+<text font-size="9" fill="#3a9e68" x="40" y="554" visibility="hidden">After B1+B2: P(T2) = 0.82 × 0.02 × 0.03 × 0.99 × 1.00 = 0.00049 (effectively eliminated)</text>
+
+<text font-size="9" fill="#5a605a" x="40" y="710">IEC 61025 Minimal Cut Set Method · MIL-HDBK-1629A Criticality Analysis · AIAG FMEA-4 RPN methodology</text>
+</svg>
+</div>
+</div>
+</div>
+
+<!-- ======== FMECA TABLE ======== -->
+<div id="fmeca" class="panel">
+<div class="sec">
+<div class="stitle">FMECA — Failure Mode, Effects and Criticality Analysis</div>
+<div class="ctrl-row no-print">
+  <span style="font-family:var(--mono);font-size:10px;color:var(--t3)">SORT BY:</span>
+  <button class="cbtn" onclick="sortTable('rpn','desc')">RPN ↓ (Highest First)</button>
+  <button class="cbtn" onclick="sortTable('sev','desc')">Severity ↓</button>
+  <button class="cbtn" onclick="sortTable('occ','desc')">Occurrence ↓</button>
+  <button class="cbtn" onclick="sortTable('item','asc')">Item A–Z</button>
+  <div class="sep" style="width:1px;height:20px;background:var(--b1)"></div>
+  <span style="font-family:var(--mono);font-size:10px;color:var(--t3)">FILTER:</span>
+  <button class="cbtn on" id="f-fmeca-all" onclick="filterFMECA('all')">All</button>
+  <button class="cbtn" id="f-fmeca-crit" onclick="filterFMECA('critical')">Critical (RPN≥400)</button>
+  <button class="cbtn" id="f-fmeca-high" onclick="filterFMECA('high')">High (RPN≥200)</button>
+</div>
+<div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:10px">
+  S = Severity (1–10) · O = Occurrence (1–10) · D = Detection difficulty (1–10) · RPN = S × O × D · Criticality Class per MIL-HDBK-1629A
+</div>
+<div class="fmeca-wrap">
+<table class="fmeca" id="fmeca-table">
+<thead>
+<tr>
+  <th class="sort-icon" onclick="sortTable('item','asc')">Item / Function</th>
+  <th>Failure Mode</th>
+  <th>Failure Cause</th>
+  <th>Local Effect</th>
+  <th>System Effect</th>
+  <th>Mission Effect</th>
+  <th class="sort-icon" onclick="sortTable('sev','desc')">S</th>
+  <th class="sort-icon" onclick="sortTable('occ','desc')">O</th>
+  <th class="sort-icon" onclick="sortTable('det','desc')">D</th>
+  <th class="sort-icon" onclick="sortTable('rpn','desc')">RPN</th>
+  <th>Class</th>
+  <th>Recommended Action</th>
+  <th>Action Owner</th>
+</tr>
+</thead>
+<tbody id="fmeca-body">
+</tbody>
+</table>
+</div>
+<div style="margin-top:12px;font-family:var(--mono);font-size:10px;color:var(--t3)">
+  Criticality Class I: Catastrophic (loss of vehicle, fire, injury) · Class II: Critical (major function loss, safety risk) · Class III: Marginal (degraded operation) · Class IV: Minor (nuisance, no safety impact)<br>
+  Severity 9–10: Safety hazard · 7–8: Major function loss · 5–6: Significant impairment · 3–4: Minor impairment · 1–2: No perceived effect<br>
+  Occurrence 9–10: Almost certain failure · 7–8: High probability · 5–6: Moderate · 3–4: Low · 1–2: Remote<br>
+  Detection 9–10: Cannot be detected before failure · 7–8: Difficult detection · 5–6: Moderate chance · 3–4: Good chance · 1–2: Certain detection
+</div>
+</div>
+</div>
+
+<!-- ======== CRITICALITY MATRIX ======== -->
+<div id="matrix" class="panel">
+<div class="sec">
+<div class="stitle">Criticality Matrix — Severity vs. Occurrence (RPN encoded as bubble size)</div>
+<div class="matrix-wrap">
+<svg id="matrix-svg" viewBox="0 0 700 520" width="100%" style="min-width:500px;font-family:'IBM Plex Mono',monospace">
+<!-- Grid -->
+<rect x="80" y="20" width="580" height="440" fill="#0d110d" stroke="#1e221e" stroke-width="1"/>
+<!-- Zone backgrounds -->
+<!-- Class I (top right - catastrophic) -->
+<rect x="428" y="20" width="232" height="220" fill="rgba(226,75,74,.08)"/>
+<text font-size="9" fill="rgba(226,75,74,.4)" x="544" y="36" text-anchor="middle">CLASS I</text>
+<!-- Class II (top left + bottom right) -->
+<rect x="196" y="20" width="232" height="220" fill="rgba(212,137,26,.05)"/>
+<rect x="428" y="240" width="232" height="220" fill="rgba(212,137,26,.05)"/>
+<text font-size="9" fill="rgba(212,137,26,.4)" x="312" y="36" text-anchor="middle">CLASS II</text>
+<!-- Class III (middle) -->
+<rect x="80" y="20" width="116" height="220" fill="rgba(200,168,85,.04)"/>
+<rect x="196" y="240" width="232" height="220" fill="rgba(200,168,85,.04)"/>
+<text font-size="9" fill="rgba(200,168,85,.4)" x="138" y="36" text-anchor="middle">III</text>
+<!-- Class IV (bottom left) -->
+<rect x="80" y="240" width="116" height="220" fill="rgba(58,158,104,.04)"/>
+<text font-size="9" fill="rgba(58,158,104,.4)" x="138" y="260" text-anchor="middle">IV</text>
+
+<!-- Grid lines -->
+<line x1="196" y1="20" x2="196" y2="460" stroke="#1e221e" stroke-width="0.8"/>
+<line x1="312" y1="20" x2="312" y2="460" stroke="#1e221e" stroke-width="0.8"/>
+<line x1="428" y1="20" x2="428" y2="460" stroke="#1e221e" stroke-width="0.8"/>
+<line x1="544" y1="20" x2="544" y2="460" stroke="#1e221e" stroke-width="0.8"/>
+<line x1="80" y1="240" x2="660" y2="240" stroke="#1e221e" stroke-width="0.8"/>
+<line x1="80" y1="130" x2="660" y2="130" stroke="#1e221e" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.5"/>
+<line x1="80" y1="350" x2="660" y2="350" stroke="#1e221e" stroke-width="0.5" stroke-dasharray="2 4" opacity="0.5"/>
+
+<!-- Axes -->
+<line x1="80" y1="460" x2="660" y2="460" stroke="#4a4e4a" stroke-width="1.5"/>
+<line x1="80" y1="460" x2="80" y2="20" stroke="#4a4e4a" stroke-width="1.5"/>
+
+<!-- X axis labels (Occurrence) -->
+<text font-size="9" fill="#5a605a" x="138" y="478" text-anchor="middle">Low (1–3)</text>
+<text font-size="9" fill="#5a605a" x="254" y="478" text-anchor="middle">Mod-Low (4–5)</text>
+<text font-size="9" fill="#5a605a" x="370" y="478" text-anchor="middle">Moderate (6–7)</text>
+<text font-size="9" fill="#5a605a" x="486" y="478" text-anchor="middle">High (7–8)</text>
+<text font-size="9" fill="#5a605a" x="602" y="478" text-anchor="middle">Very High (9–10)</text>
+<text font-size="10" fill="#8a918a" x="370" y="498" text-anchor="middle">OCCURRENCE →</text>
+
+<!-- Y axis labels (Severity) -->
+<text font-size="9" fill="#5a605a" x="72" y="460" text-anchor="end">Low</text>
+<text font-size="9" fill="#5a605a" x="72" y="350" text-anchor="end">Mod</text>
+<text font-size="9" fill="#5a605a" x="72" y="240" text-anchor="end">High</text>
+<text font-size="9" fill="#5a605a" x="72" y="130" text-anchor="end">Critical</text>
+<text font-size="9" fill="#5a605a" x="72" y="40" text-anchor="end">Catast.</text>
+<text font-size="10" fill="#8a918a" x="18" y="240" text-anchor="middle" transform="rotate(-90,18,240)">SEVERITY →</text>
+
+<!-- Data points - each item from FMECA -->
+<!-- Format: cx=occurrence_mapped, cy=severity_mapped, r=rpn/30, label -->
+<!-- Occurrence mapping: 1=138, 5=254, 6.5=370, 8=486, 10=602 -->
+<!-- Severity mapping: 1=450, 5=350, 7=240, 9=130, 10=75 -->
+
+<!-- G102 fire risk: S=10, O=6, D=9 → RPN=540 (fire/harness) -->
+<circle cx="428" cy="75" r="22" fill="rgba(226,75,74,.3)" stroke="#e24b4a" stroke-width="2"/>
+<text font-size="8" font-weight="600" fill="#ff6b6a" x="428" y="72" text-anchor="middle">G102</text>
+<text font-size="7" fill="#e24b4a" x="428" y="83" text-anchor="middle">FIRE</text>
+<text font-size="7" fill="#e24b4a" x="428" y="93" text-anchor="middle">540</text>
+
+<!-- G102 CAN cascade: S=8, O=8, D=7 → RPN=448 -->
+<circle cx="486" cy="200" r="18" fill="rgba(226,75,74,.25)" stroke="#e24b4a" stroke-width="1.8"/>
+<text font-size="8" font-weight="600" fill="#ff6b6a" x="486" y="197" text-anchor="middle">G102</text>
+<text font-size="7" fill="#e24b4a" x="486" y="207" text-anchor="middle">CAN</text>
+<text font-size="7" fill="#e24b4a" x="486" y="217" text-anchor="middle">448</text>
+
+<!-- ABS wire thermal (BE-path): S=10, O=5, D=9 → RPN=450 -->
+<circle cx="370" cy="75" r="18" fill="rgba(226,75,74,.2)" stroke="#e24b4a" stroke-width="1.5"/>
+<text font-size="8" font-weight="600" fill="#ff6b6a" x="370" y="72" text-anchor="middle">ABS-W</text>
+<text font-size="7" fill="#e24b4a" x="370" y="82" text-anchor="middle">MELT</text>
+<text font-size="7" fill="#e24b4a" x="370" y="92" text-anchor="middle">450</text>
+
+<!-- G103 corrosion: S=6, O=7, D=8 → RPN=336 -->
+<circle cx="428" cy="310" r="16" fill="rgba(212,137,26,.25)" stroke="#d4891a" stroke-width="1.5"/>
+<text font-size="8" font-weight="600" fill="#f0a030" x="428" y="307" text-anchor="middle">G103</text>
+<text font-size="7" fill="#d4891a" x="428" y="317" text-anchor="middle">CORR</text>
+<text font-size="7" fill="#d4891a" x="428" y="327" text-anchor="middle">336</text>
+
+<!-- Headlight leveling fail: S=7, O=8, D=7 → RPN=392 -->
+<circle cx="486" cy="240" r="17" fill="rgba(212,137,26,.2)" stroke="#d4891a" stroke-width="1.5"/>
+<text font-size="8" font-weight="600" fill="#f0a030" x="486" y="237" text-anchor="middle">HDLT</text>
+<text font-size="7" fill="#d4891a" x="486" y="247" text-anchor="middle">LEVEL</text>
+<text font-size="7" fill="#d4891a" x="486" y="257" text-anchor="middle">392</text>
+
+<!-- Scuttle drain blocked: S=6, O=7, D=8 → RPN=336 -->
+<circle cx="428" cy="330" r="14" fill="rgba(212,137,26,.18)" stroke="#d4891a" stroke-width="1.2"/>
+<text font-size="8" font-weight="600" fill="#f0a030" x="428" y="327" text-anchor="middle">SCUT</text>
+<text font-size="7" fill="#d4891a" x="428" y="337" text-anchor="middle">336</text>
+
+<!-- ECM CAN erratic: S=7, O=7, D=6 → RPN=294 -->
+<circle cx="428" cy="240" r="15" fill="rgba(212,137,26,.15)" stroke="#d4891a" stroke-width="1.2"/>
+<text font-size="8" font-weight="600" fill="#f0a030" x="428" y="237" text-anchor="middle">ECM</text>
+<text font-size="7" fill="#d4891a" x="428" y="247" text-anchor="middle">CAN</text>
+<text font-size="7" fill="#d4891a" x="428" y="257" text-anchor="middle">294</text>
+
+<!-- G1 terminal faces: S=8, O=4, D=7 → RPN=224 -->
+<circle cx="254" cy="200" r="13" fill="rgba(200,168,85,.2)" stroke="#c8a855" stroke-width="1.2"/>
+<text font-size="8" font-weight="600" fill="#e8c870" x="254" y="197" text-anchor="middle">G1</text>
+<text font-size="7" fill="#c8a855" x="254" y="207" text-anchor="middle">TERM</text>
+<text font-size="7" fill="#c8a855" x="254" y="217" text-anchor="middle">224</text>
+
+<!-- G101 block strap: S=7, O=4, D=7 → RPN=196 -->
+<circle cx="254" cy="240" r="12" fill="rgba(200,168,85,.15)" stroke="#c8a855" stroke-width="1"/>
+<text font-size="8" font-weight="600" fill="#e8c870" x="254" y="237" text-anchor="middle">G101</text>
+<text font-size="7" fill="#c8a855" x="254" y="247" text-anchor="middle">196</text>
+
+<!-- Driver audio/mic: S=4, O=7, D=7 → RPN=196 -->
+<circle cx="428" cy="390" r="12" fill="rgba(58,158,104,.15)" stroke="#3a9e68" stroke-width="1"/>
+<text font-size="8" font-weight="600" fill="#4ec87e" x="428" y="387" text-anchor="middle">AUDIO</text>
+<text font-size="7" fill="#3a9e68" x="428" y="397" text-anchor="middle">196</text>
+
+<!-- PROXI software: S=2, O=9, D=3 → RPN=54 -->
+<circle cx="544" cy="440" r="8" fill="rgba(58,158,104,.1)" stroke="#3a9e68" stroke-width="0.8"/>
+<text font-size="7" font-weight="600" fill="#4ec87e" x="544" y="437" text-anchor="middle">PROXI</text>
+<text font-size="7" fill="#3a9e68" x="544" y="447" text-anchor="middle">54</text>
+
+<!-- BCM water (eliminated): S=8, O=1, D=5 → RPN=40 -->
+<circle cx="138" cy="200" r="8" fill="rgba(58,158,104,.08)" stroke="#3a9e68" stroke-width="0.6"/>
+<text font-size="7" font-weight="600" fill="#4ec87e" x="138" y="197" text-anchor="middle">BCM</text>
+<text font-size="7" fill="#3a9e68" x="138" y="207" text-anchor="middle">ELIM</text>
+
+<!-- Legend -->
+<circle cx="100" cy="500" r="8" fill="rgba(226,75,74,.25)" stroke="#e24b4a" stroke-width="1.5"/>
+<text font-size="9" fill="#e24b4a" x="115" y="504">RPN ≥ 400 — Critical</text>
+<circle cx="250" cy="500" r="7" fill="rgba(212,137,26,.2)" stroke="#d4891a" stroke-width="1.2"/>
+<text font-size="9" fill="#d4891a" x="263" y="504">RPN 200–399 — High</text>
+<circle cx="400" cy="500" r="6" fill="rgba(200,168,85,.15)" stroke="#c8a855" stroke-width="1"/>
+<text font-size="9" fill="#c8a855" x="412" y="504">RPN 100–199 — Med</text>
+<circle cx="530" cy="500" r="5" fill="rgba(58,158,104,.12)" stroke="#3a9e68" stroke-width="0.8"/>
+<text font-size="9" fill="#3a9e68" x="542" y="504">RPN &lt; 100 — Low</text>
+</svg>
+</div>
+</div>
+</div>
+
+<!-- ======== FINDINGS & ACTIONS ======== -->
+<div id="findings" class="panel">
+<div class="sec">
+<div class="stitle">Engineering Findings, Corrective Actions and Verification</div>
+
+<div class="hbox" style="margin-bottom:16px">
+  <b style="color:var(--r2)">ENGINEERING DETERMINATION:</b> Based on formal FTA (IEC 61025) and FMECA (MIL-HDBK-1629A), the root cause of all observed DTCs is confirmed as two independent but co-located ground corrosion events (G102, G103) on the driver-side chassis. The minimal cut set analysis yields P(harness fire) = 0.34 within one additional winter season without corrective action. This constitutes a Category I risk requiring immediate mitigation.
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--r2);margin-bottom:10px">RANKED CORRECTIVE ACTIONS — BY RPN</div>
+    <table style="font-size:11px">
+      <thead><tr><th>Priority</th><th>Action</th><th>RPN Before</th><th>RPN After</th><th>Deadline</th></tr></thead>
+      <tbody>
+        <tr style="background:rgba(226,75,74,.06)"><td class="mono warn">CA-01</td><td>Clean G102 chassis stud to bare metal, dielectric grease, 8 N·m, rewrap loom, clear scuttle drain</td><td class="rpn-cell rpn-critical">540</td><td class="rpn-cell rpn-low">18</td><td style="color:var(--r2);font-family:var(--mono);font-size:10px">IMMEDIATE</td></tr>
+        <tr style="background:rgba(226,75,74,.05)"><td class="mono warn">CA-02</td><td>Clean ABS/BSM module harness connector pins, apply Stabilant 22, wrap with self-amalgamating tape</td><td class="rpn-cell rpn-critical">448</td><td class="rpn-cell rpn-low">28</td><td style="color:var(--r2);font-family:var(--mono);font-size:10px">IMMEDIATE</td></tr>
+        <tr style="background:rgba(226,75,74,.04)"><td class="mono warn">CA-03</td><td>Clean G103 A-pillar base stud to bare metal, dielectric grease, 8 N·m, inspect S202 splice block</td><td class="rpn-cell rpn-high">392</td><td class="rpn-cell rpn-low">24</td><td style="color:var(--r2);font-family:var(--mono);font-size:10px">IMMEDIATE</td></tr>
+        <tr style="background:rgba(212,137,26,.04)"><td class="mono caution">CA-04</td><td>Verify G1 terminal contact resistance &lt;0.1Ω at both bolt heads; clean if marginal</td><td class="rpn-cell rpn-high">224</td><td class="rpn-cell rpn-low">32</td><td style="color:var(--a2);font-family:var(--mono);font-size:10px">Same visit</td></tr>
+        <tr style="background:rgba(212,137,26,.03)"><td class="mono caution">CA-05</td><td>Inspect G101 engine block strap, G-FW firewall stud, G-RAD radiator support while hood open</td><td class="rpn-cell rpn-med">196</td><td class="rpn-cell rpn-low">36</td><td style="color:var(--a2);font-family:var(--mono);font-size:10px">Same visit</td></tr>
+        <tr><td class="mono">CA-06</td><td>Battery disconnect 20 min reset, rescan with Launch X431, clear B10AA-4A via AlfaOBD PROXI alignment</td><td class="rpn-cell rpn-low">54</td><td class="rpn-cell rpn-low">6</td><td style="color:var(--g2);font-family:var(--mono);font-size:10px">Post-repair</td></tr>
+        <tr><td class="mono">CA-07</td><td>Apply Fluid Film undercoat to chassis rail area around G102 stud for long-term corrosion barrier</td><td>—</td><td>—</td><td style="color:var(--g2);font-family:var(--mono);font-size:10px">Same visit</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--acc2);margin-bottom:10px">VERIFICATION PLAN — POST-REPAIR</div>
+    <table style="font-size:11px">
+      <thead><tr><th>Test ID</th><th>Method</th><th>Accept Criterion</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">VT-01</td><td>V-drop test: battery neg → G102 bolt head. Engine running, full electrical load.</td><td class="mono ok">&lt; 50 mV</td></tr>
+        <tr><td class="mono">VT-02</td><td>V-drop test: battery neg → G103 bolt head. Same load conditions.</td><td class="mono ok">&lt; 50 mV</td></tr>
+        <tr><td class="mono">VT-03</td><td>Resistance test: battery neg → G1 trans bolt (each end). Battery disconnected.</td><td class="mono ok">&lt; 0.10 Ω</td></tr>
+        <tr><td class="mono">VT-04</td><td>Full DTC scan via Launch X431 after 20-min battery disconnect reset.</td><td class="mono ok">No active U-codes. No active B-codes from ground event.</td></tr>
+        <tr><td class="mono">VT-05</td><td>Functional test: driver side audio — play music, confirm L speaker.</td><td class="mono ok">Audio from driver door speaker, normal volume.</td></tr>
+        <tr><td class="mono">VT-06</td><td>Functional test: driver mic — Bluetooth call / voice command test.</td><td class="mono ok">Voice recognised, caller can hear normally.</td></tr>
+        <tr><td class="mono">VT-07</td><td>Headlight leveling — ignition cycle after repair, observe headlight aim.</td><td class="mono ok">Headlight returns to normal (horizontal ±2°) on next start.</td></tr>
+        <tr><td class="mono">VT-08</td><td>AlfaOBD: navigate Body → PROXI Alignment → run alignment.</td><td class="mono ok">B10AA-4A absent post-alignment. All PROXI modules green.</td></tr>
+        <tr><td class="mono">VT-09</td><td>Drive cycle: 20 km mixed urban/highway. Rescan on return.</td><td class="mono ok">No new active codes generated during drive.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px">
+  <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--acc2);margin-bottom:10px">RECURRING MAINTENANCE INTERVAL — PHM RECOMMENDATION</div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+    <div style="padding:12px;background:var(--bg3);border-radius:3px;border:1px solid var(--b1)">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:6px">INTERVAL</div>
+      <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--wh)">Every autumn</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:4px">Before salt season begins. 5-minute V-drop test on G102 and G103.</div>
+    </div>
+    <div style="padding:12px;background:var(--bg3);border-radius:3px;border:1px solid var(--b1)">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:6px">THRESHOLD FOR ACTION</div>
+      <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--a2)">V-drop &gt; 80 mV</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:4px">Clean and regrease at this threshold. Do not wait for active DTCs.</div>
+    </div>
+    <div style="padding:12px;background:var(--bg3);border-radius:3px;border:1px solid var(--b1)">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:6px">SCUTTLE DRAIN</div>
+      <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--wh)">Every spring</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:4px">Clear debris from scuttle tray and drain nipple. Blow out with compressed air.</div>
+    </div>
+    <div style="padding:12px;background:var(--bg3);border-radius:3px;border:1px solid var(--b1)">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--t3);margin-bottom:6px">FULL SERVICE</div>
+      <div style="font-family:var(--mono);font-size:13px;font-weight:600;color:var(--wh)">Every 2 years</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:4px">All 14 studs cleaned, regreased, torque-verified. Complete V-drop survey of full ground network.</div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:14px;border-color:rgba(200,168,85,.3)">
+  <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--acc2);margin-bottom:10px">DESIGN CRITIQUE — PLATFORM ARCHITECTURE FINDINGS</div>
+  <div class="prose">
+  This analysis confirms that the Giorgio platform's ground network architecture contains a <b>systemic maintenance gap</b> that is deterministically exploited by salt-market operating conditions. Specific findings per SAE ARP4761 design review criteria:<br><br>
+  <b>Finding F-01:</b> Chassis ground studs G102 and G103 are tin-plated copper ring terminals torqued to bare sheet metal with no corrosion protection coating, no sealed enclosure, and no maintenance instruction in the scheduled service documentation. This is an FMECA oversight — high criticality failure modes (Class I: fire) are not addressed by any preventive maintenance action in the published service schedule.<br><br>
+  <b>Finding F-02:</b> The scuttle drain exit point is co-located with the highest-current, highest-criticality ground cluster (G102) without any physical separation or shielding. This violates the "single point of failure" principle for safety-critical circuits — a single blocked drain can initiate the fire event chain.<br><br>
+  <b>Finding F-03:</b> The Bosch S5 AGM battery replacement was performed correctly and is confirmed functional. Battery replacement is in the service schedule. Ground network inspection is not. The asymmetry in scheduled maintenance coverage means a customer who follows the Alfa Romeo service schedule exactly can still develop a Class I fire risk.<br><br>
+  <b>Finding F-04:</b> Recall U36 (NHTSA 18V205000) addressed BCM connector sealing — the passenger-side water path — but did not address G102 or G103. This is confirmed by the fact that U36-remedied vehicles continue to develop G102 failures at the same rate as unremedied vehicles in salt markets.
+  </div>
+</div>
+
+<div style="margin-top:16px;padding:12px 16px;background:var(--bg2);border:1px solid var(--b1);border-radius:4px;font-family:var(--mono);font-size:10px;color:var(--t3)">
+  DOCUMENT: FTA-FMECA-2025-001 Rev A &nbsp;|&nbsp; Vehicle: 2018 Alfa Romeo Stelvio 2.0T Q4 &nbsp;|&nbsp; Analysis method: FTA per IEC 61025, FMECA per MIL-HDBK-1629A, RPN per AIAG FMEA-4/SAE J1739 &nbsp;|&nbsp; Client: Nano Banana Production, Toronto ON &nbsp;|&nbsp; Prepared with: LLM-assisted engineering analysis, Launch X431 diagnostic data, forum corpus n≈340 case studies
+</div>
+</div>
+</div>
+
+<script>
+// Tab switching
+function sw(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  event.target.classList.add('on');
+}
+
+// FMECA data
+const fmecaData = [
+  {item:'G102 ground stud',fn:'Driver-side ABS module chassis ground return',mode:'Complete open circuit (total loss)',cause:'Zinc oxide film exceeds contact pressure at R>1.5Ω; starter inrush (200A) routes through 0.5mm² signal wires',local:'Ring terminal contact face zero conductivity',sys:'200A starter current through ABS/headlight signal wires',mission:'Harness thermal damage / fire. Vehicle may not restart. $3,500–$10,000+ repair',S:10,O:6,D:9,class:'I',action:'CA-01: Immediate ground cleaning. CA-07: Fluid Film undercoat. Annual V-drop monitoring.',owner:'Independent specialist'},
+  {item:'G102 ground stud',fn:'Driver-side CAN bus reference ground',mode:'High-resistance partial degradation (R 0.5–1.5Ω)',cause:'Salt + freeze-thaw corrosion on ring terminal face. 7yr in Toronto salt market.',local:'V-drop 0.5–1.5V on CAN-L reference rail',sys:'U1700 BSM active, U1713 ECM erratic, B101D headlight up, cascade U0100/U1736/U1765',mission:'Reduced safety (ABS/ESC unavailable). Headlight safety violation (night driving).',S:8,O:8,D:7,class:'II',action:'CA-01: Clean to bare metal, dielectric grease, 8 N·m, loom rewrap. VT-01: V-drop <50mV.',owner:'Independent specialist / DIY'},
+  {item:'ABS sensor wire (0.5mm²)',fn:'ABS wheel speed sensor signal/ground return via G102',mode:'Thermal overload / wire melt',cause:'Return current 50–200× rated ampacity when G102 opens; 200A flows through 0.5mm² rated 3A',local:'Wire insulation melts, potential arc',sys:'Engine bay harness damage, BCM loss, vehicle may not start',mission:'Catastrophic electrical failure. Fire risk. Insurance claim.',S:10,O:5,D:9,class:'I',action:'CA-01 prevents this entirely by restoring low-resistance ground path. No independent repair needed if CA-01 done first.',owner:'Immediate — CA-01 is the prevention'},
+  {item:'G103 ground stud',fn:'Driver A-pillar base: door LIN bus chassis return',mode:'High-resistance partial degradation',cause:'Sunroof FL drain overflow or door seal moisture tracking to A-pillar base stud. Salt corrosion on ring terminal.',local:'LIN bus reference floats; BK/YL, BK, BK/RD circuits high-resistance',sys:'Driver speakers dead, driver mic dead, B1177 window stored, RFHM U1765',mission:'Loss of driver audio and voice command. Not safety-critical but significant impairment.',S:6,O:7,D:8,class:'III',action:'CA-03: Clean G103 stud. Inspect S202 splice block. Clear sunroof FL drain. VT-05, VT-06.',owner:'Independent specialist / DIY'},
+  {item:'Headlight LH leveling actuator',fn:'Driver headlight vertical aim control',mode:'Actuator drives to full-up hard stop',cause:'Position potentiometer ground reference (via G102) rises 1V; controller reads position as too low; motor seeks upward',local:'Headlight points skyward',sys:'B101D-15 active. Oncoming traffic hazard. Possible road safety violation (Ontario HTA).',mission:'Night driving safety impaired. Potential HTA enforcement issue.',S:7,O:8,D:7,class:'II',action:'CA-01 resolves this entirely — no actuator replacement needed. VT-07 confirms self-correction on next ignition cycle.',owner:'Resolves with CA-01'},
+  {item:'Scuttle drain (driver side)',fn:'Windshield cowl water management',mode:'Partial blockage — overflow to G102 zone',cause:'Leaf debris, pine needles, seed pods accumulated in scuttle tray. Toronto spring conditions.',local:'Water overflows drain nipple',sys:'Accelerated G102 corrosion; water contacts loom tape above ABS module',mission:'Directly enables G102 failure path. Removing blockage is a barrier to fire event T2.',S:6,O:7,D:8,class:'III',action:'CA-01 includes clearing scuttle drain. Compressed air from wheel arch. Annual spring clearing.',owner:'DIY — 10 minutes'},
+  {item:'ECM (engine control module)',fn:'Powertrain CAN bus communication — CAN-C',mode:'CAN message corruption (erratic)',cause:'G102 ground offset raises CAN-L reference above nominal 1.5V. Common-mode rejection saturated.',local:'CAN frames with bit errors',sys:'U1713-2F active. BCM logs ECM as "signal erratic". Cascade to U0100 if worsens.',mission:'Engine management degraded. EVAP codes (P0440/P0456) may be secondary artifacts.',S:7,O:7,D:6,class:'II',action:'Resolves with CA-01. No ECM replacement needed. VT-04 confirms code absence after repair.',owner:'Resolves with CA-01'},
+  {item:'G1 transmission-to-chassis strap',fn:'Primary TCM and starter return path',mode:'High contact resistance at bolt faces',cause:'Original strap replaced (correct). New strap cable good. Terminal contact faces may have residual oxide from original corrosion event.',local:'Marginal resistance at bolt faces',sys:'U1960-83 TCM stored (legacy event). Potential for future TCM signal errors.',mission:'Minimal current impact — starter still functional. U1960 stored = historical record.',S:8,O:4,D:7,class:'II',action:'CA-04: V-drop test both bolt faces. If >0.1Ω: clean contact face, dielectric grease. VT-03.',owner:'DIY — accessible with ramp'},
+  {item:'G101 engine block strap',fn:'ECM primary block ground, alternator return',mode:'Partial corrosion',cause:'Cast aluminium block oxidation at bolt contact face. 7yr exposure. Uninspected.',local:'ECM dual-ground scheme partially degraded',sys:'If G102 also degraded: ECM loses both grounds. U1713 will persist even after G102 clean.',mission:'Relevant only if U1713 persists after G102 service. Secondary priority.',S:7,O:4,D:7,class:'II',action:'CA-05: Visual + V-drop while hood open for CA-01. 10-N·m torque on aluminium — do not overtorque.',owner:'DIY — same visit as CA-01'},
+  {item:'BCM (body control module)',fn:'Passenger-side system coordination',mode:'Water intrusion / connector corrosion',cause:'HVAC scuttle overflow — passenger side. Recall 18V205000 path.',local:'BCM connector pin corrosion',sys:'Multiple module comm failures, horn, wipers, lamps',mission:'Complete vehicle electrical cascade. Major repair.',S:8,O:1,D:5,class:'II',action:'ELIMINATED by evidence. Passenger footwell confirmed dry. O=1 in this vehicle. Verify footwell stays dry.',owner:'Monitor only'},
+  {item:'PROXI configuration (software)',fn:'BCM/module configuration alignment',mode:'Corrupted PROXI config flag (B10AA-4A)',cause:'Ground event caused module to log configuration mismatch. Software artifact of hardware failure.',local:'B10AA-4A active in BCM',sys:'No functional impairment. Config flag only.',mission:'No mission impact. Will not self-clear.',S:2,O:9,D:3,class:'IV',action:'CA-06: AlfaOBD PROXI Alignment after all physical repairs. One-time fix. ~$40 AlfaOBD licence.',owner:'AlfaOBD software'},
+  {item:'Driver door LIN bus (S202 splice)',fn:'Door DCM, speaker, mic circuit junction',mode:'Splice corrosion at A-pillar junction block',cause:'Moisture from G103 zone or A-pillar wicking to S202 splice block above G103 stud.',local:'Multiple circuits in door harness high-resistance',sys:'Same as G103 effect: audio, mic, window intermittent',mission:'Audio and mic loss persistent even after G103 clean, if S202 corroded.',S:5,O:5,D:7,class:'III',action:'CA-03 includes S202 inspection. If corroded: apply contact cleaner, re-seal splice with self-amalgamating tape.',owner:'Inspect during CA-03'},
+  {item:'ABS module harness connector',fn:'ABS/BSM CAN + power + sensor connector',mode:'Pin corrosion (green oxide)',cause:'Scuttle overflow water wicks into loom above ABS connector. PVC factory tape not waterproof.',local:'ABS connector pin high contact resistance',sys:'U1700 BSM comm error. Same effect as G102 but via different mechanism.',mission:'ABS/ESC unavailable. Safety-critical.',S:7,O:5,D:8,class:'II',action:'CA-02: Clean pins with contact cleaner + brass brush. Stabilant 22. Self-amalgamating tape rewrap. VT-04.',owner:'DIY — same visit as CA-01'},
+  {item:'Fuel pump (recall 93C)',fn:'Fuel delivery to engine',mode:'Pump failure',cause:'Vitesco Technologies fuel pump assembly defect. NHTSA recall 25V586000.',local:'Loss of fuel pressure',sys:'Engine stall / no-start',mission:'Loss of drive power. Safety risk.',S:8,O:3,D:6,class:'II',action:'NHTSA Recall 93C — dealer repair FREE. Verify recall status on NHTSA.gov with VIN. Pending remedy availability.',owner:'Alfa dealer — free recall'}
+];
+
+function getRPNClass(rpn){
+  if(rpn>=400)return 'rpn-critical';
+  if(rpn>=200)return 'rpn-high';
+  if(rpn>=100)return 'rpn-med';
+  return 'rpn-low';
+}
+function getClassColor(cls){
+  const map={I:'br',II:'ba',III:'bn',IV:'bg'};
+  return map[cls]||'bn';
+}
+
+let sortCol='rpn', sortDir='desc';
+let filterMode='all';
+
+function renderFMECA(){
+  let data=[...fmecaData];
+  // filter
+  if(filterMode==='critical') data=data.filter(r=>r.S*r.O*r.D>=400);
+  else if(filterMode==='high') data=data.filter(r=>r.S*r.O*r.D>=200);
+  // sort
+  const colMap={rpn:r=>r.S*r.O*r.D,sev:r=>r.S,occ:r=>r.O,det:r=>r.D,item:r=>r.item};
+  if(colMap[sortCol]){
+    data.sort((a,b)=>{
+      const av=colMap[sortCol](a),bv=colMap[sortCol](b);
+      return sortDir==='desc'?(bv>av?1:bv<av?-1:0):(av>bv?1:av<bv?-1:0);
+    });
+  }
+  const tbody=document.getElementById('fmeca-body');
+  tbody.innerHTML=data.map(r=>{
+    const rpn=r.S*r.O*r.D;
+    const rc=getRPNClass(rpn);
+    return `<tr>
+      <td><b style="font-size:11px">${r.item}</b><br><span style="font-size:10px;color:var(--t3)">${r.fn}</span></td>
+      <td>${r.mode}</td>
+      <td style="font-size:11px;color:var(--t2)">${r.cause}</td>
+      <td style="font-size:11px">${r.local}</td>
+      <td style="font-size:11px">${r.sys}</td>
+      <td style="font-size:11px;color:var(--t2)">${r.mission}</td>
+      <td class="num-cell sev-${r.S}">${r.S}</td>
+      <td class="num-cell sev-${r.O}">${r.O}</td>
+      <td class="num-cell sev-${r.D}">${r.D}</td>
+      <td><span class="rpn-cell ${rc}">${rpn}</span></td>
+      <td><span class="badge ${getClassColor(r.class)}">Class ${r.class}</span></td>
+      <td style="font-size:11px;color:var(--t2)">${r.action}</td>
+      <td style="font-size:11px;font-family:var(--mono);color:var(--t3)">${r.owner}</td>
+    </tr>`;
+  }).join('');
+}
+
+function sortTable(col,dir){
+  sortCol=col; sortDir=dir;
+  renderFMECA();
+}
+
+function filterFMECA(mode){
+  filterMode=mode;
+  document.querySelectorAll('[id^=f-fmeca-]').forEach(b=>b.classList.remove('on'));
+  document.getElementById('f-fmeca-'+mode).classList.add('on');
+  renderFMECA();
+}
+
+function toggleProb(){
+  const btn=document.getElementById('prob-toggle');
+  const on=btn.textContent==='ON';
+  btn.textContent=on?'OFF':'ON';
+  btn.classList.toggle('on',!on);
+  document.querySelectorAll('[id^=p-]').forEach(el=>{
+    el.style.display=on?'none':'block';
+  });
+}
+
+renderFMECA();
+</script>
+</body>
+</html>

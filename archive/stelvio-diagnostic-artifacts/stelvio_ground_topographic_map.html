@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Stelvio — Complete Ground Stud Maintenance Map</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root{
+  --bg:#090b09;--bg2:#0f110f;--bg3:#141614;--bg4:#1a1d1a;--bg5:#202320;
+  --b1:#242724;--b2:#2e322e;--b3:#383c38;--b4:#444844;
+  --t1:#c4cbc4;--t2:#8a918a;--t3:#545a54;--t4:#343834;
+  --wh:#dce4dc;
+  --r:#e24b4a;--r2:#ff6b6a;--rbg:rgba(226,75,74,.12);--rbg2:rgba(226,75,74,.07);
+  --a:#d4891a;--a2:#f0a030;--abg:rgba(212,137,26,.12);
+  --g:#3a9e68;--g2:#4ec87e;--gbg:rgba(58,158,104,.12);
+  --b:#3a7ec4;--b2:#5ba0e8;--bbg:rgba(58,126,196,.12);
+  --acc:#c8a855;--acc2:#e8c870;
+  --mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:var(--sans);background:var(--bg);color:var(--t1);font-size:13px}
+.app{display:grid;grid-template-rows:auto auto 1fr;height:100vh;min-height:700px}
+.hdr{background:var(--bg2);border-bottom:1px solid var(--b1);padding:12px 20px}
+.hdr-row{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px}
+.hdr-title{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--wh);letter-spacing:.03em}
+.hdr-sub{font-family:var(--mono);font-size:10px;color:var(--t4);margin-top:2px}
+.pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}
+.pill{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:2px;letter-spacing:.04em;white-space:nowrap}
+.p-r{background:var(--rbg);color:var(--r2);border:1px solid rgba(226,75,74,.3)}
+.p-a{background:var(--abg);color:var(--a2);border:1px solid rgba(212,137,26,.3)}
+.p-g{background:var(--gbg);color:var(--g2);border:1px solid rgba(58,158,104,.3)}
+.p-b{background:var(--bbg);color:var(--b2);border:1px solid rgba(58,126,196,.3)}
+.p-n{background:rgba(80,90,80,.12);color:var(--t2);border:1px solid var(--b1)}
+.toolbar{background:var(--bg2);border-bottom:1px solid var(--b1);padding:8px 20px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tbtn{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:5px 12px;border-radius:3px;border:1px solid var(--b2);background:var(--bg3);color:var(--t2);cursor:pointer;transition:all .15s}
+.tbtn:hover{background:var(--bg4);color:var(--t1);border-color:var(--b3)}
+.tbtn.on{background:var(--abg);color:var(--a2);border-color:rgba(212,137,26,.4)}
+.sep{width:1px;height:20px;background:var(--b1)}
+.main{display:grid;grid-template-columns:1fr 340px;overflow:hidden}
+@media(max-width:900px){.main{grid-template-columns:1fr};.sidebar{display:none}}
+.map-area{position:relative;overflow:hidden;background:var(--bg)}
+.map-svg-wrap{width:100%;height:100%;overflow:auto;padding:20px}
+.sidebar{background:var(--bg2);border-left:1px solid var(--b1);overflow-y:auto;display:flex;flex-direction:column}
+.side-header{padding:14px 16px;border-bottom:1px solid var(--b1);background:var(--bg3)}
+.side-header .gid{font-family:var(--mono);font-size:18px;font-weight:600;color:var(--wh)}
+.side-header .gname{font-family:var(--mono);font-size:11px;color:var(--t3);margin-top:2px}
+.side-body{padding:14px 16px;flex:1}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.spec-item .sl{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
+.spec-item .sv{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--wh)}
+.spec-item .sd{font-size:10px;color:var(--t3);margin-top:2px;line-height:1.4}
+.stitle{font-family:var(--mono);font-size:9px;font-weight:600;color:var(--t4);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--b1)}
+.wire-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+.wchip{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;font-weight:500;padding:2px 7px;border-radius:2px}
+.mods-list{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px}
+.mod-badge{font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:2px;font-weight:600}
+.fail-text{font-size:11px;color:var(--t2);line-height:1.6;margin-bottom:12px}
+.vtest-box{background:var(--bg3);border-radius:3px;padding:10px 12px;margin-bottom:12px;font-size:11px}
+.vtest-box .vl{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--t3);margin-bottom:6px;letter-spacing:.05em}
+.vrow{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid var(--b1)}
+.vrow:last-child{border-bottom:none}
+.vval{font-family:var(--mono);font-size:11px;font-weight:600}
+.steps-list{list-style:none;counter-reset:s}
+.steps-list li{counter-increment:s;display:flex;gap:8px;margin-bottom:7px;font-size:11px;line-height:1.5}
+.steps-list li::before{content:counter(s);font-family:var(--mono);font-size:9px;font-weight:600;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.s-r li::before{background:var(--rbg);color:var(--r2);border:1px solid rgba(226,75,74,.3)}
+.s-a li::before{background:var(--abg);color:var(--a2);border:1px solid rgba(212,137,26,.3)}
+.s-g li::before{background:var(--gbg);color:var(--g2);border:1px solid rgba(58,158,104,.3)}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--t4);font-family:var(--mono);font-size:11px;text-align:center;gap:8px;padding:20px}
+.empty-icon{font-size:32px;opacity:.4}
+.priority-bar{height:3px;border-radius:2px;margin-top:6px;margin-bottom:14px}
+/* Map ground point hotspot */
+.gpt{cursor:pointer;transition:all .2s}
+.gpt circle.outer{transition:all .2s}
+.gpt:hover circle.outer{opacity:1!important}
+.gpt.selected circle.outer{opacity:1!important;stroke-width:2.5!important}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="hdr">
+  <div class="hdr-row">
+    <div>
+      <div class="hdr-title">2018 ALFA ROMEO STELVIO — COMPLETE GROUND STUD MAINTENANCE MAP</div>
+      <div class="hdr-sub">Giorgio platform · All 14 chassis ground points · Salt-market mandatory service interval</div>
+    </div>
+  </div>
+  <div class="pills">
+    <span class="pill p-r">5 CRITICAL INSPECT NOW</span>
+    <span class="pill p-a">3 SERVICE BY YEAR 6</span>
+    <span class="pill p-g">4 CONFIRMED OK</span>
+    <span class="pill p-n">2 ACCESSIBLE / LOW RISK</span>
+    <span class="pill p-b">SALT MARKET: INSPECT ALL EVERY 2 YEARS</span>
+  </div>
+</div>
+
+<div class="toolbar">
+  <span style="font-family:var(--mono);font-size:10px;color:var(--t3);letter-spacing:.05em;text-transform:uppercase">FILTER:</span>
+  <button class="tbtn on" id="f-all" onclick="filter('all')">All studs</button>
+  <button class="tbtn" id="f-critical" onclick="filter('critical')">Critical now</button>
+  <button class="tbtn" id="f-driver" onclick="filter('driver')">Driver side</button>
+  <button class="tbtn" id="f-pass" onclick="filter('passenger')">Passenger side</button>
+  <button class="tbtn" id="f-engine" onclick="filter('engine')">Engine bay</button>
+  <button class="tbtn" id="f-interior" onclick="filter('interior')">Interior</button>
+  <div class="sep"></div>
+  <span style="font-family:var(--mono);font-size:10px;color:var(--t3)">Click any stud on map for details</span>
+</div>
+
+<div class="main">
+  <div class="map-area">
+    <div class="map-svg-wrap">
+      <svg id="mapsvg" viewBox="0 0 820 640" width="100%" style="min-width:600px;min-height:480px">
+      <!-- =================== CAR BODY ISOMETRIC CUTAWAY =================== -->
+      <defs>
+        <filter id="glow-r">
+          <feGaussianBlur stdDeviation="3" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Ground plane shadow -->
+      <ellipse cx="420" cy="580" rx="340" ry="28" fill="rgba(0,0,0,0.4)"/>
+
+      <!-- ===== ISO BODY SHELL ===== -->
+      <!-- Main body bottom (floor) - 3D effect -->
+      <path d="M148 420 L672 420 L700 395 L700 160 L672 140 L148 140 L120 160 L120 395 Z" fill="#111511" stroke="#1e221e" stroke-width="1.5"/>
+      <!-- Body top surface (roof/hood view) -->
+      <path d="M120 160 L672 140 L700 160 L148 180 Z" fill="#161a16" stroke="#1e221e" stroke-width="0.8"/>
+      <!-- Left side panel (driver) -->
+      <path d="M120 160 L120 395 L148 420 L148 180 Z" fill="#0d110d" stroke="#1a1e1a" stroke-width="0.8"/>
+
+      <!-- Hood (front engine bay) -->
+      <path d="M148 140 L672 120 L700 140 L176 160 Z" fill="#181c18" stroke="#242824" stroke-width="1.2"/>
+      <!-- Hood surface lines -->
+      <line x1="200" y1="145" x2="228" y2="165" stroke="#1e221e" stroke-width="0.5"/>
+      <line x1="620" y1="128" x2="648" y2="148" stroke="#1e221e" stroke-width="0.5"/>
+
+      <!-- Windshield -->
+      <path d="M200 160 L620 142 L648 178 L228 196 Z" fill="#0a1a0a" stroke="#1a2e1a" stroke-width="0.8" opacity="0.8"/>
+      <!-- Windshield reflection lines -->
+      <line x1="250" y1="164" x2="278" y2="197" stroke="#1e2e1e" stroke-width="0.4" opacity="0.5"/>
+      <line x1="590" y1="148" x2="618" y2="181" stroke="#1e2e1e" stroke-width="0.4" opacity="0.5"/>
+
+      <!-- Rear windshield -->
+      <path d="M200 380 L620 362 L648 392 L228 410 Z" fill="#0a1a0a" stroke="#1a2e1a" stroke-width="0.8" opacity="0.6"/>
+
+      <!-- Scuttle tray (below windshield, engine bay top) -->
+      <path d="M200 157 L620 140 L620 160 L200 177 Z" fill="#0e160e" stroke="#243024" stroke-width="0.8"/>
+
+      <!-- Firewall line -->
+      <line x1="228" y1="196" x2="648" y2="178" stroke="#2a2e2a" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text font-size="9" fill="#343834" x="438" y="195" text-anchor="middle" font-family="'IBM Plex Mono',monospace">FIREWALL</text>
+
+      <!-- Transmission tunnel -->
+      <path d="M380 140 L440 140 L440 420 L380 420 Z" fill="#0c100c" stroke="#181c18" stroke-width="0.8"/>
+
+      <!-- Floor pan surface (top view) -->
+      <!-- Engine bay zone -->
+      <rect x="148" y="140" width="524" height="58" fill="#0f130f" stroke="#181c18" stroke-width="0.5" opacity="0.6"/>
+      <!-- Cabin zone driver -->
+      <rect x="148" y="198" width="232" height="222" fill="#0d110d" stroke="#181c18" stroke-width="0.5" opacity="0.6"/>
+      <!-- Cabin zone passenger -->
+      <rect x="440" y="198" width="232" height="222" fill="#0d110d" stroke="#181c18" stroke-width="0.5" opacity="0.6"/>
+      <!-- Rear zone -->
+      <rect x="148" y="420" width="524" height="60" fill="#0e120e" stroke="#181c18" stroke-width="0.5" opacity="0.6"/>
+
+      <!-- Zone labels (subtle) -->
+      <text font-size="9" fill="#2a2e2a" x="280" y="172" text-anchor="middle" font-family="'IBM Plex Mono',monospace">ENGINE BAY — DRIVER</text>
+      <text font-size="9" fill="#2a2e2a" x="560" y="172" text-anchor="middle" font-family="'IBM Plex Mono',monospace">ENGINE BAY — PASS</text>
+      <text font-size="9" fill="#2a2e2a" x="264" y="230" text-anchor="middle" font-family="'IBM Plex Mono',monospace">CABIN DRIVER SIDE</text>
+      <text font-size="9" fill="#2a2e2a" x="556" y="230" text-anchor="middle" font-family="'IBM Plex Mono',monospace">CABIN PASS SIDE</text>
+      <text font-size="9" fill="#2a2e2a" x="420" y="470" text-anchor="middle" font-family="'IBM Plex Mono',monospace">TRUNK / BATTERY</text>
+
+      <!-- Wheel arches -->
+      <ellipse cx="200" cy="178" rx="38" ry="22" fill="#0a0e0a" stroke="#242824" stroke-width="1.2"/>
+      <ellipse cx="620" cy="162" rx="38" ry="22" fill="#0a0e0a" stroke="#242824" stroke-width="1.2"/>
+      <ellipse cx="200" cy="388" rx="38" ry="22" fill="#0a0e0a" stroke="#242824" stroke-width="1.2"/>
+      <ellipse cx="620" cy="372" rx="38" ry="22" fill="#0a0e0a" stroke="#242824" stroke-width="1.2"/>
+
+      <!-- Direction labels -->
+      <text font-size="10" fill="#343834" x="420" y="128" text-anchor="middle" font-family="'IBM Plex Mono',monospace">FRONT</text>
+      <text font-size="10" fill="#343834" x="420" y="510" text-anchor="middle" font-family="'IBM Plex Mono',monospace">REAR</text>
+      <text font-size="10" fill="#343834" x="108" y="295" text-anchor="middle" font-family="'IBM Plex Mono',monospace">DRIVER</text>
+      <text font-size="10" fill="#343834" x="714" y="295" text-anchor="middle" font-family="'IBM Plex Mono',monospace">PASS.</text>
+
+      <!-- Scuttle drain arrows (water paths) -->
+      <!-- Driver scuttle overflow -->
+      <path d="M215 160 Q208 172 205 190 Q202 206 204 228" fill="none" stroke="#e24b4a" stroke-width="1.5" stroke-dasharray="4 2" marker-end="url(#arr)"/>
+      <text font-size="8" fill="#e24b4a" x="160" y="192" text-anchor="middle" font-family="'IBM Plex Mono',monospace">OVERFLOW</text>
+      <text font-size="8" fill="#e24b4a" x="160" y="203" text-anchor="middle" font-family="'IBM Plex Mono',monospace">→ G102</text>
+
+      <!-- Pass scuttle normal -->
+      <path d="M605 158 Q612 172 613 192 Q614 208 610 228" fill="none" stroke="#3a7ec4" stroke-width="1.2" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+      <text font-size="8" fill="#3a7ec4" x="660" y="188" text-anchor="middle" font-family="'IBM Plex Mono',monospace">NORMAL</text>
+      <text font-size="8" fill="#3a7ec4" x="660" y="199" text-anchor="middle" font-family="'IBM Plex Mono',monospace">DRAIN</text>
+
+      <!-- Arrow markers -->
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- =================== GROUND POINT MARKERS =================== -->
+      <!-- Each group: id, cx, cy, color, pulse-ring -->
+      <!-- Clicking calls selectGround(id) -->
+
+      <!-- G102 — Driver ABS/scuttle — RED CRITICAL ACTIVE -->
+      <g class="gpt selected" id="gpt-G102" onclick="selectGround('G102')">
+        <circle cx="200" cy="232" r="28" fill="rgba(226,75,74,0.06)" stroke="#e24b4a" stroke-width="0.5" stroke-dasharray="3 2" class="outer" opacity="0.8"/>
+        <circle cx="200" cy="232" r="18" fill="rgba(226,75,74,0.06)" stroke="#e24b4a" stroke-width="0.6" stroke-dasharray="2 2" opacity="0.5"/>
+        <circle cx="200" cy="232" r="10" fill="#1a0808" stroke="#e24b4a" stroke-width="1.8"/>
+        <circle cx="200" cy="232" r="4" fill="#e24b4a"/>
+        <text font-size="8" font-weight="600" fill="#ff6b6a" x="200" y="250" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G102</text>
+      </g>
+
+      <!-- G103 — Driver A-pillar interior — RED CRITICAL ACTIVE -->
+      <g class="gpt" id="gpt-G103" onclick="selectGround('G103')">
+        <circle cx="158" cy="290" r="22" fill="rgba(226,75,74,0.05)" stroke="#e24b4a" stroke-width="0.4" stroke-dasharray="3 2" class="outer" opacity="0.6"/>
+        <circle cx="158" cy="290" r="9" fill="#1a0808" stroke="#e24b4a" stroke-width="1.5"/>
+        <circle cx="158" cy="290" r="3.5" fill="#e24b4a"/>
+        <text font-size="8" font-weight="600" fill="#ff6b6a" x="158" y="307" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G103</text>
+      </g>
+
+      <!-- G101 — Engine block driver — AMBER uninspected -->
+      <g class="gpt" id="gpt-G101" onclick="selectGround('G101')">
+        <circle cx="222" cy="164" r="9" fill="#180e04" stroke="#d4891a" stroke-width="1.2"/>
+        <circle cx="222" cy="164" r="3.5" fill="#d4891a"/>
+        <text font-size="8" font-weight="600" fill="#f0a030" x="222" y="181" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G101</text>
+      </g>
+
+      <!-- G-FW — Firewall driver — AMBER -->
+      <g class="gpt" id="gpt-GFW" onclick="selectGround('GFW')">
+        <circle cx="185" cy="198" r="8" fill="#180e04" stroke="#d4891a" stroke-width="1.2"/>
+        <circle cx="185" cy="198" r="3" fill="#d4891a"/>
+        <text font-size="8" font-weight="600" fill="#f0a030" x="185" y="215" text-anchor="middle" font-family="'IBM Plex Mono',monospace">GFW</text>
+      </g>
+
+      <!-- G-RAD — Radiator support driver — AMBER -->
+      <g class="gpt" id="gpt-GRAD" onclick="selectGround('GRAD')">
+        <circle cx="175" cy="148" r="8" fill="#180e04" stroke="#d4891a" stroke-width="1.2"/>
+        <circle cx="175" cy="148" r="3" fill="#d4891a"/>
+        <text font-size="8" font-weight="600" fill="#f0a030" x="175" y="134" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G-RAD</text>
+      </g>
+
+      <!-- G1 — Trans-to-chassis driver mid — AMBER replaced -->
+      <g class="gpt" id="gpt-G1" onclick="selectGround('G1')">
+        <circle cx="250" cy="340" r="20" fill="rgba(212,137,26,0.06)" stroke="#d4891a" stroke-width="0.5" stroke-dasharray="3 2" class="outer" opacity="0.7"/>
+        <circle cx="250" cy="340" r="10" fill="#180e04" stroke="#d4891a" stroke-width="1.5"/>
+        <circle cx="250" cy="340" r="4" fill="#d4891a"/>
+        <text font-size="8" font-weight="600" fill="#f0a030" x="250" y="358" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G1</text>
+        <text font-size="7" fill="#a86010" x="250" y="367" text-anchor="middle" font-family="'IBM Plex Mono',monospace">REPLACED</text>
+      </g>
+
+      <!-- G-DASH-D — Under driver dash — AMBER -->
+      <g class="gpt" id="gpt-GDASHD" onclick="selectGround('GDASHD')">
+        <circle cx="185" cy="235" r="8" fill="#180e04" stroke="#d4891a" stroke-width="1.2"/>
+        <circle cx="185" cy="235" r="3" fill="#d4891a"/>
+        <text font-size="8" font-weight="600" fill="#f0a030" x="185" y="223" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G-DD</text>
+      </g>
+
+      <!-- G104 — Passenger dash/BCM — GREEN OK -->
+      <g class="gpt" id="gpt-G104" onclick="selectGround('G104')">
+        <circle cx="662" cy="275" r="9" fill="#081408" stroke="#3a9e68" stroke-width="1.2"/>
+        <circle cx="662" cy="275" r="3.5" fill="#3a9e68"/>
+        <text font-size="8" font-weight="600" fill="#4ec87e" x="662" y="292" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G104</text>
+      </g>
+
+      <!-- G105 — Pass A-pillar base — GREEN OK -->
+      <g class="gpt" id="gpt-G105" onclick="selectGround('G105')">
+        <circle cx="662" cy="320" r="9" fill="#081408" stroke="#3a9e68" stroke-width="1.2"/>
+        <circle cx="662" cy="320" r="3.5" fill="#3a9e68"/>
+        <text font-size="8" font-weight="600" fill="#4ec87e" x="662" y="337" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G105</text>
+      </g>
+
+      <!-- G5 — Battery neg/IBS trunk pass — GREEN OK -->
+      <g class="gpt" id="gpt-G5" onclick="selectGround('G5')">
+        <circle cx="580" cy="460" r="10" fill="#081408" stroke="#3a9e68" stroke-width="1.5"/>
+        <circle cx="580" cy="460" r="4" fill="#3a9e68"/>
+        <text font-size="8" font-weight="600" fill="#4ec87e" x="580" y="477" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G5</text>
+        <text font-size="7" fill="#287048" x="580" y="487" text-anchor="middle" font-family="'IBM Plex Mono',monospace">IBS ✓</text>
+      </g>
+
+      <!-- G-REAR — Rear chassis cross-member — AMBER -->
+      <g class="gpt" id="gpt-GREAR" onclick="selectGround('GREAR')">
+        <circle cx="420" cy="460" r="9" fill="#180e04" stroke="#d4891a" stroke-width="1.2"/>
+        <circle cx="420" cy="460" r="3.5" fill="#d4891a"/>
+        <text font-size="8" font-weight="600" fill="#f0a030" x="420" y="477" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G-REAR</text>
+      </g>
+
+      <!-- G-PASS-RAD — Radiator support passenger — GREEN (inside, dry) -->
+      <g class="gpt" id="gpt-GPRAD" onclick="selectGround('GPRAD')">
+        <circle cx="645" cy="148" r="8" fill="#081408" stroke="#3a9e68" stroke-width="1.2"/>
+        <circle cx="645" cy="148" r="3" fill="#3a9e68"/>
+        <text font-size="8" font-weight="600" fill="#4ec87e" x="645" y="134" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G-PR</text>
+      </g>
+
+      <!-- G-AMP — Audio amp pass side — BLUE (assess) -->
+      <g class="gpt" id="gpt-GAMP" onclick="selectGround('GAMP')">
+        <circle cx="600" cy="380" r="8" fill="#080a14" stroke="#3a7ec4" stroke-width="1.2"/>
+        <circle cx="600" cy="380" r="3" fill="#3a7ec4"/>
+        <text font-size="8" font-weight="600" fill="#5ba0e8" x="600" y="397" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G-AMP</text>
+      </g>
+
+      <!-- G-SEAT — Driver seat frame — BLUE (assess) -->
+      <g class="gpt" id="gpt-GSEAT" onclick="selectGround('GSEAT')">
+        <circle cx="260" cy="285" r="8" fill="#080a14" stroke="#3a7ec4" stroke-width="1.2"/>
+        <circle cx="260" cy="285" r="3" fill="#3a7ec4"/>
+        <text font-size="8" font-weight="600" fill="#5ba0e8" x="260" y="302" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G-SEAT</text>
+      </g>
+
+      <!-- Priority legend -->
+      <g transform="translate(30,530)">
+        <text font-size="9" fill="#343834" x="0" y="0" font-family="'IBM Plex Mono',monospace" font-weight="600">PRIORITY LEGEND</text>
+        <circle cx="8" cy="14" r="5" fill="#1a0808" stroke="#e24b4a" stroke-width="1.5"/>
+        <circle cx="8" cy="14" r="2" fill="#e24b4a"/>
+        <text font-size="9" fill="#e24b4a" x="18" y="18" font-family="'IBM Plex Mono',monospace">Critical — Active fault or fire risk</text>
+        <circle cx="8" cy="30" r="5" fill="#180e04" stroke="#d4891a" stroke-width="1.2"/>
+        <circle cx="8" cy="30" r="2" fill="#d4891a"/>
+        <text font-size="9" fill="#d4891a" x="18" y="34" font-family="'IBM Plex Mono',monospace">Service now — Year 6–8 in salt market</text>
+        <circle cx="8" cy="46" r="5" fill="#081408" stroke="#3a9e68" stroke-width="1.2"/>
+        <circle cx="8" cy="46" r="2" fill="#3a9e68"/>
+        <text font-size="9" fill="#3a9e68" x="18" y="50" font-family="'IBM Plex Mono',monospace">Confirmed OK</text>
+        <circle cx="8" cy="62" r="5" fill="#080a14" stroke="#3a7ec4" stroke-width="1.2"/>
+        <circle cx="8" cy="62" r="2" fill="#3a7ec4"/>
+        <text font-size="9" fill="#3a7ec4" x="18" y="66" font-family="'IBM Plex Mono',monospace">Assess — no known fault</text>
+      </g>
+      </svg>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div id="side-content">
+      <div class="empty-state">
+        <div class="empty-icon">⬡</div>
+        <div>Click any ground stud<br>on the map for details</div>
+        <div style="margin-top:12px;font-size:9px;letter-spacing:.06em;color:var(--t4)">14 STUDS MAPPED · ALL CIRCUITS DOCUMENTED</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- app -->
+
+<script>
+const grounds = {
+  G102:{
+    id:'G102',label:'ABS Module / Scuttle Drain Ground',zone:'engine',side:'driver',
+    priority:'critical',status:'active_fault',
+    color:'#e24b4a',colorBg:'rgba(226,75,74,.12)',
+    location:'Driver-side front chassis C-section rail. 175–185mm rearward of ABS hydraulic unit centerline. 35–45mm below scuttle drain rubber exit nipple.',
+    hardware:'M8 × 1.25 hex bolt',access:'Hood open, reach behind ABS unit. 13mm socket.',
+    torque:'8 N·m',terminals:'4 ring terminals + 1 braided strap',
+    year_risk:'Year 4–8 in salt market. CURRENT ACTIVE FAILURE.',
+    wires:[
+      {code:'BK/GN',bg:'#0f1f0f',fg:'#6ec46e',desc:'ABS module signal return'},
+      {code:'BK/WH',bg:'#0f0f1f',fg:'#6e6ec4',desc:'ECM chassis ground reference'},
+      {code:'BK',bg:'#141414',fg:'#888',desc:'Front body harness return'},
+      {code:'BK/OG',bg:'#1f120a',fg:'#c47e50',desc:'Headlight LH harness return'},
+      {code:'BRAID',bg:'#181818',fg:'#a0a0a0',desc:'Chassis equalization strap'}
+    ],
+    modules:[
+      {n:'ABS/BSM',c:'br'},{n:'ECM chassis ref',c:'br'},{n:'Hdlt LH level',c:'br'},
+      {n:'ETM signal',c:'ba'},{n:'RFHM antenna',c:'ba'},{n:'Front harness cluster',c:'bn'}
+    ],
+    fault_effect:'U1700-87 active · U1713-2F active · B101D-15 active · U1765/B3905/U0100 cascade. Headlight points up. ECM CAN erratic.',
+    vtest:[
+      {label:'GOOD',val:'< 50mV',color:'#4ec87e'},
+      {label:'MARGINAL',val:'50–100mV',color:'#f0a030'},
+      {label:'FAIL',val:'> 100mV',color:'#ff6b6a'},
+    ],
+    steps:['Disconnect battery before starting.','Remove M8 bolt. Photograph terminal stack order.','Sand chassis contact face to bare metal (120-grit, 30 sec circular).','Clean each ring terminal face with wire brush.','Apply dielectric grease to all contact faces.','Reinstall in original order, torque to 8 N·m.','Wrap loom with self-amalgamating silicone tape (NOT PVC tape).','Clear scuttle drain rubber nipple with compressed air from wheel arch.'],
+    col:'s-r'
+  },
+  G103:{
+    id:'G103',label:'Driver A-Pillar Base Ground',zone:'interior',side:'driver',
+    priority:'critical',status:'active_fault',
+    color:'#e24b4a',colorBg:'rgba(226,75,74,.10)',
+    location:'Driver A-pillar box section interior. 75–85mm above door sill, 35–45mm inboard of outer door seal. Behind driver kick panel (2 push-pins, 90 sec to remove).',
+    hardware:'M8 × 1.25 hex bolt',access:'Remove driver kick panel (2 push-pins). Stud immediately visible at A-pillar base.',
+    torque:'8 N·m',terminals:'3 ring terminals',
+    year_risk:'Year 4–8 in salt market. Sunroof FL drain if blocked routes directly to this stud.',
+    wires:[
+      {code:'BK/YL',bg:'#1a1a0a',fg:'#c4c460',desc:'Door LIN bus chassis return (DCM)'},
+      {code:'BK',bg:'#141414',fg:'#888',desc:'Speaker (−) left front + rear'},
+      {code:'BK/RD',bg:'#1a0a0a',fg:'#c46060',desc:'Microphone shield ground'}
+    ],
+    modules:[
+      {n:'Driver door DCM',c:'br'},{n:'Speaker LH (−)',c:'br'},{n:'Driver mic shield',c:'br'},
+      {n:'RFHM antenna gnd',c:'ba'},{n:'Window motor RL',c:'ba'},{n:'Door LED return',c:'bn'}
+    ],
+    fault_effect:'Driver speakers dead · Driver mic dead · B1177-97 window stored · LIN bus DCM dropout. Passenger side unaffected (confirmation G103 is isolated fault).',
+    vtest:[
+      {label:'GOOD',val:'< 50mV',color:'#4ec87e'},
+      {label:'MARGINAL',val:'50–80mV',color:'#f0a030'},
+      {label:'FAIL',val:'> 80mV',color:'#ff6b6a'},
+    ],
+    steps:['Pull driver kick panel (2 push-pins, no tools needed).','Locate M8 stud at A-pillar base — 3 ring terminals visible.','Voltage drop test: battery neg → stud head under load.','If >80mV: remove bolt, clean to bare metal, dielectric grease, 8 N·m.','Also inspect S202 splice block just above stud for corrosion on junction.','Check sunroof FL drain hose at A-pillar — clear any debris clog.'],
+    col:'s-r'
+  },
+  G101:{
+    id:'G101',label:'Engine Block Ground (Driver Side)',zone:'engine',side:'driver',
+    priority:'inspect',status:'uninspected',
+    color:'#d4891a',colorBg:'rgba(212,137,26,.10)',
+    location:'Short braided strap from engine block (aluminium casting) to driver chassis rail. Near starter motor flange, driver side front.',
+    hardware:'M8 × 1.25 bolt into cast aluminium',access:'Hood open. Short reach to block-side bracket.',
+    torque:'10 N·m (aluminium — do not overtorque)',terminals:'1 braided strap + 1 ring terminal',
+    year_risk:'Year 5–10. Aluminium oxide forms on block contact face. Relevant if U1713 persists after G102 clean.',
+    wires:[
+      {code:'BK',bg:'#141414',fg:'#888',desc:'ECM primary ground (block)'},
+      {code:'BRAID',bg:'#181818',fg:'#a0a0a0',desc:'Alternator/starter return path'}
+    ],
+    modules:[
+      {n:'ECM primary',c:'ba'},{n:'Alternator return',c:'ba'},{n:'Starter return path',c:'bn'}
+    ],
+    fault_effect:'ECM erratic CAN if G101 degrades independently of G102. If G102 cleaned but U1713 persists: check G101 next.',
+    vtest:[
+      {label:'GOOD',val:'< 50mV',color:'#4ec87e'},
+      {label:'FAIL',val:'> 80mV',color:'#ff6b6a'},
+    ],
+    steps:['Visual inspection: look for white powder on block-side bolt head.','V-drop test: battery neg → engine block surface under load.','If >50mV: remove bolt, clean aluminium face with 220-grit (FINE — aluminium scratches easily).','Apply thin dielectric grease. Torque to 10 N·m. Do not exceed — aluminium thread strips.'],
+    col:'s-a'
+  },
+  GFW:{
+    id:'GFW',label:'Firewall Ground (Driver Side)',zone:'engine',side:'driver',
+    priority:'inspect',status:'uninspected',
+    color:'#d4891a',colorBg:'rgba(212,137,26,.08)',
+    location:'Driver-side firewall panel, engine bay face. M8 stud into firewall sheet metal, near brake master cylinder bracket.',
+    hardware:'M8 × 1.25 hex bolt',access:'Hood open, driver side near master cylinder.',
+    torque:'8 N·m',terminals:'2–3 ring terminals',
+    year_risk:'Year 5–10. Exposed to brake fluid spray and condensation. Less salt-exposed than G102 but not sealed.',
+    wires:[
+      {code:'BK/WH',bg:'#0f0f1f',fg:'#6e6ec4',desc:'SGW module reference'},
+      {code:'BK',bg:'#141414',fg:'#888',desc:'Brake fluid sensor return'}
+    ],
+    modules:[
+      {n:'SGW gateway',c:'bb'},{n:'Brake fluid sensor',c:'bn'},{n:'ABS secondary ref',c:'bn'}
+    ],
+    fault_effect:'SGW communication errors if degraded. Similar cascade to G102 but less common failure path. Secondary ground for ABS.',
+    vtest:[{label:'GOOD',val:'< 50mV',color:'#4ec87e'},{label:'FAIL',val:'> 80mV',color:'#ff6b6a'}],
+    steps:['Visual: look for rust staining or white deposit on bolt head.','V-drop test under load.','If marginal: clean and regrease as per standard ground procedure.'],
+    col:'s-a'
+  },
+  GRAD:{
+    id:'GRAD',label:'Radiator Support Ground (Driver)',zone:'engine',side:'driver',
+    priority:'inspect',status:'uninspected',
+    color:'#d4891a',colorBg:'rgba(212,137,26,.08)',
+    location:'Driver-side radiator support / front frame rail junction. At or near headlight mounting bracket. Front of engine bay.',
+    hardware:'M8 bolt',access:'Hood open, front corner driver side.',
+    torque:'8 N·m',terminals:'2 ring terminals',
+    year_risk:'High exposure — front frame rail receives direct salt spray from driver wheel. Year 4–7 risk.',
+    wires:[
+      {code:'BK/OG',bg:'#1f120a',fg:'#c47e50',desc:'Headlight LH power return'},
+      {code:'BK',bg:'#141414',fg:'#888',desc:'Horn circuit return'}
+    ],
+    modules:[
+      {n:'Headlight LH lamp',c:'ba'},{n:'Horn',c:'bn'},{n:'Front body harness',c:'bn'}
+    ],
+    fault_effect:'Headlight LH dim or intermittent. Horn failure. Not primary cause of your current faults but should be cleaned during same service visit.',
+    vtest:[{label:'GOOD',val:'< 50mV',color:'#4ec87e'},{label:'FAIL',val:'> 80mV',color:'#ff6b6a'}],
+    steps:['Inspect and clean as part of full driver-side front ground service.','Access: remove driver front wheel liner for best access to radiator support rail.'],
+    col:'s-a'
+  },
+  G1:{
+    id:'G1',label:'Transmission-to-Chassis Strap',zone:'interior',side:'driver',
+    priority:'verify',status:'replaced',
+    color:'#d4891a',colorBg:'rgba(212,137,26,.08)',
+    location:'Mid-vehicle, driver side. Rear of transmission bell-housing to chassis. Replaced with heavy-duty shielded cable.',
+    hardware:'M10 × 1.5 at both ends',access:'Underneath vehicle, driver side centre. Ramp or lift required for clean access.',
+    torque:'22 N·m',terminals:'New shielded cable installed',
+    year_risk:'Cable replaced — verify terminal contact faces at both M10 bolt heads. Torque check recommended.',
+    wires:[{code:'BK SHIELDED',bg:'#141414',fg:'#888',desc:'TCM primary return + starter main return path'}],
+    modules:[
+      {n:'TCM ZF 8HP',c:'ba'},{n:'Starter return',c:'ba'},{n:'ETM secondary ref',c:'bn'}
+    ],
+    fault_effect:'U1960-83 stored (legacy from old strap failure event). New cable good. Verify: V-drop battery neg → trans bolt head <0.1Ω. If higher: contact face needs cleaning despite new cable.',
+    vtest:[
+      {label:'GOOD',val:'< 0.1 Ω',color:'#4ec87e'},
+      {label:'MARGINAL',val:'0.1–0.3 Ω',color:'#f0a030'},
+      {label:'FAIL',val:'> 0.3 Ω',color:'#ff6b6a'},
+    ],
+    steps:['Cable replaced — this is a verification step only.','DVOM in resistance mode (Ω). Battery disconnected.','Probe battery neg → transmission-side M10 bolt head.','Probe battery neg → chassis-side M10 bolt head.','Both should read <0.1 Ω. If >0.3 Ω: loosen bolt, clean contact face to bare metal, reapply dielectric grease.'],
+    col:'s-a'
+  },
+  GDASHD:{
+    id:'GDASHD',label:'Under-Dash Ground (Driver Side)',zone:'interior',side:'driver',
+    priority:'inspect',status:'uninspected',
+    color:'#d4891a',colorBg:'rgba(212,137,26,.08)',
+    location:'Behind driver lower dash panel / knee airbag area. M8 stud into dashboard cross-member or inner A-pillar body. Accessed by removing lower dash trim.',
+    hardware:'M8 × 1.25',access:'Remove driver lower dash panel (4–6 screws, varies by trim level). Stud accessible on body metal.',
+    torque:'8 N·m',terminals:'3–4 ring terminals',
+    year_risk:'Interior but close to A-pillar — if sunroof drain or door seal leaks, moisture can reach this stud. Year 5–10.',
+    wires:[
+      {code:'BK/WH',bg:'#0f0f1f',fg:'#6e6ec4',desc:'SGW area harness return'},
+      {code:'BK',bg:'#141414',fg:'#888',desc:'Dash lamp clusters return'},
+      {code:'BK/YL',bg:'#1a1a0a',fg:'#c4c460',desc:'Climate control reference'}
+    ],
+    modules:[
+      {n:'HVAC controller',c:'bn'},{n:'IPC secondary',c:'bn'},{n:'SGW reference',c:'bb'}
+    ],
+    fault_effect:'Climate control faults or IPC display anomalies if degraded. Not currently implicated in your DTCs but should be inspected as part of complete driver-side service.',
+    vtest:[{label:'GOOD',val:'< 50mV',color:'#4ec87e'},{label:'FAIL',val:'> 80mV',color:'#ff6b6a'}],
+    steps:['Lower dash panel removal required.','Standard V-drop test procedure.','Inspect for moisture staining — any dampness suggests door seal or sunroof drain issue feeding down the A-pillar.'],
+    col:'s-a'
+  },
+  G104:{
+    id:'G104',label:'Passenger Dash / BCM Ground',zone:'interior',side:'passenger',
+    priority:'ok',status:'confirmed_ok',
+    color:'#3a9e68',colorBg:'rgba(58,158,104,.08)',
+    location:'Passenger A-pillar base interior. Behind passenger kick panel. M8 stud into passenger A-pillar box section. Mirror of G103.',
+    hardware:'M8 × 1.25',access:'Remove passenger kick panel (2 push-pins).',
+    torque:'8 N·m',terminals:'3–4 ring terminals',
+    year_risk:'Not currently suspect. Passenger footwell confirmed dry. Inspect at year 8 in salt market as preventive measure.',
+    wires:[
+      {code:'BK/YL',bg:'#1a1a0a',fg:'#c4c460',desc:'BCM primary ground'},
+      {code:'BK',bg:'#141414',fg:'#888',desc:'Pass door DCM + speaker return'},
+      {code:'BK/RD',bg:'#1a0a0a',fg:'#c46060',desc:'Pass mic shield / HVAC ref'}
+    ],
+    modules:[
+      {n:'BCM primary',c:'bg'},{n:'Pass door DCM',c:'bg'},{n:'Pass speaker (−)',c:'bg'},{n:'HVAC controller',c:'bg'}
+    ],
+    fault_effect:'CONFIRMED NOT CURRENTLY DEGRADED. Passenger speakers and mic work. BCM functional. Passenger footwell dry. Inspect preventively at year 8.',
+    vtest:[{label:'CURRENT',val:'< 50mV (est)',color:'#4ec87e'}],
+    steps:['Currently confirmed OK — no action required.','Schedule preventive inspection at year 8 (2026) or if any moisture enters passenger footwell.'],
+    col:'s-g'
+  },
+  G105:{
+    id:'G105',label:'Passenger A-Pillar Base Ground',zone:'interior',side:'passenger',
+    priority:'ok',status:'confirmed_ok',
+    color:'#3a9e68',colorBg:'rgba(58,158,104,.08)',
+    location:'Passenger A-pillar base interior. Parallel to G103 on opposite side. Behind passenger kick panel.',
+    hardware:'M8 × 1.25',access:'Remove passenger kick panel.',
+    torque:'8 N·m',terminals:'3 ring terminals',
+    year_risk:'Not currently suspect. Asymmetric fault pattern (driver side only) confirms G105 intact.',
+    wires:[
+      {code:'BK/YL',bg:'#1a1a0a',fg:'#c4c460',desc:'Pass door LIN bus return'},
+      {code:'BK',bg:'#141414',fg:'#888',desc:'Pass speaker (−)'},
+      {code:'BK/RD',bg:'#1a0a0a',fg:'#c46060',desc:'Pass mic shield'}
+    ],
+    modules:[
+      {n:'Pass door DCM',c:'bg'},{n:'Pass speakers',c:'bg'},{n:'Pass mic',c:'bg'},{n:'Window RL motor',c:'bg'}
+    ],
+    fault_effect:'CONFIRMED NOT DEGRADED. Passenger audio works = G105 intact. This asymmetry is the diagnostic proof that isolates G103 as the driver-side audio root cause.',
+    vtest:[{label:'CURRENT',val:'< 50mV (est)',color:'#4ec87e'}],
+    steps:['Currently confirmed OK. Passenger audio and mic functional.','Inspect preventively at year 8 as part of full ground service.'],
+    col:'s-g'
+  },
+  G5:{
+    id:'G5',label:'Battery Negative / IBS Sensor',zone:'trunk',side:'passenger',
+    priority:'ok',status:'confirmed_ok',
+    color:'#3a9e68',colorBg:'rgba(58,158,104,.08)',
+    location:'Trunk, passenger side. Battery negative terminal with IBS-3 sensor clamped inline. Bosch S5 AGM, 3 months old.',
+    hardware:'M6 clamp + IBS-3 sensor',access:'Open trunk, right-side panel.',
+    torque:'6 N·m (cable clamp)',terminals:'Battery cable + IBS sensor clamp',
+    year_risk:'New battery 3 months old. IBS sensor confirmed functional. Not suspect.',
+    wires:[{code:'BK 25mm²',bg:'#141414',fg:'#888',desc:'Battery main negative cable — ultimate chassis reference'}],
+    modules:[{n:'Battery system ref',c:'bg'},{n:'IBS charging mgmt',c:'bg'},{n:'All modules (final return)',c:'bg'}],
+    fault_effect:'CONFIRMED OK. New AGM correctly installed. IBS reading correct. Charging system stable.',
+    vtest:[{label:'CONFIRMED',val:'OK — 3mo new',color:'#4ec87e'}],
+    steps:['Currently confirmed OK.','At next battery replacement: verify IBS sensor seated correctly and cable clamp torque 6 N·m.'],
+    col:'s-g'
+  },
+  GREAR:{
+    id:'GREAR',label:'Rear Chassis Cross-Member Ground',zone:'trunk',side:'centre',
+    priority:'inspect',status:'uninspected',
+    color:'#d4891a',colorBg:'rgba(212,137,26,.08)',
+    location:'Rear chassis cross-member, approximate centre of vehicle. Under rear cargo floor or accessible from beneath vehicle.',
+    hardware:'M8 bolt',access:'Lift rear cargo floor or raise vehicle.',
+    torque:'8 N·m',terminals:'2 ring terminals',
+    year_risk:'Exposed to road spray from rear axle. Year 5–10 in salt markets.',
+    wires:[
+      {code:'BK',bg:'#141414',fg:'#888',desc:'Rear body harness return'},
+      {code:'BK/WH',bg:'#0f0f1f',fg:'#6e6ec4',desc:'Rear liftgate wiring ref'}
+    ],
+    modules:[{n:'Rear liftgate module',c:'ba'},{n:'Rear lamp cluster',c:'bn'},{n:'Rear parking sensors',c:'bn'}],
+    fault_effect:'Rear liftgate electrical issues. Recall U34 (rear liftgate water intrusion) is related — addresses the connector but not the chassis ground stud. Clean this stud when doing full rear service.',
+    vtest:[{label:'GOOD',val:'< 50mV',color:'#4ec87e'},{label:'FAIL',val:'> 80mV',color:'#ff6b6a'}],
+    steps:['Inspect during any rear liftgate or tail lamp service.','Clean and regrease as standard ground procedure.'],
+    col:'s-a'
+  },
+  GPRAD:{
+    id:'GPRAD',label:'Radiator Support Ground (Passenger)',zone:'engine',side:'passenger',
+    priority:'ok',status:'low_risk',
+    color:'#3a9e68',colorBg:'rgba(58,158,104,.06)',
+    location:'Passenger-side radiator support / front frame rail. Mirror of G-RAD on driver side. Near passenger headlight bracket.',
+    hardware:'M8 bolt',access:'Hood open, passenger front corner.',
+    torque:'8 N·m',terminals:'2 ring terminals',
+    year_risk:'Lower risk than driver side — no scuttle overflow path on passenger side. Inspect at year 8.',
+    wires:[
+      {code:'BK/OG',bg:'#1f120a',fg:'#c47e50',desc:'Headlight RH power return'},
+      {code:'BK',bg:'#141414',fg:'#888',desc:'Pass front harness return'}
+    ],
+    modules:[{n:'Headlight RH lamp',c:'bg'},{n:'Pass front harness',c:'bg'}],
+    fault_effect:'Low risk. Passenger headlight and front systems unaffected. Preventive service at year 8.',
+    vtest:[{label:'GOOD',val:'< 50mV',color:'#4ec87e'}],
+    steps:['Low priority — inspect preventively during driver-side front service to save a second service visit.'],
+    col:'s-g'
+  },
+  GAMP:{
+    id:'GAMP',label:'Audio Amplifier Ground',zone:'interior',side:'passenger',
+    priority:'assess',status:'unknown',
+    color:'#3a7ec4',colorBg:'rgba(58,126,196,.08)',
+    location:'Behind rear passenger-side trim panel or under rear seat. The Harman Kardon or standard amplifier unit has a dedicated chassis ground bolt.',
+    hardware:'M6 bolt',access:'Remove rear side trim panel or rear seat.',
+    torque:'6 N·m',terminals:'1 ring terminal',
+    year_risk:'Interior location — lower corrosion risk. However: documented Stelvio cases of audio issues from water intrusion during window tinting. Amp has a protective cover on later builds.',
+    wires:[{code:'BK',bg:'#141414',fg:'#888',desc:'Amplifier chassis ground (dedicated)'}],
+    modules:[{n:'HK / standard amp',c:'bb'},{n:'Rear speaker returns',c:'bb'}],
+    fault_effect:'Driver audio failure could also stem from a corroded amp ground if G103 tests clean. Second suspect for audio fault. Check G103 first — if G103 clean, inspect amp ground next.',
+    vtest:[{label:'GOOD',val:'< 50mV',color:'#4ec87e'},{label:'FAIL',val:'> 80mV',color:'#ff6b6a'}],
+    steps:['Lower priority than G103 — only investigate if G103 tests clean but audio fault persists.','Rear trim removal required. Amp connector inspection for corrosion (documented water ingress during tinting).'],
+    col:'s-g'
+  },
+  GSEAT:{
+    id:'GSEAT',label:'Driver Seat Frame Ground',zone:'interior',side:'driver',
+    priority:'assess',status:'unknown',
+    color:'#3a7ec4',colorBg:'rgba(58,126,196,.08)',
+    location:'Driver seat frame rail, front or side. Small braided strap from seat frame to floor pan. Prevents static buildup and provides reference for seat heater module.',
+    hardware:'M6 bolt to seat track',access:'Accessible from under driver seat.',
+    torque:'6 N·m',terminals:'1 small strap',
+    year_risk:'Low corrosion risk — interior floor, protected. Relevant if seat heater codes appear.',
+    wires:[{code:'BK small',bg:'#141414',fg:'#888',desc:'Seat frame static/reference ground'}],
+    modules:[{n:'Seat heater module',c:'bb'},{n:'Seat motor ref',c:'bb'}],
+    fault_effect:'Seat heater faults or intermittent memory seat issues if degraded. Not related to current DTC pattern.',
+    vtest:[{label:'GOOD',val:'< 50mV',color:'#4ec87e'}],
+    steps:['Low priority. Inspect only if seat heater or memory seat faults appear after primary ground service.'],
+    col:'s-g'
+  }
+};
+
+let selectedId = 'G102';
+let activeFilter = 'all';
+
+const filterMap = {
+  all: ()=>true,
+  critical: g=>g.priority==='critical',
+  driver: g=>g.side==='driver',
+  passenger: g=>g.side==='passenger',
+  engine: g=>g.zone==='engine',
+  interior: g=>g.zone==='interior'||g.zone==='trunk'
+};
+
+function filter(f) {
+  activeFilter = f;
+  document.querySelectorAll('.tbtn').forEach(b=>b.classList.remove('on'));
+  document.getElementById('f-'+f).classList.add('on');
+  Object.keys(grounds).forEach(id=>{
+    const el = document.getElementById('gpt-'+id);
+    if (!el) return;
+    const show = filterMap[f](grounds[id]);
+    el.style.opacity = show ? '1' : '0.15';
+    el.style.pointerEvents = show ? 'auto' : 'none';
+  });
+}
+
+function selectGround(id) {
+  selectedId = id;
+  // Deselect all
+  document.querySelectorAll('.gpt').forEach(g=>g.classList.remove('selected'));
+  const el = document.getElementById('gpt-'+id);
+  if (el) el.classList.add('selected');
+  
+  const g = grounds[id];
+  if (!g) return;
+
+  const priorityColors = {critical:'#e24b4a',inspect:'#d4891a',verify:'#d4891a',ok:'#3a9e68',assess:'#3a7ec4'};
+  const priorityLabels = {critical:'CRITICAL — ACT NOW',inspect:'INSPECT THIS SERVICE',verify:'VERIFY TERMINALS',ok:'CONFIRMED OK',assess:'ASSESS / LOW PRIORITY'};
+  const pColor = priorityColors[g.priority]||'#888';
+  const pLabel = priorityLabels[g.priority]||g.priority.toUpperCase();
+
+  const wiresHtml = g.wires.map(w=>`<span class="wchip" style="background:${w.bg};border:1px solid ${w.fg}44;color:${w.fg}"><span style="font-weight:700">${w.code}</span><span style="color:${w.fg}88">— ${w.desc}</span></span>`).join('');
+  const modsHtml = g.modules.map(m=>`<span class="mod-badge ${m.c}" style="font-size:10px;padding:2px 6px;border-radius:2px;font-family:var(--mono)">${m.n}</span>`).join('');
+  const vtestHtml = g.vtest.map(v=>`<div class="vrow"><span style="color:var(--t2)">${v.label}</span><span class="vval" style="color:${v.color}">${v.val}</span></div>`).join('');
+  const stepsHtml = `<ol class="steps-list ${g.col}">`+g.steps.map(s=>`<li><span>${s}</span></li>`).join('')+'</ol>';
+
+  document.getElementById('side-content').innerHTML = `
+    <div class="side-header" style="border-left:3px solid ${pColor}">
+      <div class="gid" style="color:${pColor}">${g.id}</div>
+      <div class="gname">${g.label}</div>
+      <div style="font-family:var(--mono);font-size:10px;color:${pColor};margin-top:5px;font-weight:600;letter-spacing:.05em">${pLabel}</div>
+      <div class="priority-bar" style="background:${pColor};width:${g.priority==='critical'?100:g.priority==='inspect'||g.priority==='verify'?70:g.priority==='ok'?40:30}%"></div>
+    </div>
+    <div class="side-body">
+      <div class="stitle" style="margin-top:0">Location</div>
+      <div style="font-size:11px;color:var(--t2);line-height:1.6;margin-bottom:12px">${g.location}</div>
+      
+      <div class="spec-grid">
+        <div class="spec-item"><div class="sl">Hardware</div><div class="sv">${g.hardware}</div></div>
+        <div class="spec-item"><div class="sl">Torque</div><div class="sv">${g.torque}</div></div>
+        <div class="spec-item"><div class="sl">Access</div><div class="sv" style="font-size:11px">${g.access}</div></div>
+        <div class="spec-item"><div class="sl">Terminal stack</div><div class="sv" style="font-size:11px">${g.terminals}</div></div>
+      </div>
+      <div class="spec-item" style="margin-bottom:12px"><div class="sl">Salt market risk window</div><div class="sv" style="font-size:11px;color:${pColor}">${g.year_risk}</div></div>
+      
+      <div class="stitle">Wire colours at this stud</div>
+      <div class="wire-row">${wiresHtml}</div>
+      
+      <div class="stitle">Modules dependent on this ground</div>
+      <div class="mods-list">${modsHtml}</div>
+      
+      <div class="stitle">Failure effect if degraded</div>
+      <div class="fail-text">${g.fault_effect}</div>
+      
+      <div class="stitle">Voltage drop test thresholds</div>
+      <div class="vtest-box"><div class="vl">DVOM: battery neg → stud bolt head, engine running, full load</div>${vtestHtml}</div>
+      
+      <div class="stitle">Service procedure</div>
+      ${stepsHtml}
+      
+      <div style="height:20px"></div>
+    </div>
+  `;
+}
+
+// Init with G102 selected
+selectGround('G102');
+</script>
+</body>
+</html>

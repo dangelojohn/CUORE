@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stelvio Giorgio Ground Map</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#f8f7f4;color:#1a1a18;font-size:13px}
+h1{font-size:16px;font-weight:600;padding:14px 18px 4px;border-bottom:1px solid #ddd}
+.sub{font-size:11px;color:#666;padding:2px 18px 10px}
+.tabs{display:flex;gap:4px;padding:10px 18px 0;border-bottom:1px solid #ddd;background:#fff}
+.tab{padding:7px 14px;font-size:12px;font-weight:500;border-radius:6px 6px 0 0;cursor:pointer;color:#666;border:1px solid transparent;border-bottom:none;background:transparent}
+.tab.active{color:#111;border-color:#ccc;background:#f8f7f4;margin-bottom:-1px}
+.panel{display:none;padding:16px 18px;background:#f8f7f4}
+.panel.active{display:block}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.leg{display:flex;align-items:center;gap:5px;font-size:11px}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+table{width:100%;border-collapse:collapse;font-size:11px;background:#fff;border-radius:6px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.06)}
+th{text-align:left;padding:6px 9px;background:#f1efe8;font-weight:600;border-bottom:1px solid #ddd;font-size:11px}
+td{padding:5px 9px;border-bottom:1px solid #eee;vertical-align:top;line-height:1.5}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafaf8}
+.badge{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:600;margin:1px}
+.r{background:#fee;color:#7a1f1f}
+.a{background:#fef3e2;color:#633806}
+.g{background:#eaf3de;color:#275009}
+.gr{background:#f1efe8;color:#444}
+.b{background:#e6f0fb;color:#0c4470}
+.card{background:#fff;border-radius:8px;padding:14px;margin-bottom:14px;border:1px solid #e5e3dc;box-shadow:0 1px 3px rgba(0,0,0,0.05)}
+.card-title{font-size:13px;font-weight:600;margin-bottom:8px}
+.step{display:flex;gap:10px;margin-bottom:11px;align-items:flex-start}
+.stepn{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;margin-top:1px}
+.stepbody{flex:1;font-size:12px;line-height:1.6}
+.mono{font-family:monospace;font-size:10px;background:#f1efe8;padding:1px 5px;border-radius:3px}
+.hyp{margin-top:14px;padding:11px 13px;border-left:3px solid #e24b4a;background:#fff5f5;font-size:11px;line-height:1.7;border-radius:0 6px 6px 0}
+.section-head{font-size:12px;font-weight:600;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid #eee}
+</style>
+</head>
+<body>
+<h1>2018 Alfa Romeo Stelvio — Giorgio Platform Ground + Drain Master Map</h1>
+<div class="sub">Driver-side multi-module fault analysis · Spring 2026 · Toronto harsh-winter post-season</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('map')">Ground + Drain Map</button>
+  <button class="tab" onclick="show('deps')">Module Dependencies</button>
+  <button class="tab" onclick="show('proc')">Diagnostic Procedure</button>
+  <button class="tab" onclick="show('rank')">Failure Ranking</button>
+</div>
+
+<!-- ========== TAB 1: MAP ========== -->
+<div id="map" class="panel active">
+<div class="legend">
+  <div class="leg"><div class="dot" style="background:#e24b4a"></div>Critical / primary suspect</div>
+  <div class="leg"><div class="dot" style="background:#ef9f27"></div>Replaced — verify terminals</div>
+  <div class="leg"><div class="dot" style="background:#1d9e75"></div>Confirmed OK</div>
+  <div class="leg"><div class="dot" style="background:#888"></div>Not yet checked</div>
+  <div class="leg"><div class="dot" style="background:#378add;border-radius:2px"></div>Water drain path</div>
+</div>
+
+<svg width="100%" viewBox="0 0 700 720" style="max-width:700px;display:block;margin:0 auto">
+<defs>
+  <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+  <marker id="arrb" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="#378add" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- Car body top-view outline -->
+<rect x="185" y="65" width="330" height="580" rx="30" fill="none" stroke="#ccc" stroke-width="1.5"/>
+<!-- Hood hint -->
+<rect x="212" y="58" width="276" height="16" rx="7" fill="none" stroke="#ddd" stroke-width="0.8"/>
+<!-- Trunk hint -->
+<rect x="212" y="636" width="276" height="16" rx="7" fill="none" stroke="#ddd" stroke-width="0.8"/>
+<!-- Firewall -->
+<line x1="185" y1="240" x2="515" y2="240" stroke="#bbb" stroke-width="1.2" stroke-dasharray="5 3"/>
+<text font-size="10" fill="#999" x="528" y="244">firewall</text>
+<!-- Scuttle line -->
+<line x1="185" y1="272" x2="515" y2="272" stroke="#ddd" stroke-width="0.6" stroke-dasharray="2 4"/>
+<text font-size="10" fill="#bbb" x="528" y="276">scuttle</text>
+<!-- Transmission tunnel -->
+<rect x="310" y="65" width="80" height="580" rx="0" fill="none" stroke="#e0ddd5" stroke-width="0.6" stroke-dasharray="2 3"/>
+<!-- Labels -->
+<text font-size="10" fill="#aaa" x="350" y="88" text-anchor="middle">FRONT</text>
+<text font-size="10" fill="#aaa" x="350" y="672" text-anchor="middle">REAR</text>
+<text font-size="11" fill="#aaa" x="165" y="440" text-anchor="middle">DRIVER</text>
+<text font-size="11" fill="#aaa" x="545" y="440" text-anchor="middle">PASS.</text>
+
+<!-- ===== WATER DRAIN PATHS ===== -->
+<!-- Driver cowl drain — overflows toward ABS zone (RED dashed) -->
+<path d="M218 272 Q208 280 204 298 Q200 312 204 334" fill="none" stroke="#e24b4a" stroke-width="1.8" stroke-dasharray="5 3" marker-end="url(#arr)"/>
+<text font-size="9" fill="#e24b4a" x="90" y="283" text-anchor="middle">Cowl drain</text>
+<text font-size="9" fill="#e24b4a" x="90" y="294" text-anchor="middle">DRIVER</text>
+<text font-size="9" fill="#c03030" x="90" y="308" text-anchor="middle">⚠ OVERFLOWS</text>
+<text font-size="9" fill="#c03030" x="90" y="320" text-anchor="middle">→ ABS zone</text>
+<line x1="130" y1="305" x2="188" y2="305" stroke="#e24b4a" stroke-width="0.6" stroke-dasharray="2 2"/>
+
+<!-- Passenger cowl drain — normal (blue) -->
+<path d="M482 272 Q490 282 492 300 Q494 316 490 336" fill="none" stroke="#378add" stroke-width="1.4" stroke-dasharray="4 3" marker-end="url(#arrb)"/>
+<text font-size="9" fill="#378add" x="558" y="286" text-anchor="middle">Cowl drain</text>
+<text font-size="9" fill="#1d9e75" x="558" y="297" text-anchor="middle">PASS. ✓ OK</text>
+
+<!-- Sunroof drain front-left → driver A-pillar area -->
+<path d="M312 135 Q248 152 225 215 Q216 232 218 272" fill="none" stroke="#378add" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#arrb)"/>
+<text font-size="9" fill="#185fa5" x="237" y="164" text-anchor="middle">Sunroof FL</text>
+<text font-size="9" fill="#185fa5" x="237" y="175" text-anchor="middle">drain → A-pil</text>
+
+<!-- Sunroof drain front-right → pass A-pillar (OK) -->
+<path d="M388 135 Q452 152 475 215 Q482 232 482 272" fill="none" stroke="#378add" stroke-width="1" stroke-dasharray="3 3" opacity="0.5" marker-end="url(#arrb)"/>
+<text font-size="9" fill="#378add" x="484" y="175" text-anchor="middle">Sunroof FR ✓</text>
+
+<!-- Sunroof drain rear-left → B-pillar sill -->
+<path d="M312 165 Q255 360 232 510 Q228 532 232 558" fill="none" stroke="#378add" stroke-width="0.9" stroke-dasharray="3 3" opacity="0.45" marker-end="url(#arrb)"/>
+
+<!-- AC evap drain — pass side, buried in transmission tunnel -->
+<path d="M392 240 Q386 290 382 334" fill="none" stroke="#85b7eb" stroke-width="1.4" stroke-dasharray="4 2" marker-end="url(#arrb)"/>
+<text font-size="9" fill="#185fa5" x="420" y="284" text-anchor="middle">AC evap</text>
+<text font-size="9" fill="#185fa5" x="420" y="295" text-anchor="middle">drain</text>
+<text font-size="9" fill="#185fa5" x="420" y="306" text-anchor="middle">trans tunnel</text>
+
+<!-- Door bottom drain driver -->
+<path d="M187 448 Q178 460 180 476" fill="none" stroke="#378add" stroke-width="1" stroke-dasharray="3 2" opacity="0.6" marker-end="url(#arrb)"/>
+<text font-size="9" fill="#378add" x="140" y="456" text-anchor="middle">Door drain</text>
+
+<!-- ===== GROUND POINTS ===== -->
+
+<!-- G102 — ABS/scuttle — RED PRIMARY -->
+<circle cx="213" cy="334" r="19" fill="#FCEBEB" stroke="#e24b4a" stroke-width="1.8"/>
+<circle cx="213" cy="334" r="26" fill="none" stroke="#e24b4a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.65"/>
+<text font-size="10" font-weight="600" fill="#791f1f" x="213" y="330" text-anchor="middle">G102</text>
+<text font-size="9" fill="#a32d2d" x="213" y="343" text-anchor="middle">ABS GND</text>
+<text font-size="8" fill="#c04040" x="213" y="370" text-anchor="middle">▲ PRIMARY SUSPECT</text>
+
+<!-- G103 — Driver A-pillar base -->
+<circle cx="197" cy="373" r="14" fill="#FCEBEB" stroke="#e24b4a" stroke-width="1.4"/>
+<text font-size="9" font-weight="600" fill="#791f1f" x="197" y="370" text-anchor="middle">G103</text>
+<text font-size="8" fill="#a32d2d" x="197" y="381" text-anchor="middle">A-pil drv</text>
+
+<!-- G-FW — firewall driver -->
+<circle cx="200" cy="244" r="11" fill="#f1efe8" stroke="#888" stroke-width="1"/>
+<text font-size="8" font-weight="600" fill="#444" x="200" y="241" text-anchor="middle">G-FW</text>
+<text font-size="7" fill="#666" x="200" y="251" text-anchor="middle">FW drv</text>
+
+<!-- G101 — Engine block driver -->
+<circle cx="215" cy="148" r="13" fill="#f1efe8" stroke="#888" stroke-width="1"/>
+<text font-size="9" font-weight="600" fill="#444" x="215" y="145" text-anchor="middle">G101</text>
+<text font-size="8" fill="#666" x="215" y="156" text-anchor="middle">Eng blk</text>
+
+<!-- G1 — Trans strap, driver mid — AMBER replaced -->
+<circle cx="228" cy="432" r="13" fill="#fef3e2" stroke="#ef9f27" stroke-width="1.4"/>
+<text font-size="9" font-weight="600" fill="#633806" x="228" y="429" text-anchor="middle">G1</text>
+<text font-size="8" fill="#854f0b" x="228" y="440" text-anchor="middle">Trans</text>
+<text font-size="7" fill="#ef9f27" x="228" y="455" text-anchor="middle">replaced ✓</text>
+
+<!-- G104 — Pass dash BCM -->
+<circle cx="481" cy="358" r="13" fill="#f1efe8" stroke="#888" stroke-width="1"/>
+<text font-size="9" font-weight="600" fill="#444" x="481" y="355" text-anchor="middle">G104</text>
+<text font-size="8" fill="#666" x="481" y="366" text-anchor="middle">BCM pass</text>
+
+<!-- G105 — Pass A-pillar -->
+<circle cx="481" cy="400" r="12" fill="#f1efe8" stroke="#888" stroke-width="1"/>
+<text font-size="9" font-weight="600" fill="#444" x="481" y="397" text-anchor="middle">G105</text>
+<text font-size="8" fill="#666" x="481" y="407" text-anchor="middle">A-pil pass</text>
+
+<!-- G5 — Battery neg IBS, pass rear -->
+<circle cx="455" cy="598" r="13" fill="#eaf3de" stroke="#1d9e75" stroke-width="1.4"/>
+<text font-size="9" font-weight="600" fill="#275009" x="455" y="595" text-anchor="middle">G5</text>
+<text font-size="8" fill="#3b6d11" x="455" y="606" text-anchor="middle">IBS ✓</text>
+
+<!-- ===== MODULE BOXES ===== -->
+<!-- ECM -->
+<rect x="236" y="108" width="62" height="26" rx="4" fill="#fee" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#791f1f" x="267" y="121" text-anchor="middle">ECM</text>
+<text font-size="8" fill="#a32d2d" x="267" y="130" text-anchor="middle">U1713 active</text>
+<line x1="248" y1="134" x2="222" y2="148" stroke="#e24b4a" stroke-width="0.7" stroke-dasharray="2 2" marker-end="url(#arr)"/>
+
+<!-- ABS/BSM -->
+<rect x="228" y="204" width="76" height="26" rx="4" fill="#fee" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#791f1f" x="266" y="217" text-anchor="middle">ABS / BSM</text>
+<text font-size="8" fill="#a32d2d" x="266" y="227" text-anchor="middle">U1700 active</text>
+<line x1="245" y1="230" x2="222" y2="313" stroke="#e24b4a" stroke-width="0.8" marker-end="url(#arr)"/>
+
+<!-- Headlight LH -->
+<rect x="360" y="100" width="105" height="26" rx="4" fill="#fee" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#791f1f" x="412" y="113" text-anchor="middle">Headlight LH</text>
+<text font-size="8" fill="#a32d2d" x="412" y="123" text-anchor="middle">B101D — pointing up</text>
+<path d="M375 126 Q340 170 270 265 Q248 285 222 318" fill="none" stroke="#e24b4a" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+
+<!-- ETM/EMCM -->
+<rect x="355" y="170" width="84" height="26" rx="4" fill="#fef3e2" stroke="#ef9f27" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#633806" x="397" y="183" text-anchor="middle">ETM/EMCM</text>
+<text font-size="8" fill="#854f0b" x="397" y="193" text-anchor="middle">B3905 stored</text>
+<path d="M372 196 Q345 218 320 240 Q300 255 260 328" fill="none" stroke="#ef9f27" stroke-width="0.7" stroke-dasharray="2 2" marker-end="url(#arr)"/>
+
+<!-- RFHM -->
+<rect x="355" y="207" width="75" height="26" rx="4" fill="#fef3e2" stroke="#ef9f27" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#633806" x="392" y="220" text-anchor="middle">RFHM</text>
+<text font-size="8" fill="#854f0b" x="392" y="230" text-anchor="middle">U1765 stored</text>
+
+<!-- Driver door module -->
+<rect x="191" y="468" width="84" height="26" rx="4" fill="#fee" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#791f1f" x="233" y="481" text-anchor="middle">Driver door</text>
+<text font-size="8" fill="#a32d2d" x="233" y="491" text-anchor="middle">audio + mic dead</text>
+<line x1="213" y1="468" x2="203" y2="388" stroke="#e24b4a" stroke-width="0.8" stroke-dasharray="2 2" marker-end="url(#arr)"/>
+
+<!-- BCM pass OK -->
+<rect x="414" y="313" width="78" height="26" rx="4" fill="#eaf3de" stroke="#1d9e75" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#275009" x="453" y="326" text-anchor="middle">BCM</text>
+<text font-size="8" fill="#3b6d11" x="453" y="336" text-anchor="middle">pass — dry ✓</text>
+
+<!-- SGW -->
+<rect x="294" y="278" width="62" height="22" rx="4" fill="#e6f0fb" stroke="#378add" stroke-width="0.7"/>
+<text font-size="9" font-weight="600" fill="#0c4470" x="325" y="290" text-anchor="middle">SGW</text>
+<text font-size="8" fill="#185fa5" x="325" y="299" text-anchor="middle">gateway</text>
+</svg>
+</div>
+
+<!-- ========== TAB 2: DEPS ========== -->
+<div id="deps" class="panel">
+
+<div class="section-head">G102 — Driver ABS / Scuttle Drain Ground — PRIMARY SUSPECT 🔴</div>
+<table style="margin-bottom:14px">
+<thead><tr><th style="width:18%">Module</th><th style="width:16%">DTC</th><th style="width:12%">State</th><th>Failure mode when G102 is high-resistance</th></tr></thead>
+<tbody>
+<tr><td>ABS / BSM</td><td><span class="badge r">U1700-87</span></td><td><span class="badge r">Active</span></td><td>BSM braking module loses chassis return → CAN messages go silent → ESC/ABS unavailable</td></tr>
+<tr><td>ECM</td><td><span class="badge r">U1713-2F</span><br><span class="badge r">U0418-86</span></td><td><span class="badge r">Active</span></td><td>ECM references G102 chassis rail for CAN common-mode. High resistance injects noise on CAN-H/L — messages become erratic (not absent)</td></tr>
+<tr><td>Headlight LH leveling</td><td><span class="badge r">B101D-15</span></td><td><span class="badge r">Active</span></td><td>Actuator motor ground path through driver harness terminates at G102 cluster. No return path → motor drives to hard stop = headlight points up</td></tr>
+<tr><td>Front fuse box (drv)</td><td>—</td><td><span class="badge gr">Check</span></td><td>All circuits from driver fuse box share G102 as chassis return. High resistance = every circuit sees partial voltage offset</td></tr>
+<tr><td>ETM / EMCM</td><td><span class="badge a">B3905-31</span></td><td><span class="badge a">Stored</span></td><td>Amp loses stable ground → audio collapses → stored fault. Stored (not active) suggests intermittent event rather than constant failure</td></tr>
+<tr><td>U0100 BCM↔ECM</td><td><span class="badge a">U0100-87</span></td><td><span class="badge a">Stored</span></td><td>Cascade: when ECM goes erratic, BCM loses communication with it. Stored = happened during the event, not constant</td></tr>
+</tbody>
+</table>
+
+<div class="section-head">G103 — Driver A-Pillar Base Interior — SECONDARY SUSPECT 🔴</div>
+<table style="margin-bottom:14px">
+<thead><tr><th style="width:18%">Module/Circuit</th><th style="width:16%">DTC</th><th style="width:12%">State</th><th>Failure mode when G103 is high-resistance</th></tr></thead>
+<tbody>
+<tr><td>Driver door module (DCM)</td><td>—</td><td><span class="badge r">Symptom</span></td><td>DCM LIN bus chassis return routes via A-pillar base ground. When G103 rises, DCM loses stable reference → drops from LIN network → speakers and mic controlled by DCM become silent</td></tr>
+<tr><td>Driver front speaker</td><td>—</td><td><span class="badge r">Dead</span></td><td>Speaker return conductor (–) from door harness references chassis via G103. Loss of ground = no output regardless of signal input</td></tr>
+<tr><td>Driver microphone</td><td>—</td><td><span class="badge r">Dead</span></td><td>Mic shield ground at door harness connector routes via G103. Floating shield = mic signal collapses into noise, voice recognition fails</td></tr>
+<tr><td>RFHM</td><td><span class="badge a">U1765-86</span></td><td><span class="badge a">Stored</span></td><td>RFHM antenna ground cluster shares A-pillar area. Signal invalid when ground reference floats</td></tr>
+<tr><td>Window smart motor LH rear</td><td><span class="badge a">B1177-97</span></td><td><span class="badge a">Stored</span></td><td>LIN window motor in rear door shares driver B-pillar/A-pillar ground chain. Intermittent motor obstruction fault when ground is high-resistance</td></tr>
+<tr><td>Sunroof drain FL</td><td>—</td><td><span class="badge r">Water risk</span></td><td>Front-left sunroof drain terminates near driver A-pillar base. If drain is partially blocked or terminates above body seam, water tracks directly to G103 bolt</td></tr>
+</tbody>
+</table>
+
+<div class="section-head">G1 — Transmission-to-Chassis — REPLACED 🟡 (verify terminal contact faces)</div>
+<table style="margin-bottom:14px">
+<thead><tr><th style="width:18%">Module</th><th style="width:16%">DTC</th><th style="width:12%">State</th><th>Failure mode</th></tr></thead>
+<tbody>
+<tr><td>TCM (ZF 8HP)</td><td><span class="badge a">U1960-83</span></td><td><span class="badge a">Stored</span></td><td>TCM signal protection calculation — stored fault indicates an event occurred when old strap was corroded. New cable is fine; stored code is a legacy log. Confirm terminal contact resistance &lt;0.1Ω</td></tr>
+<tr><td>Starter return</td><td>—</td><td><span class="badge gr">Monitor</span></td><td>If terminal bolt faces are oxidised under the new cable, 200A starter current finds alternate paths through signal wire shields → thermal damage / fire risk</td></tr>
+<tr><td>ETM secondary ref</td><td><span class="badge a">B3905</span></td><td><span class="badge a">Stored</span></td><td>ETM signal ground partially routes via G1 cluster. Stored fault = was affected when old strap failed</td></tr>
+</tbody>
+</table>
+
+<div class="section-head">G101 — Engine Block (Driver Side) — NOT YET INSPECTED ⚫</div>
+<table style="margin-bottom:14px">
+<thead><tr><th style="width:18%">Module</th><th style="width:16%">DTC</th><th style="width:12%">State</th><th>Failure mode</th></tr></thead>
+<tbody>
+<tr><td>ECM primary ground</td><td><span class="badge r">U1713-2F</span></td><td><span class="badge gr">Possible</span></td><td>ECM has two ground paths: chassis (G102) and engine block (G101). Corrosion on G101 alone causes erratic CAN messages. If G102 tests clean but U1713 persists, test G101</td></tr>
+<tr><td>Alternator return</td><td>—</td><td><span class="badge gr">Check</span></td><td>Charging system references block ground. High resistance → IBS reports incorrect charge state → false battery alerts</td></tr>
+</tbody>
+</table>
+
+<div class="section-head">G104, G105, G5 — Passenger Side + Battery — CONFIRMED OK 🟢</div>
+<table>
+<thead><tr><th style="width:18%">Ground</th><th style="width:18%">Location</th><th style="width:12%">Status</th><th>Evidence and notes</th></tr></thead>
+<tbody>
+<tr><td>G104</td><td>Pass. dash / BCM area</td><td><span class="badge g">OK</span></td><td>BCM footwell is dry. BCM itself is functional. Passenger-side modules are not reporting active faults. G104 intact.</td></tr>
+<tr><td>G105</td><td>Pass. A-pillar base</td><td><span class="badge g">OK</span></td><td>Passenger speakers and mic work correctly → confirms G105 is intact. Asymmetric audio failure (driver only) is the diagnostic proof.</td></tr>
+<tr><td>G5</td><td>Battery neg / IBS sensor</td><td><span class="badge g">OK ✓</span></td><td>Visually inspected. Bosch S5 AGM 3 months old. IBS sensor appears functional.</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ========== TAB 3: PROCEDURE ========== -->
+<div id="proc" class="panel">
+<div style="font-size:11px;color:#666;margin-bottom:14px">Complete procedure in priority order. Use a quality DVOM (Fluke 87 or equivalent). All voltage-drop tests run with engine running and electrical loads active (lights on, blower max, brake pressed).</div>
+
+<div class="step">
+  <div class="stepn" style="background:#fee;color:#791f1f">1</div>
+  <div class="stepbody"><b>Visual inspection — G102 ABS connector and scuttle drain zone</b><br>
+  Open hood, driver side. Locate ABS module (behind driver headlight, forward of strut tower). The scuttle drain exits immediately above and behind this area. Inspect:
+  <ul style="margin:4px 0 4px 16px">
+    <li>Chassis ground bolt head: bright metal = OK / green-white crust = fail</li>
+    <li>Ring terminal: intact tinned copper = OK / brown-green powder under terminal = fail</li>
+    <li>Wiring loom tape above ABS connector: dry = OK / swollen, wet, or split = fail</li>
+    <li>ABS connector body: no discolouration = OK / white tracking marks on plastic = fail</li>
+  </ul>
+  <span class="mono">Pass: bright metal, no crust &nbsp;|&nbsp; Fail: any visible corrosion</span></div>
+</div>
+
+<div class="step">
+  <div class="stepn" style="background:#fee;color:#791f1f">2</div>
+  <div class="stepbody"><b>Voltage drop test — G102 under full electrical load</b><br>
+  Engine running. Loads active: headlights on, blower max, brake pedal pressed, seat heaters on if equipped. DVOM set to DC millivolts. Negative probe on battery negative post. Positive probe directly on the chassis bolt at G102.
+  <ul style="margin:4px 0 4px 16px">
+    <li><span class="mono">&lt; 50mV (0.05V)</span> — excellent, G102 is fine</li>
+    <li><span class="mono">50–100mV</span> — marginal, clean contact and retest</li>
+    <li><span class="mono">&gt; 100mV</span> — fail, high resistance confirmed, G102 is the root cause</li>
+  </ul>
+  Repeat with probes reversed (chassis to battery neg) to catch ground loops. Any reading above 100mV with probes in either direction = clean this point.</div>
+</div>
+
+<div class="step">
+  <div class="stepn" style="background:#fee;color:#791f1f">3</div>
+  <div class="stepbody"><b>Voltage drop test — G103 driver A-pillar base</b><br>
+  Pull back driver kick panel trim (2–3 plastic clips). Locate the ring terminal bolt at base of A-pillar body metal, inside the cabin. Same test as Step 2.
+  <span class="mono">&lt; 50mV = OK &nbsp;|&nbsp; &gt; 80mV = fail</span>
+  <br>This single reading will confirm or eliminate G103 as the root cause of the driver-side audio and microphone failure. If it reads high, you have isolated the fault — no further modules need to be replaced or replaced.</div>
+</div>
+
+<div class="step">
+  <div class="stepn" style="background:#fef3e2;color:#633806">4</div>
+  <div class="stepbody"><b>Verify G1 terminal contact faces — both ends</b><br>
+  The cable was replaced but the contact surfaces at both bolt ends may have residual oxide from the failed original strap. DVOM in resistance (ohms): probe battery negative to transmission-side bolt head.
+  <span class="mono">&lt; 0.1Ω = fine &nbsp;|&nbsp; &gt; 0.3Ω = clean both contact faces</span>
+  <br>To clean: loosen bolt, use 120-grit sandpaper on both the cable terminal and the chassis/transmission metal contact face to bare metal. Apply dielectric grease, re-torque 8–10 Nm.</div>
+</div>
+
+<div class="step">
+  <div class="stepn" style="background:#f1efe8;color:#444">5</div>
+  <div class="stepbody"><b>Inspect ABS connector pins</b><br>
+  Even if the chassis bolt is clean, the ABS module harness connector can carry independent moisture corrosion. Disconnect the ABS connector. Under flashlight inspect all pins for:
+  <ul style="margin:4px 0 4px 16px">
+    <li>Green oxidation on copper pin surfaces</li>
+    <li>White/brown tracking on plastic connector body between pins</li>
+    <li>Swollen or cracked plastic around pin entries (freeze-thaw damage)</li>
+  </ul>
+  Clean: electrical contact cleaner spray, fine brass brush on pin faces, dry with compressed air. Apply Stabilant 22 or CRC 2-26 before reconnecting. Wrap exposed loom with self-amalgamating (silicone) tape, NOT PVC tape — PVC wicks moisture.</div>
+</div>
+
+<div class="step">
+  <div class="stepn" style="background:#f1efe8;color:#444">6</div>
+  <div class="stepbody"><b>G101 engine block strap — visual and drop test</b><br>
+  Locate short braided strap from engine block to chassis, driver side, near starter. Drop test: battery negative to engine block surface.
+  <span class="mono">&lt; 50mV = OK</span>
+  <br>If G102 and G103 test clean but U1713 (ECM erratic) persists after battery reset, G101 corrosion is the remaining suspect for that specific code.</div>
+</div>
+
+<div class="step">
+  <div class="stepn" style="background:#e6f0fb;color:#0c4470">7</div>
+  <div class="stepbody"><b>Scuttle drain clearance — prevent recurrence</b><br>
+  With hood open, locate driver-side scuttle tray (below windshield, above wiper motor). Run a gentle hose trickle and watch where water exits. It should drain down through a rubber nipple and exit behind the wheel arch liner, not pool near the ABS module.
+  <br>If water pools near ABS zone: drain is partially blocked or the drain tube has disconnected from its nipple. Clear with compressed air through the wheel arch liner access, or a flexible drain snake from the top. After clearing: add a silicone splash guard above the ABS connector.
+  <br><b>Also check:</b> does the Stelvio have a sunroof? If yes, the front-left drain nipple exits in the driver A-pillar area. Inspect it with the sunroof open — there should be a rubber hose with a slit tip. If the slit is clogged with pine needle debris (common in Canadian spring), water backs up and runs directly down the A-pillar to G103.</div>
+</div>
+
+<div class="step">
+  <div class="stepn" style="background:#eaf3de;color:#275009">8</div>
+  <div class="stepbody"><b>Battery disconnect reset — after all physical repairs</b><br>
+  After all ground points cleaned and drain confirmed clear: disconnect battery negative for 20 minutes minimum. Reconnect. Start engine. Turn steering wheel lock-to-lock twice slowly (resets some ADAS module sleep states). Let idle 5 minutes. Re-scan with Launch or AlfaOBD.
+  <br>Expected result: all stored U-codes and B-codes will not return. Any code that returns after this reset points to a remaining hardware issue.
+  <br>The one code that will NOT self-clear regardless of ground repair: <span class="mono">B10AA-4A</span> (PROXI configuration — incorrect component installed). This requires AlfaOBD software or Witech 2.0 at a dealer to reset. It is a software log entry caused by the ground event, not an ongoing hardware problem.</div>
+</div>
+</div>
+
+<!-- ========== TAB 4: RANKING ========== -->
+<div id="rank" class="panel">
+<table style="margin-bottom:16px">
+<thead><tr><th style="width:4%">#</th><th style="width:24%">Failure point</th><th style="width:12%">Likelihood</th><th style="width:26%">Supporting evidence</th><th>Symptoms explained</th></tr></thead>
+<tbody>
+<tr>
+  <td><b>1</b></td>
+  <td><span class="badge r">G102</span> corrosion<br><small>ABS/scuttle driver area</small></td>
+  <td><b>Very high</b><br><small>~85%</small></td>
+  <td>Driver-side scuttle overflow documented on Giorgio platform. Post-salt winter. ABS module in direct water path. U1700 + U1713 simultaneously active = shared chassis reference failure. Pattern matches forum case exactly.</td>
+  <td>ECM erratic ✓<br>ABS/BSM lost ✓<br>Headlight up ✓<br>ETM stored ✓<br>U0100 cascade ✓</td>
+</tr>
+<tr>
+  <td><b>2</b></td>
+  <td><span class="badge r">G103</span> corrosion<br><small>Driver A-pillar base</small></td>
+  <td><b>High</b><br><small>~75%</small></td>
+  <td>Driver door audio AND mic both dead = same LIN sub-bus. Passenger side works = not a software issue. Sunroof FL drain terminates near this point. Classic freeze-thaw winter corrosion path under kick panel.</td>
+  <td>Driver speakers ✓<br>Driver mic ✓<br>B1177 window ✓<br>RFHM U1765 ✓</td>
+</tr>
+<tr>
+  <td><b>3</b></td>
+  <td><span class="badge a">G1</span> terminal faces<br><small>Trans strap bolt ends</small></td>
+  <td><b>Medium</b><br><small>~40%</small></td>
+  <td>Cable replaced but contact surfaces at bolt heads not confirmed. U1960 (TCM signal protection stored) is a legacy fault from when old strap corroded. Bolt-face oxide film will cause intermittent CAN drops under high starter current load.</td>
+  <td>U1960 stored ✓<br>TCM ref instability ✓</td>
+</tr>
+<tr>
+  <td><b>4</b></td>
+  <td><span class="badge gr">G101</span> engine block strap<br><small>Driver side, near starter</small></td>
+  <td><b>Medium-low</b><br><small>~30%</small></td>
+  <td>ECM uses dual grounds (G102 + G101). If G102 tests clean but U1713 persists, G101 is next. Not yet visually inspected.</td>
+  <td>U1713 residual ✓</td>
+</tr>
+<tr>
+  <td><b>5</b></td>
+  <td><span class="badge gr">ABS connector pins</span><br><small>Independent of bolt</small></td>
+  <td><b>Medium-low</b><br><small>~30%</small></td>
+  <td>Connector pins can corrode from moisture wicking even when chassis bolt is intact. Always inspect when in the area.</td>
+  <td>U1700 residual ✓</td>
+</tr>
+<tr>
+  <td><b>6</b></td>
+  <td><span class="badge b">B10AA-4A PROXI</span><br><small>Software log</small></td>
+  <td><b>100% present</b><br><small>secondary only</small></td>
+  <td>This code is a consequence of the ground event, not a root cause. Will not clear without AlfaOBD/Witech regardless of physical repair. Fix grounds first, then clear software.</td>
+  <td>B10AA-4A ✓</td>
+</tr>
+<tr>
+  <td><b>7</b></td>
+  <td><span class="badge g">BCM water damage</span><br><small>Eliminated</small></td>
+  <td><b>&lt; 5%</b><br><small>Eliminated</small></td>
+  <td>Passenger footwell confirmed dry. BCM on passenger side. If BCM were damaged, passenger systems would also fail. They do not. This hypothesis is closed.</td>
+  <td>—</td>
+</tr>
+</tbody>
+</table>
+
+<div class="hyp">
+  <b>Hypothesis validation:</b> Your working hypothesis is confirmed and well-supported by the evidence. The pattern is consistent with two simultaneous driver-side ground degradations operating independently: G102 (causing the full CAN/module communication cascade, ECM erratic signals, and headlight leveling loss) and G103 (causing the driver-side audio and microphone failure via LIN bus collapse). Both are in the same driver-side salt exposure corridor and both degraded over the same winter season under the same corrosion mechanism. Fix G102 first — it has the most active codes and the highest safety impact. Then G103. After cleaning both and performing a battery reset, re-scan before considering any module replacement.
+</div>
+
+<div style="margin-top:12px;padding:10px 12px;background:#fff;border:1px solid #ddd;border-radius:6px;font-size:11px;line-height:1.7">
+  <b>Cost estimate if hypothesis is correct:</b><br>
+  G102 clean + reseal loom: ~$80–200 at an independent shop, or DIY with basic tools.<br>
+  G103 clean: ~$60–120 at shop, DIY accessible after removing kick panel.<br>
+  AlfaOBD license (one-time): ~$30–60 — required for B10AA-4A PROXI reset.<br>
+  If G102 is beyond cleaning (bolt corroded through chassis metal): welded ground repair $150–400.<br>
+  <b>Worst case if ignored:</b> ground strap fire event — documented at $3,000–10,000+ harness replacement.
+</div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

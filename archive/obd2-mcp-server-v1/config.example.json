@@ -1,0 +1,30 @@
+{
+    "obd2": {
+        "port": "auto",
+        "baudrate": 115200,
+        "protocol": "auto",
+        "timeout": 10,
+        "fast": true
+    },
+    "bluetooth": {
+        "enabled": true,
+        "device_name": "OBDLink MX+",
+        "mac_address": ""
+    },
+    "multiecuscan": {
+        "install_path": "C:\\Program Files (x86)\\Multiecuscan",
+        "log_directory": "C:\\Users\\Public\\Documents\\Multiecuscan\\Logs",
+        "export_directory": "C:\\Users\\Public\\Documents\\Multiecuscan\\Exports",
+        "watch_logs": true
+    },
+    "safety": {
+        "allow_actuator_commands": false,
+        "allow_dtc_clear": false,
+        "require_confirmation_for_writes": true,
+        "command_cooldown_seconds": 5
+    },
+    "logging": {
+        "level": "INFO",
+        "file": "obd2_mcp.log"
+    }
+}

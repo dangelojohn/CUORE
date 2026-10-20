@@ -1,0 +1,1470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stelvio Giorgio — Master Ground Fault Diagnostic</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #0e0f0e;
+  --bg2: #141614;
+  --bg3: #1a1c1a;
+  --bg4: #222422;
+  --border: #2a2e2a;
+  --border2: #363a36;
+  --text: #c8cec8;
+  --text2: #8a918a;
+  --text3: #5a605a;
+  --red: #e24b4a;
+  --red2: #ff6b6a;
+  --red-bg: rgba(226,75,74,0.1);
+  --amber: #d4891a;
+  --amber2: #f0a030;
+  --amber-bg: rgba(212,137,26,0.1);
+  --green: #3a9e68;
+  --green2: #4ec87e;
+  --green-bg: rgba(58,158,104,0.1);
+  --blue: #3a7ec4;
+  --blue2: #5ba0e8;
+  --blue-bg: rgba(58,126,196,0.1);
+  --gray-bg: rgba(100,110,100,0.08);
+  --white: #e8ece8;
+  --accent: #c8a855;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'IBM Plex Sans', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.header {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.header-left h1 {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--white);
+  letter-spacing: 0.02em;
+}
+.header-left .sub {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 2px;
+  font-family: var(--mono);
+}
+.status-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 6px;
+}
+.status-pill {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  font-weight: 500;
+}
+.pill-red { background: var(--red-bg); color: var(--red2); border: 1px solid rgba(226,75,74,0.3); }
+.pill-amber { background: var(--amber-bg); color: var(--amber2); border: 1px solid rgba(212,137,26,0.3); }
+.pill-green { background: var(--green-bg); color: var(--green2); border: 1px solid rgba(58,158,104,0.3); }
+.pill-gray { background: var(--gray-bg); color: var(--text2); border: 1px solid var(--border); }
+
+.tabs {
+  display: flex;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  gap: 0;
+  overflow-x: auto;
+}
+.tab {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 10px 16px;
+  cursor: pointer;
+  color: var(--text3);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  transition: color 0.15s;
+}
+.tab:hover { color: var(--text2); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ===== SHARED COMPONENTS ===== */
+.section { padding: 20px 24px; }
+.section-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 14px;
+}
+.card-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.mono { font-family: var(--mono); }
+.dim { color: var(--text3); }
+.warn { color: var(--red2); }
+.ok { color: var(--green2); }
+.caution { color: var(--amber2); }
+.info { color: var(--blue2); }
+
+.badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 2px;
+  margin: 1px;
+}
+.badge-red { background: var(--red-bg); color: var(--red2); border: 1px solid rgba(226,75,74,0.25); }
+.badge-amber { background: var(--amber-bg); color: var(--amber2); border: 1px solid rgba(212,137,26,0.25); }
+.badge-green { background: var(--green-bg); color: var(--green2); border: 1px solid rgba(58,158,104,0.25); }
+.badge-gray { background: var(--gray-bg); color: var(--text2); border: 1px solid var(--border); }
+.badge-blue { background: var(--blue-bg); color: var(--blue2); border: 1px solid rgba(58,126,196,0.25); }
+
+table { width: 100%; border-collapse: collapse; font-size: 11px; }
+th {
+  text-align: left;
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text3);
+  border-bottom: 1px solid var(--border2);
+  background: var(--bg3);
+}
+td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  line-height: 1.5;
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg3); }
+
+.wire-chip {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 2px;
+  margin: 1px;
+}
+
+/* ===== GROUND MAP SVG PANEL ===== */
+#map-panel .section {
+  padding: 16px 24px;
+}
+.map-container {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px;
+  overflow-x: auto;
+}
+.map-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding: 8px 12px;
+  background: var(--bg3);
+  border-radius: 3px;
+  font-size: 11px;
+}
+.leg-item { display: flex; align-items: center; gap: 6px; }
+.leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* ===== SIMULATOR PANEL ===== */
+.sim-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 0;
+  min-height: 600px;
+}
+.sim-controls {
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 18px;
+}
+.sim-results {
+  padding: 18px;
+  background: var(--bg);
+}
+.control-group { margin-bottom: 18px; }
+.control-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: block;
+}
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ground-id {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  width: 48px;
+  flex-shrink: 0;
+}
+input[type=range] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border2);
+  outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--bg);
+}
+.ohm-val {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  width: 48px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.sim-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  padding: 8px 16px;
+  border-radius: 3px;
+  border: 1px solid var(--border2);
+  background: var(--bg3);
+  color: var(--text);
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  transition: all 0.15s;
+}
+.sim-btn:hover { background: var(--bg4); border-color: var(--accent); color: var(--accent); }
+.sim-btn.primary { background: var(--amber-bg); border-color: rgba(212,137,26,0.4); color: var(--amber2); }
+.sim-btn.primary:hover { background: rgba(212,137,26,0.2); }
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.module-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 10px 12px;
+  transition: all 0.3s ease;
+}
+.module-box.failing {
+  border-color: rgba(226,75,74,0.5);
+  background: rgba(226,75,74,0.06);
+}
+.module-box.warning {
+  border-color: rgba(212,137,26,0.4);
+  background: rgba(212,137,26,0.05);
+}
+.module-box.ok-state {
+  border-color: rgba(58,158,104,0.3);
+  background: rgba(58,158,104,0.04);
+}
+.mod-name {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.mod-status {
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.4;
+}
+.mod-vdrop {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.fault-log {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.log-entry {
+  padding: 3px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 10px;
+}
+.log-entry:last-child { border-bottom: none; }
+.log-ts { color: var(--text3); width: 50px; flex-shrink: 0; }
+.log-code { width: 80px; flex-shrink: 0; }
+.log-msg { color: var(--text2); flex: 1; }
+
+/* ===== FAULT PATTERN PANEL ===== */
+.pattern-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.pattern-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.pattern-title {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.match-score {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+.pattern-body {
+  padding: 14px;
+  display: none;
+}
+.pattern-body.open { display: block; }
+.match-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  align-items: flex-start;
+}
+.match-sym { width: 16px; flex-shrink: 0; font-size: 11px; margin-top: 1px; }
+.match-text { flex: 1; font-size: 12px; line-height: 1.5; }
+
+.score-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  margin: 6px 0;
+  overflow: hidden;
+}
+.score-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s ease;
+}
+
+/* ===== LOCATION PANEL ===== */
+.location-block {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.loc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+.loc-id {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.loc-priority {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+.loc-body { padding: 14px; }
+.spec-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.spec-item { }
+.spec-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text3);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.spec-value {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--white);
+}
+.wire-list { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.steps-list { list-style: none; counter-reset: step; }
+.steps-list li {
+  counter-increment: step;
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.steps-list li::before {
+  content: counter(step);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.steps-red li::before { background: var(--red-bg); color: var(--red2); border: 1px solid rgba(226,75,74,0.3); }
+.steps-amber li::before { background: var(--amber-bg); color: var(--amber2); border: 1px solid rgba(212,137,26,0.3); }
+
+.voltage-table { margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>STELVIO GIORGIO PLATFORM — MASTER ELECTRICAL FAULT DIAGNOSTIC</h1>
+    <div class="sub">2018 · 2.0T · AWD · Ground topology + module dependency + symptom simulation</div>
+    <div class="status-row">
+      <span class="status-pill pill-red">G102 PRIMARY SUSPECT</span>
+      <span class="status-pill pill-red">G103 SECONDARY SUSPECT</span>
+      <span class="status-pill pill-amber">G1 VERIFY TERMINALS</span>
+      <span class="status-pill pill-green">G5 / BCM CONFIRMED OK</span>
+      <span class="status-pill pill-gray">BOSCH S5 AGM — 3MO</span>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('map')">Ground Map</button>
+  <button class="tab" onclick="showTab('gpoints')">G-Point → Module Registry</button>
+  <button class="tab" onclick="showTab('location')">Exact Failure Location</button>
+  <button class="tab" onclick="showTab('sim')">Symptom Simulator</button>
+  <button class="tab" onclick="showTab('patterns')">Fault Pattern Match</button>
+  <button class="tab" onclick="showTab('proc')">Test Procedure</button>
+</div>
+
+<!-- ==================== TAB 1: MAP ==================== -->
+<div id="map" class="panel active">
+<div class="section">
+  <div class="section-title">Giorgio Platform Ground Topology — Top View Schematic</div>
+  <div class="map-legend">
+    <div class="leg-item"><div class="leg-dot" style="background:#e24b4a"></div><span>Primary suspect — high corrosion risk</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#d4891a"></div><span>Replaced — verify terminal contact</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#3a9e68"></div><span>Confirmed OK</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#4a4e4a"></div><span>Not yet inspected</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#3a7ec4;border-radius:2px"></div><span>Water drain path</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:#e24b4a;border-radius:2px"></div><span>Drain overflow risk</span></div>
+  </div>
+  <div class="map-container">
+<svg width="100%" viewBox="0 0 720 760" style="min-width:600px">
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+    <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </marker>
+</defs>
+
+<!-- Car body -->
+<rect x="190" y="68" width="340" height="600" rx="32" fill="none" stroke="#2a2e2a" stroke-width="2"/>
+<rect x="220" y="60" width="280" height="18" rx="8" fill="none" stroke="#222622" stroke-width="1"/>
+<rect x="220" y="650" width="280" height="18" rx="8" fill="none" stroke="#222622" stroke-width="1"/>
+
+<!-- Firewall line -->
+<line x1="190" y1="250" x2="530" y2="250" stroke="#363a36" stroke-width="1.5" stroke-dasharray="6 3"/>
+<text font-size="10" fill="#4a4e4a" x="544" y="254" font-family="'IBM Plex Mono',monospace">FIREWALL</text>
+
+<!-- Scuttle line -->
+<line x1="190" y1="285" x2="530" y2="285" stroke="#2a2e2a" stroke-width="0.8" stroke-dasharray="2 5"/>
+<text font-size="10" fill="#363a36" x="544" y="289" font-family="'IBM Plex Mono',monospace">SCUTTLE</text>
+
+<!-- Transmission tunnel -->
+<rect x="318" y="68" width="84" height="600" rx="0" fill="none" stroke="#222622" stroke-width="0.6" stroke-dasharray="2 4"/>
+
+<!-- Labels -->
+<text font-size="11" fill="#363a36" x="360" y="92" text-anchor="middle" font-family="'IBM Plex Mono',monospace">FRONT</text>
+<text font-size="11" fill="#363a36" x="360" y="692" text-anchor="middle" font-family="'IBM Plex Mono',monospace">REAR</text>
+<text font-size="11" fill="#363a36" x="170" y="450" text-anchor="middle" font-family="'IBM Plex Mono',monospace">DRV</text>
+<text font-size="11" fill="#363a36" x="552" y="450" text-anchor="middle" font-family="'IBM Plex Mono',monospace">PASS</text>
+
+<!-- ===== WATER DRAIN PATHS ===== -->
+<!-- Driver cowl drain overflow — RED danger path -->
+<path d="M222 285 Q210 295 206 315 Q202 330 206 354" fill="none" stroke="#e24b4a" stroke-width="2" stroke-dasharray="5 3" marker-end="url(#a)"/>
+<text font-size="9" fill="#e24b4a" x="90" y="296" text-anchor="middle" font-family="'IBM Plex Mono',monospace">COWL DRAIN</text>
+<text font-size="9" fill="#e24b4a" x="90" y="308" text-anchor="middle" font-family="'IBM Plex Mono',monospace">DRIVER SIDE</text>
+<text font-size="9" fill="#ff6b6a" x="90" y="322" text-anchor="middle" font-family="'IBM Plex Mono',monospace">⚠ OVERFLOW</text>
+<text font-size="9" fill="#ff6b6a" x="90" y="334" text-anchor="middle" font-family="'IBM Plex Mono',monospace">→ G102 ZONE</text>
+<line x1="127" y1="322" x2="190" y2="330" stroke="#e24b4a" stroke-width="0.5" stroke-dasharray="2 2"/>
+
+<!-- Passenger cowl drain — OK blue -->
+<path d="M498 285 Q508 296 510 314 Q512 330 508 356" fill="none" stroke="#3a7ec4" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#a)"/>
+<text font-size="9" fill="#3a7ec4" x="640" y="298" text-anchor="middle" font-family="'IBM Plex Mono',monospace">COWL DRAIN</text>
+<text font-size="9" fill="#3a9e68" x="640" y="310" text-anchor="middle" font-family="'IBM Plex Mono',monospace">PASS ✓ OK</text>
+
+<!-- Sunroof drain FL → driver A-pillar -->
+<path d="M320 145 Q252 162 228 228 Q218 244 220 285" fill="none" stroke="#3a7ec4" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#a)"/>
+<text font-size="9" fill="#3a7ec4" x="240" y="174" text-anchor="middle" font-family="'IBM Plex Mono',monospace">SUNROOF FL</text>
+<text font-size="9" fill="#d4891a" x="240" y="186" text-anchor="middle" font-family="'IBM Plex Mono',monospace">→ G103 RISK</text>
+
+<!-- Sunroof FR → pass A-pillar OK -->
+<path d="M400 145 Q468 162 492 228 Q500 244 498 285" fill="none" stroke="#3a7ec4" stroke-width="1" stroke-dasharray="3 3" opacity="0.5" marker-end="url(#a)"/>
+<text font-size="9" fill="#3a7ec4" x="490" y="183" text-anchor="middle" font-family="'IBM Plex Mono',monospace">SUNROOF FR ✓</text>
+
+<!-- Sunroof drain RL → B-pillar driver sill -->
+<path d="M320 175 Q258 370 236 530 Q232 555 238 578" fill="none" stroke="#3a7ec4" stroke-width="0.8" stroke-dasharray="3 3" opacity="0.4" marker-end="url(#a)"/>
+
+<!-- AC evap drain → transmission tunnel buried -->
+<path d="M398 250 Q390 296 386 346" fill="none" stroke="#5ba0e8" stroke-width="1.4" stroke-dasharray="4 2" marker-end="url(#a)"/>
+<text font-size="9" fill="#5ba0e8" x="430" y="290" text-anchor="middle" font-family="'IBM Plex Mono',monospace">AC EVAP</text>
+<text font-size="9" fill="#5ba0e8" x="430" y="301" text-anchor="middle" font-family="'IBM Plex Mono',monospace">DRAIN</text>
+<text font-size="9" fill="#5ba0e8" x="430" y="312" text-anchor="middle" font-family="'IBM Plex Mono',monospace">TRANS TUNNEL</text>
+
+<!-- Door bottom drain driver -->
+<path d="M193 465 Q183 478 185 496" fill="none" stroke="#3a7ec4" stroke-width="1" stroke-dasharray="3 2" opacity="0.6" marker-end="url(#a)"/>
+
+<!-- ===== GROUND POINTS ===== -->
+
+<!-- G102 — ABS/scuttle — RED PRIMARY + pulsing ring -->
+<circle cx="218" cy="354" r="20" fill="#1a0808" stroke="#e24b4a" stroke-width="2"/>
+<circle cx="218" cy="354" r="28" fill="none" stroke="#e24b4a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.6"/>
+<circle cx="218" cy="354" r="36" fill="none" stroke="#e24b4a" stroke-width="0.4" stroke-dasharray="2 4" opacity="0.3"/>
+<text font-size="10" font-weight="600" fill="#ff6b6a" x="218" y="350" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G102</text>
+<text font-size="8" fill="#e24b4a" x="218" y="362" text-anchor="middle" font-family="'IBM Plex Mono',monospace">ABS GND</text>
+<text font-size="8" fill="#ff6b6a" x="218" y="393" text-anchor="middle" font-family="'IBM Plex Mono',monospace">▲ PRIMARY</text>
+<text font-size="8" fill="#e24b4a" x="218" y="403" text-anchor="middle" font-family="'IBM Plex Mono',monospace">M8×1.25</text>
+
+<!-- G103 — Driver A-pillar base interior -->
+<circle cx="200" cy="396" r="14" fill="#1a0808" stroke="#e24b4a" stroke-width="1.5"/>
+<text font-size="9" font-weight="600" fill="#ff6b6a" x="200" y="392" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G103</text>
+<text font-size="8" fill="#e24b4a" x="200" y="404" text-anchor="middle" font-family="'IBM Plex Mono',monospace">A-PIL</text>
+
+<!-- G-FW — Firewall driver -->
+<circle cx="204" cy="256" r="11" fill="#151815" stroke="#4a4e4a" stroke-width="1"/>
+<text font-size="8" font-weight="600" fill="#8a918a" x="204" y="253" text-anchor="middle" font-family="'IBM Plex Mono',monospace">GFW</text>
+<text font-size="7" fill="#5a605a" x="204" y="263" text-anchor="middle" font-family="'IBM Plex Mono',monospace">FW</text>
+
+<!-- G101 — Engine block driver -->
+<circle cx="220" cy="155" r="13" fill="#151815" stroke="#4a4e4a" stroke-width="1"/>
+<text font-size="9" font-weight="600" fill="#8a918a" x="220" y="152" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G101</text>
+<text font-size="7" fill="#5a605a" x="220" y="162" text-anchor="middle" font-family="'IBM Plex Mono',monospace">BLOCK</text>
+
+<!-- G1 — Trans strap AMBER replaced -->
+<circle cx="234" cy="448" r="13" fill="#181408" stroke="#d4891a" stroke-width="1.5"/>
+<text font-size="9" font-weight="600" fill="#f0a030" x="234" y="445" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G1</text>
+<text font-size="7" fill="#d4891a" x="234" y="455" text-anchor="middle" font-family="'IBM Plex Mono',monospace">TRANS</text>
+<text font-size="7" fill="#d4891a" x="234" y="468" text-anchor="middle" font-family="'IBM Plex Mono',monospace">REPLACED</text>
+
+<!-- G104 — Passenger dash BCM -->
+<circle cx="490" cy="372" r="13" fill="#151815" stroke="#4a4e4a" stroke-width="1"/>
+<text font-size="9" font-weight="600" fill="#8a918a" x="490" y="369" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G104</text>
+<text font-size="7" fill="#5a605a" x="490" y="379" text-anchor="middle" font-family="'IBM Plex Mono',monospace">BCM</text>
+
+<!-- G105 — Pass A-pillar base -->
+<circle cx="490" cy="416" r="12" fill="#151815" stroke="#4a4e4a" stroke-width="1"/>
+<text font-size="9" font-weight="600" fill="#8a918a" x="490" y="413" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G105</text>
+<text font-size="7" fill="#5a605a" x="490" y="423" text-anchor="middle" font-family="'IBM Plex Mono',monospace">A-PIL P</text>
+
+<!-- G5 — Battery neg IBS trunk pass -->
+<circle cx="465" cy="618" r="14" fill="#081408" stroke="#3a9e68" stroke-width="1.5"/>
+<text font-size="9" font-weight="600" fill="#4ec87e" x="465" y="614" text-anchor="middle" font-family="'IBM Plex Mono',monospace">G5</text>
+<text font-size="7" fill="#3a9e68" x="465" y="625" text-anchor="middle" font-family="'IBM Plex Mono',monospace">IBS ✓</text>
+
+<!-- ===== MODULE BOXES ===== -->
+
+<!-- ECM -->
+<rect x="246" y="115" width="64" height="28" rx="3" fill="#1a0808" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#ff6b6a" x="278" y="128" text-anchor="middle" font-family="'IBM Plex Mono',monospace">ECM</text>
+<text font-size="8" fill="#e24b4a" x="278" y="139" text-anchor="middle" font-family="'IBM Plex Mono',monospace">U1713 ACT</text>
+<line x1="258" y1="143" x2="226" y2="155" stroke="#e24b4a" stroke-width="0.7" stroke-dasharray="2 2" marker-end="url(#a)"/>
+
+<!-- ABS/BSM -->
+<rect x="238" y="210" width="80" height="28" rx="3" fill="#1a0808" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#ff6b6a" x="278" y="223" text-anchor="middle" font-family="'IBM Plex Mono',monospace">ABS/BSM</text>
+<text font-size="8" fill="#e24b4a" x="278" y="234" text-anchor="middle" font-family="'IBM Plex Mono',monospace">U1700 ACT</text>
+<line x1="252" y1="238" x2="227" y2="334" stroke="#e24b4a" stroke-width="0.8" marker-end="url(#a)"/>
+
+<!-- Headlight LH -->
+<rect x="368" y="108" width="112" height="28" rx="3" fill="#1a0808" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#ff6b6a" x="424" y="121" text-anchor="middle" font-family="'IBM Plex Mono',monospace">HDLT LH LEVEL</text>
+<text font-size="8" fill="#e24b4a" x="424" y="132" text-anchor="middle" font-family="'IBM Plex Mono',monospace">B101D POINTING UP</text>
+<path d="M382 136 Q350 172 290 270 Q262 296 228 340" fill="none" stroke="#e24b4a" stroke-width="0.8" stroke-dasharray="3 2" marker-end="url(#a)"/>
+
+<!-- ETM/EMCM -->
+<rect x="368" y="178" width="88" height="26" rx="3" fill="#180e04" stroke="#d4891a" stroke-width="0.7"/>
+<text font-size="9" font-weight="600" fill="#f0a030" x="412" y="191" text-anchor="middle" font-family="'IBM Plex Mono',monospace">ETM/EMCM</text>
+<text font-size="8" fill="#d4891a" x="412" y="201" text-anchor="middle" font-family="'IBM Plex Mono',monospace">B3905 STORED</text>
+
+<!-- RFHM -->
+<rect x="368" y="216" width="78" height="26" rx="3" fill="#180e04" stroke="#d4891a" stroke-width="0.7"/>
+<text font-size="9" font-weight="600" fill="#f0a030" x="407" y="229" text-anchor="middle" font-family="'IBM Plex Mono',monospace">RFHM</text>
+<text font-size="8" fill="#d4891a" x="407" y="239" text-anchor="middle" font-family="'IBM Plex Mono',monospace">U1765 STORED</text>
+
+<!-- Driver door -->
+<rect x="195" y="490" width="88" height="26" rx="3" fill="#1a0808" stroke="#e24b4a" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#ff6b6a" x="239" y="503" text-anchor="middle" font-family="'IBM Plex Mono',monospace">DRIVER DOOR</text>
+<text font-size="8" fill="#e24b4a" x="239" y="513" text-anchor="middle" font-family="'IBM Plex Mono',monospace">AUDIO+MIC DEAD</text>
+<line x1="218" y1="490" x2="207" y2="411" stroke="#e24b4a" stroke-width="0.8" stroke-dasharray="2 2" marker-end="url(#a)"/>
+
+<!-- BCM pass -->
+<rect x="422" y="326" width="80" height="26" rx="3" fill="#081408" stroke="#3a9e68" stroke-width="0.8"/>
+<text font-size="9" font-weight="600" fill="#4ec87e" x="462" y="339" text-anchor="middle" font-family="'IBM Plex Mono',monospace">BCM</text>
+<text font-size="8" fill="#3a9e68" x="462" y="349" text-anchor="middle" font-family="'IBM Plex Mono',monospace">PASS SIDE ✓</text>
+
+<!-- SGW -->
+<rect x="302" y="292" width="64" height="22" rx="3" fill="#081418" stroke="#3a7ec4" stroke-width="0.7"/>
+<text font-size="9" font-weight="600" fill="#5ba0e8" x="334" y="303" text-anchor="middle" font-family="'IBM Plex Mono',monospace">SGW</text>
+<text font-size="8" fill="#3a7ec4" x="334" y="312" text-anchor="middle" font-family="'IBM Plex Mono',monospace">GATEWAY</text>
+
+<!-- Ground connection lines from G102 to modules -->
+<line x1="230" y1="334" x2="258" y2="238" stroke="#e24b4a" stroke-width="0.4" stroke-dasharray="1 3" opacity="0.5"/>
+<line x1="220" y1="334" x2="220" y2="168" stroke="#e24b4a" stroke-width="0.4" stroke-dasharray="1 3" opacity="0.4"/>
+
+<!-- Ground connection from G103 to door -->
+<line x1="203" y1="410" x2="210" y2="490" stroke="#e24b4a" stroke-width="0.4" stroke-dasharray="1 3" opacity="0.5"/>
+
+</svg>
+  </div>
+</div>
+</div>
+
+<!-- ==================== TAB 2: G-POINT REGISTRY ==================== -->
+<div id="gpoints" class="panel">
+<div class="section">
+  <div class="section-title">Complete G-Point → Module Registry — Giorgio Platform 2018 Stelvio</div>
+
+  <div style="background:var(--bg2);border:1px solid var(--border);border-radius:4px;overflow:hidden;margin-bottom:16px">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:7%">G-ID</th>
+          <th style="width:16%">Physical Location</th>
+          <th style="width:9%">Hardware</th>
+          <th style="width:10%">Wire Colours</th>
+          <th style="width:7%">Type</th>
+          <th style="width:26%">Modules Dependent</th>
+          <th style="width:25%">Failure Pattern When Degraded</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="background:rgba(226,75,74,0.06)">
+          <td><span class="badge badge-red">G102</span></td>
+          <td style="color:var(--red2)"><b>Driver-side front chassis rail. M8 stud, ~180mm behind ABS hydro unit, 40mm below scuttle drain exit. Left chassis C-section.</b></td>
+          <td class="mono" style="font-size:10px">M8×1.25<br>16mm<br>8 N·m<br>Ring stack ×4</td>
+          <td>
+            <span class="wire-chip" style="background:#1a2a1a;color:#6ec46e;border:1px solid #2a3a2a">BK/GN</span>
+            <span class="wire-chip" style="background:#1a1a2a;color:#6e6ec4;border:1px solid #2a2a3a">BK/WH</span>
+            <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK</span>
+            <span class="wire-chip" style="background:#2a1a1a;color:#c46e6e;border:1px solid #3a2a2a">BRAID</span>
+          </td>
+          <td><span class="badge badge-red">SIGNAL<br>HIGH-I</span></td>
+          <td>
+            <span class="badge badge-red">ABS/BSM</span>
+            <span class="badge badge-red">ECM chassis ref</span>
+            <span class="badge badge-red">Hdlt LH leveling</span>
+            <span class="badge badge-amber">ETM signal</span>
+            <span class="badge badge-amber">RFHM antenna</span>
+            <span class="badge badge-gray">Front body harness cluster</span>
+          </td>
+          <td style="color:var(--red2)">U1700 active (BSM lost) · U1713 active (ECM erratic) · B101D active (headlight actuator hard-stop) · U1765/B3905 stored cascade · U0100 stored when ECM fully drops</td>
+        </tr>
+        <tr style="background:rgba(226,75,74,0.04)">
+          <td><span class="badge badge-red">G103</span></td>
+          <td style="color:var(--red2)"><b>Driver A-pillar base, interior. Behind kick panel (2 push-pins). M8 stud into A-pillar box section, 80mm above sill.</b></td>
+          <td class="mono" style="font-size:10px">M8×1.25<br>12mm<br>8 N·m<br>Ring stack ×3</td>
+          <td>
+            <span class="wire-chip" style="background:#2a2a1a;color:#c4c46e;border:1px solid #3a3a2a">BK/YL</span>
+            <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK</span>
+            <span class="wire-chip" style="background:#2a1a1a;color:#c46e6e;border:1px solid #3a2a2a">BK/RD</span>
+          </td>
+          <td><span class="badge badge-amber">SIGNAL<br>LIN</span></td>
+          <td>
+            <span class="badge badge-red">Driver door DCM</span>
+            <span class="badge badge-red">Door speaker (–)</span>
+            <span class="badge badge-red">Driver mic shield</span>
+            <span class="badge badge-amber">RFHM antenna gnd</span>
+            <span class="badge badge-amber">Window motor LH rear</span>
+            <span class="badge badge-gray">Interior LED return</span>
+          </td>
+          <td style="color:var(--amber2)">Driver speakers dead · Driver mic dead · B1177 (window obstruction stored) · U1765 RFHM signal invalid stored · LIN DCM dropout intermittent</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-gray">G101</span></td>
+          <td>Engine block, driver side. Short braided strap to chassis rail, near starter motor flange. M8 bolt into cast aluminium block.</td>
+          <td class="mono" style="font-size:10px">M8×1.25<br>20mm<br>10 N·m</td>
+          <td>
+            <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK</span>
+            <span class="wire-chip" style="background:#2a1a1a;color:#c46e6e;border:1px solid #3a2a2a">BRAID</span>
+          </td>
+          <td><span class="badge badge-gray">HIGH-I<br>SIGNAL</span></td>
+          <td>
+            <span class="badge badge-gray">ECM primary (block)</span>
+            <span class="badge badge-gray">Alternator return</span>
+            <span class="badge badge-gray">Starter return path</span>
+          </td>
+          <td style="color:var(--text2)">ECM erratic CAN if G101 degrades independently of G102 · Charging system noise if high resistance · Not direct cause of observed symptoms but eliminates if U1713 persists after G102 fix</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-gray">G-FW</span></td>
+          <td>Driver-side firewall panel, engine bay face, near brake master cylinder. M8 stud into firewall sheet metal.</td>
+          <td class="mono" style="font-size:10px">M8×1.25<br>8 N·m</td>
+          <td>
+            <span class="wire-chip" style="background:#1a1a2a;color:#6e6ec4;border:1px solid #2a2a3a">BK/WH</span>
+            <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK</span>
+          </td>
+          <td><span class="badge badge-gray">SIGNAL</span></td>
+          <td>
+            <span class="badge badge-gray">SGW module</span>
+            <span class="badge badge-gray">Brake fluid sensor</span>
+            <span class="badge badge-gray">ABS secondary ref</span>
+          </td>
+          <td style="color:var(--text2)">SGW communication errors if degraded. Secondary to G102 for ABS — would produce similar but less severe pattern.</td>
+        </tr>
+        <tr style="background:rgba(212,137,26,0.04)">
+          <td><span class="badge badge-amber">G1</span></td>
+          <td>Transmission body to chassis. Driver side, at rear of transmission bell-housing. Replaced with shielded Canadian cable.</td>
+          <td class="mono" style="font-size:10px">M10×1.5<br>22mm<br>22 N·m<br>NEW CABLE</td>
+          <td>
+            <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK SHIELDED</span>
+          </td>
+          <td><span class="badge badge-amber">HIGH-I</span></td>
+          <td>
+            <span class="badge badge-amber">TCM primary</span>
+            <span class="badge badge-amber">Starter primary return</span>
+            <span class="badge badge-gray">ETM signal ref (secondary)</span>
+          </td>
+          <td style="color:var(--amber2)">U1960-83 stored (legacy from old strap event) · New strap OK but verify terminal contact faces at both M10 bolt heads with voltmeter (&lt;0.1Ω)</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-gray">G104</span></td>
+          <td>Passenger dash, behind right kick panel. M8 stud into passenger A-pillar base body metal. BCM primary.</td>
+          <td class="mono" style="font-size:10px">M8×1.25<br>8 N·m</td>
+          <td>
+            <span class="wire-chip" style="background:#2a2a1a;color:#c4c46e;border:1px solid #3a3a2a">BK/YL</span>
+            <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK ×2</span>
+          </td>
+          <td><span class="badge badge-gray">SIGNAL</span></td>
+          <td>
+            <span class="badge badge-green">BCM primary</span>
+            <span class="badge badge-gray">Pass door DCM</span>
+            <span class="badge badge-gray">Pass speaker (–)</span>
+            <span class="badge badge-gray">HVAC controller</span>
+          </td>
+          <td style="color:var(--green2)">Not suspect. Footwell dry confirmed. BCM functional. Passenger audio works = G104 intact.</td>
+        </tr>
+        <tr>
+          <td><span class="badge badge-gray">G105</span></td>
+          <td>Passenger A-pillar interior base. M8 stud. Mirror of G103 on passenger side.</td>
+          <td class="mono" style="font-size:10px">M8×1.25<br>8 N·m</td>
+          <td>
+            <span class="wire-chip" style="background:#2a2a1a;color:#c4c46e;border:1px solid #3a3a2a">BK/YL</span>
+            <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK</span>
+          </td>
+          <td><span class="badge badge-gray">SIGNAL<br>LIN</span></td>
+          <td>
+            <span class="badge badge-green">Pass door DCM</span>
+            <span class="badge badge-green">Pass speakers</span>
+            <span class="badge badge-green">Pass mic</span>
+          </td>
+          <td style="color:var(--green2)">Not suspect. Passenger speakers and mic work = G105 intact. Asymmetric failure confirms driver side only.</td>
+        </tr>
+        <tr style="background:rgba(58,158,104,0.04)">
+          <td><span class="badge badge-green">G5</span></td>
+          <td>Battery negative terminal, trunk, passenger side. IBS sensor clamped to negative cable. Confirmed visually OK.</td>
+          <td class="mono" style="font-size:10px">M6 clamp<br>IBS-3 sensor<br>CONFIRMED OK</td>
+          <td>
+            <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK 25mm²</span>
+          </td>
+          <td><span class="badge badge-green">HIGH-I<br>IBS</span></td>
+          <td>
+            <span class="badge badge-green">Battery system ref</span>
+            <span class="badge badge-green">All modules (ultimate neg)</span>
+          </td>
+          <td style="color:var(--green2)">Confirmed OK. Bosch S5 AGM 3 months. IBS reading correct. Not causal.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Splice points -->
+  <div class="section-title" style="margin-top:20px">Splice Points — Driver Side Harness Convergence Zones</div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-label warn">S201 — Driver Front Harness Junction</div>
+      <p style="font-size:12px;line-height:1.6;margin-bottom:8px">Located at driver-side firewall transition, inside the taped harness loom that runs from the ABS module toward the driver fuse box. This splice pack consolidates grounds from the front body harness before terminating at G102. Multiple wires share this splice — when moisture enters the loom tape, capillary action carries salt water to this junction.</p>
+      <div style="margin-top:8px">
+        <span class="badge badge-red">ABS signal return</span>
+        <span class="badge badge-red">ECM chassis ref</span>
+        <span class="badge badge-amber">Headlight LH return</span>
+        <span class="badge badge-gray">Horn circuit</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label warn">S202 — Driver A-Pillar Door Harness Junction</div>
+      <p style="font-size:12px;line-height:1.6;margin-bottom:8px">The pigtail harness that crosses from body to door (the flexible loop at the door hinge area) connects to a junction block at the A-pillar base, immediately above G103. This is where the door LIN bus, speaker ground returns, and microphone shield all converge before hitting the A-pillar ground stud.</p>
+      <div style="margin-top:8px">
+        <span class="badge badge-red">Door LIN bus return</span>
+        <span class="badge badge-red">Speaker (–) pair</span>
+        <span class="badge badge-red">Mic shield/gnd</span>
+        <span class="badge badge-amber">Window motor return</span>
+        <span class="badge badge-gray">Door light return</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ==================== TAB 3: EXACT LOCATION ==================== -->
+<div id="location" class="panel">
+<div class="section">
+  <div class="section-title">Exact Failure Location — Down to Bolt and Stud</div>
+
+  <div class="location-block" style="border-color:rgba(226,75,74,0.4)">
+    <div class="loc-header" style="background:rgba(226,75,74,0.08)">
+      <div class="loc-id" style="color:var(--red2)">G102 — Primary Fault Location</div>
+      <div class="loc-priority" style="background:var(--red-bg);color:var(--red2);border:1px solid rgba(226,75,74,0.3)">INSPECT FIRST</div>
+    </div>
+    <div class="loc-body">
+      <div class="spec-grid">
+        <div class="spec-item">
+          <div class="spec-label">Exact position</div>
+          <div class="spec-value">Driver-side front chassis C-rail</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">~180mm rearward of ABS hydraulic unit body<br>~40mm below scuttle drain rubber nipple exit<br>~60mm above chassis rail lower flange</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Hardware spec</div>
+          <div class="spec-value">M8 × 1.25 hex bolt, 16mm</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">Torque: 8 N·m<br>Contact washer: 8mm ID hardened<br>Ring terminal stack: 4 terminals + 1 braided strap</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Access method</div>
+          <div class="spec-value">Hood open, no disassembly</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">Reach behind/below ABS module<br>Flashlight required — deeply recessed<br>13mm socket or box wrench for M8</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Corrosion signature</div>
+          <div class="spec-value">White/green powder on bolt head</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">Salt crystallization on ring terminals<br>Swollen/brittle loom tape above stud<br>Orange-brown staining on chassis metal around stud</div>
+        </div>
+      </div>
+
+      <div class="spec-label">Wire stack at G102 stud (inside-out order)</div>
+      <div class="wire-list" style="margin-bottom:12px">
+        <span class="wire-chip" style="background:#1a2a1a;color:#6ec46e;border:1px solid #2a4a2a">BK/GN — ABS module signal return</span>
+        <span class="wire-chip" style="background:#1a1a2a;color:#6e6ec4;border:1px solid #2a2a4a">BK/WH — ECM chassis ground reference</span>
+        <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK — Front body harness return cluster</span>
+        <span class="wire-chip" style="background:#2a1a1a;color:#c47e6e;border:1px solid #4a2a2a">BK/OG — Headlight LH harness return</span>
+        <span class="wire-chip" style="background:#201818;color:#c4906e;border:1px solid #3a2a2a">COPPER BRAID — Chassis equalization strap</span>
+      </div>
+
+      <div class="spec-label" style="margin-bottom:8px">Why this bolt fails — step by step</div>
+      <ol class="steps-list steps-red" style="margin-bottom:14px">
+        <li><span>Winter road salt spray enters driver wheel well and migrates up into engine bay. Salt-laden meltwater channels toward lowest point: the chassis C-rail below the ABS module.</span></li>
+        <li><span>The scuttle drain rubber nipple, when partially blocked by leaf debris, backs up and overflows. Water exits from the scuttle tray and drips directly onto the taped loom running above the G102 stud.</span></li>
+        <li><span>The loom tape (PVC factory wrap) is not waterproof — it is merely an abrasion wrap. Capillary action pulls salt water into the loom, which wicks along all four ground wire strands to their ring terminals.</span></li>
+        <li><span>Zinc chromate plating on the ring terminals dissolves in salt water over one to two winters. Green copper oxide and white zinc salt crystals form between the terminal face and the chassis metal contact surface.</span></li>
+        <li><span>Contact resistance rises from &lt;0.01Ω to 0.5–2Ω. This adds a voltage offset to every module that references this stud as its chassis return, triggering the observed DTC cascade.</span></li>
+      </ol>
+
+      <div class="voltage-table">
+        <div class="spec-label">Voltage drop expected vs measured — G102 under full electrical load</div>
+        <table>
+          <thead><tr><th>Resistance at G102</th><th>V-drop at 2A load</th><th>V-drop at 8A load</th><th>Observed effect</th><th>DTCs triggered</th></tr></thead>
+          <tbody>
+            <tr><td class="mono ok">&lt; 0.05Ω — clean</td><td class="mono ok">&lt; 0.1V</td><td class="mono ok">&lt; 0.4V</td><td>All systems normal</td><td>None</td></tr>
+            <tr><td class="mono caution">0.3–0.5Ω — dirty</td><td class="mono caution">0.6–1.0V</td><td class="mono caution">2.4–4.0V</td><td>ECM CAN erratic, headlight aims up intermittently</td><td>U1713-2F (erratic), B101D-15</td></tr>
+            <tr><td class="mono warn">0.5–1.0Ω — corroded</td><td class="mono warn">1.0–2.0V</td><td class="mono warn">4.0–8.0V</td><td>ABS drops off CAN, headlight always up, ETM audio fault</td><td>U1700-87 active, U0418-86, B3905</td></tr>
+            <tr><td class="mono warn">&gt; 1.5Ω — severe</td><td class="mono warn">&gt; 3.0V</td><td class="mono warn">&gt; 12V</td><td>ECM communications lost, BCM cascade, vehicle may not start cleanly</td><td>U0100-87, all stored U-codes fire</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="location-block" style="border-color:rgba(226,75,74,0.3);margin-top:16px">
+    <div class="loc-header" style="background:rgba(226,75,74,0.06)">
+      <div class="loc-id" style="color:var(--red2)">G103 — Secondary Fault Location</div>
+      <div class="loc-priority" style="background:var(--red-bg);color:var(--red2);border:1px solid rgba(226,75,74,0.3)">INSPECT SECOND</div>
+    </div>
+    <div class="loc-body">
+      <div class="spec-grid">
+        <div class="spec-item">
+          <div class="spec-label">Exact position</div>
+          <div class="spec-value">Driver A-pillar base, interior cabin</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">Behind driver kick panel (2× push-pin fasteners)<br>M8 stud at base of A-pillar box section<br>80mm above sill, 40mm inboard of door seal</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Hardware spec</div>
+          <div class="spec-value">M8 × 1.25 hex bolt, 12mm</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">Torque: 8 N·m<br>Ring terminal stack: 3 terminals<br>Accessible after kick panel removal: 90 seconds</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Water path to G103</div>
+          <div class="spec-value">Sunroof front-left drain</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">If sunroof FL drain hose is clogged with debris, water overflows the sunroof tray and runs down inside the A-pillar — directly onto the G103 stud and the S202 splice block above it</div>
+        </div>
+        <div class="spec-item">
+          <div class="spec-label">Diagnostic confirmation</div>
+          <div class="spec-value">Asymmetric audio failure</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:3px">Driver speakers dead + passenger OK = G103 culprit<br>Driver mic dead = mic shield ground at S202/G103<br>This is the isolation proof — no equipment needed</div>
+        </div>
+      </div>
+
+      <div class="spec-label">Wire stack at G103 stud</div>
+      <div class="wire-list" style="margin-bottom:12px">
+        <span class="wire-chip" style="background:#2a2a1a;color:#c4c46e;border:1px solid #4a4a2a">BK/YL — Door LIN bus chassis return (DCM)</span>
+        <span class="wire-chip" style="background:#1a1a1a;color:#8a8a8a;border:1px solid #2a2a2a">BK — Speaker (–) left front + rear</span>
+        <span class="wire-chip" style="background:#2a1a1a;color:#c46e6e;border:1px solid #4a2a2a">BK/RD — Microphone shield ground</span>
+      </div>
+
+      <div class="spec-label" style="margin-bottom:6px">Why exactly the driver mic and speakers die — and not anything else</div>
+      <p style="font-size:12px;line-height:1.6;color:var(--text2)">The DCM (door control module) LIN bus is a low-voltage (12V) serial bus. The DCM's chassis reference for LIN communication is the BK/YL wire terminating at G103. When G103 resistance rises, the LIN bus reference floats — the DCM remains powered but its LIN communication becomes unreliable. The audio amplifier in the door sees its negative rail rise by the voltage drop amount. Speaker output collapses because the return path is resistive. The microphone is a condenser type — its shield ground is the BK/RD wire at G103. A floating mic shield picks up RF interference and common-mode noise, presenting as silence or static. All of this is specific to G103 because the passenger side G105 is on a separate, unaffected circuit.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ==================== TAB 4: SIMULATOR ==================== -->
+<div id="sim" class="panel">
+<div class="sim-layout">
+  <div class="sim-controls">
+    <div class="section-title" style="margin-bottom:16px">Ground Resistance Simulator</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:16px;line-height:1.6">Dial in resistance at each ground point to simulate the voltage drop and predict which modules fail. Based on actual Giorgio platform circuit loads and documented fault thresholds.</p>
+
+    <div class="control-group">
+      <span class="control-label">Slide resistance at each ground point (Ω)</span>
+
+      <div class="slider-row">
+        <span class="ground-id warn">G102</span>
+        <input type="range" id="g102" min="0" max="200" value="100" oninput="updateSim()">
+        <span class="ohm-val" id="g102v">0.50Ω</span>
+      </div>
+      <div class="slider-row">
+        <span class="ground-id warn">G103</span>
+        <input type="range" id="g103" min="0" max="200" value="80" oninput="updateSim()">
+        <span class="ohm-val" id="g103v">0.40Ω</span>
+      </div>
+      <div class="slider-row">
+        <span class="ground-id caution">G1</span>
+        <input type="range" id="g1" min="0" max="200" value="20" oninput="updateSim()">
+        <span class="ohm-val" id="g1v">0.10Ω</span>
+      </div>
+      <div class="slider-row">
+        <span class="ground-id dim">G101</span>
+        <input type="range" id="g101" min="0" max="200" value="5" oninput="updateSim()">
+        <span class="ohm-val" id="g101v">0.03Ω</span>
+      </div>
+      <div class="slider-row">
+        <span class="ground-id dim">G-FW</span>
+        <input type="range" id="gfw" min="0" max="200" value="5" oninput="updateSim()">
+        <span class="ohm-val" id="gfwv">0.03Ω</span>
+      </div>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">Quick presets</span>
+      <button class="sim-btn" onclick="setPreset('clean')">All clean — factory state</button>
+      <button class="sim-btn primary" onclick="setPreset('your_car')">▶ Your car — current state</button>
+      <button class="sim-btn" onclick="setPreset('worst')">Worst case — pre-fire</button>
+      <button class="sim-btn" onclick="setPreset('g102only')">G102 only corroded</button>
+      <button class="sim-btn" onclick="setPreset('g103only')">G103 only corroded</button>
+    </div>
+
+    <div class="control-group">
+      <span class="control-label">Electrical load scenario</span>
+      <select id="load-scenario" onchange="updateSim()" style="width:100%;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px;border-radius:3px">
+        <option value="idle">Engine idle, lights off</option>
+        <option value="normal" selected>Normal driving, lights on</option>
+        <option value="heavy">Heavy load (lights + blower + seat heater)</option>
+        <option value="start">Starter cranking</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="sim-results">
+    <div class="section-title" style="margin-bottom:14px">Module Status</div>
+    <div class="module-grid" id="moduleGrid"></div>
+    <div class="section-title" style="margin-top:4px;margin-bottom:10px">Active Fault Log</div>
+    <div class="fault-log" id="faultLog"></div>
+  </div>
+</div>
+</div>
+
+<!-- ==================== TAB 5: FAULT PATTERNS ==================== -->
+<div id="patterns" class="panel">
+<div class="section">
+  <div class="section-title">Symptom vs Known Alfa Giorgio Fault Pattern Library</div>
+  <p style="font-size:12px;color:var(--text2);margin-bottom:16px;line-height:1.6">Each pattern is drawn from documented forum cases (stelvioforum.com, giuliaforums.com, alfaowner.com, alfabb.com, alfa-romeo-portal.de, clubalfa.it). Match score reflects how closely the pattern aligns with your observed symptoms.</p>
+
+  <div class="pattern-card">
+    <div class="pattern-header" onclick="togglePattern('p1')">
+      <div class="pattern-title warn">PATTERN A — G102 Corrosion Cascade (Scuttle Overflow Path)</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="score-bar" style="width:120px"><div class="score-fill" style="width:92%;background:#e24b4a"></div></div>
+        <span class="match-score badge-red" style="background:var(--red-bg);color:var(--red2);border:1px solid rgba(226,75,74,0.3)">92% MATCH</span>
+      </div>
+    </div>
+    <div class="pattern-body open" id="p1">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">KNOWN PATTERN</div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Multiple U-codes fire simultaneously across unrelated modules</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Check engine / ABS / ESC warning lights come on without obvious cause</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Headlight(s) point upward (leveling actuator loses ground reference)</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Onset correlates with heavy rain, car wash, or spring thaw</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Passenger side systems unaffected</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Codes partially clear after battery disconnect then return</span></div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text3)">Source: stelvioforum.com, alfaowner.com multiple threads 2020–2024</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">YOUR SYMPTOMS</div>
+          <div class="match-row"><span class="match-sym ok">✓</span><span class="match-text ok">U1713, U1700, U0100, U1736, U0418 — multi-module simultaneous</span></div>
+          <div class="match-row"><span class="match-sym ok">✓</span><span class="match-text ok">Check engine + ABS/brake lights on</span></div>
+          <div class="match-row"><span class="match-sym ok">✓</span><span class="match-text ok">Driver headlight pointing up — B101D-15 active</span></div>
+          <div class="match-row"><span class="match-sym ok">✓</span><span class="match-text ok">Post harsh Toronto winter / spring rain onset</span></div>
+          <div class="match-row"><span class="match-sym ok">✓</span><span class="match-text ok">Passenger side dry, BCM OK, passenger audio works</span></div>
+          <div class="match-row"><span class="match-sym warn">?</span><span class="match-text caution">Battery reset not yet performed — expected to partially clear then return</span></div>
+          <div style="margin-top:8px;padding:8px;background:var(--red-bg);border-radius:3px;font-size:11px;color:var(--red2)">6 of 6 criteria match. G102 corrosion is the confirmed pattern. Resolution in forum cases: clean G102 stud, rewrap loom, battery reset → all codes clear.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pattern-card">
+    <div class="pattern-header" onclick="togglePattern('p2')">
+      <div class="pattern-title caution">PATTERN B — G103 A-Pillar LIN Bus Ground Loss</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="score-bar" style="width:120px"><div class="score-fill" style="width:78%;background:#d4891a"></div></div>
+        <span class="match-score" style="background:var(--amber-bg);color:var(--amber2);border:1px solid rgba(212,137,26,0.3);padding:2px 8px;border-radius:2px;font-family:var(--mono);font-size:11px;font-weight:600">78% MATCH</span>
+      </div>
+    </div>
+    <div class="pattern-body" id="p2">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">KNOWN PATTERN</div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Driver-side audio goes dead while passenger side works</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Window motor fault codes stored (B1177)</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Speaker symbol warning on cluster display</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Microphone / voice commands stop working</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Correlates with window tinting work or post-winter</span></div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text3)">Source: stelvioforum.com speaker threads, giuliaforums.com B1177 cases</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">YOUR SYMPTOMS</div>
+          <div class="match-row"><span class="match-sym ok">✓</span><span class="match-text ok">Driver speakers dead, passenger works</span></div>
+          <div class="match-row"><span class="match-sym ok">✓</span><span class="match-text ok">B1177-97 window motor stored</span></div>
+          <div class="match-row"><span class="match-sym warn">?</span><span class="match-text caution">Speaker symbol on cluster not confirmed</span></div>
+          <div class="match-row"><span class="match-sym ok">✓</span><span class="match-text ok">Driver mic dead</span></div>
+          <div class="match-row"><span class="match-sym warn">?</span><span class="match-text caution">No window tinting — winter/sunroof drain more likely path</span></div>
+          <div style="margin-top:8px;padding:8px;background:var(--amber-bg);border-radius:3px;font-size:11px;color:var(--amber2)">4 of 5 criteria match. G103 is the secondary independent fault. Likely simultaneous with G102 due to same winter salt exposure corridor.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pattern-card">
+    <div class="pattern-header" onclick="togglePattern('p3')">
+      <div class="pattern-title">PATTERN C — Ground Strap Failure (G1 Pre-Fire Stage)</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="score-bar" style="width:120px"><div class="score-fill" style="width:35%;background:#4a4e4a"></div></div>
+        <span class="match-score badge-gray" style="padding:2px 8px;border-radius:2px;font-family:var(--mono);font-size:11px;font-weight:600">35% MATCH</span>
+      </div>
+    </div>
+    <div class="pattern-body" id="p3">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">KNOWN PATTERN</div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Car fails to start cleanly or starter motor sluggish</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Smoke from driver-side front wheel well on start attempt</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">ABS sensor wiring burns/melts (return current rerouted)</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">U1960 stored (TCM signal protection)</span></div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text3)">Source: stelvioforum.com "show off your ground strap" + "no start fired wires" threads</div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">YOUR SYMPTOMS</div>
+          <div class="match-row"><span class="match-sym warn">✗</span><span class="match-text dim">Car starts normally</span></div>
+          <div class="match-row"><span class="match-sym warn">✗</span><span class="match-text dim">No smoke or burning smell reported</span></div>
+          <div class="match-row"><span class="match-sym warn">✗</span><span class="match-text dim">No melted wiring observed</span></div>
+          <div class="match-row"><span class="match-sym ok">✓</span><span class="match-text ok">U1960 stored — matches legacy event when old strap corroded</span></div>
+          <div style="margin-top:8px;padding:8px;background:var(--gray-bg);border-radius:3px;font-size:11px;color:var(--text2)">G1 strap was already replaced — this pattern is the past-state explanation for U1960. Current strap OK. Verify terminal contact only.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pattern-card">
+    <div class="pattern-header" onclick="togglePattern('p4')">
+      <div class="pattern-title">PATTERN D — BCM Water Intrusion (Passenger Footwell)</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="score-bar" style="width:120px"><div class="score-fill" style="width:5%;background:#3a9e68"></div></div>
+        <span class="match-score" style="background:var(--green-bg);color:var(--green2);border:1px solid rgba(58,158,104,0.3);padding:2px 8px;border-radius:2px;font-family:var(--mono);font-size:11px;font-weight:600">ELIMINATED</span>
+      </div>
+    </div>
+    <div class="pattern-body" id="p4">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">KNOWN PATTERN</div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Wet passenger footwell carpet</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Green corrosion on BCM connector pins</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Horn blowing involuntarily</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Wiper malfunction</span></div>
+          <div class="match-row"><span class="match-sym">▪</span><span class="match-text">Recall 18V205000 (U36) not yet performed</span></div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:8px;font-family:var(--mono)">YOUR SYMPTOMS</div>
+          <div class="match-row"><span class="match-sym warn">✗</span><span class="match-text dim">Passenger footwell confirmed DRY</span></div>
+          <div class="match-row"><span class="match-sym warn">✗</span><span class="match-text dim">BCM connector not accessible / not inspected but footwell dry</span></div>
+          <div class="match-row"><span class="match-sym warn">✗</span><span class="match-text dim">No horn issues reported</span></div>
+          <div class="match-row"><span class="match-sym warn">✗</span><span class="match-text dim">Wipers functional</span></div>
+          <div style="margin-top:8px;padding:8px;background:var(--green-bg);border-radius:3px;font-size:11px;color:var(--green2)">ELIMINATED. Dry footwell is definitive proof. BCM water intrusion pattern requires wet passenger footwell. This hypothesis is closed.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ==================== TAB 6: PROCEDURE ==================== -->
+<div id="proc" class="panel">
+<div class="section">
+  <div class="section-title">Step-by-Step Elimination Procedure — Strict Order</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+    <div class="location-block">
+      <div class="loc-header">
+        <div class="loc-id">Step 1 — Visual G102</div>
+        <div class="loc-priority" style="background:var(--red-bg);color:var(--red2);border:1px solid rgba(226,75,74,0.3)">NO TOOLS</div>
+      </div>
+      <div class="loc-body">
+        <div class="spec-label">What to do</div>
+        <p style="font-size:12px;line-height:1.6;margin-bottom:8px">Open hood. Driver side, behind headlight. Reach behind and below ABS hydraulic unit toward chassis rail. Shine flashlight on M8 bolt head with ring terminal stack.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+          <div style="padding:8px;background:var(--green-bg);border-radius:3px;color:var(--green2)"><b>GOOD:</b> Bright metal bolt head, clean ring terminals, dry loom tape</div>
+          <div style="padding:8px;background:var(--red-bg);border-radius:3px;color:var(--red2)"><b>FAULTY:</b> Green/white powder on terminals, orange staining on chassis, swollen tape</div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">If faulty: proceed to Step 3 (cleaning). If visually OK: proceed to Step 2 (voltage test).</div>
+      </div>
+    </div>
+
+    <div class="location-block">
+      <div class="loc-header">
+        <div class="loc-id">Step 2 — Voltage Drop G102</div>
+        <div class="loc-priority" style="background:var(--amber-bg);color:var(--amber2);border:1px solid rgba(212,137,26,0.3)">DVOM REQUIRED</div>
+      </div>
+      <div class="loc-body">
+        <div class="spec-label">How to test</div>
+        <p style="font-size:12px;line-height:1.6;margin-bottom:8px">Engine running. Headlights on, blower max, brake pedal pressed. DVOM DC millivolts. Negative probe: battery negative post. Positive probe: G102 chassis bolt head.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+          <div style="padding:8px;background:var(--green-bg);border-radius:3px;color:var(--green2)"><b>GOOD:</b> &lt; 50mV. G102 clean, move to G103.</div>
+          <div style="padding:8px;background:var(--red-bg);border-radius:3px;color:var(--red2)"><b>FAULTY:</b> &gt; 100mV. High resistance confirmed. G102 is root cause.</div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">50–100mV = marginal. Clean and retest. Any reading confirms or eliminates G102.</div>
+      </div>
+    </div>
+
+    <div class="location-block">
+      <div class="loc-header">
+        <div class="loc-id">Step 3 — Clean G102</div>
+        <div class="loc-priority" style="background:var(--amber-bg);color:var(--amber2);border:1px solid rgba(212,137,26,0.3)">13MM SOCKET</div>
+      </div>
+      <div class="loc-body">
+        <div class="spec-label">How to clean</div>
+        <ol class="steps-list steps-red" style="font-size:11px">
+          <li><span>Disconnect battery negative before touching any ground stud.</span></li>
+          <li><span>Remove M8 bolt. Count and photograph the terminal stack order before removing.</span></li>
+          <li><span>Clean chassis contact face with 120-grit sandpaper to bare metal. Circular motion, 30 seconds.</span></li>
+          <li><span>Clean each ring terminal face with wire brush or emery cloth. Remove all green oxide.</span></li>
+          <li><span>Apply thin coat of dielectric grease to contact faces.</span></li>
+          <li><span>Reinstall terminals in original order. Torque M8 bolt to 8 N·m (6 ft-lbs).</span></li>
+          <li><span>Wrap loom above stud with self-amalgamating silicone tape (NOT PVC). Overlap 50%.</span></li>
+        </ol>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">After cleaning: proceed to Step 4 (G103 visual).</div>
+      </div>
+    </div>
+
+    <div class="location-block">
+      <div class="loc-header">
+        <div class="loc-id">Step 4 — Visual + Drop G103</div>
+        <div class="loc-priority" style="background:var(--red-bg);color:var(--red2);border:1px solid rgba(226,75,74,0.3)">KICK PANEL OFF</div>
+      </div>
+      <div class="loc-body">
+        <div class="spec-label">Access</div>
+        <p style="font-size:12px;line-height:1.6;margin-bottom:8px">Pull driver kick panel (2 push-pins, pull straight toward you). M8 stud at A-pillar base is immediately visible — 3 ring terminals, BK/YL, BK, BK/RD.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+          <div style="padding:8px;background:var(--green-bg);border-radius:3px;color:var(--green2)"><b>GOOD:</b> &lt; 50mV drop. Driver door audio fault is elsewhere (connector).</div>
+          <div style="padding:8px;background:var(--red-bg);border-radius:3px;color:var(--red2)"><b>FAULTY:</b> &gt; 80mV. G103 confirmed — clean same as Step 3 procedure.</div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">This single reading explains or eliminates driver audio + mic failure.</div>
+      </div>
+    </div>
+
+    <div class="location-block">
+      <div class="loc-header">
+        <div class="loc-id">Step 5 — Verify G1 Terminal Faces</div>
+        <div class="loc-priority" style="background:var(--amber-bg);color:var(--amber2);border:1px solid rgba(212,137,26,0.3)">RESISTANCE CHECK</div>
+      </div>
+      <div class="loc-body">
+        <div class="spec-label">Test</div>
+        <p style="font-size:12px;line-height:1.6;margin-bottom:8px">DVOM in resistance (Ω). Battery disconnected. Probe battery negative terminal to transmission-side M10 bolt head. Repeat for chassis-side bolt head.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px">
+          <div style="padding:8px;background:var(--green-bg);border-radius:3px;color:var(--green2)"><b>GOOD:</b> &lt; 0.1Ω each end.</div>
+          <div style="padding:8px;background:var(--amber-bg);border-radius:3px;color:var(--amber2)"><b>MARGINAL:</b> 0.1–0.3Ω. Clean contact face to bare metal and retest.</div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:var(--text3)">U1960 stored is legacy from old strap event — will not return after battery reset if terminal faces are clean.</div>
+      </div>
+    </div>
+
+    <div class="location-block">
+      <div class="loc-header">
+        <div class="loc-id">Step 6 — Battery Reset + Rescan</div>
+        <div class="loc-priority" style="background:var(--blue-bg);color:var(--blue2);border:1px solid rgba(58,126,196,0.3)">FINAL STEP</div>
+      </div>
+      <div class="loc-body">
+        <div class="spec-label">Procedure</div>
+        <ol class="steps-list steps-amber" style="font-size:11px">
+          <li><span>Disconnect battery negative. Wait 20 minutes minimum (allows all module RAM to clear).</span></li>
+          <li><span>Reconnect. Start engine. Turn steering wheel lock-to-lock × 2 slowly.</span></li>
+          <li><span>Let idle 5 minutes with all lights on.</span></li>
+          <li><span>Rescan with Launch or AlfaOBD. All U-codes and B-codes from ground event should be absent.</span></li>
+          <li><span class="caution">B10AA-4A (PROXI) will NOT self-clear. Requires AlfaOBD software → Body → PROXI Alignment. One-time fix.</span></li>
+        </ol>
+        <div style="margin-top:8px;padding:8px;background:var(--amber-bg);border-radius:3px;font-size:11px;color:var(--amber2)">Any code that returns after the reset = remaining hardware issue at a specific module. Do not replace modules until after this reset confirms what survives.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top:16px;padding:14px;background:var(--bg2);border:1px solid rgba(226,75,74,0.3);border-radius:4px">
+    <div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--red2);margin-bottom:8px;letter-spacing:0.04em">FIRE RISK WARNING — ACT NOW</div>
+    <p style="font-size:12px;line-height:1.6;color:var(--text2)">The documented failure mode for a fully corroded G102 is not just module errors — it is thermal damage. When the G102 stud loses contact entirely, 200A starter return current is rerouted through the thin-gauge ABS sensor ground wires (BK/GN, 0.5mm² wire). These wires are not rated for starter current. They glow red-hot within seconds of a start attempt. The headlight harness from bumper to dash has been documented as melting in this failure mode, with repair quotes of $3,500–$10,000+. One owner had State Farm cover it under "electrical fire." You are currently in the early-resistance phase. The window to fix this cheaply is now — before the next cold start.</p>
+  </div>
+
+</div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function togglePattern(id) {
+  const body = document.getElementById(id);
+  body.classList.toggle('open');
+}
+
+// Module definitions: id, name, ground, current_A, fail_mv, warn_mv
+const modules = [
+  { id:'ecm', name:'ECM', ground:'g102', I:2.0, failMv:800, warnMv:400, dtc:'U1713-2F' },
+  { id:'abs', name:'ABS/BSM', ground:'g102', I:1.5, failMv:600, warnMv:300, dtc:'U1700-87' },
+  { id:'hdlt', name:'Hdlt LH Level', ground:'g102', I:0.8, failMv:1000, warnMv:500, dtc:'B101D-15' },
+  { id:'etm', name:'ETM/EMCM', ground:'g102', I:3.0, failMv:1200, warnMv:600, dtc:'B3905-31' },
+  { id:'rfhm', name:'RFHM', ground:'g102', I:0.5, failMv:800, warnMv:400, dtc:'U1765-86' },
+  { id:'drv_door', name:'Driver Door', ground:'g103', I:1.0, failMv:500, warnMv:250, dtc:'LIN dropout' },
+  { id:'spk_l', name:'Speaker LH', ground:'g103', I:2.5, failMv:400, warnMv:200, dtc:'No audio' },
+  { id:'mic', name:'Driver Mic', ground:'g103', I:0.1, failMv:200, warnMv:100, dtc:'Mic dead' },
+  { id:'win_rr', name:'Window RR', ground:'g103', I:4.0, failMv:600, warnMv:300, dtc:'B1177-97' },
+  { id:'tcm', name:'TCM ZF8HP', ground:'g1', I:8.0, failMv:800, warnMv:400, dtc:'U1960-83' },
+  { id:'alt', name:'Alternator', ground:'g101', I:50, failMv:1000, warnMv:500, dtc:'Charge fault' },
+  { id:'bcm', name:'BCM', ground:'g104', I:1.0, failMv:800, warnMv:400, dtc:'(pass side OK)' },
+  { id:'spk_r', name:'Speaker RH', ground:'g105', I:2.5, failMv:400, warnMv:200, dtc:'(pass side OK)' },
+];
+
+const loadMultipliers = { idle: 0.3, normal: 1.0, heavy: 1.6, start: 4.0 };
+
+function getOhm(sliderId) {
+  return parseInt(document.getElementById(sliderId).value) / 100;
+}
+
+function updateSim() {
+  const vals = {
+    g102: getOhm('g102'),
+    g103: getOhm('g103'),
+    g1: getOhm('g1'),
+    g101: getOhm('g101'),
+    gfw: getOhm('gfw'),
+    g104: 0.01,
+    g105: 0.01,
+  };
+
+  document.getElementById('g102v').textContent = vals.g102.toFixed(2) + 'Ω';
+  document.getElementById('g103v').textContent = vals.g103.toFixed(2) + 'Ω';
+  document.getElementById('g1v').textContent = vals.g1.toFixed(2) + 'Ω';
+  document.getElementById('g101v').textContent = vals.g101.toFixed(2) + 'Ω';
+  document.getElementById('gfwv').textContent = vals.gfw.toFixed(2) + 'Ω';
+
+  const loadMult = loadMultipliers[document.getElementById('load-scenario').value];
+  const grid = document.getElementById('moduleGrid');
+  const log = document.getElementById('faultLog');
+  grid.innerHTML = '';
+  log.innerHTML = '';
+  const faults = [];
+
+  modules.forEach(m => {
+    const R = vals[m.ground] || 0.01;
+    const I = m.I * loadMult;
+    const vdrop_mv = R * I * 1000;
+    const pct = Math.min(100, (vdrop_mv / m.failMv) * 100);
+
+    let stateClass = 'ok-state';
+    let statusText = 'Normal operation';
+    let statusColor = '#4ec87e';
+    let vColor = '#4ec87e';
+
+    if (vdrop_mv >= m.failMv) {
+      stateClass = 'failing';
+      statusText = 'FAULT — ' + m.dtc;
+      statusColor = '#ff6b6a';
+      vColor = '#ff6b6a';
+      faults.push({ code: m.dtc, module: m.name, drop: vdrop_mv });
+    } else if (vdrop_mv >= m.warnMv) {
+      stateClass = 'warning';
+      statusText = 'Degraded / marginal';
+      statusColor = '#f0a030';
+      vColor = '#f0a030';
+    }
+
+    const div = document.createElement('div');
+    div.className = 'module-box ' + stateClass;
+    div.innerHTML = `
+      <div class="mod-name" style="color:${statusColor}">${m.name}</div>
+      <div class="mod-status">${statusText}</div>
+      <div class="mod-vdrop" style="color:${vColor}">${vdrop_mv.toFixed(0)}mV drop</div>
+      <div style="height:3px;background:#2a2e2a;border-radius:2px;margin-top:5px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${stateClass==='failing'?'#e24b4a':stateClass==='warning'?'#d4891a':'#3a9e68'};border-radius:2px;transition:width 0.4s ease"></div>
+      </div>
+    `;
+    grid.appendChild(div);
+  });
+
+  faults.forEach((f, i) => {
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.style.color = i < 3 ? '#ff6b6a' : '#d4891a';
+    entry.innerHTML = `
+      <span class="log-ts" style="color:#5a605a">${String(i*2).padStart(2,'0')}:${(i*7%60).toString().padStart(2,'0')}</span>
+      <span class="log-code">${f.code}</span>
+      <span class="log-msg">${f.module} — ${f.drop.toFixed(0)}mV at ground, threshold exceeded</span>
+    `;
+    log.appendChild(entry);
+  });
+
+  if (faults.length === 0) {
+    log.innerHTML = '<div class="log-entry" style="color:#4ec87e"><span class="log-ts" style="color:#5a605a">00:00</span><span class="log-code">CLEAR</span><span class="log-msg">No faults — all grounds within specification</span></div>';
+  }
+}
+
+function setPreset(name) {
+  const presets = {
+    clean:    { g102: 1,   g103: 1,   g1: 5,   g101: 2,  gfw: 2  },
+    your_car: { g102: 100, g103: 80,  g1: 20,  g101: 5,  gfw: 5  },
+    worst:    { g102: 180, g103: 160, g1: 50,  g101: 30, gfw: 20 },
+    g102only: { g102: 120, g103: 5,   g1: 5,   g101: 2,  gfw: 2  },
+    g103only: { g102: 5,   g103: 120, g1: 5,   g101: 2,  gfw: 2  },
+  };
+  const p = presets[name];
+  Object.keys(p).forEach(k => { document.getElementById(k).value = p[k]; });
+  updateSim();
+}
+
+// Init
+updateSim();
+</script>
+</body>
+</html>
