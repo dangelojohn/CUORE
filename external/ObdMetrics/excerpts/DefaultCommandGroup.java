@@ -1,0 +1,59 @@
+ /**
+ * Copyright 2019-2026, Tomasz Żebrowski
+ *
+ * <p>Licensed to the Apache Software Foundation (ASF) under one or more contributor license
+ * agreements. See the NOTICE file distributed with this work for additional information regarding
+ * copyright ownership. The ASF licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License. You may obtain a
+ * copy of the License at
+ *
+ * <p>http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * <p>Unless required by applicable law or agreed to in writing, software distributed under the
+ * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+ * express or implied. See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.obd.metrics.command.group;
+
+import org.obd.metrics.command.ATCommand;
+import org.obd.metrics.command.Command;
+import org.obd.metrics.command.process.DelayCommand;
+
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PACKAGE)
+public class DefaultCommandGroup<T extends Command> extends CommandGroup<T> {
+
+	public static final CommandGroup<Command> INIT = new DefaultCommandGroup<>().of(
+			new ATCommand("Z"), // Reset OBD
+			new DelayCommand(0),
+			new ATCommand("H0"), // Headers off
+			new ATCommand("L0"), // Line feed off
+			new ATCommand("E0"), // Echo off
+			new ATCommand("AL"), // Echo off
+			new ATCommand("AT2"));
+	
+	public static final CommandGroup<Command> CAN_ERROR_RESET = new DefaultCommandGroup<>().of(
+			 new DelayCommand(200), 
+	         new ATCommand("WS"),   
+	         new DelayCommand(500)  
+		);
+	
+	public static final CommandGroup<Command> RECOVERY_AFTER_STOPPED = new DefaultCommandGroup<>().of(
+		    new DelayCommand(500), 
+		    new ATCommand("\r"), 
+		    new ATCommand("E0"), 
+		    new ATCommand("CS") 
+		);
+	
+	
+	public static final CommandGroup<Command> SNIFFING = new DefaultCommandGroup<>().of(
+			new ATCommand("Z"), // Reset OBD
+			new DelayCommand(0),
+			new ATCommand("E0"), // Echo off
+			new ATCommand("L0"), // Line feed off
+			new ATCommand("H1"), // Headers on
+			new ATCommand("CAF0"));
+}

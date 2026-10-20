@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "id": "stelvio_my20_22_diesel_q4",
+  "make": "Alfa Romeo",
+  "model": "Stelvio",
+  "model_year": 2020,
+  "engine": "2.2 JTDm Diesel",
+  "power_kw": 154,
+  "power_hp": 210,
+  "torque_nm": 470,
+  "drivetrain": "Q4",
+  "transmission": "ZF 8-speed automatic",
+  "networks": {
+    "C1": {
+      "bitrate": 500000
+    },
+    "C2": {
+      "bitrate": 500000
+    },
+    "BH": {
+      "bitrate": 125000
+    }
+  },
+  "reference": true
+}

@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "vehicle_family": "Alfa Romeo Giorgio",
+  "reference_profile": "Stelvio MY20 2.2 JTDm 210 Q4 AT8",
+  "status": "initial-known-signals",
+  "frames": [
+    {
+      "id": "0x2ED",
+      "bus": "C1",
+      "extended": false,
+      "signals": [
+        {
+          "name": "shift_urgency",
+          "byte": 6,
+          "bit": 0,
+          "length": 2,
+          "values": {
+            "0": "none",
+            "1": "level1",
+            "2": "level2",
+            "3": "level3"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0x384",
+      "bus": "C1",
+      "extended": false,
+      "signals": [
+        {
+          "name": "drive_style",
+          "byte": 1,
+          "bit": 2,
+          "length": 5,
+          "raw_mask": "0x7C",
+          "values": {
+            "0x00": "Natural",
+            "0x08": "Dynamic",
+            "0x10": "AllWeather",
+            "0x30": "Race"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0x46C",
+      "bus": "BH",
+      "extended": false,
+      "signals": [
+        {
+          "name": "drive_style",
+          "byte": 7,
+          "bit": 0,
+          "length": 5,
+          "raw_mask": "0x1F",
+          "values": {
+            "0x00": "Natural",
+            "0x02": "Dynamic",
+            "0x04": "AllWeather",
+            "0x0C": "Race"
+          }
+        }
+      ]
+    },
+    {
+      "id": "0x4B2",
+      "bus": "C1",
+      "extended": false,
+      "signals": [
+        {
+          "name": "oil_pressure",
+          "encoding": "((b0&1)<<7)|((b1>>1)&0x7F)",
+          "scale": 0.1,
+          "unit": "bar"
+        },
+        {
+          "name": "oil_temperature",
+          "encoding": "((b2&0x3F)<<2)|((b3>>6)&0x03)",
+          "scale": 1.0,
+          "unit": "degC"
+        }
+      ]
+    },
+    {
+      "id": "0x4AF",
+      "bus": "C1/C2",
+      "extended": false,
+      "status": "needs-capture-validation"
+    },
+    {
+      "id": "0x5A8",
+      "bus": "C1",
+      "extended": false,
+      "status": "needs-capture-validation"
+    }
+  ]
+}
