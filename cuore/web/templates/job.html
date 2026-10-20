@@ -227,6 +227,8 @@
       <h3>{{ h.text }}</h3>
       {% if h.system %}<span class="chip plain">{{ h.system_text or h.system }}</span>{% endif %}
       <span class="chip {{ {"open": "plain", "supported": "chronic", "refuted": "cleared", "confirmed": "returned"}[h.status] }}">{{ t('status_' + h.status) }}</span>
+      {% if h.safety and not h.attested_resolved %}<span class="chip returned">SAFETY</span>{% endif %}
+      {% if h.safety and h.attested_resolved %}<span class="chip plain">SAFETY: owner-attested resolved, confirm with ABS read</span>{% endif %}
     </div>
 
     {{ likelihood_bar(h.likelihood) }}

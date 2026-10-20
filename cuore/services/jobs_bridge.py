@@ -627,10 +627,12 @@ def close_job(job_id: str, outcome: str, *, tools_review_skip_reason: str = "",
 def add_hypothesis(job_id: str, text: str, *, system: str = "",
                    next_test: str = "", codes: Optional[list[str]] = None,
                    likelihood: Optional[str] = None,
+                   safety: bool = False,
                    by: Optional[str] = None) -> dict[str, Any]:
     try:
         return jobs_mod.add_hypothesis(job_id, text, system=system, next_test=next_test,
-                                       codes=codes, likelihood=likelihood, by=by)
+                                       codes=codes, likelihood=likelihood,
+                                       safety=safety, by=by)
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
 
@@ -657,11 +659,14 @@ def edit_hypothesis(job_id: str, hyp_id: str, *, text: Optional[str] = None,
                     system: Optional[str] = None, codes: Optional[list[str]] = None,
                     likelihood: Optional[str] = None,
                     next_test: Optional[str] = None,
+                    safety: Optional[bool] = None,
+                    attested_resolved: Optional[bool] = None,
                     by: Optional[str] = None) -> dict[str, Any]:
     try:
         return jobs_mod.edit_hypothesis(job_id, hyp_id, text=text, system=system,
                                         codes=codes, likelihood=likelihood,
-                                        next_test=next_test, by=by)
+                                        next_test=next_test, safety=safety,
+                                        attested_resolved=attested_resolved, by=by)
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
 

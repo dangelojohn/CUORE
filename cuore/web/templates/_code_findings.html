@@ -1,0 +1,23 @@
+{# Per-code findings (mes.code_findings). Expects `findings`: a list of
+   dicts from code_findings(code). Evidence classes are labelled and kept
+   apart: READINGS (this car), OWNER (attested), OUTSIDE LITERATURE. #}
+{% for f in findings %}
+<div class="panel code-findings" data-code="{{ f.code }}" data-module="{{ f.module }}">
+  <h3>What we found out about {{ f.code }} <span class="muted small">({{ f.module }})</span>
+    {% if f.safety %}<span class="chip returned code-safety">SAFETY</span>{% endif %}
+    <span class="chip plain code-class">{{ f.classification_label }}</span></h3>
+  {% if f.safety and f.safety_note %}<p><b>{{ f.safety_note }}</b></p>{% endif %}
+  <p><b>Meaning.</b> {{ f.meaning }}{% if f.meaning_source %} <span class="small muted">(source: {{ f.meaning_source }})</span>{% endif %}</p>
+  <p class="small"><b>READINGS</b> (from this car's logs)</p>
+  <ul class="small">{% for r in f.readings %}<li>{{ r }}</li>{% endfor %}</ul>
+  {% if f.owner %}<p class="small"><b>OWNER</b> (attested, not a reading)</p>
+  <ul class="small">{% for r in f.owner %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+  <p><b>Classification.</b> {{ f.classification_label }}.{% if f.classification_note %} {{ f.classification_note }}{% endif %}</p>
+  <p><b>Implications.</b> {{ f.implications }}</p>
+  <p class="small"><b>Resolution ladder</b> (cheapest, read-only first)</p>
+  <ol class="small">{% for s in f.ladder %}<li>{{ s }}</li>{% endfor %}</ol>
+  <p><b>Proof of fix.</b> {{ f.proof }}</p>
+  {% if f.literature %}<p class="small"><b>OUTSIDE LITERATURE</b> (other cars/years, not readings of this car)</p>
+  <ul class="small">{% for l in f.literature %}<li>{{ l.text }}{% if l.url %} <a href="{{ l.url }}" rel="noopener" target="_blank">{{ l.url }}</a>{% endif %}</li>{% endfor %}</ul>{% endif %}
+</div>
+{% endfor %}

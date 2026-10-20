@@ -260,6 +260,26 @@ check("7e. legacy action (no event_date field) falls back to at",
       _leg["effective_date"] == "2026-01-02T03:04:05" and _leg["effective_date_source"] == "at", str(_leg))
 
 
+# --- 8. current() choice: SAFETY job first, then most recently updated ---------
+_V8 = "TESTVIN8000000001"
+_ja = jobs_mod.open(_V8, complaint="plain, opened first")
+_jb = jobs_mod.open(_V8, complaint="safety job, opened second")
+_jc = jobs_mod.open(_V8, complaint="newest plain job")
+_hs = jobs_mod.add_hypothesis(_jb["id"], "brake leak", safety=True)
+check("8a. job_current prefers the job with a SAFETY hypothesis over a newer plain job",
+      jobs_mod.current(_V8)["id"] == _jb["id"] and _hs["safety"] is True
+      and [j["id"] for j in jobs_mod.open_jobs(_V8)][0] == _jb["id"])
+import time as _t8; _t8.sleep(1.1)  # timestamps have 1 s resolution
+jobs_mod.edit_hypothesis(_jb["id"], _hs["id"], attested_resolved=True)
+check("8b. an owner-attested-resolved SAFETY hypothesis no longer counts; most recently updated wins",
+      not jobs_mod.has_safety(jobs_mod.get(_jb["id"]))
+      and jobs_mod.current(_V8)["id"] == _jb["id"])  # just edited -> most recently updated
+_t8.sleep(1.1)
+jobs_mod.add_hypothesis(_ja["id"], "touch the oldest job")
+check("8c. with no SAFETY job the most recently updated open job is current",
+      jobs_mod.current(_V8)["id"] == _ja["id"], jobs_mod.current(_V8)["id"])
+
+
 # --- summary ------------------------------------------------------------------
 
 print(f"{checks - len(failures)}/{checks} checks passed")

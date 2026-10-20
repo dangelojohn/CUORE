@@ -46,6 +46,13 @@ def _register(templates: Any) -> None:
             (_dtc.failure_type(ftb).to_dict() if _dtc.failure_type(ftb) else None))
     except Exception:  # noqa: BLE001 -- a template global must never break a page
         pass
+    # Per-code findings store (mes.code_findings), read by _code_findings.html
+    # via _code_brief.html; guarded there with `is defined`.
+    try:
+        from mes import code_findings as _cf
+        templates.env.globals["code_findings"] = _cf.lookup
+    except Exception:  # noqa: BLE001
+        pass
 
 
 for _module_name in ("routes", "service_routes", "drivetrain_routes", "timeline_routes"):

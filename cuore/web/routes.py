@@ -355,7 +355,17 @@ def vehicle(request: Request, vin: str) -> HTMLResponse:
         tsb_xref = {"top": tsb_xref_bridge.top(xr, 5), "by_hypothesis": xr["by_hypothesis"],
                     "hypotheses": xr["hypotheses"], "by_repair": xr["by_repair"][:10],
                     "job_id": xr["job_id"]}
+    open_jobs: list[dict[str, Any]] = []
+    try:
+        from mes import jobs as _jobs  # local: every open job, in the order jobs.current() picks
+        for j in _jobs.open_jobs(vin):
+            open_jobs.append({"id": j["id"], "title": j.get("complaint") or j["id"],
+                              "opened_at": j.get("opened_at"), "safety": _jobs.has_safety(j),
+                              "hypotheses": sum(1 for h in j["hypotheses"] if not h.get("deleted"))})
+    except Exception:  # noqa: BLE001 -- the dossier must render without the job list
+        open_jobs = []
     response = _page(request, "vehicle.html", vin=vin, d=dossier, bar=bar, tsb_xref=tsb_xref,
+                     open_jobs=open_jobs,
                      open_codes=codes, live_panel=_live_panel_for(vin, bar["ecus"]),
                      notes_list=vehicle_notes, note_target_kind="vehicle",
                      note_target_id="", note_redirect=f"/v/{vin}/dossier",

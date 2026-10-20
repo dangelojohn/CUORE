@@ -61,6 +61,11 @@
       if _brief_module %} &middot; module: {{ _brief_module }}{% endif %}</p>
 {% endif %}
 
+{% if code_findings is defined %}
+{% set findings = code_findings(_brief_full or code) %}
+{% if findings %}{% include "_code_findings.html" %}{% endif %}
+{% endif %}
+
 {% set badges = systems_for_code(code) if systems_for_code is defined else [] %}
 {% include "_system_badge.html" %}
 

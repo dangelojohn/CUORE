@@ -299,6 +299,8 @@ def _fold() -> dict[str, dict[str, Any]]:
                 "next_test": rec.get("next_test") or "",
                 "codes": list(rec.get("codes") or []),
                 "likelihood": rec.get("likelihood"),
+                "safety": bool(rec.get("safety")),
+                "attested_resolved": bool(rec.get("attested_resolved")),
                 "updated_at": at, "deleted": False,
                 "confirmed_by": None, "confirmed_at": None,
                 "audit": [{"at": at, "by": rec.get("by"), "action": "created",
@@ -347,6 +349,12 @@ def _fold() -> dict[str, dict[str, Any]]:
             if rec.get("likelihood") is not None:
                 hyp["likelihood"] = rec["likelihood"]
                 changed.append("likelihood")
+            if rec.get("safety") is not None:
+                hyp["safety"] = bool(rec["safety"])
+                changed.append("safety")
+            if rec.get("attested_resolved") is not None:
+                hyp["attested_resolved"] = bool(rec["attested_resolved"])
+                changed.append("attested_resolved")
             hyp["updated_at"] = at
             if changed:
                 _audit(hyp, at, rec.get("by"), "edited", ", ".join(changed))
@@ -547,6 +555,7 @@ def close(job_id: str, outcome: str, *, readiness_at: Optional[str] = None,
 def add_hypothesis(job_id: str, text: str, *, system: str = "",
                    next_test: str = "", codes: Optional[list[str]] = None,
                    likelihood: Optional[str] = None,
+                   safety: bool = False,
                    by: Optional[str] = None) -> dict[str, Any]:
     """Add a hypothesis to a job's ledger. Starts ``status="open"`` with no
     evidence -- evidence only ever arrives via :func:`add_evidence`, so a
@@ -565,7 +574,8 @@ def add_hypothesis(job_id: str, text: str, *, system: str = "",
              "system_text": system_text,
              "next_test": (next_test or "").strip(),
              "codes": [c.strip() for c in (codes or []) if c and c.strip()],
-             "likelihood": likelihood, "by": (by or "").strip() or None})
+             "likelihood": likelihood, "safety": bool(safety),
+             "by": (by or "").strip() or None})
     job = _require_job(job_id)
     return _require_hyp(job, hyp_id)
 
@@ -604,6 +614,8 @@ def edit_hypothesis(job_id: str, hyp_id: str, *, text: Optional[str] = None,
                     system: Optional[str] = None, codes: Optional[list[str]] = None,
                     likelihood: Optional[str] = None,
                     next_test: Optional[str] = None,
+                    safety: Optional[bool] = None,
+                    attested_resolved: Optional[bool] = None,
                     by: Optional[str] = None) -> dict[str, Any]:
     """Edit a hypothesis's own fields -- never its status or evidence, which
     go through :func:`set_hypothesis`/:func:`add_evidence` so the confirm
@@ -630,6 +642,10 @@ def edit_hypothesis(job_id: str, hyp_id: str, *, text: Optional[str] = None,
         rec["likelihood"] = likelihood
     if next_test is not None:
         rec["next_test"] = next_test.strip()
+    if safety is not None:
+        rec["safety"] = bool(safety)
+    if attested_resolved is not None:
+        rec["attested_resolved"] = bool(attested_resolved)
     if len(rec) <= 5:  # only op/job_id/hyp_id/at/by -- nothing to actually change
         raise ValueError("at least one field must be given to edit_hypothesis")
     _append(rec)
@@ -865,15 +881,42 @@ def get(job_id: str) -> Optional[dict[str, Any]]:
     return _fold().get(job_id)
 
 
-def current(vin: str) -> Optional[dict[str, Any]]:
-    """The newest not-closed job for this VIN, or ``None``. "Current" means
-    "what a mechanic walking up to this car right now would be working on" --
-    a closed case is history, not the active thread."""
+def has_safety(job: dict[str, Any]) -> bool:
+    """True when the job carries a live (not deleted, not refuted) hypothesis
+    marked ``safety``. A safety hypothesis the owner has attested resolved
+    (``attested_resolved``) does not count."""
+    return any(h.get("safety") and not h.get("attested_resolved")
+               and not h.get("deleted") and h.get("status") != "refuted"
+               for h in job.get("hypotheses") or [])
+
+
+def _last_update(job: dict[str, Any]) -> str:
+    stamps = [job.get("opened_at") or ""]
+    stamps += [h.get("updated_at") or "" for h in job.get("hypotheses") or []]
+    stamps += [a.get("at") or "" for a in job.get("actions") or []]
+    return max(stamps)
+
+
+def open_jobs(vin: str) -> list[dict[str, Any]]:
+    """Every not-closed job for this VIN, in the order :func:`current` would
+    choose them: jobs with a SAFETY hypothesis first, then most recently
+    updated, then newest opened (so the choice is deterministic)."""
     vin = (vin or "").strip()
     if not vin:
-        return None
-    open_jobs = [j for j in load(vin) if j["status"] != "closed"]
-    return open_jobs[-1] if open_jobs else None
+        return []
+    jobs = [j for j in load(vin) if j["status"] != "closed"]
+    jobs.sort(key=lambda j: (has_safety(j), _last_update(j), j["opened_at"], j["id"]),
+              reverse=True)
+    return jobs
+
+
+def current(vin: str) -> Optional[dict[str, Any]]:
+    """The not-closed job for this VIN a mechanic should work on now, or
+    ``None``. A closed case is history, not the active thread. When several
+    are open: the one with a SAFETY hypothesis wins, then the most recently
+    updated (see :func:`open_jobs`)."""
+    jobs = open_jobs(vin)
+    return jobs[0] if jobs else None
 
 
 __all__ = ["STATUSES", "OUTCOMES", "HYP_STATUSES", "LIKELIHOODS", "ACTION_KINDS",
@@ -882,4 +925,4 @@ __all__ = ["STATUSES", "OUTCOMES", "HYP_STATUSES", "LIKELIHOODS", "ACTION_KINDS"
           "add_hypothesis", "set_hypothesis", "edit_hypothesis",
           "delete_hypothesis", "undelete_hypothesis", "migrate_systems",
           "add_action", "set_action_event_date", "effective_date", "attach", "add_evidence", "remove_evidence",
-          "resolve_evidence", "load", "get", "current"]
+          "resolve_evidence", "load", "get", "current", "open_jobs", "has_safety"]

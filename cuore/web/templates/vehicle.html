@@ -19,6 +19,17 @@
 
   {% include "_verdict_card.html" %}
 
+  {% if open_jobs is defined and open_jobs %}
+  <div class="panel open-jobs" id="open-jobs">
+    <h3>Open jobs ({{ open_jobs|length }})</h3>
+    <ul class="small">
+      {% for j in open_jobs %}<li><a href="/v/{{ vin }}/job/{{ j.id }}">{{ j.title }}</a>
+        {% if j.safety %}<span class="chip returned">SAFETY</span>{% endif %}
+        <span class="muted">{{ j.hypotheses }} hypothes{{ "is" if j.hypotheses == 1 else "es" }}{% if loop.first %} &middot; current{% endif %}</span></li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
   <div class="jumprow" aria-label="Jump to section">
     <a class="jump-chip" href="#open-work">Open work</a>
     <a class="jump-chip" href="#sec-blindspots">Blind spots{% if view.blind_spots %} <b>{{ view.blind_spots|length }}</b>{% endif %}</a>

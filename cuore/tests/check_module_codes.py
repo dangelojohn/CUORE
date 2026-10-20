@@ -150,6 +150,19 @@ try:
           html[:4000])
     check("partial renders the module name alongside the suffix",
           "BCM" in html, html[:4000])
+
+    # per-code findings render (SAFETY marker for C104B-92)
+    from mes import code_findings as _cfm
+    env.globals["code_findings"] = _cfm.lookup
+    html2 = tmpl.render(vin="TESTVIN000000001", code="C104B-92", compact=True,
+                        records=[{"dtc": "C104B-92", "modules": ["ABS"],
+                                  "occurrences": [{"status": "cleared"}]}])
+    check("code findings load for C104B-92 (ABS) and the key codes",
+          len(_cfm.lookup("C104B-92", "ABS")) == 1
+          and all(_cfm.lookup(c) for c in ("U1700-87", "U1713-2F", "C141B-97", "B1176-97", "U1736-87", "P1DAD-00")))
+    check("partial renders C104B-92 findings with the SAFETY marker and ABS-read proof",
+          "SAFETY" in html2 and "READINGS" in html2 and "OUTSIDE LITERATURE" in html2
+          and "no C104B-92" in html2 and "owner-attested" in html2, html2[:3000])
 except Exception as exc:  # pragma: no cover - surfaced as a failed check, not a crash
     failures.append(f"template render raised: {exc!r}")
     checks += 1
