@@ -51,6 +51,42 @@ The project's own glossary is [docs/project/GLOSSARY.md](https://github.com/dang
 | **STP / STPBR / STMA / ATCAF** | STN protocol select, bit rate, monitor-all, CAN auto-formatting. |
 | **Keep-alive id** | A periodic network-management frame (`1E34xxxx`, `1E36xxxx`). |
 
+## Codes and the 2026-10-20 review
+
+| Term | Meaning |
+|---|---|
+| **FTB (failure type byte)** | The two-character suffix of a UDS code, for example `-87` in `U1700-87`. As used in this project's sources: `86` signal invalid, `87` missing message, `2F` erratic, `64` plausibility, `97` operation obstructed or blocked. The meanings are from a trade article and a page for another car in the group, not the paid SAE list ([[Network and Brake Findings|Network-and-Brake-Findings]]). |
+| **NCM, NFR, NGE, NBC** | Legacy node labels printed in code texts: engine computer, brake module, electric steering, body computer. Their use on this platform is inferred; the scan tool's printed label is the only definition for this car. |
+| **Code finding** | The stored review of one code: meaning, readings, owner statement, classification, ladder, proof, literature ([[Code Reviews|Code-Reviews]]). |
+| **Resolution ladder** | Ordered steps to settle a code, cheapest and read-only first, never a clear. |
+| **Proof of fix** | The reading that would settle a code: absent on reads spread over longer than its longest observed gap, with status bytes read before any clear. |
+| **Real / service-induced / probable artefact / possible bystander / downstream / readiness flag** | The classes a code is given. Downstream means a receiver of another module's bad signal, so it is not fixed on its own. |
+| **Tool artefact** | A code set by the tool's own activity (for example the 2026-10-14 night incident), not by the car. |
+| **BCM cluster** | The group of codes in which the body computer is on one side of every complaint ([[Network and Brake Findings|Network-and-Brake-Findings]]). |
+| **Readiness flag (`0x40`)** | A status byte with only bit 6 set: the test has not completed this cycle. Not a fault. |
+| **Mirror snapshot** | One session reading every module that reports on the body computer, with full status bytes, while a cluster code is active. |
+| **SAFETY flag; attested resolved** | Marks on a hypothesis: it concerns a safety system; the owner states it is resolved, which is attested, not read. |
+| **`event_date`** | The date an action actually happened, as opposed to when it was recorded ([[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]]). |
+| **ETM** | The radio, navigation and telematics head unit. |
+| **PROXI** | The vehicle configuration record in the body computer; a mismatch code says a component does not match it. |
+| **MDH** | A build-date code on the car's label that decides which bulletin applies. Not recorded for the reference car. |
+| **Recall number / CSN** | Safety recall (for example `18V205`) and customer-satisfaction notification; both settled per car only by a VIN lookup ([[Recalls and Campaigns|Recalls-and-Campaigns]]). |
+
+## Passive decoding, addressing and the adapter
+
+| Term | Meaning |
+|---|---|
+| **DBC** | A CAN database file naming messages and their signals (start bit, length, scale, unit). |
+| **opendbc** | A public project whose MIT-licensed `fca_giorgio.dbc` CUORE keeps a copy of ([[External References and Licences|External-References-and-Licences]]). |
+| **Passive chassis decode** | Listen-only decoding of chassis-bus broadcasts through that database ([[Passive Chassis Decoding|Passive-Chassis-Decoding]]). |
+| **Lead** | An outside fact, unverified on this car; never proof. |
+| **`rx_mode`** | Reply-id convention for the 11-bit discovery sweep: request plus 8, request minus `0x280`, or both. |
+| **`probe_dids`** | The identifiers the 29-bit discovery sweep asks per target (default `F190`; `F132` and `F194` optional). |
+| **Broadcast id** | A periodic message the car sends itself; CUORE never transmits a request on one. |
+| **Flow control** | The multi-frame handshake settings of the adapter (header, data, mode) that must be restored when leaving a physical target. |
+| **`stale_input`** | An audit event: a complete reply was found in the input before a new request, and discarded. |
+| **Hard reset** | An opt-in adapter warm start (`ATWS`) with re-initialisation, once per session. |
+
 ## Tools and software
 
 | Term | Meaning |

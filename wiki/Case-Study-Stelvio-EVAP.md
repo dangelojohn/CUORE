@@ -119,6 +119,14 @@ How to read them: see [[Evidence Model|Evidence-Model]]. The failed state is car
 
 The honest summary recorded: **the stored Mode 06 data does not show that the ESIM switch never closed**, and does not exclude it. It can be read as "closed but did not hold", and also as "late". It cannot separate the ESIM from blockages upstream of it.
 
+**The timers in detail.** The two failing records are raw frames from 2026-10-13 20:03:54: for `3A` / TID `87` the value bytes are `0x0194` (404) with minimum `0x0F7D` (3965) and maximum `0xFFFF` (no upper limit); for `3C` / TID `90` the value is `0x17D0` (6096) with limits 0 and `0x1770` (6000). The unit byte `0x10` is read as milliseconds, one per count (the project table plus a manufacturer reference seen through a search summary; the paid SAE table was not read). The maker could in principle reuse the unit byte for something else; nothing found says so. The same `3C` reply also holds TID `85` and TID `86` records that are all zeros.
+
+- **Limit shapes disagree.** `3A` passes at *higher* values and `3C` at *lower* ones, so the two test IDs probably measure different things [I].
+- **Time scale.** Outside articles [O] say a key-off small-leak closure takes minutes to hours, so 0.4 s or 6.1 s is not the whole key-off closure; it could be an engine-running purge-vacuum timing or a sub-interval such as a decay timer. They name "time to switch closure" and "vacuum decay time" as measured quantities but give no numeric limits and no mapping to a test ID. A Saab table lists the same OBDMIDs as "leak factor" counts: the same ID can carry a different quantity per maker.
+- **Never-closed reading.** Under either time reading, a non-zero value needs at least one closure event; only an undocumented "value stored when the switch never closes" would let either number mean "never closed". The reset value 6000 differs from the stored 6096, so the 10-13 value was written by a test.
+- **What would settle it:** the manufacturer's test-ID description (dealer tool); a second read on the next P0440 `0xCD` (a measured quantity varies, a fixed sentinel repeats); and a read before and after one hand-vacuum pump cycle at the ESIM.
+- **Standing caveat:** the gross-leak record (`39`) is byte-identical whether the monitor ran or not, so its "pass" carries no information ([[Evidence Model|Evidence-Model]]).
+
 ## ECM sub-test map
 
 A per-sub-system verdict from status bits, across all five full reads (summary):
@@ -135,7 +143,21 @@ A per-sub-system verdict from status bits, across all five full reads (summary):
 | Fuel cap | P0457 | never completed |
 | ESIM switch circuit, vent circuit, ambient input | P0450-P0453, P0446-P0449, P0070-P0074 | not tracked by this computer |
 
-**Reading:** since the 2026-10-14 clear, nothing on the EVAP side has been verified clean.
+A fuller version of the map gives a verdict per sub-system and per read, using this rule: a code **absent** from a full list went `0x40` to `0x00` (its test completed this cycle with no failure; an inference), a code at `0x40` has not completed this cycle, and a code **never returned** is "not tracked" (the earlier 278-code list holds 278 of the 282 codes ever seen, so absence from it makes non-existence the likelier case).
+
+| Sub-system | Codes | 09-25 | 10-13 | 10-14 (10 h after clear) | 10-19 (two reads) |
+|---|---|---|---|---|---|
+| ESIM switch circuit; vent circuit | P0450, P0452, P0453; P0446 to P0449 | not tracked | not tracked | not tracked | not tracked |
+| Pressure / switch range | P0451 | not run | not run | not run | not run |
+| Vent valve stuck closed | P2422 | not run | not run | not run | not run |
+| Purge circuit and flow | P0458, P0459, P0441 | not run | passed this cycle | not run | not run |
+| Small leak (0.020 in) | P0456 | **failed** | not run | not run | **failed** |
+| Large leak (0.090 in) | P0455 | **failed** | **failed** | not run | **failed** |
+| General fault | P0440 | **failed** | **failed, lamp** | **failed** | **failed, lamp** |
+| Fuel level; fuel cap | P0461; P0457 | not run | not run | not run | not run |
+| Ambient input; 0.040 in leak | P0070 to P0074; P0442 | not tracked | not tracked | not tracked | not tracked |
+
+The mapping of 0.020 to P0456 and 0.090 to P0455 is by SAE convention and CUORE's labels. The engine computer's own supply-voltage and processor monitors completed clean in every cycle read since 10-13. **Reading:** since the 2026-10-14 clear, nothing on the EVAP side has been verified clean.
 
 ## Bulletin research and its corrections
 
@@ -157,7 +179,7 @@ Corrections the case made to its own earlier statements (each is recorded in the
 - "Two clean smoke tests" was actually **three**.
 - The bulletin cited as the basis for the calibration verdict is Giulia-only.
 - "The ESIM switch never closes" was **retracted as unsupported**: it rested on the codes, not on Mode 06.
-- An idea that the ESIM contains a solenoid the computer drives was **retracted** after outside literature said the part has none (it is a passive vacuum-operated switch with two weighted valves). The old text stays on the job, marked retracted.
+- An idea that the ESIM contains a solenoid the computer drives was **retracted** after outside literature said the part has none (it is a passive vacuum-operated switch with two weighted valves). The old text stays on the job, marked retracted. The correction was carried into the parts catalogue on 2026-10-20: the part's older "pump" wording now carries a note, and a **design block** (outside literature, with its sources) records the passive design, the thresholds, the orientation rule, the 5 V reference and the tests. It also records what the engine computer can and cannot check: it tracks no code for the switch or vent circuit, so a fault there shows only as the leak codes themselves.
 - "0x40 means passed" is false on this computer; "absent from the list means passed" is an inference.
 - The Mode 06 gross-leak "pass" is a zero-limit record, carrying no information.
 - The lamp does not return "about 5 days after each clear".
@@ -188,8 +210,14 @@ A separate pass used only the 222 observation lines in the store (two fake-strea
 | Purge circuit and flow are healthy now | No: the only pass is before the 10-14 reset |
 | Freeze frames show failures in three regimes | Inference on medium-confidence scaling |
 | Mode 06 gross-leak passed | No information |
+| Absent from a list means passed | Inference only: list length swings from 72 to 278 codes and no status of `0x00` was ever seen |
+| Status bytes are a full history | No: P0456 is in the permanent list while the module list shows `0x40` |
+| The engine computer's software is the right one | Not shown: its identity never changed (no reflash), which says nothing about whether it is current |
+| A physical leak (cap, hoses, canister, tank) is excluded | No: no reading can rank it against the sense and vent path |
 | **A component the readings prove must be replaced** | **None.** No circuit code, commanded test, measured output or stimulus-and-response pair exists |
 | The component to test first | The leak-detection chain: the ESIM sense and vent assembly and its signal path. This is a premise the brief supplied; the store never names the ESIM |
+
+**Readings that would prove a replacement** (none taken): the pressure signal and the purge command, fuel level and air temperature logged together through a stimulus applied at the sense port and checked on an independent gauge, with the connector supply, ground and signal in specification (a flat signal alone is not proof, because the store does not say which sensor feeds it); the switch state, if a tool exposes it; a commanded vent close followed by a pressure hold; the failing codes read with failed-this-cycle set, plus snapshot and extended data in the same cycle, before any clear; Mode 06 in two complete cycles with no reset between; and the sense, vent and purge codes dropping out of the list while the leak codes still fail, which would exonerate them. Replacing the engine computer cannot be proven from legislated readings alone.
 
 ## Ranked candidates (inference, after the outside cross-check)
 
@@ -203,6 +231,8 @@ A separate pass used only the 222 observation lines in the store (two fake-strea
 ## The ESIM orientation lead
 
 Outside sources say the part must mount upright and that an incorrect orientation can set exactly these codes. The repository recorded that the new ESIM's mounting orientation and port seating were **never logged**. That makes orientation a cheap, specific lead: find out which way up the original unit sat, how the new one is mounted, and bench-test it. The bench procedure is on [[ESIM Bench Test|ESIM-Bench-Test]].
+
+**Its sources, all outside literature, none a reading of this car and none a Stellantis document for the Stelvio:** a trade-magazine article on the Chrysler ESIM (design and thresholds); a parts-maker tech tip (vertical mounting, an adaptor for an angled canister); a repair-database tip about a Ram truck (the module fits four ways and only one is correct; the wrong way gave P0440, P0441 and P0456 with the switch never closing, fixed by re-orienting); and a parts-maker description of the 5 V reference signal. The Stelvio part's own mounting rule was not found, so the service drawing for this VIN decides. In the fault tree the check is **step E9** (free, about ten minutes), followed by **E10** (back-probe the signal: about 5 V at rest, about 0 V under about 1 inch of water of hand vacuum, never 12 V; see [[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]]). A replacement fitted the wrong way would reproduce the same codes.
 
 ## Next tests, in order
 

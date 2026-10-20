@@ -30,7 +30,7 @@ data/captures/stelvio-2018/
 
 ### `mes_logs/`
 
-42 files: 23 live recordings and engineering sessions (`FESLog_*.txt`) and 19 scan reports (`SCAN_*.txt`) for this car, dating from 2025-09 to 2026-10. **MES simulation-mode logs** (those whose banner reads "SIMULATION MODE ... NOT REAL") are **excluded**: they do not describe the car ([[MES Integration|MES-Integration]]).
+**42 real files**: 23 live recordings and engineering sessions (`FESLog_*.txt`) and 19 scan reports (`SCAN_*.txt`) for this car, dating from 2025-09 to 2026-10. The snapshot first also held the simulation logs; **38 were removed on 2026-10-20** because they do not describe the car. **MES simulation-mode logs** (those whose banner reads "SIMULATION MODE ... NOT REAL") are **excluded**: they do not describe the car ([[MES Integration|MES-Integration]]).
 
 ## How to use it
 

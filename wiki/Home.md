@@ -24,14 +24,14 @@ CUORE advises and records. **The mechanic decides.** It never writes to the car 
 
 ## Status
 
-As of 2026-10-20 the project is a working bench application for one reference car, with a live link to the car proven on three buses. It has about 105 test scripts for the web app and live layer, 31 for the MES library, and a long list of documented limits ([[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]]). The reference car's EVAP (fuel vapour) fault is still under diagnosis; see [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]. Only the Alfa Romeo Stelvio data set exists today; the port to other marques is a roadmap item ([[Roadmap]]).
+As of 2026-10-20 the project is a working bench application for one reference car, with a live link to the car proven on three buses. It has about 105 test scripts for the web app and live layer, 31 for the MES library, and a long list of documented limits ([[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]]). The reference car's EVAP (fuel vapour) fault is still under diagnosis; see [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]. Later the same day every non-EVAP code on the car was reviewed ([[Code Reviews|Code-Reviews]]), outside GitHub material was filed with its licences ([[External References and Licences|External-References-and-Licences]]), and the live layer gained a listen-only chassis decoder and several bench-tested fixes that have **not yet been run on the car**. Only the Alfa Romeo Stelvio data set exists today; the port to other marques is a roadmap item ([[Roadmap]]).
 
 ## Map of this wiki
 
 **Start here**
 - [[Getting Started|Getting-Started]]: install, start, first connection, health check.
 - [[Hardware and Cables|Hardware-and-Cables]]: adapter, OBD pins, bypass cables, security gateway, one program per port.
-- [[Vehicle Networks|Vehicle-Networks]]: the three CAN buses, addressing, module table, awake and asleep signatures.
+- [[Vehicle Networks|Vehicle-Networks]]: the three CAN buses, addressing modes, module table, awake and asleep signatures.
 
 **How it works**
 - [[Architecture]]: layers, programs, state directory.
@@ -42,12 +42,17 @@ As of 2026-10-20 the project is a working bench application for one reference ca
 - [[TSB Layer and Cross-Reference|TSB-Layer-and-Cross-Reference]]: bulletins, recalls and how they are scored.
 - [[Evidence Model|Evidence-Model]]: what counts as a measurement and what does not.
 - [[Safety Rules|Safety-Rules]]: read-only design and the rules behind it.
+- [[Passive Chassis Decoding|Passive-Chassis-Decoding]]: the listen-only decoder for the chassis bus.
+- [[External References and Licences|External-References-and-Licences]]: what was copied from public projects, what was only noted, and why.
 - [[MES Integration|MES-Integration]]: working alongside MultiEcuScan.
 - [[MCP Servers and Claude|MCP-Servers-and-Claude]]: the conversational surface.
 
 **The reference case**
 - [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]: the full diagnostic story, readings kept apart from literature.
 - [[ESIM Bench Test|ESIM-Bench-Test]]: how to test the suspect part out of the car.
+- [[Code Reviews|Code-Reviews]]: every other code on the car, by system: readings, classification, resolution ladder, proof of fix.
+- [[Network and Brake Findings|Network-and-Brake-Findings]]: the body-computer-centred code cluster, the brake event and the ranked tests.
+- [[Recalls and Campaigns|Recalls-and-Campaigns]]: the recalls and notices that could apply, VIN checks first.
 
 **Project**
 - [[Testing]], [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]], [[Roadmap]], [[Glossary]], [[Data Captured|Data-Captured]], [[Project History|Project-History]].

@@ -31,6 +31,8 @@ MES has a simulation mode that produces plausible-looking data with no vehicle. 
 - A **SCAN log carries no simulation marker**. Its provenance is reported as *unverifiable*; the fingerprints are the only cue.
 - Simulation logs are **excluded by default** from listing, selection and analysis, and are not copied into the data snapshot ([[Data Captured|Data-Captured]]).
 
+On 2026-10-20 the **38 simulation-mode logs were removed from the captured data snapshot**: the snapshot now holds only logs that describe the car (42 files, see [[Data Captured|Data-Captured]]). The code reviews of the same day likewise exclude every simulation log, and a few older logs that carry a different car's identifier ([[Code Reviews|Code-Reviews]]).
+
 Worked example: four MES files saved on 2026-10-20 were parsed and found to be simulations (random values across samples, battery pinned at 1.4 V). The ledger recorded "nothing new" and noted the files must not be cited for or against any hypothesis.
 
 ## Clear auto-sync

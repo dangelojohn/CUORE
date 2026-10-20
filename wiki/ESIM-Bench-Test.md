@@ -46,6 +46,26 @@ Why this test exists: see [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]. 
 - **What this test cannot prove**: breath is not measured, so the exact switch point (about 1 inch of water vacuum) is not confirmed. For that use a hand vacuum pump with a gauge in inches of water and stay between 1 and 2 inches; above about 2.2 inches the vacuum relief valve opens by design and mimics a leak.
 - **Sources** (outside literature, none a reading from this car): a trade-magazine article on Chrysler ESIM design and thresholds (pressure valve about 0.5 inch of water, vacuum valve about 2.2, switch about 1, about 0.5 to 2 ohm closed); a parts-maker tech tip on vertical mounting, no solenoid and a 5 V reference; and a repair-database tip on wrong orientation causing P0440, P0441 and P0456 on a truck, fixed by re-orienting.
 
+## The sourced facts behind the sheet
+
+Every number below is **outside literature**: trade articles and tech tips about Chrysler and Jeep ESIMs. None is a reading from this car and none is a Stellantis document for the Stelvio. CUORE keeps them as one record (the part's design block in the parts catalogue, `mes.parts.ESIM_DESIGN`), with the sources named, and shows them as a card on the leak-detection system's page ([[Features]]).
+
+| Fact | Value | Source (kind) |
+|---|---|---|
+| Design | Passive: housing, vacuum contact switch, diaphragm, a small weighted vacuum valve and a large weighted pressure valve. **No solenoid** | Trade article "Chrysler ESIM"; a parts-maker description |
+| Small vacuum valve opens | about **2.2** inches of water of vacuum | Trade article |
+| Large pressure valve opens | about **0.5** inch of water of pressure | Trade article |
+| Switch closes | about **1** inch of water of vacuum | Trade article; a second trade article on EVAP performance codes |
+| Switch resistance when closed | about **0.5 to 2** ohm (unplugged, meter on the two switch pins) | Trade article |
+| Electrical | The engine computer supplies a **5 V reference** and a ground; back-probed signal about **5 V** at rest and about **0 V** while the switch is closed by about 1 inch of vacuum | Parts-maker signal description; trade article |
+| Orientation | Gravity dependent: mount **vertically**, in the position the service drawing shows; an adaptor is used where the canister is angled | Parts-maker tech tip |
+| Wrong orientation | A repair-database tip for a **Ram** truck: the module fits **four ways, only one correct**; the wrong way gave P0440, P0441 and P0456 with the switch never closing (signal never 0 V), fixed by re-orienting | Repair-database tip (one vehicle, not Alfa) |
+| Warning | **Never apply 12 V** across the switch: it can damage it | Design block |
+
+What the sources do **not** say, kept on the card so nobody assumes it: the identity of the small white cap at one end (probably the large weight, not documented); that a rattle when shaken is *not* a valid test; and that the mouth-blow flow directions on this sheet are **inferred** from the design, not documented. A positive-pressure smoke test does not load the vacuum seat, because the small valve opens on vacuum and the large one on pressure [I from the article].
+
+**Why this sheet matters:** the part is gravity dependent, the fitted unit's orientation and port seating were never recorded, and the engine computer tracks no code for the switch circuit or the vent circuit ([[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]). The same checks appear in the fault tree as step **E9** (orientation against the drawing) and **E10** (back-probe, about 5 V falling to about 0 V under about 1 inch of vacuum), and as mechanic steps on any EVAP hypothesis that names the ESIM ([[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]]).
+
 ## Safety
 
 Fuel vapour: no sparks, ventilated space, hand vacuum only, **never shop air** through the part. The part is read and tested; CUORE does not command it. See [[Safety Rules|Safety-Rules]].

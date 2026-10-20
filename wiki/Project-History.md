@@ -42,13 +42,22 @@ A dated account assembled from the session records in [docs/sessions/](https://g
 
 **2026-10-19:** the case document. The eleventh code clear in 53 days is found to have erased the engine computer's own freeze frames and Mode 06 for that night. Hypotheses were added, one was retracted after outside research, an outside cross-check, a verification pass and a readings-only ledger followed. Result: **no component proven faulty by a reading**; the ESIM sense and vent path is the test target; the standing order is not to clear again.
 
-**2026-10-20:** a data snapshot of the car's state and logs is copied into `data/captures/` ([[Data Captured|Data-Captured]]); four MES files from that morning are examined and found to be simulations; the ESIM bench-test sheet is written; this wiki is assembled.
+**2026-10-20, morning:** a data snapshot of the car's state and logs is copied into `data/captures/` ([[Data Captured|Data-Captured]]), then **38 simulation logs are removed from it**; four MES files from that morning are examined and found to be simulations; the README and a features list are rewritten; the ESIM bench-test sheet is written; the first version of this wiki is assembled.
+
+**2026-10-20, later the same day:**
+- Two reviews of public GitHub projects (Giorgio CAN data; OBD and UDS tooling) are written and filed under licence rules in `external/`, with a ten-point implementation review ([[External References and Licences|External-References-and-Licences]]).
+- Four of those points are built, bench-tested only: drain-before-send with a stale-reply audit, an opt-in adapter hard reset, the 11-bit reply-offset and identity-probe addressing pass, and the **listen-only chassis decoder** ([[Passive Chassis Decoding|Passive-Chassis-Decoding]]). A safety fix follows: the 11-bit sweep never transmits on ids the car broadcasts, and leaving a physical target restores default flow control ([[Safety Rules|Safety-Rules]]).
+- ESIM knowledge enters the application: a design block with sources (and the "pump" wording corrected), electrical check values, fault-tree steps E9 (orientation) and E10 (back-probe), and mechanic steps for ESIM hypotheses ([[ESIM Bench Test|ESIM-Bench-Test]]).
+- **Every non-EVAP code is reviewed**: a network-pattern readings note and a literature note, a full per-system inventory with a camera and driver-assistance deep review, and a body, infotainment, keyless and steering review. Twenty-two code texts are added and U1713 is corrected to "signal erratic". The brake code C104B-92 is recorded as service-induced on the owner's statement, pending a confirming ABS read ([[Code Reviews|Code-Reviews]], [[Network and Brake Findings|Network-and-Brake-Findings]]).
+- The findings enter the app as a per-code panel; job selection prefers a job with a SAFETY hypothesis; the vehicle page lists all open jobs (now two) ([[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]]).
+- The catalogue's recalls and notices are summarised, with 19V551, 18V205, 25V586 and the engine reflashes (18V636, W05) highlighted for VIN checks ([[Recalls and Campaigns|Recalls-and-Campaigns]]).
 
 ## Themes that run through the history
 
 1. **The evidence rule grew from experience.** Each correction (three smoke tests rather than two; a Giulia-only bulletin; a "pass" that was a reset value) led to a rule that data, not assertion, carries conclusions.
 2. **Tool faults are reported as tool faults.** Silent buses, NO DATA and timing bugs became first-class statuses instead of "nothing wrong".
-3. **Safety moved from policy to code.** The incident turned a habit into enforced rules: one rate per bus, one door to the adapter, one audit trail.
+3. **Safety moved from policy to code.** The incident turned a habit into enforced rules: one rate per bus, one door to the adapter, one audit trail; and later, no request on an id the car itself broadcasts.
 4. **Marque data is kept out of code,** so the port to other brands is a data task.
+5. **Outside facts are leads.** Public projects, bulletins and forum posts are kept under licence rules and labelled, and a conclusion cites a reading from the car.
 
 Related: [[Roadmap]], [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]].

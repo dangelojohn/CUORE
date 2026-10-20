@@ -44,6 +44,14 @@ Adapter access goes through `cuore/live` so that the lock, the cable declaration
 
 CUORE checks MES's state and a lock file before opening the adapter; every operation opens the port, does its work and releases it. See [[Hardware and Cables|Hardware-and-Cables]].
 
+## Never transmit on an id the car broadcasts
+
+An 11-bit discovery sweep sends a request frame on each candidate id. Some candidate ids are used by the car for **periodic messages other modules listen to**. Since 2026-10-20 the sweep skips, and lists with the reason, any request id, and any reply id it would expect, that is **defined in the Giorgio CAN database** (`fca_giorgio.dbc`) or **heard in the most recent passive capture on that bus**. The sweep range holds two such ids (`0x73E`, a body-computer message, and `0x749`), and the alternative reply rule can land replies on three more (`0x4AA`, `0x4AE`, `0x547`). The check is enforced in code and tested against scripted streams: the default sweep never transmits on `0x73E` or `0x749`. Details on [[Vehicle Networks|Vehicle-Networks]]; the database on [[Passive Chassis Decoding|Passive-Chassis-Decoding]]. The sweep also needs explicit confirmation on the chassis bus, uses only the read-only services `22` and `3E 00`, and never uses the legislated ids (`7DF`, `7E0` to `7EF`).
+
+## Leave the adapter as found: flow control
+
+Addressing a physical module sets the adapter's flow-control header, data and mode. Leaving a physical target (`untarget`) used to restate the functional header but not the flow control, so the last module's pair stayed in force for functional multi-frame replies. Now every return to functional addressing **restores the default flow control** (default mode, the functional header and the ISO default data `30 00 00`). An optional, **opt-in** adapter hard reset (`CUORE_RESET_BEFORE_LEGISLATED=1`) re-initialises the adapter once per session on the first physical-to-functional switch, checks the banner, and re-states the route and its confirmed bit rate; it never changes a bit rate. Both are bench-tested only ([[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]]).
+
 ## Other protections
 
 - **Bus must be verified** before any transmit, under the current cable declaration; the proof lasts 600 s by default. A silent bus refuses the session and sends nothing.
@@ -53,6 +61,8 @@ CUORE checks MES's state and a lock file before opening the adapter; every opera
 - **Offline by rule.** CUORE runs on the local network with no cloud dependency. The photo-reading provider is off by default (`CUORE_VISION_PROVIDER=none`); the one provider that leaves the network sends a photo to an outside service and is an explicit, informed opt-in by the owner, never turned on by another feature.
 - **Access token.** Set `CUORE_TOKEN` before exposing the app beyond a trusted network; the MES corpus contains vehicle identifiers.
 - **Evidence handling.** Replay, demo and test data are labelled and excluded from measurement; attested input is never a measurement.
+- **Stale replies are audited.** The adapter's input is drained before each request, and a discarded complete reply for the current target is logged as `stale_input`.
+- **Outside material stays outside.** Public projects' ids, identifiers and timings are leads and are filed under licence rules ([[External References and Licences|External-References-and-Licences]]); the chassis decoder only listens ([[Passive Chassis Decoding|Passive-Chassis-Decoding]]).
 - **Passive learning only.** Bus capture, signal learning and MES-learn never transmit; MES-learn refuses to start unless the port is a different adapter from MES's own.
 
 Related: [[Evidence Model|Evidence-Model]], [[MCP Servers and Claude|MCP-Servers-and-Claude]].

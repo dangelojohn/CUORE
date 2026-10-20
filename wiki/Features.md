@@ -14,6 +14,9 @@ A checklist on the scan page lists what every scan must capture for the open EVA
 ## Live board
 `/v/{vin}/liveboard`: large-digit readouts for a passenger to watch, graded against known-good bands. See [[Live Board|Live-Board]].
 
+## Passive chassis panel (API)
+`GET /api/live/chassis/passive`: a short receive-only listen on the chassis bus (grey A6 cable declared), decoded through a public Giorgio CAN database into steering, wheel-speed, brake-switch and engine-speed signals. Listen-only and not yet validated on the car. See [[Passive Chassis Decoding|Passive-Chassis-Decoding]].
+
 ## Gauges dashboard
 `/v/{vin}/gauges` and `/v/{vin}/gauges/hud`: a customisable live dashboard with saved layouts, custom channels, snapshots, triggers and recording replay.
 
@@ -38,8 +41,10 @@ One job per visit, a stepper from complaint to close; hypotheses with status and
 ## Vehicle dossier
 `/v/{vin}/dossier`: verdict, checklists, a code table (chronic, returned, fresh), freeze-frame flags, deduplicated bulletins and the **blind spots** the logs cannot answer. `/v/{vin}/codes` lists every code; `/v/{vin}/code/{code}` shows one code's life across sessions and prints as a PDF.
 
+**Per-code findings.** Every non-EVAP code the 2026-10-20 review covered also shows a panel, "What we found out about this code": meaning, readings from this car, owner statement (marked attested), classification (real, service-induced, artefact, bystander, downstream, readiness flag), implications, a resolution ladder, the proof of fix and outside literature, each labelled. A SAFETY chip marks a brake-hydraulic code until an ABS read confirms it is gone. A code with no recorded finding shows nothing rather than a guess. See [[Code Reviews|Code-Reviews]]. The vehicle page also lists **every open job**, with a SAFETY chip and the one marked current ([[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]]).
+
 ## Systems and dependencies
-`/v/{vin}/systems` is the cross-system dependency view (25 systems): which systems may sit upstream of a code, and where the car's own history corroborates it. `/v/{vin}/systems/{key}` is a page per system with status, a relationship ring, fault tree and this car's history. A live overlay can colour systems from live readings.
+`/v/{vin}/systems` is the cross-system dependency view (25 systems): which systems may sit upstream of a code, and where the car's own history corroborates it. `/v/{vin}/systems/{key}` is a page per system with status, a relationship ring, fault tree and this car's history. A live overlay can colour systems from live readings. A part with recorded design knowledge (today, the leak-detection module) carries a **design and checks card**: how it works, thresholds, orientation, electrical values, tests, what is not documented and what the engine computer can and cannot self-check, every fact labelled outside literature with its sources.
 
 ## Electrical
 `/v/{vin}/electrical`: a car-layout electrical diagram; a code's page shows its electrical path; inspections are recorded as attested findings.

@@ -75,7 +75,22 @@ A freeze frame is read with UDS `19 04` (snapshot) and `19 06` (extended data). 
 | Fuel level (%), engine speed, vehicle speed, gear | |
 | Coolant temperature, battery voltage, MAP, spark advance | |
 
-A verification pass re-decoded the raw bytes by hand and confirmed the scalings, with two limits: scaling confidence is rated **medium**, and fields such as purge duty, ambient temperature, barometric pressure and time since start were not established as present in the raw bytes. The raw bytes are stored verbatim under each observation so a better decoder can re-read them later. Extended-data byte `0x60` is labelled "occurrence counter" in the decoder, but it reads the same on every code and looks constant; the label is unverified.
+Each decoded identifier carries a **confidence** and a **basis**. "High" means anchored to numbers MultiEcuScan itself printed for a freeze frame; "medium" means physically consistent across the records plus a source; "low" means the identity or scale is plausible only; "unknown" is returned as raw bytes with no name. The decoder never guesses a length: where it cannot tell, it stops and returns the remainder as raw bytes. The snapshot identifier lengths for the engine and body computers were derived empirically, because the standard leaves lengths to the tester's database.
+
+| Module | Identifier | Field | Confidence |
+|---|---|---|---|
+| Engine | `1008` | Operating time (minutes) | high |
+| Engine | `200A` | Startups counter | high |
+| Engine | `1000`, `1002`, `192D` | Engine speed, vehicle speed, engaged gear | medium |
+| Engine | `2001` | Odometer (0.1 km units) | medium |
+| Engine | `1003`, `1935`, `1302` | Coolant, intake-air, oil temperature | medium |
+| Engine | `1004`, `1937`, `1001`, `19BD` | Battery voltage, manifold pressure, fuel level, battery state of charge | medium |
+| Engine | `1812`, `182F`, `195A`, `1956`, `198C` | Spark advance, air flow, boost and atmospheric pressure (an interchangeable pair), UniAir mode | low |
+| Engine | `1921`, `1B0D` and a number of others | flag blocks and unknowns | raw, unnamed |
+| Body | `1008` (operating time), `200A` (startups) | counters | medium, high |
+| Body | `1002`, `1004`, `3700`, `1921` | identifiers present, meaning not established | raw, unnamed |
+
+The body computer's own supply identifier `1004` in the live read reads 14.4 to 14.5 V on 10-14 and 10-19 (formula unverified), which is how module voltages were compared with the port voltage ([[Network and Brake Findings|Network-and-Brake-Findings]]). A verification pass re-decoded the raw bytes by hand and confirmed the scalings, with two limits: scaling confidence is rated **medium**, and fields such as purge duty, ambient temperature, barometric pressure and time since start were not established as present in the raw bytes. The raw bytes are stored verbatim under each observation so a better decoder can re-read them later. Extended-data byte `0x60` is labelled "occurrence counter" in the decoder, but it reads the same on every code and looks constant; the label is unverified.
 
 ## Mode 06 (on-board test results)
 
@@ -91,6 +106,10 @@ OBDMID | TID | UASID | value (2 bytes) | minimum (2) | maximum (2)
 - After a code clear, Mode 06 resets: some limits are wiped, and one value equals its maximum (6000). That "pass" is a reset artefact, not a result.
 - A `NO DATA` reply is not "not supported". The tool once reported "not supported by this ECU" when the legislated route had simply returned nothing. Such cases are now classed `silent`: a tool fault, not a car statement.
 - An older display printed the maximum limit for every test (a 404 ms value shown "against 65535 ms") and was misleading; job entries quote the correct minimum.
+
+## The code findings layer
+
+Beside the raw reads, CUORE keeps a **per-code findings store** (`mes/code_findings.py`) for the non-EVAP codes reviewed on 2026-10-20. Each entry is keyed by the full code (`C104B-92`) and holds the meaning and where it comes from; the **readings** from this car; any **owner statement** (attested, not read); a **classification** (real, service-induced, probable artefact, possible bystander, core of or downstream of the network cluster, readiness flag only); the implications; a **resolution ladder** (cheapest, read-only first, never a clear); the **proof of fix**; and the **outside literature**, each item with its link. The three evidence classes are labelled and shown apart on every code page, and a code with no sourced finding shows nothing. A lookup by base code (`C104B`) returns every failure-type variant. An owner statement can change the classification (the brake code is "service-induced, not yet confirmed") but never counts as a reading. The review itself is on [[Code Reviews|Code-Reviews]]. Code texts for 22 more codes were added to the description table, and U1713's text was corrected from "lost communication" to "signal erratic" (failure type 2F).
 
 ## What readings can and cannot prove
 

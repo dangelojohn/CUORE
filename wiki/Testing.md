@@ -18,6 +18,18 @@ A one-off example of running a check from the repository root:
 
 Run the relevant scripts once before a change is committed; a convention from the project's working notes is four or five focused checks per feature and one run of the whole suite per commit.
 
+### Added on 2026-10-20
+
+| Script | What it guards |
+|---|---|
+| `check_transport_drain.py` | The stale-input drain before each request and its `stale_input` audit; the opt-in adapter hard reset (off by default, once per session, banner check) |
+| `check_chassis_decode.py` | The DBC parser (both byte orders, signed values, value tables) and the passive chassis decode, with test vectors built from captured frames rather than from the database itself; the route's "grey cable not declared" answer |
+| `check_discover11.py` (extended) | The reply-offset modes (`plus8`, `minus280`, `both`); the extra identity probes; that only `22` and `3E` are ever sent; that the default sweep **never transmits on ids the car broadcasts** (`73E`, `749`, DBC ids, captured ids) and skips a request whose reply id would land on one; that leaving a physical target restores default flow control |
+| `check_jobs_rules.py` (extended) | Which open job is current: SAFETY first, attested-resolved no longer counts, otherwise the most recently updated |
+| `check_module_codes.py` (extended) | The per-code findings load for the key codes and render with the SAFETY marker, the readings, outside-literature and owner labels and the ABS-read proof for the brake code |
+
+All of these run against scripted streams; **none was run on the car**.
+
 ## How a check stays safe
 
 - **Isolated state.** Each script sets `CUORE_STATE_DIR` (and `MES_LOG_DIR` where needed) to a temporary directory **before** importing the packages, so a check never reads or writes the real state directory.
