@@ -1,0 +1,24 @@
+(Multiecuscan 5.4)
+6/7/2026 9:56:09 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Magna Q4 Transfer Case
+--------------------------------------------------------------
+
+ECU ISO code: 00 43 50 91 14
+VIN code: ZASFAKPN5J7B88115
+ECU serial number: TF0511997341810
+FIAT drawing number: 55283791
+Hardware number: M0045027.01
+Hardware version: 21
+Software number: M0099947
+Software version: 0501
+Homologation number: 
+Functioning time (EEPROM): 227724
+Operating time: 227735
+Startups counter: 13865
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+
+READING ERROR CODES:
+No fault codes
+

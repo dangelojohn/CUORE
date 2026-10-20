@@ -1,0 +1,311 @@
+{
+  "scan_id": "SCAN_2610190029",
+  "vin": "ZASFAKPN5J7B88115",
+  "cable": "none",
+  "buses_attempted": [
+    "can_c"
+  ],
+  "duration_s": 58.2,
+  "sessions_opened": 12,
+  "steps": [
+    {
+      "step": "verify_bus can_c",
+      "ok": true
+    },
+    {
+      "step": "probe",
+      "ok": true
+    },
+    {
+      "step": "obd_vin",
+      "ok": true
+    },
+    {
+      "step": "mode09 04/06/08/0A",
+      "ok": true
+    },
+    {
+      "step": "obd_dtcs stored",
+      "ok": true
+    },
+    {
+      "step": "obd_dtcs pending",
+      "ok": true
+    },
+    {
+      "step": "obd_dtcs permanent",
+      "ok": true
+    },
+    {
+      "step": "obd_supported_pids",
+      "ok": true
+    },
+    {
+      "step": "obd_readiness",
+      "ok": true
+    },
+    {
+      "step": "obd_mode06",
+      "ok": true
+    },
+    {
+      "step": "tcm_did_discovery",
+      "ok": true
+    },
+    {
+      "step": "sweep_bus_full can_c",
+      "ok": true
+    }
+  ],
+  "coverage": [
+    {
+      "bus": "can_c",
+      "module": "ECM",
+      "category": "answered",
+      "why": null,
+      "active": 3,
+      "history": 0,
+      "not_run": 0,
+      "did": {
+        "did": "1302",
+        "name": "Engine oil temperature",
+        "source": "catalog"
+      }
+    },
+    {
+      "bus": "can_c",
+      "module": "TCM",
+      "category": "answered",
+      "why": null,
+      "active": 0,
+      "history": 0,
+      "not_run": 0,
+      "did": {
+        "did": "04FE",
+        "name": "Gearbox oil temperature",
+        "source": "catalog"
+      }
+    },
+    {
+      "bus": "can_c",
+      "module": "BCM",
+      "category": "answered",
+      "why": null,
+      "active": 1,
+      "history": 0,
+      "not_run": 0,
+      "did": {
+        "did": "1004",
+        "name": "Battery voltage",
+        "source": "catalog"
+      }
+    },
+    {
+      "bus": "can_c",
+      "module": "IPC",
+      "category": "answered",
+      "why": null,
+      "active": 0,
+      "history": 0,
+      "not_run": 0,
+      "did": "UNKNOWN: no known DID in the registry for this module"
+    },
+    {
+      "bus": "can_c",
+      "module": "RFHUB",
+      "category": "answered",
+      "why": null,
+      "active": 0,
+      "history": 0,
+      "not_run": 0,
+      "did": "UNKNOWN: no known DID in the registry for this module"
+    },
+    {
+      "bus": "can_c",
+      "module": "DTCM",
+      "category": "not_reachable",
+      "why": "no known address: run discovery",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_c",
+      "module": "ESM",
+      "category": "not_reachable",
+      "why": "no known address: run discovery",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_c",
+      "module": "DASM",
+      "category": "not_reachable",
+      "why": "no known address: run discovery",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "HVAC",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "ETM",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "AMP",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "ESEM",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "CSWM",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "CRSM",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "LBSS",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "RBSS",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "PLGM",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ch",
+      "module": "ABS",
+      "category": "not_reachable",
+      "why": "needs grey A6 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ch",
+      "module": "EPS",
+      "category": "not_reachable",
+      "why": "needs grey A6 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ch",
+      "module": "ORC",
+      "category": "not_reachable",
+      "why": "needs grey A6 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ch",
+      "module": "AFLS",
+      "category": "not_reachable",
+      "why": "needs grey A6 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ch",
+      "module": "PAM",
+      "category": "not_reachable",
+      "why": "needs grey A6 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ch",
+      "module": "HALF",
+      "category": "not_reachable",
+      "why": "needs grey A6 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ch",
+      "module": "TVM",
+      "category": "not_reachable",
+      "why": "needs grey A6 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ch",
+      "module": "ESL",
+      "category": "not_reachable",
+      "why": "needs grey A6 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    }
+  ],
+  "counts": {
+    "active": 4,
+    "history": 0,
+    "not_run": 0
+  },
+  "guided": true,
+  "guided_status": "paused"
+}

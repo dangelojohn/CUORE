@@ -1,0 +1,39 @@
+Reading CAN configuration data ...
+CAN CONFIGURATION DATA:
+4F 04 20 05 10 00 00 00 02 00 00 00 00 00 00 00 4F 04 20 05 10 00 00 00 02 00 00 00 00 00 00 00 4F 04 20 05 10 00 00 00 02 00 00 00 00 00 00 00 4F 04 20 05 10 00 00 00 02 00 00 00 00 00 00 00 4F 04 20 05 10 00 00 00 02 00 00 00 00 00 00 00
+4F 24 20 05 10 00 00 00 02 00 00 00 00 00 00 00 4F 24 20 05 10 00 00 00 02 00 00 00 00 00 00 00 4F 24 20 05 10 00 00 00 02 00 00 00 00 00 00 00 4F 04 20 05 10 00 00 00 02 00 00 00 00 00 00 00 4F 00 20 05 10 00 00 00 02 00 00 00 00 00 00 00
+33 38 33 33 34 30 34 39 35 32 39 4F 55 54 50 55 54 2D 53 49 54 20 15 01 24 4F 05 20 05 10 00 00 00 02 00 00 00 00 00 00 00 4F 04 20 05 10 00 00 00 02 00 00 00 00 00 00 00 D1 FA 0C 01 AC 81 07 E2 20 27 09 07 40 10 10 03 A3 1E 24 92 01 35 73 14 01 4F 03 34 00 B3 A8 02 46 03 07 00 8E 00 11 56 00 00 10 01 00 05 02 54 91 8C 02 A5 40 42 00 01 8A 12 3D 40 00 01 03 C5 00 D5 44 10 00 00 49 01 81 12 73 42 00 00 00 13 AA 97 71 20 80 80 85 00
+Body Computer Node (BCM/NBC)
+Engine Control Node (ECM/NCM)
+Dashboard Node (IPC/NQS)
+Radio Frequency Hub Node (RFHM)
+Driver Door Node (NPG)
+Climate Control Node (HVAC/NCL)
+Parking Brake Control Node (NPB)
+Entertainment Telematic Node (ETM)
+Electric Steering Node (EPS/NGE)
+Brake System Node (ABS/BSM/NFR)
+Steering Lock Node (NBS)
+Parking Sensor Node (PAM/NSP)
+Airbag Node (NAB/ORC)
+(Multiecuscan 5.4)
+10/21/2025 3:22:04 PM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+CAN Setup / PROXI Alignment Procedure (949)
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+Body Computer Node (BCM/NBC): EOL Ok
+Engine Control Node (ECM/NCM): EOL Ok
+Dashboard Node (IPC/NQS): EOL Ok
+Radio Frequency Hub Node (RFHM): EOL Ok
+Driver Door Node (NPG): Removed
+Climate Control Node (HVAC/NCL): EOL Failed
+Parking Brake Control Node (NPB): Added
+Entertainment Telematic Node (ETM): EOL Ok
+Electric Steering Node (EPS/NGE): EOL Ok
+Brake System Node (ABS/BSM/NFR): EOL Ok
+Steering Lock Node (NBS): EOL Ok
+Parking Sensor Node (PAM/NSP): EOL Ok
+Airbag Node (NAB/ORC): EOL Ok
+

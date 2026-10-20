@@ -1,0 +1,214 @@
+(Multiecuscan 5.4)
+9/24/2025 10:58:07 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)
+--------------------------------------------------------------
+
+ECU ISO code: 00 01 50 40 18
+VIN code: ZASFAKPN5J7B88115
+ECU serial number: TD4192427B17540
+Spare part number: 50544870
+Hardware number: MM10JAHW232
+Hardware version: 00
+Software number: P235QB39
+Software version: 0000
+Homologation number: FIBA00
+FIAT drawing number: 52055320
+Functioning time (EEPROM): 250617
+Operating time: 250617
+Startups counter: 12713
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+
+EXECUTING ACTUATOR...
+Evaporation control valve
+COMPLETED
+
+
+EXECUTING ACTUATOR...
+Evaporation control valve
+COMPLETED
+
+
+EXECUTING ACTUATOR...
+Evaporation control valve
+COMPLETED
+
+
+EXECUTING ACTUATOR...
+Wastegate solenoid valve
+COMPLETED
+
+
+EXECUTING ACTUATOR...
+Turbo vacuum valve
+COMPLETED
+
+
+EXECUTING ACTUATOR...
+Evaporation control valve
+COMPLETED
+
+
+EXECUTING ACTUATOR...
+Evaporation control valve
+COMPLETED
+
+
+EXECUTING ACTUATOR...
+Electronic thermostat
+FAILED TO EXECUTE
+Request out of range error
+
+READING ERROR CODES:
+1. P0456-00 - Evaporation system leak
+  Operating time: 250423 min
+  Startups counter: 12700 
+  Engine speed: 1307 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 6.31 deg.
+  Vehicle speed: 0.00 km/h
+  Gear engaged: N 
+  Odometer: 114008.9 km
+  Spark advance: -2.563 deg.
+  Engine temperature: 16 °C
+  Battery voltage: 13.6 V
+  Intake pressure: 502 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Released 
+  Brake contact 2: Released 
+  Air flow rate: 37.50 Kg/h
+  Air temperature: 15 °C
+  Boost pressure: 988 mbar
+  Atmospheric pressure: 989 mbar
+  Engine oil temperature: 15 °C
+  STOP&START temporary deactivation status: Speed<10km/h 
+  IBS Battery charge status: 100 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Late opening 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 73.73 %
+  
+2. P1189-00 - Intake pressure sensor
+  Operating time: 250617 min
+  Startups counter: 12712 
+  Engine speed: 0 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 8.06 deg.
+  Vehicle speed: 0.00 km/h
+  Gear engaged: N 
+  Odometer: 114116.9 km
+  Spark advance: 0.000 deg.
+  Engine temperature: 25 °C
+  Battery voltage: 12.1 V
+  Intake pressure: 985 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Released 
+  Brake contact 2: Released 
+  Air flow rate: 0.00 Kg/h
+  Air temperature: 20 °C
+  Boost pressure: 988 mbar
+  Atmospheric pressure: 992 mbar
+  Engine oil temperature: 25 °C
+  STOP&START temporary deactivation status: Oil temperature 
+  IBS Battery charge status: 100 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Late opening 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 55.69 %
+  
+3. P00F5-00 - Humidity sensor
+  Operating time: 250617 min
+  Startups counter: 12712 
+  Engine speed: 0 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 8.06 deg.
+  Vehicle speed: 0.00 km/h
+  Gear engaged: N 
+  Odometer: 114116.9 km
+  Spark advance: 0.000 deg.
+  Engine temperature: 25 °C
+  Battery voltage: 12.1 V
+  Intake pressure: 985 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Released 
+  Brake contact 2: Released 
+  Air flow rate: 0.00 Kg/h
+  Air temperature: 20 °C
+  Boost pressure: 988 mbar
+  Atmospheric pressure: 992 mbar
+  Engine oil temperature: 25 °C
+  STOP&START temporary deactivation status: Oil temperature 
+  IBS Battery charge status: 100 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Late opening 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 55.69 %
+  
+4. P0098-00 - Air temperature sensor
+  Operating time: 250617 min
+  Startups counter: 12712 
+  Engine speed: 0 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 8.06 deg.
+  Vehicle speed: 0.00 km/h
+  Gear engaged: N 
+  Odometer: 114116.9 km
+  Spark advance: 0.000 deg.
+  Engine temperature: 25 °C
+  Battery voltage: 12.1 V
+  Intake pressure: 985 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Released 
+  Brake contact 2: Released 
+  Air flow rate: 0.00 Kg/h
+  Air temperature: 20 °C
+  Boost pressure: 988 mbar
+  Atmospheric pressure: 992 mbar
+  Engine oil temperature: 25 °C
+  STOP&START temporary deactivation status: Oil temperature 
+  IBS Battery charge status: 100 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Late opening 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 55.69 %
+  
+5. P105E-00 - Humidity sensor
+  Operating time: 250617 min
+  Startups counter: 12712 
+  Engine speed: 0 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 28.06 deg.
+  Vehicle speed: 0.00 km/h
+  Gear engaged: N 
+  Odometer: 114116.9 km
+  Spark advance: 0.000 deg.
+  Engine temperature: 25 °C
+  Battery voltage: 12.0 V
+  Intake pressure: 985 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Released 
+  Brake contact 2: Released 
+  Air flow rate: 0.00 Kg/h
+  Air temperature: 20 °C
+  Boost pressure: 988 mbar
+  Atmospheric pressure: 992 mbar
+  Engine oil temperature: 25 °C
+  STOP&START temporary deactivation status: Oil temperature 
+  IBS Battery charge status: 100 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Late opening 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 55.69 %
+  
+

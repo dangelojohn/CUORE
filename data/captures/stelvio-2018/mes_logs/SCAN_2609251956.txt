@@ -1,0 +1,150 @@
+Scan vehicle for available modules and check each module for errors...
+
+Engine / ECM
+Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)
+ISO Code: 00 01 50 40 18
+VIN code: ZASFAKPN5J7B88115
+Hardware number: MM10JAHW232 - Ver: 00
+Software number: P235QB39 - Ver: 0000
+Errors found:
+P0455-00 - Evaporation system leak
+P0440-00 - Evaporation control valve
+P0456-00 - Evaporation system leak
+
+Dashboard / IPC (Instrument Panel Cluster)
+Instrument Panel Continental
+ISO Code: 00 03 50 8B 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: A2C11140400 - Ver: 01
+Software number: AR952 HL - Ver: 203C
+
+Gearbox / TCM/NCA/NCR (Automatic Transmission)
+ZF 8HP50/75 Automatic Gearbox
+ISO Code: 00 0B 50 AA 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 10344202761 - Ver: 20
+Software number: GK0902OE2HN - Ver: 0003
+
+Gearbox / DTCM (Drive Train Control Module)
+Magna Q4 Transfer Case
+ISO Code: 00 43 50 91 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: M0045027.01 - Ver: 21
+Software number: M0099947 - Ver: 0501
+
+Gearbox / ESM/GSM/NSC (Gearbox Selector Module)
+ZF Electronic Gear Shift Module
+ISO Code: 00 16 50 B4 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 1000597140 - Ver: 08
+Software number: 1000678050 - Ver: 0019
+
+Body / BCM (Body Computer Module)
+Body Computer Marelli (949)
+ISO Code: 00 00 70 7C 15
+VIN code: ZASFAKPN5J7B88115
+Hardware number: BCM949M_C02 - Ver: 01
+Software number: 04441660441 - Ver: 1454
+Errors found:
+U1713-2F - Engine control (NCM) - Signal/message erratic
+U1712-2F - Brake system (NFR) - Signal/message erratic
+U1711-2F - Brake system (NFR) - Signal/message erratic
+B1176-97 - Rear left window riser - Component or system operation obstructed or blocked
+
+Body / RFHUB (Radio Frequency Hub Module)
+Radio frequency hub (RFHUB) Continental
+ISO Code: 00 41 50 89 15
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 10161500AA - Ver: 01
+Software number: 10307064AB - Ver: 0940
+
+Other / DASM (Driver Assistant System Module)
+Driver assistant system module (DASM) radar Bosch
+ISO Code: 00 39 70 7E 15
+VIN code: ZASFAKPN5J7B88115
+Hardware number: MRR1evo14F - Ver: 00
+Software number: 52081920 - Ver: 0500
+Errors found:
+C141B-97 - Camera blinded/obstructed/blocked - Component or system operation obstructed or blocked
+C141C-86 - Private CAN between HALF and DASM - Signal/message invalid
+
+************************************************************
+VEHICLE SCAN REPORT
+************************************************************
+Scanning ...
+
+Engine / ECM
+Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)
+ISO Code: 00 01 50 40 18
+VIN code: ZASFAKPN5J7B88115
+Hardware number: MM10JAHW232 - Ver: 00
+Software number: P235QB39 - Ver: 0000
+Errors found:
+P0455-00 - Evaporation system leak
+P0440-00 - Evaporation control valve
+P0456-00 - Evaporation system leak
+
+Dashboard / IPC (Instrument Panel Cluster)
+Instrument Panel Continental
+ISO Code: 00 03 50 8B 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: A2C11140400 - Ver: 01
+Software number: AR952 HL - Ver: 203C
+
+Gearbox / TCM/NCA/NCR (Automatic Transmission)
+ZF 8HP50/75 Automatic Gearbox
+ISO Code: 00 0B 50 AA 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 10344202761 - Ver: 20
+Software number: GK0902OE2HN - Ver: 0003
+
+Gearbox / DTCM (Drive Train Control Module)
+Magna Q4 Transfer Case
+ISO Code: 00 43 50 91 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: M0045027.01 - Ver: 21
+Software number: M0099947 - Ver: 0501
+
+Gearbox / ESM/GSM/NSC (Gearbox Selector Module)
+ZF Electronic Gear Shift Module
+ISO Code: 00 16 50 B4 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 1000597140 - Ver: 08
+Software number: 1000678050 - Ver: 0019
+
+Body / BCM (Body Computer Module)
+Body Computer Marelli (949)
+ISO Code: 00 00 70 7C 15
+VIN code: ZASFAKPN5J7B88115
+Hardware number: BCM949M_C02 - Ver: 01
+Software number: 04441660441 - Ver: 1454
+Errors found:
+U1713-2F - Engine control (NCM) - Signal/message erratic
+U1712-2F - Brake system (NFR) - Signal/message erratic
+U1711-2F - Brake system (NFR) - Signal/message erratic
+B1176-97 - Rear left window riser - Component or system operation obstructed or blocked
+
+Body / RFHUB (Radio Frequency Hub Module)
+Radio frequency hub (RFHUB) Continental
+ISO Code: 00 41 50 89 15
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 10161500AA - Ver: 01
+Software number: 10307064AB - Ver: 0940
+
+Other / DASM (Driver Assistant System Module)
+Driver assistant system module (DASM) radar Bosch
+ISO Code: 00 39 70 7E 15
+VIN code: ZASFAKPN5J7B88115
+Hardware number: MRR1evo14F - Ver: 00
+Software number: 52081920 - Ver: 0500
+Errors found:
+C141B-97 - Camera blinded/obstructed/blocked - Component or system operation obstructed or blocked
+C141C-86 - Private CAN between HALF and DASM - Signal/message invalid
+
+COMPLETED
+VEHICLE MAKE: stelvio
+VEHICLE MODEL: 2018
+VEHICLE YEAR: 
+
+SENDING DIAGNOSTIC REPORT ...
+

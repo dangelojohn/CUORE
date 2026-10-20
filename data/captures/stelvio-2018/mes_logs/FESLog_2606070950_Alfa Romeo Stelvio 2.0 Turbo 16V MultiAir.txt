@@ -1,0 +1,13 @@
+(Multiecuscan 5.4)
+6/7/2026 9:49:05 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Service Interval Reset
+--------------------------------------------------------------
+
+ECU ISO code: 00 03 50 8B 14
+
+EXECUTING ADJUSTMENT...
+NEXT SERVICE KM RESET
+COMPLETED
+
+

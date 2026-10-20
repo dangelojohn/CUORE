@@ -1,0 +1,233 @@
+(Multiecuscan 5.4)
+10/15/2025 2:19:02 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+ZF Electric Steering
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+VIN code: 5188214
+ECU serial number: 281011421
+Spare part number: 
+Hardware number: 037367790
+Hardware version: 44
+Software number: 
+Software version: 0307
+Homologation number: |?O??
+FIAT drawing number: |?O??
+Functioning time (EEPROM): 2089177087
+Operating time: 2089177087
+Startups counter: 31878
+VIN lock status: Unknown
+PROXI configuration write counter: 124
+
+READING PARAMETERS:
+Odometer: 55 km
+
+READING PARAMETERS:
+Odometer: 21 km
+
+READING PARAMETERS:
+Odometer: 29 km
+
+READING PARAMETERS:
+Odometer: 88 km
+
+READING PARAMETERS:
+Odometer: 98 km
+
+READING PARAMETERS:
+Odometer: 62 km
+
+READING PARAMETERS:
+Odometer: 37 km
+
+READING PARAMETERS:
+Odometer: 22 km
+
+READING PARAMETERS:
+Odometer: 21 km
+
+READING PARAMETERS:
+Odometer: 58 km
+
+READING PARAMETERS:
+Odometer: 34 km
+
+READING PARAMETERS:
+Odometer: 15 km
+
+READING PARAMETERS:
+Odometer: 15 km
+
+READING PARAMETERS:
+Odometer: 72 km
+
+READING PARAMETERS:
+Odometer: 29 km
+
+READING PARAMETERS:
+Odometer: 85 km
+
+READING PARAMETERS:
+Odometer: 94 km
+
+READING PARAMETERS:
+Odometer: 56 km
+
+READING PARAMETERS:
+Odometer: 7 km
+
+READING PARAMETERS:
+Odometer: 92 km
+
+READING PARAMETERS:
+Odometer: 5 km
+
+READING PARAMETERS:
+Odometer: 80 km
+
+READING PARAMETERS:
+Odometer: 27 km
+
+READING PARAMETERS:
+Odometer: 32 km
+
+READING PARAMETERS:
+Odometer: 26 km
+
+READING PARAMETERS:
+Odometer: 39 km
+
+READING PARAMETERS:
+Odometer: 49 km
+
+READING PARAMETERS:
+Odometer: 99 km
+
+READING PARAMETERS:
+Odometer: 7 km
+
+READING PARAMETERS:
+Odometer: 88 km
+
+READING PARAMETERS:
+Odometer: 70 km
+
+READING PARAMETERS:
+Odometer: 14 km
+
+READING PARAMETERS:
+Odometer: 41 km
+
+READING PARAMETERS:
+Odometer: 81 km
+
+READING PARAMETERS:
+Odometer: 61 km
+
+READING PARAMETERS:
+Odometer: 29 km
+
+READING PARAMETERS:
+Odometer: 39 km
+
+READING PARAMETERS:
+Odometer: 52 km
+
+READING PARAMETERS:
+Odometer: 75 km
+
+READING PARAMETERS:
+Odometer: 76 km
+
+READING PARAMETERS:
+Odometer: 93 km
+
+READING PARAMETERS:
+Odometer: 62 km
+
+READING PARAMETERS:
+Odometer: 5 km
+
+READING PARAMETERS:
+Odometer: 56 km
+
+READING PARAMETERS:
+Odometer: 55 km
+
+READING PARAMETERS:
+Odometer: 79 km
+
+READING PARAMETERS:
+Odometer: 33 km
+
+READING PARAMETERS:
+Odometer: 10 km
+
+READING PARAMETERS:
+Odometer: 17 km
+
+READING PARAMETERS:
+Odometer: 38 km
+
+READING PARAMETERS:
+Odometer: 64 km
+
+READING PARAMETERS:
+Odometer: 88 km
+
+READING PARAMETERS:
+Odometer: 53 km
+
+READING PARAMETERS:
+Odometer: 68 km
+
+READING PARAMETERS:
+Odometer: 21 km
+
+READING PARAMETERS:
+Odometer: 97 km
+
+READING PARAMETERS:
+Odometer: 96 km
+
+READING PARAMETERS:
+Odometer: 49 km
+
+READING PARAMETERS:
+Odometer: 49 km
+
+READING PARAMETERS:
+Odometer: 71 km
+
+READING PARAMETERS:
+Odometer: 78 km
+
+READING PARAMETERS:
+Odometer: 12 km
+
+READING PARAMETERS:
+Odometer: 37 km
+
+READING PARAMETERS:
+Odometer: 1 km
+
+READING PARAMETERS:
+Odometer: 29 km
+
+READING PARAMETERS:
+Odometer: 83 km
+
+READING PARAMETERS:
+Odometer: 57 km
+
+READING PARAMETERS:
+Odometer: 47 km
+
+READING PARAMETERS:
+Odometer: 3 km
+
+READING PARAMETERS:
+Odometer: 2 km
+

@@ -1,0 +1,9 @@
+{
+  "ZASFAKPN5J7B88115": {
+    "ABS": {
+      "target": "2A",
+      "source": "discover 2026-10-15 00:10: 22 F190 at 18DA2AF1 returned this VIN; F192 28554010535 / F194 XJ_RAL00165 match Table A ABS exactly (registry said 0x28; 0x2A was mislabelled EPS)",
+      "at": "2026-10-15T00:12:09"
+    }
+  }
+}

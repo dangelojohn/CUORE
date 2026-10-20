@@ -1,0 +1,65 @@
+(Multiecuscan 5.4)
+9/4/2026 8:08:34 PM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Continental ABS MK C1
+--------------------------------------------------------------
+
+ECU ISO code: 00 06 50 5B 14
+VIN code: ZASFAKPN5J7B88115
+Spare part number: 50553290
+Hardware number: 28554010535
+Hardware version: 00
+Software number: XJ_RAL00165
+Software version: 83C1
+Homologation number: 
+FIAT drawing number: 52086513
+Functioning time (EEPROM): 330867
+Operating time: 330873
+Startups counter: 14359
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+
+CLEARING STORED FAULT CODES...
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+

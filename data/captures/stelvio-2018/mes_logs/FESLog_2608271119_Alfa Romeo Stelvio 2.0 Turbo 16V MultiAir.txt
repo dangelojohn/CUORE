@@ -1,0 +1,124 @@
+(Multiecuscan 5.4)
+8/27/2026 10:57:50 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)
+--------------------------------------------------------------
+
+ECU ISO code: 00 01 50 40 18
+VIN code: ZASFAKPN5J7B88115
+ECU serial number: TD4192427B17540
+Spare part number: 50544870
+Hardware number: MM10JAHW232
+Hardware version: 00
+Software number: P235QB39
+Software version: 0000
+Homologation number: FIBA00
+FIAT drawing number: 52055320
+Functioning time (EEPROM): 290644
+Operating time: 290652
+Startups counter: 14299
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+
+READING ERROR CODES:
+1. P0455-00 - Evaporation system leak
+  Operating time: 290215 min
+  Startups counter: 14281 
+  Engine speed: 1102 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 2.63 deg.
+  Vehicle speed: 23.63 km/h
+  Gear engaged: 4 
+  Odometer: 140471.2 km
+  Spark advance: -8.188 deg.
+  Engine temperature: 58 °C
+  Battery voltage: 14.3 V
+  Intake pressure: 262 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Pressed 
+  Brake contact 2: Pressed 
+  Air flow rate: 14.13 Kg/h
+  Air temperature: 25 °C
+  Boost pressure: 988 mbar
+  Atmospheric pressure: 986 mbar
+  Engine oil temperature: 46 °C
+  STOP&START temporary deactivation status: Speed<10km/h 
+  IBS Battery charge status: 40 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Hybrid 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 51.76 %
+  
+2. P0440-00 - Evaporation control valve
+  Operating time: 290348 min
+  Startups counter: 14285 
+  Engine speed: 1288 rpm
+  Gas pedal position: 14.90 %
+  Throttle angle: 7.75 deg.
+  Vehicle speed: 35.56 km/h
+  Gear engaged: 5 
+  Odometer: 140565.5 km
+  Spark advance: 5.250 deg.
+  Engine temperature: 63 °C
+  Battery voltage: 14.3 V
+  Intake pressure: 678 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Released 
+  Brake contact 2: Released 
+  Air flow rate: 49.50 Kg/h
+  Air temperature: 22 °C
+  Boost pressure: 1014 mbar
+  Atmospheric pressure: 993 mbar
+  Engine oil temperature: 49 °C
+  STOP&START temporary deactivation status: Speed<10km/h 
+  IBS Battery charge status: 47 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Hybrid 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 46.67 %
+  
+3. P0456-00 - Evaporation system leak
+  Operating time: 290375 min
+  Startups counter: 14287 
+  Engine speed: 1243 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 6.06 deg.
+  Vehicle speed: 0.00 km/h
+  Gear engaged: N 
+  Odometer: 140572.6 km
+  Spark advance: -3.563 deg.
+  Engine temperature: 32 °C
+  Battery voltage: 13.5 V
+  Intake pressure: 483 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Released 
+  Brake contact 2: Released 
+  Air flow rate: 33.50 Kg/h
+  Air temperature: 29 °C
+  Boost pressure: 994 mbar
+  Atmospheric pressure: 992 mbar
+  Engine oil temperature: 32 °C
+  STOP&START temporary deactivation status: Speed<10km/h 
+  IBS Battery charge status: 100 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Late opening 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 46.67 %
+  
+
+CLEARING STORED FAULT CODES...
+
+READING ERROR CODES:
+No fault codes
+
+EXECUTING ACTUATOR...
+Fan 1st speed
+FAILED TO EXECUTE
+Engine running
+

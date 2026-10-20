@@ -1,0 +1,50 @@
+{
+  "ZASFAKPN5J7B88115": [
+    {
+      "id": "SCAN_2610140859",
+      "vin": "ZASFAKPN5J7B88115",
+      "ecus": [
+        "00 00 70 7C 15",
+        "00 01 50 40 18",
+        "00 03 50 8B 14",
+        "00 0B 50 AA 14",
+        "00 16 50 B4 14",
+        "00 39 70 7E 15",
+        "00 41 50 89 15",
+        "00 43 50 91 14"
+      ],
+      "dtcs": {
+        "stored": [
+          "P0455-00",
+          "P0440-00",
+          "U1736-86",
+          "U1736-87",
+          "U0100-87",
+          "U1765-86",
+          "U1736-87",
+          "U1713-2F",
+          "B1176-97",
+          "B10AA-4A",
+          "U2054-87",
+          "B1040-64",
+          "C141B-97"
+        ],
+        "pending": [],
+        "permanent": []
+      },
+      "source": {
+        "kind": "MES",
+        "file": "SCAN_2610140859.txt",
+        "provenance": "unverifiable - SCAN logs carry no simulation marker"
+      },
+      "imported_at": "2026-10-14T16:02:01+00:00",
+      "health": {
+        "state": "ACTIVE_FAULTS",
+        "label": "Active fault",
+        "basis": [
+          "stored: P0455-00, P0440-00, U1736-86, U1736-87, U0100-87, U1765-86, U1736-87, U1713-2F, B1176-97, B10AA-4A, U2054-87, B1040-64, C141B-97"
+        ]
+      }
+    }
+  ]
+}

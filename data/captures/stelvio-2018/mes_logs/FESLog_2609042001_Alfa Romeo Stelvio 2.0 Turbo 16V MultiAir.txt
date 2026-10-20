@@ -1,0 +1,73 @@
+(Multiecuscan 5.4)
+9/4/2026 8:01:10 PM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Continental ABS MK C1
+--------------------------------------------------------------
+
+ECU ISO code: 00 06 50 5B 14
+VIN code: ZASFAKPN5J7B88115
+Spare part number: 50553290
+Hardware number: 28554010535
+Hardware version: 00
+Software number: XJ_RAL00165
+Software version: 83C1
+Homologation number: 
+FIAT drawing number: 52086513
+Functioning time (EEPROM): 330865
+Operating time: 330865
+Startups counter: 14359
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+
+READING ERROR CODES:
+1. C104B-92 - Leaks in hydraulic group
+  Operating time: 330849 min
+  Startups counter: 14356 
+  Dynamic control selector: Dynamic 
+  Brake pedal switch: ON 
+  Brake contact 2: ON 
+  Parking brake: Released 
+  Reversing status: OFF 
+  ASR/ESP Switch: Released 
+  Battery voltage: 12.1 V
+  Vehicle speed: 0.000 km/h
+  Operating mode: Normal 
+  Hydraulic circuit pressure: 11.1 bar
+  Brake pedal pressure: 3.6 bar
+  
+2. U1700-87 - Body computer (BCM/NBC)
+  Operating time: 329228 min
+  Startups counter: 14280 
+  Dynamic control selector: Normal 
+  Brake pedal switch: OFF 
+  Brake contact 2: OFF 
+  Parking brake: Released 
+  Reversing status: OFF 
+  ASR/ESP Switch: Released 
+  Battery voltage: 10.6 V
+  Vehicle speed: 0.000 km/h
+  Operating mode: Normal 
+  Hydraulic circuit pressure: 2.6 bar
+  Brake pedal pressure: 0.0 bar
+  
+
+CLEARING STORED FAULT CODES...
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+
+READING ERROR CODES:
+No fault codes
+
+READING ERROR CODES:
+1. No fault codes
+

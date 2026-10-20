@@ -1,0 +1,470 @@
+(Multiecuscan 5.4)
+10/20/2026 6:18:57 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Service Interval Reset
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+
+READING PARAMETERS:
+Odometer: 85 km
+
+READING PARAMETERS:
+Odometer: 8 km
+
+READING PARAMETERS:
+Odometer: 33 km
+
+READING PARAMETERS:
+Odometer: 95 km
+
+READING PARAMETERS:
+Odometer: 15 km
+
+READING PARAMETERS:
+Distance after last service: 41 km
+
+READING PARAMETERS:
+Distance after last service: 62 km
+
+READING PARAMETERS:
+Distance after last service: 78 km
+
+READING PARAMETERS:
+Distance after last service: 68 km
+
+READING PARAMETERS:
+Distance after last service: 96 km
+
+READING PARAMETERS:
+Distance after last service: 26 km
+
+READING PARAMETERS:
+Distance after last service: 41 km
+
+READING PARAMETERS:
+Distance after last service: 58 km
+
+READING PARAMETERS:
+Distance after last service: 82 km
+
+READING PARAMETERS:
+Distance after last service: 78 km
+Last service date: 78 
+
+READING PARAMETERS:
+Distance after last service: 33 km
+Last service date: 57 
+
+READING PARAMETERS:
+Distance after last service: 96 km
+Last service date: 69 
+
+READING PARAMETERS:
+Distance after last service: 74 km
+Last service date: 83 
+
+READING PARAMETERS:
+Distance after last service: 8 km
+Last service date: 57 
+
+READING PARAMETERS:
+Distance after last service: 11 km
+Last service date: 37 
+
+READING PARAMETERS:
+Distance after last service: 34 km
+Last service date: 53 
+
+READING PARAMETERS:
+Distance after last service: 51 km
+Last service date: 17 
+
+READING PARAMETERS:
+Distance after last service: 95 km
+Last service date: 13 
+
+READING PARAMETERS:
+Distance after last service: 27 km
+Last service date: 49 
+
+READING PARAMETERS:
+Distance after last service: 86 km
+Last service date: 73 
+
+READING PARAMETERS:
+Distance after last service: 19 km
+Last service date: 26 
+
+READING PARAMETERS:
+Distance after last service: 58 km
+Last service date: 48 
+
+READING PARAMETERS:
+Distance after last service: 70 km
+Last service date: 20 
+
+READING PARAMETERS:
+Distance after last service: 70 km
+Last service date: 28 
+
+READING PARAMETERS:
+Distance after last service: 44 km
+Last service date: 53 
+
+READING PARAMETERS:
+Distance after last service: 69 km
+Last service date: 36 
+
+READING PARAMETERS:
+Distance after last service: 13 km
+Last service date: 83 
+
+READING PARAMETERS:
+Distance after last service: 30 km
+Last service date: 24 
+
+READING PARAMETERS:
+Distance after last service: 70 km
+Last service date: 93 
+
+READING PARAMETERS:
+Distance after last service: 17 km
+Last service date: 42 
+
+READING PARAMETERS:
+Distance after last service: 95 km
+Last service date: 12 
+
+READING PARAMETERS:
+Distance after last service: 47 km
+Last service date: 30 
+
+READING PARAMETERS:
+Distance after last service: 23 km
+Last service date: 66 
+Days till next service: 34 days
+
+READING PARAMETERS:
+Distance after last service: 55 km
+Last service date: 7 
+Days till next service: 73 days
+
+READING PARAMETERS:
+Distance after last service: 98 km
+Last service date: 68 
+Days till next service: 4 days
+
+READING PARAMETERS:
+Distance after last service: 13 km
+Last service date: 80 
+Days till next service: 38 days
+
+READING PARAMETERS:
+Distance after last service: 26 km
+Last service date: 18 
+Days till next service: 99 days
+
+READING PARAMETERS:
+Distance after last service: 95 km
+Last service date: 46 
+Days till next service: 31 days
+
+READING PARAMETERS:
+Distance after last service: 55 km
+Last service date: 0 
+Distance till next service: 93 km
+Days till next service: 10 days
+
+READING PARAMETERS:
+Distance after last service: 92 km
+Last service date: 29 
+Distance till next service: 63 km
+Days till next service: 31 days
+
+READING PARAMETERS:
+Distance after last service: 87 km
+Last service date: 58 
+Distance till next service: 59 km
+Days till next service: 16 days
+
+READING PARAMETERS:
+Distance after last service: 27 km
+Last service date: 49 
+Service period: 17 days
+Distance till next service: 20 km
+Days till next service: 16 days
+
+READING PARAMETERS:
+Distance after last service: 71 km
+Last service date: 89 
+Service period: 84 days
+Distance till next service: 20 km
+Days till next service: 53 days
+
+READING PARAMETERS:
+Distance after last service: 28 km
+Last service date: 79 
+Service period: 84 days
+Distance till next service: 92 km
+Days till next service: 32 days
+
+READING PARAMETERS:
+Distance after last service: 73 km
+Last service date: 3 
+Service period: 73 days
+Distance till next service: 99 km
+Days till next service: 21 days
+
+READING PARAMETERS:
+Distance after last service: 20 km
+Last service date: 3 
+Service period: 85 days
+Distance till next service: 23 km
+Days till next service: 27 days
+
+READING PARAMETERS:
+Distance after last service: 20 km
+Last service date: 24 
+Service period: 25 days
+Distance till next service: 7 km
+Days till next service: 79 days
+
+READING PARAMETERS:
+Distance after last service: 98 km
+Last service date: 55 
+Service period: 20 days
+Distance till next service: 21 km
+Days till next service: 68 days
+
+READING PARAMETERS:
+Distance after last service: 69 km
+Last service date: 81 
+Number of services: 6 
+Service period: 7 days
+Distance till next service: 21 km
+Days till next service: 68 days
+
+READING PARAMETERS:
+Distance after last service: 61 km
+Last service date: 17 
+Number of services: 6 
+Service period: 7 days
+Distance till next service: 59 km
+Days till next service: 6 days
+
+READING PARAMETERS:
+Distance after last service: 61 km
+Last service date: 17 
+Number of services: 22 
+Service period: 71 days
+Distance till next service: 14 km
+Days till next service: 58 days
+
+READING PARAMETERS:
+Distance after last service: 31 km
+Last service date: 96 
+Number of services: 3 
+Service interval: 23 km
+Service period: 48 days
+Distance till next service: 1 km
+Days till next service: 35 days
+
+READING PARAMETERS:
+Distance after last service: 66 km
+Last service date: 96 
+Number of services: 3 
+Service interval: 23 km
+Service period: 10 days
+Distance till next service: 41 km
+Days till next service: 29 days
+
+READING PARAMETERS:
+Distance after last service: 52 km
+Last service date: 30 
+Number of services: 51 
+Service interval: 76 km
+Service period: 33 days
+Distance till next service: 73 km
+Days till next service: 58 days
+
+READING PARAMETERS:
+Distance after last service: 52 km
+Last service date: 30 
+Number of services: 51 
+Service interval: 91 km
+Service period: 97 days
+Distance till next service: 77 km
+Days till next service: 64 days
+
+READING PARAMETERS:
+Odometer: 11 km
+Distance after last service: 66 km
+Last service date: 58 
+Number of services: 6 
+Service interval: 3 km
+Service period: 36 days
+Distance till next service: 64 km
+Days till next service: 65 days
+
+READING PARAMETERS:
+Odometer: 65 km
+Distance after last service: 46 km
+Last service date: 71 
+Number of services: 65 
+Service interval: 96 km
+Service period: 19 days
+Distance till next service: 89 km
+Days till next service: 25 days
+
+READING PARAMETERS:
+Odometer: 65 km
+Distance after last service: 46 km
+Last service date: 71 
+Number of services: 65 
+Service interval: 78 km
+Service period: 92 days
+Distance till next service: 91 km
+Days till next service: 12 days
+
+READING PARAMETERS:
+Odometer: 50 km
+Distance after last service: 88 km
+Last service date: 97 
+Number of services: 56 
+Service interval: 5 km
+Service period: 63 days
+Distance till next service: 56 km
+Days till next service: 98 days
+
+READING PARAMETERS:
+Odometer: 76 km
+Distance after last service: 64 km
+Last service date: 54 
+Number of services: 10 
+Service interval: 38 km
+Service period: 96 days
+Distance till next service: 19 km
+Days till next service: 74 days
+
+READING PARAMETERS:
+Odometer: 68 km
+Distance after last service: 26 km
+Last service date: 65 
+Number of services: 5 
+Service interval: 5 km
+Service period: 9 days
+Distance till next service: 36 km
+Days till next service: 54 days
+
+READING PARAMETERS:
+Odometer: 68 km
+Distance after last service: 26 km
+Last service date: 65 
+Number of services: 5 
+Service interval: 20 km
+Service period: 32 days
+Distance till next service: 99 km
+Days till next service: 71 days
+
+READING PARAMETERS:
+Odometer: 9 km
+Distance after last service: 46 km
+Last service date: 65 
+Number of services: 14 
+Service interval: 38 km
+Service period: 7 days
+Distance till next service: 59 km
+Days till next service: 48 days
+
+READING PARAMETERS:
+Odometer: 26 km
+Distance after last service: 97 km
+Last service date: 88 
+Number of services: 73 
+Service interval: 48 km
+Service period: 79 days
+Distance till next service: 86 km
+Days till next service: 69 days
+
+READING PARAMETERS:
+Odometer: 51 km
+Distance after last service: 43 km
+Last service date: 87 
+Number of services: 78 
+Service interval: 38 km
+Service period: 42 days
+Distance till next service: 6 km
+Days till next service: 31 days
+
+READING PARAMETERS:
+Odometer: 51 km
+Distance after last service: 43 km
+Last service date: 87 
+Number of services: 78 
+Service interval: 97 km
+Service period: 51 days
+Distance till next service: 78 km
+Days till next service: 18 days
+
+READING PARAMETERS:
+Odometer: 5 km
+Distance after last service: 6 km
+Last service date: 79 
+Number of services: 92 
+Service interval: 30 km
+Service period: 5 days
+Distance till next service: 35 km
+Days till next service: 68 days
+
+READING PARAMETERS:
+Odometer: 40 km
+Distance after last service: 96 km
+Last service date: 78 
+Number of services: 60 
+Service interval: 92 km
+Service period: 63 days
+Distance till next service: 5 km
+Days till next service: 89 days
+
+READING PARAMETERS:
+Odometer: 39 km
+Distance after last service: 33 km
+Last service date: 62 
+Number of services: 95 
+Service interval: 43 km
+Service period: 86 days
+Distance till next service: 32 km
+Days till next service: 88 days
+
+READING PARAMETERS:
+Odometer: 67 km
+Distance after last service: 33 km
+Last service date: 62 
+Number of services: 95 
+Service interval: 19 km
+Service period: 80 days
+Distance till next service: 50 km
+Days till next service: 58 days
+
+READING PARAMETERS:
+Odometer: 61 km
+Distance after last service: 19 km
+Last service date: 49 
+Number of services: 48 
+Service interval: 99 km
+Service period: 94 days
+Distance till next service: 38 km
+Days till next service: 20 days
+
+READING PARAMETERS:
+Odometer: 37 km
+Distance after last service: 97 km
+Last service date: 38 
+Number of services: 31 
+Service interval: 3 km
+Service period: 46 days
+Distance till next service: 39 km
+Days till next service: 88 days
+

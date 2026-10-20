@@ -1,0 +1,22 @@
+(Multiecuscan 5.4)
+10/20/2026 6:24:11 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+ZF Electronic Gear Shift Module
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+VIN code: 5188214
+Spare part number: 281011421
+Hardware number: 
+Hardware version: 30
+Software number: D
+Software version: 0307
+Homologation number: 
+FIAT drawing number: |?O??
+Functioning time (EEPROM): 2089177087
+Operating time: 2089177087
+Startups counter: 31878
+VIN lock status: Unknown
+PROXI configuration write counter: 124
+

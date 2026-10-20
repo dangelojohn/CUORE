@@ -1,0 +1,22 @@
+{
+  "ZASFAKPN5J7B88115": {
+    "evap-1": {
+      "done": false,
+      "done_at": null,
+      "done_by": null,
+      "outcome": null,
+      "note": null
+    },
+    "evap-6": {
+      "result": "fail",
+      "reason": "Mode $06 read 2026-10-13: EVAP 0.090in leak test 404 ms vs min 3965 ms = FAIL (large leak confirmed by ECM). Fuel at 93.7%, above window; retest after burning down to <85%.",
+      "value": 404.0,
+      "unit": "ms",
+      "hypothesis_id": null,
+      "media_ids": [],
+      "done": true,
+      "done_at": "2026-10-14T07:58:26",
+      "done_by": null
+    }
+  }
+}

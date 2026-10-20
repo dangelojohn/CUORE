@@ -1,0 +1,626 @@
+(Multiecuscan 5.4)
+10/27/2025 10:56:06 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+VIN code: 5188214
+ECU serial number: 281011421
+Spare part number: 
+Hardware number: 037367790
+Hardware version: 44
+Software number: 
+Software version: 0307
+Homologation number: |?O??
+FIAT drawing number: |?O??
+Functioning time (EEPROM): 2089177087
+Operating time: 2089177087
+Startups counter: 31878
+VIN lock status: Unknown
+PROXI configuration write counter: 124
+
+READING PARAMETERS:
+Injection time: 13 ms
+
+READING PARAMETERS:
+Injection time: 42 ms
+
+READING PARAMETERS:
+Injection time: 63 ms
+
+READING PARAMETERS:
+Injection time: 50 ms
+
+READING PARAMETERS:
+Injection time: 57 ms
+
+READING PARAMETERS:
+Injection time: 20 ms
+Injection time correction: 26 ms
+
+READING PARAMETERS:
+Injection time: 28 ms
+Injection time correction: 4 ms
+
+READING PARAMETERS:
+Injection time: 81 ms
+Injection time correction: 44 ms
+
+READING PARAMETERS:
+Injection time: 78 ms
+Injection time correction: 41 ms
+
+READING PARAMETERS:
+Injection time: 75 ms
+Injection time correction: 75 ms
+
+READING PARAMETERS:
+Injection time: 50 ms
+Injection time correction: 35 ms
+
+READING PARAMETERS:
+Injection time: 70 ms
+Injection time correction: 15 ms
+
+READING PARAMETERS:
+Injection time: 27 ms
+Injection time correction: 8 ms
+
+READING PARAMETERS:
+Injection time: 56 ms
+Injection time correction: 8 ms
+
+READING PARAMETERS:
+Injection time: 40 ms
+Injection time correction: 78 ms
+
+READING PARAMETERS:
+Injection time: 54 ms
+Injection time correction: 0 ms
+
+READING PARAMETERS:
+Injection time: 88 ms
+Injection time correction: 4 ms
+
+READING PARAMETERS:
+Injection time: 26 ms
+Injection time correction: 8 ms
+
+READING PARAMETERS:
+Injection time: 77 ms
+Injection time correction: 99 ms
+
+READING PARAMETERS:
+Injection time: 3 ms
+Injection time correction: 4 ms
+
+READING PARAMETERS:
+Injection time: 7 ms
+Injection time correction: 26 ms
+
+READING PARAMETERS:
+Injection time: 61 ms
+Injection time correction: 42 ms
+
+READING PARAMETERS:
+Injection time: 99 ms
+Injection time correction: 62 ms
+
+READING PARAMETERS:
+Injection time: 29 ms
+Injection time correction: 17 ms
+
+READING PARAMETERS:
+Injection time: 1 ms
+Injection time correction: 31 ms
+
+READING PARAMETERS:
+Injection time: 36 ms
+Injection time correction: 40 ms
+
+READING PARAMETERS:
+Injection time: 0 ms
+Injection time correction: 1 ms
+
+READING PARAMETERS:
+Injection time: 3 ms
+Injection time correction: 22 ms
+
+READING PARAMETERS:
+Injection time: 4 ms
+Injection time correction: 42 ms
+
+READING PARAMETERS:
+Injection time: 5 ms
+Injection time correction: 38 ms
+
+READING PARAMETERS:
+Injection time: 97 ms
+Injection time correction: 49 ms
+
+READING PARAMETERS:
+Injection time: 87 ms
+Injection time correction: 66 ms
+
+READING PARAMETERS:
+Injection time: 82 ms
+Injection time correction: 69 ms
+
+READING PARAMETERS:
+Injection time: 79 ms
+Injection time correction: 93 ms
+
+READING PARAMETERS:
+Injection time: 58 ms
+Injection time correction: 39 ms
+
+READING PARAMETERS:
+Injection time: 19 ms
+Injection time correction: 62 ms
+
+READING PARAMETERS:
+Injection time: 16 ms
+Injection time correction: 54 ms
+
+READING PARAMETERS:
+Injection time: 38 ms
+Injection time correction: 49 ms
+
+READING PARAMETERS:
+Injection time: 58 ms
+Injection time correction: 35 ms
+
+READING PARAMETERS:
+Injection time: 28 ms
+Injection time correction: 88 ms
+
+READING PARAMETERS:
+Injection time: 37 ms
+Injection time correction: 70 ms
+
+READING PARAMETERS:
+Injection time: 41 ms
+Injection time correction: 77 ms
+
+READING PARAMETERS:
+Injection time: 19 ms
+Injection time correction: 79 ms
+
+READING PARAMETERS:
+Injection time: 30 ms
+Injection time correction: 84 ms
+
+READING PARAMETERS:
+Injection time: 84 ms
+Injection time correction: 42 ms
+
+READING PARAMETERS:
+Injection time: 86 ms
+Injection time correction: 8 ms
+
+READING PARAMETERS:
+Injection time: 33 ms
+Injection time correction: 99 ms
+
+READING PARAMETERS:
+Injection time: 80 ms
+Injection time correction: 47 ms
+
+READING PARAMETERS:
+Injection time: 97 ms
+Injection time correction: 88 ms
+
+READING PARAMETERS:
+Injection time: 12 ms
+Injection time correction: 9 ms
+
+READING PARAMETERS:
+Injection time: 9 ms
+Injection time correction: 97 ms
+
+READING PARAMETERS:
+Injection time: 20 ms
+Injection time correction: 95 ms
+
+READING PARAMETERS:
+Injection time: 94 ms
+Injection time correction: 28 ms
+
+READING PARAMETERS:
+Injection time: 73 ms
+Injection time correction: 94 ms
+
+READING PARAMETERS:
+Injection time: 71 ms
+Injection time correction: 69 ms
+
+READING PARAMETERS:
+Injection time: 37 ms
+Injection time correction: 90 ms
+
+READING PARAMETERS:
+Injection time: 43 ms
+Injection time correction: 14 ms
+
+READING PARAMETERS:
+Injection time: 20 ms
+Injection time correction: 72 ms
+
+READING PARAMETERS:
+Injection time: 46 ms
+Injection time correction: 55 ms
+
+READING PARAMETERS:
+Injection time: 61 ms
+Injection time correction: 95 ms
+
+READING PARAMETERS:
+Injection time: 32 ms
+Injection time correction: 76 ms
+
+READING PARAMETERS:
+Injection time: 9 ms
+Injection time correction: 96 ms
+
+READING PARAMETERS:
+Injection time: 19 ms
+Injection time correction: 76 ms
+
+READING PARAMETERS:
+Injection time: 95 ms
+Injection time correction: 16 ms
+
+READING PARAMETERS:
+Injection time: 16 ms
+Injection time correction: 44 ms
+
+READING PARAMETERS:
+Injection time: 51 ms
+Injection time correction: 65 ms
+
+READING PARAMETERS:
+Injection time: 44 ms
+Injection time correction: 26 ms
+
+READING PARAMETERS:
+Injection time: 54 ms
+Injection time correction: 61 ms
+
+READING PARAMETERS:
+Injection time: 31 ms
+Injection time correction: 98 ms
+
+READING PARAMETERS:
+Injection time: 32 ms
+Injection time correction: 64 ms
+
+READING PARAMETERS:
+Injection time: 31 ms
+Injection time correction: 10 ms
+
+READING PARAMETERS:
+Injection time: 32 ms
+Injection time correction: 45 ms
+
+READING PARAMETERS:
+Injection time: 20 ms
+Injection time correction: 21 ms
+
+READING PARAMETERS:
+Injection time: 77 ms
+Injection time correction: 54 ms
+
+READING PARAMETERS:
+Injection time: 12 ms
+Injection time correction: 50 ms
+
+READING PARAMETERS:
+Injection time: 33 ms
+Injection time correction: 37 ms
+
+READING PARAMETERS:
+Injection time: 15 ms
+Injection time correction: 61 ms
+
+READING PARAMETERS:
+Injection time: 16 ms
+Injection time correction: 65 ms
+
+READING PARAMETERS:
+Injection time: 44 ms
+Injection time correction: 94 ms
+
+READING PARAMETERS:
+Injection time: 91 ms
+Injection time correction: 22 ms
+
+READING PARAMETERS:
+Injection time: 41 ms
+Injection time correction: 10 ms
+
+READING PARAMETERS:
+Injection time: 0 ms
+Injection time correction: 8 ms
+
+READING PARAMETERS:
+Injection time: 84 ms
+Injection time correction: 72 ms
+
+READING PARAMETERS:
+Injection time: 1 ms
+Injection time correction: 81 ms
+
+READING PARAMETERS:
+Injection time: 34 ms
+Injection time correction: 35 ms
+
+READING PARAMETERS:
+Injection time: 62 ms
+Injection time correction: 98 ms
+
+READING PARAMETERS:
+Injection time: 98 ms
+Injection time correction: 32 ms
+
+READING PARAMETERS:
+Injection time: 28 ms
+Injection time correction: 73 ms
+
+READING PARAMETERS:
+Injection time: 18 ms
+Injection time correction: 45 ms
+
+READING PARAMETERS:
+Injection time: 88 ms
+Injection time correction: 14 ms
+
+READING PARAMETERS:
+Injection time: 63 ms
+Injection time correction: 33 ms
+
+READING PARAMETERS:
+Injection time: 37 ms
+Injection time correction: 9 ms
+
+READING PARAMETERS:
+Injection time: 63 ms
+Injection time correction: 42 ms
+
+READING PARAMETERS:
+Injection time: 34 ms
+Injection time correction: 63 ms
+
+READING PARAMETERS:
+Injection time: 0 ms
+Injection time correction: 48 ms
+
+READING PARAMETERS:
+Injection time: 2 ms
+Injection time correction: 42 ms
+
+READING PARAMETERS:
+Injection time: 12 ms
+Injection time correction: 65 ms
+
+READING PARAMETERS:
+Injection time: 46 ms
+Injection time correction: 79 ms
+
+READING PARAMETERS:
+Injection time: 35 ms
+Injection time correction: 85 ms
+
+READING PARAMETERS:
+Injection time: 71 ms
+Injection time correction: 72 ms
+
+READING PARAMETERS:
+Injection time: 72 ms
+Injection time correction: 5 ms
+
+READING PARAMETERS:
+Injection time: 14 ms
+Injection time correction: 52 ms
+
+READING PARAMETERS:
+Injection time: 3 ms
+Injection time correction: 93 ms
+
+READING PARAMETERS:
+Injection time: 65 ms
+Injection time correction: 12 ms
+
+READING PARAMETERS:
+Injection time: 55 ms
+Injection time correction: 71 ms
+
+READING PARAMETERS:
+Injection time: 11 ms
+Injection time correction: 1 ms
+
+READING PARAMETERS:
+Injection time: 45 ms
+Injection time correction: 10 ms
+
+READING PARAMETERS:
+Injection time: 89 ms
+Injection time correction: 24 ms
+
+READING PARAMETERS:
+Injection time: 41 ms
+Injection time correction: 77 ms
+
+READING PARAMETERS:
+Injection time: 76 ms
+Injection time correction: 60 ms
+
+READING PARAMETERS:
+Injection time: 31 ms
+Injection time correction: 7 ms
+
+READING PARAMETERS:
+Injection time: 38 ms
+Injection time correction: 57 ms
+
+READING PARAMETERS:
+Injection time: 87 ms
+Injection time correction: 33 ms
+
+READING PARAMETERS:
+Injection time: 93 ms
+Injection time correction: 83 ms
+
+READING PARAMETERS:
+Injection time: 60 ms
+Injection time correction: 47 ms
+
+READING PARAMETERS:
+Injection time: 79 ms
+Injection time correction: 74 ms
+
+READING PARAMETERS:
+Injection time: 89 ms
+Injection time correction: 38 ms
+
+READING PARAMETERS:
+Injection time: 48 ms
+Injection time correction: 26 ms
+
+READING PARAMETERS:
+Injection time: 20 ms
+Injection time correction: 76 ms
+
+READING PARAMETERS:
+Injection time: 94 ms
+Injection time correction: 49 ms
+
+READING PARAMETERS:
+Injection time: 17 ms
+Injection time correction: 61 ms
+
+READING PARAMETERS:
+Injection time: 36 ms
+Injection time correction: 59 ms
+
+READING PARAMETERS:
+Injection time: 61 ms
+Injection time correction: 29 ms
+
+READING PARAMETERS:
+Injection time: 47 ms
+Injection time correction: 43 ms
+
+READING PARAMETERS:
+Injection time: 1 ms
+Injection time correction: 21 ms
+
+READING PARAMETERS:
+Injection time: 36 ms
+Injection time correction: 80 ms
+
+READING PARAMETERS:
+Injection time: 86 ms
+Injection time correction: 93 ms
+
+READING PARAMETERS:
+Injection time: 34 ms
+Injection time correction: 35 ms
+
+READING PARAMETERS:
+Injection time: 13 ms
+Injection time correction: 10 ms
+
+READING PARAMETERS:
+Injection time: 23 ms
+Injection time correction: 81 ms
+
+READING PARAMETERS:
+Injection time: 8 ms
+Injection time correction: 15 ms
+
+READING PARAMETERS:
+Injection time: 26 ms
+Injection time correction: 99 ms
+
+READING PARAMETERS:
+Injection time: 14 ms
+Injection time correction: 56 ms
+
+READING PARAMETERS:
+Injection time: 78 ms
+Injection time correction: 57 ms
+
+READING PARAMETERS:
+Injection time: 23 ms
+Injection time correction: 92 ms
+
+READING PARAMETERS:
+Injection time: 30 ms
+Injection time correction: 28 ms
+
+READING PARAMETERS:
+Injection time: 54 ms
+Injection time correction: 68 ms
+
+READING PARAMETERS:
+Injection time: 16 ms
+Injection time correction: 13 ms
+
+READING PARAMETERS:
+Injection time: 17 ms
+Injection time correction: 85 ms
+
+READING PARAMETERS:
+Injection time: 63 ms
+Injection time correction: 3 ms
+
+READING PARAMETERS:
+Injection time: 63 ms
+Injection time correction: 36 ms
+
+READING PARAMETERS:
+Injection time: 11 ms
+Injection time correction: 58 ms
+
+READING PARAMETERS:
+Injection time: 79 ms
+Injection time correction: 4 ms
+
+READING PARAMETERS:
+Injection time: 35 ms
+Injection time correction: 14 ms
+
+READING PARAMETERS:
+Injection time: 32 ms
+Injection time correction: 63 ms
+
+READING PARAMETERS:
+Injection time: 23 ms
+Injection time correction: 2 ms
+
+READING PARAMETERS:
+Injection time: 74 ms
+Injection time correction: 37 ms
+
+READING PARAMETERS:
+Injection time: 43 ms
+Injection time correction: 26 ms
+
+READING PARAMETERS:
+Injection time: 85 ms
+Injection time correction: 11 ms
+
+READING PARAMETERS:
+Injection time: 84 ms
+Injection time correction: 58 ms
+
+READING PARAMETERS:
+Injection time: 6 ms
+Injection time correction: 76 ms
+
+READING PARAMETERS:
+Injection time: 16 ms
+Injection time correction: 45 ms
+
