@@ -930,3 +930,21 @@ Replacement of the ECM cannot be proven from OBD readings alone; it would need a
 - The "working model" under "Remaining candidate causes" (the ECM sees sealed/vacuum only through the ESIM switch and "on this car it never does"): unproven (grade NONE), see (a).
 - The "three regimes" freeze-frame statement and the "gross leak PASS" line under the status-bit verdict table rest on a repo scaling table and on a MID 39 record that is identical to a not-run record; neither is a reading.
 - The "passed this cycle" labels for P0441/P0458/P0459 on 10-13 are inference from list absence, corroborated only by the same session's MID 3D pass.
+
+## MES recordings 2026-10-20 06:20-06:24
+
+Four MultiEcuScan files were parsed with `mes.fes.load_fes` (readings only). **All four are simulations, not vehicle data.** Each carries the banner "SIMULATION MODE!!! THE DATA IS NOT REAL!!!" and the simulation fingerprints (ECU ISO code `7C 86 4F FF FF`; VIN field `5188214`, a number and not a VIN). [E: file lines 5 onward of each file; `log.simulation` = True in all four]
+
+| File (FESLog_) | Module | Parameters | Samples | Duration |
+|---|---|---|---|---|
+| 2610200620 (session 06:18:57) | Service Interval Reset | 8 (odometer, service distance/dates/counts) | 77 | not recoverable (no per-sample timestamps) |
+| 2610200622 (06:21:55) | Blind Spot Sensor Autoliv (Right) | none | 0 | n/a |
+| 2610200623 (06:22:58) | Marelli AlfaConnect Radio/Nav | 4 (rear camera brightness, ECU temperature, battery voltage, vehicle speed) | 80 | not recoverable |
+| 2610200624 (06:24:11) | ZF Electronic Gear Shift Module | none | 0 | n/a |
+
+- Values are random across samples (for example Odometer 85, 8, 33, 61 km; vehicle speed 0 to 98 km/h; ECU temperature 1 to 99 C), and "Battery voltage" is pinned at 1.4 V in all 80 samples. These are generated numbers. [E: 2610200620, 2610200623]
+- DTC lines: B0110-15 and P068A-68 appear in 2610200622 and 2610200623, both "stored", module-level, in simulated sessions. No clear events, no actuator tests, no freeze frames in any of the four. [E]
+- EVAP, purge, ESIM, leak, fuel level, external/ambient temperature, IBS/battery (real), coolant, engine state: none recorded in any file (text search finds none). No ambient value exists to compare with the -61 C of FESLog_2606071008. [E]
+- No SCAN_26102006* or later exists. The latest scan file is SCAN_2610190039.txt (saved 2026-10-19 00:39), already covered in this ledger. [E: directory listing]
+
+**Ledger effect: nothing new.** Nothing proven, nothing changed. The recordings are not readings of the car and must not be cited as evidence for or against any EVAP candidate. [I: they show only that MES was run in simulation on 2026-10-20, with no vehicle connected]

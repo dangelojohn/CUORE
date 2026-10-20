@@ -1,9 +1,0 @@
-(Multiecuscan 5.4)
-10/21/2025 3:17:06 PM
-Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
-Service Interval Reset
-SIMULATION MODE!!! THE DATA IS NOT REAL!!!
---------------------------------------------------------------
-
-ECU ISO code: 7C 86 4F FF FF
-
