@@ -313,6 +313,15 @@ class Session:
         self._target = pair
         self.link._last_target = pair
 
+    def _restore_flow_control(self) -> None:
+        """Undo target_raw's ATFCSM1: default flow-control mode (ATFCSM0) and
+        the custom flow-control header/data replaced by the functional header
+        and the ISO default 30 00 00, so the last physical module's pair is
+        not left in force for functional multi-frame replies."""
+        self.cmd("ATFCSM0", 2)
+        self.cmd("ATFCSHDB33F1" if self.header_bits == 29 else "ATFCSH7DF", 2)
+        self.cmd("ATFCSD300000", 2)
+
     def untarget(self) -> None:
         """Back to functional/broadcast addressing for legislated OBD.
 
@@ -361,6 +370,7 @@ class Session:
                 else:
                     self.cmd("ATSH7DF", 2)
                     self.cmd("STFAP 1,7DF,FFFFFFFF", 2)
+                self._restore_flow_control()
             else:
                 # Bench finding 2026-10-13 (vLinker FS r2, STN1170 v4.3.2): STFAC
                 # removes the firmware's default pass filters too, after which
@@ -375,6 +385,9 @@ class Session:
                     self.cmd("ATSTFF", 2)
                 else:
                     self.cmd("ATSH7DF", 2)
+                self._restore_flow_control()
+        else:
+            self._restore_flow_control()
         self._target = None
         self.link._last_target = None
 
@@ -405,6 +418,7 @@ class Session:
             if elm:
                 self.cmd(f"ATSP{elm}", 2)
             self.cmd("ATCRA", 2)
+        self._restore_flow_control()
         self.headers_on = True
         self._target = None
         self.link._last_target = None

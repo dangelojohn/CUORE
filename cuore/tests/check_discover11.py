@@ -195,6 +195,37 @@ check("(probe/rx) only 22/3E services ever sent",
       all(c[:2] in ("3E", "22", "AT", "ST") for fb_ in (fb1, fb2, fb3, fb29a, fb29b)
           for c in fb_.sent), "non read-only service")
 
+# --- broadcast-id exclusion (DBC + passive capture) and flow-control restore --
+bcast = {0x73E: {"3E00": "7E00"}, 0x749: {"3E00": "7E00"}, 0x7A0: {"3E00": "7E00"}}
+fbd, rd = _run11(bcast)  # default 0x700-0x7FF sweep
+tx_ids = {c[4:] for c in fbd.sent if c.startswith("ATSH")} - {"7DF"}
+sk = {d["id"]: d["reason"] for d in rd["skipped"]}
+check("(safety) default sweep never transmits on 73E/749 and lists them as skipped",
+      not ({"73E", "749"} & tx_ids) and {"73E", "749"} <= set(sk)
+      and "7A0" in tx_ids and "dbc" in sk["73E"].lower(), str((sorted(tx_ids)[:8], rd["skipped"])))
+store.record_observation("bus_capture", {"ids": {"7C4": 9, "0x7C5": 3}}, bus="can_ch")
+fbc, rc = _run11(bcast, candidates=[0x73E, 0x7A0, 0x7C4, 0x7C5, 0x72A],
+                 rx_mode="both")
+txc = {c[4:] for c in fbc.sent if c.startswith("ATSH")} - {"7DF"}
+skc = {d["id"] for d in rc["skipped"]}
+check("(safety) caller candidates: DBC id and captured ids filtered, 7A0 still sent",
+      txc == {"7A0", "72A"} and {"73E", "7C4", "7C5"} <= skc, str((txc, rc["skipped"])))
+check("(safety) response id landing on a DBC id (72A -> 4AA, minus280) is skipped, never sent",
+      "4AA" in skc and not any(c == "ATCRA4AA" for c in fbc.sent), str(rc["skipped"]))
+
+fbf = Fake11(node29)
+lf = AdapterLink(stream_factory=lambda p, b: fbf, process="check_d11_fc")
+set_link(lf)
+lf.set_cable("grey_a6")
+lf.mark_verified(CAN_CH, 10)
+with lf.session("fc", bus=CAN_CH, confirm=True) as sf:
+    sf.target_raw(req29, rsp29)
+    n_fc = len(fbf.sent)
+    sf.untarget()
+    after = fbf.sent[n_fc:]
+check("(fc) untarget restores ATFCSM0 (and default FC header/data) after target_raw",
+      "ATFCSM0" in after and "ATFCSM1" not in after and "ATFCSD300000" in after, str(after))
+
 # --- timing/desync checks (silent bus, adapter still waiting) ---------------
 class Silent(Fake11):
     """22F190 gets no reply until a bare CR interrupts it ("STOPPED")."""
