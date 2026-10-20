@@ -33,7 +33,8 @@ from . import systems_bridge, tsb_xref_bridge
 KINDS = ("precondition", "vin_check", "read", "flash", "test", "drive_cycle",
          "decide", "inspect", "record")
 #: deterministic stage order (lower first); done steps go after everything
-_STAGE = {"precondition": 0, "vin_check": 1, "currency": 2, "flash": 3, "test": 4,
+_STAGE = {"precondition": 0, "vin_check": 1, "currency": 2, "esim_inspect": 2.5,
+          "esim_test": 2.6, "flash": 3, "test": 4,
           "proof": 3.5, "drive_cycle": 5, "read": 6, "decide": 7, "inspect": 8, "record": 9}
 
 #: Monitor run conditions on file in the repo, per system. Only systems the
@@ -78,6 +79,55 @@ _VERIFY_RE = re.compile(r"verification\s+test|SLVT|leak\s+test|smoke\s+test|proo
 _STOP_LINE = "If it passes and the codes stay away, stop here; record the result."
 _DONE_KINDS = ("part", "repair", "inspection", "test")
 _MODULE_ALIASES = {"ECM": ("ECM", "PCM"), "PCM": ("ECM", "PCM")}
+
+
+#: ESIM component steps (outside literature) -- mes.parts.ESIM_DESIGN is the
+#: record; these literals are only the fallback if that module is absent.
+_ESIM_RE = re.compile(r"\bESIM\b", re.I)
+_ESIM_ORIENT_DONE_RE = re.compile(r"ESIM[^.;]*\b(orient\w*|upright|vertical\w*|re-?oriented)\b", re.I)
+_ESIM_PROBE_DONE_RE = re.compile(r"ESIM[^.;]*\b(back-?prob\w*|signal)\b[^.;]*\b(\d(?:\.\d)?\s*V|volt\w*)", re.I)
+_ESIM_SOURCE = ("OUTSIDE LITERATURE, not a reading from this car: ")
+
+
+def _esim_sources() -> dict[str, str]:
+    try:
+        from mes import parts as parts_mod
+        labels = {s["label"] for s in parts_mod.ESIM_DESIGN["sources"]}
+        labels = sorted(labels)
+    except Exception:  # noqa: BLE001
+        labels = ["B&W/BWD tech tip bw10235esim", "ALLDATA tech tip (Ram)",
+                  "vehicleservicepros.com article 53084355 'Chrysler ESIM'",
+                  "B&W/SMP ESIM signal description"]
+    def pick(*keys: str) -> str:
+        sel = [x for x in labels if any(k.lower() in x.lower() for k in keys)]
+        return "; ".join(sel or labels)
+    return {"orient": _ESIM_SOURCE + pick("bw10235esim", "ALLDATA", "53084355"),
+            "probe": _ESIM_SOURCE + pick("SMP", "53084355")}
+
+
+def _esim_steps(hsys: str, text: str) -> list[dict[str, Any]]:
+    """Orientation check + back-probe for an EVAP hypothesis that names the
+    ESIM. Outside-literature facts (mes.parts.ESIM_DESIGN); never readings."""
+    if hsys != "evap" or not _ESIM_RE.search(text or ""):
+        return []
+    src = _esim_sources()
+    return [
+        _step("esim_inspect", "ESIM orientation vs service drawing (vertical, correct position)",
+              "The ESIM is gravity dependent: it must sit vertical/upright in the position the "
+              "service drawing shows (an adaptor is used where the canister is angled; it can be "
+              "fitted four ways, only one is correct). A wrong orientation set P0440/P0441/P0456 "
+              "with the switch never closing. Check it before the vacuum and meter work.",
+              src["orient"], kind="inspect", tools=["service drawing"],
+              done_match={"regex": _ESIM_ORIENT_DONE_RE, "kinds": ("inspection", "test", "repair")}),
+        _step("esim_test", "Back-probe the ESIM signal: ~5 V rest, ~0 V under ~1 inH2O vacuum",
+              "Back-probe the ESIM signal wire (do not pierce it): ~5 V at rest (ECM 5 V "
+              "reference); with gentle hand vacuum of ~1 inH2O the switch closes and the signal "
+              "falls to ~0 V (closed switch ~0.5-2 ohm). Never apply 12 V across the switch. This "
+              "ECM tracks no code for this circuit (our status-bit map 2026-10-19), so only this "
+              "meter check exercises it.",
+              src["probe"], kind="test", tools=["multimeter", "hand vacuum pump"],
+              done_match={"regex": _ESIM_PROBE_DONE_RE, "kinds": ("test",)}),
+    ]
 
 
 # --- loaders (patched by tests) -------------------------------------------
@@ -427,6 +477,8 @@ def plan(vin: str, job_id: str, hypothesis_id: str, *,
             "hypothesis " + " / ".join(lbl for lbl, t in (("CONFIRM", confirm), ("REFUTE", refute),
                                                            ("NEXT TESTS", nxt)) if t) + " text",
             tools=["CUORE"]))
+
+    steps.extend(_esim_steps(hsys, text))
 
     # inspect steps from bulletins
     for row, item, rk in inspect_rows:

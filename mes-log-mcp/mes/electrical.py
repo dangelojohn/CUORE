@@ -255,10 +255,20 @@ ELEMENTS: dict[str, dict[str, Any]] = {
         inspection_hint="connector seating/corrosion, and -- per 9100471 -- "
                          "whether the canister/ESIM housing is wet with "
                          "liquid fuel (flooding mode, not a simple "
-                         "electrical fault)",
+                         "electrical fault). Outside literature (not "
+                         "readings from this car): back-probe the signal, "
+                         "~5 V at rest, ~0 V under ~1 inH2O vacuum; closed "
+                         "switch ~0.5-2 ohm; never apply 12 V across the "
+                         "switch",
         notes="9100471: fuel flooding traced to a disconnected internal "
               "vapor line at the FDM port, not a water-ingress TSB (none "
-              "found in a full-text sweep per EVAP_STELVIO.md).",
+              "found in a full-text sweep per EVAP_STELVIO.md). ESIM "
+              "electrical values (ECM 5 V reference + ground; switch pulls "
+              "signal to ~0 V; ~0.5-2 ohm closed; no 12 V test) are OUTSIDE "
+              "LITERATURE -- B&W/SMP, vehicleservicepros.com 53084355 -- see "
+              "mes.parts ESIM_DESIGN. This ECM tracks no code for the ESIM "
+              "switch or vent circuit (our readings, status-bit map "
+              "2026-10-19), so it cannot self-check this wiring.",
     ),
 
     "esim_ground": _el(

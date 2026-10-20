@@ -207,6 +207,56 @@ EVAP_LEAK = Tree(
              "connection on reassembly.",
              "inspection free; remedy is parts",
              "TSB 9100471 (2025-03-17), supersedes 9100469 for this mode"),
+        # E9/E10 (2026-10-20): ids appended (E1-E8 stay stable) but placed
+        # here, before the smoke/vacuum/meter work (E7 and the mechanic
+        # tests), because orientation is the cheapest ESIM check. Both are
+        # OUTSIDE LITERATURE (not readings from this car) -- see
+        # mes.parts.ESIM_DESIGN for the full record and sources.
+        Step("E9", "ESIM orientation vs service drawing (vertical, correct "
+                   "position)",
+             "Compare how the ESIM is mounted with the service drawing: it "
+             "is gravity dependent and must sit vertical/upright in the "
+             "correct position (an adaptor is used where the canister is "
+             "angled). It can be fitted four ways and only one is correct.",
+             "Hands / visual, plus the service drawing (TechAuthority) and "
+             "the repo's ESIM bench-test sheet "
+             "(docs/handbook/esim/ESIM_Bench_Test_Stelvio.pdf).",
+             "Mounted upright, in the position the service drawing shows.",
+             "Wrong or tilted: re-orient it per the drawing, then re-verify "
+             "(below). Outside literature: a wrong orientation set "
+             "P0440/P0441/P0456 with the switch never closing, fixed by "
+             "re-orienting. A replacement ESIM fitted wrongly would "
+             "reproduce the same codes.",
+             "free / 10 min",
+             "OUTSIDE LITERATURE, not a reading from this car: B&W/BWD tech "
+             "tip bw10235esim (vertical mount, adaptor for angled "
+             "canisters); ALLDATA tech tip (Ram) (four ways, one correct; "
+             "P0440/P0441/P0456 cured by re-orienting); vehicleservicepros."
+             "com article 53084355 'Chrysler ESIM'"),
+        Step("E10", "Back-probe the ESIM signal: ~5 V rest, ~0 V under ~1 "
+                    "inH2O vacuum",
+             "Back-probe the ESIM signal wire at the connector (do not "
+             "unplug or pierce it). Ignition on: expect ~5 V at rest. Apply "
+             "gentle hand vacuum (~1 inH2O) at the ESIM and watch the "
+             "meter: the signal should fall to ~0 V as the switch closes.",
+             "Multimeter + back-probe pins, hand vacuum pump (gentle). The "
+             "ESIM-to-ECM wiring test sheet carries the wire/pin lookup.",
+             "~5 V at rest; ~0 V while the switch is closed at ~1 inH2O "
+             "vacuum (closed switch ~0.5-2 ohm).",
+             "Never reaches ~0 V: the switch is not closing (wrong "
+             "orientation, a bad ESIM, or a wiring/ground fault). Stuck at "
+             "~0 V at rest, or no 5 V: wiring or ECM reference. The ECM "
+             "tracks no code for this circuit on this car (our status-bit "
+             "map 2026-10-19), so this meter check is the only way to "
+             "exercise it.",
+             "free / 15 min with a meter",
+             "OUTSIDE LITERATURE, not a reading from this car: B&W/SMP ESIM "
+             "signal description (ECM 5 V reference and ground; closing "
+             "pulls the signal to ~0 V); vehicleservicepros.com article "
+             "53084355 'Chrysler ESIM' (closes at ~1 inH2O vacuum, ~0.5-2 "
+             "ohm)",
+             caution="Never apply 12 V across the ESIM switch -- it can "
+                     "damage it. Hand vacuum only; never shop air."),
         Step("E7", "Smoke test to localise",
              "Low-pressure smoke into the EVAP system; look for the leak "
              "point (filler neck, canister housing, hose unions, ESIM "

@@ -804,7 +804,8 @@ def build_system_view(vin: str, key: str) -> Optional[dict[str, Any]]:
         if p:
             parts.append({"key": pkey, "name": p.get("name") or pkey,
                          "href": f"/v/{vin}/parts#{pkey}",
-                         "image_url": image_url, "image_fact": image_fact})
+                         "image_url": image_url, "image_fact": image_fact,
+                         "design": (p or {}).get("design")})
         else:
             parts.append({"key": pkey, "name": pkey.replace("_", " "), "href": None,
                          "image_url": None, "image_fact": image_fact})

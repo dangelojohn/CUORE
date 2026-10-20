@@ -138,7 +138,8 @@ def _part(key: str, name: str, what_it_does: str, *,
           price: Optional[dict[str, Any]] = None,
           buy: Optional[list[dict[str, str]]] = None,
           images: Optional[list[dict[str, Any]]] = None,
-          notes: str = "") -> None:
+          notes: str = "",
+          extra: Optional[dict[str, Any]] = None) -> None:
     if fits not in FITS_VALUES:
         raise ValueError(f"bad fits {fits!r} for {key!r}")
     PARTS[key] = {
@@ -157,6 +158,9 @@ def _part(key: str, name: str, what_it_does: str, *,
         "images": images or [],
         "notes": notes.strip(),
     }
+    if extra:
+        # optional, per-part extras beyond REQUIRED_KEYS (e.g. ``design``)
+        PARTS[key].update(extra)
 
 
 PARTS: dict[str, dict[str, Any]] = {}
@@ -382,11 +386,94 @@ _part(
 
 # --- EVAP system --------------------------------------------------------------
 
+# --- ESIM component knowledge (outside literature) ----------------------------
+# Added 2026-10-20. EVERY fact below is OUTSIDE LITERATURE (trade articles /
+# tech tips about FCA/Chrysler ESIMs generally) -- none is a reading from this
+# car and none is an FCA/Alfa Stelvio manufacturer document. The ``sources``
+# list carries the provenance; ``provenance`` repeats it for any renderer.
+
+ESIM_PROVENANCE = "outside literature (not a reading from this car)"
+
+ESIM_SOURCES: dict[str, dict[str, str]] = {
+    "vsp": {"label": "vehicleservicepros.com article 53084355 'Chrysler ESIM'",
+            "kind": "outside literature"},
+    "bw": {"label": "B&W / BWD tech tip bw10235esim (ESIM adaptor, mounting)",
+           "kind": "outside literature"},
+    "alldata": {"label": "ALLDATA tech tip (Ram): ESIM fits four ways, one "
+                         "correct",
+                "kind": "outside literature"},
+    "smp": {"label": "B&W / SMP ESIM signal description (5 V reference, "
+                     "ground, signal pulled to ~0 V)",
+            "kind": "outside literature"},
+}
+
+ESIM_DESIGN: dict[str, Any] = {
+    "provenance": ESIM_PROVENANCE,
+    "design": "Passive device with NO solenoid: housing, vacuum contact "
+              "switch, diaphragm, a small weighted vacuum valve and a large "
+              "weighted pressure valve.",
+    "thresholds": {
+        "vacuum_valve_opens_inH2O": 2.2,
+        "pressure_valve_opens_inH2O": 0.5,
+        "switch_closes_inH2O_vacuum": 1.0,
+        "switch_closed_ohms": [0.5, 2.0],
+    },
+    "threshold_labels": [
+        "Small weighted vacuum valve opens at ~2.2 inH2O vacuum.",
+        "Large weighted pressure valve opens at ~0.5 inH2O pressure.",
+        "Vacuum contact switch closes at ~1 inH2O vacuum.",
+        "Switch resistance when closed: ~0.5-2 ohm.",
+    ],
+    "orientation": {
+        "rule": "Gravity dependent: must be mounted vertically/upright, in "
+                "the correct position per the service drawing. Where the "
+                "canister is angled an adaptor is used (B&W/BWD).",
+        "failure_example": "ALLDATA tech tip (Ram): the module fits four "
+                           "ways, only one is correct; the wrong orientation "
+                           "gave P0440/P0441/P0456 with the switch never "
+                           "closing (signal never 0 V), fixed by "
+                           "re-orienting.",
+    },
+    "electrical": {
+        "supply": "ECM supplies a 5 V reference and a ground.",
+        "rest_volts": 5.0,
+        "closed_volts": 0.0,
+        "check": "Back-probe the signal: ~5 V at rest, ~0 V while the switch "
+                 "is closed by ~1 inH2O of vacuum. Closed switch ~0.5-2 ohm "
+                 "(unplugged, meter on the switch pins).",
+        "warning": "No 12 V test: applying 12 V across the switch can damage "
+                   "it.",
+    },
+    "tests": [
+        "Orientation vs service drawing (vertical, correct position).",
+        "Back-probe signal: ~5 V rest, ~0 V under ~1 inH2O vacuum.",
+        "Switch resistance closed under vacuum: ~0.5-2 ohm.",
+    ],
+    "not_documented": [
+        "Identity of the white cap inside one end (probably the large "
+        "weight) -- not documented.",
+        "Rattle when shaken is not a valid test.",
+        "Mouth-blow bench procedure: flow directions are inferred, not "
+        "documented.",
+    ],
+    "ecm_coverage": "This ECM tracks no code for the ESIM switch circuit or "
+                    "vent circuit (our readings, status-bit map 2026-10-19), "
+                    "so the ECM cannot self-check that wiring -- a fault "
+                    "there only shows as the EVAP leak codes themselves.",
+    "ecm_coverage_provenance": "our readings (status-bit map 2026-10-19)",
+    "sources": list(ESIM_SOURCES.values()),
+    "bench_test_pdf": "docs/handbook/esim/ESIM_Bench_Test_Stelvio.pdf",
+}
+
+
 _part(
     "esim", "Evaporative System Integrity Module (ESIM, leak-detection pump)",
     "A small electric pump/switch that pressurizes the EVAP system and "
     "monitors for leaks; FCA's own bulletin treats it as separate and "
-    "independently serviceable from the vapor canister.",
+    "independently serviceable from the vapor canister. NOTE (outside "
+    "literature, see 'design'): trade sources describe the FCA ESIM as a "
+    "passive, gravity-dependent vacuum-switch module with no solenoid or "
+    "pump.",
     oem=[
         _oem("04861961AD", note="Fitted to this VIN 2026-09-02; Alfa "
              "Online Parts lists it as Alfa OE, 'same as production "
@@ -428,6 +515,7 @@ _part(
           "likely this part under a colloquial name (SINGLE-SOURCE, "
           "unconfirmed against either OEM number above); source "
           "docs/research/EVAP_STELVIO.md section 2/7.",
+    extra={"design": ESIM_DESIGN},
 )
 
 _part(

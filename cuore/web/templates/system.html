@@ -237,6 +237,23 @@
       {% if p.href %}<a href="{{ p.href }}">{{ p.name }}</a>{% else %}<span>{{ p.name }}</span>
       <span class="small muted">(no parts-catalogue entry yet)</span>{% endif %}
       {% if p.image_fact %}{{ attest(vin, view, p.image_fact, "Add a photo") }}{% endif %}
+      {% if p.design %}{% set d = p.design %}
+      <div class="panel part-design" data-part-card="{{ p.key }}">
+        <h4>{{ p.name }}: design and checks <span class="chip plain">{{ d.provenance }}</span></h4>
+        <p class="small">{{ d.design }}</p>
+        <ul class="small">{% for x in d.threshold_labels %}<li>{{ x }}</li>{% endfor %}</ul>
+        <p class="small"><b>Orientation:</b> {{ d.orientation.rule }}
+          <span class="muted">{{ d.orientation.failure_example }}</span></p>
+        <p class="small"><b>Electrical:</b> {{ d.electrical.supply }} {{ d.electrical.check }}
+          <b>{{ d.electrical.warning }}</b></p>
+        <p class="small"><b>Tests:</b> {{ d.tests|join(" ") }}</p>
+        <p class="small muted"><b>Not documented:</b> {{ d.not_documented|join(" ") }}</p>
+        <p class="small muted"><b>ECM coverage</b> ({{ d.ecm_coverage_provenance }}): {{ d.ecm_coverage }}</p>
+        <p class="small muted"><b>Sources (outside literature):</b>
+          {% for s in d.sources %}{{ s.label }}{% if not loop.last %}; {% endif %}{% endfor %}.
+          Bench test sheet: <span class="mono">{{ d.bench_test_pdf }}</span></p>
+      </div>
+      {% endif %}
     </li>
     {% endfor %}
   </ul>
