@@ -257,3 +257,12 @@ Proof of any fix: the dealer small-leak test (or CUORE's read-only replica until
 - A part is condemned by a stimulus and a response, not by a code.
 
 Related: [[TSB Layer and Cross-Reference|TSB-Layer-and-Cross-Reference]], [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]].
+
+
+## ESIM replaced, 2026-10-22 (owner-attested)
+
+- New ESIM fitted with a **new gasket**. The previous ESIM (fitted 2026-09-02) had reused the **original gasket**.
+- Orientation changed: the previous ESIM was mounted **white cylinder down**; the new one is mounted **white cylinder up**.
+- Recorded on the EVAP job as owner-attested actions and linked as evidence for the ESIM seal/orientation/part hypothesis, now **supported, not confirmed**.
+- Proof of fix (readings only, no clearing): drive until the EVAP monitor completes, then read Mode 06 (0.090 in test TID 0x87 must reach at least 3965 ms, against 404 ms before; 0.020 in test TID 0x90 within its limit) and the P0440/P0455/P0456 status bytes with no fail bits.
+- Caveat: orientation and gasket changed together, so a fix will not show which one was the cause. No source states which way up is correct for this part; the monitor result decides.
