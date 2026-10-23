@@ -423,7 +423,7 @@ check_eq("by_code(ECM).request_hex", ecm.request_hex if ecm else None, "18DA10F1
 check_eq("by_code(ECM).response_hex", ecm.response_hex if ecm else None, "18DAF110")
 
 confirmed_codes = sorted(m.code for m in addressing.confirmed())
-check_eq("confirmed() codes", confirmed_codes, sorted(["ECM", "TCM", "BCM", "IPC", "RFHUB", "ABS"]))
+check_eq("confirmed() codes", confirmed_codes, sorted(["ECM", "TCM", "BCM", "IPC", "RFHUB", "ABS", "IHS62", "IHS65"]))
 
 sweep = addressing.sweep_candidates("can_c")
 check("sweep_candidates excludes tester 0xF1", 0xF1 not in sweep)

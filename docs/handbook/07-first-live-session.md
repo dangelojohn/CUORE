@@ -390,6 +390,8 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 |---|---|
 | HVAC | unverified |
 | ETM | unverified |
+| IHS62 | confirmed |
+| IHS65 | confirmed |
 | AMP | unknown |
 | ESEM | unknown |
 | CSWM | unknown |
@@ -412,6 +414,7 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 | ESL | unknown |
 
 <!-- cable-reference:end -->
+
 
 
 
