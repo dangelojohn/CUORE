@@ -29,7 +29,7 @@ The car already holds the BCM network codes **U1711 / U1712 / U1713**, a **B10AA
 1. No infotainment or CAN-tap work until after the **EVAP monitor proof run** and the **2026-10-28 dealer visit**, so a new code cannot be confused with an existing one.
 2. Record a **CUORE baseline** before the install (module list, all U-codes with status bytes, through a CUORE session) and a key-off sleep-current log of 20-30 minutes; repeat both after and compare.
 3. One change at a time; not on the same day as the mirror install. Never clear DASM, HALF, airbag or ABS codes afterwards.
-4. Read the radio software level from its menu first (bulletins 08-029-20 and 08-065-20 describe radio reboots on 2018-2019 Stelvios).
+4. Read the radio software level from its menu first. TSB 08-065-20 (radio reboots on 2018-2019 Stelvios; latest MV 090.000.061, USB update, not a wiTECH flash) was opened in full; the text of 08-029-20 was not found. Version history, the CarPlay/AA PROXI path, map updates and the DTC-clearing conflict with the EVAP proof rule: [`RADIO_SOFTWARE_AND_UI_OPTIONS.md`](https://github.com/dangelojohn/CUORE/blob/main/docs/research/RADIO_SOFTWARE_AND_UI_OPTIONS.md).
 
 ## Open questions for the owner
 

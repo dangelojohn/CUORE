@@ -1452,29 +1452,44 @@
    "nhtsa_id": "10166576",
    "title": "RAN RAP RAG and RSD 2.5 Radio Software Enhancements This bulletin involves inspecting and if required, updating the radio to software level MV 085.000.046. The customer should be informed that after the reprogram, the radio will need to have the phones paired to the Entertainment Telematics Module (ETM). The operative details for pairing telephones and settings are shown in the OwnerHandbook of the infotainment module. Some customers may experience one or more of the following:Radio may reboot while driving. Radio stays on if you exit the vehicle during a phone call. When the vehicle is remote started the radio will turn on at the previously set volume level.",
    "date": "2019-08-02",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT; ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10166576-9999 2019-08-02 (08-081-19). NHTSA flat-file records: MC-10166576-9999 2019-08-02 (08-081-19).",
-   "condition": null,
-   "remedy": null,
+   "summary": "Radio software bulletin for the 2.5 radios (sales codes RAN 8.8 nav, RAP 8.8, RSD SiriusXM, RAG 6.5). Update the ETM to MV 085.000.046 by USB stick from the radio menu. Applies to 2018-2019 (GA) Giulia and (GU) Stelvio, North America; GA built 2017-06-30 to 2019-03-06, GU built 2017-10-30 to 2019-03-06. Superseded by 08-065-20 (MV 090.000.061). NHTSA copy opened and read 2026-10-23 (PDF 10166576). Applicability to this car depends on build date and radio sales code: check by VIN.",
+   "condition": "Radio may reboot while driving; radio stays on if you exit the vehicle during a phone call; radio turns on at the previously set volume level after remote start. Inspection: ETM version at Settings > System > Software Update > Current Software; MV-002.009.059 or lower is an early 2.0 radio and this software will not load; MV 085.000.046 means already latest.",
+   "remedy": "Dealer downloads the files from DealerCONNECT > Service > UCONNECT Command Center > Uconnect > Dealer software downloads to a blank NTFS USB stick (contents of the folder, not the folder). With nothing else in the USB ports and the engine running, Settings > System > Software Update on the radio, insert the stick, OK; do not remove it or switch off the ignition; the radio reboots and phones must be re-paired; presets and settings may reset. Cars on MV-072.001.002 to MV-080.000.047 then need the map update (RAN only, USB port under the console armrest). On GU built 2017-10-30 to 2018-04-12 the BCM, AMP, ABS, IPC, PAM and LBSS/RBSS must be current. Step 15 of the map-update block says to clear all DTCs set by reprogramming (wiTECH offers this after any flash); the ETM-only path jumps to step 16. wiTECH is used for the diagnosis and the DTC clear, not for the radio flash.",
    "systems": [
     "Infotainment/cluster"
    ],
    "dtcs": [],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA PDF (08-081-19)",
      "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10166576-9999.pdf"
+    },
+    {
+     "label": "CUORE research note",
+     "url": "docs/research/RADIO_SOFTWARE_AND_UI_OPTIONS.md"
     }
    ],
    "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
-   "components": [],
-   "symptoms": [],
-   "repair_implied": null,
+   "source": "NHTSA PDF 10166576 (08-081-19) opened and read 2026-10-23; docs/research/RADIO_SOFTWARE_AND_UI_OPTIONS.md",
+   "verified": true,
+   "components": [
+    "ETM (Entertainment Telematics Module / radio), software level",
+    "USB flash drive, NTFS (blank, one per update)",
+    "Map update USB (RAN 3D nav only)",
+    "BCM, AMP, ABS, IPC, PAM, LBSS/RBSS software (must be current on GU built 2017-10-30 to 2018-04-12)"
+   ],
+   "symptoms": [
+    "Radio may reboot while driving",
+    "Radio stays on if you exit the vehicle during a phone call",
+    "Radio turns on at the previously set volume level after remote start"
+   ],
+   "repair_implied": "software_update",
    "depends_on_systems": [
     "infotainment_cluster"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "superseded_by": "08-065-20",
+   "applies_to": "2018-2019 (GA) Giulia and (GU) Stelvio, North America; GA built 2017-06-30 to 2019-03-06, GU built 2017-10-30 to 2019-03-06; radios RAN, RAP, RSD, RAG"
   },
   {
    "id": "tsb-9003220",
@@ -2070,25 +2085,38 @@
    "nhtsa_id": "10177540",
    "title": "RAN RAP RAG and RSD 2.5 Radio Software Enhancements This bulletin involves inspecting and if required, updating the radio to software level to MV 090.000.061The customer should be informed that after the reprogram, the radio will need to have the phones paired to theEntertainment Telematics Module (ETM). The operative details for pairing telephones and settings are shown in the Owner Handbook of the infotainment module. Some customers may experience one or more of the following: Radio may reboot while driving.Software update will help correct existing issue. Radio stays on if you exit the vehicle during a phone call. When the vehicle is remote started the radio will turn on at the previously set volume level.",
    "date": "2020-06-24",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: EQUIPMENT:ELECTRICAL:RADIO/TAPE DECK/CD ETC.; ELECTRICAL SYSTEM:SOFTWARE. NHTSA flat-file records: MC-10177540-9999 2020-06-24 (08-065-20); no-pdf record 10223595 2020-06-24 (0806520). Revisions seen: 08-065-20, 0806520. NHTSA flat-file records: MC-10177540-9999 2020-06-24 (08-065-20); no-pdf record 10223595 2020-06-24 (0806520). Revisions seen: 08-065-20, 0806520.",
-   "condition": null,
-   "remedy": null,
+   "summary": "Radio software bulletin for the 2.5 radios (sales codes RAN 8.8 nav, RAP 8.8, RSD SiriusXM, RAG 6.5). Update the ETM to MV 090.000.061 by USB stick from the radio menu; MV 090.000.061 is stated as the latest available software. Supersedes 08-081-19 (new software level, 2017 MY added to GA, revised build dates and labour operations). Applies to 2017-2019 (GA) Giulia and 2018-2019 (GU) Stelvio, North America; GA built 2017-06-30 to 2019-07-12, GU built 2017-10-30 to 2019-07-12. NHTSA copy opened and read 2026-10-23 (PDF 10177540). Applicability to this car depends on build date and radio sales code: check by VIN.",
+   "condition": "Radio may reboot while driving (software update will help correct the existing issue); radio stays on if you exit the vehicle during a phone call; radio turns on at the previously set volume level after remote start. Inspection: ETM version at Settings > System > Software Update > Current Software; MV-072.001.002 to MV 085.000.046 needs the update (and the map update for 072 to 080); MV 090.000.061 means already latest; MV-002.009.059 or lower is an early 2.0 radio and this software will not load.",
+   "remedy": "Dealer downloads the files from DealerCONNECT > Service > UCONNECT Command Center > Uconnect > Dealer software downloads to a blank NTFS USB stick (contents of the folder, not the folder). With nothing else in the USB ports and the engine running, Settings > System > Software Update on the radio, insert the stick, OK; do not remove it or switch off the ignition; the radio reboots and phones must be re-paired; presets and settings may reset. Cars on MV-072.001.002 to MV-080.000.047 then need the map update (RAN only, USB port under the console armrest). On GU built 2017-10-30 to 2018-04-12 the BCM, AMP, ABS, IPC, PAM and LBSS/RBSS must be current. Step 15 of the map-update block says to clear all DTCs set by reprogramming (wiTECH offers this after any flash); the ETM-only path jumps to step 16. wiTECH is used for the diagnosis and the DTC clear, not for the radio flash.",
    "systems": [
     "Infotainment/cluster"
    ],
    "dtcs": [],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA PDF (08-065-20)",
      "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10177540-9999.pdf"
+    },
+    {
+     "label": "CUORE research note",
+     "url": "docs/research/RADIO_SOFTWARE_AND_UI_OPTIONS.md"
     }
    ],
    "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
-   "components": [],
-   "symptoms": [],
-   "repair_implied": null,
+   "source": "NHTSA PDF 10177540 (08-065-20) opened and read 2026-10-23; docs/research/RADIO_SOFTWARE_AND_UI_OPTIONS.md",
+   "verified": true,
+   "components": [
+    "ETM (Entertainment Telematics Module / radio), software level",
+    "USB flash drive, NTFS (blank, one per update)",
+    "Map update USB (RAN 3D nav only)",
+    "BCM, AMP, ABS, IPC, PAM, LBSS/RBSS software (must be current on GU built 2017-10-30 to 2018-04-12)"
+   ],
+   "symptoms": [
+    "Radio may reboot while driving",
+    "Radio stays on if you exit the vehicle during a phone call",
+    "Radio turns on at the previously set volume level after remote start"
+   ],
+   "repair_implied": "software_update",
    "depends_on_systems": [
     "infotainment_cluster"
    ],
@@ -2096,7 +2124,9 @@
     "10177540",
     "10223595"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "supersedes": "08-081-19",
+   "applies_to": "2017-2019 (GA) Giulia and 2018-2019 (GU) Stelvio, North America; GA built 2017-06-30 to 2019-07-12, GU built 2017-10-30 to 2019-07-12; radios RAN, RAP, RSD, RAG"
   },
   {
    "id": "tsb-s2008000093",
