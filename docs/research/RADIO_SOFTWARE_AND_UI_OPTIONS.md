@@ -199,6 +199,8 @@ Plug-in CarPlay/Android Auto interfaces exist for the 6.5"/8.8" rotary units, e.
 
 ## 4. Map updates
 
+Superseding note: the official NA v1176 package route (portal, files, in-car steps, dealer DTC-clearing conflict) is now researched in [`NAV_MAP_UPDATE_2018_STELVIO.md`](NAV_MAP_UPDATE_2018_STELVIO.md); the portal was not loadable in this note, so prefer that file.
+
 - **Provider:** TomTom (TomTom's Connect 3D Nav page, [VENDOR]), delivered by USB.
 - **Official path in the bulletins:** map update is the second USB stick, RAN radios only, after the ETM update. Disable GPS clock sync and set time/date by hand first, run with engine on, re-enable GPS sync afterwards. If the ETM was already at 081.000.004 the map update is not needed [OFFICIAL-DOC 08-065-20].
 - **Owner route (forum):** [FORUM, SEARCH-SUMMARY]
