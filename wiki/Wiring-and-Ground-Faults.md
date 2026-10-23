@@ -55,3 +55,4 @@ Results go into the job as descriptive entries (what, when, values, meaning, nex
 - The score is meaningless on a handful of reads, and today only the BCM, ECM, DASM, RFHUB, IPC and DTCM have enough.
 - PID 42 is answered by the ECM and the TCM; only the ECM's value is recorded.
 - Code in this change has not been run on the car; restart the CUORE server to load it.
+- First load-step run, 2026-10-23 (1.6 Hz, engine idling): ECM and BCM voltage tracked the adapter within 0.05 V in every step, only the blower sagged the bus (0.57 V), so no extra feed/ground resistance showed for the ECM or BCM under those loads (inference; TCM and ABS untested). See `docs/research/LOAD_STEP_TEST_2026-10-23.md`.
