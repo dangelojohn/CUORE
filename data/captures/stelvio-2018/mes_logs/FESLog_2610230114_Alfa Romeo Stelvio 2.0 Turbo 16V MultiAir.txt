@@ -1,0 +1,710 @@
+(Multiecuscan 5.4)
+10/23/2026 1:13:10 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Service Interval Reset
+--------------------------------------------------------------
+
+ECU ISO code: 00 03 50 8B 14
+
+READING PARAMETERS:
+Odometer:  km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services:  
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period:  days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service:  km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service:  days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 142475 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+EXECUTING ADJUSTMENT...
+NEXT SERVICE KM RESET
+COMPLETED
+
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 148207 km
+Last service date: 09/12/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 10268.0 km
+Days till next service: 324 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 148207 km
+Last service date: 10/23/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 16000.0 km
+Days till next service: 365 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 148207 km
+Last service date: 10/23/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 16000.0 km
+Days till next service: 365 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 148207 km
+Last service date: 10/23/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 16000.0 km
+Days till next service: 365 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 148207 km
+Last service date: 10/23/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 16000.0 km
+Days till next service: 365 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 148207 km
+Last service date: 10/23/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 16000.0 km
+Days till next service: 365 days
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Distance after last service: 148207 km
+Last service date: 10/23/2026 
+Number of services: 0 
+Service interval: 16000 km
+Service period: 365 days
+Distance till next service: 16000.0 km
+Days till next service: 365 days
+

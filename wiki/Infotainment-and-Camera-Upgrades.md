@@ -38,3 +38,5 @@ Screen size (8.8" or 6.5", touch or non-touch); factory ParkView; Harman Kardon;
 ## Related
 
 [[Digital Rear-View Mirror|Digital-Rear-View-Mirror]] (route A is that job's product class), [[Safety Rules|Safety-Rules]], [[Recalls and Campaigns|Recalls-and-Campaigns]], [[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]], [[Guided Full Scan|Guided-Full-Scan]].
+
+MES logs of 2026-10-23 01:12 to 01:27 hold no radio (ETM) read, only the ETM fault U1736 in the IPC and BCM; IPC and other module software numbers are in [MES module reads](https://github.com/dangelojohn/CUORE/blob/main/docs/vehicles/ZASFAKPN5J7B88115/radio/MES_MODULE_READS_2026-10-23.md).

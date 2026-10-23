@@ -1,0 +1,300 @@
+(Multiecuscan 5.4)
+10/23/2026 1:16:10 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Instrument Panel Continental
+--------------------------------------------------------------
+
+ECU ISO code: 00 03 50 8B 14
+VIN code: ZASFAKPN5J7B88115
+FIAT drawing number: 50551318
+Hardware number: A2C11140400
+Hardware version: 01
+Software number: AR952 HL
+Software version: 203C
+Homologation number: 
+Functioning time (EEPROM): 240193
+Operating time: 240193
+Startups counter: 14644
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+
+READING ERROR CODES:
+No fault codes
+
+READING PARAMETERS:
+Odometer:  km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination:  
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature:  °C
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage:  V
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Engine speed: 0 rpm
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Engine speed: 0 rpm
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Engine speed: 0 rpm
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed:  km/h
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+
+READING PARAMETERS:
+Odometer: 148207.0 km
+Audible signal (Buzzer) volume: 2 
+Dashboard illumination: 4 
+External temperature: 9.0 °C
+Battery voltage: 11.7 V
+Fuel level: 50 %
+Engine speed: 0 rpm
+Vehicle speed: 0 km/h
+Seat belt alarm: Enabled 
+Gear engaged: P 
+

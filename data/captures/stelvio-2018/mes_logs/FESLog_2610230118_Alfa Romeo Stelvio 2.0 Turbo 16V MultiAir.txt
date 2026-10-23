@@ -1,0 +1,22 @@
+(Multiecuscan 5.4)
+10/23/2026 1:17:49 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)
+--------------------------------------------------------------
+
+ECU ISO code: 00 01 50 40 18
+VIN code: ZASFAKPN5J7B88115
+ECU serial number: TD4192427B17540
+Spare part number: 50544870
+Hardware number: MM10JAHW232
+Hardware version: 00
+Software number: P235QB39
+Software version: 0000
+Homologation number: FIBA00
+FIAT drawing number: 52055320
+Functioning time (EEPROM): 299301
+Operating time: 299376
+Startups counter: 14644
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+

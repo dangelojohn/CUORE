@@ -197,7 +197,7 @@ Background on what wiTECH 2.0 can do that MES/AlfaOBD cannot:
 Read only through CUORE sessions, one tester on the port, no clears. Full readings, verdict and raw files: `docs/research/SCAN_2026-10-23_POST_ESIM.md` and `data/captures/stelvio-2018/scans/2026-10-23_SCAN_2610230010/`. [CUORE] = reading; [OWNER] = owner-stated.
 
 **E1. Read date/time, odometer, fuel level %, ambient temp, ignition state:**
-2026-10-23 00:10 local. Odometer: 148,207 km (owner-stated, dashboard). CUORE did not read it (see the research doc); the P0455 freeze snapshot carries 146,879.1 km (DID 2001, medium confidence), which does not agree with it and is unverified. Fuel 45.9 % (PID 2F) / 46.7 % (DID 1001). Ambient 8 C (PID 46). [OWNER] ignition on, engine off, car on a 10 A charger, no adapter cable (CAN-C only). [CUORE] note: PID 0C read 750 rpm at the time, so the engine may have been idling.
+2026-10-23 00:10 local. Odometer: 148,207 km (owner-stated, dashboard); MES reading 2026-10-23 01:16 of the IPC: 148207.0 km (identical). CUORE did not read it (see the research doc); the P0455 freeze snapshot carries 146,879.1 km (DID 2001, medium confidence), which does not agree with it and is unverified. Fuel 45.9 % (PID 2F) / 46.7 % (DID 1001). Ambient 8 C (PID 46). [OWNER] ignition on, engine off, car on a 10 A charger, no adapter cable (CAN-C only). [CUORE] note: PID 0C read 750 rpm at the time, so the engine may have been idling.
 
 **E2. Module list and software versions** (last known in brackets):
 
@@ -206,14 +206,16 @@ Read only through CUORE sessions, one tester on the port, no clears. Full readin
 | ECM | part 50544870 / SW 52170619 / supplier P235QB39 / serial TD4192427B17540 / HW 52055320 MM10JAHW232 [52170619 / P235QB39] | F195 00 00 [0000]; F189 not supported | CUORE F187/F188/F194/F195/F18C/F191/F192, file 34, read 2026-10-23 |
 | BCM | part 50554114 / SW 52154912 / serial TD3692377101420 / HW 52058054 BCM949M_C02 [04441660441] | F194/F195 not returned; F189 not supported [1454]; identity read ended in CAN ERROR | CUORE file 35, read 2026-10-23 |
 | TCM | part 46337308 / SW 52119227 / supplier GK0902OE2HN / serial TF0662057729150 / HW 52097735 10344202761 | F195 00 03; F189 not supported | CUORE file 36, read 2026-10-23 |
-| IPC | part 50551318 (only F190 VIN and F187 returned) | not read | CUORE file 37, read 2026-10-23, CAN ERROR |
+| IPC | part 50551318 (only F190 VIN and F187 returned); MES: HW A2C11140400 ver 01 / SW AR952 HL ver 203C | MES software version 203C; CUORE not read (CAN ERROR) | CUORE file 37, read 2026-10-23, CAN ERROR; MES FESLog_2610230116, 01:16 (see `radio/MES_MODULE_READS_2026-10-23.md`) |
 | RFHUB | part 50544008 / SW 52091977 / supplier 10307064AB / serial T04Z22117E01040 / HW 52057995 10161500AA | F195 09 40; F189 not supported | CUORE file 38, read 2026-10-23 |
 | ABS | not read | not read | needs grey adapter / CAN-CH; silent to CUORE 10-15 |
-| DASM | not read | not read | no confirmed address |
-| DTCM (transfer case) | not read | not read | no confirmed address |
-| ESM / others | not read | not read | no confirmed address. No camera / ParkView / PAM module answered on CAN-C |
+| DASM | MES: HW MRR1evo14F ver 00 / SW 52081920 ver 0500 | MES software version 0500 | MES SCAN_2610230112, read 2026-10-23 01:12 (CUORE: not read) |
+| DTCM (transfer case) | MES: Magna Q4, HW M0045027.01 ver 21 / SW M0099947 ver 0501 | MES software version 0501 | MES SCAN_2610230112, read 2026-10-23 01:12 (CUORE: not read) |
+| ESM (gear shift module) | MES: ZF, HW 1000597140 ver 08 / SW 1000678050 ver 0019 | MES software version 0019 | MES SCAN_2610230112, read 2026-10-23 01:12 (CUORE: not read) |
+| Radio / nav (ETM) | not read | not read | no MES or CUORE log of the radio exists; IPC and BCM log the fault "Entertainment Telematic Module (ETM)" (U1736) |
+| Others | not read | not read | No camera / ParkView / PAM module answered on CAN-C |
 
-**E3. Current DTCs per module with status byte** (last known: ECM P0440 0xCD, P0455 0x4D, P0456 0x4D; BCM U1713-2F 0x0F; cleared 2026-10-19 00:39, so confirm what has returned):
+**E3. Current DTCs per module with status byte** (NOTE: a MES scan at 01:12 on 2026-10-23, after the 00:10 read, ended with a fault-code clear on ECM, IPC, BCM and DASM; so the 00:10 codes below are the pre-clear state and the EVAP proof restarted. Also an IPC service-interval reset at 01:13. See `radio/MES_MODULE_READS_2026-10-23.md`.) (last known: ECM P0440 0xCD, P0455 0x4D, P0456 0x4D; BCM U1713-2F 0x0F; cleared 2026-10-19 00:39, so confirm what has returned):
 ECM: P0440-00 0x4D, P0455-00 0x4D, P0456-00 0x4D (testFailed, pending, confirmed, testNotCompletedThisOperationCycle; MIL not requested). Mode 03 stored: none. Mode 07 pending: P0440 P0455 P0456. Mode 0A permanent: P0440 P0456. P0455 freeze frame: coolant 56 C, fuel 82.7 %. BCM: B101D-15 0x4D; B10AA-4A 0x08; B1176-97 0x08; U1736-87 0x08. IPC: U1736-86 0x0E; U1736-87 0x0E. TCM and RFHUB: none. U1711 / U1712 / U1713: ABSENT in every module (BCM U1713-2F is no longer present). DASM, DTCM, ESM, ABS: not read.
 
 **E4. Readiness monitors** (EVAP, catalyst, O2, EGR; MIL status; distance with MIL; warm-ups and km since last clear):

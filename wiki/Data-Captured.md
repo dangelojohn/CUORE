@@ -52,3 +52,5 @@ Module software and hardware identities read on 2026-10-23 (ECM, BCM, TCM, IPC, 
 - `data/captures/stelvio-2018/scans/2026-10-23_blue_can_ihs/`: CAN-IHS verify, 40-target discover (2 responders) and ID histograms from the blue-A5 session of 2026-10-23, with an `INDEX.md`.
 
 Related: [[Architecture]] (state directory), [[Project History|Project-History]].
+
+- `data/captures/stelvio-2018/mes_logs/` gained 6 logs on 2026-10-23 01:12 to 01:27 (a scan with a code clear, IPC service reset and parameters, ECM and BCM identity, one failed connect; no radio, HVAC or ABS read): [MES module reads](https://github.com/dangelojohn/CUORE/blob/main/docs/vehicles/ZASFAKPN5J7B88115/radio/MES_MODULE_READS_2026-10-23.md).
