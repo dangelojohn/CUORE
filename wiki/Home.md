@@ -24,7 +24,7 @@ CUORE advises and records. **The mechanic decides.** It never writes to the car 
 
 ## Status
 
-As of 2026-10-20 the project is a working bench application for one reference car, with a live link to the car proven on three buses. It has about 105 test scripts for the web app and live layer, 31 for the MES library, and a long list of documented limits ([[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]]). The reference car's EVAP (fuel vapour) fault is still under diagnosis; see [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]. Later the same day every non-EVAP code on the car was reviewed ([[Code Reviews|Code-Reviews]]), outside GitHub material was filed with its licences ([[External References and Licences|External-References-and-Licences]]), and the live layer gained a listen-only chassis decoder and several bench-tested fixes that have **not yet been run on the car**. Only the Alfa Romeo Stelvio data set exists today; the port to other marques is a roadmap item ([[Roadmap]]).
+As of 2026-10-22 the project is a working bench application for one reference car, with a live link to the car proven on three buses. It has about 105 test scripts for the web app and live layer, 31 for the MES library, and a long list of documented limits ([[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]]). The reference car's EVAP (fuel vapour) fault is still under diagnosis; see [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]. Later the same day every non-EVAP code on the car was reviewed ([[Code Reviews|Code-Reviews]]), outside GitHub material was filed with its licences ([[External References and Licences|External-References-and-Licences]]), and the live layer gained a listen-only chassis decoder and several bench-tested fixes that have **not yet been run on the car**. Only the Alfa Romeo Stelvio data set exists today; the port to other marques is a roadmap item ([[Roadmap]]). On 2026-10-22 the reference car's ESIM was replaced (owner-attested) and an export bundle for the AlfaCore shop platform was built and installed ([[AlfaCore Integration|AlfaCore-Integration]]); the EVAP proof run is still pending.
 
 ## Map of this wiki
 
@@ -46,6 +46,7 @@ As of 2026-10-20 the project is a working bench application for one reference ca
 - [[External References and Licences|External-References-and-Licences]]: what was copied from public projects, what was only noted, and why.
 - [[MES Integration|MES-Integration]]: working alongside MultiEcuScan.
 - [[MCP Servers and Claude|MCP-Servers-and-Claude]]: the conversational surface.
+- [[AlfaCore Integration|AlfaCore-Integration]]: the file bundle to the shop platform, export button, import module, live deployment, open pilot.
 
 **The reference case**
 - [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]: the full diagnostic story, readings kept apart from literature.

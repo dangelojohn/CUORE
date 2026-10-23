@@ -171,6 +171,8 @@ mcp-servers/
   tables, methods, roadmap.
 - [docs/reference/TSB_CATALOGUE.md](docs/reference/TSB_CATALOGUE.md): the
   bulletin catalogue in readable form.
+- [docs/integration/](docs/integration/README.md): CUORE to AlfaCore file bundle,
+  specs, and [the live deployment](docs/integration/ALFACORE_LIVE_DEPLOYMENT.md).
 - [docs/handbook/esim/ESIM_Bench_Test_Stelvio.pdf](docs/handbook/esim/ESIM_Bench_Test_Stelvio.pdf):
   the bench test sheet for the ESIM.
 - [CUORE.md](CUORE.md): purpose and maxim.

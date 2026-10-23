@@ -64,6 +64,7 @@ flooding, water ingress, a physical leak.
    wiring is good (`pdf/Stelvio ESIM Bench Test (1 page).pdf`).
 4. Open recalls, especially **25V586000** (fuel pump; replaces the fuel delivery module) and
    **18V636000** (2.0L ECM software update): `pdf/Stelvio Recalls and Campaigns.pdf`.
+   The dealer recall request list made 2026-10-20 is `pdf/Stelvio_Recall_Request.pdf`.
 5. After any fix: clear, drive several days (fuel 15-85 %, cold starts), then cuore
    `verify_repair` for P0455, P0456, P0440: all "passed since clear" confirms it.
 

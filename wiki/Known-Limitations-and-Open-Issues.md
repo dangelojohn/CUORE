@@ -55,7 +55,13 @@ From [[Code Reviews|Code-Reviews]]:
 
 ## Open issues in the reference case
 
-See [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]: the decisive tests (the ESIM hand-vacuum test, the flash check, an ESIM wiring and bench test) have not been done, and no component is yet proven faulty by a reading.
+See [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]: the decisive tests (the ESIM hand-vacuum test, the flash check, an ESIM wiring and bench test) have not been done, and no component is yet proven faulty by a reading. The ESIM was replaced on 2026-10-22 (owner-attested, white cylinder up); the fix is **not proven** until an EVAP monitor completes with no code clearing.
+
+## AlfaCore integration
+
+- The pilot (one real service order, CUORE export then AlfaCore import) has not been run. The bundle and the import module are tested, not yet used on a real order ([[AlfaCore Integration|AlfaCore-Integration]]).
+- Transfer is by a carried file only; there is no online sync, by design.
+- Password rotation on the shop NAS is outstanding; an optional Documents area in CUORE and the licence decision are open.
 
 ## Open items by area
 

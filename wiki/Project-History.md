@@ -52,6 +52,11 @@ A dated account assembled from the session records in [docs/sessions/](https://g
 - The findings enter the app as a per-code panel; job selection prefers a job with a SAFETY hypothesis; the vehicle page lists all open jobs (now two) ([[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]]).
 - The catalogue's recalls and notices are summarised, with 19V551, 18V205, 25V586 and the engine reflashes (18V636, W05) highlighted for VIN checks ([[Recalls and Campaigns|Recalls-and-Campaigns]]).
 
+**2026-10-22:**
+- **ESIM replaced** on the reference car (owner-attested): a new ESIM with a new gasket, mounted white cylinder up where the previous one was down. The EVAP job's ESIM hypothesis becomes "supported", not proven; the proof is a completed EVAP monitor with no code clearing ([[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]], [[ESIM Bench Test|ESIM-Bench-Test]]).
+- **Export bundle** (`cuore.bundle/1.0`, commit `29b8c13`): a `.cuore.zip` of a scan or job, an "Export for AlfaCore" button and `/api/export` routes, with the integration specs written in `docs/integration/` ([[AlfaCore Integration|AlfaCore-Integration]]).
+- **`alfa_core_cuore` installed** on the live AlfaCore (tested on a throwaway database, backed up, then installed). The dealer recall request list of 2026-10-20 is filed with the car's PDFs ([[Recalls and Campaigns|Recalls-and-Campaigns]]).
+
 ## Themes that run through the history
 
 1. **The evidence rule grew from experience.** Each correction (three smoke tests rather than two; a Giulia-only bulletin; a "pass" that was a reset value) led to a rule that data, not assertion, carries conclusions.

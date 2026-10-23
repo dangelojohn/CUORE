@@ -33,6 +33,7 @@ Not applicable by scope: 18V635 (Quadrifoglio coolant hose), 23V382 (carbon-cera
 - Each row is a checklist line per car (met, not met, or `vin_check`); the cross-reference relates a recall to the car's codes, repairs and hypotheses with a stated reason and a score, and says "VIN check needed" rather than "applies".
 - A recall appears in a hypothesis's mechanic steps as a **VIN check first, no tools**: for the EVAP case, 18V636, CSN W05 and 19V551; for the network cluster, 18V205 and 19V551 ([[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]]).
 - Outside the catalogue, a 2021 recall on a 2019 to 2021 brake part came up while researching the brake code; it is not this model year and is not in the catalogue.
+- The dealer's recall request list for the reference car (made 2026-10-20) is filed with the car's PDFs as `Stelvio_Recall_Request.pdf`.
 - The answer to each check is recorded on the job with its date, who looked it up, and the source.
 
 Related: [[TSB Layer and Cross-Reference|TSB-Layer-and-Cross-Reference]], [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]].

@@ -9,6 +9,8 @@ Citations look like `[MAP 9]` (section 9 of the model map) or `[CUORE 1.7]` (sec
 
 This file contains no credentials, addresses, hostnames or real VINs, and must stay that way (section 10).
 
+Live state (2026-10-22): the export bundle exists in CUORE and `alfa_core_cuore` is installed on the live AlfaCore. See [ALFACORE_LIVE_DEPLOYMENT.md](ALFACORE_LIVE_DEPLOYMENT.md).
+
 ---
 
 ## 1. Goals and non-goals

@@ -17,6 +17,7 @@
 - [[Passive Chassis Decoding|Passive-Chassis-Decoding]]
 - [[MES Integration|MES-Integration]]
 - [[MCP Servers and Claude|MCP-Servers-and-Claude]]
+- [[AlfaCore Integration|AlfaCore-Integration]]
 - [[External References and Licences|External-References-and-Licences]]
 
 **Reference case**

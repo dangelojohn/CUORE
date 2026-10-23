@@ -66,6 +66,12 @@ What the sources do **not** say, kept on the card so nobody assumes it: the iden
 
 **Why this sheet matters:** the part is gravity dependent, the fitted unit's orientation and port seating were never recorded, and the engine computer tracks no code for the switch circuit or the vent circuit ([[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]). The same checks appear in the fault tree as step **E9** (orientation against the drawing) and **E10** (back-probe, about 5 V falling to about 0 V under about 1 inch of vacuum), and as mechanic steps on any EVAP hypothesis that names the ESIM ([[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]]).
 
+## Status on the reference car, 2026-10-22 (owner-attested)
+
+The owner fitted a **new ESIM with a new gasket**, mounted **white cylinder up**; the previous unit had been **white cylinder down**. This is the owner's statement, not a CUORE reading. The EVAP job's ESIM hypothesis is now **supported, not proven**. Orientation and gasket changed together, so a fix will not say which mattered.
+
+Proof criteria (readings only, **no code clearing**): let the EVAP monitor complete, then Mode 06 MID 0x3A TID 0x87 must read at least **3965 ms** (last failing read 404 ms) and P0440, P0455 and P0456 must show no fail bits. See [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]].
+
 ## Safety
 
 Fuel vapour: no sparks, ventilated space, hand vacuum only, **never shop air** through the part. The part is read and tested; CUORE does not command it. See [[Safety Rules|Safety-Rules]].

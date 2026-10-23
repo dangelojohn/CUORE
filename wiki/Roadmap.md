@@ -31,6 +31,9 @@ CUORE is for a mechanic who specialises in cars that are loved, not merely drive
 8. **Hardware options:** second adapter, Bluetooth or Wi-Fi adapter, a native CAN interface for passive capture.
 9. Firewall rule and the pre-push hook install (owner action).
 10. Timeline and gauge improvements; label margin confirmation.
+11. **EVAP proof run** after the ESIM replacement of 2026-10-22: let the monitor complete with no code clearing, then read Mode 06 and the status bytes ([[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]).
+12. **AlfaCore pilot:** one real service order by file, export to import ([[AlfaCore Integration|AlfaCore-Integration]]). Also open: an optional Documents area in CUORE and the CUORE licence decision.
+13. On-car checks still waiting: the stale-reply audit, legislated reads after a UDS session (opt-in hard reset `CUORE_RESET_BEFORE_LEGISLATED=1`), a grey-cable ABS read and passive chassis read, and a body-computer voltage drop with a battery test.
 
 ## Port to Maserati and Ferrari
 
