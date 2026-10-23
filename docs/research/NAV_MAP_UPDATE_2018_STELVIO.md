@@ -5,7 +5,7 @@
 3. In-car steps per TSB 08-065-20: GPS clock sync off, engine running, MENU > Settings > System > Software Update, stick in the port below the armrest, OK, remove stick, sync back on.
 4. USB stick 16 GB or larger, NTFS per the research (TSB and stelvioforum). Source conflict: one owner reported success with exFAT on 32 GB, and Mac formats were reported to fail; FAT32 is not named by any source. [INFERENCE] FAT32 cannot hold the single 10.1 GB MAP21331.bin file (4 GB per-file limit), so use NTFS.
 5. The dealer map branch of the TSB includes "Clear all DTCs" (step 15). That conflicts with the EVAP proof rule (no clearing while the proof is pending). [INFERENCE, not sourced] An owner USB map update does not clear codes: the map files are NDS data, not module firmware, and no wiTECH flash is involved. Verify by reading the codes before and after.
-6. Download 2026-10-23: fetched by the project into Downloads\StelvioMap_NA_v1176 (size 10,868,879,360 bytes; SHA-256 to be added after verification). Not verified by this note.
+6. Download 2026-10-23: fetched by the project into Downloads\StelvioMap_NA_v1176 (size 10,868,879,360 bytes; SHA-256 c30186319a45e9152530ae8ea6b2302c8dc91c51cfeee0802a3ac69be3cefa85 (verified 2026-10-23 01:58, size matches server); licence file SHA-256 bf8fc26fad8281bb90a4c3a62c65adb40e3123b0696b0d11c00903cebe9539c7). Not verified by this note.
 
 Planned owner job: "Nav map update to NA v1176 by USB (owner)" (see the job store; no code clearing, record before/after map version).
 
