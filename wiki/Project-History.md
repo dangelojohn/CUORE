@@ -61,6 +61,7 @@ A dated account assembled from the session records in [docs/sessions/](https://g
 
 **2026-10-23:**
 - **First scan after the ESIM replacement** (scan SCAN_2610230010, 00:10, no clearing): EVAP proof INCOMPLETE, Mode 06 0x3A/0x87 at 496 ms against a minimum of 3707, P0440/P0455/P0456 pending and P0440/P0456 permanent, BCM U1711/U1712/U1713 absent since the clear; raw capture, AlfaCore bundle and dealer sheet section E filed ([[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]).
+- **MES backup audit (2025-10 turbo-replacement era):** the 2026-09-13 backup of 97 MES logs held no log the corpus lacked; the October 2025 Stelvio sessions after the owner-attested 2025-10-14 turbo job are simulation-mode, so the genuine record of that era is three ECM-only logs ([docs/research/MES_LOGS_2025-10_TURBO_ERA.md](https://github.com/dangelojohn/CUORE/blob/main/docs/research/MES_LOGS_2025-10_TURBO_ERA.md)).
 
 ## Themes that run through the history
 

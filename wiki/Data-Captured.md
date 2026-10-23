@@ -32,6 +32,9 @@ data/captures/stelvio-2018/
 
 **42 real files**: 23 live recordings and engineering sessions (`FESLog_*.txt`) and 19 scan reports (`SCAN_*.txt`) for this car, dating from 2025-09 to 2026-10. The snapshot first also held the simulation logs; **38 were removed on 2026-10-20** because they do not describe the car. **MES simulation-mode logs** (those whose banner reads "SIMULATION MODE ... NOT REAL") are **excluded**: they do not describe the car ([[MES Integration|MES-Integration]]).
 
+The September 2026 MES backup (97 logs) was audited on 2026-10-23 and added **no new logs**: all 25 genuine Stelvio logs in it were already held byte-for-byte, and the other 72 are simulation-mode or other cars ([docs/research/MES_LOGS_2025-10_TURBO_ERA.md](https://github.com/dangelojohn/CUORE/blob/main/docs/research/MES_LOGS_2025-10_TURBO_ERA.md)).
+Only three genuine logs predate 2026 (2025-09-24 and the two of 2025-10-14, all ECM only); every Stelvio session logged between 2025-10-15 and 2025-10-27 is a simulation, so P0456 is first seen 2025-09-24 and the BCM network codes only from 2026-06-07.
+
 Module software and hardware identities read on 2026-10-23 (ECM, BCM, TCM, IPC, RFHUB; the numbers wiTECH's Flash tab is compared against) are tabulated in [docs/vehicles/ZASFAKPN5J7B88115/MODULE_SOFTWARE_LEVELS.md](https://github.com/dangelojohn/CUORE/blob/main/docs/vehicles/ZASFAKPN5J7B88115/MODULE_SOFTWARE_LEVELS.md).
 
 ## How to use it
