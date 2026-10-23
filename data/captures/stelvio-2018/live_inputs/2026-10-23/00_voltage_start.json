@@ -1,0 +1,12 @@
+{
+ "endpoint": "GET /api/live/obd/voltage",
+ "timestamp": "2026-10-23T00:15:55",
+ "http_status": 200,
+ "body": {
+  "raw": "14.5V",
+  "volts": 14.5,
+  "vehicle_power_detected": true,
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

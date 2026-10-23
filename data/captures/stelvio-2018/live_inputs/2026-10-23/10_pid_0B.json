@@ -1,0 +1,25 @@
+{
+ "endpoint": "GET /api/live/obd/pid/0B",
+ "timestamp": "2026-10-23T00:16:18",
+ "http_status": 200,
+ "body": {
+  "pid": "0B",
+  "name": "intake_map",
+  "raw": "18DAF11003410B1F",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "0B",
+    "name": "intake_map",
+    "bytes": [
+     "1F"
+    ],
+    "unit": "kPa",
+    "value": 31
+   }
+  },
+  "value": 31,
+  "unit": "kPa",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

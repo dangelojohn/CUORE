@@ -72,4 +72,6 @@ All read-only or meter-only; none clears a code.
 
 Proof that the cluster is resolved is the group proof on [[Code Reviews|Code-Reviews]]: none of the codes on three reads over at least 21 days, one taken under the conditions that showed them.
 
+ECU and electrical-system health from the 2026-10-23 captures (modules, ECM internals, every voltage, B101D-15, U1736, owner tests): [ECU_AND_ELECTRICAL_HEALTH_2026-10-23.md](https://github.com/dangelojohn/CUORE/blob/main/docs/research/ECU_AND_ELECTRICAL_HEALTH_2026-10-23.md).
+
 Related: [[Vehicle Networks|Vehicle-Networks]], [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]].

@@ -1,0 +1,26 @@
+{
+ "endpoint": "GET /api/live/obd/pid/10",
+ "timestamp": "2026-10-23T00:16:23",
+ "http_status": 200,
+ "body": {
+  "pid": "10",
+  "name": "maf",
+  "raw": "18DAF1100441100149",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "10",
+    "name": "maf",
+    "bytes": [
+     "01",
+     "49"
+    ],
+    "unit": "g/s",
+    "value": 3.29
+   }
+  },
+  "value": 3.29,
+  "unit": "g/s",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

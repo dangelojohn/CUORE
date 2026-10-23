@@ -1,0 +1,606 @@
+{
+ "endpoint": "GET /api/live/snapshot",
+ "timestamp": "2026-10-23T00:20:40",
+ "http_status": 200,
+ "body": {
+  "active": true,
+  "channels": {
+   "engine_coolant_temp": {
+    "value": 87,
+    "unit": "C",
+    "alarm": "ok"
+   },
+   "short_fuel_trim_b1": {
+    "value": 0.0,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "long_fuel_trim_b1": {
+    "value": -2.344,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "short_fuel_trim_b2": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "long_fuel_trim_b2": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "fuel_pressure": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "intake_map": {
+    "value": 29,
+    "unit": "kPa",
+    "alarm": "ok"
+   },
+   "engine_rpm": {
+    "value": 753.0,
+    "unit": "rpm",
+    "alarm": "ok"
+   },
+   "vehicle_speed": {
+    "value": 0,
+    "unit": "km/h",
+    "alarm": "ok"
+   },
+   "timing_advance": {
+    "value": 5.5,
+    "unit": "deg",
+    "alarm": "ok"
+   },
+   "intake_air_temp": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "maf": {
+    "value": 3.29,
+    "unit": "g/s",
+    "alarm": "ok"
+   },
+   "throttle_position": {
+    "value": 11.765,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "o2_b1s1_voltage": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "runtime_since_start": {
+    "value": 1135,
+    "unit": "s",
+    "alarm": "ok"
+   },
+   "distance_with_mil": {
+    "value": 0,
+    "unit": "km",
+    "alarm": "ok"
+   },
+   "fuel_rail_pressure": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "commanded_evap_purge": {
+    "value": 0.0,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "fuel_level": {
+    "value": 46.667,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "warmups_since_clear": {
+    "value": 15,
+    "unit": "count",
+    "alarm": "ok"
+   },
+   "distance_since_clear": {
+    "value": 342,
+    "unit": "km",
+    "alarm": "ok"
+   },
+   "evap_vapor_pressure": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "barometric_pressure": {
+    "value": 100,
+    "unit": "kPa",
+    "alarm": "ok"
+   },
+   "control_module_voltage": {
+    "value": 14.312,
+    "unit": "V",
+    "alarm": "ok"
+   },
+   "absolute_load": {
+    "value": 20.392,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "commanded_afr": {
+    "value": 1.007,
+    "unit": "ratio",
+    "alarm": "ok"
+   },
+   "ambient_air_temp": {
+    "value": 8,
+    "unit": "C",
+    "alarm": "ok"
+   },
+   "fuel_type": {
+    "value": 1,
+    "unit": "code",
+    "alarm": "ok"
+   },
+   "ethanol_percent": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "evap_vapor_pressure_abs": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "engine_oil_temp": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "engine_fuel_rate": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "o2_sensors_present": {
+    "value": {
+     "bank1_sensor1": true,
+     "bank1_sensor2": true,
+     "bank1_sensor3": false,
+     "bank1_sensor4": false,
+     "bank2_sensor1": false,
+     "bank2_sensor2": false,
+     "bank2_sensor3": false,
+     "bank2_sensor4": false
+    },
+    "unit": "bitmap",
+    "alarm": "ok"
+   },
+   "o2_b1s2_voltage_trim": {
+    "value": {
+     "voltage_V": 0.725,
+     "stft_pct": 0.0
+    },
+    "unit": "V/%",
+    "alarm": "ok"
+   },
+   "obd_standard": {
+    "value": {
+     "code": 1,
+     "standard": "OBD-II (California ARB)"
+    },
+    "unit": "enum",
+    "alarm": "ok"
+   },
+   "commanded_egr": {
+    "value": 0.0,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "egr_error": {
+    "value": 0.0,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "o2_b1s1_wide_range": {
+    "value": {
+     "lambda": 0.9873,
+     "current_mA": 0.0
+    },
+    "unit": "lambda/mA",
+    "alarm": "ok"
+   },
+   "catalyst_temp_b1s1": {
+    "value": 355.0,
+    "unit": "C",
+    "alarm": "ok"
+   },
+   "pids_supported_41_60": {
+    "value": {
+     "supported": [
+      "41",
+      "42",
+      "43",
+      "44",
+      "45",
+      "46",
+      "47",
+      "49",
+      "4A",
+      "4C",
+      "51",
+      "54",
+      "59",
+      "60"
+     ],
+     "has_next": true
+    },
+    "unit": "bitmap",
+    "alarm": "ok"
+   },
+   "monitor_status_drive_cycle": {
+    "value": {
+     "mil_on": false,
+     "stored_dtc_count": 0,
+     "ignition": "spark",
+     "monitors": [
+      {
+       "monitor": "Comprehensive components",
+       "supported": true,
+       "complete": true
+      },
+      {
+       "monitor": "EGR system",
+       "supported": true,
+       "complete": false
+      }
+     ],
+     "all_complete": false
+    },
+    "unit": "bitmap",
+    "alarm": "ok"
+   },
+   "throttle_position_b": {
+    "value": 12.157,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "accelerator_pedal_d": {
+    "value": 20.0,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "accelerator_pedal_e": {
+    "value": 19.608,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "minutes_run_with_mil": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "minutes_since_codes_cleared": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "evap_vapor_pressure_signed": {
+    "value": 0.075,
+    "unit": "kPa",
+    "alarm": "ok"
+   },
+   "fuel_rail_pressure_abs": {
+    "value": 4150,
+    "unit": "kPa",
+    "alarm": "ok"
+   },
+   "pids_supported_61_80": {
+    "value": {
+     "supported": [
+      "68",
+      "6B",
+      "70",
+      "72"
+     ],
+     "has_next": false
+    },
+    "unit": "bitmap",
+    "alarm": "ok"
+   },
+   "engine_run_time": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "intake_air_temp_sensors": {
+    "value": {
+     "bitmap": 3,
+     "bank1_sensor1": 28,
+     "bank1_sensor2": 46
+    },
+    "unit": "C",
+    "alarm": "ok"
+   },
+   "egr_temperature": {
+    "value": {
+     "bitmap": 1,
+     "egr_temp_bank1_C": 2494.4
+    },
+    "unit": "C",
+    "alarm": "ok"
+   },
+   "boost_pressure_control": {
+    "value": {
+     "status": 2,
+     "commanded_boost_kPa": 0.0,
+     "actual_boost_kPa": 31.96
+    },
+    "unit": "kPa",
+    "alarm": "ok"
+   },
+   "wastegate_control": {
+    "value": {
+     "status": 3,
+     "commanded_pct": 0.0,
+     "actual_pct": 0.0
+    },
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "ecm_1000": {
+    "value": 755.0,
+    "unit": "rpm",
+    "alarm": "ok"
+   },
+   "ecm_1002": {
+    "value": 0.0,
+    "unit": "km/h",
+    "alarm": "ok"
+   },
+   "ecm_1003": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_1302": {
+    "value": 82.0,
+    "unit": "\u00b0C",
+    "alarm": "ok"
+   },
+   "ecm_130a": {
+    "value": 2.156862745098039,
+    "unit": "bar",
+    "alarm": "ok"
+   },
+   "ecm_195a": {
+    "value": -32.766999999999996,
+    "unit": "bar",
+    "alarm": "ok"
+   },
+   "ecm_1935": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_1955": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_192d": {
+    "value": 0.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_19bd": {
+    "value": 67.0,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "ecm_1001": {
+    "value": 46.666666666666664,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "ecm_1009": {
+    "value": 18.25,
+    "unit": "min",
+    "alarm": "ok"
+   },
+   "ecm_3a41": {
+    "value": 4.19,
+    "unit": "L",
+    "alarm": "ok"
+   },
+   "ecm_3a58": {
+    "value": 46.0,
+    "unit": "\u00b0C",
+    "alarm": "ok"
+   },
+   "ecm_1924": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_1925": {
+    "value": 0.3906309605554284,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "ecm_1926": {
+    "value": 1.0335286458333333,
+    "unit": "%",
+    "alarm": "ok"
+   },
+   "ecm_193a": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_193c": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_193d": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_1959": {
+    "value": -32.769,
+    "unit": "bar",
+    "alarm": "ok"
+   },
+   "ecm_195b": {
+    "value": 0.0317,
+    "unit": "V",
+    "alarm": "ok"
+   },
+   "ecm_1956": {
+    "value": -31767.0,
+    "unit": "mbar",
+    "alarm": "ok"
+   },
+   "ecm_192f": {
+    "value": 5.79,
+    "unit": "bar",
+    "alarm": "ok"
+   },
+   "ecm_192b": {
+    "value": 2.0078125,
+    "unit": "km/h",
+    "alarm": "ok"
+   },
+   "ecm_1b00": {
+    "value": 0.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_1b02": {
+    "value": 0.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_1923": {
+    "value": 34.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_2001": {
+    "value": 147144.7,
+    "unit": "km",
+    "alarm": "ok"
+   },
+   "ecm_2003": {
+    "value": 4.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ecm_2005": {
+    "value": 0.0,
+    "unit": "rpm",
+    "alarm": "ok"
+   },
+   "tcm_1018": {
+    "value": 6.0,
+    "unit": "Nm",
+    "alarm": "ok"
+   },
+   "tcm_04fe": {
+    "value": 35.0,
+    "unit": "\u00b0C",
+    "alarm": "ok"
+   },
+   "tcm_0518": {
+    "value": 32.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "tcm_0540": {
+    "value": 19.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "bcm_1004": {
+    "value": 14.5,
+    "unit": "V",
+    "alarm": "ok"
+   },
+   "bcm_1005": {
+    "value": null,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "bcm_0131": {
+    "value": 52.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "bcm_0133": {
+    "value": 0.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "ipc_0104": {
+    "value": 4.0,
+    "unit": "",
+    "alarm": "ok"
+   },
+   "rfhub_40b1_pressure": {
+    "value": 2.168,
+    "unit": "bar, \u00b0C",
+    "alarm": "ok"
+   },
+   "rfhub_40b1_temp": {
+    "value": 23.0,
+    "unit": "bar, \u00b0C",
+    "alarm": "ok"
+   },
+   "rfhub_40b2_pressure": {
+    "value": 1.976,
+    "unit": "bar, \u00b0C",
+    "alarm": "ok"
+   },
+   "rfhub_40b2_temp": {
+    "value": 20.0,
+    "unit": "bar, \u00b0C",
+    "alarm": "ok"
+   },
+   "rfhub_40b3_pressure": {
+    "value": 2.113,
+    "unit": "bar, \u00b0C",
+    "alarm": "ok"
+   },
+   "rfhub_40b3_temp": {
+    "value": 23.0,
+    "unit": "bar, \u00b0C",
+    "alarm": "ok"
+   },
+   "rfhub_40b4_pressure": {
+    "value": 2.086,
+    "unit": "bar, \u00b0C",
+    "alarm": "ok"
+   },
+   "rfhub_40b4_temp": {
+    "value": 19.0,
+    "unit": "bar, \u00b0C",
+    "alarm": "ok"
+   },
+   "battery_voltage": {
+    "value": 14.4,
+    "unit": "V",
+    "alarm": "ok"
+   },
+   "boost": {
+    "value": -70,
+    "unit": "kPa",
+    "alarm": "ok"
+   }
+  }
+ }
+}

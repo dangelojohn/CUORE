@@ -1,0 +1,8 @@
+{
+ "endpoint": "POST /api/live/record/start",
+ "timestamp": "2026-10-23T00:19:03",
+ "http_status": 200,
+ "body": {
+  "recording": "C:\\ProgramData\\cuore\\recordings\\live_20261023-001903.csv"
+ }
+}

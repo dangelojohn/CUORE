@@ -1,0 +1,8 @@
+{
+ "endpoint": "POST /api/live/session/stop",
+ "timestamp": "2026-10-23T00:20:50",
+ "http_status": 200,
+ "body": {
+  "stopped": true
+ }
+}

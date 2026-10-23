@@ -1,0 +1,25 @@
+{
+ "endpoint": "GET /api/live/obd/pid/03",
+ "timestamp": "2026-10-23T00:16:11",
+ "http_status": 200,
+ "body": {
+  "pid": "03",
+  "name": null,
+  "raw": "18DAF1100441030200",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "03",
+    "name": null,
+    "bytes": [
+     "02",
+     "00"
+    ],
+    "unit": "raw"
+   }
+  },
+  "value": null,
+  "unit": "raw",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

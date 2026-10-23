@@ -1,0 +1,32 @@
+{
+ "endpoint": "GET /api/live/obd/pid/15",
+ "timestamp": "2026-10-23T00:16:27",
+ "http_status": 200,
+ "body": {
+  "pid": "15",
+  "name": "o2_b1s2_voltage_trim",
+  "raw": "18DAF1100441159280",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "15",
+    "name": "o2_b1s2_voltage_trim",
+    "bytes": [
+     "92",
+     "80"
+    ],
+    "unit": "V/%",
+    "value": {
+     "voltage_V": 0.73,
+     "stft_pct": 0.0
+    }
+   }
+  },
+  "value": {
+   "voltage_V": 0.73,
+   "stft_pct": 0.0
+  },
+  "unit": "V/%",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

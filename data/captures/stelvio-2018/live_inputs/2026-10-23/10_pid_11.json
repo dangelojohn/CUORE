@@ -1,0 +1,25 @@
+{
+ "endpoint": "GET /api/live/obd/pid/11",
+ "timestamp": "2026-10-23T00:16:24",
+ "http_status": 200,
+ "body": {
+  "pid": "11",
+  "name": "throttle_position",
+  "raw": "18DAF1100341111E",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "11",
+    "name": "throttle_position",
+    "bytes": [
+     "1E"
+    ],
+    "unit": "%",
+    "value": 11.765
+   }
+  },
+  "value": 11.765,
+  "unit": "%",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

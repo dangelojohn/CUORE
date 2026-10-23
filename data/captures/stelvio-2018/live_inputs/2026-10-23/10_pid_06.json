@@ -1,0 +1,25 @@
+{
+ "endpoint": "GET /api/live/obd/pid/06",
+ "timestamp": "2026-10-23T00:16:15",
+ "http_status": 200,
+ "body": {
+  "pid": "06",
+  "name": "short_fuel_trim_b1",
+  "raw": "18DAF11003410681",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "06",
+    "name": "short_fuel_trim_b1",
+    "bytes": [
+     "81"
+    ],
+    "unit": "%",
+    "value": 0.781
+   }
+  },
+  "value": 0.781,
+  "unit": "%",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

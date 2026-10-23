@@ -1,0 +1,20 @@
+{
+ "endpoint": "GET /api/live/obd/pid/59",
+ "timestamp": "2026-10-23T00:21:58",
+ "http_status": 200,
+ "body": {
+  "pid": "59",
+  "name": "fuel_rail_pressure_abs",
+  "raw": "CAN ERROR",
+  "error": "ADAPTER/BUS ERROR: CAN ERROR; the read did not complete",
+  "bus": "can_c",
+  "cable": "none",
+  "route_fallback": {
+   "tried": [
+    "34",
+    "33"
+   ],
+   "answered_on": null
+  }
+ }
+}

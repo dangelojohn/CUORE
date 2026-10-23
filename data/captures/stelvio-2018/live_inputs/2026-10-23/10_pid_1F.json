@@ -1,0 +1,26 @@
+{
+ "endpoint": "GET /api/live/obd/pid/1F",
+ "timestamp": "2026-10-23T00:16:30",
+ "http_status": 200,
+ "body": {
+  "pid": "1F",
+  "name": "runtime_since_start",
+  "raw": "18DAF11004411F0386",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "1F",
+    "name": "runtime_since_start",
+    "bytes": [
+     "03",
+     "86"
+    ],
+    "unit": "s",
+    "value": 902
+   }
+  },
+  "value": 902,
+  "unit": "s",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

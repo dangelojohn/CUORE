@@ -1,0 +1,36 @@
+{
+ "endpoint": "GET /api/live/obd/pid/0C",
+ "timestamp": "2026-10-23T00:16:19",
+ "http_status": 200,
+ "body": {
+  "pid": "0C",
+  "name": "engine_rpm",
+  "raw": "18DAF11004410C0BC4\n18DAF11804410C0BC4",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "0C",
+    "name": "engine_rpm",
+    "bytes": [
+     "0B",
+     "C4"
+    ],
+    "unit": "rpm",
+    "value": 753.0
+   },
+   "18DAF118": {
+    "pid": "0C",
+    "name": "engine_rpm",
+    "bytes": [
+     "0B",
+     "C4"
+    ],
+    "unit": "rpm",
+    "value": 753.0
+   }
+  },
+  "value": 753.0,
+  "unit": "rpm",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

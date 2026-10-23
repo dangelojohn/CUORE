@@ -1,0 +1,43 @@
+{
+ "endpoint": "GET /api/live/obd/pid/13",
+ "timestamp": "2026-10-23T00:16:26",
+ "http_status": 200,
+ "body": {
+  "pid": "13",
+  "name": "o2_sensors_present",
+  "raw": "18DAF11003411303",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "13",
+    "name": "o2_sensors_present",
+    "bytes": [
+     "03"
+    ],
+    "unit": "bitmap",
+    "value": {
+     "bank1_sensor1": true,
+     "bank1_sensor2": true,
+     "bank1_sensor3": false,
+     "bank1_sensor4": false,
+     "bank2_sensor1": false,
+     "bank2_sensor2": false,
+     "bank2_sensor3": false,
+     "bank2_sensor4": false
+    }
+   }
+  },
+  "value": {
+   "bank1_sensor1": true,
+   "bank1_sensor2": true,
+   "bank1_sensor3": false,
+   "bank1_sensor4": false,
+   "bank2_sensor1": false,
+   "bank2_sensor2": false,
+   "bank2_sensor3": false,
+   "bank2_sensor4": false
+  },
+  "unit": "bitmap",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

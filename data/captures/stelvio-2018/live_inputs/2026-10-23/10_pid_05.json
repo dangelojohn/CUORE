@@ -1,0 +1,34 @@
+{
+ "endpoint": "GET /api/live/obd/pid/05",
+ "timestamp": "2026-10-23T00:16:14",
+ "http_status": 200,
+ "body": {
+  "pid": "05",
+  "name": "engine_coolant_temp",
+  "raw": "18DAF1100341057C\n18DAF1180341057C",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "05",
+    "name": "engine_coolant_temp",
+    "bytes": [
+     "7C"
+    ],
+    "unit": "C",
+    "value": 84
+   },
+   "18DAF118": {
+    "pid": "05",
+    "name": "engine_coolant_temp",
+    "bytes": [
+     "7C"
+    ],
+    "unit": "C",
+    "value": 84
+   }
+  },
+  "value": 84,
+  "unit": "C",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

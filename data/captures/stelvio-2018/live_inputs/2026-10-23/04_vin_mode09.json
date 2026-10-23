@@ -1,0 +1,13 @@
+{
+ "endpoint": "GET /api/live/obd/vin",
+ "timestamp": "2026-10-23T00:15:59",
+ "http_status": 200,
+ "body": {
+  "raw": "18DAF11010144902015A4153\n18DAF1102146414B504E354A\n18DAF1102237423838313135",
+  "vin": "ZASFAKPN5J7B88115",
+  "ecu": "18DAF110",
+  "length_ok": true,
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

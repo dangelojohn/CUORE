@@ -1,0 +1,10 @@
+{
+ "endpoint": "POST /api/live/record/stop",
+ "timestamp": "2026-10-23T00:20:40",
+ "http_status": 200,
+ "body": {
+  "stopped": true,
+  "path": "C:\\ProgramData\\cuore\\recordings\\live_20261023-001903.csv",
+  "rows": 4
+ }
+}

@@ -1,0 +1,34 @@
+{
+ "endpoint": "GET /api/live/obd/pid/0D",
+ "timestamp": "2026-10-23T00:16:20",
+ "http_status": 200,
+ "body": {
+  "pid": "0D",
+  "name": "vehicle_speed",
+  "raw": "18DAF11003410D00\n18DAF11803410D00",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "0D",
+    "name": "vehicle_speed",
+    "bytes": [
+     "00"
+    ],
+    "unit": "km/h",
+    "value": 0
+   },
+   "18DAF118": {
+    "pid": "0D",
+    "name": "vehicle_speed",
+    "bytes": [
+     "00"
+    ],
+    "unit": "km/h",
+    "value": 0
+   }
+  },
+  "value": 0,
+  "unit": "km/h",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

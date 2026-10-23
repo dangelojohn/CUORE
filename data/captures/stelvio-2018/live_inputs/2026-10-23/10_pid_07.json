@@ -1,0 +1,25 @@
+{
+ "endpoint": "GET /api/live/obd/pid/07",
+ "timestamp": "2026-10-23T00:16:17",
+ "http_status": 200,
+ "body": {
+  "pid": "07",
+  "name": "long_fuel_trim_b1",
+  "raw": "18DAF1100341077C",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "07",
+    "name": "long_fuel_trim_b1",
+    "bytes": [
+     "7C"
+    ],
+    "unit": "%",
+    "value": -3.125
+   }
+  },
+  "value": -3.125,
+  "unit": "%",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

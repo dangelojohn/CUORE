@@ -1,0 +1,38 @@
+{
+ "endpoint": "GET /api/live/obd/pid/01",
+ "timestamp": "2026-10-23T00:16:10",
+ "http_status": 200,
+ "body": {
+  "pid": "01",
+  "name": null,
+  "raw": "18DAF1100641010007E504\n18DAF11806410100040000",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "01",
+    "name": null,
+    "bytes": [
+     "00",
+     "07",
+     "E5",
+     "04"
+    ],
+    "unit": "raw"
+   },
+   "18DAF118": {
+    "pid": "01",
+    "name": null,
+    "bytes": [
+     "00",
+     "04",
+     "00",
+     "00"
+    ],
+    "unit": "raw"
+   }
+  },
+  "value": null,
+  "unit": "raw",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}

@@ -1,0 +1,25 @@
+{
+ "endpoint": "GET /api/live/obd/pid/0E",
+ "timestamp": "2026-10-23T00:16:22",
+ "http_status": 200,
+ "body": {
+  "pid": "0E",
+  "name": "timing_advance",
+  "raw": "18DAF11003410E8A",
+  "by_ecu": {
+   "18DAF110": {
+    "pid": "0E",
+    "name": "timing_advance",
+    "bytes": [
+     "8A"
+    ],
+    "unit": "deg",
+    "value": 5.0
+   }
+  },
+  "value": 5.0,
+  "unit": "deg",
+  "bus": "can_c",
+  "cable": "none"
+ }
+}
