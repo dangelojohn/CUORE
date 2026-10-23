@@ -1,0 +1,29 @@
+{
+  "step": "A8_freeze_pid0F",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/freeze?pid=0F",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:15",
+      "http_status": 200,
+      "elapsed_s": 1.78,
+      "problems": [
+        "/warning: no ECU returned a freeze frame (none stored, or ignition off)"
+      ]
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "0F",
+    "name": "intake_air_temp",
+    "raw": "NO DATA",
+    "by_ecu": {},
+    "warning": "no ECU returned a freeze frame (none stored, or ignition off)",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

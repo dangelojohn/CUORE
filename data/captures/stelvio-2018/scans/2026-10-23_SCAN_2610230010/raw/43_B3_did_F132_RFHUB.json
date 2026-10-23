@@ -1,0 +1,29 @@
+{
+  "step": "B3_did_F132_RFHUB",
+  "phase": "uds",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/module/RFHUB/did/F132?vin=ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:11:32",
+      "http_status": 200,
+      "elapsed_s": 1.34,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "ecu": "RFHUB",
+    "bus": "can_c",
+    "did": "F132",
+    "name": null,
+    "error": null,
+    "nrc": {
+      "18DAF1C7": "requestOutOfRange"
+    },
+    "cable": "none"
+  },
+  "note": "optional identity DID; NRC 31 is a normal answer; kind 'did'"
+}

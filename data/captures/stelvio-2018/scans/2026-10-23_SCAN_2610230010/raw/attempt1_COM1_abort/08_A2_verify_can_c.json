@@ -1,0 +1,28 @@
+{
+  "step": "A2_verify_can_c",
+  "phase": "legislated",
+  "method": "POST",
+  "url": "http://127.0.0.1:5000/api/live/verify",
+  "body": {
+    "bus": "can_c",
+    "seconds": 2.0
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:06:49",
+      "http_status": 503,
+      "elapsed_s": 0.31,
+      "problems": [
+        "/error: LinkUnavailable"
+      ]
+    }
+  ],
+  "http_status": 503,
+  "response": {
+    "error": "LinkUnavailable",
+    "detail": "could not open COM1@115200 (MES registry (Interface 0 Port), MES registry (Interface 0 Port Speed)): could not open port 'COM1': FileNotFoundError(2, 'The system cannot find the file specified.', None, 2).",
+    "status": 503
+  },
+  "note": "passive listen + one legislated 0100 probe; records which legislated route answers"
+}

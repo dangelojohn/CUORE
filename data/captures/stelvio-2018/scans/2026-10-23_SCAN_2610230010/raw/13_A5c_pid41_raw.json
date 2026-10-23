@@ -1,0 +1,75 @@
+{
+  "step": "A5c_pid41_raw",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/41",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:04",
+      "http_status": 200,
+      "elapsed_s": 0.81,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "41",
+    "name": "monitor_status_drive_cycle",
+    "raw": "18DAF110064141000480A5",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "41",
+        "name": "monitor_status_drive_cycle",
+        "bytes": [
+          "00",
+          "04",
+          "80",
+          "A5"
+        ],
+        "unit": "bitmap",
+        "value": {
+          "mil_on": false,
+          "stored_dtc_count": 0,
+          "ignition": "spark",
+          "monitors": [
+            {
+              "monitor": "Comprehensive components",
+              "supported": true,
+              "complete": true
+            },
+            {
+              "monitor": "EGR system",
+              "supported": true,
+              "complete": false
+            }
+          ],
+          "all_complete": false
+        }
+      }
+    },
+    "value": {
+      "mil_on": false,
+      "stored_dtc_count": 0,
+      "ignition": "spark",
+      "monitors": [
+        {
+          "monitor": "Comprehensive components",
+          "supported": true,
+          "complete": true
+        },
+        {
+          "monitor": "EGR system",
+          "supported": true,
+          "complete": false
+        }
+      ],
+      "all_complete": false
+    },
+    "unit": "bitmap",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

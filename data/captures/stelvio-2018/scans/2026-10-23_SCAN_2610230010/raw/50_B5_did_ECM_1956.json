@@ -1,0 +1,31 @@
+{
+  "step": "B5_did_ECM_1956",
+  "phase": "uds",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/module/ECM/did/1956?vin=ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:11:55",
+      "http_status": 200,
+      "elapsed_s": 1.22,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "ecu": "ECM",
+    "bus": "can_c",
+    "did": "1956",
+    "name": null,
+    "error": null,
+    "nrc": null,
+    "bytes": [
+      "03",
+      "E9"
+    ],
+    "cable": "none"
+  },
+  "note": "Ambient/barometric pressure"
+}

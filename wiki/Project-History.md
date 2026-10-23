@@ -59,6 +59,9 @@ A dated account assembled from the session records in [docs/sessions/](https://g
 - **Accessory belt job recorded** (owner-attested, not a reading): a new accessory (serpentine) belt is on site and ready to fit, install date not stated (likely with the rear pads). The owner sees and hears no reason to replace the tensioner or idler/pulley wheels. The job lists general-practice checks to do with the belt off (spin each pulley and the tensioner by hand, tensioner return, alignment and grooves, every rib seated), labelled as external reference.
 - **Oil change job recorded** (job `6d55b2e32b2a`, owner-attested, not a reading): an oil and filter change is planned for 2026-10-23, the same day as the rear pads and probably the belt. The job carries the spec from CUORE's own service data (0W-30 full synthetic, FCA/Mopar MS-13340 / API SN; 5.5 US qt with filter; Mopar filter 4892339; drain plug 20 Nm; filter cap 25 Nm; most single-source, gasket/O-ring parts not in CUORE), the MES reset route, a history note on the 2026-09-15 MES oil-change reset (two ECM adjustments logged COMPLETED, no odometer, so it does not show an oil change was actually done), a question to the owner for the last real oil change date and mileage, and the rule not to use any clear-DTC function while the EVAP proof is pending.
 
+**2026-10-23:**
+- **First scan after the ESIM replacement** (scan SCAN_2610230010, 00:10, no clearing): EVAP proof INCOMPLETE, Mode 06 0x3A/0x87 at 496 ms against a minimum of 3707, P0440/P0455/P0456 pending and P0440/P0456 permanent, BCM U1711/U1712/U1713 absent since the clear; raw capture, AlfaCore bundle and dealer sheet section E filed ([[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]).
+
 ## Themes that run through the history
 
 1. **The evidence rule grew from experience.** Each correction (three smoke tests rather than two; a Giulia-only bulletin; a "pass" that was a reset value) led to a rule that data, not assertion, carries conclusions.

@@ -1,0 +1,38 @@
+{
+  "step": "A9_pid2F",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/2F",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:39",
+      "http_status": 200,
+      "elapsed_s": 1.78,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "2F",
+    "name": "fuel_level",
+    "raw": "18DAF11003412F75",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "2F",
+        "name": "fuel_level",
+        "bytes": [
+          "75"
+        ],
+        "unit": "%",
+        "value": 45.882
+      }
+    },
+    "value": 45.882,
+    "unit": "%",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

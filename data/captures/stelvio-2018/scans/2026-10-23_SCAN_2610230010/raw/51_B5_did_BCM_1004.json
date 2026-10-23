@@ -1,0 +1,33 @@
+{
+  "step": "B5_did_BCM_1004",
+  "phase": "uds",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/module/BCM/did/1004?vin=ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:11:57",
+      "http_status": 200,
+      "elapsed_s": 1.2,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "ecu": "BCM",
+    "bus": "can_c",
+    "did": "1004",
+    "name": "Battery voltage",
+    "error": null,
+    "nrc": null,
+    "formula": "A/10",
+    "unit": "V",
+    "confidence": "unverified",
+    "bytes": [
+      "91"
+    ],
+    "cable": "none"
+  },
+  "note": "BCM battery voltage"
+}

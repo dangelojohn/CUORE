@@ -1,0 +1,33 @@
+{
+  "step": "B7_discover_DTCM_0x29",
+  "phase": "uds",
+  "method": "POST",
+  "url": "http://127.0.0.1:5000/api/live/discover",
+  "body": {
+    "bus": "can_c",
+    "vin": "ZASFAKPN5J7B88115",
+    "confirm": false,
+    "candidates": [
+      "29"
+    ],
+    "per_target_timeout": 0.6
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:11:59",
+      "http_status": 200,
+      "elapsed_s": 1.91,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "bus": "can_c",
+    "cable": "none",
+    "tried": 1,
+    "seconds": 1.3,
+    "hits": []
+  },
+  "note": "22 F190 at 18DA29F1 then identity DIDs. May persist a confirmed target to addresses.json (CUORE state, not the car)"
+}

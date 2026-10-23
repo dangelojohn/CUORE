@@ -1,0 +1,121 @@
+{
+  "plan": "scan_plan_2026-10-22.md",
+  "vin": "ZASFAKPN5J7B88115",
+  "base_url": "http://127.0.0.1:5000",
+  "run_started": "2026-10-23T00:06:44",
+  "run_finished": "2026-10-23T00:06:49",
+  "order": "preflight -> legislated -> uds -> voltage -> state reads",
+  "steps": [
+    {
+      "n": 1,
+      "step": "status",
+      "phase": "preflight",
+      "file": "01_status.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 2,
+      "step": "poller_session",
+      "phase": "preflight",
+      "file": "02_poller_session.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 3,
+      "step": "buses",
+      "phase": "preflight",
+      "file": "03_buses.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 4,
+      "step": "modules_can_c",
+      "phase": "preflight",
+      "file": "04_modules_can_c.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 5,
+      "step": "state_paths_observations",
+      "phase": "preflight",
+      "file": "05_state_paths_observations.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 6,
+      "step": "state_paths_audit",
+      "phase": "preflight",
+      "file": "06_state_paths_audit.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 7,
+      "step": "A1_adapter_voltage_ATRV_before",
+      "phase": "legislated",
+      "file": "07_A1_adapter_voltage_ATRV_before.json",
+      "http_status": 503,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 8,
+      "step": "A2_verify_can_c",
+      "phase": "legislated",
+      "file": "08_A2_verify_can_c.json",
+      "http_status": 503,
+      "clean": false,
+      "attempts": 1
+    }
+  ],
+  "issues": [
+    {
+      "n": 5,
+      "step": "state_paths_observations",
+      "http_status": 200,
+      "problems": [
+        "/entries[0]/data/since_clear/error: could not decode readiness response",
+        "/entries[0]/data/this_drive_cycle/error: could not decode readiness response"
+      ]
+    },
+    {
+      "n": 7,
+      "step": "A1_adapter_voltage_ATRV_before",
+      "http_status": 503,
+      "problems": [
+        "/error: LinkUnavailable"
+      ]
+    },
+    {
+      "n": 8,
+      "step": "A2_verify_can_c",
+      "http_status": 503,
+      "problems": [
+        "/error: LinkUnavailable"
+      ]
+    }
+  ],
+  "no_read_only_path": {
+    "uds_19_0A_reportSupportedDTC": "No CUORE function sends 19 0A. 19 02 with mask FF (step B1) already lists every DTC the module tracks with its status byte; 19 0A is not needed for the codes.",
+    "radio_ETM": "Radio/nav (ETM 0x6F) is registered on CAN-IHS; with cable 'none' CUORE has no route to CAN-IHS.",
+    "parkview_camera_PAM": "PAM (parking control) is registered on CAN-CH and its address is unknown; with cable 'none' CUORE has no route to CAN-CH. The only chance of seeing a camera/PAM node on CAN-C is the optional full address sweep (B8); a silent result is expected and is NOT evidence the module is absent.",
+    "DTCM_DASM_ESM_addresses": "DTCM (0x29, unverified), DASM and ESM (address unknown) have no confirmed address for this VIN (addresses.json holds only ABS), so /module/{code}/dtcs|identity return 400. Only POST /api/live/discover (B7/B8) can find them; HTTP discover probes 22 F190 only (ops.discover(probe_dids=...) exists in Python but is not on HTTP).",
+    "mode09_beyond_VIN": "Only Mode 09 PID 02 (VIN) has an ops/HTTP reader. Cal IDs/CVN/IUPR exist only inside fullscan (in-process mode09.read_mode09), which is on the forbidden list.",
+    "module_identity_store_kind": "HTTP /identity records kind 'identity'; kind 'module_identity' is written only by ops.sweep_bus_full (fullscan), not reachable read-only over HTTP."
+  },
+  "observations_path": "C:\\ProgramData\\cuore\\observations.jsonl",
+  "audit_path": "C:\\ProgramData\\cuore\\audit.jsonl",
+  "state_dir": "C:\\ProgramData\\cuore",
+  "aborted": "CAN-C did not verify (ignition on? plug seated? HS/MS switch?). Nothing else was sent."
+}

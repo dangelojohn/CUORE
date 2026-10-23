@@ -1,0 +1,1279 @@
+{
+ "baseline_name": "baseline_2026-10-19",
+ "vin": "ZASFAKPN5J7B88115",
+ "built": "2026-10-23",
+ "state_dir": "C:\\ProgramData\\cuore",
+ "files_read": [
+  "observations.jsonl",
+  "fullscan_last.json",
+  "live_snapshots.jsonl",
+  "addresses.json",
+  "jobs.jsonl",
+  "mes_clear_watch.json"
+ ],
+ "timeline": {
+  "last_cuore_full_sweeps": [
+   "SCAN_2610190023 (UDS sweep 2026-10-19T00:23:42)",
+   "SCAN_2610190029 (UDS sweep 2026-10-19T00:30:25, coverage 00:30:26)"
+  ],
+  "last_cuore_reading": "2026-10-19T00:34:06",
+  "mes_clear": "2026-10-19 00:39 (SCAN_2610190039 MES: ECM, DTCM, BCM, DASM cleared)",
+  "esim_replaced": "2026-10-22 (owner-attested)",
+  "caveat": "All values are PRE-CLEAR (00:23-00:34 on 10-19). Nothing in the CUORE store postdates the 00:39 clear. OBD-level reads (Mode 01/03/06/09) on 10-19 were NO DATA; their last decoded values are 2026-10-13/14."
+ },
+ "module_identity": {
+  "ECM": {
+   "bus": "can_c",
+   "can_tx": "18DA10F1",
+   "can_rx": "18DAF110",
+   "uds_target": "10",
+   "spare_part_F187": "50544870",
+   "ecu_sw_F188": "52170619",
+   "serial_F18C": "TD4192427B17540",
+   "hw_F191": "52055320",
+   "hw_F192": "MM10JAHW232",
+   "supplier_sw_F194": "P235QB39",
+   "sw_version_F189": null,
+   "vin_F190": "ZASFAKPN5J7B88115",
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 189,
+    "kind": "module_identity",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029",
+   "sw_version_note": "'ver 0000' for supplier SW P235QB39 is from the CEL doc / addressing.py (MES); store F195 returned 00 00."
+  },
+  "TCM": {
+   "bus": "can_c",
+   "can_tx": "18DA18F1",
+   "can_rx": "18DAF118",
+   "uds_target": "18",
+   "spare_part_F187": "46337308",
+   "ecu_sw_F188": "52119227",
+   "serial_F18C": "TF0662057729150",
+   "hw_F191": "52097735",
+   "hw_F192": "10344202761",
+   "supplier_sw_F194": "GK0902OE2HN",
+   "sw_version_F189": "requestOutOfRange",
+   "vin_F190": "ZASFAKPN5J7B88115",
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 192,
+    "kind": "module_identity",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029"
+  },
+  "BCM": {
+   "bus": "can_c",
+   "can_tx": "18DA40F1",
+   "can_rx": "18DAF140",
+   "uds_target": "40",
+   "spare_part_F187": "50554114",
+   "ecu_sw_F188": "52154912",
+   "serial_F18C": "TD3692377101420",
+   "hw_F191": "52058054",
+   "hw_F192": "BCM949M_C02",
+   "supplier_sw_F194": "04441660441",
+   "sw_version_F189": "requestOutOfRange",
+   "vin_F190": "ZASFAKPN5J7B88115",
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 195,
+    "kind": "module_identity",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029",
+   "sw_version_note": "'ver 1454' appears only in docs/research/CEL_2026-10-19_DIAGNOSIS.md line 4 (from MES); CUORE F189 answers requestOutOfRange. Not in store."
+  },
+  "IPC": {
+   "bus": "can_c",
+   "can_tx": "18DA60F1",
+   "can_rx": "18DAF160",
+   "uds_target": "60",
+   "spare_part_F187": "50551318",
+   "ecu_sw_F188": "52128619",
+   "serial_F18C": "TC4861807R07900",
+   "hw_F191": "52075458",
+   "hw_F192": "A2C11140400",
+   "supplier_sw_F194": "AR952 HL",
+   "sw_version_F189": "requestOutOfRange",
+   "vin_F190": "ZASFAKPN5J7B88115",
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 198,
+    "kind": "module_identity",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029"
+  },
+  "RFHUB": {
+   "bus": "can_c",
+   "can_tx": "18DAC7F1",
+   "can_rx": "18DAF1C7",
+   "uds_target": "C7",
+   "spare_part_F187": "50544008",
+   "ecu_sw_F188": "52091977",
+   "serial_F18C": "T04Z22117E01040",
+   "hw_F191": "52057995",
+   "hw_F192": "10161500AA",
+   "supplier_sw_F194": "10307064AB",
+   "sw_version_F189": "requestOutOfRange",
+   "vin_F190": "ZASFAKPN5J7B88115",
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 200,
+    "kind": "module_identity",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029"
+  },
+  "ABS": {
+   "bus": "can_ch",
+   "can_tx": "18DA2AF1",
+   "can_rx": "18DAF12A",
+   "uds_target": "2A",
+   "answered": false,
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 113,
+    "kind": "module_identity",
+    "at": "2026-10-15T00:12:43"
+   },
+   "note": "2026-10-15 00:12:43 sweep: no reply (needs grey A6 cable); address 2A from addresses.json discovery 2026-10-15 00:12. Identity fields all null."
+  }
+ },
+ "modules_not_reached_by_cuore": {
+  "DTCM": "no known address (CUORE: run discovery)",
+  "ESM": "same",
+  "DASM": "same",
+  "can_ihs (HVAC,ETM,AMP,ESEM,CSWM,CRSM,LBSS,RBSS,PLGM)": "needs blue A5 cable",
+  "can_ch (ABS,EPS,ORC,AFLS,PAM,HALF,TVM,ESL)": "needs grey A6 cable"
+ },
+ "dtcs_per_module": {
+  "ECM": {
+   "request": "UDS 19 02 mask FF",
+   "availability_mask": "CF",
+   "count": 121,
+   "status_by_code": {
+    "P0458-00": "0x40",
+    "P0459-00": "0x40",
+    "P16A1-00": "0x40",
+    "P1D7F-00": "0x40",
+    "P16A4-00": "0x40",
+    "P16A3-00": "0x40",
+    "P16A5-00": "0x40",
+    "P0039-00": "0x40",
+    "P0315-00": "0x40",
+    "P2262-00": "0x40",
+    "P1192-00": "0x40",
+    "P1191-00": "0x40",
+    "P26F2-00": "0x40",
+    "P0489-00": "0x40",
+    "P0490-00": "0x40",
+    "P0403-00": "0x40",
+    "P0139-00": "0x40",
+    "P0420-00": "0x40",
+    "P0133-00": "0x40",
+    "P0172-00": "0x40",
+    "P0171-00": "0x40",
+    "P1041-00": "0x40",
+    "P1045-00": "0x40",
+    "P1046-00": "0x40",
+    "P1043-00": "0x40",
+    "P1049-00": "0x40",
+    "P104A-00": "0x40",
+    "P1044-00": "0x40",
+    "P104B-00": "0x40",
+    "P104C-00": "0x40",
+    "P040B-00": "0x40",
+    "P0326-00": "0x40",
+    "P0457-00": "0x40",
+    "P1E22-00": "0x40",
+    "P1E24-00": "0x40",
+    "P0331-00": "0x40",
+    "P0531-00": "0x40",
+    "P2096-00": "0x40",
+    "P0451-00": "0x40",
+    "P0440-00": "0xCD",
+    "P2422-00": "0x40",
+    "P05BD-00": "0x40",
+    "P0096-00": "0x40",
+    "P007B-00": "0x40",
+    "P152F-00": "0x40",
+    "P01BA-00": "0x40",
+    "P0441-00": "0x40",
+    "P1CEA-00": "0x40",
+    "P2097-00": "0x40",
+    "P2183-00": "0x40",
+    "P2270-00": "0x40",
+    "P2271-00": "0x40",
+    "P013A-00": "0x40",
+    "P013B-00": "0x40",
+    "P0456-00": "0x4D",
+    "P0455-00": "0x4D",
+    "P219C-00": "0x40",
+    "P219D-00": "0x40",
+    "P219E-00": "0x40",
+    "P219F-00": "0x40",
+    "P04DB-00": "0x40",
+    "P0401-00": "0x40",
+    "P0402-00": "0x40",
+    "C0608-00": "0x40",
+    "P0461-00": "0x40",
+    "P050C-00": "0x40",
+    "P0128-00": "0x40",
+    "P164E-00": "0x40",
+    "P2B2F-00": "0x40",
+    "P2AC0-00": "0x40",
+    "P026E-00": "0x40",
+    "P015A-00": "0x40",
+    "P015B-00": "0x40",
+    "P2195-00": "0x40",
+    "P2196-00": "0x40",
+    "P2066-00": "0x40",
+    "C051C-00": "0x40",
+    "U1008-00": "0x40",
+    "P024B-00": "0x40",
+    "P024A-00": "0x40",
+    "P2610-00": "0x40",
+    "P1607-00": "0x40",
+    "P26E6-00": "0x40",
+    "P26E4-00": "0x40",
+    "P26E5-00": "0x40",
+    "P26F0-00": "0x40",
+    "P1515-00": "0x40",
+    "P0299-00": "0x40",
+    "P0234-00": "0x40",
+    "P1066-00": "0x40",
+    "P1068-00": "0x40",
+    "P106A-00": "0x40",
+    "P106C-00": "0x40",
+    "P2BC1-00": "0x40",
+    "P026A-00": "0x40",
+    "P2B83-00": "0x40",
+    "U04A0-00": "0x40",
+    "C0574-00": "0x40",
+    "P0472-00": "0x40",
+    "P0473-00": "0x40",
+    "P2454-00": "0x40",
+    "P2455-00": "0x40",
+    "U0684-00": "0x40",
+    "P0471-00": "0x40",
+    "P2453-00": "0x40",
+    "P226D-00": "0x40",
+    "P244B-00": "0x40",
+    "P24A4-00": "0x40",
+    "P0426-00": "0x40",
+    "P042B-00": "0x40",
+    "P2463-00": "0x40",
+    "P1D26-00": "0x40",
+    "P1D27-00": "0x40",
+    "P1D28-00": "0x40",
+    "P1D29-00": "0x40",
+    "P1D2A-00": "0x40",
+    "P1D2B-00": "0x40",
+    "P1D2C-00": "0x40",
+    "P1D2D-00": "0x40",
+    "P0425-00": "0x40",
+    "P042A-00": "0x40"
+   },
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 188,
+    "kind": "module_dtcs",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029",
+   "previous_sweep": {
+    "scan_id": "SCAN_2610190023",
+    "at": "2026-10-19T00:23:42",
+    "obs_line_0based": 138,
+    "count": 132,
+    "only_in_previous": [
+     "P00D2-00",
+     "P0111-00",
+     "P0116-00",
+     "P0196-00",
+     "P0199-00",
+     "P02EE-00",
+     "P02EF-00",
+     "P02F0-00",
+     "P02F1-00",
+     "P0521-00",
+     "P1212-00"
+    ],
+    "only_in_last": [],
+    "status_changed": {}
+   }
+  },
+  "TCM": {
+   "request": "UDS 19 02 mask FF",
+   "availability_mask": "CF",
+   "count": 45,
+   "status_by_code": {
+    "P1DAD-00": "0x40",
+    "P1DB7-00": "0x40",
+    "P1DCE-00": "0x40",
+    "P061B-00": "0x40",
+    "P1D8F-00": "0x40",
+    "P1D90-00": "0x40",
+    "P1D91-00": "0x40",
+    "P1D92-00": "0x40",
+    "P1D93-00": "0x40",
+    "P1D96-00": "0x40",
+    "P1D97-00": "0x40",
+    "P1D98-00": "0x40",
+    "P1D99-00": "0x40",
+    "P1D9A-00": "0x40",
+    "P1D9B-00": "0x40",
+    "P1D9C-00": "0x40",
+    "P1D9D-00": "0x40",
+    "P1D9E-00": "0x40",
+    "P1D9F-00": "0x40",
+    "P1DA0-00": "0x40",
+    "P1DA1-00": "0x40",
+    "P1DA2-00": "0x40",
+    "P1DA3-00": "0x40",
+    "P1DA4-00": "0x40",
+    "P1DA5-00": "0x40",
+    "P1DA6-00": "0x40",
+    "P1DA7-00": "0x40",
+    "P1DA8-00": "0x40",
+    "P0731-00": "0x40",
+    "P0732-00": "0x40",
+    "P0733-00": "0x40",
+    "P0734-00": "0x40",
+    "P0735-00": "0x40",
+    "P0729-00": "0x40",
+    "P076F-00": "0x40",
+    "P07D9-00": "0x40",
+    "P1D95-00": "0x40",
+    "P0606-00": "0x40",
+    "P1DB6-00": "0x40",
+    "P07E4-00": "0x40",
+    "P0219-00": "0x40",
+    "P1DCD-00": "0x40",
+    "P0716-00": "0x40",
+    "P215C-00": "0x40"
+   },
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 191,
+    "kind": "module_dtcs",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029",
+   "previous_sweep": {
+    "scan_id": "SCAN_2610190023",
+    "at": "2026-10-19T00:23:42",
+    "obs_line_0based": 141,
+    "count": 47,
+    "only_in_previous": [
+     "P0667-00",
+     "P06AC-00",
+     "P077E-00"
+    ],
+    "only_in_last": [],
+    "status_changed": {}
+   }
+  },
+  "BCM": {
+   "request": "UDS 19 02 mask FF",
+   "availability_mask": "4F",
+   "count": 148,
+   "status_by_code": {
+    "U1A20-09": "0x40",
+    "U1A18-87": "0x40",
+    "U1A18-86": "0x40",
+    "U1A17-87": "0x40",
+    "U1A10-87": "0x40",
+    "U1A10-86": "0x40",
+    "U1A07-87": "0x40",
+    "U1A01-87": "0x40",
+    "U197C-67": "0x40",
+    "U1930-86": "0x40",
+    "U1772-87": "0x40",
+    "U1770-87": "0x40",
+    "U1764-87": "0x40",
+    "U1764-86": "0x40",
+    "U1763-87": "0x40",
+    "U1763-86": "0x40",
+    "U1746-87": "0x40",
+    "U1746-86": "0x40",
+    "U1713-2F": "0x0F",
+    "U1710-86": "0x40",
+    "U1427-87": "0x40",
+    "U1427-86": "0x40",
+    "U1426-87": "0x40",
+    "U1418-87": "0x40",
+    "U1416-29": "0x40",
+    "U1413-87": "0x40",
+    "U1413-09": "0x40",
+    "U1412-87": "0x40",
+    "U1412-09": "0x40",
+    "U1411-29": "0x40",
+    "U0426-87": "0x40",
+    "U0426-64": "0x40",
+    "U0418-96": "0x40",
+    "U0249-87": "0x40",
+    "U0248-87": "0x40",
+    "U0248-86": "0x40",
+    "U0198-87": "0x40",
+    "U0198-86": "0x40",
+    "B1719-12": "0x40",
+    "B1718-12": "0x40",
+    "B1717-12": "0x40",
+    "B1701-11": "0x40",
+    "B1636-13": "0x40",
+    "B1636-11": "0x40",
+    "B1632-13": "0x40",
+    "B1632-11": "0x40",
+    "B162E-13": "0x40",
+    "B162E-11": "0x40",
+    "B162A-13": "0x40",
+    "B162A-11": "0x40",
+    "B12E3-12": "0x40",
+    "B12D3-12": "0x40",
+    "B12B2-11": "0x40",
+    "B110F-15": "0x40",
+    "B110F-11": "0x40",
+    "B110E-15": "0x40",
+    "B110E-11": "0x40",
+    "B1106-64": "0x40",
+    "B1092-12": "0x40",
+    "B1091-12": "0x40",
+    "B108D-12": "0x40",
+    "B108C-14": "0x40",
+    "B108C-12": "0x40",
+    "B1077-11": "0x40",
+    "B1074-96": "0x40",
+    "B1074-71": "0x40",
+    "B1074-62": "0x40",
+    "B1073-96": "0x40",
+    "B1073-71": "0x40",
+    "B1072-97": "0x40",
+    "B1072-96": "0x40",
+    "B1072-71": "0x40",
+    "B1061-14": "0x40",
+    "B1061-12": "0x40",
+    "B105F-64": "0x40",
+    "B105D-64": "0x40",
+    "B105B-64": "0x40",
+    "B105A-64": "0x40",
+    "B104D-71": "0x40",
+    "B104D-13": "0x40",
+    "B104C-13": "0x40",
+    "B104C-11": "0x40",
+    "B104B-11": "0x40",
+    "B1049-14": "0x40",
+    "B1049-12": "0x40",
+    "B1048-14": "0x40",
+    "B1048-12": "0x40",
+    "B1047-15": "0x40",
+    "B1047-11": "0x40",
+    "B1046-15": "0x40",
+    "B1046-11": "0x40",
+    "B1044-96": "0x40",
+    "B1044-86": "0x40",
+    "B1043-96": "0x40",
+    "B1043-86": "0x40",
+    "B1043-24": "0x40",
+    "B1041-96": "0x40",
+    "B1041-86": "0x40",
+    "B1040-96": "0x40",
+    "B1040-86": "0x40",
+    "B1040-24": "0x40",
+    "B1039-11": "0x40",
+    "B102C-15": "0x40",
+    "B102C-11": "0x40",
+    "B1023-13": "0x40",
+    "B1023-11": "0x40",
+    "B1022-13": "0x40",
+    "B1022-11": "0x40",
+    "B101F-11": "0x40",
+    "B101D-15": "0x40",
+    "B101D-11": "0x40",
+    "B101C-96": "0x40",
+    "B101B-96": "0x40",
+    "B101A-96": "0x40",
+    "B1019-96": "0x40",
+    "B1018-15": "0x40",
+    "B1018-11": "0x40",
+    "B1017-15": "0x40",
+    "B1017-11": "0x40",
+    "B1016-15": "0x40",
+    "B1016-11": "0x40",
+    "B1015-15": "0x40",
+    "B1015-11": "0x40",
+    "B1014-15": "0x40",
+    "B1014-11": "0x40",
+    "B1013-15": "0x40",
+    "B1013-11": "0x40",
+    "B1011-15": "0x40",
+    "B1011-11": "0x40",
+    "B1010-64": "0x40",
+    "B100E-13": "0x40",
+    "B100E-11": "0x40",
+    "B100C-15": "0x40",
+    "B100C-11": "0x40",
+    "B100B-92": "0x40",
+    "B100B-15": "0x40",
+    "B100B-11": "0x40",
+    "B100A-92": "0x40",
+    "B100A-15": "0x40",
+    "B100A-11": "0x40",
+    "B1008-13": "0x40",
+    "B1008-11": "0x40",
+    "B1007-13": "0x40",
+    "B1007-11": "0x40",
+    "B1000-47": "0x40",
+    "B1000-46": "0x40",
+    "B1000-45": "0x40",
+    "B1000-44": "0x40"
+   },
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 194,
+    "kind": "module_dtcs",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029",
+   "previous_sweep": {
+    "scan_id": "SCAN_2610190023",
+    "at": "2026-10-19T00:23:42",
+    "obs_line_0based": 144,
+    "count": 148,
+    "only_in_previous": [],
+    "only_in_last": [],
+    "status_changed": {}
+   }
+  },
+  "IPC": {
+   "request": "UDS 19 02 mask FF",
+   "availability_mask": "4F",
+   "count": 0,
+   "status_by_code": {},
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 197,
+    "kind": "module_dtcs",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029",
+   "previous_sweep": {
+    "scan_id": "SCAN_2610190023",
+    "at": "2026-10-19T00:23:42",
+    "obs_line_0based": 147,
+    "count": 0,
+    "only_in_previous": [],
+    "only_in_last": [],
+    "status_changed": {}
+   }
+  },
+  "RFHUB": {
+   "request": "UDS 19 02 mask FF",
+   "availability_mask": "CF",
+   "count": 0,
+   "status_by_code": {},
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 199,
+    "kind": "module_dtcs",
+    "at": "2026-10-19T00:30:25"
+   },
+   "scan_id": "SCAN_2610190029",
+   "previous_sweep": {
+    "scan_id": "SCAN_2610190023",
+    "at": "2026-10-19T00:23:42",
+    "obs_line_0based": 149,
+    "count": 0,
+    "only_in_previous": [],
+    "only_in_last": [],
+    "status_changed": {}
+   }
+  }
+ },
+ "dtcs_key_codes": {
+  "ECM": {
+   "P0440-00": "0xCD",
+   "P0455-00": "0x4D",
+   "P0456-00": "0x4D",
+   "P0441-00": "0x40",
+   "P0451-00": "0x40",
+   "P0457-00": "0x40",
+   "P0458-00": "0x40",
+   "P0459-00": "0x40",
+   "P0461-00": "0x40",
+   "P1CEA-00": "0x40",
+   "P2422-00": "0x40"
+  },
+  "BCM": {
+   "U1713-2F": "0x0F"
+  }
+ },
+ "dtc_detail_ecm_bcm": [
+  {
+   "ecu": "ECM",
+   "dtc": "P0440-00",
+   "status": "0xCD",
+   "flags": {
+    "testFailed": true,
+    "testFailedThisOperationCycle": false,
+    "pendingDTC": true,
+    "confirmedDTC": true,
+    "testNotCompletedSinceLastClear": false,
+    "testFailedSinceLastClear": false,
+    "testNotCompletedThisOperationCycle": true,
+    "warningIndicatorRequested": true
+   },
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 165,
+    "kind": "dtc_detail",
+    "at": "2026-10-19T00:25:35"
+   }
+  },
+  {
+   "ecu": "ECM",
+   "dtc": "P0455-00",
+   "status": "0x4D",
+   "flags": {
+    "testFailed": true,
+    "testFailedThisOperationCycle": false,
+    "pendingDTC": true,
+    "confirmedDTC": true,
+    "testNotCompletedSinceLastClear": false,
+    "testFailedSinceLastClear": false,
+    "testNotCompletedThisOperationCycle": true,
+    "warningIndicatorRequested": false
+   },
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 166,
+    "kind": "dtc_detail",
+    "at": "2026-10-19T00:25:36"
+   }
+  },
+  {
+   "ecu": "ECM",
+   "dtc": "P0456-00",
+   "status": "0x4D",
+   "flags": {
+    "testFailed": true,
+    "testFailedThisOperationCycle": false,
+    "pendingDTC": true,
+    "confirmedDTC": true,
+    "testNotCompletedSinceLastClear": false,
+    "testFailedSinceLastClear": false,
+    "testNotCompletedThisOperationCycle": true,
+    "warningIndicatorRequested": false
+   },
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 167,
+    "kind": "dtc_detail",
+    "at": "2026-10-19T00:25:38"
+   }
+  },
+  {
+   "ecu": "BCM",
+   "dtc": "U1713-2F",
+   "status": "0x0F",
+   "flags": {
+    "testFailed": true,
+    "testFailedThisOperationCycle": true,
+    "pendingDTC": true,
+    "confirmedDTC": true,
+    "testNotCompletedSinceLastClear": false,
+    "testFailedSinceLastClear": false,
+    "testNotCompletedThisOperationCycle": false,
+    "warningIndicatorRequested": false
+   },
+   "source": {
+    "store": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "obs_line_0based": 168,
+    "kind": "dtc_detail",
+    "at": "2026-10-19T00:25:39"
+   }
+  }
+ ],
+ "mes_00_39_list_reference": "CEL doc line 50 (MES, not CUORE): ECM P0455/P0456/P0440; BCM U1713-2F; DTCM U0100-87, U0422-86; DASM C1408-86, C141B-97, U1702-87, C141C-86",
+ "readiness_pids": {
+  "note": "Every OBD service read on 2026-10-19 (00:23 to 00:34) returned NO DATA (engine running 14.4 V, plain port). The last decoded readiness/PID/Mode 06 values are 2026-10-14 19:01 (after the 2026-10-14 08:59 clear, before the 2026-10-19 00:39 clear). They are the freshest in the store but predate the last clear and the ESIM replacement.",
+  "latest_attempts_no_data": [
+   {
+    "at": "2026-10-19T00:34:06",
+    "obs_line_0based": 221,
+    "result": "NO DATA for since_clear and this_drive_cycle"
+   }
+  ],
+  "last_decoded": {
+   "01 01 (monitor status since clear)": {
+    "at": "2026-10-14T19:01:26",
+    "obs_line_0based": 67,
+    "scan_id": null,
+    "scan_id_note": "standalone CUORE read, not under a SCAN_ id",
+    "value": {
+     "mil_on": false,
+     "stored_dtc_count": 0,
+     "ignition": "spark",
+     "monitors": [
+      {
+       "monitor": "Misfire",
+       "supported": true,
+       "complete": true
+      },
+      {
+       "monitor": "Fuel system",
+       "supported": true,
+       "complete": true
+      },
+      {
+       "monitor": "Comprehensive components",
+       "supported": true,
+       "complete": true
+      },
+      {
+       "monitor": "Catalyst",
+       "supported": true,
+       "complete": false
+      },
+      {
+       "monitor": "Evaporative system",
+       "supported": true,
+       "complete": false
+      },
+      {
+       "monitor": "Oxygen sensor",
+       "supported": true,
+       "complete": false
+      },
+      {
+       "monitor": "Oxygen sensor heater",
+       "supported": true,
+       "complete": true
+      },
+      {
+       "monitor": "EGR system",
+       "supported": true,
+       "complete": false
+      }
+     ],
+     "all_complete": false,
+     "ecu": "18DAF110"
+    },
+    "raw_bytes": "not in store (CUORE stores the decoded form only)"
+   },
+   "01 41 (monitor status this drive cycle)": {
+    "at": "2026-10-14T19:01:26",
+    "obs_line_0based": 67,
+    "value": {
+     "mil_on": false,
+     "stored_dtc_count": 0,
+     "ignition": "spark",
+     "monitors": [
+      {
+       "monitor": "Comprehensive components",
+       "supported": true,
+       "complete": true
+      },
+      {
+       "monitor": "EGR system",
+       "supported": true,
+       "complete": false
+      }
+     ],
+     "all_complete": false,
+     "ecu": "18DAF110"
+    }
+   },
+   "01 21 distance_with_mil": {
+    "value": 0,
+    "unit": "km",
+    "at": "2026-10-14T19:01:35",
+    "obs_line_0based": 71
+   },
+   "01 30 warmups_since_clear": {
+    "value": 4,
+    "unit": "count",
+    "at": "2026-10-14T19:01:35",
+    "obs_line_0based": 71
+   },
+   "01 31 distance_since_clear": {
+    "value": 9,
+    "unit": "km",
+    "at": "2026-10-14T19:01:35",
+    "obs_line_0based": 71
+   },
+   "01 4D (time with MIL on)": "not in store; PID 4D is not in the ECM supported list 41-60 (bitmap: 41 42 43 44 45 46 47 49 4A 4C 51 54 59 60)",
+   "01 4E (time since clear)": "not in store; PID 4E is not in the ECM supported list",
+   "evap_verdict_cuore": "EVAP monitor has NOT run since the last clear. Absence of an EVAP code right now carries no information. Complete the drive cycle first.",
+   "drive_cycle_counters": {
+    "warmups_since_clear": 4,
+    "distance_since_clear": 9
+   }
+  },
+  "earlier_with_data": {
+   "at": "2026-10-13T20:03:00",
+   "obs_line_0based": 43,
+   "since_clear": {
+    "mil_on": true,
+    "stored_dtc_count": 1,
+    "ignition": "spark",
+    "monitors": [
+     {
+      "monitor": "Misfire",
+      "supported": true,
+      "complete": true
+     },
+     {
+      "monitor": "Fuel system",
+      "supported": true,
+      "complete": true
+     },
+     {
+      "monitor": "Comprehensive components",
+      "supported": true,
+      "complete": true
+     },
+     {
+      "monitor": "Catalyst",
+      "supported": true,
+      "complete": true
+     },
+     {
+      "monitor": "Evaporative system",
+      "supported": true,
+      "complete": true
+     },
+     {
+      "monitor": "Oxygen sensor",
+      "supported": true,
+      "complete": true
+     },
+     {
+      "monitor": "Oxygen sensor heater",
+      "supported": true,
+      "complete": true
+     },
+     {
+      "monitor": "EGR system",
+      "supported": true,
+      "complete": true
+     }
+    ],
+    "all_complete": true,
+    "ecu": "18DAF110"
+   },
+   "this_drive_cycle": {
+    "mil_on": false,
+    "stored_dtc_count": 0,
+    "ignition": "spark",
+    "monitors": [
+     {
+      "monitor": "Comprehensive components",
+      "supported": true,
+      "complete": true
+     },
+     {
+      "monitor": "EGR system",
+      "supported": true,
+      "complete": false
+     }
+    ],
+    "all_complete": false,
+    "ecu": "18DAF110"
+   },
+   "counters": {
+    "warmups_since_clear": 8,
+    "distance_since_clear": 1663
+   },
+   "evap_verdict": "EVAP monitor has COMPLETED since the last clear; a clean scan is now meaningful for EVAP."
+  }
+ },
+ "mode06": {
+  "note": "Mode 06 on 2026-10-19 returned NO DATA (supported_00). Values below are the last decoded reads. On 2026-10-14 19:01 the ECM had just been cleared (08:59): 0x3A limits read 0/0, so CUORE's 'pass' there is a reset artefact. Treat value 0 with limits 0..0 as NOT RUN.",
+  "last_non_reset_2026-10-13T20:03:54": {
+   "obs_line_0based": 44,
+   "at": "2026-10-13T20:03:54",
+   "0x3A (0.090 in)": [
+    {
+     "mid": "3A",
+     "tid": "87",
+     "uasid": "10",
+     "unit": "ms",
+     "value": 404,
+     "min": 3965,
+     "max": 65535,
+     "passed": false
+    }
+   ],
+   "0x3C (0.020 in)": [
+    {
+     "mid": "3C",
+     "tid": "85",
+     "uasid": "34",
+     "unit": null,
+     "value": 0,
+     "min": 0,
+     "max": 0,
+     "passed": true
+    },
+    {
+     "mid": "3C",
+     "tid": "86",
+     "uasid": "12",
+     "unit": null,
+     "value": 0,
+     "min": 0,
+     "max": 0,
+     "passed": true
+    },
+    {
+     "mid": "3C",
+     "tid": "90",
+     "uasid": "10",
+     "unit": "ms",
+     "value": 6096,
+     "min": 0,
+     "max": 6000,
+     "passed": false
+    }
+   ],
+   "0x3D (purge flow)": [
+    {
+     "mid": "3D",
+     "tid": "A0",
+     "uasid": "30",
+     "unit": null,
+     "value": 65535,
+     "min": 19660,
+     "max": 65535,
+     "passed": true
+    },
+    {
+     "mid": "3D",
+     "tid": "A1",
+     "uasid": "FC",
+     "unit": null,
+     "value": 168,
+     "min": 57,
+     "max": 328,
+     "passed": true
+    }
+   ],
+   "0x39 (gross leak)": [
+    {
+     "mid": "39",
+     "tid": "87",
+     "uasid": "10",
+     "unit": "ms",
+     "value": 0,
+     "min": 0,
+     "max": 0,
+     "passed": true
+    }
+   ],
+   "raw_frames": {
+    "39": "18DAF110100A463987100000\n18DAF1102100000000000000",
+    "3A": "18DAF110100A463A87100194\n18DAF110210F7DFFFF000000",
+    "3C": "18DAF110101C463C85340000\n18DAF11021000000003C8612\n18DAF110220000000000003C\n18DAF11023901017D0000017\n18DAF1102470000000000000",
+    "3D": "18DAF1101013463DA030FFFF\n18DAF110214CCCFFFF3DA1FC\n18DAF1102200A80039014800"
+   },
+   "evap_summary": [
+    "EVAP monitor (cap off / gross leak): value 0 ms vs limit 0 ms -> PASS",
+    "EVAP monitor 0.090\" leak: value 404 ms vs limit 65535 ms -> FAIL",
+    "EVAP monitor 0.040\" leak: not supported by this ECU",
+    "EVAP monitor 0.020\" leak: value 0 vs limit 0 -> PASS",
+    "EVAP monitor 0.020\" leak: value 0 vs limit 0 -> PASS",
+    "EVAP monitor 0.020\" leak: value 6096 ms vs limit 6000 ms -> FAIL",
+    "EVAP purge flow monitor: value 65535 vs limit 65535 -> PASS",
+    "EVAP purge flow monitor: value 168 vs limit 328 -> PASS"
+   ],
+   "key": "0x3A/0x87 = 404 ms [3965..65535] FAIL; 0x3C/0x90 = 6096 ms [0..6000] FAIL"
+  },
+  "last_decoded_2026-10-14T19:01:28": {
+   "obs_line_0based": 69,
+   "at": "2026-10-14T19:01:28",
+   "0x3A (0.090 in)": [
+    {
+     "mid": "3A",
+     "tid": "87",
+     "uasid": "10",
+     "unit": "ms",
+     "value": 0,
+     "min": 0,
+     "max": 0,
+     "passed": true
+    }
+   ],
+   "0x3C (0.020 in)": [
+    {
+     "mid": "3C",
+     "tid": "85",
+     "uasid": "34",
+     "unit": null,
+     "value": 0,
+     "min": 0,
+     "max": 0,
+     "passed": true
+    },
+    {
+     "mid": "3C",
+     "tid": "86",
+     "uasid": "12",
+     "unit": null,
+     "value": 0,
+     "min": 0,
+     "max": 0,
+     "passed": true
+    },
+    {
+     "mid": "3C",
+     "tid": "90",
+     "uasid": "10",
+     "unit": "ms",
+     "value": 6000,
+     "min": 0,
+     "max": 6000,
+     "passed": true
+    }
+   ],
+   "0x3D (purge flow)": [
+    {
+     "mid": "3D",
+     "tid": "A0",
+     "uasid": "30",
+     "unit": null,
+     "value": 0,
+     "min": 0,
+     "max": 0,
+     "passed": true
+    },
+    {
+     "mid": "3D",
+     "tid": "A1",
+     "uasid": "FC",
+     "unit": null,
+     "value": 0,
+     "min": 0,
+     "max": 0,
+     "passed": true
+    }
+   ],
+   "0x39 (gross leak)": [
+    {
+     "mid": "39",
+     "tid": "87",
+     "uasid": "10",
+     "unit": "ms",
+     "value": 0,
+     "min": 0,
+     "max": 0,
+     "passed": true
+    }
+   ],
+   "raw_frames": {
+    "39": "18DAF110100A463987100000\n18DAF1102100000000000000",
+    "3A": "18DAF110100A463A87100000\n18DAF1102100000000000000",
+    "3C": "18DAF110101C463C85340000\n18DAF11021000000003C8612\n18DAF110220000000000003C\n18DAF1102390101770000017\n18DAF1102470000000000000",
+    "3D": "18DAF1101013463DA0300000\n18DAF11021000000003DA1FC\n18DAF1102200000000000000"
+   },
+   "evap_summary": [
+    "EVAP monitor (cap off / gross leak): value 0 ms vs limit 0 ms -> PASS",
+    "EVAP monitor 0.090\" leak: value 0 ms vs limit 0 ms -> PASS",
+    "EVAP monitor 0.040\" leak: not supported by this ECU",
+    "EVAP monitor 0.020\" leak: value 0 vs limit 0 -> PASS",
+    "EVAP monitor 0.020\" leak: value 0 vs limit 0 -> PASS",
+    "EVAP monitor 0.020\" leak: value 6000 ms vs limit 6000 ms -> PASS",
+    "EVAP purge flow monitor: value 0 vs limit 0 -> PASS",
+    "EVAP purge flow monitor: value 0 vs limit 0 -> PASS"
+   ],
+   "key": "0x3A/0x87 = 0 [0..0]; 0x3C/0x90 = 6000 [0..6000] (equals max): reset state"
+  },
+  "no_data_reads": [
+   {
+    "at": "2026-10-19T00:23:30",
+    "obs_line_0based": 133
+   },
+   {
+    "at": "2026-10-19T00:29:52",
+    "obs_line_0based": 183
+   }
+  ],
+  "supported_mids": "01 02 20 21 31 35 39 3A 3C 3D 40 41 42 60 80 81 A0 A2 A3 A4 A5 (0x3B 0.040 in NOT supported)"
+ },
+ "voltages": {
+  "ATRV_adapter": [
+   {
+    "value_V": 14.4,
+    "at": "2026-10-19T00:29:33",
+    "obs_line_0based": 173,
+    "scan_id": "SCAN_2610190029",
+    "engine": "running"
+   },
+   {
+    "value_V": 14.5,
+    "at": "2026-10-19T00:34:06",
+    "obs_line_0based": 221,
+    "note": "port reading quoted in the readiness warning text (latest)"
+   },
+   {
+    "value_V": 14.5,
+    "at": "2026-10-19T00:23:24",
+    "obs_line_0based": 123,
+    "scan_id": "SCAN_2610190023"
+   }
+  ],
+  "OBD_PID_42_control_module_voltage": {
+   "ECM_18DAF110_V": 14.25,
+   "TCM_18DAF118_V": 13.965,
+   "at": "2026-10-14T19:01:35",
+   "obs_line_0based": 71,
+   "note": "last PID 42; none on 2026-10-19 (OBD NO DATA)"
+  },
+  "BCM_DID_1004": [
+   {
+    "raw": "0x90",
+    "volts": 14.4,
+    "formula": "A/10 (unverified)",
+    "at": "2026-10-19T00:30:25",
+    "obs_line_0based": 196,
+    "scan_id": "SCAN_2610190029"
+   },
+   {
+    "raw": "0x91",
+    "volts": 14.5,
+    "at": "2026-10-19T00:33:36",
+    "obs_line_0based": 217,
+    "note": "latest, standalone read"
+   }
+  ],
+  "BCM_DID_1005_IBS_composite": {
+   "at": "2026-10-19T00:33:38",
+   "obs_line_0based": 218,
+   "bytes": [
+    "00",
+    "47",
+    "1F",
+    "00",
+    "00",
+    "3A",
+    "37",
+    "00",
+    "5E",
+    "2E",
+    "20",
+    "80",
+    "AF"
+   ],
+   "soc_B_pct": 71,
+   "temp_G_minus_40_C": 15,
+   "voltage_V": 14.76,
+   "current_A": 1.4,
+   "confidence": "unverified formulas"
+  },
+  "ECM_DID_19BD_IBS_SoC": {
+   "raw": "0x47",
+   "value_pct": 71,
+   "at": "2026-10-19T00:33:38",
+   "obs_line_0based": 219,
+   "formula": "A (unverified)",
+   "earlier": "62% 2026-10-13T20:09:08, 63% 2026-10-13T20:38:32 (live_snapshots.jsonl)"
+  }
+ },
+ "ecm_environment": {
+  "ambient_PID_46": {
+   "value_C": 14,
+   "at": "2026-10-14T19:01:35",
+   "obs_line_0based": 71,
+   "note": "last live read; none on 2026-10-19 (NO DATA)"
+  },
+  "IAT_live": "not in store (PID 0F not in the 2026-10-14 snapshot; PID 68 bitmap carried no values)",
+  "IAT_freeze_frame_DID_1935_C": {
+   "P0455": 17,
+   "P0456": 16,
+   "P0440": 10,
+   "at": "2026-10-19T00:25:35 to 00:25:38",
+   "obs_line_0based": "165-167",
+   "note": "from CEL doc table S1 (medium scaling confidence)"
+  },
+  "fuel_level_PID_2F_pct": {
+   "value": 93.725,
+   "at": "2026-10-14T19:01:35",
+   "obs_line_0based": 71
+  },
+  "fuel_level_freeze_frame_DID_1001_pct": {
+   "P0455": 91.76,
+   "P0456": 62.75,
+   "P0440": 55.69,
+   "raw": "EA, A0, 8E",
+   "at": "2026-10-19T00:25:35 to 00:25:38",
+   "obs_line_0based": "165-167"
+  },
+  "fuel_level_DID_1001_live_pct": {
+   "value": 17.647,
+   "at": "2026-10-13T20:38:32",
+   "source": "C:\\ProgramData\\cuore\\live_snapshots.jsonl"
+  },
+  "ECM_DID_1302_engine_oil_temp": {
+   "raw": "00 44",
+   "value_C_formula_B": 68,
+   "at": "2026-10-19T00:30:25",
+   "obs_line_0based": 190,
+   "scan_id": "SCAN_2610190029",
+   "confidence": "unverified"
+  },
+  "ECM_coolant_PID_05_C": {
+   "value": 72,
+   "at": "2026-10-14T19:01:35",
+   "obs_line_0based": 71
+  },
+  "ECM_PID_54_evap_vapor_pressure_kPa": {
+   "value": 0.0,
+   "at": "2026-10-14T19:01:35",
+   "obs_line_0based": 71
+  },
+  "ECM_PID_2E_commanded_purge_pct": {
+   "value": 0.0,
+   "at": "2026-10-14T19:01:35",
+   "obs_line_0based": 71
+  },
+  "PID_33_baro_kPa": {
+   "value": 99,
+   "at": "2026-10-14T19:01:35",
+   "obs_line_0based": 71
+  }
+ },
+ "status_legend": {
+  "availability_mask_ECM": "0xCF in all 5 full reads 2026-09-25..2026-10-19 (last: CF); bits b4 (0x10) and b5 (0x20) are NOT implemented by the ECM",
+  "availability_mask_last_sweep_by_module": {
+   "ECM": "CF",
+   "TCM": "CF",
+   "BCM": "4F",
+   "IPC": "4F",
+   "RFHUB": "CF"
+  },
+  "bits_CUORE_definition": {
+   "b0 0x01": "testFailed",
+   "b1 0x02": "testFailedThisOperationCycle",
+   "b2 0x04": "pendingDTC",
+   "b3 0x08": "confirmedDTC",
+   "b4 0x10": "testNotCompletedSinceLastClear",
+   "b5 0x20": "testFailedSinceLastClear",
+   "b6 0x40": "testNotCompletedThisOperationCycle",
+   "b7 0x80": "warningIndicatorRequested"
+  },
+  "source_file": "cuore/live/obd.py DTC_STATUS_BITS (ISO 14229 D.2) and decode_dtc_status; dtc_detail.py reports these flags per code",
+  "ecm_values_seen": "only 0x40 (b6), 0x4D (b0+b2+b3+b6), 0xCD (0x4D+b7). b1, b4, b5 never set. A code absent from a 19 02 FF list = 0x00 (test completed this cycle, no failure) or not tracked.",
+  "b4_clear_note": "b4 clear carries no information on this ECM (CEL doc)."
+ },
+ "evap_proof_criteria": {
+  "PASS": "Mode 06 0x3A/0x87 value >= 3965 ms AND no test-failed bits (b0 testFailed, b1 testFailedThisOperationCycle, b2 pendingDTC, b3 confirmedDTC) on P0440, P0455, P0456 (absent from the 19 02 list, or 0x40) AND EVAP readiness complete (01 01 'Evaporative system' complete).",
+  "INCOMPLETE": "EVAP monitor not yet run: 01 01 Evaporative not complete, or Mode 06 0x3A/0x87 reads 0 with limits 0..0 (reset state), or Mode 06 NO DATA. No verdict; keep driving, do not clear.",
+  "FAIL": "anything else, e.g. 0x3A/0x87 nonzero and < 3965, or any of b0/b1/b2/b3 set on P0440/P0455/P0456 after the monitor ran.",
+  "also_report": "0x3C/0x90 should be <= 6000 (was 6096); 0x3D purge flow; P0440 b7 lamp and MIL (01 01)."
+ }
+}

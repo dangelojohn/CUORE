@@ -1,0 +1,36 @@
+{
+  "step": "A8_freeze_pid05",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/freeze?pid=05",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:14",
+      "http_status": 200,
+      "elapsed_s": 0.84,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "05",
+    "name": "engine_coolant_temp",
+    "raw": "18DAF1100442050060",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "05",
+        "name": "engine_coolant_temp",
+        "bytes": [
+          "60"
+        ],
+        "unit": "C",
+        "value": 56
+      }
+    },
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

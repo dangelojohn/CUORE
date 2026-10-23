@@ -1,0 +1,81 @@
+{
+  "step": "buses",
+  "phase": "preflight",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/buses",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:06:45",
+      "http_status": 200,
+      "elapsed_s": 0.02,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "cable": "none",
+    "buses": [
+      {
+        "bus": "can_c",
+        "name": "CAN-C (diagnostic / powertrain)",
+        "pins": [
+          6,
+          14
+        ],
+        "bitrate": 500000,
+        "reachable_with_cable": true,
+        "route": {
+          "stn_protocol": "34",
+          "bitrate_override": null,
+          "status": "confirmed",
+          "note": "STP 34 (or STP 33 for the legislated 11-bit 7E0/7E8 pair); STPBRR expected 500000. On 2018+ Giorgio cars (Security Gateway Module) CAN-C is gateway-isolated: there is NO broadcast traffic on it at all, in either width -- a passive listen on STP 34 reading 0 frames does not mean the bus is dead. See the STP 33 route's note; ops.verify_bus() falls back to an active Mode 01 PID 00 probe for exactly this case."
+        },
+        "verified": false,
+        "verified_at": null,
+        "verified_frames": null,
+        "verified_by": null,
+        "transmit_needs_confirmation": false
+      },
+      {
+        "bus": "can_ihs",
+        "name": "CAN-IHS (body / comfort / infotainment)",
+        "pins": [
+          3,
+          11
+        ],
+        "bitrate": 125000,
+        "reachable_with_cable": true,
+        "route": {
+          "stn_protocol": "54",
+          "bitrate_override": null,
+          "status": "untested",
+          "note": "MS-CAN transceiver on adapter pins 3/11; verify STPRS changes and STPBRR reads 125000; auto-switch firmware may override"
+        },
+        "verified": false,
+        "verified_at": null,
+        "verified_frames": null,
+        "verified_by": null,
+        "transmit_needs_confirmation": false
+      },
+      {
+        "bus": "can_ch",
+        "name": "CAN-CH (chassis / ADAS / safety)",
+        "pins": [
+          12,
+          13
+        ],
+        "bitrate": 500000,
+        "reachable_with_cable": false,
+        "route": null,
+        "verified": false,
+        "verified_at": null,
+        "verified_frames": null,
+        "verified_by": null,
+        "transmit_needs_confirmation": true
+      }
+    ]
+  },
+  "note": ""
+}

@@ -1,0 +1,403 @@
+{
+  "step": "C5_scan_export_json_SCAN_2610230010",
+  "phase": "state",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/scans/ZASFAKPN5J7B88115/SCAN_2610230010/export?fmt=json",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:12:04",
+      "http_status": 200,
+      "elapsed_s": 0.03,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "id": "SCAN_2610230010",
+    "vin": "ZASFAKPN5J7B88115",
+    "started": "2026-10-23T00:10:02",
+    "ended": "2026-10-23T00:11:58",
+    "source": {
+      "stream": "serial COM3@115200",
+      "identity": {
+        "ecu": "ECM",
+        "bus": "can_c",
+        "fields": {
+          "F190": {
+            "name": "VIN",
+            "ascii": "ZASFAKPN5J7B88115",
+            "bytes": [
+              "5A",
+              "41",
+              "53",
+              "46",
+              "41",
+              "4B",
+              "50",
+              "4E",
+              "35",
+              "4A",
+              "37",
+              "42",
+              "38",
+              "38",
+              "31",
+              "31",
+              "35"
+            ],
+            "nrc": null
+          },
+          "F187": {
+            "name": "spare part",
+            "ascii": "50544870   ",
+            "bytes": [
+              "35",
+              "30",
+              "35",
+              "34",
+              "34",
+              "38",
+              "37",
+              "30",
+              "20",
+              "20",
+              "20"
+            ],
+            "nrc": null
+          },
+          "F188": {
+            "name": "ECU SW",
+            "ascii": "52170619   ",
+            "bytes": [
+              "35",
+              "32",
+              "31",
+              "37",
+              "30",
+              "36",
+              "31",
+              "39",
+              "20",
+              "20",
+              "20"
+            ],
+            "nrc": null
+          },
+          "F189": {
+            "name": "SW version",
+            "ascii": null,
+            "bytes": null,
+            "nrc": {
+              "18DAF110": "requestOutOfRange"
+            }
+          },
+          "F18C": {
+            "name": "serial",
+            "ascii": "TD4192427B17540",
+            "bytes": [
+              "54",
+              "44",
+              "34",
+              "31",
+              "39",
+              "32",
+              "34",
+              "32",
+              "37",
+              "42",
+              "31",
+              "37",
+              "35",
+              "34",
+              "30"
+            ],
+            "nrc": null
+          },
+          "F191": {
+            "name": "HW",
+            "ascii": "52055320   ",
+            "bytes": [
+              "35",
+              "32",
+              "30",
+              "35",
+              "35",
+              "33",
+              "32",
+              "30",
+              "20",
+              "20",
+              "20"
+            ],
+            "nrc": null
+          },
+          "F192": {
+            "name": "HW",
+            "ascii": "MM10JAHW232",
+            "bytes": [
+              "4D",
+              "4D",
+              "31",
+              "30",
+              "4A",
+              "41",
+              "48",
+              "57",
+              "32",
+              "33",
+              "32"
+            ],
+            "nrc": null
+          },
+          "F194": {
+            "name": "supplier SW",
+            "ascii": "P235QB39   ",
+            "bytes": [
+              "50",
+              "32",
+              "33",
+              "35",
+              "51",
+              "42",
+              "33",
+              "39",
+              "20",
+              "20",
+              "20"
+            ],
+            "nrc": null
+          },
+          "F195": {
+            "name": "supplier SW",
+            "ascii": null,
+            "bytes": [
+              "00",
+              "00"
+            ],
+            "nrc": null
+          }
+        },
+        "cable": "none"
+      }
+    },
+    "ecus": [
+      "18DAF110",
+      "18DAF118",
+      "BCM",
+      "DASM",
+      "DTCM",
+      "ECM",
+      "ESM",
+      "IPC",
+      "RFHUB",
+      "TCM"
+    ],
+    "dtcs": {
+      "stored": [
+        "B101D",
+        "B10AA",
+        "B1176",
+        "P0440",
+        "P0455",
+        "P0456",
+        "U1736"
+      ],
+      "pending": [
+        "P0440",
+        "P0455",
+        "P0456"
+      ],
+      "permanent": [
+        "P0440",
+        "P0456"
+      ]
+    },
+    "readiness": {
+      "since_clear": {
+        "mil_on": false,
+        "stored_dtc_count": 0,
+        "ignition": "spark",
+        "monitors": [
+          {
+            "monitor": "Misfire",
+            "supported": true,
+            "complete": true
+          },
+          {
+            "monitor": "Fuel system",
+            "supported": true,
+            "complete": true
+          },
+          {
+            "monitor": "Comprehensive components",
+            "supported": true,
+            "complete": true
+          },
+          {
+            "monitor": "Catalyst",
+            "supported": true,
+            "complete": true
+          },
+          {
+            "monitor": "Evaporative system",
+            "supported": true,
+            "complete": false
+          },
+          {
+            "monitor": "Oxygen sensor",
+            "supported": true,
+            "complete": true
+          },
+          {
+            "monitor": "Oxygen sensor heater",
+            "supported": true,
+            "complete": true
+          },
+          {
+            "monitor": "EGR system",
+            "supported": true,
+            "complete": true
+          }
+        ],
+        "all_complete": false,
+        "ecu": "18DAF110"
+      },
+      "this_drive_cycle": {
+        "mil_on": false,
+        "stored_dtc_count": 0,
+        "ignition": "spark",
+        "monitors": [
+          {
+            "monitor": "Comprehensive components",
+            "supported": true,
+            "complete": true
+          },
+          {
+            "monitor": "EGR system",
+            "supported": true,
+            "complete": false
+          }
+        ],
+        "all_complete": false,
+        "ecu": "18DAF110"
+      },
+      "evap_verdict": "EVAP monitor has NOT run since the last clear. Absence of an EVAP code right now carries no information. Complete the drive cycle first.",
+      "drive_cycle_counters": {
+        "warmups_since_clear": 14,
+        "distance_since_clear": 342
+      },
+      "bus": "can_c",
+      "cable": "none"
+    },
+    "mil": false,
+    "freeze_frames": [
+      {
+        "code": "P0455",
+        "ecu": "18DAF110",
+        "pids": [
+          {
+            "pid": "05",
+            "name": "Engine coolant temp",
+            "value": 56,
+            "unit": "C"
+          },
+          {
+            "pid": "46",
+            "name": "Ambient air temp",
+            "value": 10,
+            "unit": "C"
+          },
+          {
+            "pid": "2F",
+            "name": "Fuel level",
+            "value": 82.745,
+            "unit": "%"
+          }
+        ]
+      }
+    ],
+    "mode06": [
+      {
+        "mid": "3A",
+        "mid_name": "EVAP monitor 0.090\" leak",
+        "tid": "87",
+        "ecu": "18DAF110",
+        "unit": "ms",
+        "value": 496,
+        "min": 3707,
+        "max": 65535,
+        "passed": false
+      },
+      {
+        "mid": "3C",
+        "mid_name": "EVAP monitor 0.020\" leak",
+        "tid": "85",
+        "ecu": "18DAF110",
+        "unit": null,
+        "value": 4722,
+        "min": 0,
+        "max": 4200,
+        "passed": false
+      },
+      {
+        "mid": "3C",
+        "mid_name": "EVAP monitor 0.020\" leak",
+        "tid": "86",
+        "ecu": "18DAF110",
+        "unit": null,
+        "value": 15379,
+        "min": 0,
+        "max": 6000,
+        "passed": false
+      },
+      {
+        "mid": "3C",
+        "mid_name": "EVAP monitor 0.020\" leak",
+        "tid": "90",
+        "ecu": "18DAF110",
+        "unit": "ms",
+        "value": 6096,
+        "min": 0,
+        "max": 6000,
+        "passed": false
+      },
+      {
+        "mid": "3D",
+        "mid_name": "EVAP purge flow monitor",
+        "tid": "A0",
+        "ecu": "18DAF110",
+        "unit": null,
+        "value": 65535,
+        "min": 19660,
+        "max": 65535,
+        "passed": true
+      },
+      {
+        "mid": "3D",
+        "mid_name": "EVAP purge flow monitor",
+        "tid": "A1",
+        "ecu": "18DAF110",
+        "unit": null,
+        "value": 196,
+        "min": 63,
+        "max": 326,
+        "passed": true
+      }
+    ],
+    "pids": [],
+    "coverage": null,
+    "status": "partial",
+    "partial": true,
+    "counts": {
+      "observations": 38,
+      "stored": 7,
+      "pending": 3,
+      "permanent": 2,
+      "mode06_fail": 4
+    },
+    "number": null
+  },
+  "note": ""
+}

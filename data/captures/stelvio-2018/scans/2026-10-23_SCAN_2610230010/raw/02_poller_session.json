@@ -1,0 +1,31 @@
+{
+  "step": "poller_session",
+  "phase": "preflight",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/session",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:09:47",
+      "http_status": 200,
+      "elapsed_s": 0.02,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "active": false,
+    "channels": [],
+    "rates_hz": {},
+    "achieved_hz": {},
+    "elapsed_s": null,
+    "recording": null,
+    "error": null,
+    "multi_pid_supported": true,
+    "alarms": {},
+    "monitor_dtcs": false,
+    "dtc_interval_s": 10.0
+  },
+  "note": ""
+}

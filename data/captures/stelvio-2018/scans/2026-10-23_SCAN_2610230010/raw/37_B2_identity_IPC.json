@@ -1,0 +1,70 @@
+{
+  "step": "B2_identity_IPC",
+  "phase": "uds",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/module/IPC/identity?vin=ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:11:13",
+      "http_status": 200,
+      "elapsed_s": 2.17,
+      "problems": [
+        "/error: CAN ERROR"
+      ]
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "ecu": "IPC",
+    "bus": "can_c",
+    "fields": {
+      "F190": {
+        "name": "VIN",
+        "ascii": "ZASFAKPN5J7B88115",
+        "bytes": [
+          "5A",
+          "41",
+          "53",
+          "46",
+          "41",
+          "4B",
+          "50",
+          "4E",
+          "35",
+          "4A",
+          "37",
+          "42",
+          "38",
+          "38",
+          "31",
+          "31",
+          "35"
+        ],
+        "nrc": null
+      },
+      "F187": {
+        "name": "spare part",
+        "ascii": "50551318   ",
+        "bytes": [
+          "35",
+          "30",
+          "35",
+          "35",
+          "31",
+          "33",
+          "31",
+          "38",
+          "20",
+          "20",
+          "20"
+        ],
+        "nrc": null
+      }
+    },
+    "error": "CAN ERROR",
+    "cable": "none"
+  },
+  "note": "DIDs F190 F187 F188 F189 F18C F191 F192 F194 F195; kind 'identity'"
+}

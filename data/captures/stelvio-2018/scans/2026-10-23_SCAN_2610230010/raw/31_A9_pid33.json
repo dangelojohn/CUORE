@@ -1,0 +1,38 @@
+{
+  "step": "A9_pid33",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/33",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:47",
+      "http_status": 200,
+      "elapsed_s": 0.77,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "33",
+    "name": "barometric_pressure",
+    "raw": "18DAF11003413364",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "33",
+        "name": "barometric_pressure",
+        "bytes": [
+          "64"
+        ],
+        "unit": "kPa",
+        "value": 100
+      }
+    },
+    "value": 100,
+    "unit": "kPa",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

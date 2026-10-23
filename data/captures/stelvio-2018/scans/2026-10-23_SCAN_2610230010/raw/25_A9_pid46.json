@@ -1,0 +1,38 @@
+{
+  "step": "A9_pid46",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/46",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:32",
+      "http_status": 200,
+      "elapsed_s": 1.83,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "46",
+    "name": "ambient_air_temp",
+    "raw": "18DAF11003414630",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "46",
+        "name": "ambient_air_temp",
+        "bytes": [
+          "30"
+        ],
+        "unit": "C",
+        "value": 8
+      }
+    },
+    "value": 8,
+    "unit": "C",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

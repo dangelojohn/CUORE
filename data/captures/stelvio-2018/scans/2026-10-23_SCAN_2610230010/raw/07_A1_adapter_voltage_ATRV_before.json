@@ -1,0 +1,25 @@
+{
+  "step": "A1_adapter_voltage_ATRV_before",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/voltage",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:09:50",
+      "http_status": 200,
+      "elapsed_s": 0.7,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "raw": "14.5V",
+    "volts": 14.5,
+    "vehicle_power_detected": true,
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": "adapter ATRV; passive session; no bus traffic"
+}

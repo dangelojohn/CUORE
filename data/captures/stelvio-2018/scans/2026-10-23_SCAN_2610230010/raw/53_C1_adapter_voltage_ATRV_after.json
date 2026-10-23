@@ -1,0 +1,25 @@
+{
+  "step": "C1_adapter_voltage_ATRV_after",
+  "phase": "end",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/voltage",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:12:01",
+      "http_status": 200,
+      "elapsed_s": 0.59,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "raw": "14.5V",
+    "volts": 14.5,
+    "vehicle_power_detected": true,
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": "UDS finished; compare with A1 for charger/battery sag"
+}

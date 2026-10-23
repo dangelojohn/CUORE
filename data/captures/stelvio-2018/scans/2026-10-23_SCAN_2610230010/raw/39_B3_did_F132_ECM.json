@@ -1,0 +1,29 @@
+{
+  "step": "B3_did_F132_ECM",
+  "phase": "uds",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/module/ECM/did/F132?vin=ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:11:24",
+      "http_status": 200,
+      "elapsed_s": 1.84,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "ecu": "ECM",
+    "bus": "can_c",
+    "did": "F132",
+    "name": null,
+    "error": null,
+    "nrc": {
+      "18DAF110": "requestOutOfRange"
+    },
+    "cable": "none"
+  },
+  "note": "optional identity DID; NRC 31 is a normal answer; kind 'did'"
+}

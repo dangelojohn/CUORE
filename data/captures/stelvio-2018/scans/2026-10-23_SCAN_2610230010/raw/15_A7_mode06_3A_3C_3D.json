@@ -1,0 +1,166 @@
+{
+  "step": "A7_mode06_3A_3C_3D",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/mode06?mids=3A%2C3C%2C3D",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:10",
+      "http_status": 200,
+      "elapsed_s": 1.09,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "raw": {
+      "3A": "18DAF110100A463A871001F0\n18DAF110210E7BFFFF000000",
+      "3C": "18DAF110101C463C85341272\n18DAF11021000010683C8612\n18DAF110223C13000017703C\n18DAF11023901017D0000017\n18DAF1102470000000000000",
+      "3D": "18DAF1101013463DA030FFFF\n18DAF110214CCCFFFF3DA1FC\n18DAF1102200C4003F014600"
+    },
+    "supported": {
+      "requested": [
+        "3A",
+        "3C",
+        "3D"
+      ]
+    },
+    "results": {
+      "3A": {
+        "by_ecu": {
+          "18DAF110": [
+            {
+              "mid": "3A",
+              "mid_name": "EVAP monitor 0.090\" leak",
+              "tid": "87",
+              "uasid": "10",
+              "unit": "ms",
+              "value": 496,
+              "min": 3707,
+              "max": 65535,
+              "passed": false,
+              "raw": {
+                "value": 496,
+                "min": 3707,
+                "max": 65535,
+                "scaling": "known"
+              }
+            }
+          ]
+        }
+      },
+      "3C": {
+        "by_ecu": {
+          "18DAF110": [
+            {
+              "mid": "3C",
+              "mid_name": "EVAP monitor 0.020\" leak",
+              "tid": "85",
+              "uasid": "34",
+              "unit": null,
+              "value": 4722,
+              "min": 0,
+              "max": 4200,
+              "passed": false,
+              "raw": {
+                "value": 4722,
+                "min": 0,
+                "max": 4200,
+                "scaling": "unknown"
+              }
+            },
+            {
+              "mid": "3C",
+              "mid_name": "EVAP monitor 0.020\" leak",
+              "tid": "86",
+              "uasid": "12",
+              "unit": null,
+              "value": 15379,
+              "min": 0,
+              "max": 6000,
+              "passed": false,
+              "raw": {
+                "value": 15379,
+                "min": 0,
+                "max": 6000,
+                "scaling": "unknown"
+              }
+            },
+            {
+              "mid": "3C",
+              "mid_name": "EVAP monitor 0.020\" leak",
+              "tid": "90",
+              "uasid": "10",
+              "unit": "ms",
+              "value": 6096,
+              "min": 0,
+              "max": 6000,
+              "passed": false,
+              "raw": {
+                "value": 6096,
+                "min": 0,
+                "max": 6000,
+                "scaling": "known"
+              }
+            }
+          ]
+        }
+      },
+      "3D": {
+        "by_ecu": {
+          "18DAF110": [
+            {
+              "mid": "3D",
+              "mid_name": "EVAP purge flow monitor",
+              "tid": "A0",
+              "uasid": "30",
+              "unit": null,
+              "value": 65535,
+              "min": 19660,
+              "max": 65535,
+              "passed": true,
+              "raw": {
+                "value": 65535,
+                "min": 19660,
+                "max": 65535,
+                "scaling": "unknown"
+              }
+            },
+            {
+              "mid": "3D",
+              "mid_name": "EVAP purge flow monitor",
+              "tid": "A1",
+              "uasid": "FC",
+              "unit": null,
+              "value": 196,
+              "min": 63,
+              "max": 326,
+              "passed": true,
+              "raw": {
+                "value": 196,
+                "min": 63,
+                "max": 326,
+                "scaling": "unknown"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "evap_summary": [
+      "EVAP monitor (cap off / gross leak): not supported by this ECU",
+      "EVAP monitor 0.090\" leak: value 496 ms vs limit 65535 ms -> FAIL",
+      "EVAP monitor 0.040\" leak: not supported by this ECU",
+      "EVAP monitor 0.020\" leak: value 4722 vs limit 4200 -> FAIL",
+      "EVAP monitor 0.020\" leak: value 15379 vs limit 6000 -> FAIL",
+      "EVAP monitor 0.020\" leak: value 6096 ms vs limit 6000 ms -> FAIL",
+      "EVAP purge flow monitor: value 65535 vs limit 65535 -> PASS",
+      "EVAP purge flow monitor: value 196 vs limit 326 -> PASS"
+    ],
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": "store kind 'mode06'; explicit MIDs skip discovery"
+}

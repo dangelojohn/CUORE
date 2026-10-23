@@ -1,0 +1,32 @@
+{
+  "step": "B5_did_ECM_1955",
+  "phase": "uds",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/module/ECM/did/1955?vin=ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:11:51",
+      "http_status": 200,
+      "elapsed_s": 1.17,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "ecu": "ECM",
+    "bus": "can_c",
+    "did": "1955",
+    "name": "Battery voltage",
+    "error": null,
+    "nrc": {
+      "18DAF110": "requestOutOfRange"
+    },
+    "formula": "((A*256)+B)*(0.5/1000)",
+    "unit": "V",
+    "confidence": "unverified",
+    "cable": "none"
+  },
+  "note": "ECM battery voltage"
+}

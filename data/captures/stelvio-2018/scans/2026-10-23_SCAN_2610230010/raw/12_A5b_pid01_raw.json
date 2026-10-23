@@ -1,0 +1,51 @@
+{
+  "step": "A5b_pid01_raw",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/01",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:03",
+      "http_status": 200,
+      "elapsed_s": 0.84,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "01",
+    "name": null,
+    "raw": "18DAF1100641010007E504\n18DAF11806410100040000",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "01",
+        "name": null,
+        "bytes": [
+          "00",
+          "07",
+          "E5",
+          "04"
+        ],
+        "unit": "raw"
+      },
+      "18DAF118": {
+        "pid": "01",
+        "name": null,
+        "bytes": [
+          "00",
+          "04",
+          "00",
+          "00"
+        ],
+        "unit": "raw"
+      }
+    },
+    "value": null,
+    "unit": "raw",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

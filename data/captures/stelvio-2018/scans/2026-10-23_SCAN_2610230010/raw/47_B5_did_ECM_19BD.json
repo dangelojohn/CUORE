@@ -1,0 +1,33 @@
+{
+  "step": "B5_did_ECM_19BD",
+  "phase": "uds",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/module/ECM/did/19BD?vin=ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:11:49",
+      "http_status": 200,
+      "elapsed_s": 1.22,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "ecu": "ECM",
+    "bus": "can_c",
+    "did": "19BD",
+    "name": "IBS state of charge",
+    "error": null,
+    "nrc": null,
+    "formula": "A",
+    "unit": "%",
+    "confidence": "unverified",
+    "bytes": [
+      "43"
+    ],
+    "cable": "none"
+  },
+  "note": "IBS state of charge"
+}

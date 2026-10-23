@@ -1,0 +1,36 @@
+{
+  "step": "A9_pid4D",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/4D",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:22",
+      "http_status": 200,
+      "elapsed_s": 3.58,
+      "problems": [
+        "/warning: no ECU answered this PID; the port reads 14.4 V, so the engine is running: the ignition does NOT explain the silence. Check the adapter's bus access: HS/MS swit"
+      ]
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "4D",
+    "name": "minutes_run_with_mil",
+    "raw": "NO DATA",
+    "by_ecu": {},
+    "warning": "no ECU answered this PID; the port reads 14.4 V, so the engine is running: the ignition does NOT explain the silence. Check the adapter's bus access: HS/MS switch on HS, plug fully seated, no coloured cable fitted for CAN-C",
+    "bus": "can_c",
+    "cable": "none",
+    "route_fallback": {
+      "tried": [
+        "34",
+        "33"
+      ],
+      "answered_on": null
+    }
+  },
+  "note": ""
+}

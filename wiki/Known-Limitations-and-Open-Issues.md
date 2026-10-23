@@ -20,6 +20,7 @@ What CUORE cannot do or has not yet proven, as the repository records it. "Unkno
 | **Mode 06 test meanings** | What test IDs `3A`/`87` and `3C`/`90` measure on this computer is not published. |
 | **Status bits** | Bits b4 and b5 are not implemented by the reference engine computer, so "ran since the clear" cannot be read from the status byte. |
 | **Freeze-frame scaling** | Medium confidence. Purge duty, ambient and barometric values were not established in the raw bytes. |
+| **Adapter port fallback** | CUORE falls back to the MES registry port when `CUORE_OBD_PORT` is unset. On 2026-10-23 that produced COM1 and a 503 LinkUnavailable on every live call (the first scan attempt aborted before sending anything else). The fix is the user-level environment variable `CUORE_OBD_PORT=COM3`. |
 
 ## The non-EVAP code review: what it could not close
 

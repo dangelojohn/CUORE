@@ -1,0 +1,41 @@
+{
+  "step": "A8_freeze_dtc_pid02",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/freeze?pid=",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:12",
+      "http_status": 200,
+      "elapsed_s": 0.84,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "02",
+    "name": null,
+    "raw": "18DAF110054202000455\n18DAF118054202000000",
+    "by_ecu": {
+      "18DAF110": {
+        "dtc": "P0455",
+        "bytes": [
+          "04",
+          "55"
+        ]
+      },
+      "18DAF118": {
+        "dtc": null,
+        "bytes": [
+          "00",
+          "00"
+        ]
+      }
+    },
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

@@ -1,0 +1,49 @@
+{
+  "step": "A9_pid21",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/21",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:20",
+      "http_status": 200,
+      "elapsed_s": 0.75,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "21",
+    "name": "distance_with_mil",
+    "raw": "18DAF1100441210000\n18DAF1180441210000",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "21",
+        "name": "distance_with_mil",
+        "bytes": [
+          "00",
+          "00"
+        ],
+        "unit": "km",
+        "value": 0
+      },
+      "18DAF118": {
+        "pid": "21",
+        "name": "distance_with_mil",
+        "bytes": [
+          "00",
+          "00"
+        ],
+        "unit": "km",
+        "value": 0
+      }
+    },
+    "value": 0,
+    "unit": "km",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

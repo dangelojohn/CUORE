@@ -1,0 +1,49 @@
+{
+  "step": "A9_pid42",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/42",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:30",
+      "http_status": 200,
+      "elapsed_s": 1.83,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "42",
+    "name": "control_module_voltage",
+    "raw": "18DAF11004414237E8\n18DAF11804414236EE",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "42",
+        "name": "control_module_voltage",
+        "bytes": [
+          "37",
+          "E8"
+        ],
+        "unit": "V",
+        "value": 14.312
+      },
+      "18DAF118": {
+        "pid": "42",
+        "name": "control_module_voltage",
+        "bytes": [
+          "36",
+          "EE"
+        ],
+        "unit": "V",
+        "value": 14.062
+      }
+    },
+    "value": 14.312,
+    "unit": "V",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

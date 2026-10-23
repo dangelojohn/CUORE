@@ -1,0 +1,31 @@
+{
+  "step": "state_paths_audit",
+  "phase": "preflight",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/audit?n=1",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:06:47",
+      "http_status": 200,
+      "elapsed_s": 0.05,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "path": "C:\\ProgramData\\cuore\\audit.jsonl",
+    "entries": [
+      {
+        "ts": 1792384446.9203365,
+        "iso": "2026-10-19T00:34:06-04:00",
+        "event": "session_close",
+        "purpose": "read_readiness",
+        "bus": "can_c",
+        "ok": true
+      }
+    ]
+  },
+  "note": ""
+}

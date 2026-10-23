@@ -1,0 +1,26 @@
+{
+  "step": "A3_mode09_vin",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/vin",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:09:58",
+      "http_status": 200,
+      "elapsed_s": 0.86,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "raw": "18DAF11010144902015A4153\n18DAF1102146414B504E354A\n18DAF1102237423838313135",
+    "vin": "ZASFAKPN5J7B88115",
+    "ecu": "18DAF110",
+    "length_ok": true,
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

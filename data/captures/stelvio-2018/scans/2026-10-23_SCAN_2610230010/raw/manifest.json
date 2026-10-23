@@ -1,0 +1,673 @@
+{
+  "plan": "scan_plan_2026-10-22.md",
+  "vin": "ZASFAKPN5J7B88115",
+  "base_url": "http://127.0.0.1:5000",
+  "run_started": "2026-10-23T00:09:46",
+  "run_finished": "2026-10-23T00:12:04",
+  "order": "preflight -> legislated -> uds -> voltage -> state reads",
+  "steps": [
+    {
+      "n": 1,
+      "step": "status",
+      "phase": "preflight",
+      "file": "01_status.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 2,
+      "step": "poller_session",
+      "phase": "preflight",
+      "file": "02_poller_session.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 3,
+      "step": "buses",
+      "phase": "preflight",
+      "file": "03_buses.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 4,
+      "step": "modules_can_c",
+      "phase": "preflight",
+      "file": "04_modules_can_c.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 5,
+      "step": "state_paths_observations",
+      "phase": "preflight",
+      "file": "05_state_paths_observations.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 6,
+      "step": "state_paths_audit",
+      "phase": "preflight",
+      "file": "06_state_paths_audit.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 7,
+      "step": "A1_adapter_voltage_ATRV_before",
+      "phase": "legislated",
+      "file": "07_A1_adapter_voltage_ATRV_before.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 8,
+      "step": "A2_verify_can_c",
+      "phase": "legislated",
+      "file": "08_A2_verify_can_c.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 9,
+      "step": "A3_mode09_vin",
+      "phase": "legislated",
+      "file": "09_A3_mode09_vin.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 10,
+      "step": "A4_mode01_supported_pids",
+      "phase": "legislated",
+      "file": "10_A4_mode01_supported_pids.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 11,
+      "step": "A5_readiness_pid01_41_30_31_MIL",
+      "phase": "legislated",
+      "file": "11_A5_readiness_pid01_41_30_31_MIL.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 12,
+      "step": "A5b_pid01_raw",
+      "phase": "legislated",
+      "file": "12_A5b_pid01_raw.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 13,
+      "step": "A5c_pid41_raw",
+      "phase": "legislated",
+      "file": "13_A5c_pid41_raw.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 14,
+      "step": "A6_dtcs_mode03_07_0A",
+      "phase": "legislated",
+      "file": "14_A6_dtcs_mode03_07_0A.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 15,
+      "step": "A7_mode06_3A_3C_3D",
+      "phase": "legislated",
+      "file": "15_A7_mode06_3A_3C_3D.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 16,
+      "step": "A8_freeze_dtc_pid02",
+      "phase": "legislated",
+      "file": "16_A8_freeze_dtc_pid02.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 17,
+      "step": "A8_freeze_pid05",
+      "phase": "legislated",
+      "file": "17_A8_freeze_pid05.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 18,
+      "step": "A8_freeze_pid0F",
+      "phase": "legislated",
+      "file": "18_A8_freeze_pid0F.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 19,
+      "step": "A8_freeze_pid46",
+      "phase": "legislated",
+      "file": "19_A8_freeze_pid46.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 20,
+      "step": "A8_freeze_pid2F",
+      "phase": "legislated",
+      "file": "20_A8_freeze_pid2F.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 21,
+      "step": "A9_pid21",
+      "phase": "legislated",
+      "file": "21_A9_pid21.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 22,
+      "step": "A9_pid4D",
+      "phase": "legislated",
+      "file": "22_A9_pid4D.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 23,
+      "step": "A9_pid4E",
+      "phase": "legislated",
+      "file": "23_A9_pid4E.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 24,
+      "step": "A9_pid42",
+      "phase": "legislated",
+      "file": "24_A9_pid42.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 25,
+      "step": "A9_pid46",
+      "phase": "legislated",
+      "file": "25_A9_pid46.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 26,
+      "step": "A9_pid0F",
+      "phase": "legislated",
+      "file": "26_A9_pid0F.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 27,
+      "step": "A9_pid2F",
+      "phase": "legislated",
+      "file": "27_A9_pid2F.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 28,
+      "step": "A9_pid0C",
+      "phase": "legislated",
+      "file": "28_A9_pid0C.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 29,
+      "step": "A9_pid0D",
+      "phase": "legislated",
+      "file": "29_A9_pid0D.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 30,
+      "step": "A9_pid05",
+      "phase": "legislated",
+      "file": "30_A9_pid05.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 31,
+      "step": "A9_pid33",
+      "phase": "legislated",
+      "file": "31_A9_pid33.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 32,
+      "step": "A9_pid2E",
+      "phase": "legislated",
+      "file": "32_A9_pid2E.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 33,
+      "step": "B1_uds_19_02_all_modules",
+      "phase": "uds",
+      "file": "33_B1_uds_19_02_all_modules.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 34,
+      "step": "B2_identity_ECM",
+      "phase": "uds",
+      "file": "34_B2_identity_ECM.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 35,
+      "step": "B2_identity_BCM",
+      "phase": "uds",
+      "file": "35_B2_identity_BCM.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 36,
+      "step": "B2_identity_TCM",
+      "phase": "uds",
+      "file": "36_B2_identity_TCM.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 37,
+      "step": "B2_identity_IPC",
+      "phase": "uds",
+      "file": "37_B2_identity_IPC.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 38,
+      "step": "B2_identity_RFHUB",
+      "phase": "uds",
+      "file": "38_B2_identity_RFHUB.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 39,
+      "step": "B3_did_F132_ECM",
+      "phase": "uds",
+      "file": "39_B3_did_F132_ECM.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 40,
+      "step": "B3_did_F132_BCM",
+      "phase": "uds",
+      "file": "40_B3_did_F132_BCM.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 41,
+      "step": "B3_did_F132_TCM",
+      "phase": "uds",
+      "file": "41_B3_did_F132_TCM.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 42,
+      "step": "B3_did_F132_IPC",
+      "phase": "uds",
+      "file": "42_B3_did_F132_IPC.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 43,
+      "step": "B3_did_F132_RFHUB",
+      "phase": "uds",
+      "file": "43_B3_did_F132_RFHUB.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 44,
+      "step": "B4_dtc_detail_ECM_P0440-00",
+      "phase": "uds",
+      "file": "44_B4_dtc_detail_ECM_P0440-00.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 45,
+      "step": "B4_dtc_detail_ECM_P0456-00",
+      "phase": "uds",
+      "file": "45_B4_dtc_detail_ECM_P0456-00.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 2
+    },
+    {
+      "n": 46,
+      "step": "B4_dtc_detail_ECM_P0455-00",
+      "phase": "uds",
+      "file": "46_B4_dtc_detail_ECM_P0455-00.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 47,
+      "step": "B5_did_ECM_19BD",
+      "phase": "uds",
+      "file": "47_B5_did_ECM_19BD.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 48,
+      "step": "B5_did_ECM_1955",
+      "phase": "uds",
+      "file": "48_B5_did_ECM_1955.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 49,
+      "step": "B5_did_ECM_1001",
+      "phase": "uds",
+      "file": "49_B5_did_ECM_1001.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 50,
+      "step": "B5_did_ECM_1956",
+      "phase": "uds",
+      "file": "50_B5_did_ECM_1956.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 51,
+      "step": "B5_did_BCM_1004",
+      "phase": "uds",
+      "file": "51_B5_did_BCM_1004.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 52,
+      "step": "B7_discover_DTCM_0x29",
+      "phase": "uds",
+      "file": "52_B7_discover_DTCM_0x29.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 53,
+      "step": "C1_adapter_voltage_ATRV_after",
+      "phase": "end",
+      "file": "53_C1_adapter_voltage_ATRV_after.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    },
+    {
+      "n": 54,
+      "step": "C2_observations_tail",
+      "phase": "state",
+      "file": "54_C2_observations_tail.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 55,
+      "step": "C3_audit_tail",
+      "phase": "state",
+      "file": "55_C3_audit_tail.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 56,
+      "step": "C4_scanlog_list",
+      "phase": "state",
+      "file": "56_C4_scanlog_list.json",
+      "http_status": 200,
+      "clean": false,
+      "attempts": 1
+    },
+    {
+      "n": 57,
+      "step": "C5_scan_export_json_SCAN_2610230010",
+      "phase": "state",
+      "file": "57_C5_scan_export_json_SCAN_2610230010.json",
+      "http_status": 200,
+      "clean": true,
+      "attempts": 1
+    }
+  ],
+  "issues": [
+    {
+      "n": 5,
+      "step": "state_paths_observations",
+      "http_status": 200,
+      "problems": [
+        "/entries[0]/data/since_clear/error: could not decode readiness response",
+        "/entries[0]/data/this_drive_cycle/error: could not decode readiness response"
+      ]
+    },
+    {
+      "n": 18,
+      "step": "A8_freeze_pid0F",
+      "http_status": 200,
+      "problems": [
+        "/warning: no ECU returned a freeze frame (none stored, or ignition off)"
+      ]
+    },
+    {
+      "step": "A9_pid4D",
+      "problems": [
+        "PID 4D not in A4 supported list; read anyway once"
+      ]
+    },
+    {
+      "n": 22,
+      "step": "A9_pid4D",
+      "http_status": 200,
+      "problems": [
+        "/warning: no ECU answered this PID; the port reads 14.4 V, so the engine is running: the ignition does NOT explain the silence. Check the adapter's bus access: HS/MS swit"
+      ]
+    },
+    {
+      "step": "A9_pid4E",
+      "problems": [
+        "PID 4E not in A4 supported list; read anyway once"
+      ]
+    },
+    {
+      "n": 23,
+      "step": "A9_pid4E",
+      "http_status": 200,
+      "problems": [
+        "/warning: no ECU answered this PID; the port reads 14.5 V, so the engine is running: the ignition does NOT explain the silence. Check the adapter's bus access: HS/MS swit"
+      ]
+    },
+    {
+      "step": "A9_pid0F",
+      "problems": [
+        "PID 0F not in A4 supported list; read anyway once"
+      ]
+    },
+    {
+      "n": 26,
+      "step": "A9_pid0F",
+      "http_status": 200,
+      "problems": [
+        "/warning: no ECU answered this PID; the port reads 14.4 V, so the engine is running: the ignition does NOT explain the silence. Check the adapter's bus access: HS/MS swit"
+      ]
+    },
+    {
+      "n": 35,
+      "step": "B2_identity_BCM",
+      "http_status": 200,
+      "problems": [
+        "/error: CAN ERROR"
+      ]
+    },
+    {
+      "n": 37,
+      "step": "B2_identity_IPC",
+      "http_status": 200,
+      "problems": [
+        "/error: CAN ERROR"
+      ]
+    },
+    {
+      "n": 54,
+      "step": "C2_observations_tail",
+      "http_status": 200,
+      "problems": [
+        "/entries[1]/data/error: CAN ERROR",
+        "/entries[3]/data/error: CAN ERROR",
+        "/entries[4]/data/since_clear/error: could not decode readiness response",
+        "/entries[4]/data/this_drive_cycle/error: could not decode readiness response",
+        "/entries[5]/data/warning: no ECU answered (NO DATA); with the ignition off this is expected",
+        "/entries[6]/data/warning: no ECU answered (NO DATA); with the ignition off this is expected"
+      ]
+    },
+    {
+      "n": 55,
+      "step": "C3_audit_tail",
+      "http_status": 200,
+      "problems": [
+        "/entries[216]/error: CAN ERROR",
+        "/entries[232]/error: CAN ERROR",
+        "/entries[266]/error: CAN ERROR"
+      ]
+    },
+    {
+      "n": 56,
+      "step": "C4_scanlog_list",
+      "http_status": 200,
+      "problems": [
+        "/scans[1]/readiness/since_clear/error: could not decode readiness response",
+        "/scans[1]/readiness/this_drive_cycle/error: could not decode readiness response",
+        "/scans[5]/source/identity/error: CAN ERROR",
+        "/scans[7]/readiness/since_clear/error: could not decode readiness response",
+        "/scans[7]/readiness/this_drive_cycle/error: could not decode readiness response"
+      ]
+    }
+  ],
+  "no_read_only_path": {
+    "uds_19_0A_reportSupportedDTC": "No CUORE function sends 19 0A. 19 02 with mask FF (step B1) already lists every DTC the module tracks with its status byte; 19 0A is not needed for the codes.",
+    "radio_ETM": "Radio/nav (ETM 0x6F) is registered on CAN-IHS; with cable 'none' CUORE has no route to CAN-IHS.",
+    "parkview_camera_PAM": "PAM (parking control) is registered on CAN-CH and its address is unknown; with cable 'none' CUORE has no route to CAN-CH. The only chance of seeing a camera/PAM node on CAN-C is the optional full address sweep (B8); a silent result is expected and is NOT evidence the module is absent.",
+    "DTCM_DASM_ESM_addresses": "DTCM (0x29, unverified), DASM and ESM (address unknown) have no confirmed address for this VIN (addresses.json holds only ABS), so /module/{code}/dtcs|identity return 400. Only POST /api/live/discover (B7/B8) can find them; HTTP discover probes 22 F190 only (ops.discover(probe_dids=...) exists in Python but is not on HTTP).",
+    "mode09_beyond_VIN": "Only Mode 09 PID 02 (VIN) has an ops/HTTP reader. Cal IDs/CVN/IUPR exist only inside fullscan (in-process mode09.read_mode09), which is on the forbidden list.",
+    "module_identity_store_kind": "HTTP /identity records kind 'identity'; kind 'module_identity' is written only by ops.sweep_bus_full (fullscan), not reachable read-only over HTTP."
+  },
+  "observations_path": "C:\\ProgramData\\cuore\\observations.jsonl",
+  "audit_path": "C:\\ProgramData\\cuore\\audit.jsonl",
+  "state_dir": "C:\\ProgramData\\cuore",
+  "legislated_route": {
+    "verified_by": "passive_listen",
+    "probe_ok": true,
+    "probe_stn_protocol": "34",
+    "responders": [
+      "18DAF110",
+      "18DAF118"
+    ],
+    "awake": true
+  },
+  "legislated_done_at": "2026-10-23T00:10:49",
+  "uds_answered_in_B1": [
+    "ECM",
+    "BCM",
+    "TCM",
+    "IPC",
+    "RFHUB"
+  ],
+  "ecm_evap_codes_detailed": [
+    "P0440-00",
+    "P0456-00",
+    "P0455-00"
+  ],
+  "full_sweep": "skipped (set CUORE_PLAN_FULL_SWEEP=1 to run step B8)",
+  "scan_ids": [
+    "SCAN_2610230010"
+  ]
+}

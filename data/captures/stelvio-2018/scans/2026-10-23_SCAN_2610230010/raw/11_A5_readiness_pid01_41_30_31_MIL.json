@@ -1,0 +1,95 @@
+{
+  "step": "A5_readiness_pid01_41_30_31_MIL",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/readiness",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:01",
+      "http_status": 200,
+      "elapsed_s": 1.06,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "since_clear": {
+      "mil_on": false,
+      "stored_dtc_count": 0,
+      "ignition": "spark",
+      "monitors": [
+        {
+          "monitor": "Misfire",
+          "supported": true,
+          "complete": true
+        },
+        {
+          "monitor": "Fuel system",
+          "supported": true,
+          "complete": true
+        },
+        {
+          "monitor": "Comprehensive components",
+          "supported": true,
+          "complete": true
+        },
+        {
+          "monitor": "Catalyst",
+          "supported": true,
+          "complete": true
+        },
+        {
+          "monitor": "Evaporative system",
+          "supported": true,
+          "complete": false
+        },
+        {
+          "monitor": "Oxygen sensor",
+          "supported": true,
+          "complete": true
+        },
+        {
+          "monitor": "Oxygen sensor heater",
+          "supported": true,
+          "complete": true
+        },
+        {
+          "monitor": "EGR system",
+          "supported": true,
+          "complete": true
+        }
+      ],
+      "all_complete": false,
+      "ecu": "18DAF110"
+    },
+    "this_drive_cycle": {
+      "mil_on": false,
+      "stored_dtc_count": 0,
+      "ignition": "spark",
+      "monitors": [
+        {
+          "monitor": "Comprehensive components",
+          "supported": true,
+          "complete": true
+        },
+        {
+          "monitor": "EGR system",
+          "supported": true,
+          "complete": false
+        }
+      ],
+      "all_complete": false,
+      "ecu": "18DAF110"
+    },
+    "evap_verdict": "EVAP monitor has NOT run since the last clear. Absence of an EVAP code right now carries no information. Complete the drive cycle first.",
+    "drive_cycle_counters": {
+      "warmups_since_clear": 14,
+      "distance_since_clear": 342
+    },
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": "records store kind 'readiness' (PID 01, 41, 30, 31, MIL, EVAP verdict)"
+}

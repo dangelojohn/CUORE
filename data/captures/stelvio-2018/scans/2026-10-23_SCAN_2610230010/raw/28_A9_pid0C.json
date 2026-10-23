@@ -1,0 +1,49 @@
+{
+  "step": "A9_pid0C",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/0C",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:41",
+      "http_status": 200,
+      "elapsed_s": 1.83,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "0C",
+    "name": "engine_rpm",
+    "raw": "18DAF11004410C0BB8\n18DAF11804410C0BB8",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "0C",
+        "name": "engine_rpm",
+        "bytes": [
+          "0B",
+          "B8"
+        ],
+        "unit": "rpm",
+        "value": 750.0
+      },
+      "18DAF118": {
+        "pid": "0C",
+        "name": "engine_rpm",
+        "bytes": [
+          "0B",
+          "B8"
+        ],
+        "unit": "rpm",
+        "value": 750.0
+      }
+    },
+    "value": 750.0,
+    "unit": "rpm",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

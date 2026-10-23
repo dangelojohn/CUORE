@@ -1,0 +1,2126 @@
+{
+  "step": "C4_scanlog_list",
+  "phase": "state",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/scans/ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:12:04",
+      "http_status": 200,
+      "elapsed_s": 0.09,
+      "problems": [
+        "/scans[1]/readiness/since_clear/error: could not decode readiness response",
+        "/scans[1]/readiness/this_drive_cycle/error: could not decode readiness response",
+        "/scans[5]/source/identity/error: CAN ERROR",
+        "/scans[7]/readiness/since_clear/error: could not decode readiness response",
+        "/scans[7]/readiness/this_drive_cycle/error: could not decode readiness response"
+      ]
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "vin": "ZASFAKPN5J7B88115",
+    "scans": [
+      {
+        "id": "SCAN_2610230010",
+        "vin": "ZASFAKPN5J7B88115",
+        "started": "2026-10-23T00:10:02",
+        "ended": "2026-10-23T00:11:58",
+        "source": {
+          "stream": "serial COM3@115200",
+          "identity": {
+            "ecu": "ECM",
+            "bus": "can_c",
+            "fields": {
+              "F190": {
+                "name": "VIN",
+                "ascii": "ZASFAKPN5J7B88115",
+                "bytes": [
+                  "5A",
+                  "41",
+                  "53",
+                  "46",
+                  "41",
+                  "4B",
+                  "50",
+                  "4E",
+                  "35",
+                  "4A",
+                  "37",
+                  "42",
+                  "38",
+                  "38",
+                  "31",
+                  "31",
+                  "35"
+                ],
+                "nrc": null
+              },
+              "F187": {
+                "name": "spare part",
+                "ascii": "50544870   ",
+                "bytes": [
+                  "35",
+                  "30",
+                  "35",
+                  "34",
+                  "34",
+                  "38",
+                  "37",
+                  "30",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F188": {
+                "name": "ECU SW",
+                "ascii": "52170619   ",
+                "bytes": [
+                  "35",
+                  "32",
+                  "31",
+                  "37",
+                  "30",
+                  "36",
+                  "31",
+                  "39",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F189": {
+                "name": "SW version",
+                "ascii": null,
+                "bytes": null,
+                "nrc": {
+                  "18DAF110": "requestOutOfRange"
+                }
+              },
+              "F18C": {
+                "name": "serial",
+                "ascii": "TD4192427B17540",
+                "bytes": [
+                  "54",
+                  "44",
+                  "34",
+                  "31",
+                  "39",
+                  "32",
+                  "34",
+                  "32",
+                  "37",
+                  "42",
+                  "31",
+                  "37",
+                  "35",
+                  "34",
+                  "30"
+                ],
+                "nrc": null
+              },
+              "F191": {
+                "name": "HW",
+                "ascii": "52055320   ",
+                "bytes": [
+                  "35",
+                  "32",
+                  "30",
+                  "35",
+                  "35",
+                  "33",
+                  "32",
+                  "30",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F192": {
+                "name": "HW",
+                "ascii": "MM10JAHW232",
+                "bytes": [
+                  "4D",
+                  "4D",
+                  "31",
+                  "30",
+                  "4A",
+                  "41",
+                  "48",
+                  "57",
+                  "32",
+                  "33",
+                  "32"
+                ],
+                "nrc": null
+              },
+              "F194": {
+                "name": "supplier SW",
+                "ascii": "P235QB39   ",
+                "bytes": [
+                  "50",
+                  "32",
+                  "33",
+                  "35",
+                  "51",
+                  "42",
+                  "33",
+                  "39",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F195": {
+                "name": "supplier SW",
+                "ascii": null,
+                "bytes": [
+                  "00",
+                  "00"
+                ],
+                "nrc": null
+              }
+            },
+            "cable": "none"
+          }
+        },
+        "ecus": [
+          "18DAF110",
+          "18DAF118",
+          "BCM",
+          "DASM",
+          "DTCM",
+          "ECM",
+          "ESM",
+          "IPC",
+          "RFHUB",
+          "TCM"
+        ],
+        "dtcs": {
+          "stored": [
+            "B101D",
+            "B10AA",
+            "B1176",
+            "P0440",
+            "P0455",
+            "P0456",
+            "U1736"
+          ],
+          "pending": [
+            "P0440",
+            "P0455",
+            "P0456"
+          ],
+          "permanent": [
+            "P0440",
+            "P0456"
+          ]
+        },
+        "readiness": {
+          "since_clear": {
+            "mil_on": false,
+            "stored_dtc_count": 0,
+            "ignition": "spark",
+            "monitors": [
+              {
+                "monitor": "Misfire",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Fuel system",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Comprehensive components",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Catalyst",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Evaporative system",
+                "supported": true,
+                "complete": false
+              },
+              {
+                "monitor": "Oxygen sensor",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Oxygen sensor heater",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "EGR system",
+                "supported": true,
+                "complete": true
+              }
+            ],
+            "all_complete": false,
+            "ecu": "18DAF110"
+          },
+          "this_drive_cycle": {
+            "mil_on": false,
+            "stored_dtc_count": 0,
+            "ignition": "spark",
+            "monitors": [
+              {
+                "monitor": "Comprehensive components",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "EGR system",
+                "supported": true,
+                "complete": false
+              }
+            ],
+            "all_complete": false,
+            "ecu": "18DAF110"
+          },
+          "evap_verdict": "EVAP monitor has NOT run since the last clear. Absence of an EVAP code right now carries no information. Complete the drive cycle first.",
+          "drive_cycle_counters": {
+            "warmups_since_clear": 14,
+            "distance_since_clear": 342
+          },
+          "bus": "can_c",
+          "cable": "none"
+        },
+        "mil": false,
+        "freeze_frames": [
+          {
+            "code": "P0455",
+            "ecu": "18DAF110",
+            "pids": [
+              {
+                "pid": "05",
+                "name": "Engine coolant temp",
+                "value": 56,
+                "unit": "C"
+              },
+              {
+                "pid": "46",
+                "name": "Ambient air temp",
+                "value": 10,
+                "unit": "C"
+              },
+              {
+                "pid": "2F",
+                "name": "Fuel level",
+                "value": 82.745,
+                "unit": "%"
+              }
+            ]
+          }
+        ],
+        "mode06": [
+          {
+            "mid": "3A",
+            "mid_name": "EVAP monitor 0.090\" leak",
+            "tid": "87",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 496,
+            "min": 3707,
+            "max": 65535,
+            "passed": false
+          },
+          {
+            "mid": "3C",
+            "mid_name": "EVAP monitor 0.020\" leak",
+            "tid": "85",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 4722,
+            "min": 0,
+            "max": 4200,
+            "passed": false
+          },
+          {
+            "mid": "3C",
+            "mid_name": "EVAP monitor 0.020\" leak",
+            "tid": "86",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 15379,
+            "min": 0,
+            "max": 6000,
+            "passed": false
+          },
+          {
+            "mid": "3C",
+            "mid_name": "EVAP monitor 0.020\" leak",
+            "tid": "90",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 6096,
+            "min": 0,
+            "max": 6000,
+            "passed": false
+          },
+          {
+            "mid": "3D",
+            "mid_name": "EVAP purge flow monitor",
+            "tid": "A0",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 19660,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "3D",
+            "mid_name": "EVAP purge flow monitor",
+            "tid": "A1",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 196,
+            "min": 63,
+            "max": 326,
+            "passed": true
+          }
+        ],
+        "pids": [],
+        "coverage": null,
+        "status": "partial",
+        "partial": true,
+        "counts": {
+          "observations": 38,
+          "stored": 7,
+          "pending": 3,
+          "permanent": 2,
+          "mode06_fail": 4
+        },
+        "number": null
+      },
+      {
+        "id": "SCAN_2610190023",
+        "vin": "ZASFAKPN5J7B88115",
+        "started": "2026-10-19T00:23:24",
+        "ended": "2026-10-19T00:34:06",
+        "source": {
+          "stream": "serial COM3@115200",
+          "identity": null
+        },
+        "ecus": [
+          "BCM",
+          "ECM",
+          "IPC",
+          "RFHUB",
+          "TCM"
+        ],
+        "dtcs": {
+          "stored": [
+            "P0440",
+            "P0455",
+            "P0456",
+            "U1713"
+          ],
+          "pending": [],
+          "permanent": []
+        },
+        "readiness": {
+          "since_clear": {
+            "error": "could not decode readiness response",
+            "raw": "NO DATA",
+            "why": "the port reads 14.5 V, so the engine is running: the ignition does NOT explain the silence. Check the adapter's bus access: HS/MS switch on HS, plug fully seated, no coloured cable fitted for CAN-C"
+          },
+          "this_drive_cycle": {
+            "error": "could not decode readiness response",
+            "raw": "NO DATA",
+            "why": "the port reads 14.5 V, so the engine is running: the ignition does NOT explain the silence. Check the adapter's bus access: HS/MS switch on HS, plug fully seated, no coloured cable fitted for CAN-C"
+          },
+          "bus": "can_c",
+          "cable": "none"
+        },
+        "mil": null,
+        "freeze_frames": [],
+        "mode06": [],
+        "pids": [],
+        "coverage": {
+          "line": "CAN-C 5 modules \u00b7 IHS not scanned (blue A5) \u00b7 CH not scanned (grey A6)",
+          "buses_attempted": [
+            "can_c"
+          ],
+          "counts": {
+            "active": 4,
+            "history": 0,
+            "not_run": 0
+          },
+          "guided": true
+        },
+        "status": "complete",
+        "partial": false,
+        "counts": {
+          "observations": 99,
+          "stored": 4,
+          "pending": 0,
+          "permanent": 0,
+          "mode06_fail": 0
+        },
+        "number": 3
+      },
+      {
+        "id": "SCAN_2610142353",
+        "vin": "ZASFAKPN5J7B88115",
+        "started": "2026-10-14T23:53:52",
+        "ended": "2026-10-15T00:42:46",
+        "source": {
+          "stream": "serial COM3@115200",
+          "identity": {
+            "ecu": "ABS",
+            "bus": "can_ch",
+            "fields": {
+              "F190": {
+                "name": "VIN",
+                "ascii": null,
+                "bytes": null,
+                "nrc": null
+              },
+              "F187": {
+                "name": "spare part",
+                "ascii": null,
+                "bytes": null,
+                "nrc": null
+              },
+              "F188": {
+                "name": "ECU SW",
+                "ascii": null,
+                "bytes": null,
+                "nrc": null
+              },
+              "F189": {
+                "name": "SW version",
+                "ascii": null,
+                "bytes": null,
+                "nrc": null
+              },
+              "F18C": {
+                "name": "serial",
+                "ascii": null,
+                "bytes": null,
+                "nrc": null
+              },
+              "F191": {
+                "name": "HW",
+                "ascii": null,
+                "bytes": null,
+                "nrc": null
+              },
+              "F192": {
+                "name": "HW",
+                "ascii": null,
+                "bytes": null,
+                "nrc": null
+              },
+              "F194": {
+                "name": "supplier SW",
+                "ascii": null,
+                "bytes": null,
+                "nrc": null
+              },
+              "F195": {
+                "name": "supplier SW",
+                "ascii": null,
+                "bytes": null,
+                "nrc": null
+              }
+            },
+            "cable": "grey_a6"
+          }
+        },
+        "ecus": [
+          "ABS"
+        ],
+        "dtcs": {
+          "stored": [],
+          "pending": [],
+          "permanent": []
+        },
+        "readiness": null,
+        "mil": null,
+        "freeze_frames": [],
+        "mode06": [],
+        "pids": [],
+        "coverage": {
+          "line": "CAN-C 5 modules \u00b7 IHS not scanned (blue A5) \u00b7 CH 1 module",
+          "buses_attempted": [
+            "can_c",
+            "can_ch"
+          ],
+          "counts": {
+            "active": 1,
+            "history": 0,
+            "not_run": 0
+          },
+          "guided": true
+        },
+        "status": "complete",
+        "partial": false,
+        "counts": {
+          "observations": 17,
+          "stored": 0,
+          "pending": 0,
+          "permanent": 0,
+          "mode06_fail": 0
+        },
+        "number": 2
+      },
+      {
+        "id": "SCAN_2610141901",
+        "vin": "ZASFAKPN5J7B88115",
+        "started": "2026-10-14T19:01:21",
+        "ended": "2026-10-14T19:19:22",
+        "source": {
+          "stream": "serial COM3@115200",
+          "identity": null
+        },
+        "ecus": [
+          "18DAF110",
+          "18DAF118",
+          "BCM",
+          "ECM",
+          "IPC",
+          "RFHUB",
+          "TCM"
+        ],
+        "dtcs": {
+          "stored": [],
+          "pending": [
+            "P0440"
+          ],
+          "permanent": [
+            "P0440",
+            "P0456"
+          ]
+        },
+        "readiness": {
+          "since_clear": {
+            "mil_on": false,
+            "stored_dtc_count": 0,
+            "ignition": "spark",
+            "monitors": [
+              {
+                "monitor": "Misfire",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Fuel system",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Comprehensive components",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Catalyst",
+                "supported": true,
+                "complete": false
+              },
+              {
+                "monitor": "Evaporative system",
+                "supported": true,
+                "complete": false
+              },
+              {
+                "monitor": "Oxygen sensor",
+                "supported": true,
+                "complete": false
+              },
+              {
+                "monitor": "Oxygen sensor heater",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "EGR system",
+                "supported": true,
+                "complete": false
+              }
+            ],
+            "all_complete": false,
+            "ecu": "18DAF110"
+          },
+          "this_drive_cycle": {
+            "mil_on": false,
+            "stored_dtc_count": 0,
+            "ignition": "spark",
+            "monitors": [
+              {
+                "monitor": "Comprehensive components",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "EGR system",
+                "supported": true,
+                "complete": false
+              }
+            ],
+            "all_complete": false,
+            "ecu": "18DAF110"
+          },
+          "evap_verdict": "EVAP monitor has NOT run since the last clear. Absence of an EVAP code right now carries no information. Complete the drive cycle first.",
+          "drive_cycle_counters": {
+            "warmups_since_clear": 4,
+            "distance_since_clear": 9
+          },
+          "bus": "can_c",
+          "cable": "none"
+        },
+        "mil": false,
+        "freeze_frames": [],
+        "mode06": [
+          {
+            "mid": "01",
+            "mid_name": "O2 sensor monitor bank 1 sensor 1",
+            "tid": "05",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "01",
+            "mid_name": "O2 sensor monitor bank 1 sensor 1",
+            "tid": "06",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "01",
+            "mid_name": "O2 sensor monitor bank 1 sensor 1",
+            "tid": "81",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 22937,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "01",
+            "mid_name": "O2 sensor monitor bank 1 sensor 1",
+            "tid": "82",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 22937,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "01",
+            "mid_name": "O2 sensor monitor bank 1 sensor 1",
+            "tid": "83",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 22937,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "05",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "06",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "81",
+            "ecu": "18DAF110",
+            "unit": "mV",
+            "value": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "passed": true
+          },
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "82",
+            "ecu": "18DAF110",
+            "unit": "mV",
+            "value": 0.0,
+            "min": 0.0,
+            "max": 0.0,
+            "passed": true
+          },
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "83",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 16383,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "21",
+            "mid_name": "Catalyst monitor bank 1",
+            "tid": "93",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "31",
+            "mid_name": "EGR monitor bank 1",
+            "tid": "A0",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "31",
+            "mid_name": "EGR monitor bank 1",
+            "tid": "A1",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "85",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 2573,
+            "min": 1164,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "86",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 2699,
+            "min": 1164,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "87",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 2775,
+            "min": 1200,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "88",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 1887,
+            "min": 1188,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "89",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 1,
+            "max": 2,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8A",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 1,
+            "max": 2,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8B",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 1,
+            "max": 2,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8C",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 1,
+            "max": 2,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8D",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 0,
+            "max": 1,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8E",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 0,
+            "max": 1,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8F",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 0,
+            "max": 1,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "90",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 0,
+            "max": 1,
+            "passed": true
+          },
+          {
+            "mid": "39",
+            "mid_name": "EVAP monitor (cap off / gross leak)",
+            "tid": "87",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "3A",
+            "mid_name": "EVAP monitor 0.090\" leak",
+            "tid": "87",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "3C",
+            "mid_name": "EVAP monitor 0.020\" leak",
+            "tid": "85",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "3C",
+            "mid_name": "EVAP monitor 0.020\" leak",
+            "tid": "86",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "3C",
+            "mid_name": "EVAP monitor 0.020\" leak",
+            "tid": "90",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 6000,
+            "min": 0,
+            "max": 6000,
+            "passed": true
+          },
+          {
+            "mid": "3D",
+            "mid_name": "EVAP purge flow monitor",
+            "tid": "A0",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "3D",
+            "mid_name": "EVAP purge flow monitor",
+            "tid": "A1",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "41",
+            "mid_name": null,
+            "tid": "99",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 8700,
+            "min": 6400,
+            "max": 9620,
+            "passed": true
+          },
+          {
+            "mid": "42",
+            "mid_name": null,
+            "tid": "99",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 8480,
+            "min": 4400,
+            "max": 10400,
+            "passed": true
+          },
+          {
+            "mid": "81",
+            "mid_name": null,
+            "tid": "90",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 19660,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "81",
+            "mid_name": null,
+            "tid": "91",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 19660,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A2",
+            "mid_name": "Misfire monitor cylinder 1",
+            "tid": "0B",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 1,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A2",
+            "mid_name": "Misfire monitor cylinder 1",
+            "tid": "0C",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 0,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A3",
+            "mid_name": "Misfire monitor cylinder 2",
+            "tid": "0B",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 0,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A3",
+            "mid_name": "Misfire monitor cylinder 2",
+            "tid": "0C",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 0,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A4",
+            "mid_name": "Misfire monitor cylinder 3",
+            "tid": "0B",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 1,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A4",
+            "mid_name": "Misfire monitor cylinder 3",
+            "tid": "0C",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 2,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A5",
+            "mid_name": "Misfire monitor cylinder 4",
+            "tid": "0B",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 0,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A5",
+            "mid_name": "Misfire monitor cylinder 4",
+            "tid": "0C",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 0,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          }
+        ],
+        "pids": [],
+        "coverage": {
+          "line": "CAN-C 5 modules \u00b7 IHS not scanned (blue A5) \u00b7 CH not scanned (grey A6)",
+          "buses_attempted": [
+            "can_c"
+          ],
+          "counts": {
+            "active": 1,
+            "history": 0,
+            "not_run": 0
+          },
+          "guided": true
+        },
+        "status": "complete",
+        "partial": false,
+        "counts": {
+          "observations": 47,
+          "stored": 0,
+          "pending": 1,
+          "permanent": 2,
+          "mode06_fail": 0
+        },
+        "number": 1
+      },
+      {
+        "id": "SCAN_2610132059",
+        "vin": "ZASFAKPN5J7B88115",
+        "started": "2026-10-13T20:59:22",
+        "ended": "2026-10-13T20:59:23",
+        "source": {
+          "stream": "serial COM3@115200",
+          "identity": null
+        },
+        "ecus": [],
+        "dtcs": {
+          "stored": [],
+          "pending": [],
+          "permanent": []
+        },
+        "readiness": null,
+        "mil": null,
+        "freeze_frames": [],
+        "mode06": [],
+        "pids": [],
+        "coverage": {
+          "line": "CAN-C 0 modules \u00b7 IHS 0 modules \u00b7 CH not scanned (grey A6)",
+          "buses_attempted": [
+            "can_c",
+            "can_ihs"
+          ],
+          "counts": {
+            "active": 0,
+            "history": 0,
+            "not_run": 0
+          },
+          "guided": false
+        },
+        "status": "attempt",
+        "partial": true,
+        "counts": {
+          "observations": 3,
+          "stored": 0,
+          "pending": 0,
+          "permanent": 0,
+          "mode06_fail": 0
+        },
+        "number": null
+      },
+      {
+        "id": "SCAN_2610132024",
+        "vin": "ZASFAKPN5J7B88115",
+        "started": "2026-10-13T20:24:25",
+        "ended": "2026-10-13T20:28:23",
+        "source": {
+          "stream": "serial COM3@115200",
+          "identity": {
+            "ecu": "ECM",
+            "bus": "can_c",
+            "fields": {
+              "F190": {
+                "name": "VIN",
+                "ascii": "ZASFAKPN5J7B88115",
+                "bytes": [
+                  "5A",
+                  "41",
+                  "53",
+                  "46",
+                  "41",
+                  "4B",
+                  "50",
+                  "4E",
+                  "35",
+                  "4A",
+                  "37",
+                  "42",
+                  "38",
+                  "38",
+                  "31",
+                  "31",
+                  "35"
+                ],
+                "nrc": null
+              },
+              "F187": {
+                "name": "spare part",
+                "ascii": "50544870   ",
+                "bytes": [
+                  "35",
+                  "30",
+                  "35",
+                  "34",
+                  "34",
+                  "38",
+                  "37",
+                  "30",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F188": {
+                "name": "ECU SW",
+                "ascii": "52170619   ",
+                "bytes": [
+                  "35",
+                  "32",
+                  "31",
+                  "37",
+                  "30",
+                  "36",
+                  "31",
+                  "39",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F189": {
+                "name": "SW version",
+                "ascii": null,
+                "bytes": null,
+                "nrc": {
+                  "18DAF110": "requestOutOfRange"
+                }
+              }
+            },
+            "error": "CAN ERROR",
+            "cable": "none"
+          }
+        },
+        "ecus": [
+          "BCM",
+          "DASM",
+          "DTCM",
+          "ECM",
+          "ESM",
+          "IPC",
+          "RFHUB",
+          "TCM"
+        ],
+        "dtcs": {
+          "stored": [
+            "B1040",
+            "B10AA",
+            "B1176",
+            "P0440",
+            "P0455",
+            "U1713",
+            "U1736",
+            "U1765"
+          ],
+          "pending": [],
+          "permanent": []
+        },
+        "readiness": null,
+        "mil": null,
+        "freeze_frames": [],
+        "mode06": [],
+        "pids": [],
+        "coverage": null,
+        "status": "partial",
+        "partial": true,
+        "counts": {
+          "observations": 11,
+          "stored": 8,
+          "pending": 0,
+          "permanent": 0,
+          "mode06_fail": 0
+        },
+        "number": null
+      },
+      {
+        "id": "SCAN_2610131952",
+        "vin": "ZASFAKPN5J7B88115",
+        "started": "2026-10-13T19:52:49",
+        "ended": "2026-10-13T20:03:54",
+        "source": {
+          "stream": "serial COM3@115200",
+          "identity": null
+        },
+        "ecus": [
+          "18DAF110",
+          "18DAF118"
+        ],
+        "dtcs": {
+          "stored": [
+            "P0440"
+          ],
+          "pending": [
+            "P0440",
+            "P0455"
+          ],
+          "permanent": [
+            "P0440",
+            "P0456"
+          ]
+        },
+        "readiness": {
+          "since_clear": {
+            "mil_on": true,
+            "stored_dtc_count": 1,
+            "ignition": "spark",
+            "monitors": [
+              {
+                "monitor": "Misfire",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Fuel system",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Comprehensive components",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Catalyst",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Evaporative system",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Oxygen sensor",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "Oxygen sensor heater",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "EGR system",
+                "supported": true,
+                "complete": true
+              }
+            ],
+            "all_complete": true,
+            "ecu": "18DAF110"
+          },
+          "this_drive_cycle": {
+            "mil_on": false,
+            "stored_dtc_count": 0,
+            "ignition": "spark",
+            "monitors": [
+              {
+                "monitor": "Comprehensive components",
+                "supported": true,
+                "complete": true
+              },
+              {
+                "monitor": "EGR system",
+                "supported": true,
+                "complete": false
+              }
+            ],
+            "all_complete": false,
+            "ecu": "18DAF110"
+          },
+          "evap_verdict": "EVAP monitor has COMPLETED since the last clear; a clean scan is now meaningful for EVAP.",
+          "drive_cycle_counters": {
+            "warmups_since_clear": 8,
+            "distance_since_clear": 1663
+          },
+          "bus": "can_c",
+          "cable": "none"
+        },
+        "mil": true,
+        "freeze_frames": [],
+        "mode06": [
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "05",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 592,
+            "min": 0,
+            "max": 3101,
+            "passed": true
+          },
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "06",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 320,
+            "min": 0,
+            "max": 2182,
+            "passed": true
+          },
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "81",
+            "ecu": "18DAF110",
+            "unit": "mV",
+            "value": 913.536,
+            "min": 844.24,
+            "max": 7995.27,
+            "passed": true
+          },
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "82",
+            "ecu": "18DAF110",
+            "unit": "mV",
+            "value": 46.848,
+            "min": 0.0,
+            "max": 120.048,
+            "passed": true
+          },
+          {
+            "mid": "02",
+            "mid_name": "O2 sensor monitor bank 1 sensor 2",
+            "tid": "83",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 16383,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "21",
+            "mid_name": "Catalyst monitor bank 1",
+            "tid": "93",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 5700,
+            "min": 1764,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "31",
+            "mid_name": "EGR monitor bank 1",
+            "tid": "A0",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "31",
+            "mid_name": "EGR monitor bank 1",
+            "tid": "A1",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 32767,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "85",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 2614,
+            "min": 1027,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "86",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 2574,
+            "min": 1021,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "87",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 2705,
+            "min": 1024,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "88",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 2006,
+            "min": 1036,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "89",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 1,
+            "max": 2,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8A",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 1,
+            "max": 2,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8B",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 1,
+            "max": 2,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8C",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 1,
+            "max": 2,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8D",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 0,
+            "max": 1,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8E",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 0,
+            "max": 1,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "8F",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 0,
+            "max": 1,
+            "passed": true
+          },
+          {
+            "mid": "35",
+            "mid_name": "VVT monitor bank 1",
+            "tid": "90",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 1,
+            "min": 0,
+            "max": 1,
+            "passed": true
+          },
+          {
+            "mid": "39",
+            "mid_name": "EVAP monitor (cap off / gross leak)",
+            "tid": "87",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "3A",
+            "mid_name": "EVAP monitor 0.090\" leak",
+            "tid": "87",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 404,
+            "min": 3965,
+            "max": 65535,
+            "passed": false
+          },
+          {
+            "mid": "3C",
+            "mid_name": "EVAP monitor 0.020\" leak",
+            "tid": "85",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "3C",
+            "mid_name": "EVAP monitor 0.020\" leak",
+            "tid": "86",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 0,
+            "min": 0,
+            "max": 0,
+            "passed": true
+          },
+          {
+            "mid": "3C",
+            "mid_name": "EVAP monitor 0.020\" leak",
+            "tid": "90",
+            "ecu": "18DAF110",
+            "unit": "ms",
+            "value": 6096,
+            "min": 0,
+            "max": 6000,
+            "passed": false
+          },
+          {
+            "mid": "3D",
+            "mid_name": "EVAP purge flow monitor",
+            "tid": "A0",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 19660,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "3D",
+            "mid_name": "EVAP purge flow monitor",
+            "tid": "A1",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 168,
+            "min": 57,
+            "max": 328,
+            "passed": true
+          },
+          {
+            "mid": "41",
+            "mid_name": null,
+            "tid": "99",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 8700,
+            "min": 6400,
+            "max": 9620,
+            "passed": true
+          },
+          {
+            "mid": "42",
+            "mid_name": null,
+            "tid": "99",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 8700,
+            "min": 4400,
+            "max": 10400,
+            "passed": true
+          },
+          {
+            "mid": "81",
+            "mid_name": null,
+            "tid": "90",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 19660,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "81",
+            "mid_name": null,
+            "tid": "91",
+            "ecu": "18DAF110",
+            "unit": null,
+            "value": 65535,
+            "min": 19660,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A2",
+            "mid_name": "Misfire monitor cylinder 1",
+            "tid": "0B",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 1,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A2",
+            "mid_name": "Misfire monitor cylinder 1",
+            "tid": "0C",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 1,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A3",
+            "mid_name": "Misfire monitor cylinder 2",
+            "tid": "0B",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 1,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A3",
+            "mid_name": "Misfire monitor cylinder 2",
+            "tid": "0C",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 0,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A4",
+            "mid_name": "Misfire monitor cylinder 3",
+            "tid": "0B",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 1,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A4",
+            "mid_name": "Misfire monitor cylinder 3",
+            "tid": "0C",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 0,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A5",
+            "mid_name": "Misfire monitor cylinder 4",
+            "tid": "0B",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 1,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          },
+          {
+            "mid": "A5",
+            "mid_name": "Misfire monitor cylinder 4",
+            "tid": "0C",
+            "ecu": "18DAF110",
+            "unit": "count",
+            "value": 1,
+            "min": 0,
+            "max": 65535,
+            "passed": true
+          }
+        ],
+        "pids": [],
+        "coverage": null,
+        "status": "partial",
+        "partial": true,
+        "counts": {
+          "observations": 21,
+          "stored": 1,
+          "pending": 2,
+          "permanent": 2,
+          "mode06_fail": 2
+        },
+        "number": null
+      },
+      {
+        "id": "SCAN_2609252007",
+        "vin": "ZASFAKPN5J7B88115",
+        "started": "2026-09-25T20:07:24",
+        "ended": "2026-09-25T20:16:49",
+        "source": {
+          "stream": "serial COM3@115200 (backfilled 2026-09-26 from audit log)",
+          "identity": {
+            "ecu": "ECM",
+            "bus": "can_c",
+            "fields": {
+              "F190": {
+                "name": "VIN",
+                "ascii": "ZASFAKPN5J7B88115",
+                "bytes": [
+                  "5A",
+                  "41",
+                  "53",
+                  "46",
+                  "41",
+                  "4B",
+                  "50",
+                  "4E",
+                  "35",
+                  "4A",
+                  "37",
+                  "42",
+                  "38",
+                  "38",
+                  "31",
+                  "31",
+                  "35"
+                ],
+                "nrc": null
+              },
+              "F187": {
+                "name": "spare part",
+                "ascii": "50544870   ",
+                "bytes": [
+                  "35",
+                  "30",
+                  "35",
+                  "34",
+                  "34",
+                  "38",
+                  "37",
+                  "30",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F188": {
+                "name": "ECU SW",
+                "ascii": "52170619   ",
+                "bytes": [
+                  "35",
+                  "32",
+                  "31",
+                  "37",
+                  "30",
+                  "36",
+                  "31",
+                  "39",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F189": {
+                "name": "SW version",
+                "ascii": null,
+                "bytes": null,
+                "nrc": {
+                  "18DAF110": "requestOutOfRange"
+                }
+              },
+              "F18C": {
+                "name": "serial",
+                "ascii": "TD4192427B17540",
+                "bytes": [
+                  "54",
+                  "44",
+                  "34",
+                  "31",
+                  "39",
+                  "32",
+                  "34",
+                  "32",
+                  "37",
+                  "42",
+                  "31",
+                  "37",
+                  "35",
+                  "34",
+                  "30"
+                ],
+                "nrc": null
+              },
+              "F191": {
+                "name": "HW",
+                "ascii": "52055320   ",
+                "bytes": [
+                  "35",
+                  "32",
+                  "30",
+                  "35",
+                  "35",
+                  "33",
+                  "32",
+                  "30",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F192": {
+                "name": "HW",
+                "ascii": "MM10JAHW232",
+                "bytes": [
+                  "4D",
+                  "4D",
+                  "31",
+                  "30",
+                  "4A",
+                  "41",
+                  "48",
+                  "57",
+                  "32",
+                  "33",
+                  "32"
+                ],
+                "nrc": null
+              },
+              "F194": {
+                "name": "supplier SW",
+                "ascii": "P235QB39   ",
+                "bytes": [
+                  "50",
+                  "32",
+                  "33",
+                  "35",
+                  "51",
+                  "42",
+                  "33",
+                  "39",
+                  "20",
+                  "20",
+                  "20"
+                ],
+                "nrc": null
+              },
+              "F195": {
+                "name": "supplier SW",
+                "ascii": null,
+                "bytes": [
+                  "00",
+                  "00"
+                ],
+                "nrc": null
+              }
+            },
+            "cable": "none"
+          }
+        },
+        "ecus": [
+          "ECM"
+        ],
+        "dtcs": {
+          "stored": [],
+          "pending": [],
+          "permanent": []
+        },
+        "readiness": {
+          "since_clear": {
+            "error": "could not decode readiness response",
+            "raw": "NO DATA"
+          },
+          "this_drive_cycle": {
+            "error": "could not decode readiness response",
+            "raw": "NO DATA"
+          },
+          "bus": "can_c",
+          "cable": "none"
+        },
+        "mil": null,
+        "freeze_frames": [],
+        "mode06": [],
+        "pids": [],
+        "coverage": null,
+        "status": "partial",
+        "partial": true,
+        "counts": {
+          "observations": 22,
+          "stored": 0,
+          "pending": 0,
+          "permanent": 0,
+          "mode06_fail": 0
+        },
+        "number": null
+      }
+    ]
+  },
+  "note": ""
+}

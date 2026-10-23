@@ -1,0 +1,142 @@
+{
+  "step": "A2_verify_can_c",
+  "phase": "legislated",
+  "method": "POST",
+  "url": "http://127.0.0.1:5000/api/live/verify",
+  "body": {
+    "bus": "can_c",
+    "seconds": 2.0
+  },
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:09:52",
+      "http_status": 200,
+      "elapsed_s": 5.89,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "verified": true,
+    "frames": 24,
+    "rate_hz": 11.8,
+    "ids": {
+      "1E340000": 10,
+      "1E360039": 2,
+      "1E360043": 2,
+      "1E36000B": 2,
+      "1E360003": 2,
+      "1E360041": 2,
+      "1E360001": 2,
+      "1E360016": 2
+    },
+    "error": null,
+    "stn_protocol": "34",
+    "header_bits": 29,
+    "attempts": [
+      {
+        "stn_protocol": "34",
+        "header_bits": 29,
+        "frames": 24,
+        "error": null,
+        "ids": {
+          "1E340000": 10,
+          "1E360039": 2,
+          "1E360043": 2,
+          "1E36000B": 2,
+          "1E360003": 2,
+          "1E360041": 2,
+          "1E360001": 2,
+          "1E360016": 2
+        }
+      },
+      {
+        "stn_protocol": "33",
+        "header_bits": 11,
+        "frames": 207,
+        "error": null,
+        "ids": {
+          "11C": 9,
+          "100": 9,
+          "192": 8,
+          "0FB": 8,
+          "0F4": 8,
+          "0F0": 8,
+          "0DE": 8,
+          "0FA": 8,
+          "104": 8,
+          "0FC": 8,
+          "0EE": 8,
+          "0FE": 8,
+          "101": 8,
+          "103": 8,
+          "0FF": 8,
+          "107": 8,
+          "116": 8,
+          "1F1": 5,
+          "1F2": 5,
+          "2FA": 4,
+          "1F0": 4,
+          "1EF": 4,
+          "1F4": 4,
+          "1F5": 4,
+          "1FA": 4,
+          "1FB": 4,
+          "1F7": 4,
+          "2ED": 2,
+          "1E340000": 1,
+          "41A": 1,
+          "545": 1,
+          "257": 1,
+          "2EE": 1,
+          "41E": 1,
+          "420": 1,
+          "422": 1,
+          "424": 1,
+          "426": 1,
+          "259": 1,
+          "41B": 1,
+          "736": 1,
+          "2EF": 1,
+          "73E": 1,
+          "2EC": 1,
+          "15C": 1,
+          "226": 1,
+          "412": 1,
+          "416": 1,
+          "5A7": 1,
+          "1E360016": 1,
+          "256": 1,
+          "4B1": 1,
+          "418": 1
+        }
+      },
+      {
+        "stn_protocol": "34",
+        "header_bits": 29,
+        "frames": 0,
+        "error": null,
+        "ids": {},
+        "active_probe": true,
+        "responders": [
+          "18DAF110",
+          "18DAF118"
+        ]
+      }
+    ],
+    "verified_by": "passive_listen",
+    "awake": true,
+    "awake_note": null,
+    "note": null,
+    "probe_ok": true,
+    "probe_stn_protocol": "34",
+    "responders": [
+      "18DAF110",
+      "18DAF118"
+    ],
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": "passive listen + one legislated 0100 probe; records which legislated route answers"
+}

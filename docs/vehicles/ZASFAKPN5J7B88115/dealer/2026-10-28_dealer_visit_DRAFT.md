@@ -188,41 +188,41 @@ Background on what wiTECH 2.0 can do that MES/AlfaOBD cannot:
 
 ---
 
-## E. Placeholders for tonight's OBD read (fill in before the visit)
+## E. Baseline OBD read, 2026-10-23 (filled from CUORE scan SCAN_2610230010)
 
-Read only through CUORE sessions, one tester on the port, no clears. Source of the template fields: CUORE store kinds `module_dtcs`, `readiness`, `mode06`, `module_identity`.
+Read only through CUORE sessions, one tester on the port, no clears. Full readings, verdict and raw files: `docs/research/SCAN_2026-10-23_POST_ESIM.md` and `data/captures/stelvio-2018/scans/2026-10-23_SCAN_2610230010/`. [CUORE] = reading; [OWNER] = owner-stated.
 
 **E1. Read date/time, odometer, fuel level %, ambient temp, ignition state:**
-`____________________`
+2026-10-23 00:10 local. Odometer: not read in this scan (the P0455 freeze snapshot carries 146,879.1 km, DID 2001, medium confidence). Fuel 45.9 % (PID 2F) / 46.7 % (DID 1001). Ambient 8 C (PID 46). [OWNER] ignition on, engine off, car on a 10 A charger, no adapter cable (CAN-C only). [CUORE] note: PID 0C read 750 rpm at the time, so the engine may have been idling.
 
 **E2. Module list and software versions** (last known in brackets):
 
 | Module | Part / SW number | Version | Source |
 |---|---|---|---|
-| ECM | [52170619 / P235QB39] | [0000] | ____ |
-| BCM | [04441660441] | [1454] | ____ |
-| TCM | ____ | ____ | ____ |
-| IPC | ____ | ____ | ____ |
-| RFHUB | ____ | ____ | ____ |
-| ABS | ____ | ____ | ____ (needs grey adapter / CAN-CH; silent to CUORE 10-15) |
-| DASM | ____ | ____ | ____ |
-| DTCM (transfer case) | ____ | ____ | ____ |
-| ESM / others | ____ | ____ | ____ |
+| ECM | part 50544870 / SW 52170619 / supplier P235QB39 [52170619 / P235QB39] | F195 0000 [0000]; F189 not supported | CUORE F187/F188/F194/F195, file 34 |
+| BCM | part 50554114 / SW 52154912; HW 52058054 BCM949M_C02 [04441660441] | F189 not supported [1454]; identity read ended in CAN ERROR | CUORE file 35 |
+| TCM | part 46337308 / SW 52119227 / supplier GK0902OE2HN | F195 0003 | CUORE file 36 |
+| IPC | part 50551318 (only F190 VIN and F187 returned) | not read | CUORE file 37, CAN ERROR |
+| RFHUB | part 50544008 / SW 52091977 / supplier 10307064AB | F195 0940 | CUORE file 38 |
+| ABS | not read | not read | needs grey adapter / CAN-CH; silent to CUORE 10-15 |
+| DASM | not read | not read | no confirmed address |
+| DTCM (transfer case) | not read | not read | no confirmed address |
+| ESM / others | not read | not read | no confirmed address. No camera / ParkView / PAM module answered on CAN-C |
 
 **E3. Current DTCs per module with status byte** (last known: ECM P0440 0xCD, P0455 0x4D, P0456 0x4D; BCM U1713-2F 0x0F; cleared 2026-10-19 00:39, so confirm what has returned):
-`____________________`
+ECM: P0440-00 0x4D, P0455-00 0x4D, P0456-00 0x4D (testFailed, pending, confirmed, testNotCompletedThisOperationCycle; MIL not requested). Mode 03 stored: none. Mode 07 pending: P0440 P0455 P0456. Mode 0A permanent: P0440 P0456. P0455 freeze frame: coolant 56 C, fuel 82.7 %. BCM: B101D-15 0x4D; B10AA-4A 0x08; B1176-97 0x08; U1736-87 0x08. IPC: U1736-86 0x0E; U1736-87 0x0E. TCM and RFHUB: none. U1711 / U1712 / U1713: ABSENT in every module (BCM U1713-2F is no longer present). DASM, DTCM, ESM, ABS: not read.
 
 **E4. Readiness monitors** (EVAP, catalyst, O2, EGR; MIL status; distance with MIL; warm-ups and km since last clear):
-`____________________`
+MIL off. Distance with MIL on 0 km. Warm-ups since clear 14; distance since clear 342 km. Readiness since clear: all complete except EVAP INCOMPLETE; EGR incomplete this drive cycle (PID 41). EVAP proof: INCOMPLETE, not failed and not passed.
 
 **E5. Mode 06 EVAP** (OBDMID 0x3A TID 0x87 value/min/max; OBDMID 0x3C TID 0x90 value/min/max; 0x3D purge flow). Last known 2026-10-13: 404 / 3965 / 65535 and 6096 / 0 / 6000. The OBD side returned NO DATA on 10-19; the legislated route is the 29-bit 18DB33F1 route per CUORE note. If it returns NO DATA again, say so; do not fill with a guess.
-`____________________`
+Answered this time. 0x3A/0x87: 496 ms, min 3707, max 65535, FAIL (10-13: 404, min 3965). 0x3C/0x90: 6096, min 0, max 6000, FAIL (identical to 10-13; looks like a sentinel value, inference). 0x3C/0x85: 4722 (max 4200) FAIL. 0x3C/0x86: 15379 (max 6000) FAIL. 0x3D/0xA0: 65535 (min 19660) PASS. 0x3D/0xA1: 196 (63 to 326) PASS. Units are ms where UASID 0x10; scaling of the 0x85/0x86/0x3D records is unknown.
 
 **E6. Battery voltage and IBS:** key-on engine-off V, engine-running V, BCM DID 1004 V, IBS state of charge (last 14.0-14.5 V running; SoC 71 % unverified formula).
-`____________________`
+Adapter 14.5 V before and after; PID 42 14.31 V; BCM DID 1004 145 = 14.5 V (unverified formula); ECM DID 19BD IBS state of charge 67 % (unverified formula). The car was on a 10 A charger, so battery health could not be judged. BCM B101D-15 (battery-voltage circuit code, status 0x4D) is new and is the next reading to chase.
 
 **E7. ECM external temperature vs real ambient** (last 06-07: pinned at -61 C while air temp read 30 C) and fuel level vs gauge. Hypothesis 8c659dfc (EVAP inputs invalid) depends on this. [CUORE: CEL file test E]
-`____________________`
+ECM ambient (PID 46) 8 C: plausible, no -61 C value. Real outside temperature at the car was not recorded; compare with the owner's figure. Fuel 45.9 % (PID 2F), 46.7 % (DID 1001); the dash gauge reading was not recorded. Hypothesis 8c659dfc is weakened, not refuted.
 
 **E8. Anything the owner reports** (symptoms, MIL on or off, warning messages, mount noises, brake pedal feel):
 `____________________`

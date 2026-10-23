@@ -1,0 +1,178 @@
+{
+  "step": "B2_identity_ECM",
+  "phase": "uds",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/module/ECM/identity?vin=ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:55",
+      "http_status": 200,
+      "elapsed_s": 5.8,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "ecu": "ECM",
+    "bus": "can_c",
+    "fields": {
+      "F190": {
+        "name": "VIN",
+        "ascii": "ZASFAKPN5J7B88115",
+        "bytes": [
+          "5A",
+          "41",
+          "53",
+          "46",
+          "41",
+          "4B",
+          "50",
+          "4E",
+          "35",
+          "4A",
+          "37",
+          "42",
+          "38",
+          "38",
+          "31",
+          "31",
+          "35"
+        ],
+        "nrc": null
+      },
+      "F187": {
+        "name": "spare part",
+        "ascii": "50544870   ",
+        "bytes": [
+          "35",
+          "30",
+          "35",
+          "34",
+          "34",
+          "38",
+          "37",
+          "30",
+          "20",
+          "20",
+          "20"
+        ],
+        "nrc": null
+      },
+      "F188": {
+        "name": "ECU SW",
+        "ascii": "52170619   ",
+        "bytes": [
+          "35",
+          "32",
+          "31",
+          "37",
+          "30",
+          "36",
+          "31",
+          "39",
+          "20",
+          "20",
+          "20"
+        ],
+        "nrc": null
+      },
+      "F189": {
+        "name": "SW version",
+        "ascii": null,
+        "bytes": null,
+        "nrc": {
+          "18DAF110": "requestOutOfRange"
+        }
+      },
+      "F18C": {
+        "name": "serial",
+        "ascii": "TD4192427B17540",
+        "bytes": [
+          "54",
+          "44",
+          "34",
+          "31",
+          "39",
+          "32",
+          "34",
+          "32",
+          "37",
+          "42",
+          "31",
+          "37",
+          "35",
+          "34",
+          "30"
+        ],
+        "nrc": null
+      },
+      "F191": {
+        "name": "HW",
+        "ascii": "52055320   ",
+        "bytes": [
+          "35",
+          "32",
+          "30",
+          "35",
+          "35",
+          "33",
+          "32",
+          "30",
+          "20",
+          "20",
+          "20"
+        ],
+        "nrc": null
+      },
+      "F192": {
+        "name": "HW",
+        "ascii": "MM10JAHW232",
+        "bytes": [
+          "4D",
+          "4D",
+          "31",
+          "30",
+          "4A",
+          "41",
+          "48",
+          "57",
+          "32",
+          "33",
+          "32"
+        ],
+        "nrc": null
+      },
+      "F194": {
+        "name": "supplier SW",
+        "ascii": "P235QB39   ",
+        "bytes": [
+          "50",
+          "32",
+          "33",
+          "35",
+          "51",
+          "42",
+          "33",
+          "39",
+          "20",
+          "20",
+          "20"
+        ],
+        "nrc": null
+      },
+      "F195": {
+        "name": "supplier SW",
+        "ascii": null,
+        "bytes": [
+          "00",
+          "00"
+        ],
+        "nrc": null
+      }
+    },
+    "cable": "none"
+  },
+  "note": "DIDs F190 F187 F188 F189 F18C F191 F192 F194 F195; kind 'identity'"
+}

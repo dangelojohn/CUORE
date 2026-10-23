@@ -1,0 +1,38 @@
+{
+  "step": "A9_pid2E",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/2E",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:48",
+      "http_status": 200,
+      "elapsed_s": 1.06,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "2E",
+    "name": "commanded_evap_purge",
+    "raw": "18DAF11003412E00",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "2E",
+        "name": "commanded_evap_purge",
+        "bytes": [
+          "00"
+        ],
+        "unit": "%",
+        "value": 0.0
+      }
+    },
+    "value": 0.0,
+    "unit": "%",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}

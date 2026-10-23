@@ -1,0 +1,478 @@
+{
+  "step": "B4_dtc_detail_ECM_P0455-00",
+  "phase": "uds",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/module/ECM/dtc/P0455-00?vin=ZASFAKPN5J7B88115",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:11:46",
+      "http_status": 200,
+      "elapsed_s": 2.73,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "ecu": "ECM",
+    "dtc": "P0455-00",
+    "status": 77,
+    "flags": {
+      "testFailed": true,
+      "testFailedThisOperationCycle": false,
+      "pendingDTC": true,
+      "confirmedDTC": true,
+      "testNotCompletedSinceLastClear": false,
+      "testFailedSinceLastClear": false,
+      "testNotCompletedThisOperationCycle": true,
+      "warningIndicatorRequested": false
+    },
+    "status_source": "19 02",
+    "snapshot": {
+      "ecu": "ECM",
+      "dtc": "P0455-00",
+      "record": "FF",
+      "error": null,
+      "nrc": null,
+      "status": 77,
+      "flags": {
+        "testFailed": true,
+        "testFailedThisOperationCycle": false,
+        "pendingDTC": true,
+        "confirmedDTC": true,
+        "testNotCompletedSinceLastClear": false,
+        "testFailedSinceLastClear": false,
+        "testNotCompletedThisOperationCycle": true,
+        "warningIndicatorRequested": false
+      },
+      "records": [
+        {
+          "record_number": 0,
+          "identifiers": [
+            {
+              "did": "1008",
+              "name": "Operating time",
+              "bytes": [
+                "00",
+                "04",
+                "8F",
+                "53"
+              ],
+              "value": 298835,
+              "unit": "min",
+              "confidence": "high",
+              "basis": "MES 'Operating time': monotonic with startups at ~29 min/startup (MES 296066 min @ startup 14532 on 2026-10-04; 31 min/startup in Sept)"
+            },
+            {
+              "did": "1009",
+              "name": null,
+              "bytes": [
+                "00",
+                "12"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "200A",
+              "name": "Startups counter",
+              "bytes": [
+                "39",
+                "23"
+              ],
+              "value": 14627,
+              "unit": null,
+              "confidence": "high",
+              "basis": "MES 'Startups counter' (14532 on 2026-10-04); record order matches"
+            },
+            {
+              "did": "6082",
+              "name": null,
+              "bytes": [
+                "00"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "1921",
+              "name": null,
+              "bytes": [
+                "40",
+                "00",
+                "01",
+                "00",
+                "00",
+                "00",
+                "00",
+                "04",
+                "00"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "1000",
+              "name": "Engine RPM",
+              "bytes": [
+                "0C",
+                "CC"
+              ],
+              "value": 819,
+              "unit": "rpm",
+              "confidence": "medium",
+              "basis": "Table C /4; 764 rpm at warm idle, 0 in the engine-off P0456"
+            },
+            {
+              "did": "1924",
+              "name": null,
+              "bytes": [
+                "00"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "1802",
+              "name": null,
+              "bytes": [
+                "00",
+                "40"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "1002",
+              "name": "Vehicle speed",
+              "bytes": [
+                "00",
+                "C8"
+              ],
+              "value": 1.61,
+              "unit": "km/h",
+              "confidence": "medium",
+              "basis": "Table C /124 (/128 would read 3% lower); 0 at idle, 12 km/h in gear 3 at 921 rpm"
+            },
+            {
+              "did": "192D",
+              "name": "Current engaged gear",
+              "bytes": [
+                "01"
+              ],
+              "value": 1,
+              "unit": null,
+              "confidence": "medium",
+              "basis": "Table C; 3 at 12 km/h, 0 at idle in P/N and engine-off (MES shows N)"
+            },
+            {
+              "did": "2001",
+              "name": "Odometer",
+              "bytes": [
+                "16",
+                "69",
+                "77"
+              ],
+              "value": 146879.1,
+              "unit": "km",
+              "confidence": "medium",
+              "basis": "0.1 km units; monotonic with startups; MES odometer was 142289.9 km @ startup 14457, +4.4k km by 14603 (204 km / 215 min between P0455 and P0456)"
+            },
+            {
+              "did": "1812",
+              "name": "Spark advance",
+              "bytes": [
+                "FF",
+                "BE"
+              ],
+              "value": -4.12,
+              "unit": "deg",
+              "confidence": "low",
+              "basis": "MES spark advance is an exact multiple of 1/16 deg; 0 engine-off, 3.75 at idle; identity from three points only"
+            },
+            {
+              "did": "1003",
+              "name": "Coolant temperature",
+              "bytes": [
+                "60"
+              ],
+              "value": 56,
+              "unit": "degC",
+              "confidence": "medium",
+              "basis": "A-40; cold record 17 = air 16 = oil 17; warm records above oil (MES pattern)"
+            },
+            {
+              "did": "1004",
+              "name": "Battery voltage",
+              "bytes": [
+                "00",
+                "8E"
+              ],
+              "value": 14.2,
+              "unit": "V",
+              "confidence": "medium",
+              "basis": "/10; 14.3/14.2 V running, 12.3 V engine-off (MES shows 14.3 V running)"
+            },
+            {
+              "did": "1937",
+              "name": "Intake manifold pressure",
+              "bytes": [
+                "01",
+                "E9"
+              ],
+              "value": 489,
+              "unit": "mbar",
+              "confidence": "medium",
+              "basis": "969 engine-off = ambient; 316-371 at idle/decel; airflow tracks rpm x this"
+            },
+            {
+              "did": "1923",
+              "name": null,
+              "bytes": [
+                "12"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "191E",
+              "name": null,
+              "bytes": [
+                "00",
+                "09"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "182F",
+              "name": "Air flow rate",
+              "bytes": [
+                "00",
+                "A6"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "low",
+              "basis": "tracks rpm x manifold pressure within 3% and is 0 engine-off; kg/h scale not verified (raw/10 would give 13.4 and 9.2)"
+            },
+            {
+              "did": "1935",
+              "name": "Intake air temperature",
+              "bytes": [
+                "37"
+              ],
+              "value": 15,
+              "unit": "degC",
+              "confidence": "medium",
+              "basis": "A-40; cold-soak record 16 degC ~ coolant 17 (MES air temp pattern)"
+            },
+            {
+              "did": "195A",
+              "name": "Boost pressure",
+              "bytes": [
+                "03",
+                "F6"
+              ],
+              "value": 1014,
+              "unit": "mbar",
+              "confidence": "low",
+              "basis": "~ambient at idle / engine-off; 195A and 1956 are an interchangeable pair (boost vs atmospheric) -- order from Table C, not proven"
+            },
+            {
+              "did": "1821",
+              "name": null,
+              "bytes": [
+                "03"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "1818",
+              "name": null,
+              "bytes": [
+                "00"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "1956",
+              "name": "Atmospheric pressure",
+              "bytes": [
+                "03",
+                "EE"
+              ],
+              "value": 1006,
+              "unit": "mbar",
+              "confidence": "low",
+              "basis": "~ambient at idle / engine-off; 195A and 1956 are an interchangeable pair (boost vs atmospheric) -- order from Table C, not proven"
+            },
+            {
+              "did": "1302",
+              "name": "Engine oil temperature",
+              "bytes": [
+                "00",
+                "2C"
+              ],
+              "value": 44,
+              "unit": "degC",
+              "confidence": "medium",
+              "basis": "direct degC; oil < coolant warming up, = coolant cold (MES 63/51, 60/46, 15/15)"
+            },
+            {
+              "did": "1B0D",
+              "name": null,
+              "bytes": [
+                "80",
+                "00",
+                "00",
+                "00",
+                "00",
+                "00",
+                "04",
+                "01"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "19BD",
+              "name": "IBS state of charge",
+              "bytes": [
+                "49"
+              ],
+              "value": 73,
+              "unit": "%",
+              "confidence": "medium",
+              "basis": "Table C; 100 % on the cold-start P0456 as in MES (63/81/100)"
+            },
+            {
+              "did": "1B03",
+              "name": null,
+              "bytes": [
+                "84"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "198C",
+              "name": "UniAir actuation mode",
+              "bytes": [
+                "20"
+              ],
+              "value": "Hybrid",
+              "unit": null,
+              "confidence": "low",
+              "basis": "0x20,0x20,0x01 mirrors MES Hybrid,Hybrid,Late opening (cold start)"
+            },
+            {
+              "did": "19BE",
+              "name": null,
+              "bytes": [
+                "00",
+                "20",
+                "00",
+                "00"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "1928",
+              "name": null,
+              "bytes": [
+                "00"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            },
+            {
+              "did": "1001",
+              "name": "Fuel level",
+              "bytes": [
+                "D3"
+              ],
+              "value": 82.75,
+              "unit": "%",
+              "confidence": "medium",
+              "basis": "MES fuel % is n*100/255; falls 91.8 -> 62.7 -> 55.7 % over the three records in time order = 8 L/100 km over the 204 km between P0455 and P0456"
+            },
+            {
+              "did": "3701",
+              "name": null,
+              "bytes": [
+                "00"
+              ],
+              "value": null,
+              "unit": null,
+              "confidence": "unknown"
+            }
+          ]
+        }
+      ],
+      "undecoded_from": "snapshot record 0: truncated DID at offset 134: []"
+    },
+    "extended": {
+      "ecu": "ECM",
+      "dtc": "P0455-00",
+      "record": "FF",
+      "error": null,
+      "nrc": null,
+      "status": 77,
+      "flags": {
+        "testFailed": true,
+        "testFailedThisOperationCycle": false,
+        "pendingDTC": true,
+        "confirmedDTC": true,
+        "testNotCompletedSinceLastClear": false,
+        "testFailedSinceLastClear": false,
+        "testNotCompletedThisOperationCycle": true,
+        "warningIndicatorRequested": false
+      },
+      "records": [
+        {
+          "record_number": 1,
+          "bytes": [
+            "60"
+          ],
+          "meaning_guess": "occurrence counter: number of times this DTC's test has failed",
+          "confidence": "unverified for FCA"
+        }
+      ],
+      "undecoded_from": "record 0x80 (length unknown); 8 raw byte(s) remain: ['80', '28', '60', '81', '00', '60', '83', '00']",
+      "structural_decode": {
+        "raw_bytes": [
+          "80",
+          "28",
+          "60",
+          "81",
+          "00",
+          "60",
+          "83",
+          "00"
+        ],
+        "note": "No further decoding attempted: ISO 14229-1 Annex D leaves extended-data record numbers manufacturer-specific, and no FCA/Stellantis-specific public source for this record number was found. Raw bytes only -- no meaning invented."
+      }
+    },
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": "status + 19 04 snapshot + 19 06 extended; kind 'dtc_detail'"
+}

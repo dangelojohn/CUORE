@@ -1,0 +1,142 @@
+{
+  "step": "modules_can_c",
+  "phase": "preflight",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/modules?bus=can_c",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:06:46",
+      "http_status": 200,
+      "elapsed_s": 0.02,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "modules": [
+      {
+        "code": "ECM",
+        "name": "Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)",
+        "bus": "can_c",
+        "bus_confidence": "confirmed",
+        "target": "10",
+        "request": "18DA10F1",
+        "response": "18DAF110",
+        "confidence": "confirmed",
+        "usable": true,
+        "present": "confirmed",
+        "source": "danardi78 header DA10F1; ClaudeMarais ESP32 repo",
+        "hazard": null,
+        "note": "STP 34 (STP 33 for legislated 7E0/7E8)"
+      },
+      {
+        "code": "TCM",
+        "name": "ZF 8HP50/75 Automatic Gearbox",
+        "bus": "can_c",
+        "bus_confidence": "confirmed",
+        "target": "18",
+        "request": "18DA18F1",
+        "response": "18DAF118",
+        "confidence": "confirmed",
+        "usable": true,
+        "present": "confirmed",
+        "source": "danardi78 header DA18F1",
+        "hazard": null,
+        "note": "STP 34"
+      },
+      {
+        "code": "BCM",
+        "name": "Body Computer Marelli (949), gateway",
+        "bus": "can_c",
+        "bus_confidence": "confirmed",
+        "target": "40",
+        "request": "18DA40F1",
+        "response": "18DAF140",
+        "confidence": "confirmed",
+        "usable": true,
+        "present": "confirmed",
+        "source": "danardi78 header DA40F1 (IBS, key position, light switch)",
+        "hazard": null,
+        "note": "Diagnostically reachable on CAN-C; gateways to CAN-IHS. STP 34"
+      },
+      {
+        "code": "IPC",
+        "name": "Instrument Panel Continental",
+        "bus": "can_c",
+        "bus_confidence": "confirmed",
+        "target": "60",
+        "request": "18DA60F1",
+        "response": "18DAF160",
+        "confidence": "confirmed",
+        "usable": true,
+        "present": "confirmed",
+        "source": "danardi78 header DA60F1",
+        "hazard": null,
+        "note": "STP 34"
+      },
+      {
+        "code": "RFHUB",
+        "name": "Radio frequency hub Continental",
+        "bus": "can_c",
+        "bus_confidence": "confirmed",
+        "target": "C7",
+        "request": "18DAC7F1",
+        "response": "18DAF1C7",
+        "confidence": "confirmed",
+        "usable": true,
+        "present": "confirmed",
+        "source": "danardi78 header DAC7F1 (TPMS 2240B1..B4)",
+        "hazard": "Do not use 0x18DABAF1: squatted by the BACCAble project's board. 0x18DAC7F1 carries a documented immobiliser hazard if a BACCAble board is fitted; none is fitted here, so reading TPMS is safe, but keep the warning in the data.",
+        "note": "Address CONFIRMED; that it is RFHUB is INFERRED. STP 34"
+      },
+      {
+        "code": "DTCM",
+        "name": "Magna Q4 Transfer Case",
+        "bus": "can_c",
+        "bus_confidence": "confirmed",
+        "target": "29",
+        "request": "18DA29F1",
+        "response": "18DAF129",
+        "confidence": "unverified",
+        "usable": false,
+        "present": "confirmed",
+        "source": "stelvio_scan uds/addresses.py (self-declared unsourced)",
+        "hazard": null,
+        "note": "STP 34"
+      },
+      {
+        "code": "ESM",
+        "name": "ZF Electronic Gear Shift Module",
+        "bus": "can_c",
+        "bus_confidence": "confirmed",
+        "target": null,
+        "request": null,
+        "response": null,
+        "confidence": "unknown",
+        "usable": false,
+        "present": "confirmed",
+        "source": "",
+        "hazard": null,
+        "note": "STP 34"
+      },
+      {
+        "code": "DASM",
+        "name": "Driver assistance radar Bosch",
+        "bus": "can_c",
+        "bus_confidence": "confirmed",
+        "target": null,
+        "request": null,
+        "response": null,
+        "confidence": "unknown",
+        "usable": false,
+        "present": "confirmed",
+        "source": "",
+        "hazard": null,
+        "note": "CONFIRMED present 7/7 scans without cable. STP 34"
+      }
+    ]
+  },
+  "note": ""
+}

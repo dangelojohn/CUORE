@@ -1,0 +1,48 @@
+{
+  "step": "state_paths_observations",
+  "phase": "preflight",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/observations?n=1",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:06:46",
+      "http_status": 200,
+      "elapsed_s": 0.09,
+      "problems": [
+        "/entries[0]/data/since_clear/error: could not decode readiness response",
+        "/entries[0]/data/this_drive_cycle/error: could not decode readiness response"
+      ]
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "path": "C:\\ProgramData\\cuore\\observations.jsonl",
+    "entries": [
+      {
+        "at": "2026-10-19T00:34:06",
+        "kind": "readiness",
+        "vin": "",
+        "bus": "can_c",
+        "cable": "none",
+        "stream": "serial COM3@115200",
+        "data": {
+          "since_clear": {
+            "error": "could not decode readiness response",
+            "raw": "NO DATA",
+            "why": "the port reads 14.5 V, so the engine is running: the ignition does NOT explain the silence. Check the adapter's bus access: HS/MS switch on HS, plug fully seated, no coloured cable fitted for CAN-C"
+          },
+          "this_drive_cycle": {
+            "error": "could not decode readiness response",
+            "raw": "NO DATA",
+            "why": "the port reads 14.5 V, so the engine is running: the ignition does NOT explain the silence. Check the adapter's bus access: HS/MS switch on HS, plug fully seated, no coloured cable fitted for CAN-C"
+          },
+          "bus": "can_c",
+          "cable": "none"
+        }
+      }
+    ]
+  },
+  "note": ""
+}

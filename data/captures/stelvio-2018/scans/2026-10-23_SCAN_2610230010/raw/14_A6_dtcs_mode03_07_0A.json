@@ -1,0 +1,70 @@
+{
+  "step": "A6_dtcs_mode03_07_0A",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/dtcs?kind=all",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:06",
+      "http_status": 200,
+      "elapsed_s": 3.97,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "stored": {
+      "kind": "stored",
+      "raw": "18DAF110024300\n18DAF118024300",
+      "dtcs": [],
+      "by_ecu": {
+        "18DAF110": [],
+        "18DAF118": []
+      },
+      "note": "Mode 03 returns emissions-related powertrain codes only. Body, chassis and network faults are UDS 3-byte codes; use module DTC reads for those.",
+      "bus": "can_c",
+      "cable": "none"
+    },
+    "pending": {
+      "kind": "pending",
+      "raw": "18DAF1101008470304550440\n18DAF1102104560000000000\n18DAF118024700",
+      "dtcs": [
+        "P0440",
+        "P0455",
+        "P0456"
+      ],
+      "by_ecu": {
+        "18DAF110": [
+          "P0455",
+          "P0440",
+          "P0456"
+        ],
+        "18DAF118": []
+      },
+      "bus": "can_c",
+      "cable": "none"
+    },
+    "permanent": {
+      "kind": "permanent",
+      "raw": "18DAF110064A0204400456\n18DAF118024A00",
+      "dtcs": [
+        "P0440",
+        "P0456"
+      ],
+      "by_ecu": {
+        "18DAF110": [
+          "P0440",
+          "P0456"
+        ],
+        "18DAF118": []
+      },
+      "bus": "can_c",
+      "cable": "none"
+    },
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": "stored (03), pending (07), permanent (0A); store kind 'obd_dtcs' x3"
+}

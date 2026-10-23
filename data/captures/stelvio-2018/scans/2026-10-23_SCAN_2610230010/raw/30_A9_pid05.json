@@ -1,0 +1,47 @@
+{
+  "step": "A9_pid05",
+  "phase": "legislated",
+  "method": "GET",
+  "url": "http://127.0.0.1:5000/api/live/obd/pid/05",
+  "body": null,
+  "attempts": [
+    {
+      "attempt": 1,
+      "started": "2026-10-23T00:10:45",
+      "http_status": 200,
+      "elapsed_s": 0.83,
+      "problems": []
+    }
+  ],
+  "http_status": 200,
+  "response": {
+    "pid": "05",
+    "name": "engine_coolant_temp",
+    "raw": "18DAF11003410571\n18DAF11803410571",
+    "by_ecu": {
+      "18DAF110": {
+        "pid": "05",
+        "name": "engine_coolant_temp",
+        "bytes": [
+          "71"
+        ],
+        "unit": "C",
+        "value": 73
+      },
+      "18DAF118": {
+        "pid": "05",
+        "name": "engine_coolant_temp",
+        "bytes": [
+          "71"
+        ],
+        "unit": "C",
+        "value": 73
+      }
+    },
+    "value": 73,
+    "unit": "C",
+    "bus": "can_c",
+    "cable": "none"
+  },
+  "note": ""
+}
