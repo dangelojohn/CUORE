@@ -57,6 +57,7 @@ As of 2026-10-22 the project is a working bench application for one reference ca
 - [[Recalls and Campaigns|Recalls-and-Campaigns]]: the recalls and notices that could apply, VIN checks first.
 - [[Routine Maintenance: Accessory Belt|Routine-Maintenance-Accessory-Belt]]: sourced belt replacement procedure, interval, part numbers and what to record.
 - [[Digital Rear-View Mirror|Digital-Rear-View-Mirror]]: planned accessory install; ADAS camera, power, airbag and liftgate cautions, job 98a6aad68d72.
+- [[Infotainment and Camera Upgrades|Infotainment-and-Camera-Upgrades]]: four routes to add front, side, 360 and mirror cameras compared against the car's diagnostic state; evaluation, job c70f2f3e6932.
 
 **Project**
 - [[Testing]], [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]], [[Roadmap]], [[Glossary]], [[Data Captured|Data-Captured]], [[Project History|Project-History]].

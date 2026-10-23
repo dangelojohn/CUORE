@@ -34,3 +34,5 @@ The OEM mirror connector pinout and whether it is on LIN, CAN or plain power; th
 Product and part number; fuse box, slot and circuit; tap fuse rating; ACC or constant and how it was verified; current draw key-off with how and when it was measured; ground point; cable routes; reverse signal used or not; airbag and ADAS checks; a CUORE scan before and after; date and installer; the 18V203 and 18V205 VIN-check answers.
 
 Related: [[Jobs, Hypotheses and Mechanic Steps|Jobs-Hypotheses-and-Mechanic-Steps]], [[Recalls and Campaigns|Recalls-and-Campaigns]], [[Network and Brake Findings|Network-and-Brake-Findings]].
+
+Wider evaluation: the owner also asked about front, side and 360 cameras and a head-unit or interface-box upgrade. Four routes are compared in [[Infotainment and Camera Upgrades|Infotainment-and-Camera-Upgrades]] (job c70f2f3e6932, cross-linked with this job); standalone mirror systems are route A there. Do the mirror and any infotainment work on separate days.
