@@ -55,6 +55,7 @@ As of 2026-10-22 the project is a working bench application for one reference ca
 - [[Code Reviews|Code-Reviews]]: every other code on the car, by system: readings, classification, resolution ladder, proof of fix.
 - [[Network and Brake Findings|Network-and-Brake-Findings]]: the body-computer-centred code cluster, the brake event and the ranked tests.
 - [[Recalls and Campaigns|Recalls-and-Campaigns]]: the recalls and notices that could apply, VIN checks first.
+- [[Routine Maintenance: Accessory Belt|Routine-Maintenance-Accessory-Belt]]: sourced belt replacement procedure, interval, part numbers and what to record.
 
 **Project**
 - [[Testing]], [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]], [[Roadmap]], [[Glossary]], [[Data Captured|Data-Captured]], [[Project History|Project-History]].

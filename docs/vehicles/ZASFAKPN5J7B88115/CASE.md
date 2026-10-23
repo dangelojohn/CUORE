@@ -85,6 +85,8 @@ RFHUB B1040-64 appeared 2026-09-25 during ignition cycling: likely a bystander.
   reportlab installed; outputs go to the Desktop).
 - `data/nhtsa_recalls_2018_stelvio.json`: NHTSA recalls API response, 2026-09-26.
 - `bulletins/`: CSN W05 and TSB 18-026-20 (this car), plus two checked and found not applicable.
+- Routine maintenance procedure in progress (job `f3ab620b5464`):
+  `docs/maintenance/ACCESSORY_BELT_REPLACEMENT_2.0T.md` (accessory belt, external reference).
 - Related repo docs: `docs/research/EVAP_STELVIO.md`, `docs/research/EVAP_SMOKE_TEST.md`,
   `docs/research/WITECH_PASSIVE_LEARNING.md`, `docs/reference/TSB_CATALOGUE.md`,
   `docs/reference/GIORGIO_MODULE_MAP.md`.

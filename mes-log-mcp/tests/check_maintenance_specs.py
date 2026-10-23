@@ -169,6 +169,14 @@ check("brake_fluid interval is calendar-only (no mileage figure)",
       and brake_fluid["interval_months"] == 24
       and brake_fluid["interval_confidence"] == m.CONFIRMED)
 
+belt = m.item("drive_belt")
+check("drive_belt carries the sourced procedure: tensioner release is "
+      "stated, and unsourced torques are marked not found",
+      any("breaker bar" in x and "clockwise" in x for x in belt["procedure"])
+      and any("not found, ask dealer" in x for x in belt["procedure"])
+      and {p["part_number"] for p in belt["parts"]}
+      >= {"68326261AA", "50534146"})
+
 power_steering = m.item("power_steering")
 check("power_steering correctly records there is no serviceable fluid",
       power_steering["fluid"] is None)

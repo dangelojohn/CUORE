@@ -372,17 +372,41 @@ _item(
         source="https://awitalian.com/product/alfa-romeo-giulia-stelvio-serpentine-drive-belt-68326261aa/",
         notes="Single aftermarket-retailer listing for the 2018-2022 2.0L; "
               "not cross-checked against a second retailer or a "
-              "Mopar-direct listing this pass.")],
+              "Mopar-direct listing this pass."),
+        _part(
+        name="Accessory belt, Alfa Romeo EU number (6 ribs, 6PK1855, "
+             "models with air con)", part_number="50534146",
+        confidence=SINGLE_SOURCE,
+        source="https://www.alfaworkshop.co.uk/parts/Stelvio_Auxiliary_Belt.shtml",
+        notes="Workshop parts-shop listing for the 2.0 petrol 200/280/350 "
+              "bhp. Aftermarket cross-references seen in retailer "
+              "listings (not the makers' own catalogues): Gates K060730, "
+              "Dayco 6PK1855, Schaeffler FB 6PK1856. Full table and "
+              "sources in docs/maintenance/ACCESSORY_BELT_REPLACEMENT_2.0T.md.")],
     checks=["Visible cracking, glazing, or fraying",
             "Tensioner/idler pulley play and noise",
             "Correct routing per the underhood belt-routing decal"],
-    procedure=["Relieve the tensioner (per the underhood routing decal) "
-               "and slip the belt off the accessory pulleys.",
-               "Inspect the tensioner and idler pulleys for play/noise "
-               "before reusing them.",
-               "Route the new belt per the decal; release the tensioner "
-               "slowly onto the belt."],
-    post_service=["None required."],
+    procedure=["Full sourced procedure: "
+               "docs/maintenance/ACCESSORY_BELT_REPLACEMENT_2.0T.md "
+               "(external reference, Giulia 2.0 workshop guide; not a "
+               "reading from this car).",
+               "Access (Giulia 2.0 guide, Stelvio assumed the same): "
+               "remove the undertray (19 x T27), the plastic auxiliary "
+               "cover (10 mm nuts) and the turbo air intake pipe.",
+               "Photograph the routing, then relieve the tensioner with a "
+               "3/8 in breaker bar in the square hole on its lower face, "
+               "turning it clockwise. No locking pin is mentioned.",
+               "With the belt off, spin each pulley and move the tensioner "
+               "by hand for roughness or play before fitting the new belt.",
+               "Route the new belt over the idler, pull the tensioner back, "
+               "slip the belt under the idler, then release the tensioner "
+               "slowly. Turn the crank pulley clockwise by hand (22 mm "
+               "socket) and check every rib is seated.",
+               "Tightening torques for the tensioner, idler and intake "
+               "pipe: not found, ask dealer / service info."],
+    post_service=["Record the belt part number, odometer and date at "
+                  "install, pulley condition and who fitted it; re-check "
+                  "rib seating after a short drive."],
 )
 
 _item(

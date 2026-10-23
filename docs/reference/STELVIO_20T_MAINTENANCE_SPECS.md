@@ -126,7 +126,9 @@ scope and was not updated to match.
 Owner's manual footnote: normal duty 36,000 mi / 60,000 km max, replace
 every 4 years regardless of mileage; dusty/demanding duty 18,000 mi /
 30,000 km max, replace every 2 years regardless. Part: 68326261AA, one
-aftermarket retailer only.
+aftermarket retailer only; the Alfa EU number 50534146 (6 ribs, 6PK1855) is
+also listed. Step-by-step replacement, tensioner release and the full part
+cross-reference: [`docs/maintenance/ACCESSORY_BELT_REPLACEMENT_2.0T.md`](../maintenance/ACCESSORY_BELT_REPLACEMENT_2.0T.md).
 
 ### 12V battery — CONFIRMED check interval; corrects an assumption
 Owner's manual: mandatory "check battery charge status" at every one of its
