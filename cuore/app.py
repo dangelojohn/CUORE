@@ -30,6 +30,7 @@ from .api import modifications as modifications_api  # noqa: E402
 from .api import scan_health as scan_health_api  # noqa: E402
 from .api import cases as cases_api, checklists as checklists_api, dossier as dossier_api, electrical as electrical_api, feedback as feedback_api, flow as flow_api, jobs as jobs_api, known_good, live, live_ui, liveboard, logs, media as media_api, parts as parts_api, recordings, reference, shop as shop_api, system, systems as systems_api, systems_map as systems_map_api, tests as tests_api, timeline as timeline_api, tools as tools_api, tools_kb as tools_kb_api, experience as experience_api, vehicles  # noqa: E402
 from .api import mes_learn as mes_learn_api  # noqa: E402
+from .api import export as export_api  # noqa: E402
 from .config import Settings, load  # noqa: E402
 from .models import ErrorBody  # noqa: E402
 from .services.errors import BridgeError  # noqa: E402
@@ -174,6 +175,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(shop_api.router, prefix="/api")
     app.include_router(cases_api.router, prefix="/api")
     app.include_router(mes_learn_api.router, prefix="/api")
+    app.include_router(export_api.router, prefix="/api")
     app.include_router(dashboard_routes.api_router, prefix="/api")
     app.include_router(service_routes.api_router, prefix="/api")
     app.include_router(drivetrain_routes.api_router, prefix="/api")

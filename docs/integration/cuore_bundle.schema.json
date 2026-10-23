@@ -1,0 +1,173 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "cuore.bundle/1.0",
+  "title": "CUORE export bundle (cuore.bundle/1.0)",
+  "description": "Manifest of a *.cuore.zip bundle carried from a car-side CUORE PC to AlfaCore. Part files are described under x-parts, keyed by their path inside the zip. Validated by cuore/services/bundle_schema.py, which implements only the keyword subset used here: type, required, properties, items, enum, const, pattern, minimum, minItems, $ref (#/$defs/...). Unknown extra keys are tolerated and kept. Contains no real VINs.",
+  "type": "object",
+  "required": ["schema", "bundle_uuid", "kind", "source_id", "station_id", "created_at", "tz", "cuore_version", "vehicle", "files", "contains", "warnings"],
+  "properties": {
+    "schema": {"const": "cuore.bundle/1.0"},
+    "bundle_uuid": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"},
+    "kind": {"enum": ["scan", "job"]},
+    "source_id": {"type": "string", "description": "scan_id (kind scan) or job_id (kind job) as CUORE knows it; unique only together with station_id"},
+    "station_id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"},
+    "created_at": {"$ref": "#/$defs/aware_iso"},
+    "tz": {"type": "string"},
+    "cuore_version": {"type": "string"},
+    "git_commit": {"type": "string"},
+    "content_sha256": {"$ref": "#/$defs/sha256", "description": "hash of the part files only; with station_id, kind and source_id it determines bundle_uuid"},
+    "vehicle": {
+      "type": "object",
+      "required": ["vin", "identities"],
+      "properties": {
+        "vin": {"type": "string", "pattern": "^[A-HJ-NPR-Z0-9]{17}$"},
+        "identities": {"type": "array", "items": {"$ref": "#/$defs/identity"}}
+      }
+    },
+    "files": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/file"}},
+    "contains": {"type": "array", "items": {"type": "string"}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "finalized": {"type": "boolean", "description": "false when a guided scan is paused or a job is open"}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "aware_iso": {"type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$", "description": "ISO 8601 with a UTC offset"},
+    "file": {
+      "type": "object",
+      "required": ["path", "sha256", "bytes"],
+      "properties": {
+        "path": {"type": "string"},
+        "sha256": {"$ref": "#/$defs/sha256"},
+        "bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "identity": {
+      "type": "object",
+      "required": ["ecu", "bus", "fields"],
+      "properties": {
+        "ecu": {"type": "string"},
+        "bus": {"type": "string"},
+        "at": {"type": "string"},
+        "tz_assumed": {"type": "boolean"},
+        "fields": {"type": "object"}
+      }
+    },
+    "evidence_class": {"enum": ["reading", "inference", "outside_literature", "owner_attested"]},
+    "obs_list": {"type": "array", "items": {"$ref": "#/$defs/obs"}},
+    "obs": {
+      "type": "object",
+      "required": ["at", "at_iso", "tz_assumed", "kind", "stream", "from_car", "data"],
+      "properties": {
+        "at": {"type": "string"},
+        "at_iso": {"$ref": "#/$defs/aware_iso"},
+        "tz_assumed": {"type": "boolean"},
+        "kind": {"type": "string"},
+        "vin": {"type": "string"},
+        "bus": {"type": "string"},
+        "cable": {"type": "string"},
+        "stream": {"type": "string"},
+        "from_car": {"type": "boolean"},
+        "data": {"type": "object"}
+      }
+    },
+    "part_scan": {
+      "type": "object",
+      "required": ["scan_id", "vin", "status", "from_car", "window", "guided", "coverage", "steps", "counts"],
+      "properties": {
+        "scan_id": {"type": "string"},
+        "vin": {"type": "string"},
+        "status": {"enum": ["complete", "partial", "attempt"]},
+        "from_car": {"type": "boolean"},
+        "streams": {"type": "array", "items": {"type": "string"}},
+        "window": {"type": "object"},
+        "guided": {"type": "object"},
+        "coverage": {"type": "array"},
+        "steps": {"type": "array"},
+        "counts": {"type": "object"}
+      }
+    },
+    "part_dtcs": {
+      "type": "object",
+      "required": ["module_dtcs", "obd_dtcs"],
+      "properties": {
+        "module_dtcs": {"type": "array", "items": {"type": "object", "required": ["ecu", "bus", "from_car", "dtcs"], "properties": {"dtcs": {"type": "array", "items": {"type": "object", "required": ["code", "base_code", "status", "flags", "state"]}}}}},
+        "obd_dtcs": {"type": "array"}
+      }
+    },
+    "part_freeze_frames": {
+      "type": "object",
+      "required": ["mode02", "dtc_detail"],
+      "properties": {"mode02": {"type": "array"}, "dtc_detail": {"type": "array"}}
+    },
+    "part_records": {
+      "type": "object",
+      "required": ["records"],
+      "properties": {"records": {"$ref": "#/$defs/obs_list"}}
+    },
+    "part_evap_bundle": {
+      "type": "object",
+      "required": ["present", "records"],
+      "properties": {"present": {"type": "boolean"}, "records": {"$ref": "#/$defs/obs_list"}}
+    },
+    "part_scan_requirements": {
+      "type": "object",
+      "required": ["scan_id", "met", "gaps", "needs_mechanic", "not_applicable", "captured", "required"],
+      "properties": {"met": {"type": "array"}, "gaps": {"type": "array"}, "needs_mechanic": {"type": "array"}, "not_applicable": {"type": "array"}}
+    },
+    "part_job": {
+      "type": "object",
+      "required": ["job", "evidence_class_rules"],
+      "properties": {
+        "job": {
+          "type": "object",
+          "required": ["id", "vin", "status", "hypotheses", "actions"],
+          "properties": {
+            "hypotheses": {"type": "array", "items": {"type": "object", "required": ["id", "text", "status", "evidence_class", "evidence_for", "evidence_against"], "properties": {"evidence_class": {"$ref": "#/$defs/evidence_class"}, "evidence_for": {"type": "array", "items": {"type": "object", "required": ["kind", "evidence_class"], "properties": {"evidence_class": {"$ref": "#/$defs/evidence_class"}}}}, "evidence_against": {"type": "array", "items": {"type": "object", "required": ["kind", "evidence_class"], "properties": {"evidence_class": {"$ref": "#/$defs/evidence_class"}}}}}}},
+            "actions": {"type": "array", "items": {"type": "object", "required": ["id", "kind", "at", "event_date", "effective_date", "evidence_class"], "properties": {"evidence_class": {"$ref": "#/$defs/evidence_class"}}}}
+          }
+        },
+        "evidence_class_rules": {"type": "object"}
+      }
+    },
+    "part_mechanic_steps": {
+      "type": "object",
+      "required": ["plans"],
+      "properties": {"plans": {"type": "array", "items": {"type": "object", "required": ["hypothesis_id", "steps"], "properties": {"steps": {"type": "array", "items": {"type": "object", "required": ["n", "title", "kind", "source", "done", "evidence_class"], "properties": {"evidence_class": {"$ref": "#/$defs/evidence_class"}}}}}}}}
+    },
+    "part_proof_of_fix": {
+      "type": "object",
+      "required": ["present", "criteria", "verification", "outcome"],
+      "properties": {"present": {"type": "boolean"}, "criteria": {"type": "array"}, "verification": {"type": "object"}}
+    },
+    "part_tsb_xref": {
+      "type": "object",
+      "required": ["vin", "available", "bulletins"],
+      "properties": {"available": {"type": "boolean"}, "bulletins": {"type": "array", "items": {"type": "object", "required": ["id", "number", "relations", "evidence_class"], "properties": {"evidence_class": {"$ref": "#/$defs/evidence_class"}}}}}
+    },
+    "part_code_findings": {
+      "type": "object",
+      "required": ["codes", "findings"],
+      "properties": {"codes": {"type": "array"}, "findings": {"type": "array", "items": {"type": "object", "required": ["code", "evidence"], "properties": {"evidence": {"type": "object", "required": ["readings", "inference", "outside_literature", "owner_attested"]}}}}}
+    }
+  },
+  "x-parts": {
+    "scan.json": {"$ref": "#/$defs/part_scan"},
+    "dtcs.json": {"$ref": "#/$defs/part_dtcs"},
+    "freeze_frames.json": {"$ref": "#/$defs/part_freeze_frames"},
+    "mode06.json": {"$ref": "#/$defs/part_records"},
+    "readiness.json": {"$ref": "#/$defs/part_records"},
+    "evap_bundle.json": {"$ref": "#/$defs/part_evap_bundle"},
+    "scan_requirements.json": {"$ref": "#/$defs/part_scan_requirements"},
+    "job.json": {"$ref": "#/$defs/part_job"},
+    "mechanic_steps.json": {"$ref": "#/$defs/part_mechanic_steps"},
+    "proof_of_fix.json": {"$ref": "#/$defs/part_proof_of_fix"},
+    "tsb_xref.json": {"$ref": "#/$defs/part_tsb_xref"},
+    "code_findings.json": {"$ref": "#/$defs/part_code_findings"}
+  },
+  "x-evidence-class-rules": {
+    "reading": "what this car said on a real serial adapter (from_car true)",
+    "inference": "a conclusion drawn from readings or hypothesis text; a DTC alone is not a measurement",
+    "outside_literature": "bulletins, forums, other cars or years; never a reading of this car",
+    "owner_attested": "a person said it (owner event, mechanic-typed fact, test result recorded by hand)"
+  }
+}

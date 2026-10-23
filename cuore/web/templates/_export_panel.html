@@ -1,0 +1,13 @@
+{# "Export for AlfaCore" -- builds a *.cuore.zip bundle (cuore.services.bundle_export)
+   for one scan or one job. Needs: export_kind ("scan"|"job"), export_id, vin.
+   No network call to AlfaCore: the file is saved on this PC and a person carries it.
+   Progressive: without JS the button does nothing, the rest of the page is unaffected. #}
+<div class="panel bundle-export" data-export
+     data-export-url="/api/export/{{ export_kind }}/{{ export_id|urlencode }}?vin={{ vin|urlencode }}">
+  <h3 style="margin-top:0">Export for AlfaCore</h3>
+  <p class="small muted">Saves this {{ export_kind }} as a file on this PC. Carry it to AlfaCore
+    on a USB stick or shared folder; nothing is sent over the network.</p>
+  <button class="btn" type="button" data-export-btn>Export for AlfaCore</button>
+  <div data-export-result class="small" role="status" aria-live="polite" hidden></div>
+</div>
+<script src="{{ static_url('export.js') }}" defer></script>

@@ -150,6 +150,11 @@
 
 {% include "_scan_requirements.html" %}
 
+{% if state.scan_id %}
+  {% set export_kind = "scan" %}{% set export_id = state.scan_id %}
+  {% include "_export_panel.html" %}
+{% endif %}
+
 {% if phase != "idle" and state.coverage %}
   <details class="fscan-sofar"{% if phase == "summary" %} open{% endif %}>
     <summary>Captured so far

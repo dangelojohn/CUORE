@@ -378,6 +378,11 @@
   {% endfor %}
 </nav>
 
+{% if job and job.id %}
+  {% set export_kind = "job" %}{% set export_id = job.id %}
+  {% include "_export_panel.html" %}
+{% endif %}
+
 {% if _current_n == 1 %}
 <section class="dossier-section">
   <h2 id="step-1" class="section-h step-title">1. {{ t("start") }}</h2>
