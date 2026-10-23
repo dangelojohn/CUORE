@@ -55,7 +55,7 @@ Background on what wiTECH 2.0 can do that MES/AlfaOBD cannot:
 
 **B1. Module software level report plus pending flashes (all modules).**
 - Ask: print wiTECH's topology list with, for every module that has a Flash tab, Current vs New part number. Flash only the ones with a listed newer calibration and only with the checks in D.
-- Priority modules: ECM (52170619 / P235QB39 now), TCM, BCM (04441660441 v1454 now), ABS, IPC, radio/head unit, DASM, DTCM.
+- Priority modules (software numbers read 2026-10-23 by CUORE, F188; [last known] in brackets): ECM 52170619 / P235QB39 [52170619 / P235QB39]; BCM 52154912, HW 52058054 [04441660441 v1454]; TCM 52119227 / GK0902OE2HN, F195 0003; RFHUB 52091977 / 10307064AB, F195 0940; IPC part 50551318 only, software not returned (CAN ERROR); ABS, radio/head unit, DASM, DTCM not read. Full table: `docs/vehicles/ZASFAKPN5J7B88115/MODULE_SOFTWARE_LEVELS.md`.
 - Why for this car: no public source names a newer MM10JA calibration; this car's number is higher than any indexed publicly, so it was probably reflashed already. Only wiTECH can confirm. [CUORE: CASE.md "Vehicle and ECU"] [INFERENCE for "probably reflashed"]
 - Related bulletins to be settled by that report, none yet VIN-confirmed: TSB 18-026-20 (2018 Stelvio 2.0L ECM flash; says BCM must also be on latest software; lists P1CEA / P24D6, NOT P0440/P0455/P0456) [CUORE: catalogue tsb-18-026-20, verified: true] https://static.nhtsa.gov/odi/tsbs/2020/MC-10174245-9999.pdf ; TSB 21-035-20 (TCM flash for 2018 Stelvio 2.0L; improves 8HP shift quality; pair with 18-026-20) [CUORE: catalogue tsb-21-035-20, verified: true] https://static.nhtsa.gov/odi/tsbs/2020/MC-10176569-9999.pdf ; TSB 08-044-19 (ABS module flash; PDF not opened) [CUORE] https://static.nhtsa.gov/odi/tsbs/2019/MC-10162530-9999.pdf ; radio software bulletins 08-081-19, 08-029-20, 08-065-20 (indexed only) [CUORE].
 - Note: a forum-quoted Italian bulletin lists "BCM for Stelvio 04441660441, version 1454" as a reference. This car's BCM reads exactly that. Whether a later BCM release exists must come from wiTECH. [FORUM/3RD] https://forum.clubalfa.it/attachments/8242-pdf.191345/ [CUORE: CEL_2026-10-19_DIAGNOSIS.md header]
@@ -197,13 +197,13 @@ Read only through CUORE sessions, one tester on the port, no clears. Full readin
 
 **E2. Module list and software versions** (last known in brackets):
 
-| Module | Part / SW number | Version | Source |
+| Module | Part / SW number (read 2026-10-23) | Version | Source |
 |---|---|---|---|
-| ECM | part 50544870 / SW 52170619 / supplier P235QB39 [52170619 / P235QB39] | F195 0000 [0000]; F189 not supported | CUORE F187/F188/F194/F195, file 34 |
-| BCM | part 50554114 / SW 52154912; HW 52058054 BCM949M_C02 [04441660441] | F189 not supported [1454]; identity read ended in CAN ERROR | CUORE file 35 |
-| TCM | part 46337308 / SW 52119227 / supplier GK0902OE2HN | F195 0003 | CUORE file 36 |
-| IPC | part 50551318 (only F190 VIN and F187 returned) | not read | CUORE file 37, CAN ERROR |
-| RFHUB | part 50544008 / SW 52091977 / supplier 10307064AB | F195 0940 | CUORE file 38 |
+| ECM | part 50544870 / SW 52170619 / supplier P235QB39 / serial TD4192427B17540 / HW 52055320 MM10JAHW232 [52170619 / P235QB39] | F195 00 00 [0000]; F189 not supported | CUORE F187/F188/F194/F195/F18C/F191/F192, file 34, read 2026-10-23 |
+| BCM | part 50554114 / SW 52154912 / serial TD3692377101420 / HW 52058054 BCM949M_C02 [04441660441] | F194/F195 not returned; F189 not supported [1454]; identity read ended in CAN ERROR | CUORE file 35, read 2026-10-23 |
+| TCM | part 46337308 / SW 52119227 / supplier GK0902OE2HN / serial TF0662057729150 / HW 52097735 10344202761 | F195 00 03; F189 not supported | CUORE file 36, read 2026-10-23 |
+| IPC | part 50551318 (only F190 VIN and F187 returned) | not read | CUORE file 37, read 2026-10-23, CAN ERROR |
+| RFHUB | part 50544008 / SW 52091977 / supplier 10307064AB / serial T04Z22117E01040 / HW 52057995 10161500AA | F195 09 40; F189 not supported | CUORE file 38, read 2026-10-23 |
 | ABS | not read | not read | needs grey adapter / CAN-CH; silent to CUORE 10-15 |
 | DASM | not read | not read | no confirmed address |
 | DTCM (transfer case) | not read | not read | no confirmed address |

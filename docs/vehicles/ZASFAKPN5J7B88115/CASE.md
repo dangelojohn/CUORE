@@ -12,6 +12,11 @@ this folder; the live-read evidence lives in cuore's state directory (`C:\Progra
 | ECU | Magneti Marelli IAW 10JA (MM10JA), hardware MM10JAHW232, drawing 52055320 |
 | ECU spare part | 50544870 (same hardware reflashed across 2017-2021; never superseded) |
 | ECU software | 52170619, supplier software P235QB39 ver 0000 |
+| BCM (CUORE reading 2026-10-23) | part 50554114, SW 52154912, HW 52058054 BCM949M_C02, serial TD3692377101420 (earlier MES record: 04441660441 ver 1454) |
+| TCM (CUORE reading 2026-10-23) | part 46337308, SW 52119227, supplier GK0902OE2HN, F195 00 03, HW 52097735 / 10344202761 |
+| RFHUB (CUORE reading 2026-10-23) | part 50544008, SW 52091977, supplier 10307064AB, F195 09 40, HW 52057995 / 10161500AA |
+| IPC (CUORE reading 2026-10-23) | part 50551318 only; software not returned (CAN ERROR) |
+| Full table | `MODULE_SOFTWARE_LEVELS.md` in this folder. ECM 52170619 / P235QB39 was identical again on 2026-10-23. |
 
 No public source names a newer calibration. This car's software number is higher than every
 MM10JA software number found publicly (highest indexed: 52145143 / P141VA0E, 2023 files), so it
