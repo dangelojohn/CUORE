@@ -12,6 +12,9 @@ A channel is ``{id, name, unit, source}``. Four source kinds:
 * ``computed`` -- an arithmetic expression over other channel ids, evaluated
   by the small safe evaluator below (no ``eval()`` anywhere in this module).
 * ``battery``  -- adapter ``ATRV``.
+* ``probe``    -- a serial-input source that is not the OBD adapter: the ESIM
+  switch probe (:mod:`cuore.live.esim_probe`, ``CUORE_ESIM_PROBE_PORT``, or
+  ``sim`` for a scripted trace). Read-only, never on COM3.
 
 :func:`available_channels` returns the whole registry; :func:`presets`
 groups channel ids for one-click starts on this car.
@@ -58,7 +61,7 @@ class Channel:
     id: str
     name: str
     unit: str
-    kind: str                       # "pid" | "did" | "computed" | "battery"
+    kind: str                       # "pid" | "did" | "computed" | "battery" | "probe"
     bus: str                        # "can_c" | "can_ihs" | "can_ch" | ""
     confidence: str
     default_rate_hz: float
@@ -224,8 +227,9 @@ def _computed_channels() -> list[Channel]:
 
 
 def _builtin_channels() -> list[Channel]:
+    from . import esim_probe  # local: keeps the probe module out of import-time cycles
     return (_pid_channels() + _did_channels() + [_battery_channel()]
-           + _computed_channels() + _placeholder_channels())
+           + _computed_channels() + _placeholder_channels() + esim_probe.channels())
 
 
 def builtin_channel_ids() -> set[str]:
@@ -302,6 +306,14 @@ PRESETS: dict[str, tuple[str, ...]] = {
     # 2026-10-23 against ATRV 14.5 V). ecm_1955 is deliberately NOT here: it
     # answered requestOutOfRange (NRC 31) on this car on 2026-10-23.
     "load_step_voltage": ("battery_voltage", "control_module_voltage", "bcm_1004"),
+    # ESIM switch probe during a drive cycle (docs/hardware/ESIM_SWITCH_PROBE.md):
+    # the three probe channels first (they are the point), then PID 2E purge
+    # duty, 06 short-term fuel trim, 0C RPM, 0D vehicle speed, 2F fuel level --
+    # the context the EVAP monitor's conditions depend on. Needs
+    # CUORE_ESIM_PROBE_PORT (a COM port other than COM3, or "sim").
+    "esim_switch_watch": ("esim_switch_state", "esim_signal_mV", "esim_ref_mV",
+                          "commanded_evap_purge", "short_fuel_trim_b1", "engine_rpm",
+                          "vehicle_speed", "fuel_level"),
     # Passive purge-trim EVAP test (cuore.live.purge_trim,
     # docs/maintenance/PURGE_TRIM_TEST.md). Mode 01 only, read-only. PID 2E is
     # the ECM's COMMANDED purge %, not measured flow. The EVAP vapour-pressure
@@ -362,6 +374,24 @@ RECORDING_PRESETS: dict[str, dict[str, Any]] = {
         "excess_drop_limit_v": 0.3,
         "script": _load_step_script(),
         "doc": "docs/maintenance/LOAD_STEP_VOLTAGE_TEST.md",
+    },
+    # Drive-cycle watch, no script: the driver drives, the probe logs whether
+    # the ECM's EVAP test ever closes the ESIM switch. Rows are written at the
+    # probe's 20 Hz; the PIDs ride along at their own rates.
+    "esim-switch-watch": {
+        "name": "ESIM switch watch (drive cycle)",
+        "preset": "esim_switch_watch",
+        "duration_s": 3600,
+        "rate_hz": 20.0,
+        "rates_hz": {"esim_switch_state": 20.0, "esim_signal_mV": 20.0, "esim_ref_mV": 20.0,
+                     "commanded_evap_purge": 2.0, "short_fuel_trim_b1": 1.0,
+                     "engine_rpm": 2.0, "vehicle_speed": 2.0, "fuel_level": 0.2},
+        "read_only": True,
+        "preconditions": ("ESIM probe fitted and bench-validated (docs/hardware/ESIM_SWITCH_PROBE.md); "
+                          "CUORE_ESIM_PROBE_PORT set to the probe's port (never COM3), or 'sim' to "
+                          "rehearse. Never clear codes before or during the drive."),
+        "script": (),
+        "doc": "docs/hardware/ESIM_SWITCH_PROBE.md",
     },
     "purge_trim": {
         "name": "Purge-trim EVAP test (passive)",
@@ -528,6 +558,8 @@ def resolve_channels(channel_ids: Optional[list[str]] = None, preset: str = "") 
     """``channel_ids`` and/or a named preset, deduplicated, computed channels'
     dependencies pulled in automatically so they are always polled too."""
     chosen: list[str] = []
+    if preset and preset not in PRESETS and preset.replace("-", "_") in PRESETS:
+        preset = preset.replace("-", "_")   # "esim-switch-watch" == "esim_switch_watch"
     if preset:
         if preset not in PRESETS:
             raise BadCommand(f"unknown preset {preset!r}; one of {sorted(PRESETS)}")

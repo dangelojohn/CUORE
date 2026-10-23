@@ -52,7 +52,7 @@ As of 2026-10-22 the project is a working bench application for one reference ca
 **The reference case**
 - [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]: the full diagnostic story, readings kept apart from literature.
 - [[ESIM Bench Test|ESIM-Bench-Test]]: how to test the suspect part out of the car.
-- [[EVAP Interactive Tests|EVAP-Interactive-Tests]]: the passive purge-trim recording now; ESIM switch probe, confirmed actuation and the dealer SLVT comparison planned.
+- [[EVAP Interactive Tests|EVAP-Interactive-Tests]]: the passive purge-trim recording now; the ESIM switch probe (spec and software built, hardware not built); confirmed actuation and the dealer SLVT comparison planned.
 - [[Code Reviews|Code-Reviews]]: every other code on the car, by system: readings, classification, resolution ladder, proof of fix.
 - [[Network and Brake Findings|Network-and-Brake-Findings]]: the body-computer-centred code cluster, the brake event and the ranked tests.
 - [[Wiring and Ground Faults|Wiring-and-Ground-Faults]]: failure-type map of every code by module, the load-step voltage test and the multimeter voltage-drop procedure.

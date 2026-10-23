@@ -134,6 +134,7 @@ class CsvRecorder:
         self._last: dict[str, Any] = {}
         self._start: Optional[float] = None
         self._rows = 0
+        self._row_lock = threading.Lock()   # the probe thread writes rows too
         #: Label written into the TAG column of every row until changed
         #: (a scripted test sets it per step; "" for an ordinary recording).
         self.tag = ""
@@ -152,6 +153,10 @@ class CsvRecorder:
         self._last[channel_id] = value
 
     def write_row(self, tag: str = "") -> None:
+        with self._row_lock:
+            self._write_row(tag)
+
+    def _write_row(self, tag: str = "") -> None:
         if self._fh is None or self._start is None:
             return
         tag = tag or self.tag
@@ -213,6 +218,7 @@ class LivePoller:
         self._pid_route = None
         self._did_route = None
         self._holding = False
+        self._probe = None          # esim_probe.ProbeFeed while a probe channel is polled
         self._monitor_dtcs = False
         self._dtc_interval = DEFAULT_DTC_INTERVAL_S
         #: (stored_codes, pending_codes) as of the last successful poll, or
@@ -249,7 +255,7 @@ class LivePoller:
             if not channels:
                 raise BadCommand("no channels to poll")
             for c in channels:
-                if c.bus != "can_c" and c.kind != "computed":
+                if c.bus != "can_c" and c.kind not in ("computed", "probe"):
                     raise BadCommand(f"channel {c.id!r} is on bus {c.bus!r}; the live-data "
                                      f"poller currently serves can_c channels only")
             self._channels = {c.id: c for c in channels}
@@ -270,6 +276,10 @@ class LivePoller:
             self._dtc_interval = max(MIN_DTC_INTERVAL_S, float(dtc_interval_s))
             self._dtc_state = None
             self._dtc_first_seen = {}
+            if any(c.kind == "probe" for c in channels):
+                from . import esim_probe
+                if esim_probe.configured_port():
+                    esim_probe.validate_port(esim_probe.configured_port())   # Refused for COM3 / the OBD port
             self._stop_event.clear()
             self._thread = threading.Thread(target=self._run, name="cuore-live-poller",
                                             daemon=True)
@@ -336,6 +346,7 @@ class LivePoller:
             "alarms": {cid: a.to_dict() for cid, a in self._alarms.items()},
             "monitor_dtcs": self._monitor_dtcs,
             "dtc_interval_s": self._dtc_interval,
+            "esim_probe": self._probe.status() if self._probe is not None else None,
         }
 
     def snapshot(self) -> dict[str, Any]:
@@ -458,6 +469,15 @@ class LivePoller:
         from . import ops as ops_mod  # local: ops imports poller lazily; avoid a cycle at import time
         lk = link()
         try:
+            self._probe_start()
+            if all(c.kind == "probe" for c in self._channels.values()):
+                # Probe-only session (e.g. CUORE_ESIM_PROBE_PORT=sim): no OBD adapter is
+                # opened, so the board and recordings work with no car and no cable.
+                with self._lock:
+                    self._started_at = time.monotonic()
+                while not self._stop_event.is_set():
+                    time.sleep(MIN_TICK)
+                return
             did_route = route_for(CAN_C, lk.cable)
             pid_route = ops_mod._obd_route()
             if pid_route is None:
@@ -472,7 +492,7 @@ class LivePoller:
                     self._started_at = time.monotonic()
                     self._holding = True
                 try:
-                    next_due = {cid: 0.0 for cid in self._channels}
+                    next_due = {cid: 0.0 for cid, c in self._channels.items() if c.kind != "probe"}
                     next_dtc_due = 0.0
                     # Optional higher UART baud for the life of this held
                     # session (CUORE_ADAPTER_BAUD; off by default, always
@@ -530,6 +550,50 @@ class LivePoller:
             with self._lock:
                 self._error = str(e)
                 self._holding = False
+        finally:
+            self._probe_stop()
+
+    # --- ESIM switch probe (serial-input channel source) ---------------------
+
+    def _probe_start(self) -> None:
+        """Start the probe feed if any probe channel was asked for.
+
+        An unset ``CUORE_ESIM_PROBE_PORT`` is not an error: the probe channels
+        simply report "not set" through ``last_error`` like any channel that
+        never answers. Read-only; see :mod:`cuore.live.esim_probe`.
+        """
+        wanted = {cid for cid, c in self._channels.items() if c.kind == "probe"}
+        if not wanted:
+            return
+        from . import esim_probe
+        port = esim_probe.configured_port()
+        if not port:
+            for cid in wanted:
+                self._note_miss(cid, f"{esim_probe.ENV_PORT} not set")
+            return
+
+        def on_sample() -> None:
+            with self._lock:
+                rec = self._recorder
+            if rec is not None:
+                rec.write_row()
+
+        def on_transition(state: str) -> None:
+            with self._lock:
+                rec = self._recorder
+            if rec is not None:
+                rec.write_row(tag=f"ESIM {state}")   # like the DTC+ / DTC- tags
+
+        feed = esim_probe.ProbeFeed(esim_probe.make_source(port), wanted,
+                                    self._publish, self._note_miss,
+                                    on_transition=on_transition, on_sample=on_sample)
+        feed.start()
+        self._probe = feed
+
+    def _probe_stop(self) -> None:
+        feed, self._probe = self._probe, None
+        if feed is not None:
+            feed.stop()
 
     def _switch_mode(self, sess: Session, want: str) -> None:
         if self._mode == want:

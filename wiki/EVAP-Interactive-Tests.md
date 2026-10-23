@@ -12,9 +12,18 @@ A 4-minute, read-only recording at warm idle. The ECM opens the purge valve on i
 - If PID 2E never leaves 0 % the result is "ECM did not command purge in this window ... inconclusive".
 - Status: built and checked on synthetic data (`cuore/tests/check_purge_trim.py`); **not yet run on the car**.
 
-## ESIM switch probe (planned)
+## ESIM switch probe (spec and software built, hardware not built)
 
-An external, read-only probe on the ESIM's switch lines to log whether and when the ECM actually closes the switch during its EVAP test, with the PIDs above as context. Nothing is connected to the OBD port for this. Not part of this commit's test; status: planned.
+An external, read-only meter on the ESIM switch lines, logged at 20 Hz next to the PIDs, to see whether and when the ECM's EVAP test closes the switch. Nothing is connected to the OBD port for the probe. Full spec: `docs/hardware/ESIM_SWITCH_PROBE.md`.
+
+- **Hardware (design only):** a high-impedance tap (2.6 Mohm input per line, 100 kohm series protection, optional USB isolation) on the switch signal and the 5 V reference, read by a small ESP32-C3 or Nano-class board over USB serial. Line protocol `ESIM,<ms>,<sig_mV>,<ref_mV>,<state>` at 115200 baud. State: CLOSED when the signal is under 0.8 V with the reference over 4.5 V, OPEN when the signal is over 4.0 V, FAULT otherwise (open reference, wiring).
+- **Facts about the part are outside literature** (switch closes near 1 inH2O vacuum, 5 V reference pulled to about 0 V; `mes/parts.py`), not readings from this car. **The connector pin numbers and wire colours are not in the repo:** the owner confirms the signal, reference and ground pins at the connector with a meter (ground by ohms to chassis with ignition off; reference by about 5 V with ignition on; signal is the pin that falls to about 0 V under gentle hand vacuum), and writes them on the ESIM Wiring Test sheet. A two-wire switch has no separate reference; `CUORE_ESIM_PROBE_NO_REF=1` then selects the matching state rule.
+- **Safety:** tap only, never feed voltage into an ECM line, back-probe at the connector, no splice without the owner's OK, leads away from the exhaust, powered from USB only, never on COM3.
+- **Software (checked on a simulator only):** `cuore/live/esim_probe.py` reads the port named in `CUORE_ESIM_PROBE_PORT` (read-only; COM3 and the OBD adapter's port are refused) and exposes `esim_switch_state` (1 CLOSED, 0 OPEN, -1 FAULT), `esim_signal_mV` and `esim_ref_mV` as `probe` channels on the live board. `CUORE_ESIM_PROBE_PORT=sim` replays a scripted open / closed / bounce / fault trace so the board and recordings work with no hardware; a probe-only session needs no OBD adapter. Checks: `cuore/tests/check_esim_probe.py`.
+- **Recording preset `esim-switch-watch`:** the three probe channels plus PID 2E (purge), 06 (short-term trim), 0C (RPM), 0D (speed) and 2F (fuel level), for a drive cycle. Rows are written at the probe rate, and every state change is tagged (`ESIM CLOSED`, `ESIM OPEN`, `ESIM FAULT`).
+- **Bench validation before fitting:** meter calibration, state rules with a resistor stand-in, then the real ESIM on the bench following the [[ESIM Bench Test|ESIM-Bench-Test]] (gentle blowing; no hand pump and no 12 V), then the host chain with `sim`.
+- **Reading a drive (inference):** no CLOSED during the monitor window while purge is commanded means no closure reached the connector (vacuum not arriving, or the switch not closing); CLOSED that holds and releases while the code still sets moves the question to what the ECM did with it. The probe sees the connector, not the ECM's input.
+- Status: **not built, not fitted, not run on the car.** CUORE needs a restart to load the new channels, and the environment variable only applies to a process started after it is set.
 
 ## Confirmed-actuation mode (planned)
 

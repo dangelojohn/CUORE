@@ -77,7 +77,7 @@ NOTICE = "Read-only session. In motion, a passenger operates this page."
 
 GROUP_ORDER: tuple[str, ...] = (
     "temperatures", "speed_rpm", "pressure_boost", "voltage",
-    "fuel_air", "emissions", "gearbox", "tyres", "other",
+    "fuel_air", "emissions", "gearbox", "tyres", "probe", "other",
 )
 
 GROUP_LABELS: dict[str, str] = {
@@ -89,6 +89,7 @@ GROUP_LABELS: dict[str, str] = {
     "emissions": "Emissions",
     "gearbox": "Gearbox",
     "tyres": "Tyres",
+    "probe": "ESIM probe (external, serial)",
     "other": "Other",
 }
 
@@ -145,6 +146,8 @@ def channel_system(channel_id: str) -> Optional[str]:
 # ===========================================================================
 
 def _classify(ch: Any) -> str:
+    if ch.kind == "probe":
+        return "probe"
     name = (ch.name or "").lower()
     unit = (ch.unit or "").strip().lower()
     if unit in ("c", "deg c") or "temp" in name:
@@ -198,7 +201,8 @@ def board(vin: str = "") -> dict[str, Any]:
     discovery sweep -- this is the one part of the board that is actually
     per-``vin``; every sourced band here is otherwise the same reference
     regardless of which car is asked about)."""
-    channels = [c for c in channels_mod.available_channels() if c.bus == "can_c"]
+    channels = [c for c in channels_mod.available_channels()
+                if c.bus == "can_c" or c.kind == "probe"]
     by_group: dict[str, list[dict[str, Any]]] = {g: [] for g in GROUP_ORDER}
     rates: dict[str, float] = {}
     all_ids: list[str] = []
