@@ -192,6 +192,11 @@ class LivePoller:
         self._last_value: dict[str, Any] = {}
         self._last_unit: dict[str, str] = {}
         self._sample_counts: dict[str, int] = {}
+        #: Reads attempted per channel (answered or not) and the last failure
+        #: text per channel (cleared by the next answered read) -- lets a
+        #: display tell "not polled yet" from "the ECM does not answer".
+        self._poll_attempts: dict[str, int] = {}
+        self._last_error: dict[str, str] = {}
         self._subscribers: list[queue.Queue] = []
         self._alarms: dict[str, AlarmSpec] = {}
         self._alarm_level: dict[str, str] = {}
@@ -250,6 +255,8 @@ class LivePoller:
             self._last_value = {}
             self._last_unit = {}
             self._sample_counts = {c.id: 0 for c in channels}
+            self._poll_attempts = {c.id: 0 for c in channels}
+            self._last_error = {}
             self._alarm_level = {}
             self._error = None
             self._pid_multi_ok = True
@@ -316,6 +323,8 @@ class LivePoller:
             "channels": [c.to_dict() for c in self._channels.values()],
             "rates_hz": dict(self._rates),
             "achieved_hz": achieved,
+            "poll_attempts": dict(self._poll_attempts),
+            "last_error": dict(self._last_error),
             "elapsed_s": round(elapsed, 1) if elapsed else None,
             "recording": str(self._recorder.path) if self._recorder else None,
             "error": self._error,
@@ -329,7 +338,8 @@ class LivePoller:
         with self._lock:
             channels = {
                 cid: {"value": self._last_value.get(cid), "unit": self._last_unit.get(cid, ""),
-                     "alarm": self._alarm_level.get(cid, "ok")}
+                     "alarm": self._alarm_level.get(cid, "ok"),
+                     "last_error": self._last_error.get(cid)}
                 for cid in self._channels
             }
             return {"active": self.is_active(), "channels": channels}
@@ -543,6 +553,8 @@ class LivePoller:
                 if data and len(data) >= 2 and data[1] == pid:
                     self._record_pid(cid, pid, data[2:])
                     touched.add(cid)
+                else:
+                    self._note_miss(cid, q.get("error") or "no data")
         return touched
 
     def _record_pid(self, cid: str, pid: str, raw: list[str]) -> None:
@@ -568,6 +580,7 @@ class LivePoller:
                 r = uds_mod.read_did(sess, ecu, ch.did, timeout=1.5)
                 data = r.get("bytes")
                 if r.get("error") or not data or not ch.formula:
+                    self._note_miss(cid, r.get("error") or "no data")
                     continue
                 try:
                     val = eval_formula(ch.formula, [int(b, 16) for b in data])
@@ -590,6 +603,9 @@ class LivePoller:
             for cid in due_ids:
                 self._publish(cid, v, "V")
                 touched.add(cid)
+        else:
+            for cid in due_ids:
+                self._note_miss(cid, "no data")
         return touched
 
     def _poll_computed(self, due_ids: list[str]) -> set[str]:
@@ -664,6 +680,12 @@ class LivePoller:
              "pending": sorted(pending)},
             stream=getattr(getattr(sess, "stream", None), "describe", "") or "live_poller")
 
+    def _note_miss(self, cid: str, error: Any) -> None:
+        """Record that a read of ``cid`` was attempted and not answered."""
+        with self._lock:
+            self._poll_attempts[cid] = self._poll_attempts.get(cid, 0) + 1
+            self._last_error[cid] = str(error)[:80]
+
     # --- publish: ring buffer, alarms, subscribers, recorder --------------
 
     def _publish(self, cid: str, value: Any, unit: str) -> None:
@@ -683,6 +705,8 @@ class LivePoller:
             self._last_value[cid] = value
             self._last_unit[cid] = unit
             self._sample_counts[cid] = self._sample_counts.get(cid, 0) + 1
+            self._poll_attempts[cid] = self._poll_attempts.get(cid, 0) + 1
+            self._last_error.pop(cid, None)
             ring = self._ring.get(cid)
             if ring is not None:
                 ring.append((t, value))

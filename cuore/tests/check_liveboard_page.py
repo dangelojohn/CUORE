@@ -85,7 +85,8 @@ page = client.get(f"/v/{VIN}/liveboard")
 check("liveboard page responds 200", page.status_code == 200, str(page.status_code))
 for needle in ('id="lb-notice"', 'id="lb-start"', 'id="lb-snapshot"', 'id="lb-demo"',
               'id="lb-stop"', 'id="lb-problems"', 'id="lb-groups"', '>Start<', '>Snapshot<',
-              'src="/static/liveboard.js', 'liveboard.css'):
+              'src="/static/liveboard.js', 'liveboard.css',
+              'data-txt-waiting="waiting"', 'data-txt-noanswer="no answer"', 'id="lb-cycle"'):
     check(f"liveboard page contains {needle!r}", needle in page.text)
 check("no template error leaked onto the page",
       "Jinja2" not in page.text and "Traceback" not in page.text)

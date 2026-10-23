@@ -336,6 +336,24 @@ check("a 5 Hz channel is sampled noticeably more than a 0.5 Hz channel over 1.3s
       fast_n > slow_n and fast_n >= 3, f"fast~{fast_n:.1f} slow~{slow_n:.1f}")
 p3.stop()
 
+# -- a channel the ECU never answers carries last_error; an answered one does not
+
+fake3b = LiveFakeStream()
+lk3b = AdapterLink(stream_factory=lambda p, b: fake3b, process="check_live_data")
+set_link(lk3b)
+lk3b.mark_verified(CAN_C, 10)
+p3b = poller_mod.LivePoller()
+poller_mod.set_poller(p3b)
+chans3b = channels_mod.resolve_channels(["engine_rpm", "intake_air_temp"])  # 010F is not in PID_REPLIES
+p3b.start(chans3b, rates={"engine_rpm": 5.0, "intake_air_temp": 5.0})
+check("an unanswered channel reports last_error in the session status and snapshot",
+      wait_until(lambda: bool(p3b.status()["last_error"].get("intake_air_temp"))
+                 and bool(p3b.snapshot()["channels"]["intake_air_temp"]["last_error"])),
+      str(p3b.status()["last_error"]))
+check("an answered channel carries no last_error but has poll_attempts",
+      "engine_rpm" not in p3b.status()["last_error"] and p3b.status()["poll_attempts"]["engine_rpm"] > 0)
+p3b.stop()
+
 
 # ===========================================================================
 # 6. alarm with hysteresis fires once while sustained

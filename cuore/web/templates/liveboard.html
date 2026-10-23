@@ -10,7 +10,8 @@
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('liveboard.css') }}">
 
-<div id="lb-app" data-vin="{{ vin }}" data-name="{{ bar.name }}">
+<div id="lb-app" data-vin="{{ vin }}" data-name="{{ bar.name }}"
+     data-txt-waiting="waiting" data-txt-noanswer="no answer">
 
   <div class="lb-status" id="lb-status">
     <span class="lb-status-name" title="{{ bar.name }}">{{ bar.name }}</span>
@@ -19,6 +20,11 @@
     <span class="lb-status-chip" id="lb-status-session">session —</span>
     <span class="lb-status-updated" id="lb-status-updated">no data yet</span>
   </div>
+
+  {# One line under the header while a live session runs: channel count,
+     adapter, multi-PID, full-cycle time, how many channels the ECM is not
+     answering. Filled client-side from GET /api/live/session. #}
+  <div class="lb-cycle" id="lb-cycle" hidden></div>
 
   <div class="lb-notice" id="lb-notice" hidden></div>
 

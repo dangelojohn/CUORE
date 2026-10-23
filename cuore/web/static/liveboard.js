@@ -223,6 +223,7 @@
     this._staleTimer = null;
     this._statusTimer = null;
     this._lastSampleAt = null;
+    this.sessionInfo = null;  // last GET /api/live/session payload
   }
 
   LiveboardApp.prototype._tokenFromLocation = function () {
@@ -478,6 +479,10 @@
         unitEl.className = "lb-chan-unit";
         unitEl.id = "lb-unit-" + c.id;
         unitEl.textContent = c.unit || "";
+        var stateEl = self.doc.createElement("span");
+        stateEl.className = "lb-chan-state";
+        stateEl.id = "lb-state-" + c.id;
+        right.appendChild(stateEl);
         right.appendChild(val);
         right.appendChild(unitEl);
         row.appendChild(left);
@@ -497,6 +502,78 @@
     row.className = "lb-chan level-" + (v ? v.level : "unknown");
     valEl.textContent = (v && typeof v.value === "number" && !isNaN(v.value)) ? fmtValue(v.value) : "—";
     if (unitEl && v && v.unit) unitEl.textContent = v.unit;
+    this._renderState(id);
+  };
+
+  // ---- empty-tile state: "waiting" (not polled yet) vs "no answer" -------
+
+  LiveboardApp.prototype._txt = function (key, fallback) {
+    var v = this.root && this.root.getAttribute && this.root.getAttribute("data-txt-" + key);
+    return v || fallback;
+  };
+
+  // Seconds for one pass over every channel, from the session's own
+  // attempt counts (answered or not); null until a few reads have happened.
+  LiveboardApp.prototype._cycleSeconds = function () {
+    var s = this.sessionInfo;
+    if (!s || !s.active || !s.elapsed_s || !s.poll_attempts) return null;
+    var total = 0;
+    Object.keys(s.poll_attempts).forEach(function (k) { total += s.poll_attempts[k] || 0; });
+    var n = (s.channels || []).length;
+    if (!total || !n) return null;
+    return s.elapsed_s * n / total;
+  };
+
+  LiveboardApp.prototype._renderState = function (id) {
+    var row = this.doc.getElementById("lb-chan-" + id);
+    var el = this.doc.getElementById("lb-state-" + id);
+    if (!row || !el) return;
+    var text = "", noanswer = false;
+    var hasValue = !!this.values[id];
+    var s = this.sessionInfo;
+    // Only a real live session knows polling state; a demo feeds every
+    // channel on its own, so there is nothing to wait for.
+    if (!hasValue && this.sourceKind !== "demo" && s && s.active) {
+      var err = s.last_error && s.last_error[id];
+      var tries = s.poll_attempts && s.poll_attempts[id];
+      if (err) {
+        text = this._txt("noanswer", "no answer"); noanswer = true;
+      } else if (!tries) {
+        var ach = s.achieved_hz && s.achieved_hz[id];
+        var secs = ach > 0 ? 1 / ach : this._cycleSeconds();
+        text = this._txt("waiting", "waiting") + (secs ? " · ~" + Math.round(secs) + "s" : "");
+      }
+    }
+    el.textContent = text;
+    row.classList.toggle("is-noanswer", noanswer);
+  };
+
+  LiveboardApp.prototype._renderStates = function () {
+    var self = this;
+    this.allChannelIds.forEach(function (id) { self._renderState(id); });
+    this._renderCycleLine();
+  };
+
+  LiveboardApp.prototype._renderCycleLine = function () {
+    var el = this.doc.getElementById("lb-cycle");
+    if (!el) return;
+    var s = this.sessionInfo;
+    if (!s || !s.active || this.sourceKind === "demo") { el.hidden = true; return; }
+    var n = (s.channels || []).length;
+    var cyc = this._cycleSeconds();
+    var multi = s.multi_pid_supported;
+    var parts = [
+      n + " channels",
+      "1 adapter",
+      "multi-PID " + (multi === false ? "no" : multi === true ? "yes" : "?"),
+      "full cycle ≈ " + (cyc ? Math.round(cyc) + "s" : "…")
+    ];
+    var bad = Object.keys(s.last_error || {}).length;
+    var rpm = this.values.engine_rpm;
+    var off = rpm && typeof rpm.value === "number" && rpm.value <= 0;
+    parts.push((off ? "engine off: " : "") + bad + " channel" + (bad === 1 ? "" : "s") + " not answering");
+    el.textContent = parts.join(" · ");
+    el.hidden = false;
   };
 
   LiveboardApp.prototype._renderProblems = function () {
@@ -562,8 +639,8 @@
     var self = this;
     this.api("/api/live/status").then(function (s) { self._renderAdapterChip(s); })
       .catch(function () { self._renderAdapterChip(null); });
-    this.api("/api/live/session").then(function (s) { self._renderSessionChip(s); })
-      .catch(function () { self._renderSessionChip(null); });
+    this.api("/api/live/session").then(function (s) { self.sessionInfo = s; self._renderSessionChip(s); self._renderStates(); })
+      .catch(function () { self.sessionInfo = null; self._renderSessionChip(null); self._renderStates(); });
   };
 
   LiveboardApp.prototype._renderAdapterChip = function (s) {
