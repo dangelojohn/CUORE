@@ -49,4 +49,6 @@ Module software and hardware identities read on 2026-10-23 (ECM, BCM, TCM, IPC, 
 - The observation store was never rotated or rewritten; the case notes record that some freeze frames exist **only** there because the car's own copies were cleared.
 - The logs are stored as written by MES; filenames carry the model name and a timestamp (`FESLog_YYMMDDHHMM_...`, `SCAN_YYMMDDHHMM`).
 
+- `data/captures/stelvio-2018/scans/2026-10-23_blue_can_ihs/`: CAN-IHS verify, 40-target discover (2 responders) and ID histograms from the blue-A5 session of 2026-10-23, with an `INDEX.md`.
+
 Related: [[Architecture]] (state directory), [[Project History|Project-History]].

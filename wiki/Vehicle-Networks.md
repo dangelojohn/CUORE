@@ -118,4 +118,6 @@ The security gateway itself is not enumerated by MES; its presence on the refere
 
 Identity uses ISO 14229 data identifiers (`22 F190` VIN, `F187` part number, `F188` software number, `F191` hardware, `F192` supplier hardware, `F194` supplier software, `F18C` serial). A module counts as a confirmed address only when the reply matches the car.
 
+**CAN-IHS (blue A5, 125 kbit/s), 2026-10-23:** two nodes answered `22 F190` with the car's VIN, at 0x62 and 0x65 (twin parts: F187 50538672, F188 952J1SW6X01, serials differ); HVAC 0x68 and ETM 0x6F stayed silent in a 40-target sweep; no DTCs read (cable was removed mid-session). See `docs/research/CAN_IHS_DISCOVERY_2026-10-23.md`.
+
 Related: [[Guided Full Scan|Guided-Full-Scan]], [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]].

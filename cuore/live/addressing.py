@@ -299,7 +299,7 @@ MODULES: tuple[ECUAddress, ...] = (
         target=0x68,
         confidence=Confidence.UNVERIFIED,
         source=_STELVIO_SCAN_SOURCE,
-        note="never scanned; silent to 22 F190 on 29-bit 2026-10-15",
+        note="silent to 22 F190 on 29-bit 2026-10-15 and again on blue_a5 STP 34 125k 2026-10-23 (0.3 s wait)",
         present="unverified",
     ),
     ECUAddress(
@@ -310,8 +310,42 @@ MODULES: tuple[ECUAddress, ...] = (
         target=0x6F,
         confidence=Confidence.UNVERIFIED,
         source=_STELVIO_SCAN_SOURCE,
-        note="never scanned; aka EMCM/DSM",
+        note="silent to 22 F190 at 0x6F on blue_a5 STP 34 125k 2026-10-23 (0.3 s wait); aka EMCM/DSM",
         present="unverified",
+    ),
+    ECUAddress(
+        code="IHS62",
+        name="Unidentified CAN-IHS node at 0x62 (twin of 0x65: same part, different serial)",
+        bus_key="can_ihs",
+        bus_confidence="confirmed",
+        target=0x62,
+        confidence=Confidence.CONFIRMED,
+        source=("discover 2026-10-23 00:47 on blue_a5 (STP 34, 125 kbit/s): 22 F190 at 18DA62F1 "
+                "returned this car's VIN ZASFAKPN5J7B88115; F187 50538672, F188 952J1SW6X01, "
+                "F191 952J1HW6X01, F192 633633000A, F194 633633800D, F18C TC4852217303980"),
+        note=("answers on CAN-IHS only; which module this is (plausibly a left/right pair such as "
+              "LBSS/RBSS) is NOT established by the readings -- name it from a dealer sheet, not "
+              "from this row"),
+        hw_number="952J1HW6X01",
+        sw_number="952J1SW6X01",
+        present="confirmed",
+    ),
+    ECUAddress(
+        code="IHS65",
+        name="Unidentified CAN-IHS node at 0x65 (twin of 0x62: same part, different serial)",
+        bus_key="can_ihs",
+        bus_confidence="confirmed",
+        target=0x65,
+        confidence=Confidence.CONFIRMED,
+        source=("discover 2026-10-23 00:47 on blue_a5 (STP 34, 125 kbit/s): 22 F190 at 18DA65F1 "
+                "returned this car's VIN ZASFAKPN5J7B88115; F187 50538672, F188 952J1SW6X01, "
+                "F191 952J1HW6X01, F192 633633000A, F194 633633800D, F18C TC4852217304000"),
+        note=("answers on CAN-IHS only; which module this is (plausibly a left/right pair such as "
+              "LBSS/RBSS) is NOT established by the readings -- name it from a dealer sheet, not "
+              "from this row"),
+        hw_number="952J1HW6X01",
+        sw_number="952J1SW6X01",
+        present="confirmed",
     ),
     ECUAddress(
         code="AMP",
