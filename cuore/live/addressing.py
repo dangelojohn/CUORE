@@ -295,22 +295,27 @@ MODULES: tuple[ECUAddress, ...] = (
         code="HVAC",
         name="Climate control (TRW)",
         bus_key="can_ihs",
-        bus_confidence="inferred",
+        bus_confidence="MES-confirmed via blue A5 2026-10-23 (owner); address unverified",
         target=0x68,
         confidence=Confidence.UNVERIFIED,
         source=_STELVIO_SCAN_SOURCE,
-        note="silent to 22 F190 on 29-bit 2026-10-15 and again on blue_a5 STP 34 125k 2026-10-23 (0.3 s wait)",
+        note=("silent to 22 F190 on 29-bit 2026-10-15 and again on blue_a5 STP 34 125k 2026-10-23 (0.3 s wait); "
+              "bus MES-confirmed 2026-10-23 (owner): HVAC connected through the blue A5 cable"),
         present="unverified",
     ),
     ECUAddress(
         code="ETM",
         name="AlfaConnect radio-nav / uConnect",
-        bus_key="can_ihs",
-        bus_confidence="inferred",
+        bus_key="can_c",
+        bus_confidence="MES-confirmed on CAN-C 2026-10-23 (owner); address unverified",
         target=0x6F,
         confidence=Confidence.UNVERIFIED,
         source=_STELVIO_SCAN_SOURCE,
-        note="silent to 22 F190 at 0x6F on blue_a5 STP 34 125k 2026-10-23 (0.3 s wait); aka EMCM/DSM",
+        note=("Correction 2026-10-23: radio is on CAN-C (main bus), not CAN-IHS -- MES did not request the "
+              "blue adapter for Radio/Nav, the radio did NOT connect with blue A5 fitted (HVAC did) and "
+              "connects with the adapter alone; silent to 22 F190 at 0x6F on CAN-IHS (blue_a5 STP 34 125k "
+              "2026-10-23, 0.3 s wait) as expected. 0x6F (18DA6FF1) is still unverified: to be confirmed "
+              "by a CAN-C discover on a later session. aka EMCM/DSM"),
         present="unverified",
     ),
     ECUAddress(

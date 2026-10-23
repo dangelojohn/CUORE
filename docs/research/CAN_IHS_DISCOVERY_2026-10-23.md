@@ -89,3 +89,7 @@ functional `3E 00` probe (STP 34, 125k) ran on the no-traffic bus and both times
 returned the adapter's CAN ERROR. The cable was already off at 00:49:58 (0 frames),
 so those frames may have been attempted onto CAN-C at the wrong rate; none was
 accepted by any bus and nothing answered. Watch for bystander U-codes.
+
+## Correction 2026-10-23
+
+Owner-attested via MES (not a CUORE reading): MES did not request the blue adapter for the Radio/Nav entry; with the blue A5 cable fitted the radio did NOT connect while the climate control (HVAC) did; with the adapter alone (no cable) the radio connects. The radio (ETM, Marelli AlfaConnect Radio-Nav) is therefore on CAN-C (main bus), not CAN-IHS, and HVAC on CAN-IHS is MES-confirmed. This explains why 0x6F stayed silent in the sweep above: CUORE asked on the wrong bus for it. The radio's CAN-C address is still unverified by CUORE (likely 0x6F / 18DA6FF1); to be confirmed by a CAN-C discover on a later session. Where this document says ETM is a CAN-IHS candidate, read CAN-C.

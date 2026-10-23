@@ -309,3 +309,7 @@ Lowest to highest exposure on the three diagnostic criteria, and the order on th
 - This Stelvio's SGW presence, forward ADAS camera position and 2023+ 10.25" unit fitment were not established.
 - Forum content could not be opened. Treat it as lead material to verify on the pages directly.
 - Reddit (r/AlfaRomeo) unchecked.
+
+## Correction 2026-10-23
+
+The risk matrix in section 3 assumed the radio (ETM) is on CAN-IHS. Owner-attested via MES (2026-10-23): the radio is on CAN-C, the main bus; HVAC is on CAN-IHS (blue A5). Interface boxes and head units that sit in series with, or tap, the radio's connectors therefore touch CAN-C, the diagnostic/powertrain bus, not the interior bus. Read the "New U-codes on CAN-IHS" row as "on CAN-C"; the bus-risk assessment for routes B, C and D rises one notch (for example Medium-high becomes High) [inference: no source tested any box on this car]. Route A (no CAN node) is unchanged. The radio's CAN-C address is unverified (likely 0x6F); see docs/research/CAN_IHS_DISCOVERY_2026-10-23.md.

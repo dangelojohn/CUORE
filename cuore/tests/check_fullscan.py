@@ -358,7 +358,7 @@ try:
     # =======================================================================
     # 5. guided scan: the coloured-cable pause/resume workflow
     # =======================================================================
-    # HVAC/ETM answer on can_ihs, ABS on can_ch -- a dedicated scan_modules
+    # HVAC answers on can_ihs (the radio/ETM is on can_c, corrected 2026-10-23), ABS on can_ch -- a dedicated scan_modules
     # fake for the two bypass buses; can_c keeps using _fake_scan_modules's
     # own ECM/TCM/BCM/... reply (segment 1 is otherwise identical to run()).
     def _fake_sweep_bus_full_guided(bus, vin="", mask=0xFF, confirm=False, known_did=None, **kw):
@@ -366,8 +366,6 @@ try:
             return {"bus": bus, "cable": "blue_a5", "modules": [
                 {"ecu": "HVAC", "bus": "can_ihs", "mask": "FF", "dtcs": [], "codes": [],
                  "identity": _identity_for("HVAC")},
-                {"ecu": "ETM", "bus": "can_ihs", "mask": "FF", "dtcs": [], "codes": [],
-                 "identity": _identity_for("ETM")},
             ]}
         if bus == "can_ch":
             return {"bus": bus, "cable": "grey_a6", "modules": [
@@ -390,7 +388,7 @@ try:
     check_eq("guided segment 1 pauses for blue_a5", g1["next"]["cable"], "blue_a5")
     check_eq("guided segment 1 next bus is can_ihs", g1["next"]["bus"], "can_ihs")
     check("guided segment 1 next lists the IHS module table",
-          {"HVAC", "ETM", "AMP", "ESEM", "CSWM", "CRSM", "LBSS", "RBSS", "PLGM"} <=
+          {"HVAC", "AMP", "ESEM", "CSWM", "CRSM", "LBSS", "RBSS", "PLGM"} <=
           {m["code"] for m in g1["next"]["modules"]},
           str(g1["next"]["modules"]))
     check("guided segment 1 instruction names the blue A5 cable and CAN-IHS",
@@ -448,8 +446,10 @@ try:
     ihs_rows = {r["module"]: r for r in g2["coverage"] if r["bus"] == "can_ihs"}
     check("guided segment 2 swept HVAC as answered",
           ihs_rows.get("HVAC", {}).get("category") == "answered", str(ihs_rows.get("HVAC")))
-    check("guided segment 2 swept ETM as answered",
-          ihs_rows.get("ETM", {}).get("category") == "answered", str(ihs_rows.get("ETM")))
+    check("ETM (radio) is registered on can_c, not can_ihs (MES-confirmed 2026-10-23)",
+          "ETM" not in ihs_rows and
+          any(m.code == "ETM" and m.bus_key == "can_c" for m in addressing.MODULES),
+          str(ihs_rows.get("ETM")))
     verify_ihs_steps = [s for s in g2["steps"] if s["step"] == "verify_bus can_ihs"]
     check("guided segment 2 verified can_ihs (failed try + retry)", len(verify_ihs_steps) == 2,
           str(verify_ihs_steps))

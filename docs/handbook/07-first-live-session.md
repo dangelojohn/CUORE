@@ -383,13 +383,13 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 | DTCM | unverified |
 | ESM | unknown |
 | DASM | unknown |
+| ETM | unverified |
 
 ### Blue A5 (CAN-IHS) -- adapter switch: HS
 
 | Module | Confidence |
 |---|---|
 | HVAC | unverified |
-| ETM | unverified |
 | IHS62 | confirmed |
 | IHS65 | confirmed |
 | AMP | unknown |
@@ -414,6 +414,7 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 | ESL | unknown |
 
 <!-- cable-reference:end -->
+
 
 
 

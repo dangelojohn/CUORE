@@ -70,6 +70,7 @@ See [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]: the decisive tests (th
 
 | Area | Open item |
 |---|---|
+| Radio address | Next CAN-C session: discover 0x6F to confirm the radio's address and read its identity (software version vs MV 090.000.061) |
 | Hardware | Run the 11-bit discovery on the chassis bus; blue-cable retry for CAN-IHS; ABS DTC re-read with the new audit; passive capture of an MES session on the chassis bus to read the ids MES uses |
 | Connectivity | Test a second adapter, a Bluetooth or Wi-Fi adapter, and a native CAN interface for passive capture |
 | Evidence | Decode more freeze-frame fields; obtain the manufacturer's test definitions; read the ECM's external temperature parameter again |

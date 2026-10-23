@@ -107,8 +107,8 @@ An earlier table put the ABS at a different address and gave 0x2A to the steerin
 
 | Code | Module | Bus (inferred) | Target |
 |---|---|---|---|
-| HVAC | Climate control | CAN-IHS | 0x68 (unverified) |
-| ETM | Radio / navigation head unit | CAN-IHS | 0x6F (unverified) |
+| HVAC | Climate control | CAN-IHS (MES-confirmed via blue A5, 2026-10-23) | 0x68 (unverified) |
+| ETM | Radio / navigation head unit | **CAN-C** (MES-confirmed 2026-10-23, owner; corrected from CAN-IHS) | 0x6F (unverified, confirm by CAN-C discover) |
 | AMP, ESEM, CSWM, CRSM, LBSS, RBSS, PLGM | Amplifier, engine sound, seat/wheel comfort, rear seat, blind-spot sensors, power liftgate | CAN-IHS | unknown |
 | TVM, ESL | Torque vectoring, steering lock | CAN-CH | unknown (did not answer on the grey-cable scan) |
 
@@ -118,6 +118,6 @@ The security gateway itself is not enumerated by MES; its presence on the refere
 
 Identity uses ISO 14229 data identifiers (`22 F190` VIN, `F187` part number, `F188` software number, `F191` hardware, `F192` supplier hardware, `F194` supplier software, `F18C` serial). A module counts as a confirmed address only when the reply matches the car.
 
-**CAN-IHS (blue A5, 125 kbit/s), 2026-10-23:** two nodes answered `22 F190` with the car's VIN, at 0x62 and 0x65 (twin parts: F187 50538672, F188 952J1SW6X01, serials differ); HVAC 0x68 and ETM 0x6F stayed silent in a 40-target sweep; no DTCs read (cable was removed mid-session). See `docs/research/CAN_IHS_DISCOVERY_2026-10-23.md`.
+**CAN-IHS (blue A5, 125 kbit/s), 2026-10-23:** two nodes answered `22 F190` with the car's VIN, at 0x62 and 0x65 (twin parts: F187 50538672, F188 952J1SW6X01, serials differ); HVAC 0x68 and ETM 0x6F stayed silent in a 40-target sweep (the radio is on CAN-C, so silence on CAN-IHS is expected; correction 2026-10-23); no DTCs read (cable was removed mid-session). See `docs/research/CAN_IHS_DISCOVERY_2026-10-23.md`.
 
 Related: [[Guided Full Scan|Guided-Full-Scan]], [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]].

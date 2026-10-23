@@ -34,7 +34,7 @@ Full text: `docs/research/ADAPTER_CABLES.md`. Data: `cuore/data/adapter_cables.j
 
 | Platform | What the sources say is needed | Source basis |
 |---|---|---|
-| Giorgio Alfa (Giulia 2015+, Stelvio 2016+, Tonale) | Standard CAN 6/14: no cable. Blue A5 (3/11): infotainment and body. Grey A6 (12/13): ABS, airbag, steering, and others. 2018+: an SGW bypass that also carries 12/13 | official + listing |
+| Giorgio Alfa (Giulia 2015+, Stelvio 2016+, Tonale) | Standard CAN 6/14: no cable. Blue A5 (3/11): infotainment and body (on this Stelvio the radio is on the main bus and the climate control is on blue, MES-confirmed 2026-10-23). Grey A6 (12/13): ABS, airbag, steering, and others. 2018+: an SGW bypass that also carries 12/13 | official + listing |
 | Older Alfa | K-line cars (147, 156, 159, GT, Brera): green (+ red). Mito, Giulietta, 4C: yellow. Early cars: 3-pin | official (AlfaOBD) |
 | Maserati (Ghibli, Quattroporte, Levante) | AlfaOBD lists OBDLink MX+/EX only, no coloured cable. MES: not a supported make. One vendor's SGW bypass listing names Ghibli and Levante. Grecale, MC20: no source found | official (AlfaOBD) / not found |
 | Ferrari | No MES or AlfaOBD support found. Older 3-pin cars use K-line on the 3-pin; owner-derived pins only | forum |
