@@ -193,7 +193,7 @@ Background on what wiTECH 2.0 can do that MES/AlfaOBD cannot:
 Read only through CUORE sessions, one tester on the port, no clears. Full readings, verdict and raw files: `docs/research/SCAN_2026-10-23_POST_ESIM.md` and `data/captures/stelvio-2018/scans/2026-10-23_SCAN_2610230010/`. [CUORE] = reading; [OWNER] = owner-stated.
 
 **E1. Read date/time, odometer, fuel level %, ambient temp, ignition state:**
-2026-10-23 00:10 local. Odometer: not read in this scan (the P0455 freeze snapshot carries 146,879.1 km, DID 2001, medium confidence). Fuel 45.9 % (PID 2F) / 46.7 % (DID 1001). Ambient 8 C (PID 46). [OWNER] ignition on, engine off, car on a 10 A charger, no adapter cable (CAN-C only). [CUORE] note: PID 0C read 750 rpm at the time, so the engine may have been idling.
+2026-10-23 00:10 local. Odometer: 148,207 km (owner-stated, dashboard). CUORE did not read it (see the research doc); the P0455 freeze snapshot carries 146,879.1 km (DID 2001, medium confidence), which does not agree with it and is unverified. Fuel 45.9 % (PID 2F) / 46.7 % (DID 1001). Ambient 8 C (PID 46). [OWNER] ignition on, engine off, car on a 10 A charger, no adapter cable (CAN-C only). [CUORE] note: PID 0C read 750 rpm at the time, so the engine may have been idling.
 
 **E2. Module list and software versions** (last known in brackets):
 

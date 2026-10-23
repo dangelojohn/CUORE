@@ -21,6 +21,7 @@ What CUORE cannot do or has not yet proven, as the repository records it. "Unkno
 | **Status bits** | Bits b4 and b5 are not implemented by the reference engine computer, so "ran since the clear" cannot be read from the status byte. |
 | **Freeze-frame scaling** | Medium confidence. Purge duty, ambient and barometric values were not established in the raw bytes. |
 | **Adapter port fallback** | CUORE falls back to the MES registry port when `CUORE_OBD_PORT` is unset. On 2026-10-23 that produced COM1 and a 503 LinkUnavailable on every live call (the first scan attempt aborted before sending anything else). The fix is the user-level environment variable `CUORE_OBD_PORT=COM3`. |
+| **Odometer not readable** | PID A6 unsupported on 2018; IPC DID unknown. Candidate for a DID probe on the blue-cable session. |
 
 ## The non-EVAP code review: what it could not close
 

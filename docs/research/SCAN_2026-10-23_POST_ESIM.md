@@ -8,6 +8,7 @@ Nothing was cleared. No clear is needed or allowed (see Verdict).
 
 ## Conditions
 
+- [OWNER] Odometer at the scan: 148,207 km (owner-stated, dashboard; not a CUORE reading).
 - [OWNER] ESIM and gasket replaced 2026-10-22 (white cylinder up). Car on a 10 A charger, ignition on, engine off. No adapter cable (CAN-C only).
 - [CUORE] Discrepancy to check: PID 0C read 750 rpm, speed 0, coolant 73 C (files 28-30), which looks like the engine idling at the time of those reads, not "engine off". Intake PID 0F then returned NO DATA. The verdict below does not depend on this, but the conditions are recorded as read.
 - [CUORE] Adapter voltage (ATRV) 14.5 V before and after (files 07, 53). Runner: 57 steps, 13 issues (manifest.json). An earlier attempt the same night aborted on a wrong port (see Tooling note).
@@ -51,7 +52,7 @@ UDS 19 02 (file 33), status bytes:
 
 Freeze frame (Mode 02, files 16-20): P0455; coolant 56 C; 10 C from freeze-frame PID 46 (the brief calls this intake air; the standard definition of PID 46 is ambient air temperature, so the label is unconfirmed; freeze-frame PID 0F returned NO DATA); fuel level 82.7 % (82.745).
 
-Supplementary readings from the P0455 UDS 19 04 snapshot (file 46, scaling medium confidence): intake air temperature (DID 1935) 15 C, coolant 56 C, fuel level (DID 1001) 82.75 %, odometer (DID 2001) 146,879.1 km, startups counter 14,627. The 2026-10-19 freeze frames carried odometer 146,755.7 km on the last (P0440, driving) frame, so this snapshot is about 123 km after that point. The current odometer was not read in this scan.
+Supplementary readings from the P0455 UDS 19 04 snapshot (file 46, scaling medium confidence): intake air temperature (DID 1935) 15 C, coolant 56 C, fuel level (DID 1001) 82.75 %, odometer (DID 2001) 146,879.1 km, startups counter 14,627. The 2026-10-19 freeze frames carried odometer 146,755.7 km on the last (P0440, driving) frame, so this snapshot is about 123 km after that point. The current odometer was not read in this scan; the owner-stated dashboard figure is 148,207 km. CHECK: that is 1,328 km above the snapshot's 146,879.1 km, while PID 31 reports only 342 km since the 10-19 clear (the clear was at roughly 146,756 km or later). The two cannot both hold: either DID 2001's scaling or source is off (medium confidence), or the figures refer to different things. The "about 123 km after" and "early in the window" reasoning that uses DID 2001 is therefore unverified.
 
 Live now:
 
@@ -78,6 +79,12 @@ Source: the EVAP enable data collected in `docs/research/CEL_2026-10-19_DIAGNOSI
 4. Repeat over the coming days. A "trip" only counts when the enable conditions are met.
 5. Read again without clearing (Mode 01 readiness, Mode 06 0x3A/0x87 and 0x3C/0x90, Mode 07/0A, UDS 19 02 on the ECM) before the 2026-10-28 dealer visit.
 6. PASS rule used by the parser: 0x3A/0x87 at or above 3965 ms, no test-failed bits on P0440/P0455/P0456, EVAP readiness complete.
+
+## Why CUORE could not read the odometer
+
+- Mode 01 PID A6 (odometer) is a later SAE J1979 addition (2019 onward); this 2018 ECM does not advertise it: its supported-PID list (`raw/10_A4_mode01_supported_pids.json`, 46 PIDs, ECM 18DAF110) stops at 0x72 and does not include 0x80, the bitmap that would announce the 0x81 to 0xA0 range, nor A6.
+- On this car the odometer lives in the IPC/BCM behind manufacturer-specific UDS DIDs that are not in CUORE's DID registry (MES reads it there). The only odometer CUORE holds is the ECM freeze-frame DID 2001 (medium confidence).
+- Tonight's IPC identity read errored with `CAN ERROR` after returning only the VIN and part number (`raw/37_B2_identity_IPC.json`), so no IPC read was available either.
 
 ## Tooling note
 
