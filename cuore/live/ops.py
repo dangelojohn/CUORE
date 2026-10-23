@@ -937,7 +937,8 @@ def sweep_bus_full(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm:
 def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
              candidates: Optional[list[str]] = None, per_target_timeout: float = 0.25,
              stop_after: Optional[int] = None,
-             probe_dids: Optional[list[str]] = None, **kw: Any) -> dict[str, Any]:
+             probe_dids: Optional[list[str]] = None, deadline_s: float = 60.0,
+             max_targets: Optional[int] = None, **kw: Any) -> dict[str, Any]:
     b = _bus(bus)
     cands = None
     if candidates:
@@ -952,7 +953,9 @@ def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
         return _stamp(sess, uds_mod.discover(sess, b, vin_expected=vin or None,
                                              candidates=cands,
                                              per_target_timeout=per_target_timeout,
-                                             stop_after=stop_after, probe_dids=pdids))
+                                             stop_after=stop_after, probe_dids=pdids,
+                                             deadline_s=max(5.0, min(float(deadline_s), 170.0)),
+                                             max_targets=max_targets))
 
 
 def discover_11bit(bus: str = "can_ch", vin: str = "", confirm: bool = False,

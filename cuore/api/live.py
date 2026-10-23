@@ -214,9 +214,12 @@ def live_discover(bus: str = Body(default="can_c", embed=True),
                   confirm: bool = Body(default=False, embed=True),
                   candidates: Optional[list[str]] = Body(default=None, embed=True),
                   per_target_timeout: float = Body(default=0.25, embed=True),
-                  stop_after: Optional[int] = Body(default=None, embed=True)) -> dict[str, Any]:
+                  stop_after: Optional[int] = Body(default=None, embed=True),
+                  deadline_s: float = Body(default=60.0, embed=True),
+                  max_targets: Optional[int] = Body(default=None, embed=True)) -> dict[str, Any]:
     return ops.discover(bus, vin=vin, confirm=confirm, candidates=candidates,
-                        per_target_timeout=per_target_timeout, stop_after=stop_after)
+                        per_target_timeout=per_target_timeout, stop_after=stop_after,
+                        deadline_s=deadline_s, max_targets=max_targets)
 
 
 @router.get("/live/coverage", summary="Whole-vehicle coverage session: passes, next step, report")

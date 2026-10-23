@@ -7,6 +7,8 @@ the MES vocabulary (``P0456-00``) so live codes join the corpus.
 
 from __future__ import annotations
 
+import logging
+import math
 import time
 from typing import Any, Optional, Sequence
 
@@ -18,6 +20,8 @@ from .buses import Bus
 from .obd import decode_uds_dtc_block
 from .safety import assert_read_only_uds
 from .transport import DEFAULT_TIMEOUT, Session
+
+log = logging.getLogger("cuore.discover")
 
 NRC_TEXT: dict[int, str] = {
     0x10: "generalReject", 0x11: "serviceNotSupported", 0x12: "subFunctionNotSupported",
@@ -208,7 +212,9 @@ def _did_reply(q: dict[str, Any], did: str) -> tuple[Optional[list[str]], Option
 def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
              candidates: Optional[list[int]] = None, per_target_timeout: float = 0.25,
              stop_after: Optional[int] = None,
-             probe_dids: Sequence[str] = ("F190",)) -> dict[str, Any]:
+             probe_dids: Sequence[str] = ("F190",),
+             deadline_s: float = 60.0, max_targets: Optional[int] = None,
+             per_target_cap_s: float = 6.0) -> dict[str, Any]:
     """``22 F190`` at every candidate target; any reply is proof of a live node.
 
     ``probe_dids`` lists the DIDs tried in order per candidate (FCA modules
@@ -223,15 +229,36 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
     :mod:`identify`). An identity match is what turns an "address unknown"
     module into a confirmed one. Confirmed matches persist per VIN so the
     sweep runs once. Read-only by construction.
+
+    Bounded: the whole call stops at ``deadline_s`` (default 60 s) and returns
+    what it has with ``partial: true`` and the ``untried`` targets; one target
+    never spends more than ``per_target_cap_s`` on identity reads; at most
+    ``max_targets`` are tried. The adapter's own reply wait (ATST) is set to
+    ``per_target_timeout`` for the sweep -- left at the ATSTFF the session
+    assumes (1.02 s) every silent target cost ~1.2 s, so the default 253-target
+    sweep took ~290 s (CAN-IHS hang 2026-10-23). ``untarget()`` restores ATSTFF.
     """
+    if per_target_timeout < sess.adapter_wait:
+        sess.cmd(f"ATST{max(1, min(0xFF, math.ceil(per_target_timeout / 0.004))):02X}", 2)
     per_target_timeout = max(per_target_timeout, sess.adapter_wait + 0.2)
-    targets = candidates if candidates is not None else sweep_candidates(bus.key)
+    targets = list(candidates if candidates is not None else sweep_candidates(bus.key))
+    if max_targets:
+        targets = targets[:max_targets]
     bus_modules = on_bus(bus.key)
     hits: list[dict[str, Any]] = []
     started = time.monotonic()
+    deadline = started + deadline_s
+    partial = False
     tried = 0
+    log.info("discover %s: %d targets, %.2fs each, deadline %.0fs", bus.key, len(targets),
+             per_target_timeout, deadline_s)
     for ta in targets:
+        if time.monotonic() >= deadline:
+            partial = True
+            log.warning("discover %s: deadline %.0fs hit after %d targets", bus.key, deadline_s, tried)
+            break
         tried += 1
+        t_target = time.monotonic()
         req_hex, resp_hex = address_pair(ta)
         sess.target_raw(req_hex, resp_hex)
         payload, nrc, probe, fatal, err = None, None, None, False, None
@@ -247,12 +274,15 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
                 probe = pdid
                 break
         if err:
+            log.warning("discover %s: %02X error %s", bus.key, ta, err)
             hits.append({"target": f"{ta:02X}", "error": err})
             if fatal:
                 break
             continue
         if probe is None:
+            log.info("discover %s: %02X silent (%.2fs)", bus.key, ta, time.monotonic() - t_target)
             continue
+        log.info("discover %s: %02X ANSWERED to %s", bus.key, ta, probe)
         if probe != "F190":
             probe_payload, payload = payload, None
         else:
@@ -274,6 +304,10 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
             hit["registry_match"] = known[0].code
         fields: dict[str, Optional[str]] = {}
         for did in IDENTITY_DIDS:
+            if (time.monotonic() - t_target > per_target_cap_s
+                    or time.monotonic() >= deadline):
+                hit["identity_truncated"] = True
+                break
             dq = sess.query(f"22{did:04X}", "62", per_target_timeout)
             dp, _ = _did_reply(dq, f"{did:04X}")
             if dp:
@@ -323,9 +357,16 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
         if stop_after and len([h for h in hits if h.get("module")]) >= stop_after:
             break
     sess.untarget()
-    audit.record("discover", bus=bus.key, tried=tried, hits=len(hits))
-    return {"bus": bus.key, "cable": sess.link.cable, "tried": tried,
-            "seconds": round(time.monotonic() - started, 1), "hits": hits}
+    audit.record("discover", bus=bus.key, tried=tried, hits=len(hits), partial=partial)
+    log.info("discover %s: done, tried %d, hits %d, partial=%s, %.1fs", bus.key, tried, len(hits),
+             partial, time.monotonic() - started)
+    out: dict[str, Any] = {"bus": bus.key, "cable": sess.link.cable, "tried": tried,
+                           "seconds": round(time.monotonic() - started, 1), "hits": hits,
+                           "partial": partial}
+    if partial:
+        out["untried"] = [f"{t:02X}" for t in targets[tried:]]
+        out["deadline_s"] = deadline_s
+    return out
 
 
 __all__ = ["NRC_TEXT", "nrc_text", "request", "read_did", "identity", "read_dtcs",
