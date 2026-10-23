@@ -131,3 +131,5 @@ An EVAP bundle (decoded snapshot, extended data per active EVAP code, Mode 06, r
 ## Documentation and data
 
 **2026-10-20 - README rewritten and FEATURES.md added** (447a46f); architecture doc and an ESIM out-of-car bench-test flowchart (c00d221); captured readings snapshot for the reference car with simulation logs removed (4b061cd, 2df47fe).
+
+**2026-10-23 - jobs.jsonl has one live store and one snapshot.** The live store is `C:\ProgramData\cuore\jobs.jsonl`; `data/captures/stelvio-2018/cuore_state/jobs.jsonl` is a snapshot copied after each change. Agents must append to the live store via `mes.jobs` and then copy it over the snapshot; they are different files. Reconciled tonight as a union (208 records, none dropped).

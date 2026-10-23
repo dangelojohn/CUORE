@@ -280,6 +280,17 @@ check("8c. with no SAFETY job the most recently updated open job is current",
       jobs_mod.current(_V8)["id"] == _ja["id"], jobs_mod.current(_V8)["id"])
 
 
+# --- live store vs repo snapshot (warning only, never fails the run) -----------
+
+_live = Path(os.environ.get("PROGRAMDATA", "C:/ProgramData"), "cuore", "jobs.jsonl")
+_snap = ROOT / "data" / "captures" / "stelvio-2018" / "cuore_state" / "jobs.jsonl"
+if _live.exists() and _snap.exists():
+    _ls, _ss = (set(p.read_bytes().splitlines()) for p in (_live, _snap))
+    if len(_ls ^ _ss) > 5:  # snapshot lag allowance: a few records
+        print(f"WARN: live jobs.jsonl and repo snapshot differ by {len(_ls ^ _ss)} records "
+              "-- append via mes.jobs to the live store, then copy it over the snapshot")
+
+
 # --- summary ------------------------------------------------------------------
 
 print(f"{checks - len(failures)}/{checks} checks passed")
