@@ -1,0 +1,59 @@
+(Multiecuscan 5.4)
+8/31/2026 6:22:25 PM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)
+--------------------------------------------------------------
+
+ECU ISO code: 00 01 50 40 18
+VIN code: ZASFAKPN5J7B88115
+ECU serial number: TD4192427B17540
+Spare part number: 50544870
+Hardware number: MM10JAHW232
+Hardware version: 00
+Software number: P235QB39
+Software version: 0000
+Homologation number: FIBA00
+FIAT drawing number: 52055320
+Functioning time (EEPROM): 291140
+Operating time: 291140
+Startups counter: 14321
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+
+READING ERROR CODES:
+1. P0440-00 - Evaporation control valve
+  Operating time: 290987 min
+  Startups counter: 14318 
+  Engine speed: 794 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 2.81 deg.
+  Vehicle speed: 0.00 km/h
+  Gear engaged: N 
+  Odometer: 140883.2 km
+  Spark advance: -2.625 deg.
+  Engine temperature: 64 °C
+  Battery voltage: 13.9 V
+  Intake pressure: 403 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Pressed 
+  Brake contact 2: Pressed 
+  Air flow rate: 14.75 Kg/h
+  Air temperature: 26 °C
+  Boost pressure: 998 mbar
+  Atmospheric pressure: 994 mbar
+  Engine oil temperature: 51 °C
+  STOP&START temporary deactivation status: Speed<10km/h 
+  IBS Battery charge status: 67 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Hybrid 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 63.92 %
+  
+
+CLEARING STORED FAULT CODES...
+
+READING ERROR CODES:
+No fault codes
+

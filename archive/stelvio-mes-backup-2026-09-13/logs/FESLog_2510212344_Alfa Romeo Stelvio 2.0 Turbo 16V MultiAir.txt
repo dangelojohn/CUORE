@@ -1,0 +1,22 @@
+(Multiecuscan 5.4)
+10/21/2025 11:43:47 PM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Torque vectoring module (TVM)
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+VIN code: 5188214
+ECU serial number: 281011421
+FIAT drawing number: 
+Hardware number: 037367790
+Hardware version: 44
+Software number: 
+Software version: 0307
+Homologation number: |?O??
+Functioning time (EEPROM): 2089177087
+Operating time: 2089177087
+Startups counter: 31878
+VIN lock status: Unknown
+PROXI configuration write counter: 124
+

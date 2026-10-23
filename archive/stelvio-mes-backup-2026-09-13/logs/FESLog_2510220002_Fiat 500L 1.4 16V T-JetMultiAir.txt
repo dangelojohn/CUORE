@@ -1,0 +1,37 @@
+(Multiecuscan 5.4)
+10/22/2025 12:00:58 AM
+Fiat 500L 1.4 16V T-Jet/MultiAir
+Tire Pressure Control (TPMS)
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+VIN code: 5188214
+ECU serial number: 281011421
+FIAT drawing number: 
+Hardware number: 037367790
+Hardware version: 44
+Software number: 
+Software version: 0307
+Homologation number: |?O??
+Functioning time (EEPROM): 2089177087
+Operating time: 2089177087
+
+EXECUTING ADJUSTMENT...
+Front left wheel identification
+READING ERROR CODES:
+1. B0110-15
+  ERROR DETAILS:
+  Operating time: 24959 min
+  Battery voltage: 4.750 V
+  Vehicle speed: 3240 km/h
+  Electromagnetic interference: 0.0 %
+  
+2. P068A-68
+  ERROR DETAILS:
+  Operating time: 24959 min
+  Battery voltage: 4.750 V
+  Vehicle speed: 3240 km/h
+  Electromagnetic interference: 0.0 %
+  
+

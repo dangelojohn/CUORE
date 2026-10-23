@@ -1,0 +1,18 @@
+(Multiecuscan 5.4)
+11/15/2025 4:36:57 PM
+Fiat 500L 1.4 16V T-Jet/MultiAir
+Parking control Valeo
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+VIN code: 5188214
+FIAT drawing number: 281011421
+Hardware number: 
+Hardware version: 30
+Software number: D
+Software version: 0307
+Homologation number: 
+Functioning time (EEPROM): 2089177087
+Operating time: 2089177087
+

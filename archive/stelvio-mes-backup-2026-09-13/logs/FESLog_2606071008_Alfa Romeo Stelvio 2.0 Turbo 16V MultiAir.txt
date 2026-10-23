@@ -1,0 +1,5167 @@
+(Multiecuscan 5.4)
+6/7/2026 10:03:48 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)
+--------------------------------------------------------------
+
+ECU ISO code: 00 01 50 40 18
+VIN code: ZASFAKPN5J7B88115
+ECU serial number: TD4192427B17540
+Spare part number: 50544870
+Hardware number: MM10JAHW232
+Hardware version: 00
+Software number: P235QB39
+Software version: 0000
+Homologation number: FIBA00
+FIAT drawing number: 52055320
+Functioning time (EEPROM): 282292
+Operating time: 282311
+Startups counter: 13865
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count:  
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time:  sec
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings:  
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed:  rpm
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 750 rpm
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 751 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 751 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+External temperature: -61 °C
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 751 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+External temperature: -61 °C
+Air temperature: 30 °C
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 750 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.187 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 746 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.179 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold):  V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 742 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.179 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.601 V
+Relative humidity (MAF):  %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 745 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.179 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.601 V
+Relative humidity (MAF):  %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 750 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.179 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.601 V
+Relative humidity (MAF):  %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.179 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.601 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 746 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 89 °C
+Engine temperature signal: 0.430 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.179 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.601 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.44 °C
+UniAir electrovalve temperature: 75.75 °C
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 754 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.422 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.179 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.597 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.44 °C
+UniAir electrovalve temperature: 75.88 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.000 deg.
+
+READING PARAMETERS:
+Battery voltage: 14.1 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 751 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.422 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.175 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.597 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.44 °C
+UniAir electrovalve temperature: 75.88 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.125 deg.
+Spark advance (calculated): 6.125 deg.
+
+READING PARAMETERS:
+Battery voltage: 14.1 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 759 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.422 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.179 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.597 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.44 °C
+UniAir electrovalve temperature: 75.88 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 2.438 deg.
+Spark advance (calculated): 3.625 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 754 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.422 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.175 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.589 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.56 °C
+UniAir electrovalve temperature: 76.00 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 2.188 deg.
+Spark advance (calculated): 0.813 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 753 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.422 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.175 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.589 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.75 °C
+UniAir electrovalve temperature: 76.00 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.250 deg.
+Spark advance (calculated): 3.813 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 746 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.422 V
+External temperature: -61 °C
+Air temperature: 30 °C
+Air temperature signal: 2.175 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.589 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.75 °C
+UniAir electrovalve temperature: 76.13 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.750 deg.
+Spark advance (calculated): 5.750 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 751 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.422 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.171 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.589 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.75 °C
+UniAir electrovalve temperature: 76.13 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 6.125 deg.
+Spark advance (calculated): 7.250 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.247 bar
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 752 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.422 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.171 V
+Air temperature (Boost/Manifold): 48 °C
+Air temperature signal (Boost/Manifold): 2.589 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.75 °C
+UniAir electrovalve temperature: 76.25 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.500 deg.
+Spark advance (calculated): 4.313 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.685 bar
+Injection time: 0.878 ms
+Injection time correction: 0.146 ms
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 752 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.418 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.171 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.585 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 77.75 °C
+UniAir electrovalve temperature: 76.25 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.250 deg.
+Spark advance (calculated): 1.500 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.308 bar
+Fuel pressure (Calculated): 42.625 bar
+Injection time: 0.902 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.3280 ms
+Coil 2 charge time: 3.3776 ms
+Coil 3 charge time:  ms
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 751 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.418 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.171 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.585 V
+Relative humidity (MAF):  %
+Engine oil temperature: 83 °C
+UniAir oil temperature: 78.00 °C
+UniAir electrovalve temperature: 76.38 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.625 deg.
+Spark advance (calculated): 3.938 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 43.811 bar
+Injection time: 0.912 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2640 ms
+Coil 2 charge time: 3.3656 ms
+Coil 3 charge time: 3.3096 ms
+Coil 4 charge time: 3.3776 ms
+Knock sensor signal:  mV
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 752 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.418 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.167 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.585 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.00 °C
+UniAir electrovalve temperature: 76.50 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.125 deg.
+Spark advance (calculated): 3.938 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 43.619 bar
+Injection time: 0.924 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2560 ms
+Coil 2 charge time: 3.4120 ms
+Coil 3 charge time: 3.2920 ms
+Coil 4 charge time: 3.3440 ms
+Knock sensor signal: 138.500 mV
+Knock sensor signal (Cyl. 1): 139.8 mV
+Knock sensor signal (Cyl. 2): 175.1 mV
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 752 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.418 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.167 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.582 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.00 °C
+UniAir electrovalve temperature: 76.50 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.125 deg.
+Spark advance (calculated): 4.750 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.996 bar
+Injection time: 0.902 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.3120 ms
+Coil 2 charge time: 3.3560 ms
+Coil 3 charge time: 3.3360 ms
+Coil 4 charge time: 3.3736 ms
+Knock sensor signal: 140.375 mV
+Knock sensor signal (Cyl. 1): 140.4 mV
+Knock sensor signal (Cyl. 2): 169.0 mV
+Knock sensor signal (Cyl. 3):  mV
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 750 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.418 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.167 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.582 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.00 °C
+UniAir electrovalve temperature: 76.63 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.563 deg.
+Spark advance (calculated): 5.250 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 43.122 bar
+Injection time: 0.908 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2776 ms
+Coil 2 charge time: 3.3976 ms
+Coil 3 charge time: 3.3080 ms
+Coil 4 charge time: 3.3120 ms
+Knock sensor signal: 189.125 mV
+Knock sensor signal (Cyl. 1): 127.5 mV
+Knock sensor signal (Cyl. 2): 173.3 mV
+Knock sensor signal (Cyl. 3): 155.0 mV
+Knock sensor signal (Cyl. 4): 188.5 mV
+Engine torque: 7.74 %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 62 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 747 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.418 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.167 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.578 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.19 °C
+UniAir electrovalve temperature: 76.63 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.938 deg.
+Spark advance (calculated): 3.313 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.499 bar
+Injection time: 0.910 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2880 ms
+Coil 2 charge time: 3.4040 ms
+Coil 3 charge time: 3.2880 ms
+Coil 4 charge time: 3.3800 ms
+Knock sensor signal: 131.125 mV
+Knock sensor signal (Cyl. 1): 131.1 mV
+Knock sensor signal (Cyl. 2): 177.0 mV
+Knock sensor signal (Cyl. 3): 145.8 mV
+Knock sensor signal (Cyl. 4): 195.9 mV
+Engine torque: 7.93 %
+Desired engine torque: 8.06 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.2 %
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.418 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.160 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.578 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.25 °C
+UniAir electrovalve temperature: 76.75 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 2.563 deg.
+Spark advance (calculated): 1.813 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.308 bar
+Fuel pressure (Calculated): 43.433 bar
+Injection time: 0.910 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2576 ms
+Coil 2 charge time: 3.3736 ms
+Coil 3 charge time: 3.3160 ms
+Coil 4 charge time: 3.3736 ms
+Knock sensor signal: 145.750 mV
+Knock sensor signal (Cyl. 1): 126.9 mV
+Knock sensor signal (Cyl. 2): 164.8 mV
+Knock sensor signal (Cyl. 3): 142.8 mV
+Knock sensor signal (Cyl. 4): 195.9 mV
+Engine torque: 7.83 %
+Desired engine torque: 8.07 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.5 %
+Intake pressure: 313 mbar
+Desired intake pressure: 295 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve:  
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 750 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.414 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.160 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.578 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.25 °C
+UniAir electrovalve temperature: 76.88 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.188 deg.
+Spark advance (calculated): 1.938 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.559 bar
+Injection time: 0.908 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2520 ms
+Coil 2 charge time: 3.3640 ms
+Coil 3 charge time: 3.3040 ms
+Coil 4 charge time: 3.3536 ms
+Knock sensor signal: 130.500 mV
+Knock sensor signal (Cyl. 1): 132.4 mV
+Knock sensor signal (Cyl. 2): 159.3 mV
+Knock sensor signal (Cyl. 3): 154.4 mV
+Knock sensor signal (Cyl. 4): 191.0 mV
+Engine torque: 8.16 %
+Desired engine torque: 8.02 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.0 %
+Intake pressure: 316 mbar
+Desired intake pressure: 293 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 754 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.414 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.160 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.570 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.38 °C
+UniAir electrovalve temperature: 77.00 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.000 deg.
+Spark advance (calculated): 3.125 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 43.433 bar
+Injection time: 0.888 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2776 ms
+Coil 2 charge time: 3.4096 ms
+Coil 3 charge time: 3.3040 ms
+Coil 4 charge time: 3.3256 ms
+Knock sensor signal: 136.625 mV
+Knock sensor signal (Cyl. 1): 134.9 mV
+Knock sensor signal (Cyl. 2): 168.4 mV
+Knock sensor signal (Cyl. 3): 145.8 mV
+Knock sensor signal (Cyl. 4): 184.3 mV
+Engine torque: 8.21 %
+Desired engine torque: 7.99 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.4 %
+Intake pressure: 323 mbar
+Desired intake pressure: 292 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.96 %
+Throttle position (Track 1): 2.19 deg.
+Throttle position (Track 2): 2.50 deg.
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 751 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.414 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.156 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.570 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.50 °C
+UniAir electrovalve temperature: 77.13 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.000 deg.
+Spark advance (calculated): 3.438 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.870 bar
+Injection time: 0.902 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2696 ms
+Coil 2 charge time: 3.3520 ms
+Coil 3 charge time: 3.2856 ms
+Coil 4 charge time: 3.3656 ms
+Knock sensor signal: 122.625 mV
+Knock sensor signal (Cyl. 1): 133.6 mV
+Knock sensor signal (Cyl. 2): 166.0 mV
+Knock sensor signal (Cyl. 3): 148.9 mV
+Knock sensor signal (Cyl. 4): 191.0 mV
+Engine torque: 8.23 %
+Desired engine torque: 8.11 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.4 %
+Intake pressure: 316 mbar
+Desired intake pressure: 283 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.19 deg.
+Throttle position: 1.96 %
+Throttle position (Track 1): 2.19 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.6055 V
+Throttle position signal (Track 2): 4.3789 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 743 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 90 °C
+Engine temperature signal: 0.414 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.156 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.566 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.50 °C
+UniAir electrovalve temperature: 77.13 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.938 deg.
+Spark advance (calculated): 6.000 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 43.559 bar
+Injection time: 0.930 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2696 ms
+Coil 2 charge time: 3.3560 ms
+Coil 3 charge time: 3.3160 ms
+Coil 4 charge time: 3.3176 ms
+Knock sensor signal: 166.000 mV
+Knock sensor signal (Cyl. 1): 136.6 mV
+Knock sensor signal (Cyl. 2): 170.3 mV
+Knock sensor signal (Cyl. 3): 145.3 mV
+Knock sensor signal (Cyl. 4): 206.9 mV
+Engine torque: 8.04 %
+Desired engine torque: 8.06 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 23.7 %
+Intake pressure: 323 mbar
+Desired intake pressure: 296 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.19 deg.
+Throttle position: 1.96 %
+Throttle position (Track 1): 2.19 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 44.6 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 91 °C
+Engine temperature signal: 0.410 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.152 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.562 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.81 °C
+UniAir electrovalve temperature: 77.25 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.063 deg.
+Spark advance (calculated): 2.625 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 43.122 bar
+Injection time: 0.910 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2960 ms
+Coil 2 charge time: 3.3680 ms
+Coil 3 charge time: 3.3240 ms
+Coil 4 charge time: 3.3416 ms
+Knock sensor signal: 155.000 mV
+Knock sensor signal (Cyl. 1): 134.9 mV
+Knock sensor signal (Cyl. 2): 163.5 mV
+Knock sensor signal (Cyl. 3): 144.0 mV
+Knock sensor signal (Cyl. 4): 193.4 mV
+Engine torque: 8.37 %
+Desired engine torque: 8.18 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 23.4 %
+Intake pressure: 326 mbar
+Desired intake pressure: 298 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 987 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.19 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 45.5 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 1.00961 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 750 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 91 °C
+Engine temperature signal: 0.410 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.152 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.562 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.88 °C
+UniAir electrovalve temperature: 77.50 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.750 deg.
+Spark advance (calculated): 5.250 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.308 bar
+Fuel pressure (Calculated): 43.122 bar
+Injection time: 0.920 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2536 ms
+Coil 2 charge time: 3.4000 ms
+Coil 3 charge time: 3.3056 ms
+Coil 4 charge time: 3.3280 ms
+Knock sensor signal: 161.125 mV
+Knock sensor signal (Cyl. 1): 125.6 mV
+Knock sensor signal (Cyl. 2): 155.6 mV
+Knock sensor signal (Cyl. 3): 142.1 mV
+Knock sensor signal (Cyl. 4): 186.1 mV
+Engine torque: 7.90 %
+Desired engine torque: 7.97 %
+Air flow rate: 11.63 Kg/h
+Intake efficiency: 22.9 %
+Intake pressure: 323 mbar
+Desired intake pressure: 292 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.19 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 45.2 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 0.99081 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 749 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 91 °C
+Engine temperature signal: 0.410 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.152 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.558 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 78.88 °C
+UniAir electrovalve temperature: 77.50 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.125 deg.
+Spark advance (calculated): 1.750 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.18 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.559 bar
+Injection time: 0.910 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.3136 ms
+Coil 2 charge time: 3.3856 ms
+Coil 3 charge time: 3.2960 ms
+Coil 4 charge time: 3.3336 ms
+Knock sensor signal: 153.125 mV
+Knock sensor signal (Cyl. 1): 137.3 mV
+Knock sensor signal (Cyl. 2): 164.8 mV
+Knock sensor signal (Cyl. 3): 155.0 mV
+Knock sensor signal (Cyl. 4): 195.9 mV
+Engine torque: 7.90 %
+Desired engine torque: 7.88 %
+Air flow rate: 11.63 Kg/h
+Intake efficiency: 23.1 %
+Intake pressure: 316 mbar
+Desired intake pressure: 287 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 45.6 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.714 V
+Lambda sensor 1 integrator: 0.98444 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.):  
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 747 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 91 °C
+Engine temperature signal: 0.410 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.148 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.558 V
+Relative humidity (MAF):  %
+Engine oil temperature: 84 °C
+UniAir oil temperature: 79.06 °C
+UniAir electrovalve temperature: 77.63 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.563 deg.
+Spark advance (calculated): 3.750 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.870 bar
+Injection time: 0.930 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2960 ms
+Coil 2 charge time: 3.3776 ms
+Coil 3 charge time: 3.3360 ms
+Coil 4 charge time: 3.3720 ms
+Knock sensor signal: 140.875 mV
+Knock sensor signal (Cyl. 1): 140.9 mV
+Knock sensor signal (Cyl. 2): 179.4 mV
+Knock sensor signal (Cyl. 3): 146.4 mV
+Knock sensor signal (Cyl. 4): 216.6 mV
+Engine torque: 7.60 %
+Desired engine torque: 7.85 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.8 %
+Intake pressure: 323 mbar
+Desired intake pressure: 285 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 44.0 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.722 V
+Lambda sensor 1 integrator: 1.01614 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 826 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 747 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 91 °C
+Engine temperature signal: 0.410 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.140 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.550 V
+Relative humidity (MAF):  %
+Engine oil temperature: 85 °C
+UniAir oil temperature: 79.06 °C
+UniAir electrovalve temperature: 77.75 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.000 deg.
+Spark advance (calculated): 4.313 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.559 bar
+Injection time: 0.906 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2720 ms
+Coil 2 charge time: 3.3560 ms
+Coil 3 charge time: 3.3320 ms
+Coil 4 charge time: 3.3480 ms
+Knock sensor signal: 183.625 mV
+Knock sensor signal (Cyl. 1): 129.4 mV
+Knock sensor signal (Cyl. 2): 184.9 mV
+Knock sensor signal (Cyl. 3): 137.3 mV
+Knock sensor signal (Cyl. 4): 194.0 mV
+Engine torque: 8.02 %
+Desired engine torque: 7.99 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.6 %
+Intake pressure: 323 mbar
+Desired intake pressure: 286 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 43.3 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.707 V
+Lambda sensor 1 integrator: 1.00507 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 749 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.402 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.140 V
+Air temperature (Boost/Manifold): 49 °C
+Air temperature signal (Boost/Manifold): 2.546 V
+Relative humidity (MAF):  %
+Engine oil temperature: 85 °C
+UniAir oil temperature: 79.31 °C
+UniAir electrovalve temperature: 78.00 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 1.500 deg.
+Spark advance (calculated): 0.125 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.247 bar
+Injection time: 0.904 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.3056 ms
+Coil 2 charge time: 3.3640 ms
+Coil 3 charge time: 3.3280 ms
+Coil 4 charge time: 3.3736 ms
+Knock sensor signal: 127.500 mV
+Knock sensor signal (Cyl. 1): 127.5 mV
+Knock sensor signal (Cyl. 2): 171.5 mV
+Knock sensor signal (Cyl. 3): 136.6 mV
+Knock sensor signal (Cyl. 4): 187.9 mV
+Engine torque: 7.83 %
+Desired engine torque: 7.92 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.7 %
+Intake pressure: 323 mbar
+Desired intake pressure: 288 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 43.3 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 0.98657 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.24 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.1 mm
+Variable displacement engine oil pump: Low pressure 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.402 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.136 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.542 V
+Relative humidity (MAF):  %
+Engine oil temperature: 85 °C
+UniAir oil temperature: 79.31 °C
+UniAir electrovalve temperature: 78.13 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 6.750 deg.
+Spark advance (calculated): 8.250 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.499 bar
+Injection time: 0.902 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2456 ms
+Coil 2 charge time: 3.3776 ms
+Coil 3 charge time: 3.2856 ms
+Coil 4 charge time: 3.3120 ms
+Knock sensor signal: 145.750 mV
+Knock sensor signal (Cyl. 1): 133.0 mV
+Knock sensor signal (Cyl. 2): 179.4 mV
+Knock sensor signal (Cyl. 3): 148.9 mV
+Knock sensor signal (Cyl. 4): 180.6 mV
+Engine torque: 7.83 %
+Desired engine torque: 7.99 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.5 %
+Intake pressure: 313 mbar
+Desired intake pressure: 287 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 45.4 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 0.99677 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.24 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.1 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 21.06 deg.
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 747 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.402 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.136 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.539 V
+Relative humidity (MAF):  %
+Engine oil temperature: 85 °C
+UniAir oil temperature: 79.56 °C
+UniAir electrovalve temperature: 78.25 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.688 deg.
+Spark advance (calculated): 5.813 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 41.870 bar
+Fuel pressure (Calculated): 41.996 bar
+Injection time: 0.898 ms
+Injection time correction: 0.150 ms
+Coil 1 charge time: 3.2880 ms
+Coil 2 charge time: 3.3360 ms
+Coil 3 charge time: 3.2960 ms
+Coil 4 charge time: 3.3216 ms
+Knock sensor signal: 189.750 mV
+Knock sensor signal (Cyl. 1): 138.5 mV
+Knock sensor signal (Cyl. 2): 178.8 mV
+Knock sensor signal (Cyl. 3): 140.4 mV
+Knock sensor signal (Cyl. 4): 198.3 mV
+Engine torque: 7.83 %
+Desired engine torque: 8.06 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.3 %
+Intake pressure: 313 mbar
+Desired intake pressure: 292 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 45.6 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.714 V
+Lambda sensor 1 integrator: 0.99164 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.24 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.1 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.56 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.88 deg.
+Solenoid valve closing angle (command 1): 672.00 deg.
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 743 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.402 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.132 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.539 V
+Relative humidity (MAF):  %
+Engine oil temperature: 85 °C
+UniAir oil temperature: 79.56 °C
+UniAir electrovalve temperature: 78.38 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.563 deg.
+Spark advance (calculated): 4.938 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.870 bar
+Injection time: 0.950 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2640 ms
+Coil 2 charge time: 3.3536 ms
+Coil 3 charge time: 3.3216 ms
+Coil 4 charge time: 3.3800 ms
+Knock sensor signal: 186.125 mV
+Knock sensor signal (Cyl. 1): 125.6 mV
+Knock sensor signal (Cyl. 2): 160.5 mV
+Knock sensor signal (Cyl. 3): 154.4 mV
+Knock sensor signal (Cyl. 4): 192.3 mV
+Engine torque: 7.55 %
+Desired engine torque: 7.85 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.3 %
+Intake pressure: 313 mbar
+Desired intake pressure: 288 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 43.5 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 0.98361 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.24 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.0 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.50 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 346.00 deg.
+Solenoid valve closing angle (command 1): 671.81 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6):  deg.
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 752 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.398 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.128 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.531 V
+Relative humidity (MAF):  %
+Engine oil temperature: 85 °C
+UniAir oil temperature: 79.69 °C
+UniAir electrovalve temperature: 78.50 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 6.000 deg.
+Spark advance (calculated): 4.500 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 43.308 bar
+Fuel pressure (Calculated): 43.619 bar
+Injection time: 0.902 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.3000 ms
+Coil 2 charge time: 3.3656 ms
+Coil 3 charge time: 3.3600 ms
+Coil 4 charge time: 3.3856 ms
+Knock sensor signal: 169.000 mV
+Knock sensor signal (Cyl. 1): 139.8 mV
+Knock sensor signal (Cyl. 2): 160.5 mV
+Knock sensor signal (Cyl. 3): 155.6 mV
+Knock sensor signal (Cyl. 4): 191.6 mV
+Engine torque: 7.74 %
+Desired engine torque: 7.99 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.3 %
+Intake pressure: 316 mbar
+Desired intake pressure: 290 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.19 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 43.9 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.714 V
+Lambda sensor 1 integrator: 0.98944 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.24 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.1 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 561.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.88 deg.
+Solenoid valve closing angle (command 1): 672.00 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 758 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.398 V
+External temperature: -61 °C
+Air temperature: 31 °C
+Air temperature signal: 2.128 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.531 V
+Relative humidity (MAF):  %
+Engine oil temperature: 85 °C
+UniAir oil temperature: 79.81 °C
+UniAir electrovalve temperature: 78.63 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.688 deg.
+Spark advance (calculated): 3.438 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.373 bar
+Injection time: 0.906 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2520 ms
+Coil 2 charge time: 3.3576 ms
+Coil 3 charge time: 3.3480 ms
+Coil 4 charge time: 3.3640 ms
+Knock sensor signal: 161.625 mV
+Knock sensor signal (Cyl. 1): 138.5 mV
+Knock sensor signal (Cyl. 2): 173.9 mV
+Knock sensor signal (Cyl. 3): 137.9 mV
+Knock sensor signal (Cyl. 4): 191.6 mV
+Engine torque: 7.99 %
+Desired engine torque: 8.11 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 23.7 %
+Intake pressure: 323 mbar
+Desired intake pressure: 296 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.19 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 45.4 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 1.00861 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.2 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 453.06 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.75 deg.
+Solenoid valve closing angle (command 1): 672.00 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 746 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.398 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.121 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.527 V
+Relative humidity (MAF):  %
+Engine oil temperature: 85 °C
+UniAir oil temperature: 79.88 °C
+UniAir electrovalve temperature: 78.88 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.813 deg.
+Spark advance (calculated): 3.250 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.499 bar
+Injection time: 0.902 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2480 ms
+Coil 2 charge time: 3.4056 ms
+Coil 3 charge time: 3.2920 ms
+Coil 4 charge time: 3.3216 ms
+Knock sensor signal: 129.375 mV
+Knock sensor signal (Cyl. 1): 123.3 mV
+Knock sensor signal (Cyl. 2): 182.4 mV
+Knock sensor signal (Cyl. 3): 141.5 mV
+Knock sensor signal (Cyl. 4): 185.5 mV
+Engine torque: 8.23 %
+Desired engine torque: 7.99 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.5 %
+Intake pressure: 313 mbar
+Desired intake pressure: 291 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 43.5 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 0.98129 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.1 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 309.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.94 deg.
+Solenoid valve closing angle (command 1): 671.63 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 752 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.395 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.117 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.523 V
+Relative humidity (MAF):  %
+Engine oil temperature: 86 °C
+UniAir oil temperature: 80.13 °C
+UniAir electrovalve temperature: 79.00 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.500 deg.
+Spark advance (calculated): 4.438 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.625 bar
+Injection time: 0.906 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2960 ms
+Coil 2 charge time: 3.3560 ms
+Coil 3 charge time: 3.3176 ms
+Coil 4 charge time: 3.3656 ms
+Knock sensor signal: 129.375 mV
+Knock sensor signal (Cyl. 1): 129.4 mV
+Knock sensor signal (Cyl. 2): 177.0 mV
+Knock sensor signal (Cyl. 3): 137.3 mV
+Knock sensor signal (Cyl. 4): 199.5 mV
+Engine torque: 7.85 %
+Desired engine torque: 7.90 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 23.2 %
+Intake pressure: 316 mbar
+Desired intake pressure: 292 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 42.9 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.707 V
+Lambda sensor 1 integrator: 1.01480 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.2 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.69 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.94 deg.
+Solenoid valve closing angle (command 1): 672.06 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 751 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.395 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.117 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.511 V
+Relative humidity (MAF):  %
+Engine oil temperature: 86 °C
+UniAir oil temperature: 80.50 °C
+UniAir electrovalve temperature: 79.13 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.813 deg.
+Spark advance (calculated): 5.813 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.559 bar
+Injection time: 0.906 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2640 ms
+Coil 2 charge time: 3.3656 ms
+Coil 3 charge time: 3.2880 ms
+Coil 4 charge time: 3.3536 ms
+Knock sensor signal: 135.375 mV
+Knock sensor signal (Cyl. 1): 135.4 mV
+Knock sensor signal (Cyl. 2): 175.8 mV
+Knock sensor signal (Cyl. 3): 134.9 mV
+Knock sensor signal (Cyl. 4): 205.0 mV
+Engine torque: 7.76 %
+Desired engine torque: 7.86 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 24.2 %
+Intake pressure: 323 mbar
+Desired intake pressure: 302 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 43.0 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.714 V
+Lambda sensor 1 integrator: 0.99393 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 832 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.2 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 633.00 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.75 deg.
+Solenoid valve closing angle (command 1): 672.00 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.63 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay:  
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 746 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 92 °C
+Engine temperature signal: 0.395 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.113 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.507 V
+Relative humidity (MAF):  %
+Engine oil temperature: 86 °C
+UniAir oil temperature: 80.50 °C
+UniAir electrovalve temperature: 79.38 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.313 deg.
+Spark advance (calculated): 5.500 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.559 bar
+Injection time: 0.914 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2576 ms
+Coil 2 charge time: 3.3776 ms
+Coil 3 charge time: 3.2976 ms
+Coil 4 charge time: 3.3616 ms
+Knock sensor signal: 140.375 mV
+Knock sensor signal (Cyl. 1): 124.5 mV
+Knock sensor signal (Cyl. 2): 189.8 mV
+Knock sensor signal (Cyl. 3): 141.5 mV
+Knock sensor signal (Cyl. 4): 199.5 mV
+Engine torque: 7.88 %
+Desired engine torque: 7.81 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.6 %
+Intake pressure: 316 mbar
+Desired intake pressure: 288 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 43.3 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.707 V
+Lambda sensor 1 integrator: 1.00397 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 832 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.2 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 453.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.88 deg.
+Solenoid valve closing angle (command 1): 671.63 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.60 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light:  
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 749 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 93 °C
+Engine temperature signal: 0.391 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.109 V
+Air temperature (Boost/Manifold): 50 °C
+Air temperature signal (Boost/Manifold): 2.503 V
+Relative humidity (MAF):  %
+Engine oil temperature: 86 °C
+UniAir oil temperature: 80.81 °C
+UniAir electrovalve temperature: 79.50 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.625 deg.
+Spark advance (calculated): 4.438 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.811 bar
+Injection time: 0.908 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.3080 ms
+Coil 2 charge time: 3.3920 ms
+Coil 3 charge time: 3.3560 ms
+Coil 4 charge time: 3.3296 ms
+Knock sensor signal: 173.250 mV
+Knock sensor signal (Cyl. 1): 133.6 mV
+Knock sensor signal (Cyl. 2): 167.1 mV
+Knock sensor signal (Cyl. 3): 147.6 mV
+Knock sensor signal (Cyl. 4): 214.1 mV
+Engine torque: 7.55 %
+Desired engine torque: 8.06 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 23.0 %
+Intake pressure: 313 mbar
+Desired intake pressure: 298 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 43.5 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 0.99380 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.3 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 21.06 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.94 deg.
+Solenoid valve closing angle (command 1): 672.06 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.63 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 750 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 93 °C
+Engine temperature signal: 0.391 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.101 V
+Air temperature (Boost/Manifold): 51 °C
+Air temperature signal (Boost/Manifold): 2.500 V
+Relative humidity (MAF):  %
+Engine oil temperature: 86 °C
+UniAir oil temperature: 81.13 °C
+UniAir electrovalve temperature: 79.75 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.625 deg.
+Spark advance (calculated): 4.500 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.062 bar
+Injection time: 0.896 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2560 ms
+Coil 2 charge time: 3.3856 ms
+Coil 3 charge time: 3.2920 ms
+Coil 4 charge time: 3.3096 ms
+Knock sensor signal: 134.875 mV
+Knock sensor signal (Cyl. 1): 134.9 mV
+Knock sensor signal (Cyl. 2): 180.6 mV
+Knock sensor signal (Cyl. 3): 142.1 mV
+Knock sensor signal (Cyl. 4): 209.9 mV
+Engine torque: 7.67 %
+Desired engine torque: 7.88 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 24.4 %
+Intake pressure: 313 mbar
+Desired intake pressure: 305 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 44.6 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.714 V
+Lambda sensor 1 integrator: 0.99539 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.2 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 561.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.63 deg.
+Solenoid valve closing angle (command 1): 672.00 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.63 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 93 °C
+Engine temperature signal: 0.391 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.097 V
+Air temperature (Boost/Manifold): 51 °C
+Air temperature signal (Boost/Manifold): 2.492 V
+Relative humidity (MAF):  %
+Engine oil temperature: 87 °C
+UniAir oil temperature: 81.13 °C
+UniAir electrovalve temperature: 79.88 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.188 deg.
+Spark advance (calculated): 5.625 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.619 bar
+Fuel pressure (Calculated): 43.499 bar
+Injection time: 0.906 ms
+Injection time correction: 0.144 ms
+Coil 1 charge time: 3.2776 ms
+Coil 2 charge time: 3.4000 ms
+Coil 3 charge time: 3.2976 ms
+Coil 4 charge time: 3.3496 ms
+Knock sensor signal: 145.750 mV
+Knock sensor signal (Cyl. 1): 131.8 mV
+Knock sensor signal (Cyl. 2): 168.4 mV
+Knock sensor signal (Cyl. 3): 152.5 mV
+Knock sensor signal (Cyl. 4): 196.5 mV
+Engine torque: 8.09 %
+Desired engine torque: 7.79 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.3 %
+Intake pressure: 323 mbar
+Desired intake pressure: 293 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 44.0 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.714 V
+Lambda sensor 1 integrator: 0.98550 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.2 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.50 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.88 deg.
+Solenoid valve closing angle (command 1): 672.06 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.63 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 94 °C
+Engine temperature signal: 0.383 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.093 V
+Air temperature (Boost/Manifold): 51 °C
+Air temperature signal (Boost/Manifold): 2.488 V
+Relative humidity (MAF):  %
+Engine oil temperature: 87 °C
+UniAir oil temperature: 81.50 °C
+UniAir electrovalve temperature: 80.13 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.500 deg.
+Spark advance (calculated): 7.000 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.182 bar
+Fuel pressure (Calculated): 41.996 bar
+Injection time: 0.878 ms
+Injection time correction: 0.150 ms
+Coil 1 charge time: 3.2520 ms
+Coil 2 charge time: 3.3536 ms
+Coil 3 charge time: 3.2760 ms
+Coil 4 charge time: 3.3520 ms
+Knock sensor signal: 176.375 mV
+Knock sensor signal (Cyl. 1): 133.0 mV
+Knock sensor signal (Cyl. 2): 189.8 mV
+Knock sensor signal (Cyl. 3): 147.6 mV
+Knock sensor signal (Cyl. 4): 205.6 mV
+Engine torque: 8.31 %
+Desired engine torque: 7.97 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.5 %
+Intake pressure: 313 mbar
+Desired intake pressure: 289 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.19 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 42.2 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 1.00916 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.2 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.50 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.81 deg.
+Solenoid valve closing angle (command 1): 671.81 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.63 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 752 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 94 °C
+Engine temperature signal: 0.383 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.093 V
+Air temperature (Boost/Manifold): 51 °C
+Air temperature signal (Boost/Manifold): 2.484 V
+Relative humidity (MAF):  %
+Engine oil temperature: 87 °C
+UniAir oil temperature: 81.75 °C
+UniAir electrovalve temperature: 80.38 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.500 deg.
+Spark advance (calculated): 4.000 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 42.182 bar
+Fuel pressure (Calculated): 42.247 bar
+Injection time: 0.878 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2480 ms
+Coil 2 charge time: 3.3576 ms
+Coil 3 charge time: 3.2840 ms
+Coil 4 charge time: 3.3416 ms
+Knock sensor signal: 134.875 mV
+Knock sensor signal (Cyl. 1): 137.3 mV
+Knock sensor signal (Cyl. 2): 190.4 mV
+Knock sensor signal (Cyl. 3): 153.1 mV
+Knock sensor signal (Cyl. 4): 200.8 mV
+Engine torque: 7.74 %
+Desired engine torque: 7.95 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.9 %
+Intake pressure: 323 mbar
+Desired intake pressure: 297 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 42.5 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 1.01007 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.3 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 453.00 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.75 deg.
+Solenoid valve closing angle (command 1): 671.63 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.63 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 747 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 94 °C
+Engine temperature signal: 0.383 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.089 V
+Air temperature (Boost/Manifold): 51 °C
+Air temperature signal (Boost/Manifold): 2.480 V
+Relative humidity (MAF):  %
+Engine oil temperature: 87 °C
+UniAir oil temperature: 81.81 °C
+UniAir electrovalve temperature: 80.50 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.813 deg.
+Spark advance (calculated): 3.000 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 43.122 bar
+Injection time: 0.934 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2760 ms
+Coil 2 charge time: 3.3720 ms
+Coil 3 charge time: 3.3496 ms
+Coil 4 charge time: 3.3680 ms
+Knock sensor signal: 194.625 mV
+Knock sensor signal (Cyl. 1): 137.9 mV
+Knock sensor signal (Cyl. 2): 178.8 mV
+Knock sensor signal (Cyl. 3): 131.8 mV
+Knock sensor signal (Cyl. 4): 201.4 mV
+Engine torque: 7.86 %
+Desired engine torque: 8.00 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 23.7 %
+Intake pressure: 323 mbar
+Desired intake pressure: 299 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.19 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 43.5 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.945 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.714 V
+Lambda sensor 1 integrator: 0.99423 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.2 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 309.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.81 deg.
+Solenoid valve closing angle (command 1): 671.81 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 991 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 751 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 94 °C
+Engine temperature signal: 0.379 V
+External temperature: -61 °C
+Air temperature: 32 °C
+Air temperature signal: 2.082 V
+Air temperature (Boost/Manifold): 51 °C
+Air temperature signal (Boost/Manifold): 2.480 V
+Relative humidity (MAF):  %
+Engine oil temperature: 87 °C
+UniAir oil temperature: 81.81 °C
+UniAir electrovalve temperature: 80.50 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.813 deg.
+Spark advance (calculated): 3.000 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 43.122 bar
+Injection time: 0.934 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2760 ms
+Coil 2 charge time: 3.3720 ms
+Coil 3 charge time: 3.3496 ms
+Coil 4 charge time: 3.3680 ms
+Knock sensor signal: 194.625 mV
+Knock sensor signal (Cyl. 1): 137.9 mV
+Knock sensor signal (Cyl. 2): 178.8 mV
+Knock sensor signal (Cyl. 3): 131.8 mV
+Knock sensor signal (Cyl. 4): 201.4 mV
+Engine torque: 7.86 %
+Desired engine torque: 8.00 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 23.7 %
+Intake pressure: 323 mbar
+Desired intake pressure: 299 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.19 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 43.5 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.945 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.714 V
+Lambda sensor 1 integrator: 0.99423 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.2 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 309.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.81 deg.
+Solenoid valve closing angle (command 1): 671.81 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 991 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change:  km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 743 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 94 °C
+Engine temperature signal: 0.379 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.078 V
+Air temperature (Boost/Manifold): 51 °C
+Air temperature signal (Boost/Manifold): 2.468 V
+Relative humidity (MAF):  %
+Engine oil temperature: 88 °C
+UniAir oil temperature: 82.19 °C
+UniAir electrovalve temperature: 80.88 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 5.625 deg.
+Spark advance (calculated): 6.313 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.625 bar
+Injection time: 0.898 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2576 ms
+Coil 2 charge time: 3.3576 ms
+Coil 3 charge time: 3.2800 ms
+Coil 4 charge time: 3.3416 ms
+Knock sensor signal: 206.250 mV
+Knock sensor signal (Cyl. 1): 139.8 mV
+Knock sensor signal (Cyl. 2): 181.3 mV
+Knock sensor signal (Cyl. 3): 137.9 mV
+Knock sensor signal (Cyl. 4): 203.8 mV
+Engine torque: 7.88 %
+Desired engine torque: 8.18 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.7 %
+Intake pressure: 316 mbar
+Desired intake pressure: 298 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 44.3 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.703 V
+Lambda sensor 1 integrator: 1.00543 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.3 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.50 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.81 deg.
+Solenoid valve closing angle (command 1): 671.81 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 747 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 94 °C
+Engine temperature signal: 0.379 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.078 V
+Air temperature (Boost/Manifold): 51 °C
+Air temperature signal (Boost/Manifold): 2.468 V
+Relative humidity (MAF):  %
+Engine oil temperature: 88 °C
+UniAir oil temperature: 82.50 °C
+UniAir electrovalve temperature: 81.13 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.313 deg.
+Spark advance (calculated): 4.313 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.559 bar
+Injection time: 0.904 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2656 ms
+Coil 2 charge time: 3.3976 ms
+Coil 3 charge time: 3.3000 ms
+Coil 4 charge time: 3.3296 ms
+Knock sensor signal: 177.500 mV
+Knock sensor signal (Cyl. 1): 134.3 mV
+Knock sensor signal (Cyl. 2): 181.9 mV
+Knock sensor signal (Cyl. 3): 143.4 mV
+Knock sensor signal (Cyl. 4): 192.8 mV
+Engine torque: 8.31 %
+Desired engine torque: 8.07 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.8 %
+Intake pressure: 323 mbar
+Desired intake pressure: 291 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 42.3 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.707 V
+Lambda sensor 1 integrator: 1.00598 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.3 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 561.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.56 deg.
+Solenoid valve closing angle (command 1): 672.00 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0039 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.63 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 750 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 95 °C
+Engine temperature signal: 0.375 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.074 V
+Air temperature (Boost/Manifold): 52 °C
+Air temperature signal (Boost/Manifold): 2.464 V
+Relative humidity (MAF):  %
+Engine oil temperature: 88 °C
+UniAir oil temperature: 82.69 °C
+UniAir electrovalve temperature: 81.25 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.500 deg.
+Spark advance (calculated): 5.500 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.182 bar
+Fuel pressure (Calculated): 42.062 bar
+Injection time: 0.874 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2480 ms
+Coil 2 charge time: 3.3880 ms
+Coil 3 charge time: 3.2976 ms
+Coil 4 charge time: 3.3216 ms
+Knock sensor signal: 182.375 mV
+Knock sensor signal (Cyl. 1): 129.4 mV
+Knock sensor signal (Cyl. 2): 176.4 mV
+Knock sensor signal (Cyl. 3): 133.0 mV
+Knock sensor signal (Cyl. 4): 194.0 mV
+Engine torque: 7.88 %
+Desired engine torque: 7.99 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.4 %
+Intake pressure: 313 mbar
+Desired intake pressure: 293 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 45.2 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 1.01160 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.4 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.50 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.75 deg.
+Solenoid valve closing angle (command 1): 672.06 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 755 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 95 °C
+Engine temperature signal: 0.375 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.070 V
+Air temperature (Boost/Manifold): 52 °C
+Air temperature signal (Boost/Manifold): 2.453 V
+Relative humidity (MAF):  %
+Engine oil temperature: 88 °C
+UniAir oil temperature: 82.88 °C
+UniAir electrovalve temperature: 81.50 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.375 deg.
+Spark advance (calculated): 3.500 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.247 bar
+Injection time: 0.878 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2320 ms
+Coil 2 charge time: 3.3576 ms
+Coil 3 charge time: 3.2960 ms
+Coil 4 charge time: 3.3560 ms
+Knock sensor signal: 138.500 mV
+Knock sensor signal (Cyl. 1): 138.5 mV
+Knock sensor signal (Cyl. 2): 187.4 mV
+Knock sensor signal (Cyl. 3): 139.8 mV
+Knock sensor signal (Cyl. 4): 195.3 mV
+Engine torque: 7.85 %
+Desired engine torque: 8.00 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 23.5 %
+Intake pressure: 316 mbar
+Desired intake pressure: 311 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.230 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 43.7 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 0.99060 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 832 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.4 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 309.06 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.75 deg.
+Solenoid valve closing angle (command 1): 671.81 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 753 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 95 °C
+Engine temperature signal: 0.375 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.062 V
+Air temperature (Boost/Manifold): 52 °C
+Air temperature signal (Boost/Manifold): 2.449 V
+Relative humidity (MAF):  %
+Engine oil temperature: 89 °C
+UniAir oil temperature: 83.19 °C
+UniAir electrovalve temperature: 81.75 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.125 deg.
+Spark advance (calculated): 5.313 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.685 bar
+Injection time: 0.896 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2696 ms
+Coil 2 charge time: 3.3960 ms
+Coil 3 charge time: 3.2856 ms
+Coil 4 charge time: 3.3496 ms
+Knock sensor signal: 150.750 mV
+Knock sensor signal (Cyl. 1): 144.0 mV
+Knock sensor signal (Cyl. 2): 185.5 mV
+Knock sensor signal (Cyl. 3): 137.9 mV
+Knock sensor signal (Cyl. 4): 219.6 mV
+Engine torque: 7.92 %
+Desired engine torque: 7.90 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.6 %
+Intake pressure: 316 mbar
+Desired intake pressure: 292 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 41.5 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.707 V
+Lambda sensor 1 integrator: 1.00806 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.4 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.56 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.88 deg.
+Solenoid valve closing angle (command 1): 671.81 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 63 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 95 °C
+Engine temperature signal: 0.375 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.058 V
+Air temperature (Boost/Manifold): 52 °C
+Air temperature signal (Boost/Manifold): 2.445 V
+Relative humidity (MAF):  %
+Engine oil temperature: 89 °C
+UniAir oil temperature: 83.19 °C
+UniAir electrovalve temperature: 82.00 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.688 deg.
+Spark advance (calculated): 4.750 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.307 bar
+Injection time: 0.910 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2800 ms
+Coil 2 charge time: 3.3936 ms
+Coil 3 charge time: 3.3136 ms
+Coil 4 charge time: 3.3056 ms
+Knock sensor signal: 126.875 mV
+Knock sensor signal (Cyl. 1): 126.9 mV
+Knock sensor signal (Cyl. 2): 183.6 mV
+Knock sensor signal (Cyl. 3): 133.0 mV
+Knock sensor signal (Cyl. 4): 194.0 mV
+Engine torque: 7.48 %
+Desired engine torque: 7.83 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.5 %
+Intake pressure: 316 mbar
+Desired intake pressure: 290 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.44 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3828 V
+Throttle valve control: 42.2 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 1.01575 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.4 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 453.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.56 deg.
+Solenoid valve closing angle (command 1): 671.63 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 64 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 749 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 95 °C
+Engine temperature signal: 0.371 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.050 V
+Air temperature (Boost/Manifold): 52 °C
+Air temperature signal (Boost/Manifold): 2.433 V
+Relative humidity (MAF):  %
+Engine oil temperature: 89 °C
+UniAir oil temperature: 83.50 °C
+UniAir electrovalve temperature: 82.38 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.188 deg.
+Spark advance (calculated): 3.125 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.308 bar
+Fuel pressure (Calculated): 43.248 bar
+Injection time: 0.922 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2840 ms
+Coil 2 charge time: 3.4096 ms
+Coil 3 charge time: 3.3136 ms
+Coil 4 charge time: 3.3680 ms
+Knock sensor signal: 132.375 mV
+Knock sensor signal (Cyl. 1): 132.4 mV
+Knock sensor signal (Cyl. 2): 181.3 mV
+Knock sensor signal (Cyl. 3): 137.3 mV
+Knock sensor signal (Cyl. 4): 187.9 mV
+Engine torque: 7.93 %
+Desired engine torque: 8.12 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 23.0 %
+Intake pressure: 316 mbar
+Desired intake pressure: 295 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 44.0 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.714 V
+Lambda sensor 1 integrator: 0.99139 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 832 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.3 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 309.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.69 deg.
+Solenoid valve closing angle (command 1): 671.63 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 991 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 64 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 752 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 96 °C
+Engine temperature signal: 0.363 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.050 V
+Air temperature (Boost/Manifold): 52 °C
+Air temperature signal (Boost/Manifold): 2.429 V
+Relative humidity (MAF):  %
+Engine oil temperature: 89 °C
+UniAir oil temperature: 83.88 °C
+UniAir electrovalve temperature: 82.63 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.625 deg.
+Spark advance (calculated): 4.500 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.996 bar
+Injection time: 0.908 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2920 ms
+Coil 2 charge time: 3.3640 ms
+Coil 3 charge time: 3.3480 ms
+Coil 4 charge time: 3.3720 ms
+Knock sensor signal: 137.875 mV
+Knock sensor signal (Cyl. 1): 137.9 mV
+Knock sensor signal (Cyl. 2): 205.0 mV
+Knock sensor signal (Cyl. 3): 134.3 mV
+Knock sensor signal (Cyl. 4): 215.4 mV
+Engine torque: 8.12 %
+Desired engine torque: 8.09 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.7 %
+Intake pressure: 316 mbar
+Desired intake pressure: 290 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.19 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.6055 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 42.2 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.707 V
+Lambda sensor 1 integrator: 0.99985 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 460 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.4 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 21.06 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.63 deg.
+Solenoid valve closing angle (command 1): 672.06 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 64 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 96 °C
+Engine temperature signal: 0.363 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.042 V
+Air temperature (Boost/Manifold): 52 °C
+Air temperature signal (Boost/Manifold): 2.425 V
+Relative humidity (MAF):  %
+Engine oil temperature: 90 °C
+UniAir oil temperature: 84.13 °C
+UniAir electrovalve temperature: 82.75 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.563 deg.
+Spark advance (calculated): 1.813 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 43.062 bar
+Fuel pressure (Calculated): 42.996 bar
+Injection time: 0.904 ms
+Injection time correction: 0.146 ms
+Coil 1 charge time: 3.2776 ms
+Coil 2 charge time: 3.4176 ms
+Coil 3 charge time: 3.3176 ms
+Coil 4 charge time: 3.3416 ms
+Knock sensor signal: 173.250 mV
+Knock sensor signal (Cyl. 1): 145.8 mV
+Knock sensor signal (Cyl. 2): 187.4 mV
+Knock sensor signal (Cyl. 3): 136.0 mV
+Knock sensor signal (Cyl. 4): 227.0 mV
+Engine torque: 7.74 %
+Desired engine torque: 7.79 %
+Air flow rate: 11.63 Kg/h
+Intake efficiency: 23.0 %
+Intake pressure: 326 mbar
+Desired intake pressure: 296 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 43.2 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 1.00195 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.4 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 309.19 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.69 deg.
+Solenoid valve closing angle (command 1): 671.81 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 64 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 752 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 96 °C
+Engine temperature signal: 0.359 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.039 V
+Air temperature (Boost/Manifold): 53 °C
+Air temperature signal (Boost/Manifold): 2.421 V
+Relative humidity (MAF):  %
+Engine oil temperature: 90 °C
+UniAir oil temperature: 84.31 °C
+UniAir electrovalve temperature: 83.00 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 3.125 deg.
+Spark advance (calculated): 3.938 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.37 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.685 bar
+Injection time: 0.908 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2976 ms
+Coil 2 charge time: 3.3536 ms
+Coil 3 charge time: 3.3400 ms
+Coil 4 charge time: 3.3776 ms
+Knock sensor signal: 137.250 mV
+Knock sensor signal (Cyl. 1): 136.0 mV
+Knock sensor signal (Cyl. 2): 202.6 mV
+Knock sensor signal (Cyl. 3): 137.3 mV
+Knock sensor signal (Cyl. 4): 216.0 mV
+Engine torque: 7.99 %
+Desired engine torque: 7.81 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.7 %
+Intake pressure: 316 mbar
+Desired intake pressure: 291 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 987 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 42.2 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.710 V
+Lambda sensor 1 integrator: 0.98813 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Lean 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.4 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.56 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.75 deg.
+Solenoid valve closing angle (command 1): 672.13 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.65 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 0.9 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+
+READING PARAMETERS:
+Battery voltage: 14.0 V
+IBS Battery charge status: 64 %
+Odometer: 136536.7 km
+Odometer at last programming: 44074.9 km
+Engine over-rev count: 0 
+Max. engine speed time: 0.00 sec
+Maximum engine over-rev RPM: 0 rpm
+Number of programmings: 4 
+Vehicle speed: 0.0 km/h
+Engine speed: 748 rpm
+Electronic thermostat: 12.56 %
+Engine temperature: 96 °C
+Engine temperature signal: 0.359 V
+External temperature: -61 °C
+Air temperature: 33 °C
+Air temperature signal: 2.035 V
+Air temperature (Boost/Manifold): 53 °C
+Air temperature signal (Boost/Manifold): 2.414 V
+Relative humidity (MAF):  %
+Engine oil temperature: 90 °C
+UniAir oil temperature: 84.44 °C
+UniAir electrovalve temperature: 83.13 °C
+Rev sensor (phonic wheel): Synchronized 
+Spark advance: 4.625 deg.
+Spark advance (calculated): 3.625 deg.
+Spark advance reduction (Cyl. 1): 0.00 deg.
+Spark advance reduction (Cyl. 2): 0.00 deg.
+Spark advance reduction (Cyl. 3): 0.00 deg.
+Spark advance reduction (Cyl. 4): 0.00 deg.
+Fuel pressure (low pressure circuit): 0.31 mbar
+Fuel pressure (Measured): 42.433 bar
+Fuel pressure (Calculated): 42.996 bar
+Injection time: 0.886 ms
+Injection time correction: 0.148 ms
+Coil 1 charge time: 3.2680 ms
+Coil 2 charge time: 3.3920 ms
+Coil 3 charge time: 3.3120 ms
+Coil 4 charge time: 3.3736 ms
+Knock sensor signal: 193.375 mV
+Knock sensor signal (Cyl. 1): 131.8 mV
+Knock sensor signal (Cyl. 2): 186.1 mV
+Knock sensor signal (Cyl. 3): 128.8 mV
+Knock sensor signal (Cyl. 4): 209.9 mV
+Engine torque: 7.41 %
+Desired engine torque: 7.71 %
+Air flow rate: 11.50 Kg/h
+Intake efficiency: 22.5 %
+Intake pressure: 316 mbar
+Desired intake pressure: 296 mbar
+Turbo actuator command: 0.00 %
+Turbo vacuum valve: Closed 
+Boost pressure: 988 mbar
+Desired boost pressure: 986 mbar
+Boost pressure signal: 1.223 V
+Throttle angle: 2.00 deg.
+Throttle position: 1.57 %
+Throttle position (Track 1): 2.00 deg.
+Throttle position (Track 2): 2.50 deg.
+Throttle position signal (Track 1): 0.5977 V
+Throttle position signal (Track 2): 4.3789 V
+Throttle valve control: 43.1 %
+Throttle position learning: Not requested 
+Throttle learning stage: Learned 
+Electrically actuated throttle (recovery): Not active 
+Lambda control (intake): Closed loop 
+Lambda temperature (intake): 830 °C
+Lambda oxygen concentration (intake): 7.969 %
+Lambda current (intake): 3.916 mA
+Lambda 1 signal (After-Cat.): 0.703 V
+Lambda sensor 1 integrator: 0.97491 
+Lambda sensor 2 integrator: 1.00000 
+Lambda 1 status (Pre-Cat.): Closed loop 
+Lambda 1 status (After-Cat.): Closed loop 
+Lambda 1 diagnosis (Pre-Cat.): Rich 
+Lambda 1 diagnosis (After-Cat.): Rich 
+Lambda temperature (Theoretical): 830 °C
+Exhaust gas temperature: 465 °C
+Catalyser temperature: 355 °C
+Desired idle RPM: 750 rpm
+Deceleration cut-off: OFF 
+Oil pressure switch 1: Active 
+Oil pressure switch 2: Active 
+Engine oil pressure: Low 
+Engine oil pressure: 2.20 bar
+Engine oil level: 4.278 l
+Engine oil level: 69.4 mm
+Variable displacement engine oil pump: Low pressure 
+Cam position: 129.50 deg.
+Phonic wheel learn status: Performed 
+UniAir electrovalve actuation mode: Hybrid 
+Solenoid valve opening angle (command 1): 345.50 deg.
+Solenoid valve closing angle (command 1): 671.81 deg.
+Solenoid valve opening angle (command 2): 700.00 deg.
+Solenoid valve closing angle (command 2): 700.00 deg.
+Learned VVT tooth position (1): 21.38 deg.
+Learned VVT tooth position (2): 93.69 deg.
+Learned VVT tooth position (3): 129.75 deg.
+Learned VVT tooth position (4): 274.19 deg.
+Learned VVT tooth position (5): 309.44 deg.
+Learned VVT tooth position (6): 454.38 deg.
+Evaporation control valve opening: 0.0 %
+Canister fill: 50.00 %
+Gas pedal position: 0.00 %
+Gas pedal position signal (Track 1): 1.0000 V
+Gas pedal position signal (Track 2): 0.9922 V
+Clutch pedal: Released 
+Clutch contact 2: Released 
+Brake pedal: Released 
+Brake contact 2: Released 
+STOP&START function: OFF 
+STOP&START temporary deactivation status: Speed<10km/h 
+Brake booster vacuum switch: Open 
+Cruise control switch: OFF 
+Cruise control request: No request 
+Cruise control irrev. error status: No Error 
+Target cruise speed: 0 km/h
+A/C request: OFF 
+A/C Compressor: OFF 
+A/C pressure: 7.68 bar
+Fan speed: Not active 
+Atmospheric pressure: 990 mbar
+Atmospheric pressure signal:  V
+Fuel consumption: 1.0 l/h
+Fuel pump relay: Active 
+Fuel level: 84.7 %
+Universal code: Not received 
+Engine startup: Allowed 
+Ignition key position: Stop 
+Dynamic control selector: Sport 
+Gear engaged: N 
+Failure indicator light: OFF 
+Oil degradation level: 69.999 %
+Oil change counter: 16 
+Odometer at last Oil change: 131823.0 km
+Distance to next Oil change: 11300 km
+

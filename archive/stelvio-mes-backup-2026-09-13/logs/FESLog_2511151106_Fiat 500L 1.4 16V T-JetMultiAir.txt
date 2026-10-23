@@ -1,0 +1,34 @@
+(Multiecuscan 5.4)
+11/15/2025 11:05:31 AM
+Fiat 500L 1.4 16V T-Jet/MultiAir
+Marelli SELESPEED/DDCT CFC8TDW Automatic Gearbox
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+VIN code: 5188214
+VIN code (original): 281011421
+ECU serial number: 
+FIAT drawing number: 037367790
+Hardware number: D
+Hardware version: 03
+Software number: 
+Software version: 7C86
+Homologation number: |?O??
+Functioning time (EEPROM): 2089177087
+Operating time: 2089177087
+Startups counter: 31878
+VIN lock status: Unknown
+PROXI configuration write counter: 124
+Odometer: 816084.7
+
+EXECUTING ADJUSTMENT...
+Clutch self-calibration enable
+COMPLETED
+Status: 00
+
+EXECUTING ADJUSTMENT...
+Clutch self-calibration enable
+COMPLETED
+Status: 00
+

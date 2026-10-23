@@ -1,0 +1,24 @@
+(Multiecuscan 5.4)
+11/15/2025 4:30:59 PM
+Fiat 500L 1.4 16V T-Jet/MultiAir
+TRW Electric Steering
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+VIN code: 5188214
+ECU serial number: 281011421
+FIAT drawing number: 
+Hardware number: 037367790
+Hardware version: 44
+Software number: 
+Software version: 0307
+Homologation number: |?O??
+Functioning time (EEPROM): 2089177087
+Operating time: 2089177087
+
+EXECUTING ADJUSTMENT...
+Position sensor calibration
+COMPLETED
+Status: 00
+

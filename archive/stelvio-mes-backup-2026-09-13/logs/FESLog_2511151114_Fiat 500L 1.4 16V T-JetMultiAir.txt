@@ -1,0 +1,49 @@
+(Multiecuscan 5.4)
+11/15/2025 11:13:09 AM
+Fiat 500L 1.4 16V T-Jet/MultiAir
+Marelli SELESPEED/DDCT CFC8TDW Automatic Gearbox
+--------------------------------------------------------------
+
+ECU ISO code: BC 07 B0 0B D3
+VIN code: 
+VIN code (original): 
+ECU serial number:    UV
+FIAT drawing number: 55257642
+Hardware number: CFC 8TDW.01
+Hardware version: 00
+Software number: UF06O047
+Software version: 0000
+Homologation number: 
+Functioning time (EEPROM): 229207
+Operating time: 229207
+Startups counter: 14198
+VIN lock status: 
+PROXI configuration write counter: 
+Odometer: 163242.0
+
+READING ERROR CODES:
+1. P1D34-00 - End of line / service self-calibration
+  Operating time: 229207 min
+  Startups counter: 14197 
+  Hydraulic circuit pressure: 45.0 bar
+  Engine speed: 0 rpm
+  Gear engaged: N 
+  Gear requested: N 
+  Gearbox oil temperature: -50 °C
+  Battery voltage: 12.0 V
+  
+2. P1D33-00 - Clutch self-calibration enable
+  Operating time: 229207 min
+  Startups counter: 14197 
+  Hydraulic circuit pressure: 45.0 bar
+  Engine speed: 0 rpm
+  Gear engaged: N 
+  Gear requested: N 
+  Gearbox oil temperature: -50 °C
+  Battery voltage: 12.0 V
+  
+
+CLEARING STORED FAULT CODES...
+
+CLEARING STORED FAULT CODES...
+

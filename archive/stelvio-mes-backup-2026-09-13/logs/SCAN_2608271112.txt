@@ -1,0 +1,7 @@
+Scan vehicle for available modules and check each module for errors...
+
+Connection failed!
+Connection failed!
+Connection failed!
+Connection failed!
+Connection failed!

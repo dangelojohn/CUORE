@@ -1,0 +1,21 @@
+(Multiecuscan 5.4)
+6/7/2026 9:55:07 AM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Body Computer Marelli (949)
+--------------------------------------------------------------
+
+ECU ISO code: 00 00 70 7C 15
+VIN code: ZASFAKPN5J7B88115
+ECU serial number: TD3692377101420
+FIAT drawing number: 50554114
+Hardware number: BCM949M_C02
+Hardware version: 01
+Software number: 04441660441
+Software version: 1454
+Homologation number: 
+Functioning time (EEPROM): 233211
+Operating time: 233221
+Startups counter: 13865
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+

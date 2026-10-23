@@ -1,0 +1,89 @@
+(Multiecuscan 5.4)
+9/2/2026 2:48:50 PM
+Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir
+Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)
+--------------------------------------------------------------
+
+ECU ISO code: 00 01 50 40 18
+VIN code: ZASFAKPN5J7B88115
+ECU serial number: TD4192427B17540
+Spare part number: 50544870
+Hardware number: MM10JAHW232
+Hardware version: 00
+Software number: P235QB39
+Software version: 0000
+Homologation number: FIBA00
+FIAT drawing number: 52055320
+Functioning time (EEPROM): 291535
+Operating time: 291545
+Startups counter: 14345
+VIN lock status: Locked by odometer
+PROXI configuration write counter: 1
+
+READING ERROR CODES:
+1. P0456-00 - Evaporation system leak
+  Operating time: 291195 min
+  Startups counter: 14323 
+  Engine speed: 1260 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 6.31 deg.
+  Vehicle speed: 0.00 km/h
+  Gear engaged: N 
+  Odometer: 141005.6 km
+  Spark advance: -2.375 deg.
+  Engine temperature: 24 °C
+  Battery voltage: 13.6 V
+  Intake pressure: 518 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Released 
+  Brake contact 2: Released 
+  Air flow rate: 36.75 Kg/h
+  Air temperature: 23 °C
+  Boost pressure: 988 mbar
+  Atmospheric pressure: 989 mbar
+  Engine oil temperature: 24 °C
+  STOP&START temporary deactivation status: Speed<10km/h 
+  IBS Battery charge status: 100 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Late opening 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 48.63 %
+  
+2. P0440-00 - Evaporation control valve
+  Operating time: 291401 min
+  Startups counter: 14332 
+  Engine speed: 1225 rpm
+  Gas pedal position: 0.00 %
+  Throttle angle: 3.00 deg.
+  Vehicle speed: 34.19 km/h
+  Gear engaged: 5 
+  Odometer: 141059.1 km
+  Spark advance: -6.625 deg.
+  Engine temperature: 59 °C
+  Battery voltage: 14.0 V
+  Intake pressure: 390 mbar
+  Clutch pedal: Released 
+  Clutch contact 2: Released 
+  Brake pedal: Released 
+  Brake contact 2: Released 
+  Air flow rate: 14.50 Kg/h
+  Air temperature: 25 °C
+  Boost pressure: 998 mbar
+  Atmospheric pressure: 989 mbar
+  Engine oil temperature: 46 °C
+  STOP&START temporary deactivation status: Fuel filter heater 
+  IBS Battery charge status: 73 %
+  Brake booster vacuum switch: Open 
+  UniAir electrovalve actuation mode: Hybrid 
+  Universal code: Not received 
+  Engine startup: Allowed 
+  Fuel level: 43.92 %
+  
+
+CLEARING STORED FAULT CODES...
+
+READING ERROR CODES:
+No fault codes
+

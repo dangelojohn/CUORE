@@ -1,0 +1,187 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Dashboard culture="" version="1.00" width="1831" height="1086" autoscale="True" maintainAspectRatio="False">
+  <Background>
+    <Image layout="Stretch" format="FilePath" filePath="" />
+  </Background>
+  <Foreground>
+    <DashboardControl>
+      <IDashboardItem type="CustomLinearGauge" x="931" y="3" width="217" height="534">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="0E" />
+        </LoggableItem>
+        <Min>-60</Min>
+        <Max>60</Max>
+        <NumberOfMajorTicks>13</NumberOfMajorTicks>
+        <NumberOfMinorTicks>4</NumberOfMinorTicks>
+        <Font>Microsoft Sans Serif, 9.75pt</Font>
+        <NumberFont>Microsoft Sans Serif, 8.25pt</NumberFont>
+        <NumberOfDecimalsDisplay>0</NumberOfDecimalsDisplay>
+        <Orientation>Vertical</Orientation>
+        <DisplayName>Timing Advance</DisplayName>
+        <BorderWidth>8</BorderWidth>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomGauge" x="0" y="0" width="652" height="520">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="10" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>40</Max>
+        <RedLineStartValue>0</RedLineStartValue>
+        <DigitalDisplayMultiplier>1</DigitalDisplayMultiplier>
+        <NumberOfDecimalsDisplay>0</NumberOfDecimalsDisplay>
+        <NumberOfTicks>8</NumberOfTicks>
+        <NumberOfMinorTicks>9</NumberOfMinorTicks>
+        <Font>Calibri, 14pt, style=Bold</Font>
+        <NumberFont>Calibri, 12pt</NumberFont>
+        <StartAngle>130</StartAngle>
+        <SweepAngle>280</SweepAngle>
+        <Label>MAF</Label>
+        <BorderWidth>16</BorderWidth>
+        <TickLength>20</TickLength>
+        <BackgroundImage>
+          <Image layout="Stretch" format="FilePath" filePath="" />
+        </BackgroundImage>
+        <ShowTicks>True</ShowTicks>
+        <ShowValue>True</ShowValue>
+        <ShowUnits>True</ShowUnits>
+        <Square>True</Square>
+        <RefreshInterval>50</RefreshInterval>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomGauge" x="1174" y="0" width="652" height="520">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="04" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>100</Max>
+        <RedLineStartValue>0</RedLineStartValue>
+        <DigitalDisplayMultiplier>1</DigitalDisplayMultiplier>
+        <NumberOfDecimalsDisplay>0</NumberOfDecimalsDisplay>
+        <NumberOfTicks>10</NumberOfTicks>
+        <NumberOfMinorTicks>9</NumberOfMinorTicks>
+        <Font>Calibri, 14pt, style=Bold</Font>
+        <NumberFont>Calibri, 12pt</NumberFont>
+        <StartAngle>130</StartAngle>
+        <SweepAngle>280</SweepAngle>
+        <Label>Load</Label>
+        <BorderWidth>16</BorderWidth>
+        <TickLength>20</TickLength>
+        <BackgroundImage>
+          <Image layout="Stretch" format="FilePath" filePath="" />
+        </BackgroundImage>
+        <ShowTicks>True</ShowTicks>
+        <ShowValue>True</ShowValue>
+        <ShowUnits>True</ShowUnits>
+        <Square>True</Square>
+        <RefreshInterval>50</RefreshInterval>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomLinearGauge" x="675" y="3" width="217" height="534">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="11" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>100</Max>
+        <NumberOfMajorTicks>11</NumberOfMajorTicks>
+        <NumberOfMinorTicks>4</NumberOfMinorTicks>
+        <Font>Microsoft Sans Serif, 9.75pt</Font>
+        <NumberFont>Microsoft Sans Serif, 8.25pt</NumberFont>
+        <NumberOfDecimalsDisplay>0</NumberOfDecimalsDisplay>
+        <Orientation>Vertical</Orientation>
+        <DisplayName>Throttle Position</DisplayName>
+        <BorderWidth>8</BorderWidth>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomGauge" x="1234" y="515" width="569" height="520">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="0F" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>120</Max>
+        <RedLineStartValue>0</RedLineStartValue>
+        <DigitalDisplayMultiplier>1</DigitalDisplayMultiplier>
+        <NumberOfDecimalsDisplay>0</NumberOfDecimalsDisplay>
+        <NumberOfTicks>6</NumberOfTicks>
+        <NumberOfMinorTicks>9</NumberOfMinorTicks>
+        <Font>Calibri, 14pt, style=Bold</Font>
+        <NumberFont>Calibri, 12pt</NumberFont>
+        <StartAngle>130</StartAngle>
+        <SweepAngle>280</SweepAngle>
+        <Label>Intake</Label>
+        <BorderWidth>16</BorderWidth>
+        <TickLength>20</TickLength>
+        <BackgroundImage>
+          <Image layout="Stretch" format="FilePath" filePath="" />
+        </BackgroundImage>
+        <ShowTicks>True</ShowTicks>
+        <ShowValue>True</ShowValue>
+        <ShowUnits>True</ShowUnits>
+        <Square>True</Square>
+        <RefreshInterval>50</RefreshInterval>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomGauge" x="26" y="515" width="569" height="520">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="05" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>250</Max>
+        <RedLineStartValue>220</RedLineStartValue>
+        <DigitalDisplayMultiplier>1</DigitalDisplayMultiplier>
+        <NumberOfDecimalsDisplay>0</NumberOfDecimalsDisplay>
+        <NumberOfTicks>5</NumberOfTicks>
+        <NumberOfMinorTicks>9</NumberOfMinorTicks>
+        <Font>Calibri, 14pt, style=Bold</Font>
+        <NumberFont>Calibri, 12pt</NumberFont>
+        <StartAngle>130</StartAngle>
+        <SweepAngle>280</SweepAngle>
+        <Label>Coolant</Label>
+        <BorderWidth>16</BorderWidth>
+        <TickLength>20</TickLength>
+        <BackgroundImage>
+          <Image layout="Stretch" format="FilePath" filePath="" />
+        </BackgroundImage>
+        <ShowTicks>True</ShowTicks>
+        <ShowValue>True</ShowValue>
+        <ShowUnits>True</ShowUnits>
+        <Square>True</Square>
+        <RefreshInterval>50</RefreshInterval>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomGauge" x="592" y="552" width="641" height="523">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="0D" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>120</Max>
+        <RedLineStartValue>0</RedLineStartValue>
+        <DigitalDisplayMultiplier>1</DigitalDisplayMultiplier>
+        <NumberOfDecimalsDisplay>0</NumberOfDecimalsDisplay>
+        <NumberOfTicks>12</NumberOfTicks>
+        <NumberOfMinorTicks>3</NumberOfMinorTicks>
+        <Font>Calibri, 14pt, style=Bold</Font>
+        <NumberFont>Calibri, 12pt</NumberFont>
+        <StartAngle>120</StartAngle>
+        <SweepAngle>300</SweepAngle>
+        <Label />
+        <BorderWidth>16</BorderWidth>
+        <TickLength>20</TickLength>
+        <BackgroundImage>
+          <Image layout="Stretch" format="FilePath" filePath="" />
+        </BackgroundImage>
+        <ShowTicks>True</ShowTicks>
+        <ShowValue>True</ShowValue>
+        <ShowUnits>True</ShowUnits>
+        <Square>True</Square>
+        <RefreshInterval>50</RefreshInterval>
+      </IDashboardItem>
+    </DashboardControl>
+  </Foreground>
+</Dashboard>

@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Dashboard culture="" version="1.00" width="1831" height="1086" autoscale="True" maintainAspectRatio="False">
+  <Background>
+    <Image layout="Stretch" format="FilePath" filePath="" />
+  </Background>
+  <Foreground>
+    <DashboardControl>
+      <IDashboardItem type="CustomPowerBar" x="923" y="401" width="220" height="662">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="04" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>100</Max>
+        <DisplayName>Load</DisplayName>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomPowerBar" x="682" y="401" width="220" height="662">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="05" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>240</Max>
+        <DisplayName>Temp</DisplayName>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomTripDisplay" x="0" y="197" width="1823" height="195">
+        <Font>Microsoft Sans Serif, 27.75pt, style=Bold</Font>
+        <TitleFont>Microsoft Sans Serif, 12pt</TitleFont>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomFuelEfficiencyDisplay" x="0" y="0" width="1823" height="195">
+        <Font>Microsoft Sans Serif, 27.75pt, style=Bold</Font>
+        <TitleFont>Microsoft Sans Serif, 12pt</TitleFont>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomGauge" x="1145" y="395" width="680" height="681">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="0D" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>100</Max>
+        <RedLineStartValue>0</RedLineStartValue>
+        <DigitalDisplayMultiplier>1</DigitalDisplayMultiplier>
+        <NumberOfDecimalsDisplay>0</NumberOfDecimalsDisplay>
+        <NumberOfTicks>10</NumberOfTicks>
+        <NumberOfMinorTicks>10</NumberOfMinorTicks>
+        <Font>Calibri, 14pt, style=Bold</Font>
+        <NumberFont>Calibri, 12pt</NumberFont>
+        <StartAngle>120</StartAngle>
+        <SweepAngle>300</SweepAngle>
+        <Label />
+        <BorderWidth>20</BorderWidth>
+        <TickLength>30</TickLength>
+        <BackgroundImage>
+          <Image layout="Stretch" format="FilePath" filePath="" />
+        </BackgroundImage>
+        <ShowTicks>True</ShowTicks>
+        <ShowValue>True</ShowValue>
+        <ShowUnits>True</ShowUnits>
+        <Square>True</Square>
+        <RefreshInterval>50</RefreshInterval>
+      </IDashboardItem>
+    </DashboardControl>
+    <DashboardControl>
+      <IDashboardItem type="CustomGauge" x="0" y="395" width="680" height="681">
+        <LoggableItem ItemType="PIDLoggableItem">
+          <PID pt="1" uid="0C" />
+        </LoggableItem>
+        <Min>0</Min>
+        <Max>7</Max>
+        <RedLineStartValue>6</RedLineStartValue>
+        <DigitalDisplayMultiplier>1000</DigitalDisplayMultiplier>
+        <NumberOfDecimalsDisplay>0</NumberOfDecimalsDisplay>
+        <NumberOfTicks>7</NumberOfTicks>
+        <NumberOfMinorTicks>10</NumberOfMinorTicks>
+        <Font>Calibri, 14pt, style=Bold</Font>
+        <NumberFont>Calibri, 12pt</NumberFont>
+        <StartAngle>120</StartAngle>
+        <SweepAngle>300</SweepAngle>
+        <Label />
+        <BorderWidth>20</BorderWidth>
+        <TickLength>30</TickLength>
+        <BackgroundImage>
+          <Image layout="Stretch" format="FilePath" filePath="" />
+        </BackgroundImage>
+        <ShowTicks>True</ShowTicks>
+        <ShowValue>True</ShowValue>
+        <ShowUnits>True</ShowUnits>
+        <Square>True</Square>
+        <RefreshInterval>50</RefreshInterval>
+      </IDashboardItem>
+    </DashboardControl>
+  </Foreground>
+</Dashboard>

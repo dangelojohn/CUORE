@@ -1,0 +1,134 @@
+Scan vehicle for available modules and check each module for errors...
+
+Body / BCM (Body Control Module)
+Body Computer Marelli (330) MY12
+ISO Code: BF 83 91 0E B6
+VIN code: ZFBCFABH1EZ020882
+Hardware number: BC330I.0100 - Ver: 04
+Software number: 04440005138 - Ver: 0509
+Errors found:
+B1011-18 - Number plate lights - Current too low/below threshold
+B1014-15 - Left stop light - Short to +V or open circuit
+B1015-15 - Right stop light - Short to +V or open circuit
+B11A1-11 - Left daylight - Short circuit to ground
+B11A2-11 - Right daylight - Short circuit to ground
+B11AF-18 - Parking lights (right) - Current too low/below threshold
+B11B0-18 - Parking lights (left) - Current too low/below threshold
+U0019-88 - B-CAN line - Bus OFF
+
+Airbag / NAB/ORC (Airbag/Occupant Restraint Module)
+Continental Airbag MY15
+ISO Code: EA 07 C7 0B 98
+Hardware number: A2C82649000 - Ver: 02
+Software number: 40521378112 - Ver: 0112
+
+Dashboard / IPC (Instrument Panel Cluster)
+Instrument Panel Continental
+ISO Code: 32 83 5E 0B 73
+Hardware number: A2C32923302 - Ver: 01
+Software number: F330 MD  bd - Ver: 1062
+
+Dashboard / ETM (Entertainment Telematic Module)
+Uconnect Radio/Nav 6.5"
+ISO Code: B5 83 98 0B B0
+VIN code: ZFBCFABH1EZ020882
+Hardware number: 2465140 - Ver: 45
+Software number: 13.49.00.00 - Ver: 6E20
+Errors found:
+U0019-87 - B-CAN line - Missing message
+
+Climate control / HVAC (Heating Ventilation Air Conditioning)
+Denso climate control (Dual zone)
+ISO Code: 34 83 1F 8A B5
+Hardware number: MX237110581 - Ver: 06
+Software number: PFT006_1424 - Ver: 0E18
+
+Other / TPMS (Tire Pressure Module)
+Tire Pressure Control (TPMS)
+ISO Code: F4 02 86 8A 5B
+Hardware number: 51920740 - Ver: 04
+Software number: 90551081 - Ver: 012F
+Errors found:
+U0019-87 - B-CAN line - Missing message
+
+************************************************************
+VEHICLE SCAN REPORT
+************************************************************
+Scanning ...
+
+Body / BCM (Body Control Module)
+Body Computer Marelli (330) MY12
+ISO Code: BF 83 91 0E B6
+VIN code: ZFBCFABH1EZ020882
+Hardware number: BC330I.0100 - Ver: 04
+Software number: 04440005138 - Ver: 0509
+Errors found:
+B1011-18 - Number plate lights - Current too low/below threshold
+B1014-15 - Left stop light - Short to +V or open circuit
+B1015-15 - Right stop light - Short to +V or open circuit
+B11A1-11 - Left daylight - Short circuit to ground
+B11A2-11 - Right daylight - Short circuit to ground
+B11AF-18 - Parking lights (right) - Current too low/below threshold
+B11B0-18 - Parking lights (left) - Current too low/below threshold
+U0019-88 - B-CAN line - Bus OFF
+
+Airbag / NAB/ORC (Airbag/Occupant Restraint Module)
+Continental Airbag MY15
+ISO Code: EA 07 C7 0B 98
+Hardware number: A2C82649000 - Ver: 02
+Software number: 40521378112 - Ver: 0112
+
+Dashboard / IPC (Instrument Panel Cluster)
+Instrument Panel Continental
+ISO Code: 32 83 5E 0B 73
+Hardware number: A2C32923302 - Ver: 01
+Software number: F330 MD  bd - Ver: 1062
+
+Dashboard / ETM (Entertainment Telematic Module)
+Uconnect Radio/Nav 6.5"
+ISO Code: B5 83 98 0B B0
+VIN code: ZFBCFABH1EZ020882
+Hardware number: 2465140 - Ver: 45
+Software number: 13.49.00.00 - Ver: 6E20
+Errors found:
+U0019-87 - B-CAN line - Missing message
+
+Climate control / HVAC (Heating Ventilation Air Conditioning)
+Denso climate control (Dual zone)
+ISO Code: 34 83 1F 8A B5
+Hardware number: MX237110581 - Ver: 06
+Software number: PFT006_1424 - Ver: 0E18
+
+Other / TPMS (Tire Pressure Module)
+Tire Pressure Control (TPMS)
+ISO Code: F4 02 86 8A 5B
+Hardware number: 51920740 - Ver: 04
+Software number: 90551081 - Ver: 012F
+Errors found:
+U0019-87 - B-CAN line - Missing message
+
+COMPLETED
+VEHICLE MAKE: fiat
+VEHICLE MODEL: 500l
+VEHICLE YEAR: 2014
+
+SENDING DIAGNOSTIC REPORT ...
+
+
+CLEARING STORED FAULT CODES...
+
+Body / BCM (Body Control Module)
+Body Computer Marelli (330) MY12
+ISO Code: BF 83 91 0E B6
+SUCCESS
+
+Dashboard / ETM (Entertainment Telematic Module)
+Uconnect Radio/Nav 6.5"
+ISO Code: B5 83 98 0B B0
+SUCCESS
+
+Other / TPMS (Tire Pressure Module)
+Tire Pressure Control (TPMS)
+ISO Code: F4 02 86 8A 5B
+SUCCESS
+

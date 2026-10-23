@@ -1,0 +1,31 @@
+Reading CAN configuration data ...
+CAN CONFIGURATION DATA:
+6F 00 00 04 02 00 00 00 6F 00 00 04 02 00 00 00 01 00 00 00 02 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+6F 00 00 04 02 00 00 00 09 00 00 04 02 00 00 00 6F 00 00 04 02 00 00 00 09 00 00 04 02 00 00 00 01 00 00 04 02 00 00 00
+33 38 31 39 39 30 30 35 31 34 34 4F 55 54 50 55 54 2D 4A 49 54 20 06 07 13 6F 01 00 04 02 00 00 00 09 00 00 04 02 00 00 00 C1 00 03 07 3F 00 2A 20 A3 80 00 06 00 00 00 94 06 03 02 00 00 00 00 00 0A 10 05 04 00 00 00 00 00 00 00 00 00 11 0D 50 00 10 00 00
+Body Computer Node (BCM/NBC)
+Engine Control Node (ECM/NCM)
+Electric Steering Node (EPS/NGE)
+Dashboard Node (IPC/NQS)
+Receiver Radio (NRR)
+Brake System Node (ABS/BSM/NFR)
+Driver Door Node (NPG)
+Airbag Node (NAB/ORC)
+Convergence Telematic Node (CTM)
+(Multiecuscan 5.4)
+11/15/2025 4:34:32 PM
+Fiat 500L 1.4 16V T-Jet/MultiAir
+CAN Setup / PROXI Alignment Procedure (330)
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+Body Computer Node (BCM/NBC): EOL Ok
+Engine Control Node (ECM/NCM): Ok
+Electric Steering Node (EPS/NGE): Ok
+Dashboard Node (IPC/NQS): EOL Failed
+Receiver Radio (NRR): Ok
+Brake System Node (ABS/BSM/NFR): Ok
+Driver Door Node (NPG): Removed
+Airbag Node (NAB/ORC): EOL Ok
+Convergence Telematic Node (CTM): EOL Ok
+

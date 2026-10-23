@@ -1,0 +1,9 @@
+(Multiecuscan 5.4)
+11/15/2025 4:37:24 PM
+Fiat 500L 1.4 16V T-Jet/MultiAir
+Service Interval Reset (MCA 2017+)
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+

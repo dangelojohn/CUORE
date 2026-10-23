@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ColorTheme culture="" version="1.00" type="Control">
+    <Name>Night</Name>
+    <ForeColor type="Color">WhiteSmoke</ForeColor>
+    <BackColor type="Color">DimGray</BackColor>
+    <BackColor2 type="Color">Gray</BackColor2>
+    <DigitalDisplayTheme type="Control">
+        <ForeColor type="Color">OrangeRed</ForeColor>
+        <BackColor type="Color">Black</BackColor>
+        <BackColor2 type="Color">Gray</BackColor2>
+        <LabelTheme type="Control">
+            <ForeColor type="Color">White</ForeColor>
+            <BackColor type="Color">Black</BackColor>
+            <BackColor2 type="Color">DarkGray</BackColor2>
+        </LabelTheme>
+        <BorderColor1 type="Color">Gray</BorderColor1>
+        <BorderColor2 type="Color">Black</BorderColor2>
+    </DigitalDisplayTheme>
+    <GaugeTheme type="Control">
+        <ForeColor type="Color">OrangeRed</ForeColor>
+        <BackColor type="Color">Black</BackColor>
+        <BackColor2 type="Color">A=255, R=110, G=110, B=110</BackColor2>
+        <NeedleColor1 type="Color">Red</NeedleColor1>
+        <NeedleColor2 type="Color">Pink</NeedleColor2>
+        <BorderColor1 type="Color">DarkGray</BorderColor1>
+        <BorderColor2 type="Color">Black</BorderColor2>
+    </GaugeTheme>
+    <LogTheme type="Control">
+        <ForeColor type="Color">Black</ForeColor>
+        <BackColor type="Color">Gray</BackColor>
+        <BackColor2 type="Color">LightGray</BackColor2>
+        <LineColor1 type="Color">Maroon</LineColor1>
+        <LineColor2 type="Color">Navy</LineColor2>
+    </LogTheme>
+    <PowerBarTheme type="Control">
+        <ForeColor type="Color">OrangeRed</ForeColor>
+        <BackColor type="Color">WhiteSmoke</BackColor>
+        <BackColor2 type="Color">Gray</BackColor2>
+        <ForeColor2 type="Color">Gray</ForeColor2>
+        <TextColor1 type="Color">Black</TextColor1>
+        <TextColor2 type="Color">White</TextColor2>
+        <LabelTheme type="Control">
+            <ForeColor type="Color">OrangeRed</ForeColor>
+            <BackColor type="Color">Black</BackColor>
+            <BackColor2 type="Color">A=255, R=110, G=110, B=110</BackColor2>
+        </LabelTheme>
+    </PowerBarTheme>
+    <GridTheme type="Control">
+        <ForeColor type="Color">WhiteSmoke</ForeColor>
+        <BackColor type="Color">DimGray</BackColor>
+        <BackColor2 type="Color">DimGray</BackColor2>
+        <BackgroundColor type="Color">DimGray</BackgroundColor>
+    </GridTheme>
+    <ButtonTheme type="Control">
+        <ForeColor type="Color">Black</ForeColor>
+        <BackColor type="Color">Control</BackColor>
+    </ButtonTheme>
+    <ToolStripTheme type="Control">
+        <ForeColor type="Color">White</ForeColor>
+        <TopColor type="Color">Gainsboro</TopColor>
+        <MiddleColor type="Color">DarkGray</MiddleColor>
+        <BottomColor type="Color">DimGray</BottomColor>
+    </ToolStripTheme>
+    <ListViewTheme type="Control">
+        <ForeColor type="Color">WhiteSmoke</ForeColor>
+        <BackColor type="Color">Gray</BackColor>
+        <BackColor2 type="Color">Gray</BackColor2>
+    </ListViewTheme>
+</ColorTheme>

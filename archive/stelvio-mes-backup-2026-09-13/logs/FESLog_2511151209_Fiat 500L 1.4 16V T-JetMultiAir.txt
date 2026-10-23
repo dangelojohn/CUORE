@@ -1,0 +1,21 @@
+(Multiecuscan 5.4)
+11/15/2025 12:08:44 PM
+Fiat 500L 1.4 16V T-Jet/MultiAir
+Bosch Motronic Me17.3.0 CF6/EOBD Injection (1.4 16V)
+--------------------------------------------------------------
+
+ECU ISO code: 7A 07 BA 0B 9B
+VIN code: ZFBCFABH1EZ020882
+FIAT drawing number: 52048815
+Hardware number: MM8GMWHW640
+Hardware version: 00
+Software number: 635054AD
+Software version: 0350
+Homologation number: 8GMWUF
+Functioning time (EEPROM): 250951
+Operating time: 250989
+WARNING: Unknown ISO code. Module cannot be identified!
+
+READING ERROR CODES:
+No fault codes
+

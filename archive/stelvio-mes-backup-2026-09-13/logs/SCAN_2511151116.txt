@@ -1,0 +1,66 @@
+Scan vehicle for available modules and check each module for errors...
+
+Engine / ECM
+Magneti Marelli IAW 8GMW CF5/EOBD Injection (1.4)
+ISO Code: 7A 07 BA 0B 9B
+VIN code: ZFBCFABH1EZ020882
+Hardware number: MM8GMWHW640 - Ver: 00
+Software number: 635054AD - Ver: 0350
+
+Gearbox / TCM/NCA/NCR (Automatic Transmission)
+Marelli SELESPEED/DDCT CFC8TDW Automatic Gearbox
+ISO Code: BC 07 B0 0B D3
+Hardware number: CFC 8TDW.01 - Ver: 00
+Software number: UF06O047 - Ver: 0000
+Errors found:
+P1D34-00 - End of line / service self-calibration
+P1D33-00 - Clutch self-calibration enable
+
+Gearbox / ESM/GSM/NSC (Gearbox Selector Module)
+UNKNOWN/UNSUPPORTED
+ISO Code: 2A 80 02 0B 8C
+Hardware number: 00114176459 - Ver: 66
+Software number: 00114153640 - Ver: 007E
+
+Body / BCM (Body Computer Module)
+Body Computer Marelli (330) MY12
+ISO Code: BF 83 91 0E B6
+VIN code: ZFBCFABH1EZ020882
+Hardware number: BC330I.0100 - Ver: 04
+Software number: 04440005138 - Ver: 0509
+Errors found:
+B1014-15 - Left stop light - Short to +V or open circuit
+B1015-15 - Right stop light - Short to +V or open circuit
+B11A1-11 - Left daylight - Short circuit to ground
+B11A2-11 - Right daylight - Short circuit to ground
+U0019-88 - B-CAN line - Bus OFF
+U1736-87 - Convergence Telematic Node (NCV) - Missing message
+
+ABS / ABS/BSM (Brake System Module)
+TRW MY13 ABS/ESP
+ISO Code: 51 85 10 8A 45
+Hardware number: 330IIS29911 - Ver: 44
+Software number: ALAJ10BS_02 - Ver: 2A01
+
+Electric Steering / EPS (Electric Steering Module)
+TRW Electric Steering
+ISO Code: 31 83 20 8A B3
+Hardware number: F3C3 - Ver: 05
+Software number: S2FI01FC20 - Ver: 0005
+
+
+CLEARING STORED FAULT CODES...
+
+Gearbox / TCM/NCA/NCR (Automatic Transmission)
+Marelli SELESPEED/DDCT CFC8TDW Automatic Gearbox
+ISO Code: BC 07 B0 0B D3
+FAILED
+Errors found:
+P1D34-00
+P1D33-00
+
+Body / BCM (Body Computer Module)
+Body Computer Marelli (330) MY12
+ISO Code: BF 83 91 0E B6
+SUCCESS
+

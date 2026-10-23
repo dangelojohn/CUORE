@@ -1,0 +1,29 @@
+STELVIO 2.0T (VIN ZASFAKPN5J7B88115) - CONFIGURATION SNAPSHOT BEFORE EU PADDLE-NEUTRAL PROXI MOD
+Recorded 2026-09-13 from MES logs SCAN_2609041953.txt (full scan) and SCAN_2609042008.txt (partial).
+
+PROXI
+  PROXI configuration write counter : 1 (factory - never rewritten)
+  Proxi module                      : Body -> CAN Setup / PROXI Alignment Procedure (949)
+  Byte 156                          : 50 (hex) = 0101 0000, bits 5-4 = 01 = paddle neutral DISABLED (NAFTA)
+                                      (value read by owner in MES on 2026-09-13)
+  Planned change                    : byte 156 50 -> 40 (bits 5-4 = 00 = enabled)
+  TO RESTORE                        : set byte 156 back to 50 and run PROXI ALIGNMENT PROCEDURE again
+  FULL PROXI HEX DUMP               : see PROXI_ORIGINAL_*.txt / screenshot (add before any change)
+
+MODULES  (ISO code | hardware | software | codes stored at snapshot)
+  ECM   Magneti Marelli IAW 10JA (2.0)     00 01 50 40 18 | MM10JAHW232 v00  | P235QB39 v0000     | P0440-00
+  IPC   Instrument Panel Continental       00 03 50 8B 14 | A2C11140400 v01  | AR952 HL v203C     | none
+  TCM   ZF 8HP50/75 Automatic Gearbox      00 0B 50 AA 14 | 10344202761 v20  | GK0902OE2HN v0003  | none
+  DTCM  Magna Q4 Transfer Case             00 43 50 91 14 | M0045027.01 v21  | M0099947 v0501     | U0100-87
+  ESM   ZF Electronic Gear Shift Module    00 16 50 B4 14 | 1000597140 v08   | 1000678050 v0019   | none
+  BCM   Body Computer Marelli (949)        00 00 70 7C 15 | BCM949M_C02 v01  | 04441660441 v1454  | U1713-2F U1712-2F U1711-2F B1176-97
+  RFHUB Continental                        00 41 50 89 15 | 10161500AA v01   | 10307064AB v0940   | none
+  DASM  Bosch radar                        00 39 70 7E 15 | MRR1evo14F v00   | 52081920 v0500     | C1408-86 C141B-97 C141C-86 (C1408/C141C would NOT clear)
+  ABS   Continental MK C1                  00 06 50 5B 14 | 28554010535 v00  | XJ_RAL00165 v83C1  | none
+  EPS   ZF Electric Steering               00 02 40 5F 14 | 7806277500 v30   | 880802D0243 vA410  | U1960-83
+  ORC   Airbag (unsupported by MES)        00 1A 70 84 15 | 0285013327 v30   | BB70578 v0403      | none
+  AFLS  Automotive Lighting headlamps      00 1D 50 C7 14 | 1470000328 v02   | 1409910330 v000C   | U0428-86
+  PAM   Bosch parking sensors              00 18 50 87 15 | 19490108 v03     | 1.38 v0304         | none
+  HALF  Bosch lane camera                  00 1E 50 72 14 | 0203500279 v01   | 1037601726 v1001   | U0418-86
+
+Any code AFTER the mod that is not in this list is new.

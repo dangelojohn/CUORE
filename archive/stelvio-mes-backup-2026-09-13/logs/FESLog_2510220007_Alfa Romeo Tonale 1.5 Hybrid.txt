@@ -1,0 +1,24 @@
+(Multiecuscan 5.4)
+10/22/2025 12:07:31 AM
+Alfa Romeo Tonale 1.5 Hybrid
+Hybrid control processor (MHEV)
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: 7C 86 4F FF FF
+VIN code: 5188214
+VIN code (original): 281011421
+ECU serial number: 
+Spare part number: 037367790
+Hardware number: D
+Hardware version: 03
+Software number: 
+Software version: 7C86
+Homologation number: |?O??
+FIAT drawing number: |?O??
+Functioning time (EEPROM): 2089177087
+Operating time: 2089177087
+Startups counter: 31878
+VIN lock status: Unknown
+PROXI configuration write counter: 124
+

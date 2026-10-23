@@ -1,0 +1,17 @@
+1
+(Multiecuscan 5.4)
+10/22/2025 12:04:38 AM
+Alfa Romeo 166 3.0 V6 24V
+Bosch Motronic ME 2.1 (2.5 V6, 3.0 V6)
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: FD 86 15 01 6E
+FIAT drawing number: 55188214
+Hardware number: 0281011421
+Hardware version: 00
+Software number: 1037367790
+Software version: A044
+Homologation number:  
+ECU programming date: 07/13/2003
+

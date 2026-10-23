@@ -1,0 +1,50 @@
+Scan vehicle for available modules and check each module for errors...
+
+ABS / ABS/BSM (Brake System Module)
+Continental ABS MK C1
+ISO Code: 00 06 50 5B 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 28554010535 - Ver: 00
+Software number: XJ_RAL00165 - Ver: 83C1
+
+Electric Steering / EPS (Electric Steering Module)
+ZF Electric Steering
+ISO Code: 00 02 40 5F 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 7806277500 - Ver: 30
+Software number: 880802D0243 - Ver: A410
+Errors found:
+U1960-83 - Error in communication with engine control unit (ECU) - Value of signal protection calculation incorrect
+
+Airbag / NAB/ORC (Airbag/Occupant Restraint Module)
+UNKNOWN/UNSUPPORTED
+ISO Code: 00 1A 70 84 15
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 0285013327 - Ver: 30
+Software number: BB70578 - Ver: 0403
+
+Other / AFLS/NFA (Self-adaptive Headlamps Module)
+Automotive Lighting adaptive headlights
+ISO Code: 00 1D 50 C7 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 1470000328 - Ver: 02
+Software number: 1409910330 - Ver: 000C
+Errors found:
+U0428-86 - Steering angle sensor - Signal/message invalid
+
+Other / PAM/NSP (Parking Sensors Module)
+Parking control Bosch
+ISO Code: 00 18 50 87 15
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 19490108 - Ver: 03
+Software number: 1.38 - Ver: 0304
+
+Other / HALF (Haptical Lane Feedback Module)
+Haptical lane feedback (HALF) camera Bosch
+ISO Code: 00 1E 50 72 14
+VIN code: ZASFAKPN5J7B88115
+Hardware number: 0203500279 - Ver: 01
+Software number: 1037601726 - Ver: 1001
+Errors found:
+U0418-86 - Error in communication with ABS module - Signal/message invalid
+

@@ -1,0 +1,25 @@
+(Multiecuscan 5.4)
+11/13/2025 9:49:14 AM
+Alfa Romeo Tonale 1.3 Plug-in Hybrid
+Battery pack control (PHEV)
+SIMULATION MODE!!! THE DATA IS NOT REAL!!!
+--------------------------------------------------------------
+
+ECU ISO code: BPCM864F
+VIN code: 5188214
+ECU serial number: 281011421
+FIAT drawing number: 
+Hardware version: 30
+Software version: 44
+Homologation number: 
+
+READING ERROR CODES:
+1. B0110-15
+  ERROR DETAILS:
+  Operating time: 24959 min
+  
+2. P068A-68
+  ERROR DETAILS:
+  Operating time: 24959 min
+  
+
