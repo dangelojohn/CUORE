@@ -79,6 +79,9 @@ Idle, blue A5 (CAN-IHS), grey A6 (CAN-CH), remove cable, summary; plus bus captu
 **2026-10-14 - Passive listen uses STMA with ATCAF0 and 11-bit routes.**
 The filtered monitor with auto-format on heard 0 frames on the chassis bus where STMA heard 818 in 2 s; Giorgio periodic traffic is 11-bit, so earlier "silent" buses were the monitor, not the car. The "try other bitrates if silent" note was withdrawn after the 2026-10-14 incident. Commit c57de05.
 
+**2026-10-23 - Transmit interlock on cable routes; silence never triggers a send.**
+After two functional `3E 00` frames went out at 125k onto the 500k CAN-C bus when the blue A5 cable was pulled (00:50, CAN ERROR, no reply), cable routes and non-500k buses transmit only after at least 5 frames were heard at the declared rate in the last 10 s; the CAN-IHS `3E 00` fallback was removed; a pulled cable is auto-detected (passive 500k listen) and declared `none`; every transmit decision is logged at INFO.
+
 **2026-10-14 - Modifications are a separate layer from diagnostics; coding writes blocked.**
 Catalogue (paddle-shift NA to EU first), per-car ledger, MES handoff (7e2eee7). Coding and configuration writes are blocked on every module by service (157177d).
 

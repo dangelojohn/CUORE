@@ -98,8 +98,10 @@ CAN_IHS = Bus(
             125000,
             "untested",
             "HS transceiver re-pinned onto 3/11 by the cable; never use STP 53/54 with the cable fitted. "
-            "If the passive listen hears nothing, ops.verify_bus() sends one functional UDS 3E 00 "
-            "(18DB33F1) and accepts any 18DAF1xx reply as proof the bus is alive.",
+            "INTERLOCK (2026-10-23): nothing is transmitted unless the passive listen in the same call "
+            "heard at least 5 frames at 125 kbit/s in the last 10 s. Silence is never a reason to "
+            "send (the old 'silence -> functional 3E 00' fallback was removed: after the cable was "
+            "pulled it put two 3E 00 frames at 125k onto CAN-C, CAN ERROR).",
         ),
         Route(
             "blue_a5",

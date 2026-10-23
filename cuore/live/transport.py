@@ -13,6 +13,7 @@ it; changing it clears every bus verification.
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 import threading
@@ -37,6 +38,65 @@ try:  # OBD_TIMEOUT is honoured for compatibility with the obd2-mcp registration
 except ValueError:
     DEFAULT_TIMEOUT = 4.0
 MIN_TIMEOUT, MAX_TIMEOUT = 0.2, 30.0
+
+tlog = logging.getLogger("cuore.transmit")
+
+# --- transmit interlock (2026-10-23 00:50) -----------------------------------
+# The owner pulled the blue A5 cable mid-session; the adapter was then on CAN-C
+# at 500k while CUORE still believed it was on CAN-IHS at 125k, and the old
+# "silence -> send one 3E 00" fallback transmitted at the wrong rate. Rule: on a
+# cable route, or any bus not at the adapter's default HS 500k, NOTHING is
+# transmitted unless a passive listen heard real traffic at the declared rate a
+# moment ago. Silence is never a reason to transmit on these routes.
+HEARD_MIN_FRAMES = 5      #: frames the passive listen must have heard
+HEARD_WINDOW_S = 10.0     #: ... no longer ago than this
+DEFAULT_HS_BITRATE = 500000
+
+
+def declared_rate(bus: Bus, cable: str) -> int:
+    """The bit rate the adapter is told to use for ``bus`` under ``cable``."""
+    route = route_for(bus, cable)
+    return int((route.bitrate_override if route and route.bitrate_override else bus.bitrate))
+
+
+def is_risky_route(bus: Bus, cable: str) -> bool:
+    """True on any cable route and on any bus not at the default HS 500k.
+    Only CAN-C at 500k with cable 'none' is exempt."""
+    return cable != "none" or bus.bitrate != DEFAULT_HS_BITRATE
+
+
+def rate_label(rate: int) -> str:
+    return f"{rate // 1000} kbit/s"
+
+
+def silence_reason(rate: int) -> str:
+    return (f"no traffic heard at {rate_label(rate)}; refusing to transmit "
+            f"(cable fitted? ignition on?)")
+
+
+def transmit_decision(bus: Bus, cable: str, ver: Optional[dict[str, Any]], *,
+                      now: Optional[float] = None) -> dict[str, Any]:
+    """Pure decision: may a request be transmitted on ``bus`` under ``cable``?
+
+    ``ver`` is the link's verification record for the bus (or None). On a risky
+    route it must come from a passive listen, under this same cable, with at
+    least :data:`HEARD_MIN_FRAMES` frames, heard within :data:`HEARD_WINDOW_S`.
+    """
+    rate = declared_rate(bus, cable)
+    if not is_risky_route(bus, cable):
+        return {"allowed": True, "risky": False, "bus": bus.key, "rate": rate,
+                "frames": (ver or {}).get("frames"), "reason": "default 500k bus, no cable"}
+    now = time.monotonic() if now is None else now
+    frames, age = 0, None
+    if (ver and ver.get("cable") == cable
+            and ver.get("verified_by", "passive_listen") == "passive_listen"):
+        frames = int(ver.get("frames") or 0)
+        if ver.get("ts") is not None:
+            age = now - ver["ts"]
+    ok = frames >= HEARD_MIN_FRAMES and age is not None and age <= HEARD_WINDOW_S
+    return {"allowed": ok, "risky": True, "bus": bus.key, "rate": rate, "frames": frames,
+            "age_s": None if age is None else round(age, 1),
+            "reason": ("traffic heard" if ok else silence_reason(rate))}
 
 #: STN preset -> ELM327 protocol number for adapters without ST commands.
 _ELM_EQUIVALENT = {"33": "6", "34": "7", "35": "8", "36": "9", "31": "6", "32": "7"}
@@ -471,6 +531,7 @@ class AdapterLink:
         self.process = process
         self.lock = threading.RLock()
         self.cable: str = default_cable()
+        self.cable_mismatch: Optional[dict[str, Any]] = None
         self.identity: dict[str, str] = {}
         self.is_stn: bool = False
         self.port: Optional[str] = None
@@ -515,7 +576,7 @@ class AdapterLink:
 
     # --- cable state ----------------------------------------------------
 
-    def set_cable(self, cable: str) -> dict[str, Any]:
+    def set_cable(self, cable: str, *, _auto: bool = False) -> dict[str, Any]:
         cable = (cable or "none").lower()
         if cable not in CABLES:
             raise BadCommand(f"unknown cable {cable!r}; one of {list(CABLES)}")
@@ -524,8 +585,30 @@ class AdapterLink:
             self.cable = cable
             if changed:
                 self.verified.clear()
+            if not _auto:
+                self.cable_mismatch = None   # a person has re-declared: stale warning gone
             audit.record("cable_declared", cable=cable, cleared_verifications=changed)
         return self.cable_state()
+
+    def auto_declare_none(self, declared: str, bus: Bus, heard_500k: int) -> dict[str, Any]:
+        """Cable removal detected by passive listens: declare 'none', clear every
+        bus verification, log a WARNING, and remember it for /api/live/status."""
+        with self.lock:
+            self.set_cable("none", _auto=True)
+            self.cable_mismatch = {
+                "declared": declared, "bus": bus.key, "now": "none",
+                "heard_500k_frames": heard_500k,
+                "at": datetime.now().isoformat(timespec="seconds"),
+                "note": (f"cable {declared!r} was declared for {bus.key} at "
+                         f"{rate_label(declared_rate(bus, declared))} but only CAN-C traffic at 500k "
+                         f"was heard; cable auto-declared 'none' and all bus verifications cleared. "
+                         f"Re-fit the cable and declare it again to continue."),
+            }
+            tlog.warning("cable mismatch: declared %s for %s, heard nothing at %s but %d frames at "
+                         "500k (CAN-C); auto-declared cable 'none', verifications cleared",
+                         declared, bus.key, rate_label(declared_rate(bus, declared)), heard_500k)
+            audit.record("cable_mismatch", **self.cable_mismatch)
+            return self.cable_mismatch
 
     def cable_state(self) -> dict[str, Any]:
         buses = []
@@ -595,6 +678,13 @@ class AdapterLink:
             # at all -- verify_bus() then falls back to one active Mode 01
             # PID 00 probe (see ops._active_probe_0100) before giving up, and
             # result["note"] already says so when that also got no reply.
+            if is_risky_route(bus, self.cable):
+                reason = silence_reason(declared_rate(bus, self.cable))
+                tlog.info("transmit decision: bus=%s rate=%s frames_heard=%s -> REFUSED (%s)",
+                          bus.key, rate_label(declared_rate(bus, self.cable)),
+                          result.get("frames"), reason)
+                raise Refused(f"{reason}. Listen detail: "
+                              f"{result.get('note') or result.get('error')}")
             raise Refused(
                 f"bus {bus.key} is silent: an automatic passive listen under cable "
                 f"{self.cable!r} heard no traffic, so nothing was sent. Check the cable is "
@@ -650,13 +740,33 @@ class AdapterLink:
                     assert_transmit_allowed(
                         bus_key=bus.key, bus_cable_ok=True, verified=True,
                         needs_confirmation=True, confirmed=False)
-                if not self.is_verified(bus) and self.auto_verify and stream is None:
+                risky = is_risky_route(bus, self.cable)
+                dec = transmit_decision(bus, self.cable, self.verified.get(bus.key))
+                fresh = dec["allowed"] if risky else self.is_verified(bus)
+                if not fresh and self.auto_verify and stream is None:
+                    # Cable routes: the listen must be in THIS call's last few seconds.
                     self._auto_verify(bus, allow_while_mes_connected)
                     auto = self.last_auto_verify
+                    dec = transmit_decision(bus, self.cable, self.verified.get(bus.key))
+                ok = dec["allowed"] if risky else self.is_verified(bus)
+                tlog.info("transmit decision: purpose=%s bus=%s rate=%s frames_heard=%s -> %s%s",
+                          purpose, bus.key, rate_label(dec["rate"]), dec.get("frames"),
+                          "ALLOWED" if ok else "REFUSED", "" if ok else f" ({dec['reason']})")
+                if risky and not ok:
+                    raise Refused(dec["reason"])
                 assert_transmit_allowed(
                     bus_key=bus.key, bus_cable_ok=True,
                     verified=self.is_verified(bus),
                     needs_confirmation=bus.transmit_needs_confirmation, confirmed=confirm)
+            elif not passive:
+                if is_risky_route(bus, self.cable):
+                    # The bypass exists for the can_c 500k / cable 'none' probe only.
+                    tlog.info("transmit decision: purpose=%s bus=%s -> REFUSED (bypass not "
+                              "allowed on a cable or non-500k route)", purpose, bus.key)
+                    raise Refused(silence_reason(declared_rate(bus, self.cable)))
+                tlog.info("transmit decision: purpose=%s bus=%s rate=%s -> ALLOWED (bypass: the "
+                          "single legislated can_c probe, cable 'none')", purpose, bus.key,
+                          rate_label(declared_rate(bus, self.cable)))
             p, psrc = resolve_port(port)
             b, bsrc = resolve_baud(baud)
             if not p and stream is None:
@@ -881,7 +991,8 @@ class AdapterLink:
             "last_open": self.last_open, "last_error": self.last_error,
             "mes": interlock.mes_status(), "lock": interlock.read_lock(),
             "lock_path": str(interlock.lock_path()),
-            "cable": self.cable_state(), "vin": self.vin or None,
+            "cable": self.cable_state(), "cable_mismatch": self.cable_mismatch,
+            "vin": self.vin or None,
             "note": "the port is opened per operation and released after each call",
             "pass_filter_mode": self.pass_filter_mode,
             "adapter_baud_requested": self.adapter_baud_requested or None,

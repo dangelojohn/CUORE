@@ -36,6 +36,17 @@ What was changed as a result:
 
 The lesson recorded: raw serial access to the adapter, even receive-only, is not harmless.
 
+### The 2026-10-23 incident (00:50:02 and 00:50:08), told plainly
+
+The owner pulled the blue A5 cable while a CAN-IHS session was active. The adapter was then on CAN-C at 500k, but CUORE still believed it was on CAN-IHS at 125k. `verify_bus()` for CAN-IHS listened at 125k, heard nothing, and then, by design, transmitted a functional `3E 00` (`18DB33F1`) at 125k onto the 500k diagnostic bus, twice. Both returned CAN ERROR; there was no reply. This is the same class as 2026-10-14: a transmit at the wrong bit rate. A check of bystander U-codes is pending.
+
+What was changed as a result:
+
+- **Transmit interlock.** On any cable route (blue A5, grey A6) and on any bus not at the adapter's default HS 500k, nothing is transmitted (probe, discovery, UDS read, tester present) unless the passive listen in the same call heard at least 5 frames at the declared rate within the last 10 s. Otherwise `verified` is false with the reason "no traffic heard at <rate>; refusing to transmit (cable fitted? ignition on?)".
+- **Silence never triggers a send on a cable route.** The "silence, then send one `3E 00`" fallback was removed. Only CAN-C at 500k with cable `none` keeps its single legislated `0100` probe.
+- **Cable-removal detection.** If the declared cable's rate hears nothing but a passive 500k listen hears CAN-C traffic, the cable is auto-declared `none`, every bus verification is cleared, a WARNING is logged and `/api/live/status` shows `cable_mismatch`. Passive listens only.
+- **Every transmit decision is logged** (bus, rate, frames heard, allowed or refused) at INFO in `server.log`.
+
 ## No adapter scripts outside CUORE
 
 Adapter access goes through `cuore/live` so that the lock, the cable declaration and the audit log apply. The audit log records header and raw reply for every UDS request, so an unexplained silence can be investigated afterwards.
@@ -54,7 +65,7 @@ Addressing a physical module sets the adapter's flow-control header, data and mo
 
 ## Other protections
 
-- **Bus must be verified** before any transmit, under the current cable declaration; the proof lasts 600 s by default. A silent bus refuses the session and sends nothing.
+- **Bus must be verified** before any transmit, under the current cable declaration; the proof lasts 600 s by default. A silent bus refuses the session and sends nothing. On cable routes and non-500k buses the proof must also be fresh: at least 5 frames heard at the declared rate within 10 s of the transmit.
 - **No programming-voltage commands.** The adapter has a feature, meant for other brands, that can drive pin 13 (CAN-CH minus on this platform). Never used.
 - **Pins 1 and 9** must not be shorted by a cable; continuity-check cables before fitting.
 - **Reserved addresses** are never targeted (tester, functional, and one squatted by third-party hardware).

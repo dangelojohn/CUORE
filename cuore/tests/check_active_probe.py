@@ -231,34 +231,67 @@ try:
           str(result3.get("attempts")))
 
     # =======================================================================
-    # (c2) can_ihs under blue_a5: silent listen -> one functional 3E 00.
+    # (c2) 2026-10-23 interlock. Cable routes never transmit on silence (the old
+    #      "silence -> functional 3E 00" probe is gone); traffic at the declared rate
+    #      allows; a silent declared rate + CAN-C traffic at 500k = cable pulled.
     # =======================================================================
-    script_3e = dict(_BASE)
-    script_3e["3E00"] = "18DAF1A0 02 7E 00"
-    lk5, scripted5 = _link(script_3e)
-    lk5.set_cable("blue_a5")
-    result5 = ops.verify_bus("can_ihs", seconds=0.05)
-    check("ihs probe: verified True", result5.get("verified") is True, str(result5))
-    check_eq("ihs probe: verified_by", result5.get("verified_by"), "active_probe_3e00")
-    check_eq("ihs probe: responders", result5.get("responders"), ["18DAF1A0"])
-    check("ihs probe: 3E00 sent on 18DB33F1 after the listen",
-          "3E00" in scripted5.sent and "ATCP18" in scripted5.sent
-          and "ATSHDB33F1" in scripted5.sent, str(scripted5.sent))
-    check("ihs probe: link.verified records verified_by",
-          lk5.verified.get("can_ihs", {}).get("verified_by") == "active_probe_3e00",
-          str(lk5.verified.get("can_ihs")))
+    heard = "\r".join(f"1E36000{i}00112233" for i in range(6))
 
-    script_3e_silent = dict(_BASE)
-    lk6, scripted6 = _link(script_3e_silent)
+    class RateStream(ScriptedStream):
+        """STMA is heard only while the adapter is at ``hear_rate`` (STP -> 500k, STPBR n)."""
+        def __init__(self, script, hear_rate):
+            super().__init__(script)
+            self.rate, self.hear_rate = 500000, hear_rate
+
+        def write(self, data: bytes) -> None:
+            cmd = data.decode("ascii", errors="replace").rstrip("\r\n")
+            if cmd.startswith("STP "):
+                self.rate = 500000
+            elif cmd.startswith("STPBR "):
+                self.rate = int(cmd.split()[1])
+            self.script["STMA"] = heard if self.rate == self.hear_rate else "?"
+            super().write(data)
+
+    tx = lambda sent: [c for c in sent if re.fullmatch(r"[0-9A-F]{2,}", c)]   # requests, not AT/ST
+
+    script_3e = dict(_BASE)
+    script_3e["3E00"] = "18DAF1A0 02 7E 00"          # a reply exists; it must still never be asked for
+    rs_silent = RateStream(script_3e, hear_rate=0)    # nothing heard anywhere
+    lk5, _s5 = _link(script_3e, stream=rs_silent)
+    lk5.set_cable("blue_a5")
+    r5 = ops.verify_bus("can_ihs", seconds=0.05)
+    try:
+        with lk5.session("probe", bus=CAN_IHS):
+            sess_refused = False
+    except Refused:
+        sess_refused = True
+    check("silence on blue_a5: verified False with the rate reason, nothing transmitted, session refused",
+          r5.get("verified") is False and sess_refused and not tx(rs_silent.sent)
+          and "no traffic heard at 125 kbit/s; refusing to transmit" in (r5.get("reason") or ""),
+          f"{r5.get('reason')!r} {rs_silent.sent}")
+
+    rs_125 = RateStream(script_3e, hear_rate=125000)
+    lk6, _s6 = _link(script_3e, stream=rs_125)
     lk6.set_cable("blue_a5")
-    result6 = ops.verify_bus("can_ihs", seconds=0.05)
-    check_eq("ihs silent: verified False", result6.get("verified"), False)
-    check("ihs silent: note mentions the probe",
-          "active probe 3E00 got no reply" in (result6.get("note") or ""),
-          repr(result6.get("note")))
-    check("ihs silent: 3E00 was tried", "3E00" in scripted6.sent, str(scripted6.sent))
-    check("ihs silent: attempt tagged active_probe",
-          any(a.get("active_probe") for a in (result6.get("attempts") or [])))
+    r6 = ops.verify_bus("can_ihs", seconds=0.2)
+    with lk6.session("probe", bus=CAN_IHS):
+        allowed = True
+    check("traffic at 125k on blue_a5: verified by >=5 passive frames, session allowed, no 3E sent",
+          r6.get("verified") is True and r6.get("frames", 0) >= 5 and allowed
+          and "3E00" not in rs_125.sent, f"{r6.get('frames')} {rs_125.sent[-5:]}")
+
+    rs_500 = RateStream(script_3e, hear_rate=500000)  # cable pulled: only CAN-C at 500k is audible
+    lk7a, _s7 = _link(script_3e, stream=rs_500)
+    lk7a.set_cable("blue_a5")
+    lk7a.mark_verified(CAN_IHS, 9)
+    r7 = ops.verify_bus("can_ihs", seconds=0.2)
+    st7 = lk7a.status()
+    check("cable pulled (silent at 125k, CAN-C heard at 500k): auto-declared none, verifications cleared, "
+          "cable_mismatch in status, passive only",
+          lk7a.cable == "none" and not lk7a.verified and r7.get("verified") is False
+          and (st7.get("cable_mismatch") or {}).get("declared") == "blue_a5" and not tx(rs_500.sent),
+          f"{lk7a.cable} {st7.get('cable_mismatch')} {tx(rs_500.sent)}")
+    lk7a.set_cable("none")
 
     script_ch = dict(_BASE)
     script_ch["3E00"] = "18DAF1A0 02 7E 00"

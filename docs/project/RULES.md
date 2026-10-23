@@ -26,6 +26,8 @@ All adapter contact goes through CUORE's audited session layer. No ad-hoc serial
 
 Why: on 2026-10-14 a script run outside CUORE listened on the chassis bus at the wrong rates; the cluster dropped brake, steering and airbag messages and warning lamps lit with a chime. Nothing outside CUORE is audited, so the event had to be reconstructed from file timestamps. Fix and rule: c57de05.
 
+Second incident, same class: 2026-10-23 00:50:02 and 00:50:08 the owner pulled the blue A5 cable during a CAN-IHS session; `verify_bus()` heard nothing at 125k and then sent a functional `3E 00` at 125k onto the 500k CAN-C bus (CAN ERROR, no reply; bystander U-code check pending). Rule: on any cable route or non-500k bus, no transmit of any kind unless the passive listen in the same call heard at least 5 frames at the declared rate within the last 10 s; silence never triggers a send there. A pulled cable is auto-detected by a passive 500k listen and declared `none`. Every transmit decision is logged.
+
 ## 5. One program on the port
 
 Only one program may hold the adapter's serial port at a time. CUORE is the adapter's single owner; the OBD MCP server is a thin client of it, and CUORE refuses to open the port while MES is connected.
