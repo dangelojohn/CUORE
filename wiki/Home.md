@@ -54,6 +54,7 @@ As of 2026-10-22 the project is a working bench application for one reference ca
 - [[ESIM Bench Test|ESIM-Bench-Test]]: how to test the suspect part out of the car.
 - [[Code Reviews|Code-Reviews]]: every other code on the car, by system: readings, classification, resolution ladder, proof of fix.
 - [[Network and Brake Findings|Network-and-Brake-Findings]]: the body-computer-centred code cluster, the brake event and the ranked tests.
+- [[Wiring and Ground Faults|Wiring-and-Ground-Faults]]: failure-type map of every code by module, the load-step voltage test and the multimeter voltage-drop procedure.
 - [[Recalls and Campaigns|Recalls-and-Campaigns]]: the recalls and notices that could apply, VIN checks first.
 - [[Routine Maintenance: Accessory Belt|Routine-Maintenance-Accessory-Belt]]: sourced belt replacement procedure, interval, part numbers and what to record.
 - [[Digital Rear-View Mirror|Digital-Rear-View-Mirror]]: planned accessory install; ADAS camera, power, airbag and liftgate cautions, job 98a6aad68d72.

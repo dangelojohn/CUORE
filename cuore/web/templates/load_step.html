@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Load-step voltage test — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<h1>Load-step voltage test</h1>
+<p class="small muted">Read-only. Records battery voltage at the OBD port, the ECM's own supply reading (PID 42)
+  and the BCM's battery-voltage DID for 3 minutes while you switch loads on and off to the script below.
+  A module that loses more than 0.3 V beyond the adapter has extra resistance in its feed or ground (inference).
+  Procedure and limits: <span class="mono">docs/maintenance/LOAD_STEP_VOLTAGE_TEST.md</span>.
+  <a href="/v/{{ vin }}/electrical#wiring">Back to the wiring map</a></p>
+
+<div class="panel">
+  <p><b>Before you press Start:</b> {{ spec.preconditions }}</p>
+  <p class="small">Channels:
+    {% for c in spec.channel_rows %}<span class="chip {{ 'ok' if c.present else 'chronic' }}">{{ c.id }}{% if not c.present %} (not in registry){% endif %}</span> {% endfor %}
+    &middot; requested rate {{ spec.rate_hz|int }} Hz (as fast as the adapter loop allows; the achieved rate is shown while it runs)</p>
+  <p>
+    <label class="small">Label (optional) <input id="ls-label" type="text" maxlength="40" placeholder="e.g. before-ground-clean"></label>
+    <button class="btn primary" id="ls-start" type="button">Start 3-minute test</button>
+    <button class="btn" id="ls-stop" type="button">Stop</button>
+  </p>
+  <p id="ls-msg" class="small muted"></p>
+</div>
+
+<div class="panel" id="ls-now" style="text-align:center">
+  <div class="small muted" id="ls-clock">not started</div>
+  <div style="font-size:2rem;font-weight:700;margin:8px 0" id="ls-step">&mdash;</div>
+  <div id="ls-instr" style="font-size:1.2rem"></div>
+  <div class="small muted" id="ls-next" style="margin-top:8px"></div>
+  <div class="small" id="ls-vals" style="margin-top:8px"></div>
+</div>
+
+<h2>The script</h2>
+<div class="tw"><table id="ls-table">
+  <thead><tr><th>From</th><th>To</th><th>Step</th><th>What you do</th></tr></thead>
+  <tbody>
+  {% for s in spec.script %}
+    <tr data-t0="{{ s.t0 }}" data-t1="{{ s.t1 }}">
+      <td class="mono">{{ "%d:%02d"|format(s.t0 // 60, s.t0 % 60) }}</td>
+      <td class="mono">{{ "%d:%02d"|format(s.t1 // 60, s.t1 % 60) }}</td>
+      <td><b>{{ s.label }}</b></td><td>{{ s.instruction }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+
+<h2>Result</h2>
+<p><button class="btn" id="ls-analyse" type="button">Analyse the latest recording</button></p>
+<div id="ls-result" class="tw"></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var DURATION = {{ spec.duration_s }};
+  var timer = null, lastStep = -1;
+  function fmt(t) { t = Math.max(0, Math.round(t)); return Math.floor(t / 60) + ":" + ("0" + (t % 60)).slice(-2); }
+  function msg(t) { $("ls-msg").textContent = t; }
+  function api(method, url, body) {
+    return fetch(url, {method: method, headers: {"Content-Type": "application/json"},
+                       body: body ? JSON.stringify(body) : undefined})
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.detail || j.error || r.status); return j; }); });
+  }
+  function render(st) {
+    if (!st.running) {
+      $("ls-clock").textContent = st.ended ? ("finished " + st.ended + (st.aborted ? " (stopped early)" : "")) : "not running";
+      if (st.ended) { $("ls-step").textContent = "Done"; $("ls-instr").textContent = "Everything OFF. Press Analyse."; }
+      return false;
+    }
+    $("ls-clock").textContent = fmt(st.elapsed_s) + " / " + fmt(DURATION);
+    var s = st.step || {};
+    $("ls-step").textContent = s.label || "";
+    $("ls-instr").textContent = s.instruction || "";
+    $("ls-next").textContent = st.next_step ? ("next in " + Math.ceil(st.step_remaining_s) + " s: " + st.next_step.label) : "last step";
+    var v = st.values || {}, parts = [];
+    Object.keys(v).forEach(function (k) { if (v[k] !== null && v[k] !== undefined) parts.push(k + " " + Number(v[k]).toFixed(2) + " V"); });
+    $("ls-vals").textContent = parts.join("  |  ");
+    document.querySelectorAll("#ls-table tbody tr").forEach(function (tr) {
+      var a = +tr.dataset.t0, b = +tr.dataset.t1, on = st.elapsed_s >= a && st.elapsed_s < b;
+      tr.style.background = on ? "rgba(255,200,0,.25)" : "";
+    });
+    if (s.t0 !== lastStep) { lastStep = s.t0; if (navigator.vibrate) navigator.vibrate(200); }
+    return true;
+  }
+  function poll() {
+    api("GET", "/api/live/load-step/status").then(function (st) {
+      if (!render(st)) { clearInterval(timer); timer = null; }
+    }).catch(function (e) { msg(String(e)); });
+  }
+  $("ls-start").onclick = function () {
+    msg("starting...");
+    api("POST", "/api/live/load-step/start", {label: $("ls-label").value}).then(function (r) {
+      msg("recording to " + r.recording);
+      if (timer) clearInterval(timer);
+      timer = setInterval(poll, 500); poll();
+    }).catch(function (e) { msg("not started: " + e.message); });
+  };
+  $("ls-stop").onclick = function () { api("POST", "/api/live/load-step/stop").then(function () { msg("stop requested"); }); };
+  $("ls-analyse").onclick = function () {
+    api("GET", "/api/live/load-step/analysis").then(function (a) {
+      var h = "<table><thead><tr><th>Step</th><th>Adapter drop</th>";
+      a.modules.forEach(function (m) { h += "<th>" + m.module + " drop / excess</th>"; });
+      h += "</tr></thead><tbody>";
+      a.steps.forEach(function (s) {
+        h += "<tr><td>" + s.label + "</td><td>" + (s.adapter_drop_v === null ? "n/a" : s.adapter_drop_v + " V") + "</td>";
+        a.modules.forEach(function (m) {
+          var d = s.drop_v[m.channel], x = s.excess_v[m.channel];
+          var flag = s.flagged.indexOf(m.channel) >= 0;
+          h += "<td" + (flag ? ' style="font-weight:700;color:#b00"' : "") + ">" + (d === undefined ? "n/a" : d + " / " + x) + (flag ? " &gt; limit" : "") + "</td>";
+        });
+        h += "</tr>";
+      });
+      h += "</tbody></table><ul>";
+      a.modules.forEach(function (m) { h += "<li><b>" + m.module + "</b> (" + m.via + "): " + m.verdict + "</li>"; });
+      h += "</ul><p class='small muted'>" + a.caveats.join(" ") + " File: " + a.recording + "</p>";
+      $("ls-result").innerHTML = h;
+    }).catch(function (e) { $("ls-result").textContent = "No analysis: " + e.message; });
+  };
+  poll();
+})();
+</script>
+{% endblock %}

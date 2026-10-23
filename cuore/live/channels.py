@@ -293,7 +293,75 @@ PRESETS: dict[str, tuple[str, ...]] = {
     # a preset listing it would make this whole preset unresolvable.
     "evap_test_a": ("fuel_level", "commanded_evap_purge", "evap_vapor_pressure_abs",
                     "engine_rpm", "engine_coolant_temp"),
+    # Load-step voltage test (see RECORDING_PRESETS / cuore.live.load_step and
+    # docs/maintenance/LOAD_STEP_VOLTAGE_TEST.md). Order matters: it is the CSV
+    # column order the analysis falls back on when no sidecar file is present.
+    # battery_voltage = adapter ATRV at the OBD port; control_module_voltage =
+    # Mode 01 PID 42 (the first ECU to answer, the ECM); bcm_1004 = BCM
+    # "Battery voltage" DID (A/10, unverified formula -- but it read 14.5 V on
+    # 2026-10-23 against ATRV 14.5 V). ecm_1955 is deliberately NOT here: it
+    # answered requestOutOfRange (NRC 31) on this car on 2026-10-23.
+    "load_step_voltage": ("battery_voltage", "control_module_voltage", "bcm_1004"),
 }
+
+#: Presets that are scripted, timed recordings rather than open-ended polls.
+#: ``rate_hz`` is a REQUEST: the poller has no upper clamp (only a 0.02 s idle
+#: tick), so a large value means "as fast as the adapter loop can go"; the
+#: achieved rate per channel is what ``live_session_status`` reports and what
+#: the analysis uses (it works on timestamps, not sample counts).
+LOAD_STEP_LOADS: tuple[tuple[str, str, str], ...] = (
+    ("headlights", "Headlights (low beam)", "Switch the headlights ON (low beam)."),
+    ("high_beam", "High beam", "Switch the HIGH BEAM on (headlights stay on)."),
+    ("rear_defrost", "Rear defrost", "Press REAR DEFROST on."),
+    ("blower_max", "Blower fan MAX", "Set the blower to MAXIMUM (A/C may be on or off; keep it the same for the whole test)."),
+    ("heated_seats", "Heated seats HIGH", "Switch BOTH heated seats to HIGH."),
+    ("brake_pedal", "Brake pedal held", "Press and HOLD the brake pedal firmly (car in P, handbrake on)."),
+)
+
+
+def _load_step_script() -> tuple[dict[str, Any], ...]:
+    steps: list[dict[str, Any]] = [
+        {"t0": 0, "t1": 20, "state": "baseline", "load": None, "label": "Baseline",
+         "instruction": "Engine idling, charger OFF, every load OFF. Hands off everything."}]
+    t = 20
+    for lid, name, how in LOAD_STEP_LOADS:
+        steps.append({"t0": t, "t1": t + 10, "state": "on", "load": lid,
+                      "label": f"{name} ON", "instruction": how})
+        steps.append({"t0": t + 10, "t1": t + 20, "state": "off", "load": lid,
+                      "label": f"{name} OFF", "instruction": f"Switch it OFF again: {name}."})
+        t += 20
+    steps.append({"t0": t, "t1": t + 20, "state": "on", "load": "all",
+                  "label": "ALL loads ON",
+                  "instruction": "Headlights + rear defrost + blower MAX + both heated seats ON together "
+                                 "(release the brake pedal)."})
+    steps.append({"t0": t + 20, "t1": t + 40, "state": "recovery", "load": None,
+                  "label": "All OFF (recovery)", "instruction": "Everything OFF. Hands off; recording ends at 3:00."})
+    return tuple(steps)
+
+
+RECORDING_PRESETS: dict[str, dict[str, Any]] = {
+    "load_step_voltage": {
+        "name": "Load-step voltage test",
+        "preset": "load_step_voltage",
+        "duration_s": 180,
+        "rate_hz": 50.0,
+        "read_only": True,
+        "preconditions": ("Engine idling, battery charger/maintainer disconnected, parked outdoors "
+                          "or ventilated, handbrake on, car in P, all loads off."),
+        "settle_s": 3.0,
+        "reference_window_s": 6.0,
+        "excess_drop_limit_v": 0.3,
+        "script": _load_step_script(),
+        "doc": "docs/maintenance/LOAD_STEP_VOLTAGE_TEST.md",
+    },
+}
+
+
+def recording_presets() -> dict[str, dict[str, Any]]:
+    """Scripted recording presets as plain dicts (script tuples to lists)."""
+    return {k: {**v, "script": [dict(s) for s in v["script"]],
+                "channels": list(PRESETS.get(v["preset"], ()))}
+            for k, v in RECORDING_PRESETS.items()}
 
 
 #: Offerable channel groups that are not one-click polls (their items mix
@@ -606,6 +674,7 @@ def eval_expr(expr: str, values: dict[str, float]) -> float:
 
 __all__ = ["Channel", "available_channels", "registry", "invalidate_registry",
           "builtin_channel_ids", "by_id", "PRESETS", "presets",
+          "RECORDING_PRESETS", "recording_presets", "LOAD_STEP_LOADS",
           "BUS_CAPTURE_PRESETS", "bus_capture_preset", "UNTRUSTED_PIDS",
           "CHANNEL_GROUPS", "channel_groups",
           "resolve_channels", "ComputedError", "eval_expr", "DID_MODULES",

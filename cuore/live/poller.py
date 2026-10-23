@@ -134,6 +134,9 @@ class CsvRecorder:
         self._last: dict[str, Any] = {}
         self._start: Optional[float] = None
         self._rows = 0
+        #: Label written into the TAG column of every row until changed
+        #: (a scripted test sets it per step; "" for an ordinary recording).
+        self.tag = ""
 
     def start(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -151,6 +154,7 @@ class CsvRecorder:
     def write_row(self, tag: str = "") -> None:
         if self._fh is None or self._start is None:
             return
+        tag = tag or self.tag
         t = time.monotonic() - self._start
         cells = [f"{t:.3f}"]
         for c in self.channels:
@@ -401,18 +405,44 @@ class LivePoller:
 
     # --- recording -----------------------------------------------------
 
-    def start_recording(self) -> dict[str, Any]:
+    def start_recording(self, name: str = "") -> dict[str, Any]:
+        """Start the CSV mirror. ``name`` (optional) goes into the file name:
+        ``live_<name>_<timestamp>.csv`` -- letters, digits, ``-`` and ``_`` only."""
         with self._lock:
             if not self.is_active():
                 raise Refused("no live-data session running; start one first")
             if self._recorder is not None:
                 return {"recording": str(self._recorder.path), "already_recording": True}
             d = state_dir() / "recordings"
-            path = d / f"live_{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv"
+            safe = re.sub(r"[^A-Za-z0-9_-]+", "-", name or "").strip("-")[:60]
+            stem = f"live_{safe}_" if safe else "live_"
+            path = d / f"{stem}{datetime.now().strftime('%Y%m%d-%H%M%S')}.csv"
             rec = CsvRecorder(path, list(self._channels.values()))
             rec.start()
             self._recorder = rec
-            return {"recording": str(path)}
+            return {"recording": str(path), "name": safe,
+                    "columns": [c.id for c in self._channels.values()]}
+
+    def set_recording_tag(self, tag: str) -> bool:
+        """Label every subsequent row of the running recording; False if not recording."""
+        with self._lock:
+            rec = self._recorder
+        if rec is None:
+            return False
+        rec.tag = str(tag or "")
+        return True
+
+    def recording_path(self) -> Optional[str]:
+        with self._lock:
+            return str(self._recorder.path) if self._recorder is not None else None
+
+    def recording_elapsed(self) -> Optional[float]:
+        """Seconds on the recorder's own clock (the CSV ``Time`` column), or None."""
+        with self._lock:
+            rec = self._recorder
+        if rec is None or rec._start is None:
+            return None
+        return time.monotonic() - rec._start
 
     def stop_recording(self) -> dict[str, Any]:
         with self._lock:

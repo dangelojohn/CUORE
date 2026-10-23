@@ -1362,6 +1362,36 @@ def live_set_alarm(channel: str, warn: Optional[float] = None, alarm: Optional[f
                                          hysteresis=hysteresis)
 
 
+def live_load_step() -> dict[str, Any]:
+    """The load-step voltage test: preset, owner script, channel availability."""
+    from . import load_step
+    return load_step.describe()
+
+
+def live_load_step_start(label: str = "") -> dict[str, Any]:
+    """Start the load-step voltage test as a named, tagged recording (read-only).
+
+    Holds the adapter for the test's 3 minutes, like any poll session."""
+    from . import load_step
+    return load_step.start(label)
+
+
+def live_load_step_stop() -> dict[str, Any]:
+    from . import load_step
+    return load_step.stop()
+
+
+def live_load_step_status() -> dict[str, Any]:
+    from . import load_step
+    return load_step.status()
+
+
+def live_load_step_analysis(recording: str = "") -> dict[str, Any]:
+    """Per-step voltage drops from a saved load-step recording (newest by default)."""
+    from . import load_step
+    return load_step.analyze_recording(recording)
+
+
 def live_stream_subscribe() -> Any:
     """A queue of ``{t, channel, value, unit, alarm}`` messages for the SSE route."""
     from . import poller as poller_mod
@@ -1441,4 +1471,6 @@ del _name
 
 __all__ += ["live_channels", "live_session_start", "live_session_stop", "live_session_status",
            "live_snapshot", "live_record_start", "live_record_stop", "live_set_alarm",
+           "live_load_step", "live_load_step_start", "live_load_step_stop",
+           "live_load_step_status", "live_load_step_analysis",
            "live_stream_subscribe", "live_stream_unsubscribe", "live_stream_events"]

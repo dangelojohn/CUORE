@@ -375,6 +375,33 @@ def live_record_stop_route() -> dict[str, Any]:
     return ops.live_record_stop()
 
 
+@router.get("/live/load-step", summary="Load-step voltage test: preset, owner script, channels")
+def live_load_step_route() -> dict[str, Any]:
+    return ops.live_load_step()
+
+
+@router.post("/live/load-step/start",
+            summary="Start the load-step voltage test as a named recording (read-only, 3 min)")
+def live_load_step_start_route(label: str = Body(default="", embed=True)) -> dict[str, Any]:
+    return ops.live_load_step_start(label)
+
+
+@router.post("/live/load-step/stop", summary="Stop the load-step test early")
+def live_load_step_stop_route() -> dict[str, Any]:
+    return ops.live_load_step_stop()
+
+
+@router.get("/live/load-step/status", summary="Load-step test: elapsed, current step, live values")
+def live_load_step_status_route() -> dict[str, Any]:
+    return ops.live_load_step_status()
+
+
+@router.get("/live/load-step/analysis",
+            summary="Per-step voltage drop of each module vs the adapter, from a saved recording")
+def live_load_step_analysis_route(recording: str = Query(default="")) -> dict[str, Any]:
+    return ops.live_load_step_analysis(recording)
+
+
 @router.post("/live/alarms", summary="Set a warn/alarm threshold on one live channel")
 def live_alarms_route(channel: str = Body(..., embed=True),
                       warn: Optional[float] = Body(default=None, embed=True),

@@ -1,0 +1,41 @@
+{# Wiring / ground fault map. Context: wiring (cuore.services.wiring_bridge.wiring_map). #}
+{% if wiring and wiring.modules %}
+<h2 id="wiring">Wiring and ground faults by failure type</h2>
+<p class="small muted">Every code ever seen for this car (MES logs and CUORE scans), grouped by the
+  failure-type byte. <b>Wiring</b> = -11..-17 (short to ground / battery, open, voltage low / high),
+  <b>Comm</b> = -8x (missing or invalid message), <b>Perf</b> = -9x, <b>Signal</b> = -1C / -29 / -2F and kin.
+  Numbers are separate reads (sightings within 10 min count once). The ground-suspect score is an
+  <b>inference</b>: the share of a module's reads that were -11 / -14 / -16 or had a low-voltage freeze frame.
+  <a href="/api/wiring?vin={{ vin }}">JSON</a> &middot; <a href="/v/{{ vin }}/load-step">Load-step voltage test</a></p>
+<div class="tw">
+<table>
+  <thead><tr><th>Module</th><th>Reads</th><th>Wiring</th><th>Comm</th><th>Perf</th><th>Signal</th><th>Other</th>
+    <th>Ground-suspect (inference)</th><th>Wiring-type circuits</th></tr></thead>
+  <tbody>
+  {% for m in wiring.modules %}
+    {% set c = m.classes %}
+    <tr>
+      <td><b>{{ m.module }}</b></td>
+      <td>{{ m.reads }}</td>
+      <td>{{ c.wiring.reads or "" }}</td>
+      <td>{{ c.communication.reads or "" }}</td>
+      <td>{{ c.performance.reads or "" }}</td>
+      <td>{{ c.signal_range.reads or "" }}</td>
+      <td>{{ c.other.reads or "" }}</td>
+      <td>{{ "%.2f"|format(m.ground_suspect.score) }}
+        <span class="small muted">({{ m.ground_suspect.ground_type_reads }} ground-type + {{ m.ground_suspect.low_voltage_frame_reads }} low-V of {{ m.ground_suspect.of_reads }}){% if m.ground_suspect.low_confidence %} &middot; low confidence, few reads{% endif %}</span></td>
+      <td class="small">
+        {% for r in m.circuits if r["class"] == "wiring" %}
+          <span class="mono">{{ r.code }}</span> &times;{{ r.reads }} ({{ r.dates|join(", ") }})<br>
+        {% endfor %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if wiring.low_voltage_frames %}
+<p class="small"><b>Low-voltage freeze frames:</b>
+  {% for f in wiring.low_voltage_frames %}<span class="mono">{{ f.module }} {{ f.code }}</span> at {{ f.voltage }} V on {{ f.date }}{% if not loop.last %}; {% endif %}{% endfor %}</p>
+{% endif %}
+{% endif %}

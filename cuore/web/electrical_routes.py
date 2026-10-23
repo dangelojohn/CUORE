@@ -513,7 +513,13 @@ def electrical_page(request: Request, vin: str, code: str = "", system: str = ""
         qs.append(f"system={quote(system_k)}")
     redirect_to = f"/v/{vin}/electrical" + (f"?{'&'.join(qs)}" if qs else "")
 
-    response = _page(request, "electrical.html", vin=vin, bar=_vehicle_bar(vin, dossier),
+    try:
+        from ..services import wiring_bridge
+        wiring = wiring_bridge.wiring_map(vin)
+    except Exception:  # noqa: BLE001 -- the diagram page must render without it
+        wiring = None
+
+    response = _page(request, "electrical.html", vin=vin, bar=_vehicle_bar(vin, dossier), wiring=wiring,
                      tab="electrical", svg=svg, cards=cards, code=code_u, path_data=path_data,
                      system=system_k, systems_filter=systems_filter,
                      conditions=CONDITIONS, condition_labels=CONDITION_LABELS,
