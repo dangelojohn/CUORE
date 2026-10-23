@@ -21,7 +21,7 @@ A checklist on the scan page lists what every scan must capture for the open EVA
 `/v/{vin}/gauges` and `/v/{vin}/gauges/hud`: a customisable live dashboard with saved layouts, custom channels, snapshots, triggers and recording replay.
 
 ## Vehicle dashboard
-`/v/{vin}/dashboard`: a per-vehicle overview with charts.
+`/v/{vin}/dashboard`: a per-vehicle overview with charts. It carries an **Oil level** card: owner-entered dipstick, measured-fill or drain-volume readings become litres and US quarts in the sump, % of capacity and % between MIN and MAX (the MIN-MAX span is assumed 1.0 L until measured). See `docs/maintenance/OIL_LEVEL_CARD.md`.
 
 ## Scans and scan log
 `/v/{vin}/scans` groups live reads into scans (a 15-minute gap separates scans) with freeze frames, readiness, Mode 06 and which modules answered. A scan can be opened, exported and **diffed** against another. `/v/{vin}/scans/{id}/health` and `/v/{vin}/health` give the scan health report: verdict, per-system table and issues graded against known-good values. `/v/{vin}/live-vs-log` compares what the live link read with what MES logs say. `/recordings` and `/logs` show MES CSV recordings and the raw log index.

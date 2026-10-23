@@ -18,7 +18,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
-from ..services import cache, dashboard_bridge, mes_bridge
+from ..services import cache, dashboard_bridge, mes_bridge, oil_level_bridge
 from . import dashboard_charts
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
@@ -74,8 +74,10 @@ def dashboard_page(request: Request, vin: str) -> HTMLResponse:
         "odometer": dashboard_charts.odometer_svg(data["odometer_series"]),
         "modules": dashboard_charts.module_bar_svg(data["modules"]),
     }
+    oil = oil_level_bridge.card(vin)
     response = _page(request, "dashboard.html", vin=vin, d=data, bar=bar,
-                     charts=charts, tab="dashboard")
+                     charts=charts, tab="dashboard", oil=oil,
+                     oil_error=request.query_params.get("oil_error", ""))
     _set_active_vehicle(response, vin)
     return response
 

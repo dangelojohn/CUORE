@@ -144,6 +144,19 @@ TAXONOMY: dict[str, dict[str, Any]] = {
                 {"qty": _f("number", "Quantity added", unit="L")},
                 "A top-up between changes can mean a slow leak or consumption worth tracking.",
                 ("lubrication",)),
+            "oil_level": _kind(
+                "Engine oil level",
+                {"method": _f("choice", "Method",
+                              choices=("dipstick", "measured_fill", "drain_volume"),
+                              required=True),
+                 "dipstick_position_pct": _f(
+                     "number", "Dipstick position (0 = MIN mark, 100 = MAX mark; can be "
+                     "below 0 or above 100)", unit="%"),
+                 "litres": _f("number", "Litres (measured fill / drain volume)", unit="L")},
+                "Feeds the Oil level card on the vehicle dashboard: litres in the sump and "
+                "% full. A drain volume taken at the oil change is the 'before' value. The "
+                "dipstick MIN-MAX span is ASSUMED 1.0 L until measured (mes.oil_level).",
+                ("lubrication",)),
             "coolant_change": _kind(
                 "Coolant change",
                 {"type": _f("text", "Coolant type"), "qty": _f("number", "Quantity", unit="L")},

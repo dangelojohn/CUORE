@@ -1,0 +1,68 @@
+{# Oil level card. Context: vin, oil (oil_level_bridge.card), oil_error, d.summary.
+   Readings are owner-reported (Tell CUORE: Fluids > Engine oil level); the
+   model and its assumptions are in mes/oil_level.py. #}
+{% set L = oil.latest %}
+<h2 id="oil-level">Oil level</h2>
+<style>
+  .oil-bar { position: relative; height: 22px; background: var(--surface-2); border: 1px solid var(--rule);
+             border-radius: var(--radius-sm); margin: 18px 0 20px; }
+  .oil-fill { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ok); opacity: .75;
+              border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+  .oil-fill.warn { background: var(--sev-chronic); }
+  .oil-fill.bad { background: var(--sev-returned); }
+  .oil-tick { position: absolute; top: -6px; bottom: -6px; width: 2px; background: var(--ink-2); }
+  .oil-tick span { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px;
+                   font-size: var(--fs-xs); color: var(--ink-3); white-space: nowrap; }
+  .oil-tick.max span { transform: translateX(-100%); }
+  .oil-nums { font-size: var(--fs-md); margin: 0 0 6px; }
+  .oil-bad { color: var(--sev-returned); font-weight: var(--fw-semibold); }
+  .oil-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin-top: 10px; }
+  .oil-form label { display: flex; flex-direction: column; gap: 3px; font-size: var(--fs-xs); color: var(--ink-3); }
+  .oil-form input, .oil-form select { min-height: 36px; padding: 4px 8px; background: var(--surface-2);
+             color: var(--ink); border: 1px solid var(--rule); border-radius: var(--radius-sm); font-size: var(--fs-sm); }
+  .oil-form input[type=number] { width: 8.5em; }
+  .oil-form input[name=note] { width: 14em; }
+  .oil-hist { margin: 8px 0 0; }
+</style>
+<div class="panel" id="oil-level-card">
+  {% if oil_error %}<p class="oil-bad">Not saved: {{ oil_error }}</p>{% endif %}
+  {% if L %}
+    <p class="oil-nums mono">
+      <strong>{{ L.sump_l }} L / {{ L.sump_qt }} qt</strong> in sump &mdash;
+      {{ L.pct_of_capacity|round(0)|int }} % of capacity &mdash;
+      {{ L.pct_between|round(0)|int }} % between MIN and MAX
+    </p>
+    {% if L.over_full %}<p class="oil-bad">OVER-FULL: above the MAX mark ({{ L.pct_between }} % of the MIN-MAX span). Excess oil can foam and push into the intake; drain to the MAX mark.</p>{% endif %}
+    {% if L.below_min %}<p class="oil-bad">BELOW MIN: under the MIN mark ({{ L.pct_between }} % of the MIN-MAX span). Top up before driving.</p>{% endif %}
+    <div class="oil-bar" role="img" aria-label="Oil level {{ L.pct_of_capacity|round(0)|int }} percent of capacity">
+      <div class="oil-fill {{ 'bad' if (L.over_full or L.below_min) else ('warn' if L.pct_between < 25 else '') }}" style="width:{{ L.fill_pct }}%"></div>
+      <div class="oil-tick" style="left:{{ oil.min_tick_pct }}%"><span>MIN</span></div>
+      <div class="oil-tick max" style="left:{{ oil.max_tick_pct }}%"><span>MAX</span></div>
+    </div>
+    <p class="small muted">Last reading {{ L.date }}{% if L.odometer_km is not none %} at {{ "{:,}".format(L.odometer_km|int) }} km{% endif %},
+      by {{ {'dipstick':'dipstick','measured_fill':'measured fill','drain_volume':'drain volume (before-change)'}[L.method] }}{% if L.note %} &mdash; {{ L.note }}{% endif %}.
+      Owner-reported, not a car measurement.</p>
+    <p class="small muted oil-hist mono">History:
+      {% for h in oil.history %}{{ h.date }} {{ h.sump_l }} L ({{ h.pct_of_capacity|round(0)|int }} %){% if not loop.last %} &middot; {% endif %}{% endfor %}</p>
+  {% else %}
+    <p>No oil reading yet &mdash; enter a dipstick reading.</p>
+  {% endif %}
+  <p class="small muted">Capacity with filter {{ oil.capacity_l }} L / {{ oil.capacity_qt }} qt
+    (<a href="{{ oil.capacity_source }}" rel="noopener">service_specs, single source</a>); 0W-30, MS-13340.
+    MIN-MAX span {{ oil.dipstick_range_l }} L{% if oil.range_assumed %} &mdash; <strong>{{ oil.range_note }}</strong>{% endif %}.</p>
+
+  <details{% if not L %} open{% endif %}>
+    <summary class="small">Enter an oil reading</summary>
+    <form method="post" action="/v/{{ vin }}/oil-level" class="oil-form">
+      <label>Date <input type="date" name="date" value="{{ oil.today }}"></label>
+      <label>Odometer (km) <input type="number" step="any" name="odometer_km" inputmode="decimal"
+        placeholder="{% if d is defined and d.summary.odometer_last_km is not none %}last logged {{ d.summary.odometer_last_km|int }}{% endif %}"></label>
+      <label>Method <select name="method">{% for m in oil.methods %}<option value="{{ m.key }}">{{ m.label }}</option>{% endfor %}</select></label>
+      <label>Dipstick % (0 = MIN, 100 = MAX) <input type="number" step="any" name="dipstick_position_pct" inputmode="decimal"></label>
+      <label>Litres (fill / drain) <input type="number" step="any" min="0" name="litres" inputmode="decimal"></label>
+      <label>Note <input type="text" name="note" maxlength="500"></label>
+      <button class="btn primary" type="submit">Save reading</button>
+    </form>
+    <p class="small muted">Also on the phone: Tell CUORE &rarr; Fluids &rarr; Engine oil level.</p>
+  </details>
+</div>

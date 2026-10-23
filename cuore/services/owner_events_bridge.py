@@ -200,6 +200,12 @@ def add(vin: str, category: str, kind: str, *, at: Optional[str] = None,
         rec["delegated_to"] = "mes.symptoms"
         return rec
 
+    if (category, kind) == ("fluids", "oil_level"):
+        from mes import oil_level as oil_level_mod  # noqa: E402
+        problems = oil_level_mod.validate(fields or {})
+        if problems:
+            raise BadRequest("; ".join(problems))
+
     try:
         rec = store.add(vin, category, kind, at=at, by_role=by_role, by_name=by_name,
                         fields=fields, note=note, media_ids=media_ids,
