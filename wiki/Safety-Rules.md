@@ -38,7 +38,7 @@ The lesson recorded: raw serial access to the adapter, even receive-only, is not
 
 ### The 2026-10-23 incident (00:50:02 and 00:50:08), told plainly
 
-The owner pulled the blue A5 cable while a CAN-IHS session was active. The adapter was then on CAN-C at 500k, but CUORE still believed it was on CAN-IHS at 125k. `verify_bus()` for CAN-IHS listened at 125k, heard nothing, and then, by design, transmitted a functional `3E 00` (`18DB33F1`) at 125k onto the 500k diagnostic bus, twice. Both returned CAN ERROR; there was no reply. This is the same class as 2026-10-14: a transmit at the wrong bit rate. A check of bystander U-codes is pending.
+The owner pulled the blue A5 cable while a CAN-IHS session was active. The adapter was then on CAN-C at 500k, but CUORE still believed it was on CAN-IHS at 125k. `verify_bus()` for CAN-IHS listened at 125k, heard nothing, and then, by design, transmitted a functional `3E 00` (`18DB33F1`) at 125k onto the 500k diagnostic bus, twice. Both returned CAN ERROR; there was no reply. This is the same class as 2026-10-14: a transmit at the wrong bit rate. A read-only check at 00:59 (`19 02 FF`, all CAN-C modules, compared with the 00:10 scan) found one new code, IPC U0010-88 (bus off, status 0x0E), likely from these frames or the cable pull but not proven; no other module gained a code and the EVAP status bytes were unchanged (`docs/research/BYSTANDER_CHECK_2026-10-23.md`).
 
 What was changed as a result:
 
