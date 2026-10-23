@@ -25,7 +25,8 @@
    "sibling_vehicle": "sibling_engine rows: '<model years engine>' the bulletin was written for",
    "transferability": "sibling_engine rows: 'inference: ...' why the analogue may or may not carry over to this car",
    "stelvio_equivalent": "sibling_engine rows: number of the catalogue row for this car it parallels (linked in the cross-reference), or null",
-   "also_applies_to": "this_model rows: list of sibling vehicles the same bulletin number also covers"
+   "also_applies_to": "this_model rows: list of sibling vehicles the same bulletin number also covers",
+   "fca_number": "optional: the manufacturer's own campaign code when it differs from number/nhtsa_id (e.g. 93C for NHTSA 25V586); the same campaign, never a separate row"
   },
   "notes": "Extra fields are tolerated and passed through; only id is required. Merge steps append rows to items[] and must keep ids unique. cuore_relevance, applies_to, transport_canada_id and similar extras are optional and ignored by the template."
  },
@@ -1070,9 +1071,10 @@
    "kind": "recall",
    "number": "25V586",
    "nhtsa_id": "25V586",
+   "fca_number": "93C",
    "title": "Fuel pump failure",
    "date": "2025-09-09",
-   "summary": "2018-2019 Stelvio; loss of fuel flow and drive power; TC 3,289 units. Related TSB 18-001-18 (inspect/replace fuel pump module, 2018-01) was not located. Recall scope 24,382 MY2018 Stelvio (sources vary on 2019). Summary-level only, PDFs not opened.",
+   "summary": "FCA's own number for this recall is 93C (NHTSA text: \"FCA's number for this recall is 93C\"; one campaign, NHTSA 25V586000). 2018-2019 Stelvio; loss of fuel flow and drive power; TC 3,289 units. Related TSB 18-001-18 (inspect/replace fuel pump module, 2018-01) was not located. Recall scope 24,382 MY2018 Stelvio (sources vary on 2019). Summary-level only, PDFs not opened.",
    "condition": "Low-pressure fuel pump failure; P008A; stall / loss of motive power.",
    "remedy": "Replace fuel delivery module; interim letters 2025-10-07; final remedy expected July 2026",
    "systems": [
@@ -4951,44 +4953,6 @@
     "Message with no DTC"
    ],
    "repair_implied": "inspect",
-   "depends_on_systems": [
-    "fuel"
-   ]
-  },
-  {
-   "id": "sib-93c",
-   "kind": "recall",
-   "number": "93C",
-   "nhtsa_id": "25V-586",
-   "title": "Fuel delivery module heat damage, loss of flow",
-   "date": "2025-09-09",
-   "summary": "Analogue only, not a Stelvio bulletin. Written for 2017-2019 Giulia and 2018-2019 Stelvio 2.0L [reference]: Fuel delivery module heat damage, loss of flow. Cause: FDM internals susceptible to heat. Note: No Jeep equivalent found; in-tank low-pressure module is Alfa-specific.",
-   "condition": "Fuel starvation, loss of motive power",
-   "remedy": "Replace FDM (remedy pending at filing)",
-   "systems": [
-    "Fuel"
-   ],
-   "dtcs": [],
-   "links": [
-    {
-     "label": "NHTSA document (sibling vehicle)",
-     "url": "https://static.nhtsa.gov/odi/rcl/2025/RCLRPT-25V586-6450.pdf"
-    }
-   ],
-   "applies": "vin_check",
-   "source": "research 2026-10-15: sibling_engine_general.json; NHTSA document opened",
-   "verified": true,
-   "vehicle_scope": "sibling_engine",
-   "sibling_vehicle": "2017-2019 Giulia and 2018-2019 Stelvio 2.0L [reference]",
-   "transferability": "inference: same design (Giulia is the direct sibling, same recall)",
-   "stelvio_equivalent": "25V586",
-   "components": [
-    "fuel delivery module"
-   ],
-   "symptoms": [
-    "Fuel starvation, loss of motive power"
-   ],
-   "repair_implied": "replace:fuel delivery module",
    "depends_on_systems": [
     "fuel"
    ]

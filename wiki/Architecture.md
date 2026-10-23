@@ -95,7 +95,7 @@ Two pipelines run beside the live path: **MES logs to jobs and hypotheses** (par
 
 | File | Content |
 |---|---|
-| `cuore/data/tsb_catalogue.json` | 141 rows: 99 for the reference model plus 42 sibling-engine analogues; schema inside the file. |
+| `cuore/data/tsb_catalogue.json` | 140 rows: 99 for the reference model plus 41 sibling-engine analogues; schema inside the file. |
 | `cuore/data/scan_requirements.json` | 15 items every scan must capture for the open EVAP job. |
 
 The human-readable sources behind the code tables live in `docs/reference/`. Every table row carries a source and a confidence grade; unknown values stay unknown.

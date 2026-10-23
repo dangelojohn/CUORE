@@ -4,7 +4,7 @@
 
 ## The catalogue
 
-`cuore/data/tsb_catalogue.json`, last updated 2026-10-15, holds **141 rows**: 99 for the reference model and 42 sibling-engine analogues. A readable version is [docs/reference/TSB_CATALOGUE.md](https://github.com/dangelojohn/CUORE/blob/main/docs/reference/TSB_CATALOGUE.md). Sources include a public flat file of service bulletins received by the US safety regulator, the regulator's recall pages and the Canadian recall site.
+`cuore/data/tsb_catalogue.json`, last updated 2026-10-15, holds **140 rows**: 99 for the reference model and 41 sibling-engine analogues. A readable version is [docs/reference/TSB_CATALOGUE.md](https://github.com/dangelojohn/CUORE/blob/main/docs/reference/TSB_CATALOGUE.md). Sources include a public flat file of service bulletins received by the US safety regulator, the regulator's recall pages and the Canadian recall site.
 
 Each row has (schema is documented inside the file):
 

@@ -2,7 +2,7 @@
 
 # 0. The machine-readable catalogue (cuore/data/tsb_catalogue.json)
 
-`cuore/data/tsb_catalogue.json` is the structured twin of this document: one row per bulletin, recall, CSN or lookup placeholder for the 2018 Stelvio 2.0T Q4 (VIN ZASFAKPN5J7B88115), `updated` 2026-10-15, 99 Stelvio rows (`vehicle_scope` this_model) plus 42 sibling-engine analogue rows (see *Sibling-engine analogues* below). Row ids are stable (the per-VIN checklist is keyed on them); extra fields are tolerated.
+`cuore/data/tsb_catalogue.json` is the structured twin of this document: one row per bulletin, recall, CSN or lookup placeholder for the 2018 Stelvio 2.0T Q4 (VIN ZASFAKPN5J7B88115), `updated` 2026-10-15, 99 Stelvio rows (`vehicle_scope` this_model) plus 41 sibling-engine analogue rows (see *Sibling-engine analogues* below). Row ids are stable (the per-VIN checklist is keyed on them); extra fields are tolerated.
 
 **Schema.** Required: `id`. Core fields: `kind` (tsb/recall/csn/campaign/extended_warranty/emissions/field_report), `number`, `nhtsa_id`, `title`, `date`, `summary`, `condition`, `remedy`, `systems` (display tags), `dtcs`, `links` ([{label,url}] or null), `applies`, `source`, `verified`. Cross-reference fields (optional, never invented, empty when the research is silent): `components` (parts/part numbers inspected, replaced or flashed), `symptoms` (plain-words conditions), `repair_implied` (`flash` | `replace:<part>` | `procedure:<name>` | `inspect` | `software_update` | `none`), `depends_on_systems` (keys from `mes.systems.SYSTEMS`, e.g. evap, fuel, engine_management, air_intake_boost, transmission_driveline).
 
@@ -38,7 +38,7 @@
 | 19V551 | recall | BCM fuel level reads high | vin_check | software_update | [Source](https://www.nhtsa.gov/recalls?nhtsaId=19V551) |
 | 23V382 | recall | Carbon ceramic brake rotor fracture | no | software_update | [Source](https://www.nhtsa.gov/recalls?nhtsaId=23V382) |
 | 24V510 | recall | Seat belt buckle switch sensor connector | vin_check | procedure:repair connector | [Source](https://www.nhtsa.gov/recalls?nhtsaId=24V510) |
-| 25V586 | recall | Fuel pump failure | vin_check | replace:fuel delivery module | [NHTSA recall 25V586](https://www.nhtsa.gov/recalls?nhtsaId=25V586) |
+| 25V586 (FCA 93C) | recall | Fuel pump failure | vin_check | replace:fuel delivery module | [NHTSA recall 25V586](https://www.nhtsa.gov/recalls?nhtsaId=25V586) |
 | 2024379 | recall | Incorrect tire pressure/size labels | no | none | [Source](https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2024379-fiat-chrysler-automobiles) |
 | 2024767 | recall | Brake booster input rod | no | none | [Source](https://mobile.guideautoweb.com/en/recalls/2024767) |
 | U24/U34/U36 | csn | Customer-satisfaction handling for 2018 wiper, liftgate, BCM recalls | vin_check | none | [Source](https://static.nhtsa.gov/odi/rcl/2018/RCMN-18V205-2178.pdf) |
@@ -175,7 +175,6 @@ Groups: Electrical/BCM/Network **103** · Transmission/Driveline **26** · EVAP/
 | 07-006-23 | tsb | 2022 Wrangler PHEV 2.0L | Mis-installed 3-way coolant valve |  | yes |
 | Y10 | recall | 2020 Wrangler JL 2.0L | Fuel supply line connector may leak |  | yes |
 | 08-106-24 Rev C / RSU 24-075 | tsb | 2022-2023 Wrangler JL 2.0L (EC1,ECX) built 2022-01-01 to 2023-02-19 | Performance Limited Fuel System, no DTCs |  | yes |
-| 93C | recall | 2017-2019 Giulia and 2018-2019 Stelvio 2.0L [reference] | Fuel delivery module heat damage, loss of flow | 25V586 | yes |
 | 08-106-21 Rev A | tsb | 2021 Wrangler PHEV | 12V battery low charge |  | yes |
 | 09-009-26 (XC2) | extended_warranty | 2024-25 Wrangler, 2023-25 Grand Cherokee PHEV 2.0L (ECX) | PHEV engine replacement warranty extension |  | yes |
 | 21-034-24 | tsb | 2022 Wrangler JL 2.0L EC1 + 850RE (DFT) | Flash: TCM updates | 21-035-20 | yes |

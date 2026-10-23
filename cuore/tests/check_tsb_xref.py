@@ -260,6 +260,13 @@ check("g2: /tsb renders cross-reference + suggestion form", page.status_code == 
       and f'action="/v/{VIN}/job/job1/hypotheses/h1/evidence"' in page.text,
       f"status {page.status_code}")
 
+# (h) the shipped catalogue: 93C is FCA's number for recall 25V586, one row, not an analogue
+_real = {i["id"]: i for i in load_tsb_catalogue()["items"]}
+check("h: shipped catalogue has one row for 25V586/93C (fca_number), no sib-93c analogue",
+      _real.get("recall-25v586", {}).get("fca_number") == "93C" and "sib-93c" not in _real
+      and not [i for i in _real.values() if str(i.get("number")) == "93C"],
+      str(_real.get("recall-25v586", {}).get("fca_number")))
+
 print(f"{checks - len(failures)}/{checks} checks passed")
 for f in failures:
     print("FAIL:", f)

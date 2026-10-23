@@ -37,7 +37,7 @@ Many of the non-EVAP codes on the reference car are messages about **other modul
 
 ## Brakes and ESP-named codes
 
-C104B-92 is told on [[Code Reviews|Code-Reviews]]: service-induced per the owner (pad inspection), pending a confirming ABS read. The codes that **name** the brake or ESP side elsewhere (C1408-86, U0418-86, U0428-86, U1960-83, U1711, U1712) are text about *received signals*, not hydraulic evidence. The ABS itself has not been read since 2026-09-04, apart from one silent attempt on 10-15 ([[Vehicle Networks|Vehicle-Networks]]). ESP-, DASM- and camera-named receiver codes are **downstream of the BCM cluster**, so the first useful action is a fresh read of the brake and steering modules in the same session as the BCM, not chasing the yaw sensor or the steering rack.
+C104B-92 is told on [[Code Reviews|Code-Reviews]]: service-induced per the owner (pad inspection), pending a confirming ABS read. The rear pads are planned for replacement on 2026-10-23 (owner-attested); a new brake or ABS code after that job should be compared with the C104B-92 freeze frame, and only the ABS/EPB module is cleared, never the engine module. The codes that **name** the brake or ESP side elsewhere (C1408-86, U0418-86, U0428-86, U1960-83, U1711, U1712) are text about *received signals*, not hydraulic evidence. The ABS itself has not been read since 2026-09-04, apart from one silent attempt on 10-15 ([[Vehicle Networks|Vehicle-Networks]]). ESP-, DASM- and camera-named receiver codes are **downstream of the BCM cluster**, so the first useful action is a fresh read of the brake and steering modules in the same session as the BCM, not chasing the yaw sensor or the steering rack.
 
 ## What outside literature ranks as likely [O]
 
