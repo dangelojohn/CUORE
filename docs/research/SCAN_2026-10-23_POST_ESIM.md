@@ -1,10 +1,12 @@
 # Scan 2026-10-23 after ESIM replacement: readings and interpretation
 
+> **Superseding event, 2026-10-23 01:12.** After this scan the owner cleared ECM, IPC, BCM and DASM in MES (SCAN_2610230112, SUCCESS; MES log, not a CUORE reading). The pending bits, EVAP readiness and the 342 km of monitor history below are reset. The permanent codes P0440/P0456 survive a clear by design and still clear only on a passed monitor. **Consequence (inference):** every EVAP result from now on is unambiguously post-ESIM, which removes the before/after ambiguity noted in this document. **New proof baseline: 2026-10-23 01:12, odometer 148,207 km.** Proof criteria are unchanged: Mode 06 0x3A/0x87 at or above its minimum, no test-failed bits, EVAP readiness complete, permanent codes gone. Conditions: fuel 15-85 % (46 % now, do not fill), cold soak, then cold start and a 20+ min drive, repeated. No further clears by anyone; re-read before 2026-10-28. The readings below remain the pre-clear record. Also on the owner side: IPC service-interval reset (FESLog 0114) and a BCM 'Indicators command' adjustment attempt that stopped at SECURITY CODE (FESLog 0127, no outcome recorded). See `docs/vehicles/ZASFAKPN5J7B88115/radio/MES_MODULE_READS_2026-10-23.md`. EVAP job 76d3454bce75.
+
 2018 Alfa Romeo Stelvio 2.0T Q4, VIN ZASFAKPN5J7B88115. CUORE scan SCAN_2610230010, 2026-10-23 00:10 local. Jobs: 76d3454bce75 (EVAP), bb4ebb961aee (network), d04440124055 (dealer visit 2026-10-28).
 
 Labels used: **[CUORE]** a reading taken by CUORE tonight (file named); **[OWNER]** a fact stated by the owner, not a reading. Outside facts are leads, not proof.
 
-Nothing was cleared. No clear is needed or allowed (see Verdict).
+Nothing was cleared by this scan. (Superseded: the owner cleared at 01:12, see the box at the top.) No further clear is needed or allowed (see Verdict).
 
 ## Conditions
 
