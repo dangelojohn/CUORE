@@ -41,6 +41,7 @@ from .web import drivetrain_routes  # noqa: E402
 from .web import dossier_routes  # noqa: E402
 from .web import electrical_routes  # noqa: E402
 from .web import load_step_routes  # noqa: E402
+from .web import purge_trim_routes  # noqa: E402
 from .web import fullscan_routes  # noqa: E402
 from .web import labels_routes  # noqa: E402
 from .web import live_dashboard_routes  # noqa: E402
@@ -216,6 +217,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(system_routes.router)
     app.include_router(electrical_routes.router)
     app.include_router(load_step_routes.router)
+    app.include_router(purge_trim_routes.router)
     app.include_router(modules_routes.router)
     app.include_router(scan_health_routes.router)
     app.include_router(fullscan_routes.router)

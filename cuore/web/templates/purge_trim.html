@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Purge-trim EVAP test — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<h1>Purge-trim EVAP test (passive)</h1>
+<p class="small muted">Read-only. Records the ECM's commanded purge %, fuel trims, RPM, MAP, load, coolant, fuel level and
+  ambient temperature for 4 minutes while the engine idles and you touch nothing. The ECM opens the purge valve by itself
+  when its conditions allow; the analysis compares the fuel trims with purge off and on.
+  A canister holding vapour plus a flowing purge path pulls short-term trim negative when the valve opens (inference).
+  The commanded % is the ECM's request, not measured flow; this car has no EVAP pressure sensor.
+  Procedure and limits: <span class="mono">docs/maintenance/PURGE_TRIM_TEST.md</span>.</p>
+
+<div class="panel">
+  <p><b>Before you press Start:</b> {{ spec.preconditions }}</p>
+  <p class="small">Channels:
+    {% for c in spec.channel_rows %}<span class="chip {{ 'ok' if c.present else 'chronic' }}">{{ c.id }}{% if not c.present %} (not in registry){% endif %}</span> {% endfor %}
+    &middot; rates requested per channel (10 Hz for purge, STFT, RPM); the achieved rate is shown while it runs.</p>
+  <p>
+    <label class="small">Label (optional) <input id="pt-label" type="text" maxlength="40" placeholder="e.g. warm-idle"></label>
+    <button class="btn primary" id="pt-start" type="button">Start 4-minute test</button>
+    <button class="btn" id="pt-stop" type="button">Stop</button>
+  </p>
+  <p id="pt-msg" class="small muted"></p>
+</div>
+
+<div class="panel" id="pt-now" style="text-align:center">
+  <div class="small muted" id="pt-clock">not started</div>
+  <div style="font-size:2rem;font-weight:700;margin:8px 0" id="pt-step">&mdash;</div>
+  <div id="pt-instr" style="font-size:1.2rem"></div>
+  <div style="font-size:1.4rem;margin-top:10px" id="pt-purge"></div>
+  <div class="small" id="pt-vals" style="margin-top:8px"></div>
+</div>
+
+<h2>The script</h2>
+<div class="tw"><table>
+  <thead><tr><th>From</th><th>To</th><th>Step</th><th>What you do</th></tr></thead>
+  <tbody>
+  {% for s in spec.script %}
+    <tr><td class="mono">{{ "%d:%02d"|format(s.t0 // 60, s.t0 % 60) }}</td>
+        <td class="mono">{{ "%d:%02d"|format(s.t1 // 60, s.t1 % 60) }}</td>
+        <td><b>{{ s.label }}</b></td><td>{{ s.instruction }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+
+<h2>Result</h2>
+<p><button class="btn" id="pt-analyse" type="button">Analyse the latest recording</button></p>
+<div id="pt-result" class="tw"></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var DURATION = {{ spec.duration_s }};
+  var timer = null;
+  function fmt(t) { t = Math.max(0, Math.round(t)); return Math.floor(t / 60) + ":" + ("0" + (t % 60)).slice(-2); }
+  function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;"}[c]; }); }
+  function msg(t) { $("pt-msg").textContent = t; }
+  function num(x, d) { return (x === null || x === undefined) ? "n/a" : Number(x).toFixed(d === undefined ? 2 : d); }
+  function api(method, url, body) {
+    return fetch(url, {method: method, headers: {"Content-Type": "application/json"},
+                       body: body ? JSON.stringify(body) : undefined})
+      .then(function (r) { return r.json().then(function (j) { if (!r.ok) throw new Error(j.detail || j.error || r.status); return j; }); });
+  }
+  function render(st) {
+    if (!st.running) {
+      $("pt-clock").textContent = st.ended ? ("finished " + st.ended + (st.aborted ? " (stopped early)" : "")) : "not running";
+      if (st.ended) { $("pt-step").textContent = "Done"; $("pt-instr").textContent = "Press Analyse."; }
+      return false;
+    }
+    $("pt-clock").textContent = fmt(st.elapsed_s) + " / " + fmt(DURATION);
+    var s = st.step || {};
+    $("pt-step").textContent = s.label || "";
+    $("pt-instr").textContent = s.instruction || "";
+    var v = st.values || {}, u = st.units || {}, parts = [];
+    var p = v.commanded_evap_purge;
+    $("pt-purge").textContent = "Commanded purge: " + (p === null || p === undefined ? "no reading yet" : Number(p).toFixed(1) + " %") +
+      (p !== null && p !== undefined ? (p >= 1 ? "  (OPEN)" : "  (closed)") : "");
+    Object.keys(v).forEach(function (k) {
+      if (k !== "commanded_evap_purge" && v[k] !== null && v[k] !== undefined) parts.push(k + " " + Number(v[k]).toFixed(1) + " " + (u[k] || ""));
+    });
+    $("pt-vals").textContent = parts.join("  |  ");
+    return true;
+  }
+  function poll() {
+    api("GET", "/api/live/purge-trim/status").then(function (st) {
+      if (!render(st)) { clearInterval(timer); timer = null; }
+    }).catch(function (e) { msg(String(e)); });
+  }
+  $("pt-start").onclick = function () {
+    msg("starting...");
+    api("POST", "/api/live/purge-trim/start", {label: $("pt-label").value}).then(function (r) {
+      msg("recording to " + r.recording);
+      if (timer) clearInterval(timer);
+      timer = setInterval(poll, 500); poll();
+    }).catch(function (e) { msg("not started: " + e.message); });
+  };
+  $("pt-stop").onclick = function () { api("POST", "/api/live/purge-trim/stop").then(function () { msg("stop requested"); }); };
+  function segRow(name, s) {
+    if (!s || !s.rows) return "<tr><td>" + name + "</td><td colspan='6'>no samples</td></tr>";
+    return "<tr><td>" + name + "</td><td>" + s.rows + "</td><td>" + num(s.stft_mean) + " %</td><td>" + num(s.ltft_mean) +
+      " %</td><td>" + num(s.rpm_mean, 0) + "</td><td>" + num(s.map_mean, 1) + " kPa</td><td>" + num(s.load_mean, 1) + " %</td></tr>";
+  }
+  $("pt-analyse").onclick = function () {
+    api("GET", "/api/live/purge-trim/analysis").then(function (a) {
+      var h = "<p><b>" + esc(a.verdict) + "</b></p>";
+      if (a.purge_max_pct !== undefined) h += "<p class='small'>Peak commanded purge in the window: " + a.purge_max_pct + " % (on = at least " + a.on_threshold_pct + " %).</p>";
+      if (a.off || a.on) {
+        h += "<table><thead><tr><th>Segment</th><th>Rows</th><th>STFT mean</th><th>LTFT mean</th><th>RPM mean</th><th>MAP mean</th><th>Load mean</th></tr></thead><tbody>";
+        h += segRow("Purge off", a.off); if (a.mode === "purge_commanded") h += segRow("Purge on", a.on);
+        h += "</tbody></table>";
+      }
+      if (a.events && a.events.length) {
+        h += "<h3>Purge openings</h3><table><thead><tr><th>t (s)</th><th>STFT before</th><th>Lowest after</th><th>Dip</th><th>Lag</th><th>RPM / MAP change</th><th>Steady</th><th>Response</th></tr></thead><tbody>";
+        a.events.forEach(function (e) {
+          h += e.usable ? "<tr><td>" + e.t_open_s + "</td><td>" + e.stft_baseline + "</td><td>" + e.stft_min_after + "</td><td>" + e.dip_pct +
+            " %</td><td>" + e.lag_s + " s</td><td>" + num(e.rpm_change, 0) + " / " + num(e.map_change_kpa, 1) + "</td><td>" + (e.steady ? "yes" : "no") +
+            "</td><td>" + (e.response ? "yes" : "no") + "</td></tr>"
+            : "<tr><td>" + e.t_open_s + "</td><td colspan='7'>" + esc(e.why) + "</td></tr>";
+        });
+        h += "</tbody></table>";
+      }
+      if (a.excursions && a.excursions.excursions) {
+        h += "<p class='small'>STFT median " + a.excursions.median + " %; excursions of " + a.dip_response_pct + " % or more: " +
+          (a.excursions.excursions.length ? a.excursions.excursions.map(function (x) { return x.t0 + "-" + x.t1 + " s (" + x.extreme + " %)"; }).join(", ") : "none") + ".</p>";
+      }
+      var c = a.context || {};
+      h += "<p class='small muted'>Coolant " + num(c.coolant_first_c, 0) + " to " + num(c.coolant_last_c, 0) + " C, fuel level " + num(c.fuel_level_pct, 0) +
+        " %, ambient " + num(c.ambient_c, 0) + " C. " + a.caveats.map(esc).join(" ") + " Interpretation is inference; general reference: <a href='" + a.reference + "'>" + a.reference + "</a>. File: " + esc(a.recording || "") + "</p>";
+      $("pt-result").innerHTML = h;
+    }).catch(function (e) { $("pt-result").textContent = "No analysis: " + e.message; });
+  };
+  poll();
+})();
+</script>
+{% endblock %}

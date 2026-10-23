@@ -1389,6 +1389,28 @@ def live_load_step_analysis(recording: str = "") -> dict[str, Any]:
     return load_step.analyze_recording(recording)
 
 
+def live_purge_trim_start(label: str = "") -> dict[str, Any]:
+    """Start the passive purge-trim EVAP test as a named recording (read-only, 4 min)."""
+    from . import purge_trim
+    return purge_trim.start(label)
+
+
+def live_purge_trim_stop() -> dict[str, Any]:
+    from . import purge_trim
+    return purge_trim.stop()
+
+
+def live_purge_trim_status() -> dict[str, Any]:
+    from . import purge_trim
+    return purge_trim.status()
+
+
+def live_purge_trim_analysis(recording: str = "") -> dict[str, Any]:
+    """Purge-off vs purge-on trims from a saved purge-trim recording (newest by default)."""
+    from . import purge_trim
+    return purge_trim.analyze_recording(recording)
+
+
 def live_stream_subscribe() -> Any:
     """A queue of ``{t, channel, value, unit, alarm}`` messages for the SSE route."""
     from . import poller as poller_mod
@@ -1470,4 +1492,6 @@ __all__ += ["live_channels", "live_session_start", "live_session_stop", "live_se
            "live_snapshot", "live_record_start", "live_record_stop", "live_set_alarm",
            "live_load_step", "live_load_step_start", "live_load_step_stop",
            "live_load_step_status", "live_load_step_analysis",
+           "live_purge_trim_start", "live_purge_trim_stop", "live_purge_trim_status",
+           "live_purge_trim_analysis",
            "live_stream_subscribe", "live_stream_unsubscribe", "live_stream_events"]

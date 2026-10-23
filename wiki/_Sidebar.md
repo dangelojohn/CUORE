@@ -24,6 +24,7 @@
 **Reference case**
 - [[Case Study: Stelvio EVAP|Case-Study-Stelvio-EVAP]]
 - [[ESIM Bench Test|ESIM-Bench-Test]]
+- [[EVAP Interactive Tests|EVAP-Interactive-Tests]]
 - [[Code Reviews|Code-Reviews]]
 - [[Network and Brake Findings|Network-and-Brake-Findings]]
 - [[Wiring and Ground Faults|Wiring-and-Ground-Faults]]

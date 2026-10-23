@@ -302,6 +302,15 @@ PRESETS: dict[str, tuple[str, ...]] = {
     # 2026-10-23 against ATRV 14.5 V). ecm_1955 is deliberately NOT here: it
     # answered requestOutOfRange (NRC 31) on this car on 2026-10-23.
     "load_step_voltage": ("battery_voltage", "control_module_voltage", "bcm_1004"),
+    # Passive purge-trim EVAP test (cuore.live.purge_trim,
+    # docs/maintenance/PURGE_TRIM_TEST.md). Mode 01 only, read-only. PID 2E is
+    # the ECM's COMMANDED purge %, not measured flow. The EVAP vapour-pressure
+    # PID is deliberately absent: this car's ESIM system has no pressure sensor.
+    # PID 04 (calculated load) has no decoder in cuore.live.obd, so the
+    # supported PID 43 absolute_load stands in for "load". CSV column order.
+    "purge_trim": ("commanded_evap_purge", "short_fuel_trim_b1", "long_fuel_trim_b1",
+                   "engine_rpm", "intake_map", "absolute_load", "engine_coolant_temp",
+                   "fuel_level", "ambient_air_temp"),
 }
 
 #: Presets that are scripted, timed recordings rather than open-ended polls.
@@ -353,6 +362,30 @@ RECORDING_PRESETS: dict[str, dict[str, Any]] = {
         "excess_drop_limit_v": 0.3,
         "script": _load_step_script(),
         "doc": "docs/maintenance/LOAD_STEP_VOLTAGE_TEST.md",
+    },
+    "purge_trim": {
+        "name": "Purge-trim EVAP test (passive)",
+        "preset": "purge_trim",
+        "duration_s": 240,
+        "rate_hz": 10.0,
+        # per-channel requests (Hz); the poller serves them as fast as the adapter loop allows
+        "rates_hz": {"commanded_evap_purge": 10.0, "short_fuel_trim_b1": 10.0, "engine_rpm": 10.0,
+                     "long_fuel_trim_b1": 2.0, "intake_map": 5.0, "absolute_load": 5.0,
+                     "engine_coolant_temp": 0.5, "fuel_level": 0.5, "ambient_air_temp": 0.2},
+        "read_only": True,
+        "preconditions": ("Engine idling and fully warm, battery charger/maintainer disconnected, "
+                          "parked outdoors or ventilated, handbrake on, car in P, A/C and all loads off. "
+                          "Do not touch the throttle. The ECM opens the purge valve by itself when its "
+                          "conditions allow; the test only watches."),
+        "on_threshold_pct": 1.0,
+        "dip_window_s": 10.0,
+        "dip_baseline_s": 5.0,
+        "dip_response_pct": 3.0,
+        "script": ({"t0": 0, "t1": 240, "state": "watch", "load": None, "label": "Idle, hands off",
+                    "instruction": ("Engine idling warm, charger OFF, no loads (lights, A/C, defrost, "
+                                    "blower, seats OFF). Do not touch the throttle or any switch. "
+                                    "Recording ends at 4:00.")},),
+        "doc": "docs/maintenance/PURGE_TRIM_TEST.md",
     },
 }
 

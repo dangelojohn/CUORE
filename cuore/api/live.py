@@ -402,6 +402,28 @@ def live_load_step_analysis_route(recording: str = Query(default="")) -> dict[st
     return ops.live_load_step_analysis(recording)
 
 
+@router.post("/live/purge-trim/start",
+            summary="Start the passive purge-trim EVAP test as a named recording (read-only, 4 min)")
+def live_purge_trim_start_route(label: str = Body(default="", embed=True)) -> dict[str, Any]:
+    return ops.live_purge_trim_start(label)
+
+
+@router.post("/live/purge-trim/stop", summary="Stop the purge-trim test early")
+def live_purge_trim_stop_route() -> dict[str, Any]:
+    return ops.live_purge_trim_stop()
+
+
+@router.get("/live/purge-trim/status", summary="Purge-trim test: elapsed and live values")
+def live_purge_trim_status_route() -> dict[str, Any]:
+    return ops.live_purge_trim_status()
+
+
+@router.get("/live/purge-trim/analysis",
+            summary="Purge-off vs purge-on trims and the trim dip when purge opens, from a saved recording")
+def live_purge_trim_analysis_route(recording: str = Query(default="")) -> dict[str, Any]:
+    return ops.live_purge_trim_analysis(recording)
+
+
 @router.post("/live/alarms", summary="Set a warn/alarm threshold on one live channel")
 def live_alarms_route(channel: str = Body(..., embed=True),
                       warn: Optional[float] = Body(default=None, embed=True),
