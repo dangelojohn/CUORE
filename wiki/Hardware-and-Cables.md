@@ -42,6 +42,8 @@ MultiEcuScan sells (and the project uses) two adapter cables that re-route the c
 | **Blue A5** | CAN-IHS (pins 3/11) | 125 kbit/s | Open the bus only at 125 kbit/s. Listening works on the 11-bit route; UDS to body modules has not been answered yet (see [[Known Limitations and Open Issues|Known-Limitations-and-Open-Issues]]). |
 | **Grey A6** | CAN-CH (pins 12/13) | 500 kbit/s | Safety-relevant bus (brakes, airbag, steering assist). Any transmit needs explicit confirmation. |
 
+The full catalogue of coloured cables (A1 to A6, the 3-pin lead and the SGW bypass), with a per-brand matrix, is on [[Adapter Cables|Adapter-Cables]]. That catalogue is an external reference, not a CUORE reading: only these two cables are driven live, and the page also repeats the wrong-bitrate and pins-1-and-9 warnings.
+
 The cable is **declared**, not detected: you tell CUORE which cable is fitted, and changing the declaration clears every bus verification. A bus the declared cable does not reach is refused. One adapter has one CAN peripheral, so only one bus can be read at a time; the guided scan pauses for each swap ([[Guided Full Scan|Guided-Full-Scan]]). A second adapter permanently on a cable would remove the swap and is listed as an open hardware option.
 
 ## The Security Gateway

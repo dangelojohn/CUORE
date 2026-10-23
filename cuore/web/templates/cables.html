@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{# Adapter-cable catalogue (cuore/web/cables_routes.py -> cuore/services/adapter_cables_bridge.py).
+   Read-only reference. Nothing here can select, declare or drive a cable. #}
+{% block title %}Adapter cables{% endblock %}
+{% block content %}
+<h1>Adapter cables</h1>
+<p class="lede"><strong>External reference, not a CUORE reading.</strong> Coloured OBD adapter
+  cables as described by vendors, official tool pages and owner forums
+  (<span class="mono">docs/research/ADAPTER_CABLES.md</span>, 2026-10-22). Nothing on this page was
+  measured on the car, and none of it is proof. Each row keeps its own confidence and sources.</p>
+
+<div class="note alert"><span class="lab">Wrong-bitrate listens</span>
+  {{ data.warnings[0] }}</div>
+<div class="note alert"><span class="lab">Pins 1 and 9</span>
+  Do not use cables or interfaces with a short between pins 1 and 9 on Giulia or Stelvio; it drops the bus.
+  The green A1 lead ties pins 1/7/9/12 together. Continuity-check any cable before fitting.</div>
+
+<p class="small">CUORE can drive only two of these cables live:
+  <span class="chip ok">A5 blue &middot; blue_a5</span>
+  <span class="chip ok">A6 grey &middot; grey_a6</span>.
+  Every other row is reference only: CUORE has no route for it, and this page cannot declare a cable
+  (that is done on <a href="/live">Live link</a>).</p>
+
+<form method="get" action="/cables" class="small" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+  <label>Brand <input type="search" name="brand" value="{{ brand }}" placeholder="e.g. Alfa, Fiat, Jeep"></label>
+  <button class="btn" type="submit">Filter</button>
+  {% if brand %}<a href="/cables">clear</a>{% endif %}
+  <span class="muted">{{ data.count }} row{{ '' if data.count == 1 else 's' }}</span>
+</form>
+
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>ID</th><th>Colour</th><th>Pins</th><th>Bus</th><th>Bitrate</th>
+      <th>Brands</th><th>CUORE live</th><th>Confidence</th></tr></thead>
+    <tbody>
+    {% for c in data.cables %}
+      <tr id="cable-{{ c.id|lower }}">
+        <td class="mono">{{ c.id }}</td>
+        <td>{{ c.colour }}</td>
+        <td class="small">{{ c.pin_map }}</td>
+        <td class="small">{{ c.bus }}</td>
+        <td class="small">{{ c.bitrate }}</td>
+        <td class="small">{{ c.brands }}</td>
+        <td>{% if c.live_route %}<span class="chip ok">yes &middot; {{ c.live_route }}</span>
+            {% else %}<span class="chip plain">no</span>{% endif %}</td>
+        <td class="small">{{ c.confidence }}</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td colspan="7" class="small muted">
+          <div><strong>Models:</strong> {{ c.models }}</div>
+          <div><strong>Cautions:</strong> {{ c.cautions }}</div>
+          <div><strong>Sources:</strong>
+            {% for s in c.sources %}<span class="mono">{{ s }}</span>{% if not loop.last %}; {% endif %}{% endfor %}</div>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

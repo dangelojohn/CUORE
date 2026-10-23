@@ -31,6 +31,7 @@ As of 2026-10-22 the project is a working bench application for one reference ca
 **Start here**
 - [[Getting Started|Getting-Started]]: install, start, first connection, health check.
 - [[Hardware and Cables|Hardware-and-Cables]]: adapter, OBD pins, bypass cables, security gateway, one program per port.
+- [[Adapter Cables|Adapter-Cables]]: the coloured A1-A6 / 3-pin / SGW cable catalogue (external reference), with cautions.
 - [[Vehicle Networks|Vehicle-Networks]]: the three CAN buses, addressing modes, module table, awake and asleep signatures.
 
 **How it works**
