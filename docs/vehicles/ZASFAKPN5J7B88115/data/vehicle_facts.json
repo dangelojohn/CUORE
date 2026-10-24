@@ -47,6 +47,132 @@
       ]
     }
   ],
+  "radio_compare": {
+    "title": "Radio: installed vs recommended",
+    "columns": [
+      "Installed now",
+      "Recommended",
+      "Not for this car"
+    ],
+    "rows": [
+      {
+        "label": "Radio software (MV)",
+        "cells": [
+          "MV-002.009.043",
+          "MV-002.010.041",
+          "MV-090.000.061"
+        ]
+      },
+      {
+        "label": "TV",
+        "cells": [
+          "TV-002.009.043",
+          "Unknown (probably moves with MV)",
+          "-"
+        ]
+      },
+      {
+        "label": "Radio type",
+        "cells": [
+          "2.0 radio",
+          "2.0 radio (same hardware)",
+          "2.5 radio only"
+        ]
+      },
+      {
+        "label": "Bulletin",
+        "cells": [
+          "-",
+          "TSB 08-029-20 (2020-03-05)",
+          "TSB 08-065-20 (2020-06-24)"
+        ]
+      },
+      {
+        "label": "Covers this build (09/2017)?",
+        "cells": [
+          "-",
+          "Yes: Stelvio built on or before 2018-01-11",
+          "No: Stelvio window starts 2017-10-30"
+        ]
+      },
+      {
+        "label": "Bulletin wording",
+        "cells": [
+          "Listed as 'update the ETM'",
+          "'has the latest available software'",
+          "'.059 or lower... will not download to the radio'"
+        ]
+      },
+      {
+        "label": "Where to get it",
+        "cells": [
+          "-",
+          "Dealer portal (DealerCONNECT); not obtained yet",
+          "-"
+        ]
+      },
+      {
+        "label": "Source",
+        "cells": [
+          "Owner on-screen 2026-10-23",
+          "Bulletin text read 2026-10-24",
+          "Bulletin text read 2026-10-24"
+        ]
+      }
+    ],
+    "ladders": [
+      {
+        "title": "2.0 radio family (this car's hardware)",
+        "steps": [
+          {
+            "v": "002.008.041"
+          },
+          {
+            "v": "002.009.043",
+            "mark": "installed"
+          },
+          {
+            "v": "002.009.053"
+          },
+          {
+            "v": "002.009.055"
+          },
+          {
+            "v": "002.009.059"
+          },
+          {
+            "v": "002.010.041",
+            "mark": "recommended",
+            "note": "latest 2.0"
+          }
+        ]
+      },
+      {
+        "title": "2.5 radio family (different hardware)",
+        "steps": [
+          {
+            "v": "072.001.002"
+          },
+          {
+            "v": "081.000.004"
+          },
+          {
+            "v": "085.000.046"
+          },
+          {
+            "v": "090.000.061",
+            "mark": "excluded",
+            "note": "will not install on a 2.0 radio"
+          }
+        ]
+      }
+    ],
+    "notes": [
+      "TSB 08-029-20: the 2.0 and 2.5 software will not work on each other's radios.",
+      "002.010.043 appears only in forum posts: unconfirmed.",
+      "971.7832 is probably the map version (unconfirmed); the map update stays on hold until the radio is done."
+    ]
+  },
   "links": [
     {"label": "TSB 08-029-20 (target MV-002.010.041)", "path": "docs/vehicles/ZASFAKPN5J7B88115/radio/TSB_08-029-20_MV-002.010.041.pdf"},
     {"label": "TSB 08-065-20 (MV-090.000.061, 2.5 radio)", "path": "docs/vehicles/ZASFAKPN5J7B88115/radio/TSB_08-065-20_MV-090.000.061.pdf"},

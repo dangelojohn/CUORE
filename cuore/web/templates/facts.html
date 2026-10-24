@@ -12,6 +12,22 @@
 .facts-val { font-size: 16px; font-weight: 600; }
 .facts-src { font-size: 11px; color: var(--ink-3); }
 .facts-row.is-unknown .facts-val { color: var(--sev-returned); }
+.facts > .panel { min-width: 0; max-width: 100%; }
+.rc-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; max-width: 100%; }
+.rc-table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 13px; }
+.rc-table th, .rc-table td { text-align: left; vertical-align: top; padding: 6px 8px; border-top: 1px solid var(--rule); }
+.rc-table thead th { font-size: 12px; color: var(--ink-3); border-top: 0; }
+.rc-table tbody th { font-weight: 400; color: var(--ink-3); width: 150px; }
+.rc-table .rc-col-2 { font-weight: 600; background: var(--surface-2); }
+.rc-table .rc-col-3 { color: var(--ink-3); }
+.rc-ladders { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 12px; }
+.rc-ladder { flex: 1 1 240px; }
+.rc-step { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; padding: 4px 8px; border-left: 3px solid var(--rule); }
+.rc-step.is-installed { border-left-color: var(--ink-3); font-weight: 600; }
+.rc-step.is-recommended { border-left-color: var(--sev-ok, var(--ink)); font-weight: 700; background: var(--surface-2); }
+.rc-step.is-excluded { border-left-color: var(--sev-returned); text-decoration: line-through; color: var(--ink-3); }
+.rc-step.is-excluded .rc-tag, .rc-step.is-excluded .facts-src { text-decoration: none; display: inline-block; }
+.rc-tag { font-size: 11px; letter-spacing: .04em; padding: 1px 6px; border: 1px solid currentColor; border-radius: var(--radius); }
 @media (min-width: 700px) {
   .facts-row { flex-direction: row; align-items: baseline; gap: 12px; }
   .facts-lab { flex: 0 0 200px; }
@@ -39,6 +55,27 @@
     </div>
     {% endfor %}
   </section>
+  {% if s.id == 'infotainment' and facts.radio_compare %}{% set rc = facts.radio_compare %}
+  <section class="panel" id="facts-radio-compare">
+    <h2>{{ rc.title }}</h2>
+    <div class="rc-wrap"><table class="rc-table">
+      <thead><tr><th></th>{% for c in rc.columns %}<th class="rc-col-{{ loop.index }}">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for r in rc.rows %}<tr><th scope="row">{{ r.label }}</th>{% for c in r.cells %}<td class="rc-col-{{ loop.index }}">{{ c }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="rc-ladders">
+      {% for l in rc.ladders %}
+      <div class="rc-ladder"><div class="facts-lab">{{ l.title }}</div>
+        {% for st in l.steps %}
+        <div class="rc-step{{ ' is-' ~ st.mark if st.mark }}"><span class="mono">{{ st.v }}</span>
+          {% if st.mark == 'installed' %}<span class="rc-tag">INSTALLED</span>{% elif st.mark == 'recommended' %}<span class="rc-tag">RECOMMENDED</span>{% elif st.mark == 'excluded' %}<span class="rc-tag">NOT FOR THIS CAR</span>{% endif %}
+          {% if st.note %}<span class="facts-src">{{ st.note }}</span>{% endif %}</div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+    {% for n in rc.notes %}<p class="facts-src">{{ n }}</p>{% endfor %}
+  </section>
+  {% endif %}
   {% endfor %}
   {% if facts.links %}
   <section class="panel" id="facts-links">

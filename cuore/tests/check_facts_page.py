@@ -29,7 +29,9 @@ def check_page() -> None:
     t = r.text
     for needle in ("09/2017", "Cassino", "148,207 km", "30 psi (210 kPa)", "33 psi (230 kPa)",
                    "MV-002.010.041", "MV-002.009.043", "door label", "2026-10-23", "UNKNOWN",
-                   "U36", "18V-205", "unconfirmed", "inference"):
+                   "U36", "18V-205", "unconfirmed", "inference",
+                   'id="facts-radio-compare"', "RECOMMENDED", "INSTALLED", "NOT FOR THIS CAR",
+                   "MV-090.000.061", "TSB 08-029-20 (2020-03-05)"):
         assert needle in t, needle
     assert f'href="/v/{VIN}/facts"' in t  # nav link, vehicle-scoped
 
