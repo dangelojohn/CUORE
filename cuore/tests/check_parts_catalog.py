@@ -106,7 +106,7 @@ def main() -> None:
     assert c.get("/catalog/img/stelvio-2018-2.0l/..%2Fcatalog.json").status_code == 404
     assert c.get("/catalog/img/../x.png").status_code == 404
     r = c.get("/start")
-    assert 'href="/catalog"' in r.text
+    assert 'href="/catalog"' in r.text and 'class="icon-btn parts-link' in r.text
     print("parts catalogue OK")
 
 

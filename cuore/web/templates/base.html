@@ -29,6 +29,7 @@
   <span class="profile" title="Which half of the system this is">{{ profile }}</span>
   <a class="icon-btn live-link no-print" href="/live" title="Live link: the adapter, right now">Live link</a>
   <a class="icon-btn facts-link no-print" href="{{ '/v/' ~ vin ~ '/facts' if vin is defined and vin else '/facts' }}" title="Vehicle facts: build, tyres, wheels, radio, recall">{{ facts_nav_label(vin if vin is defined and vin else None) if facts_nav_label is defined else 'Facts' }}</a>
+  <a class="icon-btn parts-link no-print" href="/catalog" title="Parts catalogue: schematics and part numbers">Parts</a>
   <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle dark/light theme"
           title="Toggle dark/light theme">&#9680;</button>
   <button type="button" class="icon-btn no-print" aria-label="Print this page"

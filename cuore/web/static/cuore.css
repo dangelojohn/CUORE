@@ -363,7 +363,7 @@ code, kbd, samp, .mono {
   padding-left: 14px; border-left: 1px solid var(--rule);
   color: var(--ink-3) !important; opacity: .8;
 }
-.top .live-link, .top .facts-link {
+.top .live-link, .top .facts-link, .top .parts-link {
   text-decoration: none; font-family: var(--mono); font-size: var(--fs-xs);
   text-transform: uppercase; letter-spacing: .08em; padding: 0 10px; white-space: nowrap;
 }
