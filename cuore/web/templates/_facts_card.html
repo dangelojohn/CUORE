@@ -1,0 +1,9 @@
+{# Small Vehicle facts summary for the landing page; renders nothing without a facts file. #}
+{% if facts_summary and facts_summary.rows %}
+<a class="bench-facts" href="/v/{{ vin }}/facts" style="display:block;padding:8px 10px;border:1px solid var(--rule);border-radius:var(--radius);background:var(--surface-2);color:inherit;text-decoration:none;font-size:13px">
+  <strong>Vehicle facts</strong> <span class="muted">&rsaquo;</span>
+  {% for r in facts_summary.rows %}
+  <div style="display:flex;gap:8px;justify-content:space-between"><span class="muted">{{ r.label }}</span><span{% if r.flag == 'unknown' %} style="color:var(--sev-returned)"{% endif %}>{{ r.value }}</span></div>
+  {% endfor %}
+</a>
+{% endif %}

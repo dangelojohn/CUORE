@@ -50,6 +50,7 @@ from .web import learn_routes  # noqa: E402
 from .web import mes_learn_routes  # noqa: E402
 from .web import owner_routes  # noqa: E402
 from .web import oil_level_routes  # noqa: E402
+from .web import facts_routes  # noqa: E402
 from .api import owner_events as owner_events_api  # noqa: E402
 from .api import scanlog as scanlog_api  # noqa: E402
 from .api import vision as vision_api  # noqa: E402
@@ -195,6 +196,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(shop_routes.router)
     app.include_router(dashboard_routes.router)
     app.include_router(oil_level_routes.router)
+    app.include_router(facts_routes.router)
     app.include_router(service_routes.router)
     app.include_router(drivetrain_routes.router)
     app.include_router(labels_routes.router)

@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{# Vehicle facts quick-view (cuore/web/facts_routes.py -> cuore/services/vehicle_facts_bridge.py).
+   All values come from docs/vehicles/<VIN>/data/vehicle_facts.json; each row shows its source and date. #}
+{% block title %}Vehicle facts{% endblock %}
+{% block content %}
+<style>
+.facts { display: flex; flex-direction: column; gap: 10px; max-width: 100%; }
+.facts h2 { margin: 0 0 6px; font-size: 16px; }
+.facts-row { display: flex; flex-direction: column; padding: 6px 0; border-top: 1px solid var(--rule); overflow-wrap: anywhere; }
+.facts-row:first-of-type { border-top: 0; }
+.facts-lab { font-size: 12px; color: var(--ink-3); }
+.facts-val { font-size: 16px; font-weight: 600; }
+.facts-src { font-size: 11px; color: var(--ink-3); }
+.facts-row.is-unknown .facts-val { color: var(--sev-returned); }
+@media (min-width: 700px) {
+  .facts-row { flex-direction: row; align-items: baseline; gap: 12px; }
+  .facts-lab { flex: 0 0 200px; }
+  .facts-val { flex: 1 1 auto; }
+  .facts-src { flex: 0 0 280px; text-align: right; }
+}
+</style>
+<h1>Vehicle facts</h1>
+{% if not facts %}
+  <div class="note warn"><span class="lab">No facts file</span>
+    No facts are recorded for <span class="mono">{{ vin }}</span> yet
+    (expected <span class="mono">docs/vehicles/{{ vin }}/data/vehicle_facts.json</span>).</div>
+{% else %}
+<p class="lede small muted"><span class="mono">{{ facts.vin }}</span> &middot; as of {{ facts.as_of }}.
+  {{ facts.note }}</p>
+<div class="facts">
+  {% for s in facts.sections %}
+  <section class="panel" id="facts-{{ s.id }}">
+    <h2>{{ s.title }}</h2>
+    {% for r in s.rows %}
+    <div class="facts-row{{ ' is-unknown' if r.flag == 'unknown' }}">
+      <span class="facts-lab">{{ r.label }}</span>
+      <span class="facts-val">{{ r.value }}</span>
+      <span class="facts-src">{{ r.source }} &middot; {{ r.date }}{% if r.confidence %} &middot; <em>{{ r.confidence }}</em>{% endif %}</span>
+    </div>
+    {% endfor %}
+  </section>
+  {% endfor %}
+  {% if facts.links %}
+  <section class="panel" id="facts-links">
+    <h2>Links</h2>
+    {% for l in facts.links %}
+    <div class="facts-row"><span class="facts-val">{{ l.label }}</span>
+      <span class="facts-src mono">{{ l.path }}</span></div>
+    {% endfor %}
+  </section>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

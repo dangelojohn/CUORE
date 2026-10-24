@@ -29,6 +29,7 @@ from fastapi import APIRouter
 
 from ..api.deps import require_token
 from ..live import checklists as checklist_store
+from ..services import vehicle_facts_bridge
 from ..services import bench_bridge, cache, dossier_bridge, mes_bridge
 from ..services.errors import BadRequest
 from . import routes as web_routes
@@ -71,7 +72,8 @@ def bench_page(request: Request, vin: str) -> HTMLResponse:
     # placeholder this VIN's own dossier.identity has no "vehicle" field for.
     bar["name"] = bench["vehicle"]
     response = web_routes._page(request, "bench.html", vin=vin, bench=bench,
-                                bar=bar, view=view, tab="bench")
+                                bar=bar, view=view, tab="bench",
+                                facts_summary=vehicle_facts_bridge.summary(vin))
     web_routes._set_active_vehicle(response, vin)
     return response
 

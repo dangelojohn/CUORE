@@ -1,0 +1,56 @@
+{
+  "vin": "ZASFAKPN5J7B88115",
+  "title": "Vehicle facts",
+  "as_of": "2026-10-24",
+  "note": "Every value carries a source label and date. 'inference' and 'unconfirmed' values are not readings.",
+  "sections": [
+    {
+      "id": "identity", "title": "Identity",
+      "rows": [
+        {"label": "VIN", "value": "ZASFAKPN5J7B88115", "source": "decoded", "date": "2026-10-24"},
+        {"label": "Model year", "value": "2018", "source": "decoded (VIN 10th char J)", "date": "2026-10-24"},
+        {"label": "Plant", "value": "Cassino", "source": "decoded (VIN 11th char 7)", "date": "2026-10-24"},
+        {"label": "Built", "value": "09/2017", "source": "door label", "date": "2026-10-24", "key": "built"},
+        {"label": "Paint / trim code", "value": "414 (Rosso Alfa) / 414", "source": "door label", "date": "2026-10-24"},
+        {"label": "Odometer", "value": "148,207 km", "source": "owner", "date": "2026-10-23", "key": "odometer"}
+      ]
+    },
+    {
+      "id": "tyres", "title": "Tyres and loads",
+      "rows": [
+        {"label": "Size front / rear", "value": "235/55 R19 / 235/55 R19", "source": "door label", "date": "2026-10-24"},
+        {"label": "Cold pressure front", "value": "30 psi (210 kPa)", "source": "door label", "date": "2026-10-24", "key": "psi_front"},
+        {"label": "Cold pressure rear", "value": "33 psi (230 kPa)", "source": "door label", "date": "2026-10-24", "key": "psi_rear"},
+        {"label": "GVWR", "value": "2,380 kg / 5,247 lb", "source": "door label", "date": "2026-10-24"},
+        {"label": "Axle limit front", "value": "1,130 kg", "source": "door label", "date": "2026-10-24"},
+        {"label": "Axle limit rear", "value": "1,350 kg", "source": "door label", "date": "2026-10-24"}
+      ]
+    },
+    {
+      "id": "infotainment", "title": "Infotainment",
+      "rows": [
+        {"label": "Radio software (current)", "value": "MV-002.009.043", "source": "owner on-screen", "date": "2026-10-23", "key": "radio_current"},
+        {"label": "TV software", "value": "TV-002.009.043", "source": "owner on-screen", "date": "2026-10-23"},
+        {"label": "Third version string", "value": "971.7832 (probably map, unconfirmed)", "source": "owner on-screen", "date": "2026-10-23", "confidence": "unconfirmed"},
+        {"label": "Radio type", "value": "2.0 radio", "source": "inference from TSB 08-029-20 (version + build date)", "date": "2026-10-24", "confidence": "inference"},
+        {"label": "Target software", "value": "MV-002.010.041", "source": "official, TSB 08-029-20 (Stelvio built on or before 2018-01-11)", "date": "2026-10-24", "key": "radio_target"},
+        {"label": "Not this one", "value": "MV-090.000.061 (2.5 radio, TSB 08-065-20)", "source": "official", "date": "2026-10-24"},
+        {"label": "File source", "value": "Dealer portal (DealerCONNECT) only; not yet obtained", "source": "TSB / owner", "date": "2026-10-24"},
+        {"label": "Map NA v1176", "value": "Downloaded at Downloads\\StelvioMap_NA_v1176. ON HOLD until the radio is updated.", "source": "owner", "date": "2026-10-24"}
+      ]
+    },
+    {
+      "id": "recalls", "title": "Recalls",
+      "rows": [
+        {"label": "U36 / NHTSA 18V-205", "value": "BCM water ingress / corrosion; sealing remedy", "source": "official", "date": "2026-10-24"},
+        {"label": "Status for this VIN", "value": "UNKNOWN. Check tc.canada.ca/recalls or dealer by 2026-10-28.", "source": "open item", "date": "2026-10-24", "key": "recall_status", "flag": "unknown"}
+      ]
+    }
+  ],
+  "links": [
+    {"label": "TSB 08-029-20 (target MV-002.010.041)", "path": "docs/vehicles/ZASFAKPN5J7B88115/radio/TSB_08-029-20_MV-002.010.041.pdf"},
+    {"label": "TSB 08-065-20 (MV-090.000.061, 2.5 radio)", "path": "docs/vehicles/ZASFAKPN5J7B88115/radio/TSB_08-065-20_MV-090.000.061.pdf"},
+    {"label": "Interface box deployment plan", "path": "docs/research/STELVIO_INTERFACE_BOX_DEPLOYMENT_PLAN.md"}
+  ],
+  "summary_keys": ["built", "psi_front", "psi_rear", "radio_current", "radio_target", "recall_status"]
+}
