@@ -40,6 +40,8 @@ EXPORT = {
                  "info": {"Notes": "Engines: 2.9L V6 TWIN TURBO ENGINE."}},
                 {"d": 0, "ref": "5", "pn": "68400577AA", "name": "Pad Kit, Front Disc Brake",
                  "href": "/oem-parts/x-68400577aa", "img": "", "info": {}},
+                {"d": 0, "ref": "7", "pn": "68311596AA", "name": "Bolt, Brake Mounting",
+                 "href": "/oem-parts/x-68311596aa", "img": "", "info": {"Description": "Caliper Guide Pin."}},
             ]},
         "2-9l-gas-engine--engine-mounting": {
             "slug": "2-9l-gas-engine--engine-mounting", "title": "Engine Mounting for 2018 Alfa Romeo Stelvio",
@@ -75,27 +77,54 @@ def main() -> None:
 
     r = c.get("/catalog")
     t = r.text
-    assert r.status_code == 200 and "Front Brakes" in t and "Disc Brake Caliper Assembly, Right" in t, r.status_code
-    assert "Not for this car" in t and "/catalog/d/brakes--front-brakes--1" in t
+    assert r.status_code == 200 and 'href="/catalog/g/brakes"' in t and "Brakes" in t, r.status_code
+    assert "Not for this car" in t  # Quadrifoglio tile
+    r = c.get("/catalog/g/brakes")
+    assert r.status_code == 200 and "/catalog/d/brakes--front-brakes--1" in r.text and "Front Brakes" in r.text
+    assert "torque value" in r.text  # section spec count
+    assert c.get("/catalog/g/nope").status_code == 303
 
+    # number search: exact single hit redirects; partial lists
     r = c.get("/catalog", params={"q": "68400577AA"})
     assert r.status_code == 303 and r.headers["location"] == "/catalog/p/68400577AA", r.headers.get("location")
     r = c.get("/catalog", params={"q": "6842018"})
     assert r.status_code == 200 and "68420187AA" in r.text and "68420186AA" in r.text and "OTHER ENGINE" in r.text
+    # words, with the mechanic's own phrasing: torque values first, then parts
+    r = c.get("/catalog", params={"q": "caliper bolt torque"})
+    t = r.text
+    assert r.status_code == 200 and "Torque values for" in t and "30 Nm" in t and "68311596AA" in t, t[-2000:]
+    assert t.index("Torque values for") < t.index("68311596AA")
+    assert "Wheel lug" not in t  # the fastener must be named, not just its schematic
     r = c.get("/catalog", params={"q": "pad kit"})
-    assert r.status_code == 200 and "68400577AA" in r.text and "1 result" in r.text
+    assert r.status_code == 200 and "68400577AA" in r.text and "1 part " in r.text
 
+    # schematic: torque first, matched to the bolt row, other-engine hidden by default
     r = c.get("/catalog/d/brakes--front-brakes--1")
     t = r.text
     assert r.status_code == 200 and f"/catalog/img/stelvio-2018-2.0l/{img_name}" in t
-    for needle in ("Without Brake Pads. Front.", "What the mechanic needs to know", "Fixed front calipers.",
-                   "Retract the EPB", "2017+ Giulia", "Torque (CUORE torque library)"):
+    for needle in ("Torque values for this assembly", "Brake caliper guide/slide pin bolt", "22 ft-lb",
+                   "Before you start", "Fixed front calipers.", "Retract the EPB", "2017+ Giulia",
+                   "listed only for another engine hidden", "Diagram ↑"):
         assert needle in t, needle
+    assert t.index("Torque values for this assembly") < t.index("68400577AA")
+    assert "68420186AA" not in t  # other engine hidden
+    assert '<span class="cat-callout sm">7</span> Brake caliper guide' in t  # spec points at its callout
+    row = t[t.index("68311596AA"):t.index("68311596AA") + 1500]
+    assert "30 Nm" in row, "torque not matched to the guide-pin bolt row"
+    cal = t[t.index(">68420187AA<"):t.index(">68420187AA<") + 600]
+    assert "30 Nm" not in cal, "fastener torque leaked onto the caliper row"
+    r = c.get("/catalog/d/brakes--front-brakes--1", params={"all": 1})
+    assert "68420186AA" in r.text and "OTHER ENGINE" in r.text
 
+    # part page: torque, then see it (callout), then alternatives
+    r = c.get("/catalog/p/68311596AA")
+    t = r.text
+    assert r.status_code == 200 and "30 Nm" in t and 'Find <span class="cat-callout">7</span>' in t, r.status_code
+    assert t.index("cat-torque") < t.index("cat-see")
     r = c.get("/catalog/p/68420187AA")
     t = r.text
-    assert r.status_code == 200, r.status_code
-    for needle in ("Where it fits", "68420186AA", "Same callout", "diagram: Disc Brake Caliper Assembly, Right"):
+    for needle in ("Same callout, other part numbers", "68420186AA", "No torque value names this part",
+                   "Other torque values in this assembly", "Brakes</a>"):
         assert needle in t, needle
     r = c.get("/catalog/p/68400577AA")
     assert "fitted pad kit" in r.text  # CUORE record mention

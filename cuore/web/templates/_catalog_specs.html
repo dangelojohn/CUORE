@@ -1,0 +1,19 @@
+{# Torque values, one per row, value large. Context: specs (list of spec
+   dicts from parts_catalog.section_specs / match_specs), spec_title. #}
+{% if specs %}
+<div class="cat-specs">{% for s in specs %}
+  <div class="cat-spec">
+    <span class="item">{% if s.refs %}{% for r in s.refs %}<span class="cat-callout sm">{{ r }}</span> {% endfor %}{% endif %}{{ s.item }}</span>
+    <span class="val">{{ s.value }}{% if s.alt %} <span class="alt">{{ s.alt }}</span>{% endif %}</span>
+    <span class="meta">
+      {% if s.angle %}<span class="cat-tag warn">+ {{ s.angle }}</span>{% endif %}
+      {% if s.single_use %}<span class="cat-tag warn">SINGLE USE: REPLACE</span>{% endif %}
+      <span class="cat-tag {{ 'ok' if s.confidence == 'CONFIRMED' else ('warn' if s.confidence in ('SINGLE-SOURCE', 'SINGLE_SOURCE') else '') }}">{{ s.confidence or 'UNRATED' }}</span>
+      {% if s.notes or s.source %}<details class="cat-why"><summary>notes and source</summary>
+        {% if s.notes %}<p class="small">{{ s.notes }}</p>{% endif %}
+        <p class="cat-src">{{ s.origin }}{% if s.source %} · {{ s.source }}{% endif %}</p></details>
+      {% else %}<span class="cat-src">{{ s.origin }}</span>{% endif %}
+    </span>
+  </div>{% endfor %}
+</div>
+{% endif %}

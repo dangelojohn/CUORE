@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{# One system (Brakes, Engine ...): its sections, each with schematic cards.
+   cuore/web/catalog_routes.py #}
+{% block title %}{{ g.title }} · Parts{% endblock %}
+{% block content %}
+{% include "_catalog_style.html" %}
+<p class="cat-crumbs"><a href="/catalog">Parts catalogue</a></p>
+<h1>{{ g.title }}</h1>
+<form class="cat-search" method="get" action="/catalog" role="search">
+  <input type="search" name="q" placeholder="Search all parts and torque values" aria-label="Search parts">
+  <button class="btn" type="submit">Search</button>
+</form>
+{% if g.section_objs|length > 1 %}<nav class="cat-toc" aria-label="Sections">{% for s in g.section_objs %}<a href="#s-{{ s.slug }}">{{ s.title }}</a>{% endfor %}</nav>{% endif %}
+{% for s in g.section_objs %}
+<section class="panel cat-sec" id="s-{{ s.slug }}">
+  <h2>{{ s.title }} <span class="small muted">· {{ s.part_count }} parts{% if s.spec_count %} · {{ s.spec_count }} torque value{{ '' if s.spec_count == 1 else 's' }}{% endif %}</span>
+    {% if s.excluded_reason %}<span class="cat-tag warn">{{ s.excluded_reason }}</span>{% endif %}</h2>
+  <div class="cat-grid">{% for d in s.diagram_objs %}
+    <a class="cat-card" href="/catalog/d/{{ d.id }}">
+      {% if d.image.file %}<img loading="lazy" src="/catalog/img/{{ cid }}/{{ d.image.file }}" alt="Schematic: {{ d.title }}">{% endif %}
+      <span class="t">{{ d.title }}</span><span class="n">{{ d.parts|length }} parts</span>
+    </a>{% endfor %}</div>
+</section>
+{% endfor %}
+{% endblock %}

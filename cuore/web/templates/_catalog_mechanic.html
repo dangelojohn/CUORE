@@ -1,27 +1,15 @@
-{# "What the mechanic needs to know": torque-library rows + research notes.
-   Context: torque (list of torque-library rows), notes (list of mechanic dicts). #}
+{# Research notes for the assembly (torque values are shown separately as
+   specs). Context: notes (list of mechanic dicts), vin. #}
+{% if notes %}
 <section class="panel cat-mech" id="cat-mechanic">
-  <h2>What the mechanic needs to know</h2>
-  {% if torque %}
-  <h3 class="small">Torque (CUORE torque library)</h3>
-  <div class="cat-wrap"><table class="cat-table">
-    <thead><tr><th>Fastener</th><th>Value</th><th>Confidence</th><th>Notes / source</th></tr></thead>
-    <tbody>{% for t in torque %}<tr>
-      <td>{{ t.component }}{% if t.single_use %} <span class="cat-tag">SINGLE USE</span>{% endif %}</td>
-      <td class="pn">{{ t.display }}{% if t.angle %} + {{ t.angle }}{% endif %}</td>
-      <td>{{ t.confidence }}</td>
-      <td><span class="small">{{ t.notes }}</span>{% if t.source %}<div class="cat-src">{{ t.source }}</div>{% endif %}</td>
-    </tr>{% endfor %}</tbody>
-  </table></div>
-  {% endif %}
+  <h2>Before you start</h2>
   {% for m in notes %}
   <dl>
     {% if m.summary %}<dt>About this assembly</dt><dd>{{ m.summary }}</dd>{% endif %}
-    {% if m.torque %}<dt>Torque (research)</dt><dd><ul>{% for t in m.torque %}<li>{{ t.item }}: <b>{{ t.value }}</b> <span class="cat-tag">{{ t.confidence }}</span> <span class="cat-src">{{ t.source }}</span></li>{% endfor %}</ul></dd>{% endif %}
     {% if m.single_use %}<dt>Replace, do not reuse</dt><dd><ul>{% for x in m.single_use %}<li>{{ x }}</li>{% endfor %}</ul></dd>{% endif %}
     {% if m.special_tools %}<dt>Special tools / programming</dt><dd><ul>{% for x in m.special_tools %}<li>{{ x }}</li>{% endfor %}</ul></dd>{% endif %}
-    {% if m.fluids %}<dt>Fluids</dt><dd><ul>{% for f in m.fluids %}<li>{{ f.what }}{% if f.spec %}: {{ f.spec }}{% endif %}{% if f.capacity %}, {{ f.capacity }}{% endif %} <span class="cat-src">{{ f.source }}</span></li>{% endfor %}</ul></dd>{% endif %}
     {% if m.cautions %}<dt>Cautions</dt><dd><ul>{% for x in m.cautions %}<li>{{ x }}</li>{% endfor %}</ul></dd>{% endif %}
+    {% if m.fluids %}<dt>Fluids</dt><dd><ul>{% for f in m.fluids %}<li>{{ f.what }}{% if f.spec %}: {{ f.spec }}{% endif %}{% if f.capacity %}, {{ f.capacity }}{% endif %} <span class="cat-src">{{ f.source }}</span></li>{% endfor %}</ul></dd>{% endif %}
     {% if m.common_failures %}<dt>Known failures</dt><dd><ul>{% for x in m.common_failures %}<li>{{ x.issue }} <span class="cat-src">{{ x.source }}</span></li>{% endfor %}</ul></dd>{% endif %}
     {% if m.shared_with %}<dt>Shared with other Stellantis vehicles</dt><dd><ul>{% for x in m.shared_with %}<li><b>{{ x.vehicles }}</b>{% if x.note %}: {{ x.note }}{% endif %} <span class="cat-src">{{ x.source }}</span></li>{% endfor %}</ul></dd>{% endif %}
     {% if m.related_dtcs %}<dt>Related codes</dt><dd class="mono">{% for c in m.related_dtcs %}{% if vin %}<a href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% else %}{{ c }}{% endif %}{{ ', ' if not loop.last }}{% endfor %}</dd>{% endif %}
@@ -29,6 +17,6 @@
     {% if m.sources %}<dt>Sources</dt><dd class="cat-src">{% for s in m.sources %}{% if s.url and s.url.startswith('http') %}<a href="{{ s.url }}" rel="noopener noreferrer" target="_blank">{{ s.label or s.url }}</a>{% else %}{{ s.label }} {{ s.url }}{% endif %}{{ ' · ' if not loop.last }}{% endfor %}</dd>{% endif %}
   </dl>
   {% endfor %}
-  {% if not torque and not notes %}<p class="muted small">Nothing recorded for this assembly yet. Use the service manual (TechAuthority) for torque and procedure.</p>{% endif %}
   <p class="cat-src">Research notes are outside sources, labelled by confidence; they are not readings from this car.</p>
 </section>
+{% endif %}

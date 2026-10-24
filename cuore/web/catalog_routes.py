@@ -1,4 +1,5 @@
-"""The full parts catalogue: ``/catalog`` (groups, sections, diagrams, search),
+"""The full parts catalogue: ``/catalog`` (search, group tiles), ``/catalog/g/{group}`` (its sections and
+schematics),
 ``/catalog/d/{diagram}`` (schematic + its parts), ``/catalog/p/{pn}`` (one part
 number: every diagram it appears in, images, torque, mechanic notes, CUORE
 records, TSBs, curated card) and ``/catalog/img/{name}`` (local images).
@@ -29,23 +30,33 @@ def catalog_index(request: Request, q: str = "") -> Response:
     cat = pc.load()
     ctx = _ctx(request, cat)
     if not cat:
-        return web_routes._page(request, "catalog_index.html", **ctx, groups=[], hits=None, q=q, stats=None)
+        return web_routes._page(request, "catalog_index.html", **ctx, groups=[], hits=None, spec_hits=[], q=q, stats=None)
     hits = pc.search(cat, q) if q.strip() else None
     if hits is not None and q.strip():
         pns = {h["pn"] for h in hits}
         if len(pns) == 1 and pc.norm_pn(q) == pc.norm_pn(next(iter(pns))):
             return RedirectResponse(f"/catalog/p/{next(iter(pns))}", status_code=303)
+    spec_hits = pc.search_specs(cat, q) if q.strip() else []
     return web_routes._page(request, "catalog_index.html", **ctx, groups=pc.groups_view(cat),
-                            hits=hits, q=q, stats=pc.stats(cat))
+                            hits=hits, spec_hits=spec_hits, q=q, stats=pc.stats(cat))
+
+
+@router.get("/catalog/g/{gid}", response_class=HTMLResponse)
+def catalog_group(request: Request, gid: str) -> Response:
+    cat = pc.load()
+    g = pc.group(cat, gid) if cat else None
+    if not g:
+        return RedirectResponse("/catalog", status_code=303)
+    return web_routes._page(request, "catalog_group.html", **_ctx(request, cat), g=g)
 
 
 @router.get("/catalog/d/{did}", response_class=HTMLResponse)
-def catalog_diagram(request: Request, did: str) -> Response:
+def catalog_diagram(request: Request, did: str, all: int = 0) -> Response:
     cat = pc.load()
     d = pc.diagram(cat, did) if cat else None
     if not d:
         return RedirectResponse("/catalog", status_code=303)
-    return web_routes._page(request, "catalog_diagram.html", **_ctx(request, cat), d=d)
+    return web_routes._page(request, "catalog_diagram.html", **_ctx(request, cat), d=d, show_all=bool(all))
 
 
 @router.get("/catalog/p/{pn}", response_class=HTMLResponse)

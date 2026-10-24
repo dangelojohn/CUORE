@@ -1,54 +1,69 @@
 {% extends "base.html" %}
-{# One part number: images, identity, every diagram it appears in (with the
-   other parts at the same callout), mechanic card, CUORE records, TSBs and the
-   curated job-part card when one matches. cuore/web/catalog_routes.py #}
+{# One part number, in the order a mechanic needs it: torque for this part,
+   then see it (schematic with its callout, photos), then make sure it is the
+   right one (other numbers at the same callout), then the rest.
+   cuore/web/catalog_routes.py #}
 {% block title %}{{ p.pn }} · {{ p.name }}{% endblock %}
 {% block content %}
 {% include "_catalog_style.html" %}
-<p class="cat-crumbs"><a href="/catalog">Parts catalogue</a> › {{ p.appearances[0].diagram.section }} › <a href="/catalog/d/{{ p.appearances[0].diagram.id }}">{{ p.appearances[0].diagram.title }}</a></p>
+{% set a0 = p.primary %}
+<p class="cat-crumbs"><a href="/catalog">Parts</a> › <a href="/catalog/g/{{ a0.diagram.group }}">{{ (cat['_groups'].get(a0.diagram.group) or {}).get('title', a0.diagram.group) }}</a> › <a href="/catalog/d/{{ a0.diagram.id }}">{{ a0.diagram.title }}</a></p>
 <h1><span class="mono">{{ p.pn }}</span> · {{ p.name }}</h1>
-<form class="cat-search" method="get" action="/catalog" role="search">
-  <input type="search" name="q" placeholder="Search all parts: number or words" aria-label="Search parts">
-  <button class="btn" type="submit">Search</button>
-</form>
+{% if p.descriptions %}<p class="lede">{{ p.descriptions|join(' · ') }}</p>{% endif %}
+{% if 'other-engine' in p.fitment and 'own' not in p.fitment %}<div class="note warn"><span class="lab">Other engine</span> The catalogue lists this number for a different engine, not this 2.0L. Check the alternatives below.</div>{% endif %}
 
-<section class="panel">
-  <h2>Images ({{ p.photos|length }})</h2>
-  {% if p.photos %}<div class="cat-photos">{% for ph in p.photos %}
-    <figure>{% if ph.diagram_id %}<a href="/catalog/d/{{ ph.diagram_id }}">{% else %}<a href="/catalog/img/{{ cid }}/{{ ph.file }}" target="_blank" rel="noopener">{% endif %}
-      <img loading="lazy" src="/catalog/img/{{ cid }}/{{ ph.file }}" alt="{{ ph.kind }}"></a>
-      <figcaption>{{ ph.kind }}</figcaption></figure>{% endfor %}</div>
-  {% else %}<p class="muted">No image on file for this part.</p>{% endif %}
-  <p class="cat-src">The catalogue has no product photo for most parts; the schematic shows the part at its callout number.</p>
+<section class="panel" id="cat-torque">
+  <h2>Torque</h2>
+  {% if p.specs_matched %}
+    {% set specs = p.specs_matched %}{% include "_catalog_specs.html" %}
+    <p class="cat-src">Matched to this part by name; confirm the fastener on the schematic below.</p>
+  {% else %}
+    <p class="muted">No torque value names this part. {% if p.specs_assembly %}Values for the rest of the assembly are listed below.{% else %}Use the service manual (TechAuthority).{% endif %}</p>
+  {% endif %}
 </section>
+
+<section class="panel" id="cat-see">
+  <h2>See it</h2>
+  <div class="cat-photos">
+    {% for a in p.appearances %}{% if a.diagram.image.file %}
+    <figure><figcaption>Find <span class="cat-callout">{{ a.row.ref or '–' }}</span> on <b>{{ a.diagram.title }}</b> · {{ a.diagram.section }}</figcaption>
+      <a href="/catalog/d/{{ a.diagram.id }}"><img loading="lazy" src="/catalog/img/{{ cid }}/{{ a.diagram.image.file }}" alt="Schematic: {{ a.diagram.title }}"></a></figure>
+    {% endif %}{% endfor %}
+    {% for ph in p.photos %}<figure><a href="/catalog/img/{{ cid }}/{{ ph.file }}" target="_blank" rel="noopener"><img loading="lazy" src="/catalog/img/{{ cid }}/{{ ph.file }}" alt="{{ ph.kind }}"></a><figcaption>{{ ph.kind }}</figcaption></figure>{% endfor %}
+  </div>
+  {% if not p.photos %}<p class="cat-src">No product photo in the catalogue for this part; the schematic shows it at its callout number.</p>{% endif %}
+</section>
+
+{% set mates = [] %}{% for a in p.appearances %}{% for m in a.callout_mates %}{% set _ = mates.append(m) %}{% endfor %}{% endfor %}
+{% if mates %}
+<section class="panel" id="cat-alternatives">
+  <h2>Same callout, other part numbers</h2>
+  <p class="small">Pick by the fitment notes (engine, transmission, side, option code).</p>
+  <div class="cat-wrap"><table class="cat-table"><tbody>{% for m in mates %}
+    <tr class="{{ 'other-engine' if m.fitment == 'other-engine' }}"><td class="pn"><a href="/catalog/p/{{ m.pn }}">{{ m.pn }}</a></td>
+      <td>{{ m.name }}{% if m.description %}<div class="sub">{{ m.description }}</div>{% endif %}{% if m.notes %}<div class="sub">{{ m.notes }}</div>{% endif %}
+          {% if m.fitment == 'other-engine' %}<span class="cat-tag">OTHER ENGINE</span>{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endif %}
+
+{% if p.specs_assembly %}
+<section class="panel"><h2>Other torque values in this assembly</h2>
+  {% set specs = p.specs_assembly %}{% include "_catalog_specs.html" %}
+</section>
+{% endif %}
 
 <section class="panel">
   <h2>Part details</h2>
-  <div class="cat-wrap"><table class="cat-table">
-    <tbody>
-      <tr><th>Part number</th><td class="pn">{{ p.pn }}</td></tr>
-      <tr><th>Name</th><td>{{ p.names|join(' / ') }}</td></tr>
-      {% if p.descriptions %}<tr><th>Description</th><td>{{ p.descriptions|join(' · ') }}</td></tr>{% endif %}
-      {% if p.notes %}<tr><th>Fitment notes</th><td>{% for n in p.notes %}<div>{{ n }}</div>{% endfor %}</td></tr>{% endif %}
-      {% if 'other-engine' in p.fitment and 'own' not in p.fitment %}<tr><th>This car</th><td><span class="cat-tag">OTHER ENGINE</span> listed for a different engine, not this 2.0L</td></tr>{% endif %}
-      <tr><th>Source</th><td class="cat-src">{{ cat.source_name }}{% for u in p.source_urls %} · <a href="{{ u }}" target="_blank" rel="noopener noreferrer">part page</a>{% endfor %}</td></tr>
-    </tbody>
-  </table></div>
+  <div class="cat-wrap"><table class="cat-table"><tbody>
+    <tr><th>Part number</th><td class="pn">{{ p.pn }}</td></tr>
+    <tr><th>Name</th><td>{{ p.names|join(' / ') }}</td></tr>
+    {% if p.notes %}<tr><th>Fitment notes</th><td>{% for n in p.notes %}<div>{{ n }}</div>{% endfor %}</td></tr>{% endif %}
+    <tr><th>Appears in</th><td>{% for a in p.appearances %}<div><a href="/catalog/d/{{ a.diagram.id }}">{{ a.diagram.title }}</a> · callout {{ a.row.ref or '–' }} <span class="sub">{{ a.diagram.section }}</span></div>{% endfor %}</td></tr>
+    <tr><th>Source</th><td class="cat-src">{{ cat.source_name }}{% for u in p.source_urls %} · <a href="{{ u }}" target="_blank" rel="noopener noreferrer">part page</a>{% endfor %}</td></tr>
+  </tbody></table></div>
 </section>
 
-<section class="panel">
-  <h2>Where it fits ({{ p.appearances|length }} diagram{{ '' if p.appearances|length == 1 else 's' }})</h2>
-  {% for a in p.appearances %}
-  <div class="cat-sec">
-    <h3><a href="/catalog/d/{{ a.diagram.id }}">{{ a.diagram.title }}</a> <span class="small muted">· {{ a.diagram.section }} · callout {{ a.row.ref or '-' }}</span></h3>
-    {% if a.callout_mates %}<p class="small">Same callout, other part numbers (check fitment notes to pick the right one):</p>
-    <ul class="small">{% for m in a.callout_mates %}<li><a class="mono" href="/catalog/p/{{ m.pn }}">{{ m.pn }}</a> {{ m.name }}{% if m.description %} · {{ m.description }}{% endif %}{% if m.notes %} <span class="cat-src">{{ m.notes }}</span>{% endif %}</li>{% endfor %}</ul>{% endif %}
-  </div>
-  {% endfor %}
-</section>
-
-{% set torque = p.torque %}{% set notes = p.mechanic_notes %}
-{% include "_catalog_mechanic.html" %}
+{% set notes = p.mechanic_notes %}{% include "_catalog_mechanic.html" %}
 
 {% if p.curated %}
 <section class="panel"><h2>CUORE job-part card</h2>
@@ -57,9 +72,10 @@
   {% if vin %}<p class="small"><a href="/v/{{ vin }}/parts">Open job parts (aftermarket, prices, buy links)</a></p>{% endif %}
 </section>{% endif %}
 
-<section class="panel"><h2>CUORE records mentioning {{ p.pn }}</h2>
+<section class="panel"><h2>On this car (CUORE records)</h2>
   {% if p.records %}<ul class="small">{% for r in p.records %}<li><b>{{ r.kind }}</b>{% if r.at %} {{ r.at[:10] }}{% endif %}{% if r.job_id %} · job <span class="mono">{{ r.job_id }}</span>{% endif %}: {{ r.excerpt }}</li>{% endfor %}</ul>
-  {% else %}<p class="muted small">No job, note or symptom mentions this part number.</p>{% endif %}
+  {% else %}<p class="muted small">No job, note or symptom mentions {{ p.pn }}.</p>{% endif %}
   {% if p.tsbs %}<h3 class="small">Bulletins mentioning it</h3><ul class="small">{% for t in p.tsbs %}<li>{{ t.id }} {{ t.title }}</li>{% endfor %}</ul>{% endif %}
 </section>
+<a class="cat-jump" href="#cat-see">Schematic ↑</a>
 {% endblock %}
