@@ -4,16 +4,16 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 
 | item | action | size (bytes) | lines |
 |---|---|---|---|
-| observations.jsonl | skipped-unchanged | 1614278 | 266 |
+| observations.jsonl | copied | 1987560 | 335 |
 | owner_events.jsonl | skipped-unchanged | 996 | 2 |
-| jobs.jsonl | skipped-unchanged | 202373 | 217 |
+| jobs.jsonl | copied | 206047 | 220 |
 | checklists.json | skipped-unchanged | 599 | - |
 | cases.jsonl | skipped-unchanged | 1491 | 1 |
 | symptoms.jsonl | skipped-unchanged | 1505 | 3 |
 | shop_visits.jsonl | skipped-unchanged | 216 | 1 |
-| audit.jsonl | skipped-unchanged | 556462 | 2940 |
-| fullscan_last.json | skipped-unchanged | 6509 | - |
-| notes.jsonl | copied | 22597 | 16 |
+| audit.jsonl | copied | 604987 | 3172 |
+| fullscan_last.json | copied | 6870 | - |
+| notes.jsonl | copied | 24620 | 18 |
 | checklists.json.bak-2026-10-08-review | skipped-unchanged | 518 | - |
 | jobs.jsonl.bak-2026-10-08-review | skipped-unchanged | 1364 | - |
 | observations.jsonl.bak-2026-09-26-test-pollution | skipped-unchanged | 109785 | - |

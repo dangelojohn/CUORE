@@ -1,11 +1,11 @@
 {
-  "scan_id": "SCAN_2610190029",
+  "scan_id": "SCAN_2610241321",
   "vin": "ZASFAKPN5J7B88115",
   "cable": "none",
   "buses_attempted": [
     "can_c"
   ],
-  "duration_s": 58.2,
+  "duration_s": 78.5,
   "sessions_opened": 12,
   "steps": [
     {
@@ -63,7 +63,7 @@
       "module": "ECM",
       "category": "answered",
       "why": null,
-      "active": 3,
+      "active": 0,
       "history": 0,
       "not_run": 0,
       "did": {
@@ -91,7 +91,7 @@
       "module": "BCM",
       "category": "answered",
       "why": null,
-      "active": 1,
+      "active": 0,
       "history": 0,
       "not_run": 0,
       "did": {
@@ -148,6 +148,15 @@
       "not_run": 0
     },
     {
+      "bus": "can_c",
+      "module": "ETM",
+      "category": "not_reachable",
+      "why": "no known address: run discovery",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
       "bus": "can_ihs",
       "module": "HVAC",
       "category": "not_reachable",
@@ -158,7 +167,16 @@
     },
     {
       "bus": "can_ihs",
-      "module": "ETM",
+      "module": "IHS62",
+      "category": "not_reachable",
+      "why": "needs blue A5 cable",
+      "active": 0,
+      "history": 0,
+      "not_run": 0
+    },
+    {
+      "bus": "can_ihs",
+      "module": "IHS65",
       "category": "not_reachable",
       "why": "needs blue A5 cable",
       "active": 0,
@@ -302,10 +320,8 @@
     }
   ],
   "counts": {
-    "active": 4,
+    "active": 0,
     "history": 0,
     "not_run": 0
-  },
-  "guided": true,
-  "guided_status": "paused"
+  }
 }
