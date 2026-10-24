@@ -55,7 +55,7 @@ if (-not $SkipCarState) {
     $directFiles = @(
         'observations.jsonl', 'owner_events.jsonl', 'jobs.jsonl', 'checklists.json',
         'cases.jsonl', 'symptoms.jsonl', 'shop_visits.jsonl', 'audit.jsonl', 'fullscan_last.json',
-        'notes.jsonl'
+        'notes.jsonl', 'service_records.jsonl', 'addresses.json', 'learned_dids.json'
     )
     foreach ($name in $directFiles) {
         $src = Join-Path $StateDir $name
