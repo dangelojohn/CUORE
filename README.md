@@ -158,8 +158,7 @@ mcp-servers/
 ├── docs/               architecture, features, handbook, reference, research
 ├── scripts/            backup and session helpers
 ├── start-cuore.ps1     launch the server and open the browser
-├── cuore-keepalive.ps1, install-cuore-autostart.ps1, make-cuore-shortcuts.ps1
-└── koch-mcp/           unrelated to CUORE
+└── cuore-keepalive.ps1, install-cuore-autostart.ps1, make-cuore-shortcuts.ps1
 ```
 
 ## Documentation
