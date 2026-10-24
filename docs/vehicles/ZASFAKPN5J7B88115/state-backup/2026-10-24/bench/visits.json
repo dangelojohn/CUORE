@@ -1,0 +1,26 @@
+{
+  "ZASFAKPN5J7B88115": {
+    "active_codes": [
+      "B101D",
+      "P0440",
+      "P0455",
+      "P0456",
+      "U0010",
+      "U1736"
+    ],
+    "cleared_codes": [],
+    "last_read": "23 Oct 01:27",
+    "at": "2026-10-23T02:01:00"
+  },
+  "ZFBCFABH1EZ020882": {
+    "active_codes": [],
+    "cleared_codes": [
+      "B1014",
+      "B1015",
+      "B11A1",
+      "B11A2"
+    ],
+    "last_read": "15 Nov 12:09 '25",
+    "at": "2026-10-22T20:23:15"
+  }
+}

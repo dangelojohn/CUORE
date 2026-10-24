@@ -1,0 +1,142 @@
+{
+  "test": "load_step_voltage",
+  "csv": "live_load-step-voltage_20261023-005308.csv",
+  "label": "",
+  "started": "2026-10-23T00:53:08",
+  "ended": "2026-10-23T00:53:11",
+  "aborted": true,
+  "rows": 0,
+  "columns": [
+    "battery_voltage",
+    "control_module_voltage",
+    "bcm_1004"
+  ],
+  "script": [
+    {
+      "t0": 0,
+      "t1": 20,
+      "state": "baseline",
+      "load": null,
+      "label": "Baseline",
+      "instruction": "Engine idling, charger OFF, every load OFF. Hands off everything."
+    },
+    {
+      "t0": 20,
+      "t1": 30,
+      "state": "on",
+      "load": "headlights",
+      "label": "Headlights (low beam) ON",
+      "instruction": "Switch the headlights ON (low beam)."
+    },
+    {
+      "t0": 30,
+      "t1": 40,
+      "state": "off",
+      "load": "headlights",
+      "label": "Headlights (low beam) OFF",
+      "instruction": "Switch it OFF again: Headlights (low beam)."
+    },
+    {
+      "t0": 40,
+      "t1": 50,
+      "state": "on",
+      "load": "high_beam",
+      "label": "High beam ON",
+      "instruction": "Switch the HIGH BEAM on (headlights stay on)."
+    },
+    {
+      "t0": 50,
+      "t1": 60,
+      "state": "off",
+      "load": "high_beam",
+      "label": "High beam OFF",
+      "instruction": "Switch it OFF again: High beam."
+    },
+    {
+      "t0": 60,
+      "t1": 70,
+      "state": "on",
+      "load": "rear_defrost",
+      "label": "Rear defrost ON",
+      "instruction": "Press REAR DEFROST on."
+    },
+    {
+      "t0": 70,
+      "t1": 80,
+      "state": "off",
+      "load": "rear_defrost",
+      "label": "Rear defrost OFF",
+      "instruction": "Switch it OFF again: Rear defrost."
+    },
+    {
+      "t0": 80,
+      "t1": 90,
+      "state": "on",
+      "load": "blower_max",
+      "label": "Blower fan MAX ON",
+      "instruction": "Set the blower to MAXIMUM (A/C may be on or off; keep it the same for the whole test)."
+    },
+    {
+      "t0": 90,
+      "t1": 100,
+      "state": "off",
+      "load": "blower_max",
+      "label": "Blower fan MAX OFF",
+      "instruction": "Switch it OFF again: Blower fan MAX."
+    },
+    {
+      "t0": 100,
+      "t1": 110,
+      "state": "on",
+      "load": "heated_seats",
+      "label": "Heated seats HIGH ON",
+      "instruction": "Switch BOTH heated seats to HIGH."
+    },
+    {
+      "t0": 110,
+      "t1": 120,
+      "state": "off",
+      "load": "heated_seats",
+      "label": "Heated seats HIGH OFF",
+      "instruction": "Switch it OFF again: Heated seats HIGH."
+    },
+    {
+      "t0": 120,
+      "t1": 130,
+      "state": "on",
+      "load": "brake_pedal",
+      "label": "Brake pedal held ON",
+      "instruction": "Press and HOLD the brake pedal firmly (car in P, handbrake on)."
+    },
+    {
+      "t0": 130,
+      "t1": 140,
+      "state": "off",
+      "load": "brake_pedal",
+      "label": "Brake pedal held OFF",
+      "instruction": "Switch it OFF again: Brake pedal held."
+    },
+    {
+      "t0": 140,
+      "t1": 160,
+      "state": "on",
+      "load": "all",
+      "label": "ALL loads ON",
+      "instruction": "Headlights + rear defrost + blower MAX + both heated seats ON together (release the brake pedal)."
+    },
+    {
+      "t0": 160,
+      "t1": 180,
+      "state": "recovery",
+      "load": null,
+      "label": "All OFF (recovery)",
+      "instruction": "Everything OFF. Hands off; recording ends at 3:00."
+    }
+  ],
+  "duration_s": 180,
+  "requested_rate_hz": 50.0,
+  "settle_s": 3.0,
+  "reference_window_s": 6.0,
+  "excess_drop_limit_v": 0.3,
+  "note": "read-only recording; TAG column = script step; Time = seconds since recorder start"
+}
