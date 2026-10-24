@@ -19,6 +19,8 @@
       "id": "tyres", "title": "Tyres and loads",
       "rows": [
         {"label": "Size front / rear", "value": "235/55 R19 / 235/55 R19", "source": "door label", "date": "2026-10-24"},
+        {"label": "Rim size", "value": "19 in (from the tyre size R19), same front and rear", "source": "door label", "date": "2026-10-24"},
+        {"label": "Factory 19-in rim spec", "value": "19 x 8J, ET34, 5x110, 65.1 mm centre bore, M14x1.5 bolts; front = rear", "source": "outside research: wheel-size.com, tirewheelguide.com (third-party fitment sites, no Alfa/Mopar source)", "date": "2026-10-24", "confidence": "unconfirmed; check the stamp on the back of a wheel or the owner's manual"},
         {"label": "Cold pressure front", "value": "30 psi (210 kPa)", "source": "door label", "date": "2026-10-24", "key": "psi_front"},
         {"label": "Cold pressure rear", "value": "33 psi (230 kPa)", "source": "door label", "date": "2026-10-24", "key": "psi_rear"},
         {"label": "GVWR", "value": "2,380 kg / 5,247 lb", "source": "door label", "date": "2026-10-24"},

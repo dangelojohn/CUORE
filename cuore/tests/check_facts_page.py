@@ -31,7 +31,8 @@ def check_page() -> None:
                    "MV-002.010.041", "MV-002.009.043", "door label", "2026-10-23", "UNKNOWN",
                    "U36", "18V-205", "unconfirmed", "inference",
                    'id="facts-radio-compare"', "RECOMMENDED", "INSTALLED", "NOT FOR THIS CAR",
-                   "MV-090.000.061", "TSB 08-029-20 (2020-03-05)"):
+                   "MV-090.000.061", "TSB 08-029-20 (2020-03-05)",
+                   "Rim size", "19 x 8J, ET34"):
         assert needle in t, needle
     assert f'href="/v/{VIN}/facts"' in t  # nav link, vehicle-scoped
 
