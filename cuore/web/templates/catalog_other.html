@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{# Other shops' Stelvio items that the dealer catalogue lacks (aftermarket
+   brands, retailer kits and accessories). cuore/web/catalog_routes.py #}
+{% block title %}Other shops · Parts{% endblock %}
+{% block content %}
+{% include "_catalog_style.html" %}
+<p class="cat-crumbs"><a href="/catalog">Parts catalogue</a></p>
+<h1>Other shops</h1>
+<form class="cat-search" method="get" action="/catalog" role="search">
+  <input type="search" name="q" placeholder="Part number, name, or “caliper bolt torque”" aria-label="Search parts and torque values">
+  <button class="btn" type="submit">Search</button>
+</form>
+{% if not shops %}<p class="muted">No other shop's list has been added yet.</p>{% endif %}
+{% for s in shops %}
+<section class="panel" id="shop-{{ loop.index }}">
+  <h2>{{ s.source_name }} <span class="small muted">· {{ s.rows|length }} item{{ '' if s.rows|length == 1 else 's' }} · {{ 'aftermarket brands' if s.kind == 'aftermarket' else 'retailer list' }}</span></h2>
+  {% set items = s.rows %}{% include "_catalog_listings.html" %}
+</section>
+{% endfor %}
+<script src="{{ static_url('catalog.js') }}" defer></script>
+{% endblock %}

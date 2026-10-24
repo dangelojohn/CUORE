@@ -39,7 +39,16 @@ def catalog_index(request: Request, q: str = "") -> Response:
             return RedirectResponse(f"/catalog/p/{next(iter(pns))}", status_code=303)
     spec_hits = pc.search_specs(cat, q) if q.strip() else []
     return web_routes._page(request, "catalog_index.html", **ctx, groups=pc.groups_view(cat),
-                            hits=hits, spec_hits=spec_hits, q=q, stats=pc.stats(cat))
+                            hits=hits, spec_hits=spec_hits, q=q, stats=pc.stats(cat),
+                            listing_hits=pc.search_listings(cat, q))
+
+
+@router.get("/catalog/other", response_class=HTMLResponse)
+def catalog_other(request: Request):
+    cat = pc.load()
+    ctx = _ctx(request, cat)
+    return web_routes._page(request, "catalog_other.html", **ctx,
+                            shops=pc.listings_view(cat) if cat else [])
 
 
 @router.get("/catalog/g/{gid}", response_class=HTMLResponse)

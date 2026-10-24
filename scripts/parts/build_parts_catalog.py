@@ -12,7 +12,12 @@ Grouping, exclusions and torque links come from
 time, short pause) and skipped when already on disk, so a re-run only fetches
 what is new.
 
-Run:  .venv/Scripts/python.exe scripts/parts/build_parts_catalog.py [export.json] [--no-images]
+The site only puts the first diagram's rows in a section page; the others load
+per diagram from ``/ajax/oem-assembly-panel/<slug>/<index>``. Those rows come in
+a second saved file (``stelvio-2018-2.0l-diagram-rows.json``: ``{rows:
+{"<slug>|<index>": [row, ...]}}``), merged in when present.
+
+Run:  .venv/Scripts/python.exe scripts/parts/build_parts_catalog.py [export.json] [--rows rows.json] [--no-images]
 """
 
 from __future__ import annotations
@@ -34,6 +39,16 @@ from cuore.live.config import state_dir  # noqa: E402
 
 CATALOG_ID = "stelvio-2018-2.0l"
 DEFAULT_EXPORT = Path.home() / "Downloads" / "stelvio-2018-2.0l-catalogue.json"
+DEFAULT_ROWS = Path.home() / "Downloads" / "stelvio-2018-2.0l-diagram-rows.json"
+# Other shops' Stelvio lists, saved the same way. Kept apart from the dealer
+# catalogue as "listings": only what the dealer catalogue lacks, with fitment
+# judged from the shop's own wording.
+DEFAULT_SUPPLEMENTS = [Path.home() / "Downloads" / n for n in
+                       ("stelvio-canada-aftermarket.json", "stelvio-centerline-products.json")]
+_MERCH = re.compile(r"\b(sign|art print|poster|keychain|key ?ring|mug|t-?shirt|shirt|hat|baseball cap|jacket|hoodie|"
+                    r"scale model|diecast|book|calendar|gift ?card|umbrella|lanyard|pin badge|display|pillow|socks?|wrapping paper|water bottle|glass|ornament|sweatshirt|blanket|towel|tumbler|coaster|apparel)\b", re.I)
+_OTHER = re.compile(r"\b(qv|quadrifoglio|2\.9l?|4c|giulietta|mito|spider|gtv|brera|147|156|159|164)\b", re.I)
+_OURS = re.compile(r"\b(stelvio|2\.0l?)\b", re.I)
 GROUPS = ROOT / "cuore" / "data" / "parts_catalog_groups.json"
 UA = "CUORE parts catalogue builder (personal workshop use)"
 PLACEHOLDER = re.compile(r"/assets/images/")
@@ -73,9 +88,81 @@ def _fitment(notes: str, cfg: dict) -> str:
     return ""
 
 
-def build(export: Path, fetch_images: bool) -> Path:
+def merge_diagram_rows(raw: dict, rows_file: Path) -> int:
+    """Add per-diagram rows to ``raw["pages"]``; a diagram that already has rows is left alone."""
+    extra = json.loads(rows_file.read_text(encoding="utf-8")).get("rows") or {}
+    added = 0
+    for key, rows in extra.items():
+        slug, _, idx = key.rpartition("|")
+        page = raw["pages"].get(slug)
+        if page is None or not rows:
+            continue
+        if any(r.get("d") == int(idx) for r in page["rows"]):
+            continue
+        page["rows"].extend(dict(r, d=int(idx)) for r in rows)
+        added += len(rows)
+    return added
+
+
+def _first(d: dict, *keys: str) -> str:
+    for k in keys:
+        v = d.get(k)
+        if v not in (None, ""):
+            return str(v).strip()
+    return ""
+
+
+def load_listings(paths: list[Path], core_pns: set[str]) -> list[dict]:
+    """Other shops' items the dealer catalogue lacks, each with a fitment
+    verdict and the reason for it. Merchandise is dropped."""
+    out, seen = [], set()
+    for path in paths:
+        if not path.exists():
+            continue
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        src = raw.get("source", "")
+        aftermarket = raw.get("brand_type") == "aftermarket"
+        for it in raw.get("items") or []:
+            name = _first(it, "name", "title")
+            if not name or _MERCH.search(name):
+                continue
+            pn = _first(it, "part_number", "pn", "partNumber", "part_num", "mpn").upper().replace(" ", "")
+            sku = _first(it, "sku", "parent_sku")
+            if pn and pn.replace("-", "") in core_pns:
+                continue
+            fits = _first(it, "fits", "fits_text", "fitment_text")
+            if aftermarket:
+                fit, why = "own", fits or "listed by the shop for this exact vehicle (2018 Stelvio base 2.0L)"
+            elif _OTHER.search(name) and not re.search(r"\b2\.0", name):
+                fit, why = "other-engine", "name points to another engine or model"
+            elif _OURS.search(name):
+                fit, why = "by-name", "name mentions Stelvio or 2.0; not confirmed by part number"
+            else:
+                fit, why = "unverified", "no fitment given; listed under the shop's Stelvio filter"
+            key = (src, pn or sku or name)
+            if key in seen:
+                continue
+            seen.add(key)
+            price = _first(it, "price", "sale_price")
+            out.append({
+                "source": src, "source_name": raw.get("source_name") or re.sub(r"^https?://(www\.)?", "", src).split("/")[0],
+                "kind": "aftermarket" if aftermarket else "retailer",
+                "brand": _first(it, "brand", "manufacturer"), "pn": pn, "sku": sku, "name": name,
+                "notes": _first(it, "position", "notes"),
+                "price": price, "currency": "CAD" if aftermarket else "",
+                "msrp": _first(it, "msrp"), "url": _first(it, "url", "product_url"),
+                "category": _first(it, "category_slug", "category"),
+                "fitment": fit, "fitment_why": why,
+            })
+    return out
+
+
+def build(export: Path, fetch_images: bool, rows_file: Path | None = None,
+          supplements: list[Path] | None = None) -> Path:
     cfg = json.loads(GROUPS.read_text(encoding="utf-8"))
     raw = json.loads(export.read_text(encoding="utf-8"))
+    if rows_file and rows_file.exists():
+        print(f"diagram rows: {merge_diagram_rows(raw, rows_file)} added from {rows_file.name}")
     out_dir = state_dir() / "parts_catalog" / CATALOG_ID
     img_dir = out_dir / "img"
     img_dir.mkdir(parents=True, exist_ok=True)
@@ -185,17 +272,28 @@ def build(export: Path, fetch_images: bool) -> Path:
         "built_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "missing_sections": raw.get("errors", []),
         "groups": groups, "sections": sections, "diagrams": diagrams,
+        "listings": load_listings(supplements or [], {p["pn"].replace("-", "") for d in diagrams.values() for p in d["parts"]}),
     }
     (out_dir / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False), encoding="utf-8")
     n_parts = sum(len(d["parts"]) for d in diagrams.values())
     n_pn = len({p["pn"] for d in diagrams.values() for p in d["parts"]})
     print(f"catalog: {len(sections)} sections, {len(diagrams)} diagrams, {n_parts} rows, {n_pn} part numbers -> {out_dir}")
+    empty = [i for i, d in diagrams.items() if not d["parts"]]
+    if catalog["listings"]:
+        by = {}
+        for x in catalog["listings"]:
+            by[(x["source_name"], x["fitment"])] = by.get((x["source_name"], x["fitment"]), 0) + 1
+        print("listings: " + "; ".join(f"{k[0]} {k[1]} {v}" for k, v in sorted(by.items())))
+    print(f"diagrams with no parts: {len(empty)}" + (f" (first: {', '.join(empty[:5])})" if empty else ""))
     return out_dir
 
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("export", nargs="?", default=str(DEFAULT_EXPORT))
+    ap.add_argument("--rows", default=str(DEFAULT_ROWS))
+    ap.add_argument("--supplement", action="append", help="another shop's saved list (repeatable)")
     ap.add_argument("--no-images", action="store_true")
     a = ap.parse_args()
-    build(Path(a.export), not a.no_images)
+    build(Path(a.export), not a.no_images, Path(a.rows),
+          [Path(x) for x in a.supplement] if a.supplement else DEFAULT_SUPPLEMENTS)

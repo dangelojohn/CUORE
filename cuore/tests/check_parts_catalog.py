@@ -66,7 +66,19 @@ def main() -> None:
     exp.write_text(json.dumps(EXPORT), encoding="utf-8")
     sys.path.insert(0, str(ROOT / "scripts" / "parts"))
     import build_parts_catalog as b
-    out = b.build(exp, fetch_images=False)
+    sup = STATE / "shop.json"
+    sup.write_text(json.dumps({"source": "https://shop.example/store", "brand_type": "aftermarket", "items": [
+        {"brand": "bproauto", "part_number": "1BP01360AA", "name": "Disc Brake Rotor", "position": "Front", "price": "$114.80"},
+        {"brand": "Mopar", "part_number": "68400577AA", "name": "Duplicate of a dealer part"}]}), encoding="utf-8")
+    sup2 = STATE / "shop2.json"
+    sup2.write_text(json.dumps({"source": "https://retail.example/store", "items": [
+        {"name": "Intercooler Gasket Giulia Stelvio 2.0", "sku": "EG213", "price": "$32.05"},
+        {"name": "Throttle Body Giulia Stelvio QV", "sku": "FI217"},
+        {"name": "Alfa Romeo Dealership Sign", "sku": "X1"}]}), encoding="utf-8")
+    out = b.build(exp, fetch_images=False, supplements=[sup, sup2])
+    lst = json.loads((out / "catalog.json").read_text(encoding="utf-8"))["listings"]
+    assert {x["pn"] or x["sku"] for x in lst} == {"1BP01360AA", "EG213", "FI217"}, lst  # dealer duplicate + merch dropped
+    assert {x["sku"]: x["fitment"] for x in lst if x["sku"]} == {"EG213": "by-name", "FI217": "other-engine"}, lst
     img_name = b._img_name(IMG)
     (out / "img" / img_name).write_bytes(b"\x89PNG\r\n\x1a\n")
     cat = json.loads((out / "catalog.json").read_text(encoding="utf-8"))  # rebuild to point at the file
@@ -93,6 +105,10 @@ def main() -> None:
     r = c.get("/catalog", params={"q": "6842018"})
     assert r.status_code == 200 and "68420187AA" in r.text and "68420186AA" in r.text and "OTHER ENGINE" in r.text
     assert r.text.index("68420187AA") < r.text.index("68420186AA")  # this car's parts first
+    r = c.get("/catalog?q=rotor")
+    assert r.status_code == 200 and "from other shops" in r.text and "1BP01360AA" in r.text and "LISTED FOR THIS CAR" in r.text, r.text[-1500:]
+    r = c.get("/catalog/other")
+    assert r.status_code == 200 and "EG213" in r.text and "OTHER ENGINE / MODEL" in r.text and "Dealership Sign" not in r.text
     # words, with the mechanic's own phrasing: torque values first, then parts
     r = c.get("/catalog", params={"q": "caliper bolt torque"})
     t = r.text

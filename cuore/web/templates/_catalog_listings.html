@@ -1,0 +1,15 @@
+{# Other shops' items the dealer catalogue lacks. Expects `items`. Fitment is
+   the shop's own wording, never a part-number match; say so on every row. #}
+{% set fit_label = {'own': 'LISTED FOR THIS CAR', 'by-name': 'NAME SAYS STELVIO / 2.0', 'unverified': 'FITMENT NOT GIVEN', 'other-engine': 'OTHER ENGINE / MODEL'} %}
+<div class="cat-wrap dense"><table class="cat-table">
+  <thead><tr><th>Part / shop code</th><th>Name</th><th>Price</th><th>Fitment</th><th>Shop</th></tr></thead>
+  <tbody>{% for x in items %}
+    <tr class="{{ 'other-engine' if x.fitment == 'other-engine' }}">
+      <td class="pn">{{ x.pn or x.sku or '–' }}{% if x.brand %}<div class="sub">{{ x.brand }}</div>{% endif %}</td>
+      <td>{{ x.name }}{% if x.notes %}<div class="sub">{{ x.notes }}</div>{% endif %}</td>
+      <td>{{ x.price or '–' }}{% if x.currency %} {{ x.currency }}{% endif %}{% if x.msrp %}<div class="sub">MSRP {{ x.msrp }}</div>{% endif %}</td>
+      <td><span class="cat-tag {{ 'ok' if x.fitment == 'own' else ('warn' if x.fitment == 'other-engine' else '') }}" title="{{ x.fitment_why }}">{{ fit_label.get(x.fitment, x.fitment) }}</span></td>
+      <td>{% if x.url %}<a href="{{ x.url }}" target="_blank" rel="noopener noreferrer">{{ x.source_name }}</a>{% else %}{{ x.source_name }}{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+</table></div>
+<p class="cat-src">Not in the Mopar dealer catalogue. Fitment is the shop's own wording (hover the tag for why), not a part-number match: confirm before buying.</p>

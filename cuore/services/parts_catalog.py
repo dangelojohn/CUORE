@@ -123,7 +123,36 @@ def image_path(cid: str, name: str) -> Optional[Path]:
 def stats(cat: dict[str, Any]) -> dict[str, int]:
     ds = cat.get("diagrams", {})
     return {"sections": len(cat.get("sections", [])), "diagrams": len(ds),
-            "rows": sum(len(d["parts"]) for d in ds.values()), "part_numbers": len(cat["_by_pn"])}
+            "rows": sum(len(d["parts"]) for d in ds.values()), "part_numbers": len(cat["_by_pn"]),
+            "listings": len(cat.get("listings") or [])}
+
+
+_FIT_ORDER = {"own": 0, "by-name": 1, "unverified": 2, "other-engine": 3}
+
+
+def search_listings(cat: dict[str, Any], q: str, limit: int = 60) -> list[dict[str, Any]]:
+    """Other shops' items the dealer catalogue lacks: part number or shop code
+    first, else every query word in the name; this car's fitment first."""
+    q = (q or "").strip()
+    rows = cat.get("listings") or []
+    if not q:
+        return []
+    n = norm_pn(q)
+    hits = [x for x in rows if n and len(n) >= 4 and (n in norm_pn(x.get("pn", "")) or n in norm_pn(x.get("sku", "")))]
+    words = _query_words(q)
+    if not hits and words:
+        hits = [x for x in rows if all(w in f"{x['name']} {x.get('brand', '')} {x.get('notes', '')}".lower() for w in words)]
+    return sorted(hits, key=lambda x: _FIT_ORDER.get(x["fitment"], 9))[:limit]
+
+
+def listings_view(cat: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every listing, grouped by shop, this car's fitment first."""
+    by: dict[str, list] = {}
+    for x in cat.get("listings") or []:
+        by.setdefault(x["source_name"], []).append(x)
+    return [{"source_name": k, "kind": v[0]["kind"], "source": v[0]["source"],
+             "rows": sorted(v, key=lambda x: (_FIT_ORDER.get(x["fitment"], 9), x["name"]))}
+            for k, v in sorted(by.items())]
 
 
 def _section_view(cat: dict[str, Any], slug: str) -> Optional[dict[str, Any]]:
