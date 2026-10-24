@@ -6,7 +6,7 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 |---|---|---|---|
 | observations.jsonl | skipped-unchanged | 1987560 | 335 |
 | owner_events.jsonl | skipped-unchanged | 996 | 2 |
-| jobs.jsonl | skipped-unchanged | 206047 | 220 |
+| jobs.jsonl | copied | 206593 | 221 |
 | checklists.json | skipped-unchanged | 599 | - |
 | cases.jsonl | skipped-unchanged | 1491 | 1 |
 | symptoms.jsonl | skipped-unchanged | 1505 | 3 |
@@ -14,9 +14,9 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 | audit.jsonl | skipped-unchanged | 604987 | 3172 |
 | fullscan_last.json | skipped-unchanged | 6870 | - |
 | notes.jsonl | skipped-unchanged | 24620 | 18 |
-| service_records.jsonl | copied | 5151 | 2 |
-| addresses.json | copied | 1183 | - |
-| learned_dids.json | copied | 34704 | - |
+| service_records.jsonl | skipped-unchanged | 5151 | 2 |
+| addresses.json | skipped-unchanged | 1183 | - |
+| learned_dids.json | skipped-unchanged | 34704 | - |
 | checklists.json.bak-2026-10-08-review | skipped-unchanged | 518 | - |
 | jobs.jsonl.bak-2026-10-08-review | skipped-unchanged | 1364 | - |
 | observations.jsonl.bak-2026-09-26-test-pollution | skipped-unchanged | 109785 | - |
