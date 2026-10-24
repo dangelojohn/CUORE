@@ -47,6 +47,16 @@ def summary(vin: str) -> Optional[dict[str, Any]]:
     return {"rows": [rows[k] for k in data.get("summary_keys", []) if k in rows]}
 
 
+def nav_label(vin: Optional[str] = None) -> str:
+    """Header link text: the file's ``nav_label`` (e.g. "Stelvio facts"), else "Facts"."""
+    data = load(vin) if vin else None
+    if data is None:
+        first = first_vin_with_facts()
+        data = load(first) if first else None
+    label = (data or {}).get("nav_label")
+    return label if isinstance(label, str) and label.strip() else "Facts"
+
+
 def first_vin_with_facts() -> Optional[str]:
     base = REPO_ROOT / "docs" / "vehicles"
     if not base.is_dir():

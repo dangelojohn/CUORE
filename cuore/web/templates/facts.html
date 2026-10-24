@@ -27,6 +27,8 @@
 .rc-step.is-recommended { border-left-color: var(--sev-ok, var(--ink)); font-weight: 700; background: var(--surface-2); }
 .rc-step.is-excluded { border-left-color: var(--sev-returned); text-decoration: line-through; color: var(--ink-3); }
 .rc-step.is-excluded .rc-tag, .rc-step.is-excluded .facts-src { text-decoration: none; display: inline-block; }
+.facts-toc { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 12px; font-size: 13px; }
+.facts-toc a { color: var(--ink-2); }
 .rc-tag { font-size: 11px; letter-spacing: .04em; padding: 1px 6px; border: 1px solid currentColor; border-radius: var(--radius); }
 @media (min-width: 700px) {
   .facts-row { flex-direction: row; align-items: baseline; gap: 12px; }
@@ -43,6 +45,11 @@
 {% else %}
 <p class="lede small muted"><span class="mono">{{ facts.vin }}</span> &middot; as of {{ facts.as_of }}.
   {{ facts.note }}</p>
+<nav class="facts-toc no-print" aria-label="Sections">
+  {% for s in facts.sections %}<a href="#facts-{{ s.id }}">{{ s.title }}</a>{% endfor %}
+  {% if facts.radio_compare %}<a href="#facts-radio-compare">Radio chart</a>{% endif %}
+  {% if facts.links %}<a href="#facts-links">Links</a>{% endif %}
+</nav>
 <div class="facts">
   {% for s in facts.sections %}
   <section class="panel" id="facts-{{ s.id }}">

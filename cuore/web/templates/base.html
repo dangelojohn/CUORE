@@ -28,7 +28,7 @@
   <span class="top-tagline">{{ marque_tagline if marque_tagline is defined and marque_tagline else "Passion and the joy of driving" }}</span>
   <span class="profile" title="Which half of the system this is">{{ profile }}</span>
   <a class="icon-btn live-link no-print" href="/live" title="Live link: the adapter, right now">Live link</a>
-  <a class="icon-btn facts-link no-print" href="{{ '/v/' ~ vin ~ '/facts' if vin is defined and vin else '/facts' }}" title="Vehicle facts: build, tyres, radio, recall">Facts</a>
+  <a class="icon-btn facts-link no-print" href="{{ '/v/' ~ vin ~ '/facts' if vin is defined and vin else '/facts' }}" title="Vehicle facts: build, tyres, wheels, radio, recall">{{ facts_nav_label(vin if vin is defined and vin else None) if facts_nav_label is defined else 'Facts' }}</a>
   <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle dark/light theme"
           title="Toggle dark/light theme">&#9680;</button>
   <button type="button" class="icon-btn no-print" aria-label="Print this page"
@@ -48,6 +48,7 @@
         <a href="/coverage">Coverage</a>
         <a href="/cables">Cables</a>
       </div>
+      <a class="navutil" href="{{ '/v/' ~ vin ~ '/facts' if vin is defined and vin else '/facts' }}">Facts</a>
       <a class="navutil" href="/tsb">TSB</a>
       <a class="navutil" href="/slvt">SLVT</a>
       <a class="navutil" href="/tools">Tools</a>

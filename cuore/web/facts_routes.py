@@ -14,6 +14,23 @@ from . import routes as web_routes
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
 
 
+def _nav_label(vin=None) -> str:
+    try:
+        return bridge.nav_label(vin)
+    except Exception:  # noqa: BLE001 -- a header global must never 500 a page
+        return "Facts"
+
+
+# base.html's header link reads this; every page environment gets it (guarded
+# there with `is defined`, so a module that fails to import just shows "Facts").
+for _mod in ("routes", "labels_routes", "media_routes", "owner_routes", "service_routes"):
+    try:
+        _t = __import__(f"cuore.web.{_mod}", fromlist=["templates"]).templates
+        _t.env.globals["facts_nav_label"] = _nav_label
+    except Exception:  # noqa: BLE001
+        pass
+
+
 @router.get("/facts")
 def facts_redirect(request: Request) -> RedirectResponse:
     vin = web_routes._active_vehicle(request) or bridge.first_vin_with_facts()

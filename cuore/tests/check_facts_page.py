@@ -32,7 +32,8 @@ def check_page() -> None:
                    "U36", "18V-205", "unconfirmed", "inference",
                    'id="facts-radio-compare"', "RECOMMENDED", "INSTALLED", "NOT FOR THIS CAR",
                    "MV-090.000.061", "TSB 08-029-20 (2020-03-05)",
-                   "Rim size", "19 x 8J, ET34"):
+                   "Rim size", "19 x 8J, ET34", "5 x 110 mm", "M14 x 1.5", "Bolt torque",
+                   'id="facts-wheels"', 'id="facts-modules"', 'href="#facts-fluids"', "50544870"):
         assert needle in t, needle
     assert f'href="/v/{VIN}/facts"' in t  # nav link, vehicle-scoped
 
@@ -50,6 +51,7 @@ def check_nav_and_card() -> None:
     c = TestClient(create_app(), follow_redirects=False)
     r = c.get("/start")
     assert r.status_code == 200 and 'class="icon-btn facts-link' in r.text and 'href="/facts"' in r.text
+    assert "Stelvio facts</a>" in r.text  # label comes from the facts file
     r = c.get(f"/v/{VIN}")
     assert r.status_code == 200, r.status_code
     assert f'href="/v/{VIN}/facts"' in r.text and "Vehicle facts" in r.text and "MV-002.010.041" in r.text
