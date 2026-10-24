@@ -38,6 +38,9 @@ EXPORT = {
                 {"d": 0, "ref": "1", "pn": "68420186AA", "name": "Disc Brake Caliper Assembly, Right",
                  "href": "/oem-parts/x-68420186aa", "img": "",
                  "info": {"Notes": "Engines: 2.9L V6 TWIN TURBO ENGINE."}},
+                {"d": 0, "ref": "1", "pn": "68420185AA", "name": "Disc Brake Caliper Assembly, Left",
+                 "href": "/oem-parts/x-68420185aa", "img": "",
+                 "info": {"Notes": "Engines: 2.0L 280HP I4 DI TURBO ENGINE.", "Description": "Without Brake Pads. Front. [XTK]"}},
                 {"d": 0, "ref": "5", "pn": "68400577AA", "name": "Pad Kit, Front Disc Brake",
                  "href": "/oem-parts/x-68400577aa", "img": "", "info": {}},
                 {"d": 0, "ref": "7", "pn": "68311596AA", "name": "Bolt, Brake Mounting",
@@ -89,6 +92,7 @@ def main() -> None:
     assert r.status_code == 303 and r.headers["location"] == "/catalog/p/68400577AA", r.headers.get("location")
     r = c.get("/catalog", params={"q": "6842018"})
     assert r.status_code == 200 and "68420187AA" in r.text and "68420186AA" in r.text and "OTHER ENGINE" in r.text
+    assert r.text.index("68420187AA") < r.text.index("68420186AA")  # this car's parts first
     # words, with the mechanic's own phrasing: torque values first, then parts
     r = c.get("/catalog", params={"q": "caliper bolt torque"})
     t = r.text
@@ -115,6 +119,19 @@ def main() -> None:
     assert "30 Nm" not in cal, "fastener torque leaked onto the caliper row"
     r = c.get("/catalog/d/brakes--front-brakes--1", params={"all": 1})
     assert "68420186AA" in r.text and "OTHER ENGINE" in r.text
+    # McMaster-style: rail, filter chips with counts, clickable rows, type-ahead
+    assert 'class="cat-rail"' in t and 'href="/catalog/g/brakes#s-brakes--front-brakes" class="on"' in t
+    assert 'data-href="/catalog/p/68311596AA"' in t and "catalog.js" in t
+    assert ">Left<small>1</small>" in t and ">Right<small>" in t and ">XTK<small>1</small>" in t
+    r = c.get("/catalog/d/brakes--front-brakes--1", params={"side": "Left"})
+    t = r.text
+    assert "68420185AA" in t and ">68420187AA<" not in t and "68400577AA" in t and "68311596AA" in t  # untagged rows stay
+    r = c.get("/catalog/d/brakes--front-brakes--1", params={"opt": "XTK"})
+    assert "68420185AA" in r.text and "68400577AA" in r.text
+    j = c.get("/catalog/api/typeahead", params={"q": "caliper bolt"}).json()
+    assert j["specs"] and j["specs"][0]["value"] == "30 Nm" and any(p["pn"] == "68311596AA" for p in j["parts"]), j
+    assert c.get("/catalog/api/typeahead", params={"q": "x"}).json() == {"parts": [], "specs": []}
+    assert c.get("/static/catalog.js").status_code == 200
 
     # part page: torque, then see it (callout), then alternatives
     r = c.get("/catalog/p/68311596AA")

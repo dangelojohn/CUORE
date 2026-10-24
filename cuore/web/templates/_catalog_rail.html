@@ -1,0 +1,14 @@
+{# Left category rail (McMaster-style): systems > sections, current one open.
+   Context: rail (parts_catalog.rail), cur_group, cur_slug. Wide screens show
+   it as a column; narrower screens get the same list behind "Browse systems". #}
+<details class="cat-rail" {{ 'open' if rail_open }}>
+  <summary>Browse systems</summary>
+  <nav aria-label="Parts systems">
+    {% for g in rail %}
+    <details class="cat-rail-g" {{ 'open' if g.id == cur_group }}>
+      <summary><a href="/catalog/g/{{ g.id }}" class="{{ 'on' if g.id == cur_group }}">{{ g.title }}</a></summary>
+      <ul>{% for s in g.sections %}<li><a href="/catalog/g/{{ g.id }}#s-{{ s.slug }}" class="{{ 'on' if s.slug == cur_slug }}">{{ s.title }}</a></li>{% endfor %}</ul>
+    </details>
+    {% endfor %}
+  </nav>
+</details>

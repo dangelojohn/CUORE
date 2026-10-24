@@ -7,8 +7,15 @@
 {% block content %}
 {% include "_catalog_style.html" %}
 {% set a0 = p.primary %}
+<div class="cat-shell">
+{% set cur_group = a0.diagram.group %}{% set cur_slug = a0.diagram.slug %}{% include "_catalog_rail.html" %}
+<div data-cat-last="{{ p.pn }} · {{ p.name }}">
 <p class="cat-crumbs"><a href="/catalog">Parts</a> › <a href="/catalog/g/{{ a0.diagram.group }}">{{ (cat['_groups'].get(a0.diagram.group) or {}).get('title', a0.diagram.group) }}</a> › <a href="/catalog/d/{{ a0.diagram.id }}">{{ a0.diagram.title }}</a></p>
 <h1><span class="mono">{{ p.pn }}</span> · {{ p.name }}</h1>
+<form class="cat-search" method="get" action="/catalog" role="search">
+  <input type="search" name="q" placeholder="Part number, name, or “caliper bolt torque”" aria-label="Search parts and torque values">
+  <button class="btn" type="submit">Search</button>
+</form>
 {% if p.descriptions %}<p class="lede">{{ p.descriptions|join(' · ') }}</p>{% endif %}
 {% if 'other-engine' in p.fitment and 'own' not in p.fitment %}<div class="note warn"><span class="lab">Other engine</span> The catalogue lists this number for a different engine, not this 2.0L. Check the alternatives below.</div>{% endif %}
 
@@ -77,5 +84,8 @@
   {% else %}<p class="muted small">No job, note or symptom mentions {{ p.pn }}.</p>{% endif %}
   {% if p.tsbs %}<h3 class="small">Bulletins mentioning it</h3><ul class="small">{% for t in p.tsbs %}<li>{{ t.id }} {{ t.title }}</li>{% endfor %}</ul>{% endif %}
 </section>
+</div>
+</div>
 <a class="cat-jump" href="#cat-see">Schematic ↑</a>
+<script src="{{ static_url('catalog.js') }}" defer></script>
 {% endblock %}

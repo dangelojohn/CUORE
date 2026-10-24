@@ -135,6 +135,16 @@ def _section_view(cat: dict[str, Any], slug: str) -> Optional[dict[str, Any]]:
             "spec_count": len([x for x in section_specs(cat, slug) if x["known"]])}
 
 
+def rail(cat: dict[str, Any]) -> list[dict[str, Any]]:
+    """Light category tree for the left rail: groups > sections (no diagram objects)."""
+    out = []
+    for g in cat.get("groups", []):
+        secs = [{"slug": s, "title": cat["_sections"][s]["title"]} for s in g.get("sections", []) if s in cat["_sections"]]
+        if secs:
+            out.append({"id": g["id"], "title": g["title"], "sections": secs})
+    return out
+
+
 def groups_view(cat: dict[str, Any]) -> list[dict[str, Any]]:
     """Group tiles: title, counts and one cover image each (no per-diagram cards)."""
     out = []
@@ -326,6 +336,50 @@ def search_specs(cat: dict[str, Any], q: str, limit: int = 30) -> list[dict[str,
     return uniq[:limit]
 
 
+def typeahead(cat: dict[str, Any], q: str, n: int = 8) -> dict[str, list[dict[str, Any]]]:
+    """Small, fast answer for the search box: top parts and torque values."""
+    if len((q or "").strip()) < 2:
+        return {"parts": [], "specs": []}
+    parts = [{"pn": h["pn"], "name": h["name"], "diagram_id": h["diagram_id"], "diagram_title": h["diagram_title"],
+              "ref": h["ref"], "other": h.get("fitment") == "other-engine"} for h in search(cat, q, limit=n)]
+    specs = [{"item": s["item"], "value": s["value"], "alt": s["alt"], "confidence": s["confidence"],
+              "diagram_id": s["diagram_id"], "section": s["section"]} for s in search_specs(cat, q, limit=4)]
+    return {"parts": parts, "specs": specs}
+
+
+# --- facets (McMaster-style filters on a schematic) --------------------------
+
+_SIDE = (("Left", re.compile(r"\b(left|lh|driver)\b", re.I)), ("Right", re.compile(r"\b(right|rh|passenger)\b", re.I)))
+_OPTION = re.compile(r"\[([A-Z0-9]{3})\]")
+
+
+def facets_of(p: dict[str, Any]) -> dict[str, list[str]]:
+    text = f"{p.get('name', '')} {p.get('description', '')} {p.get('notes', '')}"
+    sides = [label for label, rx in _SIDE if rx.search(text)]
+    if len(sides) == 2 or re.search(r"right or left|left or right|both", text, re.I):
+        sides = ["Both"]
+    return {"side": sides, "option": sorted(set(_OPTION.findall(text)))}
+
+
+def facet_counts(rows: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
+    out: dict[str, dict[str, int]] = {"side": {}, "option": {}}
+    for r in rows:
+        for k, vals in r["facets"].items():
+            for v in vals:
+                out[k][v] = out[k].get(v, 0) + 1
+    return {k: dict(sorted(v.items())) for k, v in out.items() if v}
+
+
+def row_passes(r: dict[str, Any], side: str = "", option: str = "") -> bool:
+    """Rows with no side / option tag always pass: untagged means it applies regardless."""
+    f = r["facets"]
+    if side and f["side"] and side not in f["side"] and "Both" not in f["side"]:
+        return False
+    if option and f["option"] and option not in f["option"]:
+        return False
+    return True
+
+
 # --- pages ------------------------------------------------------------------
 
 def diagram(cat: dict[str, Any], did: str) -> Optional[dict[str, Any]]:
@@ -336,7 +390,7 @@ def diagram(cat: dict[str, Any], did: str) -> Optional[dict[str, Any]]:
     ids = sec.get("diagrams", [])
     i = ids.index(did) if did in ids else -1
     specs = section_specs(cat, d["slug"])
-    rows = [{**p, "specs": match_specs(p, specs)} for p in d["parts"]]
+    rows = [{**p, "specs": match_specs(p, specs), "facets": facets_of(p)} for p in d["parts"]]
     refs: dict[str, list[str]] = {}
     for r in rows:
         for s in r["specs"]:
@@ -348,6 +402,7 @@ def diagram(cat: dict[str, Any], did: str) -> Optional[dict[str, Any]]:
             "siblings": [cat["diagrams"][x] for x in ids if x in cat["diagrams"]],
             "specs": [s for s in specs if s["known"]], "specs_unknown": [s for s in specs if not s["known"]],
             "other_engine": sum(1 for p in d["parts"] if p.get("fitment") == "other-engine"),
+            "facet_counts": facet_counts(rows),
             "notes": mechanic_notes(cat, d)}
 
 

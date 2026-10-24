@@ -15,6 +15,7 @@
   <input type="search" name="q" value="{{ q }}" placeholder="Part number, part name, or “caliper bolt torque”" aria-label="Search parts and torque values" {% if not q %}autofocus{% endif %}>
   <button class="btn" type="submit">Search</button>
 </form>
+<p id="cat-continue" hidden></p>
 <p class="small muted">{{ cat.vehicle }} · {{ stats.part_numbers }} part numbers, {{ stats.diagrams }} schematics · source {{ cat.source_name }}, {{ cat.fetched_at[:10] }}{% if vin %} · <a href="/v/{{ vin }}/parts">job parts and buy links</a>{% endif %}</p>
 {% if cat.missing_sections %}<div class="note warn small"><span class="lab">Incomplete</span>
   {{ cat.missing_sections|length }} section(s) could not be read: {{ cat.missing_sections|join(', ') }}</div>{% endif %}
@@ -35,7 +36,7 @@
     <div class="cat-wrap"><table class="cat-table">
       <thead><tr><th class="ref">Ref</th><th>Part number</th><th>Part name / description</th><th>Schematic</th></tr></thead>
       <tbody>{% for h in hits %}
-        <tr class="{{ 'other-engine' if h.fitment == 'other-engine' }}">
+        <tr class="{{ 'other-engine' if h.fitment == 'other-engine' }}" data-href="/catalog/p/{{ h.pn }}">
           <td class="ref">{{ h.ref }}</td>
           <td class="pn"><a href="/catalog/p/{{ h.pn }}">{{ h.pn }}</a></td>
           <td>{{ h.name }}{% if h.description %}<div class="sub">{{ h.description }}</div>{% endif %}
@@ -56,5 +57,6 @@
       <span class="n">{{ g.section_objs|length }} sections · {{ g.diagram_count }} schematics · {{ g.part_count }} parts</span>
     </a>{% endfor %}</div>
 </section>
+<script src="{{ static_url('catalog.js') }}" defer></script>
 {% endif %}
 {% endblock %}

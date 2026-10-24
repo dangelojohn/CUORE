@@ -4,10 +4,13 @@
 {% block title %}{{ g.title }} · Parts{% endblock %}
 {% block content %}
 {% include "_catalog_style.html" %}
+<div class="cat-shell">
+{% set cur_group = g.id %}{% set cur_slug = '' %}{% include "_catalog_rail.html" %}
+<div>
 <p class="cat-crumbs"><a href="/catalog">Parts catalogue</a></p>
 <h1>{{ g.title }}</h1>
 <form class="cat-search" method="get" action="/catalog" role="search">
-  <input type="search" name="q" placeholder="Search all parts and torque values" aria-label="Search parts">
+  <input type="search" name="q" placeholder="Part number, name, or “caliper bolt torque”" aria-label="Search parts and torque values">
   <button class="btn" type="submit">Search</button>
 </form>
 {% if g.section_objs|length > 1 %}<nav class="cat-toc" aria-label="Sections">{% for s in g.section_objs %}<a href="#s-{{ s.slug }}">{{ s.title }}</a>{% endfor %}</nav>{% endif %}
@@ -22,4 +25,7 @@
     </a>{% endfor %}</div>
 </section>
 {% endfor %}
+</div>
+</div>
+<script src="{{ static_url('catalog.js') }}" defer></script>
 {% endblock %}

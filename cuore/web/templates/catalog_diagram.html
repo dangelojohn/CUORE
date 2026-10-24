@@ -1,14 +1,24 @@
 {% extends "base.html" %}
-{# One schematic. Wide screens: the drawing stays in view (sticky, left) while
-   the torque values and the parts list scroll on the right. Phones: drawing,
-   torque, parts, with a "Diagram" button to jump back up.
-   Parts listed only for another engine are hidden unless ?all=1.
+{# One schematic, McMaster-style: rail of systems (wide screens), the drawing
+   kept in view beside torque values and a dense, filterable parts table.
+   Filters (?side=, ?opt=) are plain links; rows with no side/option tag
+   always show. Parts listed only for another engine are hidden unless ?all=1.
    cuore/web/catalog_routes.py #}
 {% block title %}{{ d.title }} · Parts{% endblock %}
 {% block content %}
 {% include "_catalog_style.html" %}
+{% macro q(side_v=side, opt_v=opt, all_v=show_all) -%}
+/catalog/d/{{ d.id }}?{% if side_v %}side={{ side_v }}&amp;{% endif %}{% if opt_v %}opt={{ opt_v }}&amp;{% endif %}{% if all_v %}all=1{% endif %}
+{%- endmacro %}
+<div class="cat-shell">
+{% set cur_group = d.group %}{% set cur_slug = d.slug %}{% include "_catalog_rail.html" %}
+<div data-cat-last="{{ d.title }} ({{ d.section }})">
 <p class="cat-crumbs"><a href="/catalog">Parts</a> › <a href="/catalog/g/{{ d.group }}">{{ d.group_obj.title or d.group }}</a> › <a href="/catalog/g/{{ d.group }}#s-{{ d.slug }}">{{ d.section }}</a></p>
 <h1>{{ d.title }}</h1>
+<form class="cat-search" method="get" action="/catalog" role="search">
+  <input type="search" name="q" placeholder="Part number, name, or “caliper bolt torque”" aria-label="Search parts and torque values">
+  <button class="btn" type="submit">Search</button>
+</form>
 {% if d.section_obj.excluded_reason %}<div class="note warn"><span class="lab">Not this car</span> {{ d.section_obj.excluded_reason }}</div>{% endif %}
 {% if d.siblings|length > 1 %}
 <nav class="cat-toc" aria-label="Schematics in this section">{% for s in d.siblings %}
@@ -17,7 +27,7 @@
 <div class="cat-layout">
   <div class="cat-stick" id="diagram">
     <div class="cat-diagram">
-      {% if d.image.file %}<a href="/catalog/img/{{ cid }}/{{ d.image.file }}" target="_blank" rel="noopener" title="Open the drawing full size"><img src="/catalog/img/{{ cid }}/{{ d.image.file }}" alt="Schematic: {{ d.title }}"></a>
+      {% if d.image.file %}<a href="/catalog/img/{{ cid }}/{{ d.image.file }}" target="_blank" rel="noopener" title="Open the drawing full size"><img src="/catalog/img/{{ cid }}/{{ d.image.file }}" width="485" height="589" alt="Schematic: {{ d.title }}"></a>
       {% else %}<p class="muted">No schematic image on file.</p>{% endif %}
     </div>
     <p class="cat-src">Numbers on the drawing = Ref column. Tap the drawing to open it full size. {{ cat.source_name }} · <a href="{{ d.source_url }}" target="_blank" rel="noopener noreferrer">source page</a></p>
@@ -29,23 +39,30 @@
       {% if not d.specs %}<p class="muted">No torque value on file for this assembly. Use the service manual (TechAuthority).</p>{% endif %}
       {% if d.specs_unknown %}<p class="small muted">Not known yet: {% for s in d.specs_unknown %}{{ s.item }}{{ '; ' if not loop.last }}{% endfor %}.</p>{% endif %}
     </section>
-    <section class="panel">
-      <h2>Parts ({{ d.parts|length - (0 if show_all else d.other_engine) }})</h2>
-      {% if d.other_engine %}<p class="small">{% if show_all %}Showing {{ d.other_engine }} part{{ '' if d.other_engine == 1 else 's' }} listed for another engine (dimmed). <a href="/catalog/d/{{ d.id }}">Hide them</a>{% else %}{{ d.other_engine }} part{{ '' if d.other_engine == 1 else 's' }} listed only for another engine hidden. <a href="/catalog/d/{{ d.id }}?all=1">Show all</a>{% endif %}</p>{% endif %}
-      <div class="cat-wrap"><table class="cat-table">
+    <section class="panel" id="cat-parts">
+      <h2>Parts ({{ shown|length }}{% if shown|length != d.parts|length %} of {{ d.parts|length }}{% endif %})</h2>
+      {% set fc = d.facet_counts %}
+      {% if fc.side %}<div class="cat-chips"><span class="lab">Side</span>
+        <a href="{{ q(side_v='') }}" class="{{ 'on' if not side }}">All</a>
+        {% for v, n in fc.side.items() %}{% if v != 'Both' %}<a href="{{ q(side_v=v) }}" class="{{ 'on' if side == v }}">{{ v }}<small>{{ n }}</small></a>{% endif %}{% endfor %}</div>{% endif %}
+      {% if fc.option %}<div class="cat-chips"><span class="lab">Option code</span>
+        <a href="{{ q(opt_v='') }}" class="{{ 'on' if not opt }}">All</a>
+        {% for v, n in fc.option.items() %}<a href="{{ q(opt_v=v) }}" class="{{ 'on' if opt == v }}">{{ v }}<small>{{ n }}</small></a>{% endfor %}</div>{% endif %}
+      {% if d.other_engine %}<p class="small">{% if show_all %}Showing {{ d.other_engine }} part{{ '' if d.other_engine == 1 else 's' }} listed for another engine (dimmed). <a href="{{ q(all_v=False) }}">Hide them</a>{% else %}{{ d.other_engine }} part{{ '' if d.other_engine == 1 else 's' }} listed only for another engine hidden. <a href="{{ q(all_v=True) }}">Show all</a>{% endif %}</p>{% endif %}
+      <div class="cat-wrap dense"><table class="cat-table">
         <thead><tr><th class="ref">Ref</th><th>Part number</th><th>Part name / notes</th><th>Torque</th></tr></thead>
-        <tbody>{% for p in d.rows %}{% if show_all or p.fitment != 'other-engine' %}
-          <tr class="{{ 'other-engine' if p.fitment == 'other-engine' }}">
+        <tbody>{% for p in shown %}
+          <tr class="{{ 'other-engine' if p.fitment == 'other-engine' }}" data-href="/catalog/p/{{ p.pn }}">
             <td class="ref">{{ p.ref }}</td>
             <td class="pn"><a href="/catalog/p/{{ p.pn }}">{{ p.pn }}</a></td>
             <td>{{ p.name }}{% if p.fitment == 'other-engine' %} <span class="cat-tag">OTHER ENGINE</span>{% endif %}
                 {% if p.description %}<div class="sub">{{ p.description }}</div>{% endif %}
                 {% if p.notes %}<div class="sub">{{ p.notes }}</div>{% endif %}
                 {% for k, v in p.info.items() %}<div class="sub">{{ k }}: {{ v }}</div>{% endfor %}</td>
-            <td>{% for s in p.specs %}<div class="cat-tq" title="{{ s.item }} ({{ s.confidence }}; matched by name)">{{ s.value }}{% if s.angle %} + {{ s.angle }}{% endif %}</div>{% if s.single_use %}<span class="cat-tag warn">REPLACE</span>{% endif %}{% endfor %}</td>
-          </tr>{% endif %}{% endfor %}</tbody>
+            <td>{% for s in p.specs %}<div class="cat-tq" title="{{ s.item }} ({{ s.confidence }}; matched by name)">{{ s.value }}{% if s.angle %} + {{ s.angle }}{% endif %}</div>{% if s.single_use %}<span class="cat-tag warn">REPLACE</span>{% endif %}{% else %}<span class="muted">–</span>{% endfor %}</td>
+          </tr>{% else %}<tr><td colspan="4" class="muted">No part matches these filters. <a href="/catalog/d/{{ d.id }}">Clear filters</a></td></tr>{% endfor %}</tbody>
       </table></div>
-      <p class="cat-src">Torque column: a torque value whose description names this part (matched by name; confirm against the fastener on the drawing).</p>
+      <p class="cat-src">Torque column: a torque value whose description names this part (matched by name; confirm against the fastener on the drawing). Side and option-code filters read the catalogue's own wording; parts without a side or option tag always show.</p>
     </section>
     {% set notes = d.notes %}{% include "_catalog_mechanic.html" %}
     <div class="cat-pager">
@@ -54,5 +71,8 @@
     </div>
   </div>
 </div>
+</div>
+</div>
 <a class="cat-jump" href="#diagram">Diagram ↑</a>
+<script src="{{ static_url('catalog.js') }}" defer></script>
 {% endblock %}

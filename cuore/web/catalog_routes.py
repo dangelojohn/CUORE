@@ -11,7 +11,7 @@ page (``/v/{vin}/parts``, :mod:`cuore.web.parts_routes`) links here and back.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse, Response
 
 from ..api.deps import require_token
 from ..services import parts_catalog as pc
@@ -22,7 +22,8 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 
 def _ctx(request: Request, cat) -> dict:
     vin = web_routes._active_vehicle(request)
-    return {"cat": cat, "cid": cat["id"] if cat else "", "vin": vin or "", "live_strip": None, "tab": "catalog"}
+    return {"cat": cat, "cid": cat["id"] if cat else "", "vin": vin or "", "live_strip": None, "tab": "catalog",
+            "rail": pc.rail(cat) if cat else []}
 
 
 @router.get("/catalog", response_class=HTMLResponse)
@@ -51,12 +52,21 @@ def catalog_group(request: Request, gid: str) -> Response:
 
 
 @router.get("/catalog/d/{did}", response_class=HTMLResponse)
-def catalog_diagram(request: Request, did: str, all: int = 0) -> Response:
+def catalog_diagram(request: Request, did: str, all: int = 0, side: str = "", opt: str = "") -> Response:
     cat = pc.load()
     d = pc.diagram(cat, did) if cat else None
     if not d:
         return RedirectResponse("/catalog", status_code=303)
-    return web_routes._page(request, "catalog_diagram.html", **_ctx(request, cat), d=d, show_all=bool(all))
+    show_all = bool(all)
+    shown = [r for r in d["rows"] if (show_all or r.get("fitment") != "other-engine") and pc.row_passes(r, side, opt)]
+    return web_routes._page(request, "catalog_diagram.html", **_ctx(request, cat), d=d, show_all=show_all,
+                            shown=shown, side=side, opt=opt)
+
+
+@router.get("/catalog/api/typeahead")
+def catalog_typeahead(q: str = "") -> Response:
+    cat = pc.load()
+    return JSONResponse(pc.typeahead(cat, q) if cat else {"parts": [], "specs": []})
 
 
 @router.get("/catalog/p/{pn}", response_class=HTMLResponse)
