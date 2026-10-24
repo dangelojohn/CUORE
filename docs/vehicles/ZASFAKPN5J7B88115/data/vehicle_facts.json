@@ -24,7 +24,7 @@
         {"label": "Bore x stroke / compression", "value": "84 x 90 mm; 10:1", "source": "outside research: fastcarcheck.uk (search snippet, EU listing, same block)", "date": "2026-10-24", "confidence": "unconfirmed"},
         {"label": "Fuel", "value": "Premium unleaded; last recorded fill Shell 91, 50 L on 2026-10-13", "source": "outside research: cars.com / owner event", "date": "2026-10-24", "confidence": "third-party (grade)"},
         {"label": "Transmission", "value": "ZF 8-speed automatic; gear selector module (ESM) HW 1000597140 v08, SW 1000678050 v0019", "source": "CASE.md + MES reading (SCAN_2610230112)", "date": "2026-10-23"},
-        {"label": "8HP model / fluid spec", "value": "Not confirmed (8HP model and fluid spec not found)", "source": "open item", "date": "2026-10-24", "flag": "unknown"},
+        {"label": "Transmission model / fluid", "value": "ZF 8HP50 (the dealer parts catalogue lists 8HP50 for the 2.0L). Fluid spec: not confirmed", "source": "dealer parts catalogue notes (Mopar Online Parts, front brakes page)", "date": "2026-10-24", "confidence": "fluid spec unknown"},
         {"label": "AWD", "value": "Q4, Magna transfer case (DTCM HW M0045027.01 v21, SW M0099947 v0501); rear-biased, up to 50% to the front", "source": "MES reading (DTCM identity, 2026-10-23) + outside research (split: australiancar.reviews snippet)", "date": "2026-10-24", "confidence": "split unconfirmed"},
         {"label": "Rear differential", "value": "Open or limited-slip on this trim: not confirmed", "source": "outside research: carsales.com.au, netcarshow (snippets disagree)", "date": "2026-10-24", "flag": "unknown"}
       ]
@@ -65,7 +65,7 @@
         {"label": "Engine oil", "value": "SAE 0W-30 full synthetic, FCA 9.55535-GS1 (Mopar 68444159AA)", "source": "outside research: fiat500usa.com oil-change guide (read in full)", "date": "2026-10-24", "confidence": "third-party; check the manual"},
         {"label": "Oil capacity", "value": "About 5.2 L / 5.5 US qt with filter (one site says 5.7 L)", "source": "outside research: fiat500usa.com, puretyre, pcauto (sources differ)", "date": "2026-10-24", "confidence": "unconfirmed"},
         {"label": "Oil filter / drain plug", "value": "Filter 04892339AB; drain plug 06507741AA", "source": "outside research: fiat500usa.com (read in full)", "date": "2026-10-24", "confidence": "third-party"},
-        {"label": "Coolant", "value": "Type and capacity not found; see the manual's Fluid Capacities table", "source": "open item", "date": "2026-10-24", "flag": "unknown"},
+        {"label": "Coolant", "value": "OAT, FCA MS.90032 / CUNA NC956-16, 50% mix, do not mix formulations. Engine circuit 2.3 US gal (8.8 L); separate intercooler circuit 1.4 US gal (5.25 L)", "source": "2018 Stelvio owner's manual (vehicleinfo.mopar.com P124461), read by a research agent", "date": "2026-10-24", "confidence": "official manual; not checked by hand"},
         {"label": "Transmission fluid", "value": "About 9.3 L, described as lifetime fill (spec not found)", "source": "outside research: cararac.com (snippet)", "date": "2026-10-24", "confidence": "unconfirmed"},
         {"label": "Rear differential fluid", "value": "0.8-0.9 L, described as lifetime fill", "source": "outside research: cararac.com (snippet)", "date": "2026-10-24", "confidence": "unconfirmed"},
         {"label": "Fuel tank", "value": "About 64 L (17 US gal)", "source": "outside research: cars.com (read in full), KBB 16.9 gal", "date": "2026-10-24", "confidence": "third-party"},
@@ -130,7 +130,7 @@
         {"label": "U36 / NHTSA 18V-205", "value": "BCM water ingress / corrosion; sealing remedy", "source": "official", "date": "2026-10-24"},
         {"label": "Status for this VIN", "value": "UNKNOWN. Check tc.canada.ca/recalls or dealer by 2026-10-28.", "source": "open item", "date": "2026-10-24", "key": "recall_status", "flag": "unknown"},
         {"label": "93C / NHTSA 25V-586", "value": "Fuel pump (fuel delivery module); booked at the dealer 2026-10-28", "source": "NHTSA data + CUORE job d04440124055", "date": "2026-10-24", "confidence": "VIN status not confirmed"},
-        {"label": "Other 2018 Stelvio campaigns", "value": "17V-823 hydraulic brakes; 18V-147 wiper motor software; 18V-203 liftgate water; 18V-636 wiring; 19V-148 adaptive cruise; 19V-551 instrument cluster; 23V-382 hydraulic brakes; 24V-510 frontal airbags", "source": "NHTSA data (nhtsa_recalls_2018_stelvio.json)", "date": "2026-09-26", "confidence": "none checked against this VIN"}
+        {"label": "Other 2018 Stelvio campaigns", "value": "17V-823 hydraulic brakes; 18V-147 wiper motor (build window 2017-04-12 to 2017-07-12, so NOT this car); 18V-203 liftgate water; 18V-636 wiring; 19V-148 adaptive cruise; 19V-551 instrument cluster; 23V-382 hydraulic brakes; 24V-510 frontal airbags", "source": "NHTSA data (nhtsa_recalls_2018_stelvio.json)", "date": "2026-09-26", "confidence": "none checked against this VIN"}
       ]
     }
   ],
