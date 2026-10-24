@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{# Parts catalogue home: search + groups > sections > diagram cards.
+   cuore/web/catalog_routes.py -> cuore/services/parts_catalog.py #}
+{% block title %}Parts catalogue{% endblock %}
+{% block content %}
+{% include "_catalog_style.html" %}
+<h1>Parts catalogue</h1>
+{% if not cat %}
+  <div class="note warn"><span class="lab">Not built yet</span>
+    The catalogue has not been built on this computer. Run
+    <span class="mono">scripts/parts/build_parts_catalog.py</span> after the catalogue export is saved.</div>
+{% else %}
+<p class="lede small muted">{{ cat.vehicle }}. Source: {{ cat.source_name }}, read {{ cat.fetched_at[:10] }}.
+  {{ stats.part_numbers }} part numbers in {{ stats.diagrams }} diagrams across {{ stats.sections }} sections.
+  {% if vin %}<a href="/v/{{ vin }}/parts">Job parts with buy links</a>.{% endif %}</p>
+<form class="cat-search" method="get" action="/catalog" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Part number (68400577AA) or words (front pad, caliper bolt)" aria-label="Search parts" autofocus>
+  <button class="btn" type="submit">Search</button>
+</form>
+{% if cat.missing_sections %}<div class="note warn small"><span class="lab">Incomplete</span>
+  {{ cat.missing_sections|length }} section(s) could not be read: {{ cat.missing_sections|join(', ') }}</div>{% endif %}
+
+{% if hits is not none %}
+<section class="panel" id="cat-results">
+  <h2>{{ hits|length }} result{{ '' if hits|length == 1 else 's' }} for “{{ q }}”</h2>
+  {% if hits %}
+  <div class="cat-wrap"><table class="cat-table">
+    <thead><tr><th>Part number</th><th>Part name / description</th><th>Diagram</th><th class="ref">Ref</th></tr></thead>
+    <tbody>{% for h in hits %}
+      <tr class="{{ 'other-engine' if h.fitment == 'other-engine' }}">
+        <td class="pn"><a href="/catalog/p/{{ h.pn }}">{{ h.pn }}</a></td>
+        <td>{{ h.name }}{% if h.description %}<div class="sub">{{ h.description }}</div>{% endif %}
+            {% if h.fitment == 'other-engine' %}<span class="cat-tag">OTHER ENGINE</span>{% endif %}</td>
+        <td><a href="/catalog/d/{{ h.diagram_id }}">{{ h.diagram_title }}</a><div class="sub">{{ h.section }}</div></td>
+        <td class="ref">{{ h.ref }}</td>
+      </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="muted">Nothing matched. Try fewer words, or part of the number.</p>{% endif %}
+</section>
+{% endif %}
+
+<nav class="cat-toc" aria-label="Groups">{% for g in groups %}<a href="#g-{{ g.id }}">{{ g.title }}</a>{% endfor %}</nav>
+{% for g in groups %}
+<section class="panel" id="g-{{ g.id }}">
+  <h2>{{ g.title }}</h2>
+  {% for s in g.section_objs %}
+  <div class="cat-sec">
+    <h3>{{ s.title }} <span class="small muted">· {{ s.diagram_objs|length }} diagram{{ '' if s.diagram_objs|length == 1 else 's' }}, {{ s.part_count }} parts</span>
+      {% if s.excluded_reason %}<span class="cat-tag">{{ s.excluded_reason }}</span>{% endif %}</h3>
+    <div class="cat-grid">{% for d in s.diagram_objs %}
+      <a class="cat-card" href="/catalog/d/{{ d.id }}">
+        {% if d.image.file %}<img loading="lazy" src="/catalog/img/{{ cid }}/{{ d.image.file }}" alt="Schematic: {{ d.title }}">{% endif %}
+        <span class="t">{{ d.title }}</span><span class="n">{{ d.parts|length }} parts</span>
+      </a>{% endfor %}</div>
+  </div>
+  {% endfor %}
+</section>
+{% endfor %}
+{% endif %}
+{% endblock %}

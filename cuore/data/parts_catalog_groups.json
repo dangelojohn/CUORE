@@ -1,0 +1,39 @@
+{
+  "_schema": "Parts catalogue grouping. Source categories (URL slug prefix before '--') map to CUORE groups; 'torque' maps a slug substring to the torque-library categories (mes.service_specs) and sections (mes.drivetrain_specs) shown on matching diagrams. Marque/model specifics stay here, not in code.",
+  "groups": [
+    {"id": "engine", "title": "Engine", "prefixes": ["2-0l-direct-inject-turbo-engine"]},
+    {"id": "fuel-emissions", "title": "Fuel, emissions and exhaust", "prefixes": ["fuel", "emission-controls", "exhaust"]},
+    {"id": "cooling-climate", "title": "Cooling and climate", "prefixes": ["cooling", "air-conditioners-and-heaters"]},
+    {"id": "transmission", "title": "Transmission (ZF 8HP50)", "prefixes": ["8hp50-8-speed-automatic-transmission"]},
+    {"id": "driveline", "title": "Driveline and Q4 AWD", "prefixes": ["all-wheel-drive-differential-and-drive-line", "power-transfer-unit", "rear-wheel-drive-differential-and-drive-line"]},
+    {"id": "brakes", "title": "Brakes", "prefixes": ["brakes"]},
+    {"id": "suspension-steering", "title": "Suspension and steering", "prefixes": ["front-suspension", "rear-suspension", "steering"]},
+    {"id": "wheels", "title": "Wheels, tyres and TPMS", "prefixes": ["wheels"]},
+    {"id": "electrical", "title": "Electrical", "prefixes": ["electrical"]},
+    {"id": "body", "title": "Body, doors, bumpers and glass", "prefixes": ["body-sheet-metal-except-doors", "doors-door-mirrors-and-related-parts", "frame-bumper-and-fascia", "glass", "exterior-ornamentation"]},
+    {"id": "interior-safety", "title": "Interior and restraints", "prefixes": ["interior-trim", "restraints"]},
+    {"id": "other", "title": "Labels and accessories", "prefixes": ["labels", "mopar-accessories-component-parts", "auto-parts"]}
+  ],
+  "excluded": [
+    {"prefix": "2-9l-gas-engine", "reason": "2.9L V6 (Quadrifoglio): not this car's engine"},
+    {"prefix": "8hp75-8-speed-automatic-transmission", "reason": "ZF 8HP75 (Quadrifoglio): this car has the 8HP50"}
+  ],
+  "other_engine_markers": ["2.9L", "2.2L", "DIESEL"],
+  "own_engine_markers": ["2.0L"],
+  "torque": [
+    {"match": ["brakes--front"], "service": ["brakes_front"]},
+    {"match": ["brakes--rear", "parking-brake"], "service": ["brakes_rear"]},
+    {"match": ["wheels--wheels"], "service": ["wheels"]},
+    {"match": ["front-suspension", "rear-suspension"], "service": ["suspension", "wheel_bearing"]},
+    {"match": ["engine-oiling", "oil-pan"], "service": ["oil_change"]},
+    {"match": ["ignition", "spark"], "service": ["spark_plugs", "coils"]},
+    {"match": ["emission", "vapor", "evap"], "service": ["evap"]},
+    {"match": ["battery"], "service": ["battery"]},
+    {"match": ["splash-shield", "underbody", "skid-plate", "shields"], "service": ["undertray"]},
+    {"match": ["8hp50"], "service": ["transmission"], "drivetrain": ["transmission"]},
+    {"match": ["power-transfer-unit", "transfer-case"], "service": ["transfer_case"], "drivetrain": ["transfer_case"]},
+    {"match": ["differential", "axle"], "service": ["differential"], "drivetrain": ["differentials"]},
+    {"match": ["drive-shaft", "propeller", "half-shaft", "axle-shaft"], "drivetrain": ["driveline"]},
+    {"match": ["engine-mounting", "mounting-and-skid-plate"], "drivetrain": ["mounts"]}
+  ]
+}

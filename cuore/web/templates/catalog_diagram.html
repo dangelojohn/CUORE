@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{# One schematic: largest image the source offers, its parts by callout, then
+   the mechanic card. cuore/web/catalog_routes.py #}
+{% block title %}{{ d.title }} · Parts{% endblock %}
+{% block content %}
+{% include "_catalog_style.html" %}
+<p class="cat-crumbs"><a href="/catalog">Parts catalogue</a> › <a href="/catalog#g-{{ d.group }}">{{ d.group_obj.title or d.group }}</a> › {{ d.section }}</p>
+<h1>{{ d.title }}</h1>
+<form class="cat-search" method="get" action="/catalog" role="search">
+  <input type="search" name="q" placeholder="Search all parts: number or words" aria-label="Search parts">
+  <button class="btn" type="submit">Search</button>
+</form>
+{% if d.section_obj.excluded_reason %}<div class="note warn"><span class="lab">Not this car</span> {{ d.section_obj.excluded_reason }}</div>{% endif %}
+{% if d.siblings|length > 1 %}
+<nav class="cat-toc" aria-label="Diagrams in this section">{% for s in d.siblings %}
+  {% if s.id == d.id %}<b>{{ loop.index }}. {{ s.title }}</b>{% else %}<a href="/catalog/d/{{ s.id }}">{{ loop.index }}. {{ s.title }}</a>{% endif %}{% endfor %}</nav>
+{% endif %}
+<section class="panel">
+  <div class="cat-diagram">
+    {% if d.image.file %}<a href="/catalog/img/{{ cid }}/{{ d.image.file }}" target="_blank" rel="noopener"><img src="/catalog/img/{{ cid }}/{{ d.image.file }}" alt="Schematic: {{ d.title }}"></a>
+    {% else %}<p class="muted">No schematic image on file.</p>{% endif %}
+  </div>
+  <p class="cat-src">Schematic: {{ cat.source_name }}. Callout numbers on the drawing match the Ref column. <a href="{{ d.source_url }}" target="_blank" rel="noopener noreferrer">Source page</a></p>
+</section>
+<section class="panel">
+  <h2>Parts in this schematic ({{ d.parts|length }})</h2>
+  <div class="cat-wrap"><table class="cat-table">
+    <thead><tr><th class="ref">Ref</th><th>Part number</th><th>Part name</th><th>Description / notes</th></tr></thead>
+    <tbody>{% for p in d.parts %}
+      <tr class="{{ 'other-engine' if p.fitment == 'other-engine' }}">
+        <td class="ref">{{ p.ref }}</td>
+        <td class="pn"><a href="/catalog/p/{{ p.pn }}">{{ p.pn }}</a></td>
+        <td>{{ p.name }}{% if p.fitment == 'other-engine' %} <span class="cat-tag">OTHER ENGINE</span>{% endif %}</td>
+        <td>{% if p.description %}{{ p.description }}{% endif %}
+            {% if p.notes %}<div class="sub">{{ p.notes }}</div>{% endif %}
+            {% for k, v in p.info.items() %}<div class="sub">{{ k }}: {{ v }}</div>{% endfor %}</td>
+      </tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% set torque = d.mechanic.torque %}{% set notes = d.mechanic.notes %}
+{% include "_catalog_mechanic.html" %}
+<div class="cat-pager">
+  <span>{% if d.prev %}<a href="/catalog/d/{{ d.prev }}">‹ Previous diagram</a>{% endif %}</span>
+  <span>{% if d.next %}<a href="/catalog/d/{{ d.next }}">Next diagram ›</a>{% endif %}</span>
+</div>
+{% endblock %}

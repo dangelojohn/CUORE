@@ -58,6 +58,7 @@ from .web import media_routes  # noqa: E402
 from .web import mods_routes  # noqa: E402
 from .web import modules_routes  # noqa: E402
 from .web import parts_routes  # noqa: E402
+from .web import catalog_routes  # noqa: E402
 from .web import report_routes  # noqa: E402
 from .web import routes as web_routes  # noqa: E402
 from .web import scan_health_routes  # noqa: E402
@@ -216,6 +217,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(tests_routes.router)
     app.include_router(media_routes.router)
     app.include_router(parts_routes.router)
+    app.include_router(catalog_routes.router)
     app.include_router(mods_routes.router)
     app.include_router(report_routes.router)
     app.include_router(systems_routes.router)

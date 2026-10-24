@@ -1,0 +1,68 @@
+"""The full parts catalogue: ``/catalog`` (groups, sections, diagrams, search),
+``/catalog/d/{diagram}`` (schematic + its parts), ``/catalog/p/{pn}`` (one part
+number: every diagram it appears in, images, torque, mechanic notes, CUORE
+records, TSBs, curated card) and ``/catalog/img/{name}`` (local images).
+
+Read-only. Data: :mod:`cuore.services.parts_catalog`. The curated job parts
+page (``/v/{vin}/parts``, :mod:`cuore.web.parts_routes`) links here and back.
+"""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+
+from ..api.deps import require_token
+from ..services import parts_catalog as pc
+from . import routes as web_routes
+
+router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
+
+
+def _ctx(request: Request, cat) -> dict:
+    vin = web_routes._active_vehicle(request)
+    return {"cat": cat, "cid": cat["id"] if cat else "", "vin": vin or "", "live_strip": None, "tab": "catalog"}
+
+
+@router.get("/catalog", response_class=HTMLResponse)
+def catalog_index(request: Request, q: str = "") -> Response:
+    cat = pc.load()
+    ctx = _ctx(request, cat)
+    if not cat:
+        return web_routes._page(request, "catalog_index.html", **ctx, groups=[], hits=None, q=q, stats=None)
+    hits = pc.search(cat, q) if q.strip() else None
+    if hits is not None and q.strip():
+        pns = {h["pn"] for h in hits}
+        if len(pns) == 1 and pc.norm_pn(q) == pc.norm_pn(next(iter(pns))):
+            return RedirectResponse(f"/catalog/p/{next(iter(pns))}", status_code=303)
+    return web_routes._page(request, "catalog_index.html", **ctx, groups=pc.groups_view(cat),
+                            hits=hits, q=q, stats=pc.stats(cat))
+
+
+@router.get("/catalog/d/{did}", response_class=HTMLResponse)
+def catalog_diagram(request: Request, did: str) -> Response:
+    cat = pc.load()
+    d = pc.diagram(cat, did) if cat else None
+    if not d:
+        return RedirectResponse("/catalog", status_code=303)
+    return web_routes._page(request, "catalog_diagram.html", **_ctx(request, cat), d=d)
+
+
+@router.get("/catalog/p/{pn}", response_class=HTMLResponse)
+def catalog_part(request: Request, pn: str) -> Response:
+    cat = pc.load()
+    p = pc.part(cat, pn) if cat else None
+    if not p:
+        return RedirectResponse(f"/catalog?q={pc.norm_pn(pn)}", status_code=303)
+    return web_routes._page(request, "catalog_part.html", **_ctx(request, cat), p=p)
+
+
+@router.get("/catalog/img/{cid}/{name}")
+def catalog_image(cid: str, name: str) -> Response:
+    path = pc.image_path(cid, name)
+    if not path:
+        return Response(status_code=404)
+    return FileResponse(path, headers={"Cache-Control": "max-age=86400"})
+
+
+__all__ = ["router"]
