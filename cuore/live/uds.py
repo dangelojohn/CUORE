@@ -165,7 +165,16 @@ def sweep_bus_full(sess: Session, bus: Bus, *, vin: Optional[str] = None, mask: 
     return {"bus": bus.key, "cable": sess.link.cable, "modules": results}
 
 
+def _default_vin() -> Optional[str]:
+    """The VIN to use when a caller gives none: the only car with confirmed
+    addresses in addresses.json. With two or more cars there is no safe
+    guess, so ``None`` -- the caller has to pass ``vin``."""
+    vins = [v for v, mods in store.all_confirmations().items() if mods]
+    return vins[0] if len(vins) == 1 else None
+
+
 def _effective_target(ecu: ECUAddress, vin: Optional[str]) -> Optional[int]:
+    vin = vin or _default_vin()
     if vin:
         confirmed = store.confirmed_targets(vin).get(ecu.code)
         if confirmed is not None:
@@ -188,7 +197,9 @@ def resolve_module(code: str, vin: Optional[str] = None) -> ECUAddress:
         raise BadCommand(f"unknown module code {code!r}")
     target = _effective_target(ecu, vin)
     if target is None:
-        raise BadCommand(f"module {ecu.code} has no confirmed address on this car; run discovery "
+        many = not vin and len([v for v, m in store.all_confirmations().items() if m]) > 1
+        hint = "; addresses are saved for more than one car, pass vin= to pick one" if many else ""
+        raise BadCommand(f"module {ecu.code} has no confirmed address on this car{hint}; run discovery "
                          f"(confidence {ecu.confidence.value}, target "
                          f"{'unknown' if ecu.target is None else format(ecu.target, '02X')})")
     return _with_target(ecu, target)
