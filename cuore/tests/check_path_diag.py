@@ -54,6 +54,37 @@ check("ECM address from table", mods["ECM"]["address"] == "0x10", str(mods["ECM"
 check("BCM address", mods["BCM"]["address"] == "0x40", str(mods["BCM"]["address"]))
 check("NCM alias decodes to ECM and highlights it", net["lost"] == ["ECM"] and mods["ECM"]["lost"] and not mods["BCM"]["lost"])
 check("scan time from scan id", net["scan"]["at"] == "2026-10-24 13:21", str(net["scan"]["at"]))
+# discovery evidence (second source): fixtures
+disc = {"DTCM": {"target": "1A", "source": "discover (identity)", "at": "2026-10-24T13:23:44"},
+        "ETM": {"target": "50", "source": "discover", "at": "2026-10-01T10:00:00"},
+        "BCM": {"target": "40", "source": "discover", "at": "2026-10-24T13:24:03"},
+        "HVAC": {"target": "40", "source": "discover", "at": "2026-10-24T13:24:03"}}
+scan_d = {"scan_id": "SCAN_2610241321", "vin": VIN, "coverage": [
+    {"bus": "can_c", "module": "DTCM", "category": "not_reachable", "why": "no known address"},
+    {"bus": "can_c", "module": "BCM", "category": "answered", "why": None},
+    {"bus": "can_c", "module": "ETM", "category": "silent", "why": "no reply"},
+    {"bus": "can_ihs", "module": "HVAC", "category": "not_reachable", "why": "x"}]}
+nd = pd.build_network(VIN, "U1", scan=scan_d, description=("", ""), discovery=disc)
+md = {m["code"]: m for b in nd["buses"] for m in b["modules"]}
+check("discovery fills address and answered", md["DTCM"]["address"] == "0x1A" and md["DTCM"]["status"] == "answered"
+      and md["DTCM"]["label"] == "answered (discovery 2026-10-24)", str(md["DTCM"]))
+check("scan answered older than discovery -> discovery label", md["BCM"]["label"].startswith("answered (discovery"))
+check("older discovery loses to newer scan silence", md["ETM"]["status"] == "silent" and md["ETM"]["label"] == "silent (scan 2026-10-24)")
+check("scan-only answered label", pd.build_network(VIN, "U1", scan=scan, description=("", ""), discovery={})["buses"][0]["modules"][0]["label"] == "answered (scan 2026-10-24)")
+check("no discovery, unchecked stays not checked", pd.build_network(VIN, "U1", scan=scan_d, description=("", ""), discovery={})["buses"][0]["modules"][0]["label"].startswith("not checked"))
+check("collision shown, not hidden", md["BCM"]["collides_with"] == ["HVAC"] and md["HVAC"]["collides_with"] == ["BCM"])
+check("tooltip shows both sources", "discovery 2026-10-24: 0x1A" in "\n".join(md["DTCM"]["evidence"]) and "scan 2026-10-24" in "\n".join(md["DTCM"]["evidence"]))
+d2 = {"DTCM": {"target": "1A", "source": "discover", "at": "2026-10-24T13:23:44"}}
+import cuore.live.addressing as _ad  # noqa: E402
+nd2 = pd.build_network(VIN, "U1", scan={"scan_id": "SCAN_2610241321", "coverage": [{"bus": "can_c", "module": "ECM", "category": "answered"}]},
+                       description=("", ""), discovery={"ECM": {"target": "29", "source": "discover", "at": "2026-10-24T13:23:00"}})
+me = nd2["buses"][0]["modules"][0]
+check("differs from scan note", me["address"] == "0x29" and me["address_differs_from_scan"] == "0x10", str(me))
+check("svg shows differs note + collision", "differs from scan: 0x10" in pd.network_svg(nd2) and "same addr as" in pd.network_svg(nd))
+# persisted file source
+Path(_TMP, "addresses.json").write_text(json.dumps({VIN: {"ESM": {"target": "1F", "source": "discover", "at": "2026-10-24T13:23:48"}}}))
+check("load_discovery reads addresses.json per VIN", pd.load_discovery(VIN)["ESM"]["target"] == "1F" and pd.load_discovery(OTHER) == {})
+os.remove(Path(_TMP, "addresses.json"))
 svg = pd.network_svg(net)
 check("svg has classes, no inline colour", "pd-answered" in svg and "pd-silent" in svg and "pd-unchecked" in svg
       and "pd-lost" in svg and "fill=\"#" not in svg and "stroke=\"#" not in svg)

@@ -32,8 +32,8 @@
   <div class="pd-scroll"><table class="pd-table">
     <thead><tr><th>Bus</th><th>Module</th><th>Address</th><th>Status</th><th>Why</th></tr></thead>
     <tbody>{% for b in net.buses %}{% for m in b.modules %}
-      <tr class="{{ 'pd-row-lost' if m.lost }}"><td>{{ b.name }}</td><td>{{ m.code }}</td><td class="pd-mono">{{ m.address or "not recorded" }}</td>
-        <td>{{ m.status|replace("unchecked", "not checked") }}</td><td>{{ m.why or "" }}</td></tr>
+      <tr class="{{ 'pd-row-lost' if m.lost }}"><td>{{ b.name }}</td><td>{{ m.code }}</td><td class="pd-mono" title="{{ m.evidence|join(' | ') }}">{{ m.address or "not recorded" }}{% if m.address_differs_from_scan %} <span class="muted small">(differs from scan: {{ m.address_differs_from_scan }})</span>{% endif %}{% if m.collides_with %} <span class="muted small">(same address as {{ m.collides_with|join(', ') }})</span>{% endif %}</td>
+        <td title="{{ m.evidence|join(' | ') }}">{{ m.label }}</td><td>{{ m.why or "" }}</td></tr>
     {% endfor %}{% endfor %}</tbody></table></div>
 {% endif %}
 

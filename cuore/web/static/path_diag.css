@@ -33,3 +33,4 @@
 .pd-form .btn { min-height: var(--tap); }
 .pd-patterns li { color: var(--sev-chronic); font-weight: var(--fw-semibold); }
 .pd-hop summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; }
+.pd-node-note { fill: var(--ink-2); font-size: 8px; }

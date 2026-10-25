@@ -21,6 +21,7 @@
   </details>
 
   <h4>Hops: status, shared points, known failure points</h4>
+  {% if pt.shared_all %}<p class="small">All {{ pt.shared_all.n }} hops are shared by the same active codes ({{ pt.shared_all.codes|join(', ') }}): the shared cause is anywhere on this path; use the split suggestion and voltage-drop tests to narrow it.</p>{% endif %}
   <div class="pt-hops">
   {% for h in pt.hops %}
     <div class="pt-hop{% if h.split_here %} pt-split-here{% endif %}">
@@ -37,9 +38,11 @@
       {% endif %}
       {% if h.shared %}
         <div class="small">
-          {% if h.shared.common %}<span class="chip status-active sm">common point: suspect</span>{% else %}<span class="chip plain sm">also on other codes seen earlier</span>{% endif %}
+          {% if h.shared.common %}<span class="chip status-active sm">common point: suspect</span>{% endif %}
           also on:
-          {% for r in h.shared.codes %}<a href="/v/{{ vin }}/code/{{ r.code }}">{{ r.code }}</a> <span class="muted">({{ 'active' if r.active else 'seen earlier' }})</span>{% if not loop.last %}, {% endif %}{% endfor %}
+          {% set act = h.shared.codes|selectattr("active")|list %}{% set old = h.shared.codes|rejectattr("active")|list %}
+          {% for r in act %}<a href="/v/{{ vin }}/code/{{ r.code }}">{{ r.code }}</a> <span class="muted">(active)</span>{% if not loop.last %}, {% endif %}{% endfor %}
+          {% if old %}{% if act %}; {% endif %}<details class="inline"><summary class="muted">{{ old|length }} seen earlier</summary>{% for r in old %}<a href="/v/{{ vin }}/code/{{ r.code }}">{{ r.code }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</details>{% endif %}
         </div>
       {% endif %}
       {% if h.ground_score %}

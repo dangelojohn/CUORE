@@ -222,15 +222,37 @@ def shared_points(code: str, hops: list[dict[str, Any]],
                   others: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
     """``others``: ``{code: {"ids": set/list of element ids, "active": bool}}``
     for every other code on the car. Returns ``{hop id: {codes: [...],
-    common: bool}}``; ``common`` means at least one sharing code is active."""
+    n_active: int, common: bool}}``. ``common`` is True only when the hop is
+    shared with strictly more active codes than the path's minimum (a hop
+    with no sharing counts 0), so a flag that every hop would carry is never
+    raised. See ``shared_summary`` for the all-hops-equal case."""
     out: dict[str, dict[str, Any]] = {}
+    counts: dict[str, int] = {}
     for h in hops:
         rows = [{"code": c, "active": bool(v.get("active"))}
                 for c, v in sorted(others.items())
                 if c.upper() != code.upper() and h["id"] in set(v.get("ids") or [])]
+        counts[h["id"]] = sum(1 for r in rows if r["active"])
         if rows:
-            out[h["id"]] = {"codes": rows, "common": any(r["active"] for r in rows)}
+            out[h["id"]] = {"codes": rows, "n_active": counts[h["id"]], "common": False}
+    low = min(counts.values(), default=0)
+    for hid, v in out.items():
+        v["common"] = v["n_active"] > low
     return out
+
+
+def shared_summary(hops: list[dict[str, Any]], shared: dict[str, dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """When every hop is shared by the same set of active codes, one summary
+    for the whole path (``{n, codes}``); otherwise None."""
+    if not hops:
+        return None
+    sets = []
+    for h in hops:
+        row = shared.get(h["id"])
+        sets.append(frozenset(r["code"] for r in (row or {}).get("codes", []) if r["active"]))
+    if not sets[0] or any(x != sets[0] for x in sets):
+        return None
+    return {"n": len(hops), "codes": sorted(sets[0])}
 
 
 # --- repair + proof ------------------------------------------------------------

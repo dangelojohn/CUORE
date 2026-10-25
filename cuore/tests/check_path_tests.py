@@ -72,6 +72,24 @@ sh = pt.shared_points("P0", hops, others)
 check("shared: g1 common (active code), c1 shared but not common, f1 none",
       sh["g1"]["common"] and not sh["c1"]["common"] and "f1" not in sh, str(sh))
 
+# flags differ: g1 on 2 active codes, c1 on 1, f1/m1 on none -> g1 and c1 above min 0
+oth2 = {"U1": {"ids": ["g1", "c1"], "active": True}, "U2": {"ids": ["g1"], "active": True}}
+sh2 = pt.shared_points("P0", hops, oth2)
+check("differing counts: both shared hops flagged above minimum",
+      sh2["g1"]["common"] and sh2["g1"]["n_active"] == 2 and sh2["c1"]["common"] and pt.shared_summary(hops, sh2) is None)
+oth3 = {"U1": {"ids": ["g1"], "active": True}, "U2": {"ids": ["g1", "c1"], "active": True}}
+sh3 = pt.shared_points("P0", hops, oth3)
+check("g1 (2 active) flagged, c1 (1) also above 0; ranking by count kept",
+      sh3["g1"]["n_active"] > sh3["c1"]["n_active"])
+# all equal: every hop on the same active codes -> no flags, one summary
+allids = [h["id"] for h in hops]
+oth4 = {"U1": {"ids": allids, "active": True}, "U2": {"ids": allids, "active": True},
+        "U3": {"ids": allids, "active": False}}
+sh4 = pt.shared_points("P0", hops, oth4)
+sm = pt.shared_summary(hops, sh4)
+check("all equal: no hop flagged", not any(v["common"] for v in sh4.values()), str(sh4))
+check("all equal: one summary with N and codes", sm == {"n": len(hops), "codes": ["U1", "U2"]}, str(sm))
+
 # 4. validation -----------------------------------------------------------
 good = {"segment": "power:f1>c1", "measured_v": "0.31", "state": "ignition_on", "by": "jd"}
 rec, err = pt.validate_test(good, VIN, "P0", segs)

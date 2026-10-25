@@ -108,6 +108,7 @@ def path_tests_for(vin: str, code: str) -> dict[str, Any]:
         if p:
             others[c] = {"ids": [h.get("id") for h in p], "active": bool(row.get("active"))}
     shared = pt.shared_points(code, hops, others)
+    shared_all = pt.shared_summary(hops, shared)
     me = table.get(code) or {}
     newest = max((str(r.get("last_seen") or "") for r in table.values()), default="")
     repairs = pt.latest_repairs(records, vin)
@@ -134,7 +135,7 @@ def path_tests_for(vin: str, code: str) -> dict[str, Any]:
         })
     return {"found": True, "code": code, "vin": vin, "hops": rows, "segments": segments, "split": split,
             "code_level": code_level, "general_label": pt.GENERAL_LABEL, "states": pt.STATES,
-            "state_labels": pt.STATE_LABELS, "has_segments": bool(segments),
+            "state_labels": pt.STATE_LABELS, "has_segments": bool(segments), "shared_all": shared_all,
             "post_href": f"/v/{vin}/code/{code}", "sheet_href": f"/v/{vin}/code/{code}/path-sheet"}
 
 

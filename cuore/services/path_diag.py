@@ -151,8 +151,34 @@ def _scan_time(scan: dict[str, Any]) -> Optional[str]:
     return scan.get("_mtime")
 
 
+def load_discovery(vin: str) -> dict[str, dict[str, Any]]:
+    """Persisted module discovery for this car: ``{module: {target, source, at}}``
+    from ``addresses.json`` in the CUORE state dir (written by CUORE module
+    discovery). Empty when absent or unreadable."""
+    try:
+        data = json.loads((_state_dir() / "addresses.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    rows = data.get(vin) if isinstance(data, dict) else None
+    out: dict[str, dict[str, Any]] = {}
+    for mod, r in (rows or {}).items():
+        if isinstance(r, dict) and r.get("target"):
+            out[str(mod).upper()] = r
+    return out
+
+
+def _norm_addr(v: Any) -> Optional[str]:
+    if isinstance(v, int):
+        return f"0x{v:02X}"
+    try:
+        return f"0x{int(str(v).replace('0x', '').replace('0X', ''), 16):02X}"
+    except ValueError:
+        return None
+
+
 def build_network(vin: str, code: str, *, scan: Optional[dict[str, Any]] = None,
-                  description: Optional[tuple[str, str]] = None) -> dict[str, Any]:
+                  description: Optional[tuple[str, str]] = None,
+                  discovery: Optional[dict[str, dict[str, Any]]] = None) -> dict[str, Any]:
     """Buses -> modules coloured by the last full scan.
 
     status: ``answered`` | ``silent`` (asked, no answer) | ``unchecked`` (the
@@ -163,6 +189,8 @@ def build_network(vin: str, code: str, *, scan: Optional[dict[str, Any]] = None,
     scan = scan if scan is not None else load_fullscan()
     text, text_src = description if description is not None else _code_description(vin, code)
     lost = decode_lost_modules(text) if text else []
+    disc = discovery if discovery is not None else load_discovery(vin)
+    scan_at = _scan_time(scan or {})
 
     rows = list((scan or {}).get("coverage") or [])
     by_bus: dict[str, list[dict[str, Any]]] = {k: [] for k in _BUS_ORDER}
@@ -178,11 +206,49 @@ def build_network(vin: str, code: str, *, scan: Optional[dict[str, Any]] = None,
             addr = a.target if a else None
         except Exception:  # noqa: BLE001
             addr = None
+        mod = str(r.get("module"))
+        scan_addr = f"0x{addr:02X}" if isinstance(addr, int) else None
+        d = disc.get(mod.upper())
+        d_addr = _norm_addr(d.get("target")) if d else None
+        d_at = str(d.get("at") or "")[:16] if d else ""
+        d_day = d_at[:10]
+        scan_day = (scan_at or "")[:10]
+        ev_scan = status in ("answered", "silent")
+        # newest evidence wins; "unchecked" is not evidence, discovery answers are
+        use_disc = bool(d_addr) and (not ev_scan or (d_at.replace("T", " ") >= (scan_at or "")))
+        if use_disc:
+            status, label = "answered", f"answered (discovery {d_day})"
+        elif ev_scan:
+            label = f"{status} (scan {scan_day})"
+        else:
+            label = "not checked" + (f" in scan {scan_day}" if scan_day else "")
+        shown = d_addr if d_addr else scan_addr
+        differs = scan_addr if (d_addr and scan_addr and scan_addr != d_addr) else None
+        tip = [f"{mod}: {label}"]
+        if d_addr:
+            tip.append(f"discovery {d_day}: {d_addr} ({d.get('source')})")
+        tip.append(f"scan {scan_day or '?'}: {r.get('category') or 'n/a'}"
+                   + (f", registry address {scan_addr}" if scan_addr else ", no registry address")
+                   + (f" ({r.get('why')})" if r.get("why") else ""))
         by_bus[bus].append({
-            "code": str(r.get("module")), "status": status, "why": r.get("why"),
-            "address": f"0x{addr:02X}" if isinstance(addr, int) else None,
-            "lost": str(r.get("module")) in lost,
+            "code": mod, "status": status, "why": r.get("why"), "address": shown,
+            "label": label, "address_differs_from_scan": differs,
+            "address_source": ("discovery " + d_day) if d_addr else ("scan registry" if scan_addr else None),
+            "evidence": tip, "collides_with": [],
+            "lost": mod in lost,
         })
+    # collisions: same shown address on different modules, reported as the data says
+    owners: dict[str, list[dict[str, Any]]] = {}
+    for bm in by_bus.values():
+        for m in bm:
+            if m["address"]:
+                owners.setdefault(m["address"], []).append(m)
+    for addr_, ms in owners.items():
+        if len(ms) > 1:
+            for m in ms:
+                m["collides_with"] = [o["code"] for o in ms if o is not m]
+                m["evidence"].append(f"address {addr_} is also reported for {', '.join(m['collides_with'])}"
+                                     " (collision shown as recorded, not resolved)")
     buses = []
     for key in _BUS_ORDER:
         b = live_buses.BUSES.get(key)
@@ -228,7 +294,7 @@ def network_svg(net: dict[str, Any]) -> str:
             x = left + j * (node_w + gap)
             y = y_line + 14
             cls = f'pd-node pd-{m["status"]}' + (" pd-lost" if m["lost"] else "")
-            tip = f'{m["code"]}: {m["status"]}' + (f' ({m["why"]})' if m.get("why") else "")
+            tip = "\n".join(m.get("evidence") or [m["code"]])
             parts.append(f'<line class="pd-stub" x1="{x + node_w / 2}" y1="{y_line}" '
                          f'x2="{x + node_w / 2}" y2="{y}"/>')
             parts.append(f'<g class="{cls}"><title>{_esc(tip)}</title>'
@@ -237,6 +303,14 @@ def network_svg(net: dict[str, Any]) -> str:
                          f'text-anchor="middle">{_esc(m["code"])}</text>'
                          f'<text class="pd-node-sub" x="{x + node_w / 2}" y="{y + 34}" '
                          f'text-anchor="middle">{_esc(m["address"] or "no addr")}</text></g>')
+            note = []
+            if m.get("address_differs_from_scan"):
+                note.append(f'differs from scan: {m["address_differs_from_scan"]}')
+            if m.get("collides_with"):
+                note.append("same addr as " + "/".join(m["collides_with"]))
+            if note:
+                parts.append(f'<text class="pd-node-note" x="{x + node_w / 2}" y="{y + node_h + 26}" '
+                             f'text-anchor="middle" font-size="8">{_esc("; ".join(note))}</text>')
             if m["lost"]:
                 parts.append(f'<text class="pd-lost-mark" x="{x + node_w / 2}" y="{y + node_h + 14}" '
                              f'text-anchor="middle">named by code</text>')
