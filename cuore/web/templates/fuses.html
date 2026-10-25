@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}Fuses &amp; relays — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('sensors.css') }}">
+<link rel="stylesheet" href="{{ static_url('fuses.css') }}">
+<div class="fuse-page">
+<h1>Fuses &amp; relays</h1>
+<p class="lede">Every fuse and relay CUORE can source, placed by area on a side view and coloured by evidence. Dots show the box area, not the exact spot. Reading this page never touches the car.</p>
+
+{% if msg %}<p class="fuse-msg" role="status">{{ msg }}</p>{% endif %}
+{% if error %}<p class="fuse-msg" role="alert">{{ error }}</p>{% endif %}
+
+<div class="fuse-chips" role="group" aria-label="Filter by status">
+  {% for k in ("green", "orange", "red", "grey") %}
+    <a class="fuse-chip fuse-{{ k }}{{ ' on' if status_f == k }}" href="{{ chip_href[k] }}"
+       title="{{ status_label[k] }}"><b>{{ status_mark[k] }}</b> {{ counts[k] }} {{ status_label[k] }}</a>
+  {% endfor %}
+  {% if status_f or box_f %}<a class="fuse-chip all" href="{{ base }}">Show all {{ total }}</a>{% endif %}
+</div>
+
+{% if boxes %}
+<div class="fuse-boxes" aria-label="Filter by fuse box">
+  <span class="muted">Box:</span>
+  {% for b in boxes %}<a class="{{ 'on' if box_f == b.id }}" href="{{ box_href[b.id] }}">{{ b.label }}</a>{% endfor %}
+</div>
+{% endif %}
+
+<div class="sens-map fuse-map">
+  {% if drawn and svg %}
+    {{ svg|safe }}
+    <p class="sens-legend">
+      <span class="sens-green"><i></i>OK</span>
+      <span class="sens-orange"><i></i>Suspect / fault</span>
+      <span class="sens-red"><i></i>Blown / dead</span>
+      <span class="sens-grey"><i class="hollow"></i>No evidence yet</span>
+      <span>B = a fuse box (red/orange if any fuse inside is; green only if all are)</span>
+      <span><i class="dashed"></i>Dashed ring = box area inferred</span>
+    </p>
+  {% else %}
+    <p class="muted small">The side-view drawing is not available yet, so here is a plain list of what is in each area.</p>
+    <ul class="fuse-plain">
+      {% for g in groups %}<li><b>{{ g.box.label }}</b>: {% for i in g.rows %}<a class="fuse-{{ i.status }}" href="#fuse-{{ anchor(i.id) }}">{{ i.position or i.label }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</li>{% endfor %}
+    </ul>
+  {% endif %}
+</div>
+
+<section class="panel fuse-gaps" aria-labelledby="fuse-gaps-h">
+  <h2 id="fuse-gaps-h">Not sourced yet</h2>
+  <ul>
+    {% for g in gaps %}<li>{{ g }}</li>{% endfor %}
+  </ul>
+  <p><b>Please add:</b> the owner's manual fuse table, or photos of each box cover (engine bay, interior footwell, rear/luggage compartment). Then use "Add a fuse or relay" at the bottom of this page.</p>
+</section>
+
+{% if unplaced %}
+<section class="panel fuse-tray">
+  <h2>Not on the drawing ({{ unplaced|length }})</h2>
+  <p class="small muted">No location is sourced for these.</p>
+  <ul>{% for i in unplaced %}<li class="fuse-{{ i.status }}"><a href="#fuse-{{ anchor(i.id) }}">{{ i.label }}</a></li>{% endfor %}</ul>
+</section>
+{% endif %}
+
+{% if not total %}
+  <p class="panel muted">No fuses or relays are sourced for this car yet.</p>
+{% elif not shown %}
+  <p class="panel muted">Nothing matches this filter. <a href="{{ base }}">Show all</a></p>
+{% endif %}
+
+{% for g in groups %}
+<h2 class="fuse-group">{{ g.box.label }} <span class="muted small">({{ g.rows|length }}{% if g.box.id != 'none' %}{% if not g.box.full_list_sourced %}, list incomplete{% endif %}{% endif %})</span></h2>
+<p class="small muted">{% if g.box.location_confidence %}Location <span class="fuse-conf">[{{ g.box.location_confidence }}]</span> · {% endif %}Source: {{ g.box.source }}</p>
+{% if not g.box.full_list_sourced and g.box.id != 'none' %}<p class="small fuse-warn">Full fuse list not sourced yet &mdash; add the owner's manual fuse table or photos of the box cover.</p>{% endif %}
+{% for i in g.rows %}
+{% set st = i.status if i.status in status_label else "grey" %}
+<article class="fuse-row" id="fuse-{{ anchor(i.id) }}">
+  <span class="n">#{{ numbers[i.id] }}</span>
+  <span class="fuse-st fuse-{{ st }}">{{ status_mark[st] }} {{ status_label[st] }}</span>
+  <div class="fuse-body">
+    <h3>{{ i.position or "" }}{% if i.position %} &middot; {% endif %}{{ i.label }}</h3>
+    <p class="small muted">{{ i.kind|capitalize }}{% if i.rating_a %} · {{ '%g' % i.rating_a }} A{% else %} · rating not sourced{% endif %}
+      {% if i.part_numbers %} · part {{ i.part_numbers|join(", ") }}{% endif %}
+      {% if i.added_by_technician %} · <b>added by technician</b>{% endif %}</p>
+    <p class="small">Feeds:
+      {% if i.feeds_modules %}{% for m in i.feeds_modules %}<a href="/v/{{ vin }}/network">{{ m }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+      {% else %}<span class="muted">no module sourced</span>{% endif %}</p>
+    <ul>{% for r in i.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+    {% if i.codes %}<p class="small">Codes: {% for c in i.codes %}<a href="/v/{{ vin }}/code/{{ c.split('-')[0]|urlencode }}">{{ c }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+    {% if i.evidence %}
+    <details class="small"><summary>Evidence ({{ i.evidence|length }})</summary>
+      <ul>{% for e in i.evidence %}<li><span class="muted">{{ e.at or "?" }}</span> [{{ e.kind }}] {{ e.text }}</li>{% endfor %}</ul>
+    </details>
+    {% endif %}
+    {% if i.notes %}<p class="small">{{ i.notes }}</p>{% endif %}
+    <p class="small muted">Location: {{ i.zone or "not placed" }}{% if i.side %} ({{ i.side }}){% endif %}
+      <span class="fuse-conf">[{{ i.location_confidence or "UNKNOWN" }}]</span><br>Source: {{ i.source }}</p>
+    <details>
+      <summary class="small">Record a check</summary>
+      <form class="fuse-form" method="post" action="{{ base }}/check">
+        <input type="hidden" name="item" value="{{ i.id }}">
+        <input type="hidden" name="redirect_to" value="{{ base }}#fuse-{{ anchor(i.id) }}">
+        <label>Result
+          <select name="result" required><option value="ok">OK</option><option value="suspect">Suspect</option><option value="blown">Blown / open / no voltage</option></select></label>
+        <label>Method
+          <select name="method" required><option value="visual">Visual</option><option value="continuity">Continuity</option><option value="voltage_drop">Voltage drop</option><option value="voltage">Voltage</option></select></label>
+        <label>Value <input name="value" inputmode="decimal"></label>
+        <label>Unit <input name="unit" placeholder="V, mV, ohm"></label>
+        <label>Limit (voltage drop) <input name="limit" inputmode="decimal"></label>
+        <label class="wide">Note <input name="note"></label>
+        <button class="wide" type="submit">Save check</button>
+      </form>
+    </details>
+  </div>
+</article>
+{% endfor %}
+{% endfor %}
+
+{% if parts and parts.parts %}
+<details class="fuse-parts">
+  <summary>Fuse and relay part types in the Mopar catalogue ({{ parts.parts|length }})</summary>
+  <p class="small muted">{{ parts.source }}</p>
+  <ul class="small">{% for p in parts.parts %}<li><code>{{ p.pn }}</code> {{ p.name }}{% if p.description and p.description != p.name %} &mdash; {{ p.description }}{% endif %}</li>{% endfor %}</ul>
+</details>
+{% endif %}
+
+<section class="panel fuse-add">
+  <h2>Add a fuse or relay from the box cover / manual</h2>
+  <p class="small muted">Only enter what you can read off the cover, the manual or a photo, and say where. A source is required; nothing is saved without one.</p>
+  <form class="fuse-form" method="post" action="{{ base }}/item">
+    <label>Kind <select name="kind" required><option value="fuse">Fuse</option><option value="relay">Relay</option></select></label>
+    <label>Box <select name="box"><option value="">(not stated)</option>{% for b in boxes %}<option value="{{ b.id }}">{{ b.label }}</option>{% endfor %}</select></label>
+    <label>Position <input name="position" placeholder="e.g. F12"></label>
+    <label>Rating (A) <input name="rating_a" inputmode="decimal"></label>
+    <label class="wide">What it is (label as printed) <input name="label" required></label>
+    <label class="wide">Modules it feeds, comma separated (only if stated) <input name="feeds_modules" placeholder="BCM, ECM"></label>
+    <label class="wide">Notes <input name="notes"></label>
+    <label class="wide">Source (required) <input name="source" required placeholder="e.g. owner's manual p. 212 table, photo of interior box cover 2026-10-25"></label>
+    <button class="wide" type="submit">Add</button>
+  </form>
+</section>
+</div>
+{% endblock %}

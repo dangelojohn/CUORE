@@ -1,0 +1,905 @@
+{
+ "model": "stelvio-2018-2.0",
+ "note": "One row per physical sensor. Locations only where sourced or inferred from the sensor's own function; null zone = unplaced. Channel ids refer to cuore.live.channels.available_channels().",
+ "side_profile_zones": [
+  "front_bumper",
+  "windscreen",
+  "cabin_dash",
+  "under_car_exhaust",
+  "fuel_tank",
+  "rear_bumper",
+  "roof"
+ ],
+ "sensors": [
+  {
+   "id": "o2_b1s1",
+   "label": "Oxygen sensor, bank 1 sensor 1 (upstream)",
+   "system": "exhaust",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "o2_b1s1_wide_range",
+    "o2_b1s1_voltage"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "o2_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "oxygen sensor",
+     "lambda sensor",
+     "o2 sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "o2_b1s2",
+   "label": "Oxygen sensor, bank 1 sensor 2 (downstream)",
+   "system": "exhaust",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "o2_b1s2_voltage_trim"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "o2_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "oxygen sensor",
+     "lambda sensor",
+     "o2 sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "coolant_temp",
+   "label": "Engine coolant temperature sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "engine_coolant_temp",
+    "ecm_1003"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "coolant temperature",
+     "coolant temp"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "oil_temp",
+   "label": "Engine oil temperature sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "engine_oil_temp",
+    "ecm_1302"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "oil_pressure_level_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "oil temperature"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "oil_pressure",
+   "label": "Engine oil pressure sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_130a"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "oil_pressure_level_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "oil pressure"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "oil_level",
+   "label": "Engine oil level sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_3a41"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "oil_pressure_level_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "oil level"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "map_sensor",
+   "label": "Intake manifold pressure (MAP) sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "intake_map"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "maf_map_iat_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "intake pressure sensor",
+     "manifold pressure",
+     "map sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "boost_pressure",
+   "label": "Boost pressure sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_195a",
+    "ecm_195b"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "maf_map_iat_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "boost pressure sensor",
+     "charge pressure sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "baro_pressure",
+   "label": "Barometric (ambient) pressure sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "barometric_pressure",
+    "ecm_1956"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "maf_map_iat_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "barometric",
+     "ambient pressure",
+     "atmospheric pressure"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "intake_air_temp",
+   "label": "Intake air temperature sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "intake_air_temp",
+    "intake_air_temp_sensors"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "maf_map_iat_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "intake air temperature",
+     "air temperature sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "intake_air_temp_post_turbo",
+   "label": "Intake air temperature sensor, post-turbo",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_1935"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "maf_map_iat_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "charge air temperature"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "intake_manifold_temp",
+   "label": "Intake manifold temperature sensor (pre-intercooler)",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_3a58"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "maf_map_iat_sensors",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "manifold temperature"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "ambient_air_temp",
+   "label": "Ambient air temperature sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ambient_air_temp"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "ambient air temperature",
+     "outside air temperature",
+     "external temperature"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "humidity_sensor",
+   "label": "Humidity sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [],
+   "readable": false,
+   "readable_note": "No live channel for this sensor exists in CUORE yet.",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "humidity sensor"
+    ],
+    "codes": [
+     "P00F5",
+     "P105E"
+    ]
+   }
+  },
+  {
+   "id": "throttle_pos_1",
+   "label": "Throttle position sensor 1",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_1924",
+    "throttle_position"
+   ],
+   "readable": true,
+   "readable_note": "Legislated PID 11 'throttle position' is paired with DID sensor 1 by SAE A/B naming; not verified on this car.",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "throttle position sensor",
+     "throttle sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "throttle_pos_2",
+   "label": "Throttle position sensor 2",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_1925",
+    "throttle_position_b"
+   ],
+   "readable": true,
+   "readable_note": "Legislated PID 47 'throttle position B' is paired with DID sensor 2 by SAE A/B naming; not verified on this car.",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "throttle position sensor",
+     "throttle sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "throttle_pos_3",
+   "label": "Throttle position sensor 3",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_1926"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "throttle position sensor",
+     "throttle sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "accel_pedal_d",
+   "label": "Accelerator pedal position sensor D",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "accelerator_pedal_d"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "accelerator pedal",
+     "pedal position sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "accel_pedal_e",
+   "label": "Accelerator pedal position sensor E",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "accelerator_pedal_e"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "accelerator pedal",
+     "pedal position sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "ac_pressure",
+   "label": "A/C refrigerant pressure sensor",
+   "system": "engine",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_192f"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "refrigerant pressure",
+     "a/c pressure"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "fuel_level",
+   "label": "Fuel level sensor",
+   "system": "fuel_evap",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "fuel_level",
+    "ecm_1001"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": null,
+   "zone": "fuel_tank",
+   "side": null,
+   "location_confidence": "INFERRED",
+   "location_source": "inferred from function, not Stelvio-sourced",
+   "code_match": {
+    "descriptions": [
+     "fuel level"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "fuel_rail_pressure",
+   "label": "Fuel rail pressure sensor",
+   "system": "fuel_evap",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "fuel_rail_pressure",
+    "fuel_rail_pressure_abs"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "fuel rail pressure",
+     "fuel pressure sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "evap_pressure",
+   "label": "EVAP system pressure sensor",
+   "system": "fuel_evap",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [
+    "evap_vapor_pressure",
+    "evap_vapor_pressure_abs",
+    "evap_vapor_pressure_signed"
+   ],
+   "readable": true,
+   "readable_note": "Link between the legislated EVAP vapour-pressure PIDs and the ESIM element is not proven in repo data.",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "evap pressure sensor",
+     "evaporation system pressure sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "esim",
+   "label": "Evaporative System Integrity Module (ESIM)",
+   "system": "fuel_evap",
+   "module": "ECM",
+   "bus": "can_c",
+   "channels": [],
+   "readable": false,
+   "readable_note": "ESIM has no readable DID (channel esim_status is 'unknown_did'); its switch probe needs separate hardware.",
+   "element_id": "esim",
+   "zone": "wheel_rl",
+   "side": null,
+   "location_confidence": "INFERRED",
+   "location_source": "electrical element esim (zone 'rear_left_wheel_well'): mes.parts esim; TSB 9100469/9100471 -- INFERRED co-location with the vapour canister",
+   "code_match": {
+    "descriptions": [
+     "esim"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "gearbox_oil_temp",
+   "label": "Gearbox oil temperature sensor",
+   "system": "transmission",
+   "module": "TCM",
+   "bus": "can_c",
+   "channels": [
+    "tcm_04fe"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "transmission fluid temperature",
+     "gearbox oil temperature",
+     "transmission oil"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "ibs",
+   "label": "Intelligent Battery Sensor (IBS)",
+   "system": "electrical",
+   "module": "BCM",
+   "bus": "can_c",
+   "channels": [
+    "ecm_19bd",
+    "bcm_1005"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "ibs_battery_sensor",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "battery sensor",
+     "battery current sensor"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "tpms_fl",
+   "label": "Tyre pressure sensor, front left wheel",
+   "system": "tyres",
+   "module": "RFHUB",
+   "bus": "can_c",
+   "channels": [
+    "rfhub_40b1_pressure",
+    "rfhub_40b1_temp"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "tpms_sensors_per_wheel",
+   "zone": "wheel_fl",
+   "side": "left",
+   "location_confidence": "SOURCED",
+   "location_source": "electrical element tpms_sensors_per_wheel: 'Inside each wheel, mounted on the valve stem/rim -- one sensor per corner' (mes.parts tpms_sensor, SINGLE-SOURCE)",
+   "code_match": {
+    "descriptions": [
+     "tire pressure",
+     "tyre pressure",
+     "tpms"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "tpms_fr",
+   "label": "Tyre pressure sensor, front right wheel",
+   "system": "tyres",
+   "module": "RFHUB",
+   "bus": "can_c",
+   "channels": [
+    "rfhub_40b2_pressure",
+    "rfhub_40b2_temp"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "tpms_sensors_per_wheel",
+   "zone": "wheel_fr",
+   "side": "right",
+   "location_confidence": "SOURCED",
+   "location_source": "electrical element tpms_sensors_per_wheel: 'Inside each wheel, mounted on the valve stem/rim -- one sensor per corner' (mes.parts tpms_sensor, SINGLE-SOURCE)",
+   "code_match": {
+    "descriptions": [
+     "tire pressure",
+     "tyre pressure",
+     "tpms"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "tpms_rl",
+   "label": "Tyre pressure sensor, rear left wheel",
+   "system": "tyres",
+   "module": "RFHUB",
+   "bus": "can_c",
+   "channels": [
+    "rfhub_40b3_pressure",
+    "rfhub_40b3_temp"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "tpms_sensors_per_wheel",
+   "zone": "wheel_rl",
+   "side": "left",
+   "location_confidence": "SOURCED",
+   "location_source": "electrical element tpms_sensors_per_wheel: 'Inside each wheel, mounted on the valve stem/rim -- one sensor per corner' (mes.parts tpms_sensor, SINGLE-SOURCE)",
+   "code_match": {
+    "descriptions": [
+     "tire pressure",
+     "tyre pressure",
+     "tpms"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "tpms_rr",
+   "label": "Tyre pressure sensor, rear right wheel",
+   "system": "tyres",
+   "module": "RFHUB",
+   "bus": "can_c",
+   "channels": [
+    "rfhub_40b4_pressure",
+    "rfhub_40b4_temp"
+   ],
+   "readable": true,
+   "readable_note": "",
+   "element_id": "tpms_sensors_per_wheel",
+   "zone": "wheel_rr",
+   "side": "right",
+   "location_confidence": "SOURCED",
+   "location_source": "electrical element tpms_sensors_per_wheel: 'Inside each wheel, mounted on the valve stem/rim -- one sensor per corner' (mes.parts tpms_sensor, SINGLE-SOURCE)",
+   "code_match": {
+    "descriptions": [
+     "tire pressure",
+     "tyre pressure",
+     "tpms"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "wheel_speed_fl",
+   "label": "Wheel speed sensor, front left",
+   "system": "chassis",
+   "module": "ABS",
+   "bus": "can_ch",
+   "channels": [],
+   "readable": false,
+   "readable_note": "needs the CAN-CH (grey) cable",
+   "element_id": "wheel_speed_sensors",
+   "zone": "wheel_fl",
+   "side": "left",
+   "location_confidence": "INFERRED",
+   "location_source": "inferred from function, not Stelvio-sourced (at its wheel hub)",
+   "code_match": {
+    "descriptions": [
+     "wheel speed"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "wheel_speed_fr",
+   "label": "Wheel speed sensor, front right",
+   "system": "chassis",
+   "module": "ABS",
+   "bus": "can_ch",
+   "channels": [],
+   "readable": false,
+   "readable_note": "needs the CAN-CH (grey) cable",
+   "element_id": "wheel_speed_sensors",
+   "zone": "wheel_fr",
+   "side": "right",
+   "location_confidence": "INFERRED",
+   "location_source": "inferred from function, not Stelvio-sourced (at its wheel hub)",
+   "code_match": {
+    "descriptions": [
+     "wheel speed"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "wheel_speed_rl",
+   "label": "Wheel speed sensor, rear left",
+   "system": "chassis",
+   "module": "ABS",
+   "bus": "can_ch",
+   "channels": [],
+   "readable": false,
+   "readable_note": "needs the CAN-CH (grey) cable",
+   "element_id": "wheel_speed_sensors",
+   "zone": "wheel_rl",
+   "side": "left",
+   "location_confidence": "INFERRED",
+   "location_source": "inferred from function, not Stelvio-sourced (at its wheel hub)",
+   "code_match": {
+    "descriptions": [
+     "wheel speed"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "wheel_speed_rr",
+   "label": "Wheel speed sensor, rear right",
+   "system": "chassis",
+   "module": "ABS",
+   "bus": "can_ch",
+   "channels": [],
+   "readable": false,
+   "readable_note": "needs the CAN-CH (grey) cable",
+   "element_id": "wheel_speed_sensors",
+   "zone": "wheel_rr",
+   "side": "right",
+   "location_confidence": "INFERRED",
+   "location_source": "inferred from function, not Stelvio-sourced (at its wheel hub)",
+   "code_match": {
+    "descriptions": [
+     "wheel speed"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "yaw_accel",
+   "label": "Lateral acceleration / yaw sensor",
+   "system": "chassis",
+   "module": "DASM",
+   "bus": "can_c",
+   "channels": [],
+   "readable": false,
+   "readable_note": "No CUORE live channel exists for this sensor; it is reported through DASM (code text 'Lateral acceleration/YAW sensors').",
+   "element_id": null,
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "yaw sensor",
+     "lateral acceleration"
+    ],
+    "codes": [
+     "C1431"
+    ]
+   }
+  },
+  {
+   "id": "adas_radar",
+   "label": "Driver-assistance radar (Bosch)",
+   "system": "adas",
+   "module": "DASM",
+   "bus": "can_c",
+   "channels": [],
+   "readable": false,
+   "readable_note": "No CUORE live channel exists for the radar sensor.",
+   "element_id": "dasm_radar",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "radar"
+    ],
+    "codes": []
+   }
+  },
+  {
+   "id": "adas_camera",
+   "label": "Lane-feedback camera (Bosch MFK2)",
+   "system": "adas",
+   "module": "HALF",
+   "bus": "can_ch",
+   "channels": [],
+   "readable": false,
+   "readable_note": "needs the CAN-CH (grey) cable",
+   "element_id": "half_camera",
+   "zone": null,
+   "side": null,
+   "location_confidence": "UNKNOWN",
+   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "code_match": {
+    "descriptions": [
+     "camera"
+    ],
+    "codes": [
+     "C141B"
+    ]
+   }
+  }
+ ]
+}

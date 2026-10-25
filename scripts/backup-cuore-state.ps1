@@ -58,7 +58,9 @@ if (-not $SkipCarState) {
         'notes.jsonl', 'service_records.jsonl', 'addresses.json', 'learned_dids.json',
         'feedback.jsonl', 'experience_inputs.jsonl', 'live_snapshots.jsonl', 'fullscan_guided.json',
         'mes_imports.json', 'mes_clear_watch.json', 'station.json',
-        'element_locations.jsonl', 'path_tests.jsonl', 'wiggle_tests.jsonl', 'pin_data.jsonl'
+        'element_locations.jsonl', 'path_tests.jsonl', 'wiggle_tests.jsonl', 'pin_data.jsonl',
+        'sensor_checks.jsonl', 'sensor_ranges.jsonl',
+        'fuse_checks.jsonl', 'fuse_items.jsonl'
     )
     foreach ($name in $directFiles) {
         $src = Join-Path $StateDir $name

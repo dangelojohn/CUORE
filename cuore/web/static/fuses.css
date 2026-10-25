@@ -1,0 +1,60 @@
+/* Fuses & relays page (/v/{vin}/fuses). Colour tokens reuse the sensor page's
+ * (--sens-*) when sensors.css is loaded, else cuore.css tokens, so the light/dark
+ * switch comes for free. Grey dots are hollow and every chip carries a mark. */
+:root {
+  --fuse-green:  var(--sens-green, var(--ok));
+  --fuse-orange: var(--sens-orange, var(--fam-body, #d98a3c));
+  --fuse-red:    var(--sens-red, var(--sev-returned, #e8565c));
+  --fuse-grey:   var(--sens-grey, var(--sev-once, #7d888f));
+  --fuse-ink:    var(--sens-ink, #000);
+}
+.fuse-page { padding-inline: 16px; max-width: 1200px; margin-inline: auto; overflow-wrap: anywhere; }
+.fuse-msg { border-left: 3px solid var(--accent); background: var(--surface-2); padding: 8px 12px; margin: 12px 0; }
+.fuse-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.fuse-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px;
+  border: 2px solid var(--c); border-radius: 999px; color: var(--ink); text-decoration: none;
+  background: var(--surface-2); font-size: var(--fs-sm, 14px);
+}
+.fuse-chip b { color: var(--c); font-family: var(--mono); }
+.fuse-chip.on { background: var(--c); color: var(--fuse-ink); }
+.fuse-chip.on b { color: inherit; }
+.fuse-chip.all { --c: var(--ink-3); }
+.fuse-green { --c: var(--fuse-green); } .fuse-orange { --c: var(--fuse-orange); }
+.fuse-red { --c: var(--fuse-red); } .fuse-grey { --c: var(--fuse-grey); }
+.fuse-boxes { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; font-size: var(--fs-xs, 12px); align-items: center; }
+.fuse-boxes a { padding: 2px 8px; border: 1px solid var(--rule); border-radius: 999px; color: var(--ink-2); text-decoration: none; }
+.fuse-boxes a.on { border-color: var(--accent); color: var(--ink); }
+.fuse-map .sens-legend { margin-top: 8px; }
+.fuse-plain { margin: 0; padding-left: 18px; }
+.fuse-plain a { color: var(--c); font-weight: 600; }
+.fuse-gaps, .fuse-tray, .fuse-add { margin: 16px 0; }
+.fuse-gaps ul { margin: 4px 0 8px; padding-left: 20px; }
+.fuse-tray ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 6px; }
+.fuse-tray li { border-left: 4px solid var(--c); padding-left: 8px; }
+.fuse-group { margin: 24px 0 4px; }
+.fuse-warn { color: var(--fuse-orange); }
+.fuse-row { display: grid; grid-template-columns: 36px 150px 1fr; gap: 6px 12px; padding: 12px 0; border-top: 1px solid var(--rule-soft, var(--rule)); scroll-margin-top: 90px; }
+.fuse-row:target { background: var(--surface-2); outline: 2px solid var(--accent); }
+.fuse-row .n { font-family: var(--mono); color: var(--ink-3); }
+.fuse-row h3 { margin: 0 0 2px; font-size: var(--fs-md, 16px); }
+.fuse-st {
+  display: inline-block; font-family: var(--mono); font-size: var(--fs-xs, 12px); padding: 1px 8px; border-radius: var(--radius, 3px);
+  border: 1px solid var(--c); color: var(--c); white-space: nowrap; align-self: start; justify-self: start;
+}
+.fuse-st.fuse-grey { border-style: dashed; }
+.fuse-body > * { margin: 2px 0; }
+.fuse-body ul { margin: 2px 0; padding-left: 18px; }
+.fuse-body details { margin-top: 6px; }
+.fuse-conf { font-family: var(--mono); font-size: var(--fs-xs, 12px); }
+.fuse-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; margin-top: 6px; }
+.fuse-form label { min-width: 0; font-size: var(--fs-sm, 14px); }
+.fuse-form input, .fuse-form select { min-height: 36px; min-width: 0; width: 100%; box-sizing: border-box; }
+.fuse-form .wide { grid-column: 1 / -1; }
+.fuse-form button { min-height: var(--tap, 44px); }
+.fuse-parts { margin: 16px 0; }
+@media (max-width: 700px) {
+  .fuse-row { grid-template-columns: 28px 1fr; }
+  .fuse-row .fuse-st { grid-column: 2; }
+  .fuse-row .fuse-body { grid-column: 1 / -1; }
+}

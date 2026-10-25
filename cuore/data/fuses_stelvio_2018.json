@@ -1,0 +1,316 @@
+{
+  "model": "stelvio-2018-2.0",
+  "boxes": [
+    {
+      "id": "engine_pdc",
+      "label": "Engine-bay power distribution center (PDC / PDM)",
+      "zone": "fuse_box_engine_bay",
+      "location_confidence": "INFERRED",
+      "source": "C:/ProgramData/cuore/parts_catalog/stelvio-2018-2.0l/mechanic_electrical.json section electrical--power-distribution-center-fuse-block-junction-block-relays-and-fuses ('There is a rear power distribution center (PDC) as well as engine-bay fusing'; 'fuse 16 (5 A, engine-bay PDM)'); Mopar catalogue catalog.json lists a 'Power Distribution Center Cover' part. Exact position in the engine bay is not stated by any source.",
+      "full_list_sourced": false
+    },
+    {
+      "id": "interior_box",
+      "label": "Interior fuse box (passenger-side control unit, footwell)",
+      "zone": "fuse_box_interior",
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, item 'The interior fuse box (passenger side control unit) is in the cabin, passenger side, in the footwell under the glove compartment area' (autouserguide.com search summary; third-party, page itself returned 403, unverified).",
+      "full_list_sourced": false
+    },
+    {
+      "id": "rear_pdc",
+      "label": "Rear power distribution center (rear PDC)",
+      "zone": "fuse_box_rear",
+      "location_confidence": "INFERRED",
+      "source": "mes-log-mcp/mes/electrical.py element f82, quoting FCA TSB S1808000005 'on GU/Stelvio inspect fuse F82 in the rear PDC'. The TSB gives no panel or cavity; 'rear of car' is the only placement.",
+      "full_list_sourced": false
+    },
+    {
+      "id": "luggage_box",
+      "label": "Luggage-compartment fuse unit (third-party diagram)",
+      "zone": "fuse_box_rear",
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, item 'The luggage-compartment unit lists F22 20 A ... F21 10 A ... F08 30 A ... F01 40 A' (autogenius, third-party, unverified). It is NOT established whether this is the same box as the rear PDC.",
+      "full_list_sourced": false
+    }
+  ],
+  "items": [
+    {
+      "id": "f82",
+      "kind": "fuse",
+      "box": "rear_pdc",
+      "position": "F82",
+      "rating_a": null,
+      "label": "Fuse F82 (A901 circuit, BCM supply)",
+      "feeds_modules": [
+        "BCM"
+      ],
+      "feeds_elements": [
+        "bcm"
+      ],
+      "part_numbers": [],
+      "zone": "fuse_box_rear",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "mes-log-mcp/mes/electrical.py element f82 (TSB S1808000005: 'inspect fuse F82 in the rear PDC (A901 circuit)'); cuore mechanic_electrical.json repeats it.",
+      "notes": "Rating not stated by the TSB. A technician forum thread reports F82 blown on a 2018 Stelvio 2.0L (single anecdote, not confirmed as the cause of a no-start). Do not use, borrow from or move this fuse."
+    },
+    {
+      "id": "bcm_feed_20a",
+      "kind": "fuse",
+      "box": null,
+      "position": null,
+      "rating_a": 20,
+      "label": "Stand-alone 20 A fuse (BCM power feed)",
+      "feeds_modules": [
+        "BCM"
+      ],
+      "feeds_elements": [
+        "bcm"
+      ],
+      "part_numbers": [],
+      "zone": null,
+      "side": null,
+      "location_confidence": "UNKNOWN",
+      "source": "mes-log-mcp/mes/electrical.py element bcm_feed_20a (TSB S1808000005: 'Inspect all BCM power feeds including the standalone 20A fuse').",
+      "notes": "The TSB names the rating and role but not which box or position it is in."
+    },
+    {
+      "id": "f16_engine_pdm",
+      "kind": "fuse",
+      "box": "engine_pdc",
+      "position": "16",
+      "rating_a": 5,
+      "label": "Fuse 16 (5 A) - ignition 1 relay output",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_engine_bay",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "C:/ProgramData/cuore/parts_catalog/stelvio-2018-2.0l/mechanic_electrical.json ('fuse 16 (5 A, engine-bay PDM) is the ignition 1 relay output' - single technician forum thread, diag.net).",
+      "notes": "Single anecdote. The thread reports no-crank/no-ignition traced to this feed and F82. Which modules it feeds is not sourced."
+    },
+    {
+      "id": "starter_relay",
+      "kind": "relay",
+      "box": null,
+      "position": null,
+      "rating_a": null,
+      "label": "Starter relay",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "front_right_wheel_well",
+      "side": "right",
+      "location_confidence": "INFERRED",
+      "source": "mechanic_electrical.json ('One poster suggests the starter relay sits behind the passenger-side front fender liner; unverified'); catalogue listing 'Starter Relay Giulia and Stelvio' (centerlinealfa.com, SKU RS401, third-party seller).",
+      "notes": "Location is one forum poster's suggestion and is unverified; it may well be inside a PDC. Treat the dot as 'somewhere on the front right'. The catalogue gives no Mopar part number for it."
+    },
+    {
+      "id": "f33_interior",
+      "kind": "fuse",
+      "box": "interior_box",
+      "position": "F33",
+      "rating_a": null,
+      "label": "Fuse F33 (front window)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_interior",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+    },
+    {
+      "id": "f34_interior",
+      "kind": "fuse",
+      "box": "interior_box",
+      "position": "F34",
+      "rating_a": null,
+      "label": "Fuse F34 (front window)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_interior",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+    },
+    {
+      "id": "f36_interior",
+      "kind": "fuse",
+      "box": "interior_box",
+      "position": "F36",
+      "rating_a": 15,
+      "label": "Fuse F36 (infotainment, climate control, alarm, door-mirror folding, EOBD system, USB port)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_interior",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed. F36 also supplies the EOBD (diagnostic port) system per that diagram."
+    },
+    {
+      "id": "f38_interior",
+      "kind": "fuse",
+      "box": "interior_box",
+      "position": "F38",
+      "rating_a": null,
+      "label": "Fuse F38 (central locking)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_interior",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+    },
+    {
+      "id": "f43_interior",
+      "kind": "fuse",
+      "box": "interior_box",
+      "position": "F43",
+      "rating_a": null,
+      "label": "Fuse F43 (washer pump)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_interior",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+    },
+    {
+      "id": "f47_interior",
+      "kind": "fuse",
+      "box": "interior_box",
+      "position": "F47",
+      "rating_a": null,
+      "label": "Fuse F47 (rear window)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_interior",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+    },
+    {
+      "id": "f48_interior",
+      "kind": "fuse",
+      "box": "interior_box",
+      "position": "F48",
+      "rating_a": null,
+      "label": "Fuse F48 (rear window)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_interior",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+    },
+    {
+      "id": "f94_interior",
+      "kind": "fuse",
+      "box": "interior_box",
+      "position": "F94",
+      "rating_a": null,
+      "label": "Fuse F94 (rear window heater)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_interior",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+    },
+    {
+      "id": "f01_luggage",
+      "kind": "fuse",
+      "box": "luggage_box",
+      "position": "F01",
+      "rating_a": 40,
+      "label": "Fuse F01 (circuit name not given)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_rear",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed."
+    },
+    {
+      "id": "f08_luggage",
+      "kind": "fuse",
+      "box": "luggage_box",
+      "position": "F08",
+      "rating_a": 30,
+      "label": "Fuse F08 (Hi-Fi)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_rear",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed."
+    },
+    {
+      "id": "f21_luggage",
+      "kind": "fuse",
+      "box": "luggage_box",
+      "position": "F21",
+      "rating_a": 10,
+      "label": "Fuse F21 (USB / AUX)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_rear",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed."
+    },
+    {
+      "id": "f22_luggage",
+      "kind": "fuse",
+      "box": "luggage_box",
+      "position": "F22",
+      "rating_a": 20,
+      "label": "Fuse F22 (KL15/a 12 V power socket in the luggage compartment)",
+      "feeds_modules": [],
+      "feeds_elements": [],
+      "part_numbers": [],
+      "zone": "fuse_box_rear",
+      "side": null,
+      "location_confidence": "INFERRED",
+      "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed."
+    }
+  ],
+  "catalogue_parts": {
+    "source": "Mopar Online Parts catalogue in ProgramData (parts_catalog/stelvio-2018-2.0l/catalog.json), the Power Distribution Center / Fuse Block / Relays diagrams plus the PDC cover from Headlamp To Dash Wiring. Read at page load; the catalogue rows are not stored in git. These are replaceable fuse/relay TYPES; the catalogue does not say which position uses which.",
+    "diagram_ids": [
+      "electrical--power-distribution-center-fuse-block-junction-block-relays-and-fuses--1",
+      "electrical--power-distribution-center-fuse-block-junction-block-relays-and-fuses--2"
+    ],
+    "extra_parts": [
+      {
+        "diagram_id": "electrical--wiring-headlamp-to-dash--1",
+        "name": "Power Distribution Center Cover"
+      }
+    ]
+  }
+}

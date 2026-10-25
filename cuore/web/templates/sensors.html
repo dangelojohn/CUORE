@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Sensor health — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('sensors.css') }}">
+{% set base = "/v/" ~ vin ~ "/sensors" %}
+<div class="sens-page">
+<h1>Sensor health</h1>
+<p class="lede">Every sensor of the car, placed by zone on a side view, coloured by what CUORE last read. Dots show the area, not an exact spot.</p>
+
+{% if msg %}<p class="sens-msg" role="status">{{ msg }}</p>{% endif %}
+{% if error %}<p class="sens-msg" role="alert">{{ error }}</p>{% endif %}
+
+<div class="sens-chips" role="group" aria-label="Filter by status">
+  {% for k in ("green", "orange", "red", "grey") %}
+    <a class="sens-chip sens-{{ k }}{{ ' on' if status_f == k }}"
+       href="{{ chip_href[k] }}"
+       title="{{ status_label[k] }}"><b>{{ status_mark[k] }}</b> {{ counts[k] }} {{ status_label[k] }}</a>
+  {% endfor %}
+  {% if status_f or system_f %}<a class="sens-chip all" href="{{ base }}">Show all {{ total }}</a>{% endif %}
+</div>
+
+{% if systems|length > 1 %}
+<div class="sens-sys" aria-label="Filter by system">
+  <span class="muted">System:</span>
+  {% for sy in systems %}
+    <a class="{{ 'on' if system_f == sy }}" href="{{ sys_href[sy] }}">{{ sy }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<form class="sens-check" method="post" action="{{ base }}/check">
+  <button type="submit" class="btn">Check all sensors (read-only)</button>
+  <p class="note small muted">Last checked: <b>{{ checked_at or "never" }}</b>.
+    Needs the car connected and ignition on, with MultiEcuScan closed. It never clears codes.
+    Sensors on the CAN-CH bus need the grey cable.</p>
+</form>
+
+<div class="sens-map">
+  {{ svg|safe }}
+  <p class="sens-legend">
+    <span class="sens-green"><i></i>OK</span>
+    <span class="sens-orange"><i></i>Fault / outside normal range</span>
+    <span class="sens-red"><i></i>Dead / not responding</span>
+    <span class="sens-grey"><i class="hollow"></i>Not read yet / not readable with this cable</span>
+    <span><i class="dashed"></i>Dashed ring = location inferred</span>
+    <span>L / R = left / right of car</span>
+  </p>
+</div>
+
+{% if unplaced %}
+<section class="sens-tray panel" aria-labelledby="sens-unplaced-h">
+  <h2 id="sens-unplaced-h">Unplaced ({{ unplaced|length }})</h2>
+  <p class="small muted">No location sourced yet, so these are not on the drawing.</p>
+  <ul>
+  {% for s in unplaced %}
+    <li class="sens-{{ s.status or 'grey' }}"><span class="sens-pip">{{ numbers[s.id] }}</span>
+      <span><a href="#sensor-{{ s.id }}">{{ s.label }}</a>
+      {% if s.element_id %}<br><a class="small" href="/v/{{ vin }}/electrical?find={{ s.element_id|urlencode }}#el-{{ s.element_id|urlencode }}">Set location</a>
+      {% else %}<br><span class="small muted">location not sourced yet</span>{% endif %}</span></li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if not total %}
+  <p class="panel muted">No sensors known for this car yet.</p>
+{% elif not groups %}
+  <p class="panel muted">No sensors match this filter. <a href="{{ base }}">Show all</a></p>
+{% endif %}
+
+{% for sy, rows in groups.items() %}
+<h2 class="sens-group">{{ sy }} <span class="muted small">({{ rows|length }})</span></h2>
+{% for s in rows %}
+{% set st = s.status if s.status in status_label else "grey" %}
+<article class="sens-row" id="sensor-{{ s.id }}">
+  <span class="n">#{{ numbers[s.id] }}</span>
+  <span class="sens-st sens-{{ st }}">{{ status_mark[st] }} {{ status_label[st] }}</span>
+  <div class="sens-body">
+    <h3>{{ s.label }}</h3>
+    <p class="small muted">{{ s.module or "module not recorded" }}{% if s.bus %} · {{ s.bus }}{% endif %}{% if not s.readable %} · not readable: {{ s.readable_note or "with the current cable" }}{% endif %}</p>
+    {% if s.reasons %}<ul>{% for r in s.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+    {% if s['values'] %}
+    <ul class="small">
+      {% for v in s['values'] %}
+      <li><b>{{ v.label or v.channel }}</b>: {{ v.value }}{% if v.unit %} {{ v.unit }}{% endif %}
+        {% if v.range %}&mdash; normal {{ v.range.min }}&ndash;{{ v.range.max }} {{ v.range.unit or v.unit or "" }} ({{ v.range.source }})
+          {% if v.in_range is sameas false %} <b>outside range</b>{% endif %}
+        {% else %}&mdash; <span class="muted">no range yet</span>{% endif %}
+        {% if v.read_at %}<span class="muted"> read {{ v.read_at }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+    {% if s.codes %}
+    <p class="small">Codes:
+      {% for c in s.codes %}<a href="/v/{{ vin }}/code/{{ (c.code or '').split('-')[0]|urlencode }}">{{ c.code }}</a>{% if c.state %} <span class="muted">({{ c.state }})</span>{% endif %}{% if c.description %} {{ c.description }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}</p>
+    {% endif %}
+    <p class="small muted">Last read: {{ s.last_read or "never" }}</p>
+    <p class="small">Location: {{ s.zone or "not placed" }}{% if s.side %} ({{ s.side }}){% endif %}
+      <span class="sens-conf">[{{ s.location_confidence or "UNKNOWN" }}]</span>
+      <span class="muted">{{ s.location_source or "no source" }}</span></p>
+    <details>
+      <summary class="small">Add a normal range</summary>
+      <form class="sens-form" method="post" action="{{ base }}/range">
+        <input type="hidden" name="sensor_id" value="{{ s.id }}">
+        <label>Channel
+          {% if s.channels %}<select name="channel">{% for ch in s.channels %}<option>{{ ch }}</option>{% endfor %}</select>
+          {% else %}<input name="channel" required>{% endif %}</label>
+        <label>Min <input name="min" inputmode="decimal" required></label>
+        <label>Max <input name="max" inputmode="decimal" required></label>
+        <label>Unit <input name="unit"></label>
+        <label class="wide">Source (required)
+          <input name="source" required placeholder="e.g. service manual page, TechAuthority, measured on this car"></label>
+        <button class="wide" type="submit">Save range</button>
+      </form>
+    </details>
+  </div>
+</article>
+{% endfor %}
+{% endfor %}
+</div>
+{% endblock %}
