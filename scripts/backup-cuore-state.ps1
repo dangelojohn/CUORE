@@ -55,7 +55,9 @@ if (-not $SkipCarState) {
     $directFiles = @(
         'observations.jsonl', 'owner_events.jsonl', 'jobs.jsonl', 'checklists.json',
         'cases.jsonl', 'symptoms.jsonl', 'shop_visits.jsonl', 'audit.jsonl', 'fullscan_last.json',
-        'notes.jsonl', 'service_records.jsonl', 'addresses.json', 'learned_dids.json'
+        'notes.jsonl', 'service_records.jsonl', 'addresses.json', 'learned_dids.json',
+        'feedback.jsonl', 'experience_inputs.jsonl', 'live_snapshots.jsonl', 'fullscan_guided.json',
+        'mes_imports.json', 'mes_clear_watch.json', 'station.json'
     )
     foreach ($name in $directFiles) {
         $src = Join-Path $StateDir $name
@@ -74,7 +76,7 @@ if (-not $SkipCarState) {
         $todayEntries += [pscustomobject]@{ Name = $_.Name; Action = $action; Lines = $null; Size = $_.Length }
     }
 
-    foreach ($sub in @('scans', 'recordings', 'bench', 'live_layouts')) {
+    foreach ($sub in @('scans', 'recordings', 'bench', 'live_layouts', 'media')) {
         $subDir = Join-Path $StateDir $sub
         if (-not (Test-Path -LiteralPath $subDir)) { continue }
         Get-ChildItem -LiteralPath $subDir -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
