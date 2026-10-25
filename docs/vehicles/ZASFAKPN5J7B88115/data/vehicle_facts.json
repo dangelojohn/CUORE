@@ -62,7 +62,8 @@
     {
       "id": "fluids", "title": "Fluids, capacities and parts",
       "rows": [
-        {"label": "Engine oil", "value": "SAE 0W-30 full synthetic, FCA 9.55535-GS1 (Mopar 68444159AA)", "source": "outside research: fiat500usa.com oil-change guide (read in full)", "date": "2026-10-24", "confidence": "third-party; check the manual"},
+        {"label": "Engine oil (this car)", "value": "Always Pennzoil Platinum Euro LX 0W-30 full synthetic (SS104), GTL base; labelled Chrysler MS-12213340, FIAT FPT 9.55535-GS1, API SN", "source": "owner", "date": "2026-10-25", "confidence": "owner"},
+        {"label": "Engine oil (spec)", "value": "SAE 0W-30 full synthetic, FCA 9.55535-GS1 (Mopar 68444159AA)", "source": "outside research: fiat500usa.com oil-change guide (read in full)", "date": "2026-10-24", "confidence": "third-party; check the manual"},
         {"label": "Oil capacity", "value": "About 5.2 L / 5.5 US qt with filter (one site says 5.7 L)", "source": "outside research: fiat500usa.com, puretyre, pcauto (sources differ)", "date": "2026-10-24", "confidence": "unconfirmed"},
         {"label": "Oil filter / drain plug", "value": "Filter 04892339AB; drain plug 06507741AA", "source": "outside research: fiat500usa.com (read in full)", "date": "2026-10-24", "confidence": "third-party"},
         {"label": "Coolant", "value": "OAT, FCA MS.90032 / CUNA NC956-16, 50% mix, do not mix formulations. Engine circuit 2.3 US gal (8.8 L); separate intercooler circuit 1.4 US gal (5.25 L)", "source": "2018 Stelvio owner's manual (vehicleinfo.mopar.com P124461), read by a research agent", "date": "2026-10-24", "confidence": "official manual; not checked by hand"},
@@ -107,7 +108,7 @@
         {"label": "2026-09-02", "value": "Canister air filter, fuel cap and seal, canister valve, ESIM Mopar 04861961AD (about 141,059 km)", "source": "owner", "date": "2026-09-02"},
         {"label": "2025-08", "value": "Fuel cap and EVAP canister", "source": "owner", "date": "2025-08"},
         {"label": "Smoke tests", "value": "Clean: 2025-08, 2026-09-16, 2026-09-26", "source": "owner", "date": "2026-09-26"},
-        {"label": "Last oil change", "value": "2026-10-24 at 148,226 km: Pennzoil Euro LX 0W-30, 5.2 L, UFI filter. ECM read 5.31 L engine off afterwards (unverified DID 3A41). Next due 161,101 km or 2027-10-24", "source": "owner report + CUORE service record 9fed6a61 + CUORE ECM reading", "date": "2026-10-24"},
+        {"label": "Last oil change", "value": "2026-10-24 at 148,226 km: Pennzoil Platinum Euro LX 0W-30 (SS104), 5.2 L, UFI filter. ECM read 5.31 L engine off afterwards (unverified DID 3A41). Next due 161,101 km or 2027-10-24", "source": "owner report + CUORE service record 9fed6a61 + CUORE ECM reading", "date": "2026-10-24"},
         {"label": "Next", "value": "Dealer 2026-10-28: recall 93C fuel pump, engine/transmission mounts, front differential. Also planned: accessory belt.", "source": "owner / CUORE jobs", "date": "2026-10-24"}
       ]
     },
