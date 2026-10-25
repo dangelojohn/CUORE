@@ -4,14 +4,14 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 
 | item | action | size (bytes) | lines |
 |---|---|---|---|
-| observations.jsonl | copied | 2242202 | 348 |
+| observations.jsonl | skipped-unchanged | 2242202 | 348 |
 | owner_events.jsonl | skipped-unchanged | 996 | 2 |
-| jobs.jsonl | copied | 217052 | 238 |
+| jobs.jsonl | copied | 218264 | 240 |
 | checklists.json | skipped-unchanged | 599 | - |
 | cases.jsonl | skipped-unchanged | 1491 | 1 |
-| symptoms.jsonl | copied | 2074 | 4 |
+| symptoms.jsonl | skipped-unchanged | 2074 | 4 |
 | shop_visits.jsonl | skipped-unchanged | 216 | 1 |
-| audit.jsonl | copied | 618878 | 3238 |
+| audit.jsonl | skipped-unchanged | 618878 | 3238 |
 | fullscan_last.json | skipped-unchanged | 6870 | - |
 | notes.jsonl | skipped-unchanged | 35867 | 26 |
 | service_records.jsonl | skipped-unchanged | 5594 | 3 |
@@ -22,7 +22,7 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 | live_snapshots.jsonl | skipped-unchanged | 6342 | 2 |
 | fullscan_guided.json | skipped-unchanged | 6958 | - |
 | mes_imports.json | skipped-unchanged | 5692 | - |
-| mes_clear_watch.json | skipped-unchanged | 140 | - |
+| mes_clear_watch.json | copied | 140 | - |
 | station.json | skipped-unchanged | 81 | - |
 | checklists.json.bak-2026-10-08-review | skipped-unchanged | 518 | - |
 | jobs.jsonl.bak-2026-10-08-review | skipped-unchanged | 1364 | - |
