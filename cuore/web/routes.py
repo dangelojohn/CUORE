@@ -375,14 +375,58 @@ def vehicle(request: Request, vin: str) -> HTMLResponse:
     return response
 
 
+#: state column order when sorting by State -- the same "what changes a
+#: decision" order ``mes_bridge`` documents for ``severity``.
+_STATE_RANK = {"returned": 0, "chronic": 1, "recurring": 2, "cleared": 3,
+               "seen-once": 4}
+
+#: sortable columns on the codes page -> (row key function, first-click
+#: direction). Counts, distance and dates open newest/largest first; text
+#: columns open A-Z. ``None`` from a key function means "no value": those
+#: rows always go last, whichever way the column is sorted.
+_CODE_SORTS: dict[str, tuple[Any, str]] = {
+    "code": (lambda r: (r.get("dtc") or "").upper() or None, "asc"),
+    "state": (lambda r: _STATE_RANK.get(r.get("severity") or ""), "asc"),
+    "system": (lambda r: (_SYSTEM_BUCKET_ORDER.index(r["system_bucket"])
+                          if r.get("system_bucket") in _SYSTEM_BUCKET_ORDER
+                          else len(_SYSTEM_BUCKET_ORDER)), "asc"),
+    "description": (lambda r: ", ".join(r.get("descriptions") or []).lower() or None, "asc"),
+    "module": (lambda r: ", ".join(r.get("modules") or []).lower() or None, "asc"),
+    "sessions": (lambda r: r.get("sessions") or 0, "desc"),
+    "first": (lambda r: r.get("first_seen") or None, "desc"),
+    "last": (lambda r: r.get("last_seen") or None, "desc"),
+    "distance": (lambda r: r.get("distance_span_km"), "desc"),
+}
+
+
+def _sort_code_rows(rows: list[dict[str, Any]], sort: str,
+                    direction: str) -> tuple[list[dict[str, Any]], str, str]:
+    """Re-order the codes table by one column -> (rows, sort, direction).
+
+    An unknown or empty ``sort`` keeps the diagnosis order from
+    ``extract_dtcs``. The sort is stable, so rows that tie keep that
+    diagnosis order too.
+    """
+    if sort not in _CODE_SORTS:
+        return rows, "", ""
+    key, first_dir = _CODE_SORTS[sort]
+    direction = direction if direction in ("asc", "desc") else first_dir
+    have = [r for r in rows if key(r) is not None]
+    missing = [r for r in rows if key(r) is None]
+    have.sort(key=key, reverse=(direction == "desc"))
+    return have + missing, sort, direction
+
+
 @router.get("/v/{vin}/codes", response_class=HTMLResponse)
 def codes(request: Request, vin: str,
-          include_simulation: bool = False, system: str = "") -> HTMLResponse:
+          include_simulation: bool = False, system: str = "",
+          sort: str = "", dir: str = "") -> HTMLResponse:  # noqa: A002
     """Every code this car has ever set, ordered by what decides a diagnosis.
 
     Review R8: each row is shaped here (not re-sorted -- ``extract_dtcs``
     already orders returned/chronic/cleared/seen-once, and that order is
-    preserved through the filter below) with a relative "ago" date, an
+    preserved through the filter below, unless the mechanic picks a column
+    with ``?sort=``) with a relative "ago" date, an
     "xN" session count, and the system bucket/cluster anchor used for the
     filter chips and the row's link back to its dossier cluster.
     """
@@ -403,8 +447,12 @@ def codes(request: Request, vin: str,
     rows = data["dtcs"]
     if system_filter:
         rows = [r for r in rows if r["system_bucket"].lower() == system_filter.lower()]
+    rows, sort, dir = _sort_code_rows(rows, (sort or "").strip().lower(),
+                                      (dir or "").strip().lower())
 
     response = _page(request, "codes.html", vin=vin, rows=rows, data=data,
+                     sort=sort, sort_dir=dir,
+                     sort_first_dir={k: v[1] for k, v in _CODE_SORTS.items()},
                      bar=_vehicle_bar(vin, dossier),
                      include_simulation=include_simulation, tab="codes",
                      system_filter=system_filter,

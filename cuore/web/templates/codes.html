@@ -13,12 +13,21 @@ a code seen once last week and one recurring across a year are different
 problems, and printing only the latest hides which is which.</p>
 
 {% set _qs = "&include_simulation=true" if include_simulation else "" %}
+{% set _sq = ("&sort=" ~ sort ~ "&dir=" ~ sort_dir) if sort else "" %}
+{% macro sh(key, label, cls="") -%}
+  {%- set on = sort == key -%}
+  {%- set nd = ("desc" if sort_dir == "asc" else "asc") if on else sort_first_dir[key] -%}
+  <th class="{{ cls }} sortable{{ ' sorted' if on }}" {% if on %}aria-sort="{{ 'ascending' if sort_dir == 'asc' else 'descending' }}"{% endif %}>
+    <a href="/v/{{ vin }}/codes?sort={{ key }}&dir={{ nd }}{{ '&system=' ~ system_filter|urlencode if system_filter }}{{ _qs }}"
+       title="Sort by {{ label|lower }}">{{ label }}<span class="sort-ind" aria-hidden="true">{{ ('▲' if sort_dir == 'asc' else '▼') if on else '↕' }}</span></a>
+  </th>
+{%- endmacro %}
 <div class="codesf-row" aria-label="Filter by system">
   <a class="codesf-chip {{ 'on' if not system_filter }}"
-     href="/v/{{ vin }}/codes{{ '?include_simulation=true' if include_simulation else '' }}">All</a>
+     href="/v/{{ vin }}/codes?{{ _qs[1:] }}{{ _sq }}">All</a>
   {% for b in system_buckets %}
     <a class="codesf-chip {{ 'on' if system_filter and system_filter|lower == b|lower }}"
-       href="/v/{{ vin }}/codes?system={{ b|urlencode }}{{ _qs }}">{{ b }}</a>
+       href="/v/{{ vin }}/codes?system={{ b|urlencode }}{{ _qs }}{{ _sq }}">{{ b }}</a>
   {% endfor %}
 </div>
 
@@ -30,9 +39,9 @@ problems, and printing only the latest hides which is which.</p>
   </div>
   <div>
     {% if include_simulation %}
-      <a class="btn" href="/v/{{ vin }}/codes{{ '?system=' + system_filter|urlencode if system_filter }}">Exclude simulation</a>
+      <a class="btn" href="/v/{{ vin }}/codes?{{ 'system=' + system_filter|urlencode if system_filter }}{{ _sq }}">Exclude simulation</a>
     {% else %}
-      <a class="btn" href="/v/{{ vin }}/codes?include_simulation=true{{ '&system=' + system_filter|urlencode if system_filter }}">Include simulation</a>
+      <a class="btn" href="/v/{{ vin }}/codes?include_simulation=true{{ '&system=' + system_filter|urlencode if system_filter }}{{ _sq }}">Include simulation</a>
     {% endif %}
   </div>
   <div class="mono small muted">
@@ -45,13 +54,24 @@ problems, and printing only the latest hides which is which.</p>
   </div>
 </div>
 
+<p class="small muted codes-sortnote">
+  {% set _sl = {"code": ("code", "A→Z", "Z→A"), "state": ("state", "returned first", "seen-once first"),
+                 "system": ("system", "EVAP first", "Engine other first"), "description": ("description", "A→Z", "Z→A"),
+                 "module": ("module", "A→Z", "Z→A"), "sessions": ("sessions", "fewest first", "most first"),
+                 "first": ("first seen", "oldest first", "newest first"), "last": ("last seen", "oldest first", "newest first"),
+                 "distance": ("distance", "shortest first", "longest first")} %}
+  {% if sort %}Sorted by <b>{{ _sl[sort][0] }}</b>, {{ _sl[sort][1] if sort_dir == "asc" else _sl[sort][2] }}.
+    <a href="/v/{{ vin }}/codes?{{ 'system=' ~ system_filter|urlencode if system_filter }}{{ _qs }}">Back to diagnosis order</a>
+  {% else %}Click a column heading to sort by it; click again to reverse.{% endif %}
+</p>
+
 <div class="panel tight">
   <div class="tw">
   <table id="codetable">
     <thead>
       <tr>
-        <th>Code</th><th>State</th><th>System</th><th>Description</th><th>Module</th>
-        <th class="n">Sessions</th><th>First</th><th>Last</th><th class="n">Distance</th>
+        {{ sh("code", "Code") }}{{ sh("state", "State") }}{{ sh("system", "System") }}{{ sh("description", "Description") }}{{ sh("module", "Module") }}
+        {{ sh("sessions", "Sessions", "n") }}{{ sh("first", "First") }}{{ sh("last", "Last") }}{{ sh("distance", "Distance", "n") }}
       </tr>
     </thead>
     <tbody>
