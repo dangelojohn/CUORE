@@ -4,18 +4,18 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 
 | item | action | size (bytes) | lines |
 |---|---|---|---|
-| observations.jsonl | skipped-unchanged | 1987560 | 335 |
+| observations.jsonl | copied | 2145312 | 344 |
 | owner_events.jsonl | skipped-unchanged | 996 | 2 |
-| jobs.jsonl | skipped-unchanged | 213921 | 234 |
+| jobs.jsonl | copied | 215472 | 236 |
 | checklists.json | skipped-unchanged | 599 | - |
 | cases.jsonl | skipped-unchanged | 1491 | 1 |
 | symptoms.jsonl | skipped-unchanged | 1505 | 3 |
 | shop_visits.jsonl | skipped-unchanged | 216 | 1 |
-| audit.jsonl | skipped-unchanged | 604987 | 3172 |
+| audit.jsonl | copied | 615570 | 3224 |
 | fullscan_last.json | skipped-unchanged | 6870 | - |
-| notes.jsonl | skipped-unchanged | 29833 | 23 |
+| notes.jsonl | copied | 35867 | 26 |
 | service_records.jsonl | skipped-unchanged | 5594 | 3 |
-| addresses.json | skipped-unchanged | 1183 | - |
+| addresses.json | copied | 1183 | - |
 | learned_dids.json | skipped-unchanged | 34704 | - |
 | feedback.jsonl | skipped-unchanged | 25228 | 47 |
 | experience_inputs.jsonl | skipped-unchanged | 548 | 2 |

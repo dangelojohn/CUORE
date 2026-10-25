@@ -1,0 +1,44 @@
+{
+  "ZASFAKPN5J7B88115": {
+    "ABS": {
+      "target": "2A",
+      "source": "discover 2026-10-15 00:10: 22 F190 at 18DA2AF1 returned this VIN; F192 28554010535 / F194 XJ_RAL00165 match Table A ABS exactly (registry said 0x28; 0x2A was mislabelled EPS)",
+      "at": "2026-10-15T00:12:09"
+    },
+    "ECM": {
+      "target": "10",
+      "source": "discover (address+identity)",
+      "at": "2026-10-24T13:23:37"
+    },
+    "TCM": {
+      "target": "18",
+      "source": "discover (address+identity)",
+      "at": "2026-10-24T13:23:42"
+    },
+    "DTCM": {
+      "target": "1A",
+      "source": "discover (identity)",
+      "at": "2026-10-25T13:33:46"
+    },
+    "ESM": {
+      "target": "1F",
+      "source": "discover (identity)",
+      "at": "2026-10-24T13:23:48"
+    },
+    "DASM": {
+      "target": "2A",
+      "source": "discover (identity)",
+      "at": "2026-10-25T13:33:54"
+    },
+    "BCM": {
+      "target": "40",
+      "source": "discover (address+identity)",
+      "at": "2026-10-24T13:24:03"
+    },
+    "IPC": {
+      "target": "60",
+      "source": "discover (address+identity)",
+      "at": "2026-10-24T13:24:16"
+    }
+  }
+}
