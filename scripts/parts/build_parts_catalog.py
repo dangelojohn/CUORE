@@ -126,7 +126,7 @@ def load_listings(paths: list[Path], core_pns: set[str]) -> list[dict]:
             name = _first(it, "name", "title")
             if not name or _MERCH.search(name):
                 continue
-            pn = _first(it, "part_number", "pn", "partNumber", "part_num", "mpn").upper().replace(" ", "")
+            pn = _first(it, "part_number", "part", "pn", "partNumber", "part_num", "mpn").upper().replace(" ", "")
             sku = _first(it, "sku", "parent_sku")
             if pn and pn.replace("-", "") in core_pns:
                 continue
@@ -143,14 +143,14 @@ def load_listings(paths: list[Path], core_pns: set[str]) -> list[dict]:
             if key in seen:
                 continue
             seen.add(key)
-            price = _first(it, "price", "sale_price")
+            price = _first(it, "price", "sale_price", "sale_cad")
             out.append({
                 "source": src, "source_name": raw.get("source_name") or re.sub(r"^https?://(www\.)?", "", src).split("/")[0],
                 "kind": "aftermarket" if aftermarket else "retailer",
                 "brand": _first(it, "brand", "manufacturer"), "pn": pn, "sku": sku, "name": name,
                 "notes": _first(it, "position", "notes"),
                 "price": price, "currency": "CAD" if aftermarket else "",
-                "msrp": _first(it, "msrp"), "url": _first(it, "url", "product_url"),
+                "msrp": _first(it, "msrp", "msrp_cad"), "url": _first(it, "url", "product_url"),
                 "category": _first(it, "category_slug", "category"),
                 "fitment": fit, "fitment_why": why,
             })
