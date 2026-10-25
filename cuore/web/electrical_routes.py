@@ -57,6 +57,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
+from ..services import electrical_extras, electrical_safety
 from ..services.errors import BridgeError
 from ..api.deps import require_token
 from . import electrical_svg
@@ -66,6 +67,14 @@ from .routes import templates as _shared_templates
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
 
 CONDITIONS = ["ok", "loose", "chafed", "corroded", "water", "not_found"]
+PHOTO_MIMES = ("image/jpeg", "image/png", "image/webp", "image/heic")
+MAX_PHOTO_BYTES = 15 * 1024 * 1024  # 15 MB per photo
+PHOTO_TARGET_KIND = "electrical"
+
+#: Optional element/step keys carrying a measured-value hint. The element
+#: data is the only source -- nothing is shown when none of these is set.
+_EXPECTED_KEYS = ("expected_value", "expected", "expected_reading", "spec")
+_METER_KEYS = ("meter_setup", "meter", "test_hint")
 CONDITION_LABELS = {"ok": "OK", "loose": "Loose", "chafed": "Chafed",
                     "corroded": "Corroded", "water": "Water intrusion",
                     "not_found": "Not found"}
@@ -445,18 +454,86 @@ _shared_templates.env.globals["electrical_path_for"] = electrical_path_for
 # --- the page --------------------------------------------------------------
 
 
-def _element_cards(vin: str, elements: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+def _first(*sources: dict[str, Any], keys: tuple[str, ...]) -> Optional[str]:
+    """First non-empty value of any of ``keys`` across ``sources`` (step row
+    before element) -- ``None`` when the data carries none of them."""
+    for src in sources:
+        for k in keys:
+            v = (src or {}).get(k)
+            if v not in (None, "", [], {}):
+                return str(v)
+    return None
+
+
+def _search_text(eid: str, e: dict[str, Any], elements: dict[str, dict[str, Any]],
+                 fed_by: dict[str, list[str]], sys_label: str) -> str:
+    """Lowercase text the find box matches: label, id, kind, location,
+    system, and the labels of the connectors/fuses this element is wired
+    through (so typing a fuse or connector name finds what hangs off it)."""
+    bits = [e.get("label") or "", eid, e.get("kind") or "",
+            (e.get("location") or {}).get("description") or "", sys_label or ""]
+    for nb in list(e.get("feeds") or []) + fed_by.get(eid, []):
+        n = elements.get(nb)
+        if n and n.get("kind") in ("fuse", "connector"):
+            bits += [n.get("label") or "", nb]
+    return " ".join(str(b) for b in bits).lower()
+
+
+def _fed_by(elements: dict[str, dict[str, Any]]) -> dict[str, list[str]]:
+    out: dict[str, list[str]] = {}
+    for eid, e in elements.items():
+        for t in e.get("feeds") or []:
+            out.setdefault(t, []).append(eid)
+    return out
+
+
+def _photo_index(vin: str) -> dict[str, list[dict[str, Any]]]:
+    """``{element id: [media rows]}`` for this vehicle's electrical photos
+    (one index read for the whole page)."""
+    try:
+        from ..services import media_bridge
+        rows = media_bridge.list_media(vin, target_kind=PHOTO_TARGET_KIND).get("items") or []
+    except Exception:  # noqa: BLE001 -- the page must render without photos
+        return {}
+    out: dict[str, list[dict[str, Any]]] = {}
+    for r in rows:
+        if r.get("kind", "photo") == "photo":
+            out.setdefault(str(r.get("target_id") or ""), []).append(r)
+    return out
+
+
+def _element_cards(vin: str, elements: dict[str, dict[str, Any]], *,
+                   hist: Optional[dict[str, list[dict[str, Any]]]] = None,
+                   all_elements: Optional[dict[str, dict[str, Any]]] = None,
+                   modules: Optional[dict[str, dict[str, Any]]] = None,
+                   repaired: Optional[dict[str, list[dict[str, str]]]] = None,
+                   photos: Optional[dict[str, list[dict[str, Any]]]] = None,
+                   find: str = "") -> list[dict[str, Any]]:
     zone_order = [z["id"] for z in electrical_svg.ZONES] + ["other"]
     zone_label = {z["id"]: z["label"] for z in electrical_svg.ZONES}
     zone_label["other"] = "Other / unplaced"
     layout = _layout_bridge()
     sys_labels = layout.SYSTEM_LABELS if layout is not None else {}
 
+    hist, modules, repaired, photos = hist or {}, modules or {}, repaired or {}, photos or {}
+    universe = all_elements or elements
+    fed_by = _fed_by(universe)
+    find_k = (find or "").strip().lower()
     cards = []
     for eid, e in elements.items():
         zone = electrical_svg.resolve_zone((e.get("location") or {}).get("zone"))
-        rec = _latest(vin, eid)
+        rows = hist.get(eid) or []
+        rec = rows[-1] if rows else None
+        search = _search_text(eid, e, universe, fed_by, sys_labels.get(e.get("system"), e.get("system")))
+        label = e.get("label") or eid
         cards.append({
+            "safety": electrical_safety.flags_for(e, eid),
+            "module": modules.get(eid), "repaired": repaired.get(eid) or [],
+            "history": list(reversed(rows))[:10], "photos": photos.get(eid) or [],
+            "parts": electrical_extras.part_hits(label),
+            "parts_q": electrical_extras.search_query(label),
+            "expected": _first(e, keys=_EXPECTED_KEYS), "meter": _first(e, keys=_METER_KEYS),
+            "search": search, "match": bool(find_k) and find_k in search,
             "id": eid, "kind": e.get("kind"), "label": e.get("label") or eid,
             "location": e.get("location") or {}, "zone": zone,
             "zone_label": zone_label.get(zone, zone),
@@ -471,19 +548,56 @@ def _element_cards(vin: str, elements: dict[str, dict[str, Any]]) -> list[dict[s
     return cards
 
 
+def _step_status(rows: list[dict[str, Any]]) -> Optional[str]:
+    """``pass`` / ``fail`` from an element's latest saved inspection, or
+    ``None`` when it has never been inspected."""
+    if not rows:
+        return None
+    return "pass" if rows[-1].get("condition") == "ok" else "fail"
+
+
+def _walk(vin: str, code_u: str, path_data: dict[str, Any], hist: dict[str, list[dict[str, Any]]],
+          step_n: int, system_k: str) -> dict[str, Any]:
+    """The guided walk-through for one code: every path element as a step
+    with pass/fail from saved inspections, the 1-based current step clamped
+    into range, and Prev/Next hrefs."""
+    path = path_data["path"]
+    total = len(path)
+    n = min(max(step_n, 1), total)
+    sys_q = f"&system={quote(system_k)}" if system_k != "all" else ""
+    base = f"/v/{vin}/electrical?code={quote(code_u)}{sys_q}"
+    rows = []
+    for i, hop in enumerate(path, start=1):
+        rows.append({"n": i, "id": hop["id"], "label": hop.get("label") or hop["id"],
+                     "role": hop.get("role"), "status": _step_status(hist.get(hop["id"]) or []),
+                     "href": f"{base}&step={i}"})
+    return {"n": n, "total": total, "rows": rows, "current": rows[n - 1],
+            "prev_href": f"{base}&step={n - 1}" if n > 1 else None,
+            "next_href": f"{base}&step={n + 1}" if n < total else None,
+            "start_href": f"{base}&step=1", "exit_href": base}
+
+
 @router.get("/v/{vin}/electrical", response_class=HTMLResponse)
 def electrical_page(request: Request, vin: str, code: str = "", system: str = "",
-                    saved: str = "", error: str = "") -> HTMLResponse:
+                    saved: str = "", error: str = "", step: int = 0, find: str = "",
+                    photo: str = "") -> HTMLResponse:
     """The car-layout electrical diagram: every known element across every
     system, placed in its zone and coloured by its latest inspection
     condition, with ``?system=`` scoping which systems' elements show, and
     ``?code=`` thick-lining that code's full (possibly cross-system) path
     regardless of the system filter -- a path is what it is; the filter
-    only scopes browsing."""
+    only scopes browsing.
+
+    ``?code=X&step=N`` is the guided walk-through (one path element at a
+    time, with its inline inspection form); ``?find=text`` pulses the
+    matching nodes server-side (the page's find box does the same live with
+    JavaScript). Everything here reads saved data only -- the page never
+    contacts the car."""
     dossier = _dossier(vin)
     layout = _layout_bridge()
     all_systems = layout.CANONICAL_SYSTEMS if layout is not None else [("all", "All")]
     system_colors = layout.SYSTEM_COLORS if layout is not None else {}
+    sys_labels = layout.SYSTEM_LABELS if layout is not None else {}
     system_keys = {k for k, _ in all_systems}
     system_k = (system or "").strip().lower()
     if system_k not in system_keys:
@@ -492,16 +606,58 @@ def electrical_page(request: Request, vin: str, code: str = "", system: str = ""
     code_u = code.strip().upper()
     path_data = electrical_path_for(vin, code_u) if code_u else None
     path_ids = [h["id"] for h in path_data["path"]] if path_data else []
+    hist = _inspections(vin)
 
     # A code's path can span systems (P0171: air intake + fuel) -- the
     # diagram always shows every element when one is active, so the full
     # path is visible no matter which chip is selected; the chip still
     # scopes the element cards underneath it.
-    diagram_elements = _elements() if code_u else _elements(system_k)
-    cards = _element_cards(vin, _elements(system_k))
-    conditions = {eid: ((_latest(vin, eid) or {}).get("condition")) for eid in diagram_elements}
+    all_elements = _elements()
+    diagram_elements = all_elements if code_u else _elements(system_k)
+    conditions = {eid: ((hist.get(eid) or [{}])[-1].get("condition")) for eid in diagram_elements}
 
-    svg = electrical_svg.render(diagram_elements, conditions=conditions, path_ids=path_ids, width=320)
+    modules = electrical_extras.module_nodes(diagram_elements)
+    repaired = electrical_extras.repaired_index(vin, diagram_elements)
+    photos = _photo_index(vin)
+    cards = _element_cards(vin, _elements(system_k), hist=hist, all_elements=all_elements,
+                           modules=modules, repaired=repaired, photos=photos, find=find)
+    card_by_id = {c["id"]: c for c in cards}
+
+    walk = None
+    step_card = None
+    step_info: dict[str, Any] = {}
+    step_state = None
+    if code_u and path_data and path_data["found"] and path_data.get("path") and step > 0:
+        walk = _walk(vin, code_u, path_data, hist, step, system_k)
+        cur_id = walk["current"]["id"]
+        step_card = card_by_id.get(cur_id)
+        if step_card is None and cur_id in all_elements:
+            step_card = _element_cards(vin, {cur_id: all_elements[cur_id]}, hist=hist,
+                                       all_elements=all_elements, modules=modules,
+                                       repaired=repaired, photos=photos)[0]
+        row = next((r for r in path_data["inspect_steps"] if r.get("element") == cur_id), {})
+        hop = path_data["path"][walk["n"] - 1]
+        el = all_elements.get(cur_id) or {}
+        step_info = {
+            "what": row.get("what"), "how": row.get("how"), "source": row.get("source"),
+            "role": hop.get("role"),
+            "expected": _first(row, el, keys=_EXPECTED_KEYS),
+            "meter": _first(row, el, keys=_METER_KEYS),
+        }
+        step_state = {"current": cur_id,
+                      "done": {r["id"]: r["status"] for r in walk["rows"] if r["status"]}}
+
+    fed = _fed_by(all_elements)
+    search_by_id = {eid: _search_text(eid, e, all_elements, fed, sys_labels.get(e.get("system"), ""))
+                    for eid, e in diagram_elements.items()}
+    find_k = find.strip().lower()
+    matches = {eid for eid, t in search_by_id.items() if find_k and find_k in t}
+
+    safety_ids = {eid for eid, e in diagram_elements.items() if electrical_safety.flags_for(e, eid)}
+    svg = electrical_svg.render(diagram_elements, conditions=conditions, path_ids=path_ids, width=420,
+                                safety=safety_ids, modules=modules, repaired=set(repaired),
+                                photos={e for e, rows in photos.items() if rows}, step=step_state,
+                                matches=matches, search=search_by_id)
 
     systems_filter = [{"key": k, "label": lbl, "active": k == system_k,
                        "color": system_colors.get(k)} for k, lbl in all_systems]
@@ -511,7 +667,13 @@ def electrical_page(request: Request, vin: str, code: str = "", system: str = ""
         qs.append(f"code={quote(code_u)}")
     if system_k != "all":
         qs.append(f"system={quote(system_k)}")
+    find_hidden = list(qs)
+    if walk:
+        qs.append(f"step={walk['n']}")
     redirect_to = f"/v/{vin}/electrical" + (f"?{'&'.join(qs)}" if qs else "")
+    find_hidden = [tuple(q.split("=", 1)) for q in find_hidden]
+    if walk:
+        find_hidden.append(("step", str(walk["n"])))
 
     try:
         from ..services import wiring_bridge
@@ -523,9 +685,17 @@ def electrical_page(request: Request, vin: str, code: str = "", system: str = ""
                      tab="electrical", svg=svg, cards=cards, code=code_u, path_data=path_data,
                      system=system_k, systems_filter=systems_filter,
                      conditions=CONDITIONS, condition_labels=CONDITION_LABELS,
-                     saved=bool(saved), inspect_error=error, redirect_to=redirect_to)
+                     saved=bool(saved), inspect_error=error, redirect_to=redirect_to,
+                     walk=walk, step_card=step_card, step_info=step_info, find=find,
+                     find_hidden=find_hidden, find_count=len(matches), photo_saved=bool(photo),
+                     max_photo_mb=MAX_PHOTO_BYTES // (1024 * 1024), module_count=len(modules))
     _set_active_vehicle(response, vin)
     return response
+
+
+def _safe_redirect(url: str) -> bool:
+    """Same-site relative path only (no //host, no backslash tricks, no CR/LF)."""
+    return url.startswith("/") and not url.startswith("//") and not any(c in url for c in (chr(92), chr(13), chr(10)))
 
 
 @router.post("/v/{vin}/electrical/inspect", response_class=HTMLResponse)
@@ -534,7 +704,7 @@ async def electrical_inspect_submit(request: Request, vin: str) -> RedirectRespo
     degrade-first shape as ``/v/{vin}/symptoms`` and ``/v/{vin}/notes``."""
     form = await request.form()
     redirect_base = str(form.get("redirect_to", "") or f"/v/{vin}/electrical")
-    if not redirect_base.startswith("/") or redirect_base.startswith("//"):
+    if not _safe_redirect(redirect_base):
         redirect_base = f"/v/{vin}/electrical"
 
     element = str(form.get("element", "")).strip()
@@ -545,6 +715,8 @@ async def electrical_inspect_submit(request: Request, vin: str) -> RedirectRespo
     error = None
     if not element:
         error = "no element given"
+    elif element not in _elements():
+        error = "unknown element"
     elif condition not in CONDITIONS:
         error = f"condition must be one of {', '.join(CONDITIONS)}, got {condition!r}"
 
@@ -554,6 +726,57 @@ async def electrical_inspect_submit(request: Request, vin: str) -> RedirectRespo
     sep = "&" if "?" in redirect_base else "?"
     url = f"{redirect_base}{sep}{'saved=1' if error is None else 'error=' + quote(error)}"
     return RedirectResponse(url=url, status_code=303)
+
+
+@router.post("/v/{vin}/electrical/photo", response_class=HTMLResponse)
+async def electrical_photo_submit(request: Request, vin: str) -> RedirectResponse:
+    """Attach one phone photo to an element. Plain multipart POST (a
+    ``capture="environment"`` file input opens the camera on a phone) --
+    stored through the shared media library, with ``target_kind=electrical``
+    and the element id as ``target_id``. Type is checked against the file's
+    own bytes, not just its declared content type; size is capped."""
+    form = await request.form()
+    redirect_base = str(form.get("redirect_to", "") or f"/v/{vin}/electrical")
+    if not _safe_redirect(redirect_base):
+        redirect_base = f"/v/{vin}/electrical"
+    element = str(form.get("element", "")).strip()
+    upload = form.get("photo")
+    error = None
+    if not element or element not in _elements():
+        error = "unknown element"
+    elif upload is None or not hasattr(upload, "read"):
+        error = "no photo chosen"
+    else:
+        data = await upload.read()
+        if not data:
+            error = "the photo file was empty"
+        elif len(data) > MAX_PHOTO_BYTES:
+            error = f"photo too large (max {MAX_PHOTO_BYTES // (1024 * 1024)} MB)"
+        else:
+            error = _save_photo(vin, element, str(upload.filename or ""), data)
+    sep = "&" if "?" in redirect_base else "?"
+    url = f"{redirect_base}{sep}{'photo=1' if error is None else 'error=' + quote(error)}"
+    return RedirectResponse(url=url, status_code=303)
+
+
+def _save_photo(vin: str, element: str, filename: str, data: bytes) -> Optional[str]:
+    """Validate (real type from the bytes: jpeg/png/webp/heic) and store one
+    photo. Returns an error string or ``None``."""
+    import re
+    from ..live import media as media_store
+    mime = media_store._sniff_mime(data)
+    if mime not in PHOTO_MIMES:
+        return "only JPEG, PNG, WebP or HEIC photos are accepted"
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "_", filename.replace("\\", "/").rsplit("/", 1)[-1])[:80] or "photo"
+    label = (_elements().get(element) or {}).get("label") or element
+    try:
+        from ..services import media_bridge
+        media_bridge.save_media(vin, files=[{"filename": safe, "content_type": mime, "content": data}],
+                                caption=f"Electrical: {label}", target_kind=PHOTO_TARGET_KIND,
+                                target_id=element, author="mechanic")
+    except Exception as exc:  # noqa: BLE001
+        return f"could not store the photo: {exc}"
+    return None
 
 
 __all__ = ["router", "electrical_path_for", "CONDITIONS", "CONDITION_LABELS"]

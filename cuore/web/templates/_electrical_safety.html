@@ -1,0 +1,11 @@
+{# Safety warning box for one element. Context: flags (list of
+   {key, title, text} from cuore.services.electrical_safety). Rendered
+   BEFORE any inspection form. Open by default; expert mode (JS) folds it to
+   its one-line summary but never removes it. #}
+{% if flags %}
+<details class="elec-safety" open role="alert">
+  <summary><span class="elec-warn-glyph" aria-hidden="true">&#9888;</span>
+    Safety: {% for f in flags %}{{ f.title }}{% if not loop.last %}, {% endif %}{% endfor %}</summary>
+  {% for f in flags %}<p class="small">{{ f.text }}</p>{% endfor %}
+</details>
+{% endif %}

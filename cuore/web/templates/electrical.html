@@ -5,7 +5,17 @@
 <link rel="stylesheet" href="{{ static_url('media.css') }}">
 <link rel="stylesheet" href="{{ static_url('electrical.css') }}">
 
-<h1>Electrical</h1>
+<div class="elec-page" id="elec-page" data-mode="junior">
+
+<div class="elec-titlebar">
+  <h1>Electrical</h1>
+  {# Shown by electrical.js only: the choice is remembered per viewer in
+     localStorage; without JS the page stays in junior mode. #}
+  <div class="elec-mode" id="elec-mode" role="group" aria-label="Detail level" hidden>
+    <button type="button" class="elec-mode-btn" data-mode="junior" aria-pressed="true">Junior</button>
+    <button type="button" class="elec-mode-btn" data-mode="expert" aria-pressed="false">Expert</button>
+  </div>
+</div>
 
 {% if systems_filter %}
   <div class="elec-system-row" role="group" aria-label="Filter by system">
@@ -19,6 +29,16 @@
   </div>
 {% endif %}
 
+<form class="elec-find" id="elec-find" method="get" action="/v/{{ vin }}/electrical" role="search">
+  {% for k, v in find_hidden %}<input type="hidden" name="{{ k }}" value="{{ v }}">{% endfor %}
+  <label for="elec-find-input" class="elec-find-label">Find on car</label>
+  <input type="search" id="elec-find-input" name="find" value="{{ find }}" autocomplete="off"
+         placeholder="part, connector, fuse or id" aria-controls="elec-diagram">
+  <button class="btn" type="submit">Find</button>
+  <span class="small muted" id="elec-find-count" aria-live="polite">
+    {% if find %}{{ find_count }} on the diagram{% endif %}</span>
+</form>
+
 {% if code %}
   <div class="panel tight elec-code-banner">
     <p class="small" style="padding:10px 14px;margin:0">
@@ -26,23 +46,99 @@
       {% if not path_data.found %}<span class="muted">— no known path for this code yet</span>{% endif %}
       &middot; <a href="/v/{{ vin }}/electrical">Clear highlight</a>
       &middot; <a href="/v/{{ vin }}/code/{{ code }}">Back to {{ code }} &rarr;</a>
+      {% if path_data.found and not walk %}
+        &middot; <a class="btn primary" href="/v/{{ vin }}/electrical?code={{ code }}{{ '&system=' + system if system != 'all' else '' }}&step=1">Start guided walk-through</a>
+      {% endif %}
     </p>
   </div>
 {% endif %}
 
 {% if saved %}<div class="note good"><span class="lab">Recorded</span>Inspection saved.</div>{% endif %}
+{% if photo_saved %}<div class="note good"><span class="lab">Recorded</span>Photo saved.</div>{% endif %}
 {% if inspect_error %}<div class="note alert"><span class="lab">Not recorded</span>{{ inspect_error }}</div>{% endif %}
 
-<div class="elec-diagram">
-  {{ svg|safe }}
+{% if walk %}
+{% set sc = step_card %}
+<section class="panel elec-step" id="elec-step" aria-labelledby="elec-step-h">
+  <div class="elec-step-head">
+    <h2 id="elec-step-h">Step {{ walk.n }} of {{ walk.total }}</h2>
+    <a class="small" href="{{ walk.exit_href }}">Exit walk-through</a>
+  </div>
+  <ol class="elec-step-list" aria-label="Steps">
+    {% for r in walk.rows %}
+      <li class="{{ 'current' if r.n == walk.n }} {{ r.status or 'pending' }}">
+        <a href="{{ r.href }}" aria-current="{{ 'step' if r.n == walk.n else 'false' }}">
+          <span class="elec-step-n">{{ r.n }}</span>
+          <span class="elec-step-label">{{ r.label }}</span>
+          <span class="elec-step-state">{% if r.status == 'pass' %}&#10003; pass{% elif r.status == 'fail' %}&#10007; fail{% else %}to do{% endif %}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ol>
+
+  {% if sc %}
+    <h3>{{ sc.label }} <span class="chip plain sm">{{ walk.current.role }}</span>
+      {% if sc.latest %}
+        <span class="chip {{ 'ok' if sc.latest.condition == 'ok' else ('status-active' if sc.latest.condition == 'not_found' else 'status-cleared_unverified') }}">{{ condition_labels.get(sc.latest.condition, sc.latest.condition) }}</span>
+      {% endif %}
+    </h3>
+    <p class="small"><b>Where:</b> {{ sc.zone_label }} &mdash; {{ sc.location.description }}
+      <span class="chip plain sm">{{ sc.location.confidence }} confidence</span>
+      <span class="small muted">source: {{ sc.location.source }}</span></p>
+    {% set flags = sc.safety %}{% include "_electrical_safety.html" %}
+    {% if step_info.how or step_info.meter or step_info.expected or sc.inspection_hint %}
+      <details class="elec-hint" open>
+        <summary>How to test</summary>
+        {% if step_info.what %}<p class="small"><b>Check:</b> {{ step_info.what }}</p>{% endif %}
+        {% if step_info.how %}<p class="small">{{ step_info.how }}
+          {% if step_info.source %}<span class="muted">[source: {{ step_info.source }}]</span>{% endif %}</p>
+        {% elif sc.inspection_hint %}<p class="small">{{ sc.inspection_hint }}</p>{% endif %}
+        {% if step_info.meter %}<p class="small"><b>Meter setup:</b> {{ step_info.meter }}</p>{% endif %}
+        {% if step_info.expected %}<p class="small"><b>Expected:</b> {{ step_info.expected }}</p>{% endif %}
+      </details>
+    {% endif %}
+    {% set eid = sc.id %}{% set fp = "st" %}
+    <h4>Record the reading</h4>
+    {% include "_electrical_inspect_form.html" %}
+  {% endif %}
+
+  <div class="elec-step-nav">
+    {% if walk.prev_href %}<a class="btn" href="{{ walk.prev_href }}">&larr; Prev</a>{% else %}<span></span>{% endif %}
+    {% if walk.next_href %}<a class="btn primary" href="{{ walk.next_href }}">Next &rarr;</a>
+    {% else %}<a class="btn" href="{{ walk.exit_href }}">Finish</a>{% endif %}
+  </div>
+</section>
+{% endif %}
+
+<div class="elec-diagram" id="elec-diagram">
+  <div class="elec-zoom-tools" id="elec-zoom-tools" hidden>
+    <button type="button" class="elec-zoom-btn" data-zoom="in" aria-label="Zoom in">+</button>
+    <button type="button" class="elec-zoom-btn" data-zoom="out" aria-label="Zoom out">&minus;</button>
+    <button type="button" class="elec-zoom-btn" data-zoom="reset" aria-label="Reset zoom">Reset</button>
+  </div>
+  <div class="elec-zoom-view" id="elec-zoom-view">{{ svg|safe }}</div>
 </div>
+
+<ul class="elec-legend" aria-label="Diagram legend">
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="8" fill="var(--ok)"/></svg> fill: latest inspection (green ok, amber loose/chafed/corroded/water, red not found, grey never inspected)</li>
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="8" fill="var(--ink-3)"/><circle r="11" fill="none" stroke="var(--accent)" stroke-width="2"/></svg> ring and number: this code's path, in order</li>
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="6" fill="var(--ink-3)"/><circle r="10.5" fill="none" stroke="var(--ok)" stroke-width="2"/></svg> green ring: module answered the last scan</li>
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="6" fill="var(--ink-3)"/><circle r="10.5" fill="none" stroke="var(--sev-returned)" stroke-width="2"/></svg> red ring: module silent in the last scan</li>
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="6" fill="var(--ink-3)"/><circle r="10.5" fill="none" stroke="var(--ink-3)" stroke-width="2" stroke-dasharray="2,2"/></svg> dashed grey ring: module not checked</li>
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><polygon points="0,-9 9,7 -9,7" fill="var(--sev-chronic)" stroke="var(--ink)" stroke-width="1.4"/><text y="5" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)">!</text></svg> warning triangle: read the safety warning first</li>
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><g transform="rotate(-45)"><rect x="-9" y="-1.8" width="18" height="3.6" rx="1.6" fill="var(--ink)"/><circle cx="-9" r="4.4" fill="var(--surface)" stroke="var(--ink)" stroke-width="2"/></g></svg> wrench: a repair, part or service record names this part</li>
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><rect x="-9" y="-6" width="18" height="12" rx="2" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.6"/><circle r="3.4" fill="var(--ink)"/></svg> camera: photos attached to this part</li>
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="8" fill="var(--ok)"/><text y="4" text-anchor="middle" font-size="12" font-weight="700" fill="var(--surface)">&#10003;</text></svg> / &#10007; tick or cross: a finished walk-through step (pass or fail)</li>
+  <li><svg class="lg" viewBox="-12 -12 24 24" aria-hidden="true"><circle r="8" fill="var(--ink-3)" opacity="0.35"/></svg> faded: not part of this code's path or step</li>
+</ul>
+{% if module_count %}<p class="small muted">Module rings come from the last saved scan; this page never contacts the car.</p>{% endif %}
 
 {% include "_wiring_table.html" %}
 
 <h2>Elements</h2>
 <div class="elec-cards">
 {% for c in cards %}
-  <div class="panel elec-card" id="el-{{ c.id }}">
+  <div class="panel elec-card{{ ' el-match' if c.match }}" id="el-{{ c.id }}" data-eid="{{ c.id }}" data-search="{{ c.search }}">
     <h3>{{ c.label }} <span class="chip plain sm">{{ c.kind }}</span>
       {% if c.system_label %}<span class="chip plain sm">{{ c.system_label }}</span>{% endif %}
       {% if c.latest %}
@@ -50,52 +146,76 @@
       {% else %}
         <span class="chip plain">never inspected</span>
       {% endif %}
+      {% if c.module %}<span class="chip plain sm elec-mod-{{ c.module.state }}" title="{{ c.module.title }}">{{ {'answered': 'answered', 'silent': 'silent', 'unchecked': 'not checked'}[c.module.state] }}</span>{% endif %}
+      {% if c.repaired %}<span class="chip plain sm" title="Named in a repair, part or service record">&#128295; repaired before</span>{% endif %}
     </h3>
+    {% set flags = c.safety %}{% include "_electrical_safety.html" %}
     <p class="small muted">{{ c.zone_label }} &mdash; {{ c.location.description }}
       <span class="chip plain sm">{{ c.location.confidence }} confidence</span>
       <span class="small">source: {{ c.location.source }}</span></p>
     {% if c.feeds %}<p class="small">Feeds: {% for f in c.feeds %}<a href="#el-{{ f }}" class="mono">{{ f }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
     {% if c.part_of_systems %}<p class="small">Systems: {% for s in c.part_of_systems %}<span class="chip plain sm">{{ s }}</span>{% endfor %}</p>{% endif %}
     {% if c.tsb_refs %}<p class="small">Bulletins: {% for t in c.tsb_refs %}<span class="mono small">{{ t }}</span>{% endfor %}</p>{% endif %}
-    {% if c.inspection_hint %}<p class="small"><b>How to check:</b> {{ c.inspection_hint }}</p>{% endif %}
+    {% if c.inspection_hint or c.meter or c.expected %}
+      <details class="elec-hint" open>
+        <summary>How to check</summary>
+        {% if c.inspection_hint %}<p class="small">{{ c.inspection_hint }}</p>{% endif %}
+        {% if c.meter %}<p class="small"><b>Meter setup:</b> {{ c.meter }}</p>{% endif %}
+        {% if c.expected %}<p class="small"><b>Expected:</b> {{ c.expected }}</p>{% endif %}
+      </details>
+    {% endif %}
     {% if c.notes %}<p class="small muted">{{ c.notes }}</p>{% endif %}
     {% if c.latest %}
       <p class="small muted">Last inspected {{ c.latest.at }} by {{ c.latest.by }}
         {% if c.latest.note %}&mdash; {{ c.latest.note }}{% endif %}</p>
     {% endif %}
+    {% if c.history %}
+      <details class="elec-history">
+        <summary>Inspection history ({{ c.history|length }})</summary>
+        <ul class="small">
+          {% for h in c.history %}
+            <li>{{ h.at }} &mdash; {{ condition_labels.get(h.condition, h.condition) }} by {{ h.by }}{% if h.note %} &mdash; {{ h.note }}{% endif %}</li>
+          {% endfor %}
+        </ul>
+      </details>
+    {% endif %}
+    {% if c.repaired %}
+      <details class="elec-history">
+        <summary>Repaired before ({{ c.repaired|length }})</summary>
+        <ul class="small">
+          {% for r in c.repaired %}<li>{{ r.at }} &mdash; {{ r.source }}: {{ r.text }}</li>{% endfor %}
+        </ul>
+      </details>
+    {% endif %}
+
+    <p class="small elec-parts">Part number:
+      {% for p in c.parts %}<a class="mono" href="/catalog/p/{{ p.pn|urlencode }}" title="{{ p.name }}">{{ p.pn }}</a>{% if p.name %} <span class="muted">{{ p.name }}</span>{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}
+      <a class="elec-parts-link" href="/catalog?q={{ c.parts_q|urlencode }}">Search the catalogue for &ldquo;{{ c.parts_q }}&rdquo; &rarr;</a></p>
 
     <details class="elec-inspect">
       <summary class="btn">Record inspection</summary>
-      <form method="post" action="/v/{{ vin }}/electrical/inspect" style="margin-top:8px">
-        <input type="hidden" name="element" value="{{ c.id }}">
-        <input type="hidden" name="redirect_to" value="{{ redirect_to }}">
-        <div class="field"><label>Condition</label>
-          <div class="tag-grid">
-            {% for cond in conditions %}
-              <span class="tag-chip {{ 'normally' if cond == 'ok' }}">
-                <input type="radio" id="cond_{{ c.id }}_{{ cond }}" name="condition" value="{{ cond }}" required>
-                <label for="cond_{{ c.id }}_{{ cond }}">{{ condition_labels.get(cond, cond) }}</label>
-              </span>
-            {% endfor %}
-          </div>
-        </div>
-        <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:10px">
-          <div class="field" style="margin-bottom:0"><label for="by_{{ c.id }}">By</label>
-            <input type="text" id="by_{{ c.id }}" name="by" value="mechanic">
-          </div>
-          <div class="field" style="margin-bottom:0"><label for="note_{{ c.id }}">Note (optional)</label>
-            <input type="text" id="note_{{ c.id }}" name="note" maxlength="500">
-          </div>
-        </div>
-        <p><button class="btn primary" type="submit">Save inspection</button></p>
-      </form>
+      {% set eid = c.id %}{% set fp = "cond" %}
+      {% include "_electrical_inspect_form.html" %}
     </details>
 
-    {% set target_kind = "electrical" %}{% set target_id = c.id %}
-    {% set compact = True %}
-    {% include "_media_attach.html" %}
+    <div class="elec-photos">
+      {% for it in c.photos[:6] %}
+        <a class="media-attach-thumb" href="/api/media/{{ it.id }}/file" target="_blank" rel="noopener"
+           title="{{ it.caption or it.filename }}"><img src="/api/media/{{ it.id }}/thumb" alt="Photo of {{ c.label }}" loading="lazy"></a>
+      {% endfor %}
+      <form method="post" action="/v/{{ vin }}/electrical/photo" enctype="multipart/form-data" class="elec-photo-form">
+        <input type="hidden" name="element" value="{{ c.id }}">
+        <input type="hidden" name="redirect_to" value="{{ redirect_to }}">
+        <label class="btn elec-photo-pick" for="photo_{{ c.id }}">&#128247; Add photo</label>
+        <input class="elec-photo-input" type="file" id="photo_{{ c.id }}" name="photo" accept="image/*" capture="environment" required>
+        <button class="btn" type="submit">Upload</button>
+        <span class="small muted">JPEG, PNG, WebP or HEIC, up to {{ max_photo_mb }} MB</span>
+      </form>
+    </div>
   </div>
 {% endfor %}
 </div>
 
+</div>
+<script src="{{ static_url('electrical.js') }}" defer></script>
 {% endblock %}

@@ -71,7 +71,7 @@ ALLOWED_MIMES: dict[str, tuple[str, str]] = {
 }
 
 TARGET_KINDS = {"vehicle", "code", "step", "service_record", "symptom", "note",
-                "timeline"}
+                "timeline", "electrical"}
 
 #: Sound-specific tags, on top of mes.symptoms.SYMPTOM_TAGS, for describing a
 #: recorded clip of a failing part (what it sounds like). ``other_sound``

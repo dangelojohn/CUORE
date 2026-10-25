@@ -140,6 +140,139 @@ check("All view renders every system's elements",
       str(sorted(all_systems_present)))
 
 
+# --- nine-feature additions: safety, guided walk-through, module status, ----
+# --- history/repaired, parts, photos, tablet/zoom, find, junior/expert ------
+import re as _re  # noqa: E402
+
+from cuore.services import electrical_extras, electrical_safety  # noqa: E402
+from cuore.web import electrical_svg  # noqa: E402
+
+STATE = Path(os.environ["CUORE_STATE_DIR"])
+base_page = client.get(f"/v/{VIN}/electrical")
+
+# 7. safety flags (rule table + badge + box) --------------------------------
+srs = electrical_safety.flags_for({"label": "ORC -- Occupant Restraint Controller", "kind": "module"}, "orc_module")
+check("safety rule table flags an SRS element with the generic wording",
+      srs and srs[0]["key"] == "srs" and "Never probe SRS connectors with a test light" in srs[0]["text"])
+check("safety rules: battery -> high current, fuel pump -> fuel, plain sensor -> none",
+      electrical_safety.flags_for({"label": "12V battery", "kind": "battery"}, "battery")[0]["key"] == "high_current"
+      and electrical_safety.flags_for({"label": "Fuel pump", "kind": "pump", "system": "fuel"}, "fuel_pump")[0]["key"] == "fuel"
+      and not electrical_safety.flags_for({"label": "MAP sensor", "kind": "sensor"}, "map_sensor"))
+check("page draws the safety triangle on nodes and a warning box on cards",
+      "glyph-safety" in base_page.text and 'class="elec-safety"' in base_page.text)
+
+# 8. guided walk-through ------------------------------------------------------
+st1 = client.get(f"/v/{VIN}/electrical?code=P0455&step=1")
+check("?step=1 shows 'Step 1 of N' with Next but no Prev",
+      st1.status_code == 200 and _re.search(r"Step 1 of \d+", st1.text) and "Next &rarr;" in st1.text
+      and "&larr; Prev" not in st1.text)
+check("step mode highlights the current node and carries the inline inspection form",
+      "step-current" in st1.text and 'id="st_' in st1.text and 'id="elec-step"' in st1.text)
+stN = client.get(f"/v/{VIN}/electrical?code=P0455&step=99")
+m = _re.search(r"Step (\d+) of (\d+)", stN.text)
+check("an out-of-range step clamps to the last step", bool(m) and m.group(1) == m.group(2) and "Finish" in stN.text)
+check("no 'Expected:' line is invented when the element data has no expected value",
+      "Expected:" not in st1.text and electrical_routes._first({}, keys=electrical_routes._EXPECTED_KEYS) is None
+      and electrical_routes._first({"expected_value": "12.6 V"}, keys=electrical_routes._EXPECTED_KEYS) == "12.6 V")
+step_el = _re.search(r'id="st_([A-Za-z0-9_]+?)_(?:ok|loose)"', st1.text)
+step_post = client.post(f"/v/{VIN}/electrical/inspect", data={
+    "element": step_el.group(1) if step_el else "purge_valve", "by": "check", "condition": "corroded",
+    "note": "", "redirect_to": f"/v/{VIN}/electrical?code=P0455&step=1"}, follow_redirects=False)
+after = client.get(step_post.headers.get("location", ""))
+check("a reading saved in the step shows as a failed step (cross + 'fail')",
+      "&#10007; fail" in after.text and "step-mark" in after.text)
+
+# 9. module status from persisted data only -----------------------------------
+check("modules with no persisted scan read as not checked (grey dashed ring)",
+      "mod-unchecked" in base_page.text and "mod-answered" not in base_page.text)
+(STATE / "fullscan_last.json").write_text(json.dumps({"scan_id": "SCAN_X", "coverage": [
+    {"bus": "can_c", "module": "ECM", "category": "answered", "why": None},
+    {"bus": "can_c", "module": "BCM", "category": "silent", "why": "no reply"},
+    {"bus": "can_c", "module": "TCM", "category": "not_reachable", "why": "needs cable"}]}), encoding="utf-8")
+mod_page = client.get(f"/v/{VIN}/electrical")
+check("module nodes show answered (green) and silent (red) rings with a last-scan time in the tooltip",
+      "mod-answered" in mod_page.text and "mod-silent" in mod_page.text and "last scan 20" in mod_page.text)
+
+# 10. repaired-before + history -----------------------------------------------
+import mes.jobs as _jobs  # noqa: E402
+_orig_load = _jobs.load
+_jobs.load = lambda vin="": [{"actions": [
+    {"kind": "repair", "text": "Replaced Starter motor, new part fitted", "at": "2026-09-01T10:00:00"},
+    {"kind": "repair", "text": "ECM reset after oil change", "at": "2026-09-02T10:00:00"},
+    {"kind": "note", "text": "Alternator looked fine", "at": "2026-09-03T10:00:00"}]}]
+try:
+    rep_page = client.get(f"/v/{VIN}/electrical")
+    rep = electrical_extras.repaired_index(VIN, {"starter_motor": {"label": "Starter motor"},
+                                                  "ecm": {"label": "ECM -- Engine"},
+                                                  "alternator": {"label": "Alternator"}})
+finally:
+    _jobs.load = _orig_load
+check("repaired-before matches a repair action naming the part, not a short id or a mere note",
+      set(rep) == {"starter_motor"} and "glyph-repaired" in rep_page.text and "repaired before" in rep_page.text)
+check("each inspected card lists its inspection history",
+      "Inspection history (" in after.text or "Inspection history (" in follow.text)
+
+# 11. part numbers --------------------------------------------------------------
+check("every element card links into the catalogue search", "/catalog?q=" in base_page.text)
+from cuore.services import parts_catalog as _pc  # noqa: E402
+_orig_pc_load = _pc.load
+_fake = {"diagrams": {"d1": {"title": "Fuel", "section": "S", "group": "G", "image": "", "parts": [
+    {"pn": "123ABC", "name": "Fuel Injector", "description": "", "notes": ""}]}}, "_by_pn": {"123ABC": [("d1", 0)]}}
+_pc.load = lambda cid=None: _fake
+try:
+    hit = electrical_extras.part_hits("Fuel Injector")
+    miss = electrical_extras.part_hits("Unobtainium widget")
+finally:
+    _pc.load = _orig_pc_load
+check("catalogue hits give real part numbers; no match gives none (nothing fabricated)",
+      [h["pn"] for h in hit] == ["123ABC"] and miss == [])
+
+# 12. photo pins ------------------------------------------------------------------
+PNG = base64.b64decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")
+ph = client.post(f"/v/{VIN}/electrical/photo", data={"element": "battery", "redirect_to": f"/v/{VIN}/electrical"},
+                 files={"photo": ("../we ird?.png", PNG, "image/png")}, follow_redirects=False)
+check("a PNG photo uploads (303 with photo=1)", ph.status_code == 303 and "photo=1" in ph.headers.get("location", ""),
+      ph.headers.get("location", ""))
+bad = client.post(f"/v/{VIN}/electrical/photo", data={"element": "battery"},
+                  files={"photo": ("x.png", b"not an image at all", "image/png")}, follow_redirects=False)
+big = client.post(f"/v/{VIN}/electrical/photo", data={"element": "battery"},
+                  files={"photo": ("x.png", PNG + b"\0" * (15 * 1024 * 1024 + 1), "image/png")}, follow_redirects=False)
+check("a non-image and an over-15 MB file are rejected",
+      "error=" in bad.headers.get("location", "") and "too%20large" in big.headers.get("location", ""),
+      bad.headers.get("location", "") + " | " + big.headers.get("location", ""))
+photo_page = client.get(f"/v/{VIN}/electrical")
+check("the photo shows as a thumbnail on the card and a camera glyph on the node",
+      "glyph-photo" in photo_page.text and "/api/media/" in photo_page.text
+      and 'accept="image/*"' in photo_page.text and 'capture="environment"' in photo_page.text)
+
+# 13. tablet mode, zoom, clipping ------------------------------------------------
+css = (ROOT / "cuore" / "web" / "static" / "electrical.css").read_text(encoding="utf-8")
+js = (ROOT / "cuore" / "web" / "static" / "electrical.js").read_text(encoding="utf-8")
+check("zoom tools, script and 44px touch targets are present",
+      "elec-zoom-tools" in base_page.text and "electrical.js" in base_page.text
+      and "min-height: 44px" in css and "pointerdown" in js and "http" not in js.replace("https://developer", ""))
+els_right = {"w1": {"kind": "sensor", "label": "Wheel speed sensor FR", "system": "chassis",
+                    "location": {"zone": "wheel_fr"}}}
+svg_r = electrical_svg.render(els_right, conditions={})
+xs = [float(v) for v in _re.findall(r'<circle cx="([\d.]+)"', svg_r)]
+legend = [(float(x), t) for x, t in _re.findall(r'<text x="([\d.]+)" y="[\d.]+" font-size="10"[^>]*>([^<]+)</text>', svg_r)]
+check("right-hand wheel-well nodes and legend text stay inside the 420 viewBox",
+      max(xs) + electrical_svg.NODE_R <= 420 and all(x + 5.6 * len(t) <= 420 for x, t in legend),
+      f"max cx {max(xs)}; legend {[(x, len(t)) for x, t in legend]}")
+
+# 14. find on car, junior/expert, legend ------------------------------------------------
+fd = client.get(f"/v/{VIN}/electrical?find=battery")
+check("?find= pulses matching nodes and cards server-side without JavaScript",
+      'class="el-node el-match"' in fd.text and "elec-card el-match" in fd.text and 'data-search="' in fd.text)
+check("find box, junior/expert toggle (default junior) and reduced-motion rule exist",
+      'id="elec-find-input"' in base_page.text and 'data-mode="junior"' in base_page.text
+      and 'id="elec-mode"' in base_page.text and "prefers-reduced-motion" in css
+      and "localStorage" in js and "try {" in js)
+check("legend explains every glyph",
+      all(w in base_page.text for w in ("warning triangle", "wrench", "camera", "dashed grey ring",
+                                        "green ring", "red ring", "tick or cross")))
+
+
 # companion: check_api.py must still pass -------------------------------------
 proc = subprocess.run([sys.executable, str(Path(__file__).parent / "check_api.py")],
                       cwd=str(ROOT), capture_output=True, text=True)

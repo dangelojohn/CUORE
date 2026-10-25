@@ -1,0 +1,28 @@
+{# One element's inspection form (condition + by + note), posting to
+   /v/{vin}/electrical/inspect. Shared by the element cards and the guided
+   walk-through step so a reading is saved the same way in both.
+   Context: vin, eid, fp (id prefix, keeps radio/label ids unique per use),
+   redirect_to, conditions, condition_labels. #}
+<form method="post" action="/v/{{ vin }}/electrical/inspect" class="elec-form" style="margin-top:8px">
+  <input type="hidden" name="element" value="{{ eid }}">
+  <input type="hidden" name="redirect_to" value="{{ redirect_to }}">
+  <div class="field"><label>Condition</label>
+    <div class="tag-grid">
+      {% for cond in conditions %}
+        <span class="tag-chip {{ 'normally' if cond == 'ok' }}">
+          <input type="radio" id="{{ fp }}_{{ eid }}_{{ cond }}" name="condition" value="{{ cond }}" required>
+          <label for="{{ fp }}_{{ eid }}_{{ cond }}">{{ condition_labels.get(cond, cond) }}</label>
+        </span>
+      {% endfor %}
+    </div>
+  </div>
+  <div style="display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:10px">
+    <div class="field" style="margin-bottom:0"><label for="{{ fp }}_by_{{ eid }}">By</label>
+      <input type="text" id="{{ fp }}_by_{{ eid }}" name="by" value="mechanic">
+    </div>
+    <div class="field" style="margin-bottom:0"><label for="{{ fp }}_note_{{ eid }}">Note (optional)</label>
+      <input type="text" id="{{ fp }}_note_{{ eid }}" name="note" maxlength="500">
+    </div>
+  </div>
+  <p><button class="btn primary" type="submit">Save inspection</button></p>
+</form>

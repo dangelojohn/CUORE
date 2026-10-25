@@ -164,6 +164,8 @@
 <h2>Log a symptom</h2>
 {% include "_symptom_form.html" %}
 
+{% if ac_head is defined %}{% include "_ask_claude.html" %}{% endif %}
+
 <h2>Notes on {{ code }}</h2>
 {% include "_notes.html" %}
 

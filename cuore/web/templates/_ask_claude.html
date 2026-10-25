@@ -1,0 +1,45 @@
+{# "Ask Claude" panel: copy a ready prompt, optionally run Claude headless, save the answer back.
+   Context: vin, code, ac_head, ac_tail, ac_run, ac_prefix, notes_list. Works without JS. #}
+<details class="panel" id="ask-claude" data-vin="{{ vin }}" data-code="{{ code }}">
+  <summary><b>Ask Claude</b> <span class="muted small">about {{ code }}</span></summary>
+  <p class="small muted">Paste into Claude Code in this folder; it has CUORE's tools.</p>
+  <label class="small" for="ac-observed">What did you observe?</label>
+  <textarea id="ac-observed" name="observed" rows="3" style="width:100%" maxlength="2000"></textarea>
+  <label class="small" for="ac-question">What do you want to know?</label>
+  <textarea id="ac-question" name="question" rows="2" style="width:100%" maxlength="1000"></textarea>
+  <p>
+    <button class="btn" type="button" id="ac-copy">Copy for Claude</button>
+    {% if ac_run %}
+    <button class="btn" type="button" id="ac-run">Ask Claude here</button>
+    <span class="small muted">Running on your Claude account; uses your Claude usage.</span>
+    {% endif %}
+    <span class="small muted" id="ac-msg" role="status"></span>
+  </p>
+  <p class="small muted">Prompt preview (select and copy it by hand if the button does not work):</p>
+  <textarea id="ac-prompt" readonly rows="14" style="width:100%;font-family:monospace;font-size:12px"
+            data-head="{{ ac_head }}" data-tail="{{ ac_tail }}">{{ ac_head }}
+## Tech inputs
+(fill in the two boxes above; the Copy button merges them here)
+{{ ac_tail }}</textarea>
+
+  <div id="ac-answer-box" hidden>
+    <h4>Claude's answer <span class="chip plain">not evidence</span></h4>
+    <pre id="ac-answer" style="white-space:pre-wrap"></pre>
+  </div>
+
+  <form method="post" action="/v/{{ vin }}/code/{{ code }}/ask-claude/save" style="margin-top:8px">
+    <label class="small" for="ac-save-text"><b>Save Claude's answer to this code</b></label>
+    <textarea id="ac-save-text" name="text" rows="5" style="width:100%" maxlength="3900" required></textarea>
+    <button class="btn" type="submit">Save to this code</button>
+    <span class="small muted">Stored as a note labelled "{{ ac_prefix }}".</span>
+  </form>
+
+  {% for n in notes_list|reverse if n.tags and "claude-analysis" in n.tags %}
+    {% if loop.first %}<h4>Saved Claude analyses</h4>{% endif %}
+    <div class="panel tight" style="border-left:3px solid #888">
+      <div class="small muted">{{ n.at }} &middot; <b>Claude analysis, not evidence</b></div>
+      <div class="small" style="white-space:pre-wrap">{{ n.text }}</div>
+    </div>
+  {% endfor %}
+</details>
+<script src="{{ static_url('ask_claude.js') }}" defer></script>

@@ -73,6 +73,7 @@ from .web import timeline_routes  # noqa: E402
 from .web import tools_routes  # noqa: E402
 from .web import tsb_routes  # noqa: E402
 from .web import cables_routes  # noqa: E402
+from .web import ask_claude_routes  # noqa: E402
 from .web import slvt_routes  # noqa: E402
 from .web import inbox_routes  # noqa: E402
 from .web import jobs_routes  # noqa: E402
@@ -191,6 +192,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(drivetrain_routes.api_router, prefix="/api")
     app.include_router(labels_routes.api_router, prefix="/api")
     app.include_router(web_routes.router)
+    app.include_router(ask_claude_routes.router)
     app.include_router(scanlog_routes.router)
     app.include_router(scan_plan_routes.router)
     app.include_router(bench_routes.router)

@@ -546,6 +546,11 @@ def _live_code_occurrences(vin: str, code_upper: str) -> list[dict[str, Any]]:
     return out
 
 
+def _ask_panel(vin: str, code: str) -> dict[str, Any]:
+    from .ask_claude_routes import panel_context
+    return panel_context(vin, code)
+
+
 @router.get("/v/{vin}/code/{code}", response_class=HTMLResponse)
 def code_detail(request: Request, vin: str, code: str) -> HTMLResponse:
     """One code's complete life, with its freeze frames beside it.
@@ -587,6 +592,7 @@ def code_detail(request: Request, vin: str, code: str) -> HTMLResponse:
                      note_kind_locked=True,
                      live_only=live_only, live_occurrences=live_occurrences,
                      description=description, fault_tree_steps=fault_tree_steps,
+                     **_ask_panel(vin, code_upper),
                      bar=_vehicle_bar(vin, dossier), tab="codes")
     _set_active_vehicle(response, vin)
     return response
