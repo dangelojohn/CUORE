@@ -22,14 +22,26 @@
           <div class="elec-hop-role">{{ hop.role }}</div>
           <div class="elec-hop-label">{{ hop.label }}</div>
           <div class="small muted">{{ (hop.location or {}).description }}</div>
+          {% if (hop.location or {}).access %}<div class="small">Access: {{ hop.location.access }}</div>{% endif %}
+          {% if hop.location_proposed %}<div class="small"><b>Proposed correction:</b> {{ hop.location_proposed.description }} <span class="muted">({{ hop.location_proposed.confidence }}; {{ hop.location_proposed.source }})</span></div>{% endif %}
           <div class="elec-hop-chips">
             <span class="chip plain sm">{{ (hop.location or {}).confidence or hop.confidence }} confidence</span>
+            {% if (hop.location or {}).tech_entry %}<span class="chip plain sm">source: {{ hop.location.source }}{% if hop.location.from_other_car %} (from another car of the same model){% endif %}</span>{% endif %}
             {% if hop.condition %}
               <span class="chip {{ 'ok' if hop.condition == 'ok' else ('status-active' if hop.condition == 'not_found' else 'status-cleared_unverified') }} sm">{{ hop.condition|replace("_", " ") }}</span>
             {% else %}
               <span class="chip plain sm">never inspected</span>
             {% endif %}
           </div>
+          {% if location_zone_options is defined and hop.id %}
+            {% set loc0 = hop.location or {} %}
+            {% if not loc0.tech_entry and (not loc0.zone or loc0.zone == 'other' or not loc0.description or 'not sourced' in (loc0.source or hop.source or '')|lower or (loc0.confidence or hop.confidence or '')|lower in ('', 'unknown', 'none')) %}
+              {% set eid = hop.id %}{% set fp = "hop" %}
+              {% set redirect_to = (request.url.path ~ ('?' ~ request.url.query if request.url.query else '')) if request is defined else '/v/' ~ vin ~ '/electrical' %}
+              <details class="elec-loc"><summary class="small">Set location</summary>
+                {% include "_location_form.html" %}</details>
+            {% endif %}
+          {% endif %}
         </div>
         {% if not loop.last %}<div class="elec-hop-arrow" aria-hidden="true">&rarr;</div>{% endif %}
       {% endfor %}
@@ -47,6 +59,9 @@
   {% else %}
     <p class="muted small">No electrical path known yet for {{ elec.code }}.</p>
   {% endif %}
+  {% set pt = path_tests_for(vin, code) if path_tests_for is defined else None %}
+  {% if pt %}{% include "_path_tests.html" %}{% endif %}
+  {% include "_electrical_path_more.html" %}
   <p><a class="btn" href="{{ elec.layout_href }}">Open in layout &rarr;</a></p>
 </div>
 {% endif %}

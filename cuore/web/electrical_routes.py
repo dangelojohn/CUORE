@@ -57,7 +57,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from ..services import electrical_extras, electrical_safety
+from ..services import electrical_extras, electrical_safety, element_locations
 from ..services.errors import BridgeError
 from ..api.deps import require_token
 from . import electrical_svg
@@ -346,7 +346,17 @@ def _tag_system(elements: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]
     return elements
 
 
-def _elements(system: str = "") -> dict[str, dict[str, Any]]:
+def _elements(system: str = "", vin: str = "") -> dict[str, dict[str, Any]]:
+    result = _elements_raw(system)
+    if vin:
+        try:
+            element_locations.apply_to_elements(vin, result, electrical_svg.resolve_zone)
+        except Exception:  # noqa: BLE001 -- the overlay must never break the page
+            pass
+    return result
+
+
+def _elements_raw(system: str = "") -> dict[str, dict[str, Any]]:
     layout = _layout_bridge()
     if layout is not None:
         try:
@@ -435,6 +445,10 @@ def electrical_path_for(vin: str, code: str) -> dict[str, Any]:
     site."""
     cp = _code_path(code)
     path = cp.get("path") or []
+    try:
+        element_locations.apply_to_hops(vin, path, electrical_svg.resolve_zone)
+    except Exception:  # noqa: BLE001
+        pass
     for hop_item in path:
         rec = _latest(vin, hop_item.get("id", ""))
         hop_item["condition"] = rec.get("condition") if rec else None
@@ -542,6 +556,7 @@ def _element_cards(vin: str, elements: dict[str, dict[str, Any]], *,
             "feeds": e.get("feeds") or [], "part_of_systems": e.get("part_of_systems") or [],
             "tsb_refs": e.get("tsb_refs") or [], "inspection_hint": e.get("inspection_hint"),
             "notes": e.get("notes"), "latest": rec,
+            "proposed": e.get("location_proposed"), "unplaced": zone == "other",
         })
     cards.sort(key=lambda c: (zone_order.index(c["zone"]) if c["zone"] in zone_order else 999,
                               c["label"]))
@@ -580,7 +595,7 @@ def _walk(vin: str, code_u: str, path_data: dict[str, Any], hist: dict[str, list
 @router.get("/v/{vin}/electrical", response_class=HTMLResponse)
 def electrical_page(request: Request, vin: str, code: str = "", system: str = "",
                     saved: str = "", error: str = "", step: int = 0, find: str = "",
-                    photo: str = "") -> HTMLResponse:
+                    photo: str = "", located: str = "") -> HTMLResponse:
     """The car-layout electrical diagram: every known element across every
     system, placed in its zone and coloured by its latest inspection
     condition, with ``?system=`` scoping which systems' elements show, and
@@ -612,14 +627,14 @@ def electrical_page(request: Request, vin: str, code: str = "", system: str = ""
     # diagram always shows every element when one is active, so the full
     # path is visible no matter which chip is selected; the chip still
     # scopes the element cards underneath it.
-    all_elements = _elements()
-    diagram_elements = all_elements if code_u else _elements(system_k)
+    all_elements = _elements(vin=vin)
+    diagram_elements = all_elements if code_u else _elements(system_k, vin)
     conditions = {eid: ((hist.get(eid) or [{}])[-1].get("condition")) for eid in diagram_elements}
 
     modules = electrical_extras.module_nodes(diagram_elements)
     repaired = electrical_extras.repaired_index(vin, diagram_elements)
     photos = _photo_index(vin)
-    cards = _element_cards(vin, _elements(system_k), hist=hist, all_elements=all_elements,
+    cards = _element_cards(vin, _elements(system_k, vin), hist=hist, all_elements=all_elements,
                            modules=modules, repaired=repaired, photos=photos, find=find)
     card_by_id = {c["id"]: c for c in cards}
 
@@ -687,7 +702,7 @@ def electrical_page(request: Request, vin: str, code: str = "", system: str = ""
                      conditions=CONDITIONS, condition_labels=CONDITION_LABELS,
                      saved=bool(saved), inspect_error=error, redirect_to=redirect_to,
                      walk=walk, step_card=step_card, step_info=step_info, find=find,
-                     find_hidden=find_hidden, find_count=len(matches), photo_saved=bool(photo),
+                     find_hidden=find_hidden, find_count=len(matches), photo_saved=bool(photo), located=bool(located), zones=_zone_options(),
                      max_photo_mb=MAX_PHOTO_BYTES // (1024 * 1024), module_count=len(modules))
     _set_active_vehicle(response, vin)
     return response
@@ -725,6 +740,39 @@ async def electrical_inspect_submit(request: Request, vin: str) -> RedirectRespo
 
     sep = "&" if "?" in redirect_base else "?"
     url = f"{redirect_base}{sep}{'saved=1' if error is None else 'error=' + quote(error)}"
+    return RedirectResponse(url=url, status_code=303)
+
+
+def _zone_options() -> list[dict[str, str]]:
+    return [{"id": z["id"], "label": z["label"]} for z in electrical_svg.ZONES]
+
+
+_shared_templates.env.globals["location_zone_options"] = _zone_options
+
+
+@router.post("/v/{vin}/electrical/location", response_class=HTMLResponse)
+async def electrical_location_submit(request: Request, vin: str) -> RedirectResponse:
+    """Add / correct one element's location (append-only, per model)."""
+    form = await request.form()
+    redirect_base = str(form.get("redirect_to", "") or f"/v/{vin}/electrical")
+    if not _safe_redirect(redirect_base):
+        redirect_base = f"/v/{vin}/electrical"
+
+    def f(k: str) -> str:
+        return str(form.get(k, "") or "").strip()
+
+    if f("op") == "retract":
+        ok = element_locations.retract(vin, f("entry_id"))
+        error = None if ok else "no such location entry for this model"
+    else:
+        error = element_locations.validate(
+            {z["id"] for z in electrical_svg.ZONES}, set(_elements()), f("element"), f("zone"),
+            f("description"), f("access"), f("source"), f("confidence"), f("by"))
+        if error is None:
+            element_locations.set_location(vin, f("element"), f("zone"), f("description"),
+                                           f("source"), f("confidence"), f("access"), f("by"))
+    sep = "&" if "?" in redirect_base else "?"
+    url = f"{redirect_base}{sep}{'located=1' if error is None else 'error=' + quote(error)}"
     return RedirectResponse(url=url, status_code=303)
 
 

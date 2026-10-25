@@ -1,0 +1,35 @@
+/* Network view, wiggle test, pin data, freeze summary. Colours via CSS vars
+   from cuore.css (--ok, --sev-*); SVG nodes are coloured by class. */
+.pd-card h3 { margin-top: 0; }
+.pd-svgbox { overflow-x: auto; max-width: 100%; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); padding: 6px; margin: 8px 0; }
+.pd-net { display: block; min-width: 560px; width: 100%; height: auto; }
+.pd-bus-label { fill: var(--ink-2); font-size: 11px; }
+.pd-bus-line { stroke: var(--ink-3); stroke-width: 3; }
+.pd-stub { stroke: var(--ink-3); stroke-width: 1.5; }
+.pd-gw { fill: none; stroke: var(--fam-network); stroke-width: 2; stroke-dasharray: 5 3; }
+.pd-node rect { stroke-width: 1.5; }
+.pd-node-name { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.pd-node-sub { fill: var(--ink-2); font-size: 9px; }
+.pd-node.pd-answered rect { fill: var(--ok-bg); stroke: var(--ok); }
+.pd-node.pd-silent rect { fill: var(--sev-chronic-bg); stroke: var(--sev-chronic); }
+.pd-node.pd-unchecked rect { fill: var(--sev-once-bg); stroke: var(--sev-once); stroke-dasharray: 3 2; }
+.pd-node.pd-lost rect { stroke: var(--sev-returned); stroke-width: 3; }
+.pd-lost-mark { fill: var(--sev-returned); font-size: 9px; }
+.pd-key { display: inline-block; padding: 1px 8px; border-radius: var(--radius-pill); border: 1px solid; font-size: var(--fs-xs); margin-right: 4px; }
+.pd-key.pd-answered { color: var(--ok); background: var(--ok-bg); border-color: var(--ok); }
+.pd-key.pd-silent { color: var(--sev-chronic); background: var(--sev-chronic-bg); border-color: var(--sev-chronic); }
+.pd-key.pd-unchecked { color: var(--sev-once); background: var(--sev-once-bg); border-color: var(--sev-once); }
+.pd-key.pd-lostkey { color: var(--sev-returned); background: var(--sev-returned-bg); border-color: var(--sev-returned); }
+.pd-lostbox { border-color: var(--sev-returned); }
+.pd-row-lost td { background: var(--sev-returned-bg); }
+.pd-warn { color: var(--sev-returned); }
+.pd-flash { padding: 8px 12px; border-radius: var(--radius); }
+.pd-flash-bad { color: var(--sev-returned); background: var(--sev-returned-bg); }
+.pd-scroll { overflow-x: auto; max-width: 100%; }
+.pd-table td, .pd-table th { padding: 4px 8px; text-align: left; vertical-align: top; }
+.pd-mono { font-family: var(--mono); white-space: nowrap; }
+.pd-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; margin: 8px 0; }
+.pd-form input, .pd-form select { min-height: var(--tap); font-size: var(--fs-md); max-width: 100%; }
+.pd-form .btn { min-height: var(--tap); }
+.pd-patterns li { color: var(--sev-chronic); font-weight: var(--fw-semibold); }
+.pd-hop summary { cursor: pointer; min-height: var(--tap); display: flex; align-items: center; }

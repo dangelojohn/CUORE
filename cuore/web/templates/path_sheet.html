@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Path sheet {{ code }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font: 12px/1.35 Arial, sans-serif; color: #000; background: #fff; margin: 16px; max-width: 190mm; }
+  h1 { font-size: 16px; margin: 0 0 2px; } h2 { font-size: 13px; margin: 12px 0 4px; }
+  table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #000; padding: 3px 5px; vertical-align: top; text-align: left; }
+  .blank { min-width: 60px; height: 22px; } .warn { border: 1px solid #000; padding: 3px 5px; margin: 3px 0; }
+  .small { font-size: 10.5px; } .noprint button { font-size: 13px; padding: 4px 10px; }
+  @media print { .noprint { display: none; } body { margin: 0; } }
+  @page { size: letter; margin: 10mm; }
+</style></head><body>
+<div class="noprint"><button onclick="window.print()">Print</button> <a href="/v/{{ vin }}/code/{{ code }}">Back to code</a></div>
+<h1>Electrical path sheet: {{ code }}</h1>
+<div>{{ car.name if car and car.name else "Vehicle" }} &middot; VIN {{ vin }}</div>
+{% if not data.found %}
+  <p>No electrical path known for {{ code }}.</p>
+{% else %}
+<h2>Path (in order)</h2>
+<table><tr><th>#</th><th>Hop</th><th>Role</th><th>Location</th><th>Last inspection</th></tr>
+{% for h in data.hops %}<tr><td>{{ loop.index }}</td><td>{{ h.label }}</td><td>{{ h.role or h.kind }}</td>
+<td>{{ h.location or "not given" }}</td><td>{{ (h.condition or "never inspected")|replace("_", " ") }}</td></tr>{% endfor %}
+</table>
+<h2>Safety</h2>
+{% set ns = namespace(n=0) %}
+{% for h in data.hops %}{% for f in h.safety %}{% set ns.n = ns.n + 1 %}<div class="warn"><b>{{ h.label }} - {{ f.title }}.</b> {{ f.text }}</div>{% endfor %}{% endfor %}
+{% if ns.n == 0 %}<div class="small">No safety flags raised by CUORE for these hops. Follow the service manual regardless.</div>{% endif %}
+<h2>Start here</h2>
+<div>{{ data.split.message }}</div>
+<h2>Voltage-drop table (circuit loaded; write readings in)</h2>
+<table><tr><th>Side</th><th>From</th><th>To</th><th>Limit (V)</th><th>Limit source</th><th>Reading (V)</th><th>Pass / fail</th><th>Load state</th></tr>
+{% for s in data.segments %}<tr><td>{{ s.side }}</td><td>{{ s.from_label }}</td><td>{{ s.to_label }}</td><td>{{ s.limit_v }}</td>
+<td class="small">{{ s.limit_source }}</td><td class="blank"></td><td class="blank"></td><td class="blank"></td></tr>{% endfor %}
+</table>
+<h2>Shared points</h2>
+{% set sh = data.hops|selectattr("shared")|list %}
+{% if sh %}<ul>{% for h in sh %}<li>{{ h.label }}: also on {% for r in h.shared.codes %}{{ r.code }} ({{ 'active' if r.active else 'seen earlier' }}){% if not loop.last %}, {% endif %}{% endfor %}{% if h.shared.common %} - <b>common point: suspect</b>{% endif %}</li>{% endfor %}</ul>
+{% else %}<div class="small">No other code on this car shares a hop with this path.</div>{% endif %}
+<p class="small">Default limits marked "{{ data.general_label }}" are a rule of thumb, not a Stelvio specification. Sourced limits name their source.</p>
+{% endif %}
+</body></html>

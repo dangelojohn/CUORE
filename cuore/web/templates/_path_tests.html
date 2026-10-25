@@ -1,0 +1,120 @@
+{# Voltage-drop plan, split suggestion, shared points, known failure points
+   and repair proof for one code's path. Included by _electrical_path.html.
+   Context: vin, code, pt (path_tests_for result). Everything is visible
+   without JavaScript; the tiny script at the end only collapses the plan in
+   Junior mode (same localStorage key as static/electrical.js). #}
+{% if pt and pt.found %}
+<div class="pt-wrap" id="path-tests" data-pt-wrap>
+  {% if request is defined and request.query_params.get('pt') %}<p class="small pt-ok">Saved.</p>{% endif %}
+  {% if request is defined and request.query_params.get('pt_error') %}<p class="small pt-bad">Not saved: {{ request.query_params.get('pt_error') }}</p>{% endif %}
+
+  <p class="pt-split"><b>{{ pt.split.message }}</b></p>
+
+  <details class="pt-safety" data-pt-safety open>
+    <summary>Safety and locations</summary>
+    <ul class="small">
+    {% for h in pt.hops %}
+      <li><b>{{ h.label }}</b>: {{ h.location or "location not given" }}
+        {% for f in h.safety %}<div class="pt-warn"><b>{{ f.title }}.</b> {{ f.text }}</div>{% endfor %}</li>
+    {% endfor %}
+    </ul>
+  </details>
+
+  <h4>Hops: status, shared points, known failure points</h4>
+  <div class="pt-hops">
+  {% for h in pt.hops %}
+    <div class="pt-hop{% if h.split_here %} pt-split-here{% endif %}">
+      <div class="pt-hop-head"><b>{{ h.label }}</b>
+        <span class="muted small">({{ h.role or h.kind }})</span>
+        {% if h.split_here %}<span class="chip plain sm">test here first</span>{% endif %}
+        {% if h.cleared %}<span class="chip ok sm">cleared: {{ h.cleared }}</span>{% endif %}
+        {% if h.repair.state == 'proven' %}<span class="chip ok sm">repaired and proven</span>
+        {% elif h.repair.state == 'repaired' %}<span class="chip status-cleared_unverified sm">repaired</span>
+        {% elif h.repair.state == 'code_returned' %}<span class="chip status-active sm">repaired, code returned</span>{% endif %}
+      </div>
+      {% if h.repair.state != 'none' %}
+        <div class="small muted">{{ h.repair.repair.what }} ({{ h.repair.repair.by }}, {{ h.repair.repair.date }}). {{ h.repair.note }}.</div>
+      {% endif %}
+      {% if h.shared %}
+        <div class="small">
+          {% if h.shared.common %}<span class="chip status-active sm">common point: suspect</span>{% else %}<span class="chip plain sm">also on other codes seen earlier</span>{% endif %}
+          also on:
+          {% for r in h.shared.codes %}<a href="/v/{{ vin }}/code/{{ r.code }}">{{ r.code }}</a> <span class="muted">({{ 'active' if r.active else 'seen earlier' }})</span>{% if not loop.last %}, {% endif %}{% endfor %}
+        </div>
+      {% endif %}
+      {% if h.ground_score %}
+        <div class="small">Ground-suspect score for {{ h.ground_score.module }}: <b>{{ h.ground_score.score }}</b>
+          <span class="muted">(inference, {{ h.ground_score.of_reads }} reads{% if h.ground_score.low_confidence %}, low confidence{% endif %})</span></div>
+      {% endif %}
+      {% if h.tsb or h.links %}
+        <div class="small">Known failure point:
+          {% for t in h.tsb %}<span class="chip plain sm" title="{{ t.why }}">{{ t.number }}</span> {% endfor %}
+          {% for l in h.links %}<a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.title }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+        </div>
+      {% endif %}
+      <details class="pt-repair"><summary class="small">Mark repaired</summary>
+        <form method="post" action="{{ pt.post_href }}/path-repair" class="pt-form">
+          <input type="hidden" name="element" value="{{ h.id }}">
+          <input type="hidden" name="redirect_to" value="{{ request.url.path if request is defined else '' }}">
+          <label>What was done <input name="what" maxlength="300" required></label>
+          <label>By <input name="by" maxlength="40"></label>
+          <label>Date <input name="date" type="date"></label>
+          <button class="btn" type="submit">Save repair</button>
+        </form>
+      </details>
+    </div>
+  {% endfor %}
+  </div>
+
+  {% if pt.code_level.tsb or pt.code_level.links %}
+    <h4>Known failure points (code-level)</h4>
+    <p class="small muted">These name the code, not a specific hop.</p>
+    <ul class="small">
+      {% for t in pt.code_level.tsb %}<li>{{ t.number }} <span class="muted">{{ t.why }}</span></li>{% endfor %}
+      {% for l in pt.code_level.links %}<li><a href="{{ l.url }}" target="_blank" rel="noopener">{{ l.title }}</a></li>{% endfor %}
+    </ul>
+  {% endif %}
+
+  <details class="pt-plan" data-pt-plan open>
+    <summary><b>Voltage-drop test plan</b></summary>
+    {% if not pt.has_segments %}
+      <p class="small muted">Fewer than two electrical hops on this path; no segments to test.</p>
+    {% endif %}
+    {% for s in pt.segments %}
+      <div class="pt-seg">
+        <div><b>{{ s.side|capitalize }} side:</b> {{ s.from_label }} &rarr; {{ s.to_label }}
+          {% if s.result %}<span class="chip {{ 'ok' if s.result.pass else 'status-active' }} sm">{{ 'pass' if s.result.pass else 'fail' }} {{ s.result.measured_v }} V</span>
+          {% else %}<span class="chip plain sm">not measured</span>{% endif %}</div>
+        <div class="small">{{ s.instruction }}</div>
+        <div class="small"><b>Pass limit: {{ s.limit_v }} V.</b> <span class="muted">{{ s.limit_source }}</span></div>
+        <form method="post" action="{{ pt.post_href }}/path-test" class="pt-form">
+          <input type="hidden" name="segment" value="{{ s.id }}">
+          <input type="hidden" name="redirect_to" value="{{ request.url.path if request is defined else '' }}">
+          <label>Measured V <input name="measured_v" inputmode="decimal" required size="6"></label>
+          <label>State <select name="state">{% for st in pt.states %}<option value="{{ st }}">{{ pt.state_labels[st] }}</option>{% endfor %}</select></label>
+          <label>Tech <input name="by" maxlength="40" size="10"></label>
+          <button class="btn" type="submit">Save reading</button>
+        </form>
+        {% if s.history %}
+          <ul class="small pt-hist">{% for r in s.history %}
+            <li>{{ r.at }}: {{ r.measured_v }} V vs {{ r.limit_v }} V, <b>{{ 'pass' if r.pass else 'fail' }}</b>{% if r.state %}, {{ pt.state_labels.get(r.state, r.state) }}{% endif %}, {{ r.by }}</li>{% endfor %}</ul>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </details>
+  <p><a class="btn" href="{{ pt.sheet_href }}" target="_blank">Print path sheet</a></p>
+</div>
+<script>
+(function () {
+  var mode = null;
+  try { mode = window.localStorage.getItem('cuore.electrical.mode'); } catch (e) {}
+  var wraps = document.querySelectorAll('[data-pt-wrap]');
+  for (var i = 0; i < wraps.length; i++) {
+    var plan = wraps[i].querySelector('[data-pt-plan]');
+    var safety = wraps[i].querySelector('[data-pt-safety]');
+    if (mode === 'expert') { if (safety) { safety.open = false; } if (plan) { plan.open = true; } }
+    else { if (plan) { plan.open = false; } if (safety) { safety.open = true; } }
+  }
+})();
+</script>
+{% endif %}

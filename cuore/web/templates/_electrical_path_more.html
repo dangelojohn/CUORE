@@ -1,0 +1,143 @@
+{# Advanced-mechanic extras under the electrical-path panel: CAN network (U-codes),
+   wiggle-test recorder, pin-level data, "when it sets". Context: vin, code.
+   Data from cuore.services.path_diag via the `path_more_for` Jinja global
+   (registered by cuore/web/path_diag_routes.py); guarded so the page renders
+   before that router is imported. Reads saved data only; never contacts the car. #}
+{% set pm = path_more_for(vin, code) if path_more_for is defined and code else None %}
+{% if pm %}
+<link rel="stylesheet" href="{{ static_url('path_diag.css') }}">
+{% set qerr = request.query_params.get('error') if request is defined else None %}
+{% if qerr %}<p class="pd-flash pd-flash-bad" role="alert">{{ qerr }}</p>{% endif %}
+
+{% if pm.is_u and pm.net %}
+<div class="panel pd-card" id="network">
+  <h3>Network for {{ pm.net.code }}</h3>
+  {% if pm.net.has_scan %}
+    {% if pm.net.lost %}
+      <p class="small"><b>Code names:</b> {{ pm.net.lost|join(", ") }}
+        <span class="muted">(from "{{ pm.net.description }}", {{ pm.net.description_source }})</span></p>
+    {% else %}
+      <p class="small muted">The code's description does not name a module that can be decoded
+        {% if pm.net.description %}("{{ pm.net.description }}"){% else %}(no description recorded){% endif %};
+        no module is highlighted.</p>
+    {% endif %}
+    <div class="pd-svgbox">{{ pm.net_svg|safe }}</div>
+    <p class="small muted">Last scan {{ pm.net.scan.id or "?" }}, {{ pm.net.scan.at or "time not recorded" }}.
+      <span class="pd-key pd-answered">answered</span>
+      <span class="pd-key pd-silent">silent</span>
+      <span class="pd-key pd-unchecked">not checked</span>
+      <a href="/v/{{ vin }}/network?code={{ pm.net.code|urlencode }}">Full network view &rarr;</a></p>
+  {% else %}
+    <p class="muted small">No full scan recorded: module status not recorded.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="panel pd-card" id="wiggle-test">
+  <h3>Wiggle test</h3>
+  {% if pm.live_active %}
+    <p class="small"><span class="pd-key pd-answered">CUORE live session active</span> (read-only).
+      Marks are lined up with what the session already logged.</p>
+  {% else %}
+    <p class="small muted">Connect to car with CUORE first to line marks up with live data. You can still record manual marks and notes.</p>
+  {% endif %}
+  {% if pm.hops %}
+  <form method="post" action="/v/{{ vin }}/wiggle" class="pd-form" data-pd-wiggle>
+    <input type="hidden" name="code" value="{{ code }}">
+    <input type="hidden" name="redirect_to" value="/v/{{ vin }}/code/{{ code|urlencode }}">
+    <label>Hop <select name="hop">
+      {% for h in pm.hops %}<option value="{{ h.id }}">{{ h.role }}: {{ h.label }}</option>{% endfor %}
+    </select></label>
+    <label>Note <input type="text" name="note" maxlength="300" placeholder="e.g. lamp flickered"></label>
+    <button class="btn primary" name="action" value="mark" type="submit">Wiggling hop now</button>
+    <button class="btn" name="action" value="stop" type="submit">Stop</button>
+  </form>
+  {% else %}
+    <p class="muted small">No path hops known for this code yet; nothing to wiggle.</p>
+  {% endif %}
+  {% if pm.wiggle %}
+  <div class="pd-scroll"><table class="pd-table">
+    <thead><tr><th>Time</th><th>Mark</th><th>Note</th><th>Live events (-5 s to +20 s)</th></tr></thead>
+    <tbody>
+    {% for m in pm.wiggle %}
+      <tr>
+        <td class="pd-mono">{{ m.at }}</td>
+        <td>{% if m.action == "stop" %}Stop{% else %}Hop {{ m.hop }}{% endif %}</td>
+        <td>{{ m.note or "" }}</td>
+        <td>{% if not m.correlated %}<span class="muted">no live session at the time: not recorded</span>
+            {% elif m.events %}{% for e in m.events %}<div class="small">{{ e.at[11:] }} {{ e.text }}</div>{% endfor %}
+            {% else %}<span class="muted">no alarm or DTC event logged by the live session in this window (module dropouts and voltage trace are not recorded per mark)</span>{% endif %}</td>
+      </tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% endif %}
+</div>
+
+<div class="panel pd-card" id="pin-data">
+  <h3>Pin-level data</h3>
+  <p class="small muted">Entered by technicians; nothing is pre-filled. Kept per model ({{ pm.model }}), so the next same-model car inherits it.</p>
+  {% for h in pm.hops %}
+    <details class="pd-hop" {% if h.pins %}open{% endif %}>
+      <summary>{{ h.role }}: {{ h.label }} <span class="muted small">({{ h.pins|length }} row{{ "" if h.pins|length == 1 else "s" }})</span></summary>
+      {% if h.pins %}
+      <div class="pd-scroll"><table class="pd-table">
+        <thead><tr><th>Connector</th><th>Pin</th><th>Wire colour</th><th>Circuit</th><th>Source</th><th></th></tr></thead>
+        <tbody>
+        {% for r in h.pins %}
+          <tr><td>{{ r.connector or "not recorded" }}</td><td>{{ r.pin or "not recorded" }}</td>
+            <td>{{ r.wire_colour or "not recorded" }}</td><td>{{ r.circuit or "not recorded" }}</td>
+            <td>{{ r.source }}<div class="small muted">{{ r.by }}, {{ r.at }}{% if r.amended %}, amended{% endif %}
+              {% if r.other_car %}<span class="pd-key pd-silent">from another car of the same model</span>{% endif %}</div></td>
+            <td><details><summary class="small">Amend</summary>
+              <form method="post" action="/v/{{ vin }}/pins" class="pd-form">
+                <input type="hidden" name="element" value="{{ h.id }}"><input type="hidden" name="amends" value="{{ r.row_id }}">
+                <input type="hidden" name="code" value="{{ code }}"><input type="hidden" name="redirect_to" value="/v/{{ vin }}/code/{{ code|urlencode }}">
+                <input name="connector" maxlength="80" value="{{ r.connector }}" placeholder="connector">
+                <input name="pin" maxlength="80" value="{{ r.pin }}" placeholder="pin">
+                <input name="wire_colour" maxlength="80" value="{{ r.wire_colour }}" placeholder="wire colour">
+                <input name="circuit" maxlength="80" value="{{ r.circuit }}" placeholder="circuit">
+                <input name="source" maxlength="200" required placeholder="source (required)">
+                <input name="by" maxlength="40" placeholder="your name">
+                <button class="btn" type="submit">Save amend</button>
+              </form></details></td></tr>
+        {% endfor %}
+        </tbody></table></div>
+      {% else %}<p class="muted small">No pin data recorded for this hop.</p>{% endif %}
+      <form method="post" action="/v/{{ vin }}/pins" class="pd-form">
+        <input type="hidden" name="element" value="{{ h.id }}"><input type="hidden" name="code" value="{{ code }}">
+        <input type="hidden" name="redirect_to" value="/v/{{ vin }}/code/{{ code|urlencode }}">
+        <input name="connector" maxlength="80" placeholder="connector id">
+        <input name="pin" maxlength="80" placeholder="pin">
+        <input name="wire_colour" maxlength="80" placeholder="wire colour">
+        <input name="circuit" maxlength="80" placeholder="circuit number">
+        <input name="source" maxlength="200" required placeholder="source: e.g. TechAuthority wiring diagram page/figure, or observed on car">
+        <input name="by" maxlength="40" placeholder="your name">
+        <button class="btn" type="submit">Add pin row</button>
+      </form>
+    </details>
+  {% else %}<p class="muted small">No path hops known for this code yet.</p>{% endfor %}
+</div>
+
+{% set ff = pm.freeze %}
+<div class="panel pd-card" id="when-it-sets">
+  <h3>When it sets</h3>
+  {% if ff.note %}<p class="muted small">{{ ff.note }}</p>{% endif %}
+  {% if ff.count %}
+    <ul class="small">
+      {% for s in ff.summaries %}<li><b>{{ s.title }}:</b> {{ s.text }}</li>{% endfor %}
+    </ul>
+    {% if ff.patterns %}<ul class="pd-patterns">{% for p in ff.patterns %}<li>{{ p }}</li>{% endfor %}</ul>
+    {% elif ff.enough %}<p class="muted small">No pattern holds in every occurrence.</p>{% endif %}
+    <div class="pd-scroll"><table class="pd-table">
+      <thead><tr><th>Set at</th><th>Voltage ({{ ff.units.voltage or "V" }})</th><th>Engine temp ({{ ff.units.engine_temp or "C" }})</th>
+        <th>Air temp ({{ ff.units.air_temp or "C" }})</th><th>RPM</th><th>Speed ({{ ff.units.speed or "km/h" }})</th>
+        <th>Startups</th><th>Odometer ({{ ff.units.odometer or "km" }})</th></tr></thead>
+      <tbody>{% for r in ff.rows %}
+        <tr><td class="pd-mono">{{ r.timestamp }}</td>
+        {% for k in ["voltage","engine_temp","air_temp","rpm","speed","startups","odometer"] %}
+          <td>{{ r[k] if r[k] is not none else "not recorded" }}</td>{% endfor %}</tr>
+      {% endfor %}</tbody></table></div>
+  {% endif %}
+</div>
+<script src="{{ static_url('path_diag.js') }}" defer></script>
+{% endif %}

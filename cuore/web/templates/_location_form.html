@@ -1,0 +1,28 @@
+{# Add / correct one element's location. Context: vin, eid, fp, redirect_to.
+   Posts to /v/{vin}/electrical/location; nothing is pre-filled. #}
+<form method="post" action="/v/{{ vin }}/electrical/location" class="elec-form elec-loc-form">
+  <input type="hidden" name="element" value="{{ eid }}">
+  <input type="hidden" name="redirect_to" value="{{ redirect_to }}">
+  <div class="elec-loc-grid">
+    <div class="field"><label for="{{ fp }}_zone_{{ eid }}">Zone</label>
+      <select id="{{ fp }}_zone_{{ eid }}" name="zone" required>
+        <option value="" selected disabled>choose a zone</option>
+        {% for z in location_zone_options() %}<option value="{{ z.id }}">{{ z.label }}</option>{% endfor %}
+      </select></div>
+    <div class="field"><label for="{{ fp }}_conf_{{ eid }}">Confidence</label>
+      <select id="{{ fp }}_conf_{{ eid }}" name="confidence" required>
+        <option value="observed">observed (I saw it on the car)</option>
+        <option value="documented">documented (from a diagram / manual)</option>
+      </select></div>
+  </div>
+  <div class="field"><label for="{{ fp }}_desc_{{ eid }}">Where exactly</label>
+    <input type="text" id="{{ fp }}_desc_{{ eid }}" name="description" maxlength="300" required></div>
+  <div class="field"><label for="{{ fp }}_acc_{{ eid }}">Access (optional)</label>
+    <input type="text" id="{{ fp }}_acc_{{ eid }}" name="access" maxlength="200" placeholder="e.g. remove left kick panel"></div>
+  <div class="field"><label for="{{ fp }}_src_{{ eid }}">Source (required)</label>
+    <input type="text" id="{{ fp }}_src_{{ eid }}" name="source" maxlength="200" required
+           placeholder="wiring/location diagram + figure, service manual page, or observed on car by ..."></div>
+  <div class="field"><label for="{{ fp }}_by_{{ eid }}">By</label>
+    <input type="text" id="{{ fp }}_by_{{ eid }}" name="by" maxlength="60" value="mechanic"></div>
+  <p><button class="btn primary" type="submit">Save location</button></p>
+</form>

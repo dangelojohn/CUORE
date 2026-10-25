@@ -174,3 +174,24 @@
   .elec-card a.mono, .elec-parts-link, .elec-card .small a { display: inline-block; min-height: 44px; line-height: 44px; }
   .elec-legend { grid-template-columns: 1fr; font-size: 13px; }
 }
+
+/* Path tests (_path_tests.html): voltage-drop plan, split, shared points. */
+.pt-wrap { margin-top: 10px; }
+.pt-split { padding: 8px 10px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface-2); }
+.pt-hops { display: flex; flex-direction: column; gap: 8px; }
+.pt-hop, .pt-seg { border: 1px solid var(--rule); border-radius: var(--radius); padding: 8px 10px; background: var(--surface-2); }
+.pt-split-here { border-color: var(--ink-2); }
+.pt-hop-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pt-seg { margin: 8px 0; }
+.pt-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 6px; }
+.pt-form label { display: flex; flex-direction: column; font-size: 12px; gap: 2px; }
+.pt-form input, .pt-form select { max-width: 100%; min-height: 36px; }
+.pt-warn { margin: 4px 0; padding: 4px 8px; border-left: 3px solid var(--ink-2); }
+.pt-hist { margin: 4px 0 0; padding-left: 18px; }
+.pt-ok { color: var(--sev-cleared, inherit); } .pt-bad { color: var(--sev-returned, inherit); }
+
+.elec-loc { margin-top: 8px; }
+.elec-loc-unplaced { border-left: 3px solid var(--accent); padding-left: 8px; background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.elec-loc-form .field { margin-bottom: 8px; }
+.elec-loc-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+.elec-hop .elec-loc { font-size: 12px; }
