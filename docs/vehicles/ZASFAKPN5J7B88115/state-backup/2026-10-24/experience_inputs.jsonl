@@ -1,0 +1,2 @@
+{"op": "input", "id": "6dd05166cbab", "vin": "ZASFAKPN5J7B88115", "scope": {"code": "P0456"}, "url": "https://example.com/live-check", "url_norm": "https://example.com/live-check", "title": "Live smoke test", "kind": "note", "found_by": {"role": "mechanic", "name": "QA"}, "found_at": "2026-10-14T07:30:01", "note": "post-restart smoke check", "rating": "unsure", "verified": {"status": "unverified", "at": "2026-10-14T07:30:01", "method": "skipped"}, "confidence": "reported"}
+{"op": "delete", "id": "6dd05166cbab", "at": "2026-10-14T07:30:08"}
