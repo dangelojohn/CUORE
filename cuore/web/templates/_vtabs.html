@@ -30,8 +30,10 @@
    /v/{vin}/dossier) drops into More. Live board was promoted out of More
    and into this visible row (after Codes) per the 2026-10-08 UX pass --
    six tabs now stay visible on a phone-width strip. #}
-{% set _visible = ("bench", "job", "codes", "liveboard", "tests", "systems", "report", "mobile") %}
-{% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "sensors", "fuses", "parts", "media",
+{# Sensors and Fuses promoted to the visible row 2026-10-25 (owner asked for
+   them on the main page, not behind More). #}
+{% set _visible = ("bench", "job", "codes", "liveboard", "tests", "systems", "sensors", "fuses", "report", "mobile") %}
+{% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "parts", "media",
                  "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard", "scans",
                  "scan", "mods", "tsb") %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
@@ -64,6 +66,8 @@
   {{ vtab("liveboard", "/v/" + bar.vin + "/liveboard", _lbl("live_board", "Live")) }}
   {{ vtab("tests", "/v/" + bar.vin + "/tests", _lbl("tests", "Tests")) }}
   {{ vtab("systems", "/v/" + bar.vin + "/systems", _lbl("systems", "Systems")) }}
+  {{ vtab("sensors", "/v/" + bar.vin + "/sensors", "Sensors") }}
+  {{ vtab("fuses", "/v/" + bar.vin + "/fuses", "Fuses") }}
   {{ vtab("report", "/v/" + bar.vin + "/report", _lbl("report", "Report")) }}
   {{ vtab("mobile", "/m/" + bar.vin, _lbl("mobile", "Mobile")) }}
 
@@ -75,8 +79,6 @@
       {{ vtab("timeline", "/v/" + bar.vin + "/timeline", _lbl("timeline", "Timeline")) }}
       {{ vtab("gauges", "/v/" + bar.vin + "/gauges", _lbl("gauges", "Gauges")) }}
       {{ vtab("electrical", "/v/" + bar.vin + "/electrical", _lbl("electrical", "Electrical")) }}
-      {{ vtab("sensors", "/v/" + bar.vin + "/sensors", "Sensors") }}
-      {{ vtab("fuses", "/v/" + bar.vin + "/fuses", "Fuses") }}
       {{ vtab("parts", "/v/" + bar.vin + "/parts", _lbl("parts", "Parts")) }}
       {{ vtab("mods", "/v/" + bar.vin + "/mods", _lbl("mods", "Modifications")) }}
       {{ vtab("media", "/v/" + bar.vin + "/media", _lbl("media", "Media")) }}

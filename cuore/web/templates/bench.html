@@ -247,6 +247,13 @@
     </div>
   {% endif %}
 
+  {# Car health pages (2026-10-25): always shown, scan or not. #}
+  <div class="bench-lastscan-links bench-health-links">
+    <a class="btn" href="/v/{{ vin }}/sensors">Sensor health</a>
+    <a class="btn" href="/v/{{ vin }}/fuses">Fuses &amp; relays</a>
+    <a class="btn" href="/v/{{ vin }}/electrical">Electrical layout</a>
+  </div>
+
   {# Bench order (item 17): status line (vbar) -> blocker banner (above) ->
      the 3 next-action cards -> resume details -> fuel gate/readiness ->
      job-level parts/tools -> codes row -> links. #}

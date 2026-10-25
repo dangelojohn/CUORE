@@ -227,6 +227,8 @@ def check_vtabs(env: Environment) -> None:
     before_more = rendered.split("<details")[0]
     check("vtabs: exactly 6 tabs visible outside the More menu",
           sum(f">{lbl}<" in before_more for lbl in VISIBLE_LABELS) == 6)
+    check("vtabs: Sensors and Fuses are in the visible row, not behind More",
+          f'href="/v/{VIN}/sensors"' in before_more and f'href="/v/{VIN}/fuses"' in before_more)
     check("vtabs: viewed tab (Job) marked .on",
           f'href="/v/{VIN}/job" class="on' in rendered)
     for path in OLD_LINK_PATHS + NEW_LINK_PATHS:
