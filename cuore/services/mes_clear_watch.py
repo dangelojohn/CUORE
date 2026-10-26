@@ -15,12 +15,20 @@ The clear detection is the parsers' own (the same one ``mes.workup`` and
 logs are skipped (not from a car); logs with no VIN, or another car's VIN, are
 skipped (cannot be attributed).
 
+Only clears from the day the job was opened onward belong to it: a log
+dated (by its filename stamp) before that day is never added, so a first
+sync, or one after the sync point is lost, cannot back-fill months of old
+clears onto whichever job happens to be open (2026-10-26: 20 clears from
+June to October landed on the shudder job that way).
+
 Idempotent: an action's ``ref.id`` is the log's filename, and a log whose
-filename is already on a ``clear`` action of the job is never added twice.
+filename is already on a ``clear`` action of ANY of this VIN's jobs
+(retracted ones included) is never added again.
 Cheap: one directory listing plus a ``stat`` per log; nothing is parsed
-unless a log's mtime is newer than the last synced one (kept per VIN in
-``state_dir()/mes_clear_watch.json``). Nothing is recorded, and the sync
-point does not move, while the VIN has no open job.
+unless a log's mtime is newer than both the last synced one (kept per VIN in
+``state_dir()/mes_clear_watch.json``) and the start of the job's opening
+day. Nothing is recorded, and the sync point does not move, while the VIN
+has no open job.
 """
 
 from __future__ import annotations
@@ -67,6 +75,26 @@ def _event_date(raw_stamp: str) -> Optional[str]:
         return datetime.strptime(raw_stamp, "%y%m%d%H%M").isoformat(timespec="seconds")
     except ValueError:
         return None
+
+
+def _job_day_start(job: dict[str, Any]) -> Optional[datetime]:
+    """Midnight of the day ``job`` was opened, or ``None`` if unreadable."""
+    try:
+        opened = datetime.fromisoformat(str(job.get("opened_at") or ""))
+    except ValueError:
+        return None
+    return opened.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+
+
+def _recorded_logs(vin: str) -> set[str]:
+    """Log filenames already on a clear action of any of ``vin``'s jobs."""
+    from . import jobs_bridge          # lazy: jobs_bridge imports this module
+    have: set[str] = set()
+    for j in jobs_bridge.jobs_mod.load(vin):
+        for a in list(j.get("actions", [])) + list(j.get("retracted_actions", [])):
+            if a.get("kind") == "clear":
+                have.add((a.get("ref") or {}).get("id"))
+    return have
 
 
 def _join(items: list[str]) -> str:
@@ -128,6 +156,8 @@ def sync(vin: str) -> list[dict[str, Any]]:
     state = _load_state()
     vins = state.setdefault("vins", {})
     last = float((vins.get(vin) or {}).get("last_mtime") or 0.0)
+    day_start = _job_day_start(job)
+    floor = max(last, day_start.timestamp() if day_start else 0.0)
 
     new: list[tuple[float, Any]] = []
     for p in paths_mod.iter_log_files():
@@ -135,17 +165,20 @@ def sync(vin: str) -> list[dict[str, Any]]:
             mtime = p.stat().st_mtime
         except OSError:
             continue
-        if mtime > last and mtime <= time.time() - SETTLE_SECONDS:
+        if mtime > floor and mtime <= time.time() - SETTLE_SECONDS:
             new.append((mtime, p))
     if not new:
         return []
 
-    have = {(a.get("ref") or {}).get("id") for a in job.get("actions", [])
-            if a.get("kind") == "clear"}
+    have = _recorded_logs(vin)
     added: list[dict[str, Any]] = []
     progressed = last
     for mtime, p in sorted(new, key=lambda t: (t[0], t[1].name)):
         kind, stamp, _vehicle = paths_mod.classify_name(p.name)
+        ev = _event_date(stamp)
+        if day_start and ev and datetime.fromisoformat(ev) < day_start:
+            progressed = mtime          # an older visit's log touched later: not this job's
+            continue
         try:
             text = (_scan_clear if kind == "scan" else _fes_clear)(p, p.name, stamp, vin)
         except Exception:  # noqa: BLE001 -- an unparseable log is simply not a clear
@@ -153,7 +186,7 @@ def sync(vin: str) -> list[dict[str, Any]]:
         if text and p.name not in have:
             try:
                 added.append(jobs_bridge.add_action(
-                    job["id"], "clear", text, event_date=_event_date(stamp),
+                    job["id"], "clear", text, event_date=ev,
                     ref={"kind": "observation", "id": p.name,
                          "label": f"MES clear in {p.name}"}))
             except Exception:  # noqa: BLE001 -- retry this log on the next sync

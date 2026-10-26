@@ -1150,6 +1150,15 @@ def job_add_action(job_id: str, kind: str, text: str, ref_json: str = "",
 
 
 @mcp.tool()
+def job_retract_action(job_id: str, action_id: str, reason: str, by: str = "") -> str:
+    """Take one action off a job's repair log (recorded on the wrong job, a
+    duplicate, entered by mistake). A reason is required; the original entry
+    is never rewritten and stays visible under ``retracted_actions``."""
+    return _guard(lambda: jobs_mod.retract_action(job_id, action_id, reason,
+                                                  by=by or None))
+
+
+@mcp.tool()
 def job_add_hypothesis(job_id: str, text: str, system: str = "", next_test: str = "",
                        codes: str = "", likelihood: str = "", by: str = "") -> str:
     """Add a hypothesis to a job's ledger -- starts status "open" with no

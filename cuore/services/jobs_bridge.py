@@ -17,6 +17,7 @@ does the validation.
 from __future__ import annotations
 
 import re
+import threading
 from typing import Any, Optional
 
 #: Stopwords stripped before token-overlap similarity (``similar_existing``,
@@ -918,6 +919,14 @@ def add_action(job_id: str, kind: str, text: str, *,
         raise BadRequest(str(exc)) from exc
 
 
+def retract_action(job_id: str, action_id: str, reason: str, *,
+                   by: Optional[str] = None) -> dict[str, Any]:
+    try:
+        return jobs_mod.retract_action(job_id, action_id, reason, by=by)
+    except ValueError as exc:
+        raise BadRequest(str(exc)) from exc
+
+
 def attach(job_id: str, ref: dict[str, Any], **kw: Any) -> dict[str, Any]:
     try:
         return jobs_mod.attach(job_id, ref, **kw)
@@ -952,6 +961,33 @@ def add_suggested_hypothesis(job_id: str, suggestion: dict[str, Any]) -> dict[st
 # --- the one read entry point ---------------------------------------------
 
 
+#: How long the Job page waits for the MES clear sync before rendering
+#: without it; a slow sync finishes in the background and its clears show
+#: on the next load.
+CLEAR_SYNC_WAIT_S = 2.0
+_clear_sync_lock = threading.Lock()
+
+
+def _sync_mes_clears(vin: str) -> None:
+    """New MES clears land in the repair log as "clear" actions before the job
+    is read. Runs on its own thread so a slow MES log folder can never hold
+    the Job page (or the server) hostage; one sync at a time."""
+    if mes_clear_watch is None or not _clear_sync_lock.acquire(blocking=False):
+        return
+
+    def run() -> None:
+        try:
+            mes_clear_watch.sync(vin)
+        except Exception:  # noqa: BLE001 -- the job page must still render
+            pass
+        finally:
+            _clear_sync_lock.release()
+
+    t = threading.Thread(target=run, name="mes-clear-sync", daemon=True)
+    t.start()
+    t.join(CLEAR_SYNC_WAIT_S)
+
+
 def build_job_view(vin: str, job_id: Optional[str] = None, *,
                    tools_step: Optional[str] = None) -> dict[str, Any]:
     """Everything the Job page needs, computed once. ``job`` is ``None`` when
@@ -965,13 +1001,7 @@ def build_job_view(vin: str, job_id: Optional[str] = None, *,
     if not vin:
         raise BadRequest("a VIN is required")
 
-    if mes_clear_watch is not None:
-        # New MES clears land in the repair log as "clear" actions before the
-        # job is read below (mtime check only when nothing is new).
-        try:
-            mes_clear_watch.sync(vin)
-        except Exception:  # noqa: BLE001 -- the job page must still render
-            pass
+    _sync_mes_clears(vin)
 
     if job_id:
         job = get_job(job_id)
@@ -1082,6 +1112,6 @@ __all__ = ["build_job_view", "suggested_hypotheses", "dedupe_suggestions",
           "remove_evidence", "resolve_evidence", "add_test_evidence",
           "add_test_evidence_new_hypothesis", "recorded_test_results",
           "evidence_candidates",
-          "add_action", "attach", "get_job", "add_suggested_hypothesis",
+          "add_action", "retract_action", "attach", "get_job", "add_suggested_hypothesis",
           "step_registry", "RuleViolation", "TOOLS_STEP_CHOICES",
           "tools_panel", "add_tool_usage"]

@@ -13,6 +13,7 @@ import os
 import sys
 import tempfile
 import time
+from datetime import datetime, timedelta
 from pathlib import Path
 
 LOGS = Path(tempfile.mkdtemp(prefix="cuore-check-clearwatch-logs-"))
@@ -63,16 +64,30 @@ def clears(job_id: str) -> list[dict]:
     return [a for a in jobs_bridge.get_job(job_id)["actions"] if a.get("kind") == "clear"]
 
 
+def stamp(dt: datetime) -> str:
+    return dt.strftime("%y%m%d%H%M")
+
+
+NOW = datetime.now().replace(second=0, microsecond=0)
+TODAY_LOG = f"SCAN_{stamp(NOW)}.txt"        # NOW, so it never falls on yesterday
+OLD_LOG = f"SCAN_{stamp(NOW - timedelta(days=30))}.txt"
+
 job = jobs_bridge.open_job(VIN, complaint="EVAP codes")
 
-put("SCAN_2610080920.txt", SCAN_WITH_CLEAR, 120)
+# An older visit's log (dated a month back) that was copied or touched just
+# now: its mtime is new, but its own date is before the job was opened.
+put(OLD_LOG, SCAN_WITH_CLEAR, 180)
+put(TODAY_LOG, SCAN_WITH_CLEAR, 120)
 added = mes_clear_watch.sync(VIN)
 rec = clears(job["id"])
+check("a log dated before the job's opening day is never added, however new its mtime "
+      "(no back-filling old clears onto the open job)",
+      all((a["ref"] or {}).get("id") != OLD_LOG for a in rec), str(rec))
 check("a new MES log with a clear adds one clear action: ref id = filename, event_date = "
       "the log's timestamp, text names the module and the codes present before the clear",
       len(added) == 1 and len(rec) == 1
-      and (rec[0]["ref"] or {}).get("id") == "SCAN_2610080920.txt"
-      and rec[0]["event_date"] == "2026-10-08T09:20:00"
+      and (rec[0]["ref"] or {}).get("id") == TODAY_LOG
+      and rec[0]["event_date"] == NOW.isoformat(timespec="seconds")
       and "Engine / ECM" in rec[0]["text"] and "P0455-00" in rec[0]["text"]
       and "P0456-00" in rec[0]["text"], str(rec))
 
@@ -83,10 +98,38 @@ check("the same log again (and again after the sync point is lost) adds no dupli
       again == [] and forced == [] and len(clears(job["id"])) == 1,
       f"{again} {forced} {len(clears(job['id']))}")
 
-put("SCAN_2610090800.txt", SCAN_NO_CLEAR, 60)
+put(f"SCAN_{stamp(NOW + timedelta(minutes=1))}.txt", SCAN_NO_CLEAR, 60)
 none = mes_clear_watch.sync(VIN)
 check("a newer log without a clear adds nothing",
       none == [] and len(clears(job["id"])) == 1, str(none))
+
+# A second open job: a log already recorded on the first job is not added
+# to it again, even with the sync point lost.
+job2 = jobs_bridge.open_job(VIN, complaint="shudder")
+(Path(os.environ["CUORE_STATE_DIR"]) / "mes_clear_watch.json").unlink()
+other = mes_clear_watch.sync(VIN)
+check("a log already on a clear action of another of this VIN's jobs is not added again",
+      other == [] and clears(job2["id"]) == [], f"{other} {clears(job2['id'])}")
+
+# Retracting an action: it leaves the repair log, stays on record with the
+# reason, and a later sync does not bring it back.
+first = clears(job["id"])[0]
+r = jobs_bridge.retract_action(job["id"], first["id"], "recorded on the wrong job")
+j = jobs_bridge.get_job(job["id"])
+check("a retracted action leaves actions and is kept under retracted_actions with its reason",
+      r["action_id"] == first["id"] and clears(job["id"]) == []
+      and any(a["id"] == first["id"] and a["retract_reason"] == "recorded on the wrong job"
+              for a in j["retracted_actions"]), str(j["retracted_actions"]))
+(Path(os.environ["CUORE_STATE_DIR"]) / "mes_clear_watch.json").unlink()
+back = mes_clear_watch.sync(VIN)
+check("a retracted clear's log is not re-added by a later sync",
+      back == [] and clears(job["id"]) == [] and clears(job2["id"]) == [], str(back))
+try:
+    jobs_bridge.retract_action(job["id"], first["id"], "again")
+    check("retracting an action that is no longer on the job is refused", False)
+except Exception as exc:  # noqa: BLE001
+    check("retracting an action that is no longer on the job is refused",
+          type(exc).__name__ == "BadRequest", repr(exc))
 
 print(f"checks run: {checks}")
 if failures:

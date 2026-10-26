@@ -38,6 +38,10 @@ History is never rewritten. Record shapes share one file, distinguished by
 * ``hypothesis_delete``   -- {op, job_id, hyp_id, at, by?}
 * ``hypothesis_undelete`` -- {op, job_id, hyp_id, at, by?}
 * ``action_add``          -- {op, job_id, id, at, kind, text, ref}
+* ``action_retract``      -- {op, job_id, action_id, at, reason, by?} -- the
+                              action leaves ``actions`` and is kept, with
+                              the reason, under ``retracted_actions``; the
+                              original record is never rewritten.
 * ``attach``              -- {op, job_id, at, hyp_id?, supports?, ref, link?, by?}
 * ``evidence_remove``     -- {op, job_id, hyp_id, at, side, ref_id, ref_kind?, by?}
 * ``evidence_resolve``    -- {op, job_id, hyp_id, at, ref_id, ref_kind?, resolved, by?}
@@ -188,7 +192,7 @@ def _new_job(rec: dict[str, Any]) -> dict[str, Any]:
         "id": rec["id"], "vin": rec["vin"], "opened_at": rec["at"],
         "closed_at": None, "technician": rec.get("technician") or "",
         "complaint": rec.get("complaint") or "", "status": "open",
-        "outcome": None, "hypotheses": [], "actions": [],
+        "outcome": None, "hypotheses": [], "actions": [], "retracted_actions": [],
         "verification": {"readiness_at": None, "codes_returned": [], "verdict": None},
         "links": {k: [] for k in LINK_LISTS},
     }
@@ -379,6 +383,15 @@ def _fold() -> dict[str, dict[str, Any]]:
                 "text": rec.get("text") or "", "ref": rec.get("ref"),
                 "event_date": rec.get("event_date") or None,
             }))
+        elif op == "action_retract":
+            aid = rec.get("action_id")
+            keep = [a for a in job["actions"] if not (aid and a.get("id") == aid)]
+            for a in job["actions"]:
+                if aid and a.get("id") == aid:
+                    job["retracted_actions"].append(dict(
+                        a, retracted_at=rec.get("at"), retract_reason=rec.get("reason") or "",
+                        retracted_by=rec.get("by")))
+            job["actions"] = keep
         elif op == "action_event_date":
             for a in job["actions"]:
                 if a.get("id") and a.get("id") == rec.get("action_id"):
@@ -782,6 +795,27 @@ def set_action_event_date(job_id: str, action_id: str, event_date: str) -> dict[
     return {"action_id": action_id, "event_date": ev}
 
 
+def retract_action(job_id: str, action_id: str, reason: str, *,
+                   by: Optional[str] = None) -> dict[str, Any]:
+    """Take one action off the job's repair log (recorded on the wrong job,
+    a duplicate, entered by mistake). Appends a retract record; the original
+    entry is never rewritten and stays visible under ``retracted_actions``
+    with the reason."""
+    reason = (reason or "").strip()
+    if not reason:
+        raise ValueError("reason is required")
+    job = _require_job(job_id)
+    if not any(a.get("id") == action_id for a in job["actions"]):
+        raise ValueError(f"no action {action_id!r} on job {job_id!r}")
+    at = datetime.now().isoformat(timespec="seconds")
+    rec: dict[str, Any] = {"op": "action_retract", "job_id": job_id,
+                           "action_id": action_id, "at": at, "reason": reason}
+    if by:
+        rec["by"] = by
+    _append(rec)
+    return {"action_id": action_id, "retracted_at": at, "reason": reason}
+
+
 def attach(job_id: str, ref: dict[str, Any], *, hyp_id: Optional[str] = None,
           supports: bool = True, link: Optional[str] = None,
           by: Optional[str] = None) -> dict[str, Any]:
@@ -924,5 +958,5 @@ __all__ = ["STATUSES", "OUTCOMES", "HYP_STATUSES", "LIKELIHOODS", "ACTION_KINDS"
           "state_dir", "store_path", "open", "close",
           "add_hypothesis", "set_hypothesis", "edit_hypothesis",
           "delete_hypothesis", "undelete_hypothesis", "migrate_systems",
-          "add_action", "set_action_event_date", "effective_date", "attach", "add_evidence", "remove_evidence",
+          "add_action", "set_action_event_date", "retract_action", "effective_date", "attach", "add_evidence", "remove_evidence",
           "resolve_evidence", "load", "get", "current", "open_jobs", "has_safety"]
