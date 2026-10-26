@@ -1,0 +1,45 @@
+/* Wiring harness maps (/v/{vin}/harnesses). cuore.css tokens only: light and dark come free. */
+.hn-page { padding-inline: 16px; max-width: 820px; margin-inline: auto; overflow-wrap: anywhere; }
+.hn-call { background: var(--surface); border: 1px solid var(--rule); border-left: 3px solid var(--sev-chronic);
+  border-radius: 10px; padding: 15px 16px 13px; margin: 12px 0 16px; }
+.hn-call .eyebrow { font-family: var(--mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--sev-chronic); margin-bottom: 8px; }
+.hn-call h2 { margin: 0 0 7px; font-size: 21px; line-height: 1.2; font-weight: 680; color: var(--ink); text-wrap: balance; }
+.hn-call p { margin: 0; font-size: 14px; color: var(--ink-2); }
+.hn-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.hn-links .btn, .hn-fig .btn { min-height: var(--tap, 44px); display: inline-flex; align-items: center; }
+.hn-note { border-left: 3px solid var(--accent); background: var(--surface-2); padding: 8px 12px; }
+.hn-mapbox { margin: 0 0 20px; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 8px; }
+.hn-map { display: block; width: 100%; height: auto; font-family: var(--sans), sans-serif; }
+.hn-area { font-size: 11px; fill: var(--ink-3); }
+.hn-num { font: 700 12px var(--mono), monospace; fill: var(--ink); }
+.hn-map a { cursor: pointer; }
+.hn-mapbox figcaption { font-size: var(--fs-xs, 12px); color: var(--ink-3); margin: 6px 4px; }
+.hn-key { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 2px 12px; }
+.hn-key a { display: flex; align-items: center; gap: 8px; min-height: var(--tap, 44px); color: var(--ink); text-decoration: none; }
+.hn-sw { flex: none; width: 26px; height: 26px; border-radius: 50%; display: inline-grid; place-items: center;
+  font: 700 12px var(--mono), monospace; background: var(--surface-2); color: var(--ink); border: 3px solid var(--c); }
+.ghead { font-family: var(--mono); font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--ink-3); margin: 22px 0 6px; font-weight: 500; }
+.hn-group { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; overflow: hidden; }
+.hn-group .row { display: flex; align-items: center; gap: 12px; min-height: var(--tap, 44px); padding: 9px 14px;
+  border-top: 1px solid var(--rule-soft); color: var(--ink); text-decoration: none; }
+.hn-group .row:first-child { border-top: 0; }
+.hn-group .lab { flex: 1; min-width: 0; }
+.hn-group .lab .t { display: block; }
+.hn-group .lab .s { display: block; font-size: 12.5px; color: var(--ink-3); margin-top: 1px; }
+.hn-group .lab .s a { color: var(--ink-2); }
+.hn-card { background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--c); border-radius: 10px;
+  padding: 12px 14px; margin: 0 0 14px; scroll-margin-top: 90px; }
+.hn-card:target { outline: 2px solid var(--accent); }
+.hn-card h3 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 8px; font-size: var(--fs-lg, 18px); }
+.hn-card p { margin: 4px 0; }
+.hn-card .chip { font-size: var(--fs-xs, 12px); padding: 2px 8px; }
+.hn-rel { display: inline-flex; align-items: center; min-height: var(--tap, 44px); text-decoration: none; }
+.hn-card summary { min-height: var(--tap, 44px); display: flex; align-items: center; cursor: pointer; }
+.hn-fig { margin: 10px 0 0; }
+.hn-fig img { display: block; max-width: 100%; height: auto; background: #fff; border-radius: 6px; border: 1px solid var(--rule); }
+.hn-fig figcaption { font-size: var(--fs-xs, 12px); color: var(--ink-3); margin: 4px 0 8px; }
+.hn-parts { margin: 4px 0; padding-left: 18px; }
+.hn-foot { border-top: 1px solid var(--rule); margin: 20px 0 32px; padding-top: 12px; color: var(--ink-2); }
+@media (max-width: 560px) { .hn-area { display: none; } }

@@ -1,0 +1,128 @@
+{
+  "model": "2018 Alfa Romeo Stelvio 2.0T, left-hand drive",
+  "source": "Mopar parts diagrams saved locally in the owner's parts catalogue (read at run time from ProgramData; nothing from the catalogue is stored here).",
+  "caption": "Mopar parts diagram - harness as drawn for parts, not a wiring diagram",
+  "areas": [
+    {"id": "front_end",       "label": "Front end / headlamps", "x": 100, "y": 200},
+    {"id": "engine_bay",      "label": "Engine bay",            "x": 236, "y": 200},
+    {"id": "dash",            "label": "Dash",                  "x": 372, "y": 236},
+    {"id": "left_front_door", "label": "Left front door",       "x": 400, "y": 338},
+    {"id": "left_front_seat", "label": "Left front seat",       "x": 446, "y": 268},
+    {"id": "centre_console",  "label": "Centre console",        "x": 450, "y": 200},
+    {"id": "roof",            "label": "Roof",                  "x": 570, "y": 200},
+    {"id": "left_sill_floor", "label": "Left sill / floor",     "x": 540, "y": 324},
+    {"id": "cargo_area",      "label": "Cargo area",            "x": 690, "y": 200}
+  ],
+  "harnesses": [
+    {
+      "id": "front-door-left",
+      "title": "Front Door Wiring, Left",
+      "diagram_ids": ["electrical--wiring-body-and-accessories--1"],
+      "areas": ["left_front_door"],
+      "placement_basis": "drawn",
+      "ends": "Left front door harness. The same drawing also shows right front door, rear door, liftgate and liftgate-jumper harnesses as separate pieces. What the door harness plugs into on the body side: not shown.",
+      "direction": "Single area; direction not shown.",
+      "related": {"fuse_boxes": [], "sensors": [], "elements": []},
+      "confidence": "As drawn in the parts diagram; routing on this car not checked. The pieces are drawn apart from the car, so no route through the body is shown.",
+      "not_shown": ["body-side end of the door harness", "connector ids", "routing through the door hinge / A-pillar"]
+    },
+    {
+      "id": "body",
+      "title": "Body Wiring",
+      "diagram_ids": ["electrical--wiring-body-and-accessories--2"],
+      "areas": ["engine_bay", "dash", "left_sill_floor", "cargo_area"],
+      "placement_basis": "drawn",
+      "ends": "Not shown as named ends. The small car in the drawing marks one long harness from the front of the car through the cabin to the rear, with a long separate piece at the rear (callout 5) and a small module-like box with fasteners (callouts 2, 6 to 10).",
+      "direction": "Listed front to rear, the way the car is drawn. The diagram does not say which end is the source.",
+      "related": {"fuse_boxes": [], "sensors": [], "elements": []},
+      "confidence": "As drawn in the parts diagram, coarse areas only; routing on this car not checked. The saved catalogue holds no parts list for this diagram, so the callout names are not shown.",
+      "not_shown": ["parts list for this diagram", "what the module-like box is", "exact path through the cabin", "connector ids"]
+    },
+    {
+      "id": "instrument-panel-body",
+      "title": "Instrument Panel Wiring (Body and Accessories)",
+      "diagram_ids": ["electrical--wiring-body-and-accessories--3"],
+      "areas": ["roof"],
+      "placement_basis": "drawn",
+      "ends": "Not shown. Three separate pieces are drawn (callouts 1 to 3).",
+      "direction": "Single area; direction not shown.",
+      "related": {"fuse_boxes": [], "sensors": [], "elements": []},
+      "confidence": "Low. The title says instrument panel but the small car in the drawing marks lines in the roof and the left side of the body; the two do not agree and this was not resolved. Routing on this car not checked.",
+      "not_shown": ["parts list for this diagram", "whether this is the dash or the roof area", "ends", "connector ids"]
+    },
+    {
+      "id": "seat-left",
+      "title": "Seat Wiring, Left",
+      "diagram_ids": ["electrical--wiring-body-and-accessories--4"],
+      "areas": ["left_front_seat"],
+      "placement_basis": "drawn",
+      "ends": "Left front seat harness (the drawing shows it next to the seat). Where it plugs into the body: not shown.",
+      "direction": "Single area; direction not shown.",
+      "related": {"fuse_boxes": [], "sensors": [], "elements": []},
+      "confidence": "As drawn in the parts diagram; routing on this car not checked. The saved catalogue holds no parts list for this diagram.",
+      "not_shown": ["parts list for this diagram", "body-side end", "connector ids"]
+    },
+    {
+      "id": "ac-module",
+      "title": "Air Conditioning Module Wiring",
+      "diagram_ids": ["electrical--wiring-body-and-accessories--5"],
+      "areas": ["dash"],
+      "placement_basis": "title",
+      "ends": "Air conditioning module (by title). The drawing shows the harness alone, with no car around it.",
+      "direction": "Not shown.",
+      "related": {"fuse_boxes": [], "sensors": [], "elements": []},
+      "confidence": "Placed at the dash on the map by its title only; the image shows no location. Routing on this car not checked.",
+      "not_shown": ["location on the car", "route", "ends other than the module named in the title", "parts list for this diagram"]
+    },
+    {
+      "id": "headlamp-to-dash",
+      "title": "Headlamp To Dash Wiring",
+      "diagram_ids": ["electrical--wiring-headlamp-to-dash--1"],
+      "areas": ["front_end", "engine_bay", "dash"],
+      "placement_basis": "title",
+      "ends": "Headlamp end to dash end, from the title. The drawing also shows the power distribution center cover (callout 2) beside the harness, and the part list says power distribution center components are in another diagram.",
+      "direction": "Headlamp to dash, from the wording of the title. The drawing itself shows no car.",
+      "related": {"fuse_boxes": ["engine_pdc"], "sensors": [], "elements": []},
+      "related_basis": "The fuse box link is by name: the diagram names the power distribution center.",
+      "confidence": "Areas come from the title and the PDC callout, not from a drawn route; routing on this car not checked.",
+      "not_shown": ["route between the headlamp and the dash", "connector ids", "which headlamp circuits are in it"]
+    },
+    {
+      "id": "console",
+      "title": "Console Wiring",
+      "diagram_ids": ["electrical--wiring-instrument-panel--1"],
+      "areas": ["centre_console"],
+      "placement_basis": "title",
+      "ends": "Not shown. The part list names it a console wiring harness.",
+      "direction": "Single area; direction not shown.",
+      "related": {"fuse_boxes": [], "sensors": [], "elements": []},
+      "confidence": "Unresolved. The title and part names say console, but the small car in the drawing marks the front of the car near the bonnet. Placed at the console by title only; routing on this car not checked.",
+      "not_shown": ["what the small car marks", "ends", "connector ids"]
+    },
+    {
+      "id": "instrument-panel",
+      "title": "Instrument Panel Wiring",
+      "diagram_ids": ["electrical--wiring-instrument-panel--2"],
+      "areas": ["engine_bay", "dash"],
+      "placement_basis": "drawn",
+      "ends": "Not shown. One large harness is drawn, with a long run and a drop at the lower right.",
+      "direction": "Listed front to rear, the way the small car marks it (from under the bonnet back to the base of the windshield). The diagram does not say which end is the source.",
+      "related": {"fuse_boxes": [], "sensors": [], "elements": []},
+      "confidence": "As drawn in the parts diagram, coarse areas only; routing on this car not checked. The saved catalogue holds no parts list for this diagram.",
+      "not_shown": ["parts list for this diagram", "ends", "connector ids", "where the drop at the lower right goes"]
+    },
+    {
+      "id": "engine",
+      "title": "Engine Wiring",
+      "diagram_ids": ["electrical--wiring-powertrain--1"],
+      "areas": ["engine_bay"],
+      "placement_basis": "drawn",
+      "ends": "Engine (main harness), an engine jumper used with the pressure, temperature and knock sensor, an ignition capacitor, a battery-negative ground strap and a heater wiring piece, as named in the part list. Where the main harness meets the body side: not shown.",
+      "direction": "Single area; direction not shown.",
+      "related": {"fuse_boxes": [], "sensors": [], "elements": ["battery"]},
+      "related_basis": "The battery link is by name: the part list names a ground strap for battery negative. The sensor jumper names pressure, temperature and knock sensors without saying which, so no sensor is linked.",
+      "confidence": "As drawn in the parts diagram; routing on this car not checked.",
+      "not_shown": ["which pressure and temperature sensors the jumper serves", "firewall pass-through", "connector ids"]
+    }
+  ]
+}
