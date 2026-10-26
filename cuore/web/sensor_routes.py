@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from ..api.deps import require_token
-from . import sensor_profile_svg
+from . import page_search, sensor_profile_svg
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
@@ -41,6 +41,28 @@ def _back(vin: str, msg: str) -> RedirectResponse:
     return RedirectResponse(url=f"/v/{vin}/sensors?msg={quote(msg)}", status_code=303)
 
 
+STATUS_WORDS = {"green": "ok good healthy", "orange": "fault out of range", "red": "dead not responding fault",
+                "grey": "not read unread"}
+
+
+def _search_text(s: dict[str, Any]) -> str:
+    """Everything a sensor card shows that is worth finding by: names, place, channels, units, status, codes."""
+    zones = {z["id"]: z.get("label") or "" for z in sensor_profile_svg.ZONES}
+    st = s.get("status") if s.get("status") in STATUS_WORDS else "grey"
+    parts: list[Any] = [s.get("label"), s.get("id"), s.get("system"), s.get("module"), s.get("bus"), s.get("zone"),
+                        zones.get(str(s.get("zone") or ""), ""), s.get("side"), STATUS_LABEL[st], STATUS_WORDS[st]]
+    parts += list(s.get("channels") or [])
+    for v in s.get("values") or []:
+        parts += [v.get("label"), v.get("channel"), v.get("unit")]
+    for c in s.get("codes") or []:
+        parts += [c.get("code"), c.get("description"), c.get("state")]
+    return page_search.haystack(parts)
+
+
+def search_sensors(q: str, sensors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [s for s in sensors if page_search.matches(q, _search_text(s), page_search.SENSOR_SYNONYMS)]
+
+
 def _short(text: str) -> str:
     text = str(text or "").strip()
     return text if len(text) <= 160 else text[:157] + "..."
@@ -63,7 +85,7 @@ def component_images_json(vin: str, key: str = "", limit: int = 3) -> JSONRespon
 
 @router.get("/v/{vin}/sensors", response_class=HTMLResponse)
 def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
-                 msg: str = "") -> HTMLResponse:
+                 msg: str = "", q: str = "") -> HTMLResponse:
     dossier = _dossier(vin)
     error: Optional[str] = None
     try:
@@ -89,6 +111,13 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
         return not system_f or str(s.get("system") or "other") == system_f
 
     shown = [s for s in sensors if match(s)]
+    q = page_search.clean_q(q)
+    results = []
+    for s in (search_sensors(q, shown) if q else []):
+        st = s.get("status") if s.get("status") in STATUS_LABEL else "grey"
+        results.append({"id": s["id"], "label": s.get("label") or s["id"], "n": numbers[s["id"]],
+                        "line": " · ".join(x for x in (str(s.get("system") or "other"), s.get("module") or "",
+                                                       STATUS_LABEL[st]) if x)})
     dim = {s["id"] for s in sensors if not match(s)}
     groups: dict[str, list[dict[str, Any]]] = {}
     for s in shown:
@@ -98,9 +127,9 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
     unplaced = [s for s in sensors if s["id"] in set(unplaced_ids) and match(s)]
     svg = sensor_profile_svg.render(sensors, numbers, dim)
 
-    def href(st: str = "", sy: str = "") -> str:
-        q = [f"{k}={quote(v)}" for k, v in (("status", st), ("system", sy)) if v]
-        return f"/v/{vin}/sensors" + ("?" + "&".join(q) if q else "")
+    def href(st: str = "", sy: str = "", keep_q: bool = True) -> str:
+        parts = [f"{k}={quote(v)}" for k, v in (("status", st), ("system", sy), ("q", q if keep_q else "")) if v]
+        return f"/v/{vin}/sensors" + ("?" + "&".join(parts) if parts else "")
 
     chip_href = {k: href("" if status_f == k else k, system_f) for k in STATUSES}
     sys_href = {sy: href(status_f, sy) for sy in systems}
@@ -109,7 +138,8 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
     response = _page(request, "sensors.html", vin=vin, photos=photos, bar=_vehicle_bar(vin, dossier), tab="sensors",
                      svg=svg, groups=groups, numbers=numbers, unplaced=unplaced, counts=counts,
                      total=len(sensors), shown=len(shown), checked_at=data.get("checked_at"),
-                     status_f=status_f, chip_href=chip_href, sys_href=sys_href, system_f=system_f, systems=systems,
+                     status_f=status_f, q=q, results=results, results_shown=results[:10],
+                     no_match_hint=page_search.HINT_SENSORS, clear_href=href(status_f, system_f, False), chip_href=chip_href, sys_href=sys_href, system_f=system_f, systems=systems,
                      status_label=STATUS_LABEL, status_mark=STATUS_MARK, msg=msg, error=error)
     _set_active_vehicle(response, vin)
     return response

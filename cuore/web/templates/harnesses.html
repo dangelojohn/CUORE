@@ -4,11 +4,29 @@
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('harnesses.css') }}">
 <div class="hn-page">
+<form class="hn-search" id="hn-search" method="get" action="{{ base }}" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search: door, dash, engine, seat, headlamp, a/c" aria-label="Search the harnesses on this page" maxlength="80">
+  <button type="submit">Search</button>
+  {% if q %}<a href="{{ base }}">Clear search</a>{% endif %}
+</form>
 <h1>Wiring harnesses</h1>
 <section class="hn-call" id="hn-call"><div class="eyebrow">What this page is</div>
   <h2>{{ v.call }}</h2>
   <p>Follow a harness by area, see what it touches, then open the Mopar drawing. Routes are read from the parts diagrams only.</p>
 </section>
+{% if q %}
+<section class="hn-results" id="hn-results" aria-label="Search results">
+  {% if results %}
+  <h2>{{ results|length }} match{{ '' if results|length == 1 else 'es' }} for &ldquo;{{ q }}&rdquo;</h2>
+  {% for r in results_shown %}
+    <a href="#harness-{{ r.id }}"><b>{{ r.n }}</b><span>{{ r.title }}</span><span class="muted">{{ r.line }}</span></a>
+  {% endfor %}
+  {% if results|length > results_shown|length %}<p class="muted hn-more">Showing the first {{ results_shown|length }}. Add a word to narrow it.</p>{% endif %}
+  {% else %}
+  <h2>No match for &ldquo;{{ q }}&rdquo;. {{ no_match_hint }}</h2>
+  {% endif %}
+</section>
+{% endif %}
 <p class="hn-links"><a class="btn" href="/v/{{ vin }}/electrical">Electrical</a>
   <a class="btn" href="/v/{{ vin }}/fuses">Fuses</a>
   <a class="btn" href="/v/{{ vin }}/sensors">Sensors</a></p>
@@ -76,4 +94,16 @@
 
 <p class="hn-foot"><b>Pin-level wiring diagrams</b> (which wire, which pin, which colour, which connector) are in the service manual, which CUORE does not have. Everything above comes from Mopar parts diagrams, which are drawn to order parts, not to trace circuits.</p>
 </div>
+<script>
+/* Optional: filter the harness cards as you type. The page works without this. */
+(function () {
+  var i = document.querySelector('#hn-search input[type=search]');
+  if (i) i.addEventListener('input', function () {
+    var q = i.value.toLowerCase().trim();
+    document.querySelectorAll('.hn-card').forEach(function (r) {
+      r.hidden = !!q && r.textContent.toLowerCase().replace(/\s+/g, ' ').indexOf(q) < 0;
+    });
+  });
+})();
+</script>
 {% endblock %}

@@ -242,6 +242,47 @@ if "--html" in sys.argv:
     out.write_text(page, encoding="utf-8")
     print("wrote", out)
 
+# --- page search -----------------------------------------------------------
+def srch(qs):
+    t = client.get(f"/v/{VIN}/sensors{qs}").text
+    sec = re.search(r'id="sens-results".*?</section>', t, re.S)
+    return t, (sec.group(0) if sec else "")
+
+
+t, sec = srch("?q=wssfl")
+check('href="#sensor-wssfl"' in sec and "1 match for" in sec, "search by id jumps to the sensor card")
+check('id="sensor-wssfl"' in t and 'id="sens-search"' in t and 'type="search"' in t, "search box + card present")
+t, sec = srch("?q=oxygen")
+check('href="#sensor-o2f"' in sec, "synonym oxygen finds the O2 sensor")
+t, sec = srch("?q=lambda")
+check('href="#sensor-o2f"' in sec, "synonym lambda finds the O2 sensor")
+t, sec = srch("?q=kpa")
+check('href="#sensor-map"' in sec and "o2f" not in sec, "unit kPa finds the manifold pressure sensor")
+t, sec = srch("?q=pressure")
+check('href="#sensor-map"' in sec, "synonym pressure finds manifold pressure")
+t, sec = srch("?q=P0131")
+check('href="#sensor-o2f"' in sec, "attached code finds the sensor")
+t, sec = srch("?q=dead")
+check('href="#sensor-wssfl"' in sec and "wssfr" not in sec, "status word dead finds the red sensor")
+t, sec = srch("?q=abs")
+check('href="#sensor-wssfl"' in sec and 'href="#sensor-wssfr"' in sec, "synonym abs finds the wheel sensors")
+t, sec = srch("?q=wheel+brakes")
+check("wssfl" in sec and "map" not in sec.replace("wheel", ""), "two words must both hit")
+t, sec = srch("?q=engine+bay")
+check("#sensor-eb0" in sec and "#sensor-map" in sec, "zone words found")
+t, sec = srch("?q=zzzz")
+check("No match for" in sec and "Try a part or system word" in sec and "Clear search" in t, "no-match hint + clear link")
+t, sec = srch("?q=<script>alert(1)</script>")
+check("<script>alert(1)" not in t and "&lt;script&gt;" in t, "query is escaped")
+t, sec = srch("?q=wheel&status=red")
+check('href="#sensor-wssfl"' in sec and "wssfr" not in sec and 'name="status" value="red"' in t, "q combined with status filter")
+t, sec = srch("?q=wheel&system=Engine")
+check("No match for" in sec and "filter is also on" in sec, "q combined with system filter, no hit")
+t, sec = srch("?q=wheel")
+check("status=red&amp;q=wheel" in t or "status=red&q=wheel" in t, "status chips keep q")
+check(client.get(f"/v/{VIN}/sensors?q=" + "x" * 500).status_code == 200, "long q is safe")
+check('id="sens-results"' not in client.get(f"/v/{VIN}/sensors").text, "no results block without q")
+
 print(f"{passed}/{passed + len(failures)} checks passed")
 for f in failures:
     print("FAIL:", f)

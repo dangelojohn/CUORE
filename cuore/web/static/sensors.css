@@ -106,3 +106,14 @@
 .sens-view { margin: 0 0 1rem; }
 .sens-view figcaption { font-size: .85rem; color: var(--ink-3, #666); margin: .25rem 0; }
 .sens-credit { font-size: .72rem; color: var(--ink-3, #777); margin: .15rem 0 0; }
+
+/* page search (same look as the Fuses page search) */
+.sens-search { position: sticky; top: 0; z-index: 5; background: var(--bg, var(--surface)); padding: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.sens-search input[type=search] { flex: 1 1 220px; min-height: var(--tap, 44px); box-sizing: border-box; padding: 0 12px; font-size: 16px; }
+.sens-search button, .sens-search a { min-height: var(--tap, 44px); display: inline-flex; align-items: center; padding: 0 14px; font-size: 16px; }
+.sens-results { background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius, 3px); margin: 0 0 16px; }
+.sens-results h2 { font-size: var(--fs-md, 16px); margin: 0; padding: 8px 12px; }
+.sens-results a { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: center; min-height: var(--tap, 44px); padding: 6px 12px; border-top: 1px solid var(--rule-soft, var(--rule)); color: var(--ink); text-decoration: none; font-size: 16px; }
+.sens-results a b { font-family: var(--mono); min-width: 40px; }
+.sens-more { padding: 0 12px 8px; margin: 0; }
+.sens-row[hidden] { display: none; }

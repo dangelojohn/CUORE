@@ -112,6 +112,40 @@ check(f"/v/{VIN}/harnesses" in client.get(f"/v/{VIN}/electrical").text, "electri
 tabs = (ROOT / "cuore/web/templates/_vtabs.html").read_text(encoding="utf-8")
 check('vtab("harnesses"' in tabs, "More list has Harnesses")
 
+# --- page search -----------------------------------------------------------
+def hsrch(qs):
+    t = client.get(f"/v/{VIN}/harnesses{qs}").text
+    m = re.search(r'id="hn-results".*?</section>', t, re.S)
+    return t, (m.group(0) if m else "")
+
+
+t, sec = hsrch("?q=ac-module")
+check('href="#harness-ac-module"' in sec and "1 match for" in sec and 'id="harness-ac-module"' in t, "search by id jumps to the card")
+check('id="hn-search"' in t and 'type="search"' in t, "search box at the top")
+t, sec = hsrch("?q=door")
+check('href="#harness-front-door-left"' in sec, "door finds the door harness")
+t, sec = hsrch("?q=headlight")
+check('href="#harness-headlamp-to-dash"' in sec, "synonym headlight finds headlamp harness")
+t, sec = hsrch("?q=air+conditioning")
+check('href="#harness-ac-module"' in sec, "synonym air conditioning finds the A/C module")
+t, sec = hsrch("?q=hvac")
+check('href="#harness-ac-module"' in sec, "synonym hvac finds the A/C module")
+t, sec = hsrch("?q=instrument+panel")
+check('href="#harness-instrument-panel"' in sec, "instrument panel found")
+t, sec = hsrch("?q=dash")
+check('href="#harness-instrument-panel"' in sec, "synonym dash finds instrument panel")
+t, sec = hsrch("?q=seat")
+check('href="#harness-seat-left"' in sec, "seat found")
+t, sec = hsrch("?q=door+seat")
+check("No match for" in sec, "both words must hit")
+t, sec = hsrch("?q=zzzz")
+check("No match for" in sec and "Try an area or part word" in sec and "Clear search" in t, "no-match hint + clear link")
+t, sec = hsrch("?q=<img src=x onerror=1>")
+check("<img src=x" not in t and "&lt;img" in t, "query is escaped")
+check(client.get(f"/v/{VIN}/harnesses?q=" + "x" * 500).status_code == 200, "long q is safe")
+check('id="hn-results"' not in client.get(f"/v/{VIN}/harnesses").text, "no results block without q")
+check(len(re.findall(r'class="hn-card"', client.get(f"/v/{VIN}/harnesses?q=door").text)) == 9, "cards stay without JavaScript")
+
 print(f"{passed} passed, {len(failures)} failed")
 for f in failures:
     print("FAIL:", f)

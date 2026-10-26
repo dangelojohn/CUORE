@@ -5,8 +5,30 @@
 <link rel="stylesheet" href="{{ static_url('sensors.css') }}">
 {% set base = "/v/" ~ vin ~ "/sensors" %}
 <div class="sens-page">
+<form class="sens-search" id="sens-search" method="get" action="{{ base }}" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search: oxygen, tyre, coolant, wheel speed, P0131" aria-label="Search the sensors on this page" maxlength="80">
+  {% if status_f %}<input type="hidden" name="status" value="{{ status_f }}">{% endif %}
+  {% if system_f %}<input type="hidden" name="system" value="{{ system_f }}">{% endif %}
+  <button type="submit">Search</button>
+  {% if q %}<a href="{{ clear_href }}">Clear search</a>{% endif %}
+</form>
+
 <h1>Sensor health</h1>
 <p class="lede">Every sensor of the car, placed by zone on a side view, coloured by what CUORE last read. Dots show the area, not an exact spot.</p>
+
+{% if q %}
+<section class="sens-results" id="sens-results" aria-label="Search results">
+  {% if results %}
+  <h2>{{ results|length }} match{{ '' if results|length == 1 else 'es' }} for &ldquo;{{ q }}&rdquo;</h2>
+  {% for r in results_shown %}
+    <a href="#sensor-{{ r.id }}"><b>#{{ r.n }}</b><span>{{ r.label }}</span><span class="muted">{{ r.line }}</span></a>
+  {% endfor %}
+  {% if results|length > results_shown|length %}<p class="muted sens-more">Showing the first {{ results_shown|length }}. Add a word to narrow it.</p>{% endif %}
+  {% else %}
+  <h2>No match for &ldquo;{{ q }}&rdquo;. {{ no_match_hint }}{% if status_f or system_f %} The status or system filter is also on.{% endif %}</h2>
+  {% endif %}
+</section>
+{% endif %}
 
 {% if msg %}<p class="sens-msg" role="status">{{ msg }}</p>{% endif %}
 {% if error %}<p class="sens-msg" role="alert">{{ error }}</p>{% endif %}
@@ -133,4 +155,16 @@
 {% endfor %}
 {% endfor %}
 </div>
+<script>
+/* Optional: filter the cards as you type. The page works without this. */
+(function () {
+  var i = document.querySelector('#sens-search input[type=search]');
+  if (i) i.addEventListener('input', function () {
+    var q = i.value.toLowerCase().trim();
+    document.querySelectorAll('.sens-row').forEach(function (r) {
+      r.hidden = !!q && r.textContent.toLowerCase().replace(/\s+/g, ' ').indexOf(q) < 0;
+    });
+  });
+})();
+</script>
 {% endblock %}
