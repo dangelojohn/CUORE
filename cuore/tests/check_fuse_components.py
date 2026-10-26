@@ -78,6 +78,13 @@ check('href="#comp-' in res("servo") and "Motor" in res("servo"), "servo -> moto
 check(any(cp.cat_of(r) == "switch" for r in cp.search("button", rows)), "button -> switch")
 check(any(cp.cat_of(r) == "gauge_display" for r in cp.search("cluster", rows)), "cluster -> gauge/display")
 check(any(cp.cat_of(r) == "lamp" for r in cp.search("bulb", rows)), "bulb -> lamp")
+sv = cp.search("servo", rows)
+check(bool(sv) and all(re.search(r"motor|actuator|servo", r["name"].lower()) and cp.cat_of(r) in ("motor", "actuator", "other") for r in sv),
+      "servo -> only motor/actuator rows by name")
+check(not any(re.search(r"thermostat|injector|coil|compressor|cooling fan", r["name"].lower()) for r in sv), "servo excludes thermostat/injector/coil/compressor/fan")
+check(not any(cp.cat_of(r) in ("solenoid_valve", "pump") for r in sv), "servo excludes solenoids and pumps")
+check(all(cp.cat_of(r) == "switch" or "button" in r["name"].lower() for r in cp.search("button", rows)) and cp.search("button", rows), "button -> switches only")
+check(all(cp.cat_of(r) == "lamp" or "bulb" in r["name"].lower() for r in cp.search("bulb", rows)), "bulb -> lamps only")
 check(bool(cp.search("MultiEcuScan", rows)) or bool(cp.search("brake pedal", rows)), "q finds source text")
 check(bool(cp.search("rear left wheel well", rows)) and bool(cp.search("engine bay", rows)), "q finds area")
 check(bool(cp.search("ECM", rows)), "q finds module")
@@ -167,8 +174,8 @@ for view in ("side", "top"):
     pos = fm.comp_positions(cl, boxes, view)
     check(len(pos) == len([c for c in cl if c["view_area"] in fm._CPOS]), f"{view}: every cluster placed")
     fixed = fm._box_rects(boxes, view)
-    bad = [(p["cluster"]["cat"], n) for p in pos for n, r in fixed if fm._hit(p["rect"], r)]
-    check(not bad, f"{view}: no cluster overlaps a box marker or label {bad}")
+    bad = [(p["cluster"]["cat"], n) for p in pos for n, r in fixed if fm._hit(p["rect"], r, fm._CLEAR)]
+    check(not bad, f"{view}: every cluster keeps >= {fm._CLEAR}px clear of box markers and labels {bad}")
     bad2 = [1 for i, p in enumerate(pos) for q_ in pos[i + 1:] if fm._hit(p["rect"], q_["rect"])]
     check(not bad2, f"{view}: no two clusters overlap")
     rear = [p for p in pos if p["cluster"]["view_area"] == "rear"]
@@ -185,6 +192,11 @@ for view in ("side", "top"):
         else:
             check(199 < p["x"] < 650 and abs(p["y"] - 200) <= 70, "top: underbody on the centre line between the axles")
     check(any(p["label"] == "Underbody" for p in ub), f"{view}: underbody has its own label")
+# the rear box label keeps >= 8 px off the ESIM marker and off the rear tyre (centre 650,269, radius 59)
+import math  # noqa: E402
+_b = [b for b in boxes if b["id"] == "rear_pdc"]
+_lab = [r for n, r in fm._box_rects(_b, "side") if n.startswith("label:")]
+check(all(math.hypot(max(r[0] - 650, 0, 650 - r[2]), max(r[1] - 269, 0, 269 - r[3])) >= 59 + 8 for r in _lab), "side: rear box label 8px clear of the rear tyre")
 svg_s = fm.box_map(boxes, None, comps=cl)
 check(svg_s.count(">Underbody<") == 2, "Underbody label drawn in both views")
 # the nudge really moves a cluster that starts on a label
@@ -225,6 +237,13 @@ check("badge.jpg" not in tp and "alfa-logo.png" not in tp, "fuse page shows no p
 check("/catalog/img/fx/real.jpg" in tp, "fuse page still shows a real part photo")
 pcat.default_id, pcat.load = _sv
 ci._idx["sig"] = None
+
+# Showing chip + theme set before paint
+_t = client.get(f"/v/{VIN}/fuses", params={"cat": "motor", "area": "engine_bay"}).text
+check('id="comp-showing"' in _t and "Showing:" in _t and ">clear</a>" in _t, "?cat=&area= shows a Showing chip with clear")
+check('id="comp-showing"' not in client.get(f"/v/{VIN}/fuses").text, "no Showing chip unfiltered")
+check("of all" in _t, "chip counts labelled of all")
+check(_t.find('localStorage.getItem("cuore-theme")') != -1 and _t.find('localStorage.getItem("cuore-theme")') < _t.find("<link rel=\"stylesheet\""), "saved theme applied in <head> before the stylesheets")
 
 print(f"fuse_components checks: {passed} passed, {len(failures)} failed")
 for f in failures:

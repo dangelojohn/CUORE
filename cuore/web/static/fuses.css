@@ -266,3 +266,6 @@ i.fz-sw { display: inline-block; width: 16px; height: 16px; border-radius: 3px; 
 .fm-comp .fm-hit { fill: transparent; }
 
 .fm-comp .fm-clabel { font-weight: 700; }
+
+.comp-showing { margin: .4rem 0; padding: .25rem .6rem; display: inline-block; border: 1px solid var(--line, currentColor); border-radius: 999px; }
+.comp-ofall { font-size: .85em; margin: .2rem 0; }

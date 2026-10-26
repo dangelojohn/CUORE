@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
 <meta name="theme" content="{{ marque|default('alfa') }}">
+<script>try{var t=localStorage.getItem("cuore-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <title>{% block title %}CUORE{% endblock %}</title>
 <link rel="stylesheet" href="{{ static_url('cuore.css') }}">
 <link rel="stylesheet" href="{{ static_url('flow.css') }}">

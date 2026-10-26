@@ -20,7 +20,7 @@ MARK = {"green": "✓", "orange": "!", "red": "✕", "grey": "?"}
 AREA_BY_ID = {"engine_pdc": "engine", "interior_box": "interior", "rear_pdc": "rear", "luggage_box": "luggage"}
 AREA_BY_ZONE = {"fuse_box_engine_bay": "engine", "fuse_box_interior": "interior", "fuse_box_rear": "rear"}
 # area -> (x, y, label direction) on the side view (left side of the car shown); top view (y before side shift)
-_SIDE = {"engine": (140, 192, "up"), "interior": (384, 222, "down"), "rear": (775, 238, "down"), "luggage": (690, 140, "up")}
+_SIDE = {"engine": (140, 192, "up"), "interior": (384, 222, "down"), "rear": (775, 215, "up"), "luggage": (690, 140, "up")}
 _TOP = {"engine": (140, 200), "interior": (384, 200), "rear": (775, 200), "luggage": (690, 200)}
 _SHIFT = 64
 _HIT, _DOT = 30, 14
@@ -128,7 +128,7 @@ def _ground_strip(grounds: list[dict[str, Any]], w: float, y: float) -> str:
 _CPOS = {
     "engine": {"side": (235, 150, (0, 46, 92, 138)), "top": (235, 200, (0, 46, 92, 138))},
     # over the rear-left wheel arch: side = on the arch above the rear wheel; top = inside the left-rear dashed wheel box
-    "rear": {"side": (650, 222, (0, -44, 44, -88)), "top": (650, 329, (0, -40, 40, -80))},
+    "rear": {"side": (650, 240, (0, -44, 44, -88)), "top": (650, 337, (0, -40, 40, -80))},
     # clear of the sill line and of the interior zone edge
     "underbody": {"side": (440, 314, (0, 46, 92, -46)), "top": (500, 200, (0, 46, 92, -46))},
 }
@@ -136,6 +136,7 @@ _CLABEL = {"underbody": "Underbody"}
 _NUDGE = [(0, 0), (0, -46), (0, 46), (46, 0), (-46, 0), (46, -46), (-46, -46), (46, 46), (-46, 46),
           (0, -92), (0, 92), (92, 0), (-92, 0)]   # fixed order: tried until the cluster is clear
 _CR = 22   # cluster hit radius
+_CLEAR = 8   # minimum gap, in drawing units, between a component marker and any box marker or box label
 
 
 def _cluster_rect(x: float, y: float, label: str = "") -> tuple[float, float, float, float]:
@@ -143,8 +144,9 @@ def _cluster_rect(x: float, y: float, label: str = "") -> tuple[float, float, fl
     return (x - _CR, y - _CR - 8, x + _CR + 10, y + _CR + (24 if label else 0))
 
 
-def _hit(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> bool:
-    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+def _hit(a: tuple[float, float, float, float], b: tuple[float, float, float, float], clear: float = 0.0) -> bool:
+    """True when the boxes overlap or sit closer than ``clear`` units."""
+    return a[0] - clear < b[2] and b[0] - clear < a[2] and a[1] - clear < b[3] and b[1] - clear < a[3]
 
 
 def _box_rects(boxes: list[dict[str, Any]], view: str) -> list[tuple[str, tuple[float, float, float, float]]]:
@@ -173,7 +175,7 @@ def comp_positions(clusters: list[dict[str, Any]], boxes: list[dict[str, Any]], 
         x0, y0, offs = _CPOS[a][view]
         x0 += offs[k % len(offs)]
         if a == "rear" and view == "top":
-            y0 = 71 if c.get("side") == "right" else 329
+            y0 = 63 if c.get("side") == "right" else 337
         elif a != "rear" and view == "top":
             y0 = 200 + {"left": _SHIFT, "right": -_SHIFT}.get(c.get("side") or "", 0)
         label = _CLABEL.get(a, "") if k == 0 else ""
@@ -183,7 +185,7 @@ def comp_positions(clusters: list[dict[str, Any]], boxes: list[dict[str, Any]], 
             r = _cluster_rect(x, y, label)
             if r[0] < 4 or r[2] > w - 4 or r[1] < 4 or r[3] > h:
                 continue
-            if any(_hit(r, f) for f in fixed) or any(_hit(r, o["rect"]) for o in out):
+            if any(_hit(r, f, _CLEAR) for f in fixed) or any(_hit(r, o["rect"]) for o in out):
                 continue
             placed = (x, y, r)
             break

@@ -35,9 +35,26 @@ CATS: dict[str, tuple[str, str, str]] = {
 AREA_WORDS = {"engine_bay": "engine bay", "rear_left_wheel_well": "rear left wheel well", "underbody": "underbody"}
 # area -> view area key used by the car drawing
 AREA_VIEW = {"engine_bay": "engine", "rear_left_wheel_well": "rear", "underbody": "underbody"}
-_SYN = {"servo": ("motor", "actuator"), "button": ("switch",), "bulb": ("lamp", "light"), "light": ("lamp",),
-        "lights": ("lamp",), "gauge": ("gauge", "display", "cluster"), "display": ("gauge", "display"),
-        "cluster": ("cluster", "instrument"), "lamps": ("lamp",), "motors": ("motor",), "switches": ("switch",)}
+# word -> (categories matched wholesale, (name words, cats allowed for a name-word hit; () = any)).
+# A synonym maps to a category or to a word in the component's NAME, never to a broad category by accident.
+_ANY: tuple[str, ...] = ()
+_SYN: dict[str, tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]] = {
+    "servo": ((), ("motor", "actuator", "servo"), ("motor", "actuator", "other")),
+    "motors": ((), ("motor",), ("motor", "actuator", "other")),
+    "button": (("switch",), ("button",), _ANY), "switches": (("switch",), (), _ANY),
+    "bulb": (("lamp",), ("bulb",), _ANY),
+    "light": (("lamp",), ("light",), _ANY), "lights": (("lamp",), ("light",), _ANY), "lamps": (("lamp",), (), _ANY),
+    "gauge": (("gauge_display",), ("gauge",), _ANY), "display": (("gauge_display",), ("display",), _ANY),
+    "cluster": ((), ("cluster", "instrument"), _ANY),
+}
+
+
+def _syn_hit(word: str, r: dict[str, Any]) -> bool:
+    cats, names, allowed = _SYN[word]
+    if cat_of(r) in cats:
+        return True
+    toks = set(re.findall(r"[a-z]+", str(r.get("name") or "").lower()))
+    return bool(toks & set(names)) and (not allowed or cat_of(r) in allowed)
 
 
 def load() -> list[dict[str, Any]]:
@@ -89,11 +106,11 @@ def search(q: str, rows: list[dict[str, Any]], extra_syn: dict[str, tuple[str, .
     words = [w for w in re.sub(r"\s+", " ", (q or "").strip().lower()).split(" ") if w]
     if not words:
         return []
-    syn = {**(extra_syn or {}), **_SYN}
+    extra = extra_syn or {}
     out = []
     for r in rows:
         h = _hay(r)
-        if all(w in h or any(s in h for s in syn.get(w, ())) for w in words):
+        if all(_syn_hit(w, r) if w in _SYN else (w in h or any(s in h for s in extra.get(w, ()))) for w in words):
             out.append(r)
     return out
 

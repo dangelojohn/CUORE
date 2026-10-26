@@ -310,10 +310,12 @@
   <p class="muted">Switches, motors, servos, gauges, lamps, modules and the other electrical parts, each with its own icon and its category in words. Where a part sits is shown only when a source gives it.</p>
   <div class="fuse-chips comp-chips" role="group" aria-label="Show only one category">
     {% for c in comp.chips %}
-      <a class="fuse-chip comp-chip{{ ' on' if c.on }}" href="{{ c.href }}" aria-pressed="{{ 'true' if c.on else 'false' }}">{{ c.icon|safe }}<span>{{ c.label }}</span> <b>{{ c.count }}</b></a>
+      <a class="fuse-chip comp-chip{{ ' on' if c.on }}" href="{{ c.href }}" aria-pressed="{{ 'true' if c.on else 'false' }}">{{ c.icon|safe }}<span>{{ c.label }}</span> <b title="{{ c.count }} of all {{ comp.total }} components">{{ c.count }}</b></a>
     {% endfor %}
     {% if comp.cat_f or comp.area_f %}<a class="fuse-chip all" href="{{ base }}#fuse-components">Show all {{ comp.total }}</a>{% endif %}
   </div>
+  <p class="muted comp-ofall">Chip numbers are of all {{ comp.total }} components, not of the current filter.</p>
+  {% if comp.cat_f or comp.area_f %}<p class="comp-showing" id="comp-showing">Showing: <b>{{ comp.showing }}</b> &middot; <a href="{{ base }}#fuse-components">clear</a></p>{% endif %}
   {% if comp.area_f %}<p class="fuse-gapnote">Only parts in the {{ comp.area_word }}.</p>{% endif %}
   <details class="fuse-fold comp-legend" id="comp-legend">
     <summary>Icon key</summary>

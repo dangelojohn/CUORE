@@ -324,7 +324,8 @@ def _components_ctx(vin: str, cat: str, area: str, q: str, item_ids: set, job_id
                for r in rows if r["id"] in hit_ids] if q else []
     return dict(groups=groups, chips=chips, legend=legend, clusters=list(cl.values()), by_fuse=by_fuse, matches=matches,
                 total=len(rows), shown=len(rows_out), cat_f=cat_f, area_f=area_f,
-                area_word=cp.AREA_WORDS.get(area_f, ""), drawn=sum(e["count"] for e in cl.values()),
+                area_word=cp.AREA_WORDS.get(area_f, ""),
+                showing=" · ".join(x for x in (cp.CATS[cat_f][1] if cat_f else "", cp.AREA_WORDS.get(area_f, "")) if x), drawn=sum(e["count"] for e in cl.values()),
                 sprite=fuse_icons.sprite(), icon=fuse_icons.icon)
 
 
