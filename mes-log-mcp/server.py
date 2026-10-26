@@ -23,7 +23,7 @@ from typing import Any, Optional
 
 from mcp.server.fastmcp import FastMCP
 
-from mes import analysis, catalog, code_feel, compact, csvlog, dtc as dtc_mod, dtc_text, electrical, electrical_inspections, experience, fes, layout_systems, modules, paths, scan
+from mes import analysis, catalog, code_feel, compact, csvlog, dtc as dtc_mod, dtc_text, electrical, electrical_inspections as insp_mod, experience, fes, layout_systems, modules, paths, scan
 from mes import cuore_log
 from mes import cases as cases_mod
 from mes import dealer as dealer_mod
@@ -1088,7 +1088,7 @@ def electrical_inspection_add(vin: str, element: str, condition: str,
     """
     def run():
         ids = [m.strip() for m in media_ids.split(",") if m.strip()]
-        return electrical_inspections.add(vin, element, condition, by=by,
+        return insp_mod.add(vin, element, condition, by=by,
                                            note=note, media_ids=ids)
     return _guard(run)
 
@@ -1102,7 +1102,7 @@ def electrical_inspections(vin: str, element: str = "") -> str:
     list's last row by element.
     """
     def run():
-        rows = electrical_inspections.load(vin=vin, element=element)
+        rows = insp_mod.load(vin=vin, element=element)
         return {"vin": vin, "element": element or None, "count": len(rows),
                 "inspections": rows}
     return _guard(run)
