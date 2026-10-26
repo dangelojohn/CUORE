@@ -85,7 +85,7 @@ def _place(boxes: list[dict[str, Any]], view: str) -> list[tuple[dict[str, Any],
             x, y = _TOP[a]
             y += {"right": -_SHIFT, "left": _SHIFT}.get(b.get("side") or "", 0)
             x += 80 * k
-            d = "down" if y < 200 else "up"
+            d = "down" if y <= 200 else "up"   # centre-line boxes label below, clear of right-side labels
         out.append((b, x, y, d))
     return out
 
