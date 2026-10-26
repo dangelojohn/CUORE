@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Fuse data maintenance — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('sensors.css') }}">
+<link rel="stylesheet" href="{{ static_url('fuses.css') }}">
+<div class="fuse-page" id="fuse-data-top">
+<h1 class="fuse-h1">Fuse data maintenance (owner)</h1>
+<p class="small muted">For the owner, not the mechanic. Only enter what a source names; a source is required. <a href="{{ base }}">Back to fuses &amp; relays</a></p>
+{% if msg %}<p class="fuse-msg" role="status">{{ msg }}</p>{% endif %}
+{% set back = base ~ '/data' %}
+
+<section class="fuse-bottom" aria-label="Maintenance forms">
+  <details class="fuse-fold" id="fuse-add-box">
+    <summary>Add a fuse box</summary>
+    <form class="fuse-form" method="post" action="{{ base }}/box">
+      <label>Short name <input name="short" required placeholder="e.g. Engine bay 2"></label>
+      <label>Area <select name="area" required>{% for k, v in area_choices %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+      <label>Side <select name="side"><option value="unknown">not known</option><option value="left">left</option><option value="right">right</option><option value="centre">centre</option></select></label>
+      <label class="wide">Full name <input name="label" placeholder="as printed or as the manual calls it"></label>
+      <label class="wide">Where it is and how to reach it <input name="where"></label>
+      <label class="wide">Source (required) <input name="source" required placeholder="e.g. seen on this car, owner's manual p. 210, box-cover photo"></label>
+      <label>Entered by <input name="by" placeholder="your name"></label>
+      <button class="wide" type="submit">Add box</button>
+    </form>
+  </details>
+
+  <details class="fuse-fold">
+    <summary>Add a fuse or relay</summary>
+    <form class="fuse-form" method="post" action="{{ base }}/item">
+      <input type="hidden" name="redirect_to" value="{{ back }}">
+      <label>Kind <select name="kind" required><option value="fuse">Fuse</option><option value="relay">Relay</option></select></label>
+      <label>Box <select name="box"><option value="">(not stated)</option>{% for b in boxes %}<option value="{{ b.id }}">{{ b.short }}</option>{% endfor %}</select></label>
+      <label>Position <input name="position" placeholder="e.g. F12"></label>
+      <label>Rating (A) <input name="rating_a" inputmode="decimal"></label>
+      <label>Size / type (fuse) <input name="fuse_type" placeholder="mini, maxi, J-case"></label>
+      <label>Voltage (fuse) <input name="voltage_v" inputmode="decimal"></label>
+      <label>Colour <input name="colour"></label>
+      <label>Relay type <input name="relay_type"></label>
+      <label>Relay number <input name="relay_number"></label>
+      <label>Pin layout <input name="pin_layout" placeholder="30/85/86/87"></label>
+      <label class="wide">Relay orientation <input name="orientation"></label>
+      <label class="wide">What it is (label as printed) <input name="label" required></label>
+      <label class="wide">Modules it feeds, comma separated (only if stated) <input name="feeds_modules" placeholder="BCM, ECM"></label>
+      <label class="wide">Notes <input name="notes"></label>
+      <label class="wide">Source (required) <input name="source" required placeholder="e.g. owner's manual p. 212 table, photo of box cover"></label>
+      <button class="wide" type="submit">Add</button>
+    </form>
+  </details>
+
+  <details class="fuse-fold">
+    <summary>Record type, colour or voltage</summary>
+    <form class="fuse-form" method="post" action="{{ base }}/spec">
+      <input type="hidden" name="redirect_to" value="{{ back }}">
+      <label class="wide">Fuse or relay <select name="item" required>{% for i in items %}<option value="{{ i.id }}">{{ i.position or i.label }} - {{ i.label }}</option>{% endfor %}</select></label>
+      <label>Size / type (fuse) <input name="fuse_type" placeholder="micro2, mini, ATO, maxi, J-case, MIDI"></label>
+      <label>Voltage (V) <input name="voltage_v" inputmode="decimal"></label>
+      <label>Colour <input name="colour"></label>
+      <label>Relay type <input name="relay_type" placeholder="micro, mini, maxi, solid-state"></label>
+      <label>Relay number <input name="relay_number"></label>
+      <label>Pin layout <input name="pin_layout" placeholder="30/85/86/87/87a"></label>
+      <label class="wide">Orientation in the box <input name="orientation" placeholder="which way it faces"></label>
+      <label class="wide">Source (required) <input name="source" required placeholder="read off the part, box cover photo, manual page"></label>
+      <label>Entered by <input name="by"></label>
+      <button class="wide" type="submit">Save details</button>
+    </form>
+  </details>
+
+  <details class="fuse-fold">
+    <summary>Add a photo of a box</summary>
+    <form class="fuse-form" method="post" action="{{ base }}/photo" enctype="multipart/form-data">
+      <input type="hidden" name="redirect_to" value="{{ back }}">
+      <label class="wide">Box <select name="box" required>{% for b in boxes %}<option value="{{ b.id }}">{{ b.short }}</option>{% endfor %}</select></label>
+      <label class="wide">Photo of this box or its cover (jpg, png or webp)
+        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" required></label>
+      <label>What it shows <select name="caption">{% for k in photo_kinds %}<option>{{ k }}</option>{% endfor %}</select></label>
+      <label>Added by <input name="by" placeholder="your name"></label>
+      <button class="wide" type="submit">Save photo</button>
+    </form>
+  </details>
+</section>
+</div>
+{% endblock %}

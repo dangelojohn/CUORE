@@ -7,7 +7,15 @@
       "zone": "fuse_box_engine_bay",
       "location_confidence": "INFERRED",
       "source": "C:/ProgramData/cuore/parts_catalog/stelvio-2018-2.0l/mechanic_electrical.json section electrical--power-distribution-center-fuse-block-junction-block-relays-and-fuses ('There is a rear power distribution center (PDC) as well as engine-bay fusing'; 'fuse 16 (5 A, engine-bay PDM)'); Mopar catalogue catalog.json lists a 'Power Distribution Center Cover' part. Exact position in the engine bay is not stated by any source.",
-      "full_list_sourced": false
+      "full_list_sourced": false,
+      "short": "Engine bay",
+      "side": null,
+      "where": "In the engine bay. Exact position is not stated by any source.",
+      "catalogue_diagram_ids": [
+        "electrical--power-distribution-center-fuse-block-junction-block-relays-and-fuses--1",
+        "electrical--power-distribution-center-fuse-block-junction-block-relays-and-fuses--2"
+      ],
+      "pick_where": "engine bay"
     },
     {
       "id": "interior_box",
@@ -15,7 +23,11 @@
       "zone": "fuse_box_interior",
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, item 'The interior fuse box (passenger side control unit) is in the cabin, passenger side, in the footwell under the glove compartment area' (autouserguide.com search summary; third-party, page itself returned 403, unverified).",
-      "full_list_sourced": false
+      "full_list_sourced": false,
+      "short": "Interior",
+      "side": "right",
+      "where": "Cabin, passenger side (right, left-hand drive), in the footwell under the glove compartment area.",
+      "pick_where": "passenger footwell (right)"
     },
     {
       "id": "rear_pdc",
@@ -23,7 +35,11 @@
       "zone": "fuse_box_rear",
       "location_confidence": "INFERRED",
       "source": "mes-log-mcp/mes/electrical.py element f82, quoting FCA TSB S1808000005 'on GU/Stelvio inspect fuse F82 in the rear PDC'. The TSB gives no panel or cavity; 'rear of car' is the only placement.",
-      "full_list_sourced": false
+      "full_list_sourced": false,
+      "short": "Rear power box",
+      "side": null,
+      "where": "Rear of the car. No panel or cavity is stated.",
+      "pick_where": "rear of the car"
     },
     {
       "id": "luggage_box",
@@ -31,7 +47,11 @@
       "zone": "fuse_box_rear",
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, item 'The luggage-compartment unit lists F22 20 A ... F21 10 A ... F08 30 A ... F01 40 A' (autogenius, third-party, unverified). It is NOT established whether this is the same box as the rear PDC. | Location 'right side of luggage compartment behind side cover' per fuse-box.info (third-party, unverified).",
-      "full_list_sourced": false
+      "full_list_sourced": false,
+      "short": "Luggage",
+      "side": "right",
+      "where": "Right side of the luggage compartment, behind the side cover (third-party, unverified).",
+      "pick_where": "luggage compartment (right)"
     }
   ],
   "items": [
@@ -121,7 +141,9 @@
       "side": null,
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f34_interior",
@@ -137,7 +159,9 @@
       "side": null,
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f36_interior",
@@ -153,7 +177,9 @@
       "side": null,
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed. F36 also supplies the EOBD (diagnostic port) system per that diagram."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed. F36 also supplies the EOBD (diagnostic port) system per that diagram.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f38_interior",
@@ -169,7 +195,9 @@
       "side": null,
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f43_interior",
@@ -185,7 +213,9 @@
       "side": null,
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f47_interior",
@@ -201,7 +231,9 @@
       "side": null,
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f48_interior",
@@ -217,7 +249,9 @@
       "side": null,
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f94_interior",
@@ -233,7 +267,9 @@
       "side": null,
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating not listed in the source.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f01_luggage",
@@ -249,7 +285,9 @@
       "side": "right",
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed.",
+      "fuse_type": "MAXI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f08_luggage",
@@ -265,7 +303,9 @@
       "side": "right",
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed.",
+      "fuse_type": "FMX/JCase",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f21_luggage",
@@ -281,7 +321,9 @@
       "side": "right",
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f22_luggage",
@@ -297,7 +339,9 @@
       "side": "right",
       "location_confidence": "INFERRED",
       "source": "docs/maintenance/DIGITAL_REAR_VIEW_MIRROR_INSTALL.md, 'Fuse and circuit facts found' (third-party 2018 Stelvio diagram, autogenius.info/?p=15692, not an FCA document, unverified)",
-      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed."
+      "notes": "third-party diagram, unverified; confirm against the owner's manual or the box cover. Which modules it feeds is not sourced; rating as listed.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f1_luggage",
@@ -313,7 +357,9 @@
       "side": "right",
       "location_confidence": "INFERRED",
       "source": "startmycar.com/alfa-romeo/stelvio/info/fusebox/2018 (third-party page that cites the 2018 Owner's Manual), rating cross-checked on fuse-box.info/alfa-romeo/alfa-romeo-stelvio-2017-2019-fuses; official manual could not be read (403).",
-      "notes": "Trailer / tow circuit: only populated on cars with the tow package; not confirmed on this car."
+      "notes": "Trailer / tow circuit: only populated on cars with the tow package; not confirmed on this car.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f2_luggage",
@@ -329,7 +375,9 @@
       "side": "right",
       "location_confidence": "INFERRED",
       "source": "startmycar.com/alfa-romeo/stelvio/info/fusebox/2018 (third-party page that cites the 2018 Owner's Manual), rating cross-checked on fuse-box.info/alfa-romeo/alfa-romeo-stelvio-2017-2019-fuses; official manual could not be read (403).",
-      "notes": "Trailer / tow circuit: only populated on cars with the tow package; not confirmed on this car."
+      "notes": "Trailer / tow circuit: only populated on cars with the tow package; not confirmed on this car.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f3_luggage",
@@ -345,7 +393,9 @@
       "side": "right",
       "location_confidence": "INFERRED",
       "source": "startmycar.com/alfa-romeo/stelvio/info/fusebox/2018 (third-party page that cites the 2018 Owner's Manual), rating cross-checked on fuse-box.info/alfa-romeo/alfa-romeo-stelvio-2017-2019-fuses; official manual could not be read (403).",
-      "notes": "Trailer / tow circuit: only populated on cars with the tow package; not confirmed on this car."
+      "notes": "Trailer / tow circuit: only populated on cars with the tow package; not confirmed on this car.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     },
     {
       "id": "f4_luggage",
@@ -361,7 +411,9 @@
       "side": "right",
       "location_confidence": "INFERRED",
       "source": "startmycar.com/alfa-romeo/stelvio/info/fusebox/2018 (third-party page that cites the 2018 Owner's Manual), rating cross-checked on fuse-box.info/alfa-romeo/alfa-romeo-stelvio-2017-2019-fuses; official manual could not be read (403).",
-      "notes": "Trailer / tow circuit: only populated on cars with the tow package; not confirmed on this car."
+      "notes": "Trailer / tow circuit: only populated on cars with the tow package; not confirmed on this car.",
+      "fuse_type": "MINI",
+      "fuse_type_source": "startmycar.com 2018 Stelvio fuse page (third-party, cites the 2018 Owner's Manual)"
     }
   ],
   "catalogue_parts": {

@@ -4,139 +4,271 @@
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('sensors.css') }}">
 <link rel="stylesheet" href="{{ static_url('fuses.css') }}">
-<div class="fuse-page">
-<h1>Fuses &amp; relays</h1>
-<p class="lede">Every fuse and relay CUORE can source, placed by area on a side view and coloured by evidence. Dots show the box area, not the exact spot. Reading this page never touches the car.</p>
+{% macro testbtns(item_id, kind, back) %}
+  {% set lab = tested_label(kind) %}
+  <form class="fuse-testbtns" method="post" action="{{ base }}/check" aria-label="Record a test result">
+    <input type="hidden" name="item" value="{{ item_id }}">
+    <input type="hidden" name="method" value="visual">
+    <input type="hidden" name="blown_note" value="{{ lab[1] }}">
+    <input type="hidden" name="redirect_to" value="{{ back }}">
+    <button type="submit" name="result" value="ok">{{ lab[0] }}</button>
+    <button type="submit" name="result" value="blown">{{ lab[1] }}</button>
+  </form>
+{% endmacro %}
+<div class="fuse-page" id="fuse-map-top">
+<form class="fuse-search" id="fuse-search" method="get" action="{{ base }}" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search this page: F47, rear window, 15A, G003" aria-label="Search fuses, relays, boxes and grounds" maxlength="80">
+  {% if status_f %}<input type="hidden" name="status" value="{{ status_f }}">{% endif %}
+  {% if box_f %}<input type="hidden" name="box" value="{{ box_f }}">{% endif %}
+  <button type="submit">Search</button>
+  {% if q %}<a href="{{ base }}{{ '?status=' ~ status_f if status_f }}">Clear search</a>{% endif %}
+</form>
+{% if q %}
+<section class="fuse-results" id="fuse-results" aria-label="Search results">
+  <h2>{{ results|length }} match{{ '' if results|length == 1 else 'es' }} for &ldquo;{{ q }}&rdquo;</h2>
+  {% for r in results %}
+    <a href="{{ r.href }}"><b>{{ r.ref }}</b><span>{{ r.kind }} · {{ r.where }}</span><span class="small muted">{{ r.text }}</span></a>
+  {% endfor %}
+</section>
+{% endif %}
+
+<h1 class="fuse-h1">Fuses &amp; relays</h1>
 
 {% if msg %}<p class="fuse-msg" role="status">{{ msg }}</p>{% endif %}
 {% if error %}<p class="fuse-msg" role="alert">{{ error }}</p>{% endif %}
 
-<div class="fuse-chips" role="group" aria-label="Filter by status">
+<p class="fuse-call" id="fuse-call">{{ call }}</p>
+{% if job_matches %}<p class="small muted">{{ 'Linked by circuit name' if job_matches[0].via.endswith('name') else "Linked by CUORE's electrical path" }}; from this car's open symptoms and current codes.</p>{% endif %}
+{% for line in call_more %}<p class="fuse-call-more">{{ line }}</p>{% endfor %}
+
+{% if job_matches or job_grounds %}
+<section class="fuse-jobs" id="fuse-for-job" aria-labelledby="fuse-job-h">
+  <h2 id="fuse-job-h">For this job</h2>
+  {% for m in job_matches %}
+  <article class="fuse-jobcard fuse-{{ m.status }}">
+    <h3>{{ m.ref }} <span class="fuse-chipl">{{ m.kind }}</span> <span class="fuse-chipl">{{ m.via }}</span></h3>
+    <p>{{ m.box }}{% if m.where %} ({{ m.where }}){% endif %} · {% if m.rating %}{{ '%g' % m.rating }} A{% else %}A not sourced{% endif %}
+      · {{ m.type or 'type not sourced' }}
+      · {% if m.colour %}<i class="fz-sw {{ colour_class(m.colour) }}" aria-hidden="true"></i>{{ m.colour }}{% if m.colour_derived %} (standard){% endif %}{% else %}colour not sourced{% endif %}</p>
+    <p>Circuit: {{ m.circuit }}</p>
+    {% for w in m.why %}<p class="small muted">{{ plain(w) }}</p>{% endfor %}
+    <a class="jump" href="#fuse-{{ m.anchor }}">Go to its row</a>
+  </article>
+  {% endfor %}
+  {% for g in job_grounds %}
+  <article class="fuse-jobcard">
+    <h3>{{ g.name }} <span class="fuse-chipl">ground</span> <span class="fuse-chipl">linked by CUORE's electrical path</span></h3>
+    <p>{{ g.where }}</p>
+    <a class="jump" href="#ground-{{ g.id }}">Go to this ground</a>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+<div class="fuse-chips" id="fuse-chips" role="group" aria-label="Show only one status">
   {% for k in ("green", "orange", "red", "grey") %}
     <a class="fuse-chip fuse-{{ k }}{{ ' on' if status_f == k }}" href="{{ chip_href[k] }}"
-       title="{{ status_label[k] }}"><b>{{ status_mark[k] }}</b> {{ counts[k] }} {{ status_label[k] }}</a>
+       aria-pressed="{{ 'true' if status_f == k else 'false' }}"><b>{{ status_mark[k] }}</b> {{ counts[k] }} {{ status_label[k] }}</a>
   {% endfor %}
   {% if status_f or box_f %}<a class="fuse-chip all" href="{{ base }}">Show all {{ total }}</a>{% endif %}
 </div>
 
-{% if boxes %}
-<div class="fuse-boxes" aria-label="Filter by fuse box">
-  <span class="muted">Box:</span>
-  {% for b in boxes %}<a class="{{ 'on' if box_f == b.id }}" href="{{ box_href[b.id] }}">{{ b.label }}</a>{% endfor %}
-</div>
-{% endif %}
-
-<div class="sens-map fuse-map">
-  {% if drawn and svg %}
-    {{ svg|safe }}
-    <p class="sens-legend">
-      <span class="sens-green"><i></i>OK</span>
-      <span class="sens-orange"><i></i>Suspect / fault</span>
-      <span class="sens-red"><i></i>Blown / dead</span>
-      <span class="sens-grey"><i class="hollow"></i>No evidence yet</span>
-      <span>B = a fuse box (red/orange if any fuse inside is; green only if all are)</span>
-      <span><i class="dashed"></i>Dashed ring = box area inferred</span>
-    </p>
-  {% else %}
-    <p class="muted small">The side-view drawing is not available yet, so here is a plain list of what is in each area.</p>
-    <ul class="fuse-plain">
-      {% for g in groups %}<li><b>{{ g.box.label }}</b>: {% for i in g.rows %}<a class="fuse-{{ i.status }}" href="#fuse-{{ anchor(i.id) }}">{{ i.position or i.label }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</li>{% endfor %}
-    </ul>
-  {% endif %}
-</div>
-
-<section class="panel fuse-gaps" aria-labelledby="fuse-gaps-h">
-  <h2 id="fuse-gaps-h">Not sourced yet</h2>
-  <ul>
-    {% for g in gaps %}<li>{{ g }}</li>{% endfor %}
-  </ul>
-  <p><b>Please add:</b> the owner's manual fuse table, or photos of each box cover (engine bay, interior footwell, rear/luggage compartment). Then use "Add a fuse or relay" at the bottom of this page.</p>
-</section>
-
-{% if unplaced %}
-<section class="panel fuse-tray">
-  <h2>Not on the drawing ({{ unplaced|length }})</h2>
-  <p class="small muted">No location is sourced for these.</p>
-  <ul>{% for i in unplaced %}<li class="fuse-{{ i.status }}"><a href="#fuse-{{ anchor(i.id) }}">{{ i.label }}</a></li>{% endfor %}</ul>
-</section>
-{% endif %}
-
-{% if not total %}
-  <p class="panel muted">No fuses or relays are sourced for this car yet.</p>
-{% elif not shown %}
-  <p class="panel muted">Nothing matches this filter. <a href="{{ base }}">Show all</a></p>
-{% endif %}
-
-{% for g in groups %}
-<h2 class="fuse-group">{{ g.box.label }} <span class="muted small">({{ g.rows|length }}{% if g.box.id != 'none' %}{% if not g.box.full_list_sourced %}, list incomplete{% endif %}{% endif %})</span></h2>
-<p class="small muted">{% if g.box.location_confidence %}Location <span class="fuse-conf">[{{ g.box.location_confidence }}]</span> · {% endif %}Source: {{ g.box.source }}</p>
-{% if not g.box.full_list_sourced and g.box.id != 'none' %}<p class="small fuse-warn">Full fuse list not sourced yet &mdash; add the owner's manual fuse table or photos of the box cover.</p>{% endif %}
-{% for i in g.rows %}
-{% set st = i.status if i.status in status_label else "grey" %}
-<article class="fuse-row" id="fuse-{{ anchor(i.id) }}">
-  <span class="n">#{{ numbers[i.id] }}</span>
-  <span class="fuse-st fuse-{{ st }}">{{ status_mark[st] }} {{ status_label[st] }}</span>
-  <div class="fuse-body">
-    <h3>{{ i.position or "" }}{% if i.position %} &middot; {% endif %}{{ i.label }}</h3>
-    <p class="small muted">{{ i.kind|capitalize }}{% if i.rating_a %} · {{ '%g' % i.rating_a }} A{% else %} · rating not sourced{% endif %}
-      {% if i.part_numbers %} · part {{ i.part_numbers|join(", ") }}{% endif %}
-      {% if i.added_by_technician %} · <b>added by technician</b>{% endif %}</p>
-    <p class="small">Feeds:
-      {% if i.feeds_modules %}{% for m in i.feeds_modules %}<a href="/v/{{ vin }}/network">{{ m }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
-      {% else %}<span class="muted">no module sourced</span>{% endif %}</p>
-    <ul>{% for r in i.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
-    {% if i.codes %}<p class="small">Codes: {% for c in i.codes %}<a href="/v/{{ vin }}/code/{{ c.split('-')[0]|urlencode }}">{{ c }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
-    {% if i.evidence %}
-    <details class="small"><summary>Evidence ({{ i.evidence|length }})</summary>
-      <ul>{% for e in i.evidence %}<li><span class="muted">{{ e.at or "?" }}</span> [{{ e.kind }}] {{ e.text }}</li>{% endfor %}</ul>
-    </details>
-    {% endif %}
-    {% if i.notes %}<p class="small">{{ i.notes }}</p>{% endif %}
-    <p class="small muted">Location: {{ i.zone or "not placed" }}{% if i.side %} ({{ i.side }}){% endif %}
-      <span class="fuse-conf">[{{ i.location_confidence or "UNKNOWN" }}]</span><br>Source: {{ i.source }}</p>
-    <details>
-      <summary class="small">Record a check</summary>
-      <form class="fuse-form" method="post" action="{{ base }}/check">
-        <input type="hidden" name="item" value="{{ i.id }}">
-        <input type="hidden" name="redirect_to" value="{{ base }}#fuse-{{ anchor(i.id) }}">
-        <label>Result
-          <select name="result" required><option value="ok">OK</option><option value="suspect">Suspect</option><option value="blown">Blown / open / no voltage</option></select></label>
-        <label>Method
-          <select name="method" required><option value="visual">Visual</option><option value="continuity">Continuity</option><option value="voltage_drop">Voltage drop</option><option value="voltage">Voltage</option></select></label>
-        <label>Value <input name="value" inputmode="decimal"></label>
-        <label>Unit <input name="unit" placeholder="V, mV, ohm"></label>
-        <label>Limit (voltage drop) <input name="limit" inputmode="decimal"></label>
-        <label class="wide">Note <input name="note"></label>
-        <button class="wide" type="submit">Save check</button>
-      </form>
-    </details>
+<section class="fuse-pick" aria-labelledby="fuse-pick-h">
+  <h2 id="fuse-pick-h">Which box?</h2>
+  <div class="fuse-picks">
+    {% for s in secs %}
+      <a class="fuse-pickbtn fuse-{{ s.status }}" href="#fuse-box-{{ anchor(s.id) }}">
+        <b>{{ s.short }}</b>
+        <span>{% if s.id == 'none' %}box not stated{% else %}{{ s.pick_where or 'where: not sourced' }}{% endif %}</span>
+        <i>{{ status_mark[s.status] }} {{ s.count }} listed</i>
+      </a>
+    {% endfor %}
+    <a class="fuse-pickbtn" href="#fuse-grounds"><b>Grounds</b><span>G003A, G003B, ESIM, battery strap</span><i>{{ grounds|length }} listed</i></a>
   </div>
-</article>
-{% endfor %}
-{% endfor %}
+</section>
 
-{% if parts and parts.parts %}
-<details class="fuse-parts">
-  <summary>Fuse and relay part types in the Mopar catalogue ({{ parts.parts|length }})</summary>
-  <p class="small muted">{{ parts.source }}</p>
-  <ul class="small">{% for p in parts.parts %}<li><code>{{ p.pn }}</code> {{ p.name }}{% if p.description and p.description != p.name %} &mdash; {{ p.description }}{% endif %}</li>{% endfor %}</ul>
-</details>
+{% if svg %}
+<section class="fuse-mapbox" id="fuse-map" aria-label="Where the fuse boxes are">
+  {{ svg|safe }}
+  <p class="fuse-note">One marker per box, not per fuse. Marker colour and mark show the worst fuse inside (<b>✓</b> OK, <b>!</b> suspect, <b>✕</b> blown, <b>?</b> not checked). Positions are drawn by area, not measured. The ground symbols under the car link to the grounds section; their positions are not sourced.</p>
+</section>
 {% endif %}
 
-<section class="panel fuse-add">
-  <h2>Add a fuse or relay from the box cover / manual</h2>
-  <p class="small muted">Only enter what you can read off the cover, the manual or a photo, and say where. A source is required; nothing is saved without one.</p>
-  <form class="fuse-form" method="post" action="{{ base }}/item">
-    <label>Kind <select name="kind" required><option value="fuse">Fuse</option><option value="relay">Relay</option></select></label>
-    <label>Box <select name="box"><option value="">(not stated)</option>{% for b in boxes %}<option value="{{ b.id }}">{{ b.label }}</option>{% endfor %}</select></label>
-    <label>Position <input name="position" placeholder="e.g. F12"></label>
-    <label>Rating (A) <input name="rating_a" inputmode="decimal"></label>
-    <label class="wide">What it is (label as printed) <input name="label" required></label>
-    <label class="wide">Modules it feeds, comma separated (only if stated) <input name="feeds_modules" placeholder="BCM, ECM"></label>
-    <label class="wide">Notes <input name="notes"></label>
-    <label class="wide">Source (required) <input name="source" required placeholder="e.g. owner's manual p. 212 table, photo of interior box cover 2026-10-25"></label>
-    <button class="wide" type="submit">Add</button>
-  </form>
+{% if not total and not secs %}
+  <p class="panel muted">No fuses or relays are sourced for this car yet.</p>
+{% endif %}
+
+{% for s in secs %}
+{% set bid = anchor(s.id) %}
+<section class="fuse-box fuse-{{ s.status }}" id="fuse-box-{{ bid }}" aria-labelledby="fuse-box-{{ bid }}-h">
+  <h2 id="fuse-box-{{ bid }}-h">{{ s.short }}
+    <span class="fuse-st fuse-{{ s.status }}">{{ status_mark[s.status] }} {{ s.status_word }}</span></h2>
+  <p class="fuse-back"><a href="#fuse-map-top">Back to the map</a></p>
+
+  <div class="fuse-inset">
+    <dl class="fuse-facts">
+      <div><dt>Full name</dt><dd>{{ s.label_plain }}{% if s.added_by_technician %} <span class="fuse-tag">added by a technician</span>{% endif %}</dd></div>
+      {% if s.id != 'none' %}
+      <div><dt>Where</dt><dd>{{ s.where_plain or "Not sourced yet." }}</dd></div>
+      <div><dt>Side</dt><dd>{{ s.side_word }}</dd></div>
+      <div><dt>How sure</dt><dd>{{ s.how_sure }}</dd></div>
+      {% endif %}
+      <div><dt>Listed</dt><dd>{{ s.count }} fuses and relays; {{ s.list_word }}.</dd></div>
+      <div><dt>Source</dt><dd class="small">{{ s.source_plain }}</dd></div>
+    </dl>
+  </div>
+
+  {% if s.id != 'none' %}
+  <div class="fb-media">
+    <div class="fb-left">
+      <div class="fb-photo">
+        {% if s.photos %}
+          {% set main = s.photos[-1] %}
+          <a href="{{ base }}/photo/{{ s.id }}/{{ main.name }}" target="_blank" rel="noopener"><img class="fb-main" src="{{ base }}/photo/{{ s.id }}/{{ main.name }}" alt="Photo of {{ s.short }}" loading="lazy"></a>
+          <p class="small">Photo added by {{ main.by or "a technician" }}{% if main.at %} on {{ main.at[:10] }}{% endif %}{% if main.caption %} · {{ main.caption }}{% endif %}</p>
+          {% if s.photos|length > 1 %}
+          <div class="fb-thumbs">{% for ph in s.photos|reverse %}<a href="{{ base }}/photo/{{ s.id }}/{{ ph.name }}" target="_blank" rel="noopener" title="{{ ph.caption or 'Photo' }} · {{ ph.by }} · {{ ph.at[:10] }}"><img src="{{ base }}/photo/{{ s.id }}/{{ ph.name }}" alt="{{ ph.caption or 'Photo' }}" loading="lazy"><span>{{ ph.caption or "Photo" }}</span></a>{% endfor %}</div>
+          {% endif %}
+        {% else %}
+          <p class="small muted">No photo of this box on file</p>
+        {% endif %}
+      </div>
+
+      {% for d in s.diagrams %}
+      <figure class="fb-cat">
+        <a href="/catalog/d/{{ d.id }}"><img src="/catalog/img/{{ d.cid }}/{{ d.file }}" alt="Mopar parts diagram: {{ d.title }}" loading="lazy"></a>
+        <figcaption class="small">Mopar parts diagram (catalogue) - part layout, not a fuse map, and not a photo of this car. <a href="/catalog/d/{{ d.id }}">Open in the catalogue</a></figcaption>
+      </figure>
+      {% endfor %}
+    </div>
+
+    <div class="fb-right">
+      {% if s.slots %}
+        {{ s.slots|safe }}
+        <p class="small fb-slotnote">{% if s.slots_from_layout %}Slots placed from layout data.{% else %}{{ s.slot_note }}.{% endif %}</p>
+      {% else %}
+        <p class="muted small">No fuses or relays are listed for this box yet, so there is no slot drawing.</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <h3 class="fuse-rows-h">Fuses and relays in this box</h3>
+  <div class="fuse-inset fuse-list">
+  {% for i in s.rows %}
+  <details class="fuse-row" id="fuse-{{ i.anchor }}">
+    {% set sp = i.spec %}
+    <summary>
+      <span class="r-pos">{{ i.position or "—" }}</span>
+      <span class="r-type">{% if sp.type %}{{ sp.type }}{% elif i.kind == 'relay' %}relay, type not sourced{% else %}type not sourced{% endif %}</span>
+      <span class="r-amp">{% if i.rating_a %}{{ '%g' % i.rating_a }} A{% else %}A ?{% endif %}</span>
+      <span class="r-col">{% if sp.colour %}<i class="fz-sw {{ colour_class(sp.colour) }}" aria-hidden="true"></i>{{ sp.colour }}{% if sp.colour_derived %} <small>(standard)</small>{% endif %}{% else %}<small>colour not sourced</small>{% endif %}</span>
+      <span class="r-volt">{% if sp.voltage_v %}{{ sp.voltage_v }} V{% else %}<small>V not sourced</small>{% endif %}</span>
+      <span class="fuse-st fuse-{{ i.status }}">{{ status_mark[i.status] }} {{ i.status_word }}</span>
+      <span class="r-name">{{ i.name }}{% if i.kind == 'relay' %} <em>(relay)</em>{% endif %}</span>
+    </summary>
+    <div class="fuse-body">
+      <p class="small">{{ i.label }}{% if i.added_by_technician %} · <b>added by a technician</b>{% endif %}{% if i.part_numbers %} · part {{ i.part_numbers|join(", ") }}{% endif %}{% if not i.rating_a %} · rating not sourced{% endif %}</p>
+      <dl class="fuse-spec">
+        {% macro sv(val, src) %}{% if val %}{{ val }}{% if src %} <small class="muted">({{ src }})</small>{% endif %}{% else %}<span class="muted">not sourced - read it off the {{ 'relay or the box cover' if i.kind == 'relay' else 'fuse or the box cover' }}</span>{% endif %}{% endmacro %}
+        {% if i.kind == 'relay' %}
+        <div><dt>Description</dt><dd>{{ i.label }}</dd></div>
+        <div><dt>Relay number / position</dt><dd>{{ sv(sp.relay_number, sp.relay_number_source) }}{% if i.position %} · position {{ i.position }}{% endif %}</dd></div>
+        <div><dt>Type</dt><dd>{{ sv(sp.relay_type, sp.relay_type_source) }}</dd></div>
+        <div><dt>Colour</dt><dd>{{ sv(sp.colour, sp.colour_source) }}</dd></div>
+        <div><dt>Pin layout</dt><dd>{{ sv(sp.pin_layout, sp.pin_layout_source) }}</dd></div>
+        <div><dt>Orientation in the box</dt><dd>{{ sv(sp.orientation, sp.orientation_source) }}</dd></div>
+        {% else %}
+        <div><dt>Amps</dt><dd>{% if i.rating_a %}{{ '%g' % i.rating_a }} A{% else %}<span class="muted">not sourced</span>{% endif %}</dd></div>
+        <div><dt>Voltage rating</dt><dd>{{ sv(sp.voltage_v ~ ' V' if sp.voltage_v else '', sp.voltage_source) }}</dd></div>
+        <div><dt>Size / type</dt><dd>{{ sv(sp.type, sp.type_source) }}</dd></div>
+        <div><dt>Colour</dt><dd>{% if sp.colour_derived %}{{ sp.colour }} <small class="muted">({{ sp.colour_source }})</small>{% else %}{{ sv(sp.colour, sp.colour_source) }}{% endif %}</dd></div>
+        {% endif %}
+      </dl>
+      <p class="small">Feeds:
+        {% if i.feeds_modules %}{% for m in i.feeds_modules %}<a href="/v/{{ vin }}/network">{{ m }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
+        {% else %}<span class="muted">no module sourced</span>{% endif %}</p>
+      <ul>{% for r in i.reasons %}<li>{{ plain(r) }}</li>{% endfor %}</ul>
+      {% if i.codes %}<p class="small">Codes: {% for c in i.codes %}<a href="/v/{{ vin }}/code/{{ c.split('-')[0]|urlencode }}">{{ c }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+      {% if i.evidence %}
+      <details class="small"><summary>Evidence ({{ i.evidence|length }})</summary>
+        <ul>{% for e in i.evidence %}<li><span class="muted">{{ e.at or "?" }}</span> [{{ e.kind }}] {{ e.text }}</li>{% endfor %}</ul>
+      </details>
+      {% endif %}
+      {% if i.notes %}<p class="small">{{ plain(i.notes) }}</p>{% endif %}
+      <p class="small muted">How sure of the place: {{ {'SOURCED': 'from a source', 'INFERRED': 'worked out, not checked', 'GENERAL': 'general knowledge', 'UNKNOWN': 'not known'}.get(i.location_confidence or 'UNKNOWN', 'not known') }}<br>Source: {{ plain(i.source) }}</p>
+      {{ testbtns(i.id, i.kind, base ~ '#fuse-' ~ i.anchor) }}
+      <p class="fuse-back"><a href="#fuse-map-top">Back to the map</a> · <a href="#fuse-box-{{ bid }}">Back to this box</a></p>
+    </div>
+  </details>
+  {% else %}
+    <p class="muted small fuse-empty">{% if status_f %}No row in this box is "{{ status_label[status_f] }}".{% else %}Nothing is listed for this box yet.{% endif %}</p>
+  {% endfor %}
+  </div>
 </section>
+{% endfor %}
+
+<section class="fuse-box" id="fuse-grounds" aria-labelledby="fuse-grounds-h">
+  <h2 id="fuse-grounds-h">Grounds</h2>
+  <p class="fuse-back"><a href="#fuse-map-top">Back to the map</a></p>
+  {% for g in grounds %}
+  <article class="fuse-ground" id="ground-{{ g.id }}">
+    <h3>{{ g.name }} <span class="fuse-chipl">ground</span></h3>
+    <div class="fuse-inset">
+      <dl class="fuse-facts">
+        <div><dt>Connects to</dt><dd>{{ g.connects }}</dd></div>
+        <div><dt>Where</dt><dd>{{ g.where }}</dd></div>
+        <div><dt>Source</dt><dd class="small">{{ g.source }}{% if g.applies %} {{ g.applies }}{% endif %}</dd></div>
+        {% if g.part %}<div><dt>Part</dt><dd><code>{{ g.part.pn }}</code> {{ g.part.name }} - {{ g.part.description }} <small class="muted">(Mopar catalogue, {{ g.part.diagram }}, callout {{ g.part.ref }})</small></dd></div>
+        {% elif g.id == 'battery_neg_strap' %}<div><dt>Part</dt><dd class="muted">Part number not available: the parts catalogue is not loaded on this computer.</dd></div>{% endif %}
+        {% if g.owner %}<div><dt>Owner says</dt><dd>{{ g.owner }}</dd></div>{% endif %}
+        <div><dt>Last inspection</dt><dd>{{ g.last or "None on file." }}</dd></div>
+        <div><dt>Test to run</dt><dd>{{ g.test }}{% if g.hint %} Hint: {{ g.hint }}.{% endif %}</dd></div>
+        {% if g.outside %}<div><dt>Outside report</dt><dd class="small">{{ g.outside }}</dd></div>{% endif %}
+      </dl>
+    </div>
+    {{ testbtns(g.id, 'ground', base ~ '#ground-' ~ g.id) }}
+    <p class="fuse-back"><a href="#fuse-map-top">Back to the map</a></p>
+  </article>
+  {% endfor %}
+</section>
+
+<section class="fuse-bottom" aria-label="More">
+  <details class="fuse-fold">
+    <summary>What is not sourced yet</summary>
+    <ul>{% for g in gaps %}<li>{{ g }}</li>{% endfor %}</ul>
+  </details>
+
+  {% if parts and parts.parts %}
+  <details class="fuse-fold fuse-parts">
+    <summary>Fuse and relay part types in the Mopar catalogue ({{ parts.parts|length }})</summary>
+    <p class="small muted">{{ parts.source }}</p>
+    <ul class="small">{% for p in parts.parts %}<li><code>{{ p.pn }}</code> {{ p.name }}{% if p.description and p.description != p.name %} &mdash; {{ p.description }}{% endif %}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+
+  <details class="fuse-fold">
+    <summary>Credits</summary>
+    <p class="small muted">Car outline drawings are shared with the Sensors page (CC-licensed side-view photo, see credit there). Catalogue diagrams are from the Mopar Online Parts catalogue kept on this computer. Reading this page never touches the car.</p>
+  </details>
+</section>
+<p class="fuse-owner"><a href="{{ base }}/data">Owner data maintenance</a></p>
 </div>
+<script>
+/* Optional: filter the lists as you type, and open a row when a link jumps to it. The page works without this. */
+(function () {
+  var i = document.querySelector('#fuse-search input[type=search]');
+  if (i) i.addEventListener('input', function () {
+    var q = i.value.toLowerCase().replace(/(\d)\s+a\b/g, '$1a').trim();
+    document.querySelectorAll('.fuse-row, .fuse-ground').forEach(function (r) {
+      r.hidden = !!q && r.textContent.toLowerCase().replace(/\s+/g, ' ').indexOf(q) < 0;
+    });
+  });
+  function openRow() {
+    var e = location.hash && document.getElementById(location.hash.slice(1));
+    if (e && e.tagName === 'DETAILS') e.open = true;
+  }
+  addEventListener('hashchange', openRow); openRow();
+})();
+</script>
 {% endblock %}

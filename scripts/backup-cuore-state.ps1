@@ -60,7 +60,7 @@ if (-not $SkipCarState) {
         'mes_imports.json', 'mes_clear_watch.json', 'station.json',
         'element_locations.jsonl', 'path_tests.jsonl', 'wiggle_tests.jsonl', 'pin_data.jsonl',
         'sensor_checks.jsonl', 'sensor_ranges.jsonl',
-        'fuse_checks.jsonl', 'fuse_items.jsonl'
+        'fuse_checks.jsonl', 'fuse_items.jsonl', 'fuse_boxes.jsonl', 'fuse_specs.jsonl'
     )
     foreach ($name in $directFiles) {
         $src = Join-Path $StateDir $name

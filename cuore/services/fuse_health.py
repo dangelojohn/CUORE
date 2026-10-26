@@ -24,10 +24,25 @@ from ..live import config as _config
 DATA_FILE = Path(__file__).resolve().parent.parent / "data" / "fuses_stelvio_2018.json"
 CHECKS_FILE = "fuse_checks.jsonl"
 ITEMS_FILE = "fuse_items.jsonl"
+BOXES_FILE = "fuse_boxes.jsonl"
+SPECS_FILE = "fuse_specs.jsonl"
+FUSE_SPEC_FIELDS = ("fuse_type", "voltage_v", "colour")
+RELAY_SPEC_FIELDS = ("relay_type", "relay_number", "pin_layout", "orientation", "colour")
+#: Industry-standard blade-fuse colours by amp rating. NOT a reading of this car.
+STD_BLADE_COLOURS = {2: "grey", 3: "violet", 5: "tan", 7.5: "brown", 10: "red", 15: "blue", 20: "yellow",
+                     25: "clear/white", 30: "green", 35: "blue-grey", 40: "orange"}
+STD_COLOUR_NOTE = "standard colour for this rating - check the fuse itself"
+PHOTO_DIR = "fuse_photos"
+MAX_PHOTO_BYTES = 8 * 1024 * 1024
+PHOTO_TYPES = {".jpg": b"\xff\xd8\xff", ".jpeg": b"\xff\xd8\xff", ".png": b"\x89PNG\r\n\x1a\n", ".webp": b"RIFF"}
+BOX_AREAS = {"engine": ("fuse_box_engine_bay", "Engine bay"), "interior": ("fuse_box_interior", "Interior"),
+             "rear": ("fuse_box_rear", "Rear"), "luggage": ("fuse_box_rear", "Luggage compartment")}
+BOX_SIDES = ("left", "right", "centre", "unknown")
 FULLSCAN_FILE = "fullscan_last.json"
 SENSOR_CHECKS_FILE = "sensor_checks.jsonl"
 
 RESULTS = ("ok", "suspect", "blown")
+GROUND_CHECK_IDS = ("g003a", "g003b", "esim_ground", "battery_neg_strap")  # ground points: same check store
 METHODS = ("visual", "continuity", "voltage_drop", "voltage")
 KINDS = ("fuse", "relay")
 STATUSES = ("green", "orange", "red", "grey")
@@ -84,7 +99,131 @@ def _base() -> dict[str, Any]:
 
 
 def boxes() -> list[dict[str, Any]]:
-    return [dict(b) for b in _base().get("boxes", [])]
+    """Sourced boxes plus technician-added ones (marked, own zone from the area picked)."""
+    out = [dict(b, added_by_technician=False) for b in _base().get("boxes", [])]
+    seen = {b["id"] for b in out}
+    for rec in _read_jsonl(BOXES_FILE):
+        if not rec.get("id") or rec["id"] in seen or not str(rec.get("source") or "").strip():
+            continue
+        seen.add(rec["id"])
+        b = dict(rec)
+        b.setdefault("zone", BOX_AREAS.get(b.get("area"), (None,))[0])
+        b["location_confidence"] = "SOURCED"
+        b["full_list_sourced"] = False
+        b["added_by_technician"] = True
+        out.append(b)
+    return out
+
+
+def add_box(*, short: str, label: str, area: str, side: str, where: str, source: str,
+            by: str = "technician") -> dict[str, Any]:
+    """A technician adds a fuse box. ``source`` is REQUIRED."""
+    short, label = (short or "").strip(), (label or "").strip()
+    if not short:
+        raise ValueError("a short name is required")
+    area = (area or "").strip().lower()
+    if area not in BOX_AREAS:
+        raise ValueError("area must be one of: " + ", ".join(BOX_AREAS))
+    side = (side or "unknown").strip().lower() or "unknown"
+    if side not in BOX_SIDES:
+        raise ValueError("side must be one of: " + ", ".join(BOX_SIDES))
+    source = (source or "").strip()
+    if not source:
+        raise ValueError("a source is required (seen on this car by <name>, owner's manual page, box-cover photo)")
+    box_id = "tech-" + _slug(short)[:40]
+    if any(b["id"] == box_id for b in boxes()):
+        raise ValueError("a box with that short name is already listed")
+    rec = {"id": box_id, "short": short, "label": label or short, "area": area, "zone": BOX_AREAS[area][0],
+           "side": None if side in ("unknown", "centre") else side, "side_word": side,
+           "where": (where or "").strip(), "source": source,
+           "pick_where": BOX_AREAS[area][1].lower() + ("" if side in ("unknown", "centre") else f" ({side})"),
+           "by": (by or "technician").strip() or "technician", "added_at": _now()}
+    _append(BOXES_FILE, rec)
+    return rec
+
+
+def box_diagrams(box: dict[str, Any]) -> list[dict[str, Any]]:
+    """Catalogue diagrams (title, image file) named by the box's ``catalogue_diagram_ids``; read at call
+    time from the catalogue in ProgramData, [] if it is not built here."""
+    ids = box.get("catalogue_diagram_ids") or []
+    if not ids:
+        return []
+    try:
+        from . import parts_catalog
+        cat = parts_catalog.load() or {}
+    except Exception:  # noqa: BLE001
+        return []
+    out = []
+    for did in ids:
+        d = (cat.get("diagrams") or {}).get(did)
+        f = ((d or {}).get("image") or {}).get("file")
+        if d and f:
+            out.append({"id": did, "title": d.get("title", did), "cid": cat.get("id", ""), "file": f})
+    return out
+
+
+# --- box photos (ProgramData\cuoreuse_photos\<VIN>\<box id>\) -------------------
+
+def _safe(part: str, what: str) -> str:
+    part = (part or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", part):
+        raise ValueError(f"bad {what}")
+    return part
+
+
+def photo_dir(vin: str, box: str) -> Path:
+    return _sd() / PHOTO_DIR / _safe(vin, "vin") / _safe(box, "box")
+
+
+def save_photo(vin: str, box: str, filename: str, data: bytes, by: str = "", caption: str = "") -> str:
+    if box not in {b["id"] for b in boxes()}:
+        raise ValueError("unknown fuse box")
+    ext = Path(filename or "").suffix.lower()
+    if ext not in PHOTO_TYPES:
+        raise ValueError("only jpg, png or webp photos are accepted")
+    if not data:
+        raise ValueError("the file is empty")
+    if len(data) > MAX_PHOTO_BYTES:
+        raise ValueError(f"photo is over {MAX_PHOTO_BYTES // (1024 * 1024)} MB")
+    if not data.startswith(PHOTO_TYPES[ext]) or (ext == ".webp" and data[8:12] != b"WEBP"):
+        raise ValueError("that file is not really a " + ext.lstrip(".") + " image")
+    stem = re.sub(r"[^A-Za-z0-9]+", "-", Path(filename).stem).strip("-")[:30] or "photo"
+    d = photo_dir(vin, box)
+    d.mkdir(parents=True, exist_ok=True)
+    name = f"{datetime.now().strftime('%Y%m%d-%H%M%S')}-{uuid.uuid4().hex[:4]}-{stem}{ext}"
+    (d / name).write_bytes(data)
+    (d / (name + ".json")).write_text(json.dumps({"by": (by or "").strip()[:60] or "technician", "at": _now(),
+                                                  "caption": (caption or "").strip()[:80]}), encoding="utf-8")
+    return name
+
+
+def photos(vin: str, box: str) -> list[dict[str, Any]]:
+    """Saved photos of a box, oldest first: ``name, by, at, caption``."""
+    out = []
+    for n in list_photos(vin, box):
+        try:
+            m = json.loads((photo_dir(vin, box) / (n + ".json")).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            m = {}
+        out.append({"name": n, "by": m.get("by") or "", "at": m.get("at") or "", "caption": m.get("caption") or ""})
+    return out
+
+
+def list_photos(vin: str, box: str) -> list[str]:
+    try:
+        d = photo_dir(vin, box)
+        return sorted(p.name for p in d.iterdir() if p.is_file() and p.suffix.lower() in PHOTO_TYPES)
+    except (OSError, ValueError):
+        return []
+
+
+def photo_path(vin: str, box: str, name: str) -> Optional[Path]:
+    try:
+        if name not in list_photos(vin, box):
+            return None
+        return photo_dir(vin, box) / name
+    except ValueError:
+        return None
 
 
 def catalogue_parts() -> dict[str, Any]:
@@ -112,9 +251,72 @@ def catalogue_parts() -> dict[str, Any]:
     return out
 
 
+def is_blade(fuse_type: Any) -> bool:
+    """mini / ATO / micro blade types only (maxi, J-case, MIDI colour coding differs)."""
+    t = str(fuse_type or "").lower()
+    if not t or any(k in t for k in ("maxi", "jcase", "j-case", "fmx", "midi", "mega", "cartridge")):
+        return False
+    return any(k in t for k in ("mini", "ato", "micro", "blade"))
+
+
+def spec(row: dict[str, Any]) -> dict[str, Any]:
+    """What to show for type / colour / voltage (fuse) or type / number / pins / orientation (relay).
+    Empty means not sourced. A colour is DERIVED only for a blade fuse with a known rating."""
+    relay = row.get("kind") == "relay"
+    out: dict[str, Any] = {"relay": relay, "colour": row.get("colour") or "", "colour_derived": False,
+                           "colour_source": row.get("colour_source") or "", "voltage_v": row.get("voltage_v"),
+                           "voltage_source": row.get("voltage_v_source") or ""}
+    if relay:
+        for k in ("relay_type", "relay_number", "pin_layout", "orientation"):
+            out[k] = row.get(k) or ""
+            out[k + "_source"] = row.get(k + "_source") or ""
+        out["type"] = out["relay_type"]
+        out["type_source"] = out["relay_type_source"]
+    else:
+        out["type"] = row.get("fuse_type") or ""
+        out["type_source"] = row.get("fuse_type_source") or ""
+        r = row.get("rating_a")
+        if not out["colour"] and is_blade(out["type"]) and r in STD_BLADE_COLOURS:
+            out["colour"], out["colour_derived"] = STD_BLADE_COLOURS[r], True
+            out["colour_source"] = STD_COLOUR_NOTE
+    return out
+
+
+def _apply_specs(rows: list[dict[str, Any]]) -> None:
+    by_id = {r["id"]: r for r in rows}
+    for rec in _read_jsonl(SPECS_FILE):
+        row = by_id.get(rec.get("item"))
+        if not row or not str(rec.get("source") or "").strip():
+            continue
+        for k in FUSE_SPEC_FIELDS + RELAY_SPEC_FIELDS:
+            if str(rec.get(k) or "").strip():
+                row[k] = rec[k]
+                row[k + "_source"] = rec["source"]
+
+
+def add_spec(item_id: str, *, source: str, by: str = "technician", **fields: str) -> dict[str, Any]:
+    """Record type / colour / voltage (fuse) or relay type / number / pins / orientation / colour (relay) for
+    an existing row. ``source`` is REQUIRED; empty fields are not stored (they stay "not sourced")."""
+    row = next((r for r in registry() if r["id"] == item_id), None)
+    if not row:
+        raise ValueError("unknown fuse/relay: " + str(item_id))
+    if not (source or "").strip():
+        raise ValueError("a source is required (read off the fuse, the relay or the box cover)")
+    allowed = RELAY_SPEC_FIELDS if row.get("kind") == "relay" else FUSE_SPEC_FIELDS
+    vals = {k: str(v).strip() for k, v in fields.items() if k in allowed and str(v or "").strip()}
+    if not vals:
+        raise ValueError("enter at least one detail")
+    if "voltage_v" in vals and (_num(vals["voltage_v"]) is None or _num(vals["voltage_v"]) <= 0):
+        raise ValueError("voltage must be a positive number")
+    rec = {"item": item_id, **vals, "source": source.strip(), "by": (by or "technician").strip() or "technician",
+           "at": _now()}
+    _append(SPECS_FILE, rec)
+    return rec
+
+
 def registry() -> list[dict[str, Any]]:
     """Sourced rows plus technician-added rows (marked)."""
-    box_zone = {b["id"]: b.get("zone") for b in _base().get("boxes", [])}
+    box_zone = {b["id"]: b.get("zone") for b in boxes()}
     rows = [dict(r, added_by_technician=False) for r in _base().get("items", [])]
     seen = {r["id"] for r in rows}
     for rec in _read_jsonl(ITEMS_FILE):
@@ -131,6 +333,9 @@ def registry() -> list[dict[str, Any]]:
         row["notes"] = ("Added by technician" + (f" ({row.get('by')}, {row.get('added_at')})" if row.get("by") else "")
                         + (". " + row["notes"] if row.get("notes") else "."))
         rows.append(row)
+    _apply_specs(rows)
+    for r in rows:
+        r["spec"] = spec(r)
     return rows
 
 
@@ -140,7 +345,7 @@ def _slug(text: str) -> str:
 
 def add_item(*, kind: str, label: str, source: str, box: str = "", position: str = "",
              rating_a: Any = None, feeds_modules: Optional[list[str]] = None, notes: str = "",
-             by: str = "technician") -> dict[str, Any]:
+             by: str = "technician", **details: str) -> dict[str, Any]:
     """A technician adds a fuse/relay read off the box cover or the manual.
     ``source`` is REQUIRED (what it was read from)."""
     kind = (kind or "").strip().lower()
@@ -153,7 +358,7 @@ def add_item(*, kind: str, label: str, source: str, box: str = "", position: str
     if not source:
         raise ValueError("a source is required (owner's manual page, box cover photo, ...)")
     box = (box or "").strip()
-    box_ids = {b["id"] for b in _base().get("boxes", [])}
+    box_ids = {b["id"] for b in boxes()}
     if box and box not in box_ids:
         raise ValueError("unknown fuse box: " + box)
     rating = None
@@ -170,6 +375,13 @@ def add_item(*, kind: str, label: str, source: str, box: str = "", position: str
            "label": label, "feeds_modules": mods, "feeds_elements": [], "part_numbers": [],
            "location_confidence": "SOURCED", "source": source, "notes": (notes or "").strip(),
            "by": (by or "technician").strip() or "technician", "added_at": _now()}
+    allowed = RELAY_SPEC_FIELDS if kind == "relay" else FUSE_SPEC_FIELDS
+    for k, v in details.items():
+        v = str(v or "").strip()
+        if k in allowed and v:
+            if k == "voltage_v" and (_num(v) is None or _num(v) <= 0):
+                raise ValueError("voltage must be a positive number")
+            rec[k], rec[k + "_source"] = v, source
     _append(ITEMS_FILE, rec)
     return rec
 
@@ -186,7 +398,7 @@ def add_check(vin: str, item_id: str, result: str, method: str, value: str = "",
         raise ValueError("method must be one of: " + ", ".join(METHODS))
     if not (vin or "").strip():
         raise ValueError("vin is required")
-    if item_id not in {r["id"] for r in registry()}:
+    if item_id not in {r["id"] for r in registry()} | set(GROUND_CHECK_IDS):
         raise ValueError("unknown fuse/relay: " + str(item_id))
     if method in ("voltage_drop", "voltage") and value.strip() and _num(value) is None:
         raise ValueError("value must be a number")
