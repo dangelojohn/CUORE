@@ -138,20 +138,21 @@ def search_listings(cat: dict[str, Any], q: str, limit: int = 60) -> list[dict[s
     if not q:
         return []
     n = norm_pn(q)
-    hits = [x for x in rows if n and len(n) >= 4 and (n in norm_pn(x.get("pn", "")) or n in norm_pn(x.get("sku", "")))]
+    hits = [x for x in rows if n and len(n) >= 4 and (n in norm_pn(x.get("pn", "")) or n in norm_pn(x.get("sku", "")) or n in norm_pn(x.get("ean", "")))]
     words = _query_words(q)
     if not hits and words:
-        hits = [x for x in rows if all(w in f"{x['name']} {x.get('brand', '')} {x.get('notes', '')}".lower() for w in words)]
+        hits = [x for x in rows if all(w in f"{x['name']} {x.get('brand', '')} {x.get('notes', '')} {x.get('category', '')}".lower() for w in words)]
     return sorted(hits, key=lambda x: _FIT_ORDER.get(x["fitment"], 9))[:limit]
 
 
 def listings_view(cat: dict[str, Any]) -> list[dict[str, Any]]:
     """Every listing, grouped by shop, this car's fitment first."""
     by: dict[str, list] = {}
+    titles = {g["id"]: g["title"] for g in cat.get("groups", [])}
     for x in cat.get("listings") or []:
-        by.setdefault(x["source_name"], []).append(x)
+        by.setdefault(x["source_name"], []).append({**x, "group_title": titles.get(x.get("group", ""), "")})
     return [{"source_name": k, "kind": v[0]["kind"], "source": v[0]["source"],
-             "rows": sorted(v, key=lambda x: (_FIT_ORDER.get(x["fitment"], 9), x["name"]))}
+             "rows": sorted(v, key=lambda x: (_FIT_ORDER.get(x["fitment"], 9), x.get("category", ""), x["name"]))}
             for k, v in sorted(by.items())]
 
 

@@ -45,6 +45,13 @@ DEFAULT_ROWS = Path.home() / "Downloads" / "stelvio-2018-2.0l-diagram-rows.json"
 # judged from the shop's own wording.
 DEFAULT_SUPPLEMENTS = [Path.home() / "Downloads" / n for n in
                        ("stelvio-canada-aftermarket.json", "stelvio-centerline-products.json")]
+# Autodoc UK (aftermarket, GBP) is crawled into the ProgramData sources folder, not Downloads.
+def default_autodoc() -> Path:
+    return state_dir() / "parts_catalog" / "sources" / "stelvio-autodoc-aftermarket.json"
+
+
+
+AUTODOC_GROUPS = ROOT / "cuore" / "data" / "autodoc_category_groups.json"
 _MERCH = re.compile(r"\b(sign|art print|poster|keychain|key ?ring|mug|t-?shirt|shirt|hat|baseball cap|jacket|hoodie|"
                     r"scale model|diecast|book|calendar|gift ?card|umbrella|lanyard|pin badge|display|pillow|socks?|wrapping paper|water bottle|glass|ornament|sweatshirt|blanket|towel|tumbler|coaster|apparel)\b", re.I)
 _OTHER = re.compile(r"\b(qv|quadrifoglio|2\.9l?|4c|giulietta|mito|spider|gtv|brera|147|156|159|164)\b", re.I)
@@ -157,8 +164,54 @@ def load_listings(paths: list[Path], core_pns: set[str]) -> list[dict]:
     return out
 
 
+def autodoc_group(cat_slug: str, rules: dict) -> str:
+    slug = re.sub(r"-\d+$", "", (cat_slug or "").lower())
+    for r in rules.get("rules", []):
+        if any(k in slug for k in r["keywords"]):
+            return r["group"]
+    return rules.get("fallback", "other")
+
+
+def load_autodoc(path: Path | None) -> list[dict]:
+    """Autodoc UK rows as other-shop items. Fitment is Autodoc's own vehicle
+    selection (a retailer claim): kept as 'unverified', never 'own'. Images are
+    remote URLs only. Absent file = no rows."""
+    if not path or not path.exists():
+        return []
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    src = raw.get("source") or "https://www.autodoc.co.uk"
+    veh = raw.get("vehicle") or {}
+    sel = " ".join(x for x in (veh.get("label"), f"[{veh['engine_code']}]" if veh.get("engine_code") else "") if x)
+    rules = json.loads(AUTODOC_GROUPS.read_text(encoding="utf-8"))
+    day = (raw.get("fetched_at") or "")[:10]
+    out, seen = [], set()
+    for c in raw.get("categories") or []:
+        for r in c.get("rows") or []:
+            name = _first(r, "n")
+            if not name:
+                continue
+            brand, pn = _first(r, "b"), _first(r, "no").upper().replace(" ", "")
+            key = (brand, pn or name)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({
+                "source": src, "source_name": "Autodoc UK", "kind": "aftermarket",
+                "brand": brand, "pn": pn, "sku": "", "ean": _first(r, "ean"), "name": name,
+                "notes": "",
+                "specs": {str(k): str(v) for k, v in (r.get("sp") or {}).items()},
+                "price": _first(r, "pr"), "currency": raw.get("currency") or "GBP", "price_date": day,
+                "msrp": "", "url": _first(r, "u"), "image_url": _first(r, "im"),
+                "category": c.get("title") or c.get("cat", ""), "group": autodoc_group(c.get("cat", ""), rules),
+                "fitment": "unverified", "fitment_label": "AUTODOC VEHICLE SELECTION",
+                "fitment_why": f"Listed by Autodoc for its own vehicle selection ({sel or 'Stelvio 2.0 Q4'}). "
+                               "A retailer claim, not verified on this car.",
+            })
+    return out
+
+
 def build(export: Path, fetch_images: bool, rows_file: Path | None = None,
-          supplements: list[Path] | None = None) -> Path:
+          supplements: list[Path] | None = None, autodoc: Path | None = None) -> Path:
     cfg = json.loads(GROUPS.read_text(encoding="utf-8"))
     raw = json.loads(export.read_text(encoding="utf-8"))
     if rows_file and rows_file.exists():
@@ -274,6 +327,7 @@ def build(export: Path, fetch_images: bool, rows_file: Path | None = None,
         "groups": groups, "sections": sections, "diagrams": diagrams,
         "listings": load_listings(supplements or [], {p["pn"].replace("-", "") for d in diagrams.values() for p in d["parts"]}),
     }
+    catalog["listings"] += load_autodoc(autodoc)
     (out_dir / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False), encoding="utf-8")
     n_parts = sum(len(d["parts"]) for d in diagrams.values())
     n_pn = len({p["pn"] for d in diagrams.values() for p in d["parts"]})
@@ -293,7 +347,9 @@ if __name__ == "__main__":
     ap.add_argument("export", nargs="?", default=str(DEFAULT_EXPORT))
     ap.add_argument("--rows", default=str(DEFAULT_ROWS))
     ap.add_argument("--supplement", action="append", help="another shop's saved list (repeatable)")
+    ap.add_argument("--autodoc", default=str(default_autodoc()), help="Autodoc UK crawl (skipped when absent)")
     ap.add_argument("--no-images", action="store_true")
     a = ap.parse_args()
     build(Path(a.export), not a.no_images, Path(a.rows),
-          [Path(x) for x in a.supplement] if a.supplement else DEFAULT_SUPPLEMENTS)
+          [Path(x) for x in a.supplement] if a.supplement else DEFAULT_SUPPLEMENTS,
+          Path(a.autodoc))

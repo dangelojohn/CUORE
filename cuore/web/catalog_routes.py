@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 
 from ..api.deps import require_token
 from ..services import parts_catalog as pc
+from ..services import standard_parts as sp
 from . import routes as web_routes
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
@@ -23,7 +24,7 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 def _ctx(request: Request, cat) -> dict:
     vin = web_routes._active_vehicle(request)
     return {"cat": cat, "cid": cat["id"] if cat else "", "vin": vin or "", "live_strip": None, "tab": "catalog",
-            "rail": pc.rail(cat) if cat else []}
+            "rail": pc.rail(cat) if cat else [], "standard": sp.for_vin(vin or sp.sole_vin())}
 
 
 @router.get("/catalog", response_class=HTMLResponse)
@@ -85,6 +86,14 @@ def catalog_part(request: Request, pn: str) -> Response:
     if not p:
         return RedirectResponse(f"/catalog?q={pc.norm_pn(pn)}", status_code=303)
     return web_routes._page(request, "catalog_part.html", **_ctx(request, cat), p=p)
+
+
+@router.get("/catalog/standard-img/{name}")
+def standard_image(name: str) -> Response:
+    path = sp.image_path(name)
+    if not path:
+        return Response(status_code=404)
+    return FileResponse(path, headers={"Cache-Control": "max-age=86400"})
 
 
 @router.get("/catalog/img/{cid}/{name}")

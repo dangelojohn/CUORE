@@ -1,0 +1,17 @@
+{
+  "_schema": "Maps an Autodoc category slug (trailing -<id> dropped) to a catalogue group id from parts_catalog_groups.json. First rule whose any keyword is a substring of the slug wins. No part data here.",
+  "rules": [
+    {"group": "brakes", "keywords": ["brake", "caliper"]},
+    {"group": "engine", "keywords": ["spark-plug", "ignition", "glow-plug", "timing", "camshaft", "crankshaft", "engine-mount", "oil-filter", "oil-pump", "piston", "valve", "gasket", "turbo", "drive-belt", "v-ribbed", "belt-tensioner", "pulley", "poly-v", "tensioner", "oil-sump", "dipstick"]},
+    {"group": "fuel-emissions", "keywords": ["fuel", "air-filter", "lambda", "oxygen", "catalytic", "exhaust", "egr", "particulate", "muffler", "silencer", "mass-air", "map-sensor", "intake"]},
+    {"group": "cooling-climate", "keywords": ["coolant", "radiator", "thermostat", "water-pump", "cabin", "pollen", "air-conditioning", "a-c", "heater", "blower", "intercooler", "fan", "expansion-tank", "antifreeze"]},
+    {"group": "transmission", "keywords": ["gearbox", "transmission", "clutch", "atf"]},
+    {"group": "driveline", "keywords": ["drive-shaft", "driveshaft", "cv-joint", "axle-boot", "differential", "propshaft", "transfer-case", "wheel-bearing", "hub"]},
+    {"group": "suspension-steering", "keywords": ["suspension", "shock", "strut", "spring", "control-arm", "wishbone", "ball-joint", "tie-rod", "track-rod", "steering", "stabiliser", "stabilizer", "anti-roll", "bush", "link", "trailing-arm", "top-mount"]},
+    {"group": "wheels", "keywords": ["wheel", "tyre", "tire", "tpms", "lug"]},
+    {"group": "electrical", "keywords": ["battery", "alternator", "starter", "relay", "fuse", "sensor", "ignition-coil", "switch", "wiper", "headlight", "head-light", "lamp", "bulb", "light", "horn", "cable", "wiring", "abs", "control-unit"]},
+    {"group": "body", "keywords": ["bumper", "mirror", "door", "bonnet", "hood", "grille", "windscreen", "window", "wiper-blade", "washer", "body", "mudguard", "wing", "tailgate", "lock", "handle"]},
+    {"group": "interior-safety", "keywords": ["seat", "airbag", "seatbelt", "seat-belt", "interior", "floor-mat"]}
+  ],
+  "fallback": "other"
+}

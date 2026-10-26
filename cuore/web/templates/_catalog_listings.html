@@ -5,11 +5,14 @@
   <thead><tr><th>Part / shop code</th><th>Name</th><th>Price</th><th>Fitment</th><th>Shop</th></tr></thead>
   <tbody>{% for x in items %}
     <tr class="{{ 'other-engine' if x.fitment == 'other-engine' }}">
-      <td class="pn">{{ x.pn or x.sku or '–' }}{% if x.brand %}<div class="sub">{{ x.brand }}</div>{% endif %}</td>
-      <td>{{ x.name }}{% if x.notes %}<div class="sub">{{ x.notes }}</div>{% endif %}</td>
-      <td>{{ x.price or '–' }}{% if x.currency %} {{ x.currency }}{% endif %}{% if x.msrp %}<div class="sub">MSRP {{ x.msrp }}</div>{% endif %}</td>
-      <td><span class="cat-tag {{ 'ok' if x.fitment == 'own' else ('warn' if x.fitment == 'other-engine' else '') }}" title="{{ x.fitment_why }}">{{ fit_label.get(x.fitment, x.fitment) }}</span></td>
+      <td class="pn">{{ x.pn or x.sku or '–' }}{% if x.brand %}<div class="sub">{{ x.brand }}</div>{% endif %}{% if x.ean %}<div class="sub">EAN {{ x.ean }}</div>{% endif %}</td>
+      <td>{% if x.image_url %}<img class="cat-thumb" src="{{ x.image_url }}" alt="" loading="lazy" referrerpolicy="no-referrer">{% endif %}{{ x.name }}{% if x.notes %}<div class="sub">{{ x.notes }}</div>{% endif %}
+        {% if x.category %}<div class="sub">{% if x.group_title %}{{ x.group_title }} · {% endif %}{{ x.category }}</div>{% endif %}
+        {% if x.specs %}<details class="cat-specs-fold"><summary>Specs ({{ x.specs|length }})</summary>
+          <dl>{% for k, v in x.specs.items() %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}</dl></details>{% endif %}</td>
+      <td>{% if x.price_date and x.price %}{{ x.price }} ({{ x.source_name }}, {{ x.price_date }}){% else %}{{ x.price or '–' }}{% if x.currency %} {{ x.currency }}{% endif %}{% endif %}{% if x.msrp %}<div class="sub">MSRP {{ x.msrp }}</div>{% endif %}</td>
+      <td><span class="cat-tag {{ 'ok' if x.fitment == 'own' else ('warn' if x.fitment == 'other-engine' else '') }}" title="{{ x.fitment_why }}">{{ x.fitment_label or fit_label.get(x.fitment, x.fitment) }}</span>{% if x.fitment_label %}<div class="sub">Retailer claim, not verified on this car</div>{% endif %}</td>
       <td>{% if x.url %}<a href="{{ x.url }}" target="_blank" rel="noopener noreferrer">{{ x.source_name }}</a>{% else %}{{ x.source_name }}{% endif %}</td>
     </tr>{% endfor %}</tbody>
 </table></div>
-<p class="cat-src">Not in the Mopar dealer catalogue. Fitment is the shop's own wording (hover the tag for why), not a part-number match: confirm before buying.</p>
+<p class="cat-src">Not in the Mopar dealer catalogue. Fitment is the shop's own wording (for Autodoc UK, its own vehicle selection) (hover the tag for why), not a part-number match: confirm before buying.</p>

@@ -62,6 +62,12 @@ next one automatically.</p>
 </div>
 {% endif %}
 
+{% if std_conflict %}
+<div class="note alert" id="std-conflict"><span class="lab">Conflicts with this car</span>
+  The owner fits a spin-on filter ({{ std_conflict.brand }} {{ std_conflict.part_number }}); the cartridge/housing-cap note comes from a single Giulia forum thread. Not applicable until checked on the car.</div>
+{% endif %}
+{% set standard_mode = "fit" %}{% include "_standard_parts.html" %}
+
 <div class="panel">
   <h2>Oil specification</h2>
   {% set oil = checklist.specs.oil %}
@@ -86,7 +92,7 @@ next one automatically.</p>
         <td><span class="chip plain">{{ checklist.specs.interval.oil_life_system.confidence }}</span></td>
         <td class="small"></td></tr>
       {% for f in checklist.specs.filters %}
-      <tr><td class="k">Filter{% if not loop.first %} (alt){% endif %}</td><td>{{ f.brand }} {{ f.part_no or "" }}</td>
+      <tr><td class="k">Filter{% if not loop.first %} (alt){% endif %}</td><td>{{ f.brand }} {{ f.part_no or "" }}{% if std_conflict %}<div><span class="chip returned">CONFLICTS WITH THIS CAR</span> <span class="small">cartridge filter; owner fits spin-on {{ std_conflict.part_number }}</span></div>{% endif %}</td>
         <td><span class="chip {{ 'ok' if f.confidence in ('CONFIRMED','CORROBORATED') else ('plain' if f.confidence == 'UNKNOWN' else 'chronic') }}">{{ f.confidence }}</span></td>
         <td class="small">{% if f.source %}<a href="{{ f.source }}" target="_blank" rel="noopener">source</a>{% endif %}</td></tr>
       {% endfor %}
@@ -109,7 +115,7 @@ next one automatically.</p>
     <tbody>
     {% for t in checklist.torque_checklist %}
       <tr>
-        <td>{{ t.component }}{% if t.single_use %} <span class="chip returned">single-use</span>{% endif %}</td>
+        <td>{{ t.component }}{% if std_conflict and t.key == "filter_cap" %} <span class="chip returned">CONFLICTS WITH THIS CAR</span><div class="small">Owner fits spin-on {{ std_conflict.brand }} {{ std_conflict.part_number }}: not applicable until checked on the car.</div>{% endif %}{% if t.single_use %} <span class="chip returned">single-use</span>{% endif %}</td>
         <td class="mono">{{ t.display }}{% if t.angle %} {{ t.angle }}{% endif %}</td>
         <td><span class="chip {{ 'ok' if t.confidence in ('CONFIRMED','CORROBORATED') else ('plain' if t.confidence == 'UNKNOWN' else 'chronic') }}">{{ t.confidence }}</span></td>
         <td class="small muted">{{ t.notes }}

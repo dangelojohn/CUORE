@@ -1,0 +1,51 @@
+{# "Standard on this car": the part the owner always fits (owner-attested).
+   Expects `standard` (cuore.services.standard_parts.for_vin). Plain HTML, no JS.
+   mode = "full" (catalogue) or "fit" (oil-change page: the one oil filter). #}
+{% set _mode = standard_mode|default("full") %}
+{% set _rows = standard|default([]) %}
+{% if _mode == "fit" %}{% set _rows = _rows|selectattr("key", "equalto", "oil_filter")|list %}{% endif %}
+{% if _rows %}
+<style>
+.std-part { display: grid; grid-template-columns: minmax(0, 220px) 1fr; gap: 6px 16px; align-items: start; }
+@media (max-width: 560px) { .std-part { grid-template-columns: 1fr; } }
+.std-photos { display: flex; flex-wrap: wrap; gap: 8px; }
+.std-photos a { display: block; background: #fff; border: 1px solid var(--rule); border-radius: var(--radius); padding: 4px; min-height: 44px; }
+.std-photos img { display: block; width: 100%; max-width: 200px; height: auto; max-height: 200px; object-fit: contain; }
+.std-id { font-size: var(--fs-xl); font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.std-id .pn { font-family: var(--mono); font-size: var(--fs-3xl); display: block; }
+.std-role { font-size: var(--fs-md); color: var(--ink-3); margin: 0 0 2px; }
+.std-badge { display: inline-block; font-size: var(--fs-md); font-weight: 600; padding: 4px 10px; border: 1px solid var(--ok); border-left-width: 6px; border-radius: var(--radius); background: var(--ok-bg); color: var(--ink); margin: 6px 0; }
+.std-specs { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; margin: 8px 0; font-size: var(--fs-md); }
+.std-specs dt { color: var(--ink-3); }
+.std-specs dd { margin: 0; font-weight: 600; }
+.std-retail { font-size: var(--fs-md); margin: 6px 0; }
+.std-fold summary { font-size: var(--fs-md); cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.std-fold ul { margin: 0 0 8px; padding-left: 20px; font-size: var(--fs-md); columns: 2 220px; }
+.std-fit { font-size: var(--fs-lg); font-weight: 700; margin: 0 0 6px; }
+</style>
+<section class="panel" id="standard-parts">
+  <h2>{{ "Fit this" if _mode == "fit" else "Standard on this car" }}</h2>
+  {% for s in _rows %}
+  <div class="std-part">
+    <div class="std-photos">{% for im in s.images %}
+      <a href="/catalog/standard-img/{{ im }}" target="_blank" rel="noopener" aria-label="Open photo {{ loop.index }} of {{ s.brand }} {{ s.part_number }}"><img src="/catalog/standard-img/{{ im }}" alt="{{ s.brand }} {{ s.part_number }} photo {{ loop.index }}" loading="lazy"></a>{% endfor %}</div>
+    <div>
+      <p class="std-role">{{ s.role }}</p>
+      {% if _mode == "fit" %}<p class="std-fit">Fit: {{ s.brand }} {{ s.part_number }} (standard on this car)</p>{% endif %}
+      <p class="std-id">{{ s.brand }} <span class="pn">{{ s.part_number }}</span></p>
+      {% if s.type or s.thread %}<p class="small">{{ s.type }}{% if s.type and s.thread %} · {% endif %}{% if s.thread %}thread {{ s.thread }}{% endif %}{% if s.ean %} · EAN {{ s.ean }}{% endif %}</p>{% endif %}
+      <span class="std-badge">Owner-attested: {{ s.basis.split(":",1)[1].strip() if ":" in s.basis else (s.basis or "the standard part on this car") }}</span>
+      {% if s.key_specs %}<dl class="std-specs">{% for k, v in s.key_specs %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}</dl>{% endif %}
+      {% if s.oe_alfa %}<p class="small"><b>Alfa OE numbers:</b> <span class="mono">{{ s.oe_alfa|join(", ") }}</span></p>{% endif %}
+      {% if s.retailer %}<p class="std-retail">Retailer price (not a quote): <b>{{ s.retailer.price }}</b> at {{ s.retailer.shop }} ({{ s.retailer.fetched }}){% if s.retailer.url %} · <a href="{{ s.retailer.url }}" target="_blank" rel="noopener">listing</a>{% endif %}</p>{% endif %}
+      {% if _mode != "fit" %}
+      {% if s.oe_numbers %}<details class="std-fold"><summary>All {{ s.oe_numbers|length }} OE / cross-reference numbers</summary>
+        <ul class="mono">{% for o in s.oe_numbers %}<li>{{ o.number }} <span class="muted">{{ o.maker }}</span></li>{% endfor %}</ul></details>{% endif %}
+      {% if s.other_specs %}<details class="std-fold"><summary>More specs ({{ s.other_specs|length }})</summary>
+        <dl class="std-specs">{% for k, v in s.other_specs %}<dt>{{ k }}</dt><dd>{{ v }}</dd>{% endfor %}</dl></details>{% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}

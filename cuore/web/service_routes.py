@@ -36,7 +36,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from .. import __version__
-from ..services import cache, mes_bridge, service_bridge
+from ..services import cache, mes_bridge, service_bridge, standard_parts
 from ..services.errors import BridgeError
 from ..api.deps import require_token, settings_of
 
@@ -130,6 +130,8 @@ def oil_change_form(request: Request, vin: str) -> HTMLResponse:
     checklist = service_bridge.oil_change_checklist(vin)
     response = _page(request, "oil_change.html", vin=vin, bar=_vehicle_bar(vin, dossier),
                      tab="oil-change", checklist=checklist,
+                     standard=standard_parts.for_vin(vin),
+                     std_conflict=standard_parts.oil_filter_conflict(vin),
                      current_odometer=_current_odometer(dossier), error=None, saved=False)
     _set_active_vehicle(response, vin)
     return response
@@ -179,6 +181,8 @@ def oil_change_submit(request: Request, vin: str) -> HTMLResponse:
     checklist = service_bridge.oil_change_checklist(vin)
     response = _page(request, "oil_change.html", vin=vin, bar=_vehicle_bar(vin, dossier),
                      tab="oil-change", checklist=checklist,
+                     standard=standard_parts.for_vin(vin),
+                     std_conflict=standard_parts.oil_filter_conflict(vin),
                      current_odometer=_current_odometer(dossier), error=error, saved=saved)
     _set_active_vehicle(response, vin)
     return response

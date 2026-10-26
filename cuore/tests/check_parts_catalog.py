@@ -75,8 +75,22 @@ def main() -> None:
         {"name": "Intercooler Gasket Giulia Stelvio 2.0", "sku": "EG213", "price": "$32.05"},
         {"name": "Throttle Body Giulia Stelvio QV", "sku": "FI217"},
         {"name": "Alfa Romeo Dealership Sign", "sku": "X1"}]}), encoding="utf-8")
-    out = b.build(exp, fetch_images=False, supplements=[sup, sup2])
+    ad = STATE / "autodoc.json"
+    ad.write_text(json.dumps({"source": "https://autodoc.example", "fetched_at": "2026-10-26T09:00:00Z", "currency": "GBP",
+        "vehicle": {"label": "TEST Stelvio 2.0", "engine_code": "TEST.ENG"},
+        "categories": [{"cat": "brake-pad-set-10130", "title": "Brake pad set for TEST", "rows": [
+            {"n": "TESTBRAND TEST-001 Brake pad set", "no": "TEST-001", "b": "TESTBRAND", "ean": "0000000000001",
+             "pr": "£24.49", "u": "https://autodoc.example/p1", "im": "https://cdn.example/p1.jpg",
+             "sp": {"Height 1 [mm]": "58,7"}}]},
+            {"cat": "mystery-widget-999", "title": "Widget", "rows": [{"n": "TESTBRAND TEST-002 Widget", "no": "TEST-002", "b": "TESTBRAND", "pr": "£1.00", "im": None}]}]}), encoding="utf-8")
+    out = b.build(exp, fetch_images=False, supplements=[sup, sup2], autodoc=ad)
     lst = json.loads((out / "catalog.json").read_text(encoding="utf-8"))["listings"]
+    adl = {x["pn"]: x for x in lst if x["source_name"] == "Autodoc UK"}
+    assert adl["TEST-001"]["group"] == "brakes" and adl["TEST-002"]["group"] == "other", adl
+    assert adl["TEST-001"]["fitment"] == "unverified" and adl["TEST-001"]["currency"] == "GBP" and adl["TEST-001"]["specs"]["Height 1 [mm]"] == "58,7"
+    assert not list((out / "img").glob("*")), "autodoc images must stay remote"
+    lst = [x for x in lst if x["source_name"] != "Autodoc UK"]
+    assert b.load_autodoc(STATE / "absent.json") == []
     assert {x["pn"] or x["sku"] for x in lst} == {"1BP01360AA", "EG213", "FI217"}, lst  # dealer duplicate + merch dropped
     assert {x["sku"]: x["fitment"] for x in lst if x["sku"]} == {"EG213": "by-name", "FI217": "other-engine"}, lst
     img_name = b._img_name(IMG)
@@ -109,6 +123,12 @@ def main() -> None:
     assert r.status_code == 200 and "from other shops" in r.text and "1BP01360AA" in r.text and "LISTED FOR THIS CAR" in r.text, r.text[-1500:]
     r = c.get("/catalog/other")
     assert r.status_code == 200 and "EG213" in r.text and "OTHER ENGINE / MODEL" in r.text and "Dealership Sign" not in r.text
+    r = c.get("/catalog/other")
+    t = r.text
+    for needle in ("Autodoc UK", "TEST-001", "TESTBRAND", "EAN 0000000000001", "58,7", "Specs (1)",
+                   "£24.49 (Autodoc UK, 2026-10-26)", "AUTODOC VEHICLE SELECTION", "https://cdn.example/p1.jpg"):
+        assert needle in t, needle
+    assert "TEST-001" in c.get("/catalog?q=0000000000001").text  # EAN search
     # words, with the mechanic's own phrasing: torque values first, then parts
     r = c.get("/catalog", params={"q": "caliper bolt torque"})
     t = r.text
@@ -167,6 +187,40 @@ def main() -> None:
     assert c.get(f"/catalog/img/stelvio-2018-2.0l/{img_name}").status_code == 200
     assert c.get("/catalog/img/stelvio-2018-2.0l/..%2Fcatalog.json").status_code == 404
     assert c.get("/catalog/img/../x.png").status_code == 404
+
+    # standard parts (owner-attested): synthetic fixture only
+    tvin = "TESTVIN0000000001"
+    sdir = STATE / "parts_catalog" / "sources" / "standard"
+    (sdir / "img").mkdir(parents=True)
+    (sdir / "img" / "test-h1-aaaaaaaaaaaa.jpg").write_bytes(bytes([255, 216, 255, 217]))
+    (sdir / "test-h1.json").write_text(json.dumps({"brand": "TESTMAKER", "article_number": "TEST-H1",
+        "specs": {"Height": "85", "Thread Size": "M0x0", "Colour": "blue"},
+        "oe_numbers": [{"number": "OE-TEST-1", "maker": "TESTCO"}]}), encoding="utf-8")
+    (STATE / "parts_catalog" / "standard_parts.json").write_text(json.dumps({"vehicles": {tvin: {"oil_filter": {
+        "role": "Engine oil filter", "brand": "TESTMAKER", "part_number": "TEST-H1", "type": "spin-on", "thread": "M0x0",
+        "detail_file": "sources/standard/test-h1.json", "images": ["sources/standard/img/test-h1-aaaaaaaaaaaa.jpg"],
+        "oe_alfa": ["ALFA-TEST-9"], "status": "standard", "basis": "owner-attested: the only oil filter used on this car",
+        "retailer_ref": {"shop": "TestShop", "url": "https://shop.example/x", "price": "£9.29", "fetched": "2026-10-26"}}}}}),
+        encoding="utf-8")
+    from cuore.services import standard_parts as sp
+    got = sp.for_vin(tvin)
+    assert len(got) == 1 and got[0]["part_number"] == "TEST-H1" and got[0]["images"] == ["test-h1-aaaaaaaaaaaa.jpg"]         and got[0]["key_specs"][0] == ("Height", "85") and sp.for_vin("NOPE") == [] and sp.oil_filter_conflict(tvin)
+    r = c.get("/catalog", cookies={"cuore_vin": tvin})
+    t = r.text
+    for needle in ("Standard on this car", "TESTMAKER", "TEST-H1", "ALFA-TEST-9", "OE-TEST-1", "M0x0",
+                   "Owner-attested: the only oil filter used on this car", "£9.29</b> at TestShop (2026-10-26)",
+                   "/catalog/standard-img/test-h1-aaaaaaaaaaaa.jpg"):
+        assert needle in t, needle
+    assert c.get("/catalog/standard-img/test-h1-aaaaaaaaaaaa.jpg").status_code == 200
+    for bad in ("..%2Fstandard_parts.json", "%2e%2e%2fcatalog.json", "test-h1-aaaaaaaaaaaa.png", "x.jpg"):
+        assert c.get(f"/catalog/standard-img/{bad}").status_code == 404, bad
+    r = c.get(f"/v/{tvin}/oil-change")
+    t = r.text
+    assert r.status_code == 200 and "Fit: TESTMAKER TEST-H1 (standard on this car)" in t, r.status_code
+    assert "Conflicts with this car" in t and "spin-on filter (TESTMAKER TEST-H1)" in t and "CONFLICTS WITH THIS CAR" in t
+    assert "Not applicable until checked on the car" in t
+    (STATE / "parts_catalog" / "standard_parts.json").write_text("{not json", encoding="utf-8")
+    assert sp.for_vin(tvin) == []
     r = c.get("/start")
     assert 'href="/catalog"' in r.text and 'class="icon-btn parts-link' in r.text
     print("parts catalogue OK")

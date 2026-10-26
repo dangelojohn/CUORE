@@ -34,6 +34,11 @@
 .cat-photos img { width: 100%; height: auto; }
 .cat-photos figcaption { font-size: 13px; color: #333; padding-top: 4px; }
 .cat-tag { font-size: 11px; letter-spacing: .04em; padding: 1px 6px; border: 1px solid currentColor; border-radius: var(--radius); white-space: nowrap; display: inline-block; }
+.cat-thumb { float: right; width: 64px; height: 64px; object-fit: contain; margin: 0 0 4px 8px; background: #fff; border: 1px solid var(--rule); border-radius: var(--radius); }
+.cat-specs-fold summary { font-size: var(--fs-md); cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--ink-2, var(--ink)); }
+.cat-specs-fold dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0 0 8px; font-size: var(--fs-md); }
+.cat-specs-fold dt { color: var(--ink-3); }
+.cat-specs-fold dd { margin: 0; overflow-wrap: anywhere; }
 .cat-tag.warn { color: var(--sev-returned); }
 .cat-tag.ok { color: var(--ok); }
 .cat-callout { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 40px; padding: 0 8px; border-radius: 20px; background: var(--ink); color: var(--surface); font: 700 20px var(--mono); }
