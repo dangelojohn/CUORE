@@ -347,7 +347,7 @@ check("Tested OK on" in client.get(f"/v/{VIN}/fuses").text.split('id="ground-g00
 # 9. search
 def results(q: str, extra: str = "") -> tuple[str, int]:
     rr = client.get(f"/v/{VIN}/fuses?q={q}{extra}").text
-    mm = re.search(r"<h2>(\d+) match", rr)
+    mm = re.search(r'res-head">(\d+) ', rr)
     return rr, int(mm.group(1)) if mm else (0 if "No match for" in rr else -1)
 
 

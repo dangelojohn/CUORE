@@ -105,7 +105,7 @@ def photo_terms(name: str) -> list[str]:
     return [w for w in re.findall(r"[a-z]{3,}", core) if w not in stop]
 
 
-def photo_for(name: str, cache: dict[str, Any]) -> Any:
+def photo_for(name: str, cache: dict[str, Any], exclude_placeholders: bool = False) -> Any:
     """A catalogue photo only when the catalogue part's NAME contains every core word of the component's name."""
     terms = photo_terms(name)
     key = " ".join(terms)
@@ -114,7 +114,7 @@ def photo_for(name: str, cache: dict[str, Any]) -> Any:
         if len(terms) >= 1:
             try:
                 from . import component_images
-                for h in component_images.images_for(terms, limit=3):
+                for h in component_images.images_for(terms, limit=3, exclude_placeholders=exclude_placeholders):
                     if all(t in str(h.get("name") or "").lower() for t in terms):
                         hit = {"url": h["photo_url"], "href": h["part_url"], "name": h["name"]}
                         break

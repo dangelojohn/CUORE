@@ -43,8 +43,8 @@ def area_of(b: dict[str, Any]) -> Optional[str]:
     return b.get("area") or AREA_BY_ID.get(b.get("id")) or AREA_BY_ZONE.get(b.get("zone"))
 
 
-def _marker(b: dict[str, Any], x: float, y: float, d: str, view: str) -> str:
-    st = b["status"] if b["status"] in MARK else "grey"
+def _label_geom(b: dict[str, Any], x: float, y: float, d: str, view: str) -> tuple[list[tuple[str, str]], str, float, float]:
+    """(lines, text-anchor, text x, first baseline y) of a box marker's label."""
     side = b.get("side")
     far = view == "side" and side == "right"
     tag = "R, far side" if far else ("R" if side == "right" else "L" if side == "left" else "")
@@ -59,6 +59,21 @@ def _marker(b: dict[str, Any], x: float, y: float, d: str, view: str) -> str:
         anchor, tx = "end", x + _DOT
     elif x - half < 24:
         anchor, tx = "start", x - _DOT
+    return lines, anchor, tx, y0
+
+
+def _text_rect(text: str, anchor: str, tx: float, y0: float, pad: float = 2.0) -> tuple[float, float, float, float]:
+    """Bounding box (x0, y0, x1, y1) of one label line, in drawing units (about 9.5 units a character at 17 px bold)."""
+    w = len(text) * 9.5
+    x0 = tx - w / 2 if anchor == "middle" else tx - w if anchor == "end" else tx
+    return (x0 - pad, y0 - 15 - pad, x0 + w + pad, y0 + 5 + pad)
+
+
+def _marker(b: dict[str, Any], x: float, y: float, d: str, view: str) -> str:
+    st = b["status"] if b["status"] in MARK else "grey"
+    side = b.get("side")
+    far = view == "side" and side == "right"
+    lines, anchor, tx, y0 = _label_geom(b, x, y, d, view)
     txt = "".join(f'<text class="{c}" x="{tx:.0f}" y="{y0 + k * _LINE:.0f}" text-anchor="{anchor}">{escape(t)}</text>'
                   for k, (t, c) in enumerate(lines))
     tip = (f'{b["short"]} - {b["count"]} listed, {b["status_word"]}'
@@ -108,28 +123,87 @@ def _ground_strip(grounds: list[dict[str, Any]], w: float, y: float) -> str:
     return "".join(p)
 
 
-# component clusters: view area -> (x, y) on the side view; top view uses the same x, y=200 (+/- shift for a sourced side)
-_CSIDE = {"engine": (235, 150), "rear": (735, 262), "underbody": (440, 270)}
+# Component clusters sit at their OWN area's spot, using the car art's wheel / axle coordinates (front axle x=199, rear axle
+# x=650; side view wheel centre y=269, top view left wheels y=329). area -> view -> (x, y, x offsets for 2nd, 3rd... marker)
+_CPOS = {
+    "engine": {"side": (235, 150, (0, 46, 92, 138)), "top": (235, 200, (0, 46, 92, 138))},
+    # over the rear-left wheel arch: side = on the arch above the rear wheel; top = inside the left-rear dashed wheel box
+    "rear": {"side": (650, 222, (0, -44, 44, -88)), "top": (650, 329, (0, -40, 40, -80))},
+    # clear of the sill line and of the interior zone edge
+    "underbody": {"side": (440, 314, (0, 46, 92, -46)), "top": (500, 200, (0, 46, 92, -46))},
+}
+_CLABEL = {"underbody": "Underbody"}
+_NUDGE = [(0, 0), (0, -46), (0, 46), (46, 0), (-46, 0), (46, -46), (-46, -46), (46, 46), (-46, 46),
+          (0, -92), (0, 92), (92, 0), (-92, 0)]   # fixed order: tried until the cluster is clear
+_CR = 22   # cluster hit radius
 
 
-def _comp_marks(clusters: list[dict[str, Any]], view: str) -> str:
-    """One icon per (area, category) cluster with a count; tap -> the Components section filtered to that area."""
-    out, used = [], {}
+def _cluster_rect(x: float, y: float, label: str = "") -> tuple[float, float, float, float]:
+    """Box around a cluster marker: hit circle, the count badge at its top right and, when set, the area label below."""
+    return (x - _CR, y - _CR - 8, x + _CR + 10, y + _CR + (24 if label else 0))
+
+
+def _hit(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> bool:
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+def _box_rects(boxes: list[dict[str, Any]], view: str) -> list[tuple[str, tuple[float, float, float, float]]]:
+    """Every box marker (hit circle) and every label line of the box markers, as named boxes."""
+    out = []
+    for b, x, y, d in _place(boxes, view):
+        out.append((f'marker:{b["id"]}', (x - _HIT, y - _HIT, x + _HIT, y + _HIT)))
+        _, anchor, tx, y0 = _label_geom(b, x, y, d, view)
+        for k, (t, _c) in enumerate(_label_geom(b, x, y, d, view)[0]):
+            out.append((f'label:{b["id"]}:{k}', _text_rect(t, anchor, tx, y0 + k * _LINE)))
+    return out
+
+
+def comp_positions(clusters: list[dict[str, Any]], boxes: list[dict[str, Any]], view: str) -> list[dict[str, Any]]:
+    """Where each component cluster is drawn: [{cluster, x, y, label, rect}]. Starts at the area's own anchor, then is nudged in
+    a fixed order until its box overlaps no box marker, no box label and no earlier cluster."""
+    fixed = [r for _, r in _box_rects(boxes, view)]
+    w, h = (_s._VB_W, _s._VB_H) if view == "side" else (_s._TOP_W, _s._TOP_H)
+    used: dict[str, int] = {}
+    out: list[dict[str, Any]] = []
     for c in clusters:
         a = c["view_area"]
-        if a not in _CSIDE:
+        if a not in _CPOS:
             continue
         k = used[a] = used.get(a, -1) + 1
-        x, y = _CSIDE[a]
-        x += 46 * k
-        if view == "top":
-            y = 200 + {"left": _SHIFT, "right": -_SHIFT}.get(c.get("side") or "", 0)
+        x0, y0, offs = _CPOS[a][view]
+        x0 += offs[k % len(offs)]
+        if a == "rear" and view == "top":
+            y0 = 71 if c.get("side") == "right" else 329
+        elif a != "rear" and view == "top":
+            y0 = 200 + {"left": _SHIFT, "right": -_SHIFT}.get(c.get("side") or "", 0)
+        label = _CLABEL.get(a, "") if k == 0 else ""
+        placed = (x0, y0, _cluster_rect(x0, y0, label))
+        for dx, dy in _NUDGE:
+            x, y = x0 + dx, y0 + dy
+            r = _cluster_rect(x, y, label)
+            if r[0] < 4 or r[2] > w - 4 or r[1] < 4 or r[3] > h:
+                continue
+            if any(_hit(r, f) for f in fixed) or any(_hit(r, o["rect"]) for o in out):
+                continue
+            placed = (x, y, r)
+            break
+        out.append({"cluster": c, "x": placed[0], "y": placed[1], "label": label, "rect": placed[2]})
+    return out
+
+
+def _comp_marks(clusters: list[dict[str, Any]], view: str, boxes: Optional[list[dict[str, Any]]] = None) -> str:
+    """One icon per (area, category) cluster with a count; tap -> the Components section filtered to that area."""
+    out = []
+    for p in comp_positions(clusters, boxes or [], view):
+        c, x, y = p["cluster"], p["x"], p["y"]
         tip = f'{c["label"]}: {c["count"]} in {c["area_text"]} - show the list'
+        lab = (f'<text class="fm-sub fm-clabel" x="{x}" y="{y + _CR + 16}" text-anchor="middle">{escape(p["label"])}</text>'
+               if p["label"] else "")
         out.append(f'<a class="fm-comp" href="{escape(c["href"], quote=True)}"><title>{escape(tip)}</title>'
-                   f'<circle class="fm-hit" cx="{x}" cy="{y}" r="22"/>'
+                   f'<circle class="fm-hit" cx="{x}" cy="{y}" r="{_CR}"/>'
                    f'<circle class="fm-cdot" cx="{x}" cy="{y}" r="17"/>'
                    f'<use href="#ci-{escape(c["cat"])}" x="{x - 11}" y="{y - 11}" width="22" height="22" class="fm-cicon"/>'
-                   f'<text class="fm-cnum" x="{x + 17}" y="{y - 12}" text-anchor="middle">{c["count"]}</text></a>')
+                   f'<text class="fm-cnum" x="{x + 17}" y="{y - 12}" text-anchor="middle">{c["count"]}</text>{lab}</a>')
     return "".join(out)
 
 
@@ -139,7 +213,7 @@ def _view_svg(boxes: list[dict[str, Any]], view: str, aria: str, grounds: Option
     art = _s._car_line_art() if view == "side" else _s._car_top_art()
     cls = "sens-profile fm-svg" + ("" if view == "side" else " sens-top")
     marks = "".join(_marker(b, x, y, d, view) for b, x, y, d in _place(boxes, view))
-    marks += _comp_marks(comps or [], view)
+    marks += _comp_marks(comps or [], view, boxes)
     marks += _ground_strip(grounds or [], w, h)
     h += 100 if grounds else 0
     return (f'<svg class="{cls}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="100%" '

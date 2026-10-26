@@ -86,18 +86,19 @@
 
 {% if q %}
 <section class="fuse-results" id="fuse-results" aria-label="Search results">
+  {% if results or comp_results %}<h2 class="res-head">{{ res_head }}</h2>{% endif %}
   {% if results %}
-  <h2>{{ results|length }} match{{ '' if results|length == 1 else 'es' }} for &ldquo;{{ q }}&rdquo;</h2>
   {% for r in results_shown %}
     <a href="{{ r.href }}"><b>{{ r.ref }}</b><span>{{ r.kind }} · {{ r.where }}{% if r.amps %} · {{ r.amps }}{% endif %}</span><span class="muted">{{ r.text }}</span></a>
   {% endfor %}
-  {% if results|length > results_shown|length %}<p class="muted fuse-more">Showing the first {{ results_shown|length }}. Add a word to narrow it.</p>{% endif %}
+  {% if results|length > results_shown|length %}<a class="fuse-showall" href="{{ all_href }}">Show all {{ results|length }}</a>{% endif %}
   {% endif %}
   {% if comp_results %}
-  <h2 class="comp-res-h">Components matching &ldquo;{{ q }}&rdquo; ({{ comp.matches|length }})</h2>
-  {% for r in comp_results %}
-    <a href="{{ r.href }}"><b>{{ r.ref }}</b><span>{{ r.text }} · {{ r.where }}</span></a>
+  <h3 class="comp-res-h">Components ({{ comp_results|length }})</h3>
+  {% for r in comp_shown %}
+    <a class="comp-res" href="{{ r.href }}"><span class="ci-wrap">{{ r.icon|safe }}</span><span class="comp-res-name">{{ r.ref }}</span><span class="muted">{{ r.cat_label }} · {{ r.where }}</span></a>
   {% endfor %}
+  {% if comp_results|length > comp_shown|length %}<a class="fuse-showall" href="{{ all_href }}">Show all {{ comp_results|length }}</a>{% endif %}
   {% endif %}
   {% if not results and not comp_results %}
   <h2>No match for &ldquo;{{ q }}&rdquo;. {{ no_match_hint }}</h2>
@@ -314,20 +315,22 @@
     {% if comp.cat_f or comp.area_f %}<a class="fuse-chip all" href="{{ base }}#fuse-components">Show all {{ comp.total }}</a>{% endif %}
   </div>
   {% if comp.area_f %}<p class="fuse-gapnote">Only parts in the {{ comp.area_word }}.</p>{% endif %}
-  <details class="fuse-fold comp-legend" id="comp-legend" open>
+  <details class="fuse-fold comp-legend" id="comp-legend">
     <summary>Icon key</summary>
     <ul class="ci-legend">{% for l in comp.legend %}<li>{{ l.icon|safe }}<span>{{ l.label }}</span></li>{% endfor %}</ul>
   </details>
   {% for g in comp.groups %}
-  <h3 class="fuse-rows-h comp-h" id="comp-cat-{{ g.cat }}">{{ g.icon|safe }}<span>{{ g.label }} ({{ g.rows|length }})</span></h3>
+  <details class="comp-grp" id="comp-cat-{{ g.cat }}"{{ ' open' if g.open }}>
+    <summary class="comp-h">{{ g.icon|safe }}<span>{{ g.label }}</span> <b>{{ g.rows|length }}</b></summary>
   <ul class="fuse-inset comp-list">
     {% for c in g.rows %}
-    <li class="comp-row" id="comp-{{ c.anchor }}">
-      <div class="comp-main">
+    <li><details class="comp-row" id="comp-{{ c.anchor }}">
+      <summary class="comp-main">
         <span class="comp-ic">{{ c.icon|safe }}</span>
-        <span class="comp-name"><b>{{ c.name }}</b> <small class="muted">{{ c.cat_label }}</small></span>
+        <span class="comp-name">{{ c.name }}</span>
         <span class="comp-where{{ ' muted' if not c.where }}">{{ c.where or 'location not sourced' }}</span>
-      </div>
+      </summary>
+      <div class="comp-body">
       <p class="comp-feeds">
         {% if c.module %}Module: <a href="/v/{{ vin }}/network">{{ c.module }}</a>{% endif %}
         {% if c.fuses %}Fuse{{ '' if c.fuses|length == 1 else 's' }}: {% for f in c.fuses %}<a href="#fuse-{{ f.anchor }}">{{ f.id }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
@@ -338,9 +341,11 @@
       <details class="fuse-fold comp-src"><summary>Source</summary>
         <ul>{% for sl in c.sources %}<li>{{ sl }}</li>{% endfor %}</ul>
       </details>
-    </li>
+      </div>
+    </details></li>
     {% endfor %}
   </ul>
+  </details>
   {% endfor %}
   <p class="fuse-note">{{ comp.drawn }} of {{ comp.total }} are drawn on the car pictures above: only those whose area a source gives. The rest are listed here with "location not sourced".</p>
   <p class="fuse-back"><a href="#fuse-map-top">Back to the map</a></p>

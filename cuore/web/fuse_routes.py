@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
@@ -75,6 +75,9 @@ def ps(text: Any) -> str:
     return re.sub(r"\s{2,}", " ", t).strip()
 
 
+RESULT_CAP = 10   # rows per search-result group before the 'Show all N' link
+
+
 def photo_key(kind: str, type_text: str) -> str:
     """The component_image_keys.json key for a fuse / relay type as printed on the row; "" when not mapped."""
     t = re.sub(r"[^a-z]+", " ", str(type_text or "").lower()).strip()
@@ -92,7 +95,7 @@ def _catalogue_photo(key: str, cache: dict[str, Any]) -> Any:
     if key not in cache:
         try:
             from ..services import component_images
-            hits = component_images.images_for_key(key, limit=1) if key else []
+            hits = component_images.images_for_key(key, limit=1, exclude_placeholders=True) if key else []
         except Exception:  # noqa: BLE001
             hits = []
         cache[key] = ({"url": hits[0]["photo_url"], "href": hits[0]["part_url"], "name": hits[0]["name"]} if hits else None)
@@ -264,7 +267,7 @@ def _cards(vin: str, matches: list[dict[str, Any]], by_id: dict[str, Any]) -> li
     return out
 
 
-def _components_ctx(vin: str, cat: str, area: str, q: str, item_ids: set) -> dict[str, Any]:
+def _components_ctx(vin: str, cat: str, area: str, q: str, item_ids: set, job_ids: set = frozenset()) -> dict[str, Any]:
     """The Components section: rows (enriched), category chips, car-view clusters, fuse-id -> components."""
     from ..services import components as cp
     from . import fuse_icons
@@ -293,9 +296,13 @@ def _components_ctx(vin: str, cat: str, area: str, q: str, item_ids: set) -> dic
     shown_ids = {r["id"] for r in shown}
     rows_out = [i for i in out if i["id"] in shown_ids]
     for i in rows_out:
-        i["photo"] = cp.photo_for(i["name"], photos)
+        i["photo"] = cp.photo_for(i["name"], photos, exclude_placeholders=True)
+    hit_ids = {r["id"] for r in cp.search(q, rows, fd.SYNONYMS)} if q else set()
+    job_hit = {i["id"] for i in rows_out if job_ids and any(f["id"] in job_ids for f in i["fuses"])}
     groups = [{"cat": k, "label": cp.CATS[k][1], "icon": fuse_icons.icon(k, 28), "rows": [i for i in rows_out if i["cat"] == k]}
               for k in cp.CATS if any(i["cat"] == k for i in rows_out)]
+    for g in groups:   # a group is open only when chosen (chip / map link) or when it holds a search or job match
+        g["open"] = bool(cat_f == g["cat"] or area_f or any(i["id"] in hit_ids or i["id"] in job_hit for i in g["rows"]))
     # car clusters: sourced area only, per (area, category)
     cl: dict[tuple, dict[str, Any]] = {}
     for r in rows:
@@ -312,15 +319,16 @@ def _components_ctx(vin: str, cat: str, area: str, q: str, item_ids: set) -> dic
               "href": f"/v/{vin}/fuses?cat={k}#fuse-components", "on": cat_f == k} for k in cp.CATS if counts[k]]
     legend = [{"cat": k, "label": cp.CATS[k][0], "icon": fuse_icons.icon(k, 24)} for k in cp.CATS]
     matches = [{"kind": "component", "ref": plain(r["name"]), "text": cp.CATS[cp.cat_of(r)][0],
-                "where": cp.area_text(r) or "location not sourced", "amps": "", "href": "#comp-" + _anchor(r["id"])}
-               for r in cp.search(q, rows, fd.SYNONYMS)] if q else []
+                "where": cp.area_text(r) or "location not sourced", "amps": "", "href": "#comp-" + _anchor(r["id"]),
+                "icon": fuse_icons.icon(cp.cat_of(r), 24), "cat_label": cp.CATS[cp.cat_of(r)][0]}
+               for r in rows if r["id"] in hit_ids] if q else []
     return dict(groups=groups, chips=chips, legend=legend, clusters=list(cl.values()), by_fuse=by_fuse, matches=matches,
                 total=len(rows), shown=len(rows_out), cat_f=cat_f, area_f=area_f,
                 area_word=cp.AREA_WORDS.get(area_f, ""), drawn=sum(e["count"] for e in cl.values()),
                 sprite=fuse_icons.sprite(), icon=fuse_icons.icon)
 
 
-def _page_ctx(vin: str, status: str, box: str, q: str, cat: str = "", area: str = "") -> dict[str, Any]:
+def _page_ctx(vin: str, status: str, box: str, q: str, cat: str = "", area: str = "", show_all: bool = False) -> dict[str, Any]:
     from . import fuse_map_svg as fm
     from ..services import fuse_direct as fd
     dossier = _dossier(vin)
@@ -336,8 +344,9 @@ def _page_ctx(vin: str, status: str, box: str, q: str, cat: str = "", area: str 
     direction, grounds = _directing(vin, dossier, data)
     job_ids = {m["id"] for m in direction["matches"] if m["rank"] < 2} | set(direction["call_items"])
     ctx = build_context(vin, data, status_f, box_f, job_ids=job_ids, open_ids=set(direction["call_items"]))
+    jobs = {m["id"] for m in direction["matches"] if m["rank"] < 2} | set(direction["call_items"])
     try:
-        comp = _components_ctx(vin, cat, area, q.strip()[:80], {i["id"] for i in data.get("items") or []})
+        comp = _components_ctx(vin, cat, area, q.strip()[:80], {i["id"] for i in data.get("items") or []}, jobs)
     except Exception:  # noqa: BLE001 - the page still renders without components
         comp = None
     if comp:
@@ -359,6 +368,16 @@ def _page_ctx(vin: str, status: str, box: str, q: str, cat: str = "", area: str 
     comp_results = comp["matches"] if (q and comp and not status_f and not box_f) else []
     for r in results + comp_results:
         r["ref"], r["text"], r["where"] = plain(r["ref"]), plain(r["text"]), plain(r["where"])
+    cap = None if show_all else RESULT_CAP
+    parts_h = []
+    for kinds, one, many in ((("fuse", "relay"), "fuse", "fuses"), (("ground",), "ground", "grounds"), (("box",), "box", "boxes")):
+        n_k = sum(1 for r in results if r.get("kind") in kinds)
+        if n_k:
+            parts_h.append(f"{n_k} {one if n_k == 1 else many}")
+    if comp_results:
+        parts_h.append(f"{len(comp_results)} component{'' if len(comp_results) == 1 else 's'}")
+    res_head = " · ".join(parts_h) + f" match ‘{q}’"
+    all_href = f"/v/{vin}/fuses?" + urlencode({k: v for k, v in (("q", q), ("status", status_f), ("box", box_f), ("all", "1")) if v}) + "#fuse-results"
 
     def href(st: str = "") -> str:
         return f"/v/{vin}/fuses" + (f"?status={st}" if st else "") + "#fuse-chips"
@@ -397,7 +416,7 @@ def _page_ctx(vin: str, status: str, box: str, q: str, cat: str = "", area: str 
     return dict(vin=vin, bar=_vehicle_bar(vin, dossier), tab="fuses", svg=svg, call=direction["call"] or "".join(x["text"] for x in call_segs),
                 call_segs=call_segs, go_chips=direction["call_targets"], why=why,
                 cards=top_cards, also_cards=also_cards, job_grounds=job_grounds, grounds=grounds, q=q, results=results,
-                results_shown=results[:10], comp_results=comp_results[:12], no_match_hint=fd.SEARCH_HINT,
+                results_shown=results[:cap], comp_results=comp_results, comp_shown=comp_results[:cap], res_head=res_head, all_href=all_href, no_match_hint=fd.SEARCH_HINT,
                 secs=boxed, nobox=nobox, counts=counts, total=total, status_f=status_f, box_f=box_f, chip_href=chip_href,
                 base=f"/v/{vin}/fuses", gaps=[plain(g) for g in gaps], status_label=STATUS_LABEL,
                 status_mark=STATUS_MARK, parts=parts, colour_class=fm.colour_class, anchor=_anchor, error=error, plain=plain,
@@ -422,8 +441,8 @@ def _tested_label(kind: str) -> tuple[str, str]:
 
 @router.get("/v/{vin}/fuses", response_class=HTMLResponse)
 def fuses_page(request: Request, vin: str, status: str = "", box: str = "", msg: str = "", q: str = "",
-               cat: str = "", area: str = "") -> HTMLResponse:
-    response = _page(request, "fuses.html", msg=msg, **_page_ctx(vin, status, box, q, cat, area))
+               cat: str = "", area: str = "", all: str = "") -> HTMLResponse:
+    response = _page(request, "fuses.html", msg=msg, **_page_ctx(vin, status, box, q, cat, area, all == "1"))
     _set_active_vehicle(response, vin)
     return response
 

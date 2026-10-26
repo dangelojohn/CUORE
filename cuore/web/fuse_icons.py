@@ -3,12 +3,12 @@ Every icon is 24 x 24, stroke only (currentColor), so it follows the light / dar
 from __future__ import annotations
 
 _P = {
-    "fuse": '<rect x="5" y="8" width="14" height="8" rx="2"/><path d="M2 12h3M19 12h3M8 12h2l1.5-2 1.5 4 1-2h2"/>',
-    "relay": '<rect x="3" y="3" width="9" height="7" rx="1"/><path d="M7.5 10v3M15 21v-5M15 13l5-3M20 21V10M3 21h2"/>',
+    "fuse": '<rect x="5" y="3" width="14" height="10" rx="1.5"/><path d="M8.5 13v8M15.5 13v8M8.5 8h2l1.5-2 1.5 4 1-2h1"/>',
+    "relay": '<rect x="2.5" y="4" width="19" height="16" rx="2"/><path d="M5 9h2l1-2.5 2 5 1-2.5h2M5 16.5h4M15 16.5h4M9 16.5l5.5-3.5"/>',
     "switch": '<circle cx="5" cy="17" r="2"/><circle cx="19" cy="17" r="2"/><path d="M6.5 15.5L17 7"/>',
     "motor": '<circle cx="12" cy="12" r="9"/><path d="M7.5 16V8l4.5 5 4.5-5v8"/>',
     "actuator": '<rect x="2" y="9" width="9" height="6" rx="1"/><path d="M11 12h10M18 8.5l3.5 3.5-3.5 3.5"/>',
-    "solenoid_valve": '<path d="M4 8l8 5-8 5zM20 8l-8 5 8 5z"/><path d="M12 13V4M9 4h6"/>',
+    "solenoid_valve": '<rect x="3" y="6" width="12" height="12" rx="1"/><path d="M6.5 6v12M9 6v12M11.5 6v12M15 12h6M21 9v6"/>',
     "gauge_display": '<path d="M3 18a9 9 0 0 1 18 0z"/><path d="M12 18l4-6M6 14l1 1M12 9v1.5M18 14l-1 1"/>',
     "lamp": '<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/>',
     "module": '<rect x="6" y="6" width="12" height="12" rx="1"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/>',
