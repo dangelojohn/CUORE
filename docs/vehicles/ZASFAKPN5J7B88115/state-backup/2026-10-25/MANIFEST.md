@@ -33,7 +33,7 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 | recordings/live_load-step-voltage_20261023-005308.json | skipped-unchanged | 3722 | - |
 | recordings/live_load-step-voltage_20261023-005518.csv | skipped-unchanged | 13375 | - |
 | recordings/live_load-step-voltage_20261023-005518.json | skipped-unchanged | 3725 | - |
-| bench/visits.json | skipped-unchanged | 413 | - |
+| bench/visits.json | copied | 413 | - |
 | media/index.jsonl | skipped-unchanged | 813 | - |
 | media/ZASFAKPN5J7B88115/e2553eec8fd74b62985fd09c7377bbc9.pdf | skipped-unchanged | 9068 | - |
 
