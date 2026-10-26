@@ -36,7 +36,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from ..api.deps import require_token
-from ..services import (cases_bridge, dossier_bridge, jobs_bridge, mechanic_plan_bridge,
+from ..services import (cases_bridge, dossier_bridge, job_direct, jobs_bridge, mechanic_plan_bridge,
                         tools_kb_bridge)
 from ..services.errors import BridgeError
 from . import routes as web_routes
@@ -59,6 +59,16 @@ def _systems_taxonomy() -> list[str]:
 
 
 SYSTEMS_TAXONOMY: list[str] = _systems_taxonomy()
+
+
+def _system_labels() -> dict[str, str]:
+    """system key -> its human label (``brakes_abs`` -> "Brakes / ABS"), for every chip on the page."""
+    if _mes_systems is None:
+        return {}
+    try:
+        return {k: v.get("label", k) for k, v in _mes_systems.systems().items()}
+    except Exception:  # noqa: BLE001
+        return {}
 
 
 def _system_label_for_key(key: str) -> str:
@@ -121,7 +131,7 @@ async def tools_inventory_form(status: str = Form(...), tool: str = Form(...),
 
 def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = "",
              step: str = "", system: str = "", codes: str = "", hypothesis: str = "",
-             **extra: Any) -> HTMLResponse:
+             q: str = "", **extra: Any) -> HTMLResponse:
     dossier = web_routes._dossier(vin)
     bar = web_routes._vehicle_bar(vin, dossier)
     job_view = jobs_bridge.build_job_view(vin, job_id or None, tools_step=tools_step or None)
@@ -171,6 +181,8 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
         key=lambda h: (len(h.get("evidence_for") or []) - len(h.get("evidence_against") or [])),
         reverse=True,
     )
+    # CUORE's own PRIORITY order leads (stable, so evidence order holds among the rest).
+    active_hyps.sort(key=lambda h: job_direct.priority_of(h.get("text") or ""))
     if job_view.get("job"):
         job_view["job"]["hypotheses"] = active_hyps
     job_view["deleted_hypotheses"] = deleted_hyps
@@ -202,6 +214,17 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
     prefill_codes = [c.strip().upper() for c in codes.split(",") if c.strip()]
     prefill_hypothesis = hypothesis.strip()
 
+    # Mechanic-first direction: the one-line call, readable system labels and
+    # the page-only search (all derived from data already on this page).
+    sys_labels = _system_labels()
+    live_hyps = (job_view.get("job") or {}).get("hypotheses") or []
+    direction = job_direct.build_call(vin, dossier_view.get("verdict"), live_hyps, sys_labels)
+    found = job_direct.search(q, vin, live_hyps, dossier_view.get("codes") or [],
+                              dossier_view.get("open_work") or [], sys_labels)
+    if found["hyp_ids"] and job_view.get("job"):
+        hit = set(found["hyp_ids"])
+        job_view["job"]["hypotheses"] = sorted(live_hyps, key=lambda h: h["id"] not in hit)
+
     # `view` carries the full dossier view -- the shape _verdict_card.html,
     # _codes_table.html and _open_work.html already expect everywhere else
     # they're included; `job_view` carries the Job-specific data only
@@ -214,30 +237,34 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
                                 systems_taxonomy=SYSTEMS_TAXONOMY,
                                 prefill_system=prefill_system, prefill_codes=prefill_codes,
                                 prefill_hypothesis=prefill_hypothesis,
-                                mechanic_plans=mechanic_plans, **extra)
+                                mechanic_plans=mechanic_plans, direction=direction, found=found,
+                                q=found["q"], sys_labels=sys_labels,
+                                hyp_title=lambda h: job_direct.hyp_title(h, sys_labels),
+                                first_step=job_direct.first_step,
+                                syslab=lambda k: job_direct.system_label(k, sys_labels), **extra)
     web_routes._set_active_vehicle(response, vin)
     return response
 
 
 @router.get("/v/{vin}/job", response_class=HTMLResponse)
 def job_page(request: Request, vin: str, tools_step: str = "", step: str = "",
-            system: str = "", codes: str = "", hypothesis: str = "") -> HTMLResponse:
+            system: str = "", codes: str = "", hypothesis: str = "", q: str = "") -> HTMLResponse:
     """The current (or most recent) job for this vehicle, one step per
     screen -- ``step`` is the only query param this page reads to pick
     which of the 12 steps is the full screen (default: the flow's own
     current step, resolved inside job.html itself). ``system``/``codes``/
     ``hypothesis`` are the step 5/7 prefill hints -- see ``_job_page``."""
     return _job_page(request, vin, tools_step=tools_step, step=step,
-                     system=system, codes=codes, hypothesis=hypothesis)
+                     system=system, codes=codes, hypothesis=hypothesis, q=q)
 
 
 @router.get("/v/{vin}/job/{job_id}", response_class=HTMLResponse)
 def job_page_one(request: Request, vin: str, job_id: str, tools_step: str = "",
                  step: str = "", system: str = "", codes: str = "",
-                 hypothesis: str = "") -> HTMLResponse:
+                 hypothesis: str = "", q: str = "") -> HTMLResponse:
     """One specific job by id -- e.g. a closed case from this car's history."""
     return _job_page(request, vin, job_id=job_id, tools_step=tools_step, step=step,
-                     system=system, codes=codes, hypothesis=hypothesis)
+                     system=system, codes=codes, hypothesis=hypothesis, q=q)
 
 
 @router.post("/v/{vin}/job/open", response_class=HTMLResponse)

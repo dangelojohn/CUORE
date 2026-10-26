@@ -722,7 +722,7 @@ else:
                                 "JSON.stringify((function(){"
                                 "var rs = document.readyState;"
                                 "var h = document.querySelector('.flow-bar') || document.querySelector('header.top');"
-                                "var c = document.getElementById('step-7');"
+                                "var c = document.getElementById('job-call') || document.getElementById('step-7');"
                                 "if (!c) return {ready: rs, gap: -1};"
                                 "var hb = h ? h.getBoundingClientRect().bottom : 0;"
                                 "var cb = c.getBoundingClientRect().top;"
@@ -763,7 +763,7 @@ else:
                         "expression": (
                             "JSON.stringify((function(){"
                             "var h = document.querySelector('.flow-bar') || document.querySelector('header.top');"
-                            "var c = document.getElementById('step-7');"
+                            "var c = document.getElementById('job-call') || document.getElementById('step-7');"
                             "if (!c) return {gap: -1};"
                             "var hb = h ? h.getBoundingClientRect().bottom : 0;"
                             "var cb = c.getBoundingClientRect().top;"
@@ -773,7 +773,9 @@ else:
                         "returnByValue": True,
                     })
                     gap_val = json.loads(gap2.get("result", {}).get("value", "{}")).get("gap", gap_val)
-                    check("step 7's content starts within 200px below the sticky header",
+                    # 2026-10-26: the page now opens on search + the one-line call, so the
+                    # first useful content (the call) is what must start within 200px.
+                    check("step 7's content (the call) starts within 200px below the sticky header",
                           0 <= gap_val <= 200, f"gap={gap_val}px")
 
                     SCRATCHPAD.mkdir(parents=True, exist_ok=True)
