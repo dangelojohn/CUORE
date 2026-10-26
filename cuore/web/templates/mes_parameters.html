@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}MES parameters — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('sensors.css') }}">
+<div class="sens-page">
+<h1>MES parameter inventory</h1>
+<p class="lede">What each module of this car says it reports, taken from MultiEcuScan's own session logs. This is the car's list of its sensors and values, module by module. Practice (simulation) logs are never used.</p>
+{% if error %}<p class="sens-msg" role="alert">{{ error }}</p>{% endif %}
+
+<p class="sens-actions">
+  <b>{{ inv.captured }} of {{ inv.total }} modules captured</b> · {{ inv.parameter_count }} parameters
+  <a class="btn" href="/v/{{ vin }}/mes-parameters.csv">Download all parameters (CSV)</a>
+  <a class="btn" href="/v/{{ vin }}/sensors">Sensor health</a></p>
+
+<section class="panel">
+  <h2>How to capture a module in MultiEcuScan</h2>
+  <ol>
+    <li>Close CUORE's live board and sensor check (only one program can use the adapter). Key on; engine running if you want running values.</li>
+    <li>In MES pick the module and fit the cable the list below names, then <b>Connect</b>.</li>
+    <li>Open the <b>Parameters</b> tab and add every parameter the module offers to the list MES is reading.</li>
+    <li>Leave it reading for about 30 seconds, then disconnect. MES saves the values in its session log.</li>
+    <li>Reload this page: the module turns to "captured" and its full list appears.</li>
+  </ol>
+  <p class="small muted">Read-only: this never clears codes or runs tests. CUORE reads the MES log files on this PC; it does not talk to the car here.</p>
+</section>
+
+<h2 class="sens-group">Still to capture <span class="muted small">({{ todo|length }})</span></h2>
+<div class="sens-readings-wrap">
+<table class="sens-readings">
+  <thead><tr><th>Module</th><th>Name</th><th>Bus</th><th>Cable in MES</th><th>On this car</th></tr></thead>
+  <tbody>
+  {% for m in todo %}
+    <tr><td><b>{{ m.code }}</b></td><td>{{ m.name }}</td><td>{{ m.bus }}</td><td>{{ m.cable }}</td>
+      <td>{{ "confirmed" if m.present == "confirmed" else "not confirmed yet" }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<h2 class="sens-group">Captured <span class="muted small">({{ done|length }})</span></h2>
+{% if not done %}<p class="panel muted">No MES session with parameters yet.</p>{% endif %}
+{% for m in done %}
+<details class="panel" id="mod-{{ m.code }}" {{ 'open' if open_module == m.code or done|length == 1 }}>
+  <summary><b>{{ m.code if not m.code.startswith('ecu:') else 'MES' }}</b> {{ m.name }} — {{ m.parameters|length }} parameters, last session {{ m.last_at }}</summary>
+  {% if m.note %}<p class="small muted">{{ m.note }}</p>{% endif %}
+  <p class="small muted">Sessions: {% for s in m.sessions %}{{ s.file }}{% if not s.vin_in_log %} (no VIN in the log; matched by model name){% endif %}{% if not loop.last %}; {% endif %}{% endfor %}</p>
+  <div class="sens-readings-wrap">
+  <table class="sens-readings">
+    <thead><tr><th>Parameter</th><th>Last value</th><th>Units</th><th>Samples</th><th>Seen</th></tr></thead>
+    <tbody>
+    {% for p in m.parameters %}
+      <tr><td>{{ p.name }}</td><td>{{ p.last }}</td><td>{{ p.units|join(", ") }}</td><td>{{ p.samples }}</td>
+        <td class="small">{{ p.first_at[:10] }}{% if p.last_at[:10] != p.first_at[:10] %} – {{ p.last_at[:10] }}{% endif %}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</details>
+{% endfor %}
+</div>
+{% endblock %}

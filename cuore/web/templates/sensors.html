@@ -33,6 +33,7 @@
   <button type="submit" class="btn">Check all sensors (read-only)</button>
   <a class="btn" href="{{ base }}/readings">All readings — compare checks</a>
   <a class="btn" href="{{ base }}/readings.csv">Download readings (CSV)</a>
+  <a class="btn" href="/v/{{ vin }}/mes-parameters">MES parameter inventory</a>
   <p class="note small muted">Last checked: <b>{{ checked_at or "never" }}</b>.
     Needs the car connected and ignition on, with MultiEcuScan closed. It never clears codes.
     Sensors on the CAN-CH bus need the grey cable.</p>
