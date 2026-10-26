@@ -81,10 +81,12 @@
 </li>
 {% endmacro %}
 <section class="fb" id="fault-board" aria-label="Fault board">
+  {% if not (fb_in_fold is defined and fb_in_fold) %}{# the Job page's fold summary already shows this line #}
   <div class="fb-head">
     <h2 class="section-h">Fault board</h2>
     <span>{{ fb.total }} faults &middot; {{ fb.n_active }} present now{% if fb.n_verifying %} &middot; {{ fb.n_verifying }} verifying{% endif %}</span>
   </div>
+  {% endif %}
   <p class="fb-order">Ordered by priority, then most recent. The priority rules are a table ({{ fb.priority_label }}).</p>
   <div class="fb-ctl" role="group" aria-label="Sort">
     <b>Sort</b>

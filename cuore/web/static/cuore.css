@@ -890,7 +890,7 @@ details.fold > summary { list-style: none; cursor: pointer; }
 details.fold > summary::-webkit-details-marker { display: none; }
 details.fold > summary::marker { content: ""; }
 details.fold > summary::before {
-  content: "B8"; display: inline-block; flex: none; margin-right: 8px;
+  content: "\25B8"; display: inline-block; flex: none; margin-right: 8px;
   color: var(--ink-3); transition: transform .15s ease;
 }
 details.fold[open] > summary::before { transform: rotate(90deg); }

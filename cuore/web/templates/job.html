@@ -403,7 +403,7 @@
 {% if fb is defined and fb %}
 <details class="fold fb-wrap" id="fault-board-wrap" {% if _current_n in (4, 5, 9, 10) or (flow and flow.current == _current_n) %}open{% endif %}>
   <summary><b>Fault board</b> &middot; {{ fb.total }} faults &middot; {{ fb.n_active }} present now{% if fb.n_verifying %} &middot; {{ fb.n_verifying }} verifying{% endif %}</summary>
-  {% include "_fault_board.html" %}
+  {% set fb_in_fold = true %}{% include "_fault_board.html" %}
 </details>
 {% endif %}
 
