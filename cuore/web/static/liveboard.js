@@ -134,10 +134,7 @@
     if ((dir === "above" || dir === "both") && aHi != null) alarmBits.push(">" + fmtNum(aHi));
     if (alarmBits.length) parts.push(alarmBits.join(" or ") + " alarm");
     var note = parts.join(", ").trim();
-    if (b.confidence) {
-      var tag = String(b.confidence).toUpperCase().replace(/[\s_]+/g, "-");
-      note += (note ? " " : "") + "(" + tag + ")";
-    }
+    // How sure the numbers are is a plain-words chip on the row (shown only while a value is live), not here.
     return note;
   }
 
@@ -264,6 +261,7 @@
     this._wireControls();
     return this.loadContract().then(function () {
       self._renderGroups();
+      self._syncUi();
       self._startStaleTicker();
       self._pollSessionStatus();
       self._statusTimer = global.setInterval(function () { self._pollSessionStatus(); }, 4000);
@@ -358,6 +356,44 @@
     var stopBtn = this.doc.getElementById("lb-stop");
     if (startBtn) startBtn.hidden = !!this.sourceKind;
     if (stopBtn) stopBtn.hidden = !this.sourceKind;
+    this._syncUi();
+  };
+
+  // True while a session is feeding the board: one started here (live or demo) or one already running.
+  LiveboardApp.prototype._running = function () {
+    return !!(this.sourceKind || (this.sessionInfo && this.sessionInfo.active));
+  };
+
+  // Everything that depends on "is a session running": Snapshot, Record, the one-line call, the
+  // "No reading" message, and (once, on start) opening the groups.
+  LiveboardApp.prototype._syncUi = function () {
+    var running = this._running();
+    var snap = this.doc.getElementById("lb-snapshot");
+    if (snap) {
+      // Readings still held on the page after Stop can be snapshotted; before any session there is nothing to save.
+      var held = Object.keys(this.values).length > 0;
+      snap.disabled = !(running || held);
+      snap.title = (running || held) ? "" : "Start a session first";
+    }
+    var rec = this.doc.getElementById("lb-record-form");
+    if (rec) rec.hidden = !(this.sourceKind === "live" || (this.sessionInfo && this.sessionInfo.active && this.sourceKind !== "demo"));
+    var line = this.doc.getElementById("lb-call-line");
+    var call = this.doc.getElementById("lb-call");
+    if (line && call) {
+      line.textContent = (running ? call.getAttribute("data-on") : call.getAttribute("data-off")) || line.textContent;
+      var cable = this.doc.getElementById("lb-call-cable");
+      if (cable) cable.hidden = running;
+    }
+    var none = this.doc.getElementById("lb-noread");
+    if (none) none.hidden = running || Object.keys(this.values).length > 0;
+    if (running && !this._groupsOpened) {
+      this._groupsOpened = true;
+      var ds = this.doc.querySelectorAll ? this.doc.querySelectorAll("details.lb-group") : [];
+      for (var i = 0; i < ds.length; i++) {
+        if (!ds[i].classList.contains("lb-raw")) ds[i].open = true;
+      }
+    }
+    if (!running) this._groupsOpened = false;
   };
 
   LiveboardApp.prototype.startLive = function () {
@@ -439,11 +475,14 @@
     this._lastSampleAt = this.now();
     this._renderChannel(id);
     this._renderProblems();
+    this._syncUi();
   };
 
   LiveboardApp.prototype._renderGroups = function () {
     var root = this.doc.getElementById("lb-groups");
     if (!root) return;
+    // The server already rendered the rows (one per quantity, search matches first); only values are ours.
+    if (root.getAttribute("data-server") === "1") return;
     root.innerHTML = "";
     var self = this;
     this.groups.forEach(function (g) {
@@ -499,8 +538,8 @@
     var unitEl = this.doc.getElementById("lb-unit-" + id);
     if (!row || !valEl) return;
     var v = this.values[id];
-    row.className = "lb-chan level-" + (v ? v.level : "unknown");
-    valEl.textContent = (v && typeof v.value === "number" && !isNaN(v.value)) ? fmtValue(v.value) : "—";
+    row.className = "lb-chan level-" + (v ? v.level : "unknown") + (v ? " has-value" : "");
+    valEl.textContent = (v && typeof v.value === "number" && !isNaN(v.value)) ? fmtValue(v.value) : (v ? "—" : "");
     if (unitEl && v && v.unit) unitEl.textContent = v.unit;
     this._renderState(id);
   };
@@ -630,7 +669,7 @@
   LiveboardApp.prototype._tickUpdatedLabel = function () {
     var el = this.doc.getElementById("lb-status-updated");
     if (!el) return;
-    if (!this._lastSampleAt) { el.textContent = "no data yet"; return; }
+    if (!this._lastSampleAt) { el.textContent = "no readings yet"; return; }
     var secs = Math.max(0, Math.round(this.now() - this._lastSampleAt));
     el.textContent = "updated " + secs + "s ago";
   };
@@ -639,16 +678,18 @@
     var self = this;
     this.api("/api/live/status").then(function (s) { self._renderAdapterChip(s); })
       .catch(function () { self._renderAdapterChip(null); });
-    this.api("/api/live/session").then(function (s) { self.sessionInfo = s; self._renderSessionChip(s); self._renderStates(); })
+    this.api("/api/live/session").then(function (s) { self.sessionInfo = s; self._renderSessionChip(s); self._renderStates(); self._syncUi(); })
       .catch(function () { self.sessionInfo = null; self._renderSessionChip(null); self._renderStates(); });
   };
 
   LiveboardApp.prototype._renderAdapterChip = function (s) {
     var el = this.doc.getElementById("lb-status-adapter");
     if (!el) return;
-    if (!s || s.error) { el.textContent = "adapter unknown"; el.className = "lb-status-chip"; return; }
+    if (!s || s.error) { el.textContent = "adapter: not found"; el.className = "lb-status-chip"; return; }
     var mesState = (s.mes && s.mes.state) || "unknown";
-    el.textContent = "MES " + mesState;
+    // MES holding the adapter blocks CUORE; any other MES state is fine.
+    el.textContent = mesState === "connected" ? "MultiEcuScan has the adapter - close it first"
+      : mesState === "unknown" ? "adapter: state unknown" : "adapter: free";
     el.className = "lb-status-chip " + (mesState === "connected" ? "is-warn" : "is-ok");
   };
 
@@ -656,8 +697,8 @@
     var el = this.doc.getElementById("lb-status-session");
     if (!el) return;
     var active = !!(s && s.active);
-    if (this.sourceKind === "demo") { el.textContent = "session demo"; el.className = "lb-status-chip is-ok"; return; }
-    el.textContent = "session " + (active ? "live" : "idle");
+    if (this.sourceKind === "demo") { el.textContent = "demo (made-up numbers)"; el.className = "lb-status-chip is-ok"; return; }
+    el.textContent = active ? "session running" : "no session";
     el.className = "lb-status-chip " + (active ? "is-ok" : "");
   };
 

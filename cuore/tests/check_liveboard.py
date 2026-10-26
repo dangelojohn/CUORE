@@ -360,6 +360,121 @@ for needle in ('id="ff-start"', 'id="ff-stop"', 'id="ff-save"', 'id="ff-discard"
     check(f"liveboard page renders {needle}", needle in ff_page.text)
 
 
+# --- 10. Mechanic-first layout (cuore/web/liveboard_view.py, liveboard.html) ---------------------------
+
+print("--- 10. Mechanic layout: call, one Start, Advanced, For this job, dedupe, raw rows, search ---")
+from cuore.web import liveboard_view as lbv  # noqa: E402
+
+page = TestClient(create_app()).get(f"/v/{VIN}/liveboard")
+html = page.text
+check_eq("mechanic liveboard 200", page.status_code, 200)
+check("call: not-connected text", 'id="lb-call-line">Connect the car, then Start.<' in html)
+check("call: connected text carried for the page script", 'data-on="Watching live.' in html, "data-on missing")
+check("call: names the cable for this job", "Cable for this job:" in html and "OBD-II" in html)
+check("no raw MES state or VIN stub in the status line",
+      "not_running" not in html and "lb-status-vin" not in html)
+check("exactly one primary Start button", html.count("lb-btn-primary") == 1, str(html.count("lb-btn-primary")))
+check("Snapshot is disabled until a session runs", re.search(r'id="lb-snapshot"[^>]*\bdisabled', html) is not None)
+check("Record form is hidden until a session runs",
+      re.search(r'<form[^>]*id="lb-record-form"[^>]*\bhidden', html) is not None)
+check("Recordings link kept", f'href="/v/{VIN}/recordings' in html and 'id="lb-recordings"' in html)
+adv = re.search(r'<details class="lb-adv".*?</details>\s*<div class="lb-groups"', html, re.S)
+adv_html = adv.group(0) if adv else ""
+for needle in ('id="lb-demo"', 'id="ff-start"', 'id="bc-start"', 'id="bc-panel"', 'id="ff-panel"'):
+    check(f"Advanced fold holds {needle}", needle in adv_html)
+check("Start/Snapshot are not inside Advanced", 'id="lb-start"' not in adv_html and 'id="lb-snapshot"' not in adv_html)
+check("search form at the top, before the call",
+      0 < html.find('class="lb-search"') < html.find('id="lb-call"'))
+check("one 'no reading' message, not a wall of dashes",
+      html.count("No reading - start a session.") == 1 and html.count(">—<") == 0)
+
+# For this job: the EVAP hypothesis in this throwaway ledger -> its key readings, built from the job
+check("For this job group is open and first",
+      re.search(r'<details class="lb-group lb-jobgroup"[^>]*\bopen', html) is not None)
+jg = re.search(r'lb-jobgroup.*?Why these readings', html, re.S)
+jg_html = jg.group(0) if jg else ""
+for want in ("Fuel level", "Evap vapour pressure", "Commanded evap purge", "ESIM switch state"):
+    check(f"For this job lists {want}", want in jg_html)
+check("For this job comes before the other groups", 0 < html.find("lb-jobgroup") < html.find('data-group="temperatures"'))
+check("job reason is in a Why fold", "Why these readings" in html and "EVAP job" in html)
+
+# fixture jobs through the pure functions
+fixture_board = liveboard_bridge.board(VIN)
+v_evap = lbv.build(fixture_board, {"codes": ["P0456-00"], "symptoms": [], "jobs": []})
+check_eq("EVAP code alone picks the EVAP readings",
+         [r["label"] for r in v_evap["job_rows"]][:3], ["Fuel level", "Evap vapour pressure", "Commanded evap purge"])
+v_none = lbv.build(fixture_board, {"codes": [], "symptoms": [], "jobs": []})
+check("no job words -> no For this job group", v_none["job_rows"] == [] and not v_none["has_job"])
+v_res = lbv.build(fixture_board, {"codes": [], "symptoms": [], "jobs": [
+    {"complaint": "", "hypotheses": [{"text": "purge valve stuck", "system": "EVAP", "status": "refuted"}]}]})
+check("a refuted hypothesis does not drive the group", v_res["job_rows"] == [])
+
+# dedupe by quantity: one row per quantity, best (confirmed) source on top, the rest folded
+labels = [r["label"] for g in v_none["groups"] for r in g["rows"]]
+for lab in ("Coolant temperature", "Battery voltage", "Engine speed", "Vehicle speed", "Intake air temperature"):
+    check_eq(f"{lab} appears once", labels.count(lab), 1)
+by_label = {r["label"]: r for g in v_none["groups"] for r in g["rows"]}
+check_eq("coolant: confirmed-source channel is the main row", by_label["Coolant temperature"]["id"], "engine_coolant_temp")
+check("coolant: duplicates folded as other sources",
+      "ecm_1003" in {o["id"] for o in by_label["Coolant temperature"]["others"]})
+check_eq("battery: corroborated channel wins", by_label["Battery voltage"]["id"], "battery_voltage")
+check("battery: other sources folded", len(by_label["Battery voltage"]["others"]) >= 2)
+check("rendered page has an 'Other sources' fold", "Other sources (" in html)
+ids_in_html = re.findall(r'id="lb-chan-([^"]+)"', html)
+check("every channel row id is unique on the page", len(ids_in_html) == len(set(ids_in_html)))
+check("no channel is dropped by the dedupe",
+      set(ids_in_html) == {c["id"] for g in fixture_board["groups"] for c in g["channels"]})
+check("plain groups render collapsed", re.search(r'<details class="lb-group" data-group="temperatures">', html) is not None)
+
+# hidden formulas / bitmaps
+raw_m = re.search(r'<details class="lb-group lb-raw".*?</details>', html, re.S)
+raw_html = raw_m.group(0) if raw_m else ""
+main_html = html.replace(raw_html, "") if raw_html else html
+check("raw fold holds the IBS formula row", "((J*256)" in raw_html)
+check("raw fold holds the pids supported rows", "pids supported 41 60" in raw_html.replace("Pids supported", "pids supported"))
+check("formulas and bitmaps are not in the mechanic view",
+      "((J*256)" not in main_html and "ids supported" not in main_html)
+check("confidence jargon is not printed as a raw tag",
+      "SINGLE-SOURCE" not in html and "CORROBORATED" not in html and "UNKNOWN DID" not in html)
+check("confidence is a plain-words chip", "one source only" in html and "confirmed by 2+ sources" in html)
+check("the chip is only shown with a live value (CSS)", ".lb-chan.has-value .lb-conf" in lb_css
+      and re.search(r"\.lb-conf\s*\{[^}]*display:\s*none", lb_css) is not None)
+
+# page-only search
+s_html = TestClient(create_app()).get(f"/v/{VIN}/liveboard?q=rpm").text
+check("search: Matches group comes first", 0 < s_html.find("lb-matches") < s_html.find("lb-jobgroup"))
+check("search: engine speed is in the matches", "Engine speed" in s_html.split("lb-jobgroup")[0])
+by_unit = lbv.build(fixture_board, None, "kPa")
+check("search by unit finds pressure rows", any("pressure" in r["label"].lower() for r in by_unit["matches"]))
+by_cid = lbv.build(fixture_board, None, "ecm_1003")
+check("search by channel id finds the coolant row (via its other source)",
+      any(r["label"] == "Coolant temperature" for r in by_cid["matches"]))
+by_grp = lbv.build(fixture_board, None, "gearbox")
+check("search by group finds its rows", len(by_grp["matches"]) >= 3)
+nope = lbv.build(fixture_board, None, "zzzqq")
+check("search with no match is empty and gives a hint", nope["matches"] == [] and "Try" in nope["hint"])
+check("matched rows leave the plain groups (ids stay unique)",
+      sum(r["id"] == "engine_rpm" for r in by_unit["matches"])
+      + sum(r["id"] == "engine_rpm" for g in by_unit["groups"] for r in g["rows"]) <= 1)
+
+# label fallback in the tab bar
+from jinja2 import Environment, FileSystemLoader  # noqa: E402
+vt_dir = ROOT / "cuore" / "web" / "templates"
+vt = (vt_dir / "_vtabs.html").read_text(encoding="utf-8")
+check("_vtabs falls back to its default text when a key is missing", "fallback if (_v == key)" in vt)
+env = Environment(loader=FileSystemLoader(str(vt_dir)))
+env.globals["t"] = lambda k: k   # a lookup that knows no key
+ctx = dict(bar={"vin": VIN}, tab="liveboard", _more=[], _visible=[], flow_tab_key="", _fb_open=0)
+out = env.get_template("_vtabs.html").render(**ctx)
+check("tab bar never shows the raw LIVE_BOARD key", "live_board" not in out.lower(), out[:300])
+from cuore.web import i18n as _i18n  # noqa: E402
+check_eq("'Live board' label exists", _i18n.t("live_board"), "Live board")
+real = Environment(loader=FileSystemLoader(str(vt_dir)))
+real.globals["t"] = _i18n.t
+check("tab bar shows 'Live board'", ">Live board<" in real.get_template("_vtabs.html").render(**ctx))
+check("liveboard.css: 44 px controls and 16 px text", "min-height: 44px" in lb_css and "--fs-sm: var(--fs-md)" in lb_css)
+
+
 # --- summary -----------------------------------------------------------------
 
 print(f"{checks - len(failures)}/{checks} checks passed")

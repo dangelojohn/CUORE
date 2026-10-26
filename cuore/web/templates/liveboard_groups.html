@@ -1,0 +1,71 @@
+{# Readings for the Live board: job group, search matches, one row per quantity, raw values.
+   Rendered from cuore/web/liveboard_view.py. Values, colours and "waiting" states are filled by liveboard.js
+   into the same element ids (lb-chan-/lb-val-/lb-unit-/lb-state-<channel id>). #}
+{% macro chan(c, label="") %}
+<div class="lb-chan level-unknown" id="lb-chan-{{ c.id }}" data-channel="{{ c.id }}">
+  <div class="lb-chan-left">
+    <div class="lb-chan-name">{{ label or c.name }}</div>
+    {% if c.note %}<div class="lb-chan-band">{{ c.note }}</div>{% endif %}
+    {% if c.conf %}<span class="lb-conf">{{ c.conf }}</span>{% endif %}
+  </div>
+  <div class="lb-chan-right">
+    <span class="lb-chan-state" id="lb-state-{{ c.id }}"></span>
+    <span class="lb-chan-value" id="lb-val-{{ c.id }}"></span>
+    <span class="lb-chan-unit" id="lb-unit-{{ c.id }}">{{ c.unit }}</span>
+  </div>
+</div>
+{% endmacro %}
+{% macro item(r) %}
+<div class="lb-item" data-quantity="{{ r.label }}">
+  {{ chan(r, r.label) }}
+  {% if r.why %}<p class="lb-item-why">{{ r.why }}</p>{% endif %}
+  {% if r.others %}
+  <details class="lb-others">
+    <summary>Other sources ({{ r.others|length }})</summary>
+    {% for o in r.others %}{{ chan(o, o.name) }}{% endfor %}
+  </details>
+  {% endif %}
+</div>
+{% endmacro %}
+
+<div class="lb-groups" id="lb-groups" data-server="1">
+  <p class="lb-noread" id="lb-noread">No reading - start a session.</p>
+
+  {% if q %}
+  <details class="lb-group lb-matches" data-group="matches" open>
+    <summary>Matches for &ldquo;{{ q }}&rdquo; <span class="lb-count">{{ view.matches|length }}</span></summary>
+    {% for r in view.matches %}{{ item(r) }}{% else %}
+    <p class="lb-empty">Nothing on this page matches &ldquo;{{ q }}&rdquo;. {{ view.hint }}</p>
+    {% endfor %}
+  </details>
+  {% endif %}
+
+  {% if view.job_rows %}
+  <details class="lb-group lb-jobgroup" data-group="for_this_job" open>
+    <summary>For this job <span class="lb-count">{{ view.job_rows|length }}</span></summary>
+    {% for r in view.job_rows %}{{ item(r) }}{% endfor %}
+    <details class="lb-why">
+      <summary>Why these readings</summary>
+      <ul>{% for w in view.job_why %}<li>{{ w }}</li>{% endfor %}</ul>
+      <p class="muted">Taken from the open job: its codes, unresolved symptoms and live hypotheses.</p>
+    </details>
+  </details>
+  {% elif not q %}
+  <p class="lb-nojob">No open job asks for particular readings. Open a group below, or search.</p>
+  {% endif %}
+
+  {% for g in view.groups %}
+  <details class="lb-group" data-group="{{ g.label|lower|replace(' ', '_') }}">
+    <summary>{{ g.label }} <span class="lb-count">{{ g.rows|length }}</span></summary>
+    {% for r in g.rows %}{{ item(r) }}{% endfor %}
+  </details>
+  {% endfor %}
+
+  {% if view.raw %}
+  <details class="lb-group lb-raw" data-group="raw">
+    <summary>Advanced: raw values (bitmaps, formulas, supported-PID lists) <span class="lb-count">{{ view.raw|length }}</span></summary>
+    <p class="muted">Not scaled to a reading a mechanic can use. Kept here for the record.</p>
+    {% for c in view.raw %}{{ chan(c) }}{% endfor %}
+  </details>
+  {% endif %}
+</div>

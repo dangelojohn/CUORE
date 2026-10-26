@@ -9,7 +9,12 @@
  * invented here, this is additive chrome for one page.
  */
 
-#lb-app { max-width: 960px; margin: 0 auto; padding: 0 0 var(--space-5, 24px); }
+#lb-app {
+  max-width: 820px; margin: 0 auto; padding: 0 16px var(--space-5, 24px);
+  /* mechanic page: nothing under 16 px, 44 px targets (same floor as the Fuses and Sensors pages) */
+  --fs-xs: var(--fs-md); --fs-sm: var(--fs-md); font-size: var(--fs-md); overflow-wrap: anywhere;
+}
+#lb-app .muted { color: var(--ink-2); }
 
 /* ---------- status line: 40px, car name / VIN tail / adapter / session /
    "updated Ns ago" -- all client-rendered (liveboard.js) so it can show
@@ -300,3 +305,64 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
   .bc-cable-change { margin-left: 0; width: 100%; }
   .bc-row select, .bc-row input[type="text"] { flex: 1 1 100%; }
 }
+
+/* ---------- mechanic layout: search, call, one Start, groups of quantities ---------- */
+.lb-search { display: flex; gap: 8px; margin: 12px 0 0; flex-wrap: wrap; }
+.lb-search input[type="search"] {
+  flex: 1 1 240px; min-height: 44px; padding: 0 12px; font-size: var(--fs-md); font-family: inherit;
+  border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); color: var(--ink);
+}
+.lb-search button, .lb-clear {
+  min-height: 44px; min-width: 44px; padding: 0 18px; font-size: var(--fs-md); font-family: inherit; font-weight: var(--fw-semibold);
+  border: 1px solid var(--rule); border-radius: var(--radius); background: var(--raised); color: var(--ink); cursor: pointer;
+  display: inline-flex; align-items: center; text-decoration: none;
+}
+.lb-h1 { margin: 12px 0 4px; font-size: var(--fs-xl); }
+.lb-h1-car { font-size: var(--fs-md); font-weight: 400; color: var(--ink-2); margin-left: 8px; }
+.lb-call { border-left: 3px solid var(--accent); background: var(--surface-2); padding: 8px 12px; margin: 8px 0; }
+.lb-call-line { font-size: var(--fs-lg); font-weight: 600; margin: 0 0 4px; }
+.lb-call-cable { margin: 0; color: var(--ink-2); }
+.lb-btn-start { flex: 1 1 100%; font-size: var(--fs-lg); }
+.lb-btn-primary { min-height: 52px; }
+.lb-controls .lb-btn:not(.lb-btn-primary):not(.lb-btn-stop) { flex: 1 1 0; }
+.lb-record .lb-btn { flex: 0 1 auto; }
+.lb-go { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
+.lb-go-l { font-weight: 700; color: var(--ink-2); }
+.lb-gochip {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 4px 16px; border-radius: 999px;
+  border: 2px solid var(--accent); background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 600;
+}
+.lb-gochip:hover, .lb-gochip:focus-visible { background: var(--accent); color: #fff; }
+
+.lb-adv { margin: 12px 0; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); }
+.lb-adv > summary, .lb-group > summary, .lb-others > summary, .lb-why > summary {
+  min-height: 44px; display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 0 12px; font-size: var(--fs-md);
+}
+.lb-adv > summary { font-weight: var(--fw-semibold); color: var(--ink-2); }
+.lb-adv-body { padding: 0 12px 12px; }
+
+#lb-groups { margin-top: 12px; }
+.lb-group { margin: 0 0 12px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface-2); }
+.lb-group > summary { font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .04em; color: var(--ink-2); }
+.lb-jobgroup { border-color: var(--accent); }
+.lb-jobgroup > summary, .lb-matches > summary { color: var(--ink); }
+.lb-count { margin-left: auto; font-family: var(--mono); font-weight: 400; color: var(--ink-2); }
+.lb-group .lb-chan { padding: 8px 12px; min-height: 44px; }
+.lb-item { border-top: 1px solid var(--rule-soft); }
+.lb-item-why { margin: -4px 12px 8px; color: var(--ink-2); }
+.lb-others { margin: 0 0 4px 12px; }
+.lb-others > summary { color: var(--ink-2); }
+.lb-others .lb-chan-name { color: var(--ink-2); }
+.lb-why { margin: 0; border-top: 1px solid var(--rule-soft); }
+.lb-why ul, .lb-why p { margin: 4px 12px 8px; }
+.lb-noread, .lb-nojob, .lb-empty { margin: 8px 0; padding: 8px 12px; color: var(--ink-2); border-left: 3px solid var(--ink-3); background: var(--surface-2); }
+.lb-chan-name { font-size: var(--fs-md); }
+.lb-chan-state:empty { display: none; }
+/* how sure the numbers are: only shown while a value is live */
+.lb-conf { display: none; margin-top: 2px; padding: 2px 10px; border: 1px solid var(--rule); border-radius: 999px; color: var(--ink-2); }
+.lb-chan.has-value .lb-conf { display: inline-block; }
+.lb-chan-value { min-width: 1ch; }
+
+/* 44 px targets on the controls that moved under Advanced */
+.bc-btn, .ff-btn, .bc-cable-change, .bc-chip-btn { min-height: 44px; min-width: 44px; }
+.bc-row select, .bc-row input[type="text"] { min-height: 44px; font-size: var(--fs-md); }

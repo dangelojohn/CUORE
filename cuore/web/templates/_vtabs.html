@@ -52,7 +52,7 @@
    VISIBLE_LABELS/">Dashboard<"/">Labels<" checks expect) whenever `t`
    isn't available, and uses the real translation whenever it is. #}
 {% macro _lbl(key, fallback) -%}
-{%- if t is defined -%}{{ t(key) }}{%- else -%}{{ fallback }}{%- endif -%}
+{%- if t is defined -%}{%- set _v = t(key) -%}{{ fallback if (_v == key) else _v }}{%- else -%}{{ fallback }}{%- endif -%}
 {%- endmacro %}
 
 {% macro vtab(key, href, label, badge="") -%}

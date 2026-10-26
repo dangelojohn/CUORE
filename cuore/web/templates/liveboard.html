@@ -13,12 +13,28 @@
 <div id="lb-app" data-vin="{{ vin }}" data-name="{{ bar.name }}"
      data-txt-waiting="waiting" data-txt-noanswer="no answer">
 
+  {# Mechanic layout: search, one-line call, one Start, then "For this job" and the readings by quantity.
+     Everything the old page had still exists (same ids) -- Demo, Freeze frame and Bus capture now sit under
+     "Advanced". Structure is rendered here (cuore/web/liveboard_view.py); liveboard.js only fills in values. #}
+  {% set tok = request.query_params.get('token') %}
+  <form class="lb-search" method="get" action="/v/{{ vin }}/liveboard" role="search">
+    {% if tok %}<input type="hidden" name="token" value="{{ tok }}">{% endif %}
+    <input type="search" name="q" value="{{ q }}" placeholder="Search: coolant, fuel level, kPa, temperatures" aria-label="Search the readings on this page" maxlength="80">
+    <button type="submit">Search</button>
+    {% if q %}<a class="lb-clear" href="/v/{{ vin }}/liveboard{% if tok %}?token={{ tok }}{% endif %}">Clear</a>{% endif %}
+  </form>
+
+  <h1 class="lb-h1">Live board <span class="lb-h1-car">{{ bar.name }}</span></h1>
+
+  <div class="lb-call" id="lb-call" data-off="{{ view.call_off }}" data-on="{{ view.call_on }}">
+    <p class="lb-call-line" id="lb-call-line">{{ view.call_off }}</p>
+    <p class="lb-call-cable" id="lb-call-cable">{{ view.cable }}</p>
+  </div>
+
   <div class="lb-status" id="lb-status">
-    <span class="lb-status-name" title="{{ bar.name }}">{{ bar.name }}</span>
-    <span class="lb-status-vin mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-6:] }}</span>
-    <span class="lb-status-chip" id="lb-status-adapter">adapter —</span>
-    <span class="lb-status-chip" id="lb-status-session">session —</span>
-    <span class="lb-status-updated" id="lb-status-updated">no data yet</span>
+    <span class="lb-status-chip" id="lb-status-adapter">adapter: checking</span>
+    <span class="lb-status-chip" id="lb-status-session">no session</span>
+    <span class="lb-status-updated" id="lb-status-updated">no readings yet</span>
   </div>
 
   {# One line under the header while a live session runs: channel count,
@@ -33,23 +49,33 @@
     <div class="lb-problems-list" id="lb-problems-list"></div>
   </div>
 
-  <div class="lb-controls" role="toolbar" aria-label="Liveboard controls">
-    <button type="button" id="lb-start" class="lb-btn lb-btn-primary">Start</button>
-    <button type="button" id="lb-stop" class="lb-btn lb-btn-stop" hidden>Stop</button>
-    <button type="button" id="lb-snapshot" class="lb-btn">Snapshot</button>
-    <button type="button" id="lb-demo" class="lb-btn">Demo</button>
+  <div class="lb-controls" role="toolbar" aria-label="Live board controls">
+    <button type="button" id="lb-start" class="lb-btn lb-btn-primary lb-btn-start">Start</button>
+    <button type="button" id="lb-stop" class="lb-btn lb-btn-stop lb-btn-start" hidden>Stop</button>
+    <button type="button" id="lb-snapshot" class="lb-btn" disabled title="Start a session first">Snapshot</button>
   </div>
 
-  {# Drive recording (cuore/services/recordings.py): samples this running
-     session's cache -- no extra bus traffic. Plain form, works with JS off;
-     refuses with a message if no live session is running. #}
-  <form class="lb-controls" id="lb-record-form" method="post" action="/v/{{ vin }}/recordings/start{% if request.query_params.get('token') %}?token={{ request.query_params.get('token') }}{% endif %}">
+  {# Drive recording (cuore/services/recordings.py): samples this running session's cache -- no extra bus
+     traffic. Plain form, works with JS off; refuses with a message if no live session is running. Shown
+     only while a session runs (liveboard.js un-hides it); secondary to Start. #}
+  <form class="lb-controls lb-record" id="lb-record-form" method="post" action="/v/{{ vin }}/recordings/start{% if tok %}?token={{ tok }}{% endif %}" hidden>
     <input type="hidden" name="label" value="">
-    <button type="submit" class="lb-btn" id="lb-record">Record</button>
-    <a class="lb-btn" href="/v/{{ vin }}/recordings{% if request.query_params.get('token') %}?token={{ request.query_params.get('token') }}{% endif %}">Recordings</a>
+    <button type="submit" class="lb-btn" id="lb-record">Record this drive</button>
   </form>
 
+  <div class="fuse-go lb-go">
+    <span class="lb-go-l">Go to</span>
+    <a class="lb-gochip" id="lb-recordings" href="/v/{{ vin }}/recordings{% if tok %}?token={{ tok }}{% endif %}">Recordings</a>
+    <a class="lb-gochip" href="/v/{{ vin }}/job{% if tok %}?token={{ tok }}{% endif %}">Job</a>
+    <a class="lb-gochip" href="/v/{{ vin }}{% if tok %}?token={{ tok }}{% endif %}">Bench</a>
+  </div>
+
   <div class="lb-snapshot-result" id="lb-snapshot-result" hidden></div>
+
+  <details class="lb-adv" id="lb-advanced">
+  <summary>Advanced: demo, freeze frame, bus capture</summary>
+  <div class="lb-adv-body">
+  <div class="lb-controls"><button type="button" id="lb-demo" class="lb-btn">Demo (made-up numbers, no car)</button></div>
 
   {# Freeze frame panel -- Start/Stop capture a Mode 03 + full freeze frame +
      readiness + Mode 01 snapshot read, held unsaved on the page; Save writes
@@ -112,7 +138,10 @@
     <div class="bc-presets" id="bc-presets"></div>
   </div>
 
-  <div class="lb-groups" id="lb-groups"></div>
+  </div>
+  </details>
+
+{% include 'liveboard_groups.html' %}
 
 </div>
 

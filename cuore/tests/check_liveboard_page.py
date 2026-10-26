@@ -296,7 +296,7 @@ uvicorn.run(app, host="127.0.0.1", port={port}, log_level="warning")
                         "var groups=document.querySelectorAll('.lb-group').length;"
                         "var withVal=Array.prototype.filter.call("
                         "document.querySelectorAll('.lb-chan-value'),"
-                        "function(e){return e.textContent!=='\\u2014';}).length;"
+                        "function(e){return e.textContent!=='\\u2014' && e.textContent!=='';}).length;"
                         "return JSON.stringify({groups:groups, withVal:withVal});"
                         "})()"
                     )

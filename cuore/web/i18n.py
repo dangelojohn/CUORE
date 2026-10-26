@@ -297,6 +297,7 @@ STRINGS: dict[str, dict[str, str]] = {
     #    symptom form (see job.html, _flow_bar.html, _vtabs.html,
     #    _vbar.html, intake.html, release.html, _symptom_form.html) -------
     "bench": {"en": "Bench", "it": "Banco"},
+    "live_board": {"en": "Live board", "it": "Live board"},
     "mobile": {"en": "Mobile", "it": "Mobile"},
     "tests": {"en": "Tests", "it": "Test"},
     "dossier": {"en": "Dossier", "it": "Dossier"},

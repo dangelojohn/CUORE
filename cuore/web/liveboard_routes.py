@@ -40,6 +40,8 @@ from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
 from ..services import shop_bridge
+from ..services import liveboard_bridge
+from . import liveboard_view as lbv
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
 #: Server-rendered page: same posture as ``cuore.web.routes.router`` and
@@ -57,7 +59,13 @@ def liveboard_page(request: Request, vin: str) -> HTMLResponse:
     # tests_routes.py/system_routes.py -- reuse the resolver bench_routes.py
     # already relies on rather than the bare dossier.identity fallback.
     bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
-    response = _page(request, "liveboard.html", vin=vin, bar=bar)
+    q = lbv.ps.clean_q(request.query_params.get("q"))
+    try:
+        board = liveboard_bridge.board(vin)
+    except Exception:  # noqa: BLE001 -- the page still renders; liveboard.js carries its own fallback set
+        board = {"groups": []}
+    view = lbv.build(board, lbv.load_job(vin, dossier), q)
+    response = _page(request, "liveboard.html", vin=vin, bar=bar, view=view, q=q)
     _set_active_vehicle(response, vin)
     return response
 
