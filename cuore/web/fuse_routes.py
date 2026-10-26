@@ -62,6 +62,30 @@ def plain(text: Any) -> str:
     return re.sub(r"\bPDM\b", "power distribution module", t)
 
 
+def photo_key(kind: str, type_text: str) -> str:
+    """The component_image_keys.json key for a fuse / relay type as printed on the row; "" when not mapped."""
+    t = re.sub(r"[^a-z]+", " ", str(type_text or "").lower()).strip()
+    if kind == "relay":
+        return "micro relay" if "micro" in t else "maxi relay" if "maxi" in t else ""
+    if "fmx" in t or "j case" in t or "jcase" in t:
+        return "j-case"
+    for k in ("midi", "maxi", "mini"):
+        if k in t.split():
+            return k
+    return ""
+
+
+def _catalogue_photo(key: str, cache: dict[str, Any]) -> Any:
+    if key not in cache:
+        try:
+            from ..services import component_images
+            hits = component_images.images_for_key(key, limit=1) if key else []
+        except Exception:  # noqa: BLE001
+            hits = []
+        cache[key] = ({"url": hits[0]["photo_url"], "href": hits[0]["part_url"], "name": hits[0]["name"]} if hits else None)
+    return cache[key]
+
+
 def _item_name(i: dict[str, Any]) -> str:
     lab = str(i.get("label") or "")
     pos = str(i.get("position") or "")
@@ -101,9 +125,12 @@ def build_context(vin: str, data: dict[str, Any], status_f: str, box_f: str) -> 
     if not data.get("counts"):
         for i in items:
             counts[i.get("status") if i.get("status") in counts else "grey"] += 1
+    cache: dict[str, Any] = {}
     for i in items:
         st = i.get("status") if i.get("status") in STATUS_LABEL else "grey"
-        i.update(status=st, status_word=STATUS_LABEL[st], anchor=_anchor(i["id"]), name=_item_name(i))
+        sp = i.get("spec") or {}
+        i.update(status=st, status_word=STATUS_LABEL[st], anchor=_anchor(i["id"]), name=_item_name(i),
+                 photo=_catalogue_photo(photo_key(i.get("kind") or "", sp.get("type") or sp.get("relay_type") or ""), cache))
     secs: list[dict[str, Any]] = []
     for b in boxes:
         rows = [i for i in items if i.get("box") == b["id"]]
@@ -194,6 +221,8 @@ def _page_ctx(vin: str, status: str, box: str, q: str) -> dict[str, Any]:
         matches.append({**m, "anchor": _anchor(it["id"]), "rating": it.get("rating_a"), "type": sp.get("type") or "",
                         "colour": sp.get("colour") or "", "colour_derived": sp.get("colour_derived"), "kind": it.get("kind"),
                         "circuit": _item_name(it), "status": it.get("status", "grey")})
+    for g in grounds:
+        g["photo"] = _catalogue_photo("battery_negative_strap", {}) if g["id"] == "battery_neg_strap" else None
     gmap = {g["id"]: g for g in grounds}
     job_grounds = [gmap[i] for i in direction["ground_ids"] if i in gmap]
     if direction["call"]:

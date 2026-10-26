@@ -160,6 +160,7 @@
     {% set sp = i.spec %}
     <summary>
       <span class="r-pos">{{ i.position or "—" }}</span>
+      {% if i.photo %}<span class="r-photo"><a href="{{ i.photo.href }}"><img src="{{ i.photo.url }}" alt="Mopar catalogue photo: {{ i.photo.name }}" width="64" height="64" loading="lazy"></a><small>Mopar catalogue photo - the part type, not this car's fuse</small></span>{% endif %}
       <span class="r-type">{% if sp.type %}{{ sp.type }}{% elif i.kind == 'relay' %}relay, type not sourced{% else %}type not sourced{% endif %}</span>
       <span class="r-amp">{% if i.rating_a %}{{ '%g' % i.rating_a }} A{% else %}A ?{% endif %}</span>
       <span class="r-col">{% if sp.colour %}<i class="fz-sw {{ colour_class(sp.colour) }}" aria-hidden="true"></i>{{ sp.colour }}{% if sp.colour_derived %} <small>(standard)</small>{% endif %}{% else %}<small>colour not sourced</small>{% endif %}</span>
@@ -214,6 +215,7 @@
   {% for g in grounds %}
   <article class="fuse-ground" id="ground-{{ g.id }}">
     <h3>{{ g.name }} <span class="fuse-chipl">ground</span></h3>
+    {% if g.photo %}<figure class="fuse-gphoto"><a href="{{ g.photo.href }}"><img src="{{ g.photo.url }}" alt="Mopar catalogue photo: {{ g.photo.name }}" width="64" height="64" loading="lazy"></a><figcaption class="small muted">Mopar catalogue photo - the part, not this car</figcaption></figure>{% endif %}
     <div class="fuse-inset">
       <dl class="fuse-facts">
         <div><dt>Connects to</dt><dd>{{ g.connects }}</dd></div>

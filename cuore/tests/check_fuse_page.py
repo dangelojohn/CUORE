@@ -47,6 +47,7 @@ parts_catalog.load = lambda *a, **k: _FAKE
 from cuore.services import fuse_direct as fd  # noqa: E402
 from cuore.services import mes_bridge  # noqa: E402
 
+_real_job_inputs = fd.job_inputs
 fd.job_inputs = lambda vin, codes, dossier: (
     [{"text": "Rear-left window (behind the driver) stops part way in BOTH directions, up and down.", "at": "2026-10-25T13:45"}],
     {"B1176": "Rear left window riser - component or system operation"})
@@ -324,6 +325,71 @@ check(d.status_code == 200 and all(k in dt for k in ("Add a fuse box", "Add a fu
 check('action="/v/%s/fuses/box"' % VIN in dt and 'action="/v/%s/fuses/item"' % VIN in dt and 'action="/v/%s/fuses/spec"' % VIN in dt
       and 'action="/v/%s/fuses/photo"' % VIN in dt, "owner forms keep the same POST routes")
 check('href="/v/%s/fuses/data"' % VIN not in client.get(f"/v/{VIN}/dossier").text, "owner page not linked from the dossier")
+
+# 11. catalogue photos (fixture catalogue with photographed parts; no part numbers in the repo)
+from cuore.services import component_images as ci  # noqa: E402
+
+_PH = {"id": "test-cat", "diagrams": {"d1": {"title": "Fuse fixture", "parts": [
+    {"pn": "FX-MINI-1", "name": "Mini Fuse", "description": "x", "fitment": "own", "photos": [{"file": "mini.jpg"}]},
+    {"pn": "FX-MAXI-1", "name": "Maxi Fuse", "description": "x", "fitment": "own", "photos": [{"file": "maxi.jpg"}]},
+    {"pn": "FX-STRAP-1", "name": "Alfa Romeo Ground Strap", "description": "BATTERY NEGATIVE", "fitment": "own",
+     "photos": [{"file": "strap.jpg"}]}]}}}
+parts_catalogue_saved = (parts_catalog.load, parts_catalog.default_id)
+parts_catalog.load = lambda *a, **k: _PH
+parts_catalog.default_id = lambda *a, **k: "test-cat"
+ci._idx.update(sig=None, rows=[])
+tp = client.get(f"/v/{VIN}/fuses").text
+check("/catalog/img/test-cat/mini.jpg" in tp and 'href="/catalog/p/FX-MINI-1"' in tp, "mini row shows catalogue photo linking to its part page")
+check("/catalog/img/test-cat/maxi.jpg" in tp, "maxi row shows catalogue photo")
+f47 = tp.split('id="fuse-f47_interior"', 1)[1].split("</summary>", 1)[0]
+check("mini.jpg" in f47 and 'width="64"' in f47 and "Mopar catalogue photo - the part type, not this car's fuse" in f47.replace("&#39;", "'"),
+      "F47 (MINI) photo is 64 px with its caption")
+rel = [x.split("</summary>", 1)[0] for x in tp.split('<details class="fuse-row"')[1:] if "(relay)" in x.split("</summary>", 1)[0]]
+check(rel and all("/catalog/img/" not in x for x in rel), "relay rows without a sourced type show no photo")
+gs = tp.split('id="ground-battery_neg_strap"', 1)[1].split("</article>", 1)[0]
+check("strap.jpg" in gs and "Mopar catalogue photo - the part, not this car" in gs and 'href="/catalog/p/FX-STRAP-1"' in gs,
+      "strap photo + caption + link in grounds")
+check("/catalog/img/" not in tp.split('id="ground-g003a"', 1)[1].split("</article>", 1)[0], "other grounds have no catalogue photo")
+from cuore.web import fuse_routes as fr  # noqa: E402
+check([fr.photo_key("fuse", t) for t in ("MINI", "Mini", "MAXI", "FMX/JCase", "J-case", "MIDI", "ATO")] ==
+      ["mini", "mini", "maxi", "j-case", "j-case", "midi", ""], "fuse type -> key map")
+check(fr.photo_key("relay", "Micro ISO") == "micro relay" and fr.photo_key("relay", "") == "", "relay type -> key map")
+parts_catalog.load, parts_catalog.default_id = parts_catalogue_saved
+ci._idx.update(sig=None, rows=[])
+tn = client.get(f"/v/{VIN}/fuses").text
+check("mini.jpg" not in tn and "Mopar catalogue photo - the part" not in tn, "no catalogue -> no photos, no captions")
+src = "".join(Path(x).read_text(encoding="utf-8") for x in (fr.__file__, ci.__file__, fd.__file__,
+                                                            str(Path(fr.__file__).parent / "templates" / "fuses.html")))
+check(not re.search(r"\d{8,10}[A-Z]{0,2}", src.split("OWNER_NOTE_ID")[0] + fr.__doc__), "no part numbers in the files touched")
+
+# 12. resolved symptoms do not drive the call / cards
+from cuore.services import timeline_bridge  # noqa: E402
+_syms = [{"id": "aaaaaaaaaaaa", "at": "2026-10-23T00:00", "text": "The car does not auto-unlock on door-handle touch."},
+         {"id": "bbbbbbbbbbbb", "at": "2026-10-25T13:45", "text": "Rear-left window stops part way in BOTH directions."},
+         {"id": "cccccccccccc", "at": "2026-10-20T00:00", "text": "Driver window will not unlock-close.", "status": "closed"},
+         {"id": "dddddddddddd", "at": "2026-10-19T00:00", "text": "Another unlock complaint.", "hidden": True}]
+_nts = [{"id": "n1", "tags": ["resolved"], "text": "FIXED. Closes symptom aaaaaaaaaaaa.", "hidden": False}]
+_sv, _nv = timeline_bridge.symptoms, mes_bridge.notes
+timeline_bridge.symptoms = lambda vin, **k: {"symptoms": _syms}
+mes_bridge.notes = lambda vin, *a, **k: {"notes": _nts}
+got, _ = _real_job_inputs(VIN, [], {})
+check([s["id"] for s in got] == ["bbbbbbbbbbbb"], "resolved-note, closed-status and hidden symptoms are excluded; open one kept")
+_nts[0]["hidden"] = True
+got, _ = _real_job_inputs(VIN, [], {})
+check("aaaaaaaaaaaa" in [s["id"] for s in got], "a hidden resolved note no longer closes the symptom")
+_nts[0].update(hidden=False, tags=["keyless"])
+got, _ = _real_job_inputs(VIN, [], {})
+check("aaaaaaaaaaaa" in [s["id"] for s in got], "a note without the resolved tag does not close it")
+_nts[0]["tags"] = ["resolved"]
+_items = fh.health(VIN)["items"]
+_boxes = fh.health(VIN)["boxes"]
+got, _ = _real_job_inputs(VIN, [], {})
+dd = fd.direct(_items, _boxes, got, [], {}, lambda c: {})
+refs = [m["ref"] for m in dd["matches"]]
+check("F38" not in refs and {"F47", "F48"} <= set(refs), "resolved unlock symptom: no F38 card; open window symptom: F47/F48 cards")
+dd2 = fd.direct(_items, _boxes, [{"text": _syms[0]["text"], "at": ""}], [], {}, lambda c: {})
+check("F38" in [m["ref"] for m in dd2["matches"]], "an open unlock symptom still produces the F38 card")
+timeline_bridge.symptoms, mes_bridge.notes = _sv, _nv
 
 print(f"fuse_page checks: {passed} passed, {len(failures)} failed")
 for f in failures:

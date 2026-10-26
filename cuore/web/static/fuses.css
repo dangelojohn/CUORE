@@ -184,3 +184,8 @@ i.fz-sw { display: inline-block; width: 16px; height: 16px; border-radius: 3px; 
 .fm-ground { cursor: pointer; }
 .fm-ground:hover .fm-gsym { stroke: var(--accent); }
 .fuse-owner { text-align: center; margin: 24px 0 8px; font-size: var(--fs-sm, 14px); }
+
+.fuse-row .r-photo { display: inline-flex; flex-direction: column; align-items: flex-start; max-width: 96px; }
+.fuse-row .r-photo img, .fuse-gphoto img { width: 64px; height: 64px; object-fit: contain; background: #fff; border-radius: 4px; }
+.fuse-row .r-photo small { font-size: .65rem; line-height: 1.2; opacity: .75; }
+.fuse-gphoto { margin: .4rem 0; }

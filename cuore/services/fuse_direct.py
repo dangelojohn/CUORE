@@ -142,13 +142,39 @@ def direct(items: list[dict[str, Any]], boxes: list[dict[str, Any]], symptoms: l
 
 # --- real-state loaders ------------------------------------------------------
 
+def _closed_flag(s: dict[str, Any]) -> bool:
+    """The symptom record's own closed / resolved marker, if the store carries one."""
+    if s.get("resolved") or s.get("closed"):
+        return True
+    return str(s.get("status") or "").strip().lower() in ("resolved", "closed", "fixed", "done")
+
+
+def resolved_symptom_ids(vin: str) -> set[str]:
+    """Symptom ids (12 hex chars) named by a visible note tagged "resolved" for this car. The symptom store has no
+    status field, so the owner's "resolved" note is the record that closes a symptom."""
+    out: set[str] = set()
+    try:
+        from . import mes_bridge
+        for n in mes_bridge.notes(vin)["notes"]:
+            if n.get("hidden") or "resolved" not in [str(t).lower() for t in n.get("tags") or []]:
+                continue
+            out.update(re.findall(r"\b[0-9a-f]{12}\b", n.get("text") or ""))
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
 def job_inputs(vin: str, open_codes: list[str], dossier: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, str]]:
     """(symptoms newest first, {code: description}) from the car's own records. Never raises."""
     syms: list[dict[str, Any]] = []
     try:
         from . import timeline_bridge
-        syms = [{"text": s.get("text") or "", "at": s.get("at") or ""}
-                for s in timeline_bridge.symptoms(vin).get("symptoms", [])]
+        closed = resolved_symptom_ids(vin)
+        for s in timeline_bridge.symptoms(vin).get("symptoms", []):
+            sid = str(s.get("id") or "")
+            if s.get("hidden") or _closed_flag(s) or (sid and any(sid.startswith(c) or c.startswith(sid) for c in closed)):
+                continue
+            syms.append({"text": s.get("text") or "", "at": s.get("at") or "", "id": sid})
         syms.sort(key=lambda s: s["at"], reverse=True)
     except Exception:  # noqa: BLE001
         pass
