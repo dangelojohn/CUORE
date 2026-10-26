@@ -51,6 +51,12 @@ def default_autodoc() -> Path:
 
 
 
+def default_wrangler() -> Path:
+    return state_dir() / "parts_catalog" / "sources" / "wrangler-2019-gme-2.0l-engine.json"
+
+
+WRANGLER_SOURCE_NAME = "Jeep Wrangler 2.0L GME (engine)"
+WRANGLER_GROUPS = ROOT / "cuore" / "data" / "wrangler_category_groups.json"
 AUTODOC_GROUPS = ROOT / "cuore" / "data" / "autodoc_category_groups.json"
 _MERCH = re.compile(r"\b(sign|art print|poster|keychain|key ?ring|mug|t-?shirt|shirt|hat|baseball cap|jacket|hoodie|"
                     r"scale model|diecast|book|calendar|gift ?card|umbrella|lanyard|pin badge|display|pillow|socks?|wrapping paper|water bottle|glass|ornament|sweatshirt|blanket|towel|tumbler|coaster|apparel)\b", re.I)
@@ -210,8 +216,161 @@ def load_autodoc(path: Path | None) -> list[dict]:
     return out
 
 
+def norm_pn(s: str) -> str:
+    """Part number for matching: spaces, dashes and punctuation dropped, upper case."""
+    return re.sub(r"[^A-Z0-9]", "", (s or "").upper())
+
+
+_MOPAR_PN = re.compile(r"^(\d{6,})([A-Z]{1,3})$")
+
+
+def _base_rev(npn: str) -> tuple[str, str]:
+    """('6511169', 'AA') for a Mopar number; (npn, '') when it has no revision suffix."""
+    m = _MOPAR_PN.match(npn)
+    return (m.group(1), m.group(2)) if m else (npn, "")
+
+
+def stelvio_index(diagrams: dict) -> tuple[dict, dict]:
+    """(normalised pn -> (pn, diagram id, diagram title), base number -> [normalised pns])."""
+    exact: dict = {}
+    bases: dict = {}
+    for did, d in diagrams.items():
+        for p in d.get("parts", []):
+            n = norm_pn(p.get("pn", ""))
+            if not n:
+                continue
+            exact.setdefault(n, (p["pn"], did, d.get("title", "")))
+            base, rev = _base_rev(n)
+            if rev and n not in bases.setdefault(base, []):
+                bases[base].append(n)
+    return exact, bases
+
+
+def interchange(pn: str, exact: dict, bases: dict) -> dict:
+    """Interchange status of one Wrangler part number against the Stelvio catalogue,
+    from the two catalogues' data only. A catalogue fact, never proof of fit."""
+    n = norm_pn(pn)
+    if n and n in exact:
+        spn, did, dtitle = exact[n]
+        return {"status": "same-pn", "stelvio_pn": spn, "diagram_id": did, "diagram_title": dtitle,
+                "label": "SAME MOPAR NUMBER AS THE STELVIO CATALOGUE",
+                "text": "Same Mopar part number as the Stelvio catalogue. Both catalogues list this number; "
+                        "that is not proof of fit on this exact VIN."}
+    base, rev = _base_rev(n)
+    if rev and bases.get(base):
+        others = [exact[x][0] for x in bases[base] if x != n]
+        if others:
+            first = exact[bases[base][0]]
+            return {"status": "same-base", "stelvio_pn": others[0], "stelvio_pns": others,
+                    "diagram_id": first[1], "diagram_title": first[2],
+                    "label": "SAME BASE NUMBER, DIFFERENT REVISION",
+                    "text": f"Same base number, different revision suffix: Wrangler {pn}, Stelvio {', '.join(others)}. "
+                            "The revision may or may not be interchangeable; unverified."}
+    return {"status": "none", "stelvio_pn": "", "label": "WRANGLER GME 2.0L ONLY",
+            "text": "Wrangler GME 2.0L only: interchangeability with the Stelvio unverified "
+                    "(owner: many GME parts interchange)."}
+
+
+def _slug(s: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", (s or "").lower()).strip("-")
+
+
+def _style_px(style: str, key: str) -> float:
+    m = re.search(rf"(?<![a-z-]){key}\s*:\s*(-?[\d.]+)px", style or "")
+    return float(m.group(1)) if m else 0.0
+
+
+def load_wrangler_diagrams(path: Path | None, exact: dict, bases: dict) -> dict:
+    """Wrangler GME assembly schematics: image file NAME only (the image stays in the ProgramData
+    sources folder, never copied), hotspots as percentages of the drawing, rows with interchange.
+    Hotspot pixels are on the image at natural size; if they exceed natural_w/h the larger
+    extent is used as the basis and `scale_note` says so. Absent file = {}."""
+    if not path or not path.exists():
+        return {}
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    shop = re.sub(r"^https?://(www\.)?", "", raw.get("source") or "https://store.mopar.com").split("/")[0]
+    day = (raw.get("fetched_at") or "")[:10]
+    rules = json.loads(WRANGLER_GROUPS.read_text(encoding="utf-8"))
+    out = {}
+    for n, d in enumerate(raw.get("diagrams") or []):
+        cat = d.get("category", "")
+        slug = (d.get("category_path") or "").rsplit("/", 1)[-1].lower() or _slug(cat)
+        grp = next((r["group"] for r in rules.get("rules", []) if any(k in slug for k in r["keywords"])), rules.get("fallback", "engine"))
+        boxes = []
+        for h in d.get("hotspots") or []:
+            st = h.get("style", "")
+            boxes.append((_style_px(st, "left"), _style_px(st, "top"), _style_px(st, "width"), _style_px(st, "height"), str(h.get("code", ""))))
+        w, h_ = float(d.get("natural_w") or 0), float(d.get("natural_h") or 0)
+        ext_w = max([b[0] + b[2] for b in boxes] or [0])
+        ext_h = max([b[1] + b[3] for b in boxes] or [0])
+        note = ""
+        if ext_w > w or ext_h > h_:
+            note = f"Hotspot positions exceeded the stated image size ({int(w)}x{int(h_)}); scaled by the largest hotspot extent."
+            w, h_ = max(w, ext_w), max(h_, ext_h)
+        marks = [{"code": c, "x": round((x + bw / 2) / w * 100, 2), "y": round((y + bh / 2) / h_ * 100, 2)}
+                 for x, y, bw, bh, c in boxes] if w and h_ else []
+        rows = []
+        for r in d.get("rows") or []:
+            pn = _first(r, "part_number").upper().replace(" ", "")
+            sale, lst = _first(r, "sale_price"), _first(r, "list_price")
+            rows.append({"callout": _first(r, "callout"), "pn": pn, "name": _first(r, "title"),
+                         "description": _first(r, "description"), "price": sale or lst,
+                         "price_date": day, "price_source": shop, "currency": raw.get("currency") or "USD",
+                         "interchange": interchange(pn, exact, bases)})
+        did = f"wr-{_slug(cat)}-{int(d.get('index', n)) + 1}"
+        out[did] = {"id": did, "title": d.get("title", ""), "category": cat, "group": grp,
+                    "image_file": Path(str(d.get("image_file") or "")).name, "marks": marks, "rows": rows,
+                    "aspect": round(h_ / w, 4) if w else 0, "scale_note": note,
+                    "source": raw.get("source", "")}
+    return out
+
+
+def load_wrangler_gme(path: Path | None, diagrams: dict, wdiagrams: dict | None = None) -> list[dict]:
+    """2019 Jeep Wrangler 2.0L GME engine rows (store.mopar.com) as other-shop items, each with an
+    interchange status against the Stelvio rows. Remote images only. Absent file = no rows."""
+    if not path or not path.exists():
+        return []
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    src = raw.get("source") or "https://store.mopar.com"
+    shop = re.sub(r"^https?://(www\.)?", "", src).split("/")[0]
+    day = (raw.get("fetched_at") or "")[:10]
+    rules = json.loads(WRANGLER_GROUPS.read_text(encoding="utf-8"))
+    exact, bases = stelvio_index(diagrams)
+    where: dict = {}
+    for wid, wd in (wdiagrams or {}).items():
+        for r in wd["rows"]:
+            where.setdefault(norm_pn(r["pn"]), {"id": wid, "title": wd["title"], "callout": r["callout"]})
+    out, seen = [], set()
+    for c in raw.get("categories") or []:
+        slug = ((c.get("path") or "").rsplit("/", 1)[-1] or c.get("title", "")).lower()
+        grp = next((r["group"] for r in rules.get("rules", []) if any(k in slug for k in r["keywords"])),
+                   rules.get("fallback", "engine"))
+        for r in c.get("rows") or []:
+            pn = _first(r, "part_number").upper().replace(" ", "")
+            name = _first(r, "title")
+            if not name or (pn, c.get("title")) in seen:
+                continue
+            seen.add((pn, c.get("title")))
+            sale, lst = _first(r, "sale_price"), _first(r, "list_price")
+            out.append({
+                "source": src, "source_name": WRANGLER_SOURCE_NAME, "kind": "wrangler",
+                "brand": _first(r, "manufacturer"), "pn": pn, "sku": "", "name": name,
+                "notes": _first(r, "description"),
+                "price": sale or lst, "currency": raw.get("currency") or "USD", "price_date": day, "price_source": shop,
+                "msrp": lst if sale and lst and lst != sale else "",
+                "url": _first(r, "url"), "image_url": _first(r, "image"),
+                "category": c.get("title", ""), "group": grp,
+                "fitment": "unverified", "fitment_label": "WRANGLER GME 2.0L LISTING",
+                "fitment_why": f"Listed by {shop} for {raw.get('vehicle') or '2019 Jeep Wrangler 2.0L GME'}, not for the Stelvio.",
+                "interchange": interchange(pn, exact, bases),
+                "schematic": where.get(norm_pn(pn)),
+            })
+    return out
+
+
 def build(export: Path, fetch_images: bool, rows_file: Path | None = None,
-          supplements: list[Path] | None = None, autodoc: Path | None = None) -> Path:
+          supplements: list[Path] | None = None, autodoc: Path | None = None,
+          wrangler: Path | None = None) -> Path:
     cfg = json.loads(GROUPS.read_text(encoding="utf-8"))
     raw = json.loads(export.read_text(encoding="utf-8"))
     if rows_file and rows_file.exists():
@@ -328,6 +487,9 @@ def build(export: Path, fetch_images: bool, rows_file: Path | None = None,
         "listings": load_listings(supplements or [], {p["pn"].replace("-", "") for d in diagrams.values() for p in d["parts"]}),
     }
     catalog["listings"] += load_autodoc(autodoc)
+    ex, ba = stelvio_index(diagrams)
+    catalog["wrangler_diagrams"] = load_wrangler_diagrams(wrangler, ex, ba)
+    catalog["listings"] += load_wrangler_gme(wrangler, diagrams, catalog["wrangler_diagrams"])
     (out_dir / "catalog.json").write_text(json.dumps(catalog, ensure_ascii=False), encoding="utf-8")
     n_parts = sum(len(d["parts"]) for d in diagrams.values())
     n_pn = len({p["pn"] for d in diagrams.values() for p in d["parts"]})
@@ -348,8 +510,9 @@ if __name__ == "__main__":
     ap.add_argument("--rows", default=str(DEFAULT_ROWS))
     ap.add_argument("--supplement", action="append", help="another shop's saved list (repeatable)")
     ap.add_argument("--autodoc", default=str(default_autodoc()), help="Autodoc UK crawl (skipped when absent)")
+    ap.add_argument("--wrangler", default=str(default_wrangler()), help="2019 Wrangler GME 2.0L engine crawl (skipped when absent)")
     ap.add_argument("--no-images", action="store_true")
     a = ap.parse_args()
     build(Path(a.export), not a.no_images, Path(a.rows),
           [Path(x) for x in a.supplement] if a.supplement else DEFAULT_SUPPLEMENTS,
-          Path(a.autodoc))
+          Path(a.autodoc), Path(a.wrangler))

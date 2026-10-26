@@ -61,6 +61,12 @@
   {% endif %}
   {% set pt = path_tests_for(vin, code) if path_tests_for is defined else None %}
   {% if pt %}{% include "_path_tests.html" %}{% endif %}
+  {# Power and ground budget for the path's ground hop (else its last hop). #}
+  {% if elec.found and power_budget_panel is defined %}
+    {% set _pb_ids = elec.path|selectattr("role", "equalto", "ground")|map(attribute="id")|list %}
+    {% set _pb_id = _pb_ids[0] if _pb_ids else elec.path[-1].id %}
+    {% with pb = power_budget_panel(vin, _pb_id) %}{% if pb %}{% include "_power_budget_panel.html" %}{% endif %}{% endwith %}
+  {% endif %}
   {% include "_electrical_path_more.html" %}
   <p><a class="btn" href="{{ elec.layout_href }}">Open in layout &rarr;</a></p>
 </div>

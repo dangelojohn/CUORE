@@ -16,6 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from ..api.deps import require_token
 from . import page_search, sensor_profile_svg
+from ..services import sensor_crosscheck
 from .routes import _dossier, _page, _set_active_vehicle, _status_strip, _vehicle_bar
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
@@ -128,6 +129,14 @@ def _photo_for(s: dict[str, Any]) -> Optional[dict[str, Any]]:
     return None
 
 
+def _crosscheck_panel(vin: str) -> Optional[dict[str, Any]]:
+    """Cross-check panel context for the Sensors page; None on any failure."""
+    try:
+        return sensor_crosscheck.panel(vin)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 @router.get("/v/{vin}/sensors", response_class=HTMLResponse)
 def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
                  msg: str = "", q: str = "", zone: str = "") -> HTMLResponse:
@@ -217,7 +226,8 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
                      system_f=system_f, systems=systems, all_href=f"/v/{vin}/sensors",
                      status_label=STATUS_LABEL, status_mark=STATUS_MARK, msg=msg, error=error,
                      fmt_time=sensor_direct.fmt_time, human_label=sensor_direct.human_label,
-                     split_parts=sensor_direct.split_parts, showing=showing)
+                     split_parts=sensor_direct.split_parts, showing=showing,
+                     crosscheck_panel=_crosscheck_panel(vin))
     _set_active_vehicle(response, vin)
     return response
 

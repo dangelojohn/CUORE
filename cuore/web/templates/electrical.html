@@ -88,6 +88,7 @@
       <span class="chip plain sm">{{ sc.location.confidence }} confidence</span>
       <span class="small muted">source: {{ sc.location.source }}</span></p>
     {% set flags = sc.safety %}{% include "_electrical_safety.html" %}
+    {% if power_budget_panel is defined and walk.current.id %}{% with pb = power_budget_panel(vin, walk.current.id) %}{% if pb %}{% include "_power_budget_panel.html" %}{% endif %}{% endwith %}{% endif %}
     {% if step_info.how or step_info.meter or step_info.expected or sc.inspection_hint %}
       <details class="elec-hint" open>
         <summary>How to test</summary>
@@ -136,6 +137,10 @@
 {% if module_count %}<p class="small muted">Module rings come from the last saved scan; this page never contacts the car.</p>{% endif %}
 
 {% include "_wiring_table.html" %}
+
+{% if power_budget_panel is defined and not (walk and walk.current.id == "g003a") %}
+  {% with pb = power_budget_panel(vin, "g003a") %}{% if pb %}{% include "_power_budget_panel.html" %}{% endif %}{% endwith %}
+{% endif %}
 
 <h2>Elements</h2>
 <div class="elec-cards">

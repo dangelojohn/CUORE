@@ -18,6 +18,7 @@
 </form>
 {% if p.descriptions %}<p class="lede">{{ p.descriptions|join(' · ') }}</p>{% endif %}
 {% if 'other-engine' in p.fitment and 'own' not in p.fitment %}<div class="note warn"><span class="lab">Other engine</span> The catalogue lists this number for a different engine, not this 2.0L. Check the alternatives below.</div>{% endif %}
+{% if p.wrangler %}<p class="small" id="cat-wrangler">Also listed for 2019 Jeep Wrangler 2.0L GME (same part number): {% for w in p.wrangler[:1] %}<a href="{{ w.url }}" target="_blank" rel="noopener noreferrer">{{ w.pn }}</a>{% if w.price %}, {{ w.price }} ({{ w.price_source }}, {{ w.price_date }}){% endif %}{% endfor %} · <a href="/catalog/other#shop-wrangler">see on Other shops</a>. A catalogue fact, not proof of fit on this VIN.{% for sc in p.wrangler_schematics %} See it on the Wrangler GME schematic: <a href="/catalog/w/{{ sc.id }}#row-{{ sc.callout }}">{{ sc.title }}, callout {{ sc.callout }}</a>.{% endfor %}</p>{% endif %}
 
 <section class="panel" id="cat-torque">
   <h2>Torque</h2>

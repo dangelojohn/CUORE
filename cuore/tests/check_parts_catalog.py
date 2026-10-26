@@ -83,13 +83,39 @@ def main() -> None:
              "pr": "£24.49", "u": "https://autodoc.example/p1", "im": "https://cdn.example/p1.jpg",
              "sp": {"Height 1 [mm]": "58,7"}}]},
             {"cat": "mystery-widget-999", "title": "Widget", "rows": [{"n": "TESTBRAND TEST-002 Widget", "no": "TEST-002", "b": "TESTBRAND", "pr": "£1.00", "im": None}]}]}), encoding="utf-8")
-    out = b.build(exp, fetch_images=False, supplements=[sup, sup2], autodoc=ad)
+    wr = STATE / "wrangler.json"
+    wr.write_text(json.dumps({"source": "https://store.example", "vehicle": "TEST Wrangler 2.0L", "fetched_at": "2026-10-26T10:00:00Z",
+        "currency": "USD", "categories": [{"title": "Test Turbo Parts", "path": "/v-test/2-0l-i4-dohc-di-turbo-engine--turbo-and-super-chargers",
+        "rows": [
+            {"title": "Test Bolt Same", "part_number": "68311-596 aa", "manufacturer": "Mopar", "list_price": "$15.00", "sale_price": "$11.56",
+             "description": "Test bolt.", "url": "https://store.example/a", "image": "https://cdn.example/w1.jpg"},
+            {"title": "Test Pad Kit Newer Revision", "part_number": "68400577AB", "manufacturer": "Mopar", "sale_price": "$20.00", "url": "https://store.example/b"},
+            {"title": "Test Wrangler Only", "part_number": "TEST-1234AA", "manufacturer": "Mopar", "sale_price": "$5.00", "url": "https://store.example/c"}]}]}), encoding="utf-8")
+    wimg = STATE / "parts_catalog" / "sources" / "wrangler-gme" / "img"
+    wimg.mkdir(parents=True)
+    (wimg / "abcdef012345.png").write_bytes(b"\x89PNG\r\n\x1a\n")  # tiny stand-in drawing
+    (STATE / "secret.png").write_bytes(b"x")
+    wj = json.loads(wr.read_text(encoding="utf-8"))
+    wj["diagrams"] = [{"category": "Test Turbo Parts", "category_path": "/v-test/2-0l-i4-dohc-di-turbo-engine--turbo-and-super-chargers",
+        "index": 0, "title": "Diagram 1: Test Bolt (31)", "image_file": "wrangler-gme/img/abcdef012345.png", "natural_w": 200, "natural_h": 100,
+        "hotspots": [{"code": "1", "style": "top:50px;left:100px;width:20px;height:20px;line-height:20px;"},
+                     {"code": "2", "style": "top:10px;left:190px;width:20px;height:20px;"}],
+        "rows": [{"callout": "1", "part_number": "68311596AA", "title": "Test Bolt Same", "sale_price": "$11.56"},
+                 {"callout": "2", "part_number": "TEST-1234AA", "title": "Test Wrangler Only", "sale_price": "$5.00"}]}]
+    wr.write_text(json.dumps(wj), encoding="utf-8")
+    out = b.build(exp, fetch_images=False, supplements=[sup, sup2], autodoc=ad, wrangler=wr)
     lst = json.loads((out / "catalog.json").read_text(encoding="utf-8"))["listings"]
     adl = {x["pn"]: x for x in lst if x["source_name"] == "Autodoc UK"}
     assert adl["TEST-001"]["group"] == "brakes" and adl["TEST-002"]["group"] == "other", adl
     assert adl["TEST-001"]["fitment"] == "unverified" and adl["TEST-001"]["currency"] == "GBP" and adl["TEST-001"]["specs"]["Height 1 [mm]"] == "58,7"
     assert not list((out / "img").glob("*")), "autodoc images must stay remote"
-    lst = [x for x in lst if x["source_name"] != "Autodoc UK"]
+    wl = {x["pn"]: x for x in lst if x["kind"] == "wrangler"}
+    assert wl["68311-596AA"]["interchange"]["status"] == "same-pn", wl  # spaces/dashes normalised
+    assert wl["68400577AB"]["interchange"]["status"] == "same-base" and wl["68400577AB"]["interchange"]["stelvio_pns"] == ["68400577AA"]
+    assert wl["TEST-1234AA"]["interchange"]["status"] == "none" and all(x["fitment"] == "unverified" for x in wl.values())
+    assert wl["68311-596AA"]["price"] == "$11.56" and wl["TEST-1234AA"]["group"] == "engine"
+    assert b.load_wrangler_gme(STATE / "absent.json", {}) == [] and not list((out / "img").glob("*")), "wrangler images stay remote"
+    lst = [x for x in lst if x["source_name"] not in ("Autodoc UK", b.WRANGLER_SOURCE_NAME)]
     assert b.load_autodoc(STATE / "absent.json") == []
     assert {x["pn"] or x["sku"] for x in lst} == {"1BP01360AA", "EG213", "FI217"}, lst  # dealer duplicate + merch dropped
     assert {x["sku"]: x["fitment"] for x in lst if x["sku"]} == {"EG213": "by-name", "FI217": "other-engine"}, lst
@@ -129,6 +155,30 @@ def main() -> None:
                    "£24.49 (Autodoc UK, 2026-10-26)", "AUTODOC VEHICLE SELECTION", "https://cdn.example/p1.jpg"):
         assert needle in t, needle
     assert "TEST-001" in c.get("/catalog?q=0000000000001").text  # EAN search
+    r = c.get("/catalog/other")
+    t = r.text
+    for needle in ("Jeep Wrangler 2.0L GME (engine)", "Test Turbo Parts", "SAME MOPAR NUMBER AS THE STELVIO CATALOGUE",
+                   "SAME BASE NUMBER, DIFFERENT REVISION", "Stelvio 68400577AA", "WRANGLER GME 2.0L ONLY",
+                   "interchangeability with the Stelvio unverified", "$11.56 (store.example, 2026-10-26)",
+                   "https://cdn.example/w1.jpg", 'href="/catalog/p/68311596AA"', "not proof of fit on this exact VIN"):
+        assert needle in t, needle
+    sec = t.split("Jeep Wrangler 2.0L GME (engine)", 1)[1].split("</section>")[0]
+    assert sec.index("SAME MOPAR NUMBER") < sec.index("68311-596AA") and " fits" not in sec.replace("a Wrangler part fits", "")
+    assert "Test Wrangler Only" in c.get("/catalog?q=TEST-1234AA").text  # searchable like the other shops
+    assert "Also listed for 2019 Jeep Wrangler 2.0L GME (same part number)" in c.get("/catalog/p/68311596AA").text
+    assert "See it on the Wrangler GME schematic: " in c.get("/catalog/p/68311596AA").text and "callout 1" in c.get("/catalog/p/68311596AA").text
+    assert 'href="/catalog/w/wr-test-turbo-parts-1#row-1"' in c.get("/catalog/other").text
+    r = c.get("/catalog/w/wr-test-turbo-parts-1")
+    t = r.text
+    for needle in ("Diagram 1: Test Bolt (31)", "/catalog/wrangler-img/abcdef012345.png", 'href="#row-1"', 'href="#row-2"', 'id="row-2"',
+                   "SAME MOPAR NUMBER AS THE STELVIO CATALOGUE", "WRANGLER GME 2.0L ONLY", "scaled by the largest hotspot extent"):
+        assert needle in t, needle
+    assert "left: 52.38%" in t and "left: 95.24%" in t  # (100+10)/210, (190+10)/210: basis = largest hotspot extent
+    assert c.get("/catalog/wrangler-img/abcdef012345.png").status_code == 200
+    for bad in ("..%2Fsecret.png", "%2e%2e%2f%2e%2e%2fsecret.png", "../secret.png", "secret.png", "abcdef012345.PNG"):
+        assert c.get(f"/catalog/wrangler-img/{bad}").status_code == 404, bad
+    assert c.get("/catalog/w/nope").status_code == 303
+    assert "Also listed for 2019 Jeep Wrangler" not in c.get("/catalog/p/68400577AA").text  # suffix match is not "same part number"
     # words, with the mechanic's own phrasing: torque values first, then parts
     r = c.get("/catalog", params={"q": "caliper bolt torque"})
     t = r.text

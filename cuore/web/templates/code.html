@@ -13,6 +13,10 @@
 {% set compact = False %}
 {% include "_code_brief.html" %}
 
+{# Shared-cause analysis is a ~3-4 s cold computation, so the code page only links to it. #}
+<p class="small"><a class="btn" href="/v/{{ vin }}/diagnosis">Shared-cause analysis &rarr;</a></p>
+{% if intermittent_panel is defined %}{% include "_intermittent_panel.html" %}{% endif %}
+
 {# parts_for is a Jinja global registered by cuore/web/parts_routes.py as a
    side effect of importing it (see that module's docstring) -- guarded here
    so this page still renders before app.py wires that router in. #}

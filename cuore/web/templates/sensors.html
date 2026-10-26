@@ -67,6 +67,8 @@
 </details>
 {% endif %}
 
+{% if crosscheck_panel %}{% with cc = crosscheck_panel %}{% include "_crosscheck_panel.html" %}{% endwith %}{% endif %}
+
 <section class="sens-mapbox" id="sens-map" aria-label="Where the sensors are">
   {{ svg|safe }}
   <p class="sens-legend">

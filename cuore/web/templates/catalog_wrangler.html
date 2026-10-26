@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{# One 2019 Jeep Wrangler 2.0L GME engine schematic: the drawing stays in view, its callout markers
+   link to the part rows (each with its Stelvio interchange chip). Image is served from the
+   ProgramData sources folder by /catalog/wrangler-img/. cuore/web/catalog_routes.py #}
+{% block title %}{{ d.title }} · Wrangler GME · Parts{% endblock %}
+{% block content %}
+{% include "_catalog_style.html" %}
+<p class="cat-crumbs"><a href="/catalog">Parts</a> › <a href="/catalog/other#shop-wrangler">Jeep Wrangler 2.0L GME (engine)</a> › {{ d.category }}</p>
+<h1>{{ d.title }}</h1>
+<div class="note"><span class="lab">Other vehicle</span> This is the 2019 Jeep Wrangler 2.0L GME engine catalogue, not the Stelvio's. Interchange below comes only from comparing part numbers in the two catalogues; it is not proof of fit.</div>
+<div class="cat-layout">
+  <div class="cat-stick" id="diagram">
+    {% if d.has_image %}
+    <div class="wr-fig" style="aspect-ratio: 1 / {{ d.aspect or 1 }};">
+      <img src="/catalog/wrangler-img/{{ d.image_file }}" alt="Schematic: {{ d.title }}">
+      {% for m in d.marks %}<a class="wr-mark" href="#row-{{ m.code }}" style="left: {{ m.x }}%; top: {{ m.y }}%;" aria-label="Callout {{ m.code }}: jump to its part row"><span>{{ m.code }}</span></a>{% endfor %}
+    </div>
+    {% else %}<p class="muted">No schematic image on file.</p>{% endif %}
+    <p class="cat-src">Numbers on the drawing = Ref column; tap a number to jump to its row. {{ d.source }}{% if d.scale_note %} · {{ d.scale_note }}{% endif %}</p>
+  </div>
+  <div>
+    <section class="panel" id="cat-parts">
+      <h2>Parts ({{ d.rows|length }})</h2>
+      <div class="cat-wrap dense"><table class="cat-table">
+        <thead><tr><th class="ref">Ref</th><th>Interchange with the Stelvio</th><th>Part number</th><th>Part name / notes</th><th>Price</th></tr></thead>
+        <tbody>{% for r in d.rows %}{% set ix = r.interchange %}
+          <tr id="row-{{ r.callout }}">
+            <td class="ref">{{ r.callout }}</td>
+            <td><span class="cat-tag {{ 'ok' if ix.status == 'same-pn' else '' }}" title="{{ ix.text }}">{{ ix.label }}</span><div class="sub">{{ ix.text }}{% if ix.status == 'same-pn' %} <a href="/catalog/p/{{ ix.stelvio_pn }}">Stelvio part</a> · <a href="/catalog/d/{{ ix.diagram_id }}">diagram</a>{% elif ix.status == 'same-base' %} {% for o in ix.stelvio_pns %}<a href="/catalog/p/{{ o }}">{{ o }}</a> {% endfor %}{% endif %}</div></td>
+            <td class="pn">{{ r.pn }}</td>
+            <td>{{ r.name }}{% if r.description %}<div class="sub">{{ r.description }}</div>{% endif %}</td>
+            <td>{% if r.price %}{{ r.price }} ({{ r.price_source }}, {{ r.price_date }})<div class="sub">{{ r.currency }}</div>{% else %}–{% endif %}</td>
+          </tr>{% else %}<tr><td colspan="5" class="muted">No part rows on file for this schematic.</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </section>
+  </div>
+</div>
+<a class="cat-jump" href="#diagram">Diagram ↑</a>
+<script>
+(function () {
+  function on() { document.querySelectorAll("tr.wr-on").forEach(function (r) { r.classList.remove("wr-on"); });
+    var r = location.hash && document.querySelector("tr" + location.hash.replace(/[^#\w-]/g, "")); if (r) r.classList.add("wr-on"); }
+  window.addEventListener("hashchange", on); on();
+})();
+</script>
+{% endblock %}

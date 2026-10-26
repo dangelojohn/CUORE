@@ -49,6 +49,29 @@ _MATCH_STOP = {"bolt", "bolts", "nut", "nuts", "screw", "screws", "stud", "studs
 _cache: dict[str, tuple[float, dict[str, Any]]] = {}
 
 
+_WR_IMG_RE = re.compile(r"^[a-f0-9]{6,40}\.(png|jpg|jpeg|webp|gif)$")
+
+
+def wrangler_image_path(name: str) -> Optional[Path]:
+    """Wrangler GME schematic in <state>/parts_catalog/sources/wrangler-gme/img/ (strict name, no traversal)."""
+    if not _WR_IMG_RE.match(name or ""):
+        return None
+    base = (root() / "sources" / "wrangler-gme" / "img").resolve()
+    p = (base / name).resolve()
+    try:
+        p.relative_to(base)
+    except ValueError:
+        return None
+    return p if p.is_file() else None
+
+
+def wrangler_diagram(cat: dict[str, Any], wid: str) -> Optional[dict[str, Any]]:
+    d = (cat.get("wrangler_diagrams") or {}).get(wid)
+    if not d:
+        return None
+    return {**d, "has_image": bool(wrangler_image_path(d.get("image_file", "")))}
+
+
 def root() -> Path:
     return state_dir() / "parts_catalog"
 
@@ -127,6 +150,7 @@ def stats(cat: dict[str, Any]) -> dict[str, int]:
             "listings": len(cat.get("listings") or [])}
 
 
+_IX_ORDER = {"same-pn": 0, "same-base": 1, "none": 2}
 _FIT_ORDER = {"own": 0, "by-name": 1, "unverified": 2, "other-engine": 3}
 
 
@@ -151,9 +175,17 @@ def listings_view(cat: dict[str, Any]) -> list[dict[str, Any]]:
     titles = {g["id"]: g["title"] for g in cat.get("groups", [])}
     for x in cat.get("listings") or []:
         by.setdefault(x["source_name"], []).append({**x, "group_title": titles.get(x.get("group", ""), "")})
-    return [{"source_name": k, "kind": v[0]["kind"], "source": v[0]["source"],
-             "rows": sorted(v, key=lambda x: (_FIT_ORDER.get(x["fitment"], 9), x.get("category", ""), x["name"]))}
-            for k, v in sorted(by.items())]
+    out = []
+    for k, v in sorted(by.items()):
+        rows = sorted(v, key=lambda x: (_FIT_ORDER.get(x["fitment"], 9), x.get("category", ""),
+                                        _IX_ORDER.get((x.get("interchange") or {}).get("status"), 9), x["name"]))
+        shop = {"source_name": k, "kind": v[0]["kind"], "source": v[0]["source"], "rows": rows, "categories": []}
+        if shop["kind"] == "wrangler":  # own section, grouped by category, interchange chip first
+            for cname in sorted({x.get("category", "") for x in rows}):
+                shop["categories"].append({"title": cname, "rows": [x for x in rows if x.get("category", "") == cname]})
+            shop["matched"] = sum(1 for x in rows if (x.get("interchange") or {}).get("status") == "same-pn")
+        out.append(shop)
+    return out
 
 
 def _section_view(cat: dict[str, Any], slug: str) -> Optional[dict[str, Any]]:
@@ -515,7 +547,9 @@ def part(cat: dict[str, Any], pn: str) -> Optional[dict[str, Any]]:
             if x not in notes:
                 notes.append(x)
     first = appearances[0]
-    return {"pn": first["row"]["pn"], "name": first["row"]["name"],
+    wr = [x for x in cat.get("listings") or [] if x.get("kind") == "wrangler"
+          and (x.get("interchange") or {}).get("status") == "same-pn" and norm_pn(x["interchange"]["stelvio_pn"]) == n]
+    return {"wrangler": wr, "wrangler_schematics": [x["schematic"] for x in wr if x.get("schematic")][:1], "pn": first["row"]["pn"], "name": first["row"]["name"],
             "names": sorted({a["row"]["name"] for a in appearances}),
             "descriptions": sorted({a["row"]["description"] for a in appearances if a["row"]["description"]}),
             "notes": sorted({a["row"]["notes"] for a in appearances if a["row"]["notes"]}),

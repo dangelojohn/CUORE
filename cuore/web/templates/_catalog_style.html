@@ -101,4 +101,10 @@
   .cat-shell > .cat-rail > summary { pointer-events: none; }
 }
 @media print { .cat-jump, .cat-search, .cat-toc { display: none; } }
+.wr-fig { position: relative; width: 100%; max-width: 640px; }
+.wr-fig img { display: block; width: 100%; height: auto; background: #fff; }
+.wr-mark { position: absolute; transform: translate(-50%, -50%); min-width: 44px; min-height: 44px; display: flex; align-items: center; justify-content: center; text-decoration: none; }
+.wr-mark span { background: var(--ink); color: var(--surface); border: 2px solid var(--surface); border-radius: 12px; min-width: 24px; padding: 0 4px; text-align: center; font: 700 var(--fs-md) var(--mono); }
+.wr-mark:hover span, .wr-mark:focus-visible span { outline: 3px solid var(--ok); }
+tr.wr-on { outline: 3px solid var(--ok); }
 </style>

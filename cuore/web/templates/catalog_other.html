@@ -12,9 +12,13 @@
 </form>
 {% if not shops %}<p class="muted">No other shop's list has been added yet.</p>{% endif %}
 {% for s in shops %}
-<section class="panel" id="shop-{{ loop.index }}">
-  <h2>{{ s.source_name }} <span class="small muted">· {{ s.rows|length }} item{{ '' if s.rows|length == 1 else 's' }} · {{ 'aftermarket brands' if s.kind == 'aftermarket' else 'retailer list' }}</span></h2>
-  {% set items = s.rows %}{% include "_catalog_listings.html" %}
+<section class="panel" id="shop-{{ 'wrangler' if s.kind == 'wrangler' else loop.index }}">
+  <h2>{{ s.source_name }} <span class="small muted">· {{ s.rows|length }} item{{ '' if s.rows|length == 1 else 's' }} · {{ 'aftermarket brands' if s.kind == 'aftermarket' else ('2019 Jeep Wrangler Sport 2.0L eTorque, store.mopar.com' if s.kind == 'wrangler' else 'retailer list') }}</span></h2>
+  {% if s.kind == 'wrangler' %}
+  <p class="small">Engine parts for a different vehicle. {{ s.matched }} share a Mopar part number with this Stelvio's catalogue; that is a catalogue fact, not proof of fit on this VIN. The rest are unverified.</p>
+  {% for c in s.categories %}<h3>{{ c.title }} <span class="small muted">· {{ c.rows|length }}</span></h3>
+  {% set items = c.rows %}{% include "_catalog_listings.html" %}{% endfor %}
+  {% else %}{% set items = s.rows %}{% include "_catalog_listings.html" %}{% endif %}
 </section>
 {% endfor %}
 <script src="{{ static_url('catalog.js') }}" defer></script>

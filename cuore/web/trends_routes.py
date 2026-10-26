@@ -146,6 +146,18 @@ def trends_panel_context(vin: str) -> dict[str, Any]:
             "metrics_idle": [m for m in metrics if m["status"] == "no_data"]}
 
 
+def _trends_global(vin: str):
+    """Jinja global for host pages (job step 10); None on any failure."""
+    try:
+        return trends_panel_context(vin)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+from .routes import templates as _shared_templates  # noqa: E402
+_shared_templates.env.globals["trends_panel_context"] = _trends_global
+
+
 @router.get("/v/{vin}/trends", response_class=HTMLResponse)
 def trends_page(request: Request, vin: str) -> HTMLResponse:
     """Drift across visits: one line first, then each trend with its sparkline and its working."""

@@ -1,0 +1,7 @@
+{
+  "_schema": "Maps a Wrangler GME engine category (slug of its store path, lowercase) to a catalogue group id from parts_catalog_groups.json. First rule whose any keyword is a substring wins. No part data here.",
+  "rules": [
+    {"group": "engine", "keywords": ["camshaft", "valve", "crankcase", "crankshaft", "piston", "flywheel", "damper", "cylinder", "engine-identification", "service-kit", "engine-mounting", "oil-cooler", "oiling", "oil-pan", "dipstick", "manifold", "vacuum", "timing", "balance-shaft", "turbo", "super-charger"]}
+  ],
+  "fallback": "engine"
+}

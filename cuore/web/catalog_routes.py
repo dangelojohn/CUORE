@@ -96,6 +96,23 @@ def standard_image(name: str) -> Response:
     return FileResponse(path, headers={"Cache-Control": "max-age=86400"})
 
 
+@router.get("/catalog/w/{wid}", response_class=HTMLResponse)
+def catalog_wrangler_diagram(request: Request, wid: str) -> Response:
+    cat = pc.load()
+    d = pc.wrangler_diagram(cat, wid) if cat else None
+    if not d:
+        return RedirectResponse("/catalog/other", status_code=303)
+    return web_routes._page(request, "catalog_wrangler.html", **_ctx(request, cat), d=d)
+
+
+@router.get("/catalog/wrangler-img/{name}")
+def wrangler_image(name: str) -> Response:
+    path = pc.wrangler_image_path(name)
+    if not path:
+        return Response(status_code=404)
+    return FileResponse(path, headers={"Cache-Control": "max-age=86400"})
+
+
 @router.get("/catalog/img/{cid}/{name}")
 def catalog_image(cid: str, name: str) -> Response:
     path = pc.image_path(cid, name)
