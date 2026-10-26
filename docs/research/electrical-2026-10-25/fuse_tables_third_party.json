@@ -1,0 +1,209 @@
+{
+ "sources": [
+  {
+   "url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "title": "2018 Alfa Romeo Stelvio fuse box diagram - StartMyCar",
+   "kind": "third-party",
+   "model_year": "2018",
+   "market": "unspecified (cites 2018 owner's manual; mentions EMEA)"
+  },
+  {
+   "url": "https://fuse-box.info/alfa-romeo/alfa-romeo-stelvio-2017-2019-fuses",
+   "title": "Fuse Box Diagram Alfa Romeo Stelvio (2017-2019..) - fuse-box.info",
+   "kind": "third-party",
+   "model_year": "2017-2019",
+   "market": "unspecified"
+  }
+ ],
+ "boxes": [
+  {
+   "name_as_printed": "Passenger compartment fuse box (Passenger Side Control Unit)",
+   "location_as_printed": "Below the passenger side footboard (lift upper end of footboard, remove panel downward after unscrewing two fixing hooks) - per fuse-box.info",
+   "source_url": "https://fuse-box.info/alfa-romeo/alfa-romeo-stelvio-2017-2019-fuses"
+  },
+  {
+   "name_as_printed": "Luggage compartment fuse box (Luggage Compartment Control Unit)",
+   "location_as_printed": "Right side of luggage compartment behind side cover - per fuse-box.info",
+   "source_url": "https://fuse-box.info/alfa-romeo/alfa-romeo-stelvio-2017-2019-fuses"
+  }
+ ],
+ "rows": [
+  {
+   "box_name_as_printed": "Passenger compartment fuse box (Passenger Side Control Unit)",
+   "position": "F33",
+   "kind": "fuse",
+   "rating_a": 25,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Front power window (driver side)",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Passenger compartment fuse box (Passenger Side Control Unit)",
+   "position": "F34",
+   "kind": "fuse",
+   "rating_a": 25,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Front power window (passenger side)",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Passenger compartment fuse box (Passenger Side Control Unit)",
+   "position": "F36",
+   "kind": "fuse",
+   "rating_a": 15,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Supply for infotainment/Connect system, climate control, alarm, power mirror folding, EOBD system, USB port",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Passenger compartment fuse box (Passenger Side Control Unit)",
+   "position": "F38",
+   "kind": "fuse",
+   "rating_a": 20,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Safe Lock device (driver door unlock, if equipped), door unlock, central locking",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Passenger compartment fuse box (Passenger Side Control Unit)",
+   "position": "F43",
+   "kind": "fuse",
+   "rating_a": 20,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Windshield washer pump",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Passenger compartment fuse box (Passenger Side Control Unit)",
+   "position": "F47",
+   "kind": "fuse",
+   "rating_a": 25,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Rear left power window",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Passenger compartment fuse box (Passenger Side Control Unit)",
+   "position": "F48",
+   "kind": "fuse",
+   "rating_a": 25,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Rear right power window",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Passenger compartment fuse box (Passenger Side Control Unit)",
+   "position": "F94",
+   "kind": "fuse",
+   "rating_a": 15,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Rear window heater coil (fuse-box.info adds: cigar lighter; startmycar does not - sources disagree)",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Luggage compartment fuse box (Luggage Compartment Control Unit)",
+   "position": "F01",
+   "kind": "fuse",
+   "rating_a": 40,
+   "fuse_type": "MAXI",
+   "circuit_as_printed": "Receiver module (TTM/TTEBM) / tow hook module",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Luggage compartment fuse box (Luggage Compartment Control Unit)",
+   "position": "F08",
+   "kind": "fuse",
+   "rating_a": 30,
+   "fuse_type": "FMX/JCase",
+   "circuit_as_printed": "Hi-Fi system",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Luggage compartment fuse box (Luggage Compartment Control Unit)",
+   "position": "F21",
+   "kind": "fuse",
+   "rating_a": 10,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "I-Drive, USB socket, AUX, USB charger",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Luggage compartment fuse box (Luggage Compartment Control Unit)",
+   "position": "F22",
+   "kind": "fuse",
+   "rating_a": 20,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "KL15/a 12V power socket in luggage compartment",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Luggage compartment fuse box (Luggage Compartment Control Unit)",
+   "position": "F1",
+   "kind": "fuse",
+   "rating_a": 20,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Trailer light control unit power supply (+30)",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Luggage compartment fuse box (Luggage Compartment Control Unit)",
+   "position": "F2",
+   "kind": "fuse",
+   "rating_a": 15,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Trailer light control unit power supply (+30)",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Luggage compartment fuse box (Luggage Compartment Control Unit)",
+   "position": "F3",
+   "kind": "fuse",
+   "rating_a": 10,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Trailer socket, EMEA only (+30)",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  },
+  {
+   "box_name_as_printed": "Luggage compartment fuse box (Luggage Compartment Control Unit)",
+   "position": "F4",
+   "kind": "fuse",
+   "rating_a": 10,
+   "fuse_type": "MINI",
+   "circuit_as_printed": "Tow bar (+15)",
+   "source_url": "https://www.startmycar.com/alfa-romeo/stelvio/info/fusebox/2018",
+   "source_page_or_section": "Fuse box diagram table (cites 2018 Owner's Manual); ratings cross-checked on fuse-box.info",
+   "source_kind": "third-party"
+  }
+ ],
+ "notes": "Official owner's manual could NOT be read: alfaromeousa.com, mopar.com, manualsfile.com, autouserguide.com returned 403, alfaromeo.ca 404, lab-aftersales.fiat.com 503. All rows third-party. No engine-bay PDC, no relay tables found in any readable source; the existing CUORE engine-bay/rear PDC data is therefore not covered here. Fuse types come from StartMyCar only. Locations come from fuse-box.info text (the page's diagrams were not readable). Sources show only 16 positions, the same as CUORE existing count; a French Fiat service PDF (lab-aftersales.fiat.com/elearn_testreda/949001500.pdf) reportedly has rear PDC tables but was unreadable (503)."
+}

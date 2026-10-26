@@ -1,0 +1,1 @@
+Photo "2018 Alfa Romeo Stelvio 2.1" by Vauxford, https://commons.wikimedia.org/wiki/File:2018_Alfa_Romeo_Stelvio_2.1.jpg, licence CC BY-SA 4.0 https://creativecommons.org/licenses/by-sa/4.0/, downscaled to 1280 px; used to trace CUORE's side view (cuore/web/sensor_profile_svg.py), which is a derivative under the same licence.
