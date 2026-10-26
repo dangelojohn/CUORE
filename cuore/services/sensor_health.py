@@ -94,7 +94,129 @@ def _is_num(v: Any) -> bool:
 
 def _channel_meta() -> dict[str, dict[str, str]]:
     from ..live.channels import available_channels
-    return {c.id: {"name": c.name, "unit": c.unit} for c in available_channels()}
+    return {c.id: {"name": c.name, "unit": c.unit, "formula": getattr(c, "formula", "") or ""}
+            for c in available_channels()}
+
+
+# Physical plausibility by unit: a decoded value outside this cannot be a real reading.
+_PLAUSIBLE = {"bar": (-2.0, 3000.0), "mbar": (0.0, 6000.0), "kpa": (-100.0, 100000.0), "v": (-1.0, 60.0),
+              "c": (-60.0, 400.0), "°c": (-60.0, 400.0), "%": (-1.0, 101.0)}
+NA_MARK = "raw -32768 = 'not available' marker"
+
+
+SUSPECT = "suspect - check decoding"
+
+
+def suspect_reason(channel: str, value: Any, lv: dict[str, Any]) -> str:
+    """Cross-check failures on a number that is not a marker: "" when nothing disagrees. ``lv``: latest value
+    of every channel. Never changes data or formulas; it only says the number cannot be trusted as decoded."""
+    if not _is_num(value):
+        return ""
+    if channel == "ecm_195b" and value < 0.1:
+        return f"raw sensor voltage {value:g} V is under 0.1 V while the module answers"
+    if channel in ("ecm_1925", "ecm_1926"):
+        # Not percent (the throttle-position cross-check is invalid): shown as an unconfirmed decoding.
+        raw = value * (655.35 if channel == "ecm_1925" else 245.76)
+        n = int(round(raw))
+        return (f"decoding unconfirmed (likely degrees: raw {n} -> {n / 100:.2f} deg); not comparable with "
+                "throttle position in %")
+    return ""
+
+
+def invalid_reason(channel: str, value: Any, unit: str = "", formula: str = "") -> str:
+    """Why a decoded number is NOT a reading ("" when it may be one).
+
+    The module answers a signed/unsigned 16-bit "not available" marker (signed 0x8000 = -32768, unsigned 0xFFFF)
+    when it has no value; after the channel's own scaling that shows up as e.g. -32.767 bar. Also catches values
+    no physical quantity of that unit can have (e.g. -31764 mbar). Only plain numbers are judged here.
+    """
+    if not _is_num(value):
+        return ""
+    v = float(value)
+    f = (formula or "").replace(" ", "")
+    if "A*256" in f or "256*A" in f:
+        m = re.search(r"/\(?(\d+(?:\.\d+)?)\)?", f)
+        d = float(m.group(1)) if m else 1.0
+        k = re.search(r"\)-(\d+(?:\.\d+)?)$", f)
+        off = float(k.group(1)) if k else 0.0
+        tol = 1.5 / d + 1e-9
+        for cand in (-32768 / d, 65535 / d, 65535 / d - off):
+            if abs(v - cand) <= tol or abs(v + off - cand) <= tol:
+                return NA_MARK if cand < 0 else "raw 0xFFFF = 'not available' marker"
+    elif v in (-32768.0, -32767.0):
+        return NA_MARK
+    lo_hi = _PLAUSIBLE.get(str(unit or "").strip().lower())
+    if lo_hi and not lo_hi[0] <= v <= lo_hi[1]:
+        return f"{v:g} {unit} is not a possible value for this quantity (likely a wrong decode)"
+    return ""
+
+
+# --- read-time re-decode of readings stored before the 2026-10-25 formula fix ------------------------
+# ecm_195a / ecm_1956 used to be decoded with a wrong -32768 offset. Stored files are never rewritten; the
+# old stored value is inverted to the raw integer (or taken from the matching audit.jsonl reply) and the
+# corrected unsigned-mbar formula applied.
+FORMULA_FIX_AT = "2026-10-25T23:34:00"
+REDECODE_NOTE = "re-decoded from the stored value with the corrected formula"
+_REDECODE = {"ecm_195a": ("22195A", lambda v: round((v + 1) * 1000 + 32768)),
+             "ecm_1956": ("221956", lambda v: round(v + 32768))}
+_audit_cache: dict[str, Any] = {}
+
+
+def _audit_raws(req: str) -> list[tuple[float, int]]:
+    """[(epoch, raw_int)] of successful UDS replies for ``req`` in audit.jsonl (cached by file stat)."""
+    p = _sd() / "audit.jsonl"
+    try:
+        st = p.stat()
+        key = f"{p}:{st.st_mtime_ns}:{st.st_size}"
+    except OSError:
+        return []
+    if _audit_cache.get("key") != key:
+        _audit_cache.clear()
+        _audit_cache["key"] = key
+        try:
+            for line in p.read_text(encoding="utf-8").splitlines():
+                try:
+                    o = json.loads(line)
+                except ValueError:
+                    continue
+                r = o.get("req")
+                raw = str(o.get("raw") or "")
+                if o.get("event") != "uds" or o.get("error") or not isinstance(o.get("ts"), (int, float)):
+                    continue
+                if r not in ("22195A", "221956"):
+                    continue
+                i = raw.upper().find("62" + r[2:])
+                if i < 0 or len(raw) < i + 10:
+                    continue
+                try:
+                    _audit_cache.setdefault(r, []).append((float(o["ts"]), int(raw[i + 6:i + 10], 16)))
+                except ValueError:
+                    continue
+        except OSError:
+            pass
+    return _audit_cache.get(req, [])
+
+
+def redecode(channel: str, value: Any, at: str, unit: str = "") -> Optional[tuple[float, str, str]]:
+    """(new_value, new_unit, note) for an old stored ecm_195a/ecm_1956 number, else None.
+
+    Only records strictly older than the fix are converted. The raw integer comes from the audit.jsonl reply
+    within 10 s of the record when it agrees with the inverted value; otherwise from the inverted value."""
+    spec = _REDECODE.get(channel)
+    if not spec or not _is_num(value) or not at or at >= FORMULA_FIX_AT:
+        return None
+    raw = spec[1](float(value))
+    src = "stored value"
+    try:
+        t = datetime.fromisoformat(at)
+        t = t.astimezone() if t.tzinfo else t
+        t0 = t.timestamp()
+        near = [(abs(ts - t0), rw) for ts, rw in _audit_raws(spec[0]) if abs(ts - t0) <= 10 and rw == raw]
+        if near:
+            src = "raw bytes in audit.jsonl"
+    except ValueError:
+        pass
+    return float(raw), "mbar", f"{REDECODE_NOTE} ({src}, raw {raw})"
 
 
 # --- registry -----------------------------------------------------------------
@@ -205,15 +327,23 @@ def _events(vin: str) -> list[dict[str, Any]]:
             continue
         for ch, v in (s.get("values") or {}).items():
             if isinstance(v, dict) and v.get("value") is not None:
-                ev.append({"at": s.get("at") or "", "channel": ch, "value": v["value"],
-                           "unit": v.get("unit", ""), "error": None, "src": "snapshot"})
+                e = {"at": s.get("at") or "", "channel": ch, "value": v["value"],
+                     "unit": v.get("unit", ""), "error": None, "src": "snapshot", "note": ""}
+                rd = redecode(ch, e["value"], e["at"])
+                if rd:
+                    e["value"], e["unit"], e["note"] = rd
+                ev.append(e)
     for c in _read_jsonl(CHECKS_FILE):
         if c.get("vin") and vin and str(c["vin"]).upper() != vin.upper():
             continue
         at = c.get("at") or ""
         for ch, v in (c.get("values") or {}).items():
             if v is not None:
-                ev.append({"at": at, "channel": ch, "value": v, "unit": "", "error": None, "src": "check"})
+                e = {"at": at, "channel": ch, "value": v, "unit": "", "error": None, "src": "check", "note": ""}
+                rd = redecode(ch, v, at)
+                if rd:
+                    e["value"], e["unit"], e["note"] = rd
+                ev.append(e)
         for ch, msg in (c.get("errors") or {}).items():
             ev.append({"at": at, "channel": ch, "value": None, "unit": "", "error": str(msg), "src": "check"})
     ev.sort(key=lambda e: e["at"])
@@ -439,7 +569,9 @@ def health(vin: str, now: Optional[datetime] = None) -> dict[str, Any]:
     mods = _module_states(vin, checks)
     codes = _current_codes(vin, mods)
     matched = _match_codes(rows, codes)
-    hist = _history_ranges(events)
+    fm = {ch: m.get("formula", "") for ch, m in meta.items()}
+    hist = _history_ranges([e for e in events if e["error"] is not None or not invalid_reason(
+        e["channel"], e["value"], e["unit"] or meta.get(e["channel"], {}).get("unit", ""), fm.get(e["channel"], ""))])
     tech = _tech_ranges(_model(vin))
 
     latest: dict[str, dict[str, Any]] = {}
@@ -468,18 +600,27 @@ def health(vin: str, now: Optional[datetime] = None) -> dict[str, Any]:
                        "kind": "technician"}
             elif ch in hist:
                 rng = {**hist[ch], "unit": e["unit"] or meta.get(ch, {}).get("unit", "")}
+            unit = e["unit"] or meta.get(ch, {}).get("unit", "")
+            bad = invalid_reason(ch, e["value"], unit, fm.get(ch, ""))
+            if bad:
+                rng = None
+            sus = suspect_reason(ch, e["value"], {c: x["value"] for c, x in latest.items() if x["error"] is None})
+            if "wrong decode" in bad:
+                sus = bad
             inr: Optional[bool] = None
             if rng is not None and _is_num(e["value"]):
                 inr = not ((rng["min"] is not None and e["value"] < rng["min"])
                            or (rng["max"] is not None and e["value"] > rng["max"]))
             values.append({"channel": ch, "label": meta.get(ch, {}).get("name", ch), "value": e["value"],
                            "unit": e["unit"] or meta.get(ch, {}).get("unit", ""), "read_at": e["at"] or None,
-                           "range": rng, "in_range": inr})
+                           "range": rng, "in_range": inr, "invalid": bad, "suspect": sus,
+                           "redecoded": e.get("note") or ""})
         last_read = max((v["read_at"] for v in values if v["read_at"]), default=None)
         no_data = [f"{ch} ({err})" for ch, err in errored if "no data" in err.lower()]
         timed_out = [f"{ch} ({err})" for ch, err in errored if "no data" not in err.lower()]
 
         status = "grey"
+        no_valid = suspect = False
         if not r.get("readable"):
             reasons.append("Not readable: " + (r.get("readable_note") or "no live channel"))
         else:
@@ -503,8 +644,32 @@ def health(vin: str, now: Optional[datetime] = None) -> dict[str, Any]:
                                    + ". CUORE cannot read this sensor that way.")
                 if not errored:
                     reasons.append("Never read: no value for any of its channels is on record yet.")
+            elif (any(v["invalid"] and str(v["unit"]).strip().lower() != "v" for v in values)
+                  or any(v["suspect"] for v in values)):
+                # a primary channel (the sensor's own quantity, not a raw-voltage helper) is unusable, or a
+                # cross-check disagrees: never green. Raw "V" channels that are only marked invalid fall through.
+                prim = [v for v in values if v["invalid"] and str(v["unit"]).strip().lower() != "v"]
+                no_valid = any("wrong decode" not in v["invalid"] for v in prim)
+                suspect = not no_valid
+                for v in prim:
+                    word = "No valid reading for" if no_valid else "Suspect - check decoding:"
+                    reasons.append(f"{word} {v['label']}: {v['invalid']}.")
+                for v in values:
+                    if v["suspect"] and v not in prim:
+                        reasons.append(f"Suspect - check decoding: {v['label']}: {v['suspect']}.")
+                        suspect = suspect or not no_valid
+                ok_ch = [v["label"] for v in values if not v["invalid"] and not v["suspect"]]
+                if ok_ch:
+                    reasons.append("Other channels read but do not make the sensor OK: " + ", ".join(ok_ch) + ".")
+            elif all(v["invalid"] for v in values):
+                reasons.append("No valid reading: the module returned no value ("
+                               + "; ".join(f"{v['label']}: {v['invalid']}" for v in values) + ").")
+                no_valid = True
             else:
                 status = "green"
+                for v in values:
+                    if v["invalid"]:
+                        reasons.append(f"{v['label']}: no valid value ({v['invalid']}); not judged.")
                 if no_data:
                     reasons.append("The car gives no data for: " + "; ".join(no_data)
                                    + " (not offered; other channels read).")
@@ -512,7 +677,7 @@ def health(vin: str, now: Optional[datetime] = None) -> dict[str, Any]:
                     reasons.append("Did not answer this time: " + "; ".join(timed_out)
                                    + " (other channels read).")
                 for v in values:
-                    if v["in_range"] is False:
+                    if v["in_range"] is False and not v["invalid"]:
                         rg = v["range"]
                         reasons.append(f"{v['label']} = {v['value']:g} {v['unit']} is outside "
                                        f"{rg['min']} to {rg['max']} ({rg['source']}).")
@@ -555,7 +720,8 @@ def health(vin: str, now: Optional[datetime] = None) -> dict[str, Any]:
             if RANK["red" if red else "orange"] > RANK[status]:
                 status = "red" if red else "orange"
         counts[status] += 1
-        out_rows.append({**r, "status": status, "stale": stale, "reasons": reasons, "last_read": last_read,
+        out_rows.append({**r, "status": status, "stale": stale, "no_valid": no_valid, "suspect": suspect, "reasons": reasons,
+                         "last_read": last_read,
                          "values": values, "codes": sensor_codes})
 
     checked_at = max((c.get("at") for c in checks if c.get("at")), default=None)
@@ -600,7 +766,11 @@ def readings(vin: str) -> dict[str, Any]:
                 rows.append({**base, "part": "", "value": None, "error": err})
                 continue
             for part, pv in _parts(v):
-                rows.append({**base, "part": part, "value": pv, "error": None})
+                rd = redecode(ch, pv, at) if not part else None
+                if rd:
+                    rows.append({**base, "part": part, "value": rd[0], "unit": rd[1], "error": None, "redecoded": rd[2]})
+                else:
+                    rows.append({**base, "part": part, "value": pv, "error": None})
     return {"vin": vin, "checks": [c.get("at") or "" for c in checks], "rows": rows}
 
 

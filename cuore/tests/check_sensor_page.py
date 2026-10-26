@@ -481,6 +481,37 @@ check("status=red&amp;q=wheel" in t or "status=red&q=wheel" in t, "status chips 
 check(client.get(f"/v/{VIN}/sensors?q=" + "x" * 500).status_code == 200, "long q is safe")
 check('id="sens-results"' not in client.get(f"/v/{VIN}/sensors").text, "no results block without q")
 
+# --- readings render cleanly; "not available" markers are not shown as readings ----------------------
+_o2 = sensor_direct.reading_text({"values": [{"label": "o2 b1s1 wide range", "value": {"lambda": 0.99316, "current_mA": 0.0},
+                                              "unit": "lambda/mA"}]})
+check(_o2 == "lambda 0.9932, current 0 mA", f"multi-part unit per part: {_o2!r}")
+_iat = sensor_direct.reading_text({"values": [{"label": "iat", "unit": "C", "value": {"bitmap": 3, "bank1_sensor1": 26,
+                                                                                   "bank1_sensor2": 29}}]})
+check(_iat == "sensor 1 26 °C, sensor 2 29 °C", f"bitmap hidden, sensor labels: {_iat!r}")
+check(sensor_direct.human_label("throttle position b") == "Throttle position, sensor B", "human label")
+_bad = {"values": [{"label": "Boost pressure", "value": -32.767, "unit": "bar", "invalid": "raw -32768 = 'not available' marker"}],
+        "status": "grey", "no_valid": True, "readable": True, "reasons": ["No valid reading"], "codes": []}
+check(sensor_direct.reading_text(_bad) == "", "sentinel is not shown as a reading")
+_row = sensor_direct.sensor_row(_bad)
+check(_row["chip"] == "No valid reading" and "not available" in _row["line"] and "32.7" not in _row["reading"],
+      "grey row says no valid reading")
+_ok = dict(SENSORS[0]); _ok["status"] = "grey"; _ok["no_valid"] = True
+_ok["values"] = [dict(_ok["values"][0], value=-32.767, unit="bar", invalid="raw -32768 = 'not available' marker")]
+_old = _svc.sensor_health.health
+_svc.sensor_health.health = lambda vin: {"vin": vin, "checked_at": None, "sensors": [_ok], "counts": {"green": 0, "orange": 0, "red": 0, "grey": 1}, "unplaced": []}
+_pg = client.get(f"/v/{VIN}/sensors").text
+_svc.sensor_health.health = _old
+check("raw -32768 = &#39;not available&#39; marker" in _pg or "raw -32768 = 'not available' marker" in _pg, "raw marker in detail")
+check("-32.767 bar</span>" not in _pg.split('class="sens-reading"')[-1][:80] if 'class="sens-reading"' in _pg else True,
+      "collapsed row shows no sentinel number")
+
+_sus = {"values": [{"label": "Throttle position, sensor 2", "value": 0.39, "unit": "%", "invalid": "", "suspect": "disagrees"}],
+        "status": "grey", "suspect": True, "readable": True, "codes": [],
+        "reasons": ["Suspect - check decoding: Throttle position, sensor 2: disagrees."]}
+_sr = sensor_direct.sensor_row(_sus)
+check(_sr["chip"] == "Suspect - check decoding" and _sr["kind"] == "never" and _sr["reading"] == "" and "Suspect" in _sr["line"],
+      "suspect row: neutral chip, no number in the collapsed row")
+
 print(f"{passed}/{passed + len(failures)} checks passed")
 for f in failures:
     print("FAIL:", f)

@@ -216,7 +216,8 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
                      clear_href=href(status_f, system_f, zone_f, False), chip_href=chip_href, sys_href=sys_href,
                      system_f=system_f, systems=systems, all_href=f"/v/{vin}/sensors",
                      status_label=STATUS_LABEL, status_mark=STATUS_MARK, msg=msg, error=error,
-                     fmt_time=sensor_direct.fmt_time, showing=showing)
+                     fmt_time=sensor_direct.fmt_time, human_label=sensor_direct.human_label,
+                     split_parts=sensor_direct.split_parts, showing=showing)
     _set_active_vehicle(response, vin)
     return response
 

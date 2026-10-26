@@ -230,3 +230,24 @@
 .sens-col .sens-form { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
 .sens-col .sens-form input, .sens-col .sens-form select, .sens-col .sens-form button { min-height: var(--tap, 44px); font-size: 1rem; }
 @media (max-width: 560px) { .sens-facts > div { grid-template-columns: 1fr; gap: 0; } .sens-line { padding-left: 0; } }
+
+/* Check all sensors: the app's sans button; disabled = muted solid, not a dashed mono box */
+.sens-primary { font-family: var(--sans), sans-serif; letter-spacing: 0; text-transform: none; }
+.sens-primary[disabled] { border: 1px solid var(--rule); opacity: .75; }
+.sens-col .sens-reading { font-family: var(--sans), sans-serif; font-variant-numeric: tabular-nums; }
+.sens-vals { list-style: none; padding-left: 0; margin: 4px 0; }
+.sens-vals li { padding: 3px 0; }
+.sens-raw { color: var(--ink-2); font-size: 1rem; }
+
+/* first screen at 1280x585: map starts above the fold */
+.sens-col .sens-call { margin: 2px 0; font-size: 1rem; line-height: 1.3; }
+.sens-col .sens-go { margin: 2px 0 4px; gap: 4px 8px; }
+.sens-col .sens-go .sens-gochip { min-height: 34px; padding-block: 0; }
+.sens-col .sens-why { margin: 0 0 4px; }
+.sens-col .sens-why > summary { min-height: 30px; font-size: .9rem; }
+.sens-col .sens-search { margin-bottom: 4px; }
+.sens-col .sens-mapbox { margin: 4px 0; padding: 4px 8px; }
+.sens-col .sv-tabs { margin-bottom: 2px; }
+.sens-col .sv-tabs label { min-height: 32px; min-width: 72px; padding: 0 12px; }
+.sens-col .sv-fig figcaption { font-size: .9rem; margin-bottom: 0; line-height: 1.25; }
+.sens-col .sens-legend { margin: 2px 0 0; }

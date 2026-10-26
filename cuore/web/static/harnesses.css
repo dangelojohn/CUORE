@@ -129,3 +129,15 @@ details[open] > summary::after { transform: rotate(-135deg); }
 .hn-route.hn-match .hn-arrow { stroke-width: 4; }
 .hn-badge.hn-match .hn-disc { stroke-width: 6; fill: var(--surface-2); }
 .hn-conn { opacity: .8; }
+
+/* chips, eyebrow and buttons on this page: the app's sans style, not the mono/uppercase default */
+.hn-page .chip, .hn-page .btn, .hn-call .eyebrow, .hn-gochip {
+  font-family: var(--sans), sans-serif; text-transform: none; letter-spacing: 0; white-space: normal; }
+.hn-call .eyebrow { font-weight: 600; }
+.hn-page .chip { border-radius: 999px; padding: 2px 10px; border-color: var(--rule); }
+.hn-page .chip.ok, .hn-page .chip.warn { border-color: currentColor; }
+.hn-page .chip.hollow { border: 1.5px dashed var(--ink-3); background: transparent; color: var(--ink-2); }  /* dashed = unresolved, not judged */
+.ghead { font-family: var(--sans), sans-serif; text-transform: none; letter-spacing: 0; font-size: 16px; font-weight: 600; color: var(--ink-2); }
+/* a ?q= match stands out: the other routes fade back */
+.hn-mapbox:has(.hn-route.hn-match) .hn-route:not(.hn-match) { opacity: .2; }
+.hn-route.hn-match { filter: drop-shadow(0 0 3px var(--surface)); }

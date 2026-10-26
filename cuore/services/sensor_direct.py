@@ -27,6 +27,8 @@ CONF_WORDS = {"SOURCED": "from a source", "INFERRED": "worked out, not checked",
 CABLE = "needs the grey cable"
 NO_CHANNEL = "no live channel in CUORE yet"
 NO_ANSWER = "did not answer last time"
+NO_VALID = "no valid reading"
+SUSPECT = "suspect - check decoding"
 _GENERIC = {"sensor", "sensors", "front", "rear", "left", "right", "bank", "system", "driver", "with", "from",
             "that", "this", "when", "then", "than", "have", "only", "after", "before", "about", "heard", "area",
             "same", "time", "sound", "given", "while", "still", "stops", "some", "very", "also"}
@@ -42,6 +44,10 @@ def judged(s: dict[str, Any]) -> bool:
 
 def never_why(s: dict[str, Any]) -> str:
     """Why a grey sensor has no reading, from the sensor's own bus / readable fields."""
+    if s.get("no_valid"):
+        return NO_VALID
+    if s.get("suspect"):
+        return SUSPECT
     if not s.get("readable", True):
         return CABLE if str(s.get("bus") or "").lower() in ("can_ch", "can-ch") else NO_CHANNEL
     return NO_ANSWER
@@ -96,16 +102,58 @@ def _num(v: Any) -> str:
     return f"{v:.4g}" if isinstance(v, float) else str(v)
 
 
+_SUFFIX_UNIT = (("_mA", "mA"), ("_V", "V"), ("_pct", "%"), ("_C", "°C"), ("_bar", "bar"), ("_kPa", "kPa"))
+_HIDE_PARTS = {"bitmap", "bits", "flags", "status_bits"}
+
+
+def _unit(u: Any) -> str:
+    u = str(u or "").strip()
+    return {"C": "°C", "degC": "°C"}.get(u, u)
+
+
+def human_label(name: Any) -> str:
+    """A channel's raw key-like name -> words a mechanic reads ("throttle position b" -> "Throttle position B")."""
+    n = str(name or "").strip().replace("_", " ")
+    n = re.sub(r"o2 b(\d)s(\d)", r"O2 bank  sensor ", n, flags=re.I)
+    n = re.sub(r"^(throttle position|accelerator pedal) ([a-f])$", lambda m: f"{m.group(1)}, sensor {m.group(2).upper()}", n)
+    return n[:1].upper() + n[1:]
+
+
+def split_parts(value: dict, outer_unit: Any = "") -> list[dict[str, Any]]:
+    """One entry per part of a multi-part value: {key, label, value, unit, hidden}. Unit comes from the part's own
+    key suffix (current_mA -> mA) or, for a sensor/bank key, from the channel's unit."""
+    out = []
+    for k, y in value.items():
+        k = str(k)
+        unit, base = "", k
+        for suf, u in _SUFFIX_UNIT:
+            if k.endswith(suf):
+                unit, base = u, k[:-len(suf)]
+                break
+        m = re.match(r"^bank(\d+)_sensor(\d+)$", base)
+        if m:
+            label, unit = f"sensor {m.group(2)}", unit or _unit(outer_unit)
+        else:
+            label = base.replace("_", " ")
+        out.append({"key": k, "label": label, "value": y, "unit": unit, "hidden": base in _HIDE_PARTS})
+    return out
+
+
 def reading_text(s: dict[str, Any], limit: int = 2) -> str:
-    """The last reading(s) with units for the collapsed row, e.g. "6.07 bar" or "lambda 0.993"."""
-    vals = [v for v in s.get("values") or [] if v.get("value") is not None]
+    """The last valid reading(s) with units for the collapsed row: "6.07 bar" or "lambda 0.9932, current 0 mA".
+    A value the module marked "not available" is not a reading and is left out (the row line says so)."""
+    vals = [v for v in s.get("values") or [] if v.get("value") is not None and not v.get("invalid") and not v.get("suspect")]
     out = []
     for v in vals[:limit]:
-        x, unit = v.get("value"), str(v.get("unit") or "").strip()
+        x, unit = v.get("value"), _unit(v.get("unit"))
         if isinstance(x, dict):
-            out.append(", ".join(f"{k} {_num(y)}" for k, y in x.items()) + (f" {unit}" if unit else ""))
+            parts = [p for p in split_parts(x, unit) if not p["hidden"]]
+            txt = ", ".join(f"{p['label']} {_num(p['value'])}" + (f" {p['unit']}" if p["unit"] else "") for p in parts)
+            if len(vals) > 1:
+                txt = f"{human_label(v.get('label') or v.get('channel'))}: {txt}"
+            out.append(txt)
         else:
-            name = f"{v.get('label') or v.get('channel')}: " if len(vals) > 1 else ""
+            name = f"{human_label(v.get('label') or v.get('channel'))}: " if len(vals) > 1 else ""
             out.append(f"{name}{_num(x)}" + (f" {unit}" if unit else ""))
     return "; ".join(out) + (f" (+{len(vals) - limit} more)" if len(vals) > limit else "")
 
@@ -126,7 +174,10 @@ def one_line(s: dict[str, Any], kind: str) -> str:
         return f"{c.get('code')} {c.get('state') or 'stored'}{extra}" + (f": {c['description']}" if c.get("description") else "") + "."
     if kind == NEVER:
         why = never_why(s)
-        return {"needs the grey cable": "Not read yet: needs the CAN-CH (grey) cable.",
+        lead = next((r for r in s.get("reasons") or [] if str(r).startswith(("No valid reading for", "Suspect"))), "")
+        return {NO_VALID: lead or "No valid reading: the module answered 'not available' (raw value in the details).",
+                SUSPECT: lead or "Suspect - check decoding (reason in the details).",
+                "needs the grey cable": "Not read yet: needs the CAN-CH (grey) cable.",
                 NO_CHANNEL: "Not read yet: CUORE has no live channel for this sensor.",
                 NO_ANSWER: "Asked, but it did not answer last time. Check all sensors again."}[why]
     when = _read_when(s)
@@ -157,7 +208,8 @@ def sensor_row(s: dict[str, Any], job_bases: frozenset = frozenset()) -> dict[st
     if kind == FAULT:
         chip = CHIP[st]
     elif kind == NEVER:
-        chip = CHIP["grey"]
+        chip = (NO_VALID.capitalize() if s.get("no_valid") else SUSPECT.capitalize() if s.get("suspect")
+                else CHIP["grey"])
     elif kind in (OK_JUDGED, OK_NOJUDGE):
         chip = CHIP[kind]
     else:   # a code is attached: the chip still says what the reading itself showed
@@ -286,8 +338,10 @@ def direct(sensors: list[dict[str, Any]], numbers: dict[str, int], codes: list[s
     n_cable = sum(1 for s in never if never_why(s) == CABLE)
     n_chan = sum(1 for s in never if never_why(s) == NO_CHANNEL)
     n_ans = sum(1 for s in never if never_why(s) == NO_ANSWER)
+    n_inv = sum(1 for s in never if never_why(s) == NO_VALID)
     parts = [(n_cable, "need the grey cable"), (n_chan, "have no live channel in CUORE yet"),
-             (n_ans, "did not answer last time")]
+             (n_ans, "did not answer last time"), (n_inv, "returned no valid value"),
+             (sum(1 for s in never if never_why(s) == SUSPECT), "are suspect - check decoding")]
     parts = [f"{n} {w}" for n, w in parts if n]
     if never:
         why.append(f"{len(never)} sensors have no reading yet: " + "; ".join(parts) + ".")
@@ -301,5 +355,5 @@ def direct(sensors: list[dict[str, Any]], numbers: dict[str, int], codes: list[s
     counts = {g: sum(1 for r in rows.values() if r["group"] == g) for g, _, _ in GROUPS}
     return {"call": "".join(x["text"] for x in segs).strip(), "call_segs": segs, "targets": targets[:6],
             "why": why, "rows": rows, "counts": counts, "call_ids": call_ids,
-            "never": {"cable": n_cable, "no_channel": n_chan, "no_answer": n_ans, "total": len(never)},
+            "never": {"cable": n_cable, "no_channel": n_chan, "no_answer": n_ans, "no_valid": n_inv, "total": len(never)},
             "links": links}

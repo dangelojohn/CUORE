@@ -316,6 +316,56 @@ check(res["ok"] is False and res["refused"] is True and "MultiEcuScan" in res["e
 check((TMP / "sensor_checks.jsonl").read_text(encoding="utf-8") == before, "refusal writes nothing")
 check(not stopped, "refused sweep does not stop someone else's session")
 
+# --- "not available" markers are never readings ----------------------------------------------------
+F195A = "((A*256+B)-32768)/1000-1"   # the OLD wrong formula: still used here only to exercise generic sentinel detection
+check(sh.invalid_reason("x", -32768, "", "") != "" and sh.invalid_reason("x", -32767, "", "") != "", "plain -32768/-32767")
+check(sh.invalid_reason("generic", -32.768, "bar", F195A).startswith("raw -32768"), "generic 0x8000 sentinel still detected")
+check(sh.invalid_reason("ecm_1956", -31764.0, "mbar", "(A*256+B)-32768") != "", "negative mbar is impossible")
+check(sh.invalid_reason("ecm_195a", 1001.0, "mbar", "A*256+B") == "", "fixed 195A 1001 mbar is a valid reading")
+check(sh.invalid_reason("ecm_1956", 1004.0, "mbar", "A*256+B") == "", "fixed 1956 1004 mbar is valid")
+check(sh.invalid_reason("c", 65535.0, "mbar", "A*256+B") != "", "unsigned 0xFFFF marker still caught")
+check(sh.invalid_reason("c", 1.2, "bar", F195A) == "" and sh.invalid_reason("c", 0.0, "bar", F195A) == "", "real values pass")
+check(sh.invalid_reason("c", 65535 / 100, "bar", "((A*256)+B)/100") != "", "unsigned 0xFFFF marker")
+check(sh.invalid_reason("c", 5.31, "L", "") == "" and sh.invalid_reason("c", 5210, "kPa", "") == "", "plausible kept")
+
+# --- read-time re-decode of old wrongly decoded values --------------------------------------------
+r195 = sh.redecode("ecm_195a", -32.767, "2026-10-25T09:00:00")
+r195b = sh.redecode("ecm_1956", -31764.0, "2026-10-25T09:00:00")
+check(r195 and r195[0] == 1001 and r195[1] == "mbar" and "re-decoded from the stored value with the corrected formula" in r195[2],
+      "old 195A -32.767 bar -> 1001 mbar, noted")
+check(r195b and r195b[0] == 1004 and r195b[1] == "mbar", "old 1956 -31764 -> 1004 mbar")
+check(sh.redecode("ecm_195a", 1001.0, "2026-10-26T09:00:00") is None, "records after the fix are not converted")
+check(sh.redecode("ecm_195b", 0.03, "2026-10-25T09:00:00") is None, "other channels untouched")
+write("live_snapshots.jsonl", "")
+write("sensor_checks.jsonl", jl({"at": "2026-10-25T09:00:00", "vin": VIN, "values": {"ecm_195a": -32.767, "ecm_1956": -31764.0},
+                                 "errors": {}, "modules_answered": {"ECM": True}}))
+sh._current_codes = lambda vin, mods: []
+rd = [x for x in sh.readings(VIN)["rows"] if x["channel"] == "ecm_195a"]
+check(rd and rd[0]["value"] == 1001 and rd[0]["unit"] == "mbar" and rd[0]["redecoded"], "readings() re-decodes")
+bp = by_id(H())["boost_pressure"]
+check(bp["status"] != "grey" or not bp["no_valid"], "re-decoded boost is a valid reading, not a marker")
+check(bp["values"][0]["value"] == 1001 and not bp["values"][0]["invalid"] and bp["values"][0]["redecoded"],
+      "health() shows 1001 mbar with the re-decode note")
+check((TMP / "sensor_checks.jsonl").read_text(encoding="utf-8").count("-32.767") == 1, "stored file not rewritten")
+
+# --- cross-checks: never green -------------------------------------------------------------------
+write("sensor_checks.jsonl", jl({"at": "2026-10-25T09:00:00", "vin": VIN, "errors": {}, "modules_answered": {"ECM": True},
+                                 "values": {"ecm_195a": -32.767, "ecm_195b": 0.0317, "barometric_pressure": 100,
+                                            "ecm_1956": -31764.0, "ecm_1925": 256 / 655.35, "ecm_1926": 254 * 100 / 24576,
+                                            "throttle_position": 13.3, "throttle_position_b": 13.7,
+                                            "ecm_1924": 13.0}}))
+S2 = by_id(H())
+check(not S2["baro_pressure"]["suspect"] and not any("decoding" in r.lower() for r in S2["baro_pressure"]["reasons"]),
+      "baro no longer suspect after re-decode")
+check(S2["boost_pressure"]["values"][0]["value"] == 1001, "boost 1001 mbar absolute")
+check(S2["throttle_pos_2"]["status"] == "grey" and S2["throttle_pos_2"]["suspect"], "throttle 2 suspect, not green")
+check(S2["throttle_pos_3"]["status"] == "grey" and S2["throttle_pos_3"]["suspect"], "throttle 3 suspect, not green")
+t2 = [v for v in S2["throttle_pos_2"]["values"]][0]["suspect"]
+check("decoding unconfirmed" in t2 and "raw 256 -> 2.56 deg" in t2, "throttle 2 shows unconfirmed degrees decode: " + t2)
+check("raw 254 -> 2.54 deg" in [v for v in S2["throttle_pos_3"]["values"]][0]["suspect"], "throttle 3 raw 254 -> 2.54 deg")
+check(S2["throttle_pos_1"]["status"] == "green", "throttle 1 (agrees) stays green")
+check(sh.suspect_reason("ecm_195b", 0.5, {}) == "", "no false suspect for 195B")
+
 print(f"{passed}/{passed + len(failures)} checks passed")
 for f in failures:
     print("FAIL:", f)

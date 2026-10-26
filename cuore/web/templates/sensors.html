@@ -9,9 +9,12 @@
   {% if s['values'] %}
   <ul class="sens-vals">
     {% for v in s['values'] %}
-    <li><b>{{ v.label or v.channel }}</b>: {% if v.value is mapping %}{% for k, x in v.value.items() %}{{ k }} {{ x }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}{{ v.value }}{% endif %}{% if v.unit %} {{ v.unit }}{% endif %}
+    <li><b>{{ human_label(v.label or v.channel) }}</b>:
+      {% if v.invalid %}<span class="muted">no valid value from the module</span> <span class="sens-raw">({{ v.invalid }}; decoded {{ v.value }}{% if v.unit %} {{ v.unit }}{% endif %})</span>
+      {% else %}{% if v.suspect %}<span class="muted">{{ v.suspect }}</span> &mdash; {% endif %}{% if v.value is mapping %}{% for p in split_parts(v.value, v.unit) %}{{ p.label }} {{ p.value }}{% if p.unit %} {{ p.unit }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}{{ v.value }}{% endif %}{% if v.unit and v.value is not mapping %} {{ v.unit }}{% endif %}
       {% if v.range %}&mdash; normal {{ v.range.min }}&ndash;{{ v.range.max }} {{ v.range.unit or v.unit or "" }} ({{ v.range.source }}){% if v.in_range is sameas false %} <b>outside range</b>{% endif %}
-      {% else %}&mdash; <span class="muted">no normal range on record</span>{% endif %}
+      {% else %}&mdash; <span class="muted">no normal range on record</span>{% endif %}{% endif %}
+      {% if v.redecoded %}<span class="sens-raw"> ({{ v.redecoded }})</span>{% endif %}
       {% if v.read_at %}<span class="muted"> read {{ when(v.read_at) }}</span>{% endif %}</li>
     {% endfor %}
   </ul>
@@ -58,7 +61,7 @@
 
 {% if call.why %}
 <details class="sens-fold sens-why" id="sens-why">
-  <summary>Why these? What else could not be read</summary>
+  <summary>Why these?</summary>
   <p class="muted">From this car's open symptoms, the job's code list and CUORE's own last readings. "History, no live fault" means CUORE stored the code earlier and a later scan did not show it.</p>
   <ul>{% for w in call.why %}<li>{{ w }}</li>{% endfor %}</ul>
 </details>
