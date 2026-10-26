@@ -4,16 +4,16 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 
 | item | action | size (bytes) | lines |
 |---|---|---|---|
-| observations.jsonl | copied | 2289191 | 356 |
+| observations.jsonl | skipped-unchanged | 2289191 | 356 |
 | owner_events.jsonl | skipped-unchanged | 996 | 2 |
-| jobs.jsonl | copied | 221424 | 246 |
+| jobs.jsonl | copied | 222075 | 247 |
 | checklists.json | skipped-unchanged | 615 | - |
 | cases.jsonl | skipped-unchanged | 1491 | 1 |
 | symptoms.jsonl | skipped-unchanged | 2074 | 4 |
 | shop_visits.jsonl | skipped-unchanged | 216 | 1 |
-| audit.jsonl | copied | 652164 | 3396 |
+| audit.jsonl | skipped-unchanged | 652164 | 3396 |
 | fullscan_last.json | skipped-unchanged | 6870 | - |
-| notes.jsonl | copied | 55659 | 43 |
+| notes.jsonl | copied | 57079 | 44 |
 | service_records.jsonl | skipped-unchanged | 5594 | 3 |
 | addresses.json | skipped-unchanged | 1183 | - |
 | learned_dids.json | skipped-unchanged | 34704 | - |
