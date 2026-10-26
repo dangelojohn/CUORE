@@ -38,7 +38,7 @@ def check(cond: bool, label: str) -> None:
 
 client = TestClient(create_app())
 BASE = f"/v/{VIN}/procedures/prototype"
-sim.open_job = lambda vin: None                      # generic WHY unless a test sets a job
+sim.open_job = lambda vin, proc='': None                      # generic WHY unless a test sets a job
 now = [1000.0]
 sim.CLOCK = lambda: now[0]
 sim.TODAY = lambda: date(2026, 10, 26)
@@ -107,11 +107,50 @@ check('name="token"' in h and "HOLD 2 s TO START" in h and 'id="pp-hold"' in h, 
 check("Hood open" in h and "pp-ok" in h, "answered question shows OK")
 
 # -- WHY generic vs real job
-check("No open job found" in h, "generic WHY without an open job")
-sim.open_job = lambda vin: {"id": "76d3abcdef", "text": "EVAP codes P0440"}
+check("No open job needs this test" in h, "generic WHY without an open job")
+sim.open_job = lambda vin, proc="": {"id": "76d3abcdef", "text": "EVAP codes P0440"}
 h = client.get(f"{BASE}/esim-vent").text
 check("76d3abcd" in h and "EVAP codes P0440" in h and f'href="/v/{VIN}/job"' in h, "WHY links the real open job")
-sim.open_job = lambda vin: None
+sim.open_job = lambda vin, proc='': None
+
+
+# -- WHY picks the matching job (shapes copied from the real jobs: EVAP job has an empty complaint + hypothesis system)
+JOBS = [
+    {"id": "f3ab620b5464", "complaint": "Accessory (serpentine) belt replacement planned; belt on site", "hypotheses": []},
+    {"id": "bb4ebb961aee", "complaint": "Network and chassis codes (non-EVAP)", "hypotheses": [{"text": "PRIORITY 5 (LOW) ABS", "system": "abs"}]},
+    {"id": "76d3454bce75", "complaint": "", "hypotheses": [{"text": "Cracked EVAP purge line at canister causing small/large leak", "system": "evap"},
+                                                       {"text": "deleted one", "system": "service", "deleted": True}]},
+    {"id": "aa11", "complaint": "Oil change and service interval reset after the visit", "hypotheses": []},
+]
+pj = sim.pick_job("esim-vent", JOBS)
+check(pj and pj["id"] == "76d3454bce75" and "Cracked EVAP purge line" in pj["text"] and len(pj["text"]) < 160, "ESIM vent WHY picks the EVAP job, with its hypothesis text when the complaint is empty")
+check(sim.pick_job("esim-vent", JOBS[:2]) is None, "ESIM vent: non-matching jobs (belt, non-EVAP network) refused -> no job")
+pj = sim.pick_job("service-reset", JOBS)
+check(pj and pj["id"] == "aa11", "service reset WHY picks the oil change / service job")
+check(sim.pick_job("service-reset", JOBS[:3]) is None, "service reset: EVAP job (deleted service hypothesis ignored) does not match")
+sim.open_job = lambda vin, proc="": sim.pick_job(proc, JOBS[:2])
+h = client.get(f"{BASE}/esim-vent").text
+check("No open job needs this test" in h and "f3ab620b" not in h and "bb4ebb96" not in h, "page shows 'No open job needs this test', no wrong link")
+sim.open_job = lambda vin, proc="": sim.pick_job(proc, JOBS)
+h = client.get(f"{BASE}/esim-vent").text
+check("76d3454b" in h and "Cracked EVAP purge line" in h and "f3ab620b" not in h, "page links the EVAP job and not the belt job")
+sim.open_job = lambda vin, proc="": None
+
+# -- every blocker: instruction line + (link or Re-check)
+for fault in ("mes_holding", "cable_missing", "engine_stalls", "moving", "not_in_park", "voltage_drops", "ignition_off"):
+    fresh()
+    sim.CAR.toggle(fault)
+    h = client.get(f"{BASE}/esim-vent").text
+    blk = h.split('class="pp-block"', 1)[1].split("</div>", 1)[0]
+    check("is blocking." in blk and 'form="pp-recheck"' in blk and "Re-check" in blk, f"blocker {fault}: instruction + Re-check button")
+fresh()
+sim.CAR.toggle("cable_missing")
+blk = client.get(f"{BASE}/esim-vent").text.split('class="pp-block"', 1)[1].split("</div>", 1)[0]
+check('href="/live"' in blk and "Verify" in blk and client.get("/live").status_code == 200, "cable blocker links the existing Live page (cable + Verify)")
+fresh()
+sim.CAR.toggle("mes_holding")
+blk = client.get(f"{BASE}/esim-vent").text.split('class="pp-block"', 1)[1].split("</div>", 1)[0]
+check("href=" not in blk and "Close MES" in blk, "MES blocker: no invented link, close-MES text + Re-check")
 
 # -- tokens
 fresh()
@@ -232,13 +271,15 @@ for fault, word in ((None, "WORKED"), ("no_proof", "DIDN'T"), ("ambiguous_proof"
     sim.stop(run.id)
     check(run.result["word"] == word, f"proof {fault or 'present'} -> {word}")
     pg = text(client.get(f"{BASE}/esim-vent?run={run.id}").text)
-    check(word in pg and "Before" in pg and "After" in pg and "Would be saved to" in pg, f"after view for {word}: word, table, evidence line")
+    check(word in pg and "Before" in pg and "After" in pg and "nothing would be attached" in pg, f"after view for {word}: word, table, evidence line")
 fresh()
 run = start_esim()
 now[0] += 10
 sim.stop(run.id)
+sim.open_job = lambda vin, proc="": {"id": "76d3454bce75", "text": "EVAP"}
 pg = text(client.get(f"{BASE}/esim-vent?run={run.id}").text)
-check("0.05 kPa" in pg and "-0.42 kPa" in pg and "evidence FOR" in pg, "WORKED shows 0.05 -> -0.42 kPa and evidence FOR")
+sim.open_job = lambda vin, proc="": None
+check("Would be saved to job 76d3454b" in pg and "0.05 kPa" in pg and "-0.42 kPa" in pg and "evidence FOR" in pg, "WORKED shows 0.05 -> -0.42 kPa and evidence FOR")
 
 # -- service reset
 fresh()

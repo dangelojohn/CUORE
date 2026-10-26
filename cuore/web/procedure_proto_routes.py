@@ -58,7 +58,7 @@ def proto_page(request: Request, vin: str, proc: str, run: str = "", msg: str = 
         view = "running" if r.state == "running" else "after"
     rd = sim.readiness(proc)
     token = sim.mint_token(proc) if view == "setup" else None
-    job = sim.open_job(vin)
+    job = sim.open_job(vin, proc)
     word = (r.result or {}).get("word") if r and r.result else ""
     evidence = {"WORKED": "FOR", "DIDN'T": "AGAINST"}.get(word, "neither for nor against")
     ctx = dict(vin=vin, bar=_vehicle_bar(vin, _dossier(vin)), tab="procedures", base=_base(vin), proc=proc, p=p, banner=sim.BANNER,

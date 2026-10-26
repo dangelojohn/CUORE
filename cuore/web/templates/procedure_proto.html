@@ -11,8 +11,8 @@
 
   {% if view == "setup" %}
   <section class="pp-card pp-why"><h2>WHY</h2>
-    {% if job %}<p>For the open job <a href="/v/{{ vin }}/job">{{ job.id[:8] }}</a>{% if job.text %}: {{ job.text }}{% endif %}. {{ p.why_generic }}</p>
-    {% else %}<p>{{ p.why_generic }} <span class="pp-muted">(No open job found, so this is the general reason.)</span></p>{% endif %}
+    {% if job %}<p>For the open job <a href="/v/{{ vin }}/job">{{ job.id[:8] }}</a>{% if job.text %}: {{ job.text[:160] }}{% endif %}. {{ p.why_generic }}</p>
+    {% else %}<p>{{ p.why_generic }} <b>No open job needs this test.</b></p>{% endif %}
   </section>
 
   <section class="pp-card" aria-labelledby="pp-ready"><h2 id="pp-ready">1 READY? <small>CUORE checks these itself</small></h2>
@@ -21,8 +21,10 @@
       <li class="pp-chip {{ 'pp-ok' if c.state == 'ok' else 'pp-bad' }}"><span class="pp-mark">{{ 'OK' if c.state == 'ok' else '!!' }}</span> {{ c.label }}: {{ c.value }}</li>
       {% endfor %}
     </ul>
-    {% for c in rd.blockers %}<p class="pp-block"><b>{{ c.label }}</b> is blocking. {{ c.unblock }}.</p>{% endfor %}
-    <form method="post" action="{{ base }}/{{ proc }}/recheck" class="pp-ask">
+    {% for c in rd.blockers %}<div class="pp-block"><p><b>{{ c.label }}</b> is blocking. {{ c.unblock }}.</p>
+      <p class="pp-unblock">{% if c.href %}<a class="pp-btn" href="{{ c.href }}">{{ c.link_label }}</a> {% endif %}
+      <button type="submit" form="pp-recheck" class="pp-btn pp-ghost">Re-check</button></p></div>{% endfor %}
+    <form method="post" action="{{ base }}/{{ proc }}/recheck" class="pp-ask" id="pp-recheck">
       {% for a in rd.asks %}
       <p class="pp-askrow"><span>{{ a.text }}</span>
         {% if a.answered %}<span class="pp-chip pp-ok"><span class="pp-mark">OK</span> Yes</span>
@@ -87,7 +89,7 @@
         <tr class="{{ 'pp-changed' if run.p_min != run.p_before }}"><td>EVAP vapour pressure</td><td>{{ '%.2f' % run.p_before }} kPa</td><td>{{ '%.2f' % run.p_min }} kPa</td></tr>
       {% endif %}
     </tbody></table>
-    <p class="pp-evidence">Would be saved to {% if job %}job {{ job.id[:8] }}{% else %}the job{% endif %} as evidence <b>{{ evidence }}</b> "{{ p.hypothesis }}".
+    <p class="pp-evidence">{% if job %}Would be saved to job {{ job.id[:8] }} as evidence <b>{{ evidence }}</b> "{{ p.hypothesis }}".{% else %}No open job needs this test, so nothing would be attached.{% endif %}
       <span class="pp-muted">Prototype: not written to the real job; kept in procedure_prototype.jsonl.</span></p>
     <p class="pp-actions"><a class="pp-btn" href="{{ base }}/{{ proc }}">Run again</a> <a class="pp-btn pp-ghost" href="/v/{{ vin }}/job">Back to the job</a></p>
   </section>

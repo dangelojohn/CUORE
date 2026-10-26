@@ -52,6 +52,7 @@ PROCS: dict[str, dict[str, Any]] = {
     "esim-vent": {
         "title": "ESIM vent test (simulated)", "module": "Engine ECM", "bus": "CAN-C", "kind": "run",
         "why_generic": "Proves the EVAP vent path: the vent valve is commanded and the vapour pressure must fall.",
+        "serves": {"codes": ["P0440", "P0455", "P0456", "P1CEA"], "systems": ["evap"], "words": []},
         "hypothesis": "vent path OK", "proof": ("EVAP vapour pressure", "kPa", "falls"),
         "asks": [("hood", "Hood open, hands clear of the fan?")],
         "blurb": "Engine running, stationary in P. Watches vapour pressure fall. 30 s maximum.",
@@ -59,6 +60,8 @@ PROCS: dict[str, dict[str, Any]] = {
     "service-reset": {
         "title": "Service interval reset (simulated)", "module": "Instrument cluster", "bus": "CAN-C", "kind": "reset",
         "why_generic": "Restarts the service counters after an oil and filter change.",
+        "serves": {"codes": [], "systems": ["service", "maintenance"],
+                   "words": ["oil change", "oil and filter", "service interval", "service reset", "service counter"]},
         "hypothesis": "service counters restarted", "proof": None,
         "asks": [("oil", "Oil and filter change done on this visit?")],
         "blurb": "Reads the 8 service values, saves them, writes the reset, reads them back.",
@@ -97,9 +100,14 @@ _TOKENS: dict[str, str] = {}          # token -> proc
 RUNS: dict[str, "Run"] = {}
 
 
+#: Existing pages that help with an unblock step. Only real routes; anything else is instruction text + Re-check.
+UNBLOCK_LINKS = {"cable": ("/live", "Open the Live page: pick the cable, then Verify")}
+
+
 def _chip(key: str, label: str, ok: bool, value: str, unblock: str) -> dict[str, Any]:
+    href, link_label = ("", "") if ok else UNBLOCK_LINKS.get(key, ("", ""))
     return {"key": key, "label": label, "state": "ok" if ok else "blocked", "value": value,
-            "unblock": "" if ok else unblock}
+            "unblock": "" if ok else unblock, "href": href, "link_label": link_label}
 
 
 def readiness(proc: str, car: Optional[SimCar] = None) -> dict[str, Any]:
@@ -108,7 +116,7 @@ def readiness(proc: str, car: Optional[SimCar] = None) -> dict[str, Any]:
     p = PROCS[proc]
     chips = [
         _chip("cable", "Cable fitted", r["cable"], "fitted" if r["cable"] else "not fitted", "Fit the blue A5 cable, then Verify"),
-        _chip("mes", "Adapter free", not r["mes_holding"], "free" if not r["mes_holding"] else "MES holding adapter", "Close MES, then Re-check"),
+        _chip("mes", "Adapter free", not r["mes_holding"], "free" if not r["mes_holding"] else "MES holding adapter", "Close MES (exit MultiEcuScan fully, not just minimise), then Re-check"),
         _chip("ignition", "Ignition on", r["ignition"], "on" if r["ignition"] else "off", "Turn the ignition on"),
     ]
     if p["kind"] == "run":
@@ -144,17 +152,55 @@ def mint_token(proc: str, car: Optional[SimCar] = None) -> Optional[str]:
         return tok
 
 
-def open_job(vin: str) -> Optional[dict[str, str]]:
-    """The newest real open job for the car (read-only), else None. Never raises."""
+def _short(t: str, n: int = 140) -> str:
+    t = " ".join(str(t).split())
+    return t if len(t) <= n else t[:n].rsplit(" ", 1)[0] + "..."
+
+
+def _job_text(j: dict[str, Any]) -> str:
+    c = str(j.get("complaint") or "").strip()
+    if c:
+        return _short(c)
+    for h in j.get("hypotheses") or []:
+        if not h.get("deleted") and h.get("text"):
+            return _short(h["text"])
+    return ""
+
+
+def job_matches(proc: str, j: dict[str, Any]) -> int:
+    """Relevance of one open job to a procedure: 0 = not relevant. Reads the job's complaint and its live
+    hypotheses (text + system) only; the word EVAP alone in a complaint does not count (a "non-EVAP" job)."""
+    sv = PROCS[proc].get("serves") or {}
+    hyps = [h for h in (j.get("hypotheses") or []) if not h.get("deleted")]
+    blob = " ".join([str(j.get("complaint") or "")] + [str(h.get("text") or "") for h in hyps]).lower()
+    score = 0
+    for h in hyps:
+        if str(h.get("system") or "").lower() in sv.get("systems", []):
+            score += 10
+    score += sum(1 for c in sv.get("codes", []) if c.lower() in blob)
+    score += sum(1 for w in sv.get("words", []) if w in blob)
+    return score
+
+
+def pick_job(proc: str, jobs_list: list[dict[str, Any]]) -> Optional[dict[str, str]]:
+    best = max(jobs_list, key=lambda j: job_matches(proc, j), default=None)
+    if best is None or job_matches(proc, best) <= 0:
+        return None
+    return {"id": str(best.get("id") or ""), "text": _job_text(best)}
+
+
+def open_job(vin: str, proc: str = "") -> Optional[dict[str, str]]:
+    """The open job this procedure serves (read-only), else None. Never raises."""
     try:
+        try:
+            from cuore import bootstrap
+            bootstrap.ensure_paths()
+        except Exception:  # noqa: BLE001
+            pass
         from mes import jobs
-        js = list(jobs.open_jobs(vin) or [])
-        if js:
-            j = js[-1]
-            return {"id": str(j.get("id") or ""), "text": str(j.get("complaint") or j.get("title") or j.get("symptom") or "")}
+        return pick_job(proc, list(jobs.open_jobs(vin) or [])) if proc in PROCS else None
     except Exception:  # noqa: BLE001
-        pass
-    return None
+        return None
 
 
 class Run:
