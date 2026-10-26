@@ -27,25 +27,27 @@ _PITCH = 22      # centre-to-centre distance in a cluster
 _GROUND = 328
 
 #: id, label, anchor (ax, ay), label position (lx, ly), text-anchor.
+#: Anchors follow the drawing below (front axle x=199, rear axle x=650, wheel
+#: centres y=269, sill y=292, roof y~59); a drawing convention, not a measurement.
 ZONES: list[dict[str, Any]] = [
-    {"id": "front_bumper", "label": "Front bumper", "ax": 64, "ay": 236, "lx": 60, "ly": 346, "ta": "start"},
-    {"id": "engine_bay", "label": "Engine bay", "ax": 168, "ay": 226, "lx": 150, "ly": 150, "ta": "middle"},
-    {"id": "front_left_wheel_well", "label": "Front wheel wells", "ax": 210, "ay": 248, "lx": 210, "ly": 346, "ta": "middle"},
-    {"id": "front_right_wheel_well", "label": "", "ax": 210, "ay": 304, "lx": 210, "ly": 346, "ta": "middle"},
-    {"id": "windscreen", "label": "Windscreen", "ax": 356, "ay": 130, "lx": 330, "ly": 72, "ta": "middle"},
-    {"id": "cabin_dash", "label": "Dash", "ax": 322, "ay": 190, "lx": 300, "ly": 238, "ta": "middle"},
-    {"id": "cabin_driver", "label": "Cabin (driver)", "ax": 420, "ay": 190, "lx": 400, "ly": 238, "ta": "middle"},
-    {"id": "cabin_passenger", "label": "Cabin (passenger)", "ax": 490, "ay": 190, "lx": 510, "ly": 238, "ta": "middle"},
-    {"id": "roof", "label": "Roof", "ax": 520, "ay": 62, "lx": 520, "ly": 36, "ta": "middle"},
-    {"id": "under_car_exhaust", "label": "Underbody / exhaust", "ax": 430, "ay": 302, "lx": 430, "ly": 346, "ta": "middle"},
-    {"id": "fuel_tank", "label": "Fuel tank", "ax": 560, "ay": 252, "lx": 560, "ly": 288, "ta": "middle"},
-    {"id": "rear_left_wheel_well", "label": "Rear wheel wells", "ax": 640, "ay": 248, "lx": 640, "ly": 346, "ta": "middle"},
-    {"id": "rear_right_wheel_well", "label": "", "ax": 640, "ay": 304, "lx": 640, "ly": 346, "ta": "middle"},
-    {"id": "trunk", "label": "Tailgate / trunk", "ax": 736, "ay": 186, "lx": 760, "ly": 112, "ta": "middle"},
-    {"id": "fuse_box_engine_bay", "label": "Fuse box (engine bay)", "ax": 112, "ay": 222, "lx": 100, "ly": 120, "ta": "middle"},
-    {"id": "fuse_box_interior", "label": "Fuse box (dash / footwell)", "ax": 350, "ay": 226, "lx": 350, "ly": 296, "ta": "middle"},
-    {"id": "fuse_box_rear", "label": "Fuse box (rear)", "ax": 722, "ay": 228, "lx": 760, "ly": 290, "ta": "middle"},
-    {"id": "rear_bumper", "label": "Rear bumper", "ax": 788, "ay": 246, "lx": 800, "ly": 346, "ta": "end"},
+    {"id": "front_bumper", "label": "Front bumper", "ax": 66, "ay": 262, "lx": 40, "ly": 346, "ta": "start"},
+    {"id": "engine_bay", "label": "Engine bay", "ax": 236, "ay": 178, "lx": 236, "ly": 132, "ta": "middle"},
+    {"id": "front_left_wheel_well", "label": "Front wheel wells", "ax": 199, "ay": 236, "lx": 199, "ly": 346, "ta": "middle"},
+    {"id": "front_right_wheel_well", "label": "", "ax": 199, "ay": 298, "lx": 199, "ly": 346, "ta": "middle"},
+    {"id": "windscreen", "label": "Windscreen", "ax": 398, "ay": 112, "lx": 372, "ly": 70, "ta": "middle"},
+    {"id": "cabin_dash", "label": "Dash", "ax": 372, "ay": 176, "lx": 352, "ly": 230, "ta": "middle"},
+    {"id": "cabin_driver", "label": "Cabin (driver)", "ax": 446, "ay": 180, "lx": 432, "ly": 230, "ta": "middle"},
+    {"id": "cabin_passenger", "label": "Cabin (passenger)", "ax": 540, "ay": 178, "lx": 540, "ly": 230, "ta": "middle"},
+    {"id": "roof", "label": "Roof", "ax": 570, "ay": 60, "lx": 570, "ly": 44, "ta": "middle"},
+    {"id": "under_car_exhaust", "label": "Underbody / exhaust", "ax": 424, "ay": 310, "lx": 424, "ly": 346, "ta": "middle"},
+    {"id": "fuel_tank", "label": "Fuel tank", "ax": 566, "ay": 266, "lx": 566, "ly": 314, "ta": "middle"},
+    {"id": "rear_left_wheel_well", "label": "Rear wheel wells", "ax": 650, "ay": 236, "lx": 650, "ly": 346, "ta": "middle"},
+    {"id": "rear_right_wheel_well", "label": "", "ax": 650, "ay": 298, "lx": 650, "ly": 346, "ta": "middle"},
+    {"id": "trunk", "label": "Tailgate / trunk", "ax": 728, "ay": 138, "lx": 772, "ly": 76, "ta": "middle"},
+    {"id": "fuse_box_engine_bay", "label": "Fuse box (engine bay)", "ax": 140, "ay": 192, "lx": 120, "ly": 160, "ta": "middle"},
+    {"id": "fuse_box_interior", "label": "Fuse box (dash / footwell)", "ax": 384, "ay": 222, "lx": 384, "ly": 316, "ta": "middle"},
+    {"id": "fuse_box_rear", "label": "Fuse box (rear)", "ax": 752, "ay": 196, "lx": 822, "ly": 252, "ta": "end"},
+    {"id": "rear_bumper", "label": "Rear bumper", "ax": 800, "ay": 254, "lx": 830, "ly": 346, "ta": "end"},
 ]
 ZONE_BY_ID = {z["id"]: z for z in ZONES}
 #: Zone id -> drawing anchor (placement only, not a measured position).
@@ -79,49 +81,91 @@ def _smooth_closed(pts: list[tuple[float, float]]) -> str:
     return " ".join(d) + " Z"
 
 
+_AXLE_F, _AXLE_R, _WHEEL_Y, _TYRE_R, _RIM_R = 199, 650, 269, 59, 37
+
+
 def _wheel(cx: float) -> str:
-    cy = 290
-    p = [f'<circle cx="{cx}" cy="{cy}" r="39" fill="var(--surface-2)" stroke="var(--ink-2)" stroke-width="1.6"/>',
-         f'<circle cx="{cx}" cy="{cy}" r="27" fill="none" stroke="var(--ink-3)" stroke-width="1"/>',
-         f'<circle cx="{cx}" cy="{cy}" r="7" fill="none" stroke="var(--ink-3)" stroke-width="1"/>']
-    for k in range(5):  # 5 spokes
-        a = math.radians(-90 + k * 72)
-        p.append(f'<line x1="{cx + 8 * math.cos(a):.1f}" y1="{cy + 8 * math.sin(a):.1f}" '
-                 f'x2="{cx + 26 * math.cos(a):.1f}" y2="{cy + 26 * math.sin(a):.1f}" '
-                 f'stroke="var(--ink-3)" stroke-width="2.2" stroke-linecap="round"/>')
+    """Tyre, 18-inch-class rim (rim/tyre diameter ratio of a 235/60 R18) and five twin spokes."""
+    cy = _WHEEL_Y
+    p = [f'<circle cx="{cx}" cy="{cy}" r="{_TYRE_R}" fill="var(--ink-3)" fill-opacity="0.18" '
+         f'stroke="var(--ink-2)" stroke-width="1.6"/>',
+         f'<circle cx="{cx}" cy="{cy}" r="{_RIM_R}" fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.1"/>',
+         f'<circle cx="{cx}" cy="{cy}" r="{_RIM_R - 4}" fill="none" stroke="var(--ink-3)" stroke-width="0.6" opacity="0.6"/>',
+         f'<circle cx="{cx}" cy="{cy}" r="8" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1"/>']
+    for k in range(5):
+        for off in (-7, 7):
+            a = math.radians(-90 + k * 72 + off)
+            p.append(f'<line x1="{cx + 9 * math.cos(a):.1f}" y1="{cy + 9 * math.sin(a):.1f}" '
+                     f'x2="{cx + (_RIM_R - 5) * math.cos(a):.1f}" y2="{cy + (_RIM_R - 5) * math.sin(a):.1f}" '
+                     f'stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round"/>')
     return "".join(p)
 
 
 def _car_line_art() -> str:
-    """Left-side Stelvio profile, nose to the left: long bonnet, raked
-    windscreen, sloping roofline into a short tail, pronounced arches."""
-    line = 'fill="none" stroke="var(--ink-3)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"'
-    thin = 'fill="none" stroke="var(--ink-3)" stroke-width="0.9" stroke-linecap="round" opacity="0.7"'
-    body = ("M72,270 Q58,268 58,250 Q56,222 66,208 Q80,196 130,190 Q220,172 300,158 L392,104 "
-            "Q410,90 440,88 L600,88 Q650,90 700,122 Q760,150 780,176 Q796,196 798,226 L798,255 "
-            "Q796,270 780,272 L689,272 A52,52 0 0 0 591,272 L259,272 A52,52 0 0 0 161,272 Z")
+    """Left-side Stelvio (949) profile, nose to the LEFT, drawn to the car's
+    published proportions at 0.16 units per mm: 4687 mm long, 2818 mm
+    wheelbase, ~1670 mm tall, ~735 mm tyres, ~200 mm ground clearance.
+    Long bonnet; strongly raked windscreen; roof that peaks over the B-pillar
+    and falls to a roof spoiler; fast rear screen; window line that rises to a
+    pointed rear tip; shoulder crease into the rear haunch; black arch and sill
+    cladding; swept headlamp; shield (scudetto) nose; wrap-round tail lamp.
+    A proportional drawing, not a traced blueprint."""
+    ink = 'stroke="var(--ink-3)" stroke-linecap="round" stroke-linejoin="round"'
+    line = f'fill="none" {ink} stroke-width="1.2"'
+    thin = f'fill="none" {ink} stroke-width="0.9" opacity="0.75"'
+    clad = 'fill="var(--ink-3)" fill-opacity="0.22" stroke="var(--ink-3)" stroke-width="0.9" stroke-linejoin="round"'
+    af, ar = _AXLE_F, _AXLE_R
+    # arch openings: radius 66 around each wheel centre (y=269), cut at the sill line y=292
+    body = ("M66,298 "                                   # front lower lip
+            "C58,296 55,284 55,266 "                      # bumper face
+            "C55,240 56,214 60,200 "                      # nose (shield level)
+            "C63,188 70,181 84,178 "                      # bonnet leading edge
+            "C170,166 270,154 336,146 "                   # long bonnet to the screen base
+            "C380,118 420,90 456,72 "                     # raked windscreen
+            "C490,62 520,59 548,59 "                      # roof peak over the B-pillar
+            "C620,60 690,66 742,82 "                      # falling roof
+            "L750,85 L748,90 L742,91 "                    # roof spoiler
+            "C760,112 780,136 794,152 "                   # fast rear screen
+            "C801,160 805,172 805,188 "                   # tail lamp / tailgate edge
+            "L804,238 "                                    # rear bumper face
+            "C804,262 800,284 790,294 "                   # bumper round-under
+            f"L774,296 L{ar + 62},292 "                    # diffuser to the rear arch
+            f"A66,66 0 1 0 {ar - 62},292 "                 # rear arch
+            f"L{af + 62},292 "                              # sill
+            f"A66,66 0 1 0 {af - 62},292 "                 # front arch
+            "L120,296 Z")
     p = ['<g class="car-art" aria-hidden="true">',
-         f'<line x1="20" y1="{_GROUND}" x2="840" y2="{_GROUND}" stroke="var(--rule)" stroke-width="1"/>',
-         f'<path d="{body}" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.8" stroke-linejoin="round"/>',
-         _wheel(210), _wheel(640)]
-    for cx in (210, 640):  # arch lips
-        p.append(f'<path d="M{cx - 49},272 A52,52 0 0 1 {cx + 49},272" {thin} transform="translate(0,-3)"/>')
-    # glasshouse, B-pillar, belt line, door cuts, sills
-    p.append('<path d="M318,154 L398,112 Q412,103 430,102 L592,102 Q630,104 660,126 L678,154 Z" '
-             'fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.1" stroke-linejoin="round"/>')
-    p.append(f'<path d="M512,102 L512,154" {line}/>')
-    p.append(f'<path d="M300,158 L778,176" {thin}/>')
-    p.append(f'<path d="M512,154 L512,262 M672,160 L676,262 M322,158 L330,262" {thin}/>')
-    p.append(f'<path d="M330,262 L688,262" {thin}/>')
-    p.append(f'<path d="M455,172 L485,172 M600,174 L630,174" {line}/>')  # door handles
-    p.append(f'<path d="M318,150 L298,150 Q289,152 291,161 L316,163 Z" {line}/>')  # mirror
-    p.append(f'<path d="M440,86 L600,86" {thin}/>')  # roof rail
-    p.append(f'<path d="M66,212 L124,198 L130,206 L72,226 Z" {line}/>')  # headlamp
-    p.append(f'<path d="M58,232 L68,230 L69,248 L58,246 Z" {line}/>')  # scudetto
-    p.append(f'<path d="M74,254 L136,258" {line}/><path d="M60,262 L90,266" {thin}/>')  # intake, bumper
-    p.append(f'<path d="M772,178 Q790,192 792,214 L778,212 L760,186 Z" {line}/>')  # tail lamp
-    p.append(f'<path d="M797,248 L728,252" {thin}/>')  # rear bumper line
-    p.append('<text x="20" y="150" font-size="9" fill="var(--ink-3)" letter-spacing="1" '
+         f'<line x1="16" y1="{_GROUND}" x2="844" y2="{_GROUND}" stroke="var(--rule)" stroke-width="1"/>',
+         f'<path d="{body}" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.8" stroke-linejoin="round"/>']
+    # black cladding: a band outside each arch opening, and the sill / lower door strip
+    for cx in (af, ar):
+        p.append(f'<path d="M{cx + 62},292 A66,66 0 1 0 {cx - 62},292 L{cx - 70},292 '
+                 f'A74,74 0 1 1 {cx + 70},292 Z" {clad}/>')
+    p.append(f'<path d="M{af + 70},292 L{ar - 70},292 L{ar - 72},280 C520,281 380,281 {af + 72},282 Z" {clad}/>')
+    p += [_wheel(af), _wheel(ar)]
+    # glasshouse (DLO): follows the screen and roof; window line rises to a pointed rear tip
+    p.append('<path d="M350,150 C390,122 424,98 458,82 C492,72 524,69 552,69 C620,70 676,76 714,92 '
+             'C728,100 734,108 738,116 C700,121 560,132 350,150 Z" '
+             'fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.2" stroke-linejoin="round"/>')
+    p.append('<path d="M347,153 C560,135 700,123 742,117" fill="none" stroke="var(--ink-2)" stroke-width="1.1"/>')
+    p.append('<path d="M503,71 L507,139 L516,139 L512,70 Z" fill="var(--ink-3)" fill-opacity="0.55"/>')  # B-pillar
+    p.append('<path d="M650,74 L644,128 L654,127 L662,76 Z" fill="var(--ink-3)" fill-opacity="0.55"/>')  # C-pillar
+    # door shut lines, handles, mirror, shoulder crease, rear haunch
+    p.append(f'<path d="M346,154 C318,170 300,196 296,224 L292,280" {thin}/>')
+    p.append(f'<path d="M511,140 L515,280" {thin}/>')
+    p.append(f'<path d="M650,128 C652,160 646,186 626,206" {thin}/>')
+    p.append(f'<path d="M428,166 L458,165 M584,157 L612,156" {line}/>')
+    p.append(f'<path d="M352,152 L334,136 Q328,131 320,134 L316,146 Q318,154 332,156 Z" {line}/>')
+    p.append(f'<path d="M150,190 C300,176 520,166 720,158 C750,157 772,160 790,166" {thin}/>')
+    p.append(f'<path d="M560,200 C620,196 680,190 720,186" {thin}/>')
+    # nose: shield edge, swept headlamp, side intake; tail: lamp, reflector, exhaust tip
+    p.append(f'<path d="M57,204 L62,203 L64,246 L58,250 Z" {line}/>')
+    p.append(f'<path d="M64,192 C96,182 132,176 162,174 L156,184 C126,188 96,194 66,206 Z" {line}/>')
+    p.append(f'<path d="M64,240 L94,244 L98,282 L68,286 Z" {line}/>')
+    p.append(f'<path d="M752,152 C776,152 796,158 804,168 L804,184 C786,178 764,174 744,170 Z" {line}/>')
+    p.append(f'<path d="M776,236 L802,236" {line}/>')
+    p.append(f'<path d="M772,292 L796,292 L796,286 L774,286 Z" {line}/>')
+    p.append('<text x="18" y="150" font-size="9" fill="var(--ink-3)" letter-spacing="1" '
              'font-family="var(--sans), sans-serif">FRONT</text>')
     p.append("</g>")
     return "".join(p)
