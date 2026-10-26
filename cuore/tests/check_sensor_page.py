@@ -70,8 +70,22 @@ def fake_health(vin):
 def fake_check_all(vin):
     if MODE["check"] == "mes":
         raise RuntimeError("MultiEcuScan is connected - adapter busy")
+    if MODE["check"] == "refused":
+        return {"ok": False, "refused": True, "error": "another live session holds the adapter"}
     CALLS["check"].append(vin)
-    return {"checked": len(SENSORS)}
+    return {"ok": True, "refused": False, "checked": len(SENSORS), "read": 2}
+
+
+def fake_readings(vin):
+    return {"vin": vin, "checks": ["2026-10-25T19:56:26", "2026-10-26T09:10:00"], "rows": [
+        {"at": "2026-10-25T19:56:26", "sensor_ids": ["coolant_temp"], "sensors": ["Coolant temperature"],
+         "channel": "engine_coolant_temp", "part": "", "name": "Coolant temp", "unit": "C", "value": 53, "error": None},
+        {"at": "2026-10-26T09:10:00", "sensor_ids": ["coolant_temp"], "sensors": ["Coolant temperature"],
+         "channel": "engine_coolant_temp", "part": "", "name": "Coolant temp", "unit": "C", "value": 88, "error": None},
+        {"at": "2026-10-26T09:10:00", "sensor_ids": ["o2_b1s1"], "sensors": ["Upstream O2"],
+         "channel": "o2_b1s1_wide_range", "part": "lambda", "name": "O2 wide", "unit": "", "value": 0.993, "error": None},
+        {"at": "2026-10-26T09:10:00", "sensor_ids": ["oil_temp"], "sensors": ["Oil temperature"],
+         "channel": "engine_oil_temp", "part": "", "name": "Oil temp", "unit": "C", "value": None, "error": "no data"}]}
 
 
 def fake_add_range(model, sensor_id, channel, min, max, unit, source, by):
@@ -82,6 +96,7 @@ def fake_add_range(model, sensor_id, channel, min, max, unit, source, by):
 
 fake = types.ModuleType("cuore.services.sensor_health")
 fake.health, fake.check_all, fake.add_range = fake_health, fake_check_all, fake_add_range
+fake.readings = fake_readings
 import cuore.services as _svc  # noqa: E402
 
 sys.modules["cuore.services.sensor_health"] = fake
@@ -149,8 +164,33 @@ check(len(re.findall(r'<article class="sens-row"', r.text)) == len(SENSORS), "ba
 # --- check / range posts --------------------------------------------------
 r = client.post(f"/v/{VIN}/sensors/check")
 loc = unquote(r.headers.get("location", ""))
-check(r.status_code == 303 and loc.startswith(f"/v/{VIN}/sensors?msg=Checked {len(SENSORS)} sensors"),
+check(r.status_code == 303 and loc.startswith(f"/v/{VIN}/sensors?msg=Checked {len(SENSORS)} sensors: 2 gave a value"),
       f"check POST redirects with count ({loc})")
+MODE["check"] = "refused"
+loc = unquote(client.post(f"/v/{VIN}/sensors/check").headers.get("location", ""))
+check("Could not check: another live session" in loc and "Checked" not in loc, f"refused sweep is not reported as checked ({loc})")
+MODE["check"] = "ok"
+CALLS["check"].clear()
+client.post(f"/v/{VIN}/sensors/check")
+
+# --- readings comparison + CSV ---------------------------------------------
+r = client.get(f"/v/{VIN}/sensors/readings")
+check(r.status_code == 200 and "Sensor readings" in r.text, "readings page renders")
+rp = r.text
+head = rp[rp.index("<thead>"):rp.index("</thead>")]
+check(head.index("2026-10-26") < head.index("2026-10-25"), "newest check column first")
+check(">88<" in rp and ">53<" in rp and ">35<" in rp, "both values and their change shown")
+check("lambda" in rp and "no data" in rp, "multi-part values and errors shown")
+check("readings.csv" in rp, "page links the CSV")
+r = client.get(f"/v/{VIN}/sensors/readings.csv")
+body = r.content.decode("utf-8-sig")
+check(r.status_code == 200 and r.headers["content-type"].startswith("text/csv")
+      and "attachment" in r.headers.get("content-disposition", ""), "CSV downloads")
+check(body.splitlines()[0].startswith("check_at,sensor,sensor_id,channel,part") and len(body.strip().splitlines()) == 5,
+      "CSV has header plus one line per reading")
+check("2026-10-25T19:56:26,Coolant temperature,coolant_temp,engine_coolant_temp,,Coolant temp,53,C," in body,
+      "CSV line carries the saved value")
+check("/sensors/readings" in client.get(f"/v/{VIN}/sensors").text, "sensor page links the readings page")
 check(CALLS["check"] == [VIN], "check_all called once")
 MODE["check"] = "mes"
 r = client.post(f"/v/{VIN}/sensors/check")

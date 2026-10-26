@@ -1,10 +1,15 @@
 """Sensor health: one colour per physical sensor, from evidence already on disk.
 
 green  answered, no current code, value in range (or no range to judge by)
-orange a current code names it, a channel errored, or a value is outside its range
-red    its module does not answer, every channel returned no data, or a current
-       code of an open / short / no-signal / circuit type names it
-grey   never read, or not readable with the current cable / no CUORE channel
+orange a current code names it, or a value is outside its range
+red    the last full scan says its module does not answer, or a current code
+       of an open / short / no-signal / circuit type names it
+grey   never read, no channel answered this time, the car gives no data for its
+       channels, or not readable with the current cable / no CUORE channel
+
+A channel that fails is a fact about the READ, not the sensor: "no data" means
+the car does not offer that value, a timeout means it was not answered this
+time. Neither colours a sensor orange or red; both are listed as reasons.
 
 Read-only for the car except :func:`check_all`, which runs one sweep through the
 EXISTING live layer (``cuore.live.ops.live_session_*``) and so inherits its
@@ -281,9 +286,11 @@ def _module_states(vin: str, checks: list[dict[str, Any]]) -> dict[str, dict[str
         last = c
     if last:
         for m, ok in (last.get("modules_answered") or {}).items():
+            if not ok and m in out:
+                continue                               # silence in a sweep is weaker than a full scan
             if (last.get("at") or "") >= (out.get(m, {}).get("at") or ""):
-                out[m] = {"state": "answered" if ok else "no_answer",
-                          "why": "" if ok else "every channel read from it failed",
+                out[m] = {"state": "answered" if ok else "not_answered",
+                          "why": "" if ok else "every channel read from it failed this time",
                           "at": last.get("at") or "", "src": "the last sensor check",
                           "active": out.get(m, {}).get("active"), "fs_state": out.get(m, {}).get("fs_state"),
                           "fs_at": out.get(m, {}).get("fs_at", "")}
@@ -451,7 +458,7 @@ def health(vin: str, now: Optional[datetime] = None) -> dict[str, Any]:
             if e is None:
                 continue
             if e["error"] is not None:
-                errored.append(f"{ch} ({e['error']})")
+                errored.append((ch, str(e["error"])))
                 continue
             rng = None
             t = tech.get((r["id"], ch))
@@ -469,6 +476,8 @@ def health(vin: str, now: Optional[datetime] = None) -> dict[str, Any]:
                            "unit": e["unit"] or meta.get(ch, {}).get("unit", ""), "read_at": e["at"] or None,
                            "range": rng, "in_range": inr})
         last_read = max((v["read_at"] for v in values if v["read_at"]), default=None)
+        no_data = [f"{ch} ({err})" for ch, err in errored if "no data" in err.lower()]
+        timed_out = [f"{ch} ({err})" for ch, err in errored if "no data" not in err.lower()]
 
         status = "grey"
         if not r.get("readable"):
@@ -482,16 +491,26 @@ def health(vin: str, now: Optional[datetime] = None) -> dict[str, Any]:
                 why = f" ({ms['why']})" if ms.get("why") else ""
                 reasons.append(f"Module {r['module']} did not answer in {ms['src']}{why}.")
                 status = "red"
-            elif not values and chans and len(errored) == len(chans):
-                reasons.append("Every channel returned no data: " + "; ".join(errored) + ".")
-                status = "red"
             elif not values:
-                reasons.append("Never read: no value for any of its channels is on record yet.")
+                if ms_state == "not_answered":
+                    reasons.append(f"Module {r['module']} answered none of its channels in "
+                                   f"{ms['src']} ({(ms.get('at') or '')[:16]}).")
+                if timed_out:
+                    reasons.append("Did not answer this time: " + "; ".join(timed_out)
+                                   + ". Run Check all sensors again.")
+                if no_data:
+                    reasons.append("The car gives no data for: " + "; ".join(no_data)
+                                   + ". CUORE cannot read this sensor that way.")
+                if not errored:
+                    reasons.append("Never read: no value for any of its channels is on record yet.")
             else:
                 status = "green"
-                if errored:
-                    reasons.append("Some channels returned no data: " + "; ".join(errored) + ".")
-                    status = "orange"
+                if no_data:
+                    reasons.append("The car gives no data for: " + "; ".join(no_data)
+                                   + " (not offered; other channels read).")
+                if timed_out:
+                    reasons.append("Did not answer this time: " + "; ".join(timed_out)
+                                   + " (other channels read).")
                 for v in values:
                     if v["in_range"] is False:
                         rg = v["range"]
@@ -542,6 +561,47 @@ def health(vin: str, now: Optional[datetime] = None) -> dict[str, Any]:
     checked_at = max((c.get("at") for c in checks if c.get("at")), default=None)
     return {"vin": vin, "checked_at": checked_at, "sensors": out_rows, "counts": counts,
             "unplaced": [r["id"] for r in out_rows if not r.get("zone")]}
+
+
+# --- every saved reading, for comparing checks -----------------------------------
+
+def _parts(value: Any) -> list[tuple[str, Any]]:
+    """A multi-part value ({"lambda": .., "current_mA": ..}) becomes one entry per part."""
+    if isinstance(value, dict):
+        return [(str(k), v) for k, v in value.items()]
+    return [("", value)]
+
+
+def readings(vin: str) -> dict[str, Any]:
+    """Every value and error from every saved sensor check, oldest check first.
+
+    {"checks": [at, ...], "rows": [{"at","sensor_ids","sensors","channel","part","name",
+    "unit","value","error"}, ...]} -- one row per channel part per check. Nothing is
+    judged here: this is the raw record a mechanic compares and exports.
+    """
+    meta = _channel_meta()
+    owners: dict[str, list[dict[str, Any]]] = {}
+    for r in _load_rows():
+        for ch in r.get("channels") or []:
+            owners.setdefault(ch, []).append(r)
+    checks = sorted((c for c in _read_jsonl(CHECKS_FILE)
+                     if not c.get("vin") or str(c["vin"]).upper() == vin.upper()),
+                    key=lambda c: c.get("at") or "")
+    rows: list[dict[str, Any]] = []
+    for c in checks:
+        at = c.get("at") or ""
+        items = [(ch, v, None) for ch, v in (c.get("values") or {}).items()]
+        items += [(ch, None, str(msg)) for ch, msg in (c.get("errors") or {}).items()]
+        for ch, v, err in items:
+            own = owners.get(ch, [])
+            base = {"at": at, "sensor_ids": [o["id"] for o in own], "sensors": [o.get("label") or o["id"] for o in own],
+                    "channel": ch, "name": meta.get(ch, {}).get("name", ch), "unit": meta.get(ch, {}).get("unit", "")}
+            if err is not None:
+                rows.append({**base, "part": "", "value": None, "error": err})
+                continue
+            for part, pv in _parts(v):
+                rows.append({**base, "part": part, "value": pv, "error": None})
+    return {"vin": vin, "checks": [c.get("at") or "" for c in checks], "rows": rows}
 
 
 # --- one read-only sweep --------------------------------------------------------
@@ -607,7 +667,8 @@ def check_all(vin: str, timeout_s: float = 30.0, poll_s: float = 0.5) -> dict[st
             answered.setdefault(r["module"], False)
     rec = {"at": at, "vin": vin, "values": values, "errors": errors, "modules_answered": answered}
     _append(CHECKS_FILE, rec)
-    return {"ok": True, "refused": False, **rec}
+    read = sum(1 for r in rows if any(ch in values for ch in r["channels"]))
+    return {"ok": True, "refused": False, **rec, "checked": len(rows), "read": read}
 
 
-__all__ = ["registry", "health", "add_range", "check_all"]
+__all__ = ["registry", "health", "readings", "add_range", "check_all"]

@@ -92,3 +92,10 @@
   .sens-dot .sens-num { display: none; }
   .sens-map { padding: 4px; }
 }
+
+/* readings comparison */
+.sens-readings-wrap { overflow-x: auto; }
+.sens-readings { border-collapse: collapse; font-size: .9rem; min-width: 100%; }
+.sens-readings th, .sens-readings td { border-bottom: 1px solid var(--line, #ddd); padding: .3rem .5rem; text-align: left; vertical-align: top; }
+.sens-readings td.err { color: var(--muted, #777); font-style: italic; }
+.sens-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }

@@ -112,10 +112,14 @@ def sensors_check(vin: str) -> RedirectResponse:
         else:
             text = f"Could not check sensors: {text}"
         return _back(vin, _short(text))
-    n = 0
-    if isinstance(result, dict):
-        n = result.get("checked", result.get("count", len(result.get("sensors") or [])))
-    return _back(vin, f"Checked {n} sensors")
+    if not isinstance(result, dict):
+        return _back(vin, "Checked sensors")
+    if result.get("refused"):
+        text = str(result.get("error") or "the adapter is busy").strip()
+        return _back(vin, _short(f"Could not check: {text}. Close MultiEcuScan (or wait for the adapter), "
+                                 "then try again."))
+    n, got = result.get("checked", 0), result.get("read", 0)
+    return _back(vin, f"Checked {n} sensors: {got} gave a value, {n - got} did not")
 
 
 @router.post("/v/{vin}/sensors/range", response_class=HTMLResponse)
@@ -139,3 +143,59 @@ async def sensors_range(request: Request, vin: str) -> RedirectResponse:
     except Exception as exc:  # noqa: BLE001
         return _back(vin, _short(f"Range not saved: {exc}"))
     return _back(vin, "Normal range saved")
+
+
+def _fmt(v: Any) -> str:
+    if v is None:
+        return ""
+    if isinstance(v, float):
+        return f"{v:.4g}"
+    return str(v)
+
+
+@router.get("/v/{vin}/sensors/readings", response_class=HTMLResponse)
+def sensors_readings(request: Request, vin: str, last: int = 8) -> HTMLResponse:
+    """Every saved reading side by side, one column per check, newest first."""
+    dossier = _dossier(vin)
+    data = _sensor_health().readings(vin)
+    last = max(1, min(int(last or 8), 50))
+    cols = list(reversed(data["checks"]))[:last]
+    table: dict[tuple[str, str], dict[str, Any]] = {}
+    for r in data["rows"]:
+        if r["at"] not in cols:
+            continue
+        key = (r["channel"], r["part"])
+        row = table.setdefault(key, {"channel": r["channel"], "part": r["part"], "name": r["name"],
+                                     "unit": r["unit"], "sensors": r["sensors"], "cells": {}})
+        row["cells"][r["at"]] = ({"text": _fmt(r["value"]), "num": r["value"]} if r["error"] is None
+                                 else {"text": r["error"], "err": True})
+    rows = sorted(table.values(), key=lambda x: (", ".join(x["sensors"]) or "zz", x["name"], x["part"]))
+    for row in rows:
+        a = row["cells"].get(cols[0]) if cols else None
+        b = row["cells"].get(cols[1]) if len(cols) > 1 else None
+        nums = [c.get("num") for c in (a, b) if c and not c.get("err")]
+        row["delta"] = (_fmt(nums[0] - nums[1]) if len(nums) == 2
+                        and all(isinstance(n, (int, float)) and not isinstance(n, bool) for n in nums) else "")
+    response = _page(request, "sensor_readings.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="sensors",
+                     cols=cols, rows=rows, total_checks=len(data["checks"]), last=last)
+    _set_active_vehicle(response, vin)
+    return response
+
+
+@router.get("/v/{vin}/sensors/readings.csv")
+def sensors_readings_csv(vin: str):
+    """Every saved reading, one line per channel part per check (long form, for a spreadsheet)."""
+    import csv
+    import io
+
+    from fastapi.responses import Response
+
+    data = _sensor_health().readings(vin)
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(["check_at", "sensor", "sensor_id", "channel", "part", "name", "value", "unit", "error"])
+    for r in data["rows"]:
+        w.writerow([r["at"], "; ".join(r["sensors"]), "; ".join(r["sensor_ids"]), r["channel"], r["part"],
+                    r["name"], "" if r["value"] is None else r["value"], r["unit"], r["error"] or ""])
+    return Response(buf.getvalue().encode("utf-8-sig"), media_type="text/csv",
+                    headers={"Content-Disposition": f'attachment; filename="sensor-readings-{vin}.csv"'})

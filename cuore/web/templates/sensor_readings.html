@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Sensor readings — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('sensors.css') }}">
+{% set base = "/v/" ~ vin ~ "/sensors" %}
+<div class="sens-page">
+<h1>Sensor readings</h1>
+<p class="lede">Every value CUORE saved from each "Check all sensors", one column per check, newest first, so checks can be compared. Raw values only: nothing here is judged.</p>
+<p class="sens-actions"><a class="btn" href="{{ base }}">Back to sensor health</a>
+  <a class="btn" href="{{ base }}/readings.csv">Download all readings (CSV)</a>
+  <span class="muted small">{{ total_checks }} check(s) saved{% if total_checks > cols|length %}, showing the last {{ cols|length }}{% endif %}</span></p>
+
+{% if not cols %}
+  <p class="panel muted">No sensor check saved yet. Run "Check all sensors" on the sensor health page.</p>
+{% else %}
+<div class="sens-readings-wrap">
+<table class="sens-readings">
+  <thead><tr><th>Sensor</th><th>Channel</th><th>Unit</th>
+    {% for at in cols %}<th>{{ at[:10] }}<br>{{ at[11:16] }}</th>{% endfor %}
+    {% if cols|length > 1 %}<th title="newest minus the check before it">Change</th>{% endif %}</tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr><td>{{ r.sensors|join(", ") or "—" }}</td>
+      <td>{{ r.name }}{% if r.part %} · {{ r.part }}{% endif %}<br><span class="muted small">{{ r.channel }}</span></td>
+      <td>{{ r.unit }}</td>
+      {% for at in cols %}{% set c = r.cells.get(at) %}
+        <td class="{{ 'err' if c and c.err }}">{% if c %}{{ c.text }}{% else %}<span class="muted">—</span>{% endif %}</td>
+      {% endfor %}
+      {% if cols|length > 1 %}<td>{{ r.delta }}</td>{% endif %}</tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+</div>
+{% endblock %}

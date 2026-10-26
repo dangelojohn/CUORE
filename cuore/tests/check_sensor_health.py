@@ -135,8 +135,8 @@ check(S["coolant_temp"]["codes"][0]["state"] == "superseded", "superseded state 
 check(S["oil_temp"]["status"] == "green", "cleared code does not colour")
 check(S["oil_pressure"]["status"] == "green" and S["oil_pressure"]["last_read"] == "2026-10-25T09:00:00",
       "green from sensor check value, last_read set")
-check(S["oil_level"]["status"] == "red" and any("no data" in r for r in S["oil_level"]["reasons"]),
-      "every channel failed -> red")
+check(S["oil_level"]["status"] == "grey" and any("Did not answer this time" in r for r in S["oil_level"]["reasons"]),
+      "every channel timed out -> grey, not red")
 check(S["gearbox_oil_temp"]["status"] == "red" and any("did not answer" in r for r in S["gearbox_oil_temp"]["reasons"]),
       "module not answering -> red")
 check(S["ac_pressure"]["status"] == "grey" and any("Never read" in r for r in S["ac_pressure"]["reasons"]),
@@ -157,8 +157,21 @@ write("sensor_checks.jsonl", jl({"at": "2026-10-25T09:00:00", "vin": VIN,
                                 {"at": "2026-10-25T09:05:00", "vin": VIN, "values": {"engine_coolant_temp": 90},
                                  "errors": {"ecm_1003": "timeout"}, "modules_answered": {"ECM": True}}))
 S = by_id(H())
-check(S["coolant_temp"]["status"] == "orange" and any("no data" in r for r in S["coolant_temp"]["reasons"]),
-      "one channel failed, other answered -> orange")
+check(S["coolant_temp"]["status"] == "green" and any("Did not answer this time" in r for r in S["coolant_temp"]["reasons"]),
+      "one channel timed out, other answered -> green with the failure listed")
+
+# "no data" = the car does not offer that channel: never a fault colour
+write("sensor_checks.jsonl", jl({"at": "2026-10-25T09:00:00", "vin": VIN,
+                                 "values": {"engine_coolant_temp": 90},
+                                 "errors": {"ecm_1003": "no data", "engine_oil_temp": "no data"},
+                                 "modules_answered": {"ECM": True, "TCM": False}}))
+S = by_id(H())
+check(S["coolant_temp"]["status"] == "green" and any("gives no data" in r for r in S["coolant_temp"]["reasons"]),
+      "no-data channel next to a read one -> green, listed")
+check(S["oil_temp"]["status"] == "grey" and any("gives no data" in r for r in S["oil_temp"]["reasons"]),
+      "only no-data channels -> grey")
+check(S["gearbox_oil_temp"]["status"] != "red" or any("last full scan" in r for r in S["gearbox_oil_temp"]["reasons"]),
+      "a sensor check with no answers never makes a module red by itself")
 
 # --- stale reads ---------------------------------------------------------------
 S = by_id(H(now=datetime(2026, 11, 20)))
@@ -271,6 +284,18 @@ check(rows[0]["values"] == {"engine_coolant_temp": 91} and "ecm_130a" in rows[0]
 check(rows[0]["modules_answered"].get("ECM") is True and rows[0]["modules_answered"].get("TCM") is False,
       "modules_answered from channel results")
 check(calls[0] == "start" and calls[-1] == "stop", "session started then released")
+check(res["checked"] > 0 and res["read"] == 1, "check_all reports sensors checked and how many gave a value")
+rd = sh.readings(VIN)
+check(rd["checks"] == [rows[0]["at"]], "readings lists each saved check")
+cool = [r for r in rd["rows"] if r["channel"] == "engine_coolant_temp"]
+check(len(cool) == 1 and cool[0]["value"] == 91 and "coolant_temp" in cool[0]["sensor_ids"] and cool[0]["error"] is None,
+      "readings row carries value and owning sensor")
+check(any(r["channel"] == "ecm_130a" and r["error"] == "no reply" for r in rd["rows"]), "readings keeps errors")
+write("sensor_checks.jsonl", jl({"at": "2026-10-25T09:00:00", "vin": VIN,
+                                 "values": {"o2_b1s1_wide_range": {"lambda": 0.99, "current_mA": 0.0}},
+                                 "errors": {}, "modules_answered": {"ECM": True}}))
+parts = {r["part"]: r["value"] for r in sh.readings(VIN)["rows"] if r["channel"] == "o2_b1s1_wide_range"}
+check(parts == {"lambda": 0.99, "current_mA": 0.0}, "multi-part value split into one row per part")
 check(not any(c.startswith("ecm_") and False for c in rows[0]["values"]) and
       all(ch in known for ch in list(rows[0]["values"]) + list(rows[0]["errors"])), "only registry channels")
 

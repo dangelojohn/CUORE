@@ -31,6 +31,8 @@
 
 <form class="sens-check" method="post" action="{{ base }}/check">
   <button type="submit" class="btn">Check all sensors (read-only)</button>
+  <a class="btn" href="{{ base }}/readings">All readings — compare checks</a>
+  <a class="btn" href="{{ base }}/readings.csv">Download readings (CSV)</a>
   <p class="note small muted">Last checked: <b>{{ checked_at or "never" }}</b>.
     Needs the car connected and ignition on, with MultiEcuScan closed. It never clears codes.
     Sensors on the CAN-CH bus need the grey cable.</p>
@@ -83,7 +85,7 @@
     {% if s['values'] %}
     <ul class="small">
       {% for v in s['values'] %}
-      <li><b>{{ v.label or v.channel }}</b>: {{ v.value }}{% if v.unit %} {{ v.unit }}{% endif %}
+      <li><b>{{ v.label or v.channel }}</b>: {% if v.value is mapping %}{% for k, x in v.value.items() %}{{ k }} {{ x }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}{{ v.value }}{% endif %}{% if v.unit %} {{ v.unit }}{% endif %}
         {% if v.range %}&mdash; normal {{ v.range.min }}&ndash;{{ v.range.max }} {{ v.range.unit or v.unit or "" }} ({{ v.range.source }})
           {% if v.in_range is sameas false %} <b>outside range</b>{% endif %}
         {% else %}&mdash; <span class="muted">no range yet</span>{% endif %}
