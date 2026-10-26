@@ -40,6 +40,15 @@
     <button type="button" id="lb-demo" class="lb-btn">Demo</button>
   </div>
 
+  {# Drive recording (cuore/services/recordings.py): samples this running
+     session's cache -- no extra bus traffic. Plain form, works with JS off;
+     refuses with a message if no live session is running. #}
+  <form class="lb-controls" id="lb-record-form" method="post" action="/v/{{ vin }}/recordings/start{% if request.query_params.get('token') %}?token={{ request.query_params.get('token') }}{% endif %}">
+    <input type="hidden" name="label" value="">
+    <button type="submit" class="lb-btn" id="lb-record">Record</button>
+    <a class="lb-btn" href="/v/{{ vin }}/recordings{% if request.query_params.get('token') %}?token={{ request.query_params.get('token') }}{% endif %}">Recordings</a>
+  </form>
+
   <div class="lb-snapshot-result" id="lb-snapshot-result" hidden></div>
 
   {# Freeze frame panel -- Start/Stop capture a Mode 03 + full freeze frame +

@@ -168,6 +168,24 @@ a.row .val{color:var(--ok)}
   font-size:12px;color:var(--ink-3);
 }
 .legend b{color:var(--ink-2)}
+
+/* ---------- recordings (light + dark): graphs of a recorded drive ---------- */
+.rec{--r-bg:var(--surface);--r-ink:var(--ink);--r-sub:var(--ink-2);--r-line:var(--accent);--r-line2:var(--cleared);--r-grid:var(--rule)}
+@media (prefers-color-scheme:light){
+  .rec{--r-bg:#fff;--r-ink:#14181b;--r-sub:#4a555c;--r-line:#b8323a;--r-line2:#2a5f8f;--r-grid:#d5dade}
+}
+.rec .callline{font-size:17px;font-weight:650;padding:12px 16px;color:var(--r-ink)}
+.rec .chart{background:var(--r-bg);border:1px solid var(--r-grid);border-radius:10px;margin:10px 12px;padding:8px 12px}
+.rec .chart h3{margin:0;font-size:16px;color:var(--r-ink)}
+.rec .chart svg{width:100%;height:96px;display:block}
+.rec .chart .a{fill:none;stroke:var(--r-line);stroke-width:2}
+.rec .chart .b{fill:none;stroke:var(--r-line2);stroke-width:2;stroke-dasharray:7 4}
+.rec .chart .g{stroke:var(--r-grid)}
+.rec .stats{font-family:var(--mono);font-size:16px;color:var(--r-sub)}
+.rec .axis{display:flex;justify-content:space-between;margin:0 12px;font:16px var(--mono);color:var(--r-sub)}
+.rec .btnrow{display:flex;gap:10px;padding:0 12px 12px}
+.rec .btn{min-height:var(--tap);min-width:var(--tap);padding:0 18px;font-size:16px;border-radius:10px;border:1px solid var(--r-grid);background:var(--r-bg);color:var(--r-ink)}
+.rec .btn.stop{border-color:var(--r-line);color:var(--r-line)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -328,6 +346,7 @@ S.root = {
         {label:"All codes",         val:"22",           to:"codes"},
         {label:"Already attempted", val:"17 operations",to:"attempted"},
         {label:"Logs",              val:"17",           to:"logs"},
+        {label:"Recordings",        val:"graphs &middot; CSV", to:"recordings"},
       ],
       foot: "Simulation logs excluded &mdash; 54 of 80 sessions in this install are MES practice data. SCAN provenance is reported as unverifiable, never clean." },
   ],
@@ -683,6 +702,30 @@ S.logs = {
       <tr><td class="m">2025-09-24 13:45</td><td>fes</td><td><span class="chip ok">real</span></td><td>IAW 10JA</td><td class="m">6</td></tr>
       </tbody></table></div>` },
     { foot:"Sorted by <b>session</b> time, not filename &mdash; a MES filename records when the file was closed, not when the session ran. Seven of seventeen shown." },
+  ]
+};
+
+S.recordings = {
+  title: "Recordings", back: "Stelvio",
+  call: `<section class="rec"><div class="callline">Recording: 12:31 elapsed, 6 channels</div>
+    <div class="btnrow"><button class="btn stop">Stop recording</button><button class="btn">Live board</button></div>
+    <div class="callline" style="font-weight:500;color:var(--r-sub)">Idle state reads: No live session - start one on the Live board</div></section>`,
+  groups:[
+    { html:`<section class="rec">
+      <div class="chart"><h3>Engine speed (rpm) <span style="font-weight:400">&middot; 40&ndash;60 km/h shudder test</span></h3>
+        <svg viewBox="0 0 720 96" preserveAspectRatio="none" role="img" aria-label="Engine speed over time">
+          <line class="g" x1="120" y1="0" x2="120" y2="96"/><line class="g" x1="360" y1="0" x2="360" y2="96"/><line class="g" x1="600" y1="0" x2="600" y2="96"/>
+          <path class="a" d="M0,70 L90,40 L180,52 L270,22 L360,48 L450,30 L540,58 L630,26 L720,44"/>
+          <path class="b" d="M0,74 L90,50 L180,58 L270,36 L360,52 L450,44 L540,60 L630,40 L720,50"/></svg>
+        <div class="stats">min 780 &middot; max 2410 &middot; avg 1530 rpm</div></div>
+      <div class="chart"><h3>Vehicle speed (km/h)</h3>
+        <svg viewBox="0 0 720 96" preserveAspectRatio="none" role="img" aria-label="Vehicle speed over time">
+          <path class="a" d="M0,90 L120,60 L240,34 L360,30 L480,40 L600,20 L720,50"/></svg>
+        <div class="stats">min 0 &middot; max 61 &middot; avg 38 km/h</div></div>
+      <div class="axis"><span>0:00</span><span>4:00</span><span>8:00</span><span>12:31</span></div>
+      <div class="btnrow" style="margin-top:12px"><button class="btn">Download CSV</button><button class="btn">Compare with&hellip;</button></div>
+    </section>` },
+    { foot:"Solid line = this drive, dashed = the compared drive, both from their own start time on one shared time axis. Every sample carries its own clock time (MES FES logs do not). Recording only reads the running live session; it never adds a request to the car. 44 px targets, 16 px minimum text, light and dark follow the device." },
   ]
 };
 

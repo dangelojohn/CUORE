@@ -75,6 +75,7 @@
   background: var(--raised); color: var(--ink); cursor: pointer; flex: 1 1 auto;
 }
 .lb-btn:hover { border-color: var(--ink-3); }
+a.lb-btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .lb-btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .lb-btn-primary:hover { filter: brightness(1.08); }
 .lb-btn-stop { background: var(--sev-returned); border-color: var(--sev-returned); color: #fff; }

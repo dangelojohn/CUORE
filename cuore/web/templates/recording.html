@@ -1,92 +1,53 @@
 {% extends "base.html" %}
-{% block title %}{{ name }} — Recording{% endblock %}
+{% block title %}{{ rec.label or rec.id }} — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
+<style>
+  .rg{width:100%;height:auto;display:block;background:var(--surface);border:1px solid var(--rule);border-radius:6px}
+  .rg-axis{border:0;background:none}
+  .rg-grid,.rg-tick{stroke:var(--rule);stroke-width:1}
+  .rg-lab{fill:var(--ink-3);font-size:16px;font-family:var(--mono)}
+  .rg-line{stroke-width:2;vector-effect:non-scaling-stroke}
+  .rg-a{stroke:var(--accent)}
+  .rg-b{stroke:var(--sev-cleared);stroke-dasharray:7 4}
+  .rc-chart{margin:0 0 12px}
+  .rc-chart h3{margin:0 0 4px;font-size:1.05rem}
+  .rc-stats{font-size:1rem}
+  .rc-key-a{border-bottom:3px solid var(--accent)}
+  .rc-key-b{border-bottom:3px dashed var(--sev-cleared)}
+  .rc-btn{min-height:44px;display:inline-flex;align-items:center;font-size:1rem}
+</style>
+<h1>{{ rec.label or rec.id }}</h1>
+<p class="rc-call">{{ rec.date }} &middot; {{ rec.dur }} &middot; {{ rec.channels|length }} channels &middot; {{ rec.n_rows }} samples at {{ rec.rate_hz }} Hz &middot; ended: {{ rec.end_reason }}</p>
+<p>
+  <a class="btn rc-btn" href="/v/{{ vin }}/recordings{{ tok }}">All recordings</a>
+  <a class="btn primary rc-btn" href="/v/{{ vin }}/recordings/{{ rec.id }}.csv{{ tok }}">Download CSV</a>
+</p>
+<form method="get" action="/v/{{ vin }}/recordings/{{ rec.id }}">
+  {% if tok %}<input type="hidden" name="token" value="{{ request.query_params.get('token') }}">{% endif %}
+  <label>Compare with
+    <select name="vs" style="min-height:44px;font-size:1rem">
+      <option value="">(none)</option>
+      {% for o in others %}<option value="{{ o.id }}"{% if other and other.id == o.id %} selected{% endif %}>{{ o.label or o.id }} - {{ o.date }}</option>{% endfor %}
+    </select></label>
+  <button class="btn rc-btn" type="submit">Compare</button>
+</form>
+{% if other %}
+<p class="rc-stats"><span class="rc-key-a">This: {{ rec.label or rec.id }} ({{ rec.dur }})</span> &nbsp;
+  <span class="rc-key-b">Compared (dashed): {{ other.label or other.id }} ({{ other.dur }})</span>
+  &mdash; both drawn from their own start time on the same axes.</p>
+{% endif %}
 
-<h1 class="mono">{{ name }}</h1>
-
-<div class="cols two">
-  <div class="panel">
-    <h3>Timing</h3>
-    <table>
-      {% for k, v in (data.timing or {}).items() %}
-        <tr><td class="k">{{ k|replace("_", " ") }}</td><td class="mono">{{ v }}</td></tr>
-      {% endfor %}
-    </table>
-    {% if data.timing and data.timing.dropouts %}
-      <div class="note warn" style="margin-top:10px">
-        <span class="lab">Dropouts</span>
-        Gaps over three times the median interval. That is an adapter or
-        ECU-link stall, and it is structurally invisible in a .txt session log.
-      </div>
-    {% endif %}
-  </div>
-  <div class="panel">
-    <h3>Columns</h3>
-    <div class="tw">
-    <table>
-      <thead><tr><th>Name</th><th>Unit</th></tr></thead>
-      <tbody>
-      {% for c in data.columns or [] %}
-        <tr><td>{{ c.name if c.name is defined else c }}</td>
-            <td class="mono small muted">{{ c.unit if c.unit is defined else "" }}</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-    </div>
+{% for c in charts %}
+<div class="rc-chart">
+  <h3>{{ c.channel }}{% if c.unit %} <span class="muted">({{ c.unit }})</span>{% endif %}{% if c.note %} <span class="small muted">{{ c.note }}</span>{% endif %}</h3>
+  {{ c.svg }}
+  <div class="rc-stats mono">
+    {% if c.a %}{% if other %}<span class="rc-key-a">this</span> {% endif %}min {{ "%.4g"|format(c.a.min) }} &middot; max {{ "%.4g"|format(c.a.max) }} &middot; avg {{ "%.4g"|format(c.a.avg) }} {{ c.unit }}{% else %}<span class="muted">no numeric samples</span>{% endif %}
+    {% if other and c.b %}<br><span class="rc-key-b">vs</span> min {{ "%.4g"|format(c.b.min) }} &middot; max {{ "%.4g"|format(c.b.max) }} &middot; avg {{ "%.4g"|format(c.b.avg) }} {{ c.unit }}{% endif %}
   </div>
 </div>
-
-<h2>Threshold analysis</h2>
-<form class="panel" method="get" action="/recording/{{ name }}"
-      style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
-  <div style="flex:1;min-width:240px">
-    <label for="condition">Condition</label>
-    <input id="condition" name="condition" type="text" value="{{ condition }}"
-           data-search placeholder="Engine speed &gt; 3000">
-    <div class="small muted">One event per excursion, not one per sample.</div>
-  </div>
-  <button class="btn primary" type="submit">Find excursions</button>
-</form>
-
-{% if events_error %}
-  <div class="note alert"><span class="lab">Could not evaluate</span>{{ events_error }}</div>
-{% endif %}
-
-{% if events %}
-  {% if events.tag_events %}
-  <h3>Markers</h3>
-  <div class="panel tight"><div class="tw">
-  <table>
-    <thead><tr><th class="n">t</th><th>Tag</th><th>DTCs</th></tr></thead>
-    <tbody>
-    {% for t in events.tag_events %}
-      <tr><td class="n">{{ t.t if t.t is defined else "—" }}</td>
-          <td>{{ t.text if t.text is defined else t }}</td>
-          <td class="mono small">{{ t.dtcs|join(", ") if t.dtcs else "—" }}</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  </div></div>
-  {% endif %}
-
-  {% if events.threshold %}
-  <h3>Excursions</h3>
-  <div class="panel"><pre class="mono small" style="overflow-x:auto">{{ events.threshold }}</pre></div>
-  {% endif %}
-{% endif %}
-
-<h2>Preview</h2>
-<div class="panel tight"><div class="tw">
-<table>
-  {% if data.preview %}
-    <thead><tr>{% for c in data.preview[0].keys() %}<th>{{ c }}</th>{% endfor %}</tr></thead>
-    <tbody>
-    {% for row in data.preview %}
-      <tr>{% for v in row.values() %}<td class="mono small">{{ v }}</td>{% endfor %}</tr>
-    {% endfor %}
-    </tbody>
-  {% endif %}
-</table>
-</div></div>
-
+{% endfor %}
+<div class="small muted">Time axis, minutes:seconds from the start of the recording (shared by every chart above)</div>
+{{ axis }}
 {% endblock %}

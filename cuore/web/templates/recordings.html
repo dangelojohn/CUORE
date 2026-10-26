@@ -1,49 +1,62 @@
 {% extends "base.html" %}
-{% block title %}Recordings — CUORE{% endblock %}
+{% block title %}Recordings — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
-
+<style>
+  .rc-call{font-size:1.1rem;font-weight:650;margin:0 0 10px}
+  .rc-btn{min-height:44px;min-width:44px;font-size:1rem;padding:8px 16px}
+  .rc-list a{min-height:44px;display:inline-flex;align-items:center}
+  .rc-ch{display:flex;flex-wrap:wrap;gap:6px 14px;margin:8px 0}
+  .rc-ch label{min-height:44px;display:inline-flex;align-items:center;gap:6px;font-size:1rem}
+  .rc-msg{font-size:1rem}
+</style>
 <h1>Recordings</h1>
-<p class="lede">CSV exports from MES's graph subsystem — the only MES output
-carrying real per-sample timestamps, and therefore the only place a measured
-rate, a dropout or a threshold excursion can be computed honestly.</p>
+{% set rec = state.recording %}
+<p class="rc-call" id="rc-call">
+{% if rec %}Recording: {{ fmt_dur(rec.elapsed_s) }} elapsed, {{ rec.channels|length }} channels
+{% elif state.live %}Live session running, {{ state.channels|length }} channels - not recording
+{% else %}{{ state.reason }}{% endif %}</p>
+{% if msg %}<p class="rc-msg note warn">{{ msg }}</p>{% endif %}
 
-{% if data.count %}
-<div class="panel tight">
-  <div class="tw">
-  <table>
-    <thead><tr><th>Name</th><th class="n">Rows</th><th class="n">Columns</th>
-               <th class="n">Duration</th><th>Modified</th></tr></thead>
-    <tbody>
-    {% for r in data.recordings %}
-      <tr class="row-link" data-href="/recording/{{ r.name }}" tabindex="0">
-        <td><a class="mono" href="/recording/{{ r.name }}">{{ r.name }}</a></td>
-        <td class="n">{{ r.rows if r.rows is not none else "—" }}</td>
-        <td class="n">{{ r.columns if r.columns is not none else "—" }}</td>
-        <td class="n">{{ r.duration_s if r.duration_s is not none else "—" }}</td>
-        <td class="mono small muted">{{ r.modified or "—" }}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  </div>
-</div>
-{% else %}
-<div class="note warn">
-  <span class="lab">No recordings yet</span>
-  {{ data.note }}
-</div>
-<div class="note">
-  <span class="lab">Why this matters</span>
-  The <span class="mono">.txt</span> session log has no per-sample timestamps
-  at all — parameter order is file order and the sample rate is unrecoverable.
-  The CSV path is the one that can answer “what was happening in the two
-  seconds before it faulted”, and it has never been used on this install.
-</div>
-{% endif %}
-
-<h2>Roots</h2>
 <div class="panel">
-  {% for r in data.roots %}<div class="mono small">{{ r }}</div>{% endfor %}
+{% if rec %}
+  <form method="post" action="/v/{{ vin }}/recordings/stop{{ tok }}">
+    <button class="btn primary rc-btn" type="submit">Stop recording</button>
+    <span class="small">Samples the live session {{ rate }} times a second; it adds no bus traffic of its own.</span>
+  </form>
+{% elif state.live %}
+  <form method="post" action="/v/{{ vin }}/recordings/start{{ tok }}">
+    <label>Label <input name="label" type="text" maxlength="80" placeholder="e.g. EVAP proof drive"></label>
+    <div class="rc-ch" role="group" aria-label="Channels to record">
+      {% for c in state.channels %}<label><input type="checkbox" name="channels" value="{{ c }}" checked> {{ c }}</label>{% endfor %}
+    </div>
+    <button class="btn primary rc-btn" type="submit">Start recording</button>
+    <span class="small">Reads only what the running live session already collects. Stops by itself when the session stops, or after 60 minutes.</span>
+  </form>
+{% else %}
+  <p>{{ state.reason }}. A recording can only follow a running live session.</p>
+  <a class="btn primary rc-btn" href="/v/{{ vin }}/liveboard">Open the Live board</a>
+{% endif %}
 </div>
 
+<h2>Saved recordings</h2>
+{% if rows %}
+<div class="tw"><table class="rc-list">
+  <thead><tr><th>Label</th><th>Date</th><th>Duration</th><th>Channels</th><th>Ended</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+    <tr>
+      <td><a href="/v/{{ vin }}/recordings/{{ r.id }}{{ tok }}">{{ r.label or r.id }}</a></td>
+      <td class="mono">{{ r.date }}</td>
+      <td class="mono">{{ r.dur }}</td>
+      <td>{{ r.channels|length }}: <span class="small">{{ r.channels|join(", ") }}</span></td>
+      <td class="small">{{ r.end_reason }}</td>
+      <td><a href="/v/{{ vin }}/recordings/{{ r.id }}.csv{{ tok }}">CSV</a></td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% else %}
+<p class="muted">No recordings yet. Start a live session, then press Record before the drive.</p>
+{% endif %}
 {% endblock %}

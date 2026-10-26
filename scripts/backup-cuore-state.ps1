@@ -79,6 +79,8 @@ if (-not $SkipCarState) {
         $todayEntries += [pscustomobject]@{ Name = $_.Name; Action = $action; Lines = $null; Size = $_.Length }
     }
 
+    # recordings/ is walked recursively: this covers the flat MES-format CSVs and the per-VIN
+    # drive recordings (recordings/<VIN>/<id>.jsonl, cuore/services/recordings.py). Unchanged by -SkipSessionSweep.
     foreach ($sub in @('scans', 'recordings', 'bench', 'live_layouts', 'media')) {
         $subDir = Join-Path $StateDir $sub
         if (-not (Test-Path -LiteralPath $subDir)) { continue }
