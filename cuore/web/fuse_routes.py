@@ -1,8 +1,8 @@
 """``GET /v/{vin}/fuses``: a find-the-fuse page for a busy workshop.
 
-Order: one-line call + status filters, "Which box?" picker, ONE car picture
-(Side / Top) with one marker per box, then one section per box (real photos,
-catalogue diagram, slot line-art, fuse rows), then collapsed technician panels.
+Order: search, heading, the call (every fuse / ground name links to its row), search results, "Go to" chips,
+"For this job" cards (ranked, merged), "Which box?" picker + status chips + ONE car picture (Side / Top), one section per
+box (where -> slot drawing -> fuse rows -> photos), grounds, then collapsed panels.
 
 Data: :mod:`cuore.services.fuse_health` (lazy import). Reading the page never
 contacts the car. Checks, added rows, added boxes and photos are plain POSTs
@@ -62,6 +62,19 @@ def plain(text: Any) -> str:
     return re.sub(r"\bPDM\b", "power distribution module", t)
 
 
+def ps(text: Any) -> str:
+    """Plain words for a source string: no URLs, repo paths, file names or raw HTTP phrases in visible text."""
+    t = plain(text)
+    t = re.sub(r"https?://([^\s/)]+)[^\s)]*", r"\1", t)
+    t = re.sub(r"\b((?:[a-z0-9-]+\.)+(?:com|info|net|org|ca))/[^\s),;']*", r"\1", t)
+    t = re.sub(r"\bpage itself returned 403\b", "the page itself could not be opened", t)
+    t = re.sub(r"\bpage returned 403\b", "the page could not be opened", t)
+    t = re.sub(r"\b(?:cuore\s+)?(?:[A-Za-z]:)?[\w./\\-]*[\w-]+\.(?:md|json|jsonl|py|html|csv)\b", "CUORE's own notes", t)
+    t = re.sub(r"\b(?:docs|mes-log-mcp|cuore)/[\w./-]+", "CUORE's own notes", t)
+    t = re.sub(r"(CUORE's own notes)(\s+(?:section|element)\s+[\w-]+)?(\s+CUORE's own notes)+", r"\1", t)
+    return re.sub(r"\s{2,}", " ", t).strip()
+
+
 def photo_key(kind: str, type_text: str) -> str:
     """The component_image_keys.json key for a fuse / relay type as printed on the row; "" when not mapped."""
     t = re.sub(r"[^a-z]+", " ", str(type_text or "").lower()).strip()
@@ -104,7 +117,7 @@ def _how_sure(b: dict[str, Any]) -> str:
     conf = b.get("location_confidence") or "UNKNOWN"
     src = str(b.get("source") or "").lower()
     if b.get("added_by_technician"):
-        return "added by a technician, from a source (not checked by CUORE)"
+        return "from a source named by the owner, not checked by CUORE"
     if "third-party" in src:
         return "from a third-party diagram, not checked on this car"
     if conf == "INFERRED":
@@ -117,7 +130,8 @@ def _worst(sts: list[str]) -> str:
     return "red" if "red" in s else "orange" if "orange" in s else "green" if s == {"green"} else "grey"
 
 
-def build_context(vin: str, data: dict[str, Any], status_f: str, box_f: str) -> dict[str, Any]:
+def build_context(vin: str, data: dict[str, Any], status_f: str, box_f: str,
+                  job_ids: Any = (), open_ids: Any = ()) -> dict[str, Any]:
     svc = _svc()
     boxes = list(data.get("boxes") or [])
     items = [dict(i) for i in data.get("items") or []]
@@ -130,26 +144,29 @@ def build_context(vin: str, data: dict[str, Any], status_f: str, box_f: str) -> 
         st = i.get("status") if i.get("status") in STATUS_LABEL else "grey"
         sp = i.get("spec") or {}
         i.update(status=st, status_word=STATUS_LABEL[st], anchor=_anchor(i["id"]), name=_item_name(i),
+                 job=i["id"] in job_ids, is_open=i["id"] in open_ids,
+                 missing=[w for w, have in (("rating", i.get("rating_a")), ("type", sp.get("type") or sp.get("relay_type")),
+                                            ("colour", sp.get("colour")), ("voltage", sp.get("voltage_v"))) if not have],
                  photo=_catalogue_photo(photo_key(i.get("kind") or "", sp.get("type") or sp.get("relay_type") or ""), cache))
     secs: list[dict[str, Any]] = []
     for b in boxes:
         rows = [i for i in items if i.get("box") == b["id"]]
         st = _worst([r["status"] for r in rows])
-        secs.append(_section(vin, svc, b, rows, st, status_f))
+        secs.append(_section(vin, svc, b, rows, st, status_f, job_ids=job_ids))
     nobox = [i for i in items if not i.get("box")]
     if nobox:
         secs.append(_section(vin, svc, {"id": "none", "label": "Box not stated by the source", "short": "No box stated",
                                         "source": "These rows come from a source that names the fuse or relay but not "
                                                   "which box it is in.", "location_confidence": "UNKNOWN",
                                         "full_list_sourced": False}, nobox, _worst([r["status"] for r in nobox]),
-                             status_f, mapped=False))
+                             status_f, mapped=False, job_ids=job_ids))
     if box_f:
         secs = [x for x in secs if x["id"] == box_f]
     return {"secs": secs, "counts": counts, "total": len(items)}
 
 
 def _section(vin: str, svc: Any, b: dict[str, Any], rows: list[dict[str, Any]], st: str, status_f: str,
-             mapped: bool = True) -> dict[str, Any]:
+             mapped: bool = True, job_ids: Any = ()) -> dict[str, Any]:
     from . import fuse_map_svg as fm
     photos, diagrams = [], []
     if b["id"] != "none":
@@ -158,11 +175,14 @@ def _section(vin: str, svc: Any, b: dict[str, Any], rows: list[dict[str, Any]], 
             diagrams = svc.box_diagrams(b)
         except Exception:  # noqa: BLE001
             diagrams = []
-    slots, from_layout = fm.slot_svg(rows, plain(b.get("short") or b.get("label")))
+    slots, from_layout = fm.slot_svg(rows, plain(b.get("short") or b.get("label")), job_ids=set(job_ids))
+    gap_words = [w for w, key in (("ratings", "rating_a"), ("colours", "colour"), ("voltages", "voltage_v"))
+                 if any(not ((r.get("spec") or {}).get(key) if key != "rating_a" else r.get(key)) for r in rows)]
     shown = [r for r in rows if not status_f or r["status"] == status_f]
     n = len(rows)
     return {**b, "short": plain(b.get("short") or b.get("label")), "label_plain": plain(b.get("label")),
-            "where_plain": plain(b.get("where") or ""), "pick_where": b.get("pick_where") or "", "source_plain": plain(b.get("source")), "status": st,
+            "where_plain": plain(b.get("where") or ""), "pick_where": b.get("pick_where") or "", "source_plain": ps(b.get("source")), "status": st, "gap_words": gap_words,
+            "has_job": any(r.get("job") for r in rows),
             "status_word": STATUS_LABEL[st], "count": n, "rows": shown, "how_sure": _how_sure(b),
             "list_word": "the full list is sourced" if b.get("full_list_sourced") else "the full list is not sourced yet",
             "photos": photos, "diagrams": diagrams, "slots": slots, "slots_from_layout": from_layout,
@@ -184,7 +204,8 @@ def _directing(vin: str, dossier: dict[str, Any], data: dict[str, Any]) -> tuple
         syms, ctext = fd.job_inputs(vin, codes, dossier)
         d = fd.direct(data.get("items") or [], data.get("boxes") or [], syms, codes, ctext, electrical_bridge.path_for_code)
     except Exception:  # noqa: BLE001
-        d = {"call": "", "more": [], "matches": [], "ground_ids": [], "codes": []}
+        d = {"call": "", "call_segs": [], "call_targets": [], "call_items": [], "call_box": "", "more": [], "groups": [],
+             "matches": [], "ground_ids": [], "codes": []}
     return d, grounds
 
 
@@ -194,6 +215,52 @@ def ctx_items(data: dict[str, Any]) -> list[dict[str, Any]]:
         i = dict(i)
         i["status"] = i.get("status") if i.get("status") in STATUS_LABEL else "grey"
         out.append(i)
+    return out
+
+
+def _cards(vin: str, matches: list[dict[str, Any]], by_id: dict[str, Any]) -> list[dict[str, Any]]:
+    """Ranked job cards: matches merged per (rank, box, circuit) so F47 + F48 become one card."""
+    cards: dict[tuple, dict[str, Any]] = {}
+    for m in matches:
+        it = by_id.get(m["id"], m["item"])
+        sp = it.get("spec") or {}
+        circuit = _item_name(it)
+        key = (m["rank"], m["box_id"], circuit)
+        c = cards.setdefault(key, {"rank": m["rank"], "refs": [], "circuit": circuit, "box": m["box"], "where": m["where"],
+                                   "box_id": m["box_id"], "kinds": [], "ratings": [], "types": [], "colours": [],
+                                   "statuses": [], "sym": False, "codes": [], "paths": []})
+        c["refs"].append({"ref": m["ref"], "anchor": _anchor(it["id"])})
+        c["kinds"].append(it.get("kind") or "fuse")
+        for lst, v in ((c["ratings"], it.get("rating_a")), (c["types"], sp.get("type") or ""),
+                       (c["colours"], sp.get("colour") or "")):
+            if v and v not in lst:
+                lst.append(v)
+        c["statuses"].append(it.get("status", "grey"))
+        for w in m["name_whys"]:
+            if w.startswith("matches the symptom"):
+                c["sym"] = True
+            else:
+                mm = re.match(r"matches (\S+)", w)
+                if mm and mm.group(1) not in c["codes"]:
+                    c["codes"].append(mm.group(1))
+        for code in m["path_codes"]:
+            if code not in c["paths"]:
+                c["paths"].append(code)
+    out = []
+    for c in cards.values():
+        refs = [r["ref"] for r in c["refs"]]
+        circ = c["circuit"]
+        show_circ = circ and len(circ) <= 40 and not any(circ.lower() in r.lower() or r.lower() in circ.lower() for r in refs)
+        basis = ""
+        if c["sym"] or c["codes"]:
+            basis = "Matches " + " and ".join((["the open symptom"] if c["sym"] else []) + c["codes"])
+        n = len(c["paths"])
+        out.append({**c, "title": " / ".join(refs) + (" " + circ if show_circ else ""),
+                    "kind": "relay" if set(c["kinds"]) == {"relay"} else "fuse",
+                    "status": _worst(c["statuses"]), "basis": basis,
+                    "path_line": f"On the path for {n} code{'s' if n != 1 else ''}" if n else "",
+                    "rating_txt": " / ".join(f"{x:g} A" for x in c["ratings"]),
+                    "type_txt": " / ".join(c["types"]), "colour_txt": c["colours"][0] if len(c["colours"]) == 1 else ""})
     return out
 
 
@@ -210,25 +277,19 @@ def _page_ctx(vin: str, status: str, box: str, q: str) -> dict[str, Any]:
     status_f = status.strip().lower() if status.strip().lower() in STATUSES else ""
     box_ids = {b["id"] for b in data.get("boxes") or []}
     box_f = box.strip() if box.strip() in box_ids or box.strip() == "none" else ""
-    ctx = build_context(vin, data, status_f, box_f)
-    secs, counts, total = ctx["secs"], ctx["counts"], ctx["total"]
     direction, grounds = _directing(vin, dossier, data)
+    job_ids = {m["id"] for m in direction["matches"] if m["rank"] < 2} | set(direction["call_items"])
+    ctx = build_context(vin, data, status_f, box_f, job_ids=job_ids, open_ids=set(direction["call_items"]))
+    secs, counts, total = ctx["secs"], ctx["counts"], ctx["total"]
     by_id = {it["id"]: it for it in ctx_items(data)}
-    matches = []
-    for m in direction["matches"]:
-        it = by_id.get(m["id"], m["item"])
-        sp = it.get("spec") or {}
-        matches.append({**m, "anchor": _anchor(it["id"]), "rating": it.get("rating_a"), "type": sp.get("type") or "",
-                        "colour": sp.get("colour") or "", "colour_derived": sp.get("colour_derived"), "kind": it.get("kind"),
-                        "circuit": _item_name(it), "status": it.get("status", "grey")})
     for g in grounds:
         g["photo"] = _catalogue_photo("battery_negative_strap", {}) if g["id"] == "battery_neg_strap" else None
+        g["source_txt"], g["outside_txt"] = ps(g.get("source")), ps(g.get("outside"))
     gmap = {g["id"]: g for g in grounds}
     job_grounds = [gmap[i] for i in direction["ground_ids"] if i in gmap]
-    if direction["call"]:
-        call = direction["call"]
-    else:
-        call = f"{total} fuses and relays, {len(data.get('boxes') or [])} boxes. Pick a box."
+    cards = _cards(vin, direction["matches"], by_id)
+    top_cards = [c for c in cards if c["rank"] < 2] or [c for c in cards if c["rank"] == 2]
+    also_cards = [c for c in cards if c not in top_cards]
     q = q.strip()[:80]
     results = fd.search(q, ctx_items(data), data.get("boxes") or [], grounds, status_f, box_f) if q else []
     for r in results:
@@ -238,14 +299,17 @@ def _page_ctx(vin: str, status: str, box: str, q: str) -> dict[str, Any]:
         return f"/v/{vin}/fuses" + (f"?status={st}" if st else "") + "#fuse-chips"
 
     chip_href = {k: href("" if status_f == k else k) for k in STATUSES}
-    mapped = [s for s in secs if s.get("mapped", True) and s["id"] != "none"]
+    boxed = [s for s in secs if s["id"] != "none"]
+    nobox = next((s for s in secs if s["id"] == "none"), None)
+    mapped = [s for s in boxed if s.get("mapped", True)]
     short = {"g003a": "G003A", "g003b": "G003B", "esim_ground": "ESIM gnd", "battery_neg_strap": "Batt. strap"}
+    call_side = next((b.get("side") for b in data.get("boxes") or [] if b["id"] == direction["call_box"]), None)
     svg = fm.box_map([{"id": s["id"], "short": s["short"], "side": s.get("side"), "zone": s.get("zone"),
                        "area": s.get("area"), "status": s["status"], "status_word": s["status_word"],
                        "count": s["count"], "location_confidence": s.get("location_confidence")}
                       for s in mapped],
-                     [{"id": g["id"], "name": g["name"], "short": short.get(g["id"], g["name"])} for g in grounds]
-                     ) if mapped else ""
+                     [{"id": g["id"], "name": g["name"], "short": short.get(g["id"], g["name"])} for g in grounds],
+                     default_view="top" if call_side == "right" else "side") if mapped else ""
     try:
         parts = _svc().catalogue_parts()
     except Exception:  # noqa: BLE001
@@ -253,12 +317,37 @@ def _page_ctx(vin: str, status: str, box: str, q: str) -> dict[str, Any]:
     skip = ("full fuse list not sourced", "not on the drawing")
     gaps = [g for g in data.get("gaps") or [] if not any(k in g for k in skip)]
     gaps.insert(0, "No box has its full fuse list from a source yet; each box section says how many rows are listed.")
-    return dict(vin=vin, bar=_vehicle_bar(vin, dossier), tab="fuses", svg=svg, call=call, call_more=direction["more"],
-                job_matches=matches, job_grounds=job_grounds, grounds=grounds, q=q, results=results,
-                secs=secs, counts=counts, total=total, status_f=status_f, box_f=box_f, chip_href=chip_href,
+    if direction["call_segs"]:
+        call_segs = direction["call_segs"]
+    else:
+        call_segs = [{"text": f"{total} fuses and relays, {len(data.get('boxes') or [])} boxes. Pick a box.", "href": ""}]
+    why = {"match_lines": [{"refs": " / ".join(r["ref"] for r in c["refs"]), "via": m_via,
+                            "lines": [plain(w) for w in lines]}
+                           for c, m_via, lines in _why_rows(cards, direction["matches"])],
+           "groups": [{"n": g["n"], "codes": ", ".join(g["codes"]), "names": ", ".join(g["names"])}
+                      for g in direction["groups"]],
+           "has_name": any(m["via"] == fd.BY_NAME for m in direction["matches"]),
+           "has_path": any(m["via"] == fd.BY_PATH for m in direction["matches"]) or bool(direction["groups"])}
+    return dict(vin=vin, bar=_vehicle_bar(vin, dossier), tab="fuses", svg=svg, call=direction["call"] or "".join(x["text"] for x in call_segs),
+                call_segs=call_segs, go_chips=direction["call_targets"], why=why,
+                cards=top_cards, also_cards=also_cards, job_grounds=job_grounds, grounds=grounds, q=q, results=results,
+                results_shown=results[:10], no_match_hint=fd.SEARCH_HINT,
+                secs=boxed, nobox=nobox, counts=counts, total=total, status_f=status_f, box_f=box_f, chip_href=chip_href,
                 base=f"/v/{vin}/fuses", gaps=[plain(g) for g in gaps], status_label=STATUS_LABEL,
                 status_mark=STATUS_MARK, parts=parts, colour_class=fm.colour_class, anchor=_anchor, error=error, plain=plain,
-                checked_at=data.get("checked_at"), tested_label=_tested_label)
+                ps=ps, checked_at=data.get("checked_at"), tested_label=_tested_label,
+                ground_where_gap=any(not g.get("where_known") for g in grounds))
+
+
+def _why_rows(cards: list[dict[str, Any]], matches: list[dict[str, Any]]):
+    """(card, via, lines) for the Why disclosure: what linked each card, in full words."""
+    by_ref = {m["ref"]: m for m in matches}
+    for c in cards:
+        m = by_ref.get(c["refs"][0]["ref"])
+        if not m:
+            continue
+        if m["name_whys"]:   # path-only links are summarised once, grouped by code, in "groups"
+            yield c, m["via"], list(m["name_whys"])
 
 
 def _tested_label(kind: str) -> tuple[str, str]:

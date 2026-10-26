@@ -17,7 +17,10 @@ BY_NAME = "linked by circuit name"
 BY_PATH = "linked by CUORE's electrical path"
 GROUND_IDS = ("g003a", "g003b", "esim_ground", "battery_neg_strap")
 STRAP_PN_NAME = ("ground strap", "battery negative")
-TEST_DOC = "docs/maintenance/GROUND_VOLTAGE_DROP_TEST.md"
+TEST_DOC = "docs/maintenance/GROUND_VOLTAGE_DROP_TEST.md"   # read only to know whether the written procedure exists
+TEST_LINE = "Voltage drop to battery negative under load; clean to bare metal."
+ACCESS_CUE = re.compile(r"\b(cover|under|behind|panel|footwell|glove|lid|trim|flap|beneath)\b", re.I)
+PRETTY = {"g003a": "G003A", "g003b": "G003B", "esim_ground": "ESIM ground", "battery_neg_strap": "Battery strap"}
 OWNER_NOTE_ID = "85bf07ba0829"
 OUTSIDE_REPORT = ("Related outside report (not a reading): NHTSA ODI 11664142, a 2018 Stelvio with warning lamps "
                   "traced to a corroded, broken starter ground wire.")
@@ -62,21 +65,41 @@ def _ref(it: dict[str, Any]) -> str:
     return it.get("position") or it.get("label") or it.get("id")
 
 
+def anchor(item_id: Any) -> str:
+    return "".join(c if c.isalnum() or c in "-_" else "-" for c in str(item_id))
+
+
+def reach_clause(box: dict[str, Any]) -> str:
+    """How to get at a box, from its own sourced ``where`` text; "access not sourced" when that text has no access cue."""
+    w = re.sub(r"\s+", " ", str(box.get("where") or "")).strip()
+    if w and ACCESS_CUE.search(w):
+        w = re.sub(r"\s*\((?:third-party|unverified)[^)]*\)\s*\.?$", "", w).rstrip(". ")
+        return "Reach it: " + w[:1].lower() + w[1:] + "."
+    return "Access to the box is not sourced."
+
+
 def direct(items: list[dict[str, Any]], boxes: list[dict[str, Any]], symptoms: list[dict[str, Any]],
            codes: list[str], code_text: dict[str, str], path_for_code: Callable[[str], dict[str, Any]]) -> dict[str, Any]:
-    """``symptoms``: newest first, each ``{text, at}``. Returns ``call`` (one line), ``more`` (lines),
-    ``matches`` (fuse/relay cards), ``ground_ids`` and ``codes``."""
+    """``symptoms``: newest first, each ``{text, at}``. Returns ``call`` (one line of text), ``call_segs`` (the same
+    line as ``{text, href}`` pieces so every fuse / ground name links to its row), ``call_targets`` (go-to chips),
+    ``call_items`` / ``call_box``, ``more`` (plain lines), ``groups`` (codes grouped by the same path),
+    ``matches`` (ranked fuse/relay cards: rank 0 = in the call, 1 = other circuit-name match, 2 = path only),
+    ``ground_ids`` and ``codes``."""
     bx = {b["id"]: b for b in boxes}
     hits: dict[str, dict[str, Any]] = {}
     ground_ids: list[str] = []
     primary: Optional[dict[str, Any]] = None
 
-    def add(it: dict[str, Any], why: str, via: str) -> None:
-        h = hits.setdefault(it["id"], {"item": it, "whys": [], "via": via})
+    def add(it: dict[str, Any], why: str, via: str, code: str = "") -> None:
+        h = hits.setdefault(it["id"], {"item": it, "whys": [], "via": via, "name_whys": [], "path_codes": []})
         if why not in h["whys"]:
             h["whys"].append(why)
         if via == BY_NAME:
             h["via"] = BY_NAME
+            if why not in h["name_whys"]:
+                h["name_whys"].append(why)
+        elif code and code not in h["path_codes"]:
+            h["path_codes"].append(code)
 
     for s in symptoms:
         found = []
@@ -86,7 +109,7 @@ def direct(items: list[dict[str, Any]], boxes: list[dict[str, Any]], symptoms: l
             add(it, f"matches the symptom \"{_short(s.get('text', ''))}\"", BY_NAME)
         if found and primary is None:
             primary = {"what": _short(s.get("text", "")), "items": found}
-    seen_code: dict[tuple, list[str]] = {}
+    seen_code: dict[tuple, dict[str, Any]] = {}
     for c in codes:
         found = []
         for phrase, pred in _rules(code_text.get(c, "")):
@@ -100,44 +123,76 @@ def direct(items: list[dict[str, Any]], boxes: list[dict[str, Any]], symptoms: l
         except Exception:  # noqa: BLE001
             path = []
         elems = {p["element"]: p for p in path}
-        names = []
+        names: list[tuple[str, str, str]] = []   # (label, href, fuse id or "")
         for it in items:
             if it["id"] in elems or set(it.get("feeds_elements") or []) & set(elems):
                 shared = sorted(set(it.get("feeds_elements") or []) & set(elems))
                 add(it, f"on CUORE's electrical path for {c} (" + (elems[it["id"]]["role"] if it["id"] in elems
-                    else "feeds " + ", ".join(shared)) + ")", BY_PATH)
-                names.append(_ref(it))
+                    else "feeds " + ", ".join(shared)) + ")", BY_PATH, c)
+                names.append((_ref(it), "#fuse-" + anchor(it["id"]), it["id"]))
         for e, p in elems.items():
             if p.get("role") == "ground" and e in GROUND_IDS:
                 if e not in ground_ids:
                     ground_ids.append(e)
-                names.append(e)
+                names.append((PRETTY.get(e, e), "#ground-" + e, ""))
         if names:
-            seen_code.setdefault(tuple(dict.fromkeys(names)), []).append(c)
-    pretty = {"g003a": "G003A", "g003b": "G003B", "esim_ground": "ESIM ground"}
-    more = [f"{', '.join(cs)}: check " + ", ".join(pretty.get(n, n) for n in ns) + " (CUORE's electrical path)"
-            for ns, cs in seen_code.items()]
+            key = tuple(dict.fromkeys(n[0] for n in names))
+            g = seen_code.setdefault(key, {"codes": [], "targets": []})
+            g["codes"].append(c)
+            for n in names:
+                if n not in g["targets"]:
+                    g["targets"].append(n)
+    groups = [{"n": len(g["codes"]), "codes": g["codes"], "targets": g["targets"], "names": list(k)}
+              for k, g in seen_code.items()]
+    more = [f"{', '.join(g['codes'])}: check " + ", ".join(g["names"]) + " (CUORE's electrical path)" for g in groups]
+    call_ids = {it["id"] for it in (primary or {}).get("items", [])}
     matches = []
     for h in hits.values():
         it = h["item"]
         b = bx.get(it.get("box")) or {}
+        rank = 0 if it["id"] in call_ids else 1 if h["via"] == BY_NAME else 2
         matches.append({"item": it, "id": it["id"], "ref": _ref(it), "box_id": it.get("box") or "none",
                         "box": b.get("short") or "box not stated", "where": b.get("pick_where") or "",
-                        "why": h["whys"], "via": h["via"]})
-    matches.sort(key=lambda m: (m["via"] != BY_NAME, m["box_id"], m["ref"]))
-    call = ""
+                        "why": h["whys"], "via": h["via"], "name_whys": h["name_whys"], "path_codes": h["path_codes"],
+                        "rank": rank})
+    matches.sort(key=lambda m: (m["rank"], m["box_id"], m["ref"]))
+    segs: list[dict[str, str]] = []
+    targets: list[dict[str, str]] = []
+    call_items: list[str] = []
+    call_box = ""
     if primary:
-        its = primary["items"]
-        refs = [_ref(i) for i in its]
+        its = list({i["id"]: i for i in primary["items"]}.values())
         circuit = _circuit(its[0].get("label", ""))
         b = bx.get(its[0].get("box")) or {}
+        call_box = b.get("id") or ""
+        segs.append({"text": f"{primary['what']}: check ", "href": ""})
+        for k, i in enumerate(its):
+            segs.append({"text": " and " if k else "", "href": ""})
+            segs.append({"text": _ref(i), "href": "#fuse-" + anchor(i["id"])})
         loc = (f" in the {b['short']} box ({b['pick_where']})" if b.get("short") and b.get("pick_where")
                else f" in the {b['short']} box" if b.get("short") else "")
-        call = f"{primary['what']}: check {' and '.join(dict.fromkeys(refs))} ({circuit}){loc}."
-    elif more:
-        call = "Open codes point at " + more[0].split(": check ", 1)[1].replace(" (CUORE's electrical path)", "") + "."
+        segs.append({"text": f" ({circuit}){loc}.", "href": ""})
+        if b:
+            segs.append({"text": " " + reach_clause(b), "href": ""})
+            targets.append({"kind": "box", "text": f"{b['short']} box", "href": "#fuse-box-" + b["id"]})
+        for i in its:
+            targets.append({"kind": "fuse", "text": _ref(i), "href": "#fuse-" + anchor(i["id"])})
+            call_items.append(i["id"])
+    elif groups:
+        g = groups[0]
+        segs.append({"text": "Open codes point at ", "href": ""})
+        for k, (label, href, _id) in enumerate(g["targets"]):
+            segs.append({"text": ", " if k else "", "href": ""})
+            segs.append({"text": label, "href": href})
+        segs.append({"text": ".", "href": ""})
+        for label, href, iid in g["targets"]:
+            targets.append({"kind": "ground" if iid == "" else "fuse", "text": label, "href": href})
+            if iid:
+                call_items.append(iid)
         more = more[1:]
-    return {"call": call, "more": more, "matches": matches, "ground_ids": ground_ids, "codes": codes}
+    call = "".join(x["text"] for x in segs)
+    return {"call": call, "call_segs": segs, "call_targets": targets, "call_items": call_items, "call_box": call_box,
+            "more": more, "groups": groups, "matches": matches, "ground_ids": ground_ids, "codes": codes}
 
 
 # --- real-state loaders ------------------------------------------------------
@@ -237,8 +292,7 @@ def grounds(vin: str, repo_root: Path) -> list[dict[str, Any]]:
         return " > ".join(lab.get(i, i) for i in ids)
 
     test_exists = (repo_root / TEST_DOC).is_file()
-    test = ("Voltage drop between the ground point and the battery-negative post, under load" +
-            (f" ({TEST_DOC})." if test_exists else "."))
+    test_ref = "A written step-by-step version of this test is kept with CUORE." if test_exists else ""
     owner_note = False
     try:
         from . import mes_bridge
@@ -262,11 +316,15 @@ def grounds(vin: str, repo_root: Path) -> list[dict[str, Any]]:
         return max(rows)[1] if rows else ""
 
     def where(e: dict[str, Any]) -> tuple[str, str]:
+        """(location text or "" when not sourced, the source of that statement)."""
         loc = e.get("location") or {}
         if loc.get("confidence") == "UNKNOWN" or loc.get("zone") == "unknown":
-            return "Not sourced.", loc.get("source") or "none"
+            return "", loc.get("source") or "none"
         zone = str(loc.get("zone") or "").replace("_", " ")
         return f"{zone.capitalize()}. Exact spot not given by the source.", loc.get("source") or ""
+
+    def test_for(e: dict[str, Any]) -> str:
+        return TEST_LINE
 
     out = []
     for gid, join in (("g003a", "G003B"), ("g003b", "G003A")):
@@ -278,60 +336,82 @@ def grounds(vin: str, repo_root: Path) -> list[dict[str, Any]]:
                     "where": w, "source": src + (f"; {', '.join(e.get('tsb_refs') or [])}" if e.get("tsb_refs") else ""),
                     "confidence": (e.get("location") or {}).get("confidence") or "",
                     "applies": "Bulletin names the 2020 Stelvio; applies to this 2018 car: unverified.",
-                    "owner": ("Owner says G003A was replaced about two years ago (owner-attested, note " + OWNER_NOTE_ID +
-                              "; no CUORE record of the work).") if gid == "g003a" and owner_note else "",
-                    "last": last(gid), "test": test, "hint": e.get("inspection_hint") or "", "part": None, "outside": ""})
+                    "owner": ("Owner says G003A was replaced about two years ago (owner-attested; no CUORE record of "
+                              "the work).") if gid == "g003a" and owner_note else "",
+                    "last": last(gid), "test": test_for(e), "hint": (e.get("inspection_hint") or "").strip().rstrip("."), "test_ref": test_ref, "part": None, "outside": ""})
     e = el("esim_ground")
     w, src = where(e)
     out.append({"id": "esim_ground", "name": e.get("label") or "ESIM ground point",
                 "connects": f"Ground return of the ESIM (EVAP leak-detection module). On CUORE's electrical path for the EVAP "
                             f"codes: {path_names('P0456')}.",
-                "where": w + (" The ESIM connector is near the left rear wheel well (inferred)." if w == "Not sourced." else ""),
+                "where": w or "The ESIM connector is near the left rear wheel well (inferred).",
                 "source": src, "confidence": (e.get("location") or {}).get("confidence") or "", "applies": "", "owner": "",
-                "last": last("esim_ground"), "test": test, "hint": e.get("inspection_hint") or "", "part": None, "outside": ""})
+                "last": last("esim_ground"), "test": test_for(e), "hint": (e.get("inspection_hint") or "").strip().rstrip("."), "test_ref": test_ref, "part": None, "outside": ""})
     sp = strap_part()
     out.append({"id": "battery_neg_strap", "name": "Battery-negative ground strap",
                 "connects": "Battery negative terminal to the vehicle ground. The catalogue names the strap 'BATTERY NEGATIVE'; "
                             "the other end is not stated.",
-                "where": ("Engine Wiring diagram, callout " + sp["ref"] + ". Physical position not sourced.") if sp and sp["ref"]
-                         else "Not sourced.",
+                "where": ("Engine Wiring diagram, callout " + sp["ref"] + ".") if sp and sp["ref"] else "",
                 "source": f"Mopar parts catalogue, {sp['diagram']}" if sp else "Mopar parts catalogue (not loaded on this computer)",
                 "confidence": "", "applies": "", "owner": "", "last": last("battery_neg_strap"),
-                "test": test, "hint": "", "part": sp, "outside": OUTSIDE_REPORT})
+                "test": TEST_LINE, "hint": "", "test_ref": test_ref, "part": sp, "outside": OUTSIDE_REPORT})
+    for g in out:
+        g["where_known"] = bool(g["where"])
     return out
 
 
 # --- search over this page's own items ---------------------------------------
 
+SYNONYMS: dict[str, tuple[str, ...]] = {
+    "wiper": ("wiper", "washer", "wash"), "wipers": ("wiper", "washer", "wash"), "washer": ("washer", "wiper", "wash"),
+    "window": ("window",), "windows": ("window",),
+    "lock": ("lock", "central locking"), "locks": ("lock", "central locking"), "locking": ("lock", "central locking"),
+    "unlock": ("lock", "central locking"),
+    "heater": ("heater", "heating", "defrost", "demist"), "heating": ("heater", "heating", "defrost", "demist"),
+    "defrost": ("heater", "defrost", "demist"),
+    "horn": ("horn",),
+    "lights": ("light", "lamp"), "light": ("light", "lamp"), "lamp": ("light", "lamp"), "lamps": ("light", "lamp"),
+    "radio": ("radio", "hi-fi", "hifi", "usb", "infotainment", "aux"), "hifi": ("hi-fi", "hifi", "radio", "audio"),
+    "hi-fi": ("hi-fi", "hifi", "radio", "audio"), "usb": ("usb", "aux"), "audio": ("hi-fi", "hifi", "radio", "audio"),
+    "socket": ("socket", "outlet", "12 v"), "outlet": ("socket", "outlet", "12 v"),
+    "trailer": ("trailer", "tow"), "tow": ("tow", "trailer"), "towing": ("tow", "trailer"),
+    "ground": ("ground", "earth"), "earth": ("ground", "earth"),
+}
+SEARCH_HINT = "Try a system word (window, lock, wiper...)"
+
+
 def search(q: str, items: list[dict[str, Any]], boxes: list[dict[str, Any]], grounds_: list[dict[str, Any]],
            status_f: str = "", box_f: str = "") -> list[dict[str, Any]]:
-    """Items on the page that match ``q`` (position, circuit, box, amps, type, colour, ground name / connections).
-    Every word must match. Status / box filters narrow the fuse and relay results the same way they narrow the page."""
+    """Items on the page that match ``q`` (position, circuit, box, type, colour, ground name / connections, plus a small
+    synonym index: wiper / washer, lock / central locking, ...). Every word must match. ``15A`` / ``15 A`` match the
+    fuse's rating field only; a bare number matches the position number or the rating. Status / box filters narrow the
+    fuse and relay results the same way they narrow the page."""
     q = re.sub(r"\s+", " ", (q or "").strip().lower())[:80]
     if not q:
         return []
     bx = {b["id"]: b for b in boxes}
     out: list[dict[str, Any]] = []
 
-    def amps(a: Any) -> str:
-        return f"{a:g}a {a:g} a" if isinstance(a, (int, float)) else ""
+    def word_ok(w: str, hay: str) -> bool:
+        return w in hay or any(sy in hay for sy in SYNONYMS.get(w, ()))
 
     def ok(words: list[str], hay: str, item: Optional[dict[str, Any]] = None) -> bool:
+        rating = item.get("rating_a") if item is not None else None
+        rating = float(rating) if isinstance(rating, (int, float)) else None
         for w in words:
             m = re.fullmatch(r"(\d+(?:\.\d+)?)\s*a", w)
             if m and item is not None:
-                if not (isinstance(item.get("rating_a"), (int, float)) and float(m.group(1)) == float(item["rating_a"])):
+                if rating is None or float(m.group(1)) != rating:
                     return False
             elif re.fullmatch(r"\d+", w) and item is not None:
                 pos = re.search(r"\d+", str(item.get("position") or ""))
-                if not ((pos and int(pos.group()) == int(w)) or w in hay.replace(str(item.get("position") or "").lower(), "")):
+                if not ((pos and int(pos.group()) == int(w)) or (rating is not None and rating == float(w))):
                     return False
-            elif w not in hay:
+            elif not word_ok(w, hay):
                 return False
         return True
 
-    # tokenise: "15 a" -> "15a"
-    qn = re.sub(r"(\d)\s+a\b", r"\1a", q)
+    qn = re.sub(r"(\d)\s+a\b", r"\1a", q)   # "15 a" -> "15a"
     words = qn.split(" ")
     for it in items:
         if box_f and (it.get("box") or "none") != box_f:
@@ -341,24 +421,26 @@ def search(q: str, items: list[dict[str, Any]], boxes: list[dict[str, Any]], gro
         b = bx.get(it.get("box")) or {}
         sp = it.get("spec") or {}
         hay = " ".join(str(x) for x in (it.get("position"), it.get("label"), it.get("kind"), b.get("short"), b.get("label"),
-                                         b.get("pick_where"), amps(it.get("rating_a")), sp.get("type"), sp.get("colour"),
+                                         b.get("pick_where"), sp.get("type"), sp.get("colour"),
                                          sp.get("relay_type"), sp.get("relay_number")) if x).lower()
         if ok(words, hay, it):
+            a = it.get("rating_a")
             out.append({"kind": it.get("kind") or "fuse", "ref": _ref(it), "text": it.get("label") or "",
                         "where": b.get("short") or "box not stated",
-                        "href": "#fuse-" + "".join(c if c.isalnum() or c in "-_" else "-" for c in str(it["id"]))})
+                        "amps": f"{a:g} A" if isinstance(a, (int, float)) else "",
+                        "href": "#fuse-" + anchor(it["id"])})
     if not status_f:
         for b in boxes:
             if box_f and b["id"] != box_f:
                 continue
             hay = " ".join(str(x) for x in (b.get("short"), b.get("label"), b.get("where"), b.get("pick_where")) if x).lower()
-            if all(w in hay for w in words):
+            if all(word_ok(w, hay) for w in words):
                 out.append({"kind": "box", "ref": b.get("short") or b["id"], "text": b.get("label") or "",
-                            "where": b.get("pick_where") or "", "href": "#fuse-box-" + b["id"]})
+                            "where": b.get("pick_where") or "", "amps": "", "href": "#fuse-box-" + b["id"]})
         if not box_f:
             for g in grounds_:
                 hay = " ".join(str(g.get(k) or "") for k in ("id", "name", "connects", "where")).lower()
-                if all(w in hay for w in words):
+                if all(word_ok(w, hay) for w in words):
                     out.append({"kind": "ground", "ref": g["name"], "text": g["connects"][:90], "where": g["where"],
-                                "href": "#ground-" + g["id"]})
+                                "amps": "", "href": "#ground-" + g["id"]})
     return out

@@ -1,6 +1,7 @@
-"""Checks for the rebuilt Fuses & relays page (``/v/{vin}/fuses``): call line, box picker, one marker per box on
-both views, far-side marking, per-box sections (deep-link ids), slot line-art, photo upload (temp dir only),
-catalogue image, spec summary (type / amps / colour / voltage), added boxes, collapsed bottom panels.
+"""Checks for the Fuses & relays page (``/v/{vin}/fuses``): the call (every name a link, how to reach the box), Go-to chips,
+collapsed "Why these?", ranked / merged job cards, results under the call, synonym + rating-field search, box picker,
+one marker per box on both views (top view first when the call's box is on the right), per-box sections
+(where -> slots -> rows -> source), no "not sourced" noise in summaries, no repo paths in visible text, grounds.
 
 Run:
     .venv/Scripts/python.exe cuore/tests/check_fuse_page.py
@@ -61,24 +62,42 @@ t = r.text
 check(r.status_code == 200, "page 200")
 body = t.split('<div class="fuse-page"', 1)[-1]
 
-# 1. the directing call, job cards, chips
-m = re.search(r'id="fuse-call">([^<]*)<', t)
-call = m.group(1) if m else ""
+# 1. the directing call, Go-to chips, Why, job cards
+m = re.search(r'id="fuse-call">(.*?)</p>', t, re.S)
+call_html = m.group(1) if m else ""
+call = re.sub(r"<[^>]+>", "", call_html)
 check("Rear-left window" in call and "F47 and F48" in call and "rear window" in call and "Interior" in call and "footwell" in call,
       "call directs to F47/F48 (rear window) in the interior box")
-check("Linked by circuit name" in t, "call match labelled circuit name")
-check("U0100" in t.split('id="fuse-call"', 1)[1].split("fuse-jobs", 1)[0] and "F82" in t.split('id="fuse-call"', 1)[1].split("fuse-jobs", 1)[0]
-      and "G003A" in t.split('id="fuse-call"', 1)[1].split("fuse-jobs", 1)[0] and "G003B" in t.split('id="fuse-call"', 1)[1].split("fuse-jobs", 1)[0],
-      "U-code cascade line names F82 and G003A/G003B")
-check("CUORE&#39;s electrical path" in t, "path match labelled electrical path")
+check('<a href="#fuse-f47_interior">F47</a>' in call_html and '<a href="#fuse-f48_interior">F48</a>' in call_html,
+      "every fuse name in the call links to its row")
+check("Reach it:" in call and "under the glove compartment" in call, "call says how to reach the box, from the box's where text")
+check(body.index('id="fuse-call"') < body.index('id="fuse-go"') < body.index('id="fuse-why"') < body.index("fuse-for-job"),
+      "call, then Go-to chips, then Why, then cards")
+go = t.split('id="fuse-go"', 1)[1].split("</nav>", 1)[0]
+check(all(x in go for x in (">Interior box<", ">F47<", ">F48<", 'href="#fuse-box-interior_box"', 'href="#fuse-f47_interior"')), "Go-to chips: box + positions")
+why = t.split('id="fuse-why"', 1)[1].split("</details>", 1)[0]
+check(re.search(r'id="fuse-why"[^>]*>', t).group(0).count("open") == 0, "Why disclosure is collapsed")
+check("Linked by circuit name" in why and "CUORE's electrical path" in why.replace("&#39;", "'"), "Why: both link kinds explained")
+check("1 code on the path through F82" in why and "U0100" in why and "G003A" in why and "G003B" in why,
+      "Why: codes grouped compactly (U-code cascade names F82 and G003A/G003B)")
+check("from this car's open symptoms" not in t.split('id="fuse-why"', 1)[0].replace("&#39;", "'"), "grey 'linked by' line is not above the Why disclosure")
 job = t.split('id="fuse-for-job"', 1)[1].split("</section>", 1)[0]
-check(all(f"<h3>{x} " in job for x in ("F47", "F48", "F82")) and "ground" in job and "Frame ground G003A" in job, "for-this-job cards: F47 F48 F82 G003A")
-card = job.split("<h3>F47 ", 1)[1].split("</article>", 1)[0]
-check("Interior" in card and "passenger footwell" in card and "MINI" in card and "rear window" in card and 'href="#fuse-f47_interior"' in card
-      and "circuit name" in card and "A not sourced" in card, "F47 card: box, where, type, circuit, jump, rating gap stated")
+main_job = job.split('<details class="fuse-fold fuse-also">', 1)[0]
+also = job.split('<details class="fuse-fold fuse-also">', 1)[1]
+check("<h3>F47 / F48 rear window " in main_job and "<h3>F48 " not in job and job.count("<h3>F47 /") == 1, "F47 + F48 merged into one card")
+check("F82" not in main_job and "G003A" not in main_job, "other-code fuses and grounds are not in the main cards")
+check("F82" in also and "Frame ground G003A" in also and "ground" in also and "On the path for 2 codes" in also.replace("&#39;", "'"),
+      "Also possible holds F82 + grounds, with one 'on the path for N codes' line")
+check(also.count("electrical path for") == 0, "no repeated per-code path lines in the cards")
+check('<details class="fuse-fold fuse-also">' in job, "Also possible is collapsed")
+card = main_job.split("<h3>F47 / F48", 1)[1].split("</article>", 1)[0]
+check("Interior" in card and "passenger footwell" in card and "MINI" in card and 'href="#fuse-f47_interior"' in card and 'href="#fuse-f48_interior"' in card
+      and "Matches the open symptom and B1176" in card, "merged card: box, where, type, both jumps, basis")
+check("not sourced" not in main_job and "linked by" not in main_job.lower(), "cards: no 'not sourced' noise and no via chip")
 check(t.count('class="fuse-chip fuse-') == 4, "four status chips")
-check(body.index('id="fuse-search"') < body.index("fuse-call") < body.index("fuse-for-job") < body.index("fuse-chips")
-      < body.index("Which box?") < body.index("fm-wrap") < body.index('id="fuse-box-engine_pdc"')
+check("</b> 0 Blown" in t and "Not checked yet" in t, "status chips carry the word")
+check(body.index('id="fuse-search"') < body.index("<h1") < body.index("fuse-call") < body.index('id="fuse-go"') < body.index("fuse-for-job")
+      < body.index("Which box?") < body.index('id="fuse-chips"') < body.index("fm-wrap") < body.index('id="fuse-box-engine_pdc"')
       < body.index('id="fuse-grounds"') < body.index("What is not sourced yet"), "page order")
 check("href=\"/v/%s/fuses?status=red#fuse-chips\"" % VIN in t, "chips are filters")
 
@@ -122,20 +141,48 @@ def centre(sv: str, box: str) -> tuple[str, str]:
 
 check(centre(side, "rear_pdc") != centre(side, "luggage_box") and centre(top, "rear_pdc") != centre(top, "luggage_box"),
       "rear power box and luggage box have separate anchors")
-check("position not sourced" in side, "marker says position not sourced")
-check('name="fm-view"' in t and 'id="fm-v-side" checked' in t, "side/top toggle, default side")
+check("position not sourced" not in side and "position not sourced" not in top, "no 'position not sourced' on markers")
+check("exact positions are not sourced" in t.split('id="fuse-map"', 1)[1].split("</section>", 1)[0], "position caveat written once, as a caption")
+check('name="fm-view"' in t and 'id="fm-v-top" checked' in t and 'id="fm-v-side" checked' not in t,
+      "call's box is on the right side -> top view checked server-side")
+_css = Path(__file__).resolve().parents[1].joinpath("web/static/fuses.css").read_text(encoding="utf-8")
+for cls in ("fm-name", "fm-sub"):
+    px = int(re.search(r"\." + cls + r" \{ font: (?:700 )?(\d+)px", _css).group(1))
+    check(px >= 12, f"marker label {cls} >= 12 px")
+check(not re.search(r"font-size:\s*(?:12|11|10|13)px|font-size:\s*\.6\d*rem|font-size:\s*\.75rem", _css), "no sub-14 px text sizes left in fuses.css")
 
 # 4. sections
 for b in BOXES:
     check(f'id="fuse-box-{b}"' in t, f"section id {b}")
 check('id="fuse-box-interior_box"' in t, "deep link target present")
 sec = t.split('id="fuse-box-interior_box"', 1)[1].split("</section>", 1)[0]
-check("Where" in sec and "footwell" in sec and "from a third-party diagram, not checked on this car" in sec, "box facts in plain words")
-check("fm-slots" in sec and "Slots shown in number order - real positions in the box are not sourced yet; add a box-cover photo" in sec,
-      "slot SVG + number-order caption")
+check("Where / how to reach" in sec and "footwell" in sec and "from a third-party diagram, not checked on this car" in sec, "box facts in plain words")
+check(sec.index("Where / how to reach") < sec.index("fm-slots") < sec.index("Fuses and relays in this box") < sec.index("Photo and parts diagram")
+      < sec.index(">Source<"), "box section order: where -> slots -> rows -> photos -> source")
+check("fm-slots" in sec and "Slots shown in number order - real positions in the box are not sourced yet." in sec and "box-cover photo" not in t,
+      "slot SVG + one honest caption, no photo prompt")
+slots = sec.split("fm-slots", 1)[1].split("</svg>", 1)[0]
+check('width="180"' in slots and ">?</text>" not in slots, "slots drawn large, no '?' corner marks")
+check(slots.count("fm-job") == 2, "job fuses (F47, F48) highlighted in the slot drawing")
+check(sec.count('class="fm-slot ') >= 8, "slot per row")
+check("Not sourced for this box: colours / voltages" in sec or "Not sourced for this box: ratings" in sec, "missing fields stated once per box")
+check(sec.count("Not sourced for this box") == 1, "stated once")
+check("<details class=\"fuse-fold fuse-source\">" in sec and "Where this came from" in sec.split(">Source<", 1)[1], "source detail in a collapsed Source disclosure")
+check("autouserguide.com" in sec and "http" not in re.sub(r"<[^>]+>", " ", sec), "source in plain words: host only, no URL")
+check("could not be opened" in sec and "returned 403" not in t, "403 phrase translated")
 check(sec.count('class="fm-slot ') == 9 or sec.count('class="fm-slot ') == 8, "one slot per listed row")
 check("No photo of this box on file" in sec and 'type="file"' not in sec, "no photo: quiet line, no form")
 check("INFERRED" not in t.split("What is not sourced yet")[0], "no raw INFERRED in visible text")
+_vis = re.sub(r"<script.*?</script>|<style.*?</style>|<svg.*?</svg>", " ", t, flags=re.S)
+_vis = re.sub(r"<[^>]+>", " ", _vis)
+for bad in (".md", ".json", ".py", "docs/", "mes-log-mcp", "ProgramData", "http", "85bf07", "GROUND_VOLTAGE"):
+    check(bad not in _vis, f"no repo path / id in visible text: {bad}")
+for bad in ("add a box-cover photo", "added by a technician", "A not sourced", "colour not sourced", "V not sourced", "A ?"):
+    check(bad not in _vis, f"mechanic page does not show: {bad}")
+_rowsum = re.findall(r'<details class="fuse-row[^>]*>\s*<summary>(.*?)</summary>', t, re.S)
+check(len(_rowsum) >= 20 and not any("not sourced" in x for x in _rowsum), "no 'not sourced' text in any row summary")
+check('id="fuse-f47_interior" open' in t and 'id="fuse-f48_interior" open' in t and 'id="fuse-f2_luggage" open' not in t,
+      "rows matching the call open automatically")
 
 # rows: details, ids, back-to-map
 check('<details class="fuse-row" id="fuse-f82">' in t, "row is a details with id")
@@ -145,12 +192,17 @@ r = client.post(f"/v/{VIN}/fuses/check", data={"item": "f47_interior", "result":
 check(r.status_code == 303 and "Check%20recorded" in r.headers["location"], "Blown - replaced button posts to the check route")
 check(any(c.get("item") == "f47_interior" and c.get("note") == "Blown - replaced" for c in fh._checks(VIN, "f47_interior")), "check stored with note")
 def rowhtml(txt: str, item: str) -> str:
-    return re.split(r'<details class="fuse-row"|</section>', txt.split(f'id="fuse-{item}"', 1)[1], 1)[0]
+    return re.split(r'<details class="fuse-row[ "]|</section>', txt.split(f'id="fuse-{item}"', 1)[1], 1)[0]
+
+
+def gseg(txt: str, gid: str) -> str:
+    return txt.split(f'id="ground-{gid}"', 1)[1].split('<details class="fuse-ground"', 1)[0]
 
 
 row = rowhtml(t, "f82")
 check("Tested OK" in row and "Blown - replaced" in row and "Feeds:" in row and "Source:" in row, "row holds feeds, source, test buttons")
-check(row.index("<summary>") < row.index("Tested OK") < row.index("Back to the map"), "test buttons are inside the row")
+check(row.index("<summary>") < row.index("Feeds:") < row.index("Tested OK") < row.index("Back to the map"), "test buttons are inside the row, below the facts")
+check("Tested OK" not in t.split("</summary>", 1)[0] and all("Tested OK" not in x for x in _rowsum), "no test buttons in row summaries")
 rel_row = rowhtml(t, "starter_relay")
 check("Faulty" in rel_row and "Blown - replaced" not in rel_row, "relay buttons say Tested OK / Faulty")
 
@@ -160,18 +212,19 @@ def summary(item: str) -> str:
 
 
 s_f2 = summary("f2_luggage")  # 15 A mini
-check("MINI" in s_f2 and "15 A" in s_f2 and "blue" in s_f2 and "(standard)" in s_f2 and "V not sourced" in s_f2, "mini 15 A summary: type, amps, derived colour, voltage not sourced")
+check("MINI" in s_f2 and "15 A" in s_f2 and "blue" in s_f2 and "(standard)" in s_f2 and "not sourced" not in s_f2, "mini 15 A summary: type, amps, derived colour, nothing 'not sourced'")
 check("standard colour for this rating - check the fuse itself" in t, "standard colour label shown")
 s_f1 = summary("f01_luggage")  # 40 A MAXI
-check("MAXI" in s_f1 and "40 A" in s_f1 and "colour not sourced" in s_f1, "maxi: no derived colour")
+check("MAXI" in s_f1 and "40 A" in s_f1 and "fz-sw" not in s_f1 and "not sourced" not in s_f1, "maxi: no derived colour, no noise")
 s_f8 = summary("f08_luggage")
-check("FMX/JCase" in s_f8 and "colour not sourced" in s_f8, "J-case: no derived colour")
+check("FMX/JCase" in s_f8 and "fz-sw" not in s_f8, "J-case: no derived colour")
 s_f33 = summary("f33_interior")  # mini, no rating
-check("MINI" in s_f33 and "A ?" in s_f33 and "colour not sourced" in s_f33, "no rating: no derived colour")
+check("MINI" in s_f33 and "A ?" not in s_f33 and " A<" not in s_f33 and "fz-sw" not in s_f33 and "not sourced" not in s_f33, "no rating: nothing shown for it")
 s_rel = summary("starter_relay")
-check("relay, type not sourced" in s_rel and "colour not sourced" in s_rel, "relay: not sourced")
+check("relay" in s_rel and "not sourced" not in s_rel, "relay summary: no 'not sourced'")
 rel = rowhtml(t, "starter_relay")
-check("Pin layout" in rel and "Orientation in the box" in rel and "not sourced - read it off the relay or the box cover" in rel, "relay details not sourced")
+check("Not sourced for this row" in rel and "pin layout" in rel and "orientation in the box" in rel and "Read it off the relay or the box cover" in rel,
+      "relay details not sourced: one line in the opened row")
 check("fm-sw fz-blue" in t, "colour drawn in the slot art")
 # record details with a source -> shown, still no invented values
 r = client.post(f"/v/{VIN}/fuses/spec", data={"item": "starter_relay", "relay_type": "mini", "pin_layout": "30/85/86/87", "source": ""},
@@ -201,7 +254,7 @@ r = client.post(f"/v/{VIN}/fuses/photo", data={"box": "../x"}, files={"photo": (
 check("not%20saved" in r.headers["location"], "unknown box rejected")
 t3 = client.get(f"/v/{VIN}/fuses").text
 sec3 = t3.split('id="fuse-box-interior_box"', 1)[1].split("</section>", 1)[0]
-check("No photo of this box yet" not in sec3 and "Photo added by Marco" in sec3 and "Cover label" in sec3, "saved photo shown with who and kind")
+check("No photo of this box yet" not in sec3 and "Photo by Marco" in sec3 and "Cover label" in sec3, "saved photo shown with who and kind")
 pu = re.search(r'src="(/v/[^"]+/photo/interior_box/[^"]+)"', sec3)
 check(bool(pu) and client.get(pu.group(1)).content == photo_png, "photo served")
 check(client.get(f"/v/{VIN}/fuses/photo/interior_box/..%2f..%2fx.png").status_code == 404, "photo path traversal blocked")
@@ -223,7 +276,7 @@ r = client.post(f"/v/{VIN}/fuses/box", data={"short": "Engine bay 2", "area": "e
 check(r.status_code == 303 and "Fuse%20box%20added" in r.headers["location"], "box added")
 check((Path(_TMP) / "fuse_boxes.jsonl").is_file(), "box stored in state-dir jsonl")
 t4 = client.get(f"/v/{VIN}/fuses").text
-check('id="fuse-box-tech-engine-bay-2"' in t4 and "added by a technician" in t4.split('id="fuse-box-tech-engine-bay-2"', 1)[1], "added box has its own section, marked")
+check('id="fuse-box-tech-engine-bay-2"' in t4 and "added by a technician" not in t4, "added box has its own section; no 'added by a technician' tag")
 check('href="#fuse-box-tech-engine-bay-2"' in t4.split('class="fuse-picks"')[1].split("</section>")[0], "added box in picker")
 sv4 = re.findall(r"<svg class=\"sens-profile fm-svg.*?</svg>", t4, re.S)
 check(all(s.count('class="fm-box ') == 5 for s in sv4), "added box has a marker on both views")
@@ -262,14 +315,22 @@ check("full fuse list not sourced" not in t, "not-sourced message not repeated b
 g = t.split('id="fuse-grounds"', 1)[1].split("</section>", 1)[0]
 for gid in ("g003a", "g003b", "esim_ground", "battery_neg_strap"):
     check(f'id="ground-{gid}"' in g, f"ground id {gid}")
-    seg = g.split(f'id="ground-{gid}"', 1)[1].split("</article>", 1)[0]
-    check("Back to the map" in seg and "Last inspection" in seg and "Test to run" in seg and "Connects to" in seg, f"{gid}: sections")
+    seg = gseg(g, gid)
+    check("Back to the map" in seg and "Last inspection" in seg and "Voltage drop to battery negative under load; clean to bare metal." in seg
+          and "Connects to" in seg, f"{gid}: sections + one-line test")
+    check(seg.index("<summary>") < seg.index("Connects to") < seg.index("Tested OK"), f"{gid}: test line leads, buttons below the facts")
     check(f'href="#ground-{gid}"' in "".join(re.findall(r"<svg class=\"sens-profile fm-svg.*?</svg>", t, re.S)), f"{gid}: icon on map")
 check("FCA bulletin" in g or "S2008000032" in g, "G003A source shown")
 for sv in re.findall(r"<svg class=\"sens-profile fm-svg.*?</svg>", t, re.S):
     check(sv.count('class="fm-ground"') == 4 and sv.count("fm-gsym") == 4 and sv.count('class="fm-box ') == 4, "both views: 4 ground icons + 4 box markers")
-check("Exact spot not given" in g.split('id="ground-g003a"', 1)[1].split("</article>", 1)[0], "G003A location limits stated")
-check("Not sourced." in g.split('id="ground-esim_ground"', 1)[1].split("</article>", 1)[0], "ESIM ground location: not sourced")
+check("Exact spot not given" in gseg(g, "g003a"), "G003A location limits stated")
+check(g.count("Location not sourced") == 1, "ground location gap: one sentence for the section")
+check("inferred" in gseg(g, "esim_ground"), "ESIM ground: inferred connector location kept")
+_src = lambda gid: gseg(g, gid).split(">Source<", 1)[1]
+check("unverified" in _src("g003a") and "owner-attested" not in gseg(g, "g003a").split(">Source<", 1)[0] and "Owner says" not in gseg(g, "g003a").split(">Source<", 1)[0],
+      "owner-attested and bulletin caveats live in the Source disclosure")
+check('<details class="fuse-ground" id="ground-g003a" open>' in g and '<details class="fuse-ground" id="ground-battery_neg_strap">' in g,
+      "job grounds open, others closed")
 check("68648999AA" not in t and "FIXTURE-PN-123" not in t, "no part number when the catalogue lacks it")
 check("Part number not available" in g, "strap part: plainly missing without catalogue")
 parts_catalog.load = lambda *a, **k: _STRAP
@@ -287,7 +348,7 @@ check("Tested OK on" in client.get(f"/v/{VIN}/fuses").text.split('id="ground-g00
 def results(q: str, extra: str = "") -> tuple[str, int]:
     rr = client.get(f"/v/{VIN}/fuses?q={q}{extra}").text
     mm = re.search(r"<h2>(\d+) match", rr)
-    return rr, int(mm.group(1)) if mm else -1
+    return rr, int(mm.group(1)) if mm else (0 if "No match for" in rr else -1)
 
 
 rr, n = results("F47")
@@ -303,7 +364,8 @@ rr, n = results("G003")
 res = rr.split('id="fuse-results"')[1].split("</section>")[0]
 check(n == 2 and 'href="#ground-g003a"' in res and 'href="#ground-g003b"' in res, "q=G003 -> both grounds")
 rr, n = results("nothing-matches")
-check(n == 0 and "0 matches for" in rr and "Clear search" in rr, "q=nothing-matches -> 0 matches, clear link")
+check(n == 0 and "No match for &ldquo;nothing-matches&rdquo;. Try a system word (window, lock, wiper...)" in rr and "Clear search" in rr
+      and 'href="#fuse-box-interior_box"' in rr.split('id="fuse-results"')[1].split("</section>")[0], "no match -> hint + box buttons + clear link")
 rr, n = results("interior")
 check(any(x in rr for x in ('href="#fuse-box-interior_box"',)), "q=box name finds the box")
 rr, n = results("rear%20window", "&status=orange")
@@ -315,7 +377,28 @@ check(n == 0, "box filter narrows results")
 rr, n = results("%3Cscript%3Ealert(1)%3C%2Fscript%3E")
 check("<script>alert(1)" not in rr and "&lt;script&gt;alert(1)" in rr and n == 0, "query is escaped")
 check('<input type="search" name="q"' in t and 'role="search"' in t and "oninput" not in t, "search works without JS (plain GET form)")
-check("min-height" in Path(__file__).resolve().parents[1].joinpath("web/static/fuses.css").read_text(encoding="utf-8"), "44 px targets in css")
+check("min-height" in _css and ".fuse-gochip" in _css, "44 px targets in css")
+# results sit under the call, never above the heading
+rr, n = results("F47")
+check(rr.index("<h1") < rr.index('id="fuse-call"') < rr.index('id="fuse-results"') < rr.index('id="fuse-go"'), "results render under the call, below the heading")
+check("Interior" in rr.split('id="fuse-results"')[1].split("</section>")[0], "result chip names the box")
+rr, n = results("15A")
+check("15 A" in rr.split('id="fuse-results"')[1].split("</section>")[0], "result chip shows amps when known")
+# synonyms
+for q_, want in (("wiper", "f43_interior"), ("window", "f47_interior"), ("lock", "f38_interior"), ("heater", "f94_interior"),
+                 ("radio", "f08_luggage"), ("usb", "f21_luggage"), ("socket", "f22_luggage"), ("trailer", "f2_luggage"),
+                 ("tow", "f4_luggage"), ("earth", "ground-g003a")):
+    rr, n = results(q_)
+    check(n >= 1 and (f'href="#fuse-{want}"' in rr or f'href="#{want}"' in rr), f"synonym search: {q_} -> {want}")
+check(results("washer")[1] >= 1 and results("central%20locking")[1] >= 1, "washer / central locking words")
+# amps match the rating field only
+rr, n = results("5A")
+res5 = rr.split('id="fuse-results"')[1].split("</section>")[0]
+check('href="#fuse-f16_engine_pdm"' in res5 and 'href="#fuse-f2_luggage"' not in res5 and 'href="#fuse-f1_luggage"' not in res5,
+      "5A matches the 5 A rating only, not '15 A' / '+15' text")
+rr, n = results("15")
+res15 = rr.split('id="fuse-results"')[1].split("</section>")[0]
+check('href="#fuse-f2_luggage"' in res15 and 'href="#fuse-f4_luggage"' not in res15, "bare 15 = rating 15 or position 15, not text")
 
 # 10. owner data page
 d = client.get(f"/v/{VIN}/fuses/data")
@@ -341,15 +424,15 @@ ci._idx.update(sig=None, rows=[])
 tp = client.get(f"/v/{VIN}/fuses").text
 check("/catalog/img/test-cat/mini.jpg" in tp and 'href="/catalog/p/FX-MINI-1"' in tp, "mini row shows catalogue photo linking to its part page")
 check("/catalog/img/test-cat/maxi.jpg" in tp, "maxi row shows catalogue photo")
-f47 = tp.split('id="fuse-f47_interior"', 1)[1].split("</summary>", 1)[0]
+f47 = rowhtml(tp, "f47_interior")
 check("mini.jpg" in f47 and 'width="64"' in f47 and "Mopar catalogue photo - the part type, not this car's fuse" in f47.replace("&#39;", "'"),
       "F47 (MINI) photo is 64 px with its caption")
-rel = [x.split("</summary>", 1)[0] for x in tp.split('<details class="fuse-row"')[1:] if "(relay)" in x.split("</summary>", 1)[0]]
+rel = [x.split("</summary>", 1)[0] for x in re.split(r'<details class="fuse-row[ "]', tp)[1:] if "(relay)" in x.split("</summary>", 1)[0]]
 check(rel and all("/catalog/img/" not in x for x in rel), "relay rows without a sourced type show no photo")
-gs = tp.split('id="ground-battery_neg_strap"', 1)[1].split("</article>", 1)[0]
+gs = gseg(tp, "battery_neg_strap")
 check("strap.jpg" in gs and "Mopar catalogue photo - the part, not this car" in gs and 'href="/catalog/p/FX-STRAP-1"' in gs,
       "strap photo + caption + link in grounds")
-check("/catalog/img/" not in tp.split('id="ground-g003a"', 1)[1].split("</article>", 1)[0], "other grounds have no catalogue photo")
+check("/catalog/img/" not in gseg(tp, "g003a"), "other grounds have no catalogue photo")
 from cuore.web import fuse_routes as fr  # noqa: E402
 check([fr.photo_key("fuse", t) for t in ("MINI", "Mini", "MAXI", "FMX/JCase", "J-case", "MIDI", "ATO")] ==
       ["mini", "mini", "maxi", "j-case", "j-case", "midi", ""], "fuse type -> key map")
@@ -390,6 +473,27 @@ check("F38" not in refs and {"F47", "F48"} <= set(refs), "resolved unlock sympto
 dd2 = fd.direct(_items, _boxes, [{"text": _syms[0]["text"], "at": ""}], [], {}, lambda c: {})
 check("F38" in [m["ref"] for m in dd2["matches"]], "an open unlock symptom still produces the F38 card")
 timeline_bridge.symptoms, mes_bridge.notes = _sv, _nv
+
+# picker / not-sourced fold / grounds row
+pick = t.split('class="fuse-picks"', 1)[1].split("</section>", 1)[0]
+check("No box stated" not in pick and "fuse-picks-g" in pick and 'href="#fuse-grounds"' in pick.split("fuse-picks-g")[1], "grounds in their own picker row; no pseudo-box")
+check(t.index("What is not sourced yet") < t.index('id="fuse-bcm_feed_20a"') < t.index("Credits"), "'No box stated' rows live in the not-sourced fold")
+check("Rows whose box is not stated" in t and 'id="fuse-box-none"' in t, "fold names the unboxed rows")
+check("parentElement" in t, "script opens the folds around a jump target")
+check("? Not checked yet" in t and "</b> 0 Blown" in t, "status words next to symbols")
+
+# default view: left-side call box -> side view; no call -> side view
+fd.job_inputs = lambda vin, codes, dossier: ([{"text": "The horn is weak.", "at": ""}, {"text": "Rear-left window stops", "at": "x"}], {})
+mes_bridge.open_codes_for = lambda d: []
+tl = client.get(f"/v/{VIN}/fuses").text
+check('id="fm-v-top" checked' in tl, "right-side call box still top (control)")
+fd.job_inputs = lambda vin, codes, dossier: ([{"text": "Door will not unlock", "at": "x"}], {})
+tn2 = client.get(f"/v/{VIN}/fuses").text
+check("F38" in re.sub(r"<[^>]+>", "", tn2.split('id="fuse-call"', 1)[1].split("</p>", 1)[0]), "unlock symptom -> F38 call")
+fd.job_inputs = lambda vin, codes, dossier: ([], {})
+t0 = client.get(f"/v/{VIN}/fuses").text
+check('id="fm-v-side" checked' in t0 and 'id="fuse-go"' not in t0 and "fuses and relays" in t0.split('id="fuse-call"', 1)[1].split("</p>", 1)[0],
+      "no call -> side view, no Go-to row, plain pick-a-box line")
 
 print(f"fuse_page checks: {passed} passed, {len(failures)} failed")
 for f in failures:
