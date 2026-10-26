@@ -82,6 +82,16 @@
   <span class="sens-st sens-{{ st }}">{{ status_mark[st] }} {{ status_label[st] }}</span>
   <div class="sens-body">
     <h3>{{ s.label }}</h3>
+    {% if photos and photos.get(s.id) %}
+    <div class="sens-photos" style="display:flex;gap:.6rem;flex-wrap:wrap;margin:.3rem 0">
+      {% for ph in photos[s.id] %}
+      <figure style="margin:0;max-width:140px">
+        <a href="{{ ph.part_url }}"><img src="{{ ph.photo_url }}" alt="{{ ph.name }}" loading="lazy" style="width:96px;height:96px;object-fit:contain;background:#fff;border-radius:4px"></a>
+        <figcaption class="small muted">Mopar catalogue photo - the part, not this car<br>{{ ph.name }}</figcaption>
+      </figure>
+      {% endfor %}
+    </div>
+    {% endif %}
     <p class="small muted">{{ s.module or "module not recorded" }}{% if s.bus %} · {{ s.bus }}{% endif %}{% if not s.readable %} · not readable: {{ s.readable_note or "with the current cable" }}{% endif %}</p>
     {% if s.reasons %}<ul>{% for r in s.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
     {% if s['values'] %}

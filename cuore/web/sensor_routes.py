@@ -12,7 +12,7 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from ..api.deps import require_token
 from . import sensor_profile_svg
@@ -44,6 +44,21 @@ def _back(vin: str, msg: str) -> RedirectResponse:
 def _short(text: str) -> str:
     text = str(text or "").strip()
     return text if len(text) <= 160 else text[:157] + "..."
+
+
+def _photos(key: str, limit: int = 2) -> list[dict[str, Any]]:
+    """Real catalogue photos for a CUORE item id; [] when none/no catalogue."""
+    try:
+        from ..services import component_images
+        return component_images.images_for_key(key, limit=limit)
+    except Exception:  # noqa: BLE001 -- photos are optional decoration
+        return []
+
+
+@router.get("/v/{vin}/component-images")
+def component_images_json(vin: str, key: str = "", limit: int = 3) -> JSONResponse:
+    """Catalogue photos for a CUORE item id (sensor id, fuse type, ...)."""
+    return JSONResponse({"key": key, "images": _photos(key, max(1, min(int(limit or 3), 12)))})
 
 
 @router.get("/v/{vin}/sensors", response_class=HTMLResponse)
@@ -90,7 +105,8 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
     chip_href = {k: href("" if status_f == k else k, system_f) for k in STATUSES}
     sys_href = {sy: href(status_f, sy) for sy in systems}
 
-    response = _page(request, "sensors.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="sensors",
+    photos = {s["id"]: _photos(s["id"]) for s in shown}
+    response = _page(request, "sensors.html", vin=vin, photos=photos, bar=_vehicle_bar(vin, dossier), tab="sensors",
                      svg=svg, groups=groups, numbers=numbers, unplaced=unplaced, counts=counts,
                      total=len(sensors), shown=len(shown), checked_at=data.get("checked_at"),
                      status_f=status_f, chip_href=chip_href, sys_href=sys_href, system_f=system_f, systems=systems,
