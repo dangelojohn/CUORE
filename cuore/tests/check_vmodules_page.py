@@ -146,6 +146,48 @@ r = client.get(f"/v/{VIN}/modules/ZZZNOTAMODULE")
 check("unknown module code -> 404", r.status_code == 404, f"got {r.status_code}")
 
 
+# --- 6. server-side search (?q=) ------------------------------------------
+
+import html as _html  # noqa: E402
+import re as _re  # noqa: E402
+
+
+def _hits(q: str) -> tuple[int, str]:
+    rr = client.get(f"/v/{VIN}/modules", params={"q": q})
+    check(f"q={q!r} 200", rr.status_code == 200, f"got {rr.status_code}")
+    m = _re.search(r'id="search-results".*?<strong>(\d+) match', rr.text, _re.S)
+    return (int(m.group(1)) if m else -1), rr.text
+
+
+bcm_row = f'data-href="/v/{VIN}/modules/BCM"'
+n, t = _hits("BCM")
+check("q=BCM finds BCM", n >= 1 and bcm_row in t, str(n))
+check("q=BCM hides ABS row", f'data-href="/v/{VIN}/modules/ABS"' not in t)
+for form in ("0x40", "40", "18DA40F1", "18da40f1"):
+    n, t = _hits(form)
+    check(f"q={form} finds BCM", n >= 1 and bcm_row in t, str(n))
+n, t = _hits("can-ch")
+ch = {m["code"] for m in rows if m["bus"] == "can_ch"}
+check("q=can-ch matches exactly the CAN-CH modules",
+      n == len(ch) and ch != set(), f"{n} vs {len(ch)}")
+n, t = _hits("body computer")
+check("q=name words finds BCM", n >= 1 and bcm_row in t)
+gw = [m for m in rows if "gateway" in (m["name"] or "").lower()]
+n, t = _hits("gateway")
+check("q=gateway count agrees with names", n == len(gw), f"{n} vs {len(gw)}")
+n, t = _hits("P0440")
+check("q=P0440 finds ECM", n >= 1 and f'data-href="/v/{VIN}/modules/ECM"' in t)
+n, t = _hits("nothing-matches")
+check("q=nothing-matches -> 0 matches", n == 0 and "No modules match" in t, str(n))
+check("clear-search link present", "Clear search" in t)
+evil = '<script>alert(1)</script>"&'
+n, t = _hits(evil)
+check("HTML in q is escaped",
+      "<script>alert(1)</script>" not in t and "&lt;script&gt;alert(1)&lt;/script&gt;" in t)
+r = client.get(f"/v/{VIN}/modules")
+check("no q -> no results block", 'id="search-results"' not in r.text)
+
+
 # --- summary ---------------------------------------------------------------
 
 print(f"{checks} checks, {len(failures)} failures")

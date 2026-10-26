@@ -3,7 +3,34 @@
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 
+<form class="panel" method="get" action="/v/{{ vin }}/modules" role="search"
+      style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
+  <div style="flex:1;min-width:220px">
+    <label for="filter">Search modules</label>
+    <input id="filter" name="q" type="search" value="{{ q }}" data-search
+           data-filter-target="#moduletree" style="min-height:44px"
+           placeholder="code, name, bus, address (0x40), DTC…" autocomplete="off">
+  </div>
+  <button type="submit" style="min-height:44px;min-width:44px">Search</button>
+  {% if q %}<a href="/v/{{ vin }}/modules" style="display:inline-flex;align-items:center;min-height:44px;min-width:44px">Clear search</a>{% endif %}
+</form>
+
 <h1>Module tree</h1>
+{% if q %}
+<div class="panel" id="search-results" role="status">
+  <p><strong>{{ rows|length }} match{{ "es" if rows|length != 1 }}</strong> for
+    <span class="mono">{{ q }}</span> <span class="muted small">of {{ total }} modules</span></p>
+  {% if rows %}
+  <ul style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px">
+    {% for m in rows %}
+    <li><a class="mono" href="/v/{{ vin }}/modules/{{ m.code }}"
+           style="display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding:0 12px">{{ m.code }}
+        <span class="small muted" style="margin-left:6px">{{ m.addr }}</span></a></li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endif %}
 <p class="lede">Every module this car's logs (or the live registry) have anything
   to say about — identity, open and historical errors, how many live
   parameters are catalogued, and whether an actuator replay is even
@@ -11,14 +38,7 @@
   bench. Tap a module for its full Info / Errors / Parameters / Actuators /
   Adjustments breakdown.</p>
 
-<div class="panel" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
-  <div style="flex:1;min-width:220px">
-    <label for="filter">Filter</label>
-    <input id="filter" type="search" data-search data-filter-target="#moduletree"
-           placeholder="code, name, domain…" autocomplete="off">
-  </div>
-  <div class="mono small muted">{{ rows|length }} module{{ "s" if rows|length != 1 }}</div>
-</div>
+<div class="mono small muted" style="margin-bottom:8px">{{ rows|length }}{% if q %} of {{ total }}{% endif %} module{{ "s" if rows|length != 1 }}</div>
 
 <div class="panel tight">
   <div class="tw">
@@ -36,13 +56,14 @@
         <td>
           <a class="mono" href="/v/{{ vin }}/modules/{{ m.code }}">{{ m.code }}</a>
           <div class="small muted">{{ m.name or "not in the module registry" }}</div>
+          {% if m.addr %}<div class="small mono muted">{{ m.addr }} · {{ m.addr_ids }}</div>{% endif %}
         </td>
         <td><span class="chip {% if m.status == 'active' %}status-active
                              {% elif m.status == 'cleared_unverified' %}status-cleared_unverified
                              {% elif m.status == 'stale' %}status-stale
                              {% elif m.status == 'clean' %}ok
                              {% else %}plain{% endif %}">{{ m.status.replace("_", " ") }}</span></td>
-        <td class="small mono muted">{{ m.bus or "unknown" }}</td>
+        <td class="small mono muted">{{ m.bus_label }}</td>
         <td class="small mono">
           {% if m.identity.software %}SW {{ m.identity.software }}{% endif %}
           {% if m.identity.hardware %}<br>HW {{ m.identity.hardware }}{% endif %}
@@ -62,7 +83,7 @@
         <td class="n mono">{{ m.adjustments|length }}</td>
       </tr>
     {% else %}
-      <tr><td colspan="8" class="muted">No modules found in this vehicle's logs.</td></tr>
+      <tr><td colspan="8" class="muted">{% if q %}No modules match this search.{% else %}No modules found in this vehicle's logs.{% endif %}</td></tr>
     {% endfor %}
     </tbody>
   </table>
