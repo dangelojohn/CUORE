@@ -579,12 +579,13 @@ DIDS: tuple[DidSpec, ...] = (
     DidSpec(
         module="ECM",
         did=0x195A,
-        name="Boost pressure",
-        formula="((A*256+B)-32768)/1000-1",
-        unit="bar",
-        source="danardi78",
-        confidence="unverified",
-        note="UNVERIFIED on 2.0T; highest-value DID for this engine, verify first",
+        name="Boost pressure (absolute)",
+        formula="A*256+B",
+        unit="mbar",
+        source="confirmed against MultiEcuScan values (atmospheric 990 mbar / boost 988 mbar) and raw bytes in audit.jsonl, 2026-10-25",
+        confidence="confirmed",
+        note=("ABSOLUTE pressure, unsigned mbar (raw 0x03E9 = 1001 at idle vs MES 988 mbar); gauge boost = this minus "
+              "atmospheric (DID 1956). The earlier danardi78 formula ((A*256+B)-32768)/1000-1 was wrong for this ECM"),
     ),
     DidSpec(
         module="ECM",

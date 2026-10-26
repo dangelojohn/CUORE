@@ -289,8 +289,8 @@ with link.session("read-all-confirmed-only", bus=CAN_C) as sess:
 check("include_unverified=False drops every unverified catalog DID",
       all(d["confidence"] == "confirmed" for d in confirmed_only["dids"]),
       str({d["confidence"] for d in confirmed_only["dids"]}))
-check_eq("include_unverified=False leaves nothing on this car today (no DID is CONFIRMED yet)",
-         confirmed_only["dids"], [])
+check_eq("include_unverified=False leaves only the two MES-confirmed DIDs (195A, 1956) today",
+         sorted(d["did"] for d in confirmed_only["dids"]), ["1956", "195A"])
 
 
 # ===========================================================================

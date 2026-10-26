@@ -222,7 +222,7 @@ def _computed_channels() -> list[Channel]:
                expr="intake_map - barometric_pressure",
                depends_on=("intake_map", "barometric_pressure"),
                note="derived from the two legislated PIDs; compare against the "
-                    "unverified ECM boost DID 195A"),
+                    "ECM absolute boost DID 195A (mbar, minus 1956 for gauge)"),
     ]
 
 

@@ -186,8 +186,8 @@ def _U(length: int) -> _SnapField:
     return _SnapField(length)
 
 
-_BOOST_NOTE = ("~ambient at idle / engine-off; 195A and 1956 are an interchangeable "
-               "pair (boost vs atmospheric) -- order from Table C, not proven")
+_BOOST_NOTE = ("unsigned mbar; 195A = ABSOLUTE boost pressure, 1956 = atmospheric; confirmed against MultiEcuScan "
+               "(atmospheric 990 mbar / boost 988 mbar) and raw bytes in audit.jsonl, 2026-10-25")
 
 _ECM_SNAPSHOT: dict[int, _SnapField] = {
     0x1008: _SnapField(4, "Operating time", "min", confidence="high",
@@ -226,10 +226,10 @@ _ECM_SNAPSHOT: dict[int, _SnapField] = {
                              "kg/h scale not verified (raw/10 would give 13.4 and 9.2)"),
     0x1935: _SnapField(1, "Intake air temperature", "degC", offset=-40, confidence="medium",
                        basis="A-40; cold-soak record 16 degC ~ coolant 17 (MES air temp pattern)"),
-    0x195A: _SnapField(2, "Boost pressure", "mbar", confidence="low", basis=_BOOST_NOTE),
+    0x195A: _SnapField(2, "Boost pressure (absolute)", "mbar", confidence="high", basis=_BOOST_NOTE),
     0x1821: _U(1),
     0x1818: _U(1),
-    0x1956: _SnapField(2, "Atmospheric pressure", "mbar", confidence="low", basis=_BOOST_NOTE),
+    0x1956: _SnapField(2, "Atmospheric pressure", "mbar", confidence="high", basis=_BOOST_NOTE),
     0x1302: _SnapField(2, "Engine oil temperature", "degC", confidence="medium",
                        basis="direct degC; oil < coolant warming up, = coolant cold (MES 63/51, 60/46, 15/15)"),
     0x1B0D: _U(8),   # flag bytes (pedals/switches/status) -- bit meaning not derived

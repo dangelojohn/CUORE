@@ -209,8 +209,8 @@ check_eq("boost depends on MAP and baro", reg["boost"].depends_on,
          ("intake_map", "barometric_pressure"))
 check("RFHUB tire DIDs expand into pressure/temp sub-channels",
       "rfhub_40b1_pressure" in reg and "rfhub_40b1_temp" in reg)
-check_eq("ecm_195a (unverified boost DID) is present and unverified",
-         reg["ecm_195a"].confidence, "unverified")
+check_eq("ecm_195a (absolute boost DID) is present and confirmed (MES, 2026-10-25)",
+         reg["ecm_195a"].confidence, "confirmed")
 
 pr = channels_mod.presets()
 for name in ("engine_basics", "boost", "evap_job", "transmission", "tpms"):
