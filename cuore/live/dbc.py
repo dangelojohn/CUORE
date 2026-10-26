@@ -8,6 +8,16 @@ Motorola (``@0``) numbering follows the DBC convention: the start bit is the
 signal's MSB; bits inside a byte count 7..0 and the signal continues into the
 next byte's bit 7 after bit 0 of the current one. A bit position is
 ``byte * 8 + bit_in_byte``. Little-endian (``@1``) start bit is the LSB.
+
+CONFIDENCE (read this before using any value from here): the vendored DBC
+(opendbc fca_giorgio.dbc) was written for a Giulia and relayed through openpilot.
+No raw broadcast frame from THIS car has ever been saved, so no scale, offset or
+bit position has been checked here. Every decoded value therefore carries
+:data:`UNVERIFIED_LABEL`, and none of it is diagnostic proof (core directive:
+conclusions cite verified CUORE readings; use the UDS DIDs instead). Frame-id
+presence ("this module is talking") is the only thing the data supports.
+:data:`NOT_BATTERY_VOLTAGE` signals (MAYBE_VOLTAGE) must never be shown as volts
+of the battery.
 """
 
 from __future__ import annotations
@@ -16,6 +26,12 @@ import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
+
+UNVERIFIED_LABEL = "unverified scale (opendbc Giulia DBC, not checked on this car)"
+#: Signals whose meaning the DBC itself guesses at; never present as battery volts.
+NOT_BATTERY_VOLTAGE = {"MAYBE_VOLTAGE"}
+NOT_BATTERY_VOLTAGE_NOTE = ("unidentified 10-bit signal (upstream guess 'maybe voltage'); "
+                            "NOT battery voltage")
 
 DEFAULT_DBC = Path(__file__).resolve().parents[1] / "data" / "dbc" / "fca_giorgio.dbc"
 
@@ -113,7 +129,7 @@ class Dbc:
             v = sig.decode(data)
             if v is not None:
                 signals[sig.name] = v
-        return {"message": msg.name, "signals": signals}
+        return {"message": msg.name, "signals": signals, "confidence": UNVERIFIED_LABEL}
 
 
 def parse(text: str) -> Dbc:
@@ -174,4 +190,5 @@ def decode(frame_id: int, data: bytes, dbc: Optional[Dbc] = None,
     return (dbc or default()).decode(frame_id, bytes(data), extended)
 
 
-__all__ = ["Dbc", "Message", "Signal", "parse", "load", "default", "decode", "DEFAULT_DBC"]
+__all__ = ["Dbc", "Message", "Signal", "parse", "load", "default", "decode", "DEFAULT_DBC",
+           "UNVERIFIED_LABEL", "NOT_BATTERY_VOLTAGE", "NOT_BATTERY_VOLTAGE_NOTE"]

@@ -13,10 +13,11 @@ import time
 from collections import Counter
 from typing import Any, Optional
 
-from . import audit
+from . import audit, rawframes
 from .framing import adapter_error, parse_frames
 from .transport import Session
 
+RAW_MIN_FRAMES = 5   # same as transport.HEARD_MIN_FRAMES: traffic proves the declared rate
 _FILTER_SPELLINGS = ("STFPA", "STFAP")   # rev F, then the 2010 legacy spelling
 
 
@@ -45,8 +46,14 @@ def _add_filters(sess: Session, filters: list[str]) -> Optional[str]:
 
 
 def listen(sess: Session, *, seconds: float = 2.0, max_frames: int = 500,
-           filters: Optional[list[str]] = None) -> dict[str, Any]:
+           filters: Optional[list[str]] = None, persist_raw: bool = False,
+           state_note: str = "") -> dict[str, Any]:
     """Collect raw frames for ``seconds`` or until ``max_frames``.
+
+    ``persist_raw`` also writes the raw frames to
+    ``<state dir>/bus_captures/<vin>/<timestamp>.jsonl`` (header carries bus,
+    bitrate, cable and ``state_note``, e.g. "parked idle, wheel centred"), in
+    addition to the id counts returned here. Receive-only; never transmits.
 
     Returns frames, per-ID counts, the measured rate, and any adapter error.
     The protocol is closed by the adapter when monitoring ends; the session
@@ -117,6 +124,22 @@ def listen(sess: Session, *, seconds: float = 2.0, max_frames: int = 500,
         "ids": dict(sorted(ids.items(), key=lambda kv: -kv[1])),
         "frames": frames, "error": error,
     }
+    out["raw_capture_file"] = None
+    if persist_raw and frames and error in (None, "DATA ERROR"):
+        route = getattr(sess, "route", None)
+        bitrate = int((route.bitrate_override if route and route.bitrate_override
+                       else sess.bus.bitrate))
+        # Only frames heard at the bus's confirmed bitrate: enough traffic to
+        # prove the declared rate (same bar as the transmit interlock). Silence
+        # or a stray frame might be a wrong-rate listen -> keep id counts only.
+        if len(frames) >= RAW_MIN_FRAMES:
+            try:
+                out["raw_capture_file"] = str(rawframes.write_capture(
+                    frames, bus=sess.bus.key, bitrate=bitrate, cable=sess.link.cable,
+                    vin=getattr(sess.link, "vin", "") or "", state_note=state_note,
+                    extra={"monitor": monitor, "seconds": out["seconds"]}))
+            except OSError as exc:      # never fail a listen over the archive
+                out["raw_capture_error"] = str(exc)
     audit.record("capture", bus=sess.bus.key, count=len(frames), seconds=out["seconds"],
                  error=error)
     return out

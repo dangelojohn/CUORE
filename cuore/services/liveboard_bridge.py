@@ -802,7 +802,7 @@ def freeze_capture_save(vin: str, capture_id: str, note: str = "") -> dict[str, 
 # Giorgio DBC (cuore/data/dbc/fca_giorgio.dbc). Needs the grey A6 cable
 # declared; with any other cable the answer is "unavailable", not an error.
 
-def _passive_listen(seconds: float) -> dict[str, Any]:
+def _passive_listen(seconds: float, state_note: str = "") -> dict[str, Any]:
     """One passive 2 s listen on CAN-CH over the STP 33 route (the seam the
     tests replace)."""
     routes = [r for r in routes_for(CAN_CH, "grey_a6") if r.stn_protocol == "33"]
@@ -810,22 +810,26 @@ def _passive_listen(seconds: float) -> dict[str, Any]:
         raise BadRequest("no 11-bit (STP 33) route for CAN-CH")
     lk = live_ops.link()
     with lk.session("chassis_passive", bus=CAN_CH, passive=True, route=routes[0]) as sess:
-        return capture_mod.listen(sess, seconds=seconds, max_frames=2000)
+        return capture_mod.listen(sess, seconds=seconds, max_frames=2000,
+                                  persist_raw=True, state_note=state_note)
 
 
-def chassis_passive(seconds: float = 2.0) -> dict[str, Any]:
+def chassis_passive(seconds: float = 2.0, state_note: str = "") -> dict[str, Any]:
     cable = (live_ops.cable_state() or {}).get("cable")
     if cable != "grey_a6":
         return {"available": False, "cable": cable, "bus": CAN_CH.key,
                 "reason": "the grey A6 cable must be fitted and declared to listen on CAN-CH",
-                "messages": {}, "unknown_ids": {}}
+                "messages": {}, "unknown_ids": {},
+                "confidence": chassis_decode.dbc_mod.UNVERIFIED_LABEL}
     seconds = max(0.5, min(float(seconds), 5.0))
-    cap = _passive_listen(seconds)
+    cap = _passive_listen(seconds, state_note) if state_note else _passive_listen(seconds)
     out = chassis_decode.decode_capture(cap.get("frames") or [],
                                         seconds=cap.get("seconds") or seconds)
     out.update({"available": True, "cable": cable, "bus": CAN_CH.key,
                 "passive": True, "listen_seconds": cap.get("seconds"),
-                "error": cap.get("error"), "source": "fca_giorgio.dbc (opendbc, MIT)"})
+                "error": cap.get("error"), "source": "fca_giorgio.dbc (opendbc, MIT)",
+                "raw_capture_file": cap.get("raw_capture_file"),
+                "state_note": state_note})
     return out
 
 

@@ -69,9 +69,10 @@ def live_verify(bus: str = Body(..., embed=True), seconds: float = Body(default=
 def live_capture(bus: str = Body(..., embed=True), seconds: float = Body(default=2.0, embed=True),
                  max_frames: int = Body(default=500, embed=True),
                  filters: Optional[list[str]] = Body(default=None, embed=True),
-                 include_frames: bool = Body(default=True, embed=True)) -> dict[str, Any]:
+                 include_frames: bool = Body(default=True, embed=True),
+                 state_note: str = Body(default="", embed=True)) -> dict[str, Any]:
     return ops.capture(bus, seconds=seconds, max_frames=max_frames, filters=filters,
-                       include_frames=include_frames)
+                       include_frames=include_frames, state_note=state_note)
 
 
 # --- legislated OBD -------------------------------------------------------------

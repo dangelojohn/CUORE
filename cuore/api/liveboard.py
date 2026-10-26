@@ -23,9 +23,9 @@ router = APIRouter(tags=["liveboard"], dependencies=[Depends(require_token)])
 
 @router.get("/live/chassis/passive",
            summary="CAN-CH passive panel: a 2 s receive-only listen decoded through the "
-                   "Giorgio DBC (grey A6 cable only)")
-def liveboard_chassis_passive() -> dict[str, Any]:
-    return liveboard_bridge.chassis_passive()
+                   "Giorgio DBC (grey A6 cable only). Values are UNVERIFIED scales, not proof")
+def liveboard_chassis_passive(state_note: str = "") -> dict[str, Any]:
+    return liveboard_bridge.chassis_passive(state_note=state_note)
 
 
 @router.get("/liveboard/{vin}",

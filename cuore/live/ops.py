@@ -280,7 +280,7 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
         with lk.session("verify_bus", bus=b, port=port, baud=baud, passive=True,
                         allow_while_mes_connected=allow_while_mes_connected,
                         route=route) as sess:
-            cap = capture_mod.listen(sess, seconds=seconds, max_frames=200)
+            cap = capture_mod.listen(sess, seconds=seconds, max_frames=200, persist_raw=True)
             # "DATA ERROR" is the adapter's per-frame annotation for one frame
             # whose payload did not validate; with parsed frames beside it the
             # bus is demonstrably alive, so it is reported but does not veto.
@@ -382,11 +382,12 @@ def verify_bus(bus: str, seconds: float = 2.0, port: str = "", baud: int = 0,
 
 def capture(bus: str, seconds: float = 2.0, max_frames: int = 500,
             filters: Optional[list[str]] = None, include_frames: bool = True,
-            allow_while_mes_connected: bool = False) -> dict[str, Any]:
+            allow_while_mes_connected: bool = False, state_note: str = "") -> dict[str, Any]:
     b = _bus(bus)
     with link().session("capture", bus=b, passive=True,
                         allow_while_mes_connected=allow_while_mes_connected) as sess:
-        cap = capture_mod.listen(sess, seconds=seconds, max_frames=max_frames, filters=filters)
+        cap = capture_mod.listen(sess, seconds=seconds, max_frames=max_frames, filters=filters,
+                                 persist_raw=True, state_note=state_note)
         if not include_frames:
             cap["frames"] = cap["frames"][:20]
             cap["frames_truncated"] = True

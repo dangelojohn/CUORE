@@ -186,16 +186,22 @@ def verify_bus(bus: str = "can_c", seconds: float = 2.0) -> str:
 
 @mcp.tool()
 def capture(bus: str = "can_c", seconds: float = 2.0, max_frames: int = 500,
-            filters: Optional[list[str]] = None, include_frames: bool = False) -> str:
+            filters: Optional[list[str]] = None, include_frames: bool = False,
+            state_note: str = "") -> str:
     """Passive raw frame capture on a bus. Works with the Security Gateway locked.
 
     filters: pass filters like "7E8,7FF" or "18DAF110,1FFFFFFF".
+    state_note: car state for the saved raw-frame file header, e.g. "parked idle,
+    wheel centred". Raw frames are saved under bus_captures/<vin>/ (see
+    raw_capture_file in the result). Any DBC decoding of them is an UNVERIFIED scale.
     """
     return _via("POST", "/live/capture",
                 lambda: ops.capture(bus, seconds=seconds, max_frames=max_frames,
-                                    filters=filters, include_frames=include_frames),
+                                    filters=filters, include_frames=include_frames,
+                                    state_note=state_note),
                 body={"bus": bus, "seconds": seconds, "max_frames": max_frames,
-                      "filters": filters, "include_frames": include_frames},
+                      "filters": filters, "include_frames": include_frames,
+                      "state_note": state_note},
                 timeout=seconds + 60)
 
 
