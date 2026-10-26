@@ -21,6 +21,7 @@
   {% set sp = i.spec %}
   <details class="fuse-row{{ ' fuse-job' if i.job }}" id="fuse-{{ i.anchor }}"{{ ' open' if i.is_open }}>
     <summary>
+      {% if comp %}<span class="ci-wrap" title="{{ 'Relay' if i.kind == 'relay' else 'Fuse' }}">{{ comp.icon(i.kind if i.kind == 'relay' else 'fuse', 24)|safe }}</span>{% endif %}
       <span class="r-pos">{{ i.position or "—" }}</span>
       {% if sp.type %}<span class="r-type">{{ sp.type }}</span>{% elif i.kind == 'relay' %}<span class="r-type">relay</span>{% endif %}
       {% if i.rating_a %}<span class="r-amp">{{ '%g' % i.rating_a }} A</span>{% endif %}
@@ -47,6 +48,8 @@
         {% endif %}
       </dl>
       {% if miss %}<p class="muted">Not sourced for this row: {{ miss|join(', ') }}. Read it off the {{ 'relay' if i.kind == 'relay' else 'fuse' }} or the box cover.</p>{% endif %}
+      {% if i.also %}<p class="comp-also"><b>Also on this circuit:</b>
+        {% for c in i.also %}<a class="comp-alink" href="#comp-{{ c.anchor }}">{{ c.icon|safe }}<span>{{ c.name }} <small class="muted">({{ c.cat_label|lower }})</small></span></a>{% endfor %}</p>{% endif %}
       <p>Feeds:
         {% if i.feeds_modules %}{% for m in i.feeds_modules %}<a href="/v/{{ vin }}/network">{{ m }}</a>{% if not loop.last %}, {% endif %}{% endfor %}
         {% else %}<span class="muted">no module sourced</span>{% endif %}</p>
@@ -65,6 +68,7 @@
   </details>
 {% endmacro %}
 <div class="fuse-page" id="fuse-map-top">
+{% if comp %}{{ comp.sprite|safe }}{% endif %}
 <form class="fuse-search" id="fuse-search" method="get" action="{{ base }}" role="search">
   <input type="search" name="q" value="{{ q }}" placeholder="Search: F47, rear window, wiper, 15A, G003" aria-label="Search fuses, relays, boxes and grounds" maxlength="80">
   {% if status_f %}<input type="hidden" name="status" value="{{ status_f }}">{% endif %}
@@ -88,7 +92,14 @@
     <a href="{{ r.href }}"><b>{{ r.ref }}</b><span>{{ r.kind }} · {{ r.where }}{% if r.amps %} · {{ r.amps }}{% endif %}</span><span class="muted">{{ r.text }}</span></a>
   {% endfor %}
   {% if results|length > results_shown|length %}<p class="muted fuse-more">Showing the first {{ results_shown|length }}. Add a word to narrow it.</p>{% endif %}
-  {% else %}
+  {% endif %}
+  {% if comp_results %}
+  <h2 class="comp-res-h">Components matching &ldquo;{{ q }}&rdquo; ({{ comp.matches|length }})</h2>
+  {% for r in comp_results %}
+    <a href="{{ r.href }}"><b>{{ r.ref }}</b><span>{{ r.text }} · {{ r.where }}</span></a>
+  {% endfor %}
+  {% endif %}
+  {% if not results and not comp_results %}
   <h2>No match for &ldquo;{{ q }}&rdquo;. {{ no_match_hint }}</h2>
   <div class="fuse-go">
     {% for s in secs %}<a class="fuse-gochip" href="#fuse-box-{{ anchor(s.id) }}">{{ s.short }} box</a>{% endfor %}
@@ -183,7 +194,7 @@
 {% if svg %}
 <section class="fuse-mapbox" id="fuse-map" aria-label="Where the fuse boxes are">
   {{ svg|safe }}
-  <p class="fuse-note">One marker per box, not per fuse. Marker colour and mark show the worst fuse inside (<b>✓</b> OK, <b>!</b> suspect, <b>✕</b> blown, <b>?</b> not checked). Positions are drawn by area, not measured: exact positions are not sourced. The ground symbols under the car link to the grounds section.</p>
+  <p class="fuse-note">One marker per box, not per fuse. Marker colour and mark show the worst fuse inside (<b>✓</b> OK, <b>!</b> suspect, <b>✕</b> blown, <b>?</b> not checked). Positions are drawn by area, not measured: exact positions are not sourced. The ground symbols under the car link to the grounds section. Round icons with a number are electrical components whose area is sourced; tap one to list them.</p>
 </section>
 {% endif %}
 
@@ -264,7 +275,7 @@
   {% if ground_where_gap %}<p class="fuse-gapnote">Location not sourced for most of these grounds.</p>{% endif %}
   {% for g in grounds %}
   <details class="fuse-ground" id="ground-{{ g.id }}"{{ ' open' if g in job_grounds }}>
-    <summary><b>{{ g.name }}</b> <span class="fuse-chipl">ground</span><span class="fuse-gtest">{{ g.test }}</span></summary>
+    <summary>{% if comp %}<span class="ci-wrap">{{ comp.icon('ground', 24)|safe }}</span> {% endif %}<b>{{ g.name }}</b> <span class="fuse-chipl">ground</span><span class="fuse-gtest">{{ g.test }}</span></summary>
     {% if g.photo %}<figure class="fuse-gphoto"><a href="{{ g.photo.href }}"><img src="{{ g.photo.url }}" alt="Mopar catalogue photo: {{ g.photo.name }}" width="64" height="64" loading="lazy"></a><figcaption class="muted">Mopar catalogue photo - the part, not this car</figcaption></figure>{% endif %}
     <div class="fuse-inset">
       <dl class="fuse-facts">
@@ -291,6 +302,50 @@
   </details>
   {% endfor %}
 </section>
+
+{% if comp and comp.total %}
+<section class="fuse-box comp-sec" id="fuse-components" aria-labelledby="fuse-components-h">
+  <h2 id="fuse-components-h">Components <span class="fuse-chipl">{{ comp.shown }} of {{ comp.total }}</span></h2>
+  <p class="muted">Switches, motors, servos, gauges, lamps, modules and the other electrical parts, each with its own icon and its category in words. Where a part sits is shown only when a source gives it.</p>
+  <div class="fuse-chips comp-chips" role="group" aria-label="Show only one category">
+    {% for c in comp.chips %}
+      <a class="fuse-chip comp-chip{{ ' on' if c.on }}" href="{{ c.href }}" aria-pressed="{{ 'true' if c.on else 'false' }}">{{ c.icon|safe }}<span>{{ c.label }}</span> <b>{{ c.count }}</b></a>
+    {% endfor %}
+    {% if comp.cat_f or comp.area_f %}<a class="fuse-chip all" href="{{ base }}#fuse-components">Show all {{ comp.total }}</a>{% endif %}
+  </div>
+  {% if comp.area_f %}<p class="fuse-gapnote">Only parts in the {{ comp.area_word }}.</p>{% endif %}
+  <details class="fuse-fold comp-legend" id="comp-legend" open>
+    <summary>Icon key</summary>
+    <ul class="ci-legend">{% for l in comp.legend %}<li>{{ l.icon|safe }}<span>{{ l.label }}</span></li>{% endfor %}</ul>
+  </details>
+  {% for g in comp.groups %}
+  <h3 class="fuse-rows-h comp-h" id="comp-cat-{{ g.cat }}">{{ g.icon|safe }}<span>{{ g.label }} ({{ g.rows|length }})</span></h3>
+  <ul class="fuse-inset comp-list">
+    {% for c in g.rows %}
+    <li class="comp-row" id="comp-{{ c.anchor }}">
+      <div class="comp-main">
+        <span class="comp-ic">{{ c.icon|safe }}</span>
+        <span class="comp-name"><b>{{ c.name }}</b> <small class="muted">{{ c.cat_label }}</small></span>
+        <span class="comp-where{{ ' muted' if not c.where }}">{{ c.where or 'location not sourced' }}</span>
+      </div>
+      <p class="comp-feeds">
+        {% if c.module %}Module: <a href="/v/{{ vin }}/network">{{ c.module }}</a>{% endif %}
+        {% if c.fuses %}Fuse{{ '' if c.fuses|length == 1 else 's' }}: {% for f in c.fuses %}<a href="#fuse-{{ f.anchor }}">{{ f.id }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+        {% if c.sensors %}Sensor{{ '' if c.sensors|length == 1 else 's' }}: {% for x in c.sensors %}<a href="/v/{{ vin }}/sensors#sensor-{{ x.anchor }}">{{ x.label }}</a>{% if not loop.last %}, {% endif %}{% endfor %}{% endif %}
+        {% if not (c.module or c.fuses or c.sensors) %}<span class="muted">No module, fuse or sensor link sourced.</span>{% endif %}
+      </p>
+      {% if c.photo %}<figure class="r-photo"><a href="{{ c.photo.href }}"><img src="{{ c.photo.url }}" alt="Mopar catalogue photo: {{ c.photo.name }}" width="64" height="64" loading="lazy"></a><figcaption class="small muted">Mopar catalogue photo - the part, not this car</figcaption></figure>{% endif %}
+      <details class="fuse-fold comp-src"><summary>Source</summary>
+        <ul>{% for sl in c.sources %}<li>{{ sl }}</li>{% endfor %}</ul>
+      </details>
+    </li>
+    {% endfor %}
+  </ul>
+  {% endfor %}
+  <p class="fuse-note">{{ comp.drawn }} of {{ comp.total }} are drawn on the car pictures above: only those whose area a source gives. The rest are listed here with "location not sourced".</p>
+  <p class="fuse-back"><a href="#fuse-map-top">Back to the map</a></p>
+</section>
+{% endif %}
 
 <section class="fuse-bottom" aria-label="More">
   <details class="fuse-fold" id="fuse-notsourced">

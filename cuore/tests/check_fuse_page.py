@@ -280,7 +280,7 @@ check('id="fuse-box-tech-engine-bay-2"' in t4 and "added by a technician" not in
 check('href="#fuse-box-tech-engine-bay-2"' in t4.split('class="fuse-picks"')[1].split("</section>")[0], "added box in picker")
 sv4 = re.findall(r"<svg class=\"sens-profile fm-svg.*?</svg>", t4, re.S)
 check(all(s.count('class="fm-box ') == 5 for s in sv4), "added box has a marker on both views")
-check(len(set(re.findall(r'class="fm-hit" cx="(\d+)" cy="(\d+)"', sv4[0].split('class="fm-ground"')[0]))) == 5, "added box marker does not sit on another")
+check(len(set(re.findall(r'class="fm-hit" cx="(\d+)" cy="(\d+)"', re.sub(r'<a class="fm-comp".*?</a>', "", sv4[0].split('class="fm-ground"')[0], flags=re.S)))) == 5, "added box marker does not sit on another")
 sec4 = t4.split('id="fuse-box-tech-engine-bay-2"', 1)[1].split("</section>", 1)[0]
 check("No photo of this box on file" in sec4 and "behind the battery" in sec4, "added box has photo line and facts")
 r = client.post(f"/v/{VIN}/fuses/item", data={"kind": "fuse", "label": "Test fuse", "source": "box cover photo", "box": "tech-engine-bay-2",

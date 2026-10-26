@@ -1,0 +1,3351 @@
+{
+ "rows": [
+  {
+   "id": "ecm",
+   "name": "ECM/PCM (Magneti Marelli IAW 10JA)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/(module)",
+     "text": "(module)"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "ecm",
+     "text": "ECM/PCM -- Magneti Marelli IAW 10JA"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "ecm"
+    ]
+   }
+  },
+  {
+   "id": "bcm",
+   "name": "BCM (Body Computer Marelli 949, gateway)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "BCM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "BCM/(module)",
+     "text": "(module)"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "bcm",
+     "text": "BCM -- Body Computer Marelli 949 (gateway)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "bcm"
+    ]
+   }
+  },
+  {
+   "id": "abs_module",
+   "name": "ABS/ESC control unit",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "ABS",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "brakes--brake-master-cylinder--1",
+     "text": "Anti-lock Brake Control Unit"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--keys-modules-and-engine-controllers--1",
+     "text": "Anti-lock Brake Control Unit"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ABS/(module)",
+     "text": "(module)"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "abs_module",
+     "text": "ABS/ESC module -- Continental MK C1"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "abs_module"
+    ]
+   }
+  },
+  {
+   "id": "tcm",
+   "name": "TCM (ZF 8HP50/75 automatic gearbox)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "TCM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "TCM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ipc",
+   "name": "Instrument panel cluster",
+   "category": "gauge_display",
+   "area": null,
+   "side": null,
+   "module": "IPC",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--instrument-panel-cluster--1",
+     "text": "Instrument Panel Cluster"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "IPC/(module)",
+     "text": "(module)"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "IPC/Fuel level",
+     "text": "Fuel level"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "IPC/Vehicle speed",
+     "text": "Vehicle speed"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "IPC/Engine speed",
+     "text": "Engine speed"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "IPC/Dashboard illumination",
+     "text": "Dashboard illumination"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "fuel_level"
+    ],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ipc_buzzer",
+   "name": "Cluster audible signal (buzzer)",
+   "category": "horn_speaker",
+   "area": null,
+   "side": null,
+   "module": "IPC",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "IPC/Audible signal (Buzzer) volume",
+     "text": "Audible signal (Buzzer) volume"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "seatbelt_alarm",
+   "name": "Seat belt warning (alarm)",
+   "category": "lamp",
+   "area": null,
+   "side": null,
+   "module": "IPC",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "IPC/Seat belt alarm",
+     "text": "Seat belt alarm"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "rfhub",
+   "name": "RFHUB (radio frequency hub)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "RFHUB",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "RFHUB/(module)",
+     "text": "(module)"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "rfhub_module",
+     "text": "RFHUB -- radio frequency hub (Continental)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "rfhub_module"
+    ]
+   }
+  },
+  {
+   "id": "dtcm",
+   "name": "DTCM (Magna Q4 transfer case module)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "DTCM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "DTCM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "esm",
+   "name": "ESM (ZF electronic gear shift module)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "ESM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ESM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "dasm",
+   "name": "DASM (driver assistance radar, Bosch)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "DASM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "DASM/(module)",
+     "text": "(module)"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "dasm_module",
+     "text": "DASM -- driver assistance radar (Bosch)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "adas_radar"
+    ],
+    "element_ids": [
+     "dasm_module"
+    ]
+   }
+  },
+  {
+   "id": "eps",
+   "name": "EPS (ZF electric steering)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "EPS",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "EPS/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "orc",
+   "name": "ORC (airbag / occupant restraint)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "ORC",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ORC/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "afls",
+   "name": "AFLS (adaptive headlight module)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "AFLS",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "AFLS/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "pam",
+   "name": "Park assist / parking control module",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "PAM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--park-assist--1",
+     "text": "Park Assist Module"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "PAM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "half",
+   "name": "HALF (haptic lane-feedback camera, Bosch MFK2)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "HALF",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "HALF/(module)",
+     "text": "(module)"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "half_module",
+     "text": "HALF -- haptic lane-feedback camera (Bosch MFK2)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "adas_camera"
+    ],
+    "element_ids": [
+     "half_module"
+    ]
+   }
+  },
+  {
+   "id": "hvac_module",
+   "name": "A/C and heater module (HVAC)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "HVAC",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "air-conditioners-and-heaters--air-conditioner-and-heater-units--1",
+     "text": "Power Module"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "HVAC/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "hvac_control",
+   "name": "A/C and heater control (dash)",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": "HVAC",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "air-conditioners-and-heaters--air-conditioner-and-heater-controls--1",
+     "text": "A/C And Heater Control"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--consoles--1",
+     "text": "A/C Or Heater Control - Rotary Knob"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "etm",
+   "name": "ETM (AlfaConnect radio-nav / uConnect)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "ETM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ETM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ihs62",
+   "name": "Unidentified CAN-IHS node 0x62",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "IHS62",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "IHS62/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ihs65",
+   "name": "Unidentified CAN-IHS node 0x65",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "IHS65",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "IHS65/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "amp",
+   "name": "Audio amplifier",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "AMP",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "AMP/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "esem",
+   "name": "ESEM (engine sound enhancement)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "ESEM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ESEM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "cswm",
+   "name": "CSWM (comfort seat and wheel module)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "CSWM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "CSWM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "crsm",
+   "name": "CRSM (rear seat module)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "CRSM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "CRSM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "lbss",
+   "name": "Blind-spot sensor, left (LBSS)",
+   "category": "module",
+   "area": null,
+   "side": "left",
+   "module": "LBSS",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "LBSS/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "rbss",
+   "name": "Blind-spot sensor, right (RBSS)",
+   "category": "module",
+   "area": null,
+   "side": "right",
+   "module": "RBSS",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "RBSS/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "plgm",
+   "name": "PLGM (power liftgate module)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "PLGM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "PLGM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "tvm",
+   "name": "TVM (torque vectoring module)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "TVM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "TVM/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "esl",
+   "name": "ESL (TRW steering lock)",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": "ESL",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ESL/(module)",
+     "text": "(module)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "steering_column_module",
+   "name": "Steering column module",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--keys-modules-and-engine-controllers--1",
+     "text": "Steering Column Module"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--switches--1",
+     "text": "Steering Column Module"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "battery_module",
+   "name": "Battery module",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--battery-battery-tray-and-cables--1",
+     "text": "Battery Module"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "collision_module",
+   "name": "Collision module",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--speed-control--1",
+     "text": "Collision Module"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "passive_entry_module",
+   "name": "Passive entry module",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--radio-antenna-speakers-dvd-and-video-systems--1",
+     "text": "Passive Entry Module"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--starters--1",
+     "text": "Passive Entry Module"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "trailer_tow_module",
+   "name": "Trailer tow module",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "frame-bumper-and-fascia--trailer-tow-and-tow-hooks--1",
+     "text": "Trailer Tow Module"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f1_luggage",
+     "f2_luggage"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ptu_control_module",
+   "name": "Power transfer unit control module",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "power-transfer-unit--power-transfer-unit-assembly--1",
+     "text": "Power Transfer Unit Control Module"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "fuel_pump_module",
+   "name": "Fuel pump / level unit module",
+   "category": "module",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "fuel--fuel-pump--1",
+     "text": "Genuine Alfa Romeo Module Fuel Pump/Level Unit"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "fuel_level"
+    ],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "esim",
+   "name": "Evaporative system integrity module (ESIM)",
+   "category": "module",
+   "area": "rear_left_wheel_well",
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "emission-controls--vacuum-canister-leak-detection-pump--1",
+     "text": "Evaporative System Integrity Module Detector"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "esim_connector",
+     "text": "ESIM connector / harness run"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "esim_ground",
+     "text": "ESIM ground point"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "esim",
+     "evap_pressure"
+    ],
+    "element_ids": [
+     "esim_connector",
+     "esim_ground"
+    ]
+   }
+  },
+  {
+   "id": "multiair_actuator",
+   "name": "MultiAir (UniAir) actuator / electrovalve",
+   "category": "solenoid_valve",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "2-0l-direct-inject-turbo-engine--cylinder-head--1",
+     "text": "Multiair Actuator"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/UniAir electrovalve actuation mode",
+     "text": "UniAir electrovalve actuation mode"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/UniAir electrovalve temperature",
+     "text": "UniAir electrovalve temperature"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Solenoid valve opening angle (command 1)",
+     "text": "Solenoid valve opening angle (command 1)"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Solenoid valve closing angle (command 1)",
+     "text": "Solenoid valve closing angle (command 1)"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Solenoid valve opening angle (command 2)",
+     "text": "Solenoid valve opening angle (command 2)"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Solenoid valve closing angle (command 2)",
+     "text": "Solenoid valve closing angle (command 2)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "oil_pump_solenoid",
+   "name": "Oil pump solenoid (variable displacement oil pump)",
+   "category": "solenoid_valve",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "2-0l-direct-inject-turbo-engine--engine-oiling-oil-pan-and-indicator-dipstick--1",
+     "text": "Oil Pump Solenoid"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Variable displacement engine oil pump",
+     "text": "Variable displacement engine oil pump"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "purge_solenoid",
+   "name": "Purge control solenoid (evaporation control valve)",
+   "category": "solenoid_valve",
+   "area": "engine_bay",
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "2-0l-direct-inject-turbo-engine--manifolds-and-vacuum-fittings--1",
+     "text": "Duty Cycle Purge Solenoid"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Evaporation control valve opening",
+     "text": "Evaporation control valve opening"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "purge_valve_connector",
+     "text": "Purge control valve connector"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "purge_valve_connector"
+    ]
+   }
+  },
+  {
+   "id": "obd_vent_valve",
+   "name": "OBD vent valve",
+   "category": "solenoid_valve",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "2-0l-direct-inject-turbo-engine--manifolds-and-vacuum-fittings--1",
+     "text": "Obd Vent Valve"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "turbo_surge_solenoid",
+   "name": "Turbo surge (recirculation) solenoid",
+   "category": "solenoid_valve",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "2-0l-direct-inject-turbo-engine--turbo-and-super-chargers--1",
+     "text": "Genuine Alfa Romeo Solenoid Surge"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "turbo_vacuum_valve",
+   "name": "Turbo vacuum valve / turbo actuator (wastegate control)",
+   "category": "solenoid_valve",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Turbo vacuum valve",
+     "text": "Turbo vacuum valve"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Turbo actuator command",
+     "text": "Turbo actuator command"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "egr_valve",
+   "name": "EGR valve",
+   "category": "solenoid_valve",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "emission-controls--egr-system--1",
+     "text": "Egr Valve"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "coolant_3way_valve",
+   "name": "Coolant 3-way valve",
+   "category": "solenoid_valve",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "cooling--water-pump-and-related-parts--1",
+     "text": "Genuine Alfa Romeo Valve Coolant 3 Way"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "electronic_thermostat",
+   "name": "Electronic thermostat",
+   "category": "actuator",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Electronic thermostat",
+     "text": "Electronic thermostat"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "throttle_actuator",
+   "name": "Electric throttle valve (throttle body motor)",
+   "category": "actuator",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Throttle valve control",
+     "text": "Throttle valve control"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Electrically actuated throttle (recovery)",
+     "text": "Electrically actuated throttle (recovery)"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Throttle angle",
+     "text": "Throttle angle"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "throttle_pos_1",
+     "throttle_pos_2",
+     "throttle_pos_3"
+    ],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "fuel_injector",
+   "name": "Fuel injector",
+   "category": "actuator",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "fuel--fuel-rail-and-injectors--1",
+     "text": "Fuel Injector"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Injection time",
+     "text": "Injection time"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "hpfp",
+   "name": "High-pressure fuel injection pump",
+   "category": "pump",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "fuel--fuel-rail-and-injectors--1",
+     "text": "Fuel Injection Pump"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Fuel pressure (Measured)",
+     "text": "Fuel pressure (Measured)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "fuel_rail_pressure"
+    ],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "fuel_pump",
+   "name": "Fuel pump (in-tank) and fuel pump relay",
+   "category": "pump",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "fuel--fuel-pump--1",
+     "text": "Genuine Alfa Romeo Module Fuel Pump/Level Unit"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Fuel pump relay",
+     "text": "Fuel pump relay"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Fuel pressure (low pressure circuit)",
+     "text": "Fuel pressure (low pressure circuit)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ignition_coil",
+   "name": "Ignition coil (per cylinder)",
+   "category": "actuator",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--ignition-spark-plugs-cables-coils-and-glow-plugs--1",
+     "text": "Ignition Coil"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Coil 1 charge time",
+     "text": "Coil 1 charge time"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Coil 2 charge time",
+     "text": "Coil 2 charge time"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Coil 3 charge time",
+     "text": "Coil 3 charge time"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Coil 4 charge time",
+     "text": "Coil 4 charge time"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "ignition_coil_connector",
+     "text": "Ignition coil connector (per cylinder)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "ignition_coil_connector"
+    ]
+   }
+  },
+  {
+   "id": "spark_plug",
+   "name": "Spark plug",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--ignition-spark-plugs-cables-coils-and-glow-plugs--1",
+     "text": "Spark Plug"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "engine_oil_pump",
+   "name": "Engine oil pump",
+   "category": "pump",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "2-0l-direct-inject-turbo-engine--engine-oiling-oil-pan-and-indicator-dipstick--1",
+     "text": "Engine Oil Pump"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ac_compressor",
+   "name": "A/C compressor (clutch / control)",
+   "category": "actuator",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "air-conditioners-and-heaters--air-conditioner-compressor-and-mounting--1",
+     "text": "Air Conditioning Compressor"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/A/C Compressor",
+     "text": "A/C Compressor"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/A/C request",
+     "text": "A/C request"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "ac_pressure"
+    ],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ac_pressure_valve",
+   "name": "A/C pressure transducer valve",
+   "category": "solenoid_valve",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "air-conditioners-and-heaters--air-conditioner-and-heater-plumbing--1",
+     "text": "A/C Pressure Transducer Valve"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "ac_pressure"
+    ],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "cooling_fan",
+   "name": "Engine cooling fan",
+   "category": "motor",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Fan speed",
+     "text": "Fan speed"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "blower_motor",
+   "name": "HVAC blower motor",
+   "category": "motor",
+   "area": null,
+   "side": null,
+   "module": "HVAC",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "air-conditioners-and-heaters--air-conditioner-and-heater-units--1",
+     "text": "Blower Motor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "hvac_actuator",
+   "name": "A/C and heater (blend/mode) actuator",
+   "category": "actuator",
+   "area": null,
+   "side": null,
+   "module": "HVAC",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "air-conditioners-and-heaters--air-conditioner-and-heater-units--1",
+     "text": "A/C And Heater Actuator"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiper_motor",
+   "name": "Windshield wiper motor and linkage",
+   "category": "motor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiper-and-washer-system--1",
+     "text": "Windshield Wiper Motor And Linkage"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "washer_pump",
+   "name": "Washer pump (named only by fuse F43)",
+   "category": "pump",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "cuore_element",
+     "ref": "f43_interior",
+     "text": "Fuse F43 (washer pump)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f43_interior"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "headlamp_washer",
+   "name": "Headlamp washer (brackets listed; pump/nozzle not named)",
+   "category": "pump",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "frame-bumper-and-fascia--front-bumper-and-fascia--1",
+     "text": "Headlamp Washer Bracket, Right"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "frame-bumper-and-fascia--front-bumper-and-fascia--1",
+     "text": "Headlamp Washer Bracket, Left"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "park_brake_actuator_left",
+   "name": "Electric park brake actuator, left",
+   "category": "actuator",
+   "area": null,
+   "side": "left",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "brakes--rear-brakes--1",
+     "text": "Park Brake Actuator, Left"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "park_brake_actuator_right",
+   "name": "Electric park brake actuator, right",
+   "category": "actuator",
+   "area": null,
+   "side": "right",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "brakes--rear-brakes--1",
+     "text": "Park Brake Actuator, Right"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "window_motor_rear_left",
+   "name": "Rear window regulator motor, left",
+   "category": "motor",
+   "area": null,
+   "side": "left",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "doors-door-mirrors-and-related-parts--rear-door--1",
+     "text": "Window Regulator Motor, Left"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "window_motor_rear_right",
+   "name": "Rear window regulator motor, right",
+   "category": "motor",
+   "area": null,
+   "side": "right",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "doors-door-mirrors-and-related-parts--rear-door--1",
+     "text": "Window Regulator Motor, Right"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "liftgate_latch_actuator",
+   "name": "Lift-gate latch actuator",
+   "category": "actuator",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "doors-door-mirrors-and-related-parts--lift-and-tail-gates--1",
+     "text": "Lift-Gate Latch Actuator"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "rear_door_latch_left",
+   "name": "Rear door latch, left",
+   "category": "actuator",
+   "area": null,
+   "side": "left",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "doors-door-mirrors-and-related-parts--rear-door--1",
+     "text": "Rear Door Latch, Left"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "rear_door_latch_right",
+   "name": "Rear door latch, right",
+   "category": "actuator",
+   "area": null,
+   "side": "right",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "doors-door-mirrors-and-related-parts--rear-door--1",
+     "text": "Rear Door Latch, Right"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "hood_latch",
+   "name": "Hood latch",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "body-sheet-metal-except-doors--hood-and-hood-release--1",
+     "text": "Hood Latch"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "mirror_left",
+   "name": "Outside rear-view mirror, left",
+   "category": "actuator",
+   "area": null,
+   "side": "left",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "doors-door-mirrors-and-related-parts--exterior-mirror--1",
+     "text": "Outside Rear-View Mirror, Left"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f36_interior"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "mirror_right",
+   "name": "Outside rear-view mirror, right",
+   "category": "actuator",
+   "area": null,
+   "side": "right",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "doors-door-mirrors-and-related-parts--exterior-mirror--1",
+     "text": "Outside Rear-View Mirror, Right"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f36_interior"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "tire_compressor",
+   "name": "Tire inflation compressor (jack stowage kit)",
+   "category": "pump",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "wheels--jack-stowage--1",
+     "text": "Tire Compressor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "sunroof_unit",
+   "name": "Sunroof (sunshade listed; motor not named)",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "body-sheet-metal-except-doors--sunroof--1",
+     "text": "Sunroof Sunshade"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "window_riser_circuit",
+   "name": "Window-riser motor circuit (B1176 family)",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "cuore_element",
+     "ref": "window_riser_circuit",
+     "text": "Window-riser motor circuit (B1176 family)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f33_interior",
+     "f34_interior"
+    ],
+    "sensor_ids": [],
+    "element_ids": [
+     "window_riser_circuit"
+    ]
+   }
+  },
+  {
+   "id": "brake_pedal_switch",
+   "name": "Brake pedal switch (brake contact 1 / 2)",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Brake pedal",
+     "text": "Brake pedal"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Brake contact 2",
+     "text": "Brake contact 2"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "clutch_pedal_switch",
+   "name": "Clutch pedal switch (contact 1 / 2)",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Clutch pedal",
+     "text": "Clutch pedal"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Clutch contact 2",
+     "text": "Clutch contact 2"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "brake_vacuum_switch",
+   "name": "Brake booster vacuum switch",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Brake booster vacuum switch",
+     "text": "Brake booster vacuum switch"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "oil_pressure_switch",
+   "name": "Oil pressure switch 1 / 2",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Oil pressure switch 1",
+     "text": "Oil pressure switch 1"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Oil pressure switch 2",
+     "text": "Oil pressure switch 2"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "oil_pressure"
+    ],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "cruise_switch",
+   "name": "Cruise control switch",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Cruise control switch",
+     "text": "Cruise control switch"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "dna_selector",
+   "name": "Dynamic control selector",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Dynamic control selector",
+     "text": "Dynamic control selector"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ignition_switch",
+   "name": "Ignition switch / key position",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "steering--steering-wheel--1",
+     "text": "Ignition Switch"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Ignition key position",
+     "text": "Ignition key position"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "parking_brake_switch",
+   "name": "Parking brake switch",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "brakes--parking-brake-lever-cables-and-rear-disc-park-brake-assembly--1",
+     "text": "Parking Brake Switch"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "steering_wheel_switch_left",
+   "name": "Steering wheel switch, left",
+   "category": "switch",
+   "area": null,
+   "side": "left",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--switches--1",
+     "text": "Steering Wheel Switch, Left"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "steering--steering-wheel--1",
+     "text": "Steering Wheel Switch, Left"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "steering_wheel_switch",
+   "name": "Steering wheel switch",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--switches--1",
+     "text": "Genuine Alfa Romeo Switch Steering Wheel"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "steering--steering-wheel--1",
+     "text": "Genuine Alfa Romeo Switch Steering Wheel"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "door_lock_switch",
+   "name": "Door lock switch (door trim)",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--door-trim-panels-front-and-rear--1",
+     "text": "Door Lock Switch, Right"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--door-trim-panels-front-and-rear--1",
+     "text": "Genuine Alfa Romeo Switch Door Lock"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f38_interior"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "memory_selector_switch",
+   "name": "Memory selector switch (door trim)",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--door-trim-panels-front-and-rear--1",
+     "text": "Memory Selector Switch"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "lamp_switch",
+   "name": "Lamp switch (instrument panel)",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--instrument-panel--1",
+     "text": "Lamp Switch"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "liftgate_release_switch",
+   "name": "Liftgate release switch",
+   "category": "switch",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "doors-door-mirrors-and-related-parts--lift-and-tail-gates--1",
+     "text": "Genuine Alfa Romeo Switch Liftgate Release"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "mil",
+   "name": "Failure indicator light (MIL)",
+   "category": "lamp",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Failure indicator light",
+     "text": "Failure indicator light"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "dome_lamp",
+   "name": "Dome lamp",
+   "category": "lamp",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--lamps-interior-and-exterior--1",
+     "text": "Dome Lamp"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "courtesy_lamp",
+   "name": "Courtesy lamp",
+   "category": "lamp",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--lamps-interior-and-exterior--1",
+     "text": "Courtesy Lamp"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--door-trim-panels-front-and-rear--1",
+     "text": "Courtesy Lamp"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--instrument-panel--1",
+     "text": "Courtesy Lamp"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "lamp_bulb",
+   "name": "Lamp bulb (interior/exterior lamps diagram)",
+   "category": "lamp",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--lamps-interior-and-exterior--1",
+     "text": "Bulb"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "overhead_console",
+   "name": "Overhead console",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--lamps-interior-and-exterior--1",
+     "text": "Overhead Console"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "navigation_display",
+   "name": "Navigation display",
+   "category": "gauge_display",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--navigation--1",
+     "text": "Navigation Display"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "alarm_siren",
+   "name": "Alarm siren (listed in Horns diagram)",
+   "category": "horn_speaker",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--horns--1",
+     "text": "Alarm Siren"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "tweeter_speaker",
+   "name": "Tweeter speaker (door trim)",
+   "category": "horn_speaker",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--door-trim-panels-front-and-rear--1",
+     "text": "Tweeter Speaker"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f08_luggage"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ip_speaker_left",
+   "name": "Instrument panel speaker grille, left",
+   "category": "horn_speaker",
+   "area": null,
+   "side": "left",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--instrument-panel--1",
+     "text": "Instrument Panel Speaker Grille, Left"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ip_speaker_right",
+   "name": "Instrument panel speaker grille, right",
+   "category": "horn_speaker",
+   "area": null,
+   "side": "right",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--instrument-panel--1",
+     "text": "Instrument Panel Speaker Grille, Right"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "antenna",
+   "name": "Antenna",
+   "category": "antenna",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--radio-antenna-speakers-dvd-and-video-systems--1",
+     "text": "Antenna"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "passive_entry_antenna",
+   "name": "Passive entry antenna",
+   "category": "antenna",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--radio-antenna-speakers-dvd-and-video-systems--1",
+     "text": "Passive Entry Antenna"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "key_transmitter",
+   "name": "Key transmitter (key fob)",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--radio-antenna-speakers-dvd-and-video-systems--1",
+     "text": "Transmitter"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--radio-antenna-speakers-dvd-and-video-systems--1",
+     "text": "Genuine Alfa Romeo Key Transmitter"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "trailer_receiver",
+   "name": "Trailer tow receiver",
+   "category": "connector",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "frame-bumper-and-fascia--trailer-tow-and-tow-hooks--1",
+     "text": "Genuine Alfa Romeo Receiver Trailer Tow"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f3_luggage",
+     "f4_luggage"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "power_outlet",
+   "name": "12 V power outlet",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--consoles--1",
+     "text": "Power Outlet"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f22_luggage"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "seat_heater_back",
+   "name": "Seat back heated pad",
+   "category": "heater",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--front-seats-first-row--1",
+     "text": "Seat Back Heated Pad"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "seat_heater_cushion",
+   "name": "Seat cushion heated pad",
+   "category": "heater",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "interior-trim--front-seats-first-row--1",
+     "text": "Seat Cushion Heated Pad"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "engine_block_heater",
+   "name": "Engine block heater",
+   "category": "heater",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "2-0l-direct-inject-turbo-engine--cylinder-block--1",
+     "text": "Genuine Alfa Romeo Heater/Co Engine Block"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "heater_core",
+   "name": "Heater core",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "air-conditioners-and-heaters--air-conditioner-and-heater-units--1",
+     "text": "Heater Core"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "rear_window_heater",
+   "name": "Rear window heater (named only by fuses)",
+   "category": "heater",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "cuore_element",
+     "ref": "f94_interior",
+     "text": "Fuse F94 (rear window heater)"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "f47_interior",
+     "text": "Fuse F47 (rear window)"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "f48_interior",
+     "text": "Fuse F48 (rear window)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f94_interior",
+     "f47_interior",
+     "f48_interior"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "alternator",
+   "name": "Generator (alternator)",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--generators-alternators--1",
+     "text": "Engine Generator"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Battery voltage",
+     "text": "Battery voltage"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "battery",
+   "name": "12 V battery",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--battery-battery-tray-and-cables--1",
+     "text": "Genuine Alfa Romeo Battery-Storage"
+    },
+    {
+     "kind": "cuore_element",
+     "ref": "battery",
+     "text": "12V battery"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "f82",
+     "bcm_feed_20a"
+    ],
+    "sensor_ids": [],
+    "element_ids": [
+     "battery"
+    ]
+   }
+  },
+  {
+   "id": "ibs_battery_sensor",
+   "name": "Battery sensor (IBS)",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--battery-battery-tray-and-cables--1",
+     "text": "Battery Sensor"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/IBS Battery charge status",
+     "text": "IBS Battery charge status"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [
+     "ibs"
+    ],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "starter_relay",
+   "name": "Starter relay",
+   "category": "relay",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "cuore_element",
+     "ref": "starter_relay",
+     "text": "Starter relay"
+    }
+   ],
+   "links": {
+    "fuse_ids": [
+     "starter_relay"
+    ],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "chassis_sensor_connector",
+   "name": "Chassis sensor connector (C141B/C141C family)",
+   "category": "connector",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "cuore_element",
+     "ref": "chassis_sensor_connector",
+     "text": "Chassis sensor connector (C141B/C141C family)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "chassis_sensor_connector"
+    ]
+   }
+  },
+  {
+   "id": "xy201",
+   "name": "Inline connector XY201",
+   "category": "connector",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "cuore_element",
+     "ref": "xy201",
+     "text": "Inline connector XY201"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "xy201"
+    ]
+   }
+  },
+  {
+   "id": "electrical_connector",
+   "name": "Electrical connector (speed control diagram)",
+   "category": "connector",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--speed-control--1",
+     "text": "Electrical Connector"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "esim_ground",
+   "name": "ESIM ground point",
+   "category": "ground",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "cuore_element",
+     "ref": "esim_ground",
+     "text": "ESIM ground point"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "esim_ground"
+    ]
+   }
+  },
+  {
+   "id": "g003a",
+   "name": "Frame ground G003A",
+   "category": "ground",
+   "area": "underbody",
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "cuore_element",
+     "ref": "g003a",
+     "text": "Frame ground G003A"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "g003a"
+    ]
+   }
+  },
+  {
+   "id": "g003b",
+   "name": "Frame ground G003B",
+   "category": "ground",
+   "area": "underbody",
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "cuore_element",
+     "ref": "g003b",
+     "text": "Frame ground G003B"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": [
+     "g003b"
+    ]
+   }
+  },
+  {
+   "id": "ground_strap",
+   "name": "Ground strap (wiring-powertrain)",
+   "category": "ground",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-powertrain--1",
+     "text": "Alfa Romeo Ground Strap"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_engine",
+   "name": "Engine wiring / heater wiring",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-powertrain--1",
+     "text": "Engine Wiring"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-powertrain--1",
+     "text": "Heater Wiring"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_headlamp_dash",
+   "name": "Headlamp to dash wiring",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-headlamp-to-dash--1",
+     "text": "Headlamp To Dash Wiring"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_console",
+   "name": "Console wiring",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-instrument-panel--1",
+     "text": "Genuine Alfa Romeo Wiring Console"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_front_door_left",
+   "name": "Front door wiring, left",
+   "category": "other",
+   "area": null,
+   "side": "left",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-body-and-accessories--1",
+     "text": "Front Door Wiring, Left"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_front_door_right",
+   "name": "Front door wiring, right",
+   "category": "other",
+   "area": null,
+   "side": "right",
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-body-and-accessories--1",
+     "text": "Front Door Wiring, Right"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_rear_door",
+   "name": "Rear door wiring",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-body-and-accessories--1",
+     "text": "Genuine Alfa Romeo Wiring Rear Door"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_liftgate",
+   "name": "Liftgate wiring / jumper",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-body-and-accessories--1",
+     "text": "Genuine Alfa Romeo Wiring Liftgate"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-body-and-accessories--1",
+     "text": "Genuine Alfa Romeo Wiring Liftgate Jumper"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_rear_fascia",
+   "name": "Rear fascia wiring",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--park-assist--1",
+     "text": "Rear Fascia Wiring"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_ac_module",
+   "name": "A/C module wiring",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "air-conditioners-and-heaters--air-conditioner-and-heater-units--1",
+     "text": "Genuine Alfa Romeo Wiring Air Conditioning Module"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "wiring_courtesy_lamp",
+   "name": "Courtesy lamp wiring",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--lamps-interior-and-exterior--1",
+     "text": "Genuine Alfa Romeo Wiring Courtesy Lamp"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "ignition_capacitor",
+   "name": "Ignition capacitor",
+   "category": "other",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--wiring-powertrain--1",
+     "text": "Ignition Capacitor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "crankcase_pressure_sensor",
+   "name": "Crankcase pressure sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "2-0l-direct-inject-turbo-engine--crankcase-ventilation--1",
+     "text": "Genuine Alfa Romeo Sensor Crankcase Pressure"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "egr_temp_sensor",
+   "name": "EGR temperature sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "emission-controls--egr-system--1",
+     "text": "Genuine Alfa Romeo Sensor Egr Temperature"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "rain_sensor",
+   "name": "Rain sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--sensors--1",
+     "text": "Rain Sensor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "occupant_detection_sensor",
+   "name": "Occupant detection sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--sensors--1",
+     "text": "Occupant Detection Sensor"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--sensors--5",
+     "text": "Occupant Detection Sensor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "seat_position_sensor",
+   "name": "Seat position sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--sensors--1",
+     "text": "Seat Position Sensor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "park_assist_sensor",
+   "name": "Park assist sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--park-assist--1",
+     "text": "Park Assist Sensor"
+    },
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--park-assist--2",
+     "text": "Park Assist Sensor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "fuel_vapor_sensor",
+   "name": "Fuel vapor sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "emission-controls--vacuum-canister-leak-detection-pump--1",
+     "text": "Fuel Vapor Sensor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "air_quality_sensor",
+   "name": "Air quality sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--sensors--1",
+     "text": "Air Quality Sensor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "sun_sensor",
+   "name": "Sun sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--sensors--1",
+     "text": "Genuine Alfa Romeo Sensor Sun"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "cabin_air_temp_sensor",
+   "name": "Cabin air temperature sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "electrical--sensors--1",
+     "text": "Temperature Cabin Air Sensor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "mass_airflow_sensor",
+   "name": "Mass airflow sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "fuel--air-cleaner--1",
+     "text": "Mass Airflow Sensor"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "turbo_pressure_sensor",
+   "name": "Turbo pressure sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": null,
+   "sources": [
+    {
+     "kind": "mopar_diagram",
+     "ref": "2-0l-direct-inject-turbo-engine--turbo-and-super-chargers--1",
+     "text": "Genuine Alfa Romeo Sensor Pressure"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "knock_sensor",
+   "name": "Knock sensors (cyl. 1-4)",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Knock sensor signal (Cyl. 1)",
+     "text": "Knock sensor signal (Cyl. 1)"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Knock sensor signal (Cyl. 2)",
+     "text": "Knock sensor signal (Cyl. 2)"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Knock sensor signal (Cyl. 3)",
+     "text": "Knock sensor signal (Cyl. 3)"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Knock sensor signal (Cyl. 4)",
+     "text": "Knock sensor signal (Cyl. 4)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  },
+  {
+   "id": "cam_phonic_sensor",
+   "name": "Cam position / phonic wheel (rev) sensor",
+   "category": "sensor",
+   "area": null,
+   "side": null,
+   "module": "ECM",
+   "sources": [
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Cam position",
+     "text": "Cam position"
+    },
+    {
+     "kind": "mes_parameter",
+     "ref": "ECM/Rev sensor (phonic wheel)",
+     "text": "Rev sensor (phonic wheel)"
+    }
+   ],
+   "links": {
+    "fuse_ids": [],
+    "sensor_ids": [],
+    "element_ids": []
+   }
+  }
+ ],
+ "areas_seen": [
+  "engine_bay",
+  "rear_left_wheel_well",
+  "underbody"
+ ],
+ "counts_by_category": {
+  "module": 34,
+  "gauge_display": 2,
+  "horn_speaker": 5,
+  "lamp": 5,
+  "switch": 15,
+  "solenoid_valve": 9,
+  "actuator": 13,
+  "pump": 6,
+  "other": 21,
+  "motor": 5,
+  "antenna": 2,
+  "connector": 4,
+  "heater": 4,
+  "sensor": 15,
+  "relay": 1,
+  "ground": 4
+ },
+ "notes": "Mopar diagrams carry no area field in catalog.json, so area is null unless a CUORE element sources a zone (area then copied from it). Part numbers deliberately omitted. MES ref 'MODULE/(module)' means the module appears in the parsed MES module list (no parameter). Washer pump, rear window heater and starter relay are named only by CUORE fuse labels (fuses_stelvio_2018.json); those fuse ids appear as cuore_element sources. Merges made on name equivalence: PAM=Park Assist Module, HVAC module=Mopar 'Power Module' in the A/C unit diagram (weakest merge), IPC=Instrument Panel Cluster. Not merged: Passive Entry Module vs RFHUB, Power Transfer Unit Control Module vs DTCM, Collision Module vs DASM, Steering Column Module vs CSWM (not proven the same). window_riser_circuit not tied to the rear window motors (the circuit's window is not sourced). Mopar Parts lists generic fuses/relays (J Case, Maxi, Mini, Micro relay) not itemised here. ABS, BCM, TCM etc. other than ECM and IPC have zero parsed MES parameters, so no switches/actuators from them. Mopar items are catalogue parts, not proof the car is so equipped."
+}

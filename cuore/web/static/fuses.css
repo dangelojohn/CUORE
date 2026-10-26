@@ -223,3 +223,29 @@ i.fz-sw { display: inline-block; width: 16px; height: 16px; border-radius: 3px; 
 .fuse-results a b { font-family: var(--mono); min-width: 52px; }
 .fuse-results .fuse-go { padding: 0 12px 12px; }
 .fuse-results h2 { font-size: var(--fs-md, 16px); }
+
+/* Components + icon language (one icon per category, always beside a text label) */
+.ci-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.ci { flex: none; color: var(--ink); vertical-align: middle; }
+.ci-wrap { display: inline-flex; align-items: center; margin-right: 4px; }
+.comp-chip .ci { color: var(--ink-2); } .comp-chip.on .ci { color: inherit; }
+.comp-chip { --c: var(--ink-3); } .comp-chip b { color: inherit; }
+.ci-legend { list-style: none; margin: 0; padding: 8px 12px; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.ci-legend li { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; }
+.comp-h { display: flex; align-items: center; gap: 8px; }
+.comp-list { list-style: none; margin: 0 0 12px; padding: 0; }
+.comp-row { border-top: 1px solid var(--rule-soft, var(--rule)); padding: 4px 12px 8px; scroll-margin-top: 90px; }
+.comp-row:first-child { border-top: 0; }
+.comp-row:target { outline: 2px solid var(--accent); outline-offset: -2px; }
+.comp-main { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: var(--tap, 44px); }
+.comp-name { flex: 1 1 220px; }
+.comp-where { flex: 0 1 auto; color: var(--ink-2); }
+.comp-feeds { margin: 0 0 4px 40px; }
+.comp-feeds a, .comp-alink { display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding-inline: 4px; margin-right: 8px; }
+.comp-alink { gap: 6px; }
+.comp-src { margin: 0 0 0 40px; }
+.comp-also { margin: 6px 0; }
+.fm-comp .fm-cdot { fill: var(--surface); stroke: var(--ink); stroke-width: 2; }
+.fm-comp .fm-cicon { color: var(--ink); }
+.fm-comp .fm-cnum { font: 700 14px var(--mono, monospace); fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+.fm-comp .fm-hit { fill: transparent; }

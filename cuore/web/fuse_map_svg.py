@@ -108,11 +108,38 @@ def _ground_strip(grounds: list[dict[str, Any]], w: float, y: float) -> str:
     return "".join(p)
 
 
-def _view_svg(boxes: list[dict[str, Any]], view: str, aria: str, grounds: Optional[list[dict[str, Any]]] = None) -> str:
+# component clusters: view area -> (x, y) on the side view; top view uses the same x, y=200 (+/- shift for a sourced side)
+_CSIDE = {"engine": (235, 150), "rear": (735, 262), "underbody": (440, 270)}
+
+
+def _comp_marks(clusters: list[dict[str, Any]], view: str) -> str:
+    """One icon per (area, category) cluster with a count; tap -> the Components section filtered to that area."""
+    out, used = [], {}
+    for c in clusters:
+        a = c["view_area"]
+        if a not in _CSIDE:
+            continue
+        k = used[a] = used.get(a, -1) + 1
+        x, y = _CSIDE[a]
+        x += 46 * k
+        if view == "top":
+            y = 200 + {"left": _SHIFT, "right": -_SHIFT}.get(c.get("side") or "", 0)
+        tip = f'{c["label"]}: {c["count"]} in {c["area_text"]} - show the list'
+        out.append(f'<a class="fm-comp" href="{escape(c["href"], quote=True)}"><title>{escape(tip)}</title>'
+                   f'<circle class="fm-hit" cx="{x}" cy="{y}" r="22"/>'
+                   f'<circle class="fm-cdot" cx="{x}" cy="{y}" r="17"/>'
+                   f'<use href="#ci-{escape(c["cat"])}" x="{x - 11}" y="{y - 11}" width="22" height="22" class="fm-cicon"/>'
+                   f'<text class="fm-cnum" x="{x + 17}" y="{y - 12}" text-anchor="middle">{c["count"]}</text></a>')
+    return "".join(out)
+
+
+def _view_svg(boxes: list[dict[str, Any]], view: str, aria: str, grounds: Optional[list[dict[str, Any]]] = None,
+              comps: Optional[list[dict[str, Any]]] = None) -> str:
     w, h = (_s._VB_W, _s._VB_H) if view == "side" else (_s._TOP_W, _s._TOP_H)
     art = _s._car_line_art() if view == "side" else _s._car_top_art()
     cls = "sens-profile fm-svg" + ("" if view == "side" else " sens-top")
     marks = "".join(_marker(b, x, y, d, view) for b, x, y, d in _place(boxes, view))
+    marks += _comp_marks(comps or [], view)
     marks += _ground_strip(grounds or [], w, h)
     h += 100 if grounds else 0
     return (f'<svg class="{cls}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="100%" '
@@ -120,12 +147,12 @@ def _view_svg(boxes: list[dict[str, Any]], view: str, aria: str, grounds: Option
 
 
 def box_map(boxes: list[dict[str, Any]], grounds: Optional[list[dict[str, Any]]] = None,
-            default_view: str = "side") -> str:
+            default_view: str = "side", comps: Optional[list[dict[str, Any]]] = None) -> str:
     """Side/Top toggle + one marker per box. ``boxes``: id, short, side, zone/area, status, status_word,
     count, location_confidence. ``default_view`` ("side" / "top") is which radio is checked, set server-side."""
     top_on = default_view == "top"
-    side = _view_svg(boxes, "side", "Side view of the car (left side shown) with one marker per fuse box", grounds)
-    top = _view_svg(boxes, "top", "Top view of the car with one marker per fuse box", grounds)
+    side = _view_svg(boxes, "side", "Side view of the car (left side shown) with one marker per fuse box", grounds, comps)
+    top = _view_svg(boxes, "top", "Top view of the car with one marker per fuse box", grounds, comps)
     return ('<div class="fm-wrap">'
             f'<input class="fm-radio" type="radio" name="fm-view" id="fm-v-side"{"" if top_on else " checked"}>'
             f'<input class="fm-radio" type="radio" name="fm-view" id="fm-v-top"{" checked" if top_on else ""}>'
