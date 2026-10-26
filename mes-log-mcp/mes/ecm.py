@@ -40,7 +40,7 @@ def installed(vin: str) -> Optional[dict[str, Any]]:
             continue
         fields = data.get("fields") or {}
 
-        def val(did: str) -> Optional[str]:
+        def val(did: str, fields=fields) -> Optional[str]:
             f = fields.get(did) or {}
             return (f.get("ascii") or "").strip() or None
 
@@ -53,7 +53,7 @@ def installed(vin: str) -> Optional[dict[str, Any]]:
         }.items() if v}
         if live:
             out["live"] = {"read_at": obs.get("at"), **live}
-        break
+            break  # newest observation that actually carries fields; empty ones are skipped
     # Newest MES session on the engine ECU.
     for entry in CATALOG.select(kind="fes", vin=vin):
         if entry.parse_error:
@@ -98,14 +98,27 @@ def summary_line(ident: Optional[dict[str, Any]]) -> str:
     return ", ".join(parts) or "installed ECM software not recorded"
 
 
+def _is_evap_code(code: str) -> bool:
+    """SAE P0440-P0457 (EVAP system) and P0496 (EVAP flow during non-purge)."""
+    c = (code or "").split("-")[0].upper()
+    return len(c) == 5 and c.startswith("P04") and (c[3:] in {f"{n:02d}" for n in range(40, 58)} | {"96"})
+
+
 def dealer_request(vin: str, codes: list[str],
-                   ident: Optional[dict[str, Any]] = None) -> str:
-    """The exact request to read to a service advisor."""
+                   ident: Optional[dict[str, Any]] = None,
+                   evap_serviced: bool = False) -> str:
+    """The exact request to read to a service advisor.
+
+    The "after the EVAP system was serviced" clause is only stated when the caller says EVAP repairs are
+    recorded (``evap_serviced=True``) AND at least one of the codes is an EVAP code; otherwise it is omitted.
+    """
     ident = ident if ident is not None else installed(vin)
     code_text = ", ".join(sorted({c.split("-")[0] for c in codes})) or "these codes"
+    after = (" after the EVAP system was serviced"
+             if evap_serviced and any(_is_evap_code(c) for c in codes) else "")
     return (f"Please run a wiTECH ECU flash check on VIN {vin}. The engine computer "
             f"currently has {summary_line(ident)}. Is a newer PCM calibration available? "
-            f"The car keeps setting {code_text} after the EVAP system was serviced, and the "
+            f"The car keeps setting {code_text}{after}, and the "
             f"18-0xx PCM flash family (TSB 18-030-17 REV. B and later) lists these codes "
             f"as fixed by a flash. If it can be done during an open recall visit, please "
             f"combine it.")

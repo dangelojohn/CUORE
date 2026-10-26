@@ -180,7 +180,88 @@ def _hyp_rank(t: dict[str, Any], open_hyps: list[dict[str, Any]],
     return 2
 
 
-def build_tests_view(vin: str) -> dict[str, Any]:
+SORT_KEYS = ("priority", "system", "duration")
+
+
+def age_text(iso: Optional[str], now: Optional[datetime] = None) -> str:
+    """"2 d ago" style age of an ISO timestamp; empty string when unknown
+    (never guessed)."""
+    if not iso:
+        return ""
+    try:
+        then = datetime.fromisoformat(str(iso))
+    except ValueError:
+        return ""
+    now = now or (datetime.now(then.tzinfo) if then.tzinfo else datetime.now())
+    secs = (now - then).total_seconds()
+    if secs < 0:
+        return "just now"
+    if secs < 3600:
+        return f"{max(1, int(secs // 60))} min ago"
+    if secs < 86400:
+        return f"{int(secs // 3600)} h ago"
+    days = int(secs // 86400)
+    if days < 60:
+        return f"{days} d ago"
+    return f"{days // 30} mo ago"
+
+
+def _state_of(r: dict[str, Any]) -> tuple[str, str]:
+    """(state key, visible label) -- the label always carries the state in
+    words so colour is never the only cue."""
+    res = r["latest_result"]["result"]
+    if res != "not_done":
+        return res, res.replace("_", " ").upper()
+    blk = r.get("blocker")
+    if blk and blk.get("window"):
+        return "blocked", "BLOCKED: " + str(blk.get("reason") or "see note")
+    if r["recommended"]:
+        return "recommended", "RECOMMENDED"
+    return "not_done", "NOT DONE"
+
+
+def _layout(rows: list[dict[str, Any]], open_hyps: list[dict[str, Any]],
+            next_test_ids: set[str], sort: str) -> dict[str, Any]:
+    """Split the rows into the mechanic's reading order: Do next (recommended,
+    unblocked, not done), Blocked, Done (newest first), then everything else
+    folded by system. ``sort`` re-orders inside each section."""
+    order = {r["id"]: i for i, r in enumerate(rows)}  # catalogue/priority order
+
+    def prio(r: dict[str, Any]) -> tuple:
+        if r["recommended"]:
+            return (_hyp_rank(r, open_hyps, next_test_ids), -len(r["why"]), order[r["id"]])
+        return (3, 0, order[r["id"]])
+
+    def key(r: dict[str, Any]) -> tuple:
+        if sort == "system":
+            return (r["system"], prio(r))
+        if sort == "duration":
+            return (r["duration_min"], prio(r))
+        return prio(r)
+
+    for r in rows:
+        r["state"], r["state_label"] = _state_of(r)
+        r["system"] = (r["systems"][0] if r.get("systems") else "general")
+        r["age"] = age_text(r["latest_result"].get("when"))
+
+    todo = [r for r in rows if r["state"] in ("recommended", "not_done", "blocked")]
+    do_next = sorted([r for r in todo if r["state"] == "recommended"], key=key)
+    blocked = sorted([r for r in todo if r["state"] == "blocked"], key=key)
+    done = sorted([r for r in rows if r["state"] not in ("recommended", "not_done", "blocked")],
+                  key=lambda r: r["latest_result"].get("when") or "", reverse=True)
+    rest_rows = sorted([r for r in todo if r["state"] == "not_done"], key=key)
+    groups: dict[str, list[dict[str, Any]]] = {}
+    for r in rest_rows:
+        groups.setdefault(r["system"], []).append(r)
+    rest = [{"system": k, "label": k.replace("_", " "), "rows": v, "count": len(v),
+             "minutes": sum(x["duration_min"] for x in v)}
+            for k, v in sorted(groups.items())]
+    return {"do_next": do_next, "blocked": blocked, "done": done, "rest": rest,
+            "rest_count": len(rest_rows), "sort": sort,
+            "done_fail": sum(1 for r in done if r["state"] == "fail")}
+
+
+def build_tests_view(vin: str, sort: str = "priority") -> dict[str, Any]:
     """Everything ``tests.html`` needs: the full catalogue, each test's
     latest result, relevance ranking, and category/summary counts."""
     vin = (vin or "").strip()
@@ -277,8 +358,12 @@ def build_tests_view(vin: str) -> dict[str, Any]:
         if r["recommended"] else (1, 0, r["category"], r["name"])
     ))
     categories = sorted({t["category"] for t in catalogue})
+    if sort not in SORT_KEYS:
+        sort = "priority"
+    layout = _layout(rows, open_hyps, next_test_ids, sort)
 
     return {
+        "layout": layout,
         "vin": vin,
         "tests": rows,
         "categories": categories,

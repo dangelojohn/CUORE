@@ -39,7 +39,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..api.deps import require_token
-from ..services import feedback_bridge
+from ..services import feedback_bridge, list_groups
 from ..services.errors import BridgeError
 from .routes import _dossier, _page, _safe_redirect, _set_active_vehicle, _vehicle_bar
 
@@ -49,7 +49,8 @@ STATUSES = ("open", "answered", "applied", "dismissed")
 
 
 @router.get("/v/{vin}/inbox", response_class=HTMLResponse)
-def inbox_page(request: Request, vin: str, status: str = "") -> HTMLResponse:
+def inbox_page(request: Request, vin: str, status: str = "", did: str = "",
+               undo: str = "") -> HTMLResponse:
     """All feedback for this car, grouped by status. ``?status=`` narrows
     the listing to one status but the grouping still only shows that group
     -- the other three just render empty, so the page layout never shifts
@@ -61,7 +62,12 @@ def inbox_page(request: Request, vin: str, status: str = "") -> HTMLResponse:
     for r in rows:
         grouped.setdefault(r.get("status", "open"), []).append(r)
     open_rows = grouped["open"] if not status else feedback_bridge.load(vin, status="open")["feedback"]
-    response = _page(request, "inbox.html", vin=vin, grouped=grouped,
+    active = list_groups.active_codes(vin)
+    folded = {s: list_groups.group_feedback(grouped[s], active) for s in STATUSES}
+    known = {r["id"] for r in rows}
+    undo_ids = [i for i in undo.split(",") if i in known][:200]
+    response = _page(request, "inbox.html", vin=vin, grouped=grouped, folded=folded,
+                     did=did[:60] if undo_ids else "", undo_ids=undo_ids,
                      status=status, statuses=STATUSES,
                      bar=_vehicle_bar(vin, dossier), tab="inbox",
                      open_count=len(open_rows))
@@ -121,6 +127,45 @@ async def feedback_status_submit(request: Request, vin: str, id: str) -> Redirec
             feedback_bridge.set_status(id, status, note=note)
         except BridgeError:
             pass
+    return RedirectResponse(url=redirect_to, status_code=303)
+
+
+@router.post("/v/{vin}/feedback-bulk", response_class=HTMLResponse)
+async def feedback_bulk_submit(request: Request, vin: str) -> RedirectResponse:
+    """One tap for a whole group of the same question: answer every id, or move
+    every id to a status (dismissed/applied/open), through the same per-row
+    ``answer``/``set_status`` the single-row forms use. Only ids that belong to
+    this car are touched. A status move redirects back with an Undo banner."""
+    form = await request.form()
+    redirect_to = _safe_redirect(str(form.get("redirect_to", "")), f"/v/{vin}/inbox")
+    mine = {r["id"] for r in feedback_bridge.load(vin)["feedback"]}
+    ids = [str(i) for i in form.getlist("id") if str(i) in mine]
+    op = str(form.get("op", ""))
+    done: list[str] = []
+    if op == "answer":
+        text = str(form.get("text", "")).strip()
+        by = str(form.get("by", "")).strip() or "technician"
+        for i in ids if text else []:
+            try:
+                feedback_bridge.answer(i, text, by=by)
+                done.append(i)
+            except BridgeError:
+                pass
+        verb = "Answered"
+    else:
+        status = str(form.get("status", "")).strip()
+        note = str(form.get("note", "")).strip()
+        for i in ids if status in STATUSES else []:
+            try:
+                feedback_bridge.set_status(i, status, note=note)
+                done.append(i)
+            except BridgeError:
+                pass
+        verb = {"dismissed": "Dismissed", "applied": "Marked applied", "open": "Reopened"}.get(status, "Updated")
+    if done and op != "undo":
+        sep = "&" if "?" in redirect_to else "?"
+        from urllib.parse import quote
+        redirect_to += f"{sep}did={quote(f'{verb} {len(done)}')}&undo={','.join(done)}"
     return RedirectResponse(url=redirect_to, status_code=303)
 
 

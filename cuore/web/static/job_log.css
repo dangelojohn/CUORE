@@ -1,0 +1,35 @@
+/* Repair log partial (_job_log.html). Tokens only: type from --fs-*, colour from the
+ * theme tokens in cuore.css, so light and dark both work. Targets are >= 44px. */
+.job-log { margin: 12px 0; }
+.job-log .jl-stats, .job-log .jl-count { font-size: var(--fs-sm); color: var(--ink-2); margin: 6px 0; }
+.job-log .jl-bar, .job-log .jl-search { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+.job-log .jl-bar-label { font-size: var(--fs-sm); color: var(--ink-2); }
+.job-log .jl-chip {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px;
+  font-size: var(--fs-sm); color: var(--ink); background: var(--surface-2);
+  border: 1px solid var(--rule); border-radius: var(--radius); text-decoration: none;
+}
+.job-log .jl-chip.is-active { background: var(--raised); border-color: var(--ink); font-weight: 600; }
+.job-log .jl-chip.is-active::before { content: "\2713"; }   /* tick + bold, not colour alone */
+.job-log .jl-search label { font-size: var(--fs-sm); color: var(--ink-2); }
+.job-log .jl-search input[type=search] { min-height: 44px; flex: 1 1 200px; font-size: var(--fs-sm); }
+.job-log .jl-search button { min-height: 44px; min-width: 44px; padding: 0 16px; font-size: var(--fs-sm); }
+.job-log summary { min-height: 44px; cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; padding: 6px 8px; font-size: var(--fs-sm); }
+.job-log .jl-faults ul { list-style: none; padding: 0; margin: 4px 0; display: grid; gap: 4px; }
+.job-log .jl-faults li { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.job-log .jl-entry, .job-log .jl-group { border: 1px solid var(--rule-soft); border-left: 4px solid var(--rule); border-radius: var(--radius); margin: 4px 0; background: var(--surface); }
+.job-log .jl-group { border-left-style: double; border-left-width: 6px; background: var(--surface-2); }
+.job-log .jl-group-body { padding-left: 10px; }
+.job-log .jl-kind { font-size: var(--fs-sm); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: var(--radius); border: 1px solid currentColor; white-space: nowrap; }
+.job-log .jl-k-repair { color: var(--ok); }
+.job-log .jl-k-test { color: var(--sev-cleared); }
+.job-log .jl-k-inspection { color: var(--sev-chronic); }
+.job-log .jl-k-clear { color: var(--sev-returned); }
+.job-log .jl-k-note, .job-log .jl-k-reading { color: var(--ink-3); }
+.job-log .jl-sum { flex: 1 1 260px; color: var(--ink); }
+.job-log .jl-when { font-size: var(--fs-sm); color: var(--ink-2); }
+.job-log .jl-body { padding: 4px 10px 10px; }
+.job-log .jl-full { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--fs-sm); margin: 4px 0; }
+.job-log .jl-meta { font-size: var(--fs-sm); color: var(--ink-2); margin: 4px 0; }
+.job-log .jl-meta a { display: inline-block; min-height: 44px; line-height: 44px; }
+.job-log .jl-empty { font-size: var(--fs-sm); color: var(--ink-2); }

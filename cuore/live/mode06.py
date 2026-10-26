@@ -162,6 +162,9 @@ def decode_supported_mid_bitmap(base: str, data: list[str]) -> tuple[list[str], 
 _RECORD_LEN = 9
 
 
+UNKNOWN_SCALING_VERDICT = "unknown scaling — compare raw only"
+
+
 def _u16(hi: str, lo: str) -> int:
     return (int(hi, 16) << 8) | int(lo, 16)
 
@@ -187,11 +190,14 @@ def decode_mode06_records(mid: str, payload: list[str]) -> list[dict[str, Any]]:
         dmin = decode_uasid(uasid, raw_min)
         dmax = decode_uasid(uasid, raw_max)
         value, vmin, vmax = dv["value"], dmin["value"], dmax["value"]
-        passed = vmin <= value <= vmax
+        known = dv["scaling"] == "known"
+        # Unknown scaling: raw unsigned values may be signed/scaled differently, so no PASS/FAIL verdict.
+        passed = (vmin <= value <= vmax) if known else None
         out.append({
             "mid": rmid, "mid_name": obdmid_name(rmid), "tid": tid, "uasid": uasid,
             "unit": dv["unit"], "value": value, "min": vmin, "max": vmax,
             "passed": passed,
+            "verdict": ("PASS" if passed else "FAIL") if known else UNKNOWN_SCALING_VERDICT,
             "raw": {"value": raw_value, "min": raw_min, "max": raw_max,
                     "scaling": dv["scaling"]},
         })
@@ -215,6 +221,10 @@ def evap_summary(read_result: dict[str, Any]) -> list[str]:
             lines.append(f"{name}: not supported by this ECU")
             continue
         for r in records:
+            if r.get("passed") is None:
+                lines.append(f"{name}: raw value {r['raw']['value']} (min {r['raw']['min']}, max "
+                             f"{r['raw']['max']}) -> {UNKNOWN_SCALING_VERDICT}")
+                continue
             verdict = "PASS" if r["passed"] else "FAIL"
             unit = r.get("unit")
             suffix = f" {unit}" if unit and unit not in ("raw",) else ""

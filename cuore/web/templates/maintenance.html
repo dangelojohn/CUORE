@@ -16,6 +16,22 @@
 {% else %}<span class="chip ok">ok</span>{% endif %}
 {%- endmacro %}
 
+<style>
+.mt-summary { display: flex; gap: 8px; flex-wrap: wrap; font-size: var(--fs-md); }
+.mt-group { margin: 12px 0; }
+.mt-group > summary { min-height: 44px; display: flex; align-items: center; gap: 8px; font-size: var(--fs-lg); }
+.mt-count { font-family: var(--mono); color: var(--ink-2); font-size: var(--fs-md); }
+.mt-item { margin: 8px 0 8px 12px; }
+.mt-card { margin: 0; }
+.mt-sum { min-height: 44px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-md); }
+.mt-name { font-weight: var(--fw-semibold); }
+.mt-age { color: var(--ink); }
+.mt-done { display: flex; gap: 8px; flex-wrap: wrap; align-items: end; margin-top: 6px; }
+.mt-odo { display: flex; flex-direction: column; gap: 2px; font-size: var(--fs-md); color: var(--ink-2); }
+.mt-odo input { min-height: 44px; font-size: var(--fs-md); width: 10em; }
+.mt-btn { min-height: 44px; font-size: var(--fs-md); }
+.mt-inline { display: inline; margin-left: 12px; }
+</style>
 <h1>Routine maintenance</h1>
 <p class="lede">Air/cabin/fuel filters, spark plugs, ignition coils, coolant, brake fluid,
 drive belt, 12V battery, wipers, PCV, throttle body, boost hoses, washer fluid, A/C, EPS,
@@ -36,33 +52,24 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
   {% endif %}
 {% endif %}
 
-<div class="panel tight">
-  <h2 style="margin:12px 12px 0">Due status</h2>
-  <div class="tw">
-  <table>
-    <thead><tr><th>Item</th><th>Last done</th><th>Next due</th><th>Status</th><th>Confidence</th></tr></thead>
-    <tbody>
-    {% for i in checklist.due['items'] %}
-      <tr>
-        <td class="k">{{ i.label }}</td>
-        <td class="small">
-          {% if i.last_date %}{{ i.last_date }}{% if i.last_odometer_km is not none %} at {{ "{:,}".format(i.last_odometer_km|round|int) }} km{% endif %}
-          {% else %}<span class="muted">never</span>{% endif %}
-        </td>
-        <td class="small">
-          {% if i.next_due_odometer_km %}{{ "{:,}".format(i.next_due_odometer_km|round|int) }} km{% endif %}
-          {% if i.next_due_odometer_km and i.next_due_date %} / {% endif %}
-          {% if i.next_due_date %}{{ i.next_due_date }}{% endif %}
-          {% if not i.next_due_odometer_km and not i.next_due_date %}<span class="muted">UNKNOWN — {{ i.interval_note or "use the service manual (TechAuthority)" }}</span>{% endif %}
-        </td>
-        <td>{{ status_chip(i.status) }}</td>
-        <td>{{ conf_chip(i.interval_confidence) }}</td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  </div>
-</div>
+{% if done %}
+  <div class="note good mt-banner"><span class="lab">Recorded</span>
+    {{ done.label }} marked done today ({{ done.date }}).
+    <form method="post" action="/v/{{ vin }}/maintenance/{{ done.id }}/undo" class="mt-inline">
+      <button class="btn mt-btn" type="submit">Undo</button></form></div>
+{% endif %}
+{% if undone %}
+  <div class="note good mt-banner"><span class="lab">Undone</span>The Done today record was voided
+    (the ledger keeps the original line and an amendment; it no longer counts as last done).</div>
+{% endif %}
+
+<h2>Due status</h2>
+<p class="mt-summary">
+  {% for g in groups %}
+    <span class="chip {{ 'returned' if g.key == 'overdue' else ('chronic' if g.key == 'due_soon' else ('ok' if g.key == 'ok' else 'plain')) }}">{{ g.count }} {{ g.label|lower }}</span>
+  {% endfor %}
+</p>
+
 
 {% if checklist.carried_forward_next_time_notes %}
 <div class="panel">
@@ -83,16 +90,37 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
   "drive_belt": "drive_belt",
   "battery_12v": "battery_12v",
 } %}
-{% for category, items in checklist.items_by_category.items() %}
-{% if items %}
-<div class="panel tight">
-  <h2 style="margin:12px 12px 0">{{ checklist.category_labels.get(category, category|replace("_"," ")|title) }}</h2>
-  {% for it in items %}
-  <details class="panel" style="margin:12px;box-shadow:none;border:1px solid var(--surface-2, #ddd)">
-    <summary style="cursor:pointer;font-weight:600">{{ it.label }}
-      {% set due = (checklist.due['items']|selectattr("item_key","equalto", it.key)|first) %}
-      {% if due %}{{ status_chip(due.status) }}{% endif %}
+{% macro done_form(it) -%}
+<form method="post" action="/v/{{ vin }}/maintenance/{{ it.key }}/done" class="mt-done">
+  <label class="mt-odo">Odometer (km)
+    <input type="number" step="1" inputmode="numeric" name="odometer_km"
+           value="{{ current_odometer or '' }}" required></label>
+  <button class="btn primary mt-btn" type="submit" name="action" value="replaced">Done today</button>
+  <button class="btn mt-btn" type="submit" name="action" value="inspected_ok">Checked OK today</button>
+</form>
+{%- endmacro %}
+
+{% for g in groups %}
+<details class="fold mt-group" {{ 'open' if g.open }}>
+  <summary><b>{{ g.label }}</b> <span class="mt-count">{{ g.count }}</span>
+    {% if g.key == 'unknown' %}<span class="muted">nothing recorded yet, or no sourced interval</span>{% endif %}</summary>
+  {% for r in g.rows %}
+  {% set it = r.it %}{% set due = r.due %}
+  <div class="mt-item" id="item-{{ it.key }}">
+  <details class="fold panel mt-card">
+    <summary class="mt-sum">
+      <span class="mt-name">{{ it.label }}</span>
+      {{ status_chip(r.status) }}
+      <span class="muted">{{ r.category_label }}</span>
+      {% if r.age %}<span class="mt-age">last done {{ r.age }}</span>{% else %}<span class="muted">never logged</span>{% endif %}
+      {% if due and (due.next_due_odometer_km or due.next_due_date) %}
+      <span class="muted">next due
+        {% if due.next_due_odometer_km %}{{ "{:,}".format(due.next_due_odometer_km|round|int) }} km{% endif %}
+        {% if due.next_due_odometer_km and due.next_due_date %} / {% endif %}
+        {% if due.next_due_date %}{{ due.next_due_date }}{% endif %}</span>
+      {% else %}<span class="muted">next due UNKNOWN</span>{% endif %}
     </summary>
+
 
     <p class="small muted">Interval:
       {% if it.interval_miles or it.interval_km %}{{ it.interval_miles or "?" }} mi
@@ -182,9 +210,10 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
     {% set compact = True %}
     {% include "_tools_panel.html" %}
   </details>
+  {{ done_form(it) }}
+  </div>
   {% endfor %}
-</div>
-{% endif %}
+</details>
 {% endfor %}
 
 <div class="panel">
@@ -279,7 +308,7 @@ shown as UNKNOWN was never guessed — go to the service manual (TechAuthority).
   </form>
 </div>
 
-{% if checklist.last_maintenance %}
+{% if checklist.last_maintenance and not checklist.last_maintenance.data.voided %}
 <div class="panel">
   <h2>Last maintenance visit</h2>
   {% set last = checklist.last_maintenance.data %}

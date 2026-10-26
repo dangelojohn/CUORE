@@ -174,6 +174,104 @@ def maintenance_due(vin: str, current_odometer_km: Optional[float] = None) -> di
     return service_mod.maintenance_due(vin, current_odometer_km)
 
 
+def maintenance_label(item_key: str) -> str:
+    return (maintenance_specs.ITEMS.get(item_key) or {}).get("label", item_key)
+
+
+#: The ledger requires a technician; a one-tap record is labelled so it is
+#: never mistaken for a hand-written visit.
+DONE_TODAY_TECHNICIAN = "owner (Done today tap)"
+DONE_TODAY_ACTIONS = ("replaced", "inspected_ok")
+
+_STATUS_ORDER = ("overdue", "due_soon", "ok", "unknown")
+_STATUS_GROUP_LABEL = {
+    "overdue": "Overdue",
+    "due_soon": "Due soon",
+    "ok": "OK",
+    "unknown": "Never logged or interval unknown",
+}
+
+
+def age_label(days: Optional[int]) -> str:
+    if days is None:
+        return ""
+    if days <= 0:
+        return "today"
+    if days < 60:
+        return f"{days} d ago"
+    if days < 730:
+        return f"{days // 30} mo ago"
+    return f"{days // 365} y ago"
+
+
+def maintenance_groups(checklist: dict[str, Any], today: Any = None) -> list[dict[str, Any]]:
+    """The maintenance items re-ordered for reading: overdue, due soon, OK,
+    then every never-logged / interval-unknown item folded into one counted
+    group. Inside a group the most recently done comes first (overdue and
+    due-soon: soonest due first). Nothing is invented -- an unknown stays
+    UNKNOWN and an item never logged shows no age."""
+    from datetime import date as _date
+    today = today or _date.today()
+    due_by_key = {d["item_key"]: d for d in checklist["due"]["items"]}
+    labels = checklist.get("category_labels") or {}
+    rows: list[dict[str, Any]] = []
+    for category, items in checklist["items_by_category"].items():
+        for it in items:
+            due = due_by_key.get(it["key"]) or {}
+            status = due.get("status") or "interval_unknown"
+            group = status if status in ("overdue", "due_soon", "ok") else "unknown"
+            parsed = service_mod._parse_date(due.get("last_date"))
+            days = (today - parsed).days if parsed else None
+            rows.append({
+                "it": it, "due": due, "status": status, "group": group,
+                "category_label": labels.get(category, str(category).replace("_", " ").title()),
+                "age": age_label(days), "days": days,
+            })
+    out = []
+    for g in _STATUS_ORDER:
+        members = [r for r in rows if r["group"] == g]
+        if not members:
+            continue
+        if g in ("overdue", "due_soon"):
+            members.sort(key=lambda r: (r["due"].get("next_due_date") or "9999", r["it"]["label"]))
+        else:
+            members.sort(key=lambda r: (r["days"] is None, r["days"] or 0, r["it"]["label"]))
+        out.append({"key": g, "label": _STATUS_GROUP_LABEL[g], "rows": members,
+                    "count": len(members), "open": g in ("overdue", "due_soon")})
+    return out
+
+
+def record_done_today(vin: str, item_key: str, odometer_km: Any,
+                      action: str = "replaced") -> dict[str, Any]:
+    """One-tap "Done today": records one maintenance item through the same
+    ledger call the full visit form uses, dated today. The caller supplies
+    only the odometer."""
+    from datetime import date as _date
+    if item_key not in maintenance_specs.ITEMS:
+        raise NotFound(f"unknown maintenance item {item_key!r}")
+    if action not in DONE_TODAY_ACTIONS:
+        raise BadRequest("action must be one of: " + ", ".join(DONE_TODAY_ACTIONS))
+    return record_maintenance(vin, {
+        "date": _date.today().isoformat(),
+        "odometer_km": odometer_km,
+        "technician": DONE_TODAY_TECHNICIAN,
+        "items": [{"item_key": item_key, "action": action}],
+    })
+
+
+def undo_done_today(vin: str, record_id: str) -> dict[str, Any]:
+    """Undo a one-tap record through the ledger's own ``amend`` (history is
+    never rewritten: the original line stays, an amendment empties its items
+    and marks it voided, so it no longer counts as 'last done')."""
+    rec = next((r for r in service_mod.load(vin, "maintenance") if r.get("id") == record_id), None)
+    if rec is None:
+        raise NotFound("no such maintenance record for this vehicle")
+    if (rec.get("data") or {}).get("technician") != DONE_TODAY_TECHNICIAN:
+        raise BadRequest("only a one-tap Done today record can be undone here")
+    return amend_record(vin, record_id, {"items": [], "flags": [], "voided": True},
+                        note="Undo of Done today tap")
+
+
 def build_maintenance_torque_checklist(item_keys: Any) -> list[dict[str, Any]]:
     return service_mod.build_maintenance_torque_checklist(item_keys)
 
@@ -339,7 +437,8 @@ __all__ = [
     "brakes_wheels_tires_checklist", "latest_tpms_observation",
     "drivetrain_sections", "record_drivetrain", "drivetrain_section_checklist",
     "drivetrain_job_torque_checklist", "latest_gearbox_oil_temp_observation",
-    "maintenance_item_keys", "record_maintenance", "maintenance_checklist",
+    "maintenance_item_keys", "record_maintenance", "maintenance_groups",
+    "record_done_today", "undo_done_today", "maintenance_label", "maintenance_checklist",
     "maintenance_due", "build_maintenance_torque_checklist",
     "service_hub",
     "load_records", "amend_record", "search_torques", "torque_categories",

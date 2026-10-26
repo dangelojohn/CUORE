@@ -485,7 +485,7 @@
     {% for r in view.live_mode06.rows %}
     <li class="sysd-row {{ 'sysd-ff-hot' if r.passed == false else '' }}">
       <span>{{ r.name }} (MID {{ r.mid }}/TID {{ r.tid }})</span>
-      <span class="mono">{{ r.value }}{% if r.unit %} {{ r.unit }}{% endif %} -- {{ 'PASS' if r.passed else 'FAIL' }}</span>
+      <span class="mono">{{ r.value }}{% if r.unit %} {{ r.unit }}{% endif %} -- {% if r.passed is none %}unknown scaling, raw only{% else %}{{ 'PASS' if r.passed else 'FAIL' }}{% endif %}</span>
     </li>
     {% endfor %}
   </ul>

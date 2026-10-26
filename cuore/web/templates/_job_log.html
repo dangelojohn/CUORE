@@ -1,0 +1,83 @@
+{# Organised repair log (Job step 9). Context: log = job_log_context(job, request.query_params)["log"].
+   Filters and sort are plain GET links, search is a plain GET form: no JavaScript needed.
+   Rows are <details>: one line closed, full text open. Status is always label + colour, never colour alone. #}
+{% macro _row(e) %}
+  <details class="fold jl-entry jl-{{ e.chip }}">
+    <summary>
+      <span class="jl-kind jl-k-{{ e.chip }}">{{ e.kind_label }}</span>
+      <span class="jl-sum">{{ e.summary }}</span>
+      <span class="jl-when">{{ e.date or e.recorded }}{% if e.approx %} (approx.){% endif %}{% if e.days_ago %} &middot; {{ e.days_ago }}{% endif %}</span>
+    </summary>
+    <div class="jl-body">
+      {% if e.long %}<p class="jl-full">{{ e.text }}</p>{% endif %}
+      <p class="jl-meta">
+        {% if e.recorded and e.recorded != e.date %}Recorded {{ e.recorded }}. {% endif %}
+        {% if e.faults %}Codes: {% for f in e.faults %}<a class="jl-code" href="{{ log.base }}{{ '&' if '?' in log.base else '?' }}log_fault={{ f }}#job-log">{{ f }}</a>{% if not loop.last %} {% endif %}{% endfor %}. {% endif %}
+        {% if e.ref %}Source: {% if e.ref.href %}<a href="{{ e.ref.href }}">{{ e.ref.label }}</a>{% else %}{{ e.ref.label }}{% endif %}{% endif %}
+      </p>
+    </div>
+  </details>
+{% endmacro %}
+
+<link rel="stylesheet" href="{{ static_url('job_log.css') }}">
+<section class="job-log" id="job-log" aria-label="Repair log">
+  <p class="jl-stats">
+    {{ log.total }} entries{% if log.open_days is not none %} &middot; job open {{ log.open_days }} day{{ '' if log.open_days == 1 else 's' }}{% endif %}{% if log.span_first %} &middot; entries cover {{ log.span_first }} to {{ log.span_last }}{% if log.span_days %} ({{ log.span_days }} days){% endif %}{% endif %}{% if log.retracted_count %} &middot; {{ log.retracted_count }} retracted (hidden){% endif %}
+  </p>
+
+  <nav class="jl-bar" aria-label="Filter by kind">
+    {% for c in log.chips %}
+      <a class="jl-chip{{ ' is-active' if c.active }}" href="{{ c.href }}"{% if c.active %} aria-current="true"{% endif %}>{{ c.label }} <b>{{ c.count }}</b></a>
+    {% endfor %}
+  </nav>
+
+  <nav class="jl-bar" aria-label="Sort order">
+    <span class="jl-bar-label">Sort:</span>
+    {% for s in log.sorts %}
+      <a class="jl-chip{{ ' is-active' if s.active }}" href="{{ s.href }}"{% if s.active %} aria-current="true"{% endif %}>{{ s.label }}</a>
+    {% endfor %}
+  </nav>
+
+  <form class="jl-search" method="get" action="{{ log.base.split('?')[0] }}">
+    <input type="hidden" name="step" value="9">
+    {% if log.kind %}<input type="hidden" name="log_kind" value="{{ log.kind }}">{% endif %}
+    {% if log.sort != 'newest' %}<input type="hidden" name="log_sort" value="{{ log.sort }}">{% endif %}
+    {% if log.fault %}<input type="hidden" name="log_fault" value="{{ log.fault }}">{% endif %}
+    <label for="log_q">Search this log</label>
+    <input id="log_q" name="log_q" type="search" value="{{ log.q }}" maxlength="80" placeholder="code, part or word">
+    <button type="submit">Search</button>
+    {% if log.filtered %}<a class="jl-chip" href="{{ log.clear_url }}">Clear filters</a>{% endif %}
+  </form>
+
+  {% if log.faults %}
+  <details class="fold jl-faults">
+    <summary>By fault code ({{ log.faults|length }})</summary>
+    <ul>
+      {% for f in log.faults %}
+        <li><a class="jl-chip{{ ' is-active' if f.active }}" href="{{ f.href }}">{{ f.code }} <b>{{ f.count }}</b></a>
+          <span class="jl-when">first {{ f.first }}, last {{ f.last }}</span></li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+
+  <p class="jl-count" role="status">Showing {{ log.lines }} line{{ '' if log.lines == 1 else 's' }}{% if log.filtered %} for {{ log.matched }} of {{ log.total }} entries{% endif %}.</p>
+
+  <div class="jl-list">
+    {% for r in log.rows %}
+      {% if r.group %}
+        <details class="fold jl-group jl-{{ r.chip }}">
+          <summary>
+            <span class="jl-kind jl-k-{{ r.chip }}">{{ r.kind_label }} &times;{{ r.count }}</span>
+            <span class="jl-sum">{{ r.label }}</span>
+          </summary>
+          <div class="jl-group-body">{% for e in r.entries %}{{ _row(e) }}{% endfor %}</div>
+        </details>
+      {% else %}
+        {{ _row(r) }}
+      {% endif %}
+    {% else %}
+      <p class="jl-empty">{% if log.filtered %}Nothing matches. <a href="{{ log.clear_url }}">Clear filters</a>{% else %}No actions recorded yet.{% endif %}</p>
+    {% endfor %}
+  </div>
+</section>

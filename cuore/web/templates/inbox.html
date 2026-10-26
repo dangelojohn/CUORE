@@ -8,7 +8,21 @@
 <p class="lede">Every correction, question, confirmation, input and
 disagreement a technician has left on a fact cuore showed for this car.
 Open items need an answer; answered items are waiting to be marked applied
-or dismissed.</p>
+or dismissed. A question asked on several codes is one card: one tap answers
+or dismisses every code it covers. Active codes first, then newest.</p>
+
+{% if undo_ids %}
+<div class="fb-undo" role="status">
+  <strong>{{ did }}.</strong>
+  <form method="post" action="/v/{{ vin }}/feedback-bulk">
+    <input type="hidden" name="redirect_to" value="/v/{{ vin }}/inbox">
+    <input type="hidden" name="op" value="undo">
+    <input type="hidden" name="status" value="open">
+    {% for i in undo_ids %}<input type="hidden" name="id" value="{{ i }}">{% endfor %}
+    <button class="btn" type="submit">Undo (reopen {{ undo_ids|length }})</button>
+  </form>
+</div>
+{% endif %}
 
 <div class="inbox-filters">
   <a class="btn {{ 'primary' if not status }}" href="/v/{{ vin }}/inbox">All</a>
@@ -21,63 +35,107 @@ or dismissed.</p>
 {% set _redirect = "/v/" ~ vin ~ "/inbox" ~ ("?status=" ~ status if status else "") %}
 
 {% for s in statuses %}
-  {% set rows = grouped[s] %}
-  {% if rows or not status or status == s %}
-  <div class="panel">
-    <h2>{{ s|capitalize }} <span class="chip plain">{{ rows|length }}</span></h2>
-    {% for f in rows %}
-      {% set target_href = f.target.page ~ (('#fb-' ~ f.target.item) if f.target.item else '') %}
-      <div class="inbox-item">
-        <div class="inbox-target">
-          <span class="chip plain">{{ f.kind }}</span>
-          <a href="{{ target_href }}">{{ f.target.page }}{% if f.target.section %} / {{ f.target.section }}{% endif %}{% if f.target.item %} / {{ f.target.item }}{% endif %}</a>
-          <span class="muted">{{ f.at }} &middot; {{ f.author }}</span>
-        </div>
-        <div class="inbox-text small muted">&ldquo;{{ f.target.label }}&rdquo;</div>
-        {% if f.text %}<p class="inbox-text">{{ f.text }}</p>{% endif %}
-        {% if f.answer %}
-          <div class="inbox-answer small">{{ f.answer.text }}
-            <span class="muted">&mdash; {{ f.answer.by }}, {{ f.answer.at }}</span></div>
-        {% endif %}
-        {% if f.applied_note %}<p class="small muted">Note: {{ f.applied_note }}</p>{% endif %}
+  {% set groups = folded[s] %}
+  {% set total = grouped[s]|length %}
+  {% if groups or not status or status == s %}
+  <details class="fold panel" {% if s in ("open", "answered") or status == s %}open{% endif %}>
+    <summary><h2 style="display:inline">{{ s|capitalize }}
+      <span class="chip plain">{{ total }}</span>
+      {% if groups|length != total %}<span class="chip plain">{{ groups|length }} cards</span>{% endif %}</h2></summary>
+    {% for g in groups %}
+      {% set first = g.rows[0] %}
+      <details class="fold fb-group" {% if s in ("open", "answered") and g.priority == 0 %}open{% endif %}>
+        <summary>
+          {% if g.active_codes %}<span class="chip chronic">Active code</span>
+          {% elif not g.owner %}<span class="chip plain">Your note</span>
+          {% else %}<span class="chip plain">Not active</span>{% endif %}
+          <span class="chip plain">{{ g.kind }}</span>
+          <span class="fb-title">{% if g.owner %}{{ g.title }}{% else %}&ldquo;{{ first.target.label }}&rdquo;{% endif %}</span>
+          <span class="muted" title="{{ g.latest }}">{% if g.n > 1 %}{{ g.n }} items &middot; {% endif %}{{ g.age }}</span>
+        </summary>
+        <div class="fb-body">
+          {% if g.owner and g.codes %}
+          <div class="small muted">Asked on {{ g.codes|length }} code{{ '' if g.codes|length == 1 else 's' }}
+            ({{ g.active_codes|length }} active):</div>
+          <div class="fb-codes">
+            {% for c in g.codes %}
+              <a href="/v/{{ vin }}/code/{{ c }}" class="{{ 'is-active' if c in g.active_codes }}">{{ c }}{% if c in g.active_codes %} (active){% endif %}</a>
+            {% endfor %}
+          </div>
+          {% elif not g.owner %}
+          {% set target_href = first.target.page ~ (('#fb-' ~ first.target.item) if first.target.item else '') %}
+          <p class="small"><a href="{{ target_href }}">{{ first.target.page }}{% if first.target.section %} / {{ first.target.section }}{% endif %}{% if first.target.item %} / {{ first.target.item }}{% endif %}</a>
+            <span class="muted"> &middot; {{ first.author }}</span></p>
+          {% if first.text %}<p class="inbox-text">{{ first.text }}</p>{% endif %}
+          {% if first.applied_note %}<p class="small muted">Note: {{ first.applied_note }}</p>{% endif %}
+          {% endif %}
+          {% if g.answer_text %}<div class="inbox-answer small">{{ g.answer_text }}</div>{% endif %}
 
-        <div class="inbox-forms">
-          {% if f.status in ("open", "answered") %}
-          <form method="post" action="/v/{{ vin }}/feedback/{{ f.id }}/answer">
-            <input type="hidden" name="redirect_to" value="{{ _redirect }}">
-            <input type="text" name="text" placeholder="Answer" maxlength="4000" style="width:220px">
-            <input type="hidden" name="by" value="technician">
-            <button class="btn" type="submit">Answer</button>
-          </form>
-          {% endif %}
-          {% if f.status != "applied" %}
-          <form method="post" action="/v/{{ vin }}/feedback/{{ f.id }}/status">
-            <input type="hidden" name="redirect_to" value="{{ _redirect }}">
-            <input type="hidden" name="status" value="applied">
-            <input type="text" name="note" placeholder="What changed (optional)" style="width:160px">
-            <button class="btn" type="submit">Mark applied</button>
-          </form>
-          {% endif %}
-          {% if f.status != "dismissed" %}
-          <form method="post" action="/v/{{ vin }}/feedback/{{ f.id }}/status">
-            <input type="hidden" name="redirect_to" value="{{ _redirect }}">
-            <input type="hidden" name="status" value="dismissed">
-            <button class="btn" type="submit">Dismiss</button>
-          </form>
-          {% endif %}
-          {% if f.status != "open" %}
-          <form method="post" action="/v/{{ vin }}/feedback/{{ f.id }}/status">
-            <input type="hidden" name="redirect_to" value="{{ _redirect }}">
-            <input type="hidden" name="status" value="open">
-            <button class="btn" type="submit">Reopen</button>
-          </form>
+          {% macro ids() %}{% for i in g.ids %}<input type="hidden" name="id" value="{{ i }}">{% endfor %}{% endmacro %}
+          <div class="fb-bulk">
+            {% if s in ("open", "answered") %}
+            <form method="post" action="/v/{{ vin }}/feedback-bulk">
+              <input type="hidden" name="redirect_to" value="{{ _redirect }}">
+              <input type="hidden" name="op" value="answer">
+              <input type="hidden" name="by" value="technician">
+              {{ ids() }}
+              <input type="text" name="text" placeholder="Answer{% if g.n > 1 %} for all {{ g.n }}{% endif %}" maxlength="4000" aria-label="Answer">
+              <button class="btn primary" type="submit">{{ 'Answer all ' ~ g.n if g.n > 1 else 'Answer' }}</button>
+            </form>
+            {% endif %}
+            {% if s != "dismissed" %}
+            <form method="post" action="/v/{{ vin }}/feedback-bulk">
+              <input type="hidden" name="redirect_to" value="{{ _redirect }}">
+              <input type="hidden" name="op" value="status"><input type="hidden" name="status" value="dismissed">
+              {{ ids() }}
+              <button class="btn" type="submit">{{ 'Dismiss all ' ~ g.n if g.n > 1 else 'Dismiss' }}</button>
+            </form>
+            {% endif %}
+            {% if s != "applied" %}
+            <form method="post" action="/v/{{ vin }}/feedback-bulk">
+              <input type="hidden" name="redirect_to" value="{{ _redirect }}">
+              <input type="hidden" name="op" value="status"><input type="hidden" name="status" value="applied">
+              {{ ids() }}
+              <button class="btn" type="submit">{{ 'Mark all ' ~ g.n ~ ' applied' if g.n > 1 else 'Mark applied' }}</button>
+            </form>
+            {% endif %}
+            {% if s != "open" %}
+            <form method="post" action="/v/{{ vin }}/feedback-bulk">
+              <input type="hidden" name="redirect_to" value="{{ _redirect }}">
+              <input type="hidden" name="op" value="status"><input type="hidden" name="status" value="open">
+              {{ ids() }}
+              <button class="btn" type="submit">{{ 'Reopen all ' ~ g.n if g.n > 1 else 'Reopen' }}</button>
+            </form>
+            {% endif %}
+          </div>
+
+          {% if g.n > 1 %}
+          <details class="fold">
+            <summary class="small muted" style="min-height:44px;display:flex;align-items:center">Each of the {{ g.n }} (answer one on its own)</summary>
+            {% for f in g.rows %}
+              <div class="inbox-item">
+                <div class="inbox-target"><a href="{{ f.target.page }}">{{ f.target.section or f.target.page }}</a>
+                  <span class="muted" title="{{ f.at }}">{{ f.age }} &middot; {{ f.author }}</span></div>
+                {% if f.answer %}<div class="inbox-answer small">{{ f.answer.text }}
+                  <span class="muted">&mdash; {{ f.answer.by }}</span></div>{% endif %}
+                {% if f.status in ("open", "answered") %}
+                <form method="post" action="/v/{{ vin }}/feedback/{{ f.id }}/answer" class="fb-bulk">
+                  <input type="hidden" name="redirect_to" value="{{ _redirect }}">
+                  <input type="hidden" name="by" value="technician">
+                  <input type="text" name="text" placeholder="Answer this one" maxlength="4000" aria-label="Answer {{ f.target.section }}">
+                  <button class="btn" type="submit">Answer</button>
+                </form>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </details>
           {% endif %}
         </div>
-      </div>
+      </details>
     {% else %}
       <p class="muted small">Nothing {{ s }}.</p>
     {% endfor %}
-  </div>
+  </details>
   {% endif %}
 {% endfor %}
 

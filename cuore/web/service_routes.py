@@ -31,8 +31,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, Query, Request, Response
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Form, Query, Request, Response
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from .. import __version__
@@ -404,7 +404,9 @@ def _selected_item_keys(raw: list[str], valid_keys: list[str]) -> list[str]:
 
 
 def _maintenance_page(request: Request, vin: str, *, selected: list[str],
-                      error: Optional[str], saved: bool) -> HTMLResponse:
+                      error: Optional[str], saved: bool,
+                      done: Optional[dict[str, Any]] = None,
+                      undone: bool = False) -> HTMLResponse:
     from mes import service as service_mod
     dossier = _dossier(vin)
     current_odo = _current_odometer(dossier)
@@ -416,14 +418,17 @@ def _maintenance_page(request: Request, vin: str, *, selected: list[str],
                      item_keys=service_bridge.maintenance_item_keys(), all_items=all_items,
                      selected_items=selected, torque_rows=torque_rows,
                      actions=service_mod.MAINTENANCE_ACTIONS,
-                     current_odometer=current_odo, error=error, saved=saved)
+                     current_odometer=current_odo, error=error, saved=saved,
+                     groups=service_bridge.maintenance_groups(checklist),
+                     done=done, undone=undone)
     _set_active_vehicle(response, vin)
     return response
 
 
 @router.get("/v/{vin}/maintenance", response_class=HTMLResponse)
 def maintenance_form(request: Request, vin: str,
-                     items: list[str] = Query(default=[])) -> HTMLResponse:
+                     items: list[str] = Query(default=[]), done: str = "",
+                     undone: str = "") -> HTMLResponse:
     """``items`` (repeated query param, one per checked checkbox) picks which
     items get a detailed action/parts/measurements block plus a torque
     checklist in the record form below -- a plain GET resubmit, same
@@ -431,7 +436,39 @@ def maintenance_form(request: Request, vin: str,
     drivetrain job picker, generalised to a multi-select."""
     valid_keys = service_bridge.maintenance_item_keys()
     selected = _selected_item_keys(items, valid_keys)
-    return _maintenance_page(request, vin, selected=selected, error=None, saved=False)
+    done_info = None
+    if done:
+        from mes import service as service_mod
+        rec = next((r for r in service_mod.load(vin, "maintenance") if r.get("id") == done), None)
+        if rec is not None and not (rec.get("data") or {}).get("voided"):
+            first = ((rec.get("data") or {}).get("items") or [{}])[0].get("item_key", "")
+            done_info = {"id": done, "item_key": first,
+                         "label": service_bridge.maintenance_label(first),
+                         "date": (rec.get("data") or {}).get("date")}
+    return _maintenance_page(request, vin, selected=selected, error=None, saved=False,
+                             done=done_info, undone=bool(undone))
+
+
+@router.post("/v/{vin}/maintenance/{item_key}/done", response_class=HTMLResponse)
+def maintenance_done_today(request: Request, vin: str, item_key: str,
+                           odometer_km: str = Form(""), action: str = Form("replaced")):
+    """One-tap "Done today" for one item (plain form post, 303 back to the
+    page with an Undo banner). Only the odometer is asked for."""
+    try:
+        rec = service_bridge.record_done_today(vin, item_key, odometer_km.strip(), action)
+    except BridgeError as exc:
+        return _maintenance_page(request, vin, selected=[], error=str(exc), saved=False)
+    return RedirectResponse(url=f"/v/{vin}/maintenance?done={rec['id']}#item-{item_key}",
+                            status_code=303)
+
+
+@router.post("/v/{vin}/maintenance/{record_id}/undo", response_class=HTMLResponse)
+def maintenance_undo_done(request: Request, vin: str, record_id: str):
+    try:
+        service_bridge.undo_done_today(vin, record_id)
+    except BridgeError as exc:
+        return _maintenance_page(request, vin, selected=[], error=str(exc), saved=False)
+    return RedirectResponse(url=f"/v/{vin}/maintenance?undone=1", status_code=303)
 
 
 @router.post("/v/{vin}/maintenance", response_class=HTMLResponse)

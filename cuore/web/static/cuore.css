@@ -882,6 +882,19 @@ kbd {
   content: "\25B8"; color: var(--ink-3); transition: transform .15s ease; flex: none;
 }
 .card-details[open] > summary::before { transform: rotate(90deg); }
+
+/* Any grouping that opens: add class="fold" to its <details>. A small arrow
+   points right when closed and rotates down when open (same arrow as the
+   counted cards above). */
+details.fold > summary { list-style: none; cursor: pointer; }
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::marker { content: ""; }
+details.fold > summary::before {
+  content: "B8"; display: inline-block; flex: none; margin-right: 8px;
+  color: var(--ink-3); transition: transform .15s ease;
+}
+details.fold[open] > summary::before { transform: rotate(90deg); }
+@media (prefers-reduced-motion: reduce) { details.fold > summary::before { transition: none; } }
 .count-badge {
   font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3); font-weight: var(--fw-medium);
   display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap;

@@ -27,7 +27,8 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..api.deps import require_token
 from ..services import shop_bridge, tests_bridge
-from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
+from ..services.errors import NotFound
+from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar, templates
 
 #: Server-rendered page: same posture as ``cuore.web.routes.router`` and
 #: ``cuore.web.liveboard_routes.router``.
@@ -35,7 +36,7 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 
 
 @router.get("/v/{vin}/tests", response_class=HTMLResponse)
-def tests_page(request: Request, vin: str) -> HTMLResponse:
+def tests_page(request: Request, vin: str, sort: str = "priority") -> HTMLResponse:
     """The Tests catalogue: summary strip, filter chips, every test as a
     row with its latest result and a PASS/FAIL/Inconclusive/Not possible
     result form."""
@@ -46,10 +47,22 @@ def tests_page(request: Request, vin: str) -> HTMLResponse:
     # the corpus name / WMI decode fallback bench_routes.py already relies
     # on, so reuse it here rather than let this surface regress.
     bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
-    view = tests_bridge.build_tests_view(vin)
+    view = tests_bridge.build_tests_view(vin, sort)
     response = _page(request, "tests.html", vin=vin, bar=bar, tab="tests", view=view)
     _set_active_vehicle(response, vin)
     return response
+
+
+@router.get("/v/{vin}/tests/{test_id}/details", response_class=HTMLResponse)
+def tests_details_fragment(request: Request, vin: str, test_id: str) -> HTMLResponse:
+    """The procedure/criteria block of one test, as a bare fragment. The
+    Tests page fetches it when a row's Details opens (keeps the page light);
+    without JS the Details body links to the printable sheet instead."""
+    from mes import mechanic_tests
+    t = mechanic_tests.test(test_id)
+    if t is None:
+        raise NotFound(f"unknown test id {test_id!r}")
+    return templates.TemplateResponse(request, "_tests_detail.html", {"t": t, "vin": vin})
 
 
 @router.get("/v/{vin}/tests/{test_id}/print", response_class=HTMLResponse)
@@ -70,7 +83,7 @@ def tests_print_page(request: Request, vin: str, test_id: str) -> HTMLResponse:
 
 @router.post("/v/{vin}/tests/{test_id}/result", response_class=HTMLResponse)
 def tests_result_form(request: Request, vin: str, test_id: str,
-                      result: str = Form(...), value: str = Form(""),
+                      result: str = Form(""), value: str = Form(""),
                       unit: str = Form(""), reason: str = Form(""),
                       hypothesis_id: str = Form(""), supports: str = Form("for"),
                       by: str = Form("")) -> HTMLResponse:

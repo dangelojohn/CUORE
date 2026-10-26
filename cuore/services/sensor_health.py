@@ -120,6 +120,12 @@ def suspect_reason(channel: str, value: Any, lv: dict[str, Any]) -> str:
         n = int(round(raw))
         return (f"decoding unconfirmed (likely degrees: raw {n} -> {n / 100:.2f} deg); not comparable with "
                 "throttle position in %")
+    if channel == "ecm_1009":
+        return ("decoding unconfirmed: disagreed with PID 1F run time on 2026-10-13 (375 vs 211 s); "
+                "may not be a run timer")
+    if channel == "ecm_1959":
+        return ("decoding unconfirmed: same offset formula pattern as the 195A error; confirm against MES "
+                "at a different load")
     return ""
 
 

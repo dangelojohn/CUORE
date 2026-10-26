@@ -93,7 +93,10 @@ EXTRA_DIDS: tuple[DidSpec, ...] = (
         unit="min",
         source="danardi78",
         confidence="unverified",
-        note="generic ECU housekeeping counter, not diesel-specific",
+        note=("UNCONFIRMED DECODING: the sensor cross-check found this DID disagrees with Mode 01 "
+              "PID 1F engine run time (DID 1009 read 375 'min' vs PID 1F 211 s on 2026-10-13), so it "
+              "may not be a run timer and the unit/scale is unproven. Source called it a generic ECU "
+              "housekeeping counter, not diesel-specific"),
     ),
     DidSpec(
         module="ECM",
@@ -181,7 +184,9 @@ EXTRA_DIDS: tuple[DidSpec, ...] = (
         unit="bar",
         source="danardi78",
         confidence="unverified",
-        note=("distinct DID from the measured boost 0x195A already in addressing.DIDS; "
+        note=("UNCONFIRMED DECODING: same offset pattern as the 195A error (fixed 2026-10-25 to unsigned "
+              "mbar); confirm against MES at a different load before trusting the -32768 offset or bar unit. "
+              "Distinct DID from the measured boost 0x195A already in addressing.DIDS; "
               "the same source also lists DID 0x1942 as a second, differently-formulaed "
               "'boost required' row (and, separately, as fuel consumption) -- an internal "
               "conflict in the source, so 0x1942 is not encoded at all; 0x1959 is kept "

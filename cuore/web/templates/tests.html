@@ -5,11 +5,10 @@
 <link rel="stylesheet" href="{{ static_url('tests.css') }}">
 
 <h1>Tests</h1>
-<p class="lede">Every mechanic test that applies to this car, with this vehicle's
-  latest recorded result. "Recommended for this car" is ranked first against this
-  car's open codes and this job's open hypotheses -- the rest sit below, by
-  category. A result of PASS/FAIL that names a hypothesis is attached to it as
-  evidence automatically, the same way a job-page test row already does.</p>
+<p class="lede">Start at <b>Do next</b>: the tests that bear on this car's open codes
+  and this job's open hypotheses, most important first. Everything else is folded by
+  system below. A PASS/FAIL that names a hypothesis is attached to it as evidence
+  automatically; "Undo" clears a result.</p>
 
 {% if view.from_car %}
 <div class="ts-from-car" id="ts-from-car">
@@ -32,31 +31,20 @@
   {% if view.counts.not_possible %}<span class="ts-summary-chip ts-chip-not_possible">{{ view.counts.not_possible }} not possible</span>{% endif %}
 </div>
 
-<div class="ts-filters" id="ts-filters" role="toolbar" aria-label="Filter tests">
-  <button type="button" class="ts-filter-chip is-on" data-filter="all">All</button>
-  <button type="button" class="ts-filter-chip" data-filter="recommended">Recommended</button>
-  {% for cat in view.categories %}
-  <button type="button" class="ts-filter-chip" data-filter="cat:{{ cat }}">{{ cat.replace('_', ' ') }}</button>
-  {% endfor %}
-</div>
-
-<div class="ts-list" id="ts-list">
-  {% for t in view.tests %}
+{% set L = view.layout %}
+{% macro row(t) %}
   <div class="ts-row" id="test-{{ t.id }}" data-category="{{ t.category }}"
        data-recommended="{{ '1' if t.recommended else '0' }}">
     <div class="ts-row-head">
       <span class="ts-row-name">{{ t.name }}</span>
-      <span class="chip ts-cat-chip">{{ t.category.replace('_', ' ') }}</span>
-      <span class="chip ts-state-chip">{{ t.car_state }}</span>
+      <span class="chip ts-result-chip ts-result-{{ t.state if t.state in ('pass','fail','inconclusive','not_possible','blocked','recommended') else 'not_done' }}"
+            data-role="result-chip">{{ t.state_label }}</span>
       <span class="ts-duration">{{ t.duration_min }} min</span>
-      <span class="chip ts-result-chip ts-result-{{ t.latest_result.result }}"
-            data-role="result-chip">{{ t.latest_result.result.replace('_', ' ')|upper }}</span>
-      <a class="ts-print-link no-print" href="/v/{{ view.vin }}/tests/{{ t.id }}/print"
-         title="Printable sheet for this test">Print this test</a>
+      {% if t.age %}<span class="ts-duration">{{ t.age }}</span>{% endif %}
     </div>
 
-    {% if t.recommended and t.why %}
-    <div class="ts-why">Recommended: {{ t.why|join('; ') }}</div>
+    {% if t.recommended and t.why and t.state == 'recommended' %}
+    <div class="ts-why">Why: {{ t.why|map('truncate', 90)|join('; ') }}</div>
     {% endif %}
 
     {% if t.blocker %}
@@ -66,10 +54,6 @@
       {{ t.blocker.window[0] }}-{{ t.blocker.window[1] }}% EVAP verification window --
       this test's result may not be meaningful until fuel level is back in range.
       {% else %}
-      {# Review #6 item 2's "stale fuel reading" shape (tests_bridge.py's
-         own comment: "warns, it never hard-blocks") -- no window/level/
-         direction on this shape, only reason/at/source, so this never
-         reads as a hard block. #}
       Note: {{ t.blocker.reason }}{% if t.blocker.at %} (fuel last read {{ t.blocker.at }}{% if t.blocker.source %} -- {{ t.blocker.source }}{% endif %}){% endif %} --
       this test's result may not be meaningful until the fuel reading is reverified.
       {% endif %}
@@ -81,39 +65,14 @@
       Latest: {{ t.latest_result.result.replace('_', ' ') }}
       {% if t.latest_result.value is not none %}&middot; {{ t.latest_result.value }}{{ t.latest_result.unit }}{% endif %}
       {% if t.latest_result.reason %}&middot; {{ t.latest_result.reason }}{% endif %}
-      {% if t.latest_result.when %}&middot; {{ t.latest_result.when }}{% endif %}
+      {% if t.age %}&middot; {{ t.age }}{% endif %}
       {% if t.latest_result.by %}&middot; {{ t.latest_result.by }}{% endif %}
     </div>
     {% endif %}
 
-    <details class="ts-details">
-      <summary>Details</summary>
-      <p class="ts-purpose">{{ t.purpose }}</p>
-      <p class="small muted">When to use: {{ t.when_to_use }}</p>
-      <p class="small"><b>Tools:</b> {{ t.tools|join(', ') }}</p>
-      <ol class="ts-procedure">
-        {% for step in t.procedure %}<li>{{ step }}</li>{% endfor %}
-      </ol>
-      {% if t.pass_criteria %}
-      <table class="ts-criteria">
-        <thead><tr><th>Parameter</th><th>Spec</th><th>Source</th><th>Confidence</th></tr></thead>
-        <tbody>
-          {% for pc in t.pass_criteria %}
-          <tr>
-            <td>{{ pc.parameter }}</td>
-            <td>{{ pc.spec }}{% if pc.unit %} {{ pc.unit }}{% endif %}</td>
-            <td class="small muted">{{ pc.source }}</td>
-            <td><span class="chip ts-conf-chip ts-conf-{{ pc.confidence|lower|replace('-', '_') }}">{{ pc.confidence }}</span></td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-      <p class="small"><b>A fail means:</b> {{ t.fail_means }}</p>
-      {% if t.hazards %}
-      <p class="small ts-hazards"><b>Hazards:</b> {{ t.hazards|join(', ') }}</p>
-      {% endif %}
-      {% if t.safety %}<p class="small muted">{{ t.safety }}</p>{% endif %}
+    <details class="fold ts-details" data-src="/v/{{ view.vin }}/tests/{{ t.id }}/details">
+      <summary>Procedure and pass criteria</summary>
+      <div class="ts-detail-body"><a href="/v/{{ view.vin }}/tests/{{ t.id }}/print">Open the printable procedure sheet</a></div>
     </details>
 
     <form class="ts-result-form" method="post"
@@ -124,38 +83,76 @@
         <button type="submit" class="ts-btn ts-btn-fail" name="result" value="fail">FAIL</button>
         <button type="submit" class="ts-btn ts-btn-sm" name="result" value="inconclusive">Inconclusive</button>
         <button type="submit" class="ts-btn ts-btn-sm" name="result" value="not_possible">Not possible</button>
-      </div>
-      <div class="ts-extra" hidden>
-        {% if t.pass_criteria %}
-        <label class="ts-field">Value
-          <input type="number" step="any" name="value">
-          <input type="text" name="unit" class="ts-unit" placeholder="unit"
-                 value="{{ t.pass_criteria[0].unit }}">
-        </label>
+        {% if t.latest_result.result != "not_done" %}
+        <button type="submit" class="ts-btn ts-btn-sm ts-btn-undo" name="result" value="">Undo (clear result)</button>
         {% endif %}
-        {% if view.open_hypotheses %}
-        <label class="ts-field">Hypothesis
-          <select name="hypothesis_id">
-            <option value="">(none)</option>
-            {% for h in view.open_hypotheses %}
-            <option value="{{ h.id }}"{% if t.systems and h.system == t.systems[0] %} selected{% endif %}>{{ h.text }}</option>
-            {% endfor %}
-          </select>
-        </label>
-        <label class="ts-field">Supports
-          <select name="supports">
-            <option value="for">for</option>
-            <option value="against">against</option>
-          </select>
-        </label>
-        {% endif %}
-        <label class="ts-field">Reason <input type="text" name="reason"></label>
-        <button type="button" class="ts-btn ts-save" hidden>Save</button>
       </div>
+      <input type="hidden" name="unit" value="{{ t.pass_criteria[0].unit if t.pass_criteria else '' }}">
+      <input type="hidden" name="has_spec" value="{{ '1' if t.pass_criteria else '0' }}">
+      <input type="hidden" name="sys" value="{{ t.systems[0] if t.systems else '' }}">
     </form>
   </div>
+{% endmacro %}
+
+<div class="ts-filters" id="ts-filters" role="toolbar" aria-label="Sort tests">
+  <span class="ts-sort-label">Sort:</span>
+  {% for k in ('priority', 'system', 'duration') %}
+  <a class="ts-filter-chip{{ ' is-on' if L.sort == k }}" href="/v/{{ view.vin }}/tests?sort={{ k }}"
+     {% if L.sort == k %}aria-current="true"{% endif %}>{{ k }}</a>
   {% endfor %}
 </div>
+
+<h2 class="ts-h">Do next <span class="ts-count">{{ L.do_next|length }}</span></h2>
+<div class="ts-list" id="ts-list">
+  {% for t in L.do_next %}{{ row(t) }}{% else %}
+  <p class="muted">Nothing recommended is waiting. Open a system below to pick a test.</p>
+  {% endfor %}
+</div>
+
+{% if L.blocked %}
+<details class="fold ts-group" open>
+  <summary><b>Blocked</b> <span class="ts-count">{{ L.blocked|length }}</span> <span class="muted">result not meaningful yet</span></summary>
+  <div class="ts-list">{% for t in L.blocked %}{{ row(t) }}{% endfor %}</div>
+</details>
+{% endif %}
+
+{% if L.done %}
+<details class="fold ts-group"{{ ' open' if L.done_fail }}>
+  <summary><b>Done</b> <span class="ts-count">{{ L.done|length }}</span> <span class="muted">newest first{% if L.done_fail %} &middot; {{ L.done_fail }} FAIL{% endif %}</span></summary>
+  <div class="ts-list">{% for t in L.done %}{{ row(t) }}{% endfor %}</div>
+</details>
+{% endif %}
+
+<h2 class="ts-h">Other tests, by system <span class="ts-count">{{ L.rest_count }}</span></h2>
+{% for g in L.rest %}
+<details class="fold ts-group" id="sys-{{ g.system }}">
+  <summary><b>{{ g.label }}</b> <span class="ts-count">{{ g.count }} test{{ 's' if g.count != 1 }}</span> <span class="muted">{{ g.minutes }} min total</span></summary>
+  <div class="ts-list">{% for t in g.rows %}{{ row(t) }}{% endfor %}</div>
+</details>
+{% endfor %}
+
+<template id="ts-extra-tpl">
+  <div class="ts-extra">
+    <label class="ts-field">Value
+      <input type="number" step="any" name="value">
+    </label>
+    {% if view.open_hypotheses %}
+    <label class="ts-field">Hypothesis
+      <select name="hypothesis_id">
+        <option value="">(none)</option>
+        {% for h in view.open_hypotheses %}
+        <option value="{{ h.id }}" data-system="{{ h.system }}">{{ h.text }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="ts-field">Supports
+      <select name="supports"><option value="for">for</option><option value="against">against</option></select>
+    </label>
+    {% endif %}
+    <label class="ts-field">Reason <input type="text" name="reason"></label>
+    <button type="button" class="ts-btn ts-save">Save</button>
+  </div>
+</template>
 
 <script src="{{ static_url('tests.js') }}"></script>
 {% set mes_handoff_vin = view.vin %}{% include "_mes_handoff.html" %}

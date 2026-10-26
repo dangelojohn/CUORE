@@ -54,6 +54,11 @@ class ChecklistResult(BaseModel):
                                                      "hypothesis_id this result's evidence "
                                                      "counts toward; ignored unless "
                                                      "result is pass/fail")
+    job_id: Optional[str] = Field(
+        default=None, description="the job the mechanic is on; the new hypothesis / "
+                                  "evidence attaches to it. When omitted the vehicle's "
+                                  "current job is used (which is ambiguous if several "
+                                  "are open, so job pages should send it).")
     media_ids: list[str] = Field(default_factory=list)
     by: str = Field(default="")
 
@@ -149,7 +154,8 @@ def set_checklist_result(vin: str, step_id: str, body: ChecklistResult) -> dict[
         try:
             new_hyp = jobs_bridge.add_test_evidence_new_hypothesis(
                 vin, body.hypothesis_text, step_id, label, body.result,
-                supports=body.supports, system=body.hypothesis_system, by=body.by)
+                supports=body.supports, system=body.hypothesis_system,
+                job_id=body.job_id or None, by=body.by)
         except Exception:  # noqa: BLE001 -- the result must still save
             new_hyp = None
         if new_hyp:
@@ -164,7 +170,8 @@ def set_checklist_result(vin: str, step_id: str, body: ChecklistResult) -> dict[
             label += f" {body.value:g}{body.unit}"
         try:
             jobs_bridge.add_test_evidence(vin, hypothesis_id, step_id, label,
-                                          body.result, supports=body.supports, by=body.by)
+                                          body.result, supports=body.supports,
+                                          job_id=body.job_id or None, by=body.by)
         except Exception:  # noqa: BLE001 -- the result must still save
             pass
     result = {"vin": vin, "step_id": step_id, **entry}

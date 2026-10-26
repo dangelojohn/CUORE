@@ -600,7 +600,7 @@ _spec("differentials", "front_interval", "Front differential service interval",
 _spec("differentials", "front_lsd_additive", "Front differential LSD additive",
       ["differential", "front", "fluid"],
       "not applicable -- fixed-ratio open unit on 2.0T Q4, no front LSD option found",
-      "", confidence=SINGLE_SOURCE,
+      "", confidence=UNKNOWN,
       notes="Inference from architecture (Q4 clutch does front torque "
             "modulation, not a front LSD).")
 

@@ -201,3 +201,27 @@
   .ts-print { font-size: var(--fs-md); max-width: none; }
   .ts-fill-line.long { min-width: 60%; }
 }
+
+/* ---------- grouped layout (2026-10-26 reorganisation) ---------- */
+.ts-h { display: flex; align-items: baseline; gap: 10px; margin: 18px 0 8px; font-size: var(--fs-xl); }
+.ts-count {
+  font-family: var(--mono); font-size: var(--fs-md); font-weight: var(--fw-medium); color: var(--ink-2);
+}
+.ts-sort-label { font-size: var(--fs-md); color: var(--ink-2); align-self: center; }
+a.ts-filter-chip {
+  display: inline-flex; align-items: center; text-decoration: none; font-size: var(--fs-md);
+}
+.ts-group { margin: 10px 0; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); }
+.ts-group > summary {
+  min-height: 44px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 4px 12px; font-size: var(--fs-md);
+}
+.ts-group > .ts-list { padding: 0 10px 10px; }
+.ts-details > summary { min-height: 44px; font-size: var(--fs-md); }
+.ts-detail-body { font-size: var(--fs-md); overflow-wrap: anywhere; }
+.ts-result-recommended { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
+.ts-result-blocked { color: var(--sev-chronic); border-color: var(--sev-chronic); background: var(--sev-chronic-bg); }
+.ts-btn-undo { color: var(--ink-2); }
+.ts-row-head, .ts-why, .ts-latest, .ts-blocker, .ts-status { font-size: var(--fs-md); }
+.ts-duration, .ts-result-chip { font-size: var(--fs-md); }
+.ts-btn-sm { font-size: var(--fs-md); }

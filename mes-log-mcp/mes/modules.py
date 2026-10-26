@@ -23,7 +23,9 @@ Three rules the corpus forced:
 
 Provenance is tracked per entry. ``corpus`` means the string was observed in
 this shop's own logs; ``mes-lang`` means it came from MES's shipped
-``Lang\\English.dat`` string table; ``confirmed`` means vendor documentation.
+``Lang\\English.dat`` string table; ``unsourced`` means no citation is held in this repo for the entry's
+facts (formerly labelled ``confirmed``/vendor documentation, relabelled
+2026-10-26 because no vendor citation could be shown).
 Entries whose presence on the Giorgio platform is a guess say so rather than
 asserting it.
 """
@@ -146,7 +148,7 @@ _POWERTRAIN = [
        Domain.POWERTRAIN, Tier.IMPORTANT, GIORGIO_NO),
     _m("SCRM", "Selective Catalytic Reduction Module",
        "AdBlue/urea dosing on diesel engines.",
-       Domain.POWERTRAIN, Tier.IMPORTANT, GIORGIO_YES, (), "confirmed",
+       Domain.POWERTRAIN, Tier.IMPORTANT, GIORGIO_YES, (), "unsourced",
        "2.2 diesel only"),
     _m("ESEM", "Engine Sound Enhancement Module",
        "Synthesised engine note through the audio system; also active noise "
@@ -154,11 +156,11 @@ _POWERTRAIN = [
        Domain.POWERTRAIN, Tier.INFORMATIONAL, GIORGIO_YES, ("ANC",), "corpus",
        "MES ships a typo, 'enhacement' - match both spellings"),
     _m("AAML", "Active Aerodynamic Module Left", "Active front splitter, left.",
-       Domain.POWERTRAIN, Tier.IMPORTANT, GIORGIO_YES, (), "confirmed",
+       Domain.POWERTRAIN, Tier.IMPORTANT, GIORGIO_YES, (), "unsourced",
        "2.9 V6 Quadrifoglio only"),
     _m("AAMR", "Active Aerodynamic Module Right",
        "Active front splitter, right.",
-       Domain.POWERTRAIN, Tier.IMPORTANT, GIORGIO_YES, (), "confirmed",
+       Domain.POWERTRAIN, Tier.IMPORTANT, GIORGIO_YES, (), "unsourced",
        "2.9 V6 Quadrifoglio only"),
     _m("HCSS", "Heated Cold Start System",
        "Diesel intake or coolant preheat.",
@@ -265,7 +267,7 @@ _CHASSIS = [
        Domain.CHASSIS, Tier.IMPORTANT, GIORGIO_LIKELY),
     _m("TPMS", "Tire Pressure Monitoring System",
        "Direct TPMS receiver and sensor IDs.",
-       Domain.CHASSIS, Tier.IMPORTANT, GIORGIO_NO, ("TPM",), "confirmed",
+       Domain.CHASSIS, Tier.IMPORTANT, GIORGIO_NO, ("TPM",), "unsourced",
        "not a separate addressable module on Giulia/Stelvio; present on 500L"),
     _m("VDCM", "Vehicle Dynamics Control Module",
        "Vehicle-dynamics supervisor.",
@@ -306,10 +308,10 @@ _SAFETY = [
        Domain.SAFETY, Tier.IMPORTANT),
     _m("LBSS", "Left Blind Spot Sensor",
        "Rear corner radar: blind spot monitoring, rear cross-traffic alert.",
-       Domain.SAFETY, Tier.IMPORTANT, GIORGIO_YES, (), "confirmed"),
+       Domain.SAFETY, Tier.IMPORTANT, GIORGIO_YES, (), "unsourced"),
     _m("RBSS", "Right Blind Spot Sensor",
        "Rear corner radar: blind spot monitoring, rear cross-traffic alert.",
-       Domain.SAFETY, Tier.IMPORTANT, GIORGIO_YES, (), "confirmed"),
+       Domain.SAFETY, Tier.IMPORTANT, GIORGIO_YES, (), "unsourced"),
     _m("CMM", "Collision Mitigation Module", "AEB supervisor.",
        Domain.SAFETY, Tier.IMPORTANT),
     _m("PAM", "Parking Assist Module", "Ultrasonic parking sensors.",
@@ -374,7 +376,7 @@ _BODY = [
     _m("NVB", "Boot / Trunk Node", "Tailgate release and latch.",
        Domain.BODY, Tier.INFORMATIONAL),
     _m("PLGM", "Power Lift Gate Module", "Powered tailgate (BROSE).",
-       Domain.BODY, Tier.INFORMATIONAL, GIORGIO_YES, (), "confirmed",
+       Domain.BODY, Tier.INFORMATIONAL, GIORGIO_YES, (), "unsourced",
        "Stelvio yes, Giulia no"),
     _m("RCU", "Roof Control Unit", "Sunroof and overhead console.",
        Domain.BODY, Tier.INFORMATIONAL),
@@ -408,7 +410,7 @@ _LIGHTING = [
        "Auto wipers, auto lights, windscreen fogging detection.",
        Domain.LIGHTING, Tier.INFORMATIONAL, GIORGIO_LIKELY, ("HRLS",)),
     _m("XEN", "Xenon Headlamp Ballast", "HID ballast and igniter control.",
-       Domain.LIGHTING, Tier.IMPORTANT, GIORGIO_NO, (), "confirmed",
+       Domain.LIGHTING, Tier.IMPORTANT, GIORGIO_NO, (), "unsourced",
        "older Alfas"),
 ]
 
@@ -430,9 +432,9 @@ _CLIMATE = [
        Domain.CLIMATE, Tier.INFORMATIONAL),
     _m("CSWM", "Comfort Seat and Wheel Module",
        "Heated and ventilated seats plus heated steering wheel (Bitron).",
-       Domain.CLIMATE, Tier.INFORMATIONAL, GIORGIO_YES, (), "confirmed"),
+       Domain.CLIMATE, Tier.INFORMATIONAL, GIORGIO_YES, (), "unsourced"),
     _m("CRSM", "Comfort Rear Seat Module", "Heated rear seats (Bitron).",
-       Domain.CLIMATE, Tier.INFORMATIONAL, GIORGIO_YES, (), "confirmed"),
+       Domain.CLIMATE, Tier.INFORMATIONAL, GIORGIO_YES, (), "unsourced"),
     _m("NAG", "Driver Seat Node", "Power driver seat and memory position.",
        Domain.CLIMATE, Tier.INFORMATIONAL, GIORGIO_LIKELY),
     _m("NAP", "Passenger Seat Node", "Power passenger seat.",
@@ -471,10 +473,10 @@ _INFOTAINMENT = [
        Domain.INFOTAINMENT, Tier.INFORMATIONAL),
     _m("AMP", "Amplifier Node",
        "External audio power amplifier and DSP (Ask / Beats / Harman).",
-       Domain.INFOTAINMENT, Tier.INFORMATIONAL, GIORGIO_YES, (), "confirmed"),
+       Domain.INFOTAINMENT, Tier.INFORMATIONAL, GIORGIO_YES, (), "unsourced"),
     _m("MMCM", "Multimedia Control Module",
        "Rotary knob / joystick / touchpad HMI controller on the console.",
-       Domain.INFOTAINMENT, Tier.INFORMATIONAL, GIORGIO_YES, (), "confirmed"),
+       Domain.INFOTAINMENT, Tier.INFORMATIONAL, GIORGIO_YES, (), "unsourced"),
     _m("SRM", "Satellite Receiver Module", "SiriusXM satellite tuner.",
        Domain.INFOTAINMENT, Tier.INFORMATIONAL, GIORGIO_LIKELY, ("SDARS",)),
     _m("CDM", "Compact Disk Module", "CD/DVD changer.",
@@ -497,7 +499,7 @@ _NETWORK = [
     _m("SGW", "Security Gateway Module",
        "Gates write and actuation access on 2018+ FCA vehicles unless the "
        "tool is authenticated or bypassed.",
-       Domain.NETWORK, Tier.CRITICAL, GIORGIO_YES, (), "confirmed",
+       Domain.NETWORK, Tier.CRITICAL, GIORGIO_YES, (), "unsourced",
        "Vendor lists Giulia/Stelvio as SGW-equipped, but this shop's own "
        "2018 Stelvio cleared codes successfully on five modules across four "
        "sessions - so it is not gating that car. Mechanism unresolved."),
@@ -519,10 +521,10 @@ _PSEUDO = [
        "'<Group> / <ABBREV>' heading regex if applied to FES line 4."),
     _m("CAN-INFO", "CAN Info",
        "MES free-tier network identification page.",
-       Domain.PSEUDO, Tier.INFORMATIONAL, GIORGIO_UNKNOWN, (), "confirmed"),
+       Domain.PSEUDO, Tier.INFORMATIONAL, GIORGIO_UNKNOWN, (), "unsourced"),
     _m("CAN-MONITOR", "CAN Monitor / Vehicle Settings",
        "MES body-configuration editor.",
-       Domain.PSEUDO, Tier.INFORMATIONAL, GIORGIO_UNKNOWN, (), "confirmed"),
+       Domain.PSEUDO, Tier.INFORMATIONAL, GIORGIO_UNKNOWN, (), "unsourced"),
 ]
 
 

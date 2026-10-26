@@ -179,6 +179,10 @@ class _SnapField:
     enum: Optional[dict[int, str]] = None
     confidence: str = "unknown"
     basis: str = ""
+    #: A decoded value above this is physically impossible -> reported as invalid (value withheld),
+    #: not as a reading. Used where the decoding is unsigned but the quantity can be negative.
+    max_plausible: Optional[float] = None
+    invalid_note: str = ""
 
 
 def _U(length: int) -> _SnapField:
@@ -231,7 +235,10 @@ _ECM_SNAPSHOT: dict[int, _SnapField] = {
     0x1818: _U(1),
     0x1956: _SnapField(2, "Atmospheric pressure", "mbar", confidence="high", basis=_BOOST_NOTE),
     0x1302: _SnapField(2, "Engine oil temperature", "degC", confidence="medium",
-                       basis="direct degC; oil < coolant warming up, = coolant cold (MES 63/51, 60/46, 15/15)"),
+                       basis="direct degC; oil < coolant warming up, = coolant cold (MES 63/51, 60/46, 15/15)",
+                       max_plausible=200,
+                       invalid_note="decoded unsigned: a sub-zero oil temperature would wrap to ~65000 degC, "
+                                    "so the sign handling is UNCONFIRMED"),
     0x1B0D: _U(8),   # flag bytes (pedals/switches/status) -- bit meaning not derived
     0x19BD: _SnapField(1, "IBS state of charge", "%", confidence="medium",
                        basis="Table C; 100 % on the cold-start P0456 as in MES (63/81/100)"),
@@ -292,6 +299,12 @@ def _snapshot_identifier(ecu_code: str, did: int, did_hex: str, value: list[str]
                            "confidence": field.confidence}
     if field.basis:
         out["basis"] = field.basis
+    if (field.max_plausible is not None and isinstance(out["value"], (int, float))
+            and out["value"] > field.max_plausible):
+        out["invalid_reason"] = (f"{out['value']:g} {field.unit or ''} is not a possible value (over "
+                                 f"{field.max_plausible:g}); {field.invalid_note}. Raw bytes kept.").replace("  ", " ")
+        out["value"] = None
+        out["confidence"] = "unconfirmed"
     return out
 
 

@@ -1,0 +1,26 @@
+<p class="ts-purpose">{{ t.purpose }}</p>
+<p class="muted">When to use: {{ t.when_to_use }}</p>
+<p><b>Tools:</b> {{ t.tools|join(', ') }}</p>
+<ol class="ts-procedure">
+  {% for step in t.procedure %}<li>{{ step }}</li>{% endfor %}
+</ol>
+{% if t.pass_criteria %}
+<div class="ts-criteria-wrap">
+<table class="ts-criteria">
+  <thead><tr><th>Parameter</th><th>Spec</th><th>Source</th><th>Confidence</th></tr></thead>
+  <tbody>
+    {% for pc in t.pass_criteria %}
+    <tr>
+      <td>{{ pc.parameter }}</td>
+      <td>{{ pc.spec }}{% if pc.unit %} {{ pc.unit }}{% endif %}</td>
+      <td class="muted">{{ pc.source }}</td>
+      <td><span class="chip ts-conf-chip ts-conf-{{ pc.confidence|lower|replace('-', '_') }}">{{ pc.confidence }}</span></td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+<p><b>A fail means:</b> {{ t.fail_means }}</p>
+{% if t.hazards %}<p class="ts-hazards"><b>Hazards:</b> {{ t.hazards|join(', ') }}</p>{% endif %}
+{% if t.safety %}<p class="muted">{{ t.safety }}</p>{% endif %}

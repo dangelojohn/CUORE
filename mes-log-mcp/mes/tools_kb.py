@@ -34,6 +34,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+# NOTE: former CORROBORATED rows had no source; relabelled UNKNOWN (unsourced general knowledge, spec text kept).
 from .service_specs import TECHAUTHORITY, torque_by_key
 
 KINDS: tuple[str, ...] = ("hand", "torque", "special", "diagnostic", "lift", "consumable")
@@ -64,16 +65,16 @@ TOOLS: dict[str, dict[str, Any]] = {t["key"]: t for t in [
     _tool("ratchet_metric_set", "Metric ratchet + socket set (1/4\"-1/2\" drive)", "hand",
           spec="6-19mm sockets cover nearly everything on this car",
           why="General fastener removal across every job below.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
     _tool("torque_wrench_small", "Torque wrench, small (click-type, ~5-60 Nm)", "torque",
           spec="5-60 Nm range",
           why="Low-torque fasteners where overtightening damages soft threads or "
               "plastic housings -- drain plug, filter cap, spark plugs.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
     _tool("torque_wrench_large", "Torque wrench, large (click-type, ~40-200 Nm)", "torque",
           spec="40-200 Nm range",
           why="Higher-torque fasteners -- wheel lug bolts, caliper bracket bolts.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
     _tool("torque_angle_gauge", "Torque angle gauge", "torque",
           why="Any fastener specced as torque-plus-angle rather than torque alone.",
           confidence=UNKNOWN),
@@ -85,18 +86,18 @@ TOOLS: dict[str, dict[str, Any]] = {t["key"]: t for t in [
           confidence=SINGLE_SOURCE),
     _tool("oil_drain_pan", "Drain pan (low-profile, >=6 L)", "consumable",
           why="Catches the ~4.25-4.5 L of 0W-30 full synthetic this engine takes.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
     _tool("floor_jack", "Floor jack, rated for the car's weight", "lift",
-          why="Lifting for anything done from under the car.", confidence=CORROBORATED),
+          why="Lifting for anything done from under the car.", confidence=UNKNOWN),  # unsourced general knowledge
     _tool("jack_stands", "Jack stands (pair, rated)", "lift",
-          why="Never work under a car on a jack alone.", confidence=CORROBORATED),
+          why="Never work under a car on a jack alone.", confidence=UNKNOWN),  # unsourced general knowledge
     _tool("wheel_chocks", "Wheel chocks", "lift",
           why="Blocks the wheels staying on the ground before jacking.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
     _tool("impact_wrench", "Impact wrench (or breaker bar)", "hand",
           why="Breaking loose wheel lug bolts and other high-torque fasteners "
               "before final torque with a torque wrench -- never to final-tighten.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
     _tool("spark_plug_socket", "Spark plug socket (thin-wall, w/ rubber insert)", "special",
           spec="UNKNOWN exact size -- confirm on the car / service manual (TechAuthority)",
           why="Pulling/seating the plugs without cracking the porcelain.",
@@ -107,26 +108,26 @@ TOOLS: dict[str, dict[str, Any]] = {t["key"]: t for t in [
           confidence=UNKNOWN),
     _tool("trim_clip_tool", "Plastic trim/clip removal tool", "hand",
           why="Air filter box and undertray push-pin retainers -- a screwdriver "
-              "breaks these.", confidence=CORROBORATED),
+              "breaks these.", confidence=UNKNOWN),  # unsourced general knowledge
     _tool("serpentine_belt_tool", "Serpentine belt tensioner tool (18mm wrench or dedicated tool)", "special",
           spec="UNKNOWN exact drive/size -- confirm on the car / service manual (TechAuthority)",
           why="Relieving tensioner spring load to route the new belt.",
           confidence=UNKNOWN),
     _tool("battery_terminal_tool", "Battery terminal puller + wire brush", "hand",
           why="Corrosion on 12V terminals is a common no-start cause; clean "
-              "contact matters more than torque here.", confidence=CORROBORATED),
+              "contact matters more than torque here.", confidence=UNKNOWN),  # unsourced general knowledge
     _tool("battery_tester", "Battery/charging-system tester", "diagnostic",
           why="Confirms the battery itself vs. a charging-system fault before "
               "replacing a battery that was never the problem.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
     _tool("hand_vacuum_pump", "Hand-held vacuum pump (Mityvac-style, w/ gauge)", "special",
           why="ESIM Test A -- pulls vacuum on the EVAP system and watches decay "
               "to find a leak the smoke test alone won't localize.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
     _tool("smoke_machine", "EVAP smoke machine", "special",
           why="Injects visible smoke under light pressure into the EVAP system "
               "to see a leak directly rather than inferring one.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
     _tool("quick_connect_tool", "Fuel-line quick-connect release tool set", "special",
           spec="UNKNOWN exact size/profile -- confirm on the car / service manual (TechAuthority)",
           why="EVAP/fuel quick-connect fittings use a collar release that a "
@@ -134,10 +135,10 @@ TOOLS: dict[str, dict[str, Any]] = {t["key"]: t for t in [
           confidence=UNKNOWN),
     _tool("dvom", "Digital volt-ohm meter (DVOM)", "diagnostic",
           why="Electrical inspection -- voltage, resistance, continuity readings "
-              "a scan tool alone can't give.", confidence=CORROBORATED),
+              "a scan tool alone can't give.", confidence=UNKNOWN),  # unsourced general knowledge
     _tool("back_probe_set", "Back-probe pin set", "diagnostic",
           why="Reads a live connector's signal without unplugging it or piercing "
-              "insulation.", confidence=CORROBORATED),
+              "insulation.", confidence=UNKNOWN),  # unsourced general knowledge
     _tool("flare_nut_wrench_set", "Flare-nut (line) wrench set, metric", "hand",
           spec="UNKNOWN exact sizes -- confirm on the car / service manual (TechAuthority)",
           why="Turbo oil feed/return and coolant line fittings -- a flare-nut "
@@ -157,14 +158,14 @@ TOOLS: dict[str, dict[str, Any]] = {t["key"]: t for t in [
     _tool("elm327_stn", "ELM327/STN OBD-II adapter", "diagnostic",
           spec="connects on COM3 in this shop's setup",
           why="Live PID/DTC access and MES bridge connectivity for every "
-              "diagnostics step.", confidence=CORROBORATED),
+              "diagnostics step.", confidence=UNKNOWN),  # unsourced general knowledge
     _tool("mes_laptop", "Laptop running MultiEcuScan (MES)", "diagnostic",
           why="Module-level scan, freeze frames, actuators, adjustments -- the "
-              "shop's primary scan tool for this platform.", confidence=CORROBORATED),
+              "shop's primary scan tool for this platform.", confidence=UNKNOWN),  # unsourced general knowledge
     _tool("witech_vci", "wiTECH VCI pod + dongle", "diagnostic",
           why="Dealer-level bidirectional tests (e.g. SLVT) MES cannot run -- "
               "EPB service mode and some actuator tests need this.",
-          confidence=CORROBORATED),
+          confidence=UNKNOWN),  # unsourced general knowledge
 ]}
 
 

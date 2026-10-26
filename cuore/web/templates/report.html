@@ -211,7 +211,7 @@
           <td class="mono">{{ r.mid }}</td><td class="mono">{{ r.tid }}</td><td>{{ r.name }}</td>
           <td class="mono">{{ r.value }}{% if r.unit %} {{ r.unit }}{% endif %}</td>
           <td class="mono">{{ r.min }}</td><td class="mono">{{ r.max }}</td>
-          <td><span class="chip {{ 'ok' if r.passed else 'status-active' }}">{{ 'PASS' if r.passed else 'FAIL' }}</span></td>
+          <td>{% if r.passed is none %}<span class="chip plain">unknown scaling</span>{% else %}<span class="chip {{ 'ok' if r.passed else 'status-active' }}">{{ 'PASS' if r.passed else 'FAIL' }}</span>{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
