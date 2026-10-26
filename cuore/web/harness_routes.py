@@ -64,7 +64,7 @@ def harnesses_page(request: Request, vin: str, q: str = "") -> HTMLResponse:
                for h in (search_harnesses(q, v["harnesses"]) if q else [])]
     response = _page(request, "harnesses.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="harnesses",
                      v=v, d=d, linked=linked, bare=bare, drawn_n=sum(1 for h in v["harnesses"] if not h["low"]),
-                     svg=svc.map_svg(v["harnesses"]), colour=svc.colour,
+                     svg=svc.map_svg(v["harnesses"], {r["n"] for r in results}), colour=svc.colour,
                      q=q, results=results, results_shown=results[:10], no_match_hint=page_search.HINT_HARNESSES,
                      base=f"/v/{vin}/harnesses")
     _set_active_vehicle(response, vin)

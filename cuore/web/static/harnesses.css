@@ -105,3 +105,27 @@
 .hn-fig figcaption, .hn-ns { font-size: 16px; }
 .hn-foot { font-size: 16px; }
 .hn-search input[type=search], .hn-search button, .hn-search a { font-size: 16px; }
+
+/* --- review fixes: call is the title link, legend, folds, tighter cards, match highlight --- */
+.hn-calllink { display: inline-flex; align-items: center; min-height: 44px; color: var(--ink); }
+a.hn-calllink { text-decoration: underline; text-underline-offset: 3px; }
+.hn-maptitle { margin: 0; font-size: 18px; }
+.hn-key { grid-template-columns: 1fr; }
+@media (min-width: 700px) { .hn-key { grid-template-columns: repeat(2, 1fr); } }
+.hn-key a { flex-wrap: wrap; }
+.hn-brk { flex-basis: 100%; height: 0; }
+.hn-key .chip { margin-left: 34px; }
+.hn-card { padding: 6px 12px; margin: 0 0 8px; }
+.hn-card h3 { margin: 0 0 2px; }
+.hn-sum { margin: 0 0 2px; }
+.hn-more > summary, .hn-bare > summary, .hn-why > summary { list-style: none; justify-content: space-between; gap: 8px; }
+.hn-more > summary::-webkit-details-marker, .hn-bare > summary::-webkit-details-marker, .hn-why > summary::-webkit-details-marker { display: none; }
+.hn-more > summary::after, .hn-bare > summary::after, .hn-why > summary::after { content: ""; flex: none; width: 10px; height: 10px;
+  border-right: 2px solid var(--ink-2); border-bottom: 2px solid var(--ink-2); transform: rotate(45deg); margin-right: 6px; }
+details[open] > summary::after { transform: rotate(-135deg); }
+.hn-bare > summary { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 0 14px; }
+.hn-bare[open] > summary { margin-bottom: 8px; }
+.hn-route.hn-match .hn-line { stroke-width: 8; }
+.hn-route.hn-match .hn-arrow { stroke-width: 4; }
+.hn-badge.hn-match .hn-disc { stroke-width: 6; fill: var(--surface-2); }
+.hn-conn { opacity: .8; }

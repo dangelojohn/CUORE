@@ -186,7 +186,7 @@ for h in v["harnesses"]:
 check(html.count("Not shown in the diagram:") == 9, "not-shown line only where there is something")
 
 # empty-harness fold: harnesses touching nothing sit behind a fold
-m = re.search(r'<details class="hn-bare" id="hn-bare"[^>]*><summary>(.*?)</summary>(.*?)<p class="hn-foot">', html, re.S)
+m = re.search(r'<details class="hn-bare" id="hn-bare"[^>]*><summary[^>]*>(.*?)</summary>(.*?)<p class="hn-foot">', html, re.S)
 check(bool(m) and "7 harnesses that touch nothing CUORE knows" in m.group(1), "empty harnesses behind a fold with a count")
 linked_ids = {"headlamp-to-dash", "engine"}
 check(bool(m) and all(f'id="harness-{x}"' not in m.group(2) for x in linked_ids)
@@ -242,6 +242,43 @@ check("Look at harness 9, Engine Wiring, first" in cs and 'class="chip hn-gochip
 check("Why these?" in cs and "on the open job" in th, "why fold + card chip")
 check(th.index('id="harness-engine"') < th.index('id="harness-headlamp-to-dash"'), "matched harness listed first")
 hroutes._inputs = orig
+
+# --- review fixes: title call, badges/labels clear, top-view title, search first + highlight, folds ----------------
+import math  # noqa: E402
+check('class="hn-callline"' in html and 'href="https://' not in html and "Nothing on this job needs a harness - follow the electrical path for" in html
+      or "No open job - nothing points to a harness" in html, "call is the card title")
+check(re.search(r'class="hn-callline">.*?</h2>', html, re.S) is not None and "Counts" not in html[:0] and 'class="hn-stat"' in html.split('class="hn-why"')[1], "counts sit in the fold")
+check("Top view only" in html, "map titled Top view only")
+lay = svc.route_layout(v["harnesses"])
+check(len(lay) == 7, "layout for 7 drawn harnesses")
+for i, a in enumerate(lay):
+    for b in lay[i + 1:]:
+        check(math.dist(a["badge"], b["badge"]) >= 2 * svc.BADGE_R + 2, f"badges {a['n']}/{b['n']} do not overlap")
+    for o in lay:
+        if o is not a:
+            dmin = min(svc._seg_dist(*a["badge"], o["pts"][k], o["pts"][k + 1]) for k in range(len(o["pts"]) - 1))
+            check(dmin >= svc.BADGE_R + 3, f"badge {a['n']} clear of route {o['n']}")
+            check(math.dist(a["badge"], o["end"]) >= svc.BADGE_R + 8, f"badge {a['n']} clear of arrow {o['n']}")
+    check(all(svc.BADGE_R <= c <= lim for c, lim in zip(a["badge"], (svc.MAP_W, svc.MAP_H))), f"badge {a['n']} inside the map")
+for b in boxes:   # no leader runs through a label box nearer the car
+    for o in boxes:
+        if o is not b and o["side"] == b["side"] and o["row"] < b["row"]:
+            check(not (o["x0"] - 2 <= b["x"] <= o["x1"] + 2), f"leader of {b['id']} clear of label {o['id']}")
+for a in lay:   # badges never sit on a label box
+    for b in boxes:
+        check(not (b["x0"] <= a["badge"][0] <= b["x1"] and b["y0"] - svc.BADGE_R <= a["badge"][1] <= b["y1"] + svc.BADGE_R),
+              f"badge {a['n']} off label {b['id']}")
+check(svg.count('class="hn-badge"') == 7, "seven badges, none matched without a search")
+check(len({(round(l["start"][0]), round(l["start"][1])) for l in lay}) == 7, "no two routes start at the same point")
+
+tq = client.get(f"/v/{VIN}/harnesses?q=door").text
+check(tq.index('id="hn-results"') < tq.index('id="hn-call"'), "matches sit above the call card")
+check('class="hn-route hn-match" data-harness="front-door-left"' in tq and 'class="hn-badge hn-match" data-harness="front-door-left"' in tq,
+      "matched harness route and badge are highlighted")
+check('hn-route hn-match" data-harness="engine"' not in tq, "unmatched routes are not highlighted")
+check("closest('a[href^=\"#harness-\"]')" in html and "details.hn-more" in html, "hash/tap opens the target card's fold")
+check('<summary class="hn-fold">7 harnesses that touch nothing' in html and ".hn-bare > summary::after" in css, "bare fold has a chevron summary")
+check(".hn-key { grid-template-columns: 1fr; }" in css and "hn-brk" in html, "legend one column, unresolved chip on its own line")
 
 print(f"{passed} passed, {len(failures)} failed")
 for f in failures:

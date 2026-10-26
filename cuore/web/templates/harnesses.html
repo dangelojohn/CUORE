@@ -10,18 +10,6 @@
   {% if q %}<a href="{{ base }}">Clear search</a>{% endif %}
 </form>
 <h1>Wiring harnesses</h1>
-<section class="hn-call{{ ' hn-hit' if d.order }}" id="hn-call" aria-label="What to check">
-  <div class="eyebrow">{{ 'Look here first' if d.order else 'Harness check' }}</div>
-  <p class="hn-callline">{{ d.call }}</p>
-  {% if d.order %}<p class="hn-go"><span class="hn-gl">Go to:</span>
-    {% for h in v.harnesses if h.id in d.order %}<a class="chip hn-gochip" href="#harness-{{ h.id }}"><span class="hn-sw" style="--c: {{ colour(h.n) }}">{{ h.n }}</span> {{ h.title }}</a>{% endfor %}</p>{% endif %}
-  <p class="hn-stat">{{ d.stat }}</p>
-  {% if d.instead %}<p><a class="btn hn-instead" href="{{ d.instead.href }}">{{ d.instead.text }}</a></p>{% endif %}
-  <details class="hn-why"><summary>{{ 'Why these?' if d.order else 'Why none?' }}</summary>
-    <p>Checked {{ d.checked }}. A harness is named only when (a) a fuse box or electrical item it lists sits on CUORE's electrical path for an open code, or (b) a symptom or code description names its area in words. Harness maps are areas read from parts drawings, not wiring paths, so no wire is traced here.</p>
-    {% if d.order %}<ul>{% for h in v.harnesses if h.id in d.order %}{% for r in h.why %}<li><b>{{ h.n }}. {{ h.title }}</b>: {{ r }}</li>{% endfor %}{% endfor %}</ul>{% endif %}
-  </details>
-</section>
 {% if q %}
 <section class="hn-results" id="hn-results" aria-label="Search results">
   {% if results %}
@@ -35,18 +23,31 @@
   {% endif %}
 </section>
 {% endif %}
+<section class="hn-call{{ ' hn-hit' if d.order }}" id="hn-call" aria-label="What to check">
+  <div class="eyebrow">{{ 'Look here first' if d.order else 'Harness check' }}</div>
+  <h2 class="hn-callline">{% if d.href %}<a class="hn-calllink" href="{{ d.href }}">{{ d.title }}</a>{% else %}<span class="hn-calllink">{{ d.title }}</span>{% endif %}</h2>
+  {% if d.order %}<p class="hn-go"><span class="hn-gl">Go to:</span>
+    {% for h in v.harnesses if h.id in d.order %}<a class="chip hn-gochip" href="#harness-{{ h.id }}"><span class="hn-sw" style="--c: {{ colour(h.n) }}">{{ h.n }}</span> {{ h.title }}</a>{% endfor %}</p>{% endif %}
+  <details class="hn-why"><summary>{{ 'Why these?' if d.order else 'Why none?' }}</summary>
+    <p>{{ d.call }}</p>
+    <p class="hn-stat">{{ d.stat }}</p>
+    <p>Checked {{ d.checked }}. A harness is named only when (a) a fuse box or electrical item it lists sits on CUORE's electrical path for an open code, or (b) a symptom or code description names its area in words. Harness maps are areas read from parts drawings, not wiring paths, so no wire is traced here.</p>
+    {% if d.order %}<ul>{% for h in v.harnesses if h.id in d.order %}{% for r in h.why %}<li><b>{{ h.n }}. {{ h.title }}</b>: {{ r }}</li>{% endfor %}{% endfor %}</ul>{% endif %}
+    {% if d.instead and d.order %}<p><a class="btn hn-instead" href="{{ d.instead.href }}">{{ d.instead.text }}</a></p>{% endif %}
+  </details>
+</section>
 <p class="hn-links"><span class="hn-gl">Wiring paths and parts live on:</span> <a class="btn" href="/v/{{ vin }}/electrical">Electrical paths</a>
   <a class="btn" href="/v/{{ vin }}/fuses">Fuses</a>
   <a class="btn" href="/v/{{ vin }}/sensors">Sensors</a></p>
 {% if not v.catalogue_ok %}<p class="hn-note" role="status">The parts catalogue is not built on this computer, so the drawings and part names are not shown. The routes below still are.</p>{% endif %}
 
 <figure class="hn-mapbox" id="hn-map">
-  <div class="hn-maphead"><span class="chip plain">areas, not paths</span> <span class="muted">{{ drawn_n }} of {{ v.harnesses|length }} drawn</span></div>
+  <div class="hn-maphead"><h2 class="hn-maptitle">Top view only</h2> <span class="chip plain">areas, not paths</span> <span class="muted">{{ drawn_n }} of {{ v.harnesses|length }} drawn</span></div>
   {{ svg|safe }}
   <figcaption>Top view, front of the car on the left, driver side at the bottom. Each line joins the areas a harness is listed in, front to back; it is not the wire's route. Dashed = placed by title only. A short arrow = one area only. Harnesses with an unresolved area are listed, not drawn.</figcaption>
   <ul class="hn-key">
   {% for h in v.harnesses %}
-    <li><a href="#harness-{{ h.id }}"><span class="hn-sw{{ ' hn-hollow' if h.low }}" style="--c: {{ colour(h.n) }}">{{ h.n }}</span> {{ h.title }}{% if h.low %} <span class="chip hollow">unresolved</span>{% endif %}</a></li>
+    <li><a href="#harness-{{ h.id }}"><span class="hn-sw{{ ' hn-hollow' if h.low }}" style="--c: {{ colour(h.n) }}">{{ h.n }}</span> {{ h.title }}{% if h.low %}<span class="hn-brk"></span><span class="chip hollow">unresolved</span>{% endif %}</a></li>
   {% endfor %}
   </ul>
 </figure>
@@ -106,7 +107,7 @@
 {% if not linked %}<p class="muted">None of the {{ v.harnesses|length }} harness diagrams links to a fuse box, sensor or electrical item.</p>{% endif %}
 {% for h in linked %}{{ card(h) }}{% endfor %}
 {% if bare %}
-<details class="hn-bare" id="hn-bare"{{ ' open' if q }}><summary>{{ bare|length }} harness{{ '' if bare|length == 1 else 'es' }} that touch nothing CUORE knows</summary>
+<details class="hn-bare" id="hn-bare"{{ ' open' if q }}><summary class="hn-fold">{{ bare|length }} harness{{ '' if bare|length == 1 else 'es' }} that touch nothing CUORE knows</summary>
 {% for h in bare %}{{ card(h) }}{% endfor %}
 </details>
 {% endif %}
@@ -119,9 +120,14 @@
   function openFor() {
     var t = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
     for (var e = t; e; e = e.parentElement) if (e.tagName === 'DETAILS') e.open = true;
+    if (t && t.classList.contains('hn-card')) { var m = t.querySelector('details.hn-more'); if (m) m.open = true; }
     if (t) t.scrollIntoView();
   }
   window.addEventListener('hashchange', openFor); openFor();
+  document.addEventListener('click', function (ev) {
+    var a = ev.target.closest && ev.target.closest('a[href^="#harness-"]');
+    if (a) setTimeout(openFor, 0);
+  });
   var i = document.querySelector('#hn-search input[type=search]');
   if (i) i.addEventListener('input', function () {
     var q = i.value.toLowerCase().trim();

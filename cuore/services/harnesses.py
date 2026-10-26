@@ -209,7 +209,14 @@ def direct(vin: str, harnesses: list[dict[str, Any]], items: list[dict[str, Any]
         comp = next((p["element"] for p in paths[pick] if p.get("role") == "component"), paths[pick][0]["element"])
         instead = {"text": f"Instead, follow CUORE's electrical path for {pick} ({elem_labels.get(comp, comp)})",
                    "href": f"/v/{vin}/electrical#el-{comp}"}
-    return {"call": call, "stat": stat, "hits": hits, "order": order, "connected": connected, "instead": instead,
+    if order:
+        title, href = call.split(" Its area")[0].split(f" {len(order) - 1} more below")[0].strip(), f"#harness-{order[0]}"
+    elif instead:
+        code = instead["text"].split("path for ")[1].split(" (")[0]
+        title, href = f"Nothing on this job needs a harness - follow the electrical path for {code}", instead["href"]
+    else:
+        title, href = ("Nothing on this job needs a harness" if (codes or symptoms) else "No open job - nothing points to a harness"), ""
+    return {"call": call, "title": title, "href": href, "stat": stat, "hits": hits, "order": order, "connected": connected, "instead": instead,
             "checked": f"{len(codes)} open code{'s' if len(codes) != 1 else ''} and {len(symptoms)} open "
                        f"symptom{'s' if len(symptoms) != 1 else ''}"}
 
@@ -218,29 +225,75 @@ def direct(vin: str, harnesses: list[dict[str, Any]], items: list[dict[str, Any]
 
 LABEL_PX, LABEL_H, LABEL_GAP = 8.0, 22, 10   # approx. glyph width at 13 px, box height, min gap between boxes
 MAP_W, MAP_H = 860, 400
+BADGE_R, STAGGER = 15, 12      # badge radius; vertical step between parallel routes that share an area
+
+
+def _assign_rows(items: list[dict[str, Any]]) -> list[int]:
+    """Rows (0 = nearest the car) for label boxes: no two boxes in a row overlap, and no leader (the vertical at a
+    box's anchor) runs through a box in a row nearer the car. Brute force for small groups (fewest rows, then
+    lowest row sum); greedy otherwise."""
+    import itertools
+    n = len(items)
+
+    def ok(rows: tuple) -> bool:
+        for i, a in enumerate(items):
+            for j, b in enumerate(items):
+                if i == j:
+                    continue
+                if rows[i] == rows[j] and i < j and not (a["x0"] >= b["x1"] + LABEL_GAP or a["x1"] <= b["x0"] - LABEL_GAP):
+                    return False
+                if rows[j] < rows[i] and b["x0"] - 4 <= a["lx"] <= b["x1"] + 4:
+                    return False
+        return True
+
+    if n <= 7:
+        base = [(a["x0"], a["x1"]) for a in items]
+        for mode in ("centred", "shifted"):
+            if mode == "shifted" and n > 5:
+                break
+            combos = [tuple(0 for _ in items)] if mode == "centred" else list(itertools.product((0, -1, 1), repeat=n))
+            combos.sort(key=lambda c: sum(1 for x in c if x))
+            for combo in combos:
+                for i, a in enumerate(items):
+                    w = base[i][1] - base[i][0]
+                    a["x0"] = base[i][0] if combo[i] == 0 else (a["lx"] - 8 if combo[i] < 0 else a["lx"] - w + 8)
+                    a["x0"] = max(2, min(a["x0"], MAP_W - w - 2))
+                    a["x1"] = a["x0"] + w
+                for top in range(1, n + 1):
+                    best = None
+                    for rows in itertools.product(range(top), repeat=n):
+                        if max(rows, default=0) == top - 1 and ok(rows) and (best is None or sum(rows) < sum(best)):
+                            best = rows
+                    if best is not None:
+                        return list(best)
+        for i, a in enumerate(items):
+            a["x0"], a["x1"] = base[i]
+    rows_out: list[int] = []
+    for i, a in enumerate(items):
+        r = 0
+        while any(rows_out[j] == r and not (a["x0"] >= items[j]["x1"] + LABEL_GAP or a["x1"] <= items[j]["x0"] - LABEL_GAP)
+                  for j in range(i)):
+            r += 1
+        rows_out.append(r)
+    return rows_out
 
 
 def label_layout(areas: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Area label boxes. Labels for areas above the car (y < 230) and below it are each packed into rows so no two
-    boxes in a row overlap (an overlapping label goes to the next row). Returns dicts with box ``x0 x1 y0 y1``,
+    """Area label boxes. Labels for areas above the car (y < 230) and below it are packed into rows so no two boxes
+    in a row overlap and no leader line runs through another label. Returns dicts with box ``x0 x1 y0 y1``,
     text anchor ``tx ty``, leader end ``ly``, ``side`` and ``row``."""
     out: list[dict[str, Any]] = []
     for side in ("top", "bottom"):
         group = sorted((a for a in areas if (a["y"] < 230) == (side == "top")), key=lambda a: a["x"])
-        rows: list[list[dict[str, Any]]] = []
+        items = []
         for a in group:
             w = LABEL_PX * len(a["label"]) + 12
             x0 = max(2, min(a["x"] - w / 2, MAP_W - w - 2))
-            box = {"id": a["id"], "label": a["label"], "x": a["x"], "y": a["y"], "side": side, "x0": x0, "x1": x0 + w}
-            for ri, row in enumerate(rows):
-                if all(box["x0"] >= o["x1"] + LABEL_GAP or box["x1"] <= o["x0"] - LABEL_GAP for o in row):
-                    row.append(box)
-                    box["row"] = ri
-                    break
-            else:
-                rows.append([box])
-                box["row"] = len(rows) - 1
-            out.append(box)
+            items.append({"id": a["id"], "label": a["label"], "x": a["x"], "y": a["y"], "side": side,
+                          "x0": x0, "x1": x0 + w, "lx": a["x"]})
+        for b, r in zip(items, _assign_rows(items)):
+            b["row"] = r
+        out += items
     for b in out:
         if b["side"] == "top":
             b["y0"] = 4 - b["row"] * (LABEL_H + 4)
@@ -262,10 +315,61 @@ def colour(n: int) -> str:
     return COLOURS[(n - 1) % len(COLOURS)]
 
 
-def map_svg(harnesses: list[dict[str, Any]]) -> str:
+def _seg_dist(px: float, py: float, a: tuple, b: tuple) -> float:
+    (x0, y0), (x1, y1) = a, b
+    dx, dy = x1 - x0, y1 - y0
+    t = 0.0 if dx == dy == 0 else max(0.0, min(1.0, ((px - x0) * dx + (py - y0) * dy) / (dx * dx + dy * dy)))
+    return ((px - x0 - t * dx) ** 2 + (py - y0 - t * dy) ** 2) ** 0.5
+
+
+def route_layout(harnesses: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Per drawn harness: staggered polyline ``pts`` (parallel routes through a shared area are offset vertically by
+    their rank in that area), and a ``badge`` centre chosen so it clears every other badge, other harnesses' lines
+    and arrow heads (a short connector joins it to the route start)."""
+    import math
+    drawn = [hn for hn in harnesses if not hn.get("low") and hn["route"]]
+    rank: dict[str, list[int]] = {}
+    for hn in drawn:
+        for a in hn["route"]:
+            rank.setdefault(a["id"], []).append(hn["n"])
+    out: list[dict[str, Any]] = []
+    for hn in drawn:
+        pts = []
+        for a in hn["route"]:
+            ns = rank[a["id"]]
+            pts.append((a["x"], a["y"] + (ns.index(hn["n"]) - (len(ns) - 1) / 2) * STAGGER))
+        if len(pts) == 1:
+            x, y = pts[0]
+            pts = [(x - 22, y), (x + 22, y)]
+        out.append({"hn": hn, "n": hn["n"], "pts": pts, "start": pts[0], "end": pts[-1]})
+    dirs = [(0, -1), (0, 1), (-1, 0), (1, 0), (-1, -1), (1, -1), (-1, 1), (1, 1)]
+    cands = [(0.0, 0.0)] + [(dx * r / math.hypot(dx, dy), dy * r / math.hypot(dx, dy))
+                            for r in (30, 46, 62, 80, 100) for dx, dy in dirs]
+    placed: list[tuple[float, float]] = []
+    for lay in out:
+        best, best_score = None, -1e9
+        for cx, cy in cands:
+            bx, by = lay["start"][0] + cx, lay["start"][1] + cy
+            if not (BADGE_R + 2 <= bx <= MAP_W - BADGE_R - 2 and BADGE_R + 2 <= by <= MAP_H - BADGE_R - 2):
+                continue
+            clear = min([math.hypot(bx - ox, by - oy) - 2 * BADGE_R for ox, oy in placed]
+                        + [min(_seg_dist(bx, by, o["pts"][i], o["pts"][i + 1]) for i in range(len(o["pts"]) - 1))
+                           - BADGE_R - 5 for o in out if o is not lay]
+                        + [math.hypot(bx - o["end"][0], by - o["end"][1]) - BADGE_R - 8 for o in out if o is not lay]
+                        + [99.0])
+            score = min(clear, 4) * 100 - math.hypot(cx, cy)
+            if score > best_score:
+                best, best_score = (bx, by), score
+        lay["badge"] = best or lay["start"]
+        placed.append(lay["badge"])
+    return out
+
+
+def map_svg(harnesses: list[dict[str, Any]], match: set | frozenset = frozenset()) -> str:
     """Top view (nose left). One coloured route line + arrow + number disc per harness whose area is resolved;
-    low-confidence harnesses are not drawn (they are listed). Area labels are packed so none overlap.
-    Single-area harnesses get a short stub arrow: a marker, not a route."""
+    low-confidence harnesses are not drawn (they are listed). Area labels are packed so none overlap; parallel
+    routes are staggered and badges kept clear of each other. Single-area harnesses get a short stub arrow: a
+    marker, not a route. Harnesses whose number is in ``match`` (page search) get class ``hn-match``."""
     from html import escape
     try:
         from ..web import sensor_profile_svg as psvg  # read-only reuse of the car art
@@ -273,13 +377,13 @@ def map_svg(harnesses: list[dict[str, Any]]) -> str:
     except Exception:  # noqa: BLE001 -- plain outline fallback
         art = ('<rect x="58" y="47" width="748" height="306" rx="60" fill="var(--surface)" '
                'stroke="var(--ink-2)" stroke-width="2.2"/>')
-    drawn = [hn for hn in harnesses if not hn.get("low") and hn["route"]]
-    used = {a["id"]: a for hn in drawn for a in hn["route"]}
+    lays = route_layout(harnesses)
+    used = {a["id"]: a for hn in harnesses if not hn.get("low") for a in hn["route"]}
     boxes = label_layout(list(used.values()))
     top = max([0] + [-b["y0"] for b in boxes if b["side"] == "top"])
     bot = max([0] + [b["y1"] - MAP_H for b in boxes if b["side"] == "bottom"])
     p = [f'<svg class="hn-map" xmlns="http://www.w3.org/2000/svg" viewBox="0 {-top - 4} {MAP_W} {MAP_H + top + bot + 8}" '
-         f'width="100%" role="img" aria-label="Top view of the car with {len(drawn)} harness areas marked. '
+         f'width="100%" role="img" aria-label="Top view of the car with {len(lays)} harness areas marked. '
          f'Areas, not wiring paths.">', art]
     for b in boxes:
         p.append(f'<line class="hn-lead" x1="{b["x"]}" y1="{b["y"]}" x2="{b["x"]}" y2="{b["ly"]}" '
@@ -287,30 +391,33 @@ def map_svg(harnesses: list[dict[str, Any]]) -> str:
                  f'<rect class="hn-lbox" data-area="{escape(b["id"])}" x="{b["x0"]:.0f}" y="{b["y0"]}" '
                  f'width="{b["x1"] - b["x0"]:.0f}" height="{LABEL_H}" rx="4" fill="var(--surface)" stroke="var(--rule)"/>'
                  f'<text class="hn-area" x="{b["tx"]:.0f}" y="{b["ty"]}" text-anchor="middle">{escape(b["label"])}</text>')
-    for hn in drawn:
-        c, n, pts = colour(hn["n"]), hn["n"], [(a["x"], a["y"]) for a in hn["route"]]
-        off = ((n - 1) % 5 - 2) * 9      # spread overlapping lines vertically a little so each stays visible
-        pts = [(x, y + off) for x, y in pts]
+    badges = []
+    for lay in sorted(lays, key=lambda l: l["n"] in match):    # matched route is drawn last, on top
+        hn, pts = lay["hn"], lay["pts"]
+        c, n = colour(hn["n"]), hn["n"]
         dash = ' stroke-dasharray="7 5"' if hn["placement_basis"] != "drawn" else ""
-        if len(pts) == 1:
-            x, y = pts[0]
-            pts = [(x - 22, y), (x + 22, y)]
         d = "M" + " L".join(f"{x:.0f},{y:.0f}" for x, y in pts)
         (x0, y0), (x1, y1) = pts[-2], pts[-1]
         ln = max(((x1 - x0) ** 2 + (y1 - y0) ** 2) ** 0.5, 1)
         ux, uy = (x1 - x0) / ln, (y1 - y0) / ln
         head = (f"M{x1:.0f},{y1:.0f} L{x1 - 12 * ux + 6 * uy:.0f},{y1 - 12 * uy - 6 * ux:.0f} "
                 f"L{x1 - 12 * ux - 6 * uy:.0f},{y1 - 12 * uy + 6 * ux:.0f} Z")
-        mx, my = pts[0]
-        p.append(f'<g class="hn-route" data-harness="{escape(hn["id"])}"><a href="#harness-{escape(hn["id"])}">'
+        (sx, sy), (bx, by) = lay["start"], lay["badge"]
+        hit = " hn-match" if n in match else ""
+        conn = (f'<line class="hn-conn" x1="{sx:.0f}" y1="{sy:.0f}" x2="{bx:.0f}" y2="{by:.0f}" stroke="{c}" stroke-width="2"/>'
+                if (sx, sy) != (bx, by) else "")
+        p.append(f'<g class="hn-route{hit}" data-harness="{escape(hn["id"])}"><a href="#harness-{escape(hn["id"])}">'
                  f'<title>{n}. {escape(hn["title"])}: {escape(hn["route_words"])} (area, not an exact path)</title>'
                  f'<path d="{d}" fill="none" stroke="var(--surface)" stroke-width="9" stroke-linecap="round" '
                  f'stroke-linejoin="round"/>'
                  f'<path class="hn-line" d="{d}" fill="none" stroke="{c}" stroke-width="5" stroke-linecap="round" '
                  f'stroke-linejoin="round"{dash}/>'
                  f'<path class="hn-arrow" d="{head}" fill="{c}" stroke="{c}" stroke-width="2" stroke-linejoin="round"/>'
-                 f'<circle cx="{mx:.0f}" cy="{my:.0f}" r="15" fill="var(--surface)" stroke="{c}" stroke-width="4"/>'
-                 f'<text class="hn-num" x="{mx:.0f}" y="{my + 5:.0f}" text-anchor="middle">{n}</text>'
-                 f'</a></g>')
+                 f'{conn}</a></g>')
+        badges.append(f'<g class="hn-badge{hit}" data-harness="{escape(hn["id"])}"><a href="#harness-{escape(hn["id"])}">'
+                      f'<circle class="hn-disc" cx="{bx:.0f}" cy="{by:.0f}" r="{BADGE_R}" fill="var(--surface)" '
+                      f'stroke="{c}" stroke-width="4"/>'
+                      f'<text class="hn-num" x="{bx:.0f}" y="{by + 5:.0f}" text-anchor="middle">{n}</text></a></g>')
+    p += badges
     p.append("</svg>")
     return "".join(p)
