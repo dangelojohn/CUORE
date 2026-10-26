@@ -24,10 +24,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "o2_sensors",
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "oxygen sensor",
@@ -49,10 +49,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "o2_sensors",
-   "zone": null,
+   "zone": "under_car_exhaust",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "oxygen sensor",
@@ -75,10 +75,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": null,
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "coolant temperature",
@@ -100,10 +100,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "oil_pressure_level_sensors",
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "oil temperature"
@@ -123,10 +123,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "oil_pressure_level_sensors",
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "oil pressure"
@@ -146,10 +146,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "oil_pressure_level_sensors",
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "oil level"
@@ -169,10 +169,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "maf_map_iat_sensors",
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "intake pressure sensor",
@@ -195,10 +195,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "maf_map_iat_sensors",
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "boost pressure sensor",
@@ -246,10 +246,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "maf_map_iat_sensors",
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "intake air temperature",
@@ -270,10 +270,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "maf_map_iat_sensors",
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "charge air temperature"
@@ -293,10 +293,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "maf_map_iat_sensors",
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "manifold temperature"
@@ -316,10 +316,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": null,
-   "zone": null,
+   "zone": "front_bumper",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "ambient air temperature",
@@ -339,10 +339,10 @@
    "readable": false,
    "readable_note": "No live channel for this sensor exists in CUORE yet.",
    "element_id": null,
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "humidity sensor"
@@ -366,10 +366,10 @@
    "readable": true,
    "readable_note": "Legislated PID 11 'throttle position' is paired with DID sensor 1 by SAE A/B naming; not verified on this car.",
    "element_id": null,
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "throttle position sensor",
@@ -391,10 +391,10 @@
    "readable": true,
    "readable_note": "Legislated PID 47 'throttle position B' is paired with DID sensor 2 by SAE A/B naming; not verified on this car.",
    "element_id": null,
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "throttle position sensor",
@@ -415,10 +415,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": null,
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "throttle position sensor",
@@ -439,10 +439,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": null,
-   "zone": null,
+   "zone": "cabin_driver",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "accelerator pedal",
@@ -463,10 +463,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": null,
-   "zone": null,
+   "zone": "cabin_driver",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "accelerator pedal",
@@ -487,10 +487,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": null,
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "refrigerant pressure",
@@ -536,10 +536,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": null,
-   "zone": null,
+   "zone": "engine_bay",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "fuel rail pressure",
@@ -562,10 +562,10 @@
    "readable": true,
    "readable_note": "Link between the legislated EVAP vapour-pressure PIDs and the ESIM element is not proven in repo data.",
    "element_id": null,
-   "zone": null,
+   "zone": "fuel_tank",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "evap pressure sensor",
@@ -607,10 +607,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": null,
-   "zone": null,
+   "zone": "under_car_exhaust",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "transmission fluid temperature",
@@ -633,10 +633,10 @@
    "readable": true,
    "readable_note": "",
    "element_id": "ibs_battery_sensor",
-   "zone": null,
+   "zone": "trunk",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not verified on this car): the IBS sits on the 12 V battery's negative terminal; CUORE's own battery note says Giorgio-platform cars are 'commonly reported' to carry the battery in the cargo area, unconfirmed.",
    "code_match": {
     "descriptions": [
      "battery sensor",
@@ -867,10 +867,10 @@
    "readable": false,
    "readable_note": "No CUORE live channel exists for the radar sensor.",
    "element_id": "dasm_radar",
-   "zone": null,
+   "zone": "front_bumper",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "radar"
@@ -888,10 +888,10 @@
    "readable": false,
    "readable_note": "needs the CAN-CH (grey) cable",
    "element_id": "half_camera",
-   "zone": null,
+   "zone": "windscreen",
    "side": null,
-   "location_confidence": "UNKNOWN",
-   "location_source": "not sourced in this repo (no sourced location for this sensor)",
+   "location_confidence": "GENERAL",
+   "location_source": "GENERAL KNOWLEDGE (outside fact, not a CUORE reading and not verified on this car): area only, from how this sensor type is commonly fitted; confirm against the service manual or the car itself.",
    "code_match": {
     "descriptions": [
      "camera"

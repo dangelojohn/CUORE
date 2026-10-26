@@ -99,7 +99,7 @@ def _channel_meta() -> dict[str, dict[str, str]]:
 
 # --- registry -----------------------------------------------------------------
 
-_CONF_TO_RANK = {"SOURCED": "single-source", "INFERRED": "inferred", "UNKNOWN": ""}
+_CONF_TO_RANK = {"SOURCED": "single-source", "INFERRED": "inferred", "GENERAL": "", "UNKNOWN": ""}
 
 
 def _load_rows() -> list[dict[str, Any]]:

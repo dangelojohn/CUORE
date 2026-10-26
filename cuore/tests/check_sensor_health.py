@@ -78,7 +78,9 @@ check(all(ch in known for r in reg for ch in r["channels"]), "every registry cha
 zones = {z["id"] for z in ZONES} | {"front_bumper", "windscreen", "cabin_dash", "under_car_exhaust",
                                     "fuel_tank", "rear_bumper", "roof"}
 check(all(r["zone"] is None or r["zone"] in zones for r in reg), "zones are known ids")
-check(all(r["location_confidence"] in ("SOURCED", "INFERRED", "UNKNOWN") for r in reg), "confidence values")
+check(all(r["location_confidence"] in ("SOURCED", "INFERRED", "GENERAL", "UNKNOWN") for r in reg), "confidence values")
+check(all("GENERAL KNOWLEDGE" in r["location_source"] for r in reg if r["location_confidence"] == "GENERAL"),
+      "every general-knowledge area says so in its source text")
 check(all((r["zone"] is None) == (r["location_confidence"] == "UNKNOWN") for r in reg),
       "no zone <=> UNKNOWN confidence")
 check(all(r["location_source"] for r in reg), "every row carries a location_source")
