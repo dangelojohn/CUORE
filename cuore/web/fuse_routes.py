@@ -47,7 +47,7 @@ def _profile(boxes: list[dict[str, Any]], items: list[dict[str, Any]], dim: set[
     """(svg html, drawn). ('', False) if the shared drawing is not available."""
     try:
         from . import sensor_profile_svg as psvg
-        draw = getattr(psvg, "profile_svg")
+        draw = getattr(psvg, "both_views", None) or getattr(psvg, "profile_svg")
     except Exception:  # noqa: BLE001 - module absent or lacks profile_svg: list-only page
         return "", False
     pts: list[dict[str, Any]] = []

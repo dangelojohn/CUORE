@@ -110,8 +110,23 @@ VIN = "ZASFAKPN5J7B88115"
 
 # --- the SVG on its own -------------------------------------------------
 empty = sensor_profile_svg.render([])
-check(empty.startswith("<svg") and empty.rstrip().endswith("</svg>") and "sens-dot" not in empty,
-      "svg renders for an empty sensor list")
+check(empty.count("<svg") == 2 and empty.count("</svg>") == 2 and "sens-dot" not in empty,
+      "side and top views render for an empty sensor list")
+check(set(sensor_profile_svg.TOP_ZONES) == {z["id"] for z in sensor_profile_svg.ZONES},
+      "every side-view zone has a top-view anchor")
+tp = sensor_profile_svg.top_layout([
+    {"id": "a", "zone": "engine_bay", "side": "left"}, {"id": "b", "zone": "engine_bay", "side": "right"},
+    {"id": "c", "zone": "front_left_wheel_well"}, {"id": "d", "zone": "front_right_wheel_well"},
+    {"id": "e", "zone": None}])
+check(tp["a"][1] > 200 > tp["b"][1], "top view: left items below the centre line, right items above")
+check(tp["c"][1] > 300 and tp["d"][1] < 100, "top view: left wheel at the bottom, right wheel at the top")
+check("e" not in tp, "top view: unplaced item not drawn")
+sv = sensor_profile_svg.profile_svg([{"id": "a", "zone": "engine_bay"}])
+tv = sensor_profile_svg.top_svg([{"id": "a", "zone": "engine_bay"}])
+import re as _re
+xs = float(_re.search(r'class="sens-fill" cx="([\d.]+)"', sv).group(1))
+xt = float(_re.search(r'class="sens-fill" cx="([\d.]+)"', tv).group(1))
+check(abs(xs - xt) < 1, f"same front-to-back position in both views ({xs} vs {xt})")
 pos, unplaced = sensor_profile_svg.layout(SENSORS)
 check(set(unplaced) == {"cam", "noel"}, "unknown / missing zone -> unplaced")
 pts = list(pos.values())
@@ -137,7 +152,8 @@ for k in ("green", "orange", "red", "grey"):
     check(f"sens-dot sens-{k}" in html, f"dot class sens-{k} present")
 ids = [s["id"] for s in SENSORS]
 hrefs = set(re.findall(r'<a class="sens-dot[^"]*" href="#(sensor-[^"]+)"', html))
-check(hrefs == {f"sensor-{i}" for i in ids if i not in ("cam", "noel")}, "dots link to the placed sensors")
+check(hrefs == {f"sensor-{i}" for i in ids}, "every sensor has a dot, placed or in the not-sourced tray")
+check(html.count("Location not sourced yet (") == 2, "unplaced sensors shown in a tray under both views")
 check(all(f'id="{h}"' in html for h in hrefs), "every dot anchor has a list row")
 check("Unplaced (2)" in html and "Reverse camera" in html and "Rain sensor" in html, "unplaced tray lists both")
 check("/v/%s/electrical?find=rev_cam" % VIN in html, "Set location link for the unplaced sensor with an element")
@@ -155,7 +171,7 @@ r = client.get(f"/v/{VIN}/sensors?status=red")
 n_rows = len(re.findall(r'<article class="sens-row"', r.text))
 dimmed = len(re.findall(r'sens-dot sens-\w+ sens-dim', r.text))
 check(r.status_code == 200 and n_rows == 1, f"status filter narrows the list (rows={n_rows})")
-check(dimmed == len(pos) - 1, f"status filter dims the other dots ({dimmed})")
+check(dimmed == 2 * (len(ids) - 1), f"status filter dims the other dots in both views ({dimmed})")
 r = client.get(f"/v/{VIN}/sensors?system=Brakes")
 check(len(re.findall(r'<article class="sens-row"', r.text)) == 2, "system filter narrows the list")
 r = client.get(f"/v/{VIN}/sensors?status=bogus")

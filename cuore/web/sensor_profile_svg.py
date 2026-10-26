@@ -31,7 +31,7 @@ _GROUND = 328
 #: centres y=269, sill y=292, roof y~59); a drawing convention, not a measurement.
 ZONES: list[dict[str, Any]] = [
     {"id": "front_bumper", "label": "Front bumper", "ax": 66, "ay": 262, "lx": 40, "ly": 346, "ta": "start"},
-    {"id": "engine_bay", "label": "Engine bay", "ax": 236, "ay": 178, "lx": 236, "ly": 132, "ta": "middle"},
+    {"id": "engine_bay", "label": "Engine bay", "ax": 236, "ay": 178, "lx": 236, "ly": 110, "ta": "middle"},
     {"id": "front_left_wheel_well", "label": "Front wheel wells", "ax": 199, "ay": 236, "lx": 199, "ly": 346, "ta": "middle"},
     {"id": "front_right_wheel_well", "label": "", "ax": 199, "ay": 298, "lx": 199, "ly": 346, "ta": "middle"},
     {"id": "windscreen", "label": "Windscreen", "ax": 398, "ay": 112, "lx": 372, "ly": 70, "ta": "middle"},
@@ -82,89 +82,116 @@ def _smooth_closed(pts: list[tuple[float, float]]) -> str:
 
 
 _AXLE_F, _AXLE_R, _WHEEL_Y, _TYRE_R, _RIM_R = 199, 650, 269, 59, 37
+_ARCH_R, _CLAD_R, _SILL_Y = 70, 79, 288
+
+#: Credit for the photo the side view is traced from (CC BY-SA 4.0 requires it;
+#: the traced outline below is a derivative and is shared under the same licence).
+SIDE_VIEW_CREDIT = {
+    "text": 'Side view traced from "2018 Alfa Romeo Stelvio 2.1" by Vauxford, Wikimedia Commons, CC BY-SA 4.0',
+    "photo": "https://commons.wikimedia.org/wiki/File:2018_Alfa_Romeo_Stelvio_2.1.jpg",
+    "licence": "https://creativecommons.org/licenses/by-sa/4.0/",
+}
 
 
 def _wheel(cx: float) -> str:
-    """Tyre, 18-inch-class rim (rim/tyre diameter ratio of a 235/60 R18) and five twin spokes."""
+    """Tyre and the five-hole 'telephone dial' rim the reference car wears."""
     cy = _WHEEL_Y
-    p = [f'<circle cx="{cx}" cy="{cy}" r="{_TYRE_R}" fill="var(--ink-3)" fill-opacity="0.18" '
+    p = [f'<circle cx="{cx}" cy="{cy}" r="{_TYRE_R}" fill="var(--ink-3)" fill-opacity="0.22" '
          f'stroke="var(--ink-2)" stroke-width="1.6"/>',
-         f'<circle cx="{cx}" cy="{cy}" r="{_RIM_R}" fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.1"/>',
-         f'<circle cx="{cx}" cy="{cy}" r="{_RIM_R - 4}" fill="none" stroke="var(--ink-3)" stroke-width="0.6" opacity="0.6"/>',
-         f'<circle cx="{cx}" cy="{cy}" r="8" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1"/>']
+         f'<circle cx="{cx}" cy="{cy}" r="{_RIM_R}" fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.2"/>',
+         f'<circle cx="{cx}" cy="{cy}" r="7" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1"/>']
     for k in range(5):
-        for off in (-7, 7):
-            a = math.radians(-90 + k * 72 + off)
-            p.append(f'<line x1="{cx + 9 * math.cos(a):.1f}" y1="{cy + 9 * math.sin(a):.1f}" '
-                     f'x2="{cx + (_RIM_R - 5) * math.cos(a):.1f}" y2="{cy + (_RIM_R - 5) * math.sin(a):.1f}" '
-                     f'stroke="var(--ink-3)" stroke-width="2" stroke-linecap="round"/>')
+        a = math.radians(-90 + k * 72)
+        p.append(f'<circle cx="{cx + 21 * math.cos(a):.1f}" cy="{cy + 21 * math.sin(a):.1f}" r="10" '
+                 f'fill="var(--ink-3)" fill-opacity="0.35" stroke="var(--ink-3)" stroke-width="1"/>')
     return "".join(p)
 
 
+def _arch(cx: float, r: float) -> tuple[float, float]:
+    dx = math.sqrt(r * r - (_SILL_Y - _WHEEL_Y) ** 2)
+    return cx - dx, cx + dx
+
+
 def _car_line_art() -> str:
-    """Left-side Stelvio (949) profile, nose to the LEFT, drawn to the car's
-    published proportions at 0.16 units per mm: 4687 mm long, 2818 mm
-    wheelbase, ~1670 mm tall, ~735 mm tyres, ~200 mm ground clearance.
-    Long bonnet; strongly raked windscreen; roof that peaks over the B-pillar
-    and falls to a roof spoiler; fast rear screen; window line that rises to a
-    pointed rear tip; shoulder crease into the rear haunch; black arch and sill
-    cladding; swept headlamp; shield (scudetto) nose; wrap-round tail lamp.
-    A proportional drawing, not a traced blueprint."""
+    """Left-side Stelvio (949) profile, nose to the LEFT.
+
+    Traced from a photograph (see :data:`SIDE_VIEW_CREDIT`): the photo was
+    perspective-corrected on the four tyre top/bottom points so the side
+    plane between the wheels is true to scale, and the roofline, window
+    outline (with its pointed rear tip), B-pillar, quarter-glass frame,
+    mirror, door shut lines, handles, shoulder and lower crease, sill strip,
+    fuel flap and tail lamp were read off it. The photo is a front
+    three-quarter view, so the overhangs are set to the car's published
+    length (4687 mm, 2818 mm wheelbase) rather than read from it; the
+    front/rear split of the 1869 mm of overhang is not in any source found,
+    so it is a drawing choice.
+    0.16 drawing units per mm; axles at x=199 / 650, wheel centres y=269,
+    ground y=328."""
     ink = 'stroke="var(--ink-3)" stroke-linecap="round" stroke-linejoin="round"'
     line = f'fill="none" {ink} stroke-width="1.2"'
-    thin = f'fill="none" {ink} stroke-width="0.9" opacity="0.75"'
-    clad = 'fill="var(--ink-3)" fill-opacity="0.22" stroke="var(--ink-3)" stroke-width="0.9" stroke-linejoin="round"'
-    af, ar = _AXLE_F, _AXLE_R
-    # arch openings: radius 66 around each wheel centre (y=269), cut at the sill line y=292
-    body = ("M66,298 "                                   # front lower lip
-            "C58,296 55,284 55,266 "                      # bumper face
-            "C55,240 56,214 60,200 "                      # nose (shield level)
-            "C63,188 70,181 84,178 "                      # bonnet leading edge
-            "C170,166 270,154 336,146 "                   # long bonnet to the screen base
-            "C380,118 420,90 456,72 "                     # raked windscreen
-            "C490,62 520,59 548,59 "                      # roof peak over the B-pillar
-            "C620,60 690,66 742,82 "                      # falling roof
-            "L750,85 L748,90 L742,91 "                    # roof spoiler
-            "C760,112 780,136 794,152 "                   # fast rear screen
-            "C801,160 805,172 805,188 "                   # tail lamp / tailgate edge
-            "L804,238 "                                    # rear bumper face
-            "C804,262 800,284 790,294 "                   # bumper round-under
-            f"L774,296 L{ar + 62},292 "                    # diffuser to the rear arch
-            f"A66,66 0 1 0 {ar - 62},292 "                 # rear arch
-            f"L{af + 62},292 "                              # sill
-            f"A66,66 0 1 0 {af - 62},292 "                 # front arch
-            "L120,296 Z")
+    thin = f'fill="none" {ink} stroke-width="0.9" opacity="0.8"'
+    clad = 'fill="var(--ink-3)" fill-opacity="0.28" stroke="var(--ink-3)" stroke-width="0.9" stroke-linejoin="round"'
+    glass = 'fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.2" stroke-linejoin="round"'
+    fa0, fa1 = _arch(_AXLE_F, _ARCH_R)
+    ra0, ra1 = _arch(_AXLE_R, _ARCH_R)
+    body = (f"M{fa0:.1f},{_SILL_Y} "
+            "L118,292 C92,294 74,296 66,294 "            # front lower lip
+            "C60,290 57,280 57,266 "                      # bumper face
+            "C56,244 57,220 60,204 "                      # nose
+            "C63,188 70,178 82,172 "                      # bonnet leading edge
+            "C160,159 260,148 326,141 "                   # bonnet / fender line to the screen base
+            "C350,112 372,86 396,64 "                     # raked A-pillar
+            "C430,56 490,54 540,56 "                      # roof
+            "C590,59 630,70 660,92 "                      # roof falls to the spoiler
+            "L672,97 L668,103 "                           # roof spoiler lip
+            "C700,114 735,128 756,138 "                   # fast tailgate glass
+            "C772,142 786,146 794,156 "                   # over the tail lamp
+            "C799,170 800,188 800,206 "                   # tailgate edge
+            "L801,244 "                                    # rear bumper face
+            "C801,258 797,268 790,274 "                   # bumper round-under
+            "C780,282 770,288 760,290 "                   # diffuser
+            f"L{ra1:.1f},{_SILL_Y} "
+            f"A{_ARCH_R},{_ARCH_R} 0 1 0 {ra0:.1f},{_SILL_Y} "   # rear arch
+            f"L{fa1:.1f},{_SILL_Y} "                              # sill
+            f"A{_ARCH_R},{_ARCH_R} 0 1 0 {fa0:.1f},{_SILL_Y} Z")  # front arch
     p = ['<g class="car-art" aria-hidden="true">',
          f'<line x1="16" y1="{_GROUND}" x2="844" y2="{_GROUND}" stroke="var(--rule)" stroke-width="1"/>',
          f'<path d="{body}" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.8" stroke-linejoin="round"/>']
-    # black cladding: a band outside each arch opening, and the sill / lower door strip
-    for cx in (af, ar):
-        p.append(f'<path d="M{cx + 62},292 A66,66 0 1 0 {cx - 62},292 L{cx - 70},292 '
-                 f'A74,74 0 1 1 {cx + 70},292 Z" {clad}/>')
-    p.append(f'<path d="M{af + 70},292 L{ar - 70},292 L{ar - 72},280 C520,281 380,281 {af + 72},282 Z" {clad}/>')
-    p += [_wheel(af), _wheel(ar)]
-    # glasshouse (DLO): follows the screen and roof; window line rises to a pointed rear tip
-    p.append('<path d="M350,150 C390,122 424,98 458,82 C492,72 524,69 552,69 C620,70 676,76 714,92 '
-             'C728,100 734,108 738,116 C700,121 560,132 350,150 Z" '
-             'fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.2" stroke-linejoin="round"/>')
-    p.append('<path d="M347,153 C560,135 700,123 742,117" fill="none" stroke="var(--ink-2)" stroke-width="1.1"/>')
-    p.append('<path d="M503,71 L507,139 L516,139 L512,70 Z" fill="var(--ink-3)" fill-opacity="0.55"/>')  # B-pillar
-    p.append('<path d="M650,74 L644,128 L654,127 L662,76 Z" fill="var(--ink-3)" fill-opacity="0.55"/>')  # C-pillar
-    # door shut lines, handles, mirror, shoulder crease, rear haunch
-    p.append(f'<path d="M346,154 C318,170 300,196 296,224 L292,280" {thin}/>')
-    p.append(f'<path d="M511,140 L515,280" {thin}/>')
-    p.append(f'<path d="M650,128 C652,160 646,186 626,206" {thin}/>')
-    p.append(f'<path d="M428,166 L458,165 M584,157 L612,156" {line}/>')
-    p.append(f'<path d="M352,152 L334,136 Q328,131 320,134 L316,146 Q318,154 332,156 Z" {line}/>')
-    p.append(f'<path d="M150,190 C300,176 520,166 720,158 C750,157 772,160 790,166" {thin}/>')
-    p.append(f'<path d="M560,200 C620,196 680,190 720,186" {thin}/>')
-    # nose: shield edge, swept headlamp, side intake; tail: lamp, reflector, exhaust tip
-    p.append(f'<path d="M57,204 L62,203 L64,246 L58,250 Z" {line}/>')
-    p.append(f'<path d="M64,192 C96,182 132,176 162,174 L156,184 C126,188 96,194 66,206 Z" {line}/>')
+    # black arch cladding (a band outside each opening) and lower sill cladding
+    for cx in (_AXLE_F, _AXLE_R):
+        a0, a1 = _arch(cx, _ARCH_R)
+        c0, c1 = _arch(cx, _CLAD_R)
+        p.append(f'<path d="M{a1:.1f},{_SILL_Y} A{_ARCH_R},{_ARCH_R} 0 1 0 {a0:.1f},{_SILL_Y} L{c0:.1f},{_SILL_Y} '
+                 f'A{_CLAD_R},{_CLAD_R} 0 1 1 {c1:.1f},{_SILL_Y} Z" {clad}/>')
+    p.append(f'<path d="M{_arch(_AXLE_F, _CLAD_R)[1]:.1f},{_SILL_Y} L{_arch(_AXLE_R, _CLAD_R)[0]:.1f},{_SILL_Y} '
+             f'L{_arch(_AXLE_R, _CLAD_R)[0] - 2:.1f},281 L{_arch(_AXLE_F, _CLAD_R)[1] + 2:.1f},281 Z" {clad}/>')
+    p += [_wheel(_AXLE_F), _wheel(_AXLE_R)]
+    # glasshouse: front door glass, rear door glass, fixed quarter glass, rising to a pointed rear tip
+    p.append('<path d="M340,136 C356,112 374,88 396,72 C440,66 500,66 540,70 C574,73 600,82 616,96 '
+             'C622,102 626,108 627,113 C540,120 420,130 340,136 Z" ' + glass + '/>')
+    p.append('<path d="M337,139 C430,131 540,121 630,113" fill="none" stroke="var(--ink-2)" stroke-width="1.2"/>')
+    p.append('<path d="M466,68 L470,128 L486,127 L484,68 Z" fill="var(--ink-3)" fill-opacity="0.6"/>')  # B-pillar
+    p.append('<path d="M580,74 L583,120 L589,119 L587,76 Z" fill="var(--ink-3)" fill-opacity="0.6"/>')  # quarter frame
+    # door mirror on the door, ahead of the glass
+    p.append('<path d="M334,140 C330,126 342,113 362,112 C380,111 391,119 389,129 C387,139 372,145 352,146 '
+             'L346,151 L338,150 Z" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1.2" stroke-linejoin="round"/>')
+    # door shut lines: front door leading edge, front/rear split, rear door around the arch
+    p.append(f'<path d="M327,143 C320,154 316,166 315,182 L314,281" {thin}/>')
+    p.append(f'<path d="M478,130 L482,281" {thin}/>')
+    p.append(f'<path d="M627,114 C640,124 646,136 645,152 C644,168 638,182 630,192" {thin}/>')
+    # handles, shoulder crease through them, lower door crease, chrome sill strip
+    p.append(f'<path d="M436,159 C446,156 466,156 478,158 M590,150 C600,147 618,147 630,149" {line}/>')
+    p.append(f'<path d="M156,178 C280,164 420,152 520,146 C620,140 700,138 760,142" {thin}/>')
+    p.append(f'<path d="M292,248 C380,243 500,239 600,236" {thin}/>')
+    p.append(f'<path d="M296,278 L592,276" fill="none" stroke="var(--ink-2)" stroke-width="1.4" stroke-linecap="round"/>')
+    # rear quarter: fuel flap, tail lamp, reflector; nose: headlamp, side intake, shield edge
+    p.append(f'<path d="M672,146 C672,142 676,141 680,141 L722,141 C727,141 729,144 729,148 L729,166 '
+             f'C729,170 726,172 722,172 L679,172 C675,172 672,170 672,166 Z" {line}/>')
+    p.append(f'<path d="M742,142 C762,141 784,145 795,154 L797,170 C780,166 760,163 742,161 Z" {line}/>')
+    p.append(f'<path d="M778,238 L800,238" {line}/>')
+    p.append(f'<path d="M64,192 C96,182 130,175 158,172 L152,184 C124,188 96,194 66,206 Z" {line}/>')
     p.append(f'<path d="M64,240 L94,244 L98,282 L68,286 Z" {line}/>')
-    p.append(f'<path d="M752,152 C776,152 796,158 804,168 L804,184 C786,178 764,174 744,170 Z" {line}/>')
-    p.append(f'<path d="M776,236 L802,236" {line}/>')
-    p.append(f'<path d="M772,292 L796,292 L796,286 L774,286 Z" {line}/>')
+    p.append(f'<path d="M57,204 L62,203 L64,246 L58,250 Z" {line}/>')
     p.append('<text x="18" y="150" font-size="9" fill="var(--ink-3)" letter-spacing="1" '
              'font-family="var(--sans), sans-serif">FRONT</text>')
     p.append("</g>")
@@ -216,6 +243,29 @@ def _reason(s: dict[str, Any]) -> str:
     return r[0] if r else ""
 
 
+_TRAY_ROW = 26
+_TRAY_X0, _TRAY_PER_ROW = 24, 34
+
+
+def _tray(unplaced: list[dict[str, Any]], y0: float, width: float, href_prefix: str, dim: set[str]) -> tuple[str, float]:
+    """Every item with no sourced location, as a row of dots UNDER the drawing,
+    so each icon appears on the picture even before its location is known.
+    Returns (svg, extra height)."""
+    if not unplaced:
+        return "", 0.0
+    per = max(1, int((width - 2 * _TRAY_X0) // (2 * _R + 6)))
+    rows = (len(unplaced) + per - 1) // per
+    p = [f'<line x1="16" y1="{y0 + 4}" x2="{width - 16}" y2="{y0 + 4}" stroke="var(--rule)" stroke-dasharray="3 4"/>',
+         f'<text class="sens-zl on" x="16" y="{y0 + 20}">Location not sourced yet ({len(unplaced)}) '
+         f'- shown here so every item is on the picture; not placed on the car</text>']
+    for i, s in enumerate(unplaced):
+        r, c = divmod(i, per)
+        x = _TRAY_X0 + _R + c * (2 * _R + 6)
+        y = y0 + 38 + r * _TRAY_ROW
+        p.append(_dot(s, x, y, href_prefix, dim, show_side=False))
+    return "".join(p), 36 + rows * _TRAY_ROW + 4
+
+
 def profile_svg(items: list[dict[str, Any]], *, href_prefix: str = "sensor-",
                 legend: Optional[list[tuple[str, str]]] = None,
                 aria_label: str = "Sensor locations on the Stelvio",
@@ -231,7 +281,8 @@ def profile_svg(items: list[dict[str, Any]], *, href_prefix: str = "sensor-",
     by_id = {s["id"]: s for s in items}
     used = {resolve_zone(s.get("zone")) for s in items}
     label = aria_label.replace("{n}", str(len(pos)))
-    p = [f'<svg class="sens-profile" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {_VB_W} {_VB_H}" '
+    tray, extra = _tray([s for s in items if resolve_zone(s.get("zone")) is None], _VB_H, _VB_W, href_prefix, dim)
+    p = [f'<svg class="sens-profile" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {_VB_W} {_VB_H + extra:.0f}" '
          f'width="100%" role="img" aria-label="{escape(label, quote=True)}">',
          _car_line_art(), '<g class="sens-zones" aria-hidden="true">']
     # only the areas this page actually uses get a label: an unused label
@@ -252,23 +303,201 @@ def profile_svg(items: list[dict[str, Any]], *, href_prefix: str = "sensor-",
             x += 28 + 6 * len(text)
         p.append("</g>")
     for sid, (x, y) in pos.items():
-        s = by_id[sid]
-        st = s.get("status") if s.get("status") in _STATUS_WORD else "grey"
-        n = s.get("number", "")
-        tip = s.get("title") or f'{s.get("label", sid)} — {_STATUS_WORD[st]}'
-        cls = f"sens-dot sens-{st}" + (" sens-dim" if sid in dim else "")
-        tag = {"left": "L", "right": "R"}.get(s.get("side") or "", "")
-        g = [f'<a class="{cls}" href="#{escape(href_prefix, quote=True)}{escape(sid, quote=True)}"><title>{escape(tip)}</title>']
-        if s.get("location_confidence") == "INFERRED":
-            g.append(f'<circle class="sens-ring" cx="{x:.1f}" cy="{y:.1f}" r="{_R + 4}"/>')
-        g.append(f'<circle class="sens-fill" cx="{x:.1f}" cy="{y:.1f}" r="{_R}"/>')
-        g.append(f'<text class="sens-num" x="{x:.1f}" y="{y + 3.5:.1f}" text-anchor="middle">{n}</text>')
-        if tag:
-            g.append(f'<text class="sens-side" x="{x + _R + 1:.1f}" y="{y - _R + 1:.1f}">{tag}</text>')
-        g.append("</a>")
-        p.append("".join(g))
+        p.append(_dot(by_id[sid], x, y, href_prefix, dim, show_side=True))
+    p.append(tray)
     p.append("</svg>")
     return "".join(p)
+
+
+# --- top view ---------------------------------------------------------------------
+#
+# Same x scale as the side view (front axle x=199, rear axle x=650, nose x=55,
+# tail x=805), and every area sits at the same front-to-back x in both views.
+# Looking down, nose to the LEFT: the car's LEFT side (the one the side view
+# shows; the driver's side on this car) is at the BOTTOM, its RIGHT side at
+# the TOP. Width 1903 mm at 0.16 units/mm: body y 48..352, centre line y=200,
+# wheel track ~1610 mm so wheel centres at y=71 (right) and y=329 (left).
+
+_TOP_W, _TOP_H = 860, 400
+_CY = 200
+_SIDE_SHIFT = 64     # how far a "left"/"right" item moves off the centre line
+
+#: zone id -> top-view anchor and label. ``sided``: a left/right item moves
+#: toward that side; wheel wells already are one side.
+TOP_ZONES: dict[str, dict[str, Any]] = {
+    "front_bumper": {"ax": 66, "ay": 200, "label": "Front bumper", "lx": 40, "ly": 386, "ta": "start", "sided": True},
+    "engine_bay": {"ax": 236, "ay": 200, "label": "Engine bay", "lx": 236, "ly": 120, "ta": "middle", "sided": True},
+    "front_left_wheel_well": {"ax": 199, "ay": 329, "label": "Front left wheel", "lx": 199, "ly": 386, "ta": "middle", "sided": False},
+    "front_right_wheel_well": {"ax": 199, "ay": 71, "label": "Front right wheel", "lx": 199, "ly": 22, "ta": "middle", "sided": False},
+    "windscreen": {"ax": 398, "ay": 160, "label": "Windscreen", "lx": 398, "ly": 118, "ta": "middle", "sided": True},
+    "cabin_dash": {"ax": 372, "ay": 236, "label": "Dash", "lx": 372, "ly": 278, "ta": "middle", "sided": True},
+    "cabin_driver": {"ax": 446, "ay": 268, "label": "Driver seat (left)", "lx": 446, "ly": 386, "ta": "middle", "sided": False},
+    "cabin_passenger": {"ax": 540, "ay": 132, "label": "Passenger seat (right)", "lx": 540, "ly": 22, "ta": "middle", "sided": False},
+    "roof": {"ax": 570, "ay": 156, "label": "Roof", "lx": 570, "ly": 118, "ta": "middle", "sided": True},
+    "under_car_exhaust": {"ax": 424, "ay": 196, "label": "Under the car / exhaust", "lx": 424, "ly": 226, "ta": "middle", "sided": True},
+    "fuel_tank": {"ax": 566, "ay": 244, "label": "Fuel tank (under)", "lx": 566, "ly": 286, "ta": "middle", "sided": True},
+    "rear_left_wheel_well": {"ax": 650, "ay": 329, "label": "Rear left wheel", "lx": 650, "ly": 386, "ta": "middle", "sided": False},
+    "rear_right_wheel_well": {"ax": 650, "ay": 71, "label": "Rear right wheel", "lx": 650, "ly": 22, "ta": "middle", "sided": False},
+    "trunk": {"ax": 728, "ay": 200, "label": "Tailgate / trunk", "lx": 728, "ly": 146, "ta": "middle", "sided": True},
+    "fuse_box_engine_bay": {"ax": 140, "ay": 200, "label": "Fuse box (engine bay)", "lx": 140, "ly": 146, "ta": "middle", "sided": True},
+    # the interior box is named "passenger-side ... footwell" in its source: right side, by the dash
+    "fuse_box_interior": {"ax": 384, "ay": 116, "label": "Fuse box (passenger footwell)", "lx": 384, "ly": 22, "ta": "middle", "sided": False},
+    "fuse_box_rear": {"ax": 752, "ay": 200, "label": "Fuse box (rear)", "lx": 752, "ly": 22, "ta": "middle", "sided": True},
+    "rear_bumper": {"ax": 800, "ay": 200, "label": "Rear bumper", "lx": 830, "ly": 386, "ta": "end", "sided": True},
+}
+
+
+def _top_anchor(item: dict[str, Any]) -> Optional[tuple[str, float, float]]:
+    z = resolve_zone(item.get("zone"))
+    t = TOP_ZONES.get(z or "")
+    if t is None:
+        return None
+    side = (item.get("side") or "").lower()
+    ay = t["ay"]
+    if t["sided"] and side in ("left", "right"):
+        ay += _SIDE_SHIFT if side == "left" else -_SIDE_SHIFT
+    return f"{z}|{side if t['sided'] else ''}", t["ax"], ay
+
+
+def top_layout(items: list[dict[str, Any]]) -> dict[str, tuple[float, float]]:
+    """{item id: (x, y)} on the top view, clustered like :func:`layout`."""
+    groups: dict[str, tuple[float, float, list[str]]] = {}
+    for s in items:
+        a = _top_anchor(s)
+        if a is None:
+            continue
+        key, ax, ay = a
+        groups.setdefault(key, (ax, ay, []))[2].append(s["id"])
+    placed: dict[str, tuple[float, float]] = {}
+    taken: list[tuple[float, float]] = []
+    cells = _cells(0)
+    for key in sorted(groups, key=lambda k: (groups[k][0], groups[k][1])):
+        ax, ay, ids = groups[key]
+        for sid in ids:
+            for dx, dy in cells:
+                x, y = ax + dx, ay + dy
+                if not (14 <= x <= _TOP_W - 14 and 34 <= y <= _TOP_H - 30):
+                    continue
+                if all((x - tx) ** 2 + (y - ty) ** 2 >= (2 * _R + 2) ** 2 for tx, ty in taken):
+                    taken.append((x, y))
+                    placed[sid] = (x, y)
+                    break
+            else:
+                placed[sid] = (ax, ay)
+    return placed
+
+
+def _car_top_art() -> str:
+    """Plan view, nose LEFT, drawn to the same proportions as the side view
+    (a proportional drawing, not a traced blueprint)."""
+    ink = 'stroke="var(--ink-3)" stroke-linecap="round" stroke-linejoin="round"'
+    line = f'fill="none" {ink} stroke-width="1.2"'
+    thin = f'fill="none" {ink} stroke-width="0.9" opacity="0.75"'
+    glass = 'fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.1" stroke-linejoin="round"'
+    upper = [(58, 118), (64, 74), (100, 54), (199, 47), (300, 52), (420, 56), (560, 54),
+             (650, 47), (744, 54), (792, 70), (806, 112)]
+    pts = upper + [(x, 2 * _CY - y) for x, y in reversed(upper)]
+    body = _smooth_closed(pts)
+    p = ['<g class="car-art" aria-hidden="true">']
+    # tyres first, dashed where the body hides them
+    for cx in (_AXLE_F, _AXLE_R):
+        for cy in (71, 329):
+            p.append(f'<rect x="{cx - 59}" y="{cy - 19}" width="118" height="38" rx="9" '
+                     f'fill="var(--ink-3)" fill-opacity="0.18" stroke="var(--ink-2)" stroke-width="1.2"/>')
+    p.append(f'<path d="{body}" fill="var(--surface)" fill-opacity="0.9" stroke="var(--ink-2)" stroke-width="1.8" stroke-linejoin="round"/>')
+    for cx in (_AXLE_F, _AXLE_R):
+        for cy in (71, 329):
+            p.append(f'<rect x="{cx - 59}" y="{cy - 19}" width="118" height="38" rx="9" fill="none" '
+                     f'stroke="var(--ink-3)" stroke-width="0.9" stroke-dasharray="4 3"/>')
+    # bonnet shut lines and its two raised ridges
+    p.append(f'<path d="M86,88 C180,78 280,76 336,82 M86,312 C180,322 280,324 336,318" {thin}/>')
+    p.append(f'<path d="M104,170 C200,166 290,170 334,178 M104,230 C200,234 290,230 334,222" {thin}/>')
+    # windscreen, roof panel, rear screen
+    p.append(f'<path d="M336,82 L456,96 L456,304 L336,318 Z" {glass}/>')
+    p.append(f'<path d="M456,96 L742,104 L742,296 L456,304 Z" {thin}/>')
+    p.append(f'<path d="M742,104 L794,120 L794,280 L742,296 Z" {glass}/>')
+    # door mirrors at the A-pillar base, both sides
+    p.append(f'<path d="M326,54 L334,30 Q340,26 352,28 L356,34 L350,56 Z" {line}/>')
+    p.append(f'<path d="M326,346 L334,370 Q340,374 352,372 L356,366 L350,344 Z" {line}/>')
+    # door shut lines across the top of the sills
+    for y0, y1 in ((52, 60), (348, 340)):
+        p.append(f'<path d="M296,{y0} L296,{y1} M511,{y0 + (2 if y0 < 200 else -2)} L511,{y1} '
+                 f'M650,{y0 + (4 if y0 < 200 else -4)} L650,{y1}" {thin}/>')
+    # head and tail lamps at the corners, shield on the nose
+    p.append(f'<path d="M62,96 C70,72 90,60 116,56 L118,64 C96,70 80,84 72,104 Z" {line}/>')
+    p.append(f'<path d="M62,304 C70,328 90,340 116,344 L118,336 C96,330 80,316 72,296 Z" {line}/>')
+    p.append(f'<path d="M778,64 C792,72 802,86 806,104 L798,104 C794,90 786,78 774,70 Z" {line}/>')
+    p.append(f'<path d="M778,336 C792,328 802,314 806,296 L798,296 C794,310 786,322 774,330 Z" {line}/>')
+    p.append(f'<path d="M57,184 L64,186 L64,214 L57,216 Z" {line}/>')
+    p.append(f'<path d="M70,200 L790,200" fill="none" stroke="var(--rule)" stroke-width="0.8" stroke-dasharray="2 6"/>')
+    t = 'font-size="9" fill="var(--ink-3)" letter-spacing="1" font-family="var(--sans), sans-serif"'
+    p.append(f'<text x="18" y="172" {t}>FRONT</text>')
+    p.append(f'<text x="848" y="40" text-anchor="end" {t}>RIGHT SIDE</text>')
+    p.append(f'<text x="848" y="368" text-anchor="end" {t}>LEFT SIDE (driver)</text>')
+    p.append("</g>")
+    return "".join(p)
+
+
+def _dot(s: dict[str, Any], x: float, y: float, href_prefix: str, dim: set[str], show_side: bool) -> str:
+    sid = s["id"]
+    st = s.get("status") if s.get("status") in _STATUS_WORD else "grey"
+    n = s.get("number", "")
+    tip = s.get("title") or f'{s.get("label", sid)} — {_STATUS_WORD[st]}'
+    cls = f"sens-dot sens-{st}" + (" sens-dim" if sid in dim else "")
+    g = [f'<a class="{cls}" href="#{escape(href_prefix, quote=True)}{escape(sid, quote=True)}"><title>{escape(tip)}</title>']
+    if s.get("location_confidence") == "INFERRED":
+        g.append(f'<circle class="sens-ring" cx="{x:.1f}" cy="{y:.1f}" r="{_R + 4}"/>')
+    elif s.get("location_confidence") == "GENERAL":
+        g.append(f'<circle class="sens-ring sens-ring-general" cx="{x:.1f}" cy="{y:.1f}" r="{_R + 4}"/>')
+    g.append(f'<circle class="sens-fill" cx="{x:.1f}" cy="{y:.1f}" r="{_R}"/>')
+    g.append(f'<text class="sens-num" x="{x:.1f}" y="{y + 3.5:.1f}" text-anchor="middle">{n}</text>')
+    tag = {"left": "L", "right": "R"}.get(s.get("side") or "", "") if show_side else ""
+    if tag:
+        g.append(f'<text class="sens-side" x="{x + _R + 1:.1f}" y="{y - _R + 1:.1f}">{tag}</text>')
+    g.append("</a>")
+    return "".join(g)
+
+
+def top_svg(items: list[dict[str, Any]], *, href_prefix: str = "sensor-",
+            aria_label: str = "Top view of the car, {n} items placed by area",
+            dim: Iterable[str] = ()) -> str:
+    """Top view with the same items/dots as :func:`profile_svg`. Safe for []."""
+    dim = set(dim)
+    pos = top_layout(items)
+    by_id = {s["id"]: s for s in items}
+    used = {resolve_zone(s.get("zone")) for s in items if s["id"] in pos}
+    label = aria_label.replace("{n}", str(len(pos)))
+    tray, extra = _tray([s for s in items if s["id"] not in pos], _TOP_H, _TOP_W, href_prefix, dim)
+    p = [f'<svg class="sens-profile sens-top" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {_TOP_W} {_TOP_H + extra:.0f}" '
+         f'width="100%" role="img" aria-label="{escape(label, quote=True)}">',
+         _car_top_art(), '<g class="sens-zones" aria-hidden="true">']
+    for zid, z in TOP_ZONES.items():
+        if zid in used:
+            p.append(f'<text class="sens-zl on" x="{z["lx"]}" y="{z["ly"]}" text-anchor="{z["ta"]}">'
+                     f'{escape(z["label"])}</text>')
+    p.append("</g>")
+    for sid, (x, y) in pos.items():
+        p.append(_dot(by_id[sid], x, y, href_prefix, dim, show_side=False))
+    p.append(tray)
+    p.append("</svg>")
+    return "".join(p)
+
+
+def both_views(items: list[dict[str, Any]], *, href_prefix: str = "sensor-",
+               aria_label: str = "Side view of the car with {n} items placed by area",
+               legend: Optional[list[tuple[str, str]]] = None, dim: Iterable[str] = ()) -> str:
+    """Side view then top view, each with a caption. Same dots, same numbers."""
+    dim = list(dim)
+    side = profile_svg(items, href_prefix=href_prefix, legend=legend, aria_label=aria_label, dim=dim)
+    top = top_svg(items, href_prefix=href_prefix, dim=dim)
+    c = SIDE_VIEW_CREDIT
+    credit = (f'<p class="sens-credit">{escape(c["text"])} '
+              f'(<a href="{c["photo"]}" rel="noopener">photo</a>, '
+              f'<a href="{c["licence"]}" rel="noopener">licence</a>)</p>')
+    return ('<figure class="sens-view"><figcaption>Side view: the car\'s left (driver\'s) side, front to the left'
+            f'</figcaption>{side}{credit}</figure>'
+            '<figure class="sens-view"><figcaption>Top view: looking down, front to the left; '
+            f'left (driver\'s) side at the bottom, right side at the top</figcaption>{top}</figure>')
 
 
 def render(sensors: list[dict[str, Any]], numbers: Optional[dict[str, int]] = None,
@@ -282,8 +511,9 @@ def render(sensors: list[dict[str, Any]], numbers: Optional[dict[str, int]] = No
         reason = _reason(s)
         title = f'{s.get("label", s["id"])} — {_STATUS_WORD[st]}' + (f" — {reason}" if reason else "")
         items.append({**s, "status": st, "number": numbers.get(s["id"], ""), "title": title})
-    return profile_svg(items, href_prefix="sensor-", dim=dim,
-                       aria_label="Side view of the car with {n} sensors placed by zone")
+    return both_views(items, href_prefix="sensor-", dim=dim,
+                      aria_label="Side view of the car with {n} sensors placed by zone")
 
 
-__all__ = ["render", "profile_svg", "layout", "resolve_zone", "ZONES", "ZONE_ANCHORS"]
+__all__ = ["SIDE_VIEW_CREDIT", "render", "profile_svg", "top_svg", "both_views", "layout", "top_layout", "resolve_zone",
+           "ZONES", "ZONE_ANCHORS", "TOP_ZONES"]

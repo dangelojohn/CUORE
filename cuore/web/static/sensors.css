@@ -48,6 +48,7 @@
 .sens-dot.sens-grey .sens-num { fill: var(--ink); }
 .sens-dot .sens-side { font: 700 8px var(--mono), monospace; fill: var(--ink); paint-order: stroke; stroke: var(--surface); stroke-width: 2.5px; pointer-events: none; }
 .sens-dot .sens-ring { fill: none; stroke: var(--ink-2); stroke-width: 1.4; stroke-dasharray: 3 2.5; }
+.sens-dot .sens-ring.sens-ring-general { stroke-width: 1.6; stroke-dasharray: 0.5 3; stroke-linecap: round; }
 .sens-dot.sens-dim { opacity: .18; }
 .sens-dot:hover .sens-fill, .sens-dot:focus .sens-fill { stroke: var(--ink); stroke-width: 2.4; }
 
@@ -55,6 +56,7 @@
 .sens-legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; background: var(--c); vertical-align: -2px; margin-right: 4px; }
 .sens-legend i.hollow { background: var(--surface-2); border: 2px solid var(--c); box-sizing: border-box; }
 .sens-legend i.dashed { background: none; border: 1.5px dashed var(--ink-2); width: 14px; height: 14px; box-sizing: border-box; }
+.sens-legend i.dotted { background: none; border: 2px dotted var(--ink-2); width: 14px; height: 14px; box-sizing: border-box; }
 
 .sens-tray { margin: 16px 0; }
 .sens-tray ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
@@ -99,3 +101,8 @@
 .sens-readings th, .sens-readings td { border-bottom: 1px solid var(--line, #ddd); padding: .3rem .5rem; text-align: left; vertical-align: top; }
 .sens-readings td.err { color: var(--muted, #777); font-style: italic; }
 .sens-actions { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+
+/* side + top views */
+.sens-view { margin: 0 0 1rem; }
+.sens-view figcaption { font-size: .85rem; color: var(--ink-3, #666); margin: .25rem 0; }
+.sens-credit { font-size: .72rem; color: var(--ink-3, #777); margin: .15rem 0 0; }
