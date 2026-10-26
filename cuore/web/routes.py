@@ -420,7 +420,7 @@ def _sort_code_rows(rows: list[dict[str, Any]], sort: str,
 @router.get("/v/{vin}/codes", response_class=HTMLResponse)
 def codes(request: Request, vin: str,
           include_simulation: bool = False, system: str = "",
-          sort: str = "", dir: str = "") -> HTMLResponse:  # noqa: A002
+          sort: str = "", dir: str = "", q: str = "") -> HTMLResponse:  # noqa: A002
     """Every code this car has ever set, ordered by what decides a diagnosis.
 
     Review R8: each row is shaped here (not re-sorted -- ``extract_dtcs``
@@ -443,15 +443,30 @@ def codes(request: Request, vin: str,
         r["last_seen_ago"] = _relative_ago(r.get("last_seen"))
         r["sessions_x"] = f"x{r.get('sessions') or 0}"
 
+    from ..services import codes_call
+    from . import page_search
+    job_codes, blocker, action = codes_call.job_state(vin, dossier)
+    codes_call.shape(data["dtcs"], job_codes)
+    call = codes_call.build_call(data["dtcs"], job_codes, blocker, vin, action)
+
     system_filter = (system or "").strip()
     rows = data["dtcs"]
     if system_filter:
         rows = [r for r in rows if r["system_bucket"].lower() == system_filter.lower()]
+    q = page_search.clean_q(q)
+    if q:
+        rows = [r for r in rows if page_search.matches(
+            q, page_search.haystack(r["search_parts"]), codes_call.CODE_SYNONYMS)]
     rows, sort, dir = _sort_code_rows(rows, (sort or "").strip().lower(),
                                       (dir or "").strip().lower())
+    groups = [] if sort else codes_call.group_rows(rows)
+    all_groups = codes_call.group_rows(data["dtcs"])
+    go_chips = [{"kind": "state", "text": f"{g['label']} ({g['n']})", "href": f"#grp-{g['key']}"}
+                for g in all_groups] + call["targets"]
 
     response = _page(request, "codes.html", vin=vin, rows=rows, data=data,
-                     sort=sort, sort_dir=dir,
+                     sort=sort, sort_dir=dir, q=q, groups=groups, call=call, go_chips=go_chips,
+                     state_help=codes_call.STATE_HELP, no_match_hint=page_search.HINT_CODES,
                      sort_first_dir={k: v[1] for k, v in _CODE_SORTS.items()},
                      bar=_vehicle_bar(vin, dossier),
                      include_simulation=include_simulation, tab="codes",

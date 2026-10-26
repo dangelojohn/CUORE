@@ -184,6 +184,46 @@ check("the Last scan card links Open scan and Health report",
       "Last scan card links missing")
 
 
+# --- mechanic-first polish (review_bench_job_codes_live.md) -----------------
+import re as _re
+_call_m = _re.search(r'<p class="bench-next-action">(.*?)</p>', page.text, _re.S)
+_call = _re.sub(r"\s+", " ", _call_m.group(1)).strip() if _call_m else ""
+check("the call renders as ONE line (single paragraph, no newline)", bool(_call) and len(_call) <= 120, _call)
+_fg = bench["fuel_gate"]
+if _fg.get("level") is not None and _fg.get("direction") == "above":
+    check("the one-line call carries the fuel gate readout",
+          _call.startswith("Fuel ") and " % - burn below " in _call and "drive cycle" in _call, _call)
+    check("litres-to-burn reads 'n/a - tank capacity not sourced' (no bare UNKNOWN)",
+          "litres to burn: n/a - tank capacity not sourced" in page.text
+          and "litres to burn: UNKNOWN" not in page.text)
+check("the call's Why? is a 44 px / 16 px fold",
+      "min-height: 44px" in page.text and ".bench-why summary" in page.text)
+check("last scan is collapsed to one summary line inside a closed fold",
+      bench["last_scan_line"].startswith("Last scan ")
+      and '<details class="bench-lastscan">' in page.text
+      and f"<summary>{bench['last_scan_line']}</summary>" in page.text,
+      str(bench["last_scan_line"]))
+check("scan links sit under one 'Scan' drill-down in the Go-to row",
+      'class="bench-scan"' in page.text and 'aria-label="Go to"' in page.text
+      and page.text.count(">Scan</summary>") == 1)
+check("task rows carry a READY/BLOCKED chip",
+      bool(_re.search(r'bench-state-badge state-(ready|blocked)">(READY|BLOCKED)</span>', page.text)))
+_blocked = [a for a in bench["next_actions"] if a["state"] == "BLOCKED"]
+if _blocked:
+    check("a BLOCKED row states its reason in the row text",
+          any((a["blocked_reason"] or "") in page.text for a in _blocked))
+    check("a BLOCKED row states the unblock step", any(a.get("unblock") for a in _blocked)
+          and "to unblock:" in page.text)
+check("unknown tools are not asked inline ('unknown: ask' is gone)", "unknown: ask" not in page.text)
+if any(a["tools"] for a in bench["next_actions"]) or bench["job_tools"]:
+    check("tools sit in a collapsed 'Tools' fold", "bench-tools-fold" in page.text and "<summary>Tools (" in page.text)
+check("the resume row no longer repeats the vehicle bar's scanner state",
+      "Scanner:" not in page.text.split('class="bench-resume"')[-1].split("bench-gates")[0])
+check("done-by is either auto-filled or optional",
+      ('name="by" value=' in page.text) or "done by (optional)" in page.text)
+check("code legend has explicit separators", (not bench["shortcuts"]) or "bench-legend-sep" in page.text)
+
+
 # --- N1 (MECHANIC_REVIEW_4_SCANS_HEALTH_2026-10-13.md): the resume card's
 # own "last scan ... ago"/stale flag must track whichever clock is newer --
 # the live scan above (SCAN_AT, dated today) or the MES-log-derived
@@ -270,7 +310,7 @@ if bench["next_actions"]:
 # --- BENCH_UX_SPEC_2026-10-08.md: the six check-list items ----------------
 
 # 1. resume card present with "last scan" and "N of M done"
-check("the resume card shows 'last scan'", "last scan" in page.text)
+check("the one-line last-scan summary is shown (resume row no longer repeats it)", "Last scan " in page.text)
 check("the resume card shows the N of M done progress",
       f"{bench['progress']['done']} of {bench['progress']['total']} done" in page.text,
       f"{bench['progress']}")

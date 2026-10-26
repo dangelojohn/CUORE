@@ -1,107 +1,115 @@
 {% extends "base.html" %}
 {# Review 6 UI: same "(unnamed vehicle)" title regression and fix as
-   code.html -- see its own comment. #}
+   code.html -- see its own comment. Mechanic-first rebuild (2026-10-26): one-line call,
+   Go-to chips, grouped inset rows that drill to the code page, page-only search. #}
 {% block title %}Codes — {{ (vehicle_display_name(vin) if vehicle_display_name is defined else none) or bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('scan.css') }}">
-
-<h1>Every code this car has set</h1>
-<p class="lede">Ordered by what decides a diagnosis: returned after a clear
-first, then chronic, then the rest. First-seen and last-seen are both shown —
-a code seen once last week and one recurring across a year are different
-problems, and printing only the latest hides which is which.</p>
-
-{% set _qs = "&include_simulation=true" if include_simulation else "" %}
-{% set _sq = ("&sort=" ~ sort ~ "&dir=" ~ sort_dir) if sort else "" %}
-{% macro sh(key, label, cls="") -%}
-  {%- set on = sort == key -%}
-  {%- set nd = ("desc" if sort_dir == "asc" else "asc") if on else sort_first_dir[key] -%}
-  <th class="{{ cls }} sortable{{ ' sorted' if on }}" {% if on %}aria-sort="{{ 'ascending' if sort_dir == 'asc' else 'descending' }}"{% endif %}>
-    <a href="/v/{{ vin }}/codes?sort={{ key }}&dir={{ nd }}{{ '&system=' ~ system_filter|urlencode if system_filter }}{{ _qs }}"
-       title="Sort by {{ label|lower }}">{{ label }}<span class="sort-ind" aria-hidden="true">{{ ('▲' if sort_dir == 'asc' else '▼') if on else '↕' }}</span></a>
-  </th>
+{% set keep = {"system": system_filter, "include_simulation": "true" if include_simulation else "", "q": q,
+               "sort": sort, "dir": sort_dir} %}
+{% macro href(over={}) -%}
+  {%- set d = {} -%}{%- for k, v in keep.items() %}{% set _ = d.update({k: v}) %}{% endfor -%}
+  {%- set _ = d.update(over) -%}
+  /v/{{ vin }}/codes{% set ns = namespace(first=true) %}{% for k, v in d.items() if v %}{{ '?' if ns.first else '&' }}{{ k }}={{ v|string|urlencode }}{% set ns.first = false %}{% endfor %}
 {%- endmacro %}
-<div class="codesf-row" aria-label="Filter by system">
-  <a class="codesf-chip {{ 'on' if not system_filter }}"
-     href="/v/{{ vin }}/codes?{{ _qs[1:] }}{{ _sq }}">All</a>
-  {% for b in system_buckets %}
-    <a class="codesf-chip {{ 'on' if system_filter and system_filter|lower == b|lower }}"
-       href="/v/{{ vin }}/codes?system={{ b|urlencode }}{{ _qs }}{{ _sq }}">{{ b }}</a>
-  {% endfor %}
-</div>
+{% macro row(r) %}
+  <li class="cd-item">
+    <a class="row-link cd-row" href="/v/{{ vin }}/code/{{ r.code_href_id }}">
+      <span class="cd-code">{{ r.dtc }}</span>
+      <span class="chip {{ r.severity }}">{{ r.severity }}</span>
+      <span class="cd-desc">{{ r.desc_short or "No description on file" }}</span>
+      {% if r.modules_short %}<span class="cd-mod">{{ r.modules_short }}</span>{% endif %}
+      {% if r.in_job %}<span class="cd-job">this job</span>{% endif %}
+    </a>
+    <details class="cd-more">
+      <summary aria-label="Details for {{ r.dtc }}">Details</summary>
+      <dl class="cd-detail">
+        {% if r.descriptions %}<div><dt>Description</dt><dd>{{ r.descriptions|join(", ") }}</dd></div>{% endif %}
+        {% if r.modules %}<div><dt>Module</dt><dd>{{ r.modules|join(", ") }}</dd></div>{% endif %}
+        <div><dt>Sessions</dt><dd>{{ r.sessions_x }}</dd></div>
+        <div><dt>First seen</dt><dd title="{{ r.first_seen }}">{{ r.first_seen_ago }}</dd></div>
+        <div><dt>Last seen</dt><dd title="{{ r.last_seen }}">{{ r.last_seen_ago }}</dd></div>
+        {% if r.distance_span_km %}<div><dt>Distance</dt><dd>{{ "{:,}".format(r.distance_span_km|int) }} km</dd></div>{% endif %}
+        <div><dt>System</dt><dd><a class="code-cluster-link" href="{{ r.cluster_href }}" title="Jump to this code's dossier cluster">{{ r.system_bucket }}</a></dd></div>
+      </dl>
+    </details>
+  </li>
+{% endmacro %}
+{% set _sl = {"code": ("Code", "A→Z", "Z→A"), "state": ("State", "returned first", "seen-once first"),
+              "system": ("System", "EVAP first", "Engine other first"), "description": ("Description", "A→Z", "Z→A"),
+              "module": ("Module", "A→Z", "Z→A"), "sessions": ("Sessions", "fewest first", "most first"),
+              "first": ("First seen", "oldest first", "newest first"), "last": ("Last seen", "oldest first", "newest first"),
+              "distance": ("Distance", "shortest first", "longest first")} %}
 
-<div class="panel" style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
-  <div style="flex:1;min-width:220px">
-    <label for="filter">Filter</label>
-    <input id="filter" type="search" data-search data-filter-target="#codetable"
-           placeholder="code, description, module…" autocomplete="off">
-  </div>
-  <div>
-    {% if include_simulation %}
-      <a class="btn" href="/v/{{ vin }}/codes?{{ 'system=' + system_filter|urlencode if system_filter }}{{ _sq }}">Exclude simulation</a>
-    {% else %}
-      <a class="btn" href="/v/{{ vin }}/codes?include_simulation=true{{ '&system=' + system_filter|urlencode if system_filter }}{{ _sq }}">Include simulation</a>
-    {% endif %}
-  </div>
-  <div class="mono small muted">
-    {{ rows|length }} of {{ data.count }} codes over {{ data.logs_considered }} logs
-    {% if data.simulation_included %}
-      <span class="chip simulated">simulation included</span>
-    {% else %}
-      <span class="chip real">real logs only</span>
-    {% endif %}
-  </div>
-</div>
+<div class="codes-page" id="codes-top">
+<form class="cd-search" method="get" action="/v/{{ vin }}/codes" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search: P0456, evap, window, BCM" aria-label="Search codes" maxlength="80">
+  {% if system_filter %}<input type="hidden" name="system" value="{{ system_filter }}">{% endif %}
+  {% if include_simulation %}<input type="hidden" name="include_simulation" value="true">{% endif %}
+  {% if sort %}<input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="dir" value="{{ sort_dir }}">{% endif %}
+  <button type="submit">Search</button>
+  {% if q %}<a href="{{ href({'q': ''}) }}">Clear search</a>{% endif %}
+</form>
 
-<p class="small muted codes-sortnote">
-  {% set _sl = {"code": ("code", "A→Z", "Z→A"), "state": ("state", "returned first", "seen-once first"),
-                 "system": ("system", "EVAP first", "Engine other first"), "description": ("description", "A→Z", "Z→A"),
-                 "module": ("module", "A→Z", "Z→A"), "sessions": ("sessions", "fewest first", "most first"),
-                 "first": ("first seen", "oldest first", "newest first"), "last": ("last seen", "oldest first", "newest first"),
-                 "distance": ("distance", "shortest first", "longest first")} %}
-  {% if sort %}Sorted by <b>{{ _sl[sort][0] }}</b>, {{ _sl[sort][1] if sort_dir == "asc" else _sl[sort][2] }}.
-    <a href="/v/{{ vin }}/codes?{{ 'system=' ~ system_filter|urlencode if system_filter }}{{ _qs }}">Back to diagnosis order</a>
-  {% else %}Click a column heading to sort by it; click again to reverse.{% endif %}
-</p>
+<h1 class="cd-h1">Codes</h1>
+<p class="cd-lede">Every code this car has set, worst first.</p>
 
-<div class="panel tight">
-  <div class="tw">
-  <table id="codetable">
-    <thead>
-      <tr>
-        {{ sh("code", "Code") }}{{ sh("state", "State") }}{{ sh("system", "System") }}{{ sh("description", "Description") }}{{ sh("module", "Module") }}
-        {{ sh("sessions", "Sessions", "n") }}{{ sh("first", "First") }}{{ sh("last", "Last") }}{{ sh("distance", "Distance", "n") }}
-      </tr>
-    </thead>
-    <tbody>
-    {% for r in rows %}
-      <tr class="row-link" data-href="/v/{{ vin }}/code/{{ r.dtc.split('-')[0] }}" tabindex="0">
-        <td><a class="mono" href="/v/{{ vin }}/code/{{ r.dtc.split('-')[0] }}">{{ r.dtc }}</a></td>
-        <td><span class="chip {{ r.severity }}">{{ r.severity }}</span></td>
-        <td><a class="code-cluster-link" href="{{ r.cluster_href }}" title="Jump to this code's dossier cluster">{{ r.system_bucket }}</a></td>
-        <td>{{ r.descriptions|join(", ") }}</td>
-        <td class="small muted">{{ r.modules|join(", ") }}</td>
-        <td class="n mono">{{ r.sessions_x }}</td>
-        <td class="mono small" title="{{ r.first_seen }}">{{ r.first_seen_ago }}</td>
-        <td class="mono small" title="{{ r.last_seen }}">{{ r.last_seen_ago }}</td>
-        <td class="n">{% if r.distance_span_km %}{{ "{:,}".format(r.distance_span_km|int) }} km{% else %}—{% endif %}</td>
-      </tr>
-    {% else %}
-      <tr><td colspan="9" class="muted">No codes match this filter.</td></tr>
+<p class="cd-call" id="codes-call">{% for sg in call.call_segs %}{% if sg.href %}<a href="{{ sg.href }}">{{ sg.text }}</a>{% else %}{{ sg.text }}{% endif %}{% endfor %}</p>
+
+{% if go_chips %}
+<nav class="cd-go" aria-label="Go to">
+  <span class="cd-go-l">Go to</span>
+  {% for c in go_chips %}<a class="cd-gochip cd-go-{{ c.kind }}" href="{{ c.href }}">{{ c.text }}</a>{% endfor %}
+</nav>
+{% endif %}
+
+<details class="cd-fold" id="cd-legend">
+  <summary>What the states mean</summary>
+  <ul>{% for k, t in state_help %}<li><b>{{ k }}</b>: {{ t }}</li>{% endfor %}</ul>
+</details>
+
+<details class="cd-fold" id="cd-sort"{{ ' open' if sort }}>
+  <summary>Sort{% if sort %}: {{ _sl[sort][0] }}, {{ _sl[sort][1] if sort_dir == "asc" else _sl[sort][2] }}{% endif %}</summary>
+  <div class="cd-sortrow" data-sorted="{{ (sort ~ ':' ~ sort_dir) if sort else '' }}">
+    {% for key in _sl %}
+      {% set on = sort == key %}
+      {% set nd = ("desc" if sort_dir == "asc" else "asc") if on else sort_first_dir[key] %}
+      <a class="cd-gochip{{ ' cd-on' if on }}"{% if on %} data-sort-active="{{ key }}"{% endif %} href="{{ href({'sort': key, 'dir': nd}) }}" title="Sort by {{ _sl[key][0]|lower }}">{{ _sl[key][0] }}{% if on %} {{ '▲' if sort_dir == 'asc' else '▼' }}{% endif %}</a>
     {% endfor %}
-    </tbody>
-  </table>
+    {% if sort %}<a class="cd-gochip" href="{{ href({'sort': '', 'dir': ''}) }}">Back to diagnosis order</a>{% endif %}
   </div>
-</div>
+</details>
 
-<div class="note">
-  <span class="lab">Reading the state column</span>
-  <b>returned</b> — erased and set again: the fault is live and reproducing.
-  <b>chronic</b> — recurs across sessions or across meaningful distance.
-  <b>cleared</b> — erased once and not seen since, which proves nothing until
-  the relevant monitor has actually run.
-  <b>seen&#8209;once</b> — a single sighting.
-</div>
+{% if sort %}
+<ul class="cd-list" id="codetable">{% for r in rows %}{{ row(r) }}{% endfor %}</ul>
+{% elif groups %}
+  {% for g in groups %}
+  <details class="cd-group cd-g-{{ g.key }}" id="grp-{{ g.key }}"{{ ' open' if g.open or q }}>
+    <summary><span class="cd-gname">{{ g.label }}</span><span class="cd-gcount">{{ g.n }}{% if g.job_n %} · {{ g.job_n }} on this job{% endif %}</span></summary>
+    <ul class="cd-list"{% if loop.first %} id="codetable"{% endif %}>{% for r in g.rows %}{{ row(r) }}{% endfor %}</ul>
+  </details>
+  {% endfor %}
+{% endif %}
+{% if not rows %}
+  <p class="cd-empty" id="codetable">{% if q %}No code matches &ldquo;{{ q }}&rdquo;. {{ no_match_hint }}{% else %}No codes match this filter.{% endif %}</p>
+{% endif %}
 
+<details class="cd-fold" id="cd-adv">
+  <summary>Advanced</summary>
+  <p>{% if include_simulation %}<a class="cd-gochip" href="{{ href({'include_simulation': ''}) }}">Exclude simulation</a>
+     {% else %}<a class="cd-gochip" href="{{ href({'include_simulation': 'true'}) }}">Include simulation</a>{% endif %}</p>
+  <div class="codesf-row" aria-label="Filter by system">
+    <a class="codesf-chip {{ 'on' if not system_filter }}" href="{{ href({'system': ''}) }}">All</a>
+    {% for b in system_buckets %}
+      <a class="codesf-chip {{ 'on' if system_filter and system_filter|lower == b|lower }}" href="{{ href({'system': b}) }}">{{ b }}</a>
+    {% endfor %}
+  </div>
+</details>
+
+<p class="cd-count muted">{{ rows|length }} of {{ data.count }} codes, {{ data.logs_considered }} logs, {{ 'simulation included' if data.simulation_included else 'real logs only' }}.</p>
+</div>
+<script>
+(function(){var h=location.hash;if(h.indexOf('#grp-')===0){var d=document.getElementById(h.slice(1));if(d&&d.tagName==='DETAILS'){d.open=true;d.scrollIntoView();}}})();
+</script>
 {% endblock %}

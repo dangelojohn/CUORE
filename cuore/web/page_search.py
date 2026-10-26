@@ -10,6 +10,7 @@ from typing import Any, Iterable
 
 MAX_Q = 80
 HINT_SENSORS = "Try a part or system word (oxygen, tyre, coolant, brake) or a sensor id."
+HINT_CODES = "Try a code (P0456), a system word (evap, window, network) or a module (ECM, BCM)."
 HINT_HARNESSES = "Try an area or part word (door, dash, engine, seat, headlamp)."
 
 SENSOR_SYNONYMS = (

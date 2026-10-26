@@ -559,7 +559,14 @@ def _next_actions(vin: str, open_work: list[dict[str, Any]],
             ref = step.get("ref")
             preconditions = _preconditions(step["text"], live_status, fuel_blocked)
             state, blocked_reason = _task_state(done, preconditions)
+            unmet = next((p for p in preconditions if not p["ok"]), None)
+            unblock = None
+            if state == "BLOCKED" and unmet:
+                unblock = unmet.get("fix_text") or (
+                    f"{unmet['fix_label']}" if unmet.get("fix_label") else None)
             actions.append({
+                "unblock": unblock,
+                "unblock_href": (unmet or {}).get("fix_href") if state == "BLOCKED" else None,
                 "step_id": step["id"], "family": family, "text": step["text"],
                 "bulletin": ({"id": ref, "href": step.get("ref_href")} if ref else None),
                 "parts": list(parts),
@@ -685,6 +692,54 @@ def _tank_capacity_litres(vin: str) -> float | None:
     except Exception:  # noqa: BLE001
         pass
     return None
+
+
+def _fmt_pct(v: Any) -> str:
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return str(v)
+    return str(int(f)) if f == int(f) else f"{f:.1f}"
+
+
+def call_line(banner: dict[str, Any] | None, fuel_gate: dict[str, Any]) -> str:
+    """The Bench's ONE-line call. When the fuel gate is what blocks the job,
+    the line carries the gate readout ("Fuel 93.7 % - burn below 85 %, then
+    run a drive cycle"); otherwise the banner's own short action."""
+    if not banner:
+        return ""
+    level = fuel_gate.get("level")
+    window = fuel_gate.get("window") or [15, 85]
+    direction = fuel_gate.get("direction")
+    if banner.get("is_blocker") and level is not None and direction in ("above", "below"):
+        if direction == "above":
+            return f"Fuel {_fmt_pct(level)} % - burn below {_fmt_pct(window[1])} %, then run a drive cycle"
+        return f"Fuel {_fmt_pct(level)} % - add fuel above {_fmt_pct(window[0])} %, then run a drive cycle"
+    return banner["action"]
+
+
+def last_scan_line(ls: dict[str, Any] | None) -> str:
+    """"Last scan 4 h ago, partial, no active codes" -- the collapsed card."""
+    if not ls:
+        return ""
+    bits = [f"Last scan {ls.get('relative') or 'time unknown'}"]
+    if ls.get("status") == "attempt":
+        bits.append("adapter not reachable")
+    elif ls.get("partial"):
+        bits.append("partial")
+    n = len(ls.get("active_codes") or [])
+    bits.append("no active codes" if not n else f"{n} active code{'s' if n != 1 else ''}")
+    return ", ".join(bits)
+
+
+def _technician(vin: str) -> str:
+    """The open job's technician name, "" when none is known."""
+    try:
+        from mes import jobs as jobs_mod
+        job = jobs_mod.current(vin)
+        return str((job or {}).get("technician") or "").strip()
+    except Exception:  # noqa: BLE001
+        return ""
 
 
 def last_scan_summary(vin: str) -> dict[str, Any] | None:
@@ -845,7 +900,13 @@ def build_bench(vin: str) -> dict[str, Any]:
     # panel already shows -- never a second, independently-fetched value.
     readiness = dossier_bridge.readiness_panel(vin, dossier)
 
+    fuel_gate = _fuel_gate(vin, view.get("freeze_frames") or [], readiness.get("at"))
+    banner = _blocker_banner(verdict)
+    last_scan = last_scan_summary(vin)
     return {
+        "call_line": call_line(banner, fuel_gate),
+        "last_scan_line": last_scan_line(last_scan),
+        "technician": _technician(vin),
         "vin": vin,
         "vehicle": _vehicle_name(vin, dossier),
         "vin_tail": vin[-6:] if len(vin) >= 6 else vin,
@@ -864,13 +925,13 @@ def build_bench(vin: str) -> dict[str, Any]:
         "shortcuts": _shortcuts(vin, codes, open_work),
         "legend": _STATUS_LEGEND,
         "case_hint": _case_hint(vin, open_codes),
-        "fuel_gate": _fuel_gate(vin, view.get("freeze_frames") or [], readiness.get("at")),
+        "fuel_gate": fuel_gate,
         "readiness": readiness,
         "mode06": view.get("mode06"),
         "live_status": live_status,
         "scanner_label": scanner_label(live_status),
-        "blocker_banner": _blocker_banner(verdict),
-        "last_scan": last_scan_summary(vin),
+        "blocker_banner": banner,
+        "last_scan": last_scan,
     }
 
 

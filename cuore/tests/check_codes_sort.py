@@ -72,14 +72,15 @@ for key in routes._CODE_SORTS:
     for d in ("asc", "desc"):
         r = client.get(f"/v/{VIN}/codes?sort={key}&dir={d}")
         check(r.status_code == 200, f"page {key} {d} -> {r.status_code}")
-        want = "ascending" if d == "asc" else "descending"
-        check(f'aria-sort="{want}"' in r.text, f"aria-sort on {key} {d}")
+        check(f'data-sorted="{key}:{d}"' in r.text and f'data-sort-active="{key}"' in r.text,
+              f"active sort marked on {key} {d}")
 r = client.get(f"/v/{VIN}/codes?sort=module&dir=asc&system=Network")
-check("system=Body&amp;sort=module&amp;dir=asc" in r.text or "system=Body&sort=module&dir=asc" in r.text,
-      "system chips keep the sort")
+check("system=Network" in r.text and "sort=module" in r.text, "sort and system filter travel together")
 check("Back to diagnosis order" in r.text, "reset link shown when sorted")
+check('id="grp-chronic"' not in r.text, "sorted view is a flat list, not grouped")
 r = client.get(f"/v/{VIN}/codes")
-check(r.status_code == 200 and "aria-sort" not in r.text, "default page has no sorted column")
+check(r.status_code == 200 and 'data-sorted=""' in r.text and "data-sort-active" not in r.text,
+      "default page has no sorted option")
 
 print(f"{passed}/{passed + len(failures)} checks passed")
 for f in failures:
