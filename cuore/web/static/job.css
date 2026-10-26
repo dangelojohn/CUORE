@@ -5,7 +5,7 @@
    so these rules can freely override cuore.css's own job-page-only classes
    without editing that file. */
 
-.job-page { max-width: 820px; }
+.job-page { max-width: 820px; margin-left: auto; margin-right: auto; width: 100%; box-sizing: border-box; }
 
 /* ---------- fix #8: compact, phase-grouped stepper ---------------------- */
 
@@ -359,3 +359,18 @@
 .job-page .hyp-status-btn, .job-page .chip-remove, .job-page .evidence-picker > summary, .job-page .hyp-edit-details > summary { min-height: var(--tap, 44px); min-width: var(--tap, 44px); }
 .job-page .evidence-picker > summary, .job-page .hyp-edit-details > summary { display: flex; align-items: center; cursor: pointer; }
 .job-page .hyp-manage .btn, .job-page .page-manage .btn { min-height: var(--tap, 44px); }
+
+/* ---------- review pass: centred column, readable Why/Blocker, code fold, Mechanic steps fold ---------- */
+.job-page .blocker-banner, .job-page .blocker-banner .blocker-action,
+.job-page .why-expander, .job-page .why-expander > summary, .job-page .why-expander li { font-size: var(--fs-md); }
+.job-page .why-expander > summary { min-height: var(--tap, 44px); display: flex; align-items: center; cursor: pointer; font-weight: 600; }
+.job-page .hyp-codes, .job-page .mechanic-plan {
+  background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius, 3px); padding: 0 12px; margin: 8px 0;
+}
+.job-page .hyp-codes > summary, .job-page .mechanic-plan > summary {
+  min-height: var(--tap, 44px); display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: var(--fs-md);
+}
+.job-page .hyp-codes[open], .job-page .mechanic-plan[open] { padding-bottom: 12px; }
+.job-page .hyp-codes-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0; }
+.job-page .mechanic-plan, .job-page .mechanic-plan .muted, .job-page .mechanic-plan li { font-size: var(--fs-md); }
+.job-search { position: static; }

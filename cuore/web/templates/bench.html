@@ -41,11 +41,11 @@
 .bench-why p, .bench-why ul { margin: 4px 0; }
 
 /* Go to chip row */
-.bench-go { display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; overflow-x: auto; padding-bottom: 4px; }
+.bench-go { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding-bottom: 0; }
 .bench-go > *, .bench-scan-links > * { flex: none; white-space: nowrap; }
 .bench-go-l { font-weight: 700; color: var(--ink-2); }
 .bench-gochip {
-  display: inline-flex; align-items: center; min-height: 44px; padding: 4px 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; min-height: 44px; padding: 2px 12px; border-radius: 999px;
   border: 2px solid var(--accent); background: var(--surface-2); color: var(--ink);
   text-decoration: none; font-weight: 600; font-size: 1rem; cursor: pointer;
 }
@@ -77,14 +77,14 @@
 /* Tasks */
 .bench-actions { display: flex; flex-direction: column; gap: 10px; }
 .bench-card {
-  display: flex; gap: 10px; align-items: flex-start; background: var(--raised);
+  display: flex; gap: 10px; align-items: flex-start; width: 100%; min-height: 44px; box-sizing: border-box; background: var(--raised);
   border: 1px solid var(--rule); border-radius: var(--radius); padding: 10px; max-width: 100%;
 }
 .bench-card[data-state="blocked"] { border-color: var(--sev-chronic); }
 .bench-card[data-state="done"] { opacity: 0.85; }
-.bench-check { flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 48px; min-height: 48px; }
+.bench-check { flex: none; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; margin-left: auto; }
 .bench-checkbox-real { width: 28px; height: 28px; cursor: pointer; }
-.bench-check-label { font-size: 1rem; color: var(--ink-2); }
+.bench-check-label { font-size: 1rem; color: var(--ink-2); min-height: 44px; display: inline-flex; align-items: center; cursor: pointer; font-weight: 600; }
 .bench-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
 .bench-card-text { font-size: 1rem; display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 44px; }
 .bench-state-badge { font-size: 1rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
@@ -258,14 +258,6 @@
   <div class="bench-actions">
     {% for a in bench.next_actions %}
       <div class="bench-card" id="task-{{ a.step_id }}" data-task-id="{{ a.step_id }}" data-state="{{ a.state|lower }}">
-        <form method="post" action="{{ a.href_tick }}" class="bench-check">
-          <input type="hidden" name="step_id" value="{{ a.step_id }}">
-          <input type="checkbox" id="chk-{{ a.step_id }}" name="done" value="1"
-                 class="bench-checkbox-real" {% if a.done %}checked{% endif %}
-                 aria-label="{{ (t('mark_done') if t is defined else 'Mark done') }}: {{ a.text }}"
-                 form="form-{{ a.step_id }}">
-          <label for="chk-{{ a.step_id }}" class="bench-check-label">{{ t('mark_done') if t is defined else 'Mark done' }}</label>
-        </form>
         <div class="bench-card-body">
           <details>
             <summary class="bench-card-text">
@@ -357,6 +349,14 @@
             </details>
           {% endif %}
         </div>
+        <form method="post" action="{{ a.href_tick }}" class="bench-check">
+          <input type="hidden" name="step_id" value="{{ a.step_id }}">
+          <input type="checkbox" id="chk-{{ a.step_id }}" name="done" value="1"
+                 class="bench-checkbox-real" {% if a.done %}checked{% endif %}
+                 aria-label="{{ (t('mark_done') if t is defined else 'Mark done') }}: {{ a.text }}"
+                 form="form-{{ a.step_id }}">
+          <label for="chk-{{ a.step_id }}" class="bench-check-label">{{ t('mark_done') if t is defined else 'Mark done' }}</label>
+        </form>
       </div>
     {% else %}
       <p class="muted">{{ t('nothing_open') if t is defined else 'Nothing open on the checklist.' }}</p>

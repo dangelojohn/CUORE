@@ -120,11 +120,19 @@
   // "88-105 C normal, >130 alarm (SINGLE-SOURCE)" -- the ">130"/"<11.8"
   // edge shown is whichever side of ``alarm`` actually drives the
   // excessive cutoff for this band's ``direction`` (see computeLevel).
+  var UNIT_MAP = { c: "°C", degc: "°C", "°c": "°C", celsius: "°C", f: "°F", kpa: "kPa",
+    v: "V", pct: "%", percent: "%", kph: "km/h", kmh: "km/h" };
+  // Same table as liveboard_view.fmt_unit: "C" always reads "°C".
+  function fmtUnit(u) {
+    var k = String(u == null ? "" : u).trim();
+    return Object.prototype.hasOwnProperty.call(UNIT_MAP, k.toLowerCase()) ? UNIT_MAP[k.toLowerCase()] : k;
+  }
+
   function bandNote(b, unit) {
     if (!b) return "";
     var parts = [];
     if (Array.isArray(b.normal) && b.normal[0] != null && b.normal[1] != null) {
-      parts.push(fmtNum(b.normal[0]) + "-" + fmtNum(b.normal[1]) + " " + (unit || "") + " normal");
+      parts.push(fmtNum(b.normal[0]) + "-" + fmtNum(b.normal[1]) + " " + fmtUnit(unit) + " normal");
     }
     var alarm = Array.isArray(b.alarm) ? b.alarm : [null, null];
     var aLo = alarm[0], aHi = alarm[1];
@@ -517,7 +525,7 @@
         var unitEl = self.doc.createElement("span");
         unitEl.className = "lb-chan-unit";
         unitEl.id = "lb-unit-" + c.id;
-        unitEl.textContent = c.unit || "";
+        unitEl.textContent = fmtUnit(c.unit);
         var stateEl = self.doc.createElement("span");
         stateEl.className = "lb-chan-state";
         stateEl.id = "lb-state-" + c.id;
@@ -540,7 +548,7 @@
     var v = this.values[id];
     row.className = "lb-chan level-" + (v ? v.level : "unknown") + (v ? " has-value" : "");
     valEl.textContent = (v && typeof v.value === "number" && !isNaN(v.value)) ? fmtValue(v.value) : (v ? "—" : "");
-    if (unitEl && v && v.unit) unitEl.textContent = v.unit;
+    if (unitEl && v && v.unit) unitEl.textContent = fmtUnit(v.unit);
     this._renderState(id);
   };
 
@@ -638,7 +646,7 @@
       var text = self.doc.createElement("span");
       text.className = "lb-problem-text";
       var note = bandNote(r.meta && r.meta.band, r.v.unit);
-      text.textContent = fmtValue(r.v.value) + " " + (r.v.unit || "") + (note ? " — " + note : "");
+      text.textContent = fmtValue(r.v.value) + " " + fmtUnit(r.v.unit) + (note ? " — " + note : "");
       row.appendChild(name);
       row.appendChild(text);
       list.appendChild(row);

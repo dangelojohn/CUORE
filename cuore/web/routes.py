@@ -447,8 +447,6 @@ def codes(request: Request, vin: str,
     from . import page_search
     job_codes, blocker, action = codes_call.job_state(vin, dossier)
     codes_call.shape(data["dtcs"], job_codes)
-    call = codes_call.build_call(data["dtcs"], job_codes, blocker, vin, action)
-
     system_filter = (system or "").strip()
     rows = data["dtcs"]
     if system_filter:
@@ -460,12 +458,16 @@ def codes(request: Request, vin: str,
     rows, sort, dir = _sort_code_rows(rows, (sort or "").strip().lower(),
                                       (dir or "").strip().lower())
     groups = [] if sort else codes_call.group_rows(rows)
-    all_groups = codes_call.group_rows(data["dtcs"])
+    # With ?q= the call line and the Go-to chip counts describe the FILTERED rows (empty chips drop out);
+    # the unfiltered totals stay available as small text.
+    call = codes_call.build_call(rows if q else data["dtcs"], job_codes, blocker, vin, action, query=q)
+    all_groups = codes_call.group_rows(rows if q else data["dtcs"])
     go_chips = [{"kind": "state", "text": f"{g['label']} ({g['n']})", "href": f"#grp-{g['key']}"}
                 for g in all_groups] + call["targets"]
 
     response = _page(request, "codes.html", vin=vin, rows=rows, data=data,
                      sort=sort, sort_dir=dir, q=q, groups=groups, call=call, go_chips=go_chips,
+                     total_rows=len(data["dtcs"]),
                      state_help=codes_call.STATE_HELP, no_match_hint=page_search.HINT_CODES,
                      sort_first_dir={k: v[1] for k, v in _CODE_SORTS.items()},
                      bar=_vehicle_bar(vin, dossier),

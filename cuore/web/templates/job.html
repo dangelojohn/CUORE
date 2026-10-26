@@ -242,7 +242,13 @@
       <a class="btn small do-it-now" href="/v/{{ vin }}/job?step=6&hypothesis={{ h.id }}">{{ t('do_it_now') }} &rarr;</a></p>{% endif %}
 
     <p class="hyp-sum">{{ h.evidence_for|length }} for, {{ h.evidence_against|length }} against
-      {% if h.codes %} &middot; {% for c in h.codes %}<span class="chip-code mono">{{ c }}</span>{% endfor %}{% endif %}</p>
+</p>
+    {% if h.codes %}
+    <details class="hyp-codes job-fold">
+      <summary>{{ h.codes|length }} code{{ '' if h.codes|length == 1 else 's' }}</summary>
+      <p class="hyp-codes-list">{% for c in h.codes %}<span class="chip-code mono">{{ c }}</span>{% endfor %}</p>
+    </details>
+    {% endif %}
 
     {% if confirm_pending == h.id %}
       {# Job UX run 2, R7: name the hypothesis, list the actual evidence
@@ -377,12 +383,6 @@
   <div class="flash-toast flash-{{ flash_kind }}" role="status" data-flash>{{ flash_msg }}</div>
 {% endif %}
 
-<form class="job-search" id="job-search" method="get" action="/v/{{ vin }}/job" role="search">
-  <input type="search" name="q" value="{{ q }}" placeholder="Search: brake, network, P0455, smoke test" aria-label="Search this job's hypotheses, codes, evidence and tests" maxlength="80">
-  {% if step %}<input type="hidden" name="step" value="{{ step }}">{% endif %}
-  <button type="submit">Search</button>
-  {% if q %}<a href="/v/{{ vin }}/job{{ '?step=' ~ step if step }}">Clear search</a>{% endif %}
-</form>
 
 <h1 class="job-h1">Job</h1>
 
@@ -399,6 +399,13 @@
 </details>
 {% endif %}
 {% endif %}
+
+<form class="job-search" id="job-search" method="get" action="/v/{{ vin }}/job" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search: brake, network, P0455, smoke test" aria-label="Search this job's hypotheses, codes, evidence and tests" maxlength="80">
+  {% if step %}<input type="hidden" name="step" value="{{ step }}">{% endif %}
+  <button type="submit">Search</button>
+  {% if q %}<a href="/v/{{ vin }}/job{{ '?step=' ~ step if step }}">Clear search</a>{% endif %}
+</form>
 
 {% if q %}
 <section class="job-results" id="job-results" aria-label="Search results">

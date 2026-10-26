@@ -67,6 +67,19 @@ _RULES = [(lab, re.compile(rx, re.I), ids) for lab, rx, ids in JOB_RULES]
 
 # --- channels ---------------------------------------------------------------
 
+_UNIT_MAP = {"c": "°C", "degc": "°C", "deg c": "°C", "celsius": "°C", "°c": "°C",
+             "f": "°F", "degf": "°F", "°f": "°F",
+             "kpa": "kPa", "bar": "bar", "psi": "psi", "v": "V", "mv": "mV", "a": "A", "%": "%", "pct": "%",
+             "percent": "%", "rpm": "rpm", "km/h": "km/h", "kph": "km/h", "kmh": "km/h", "mph": "mph",
+             "s": "s", "ms": "ms", "g/s": "g/s", "l/h": "L/h"}
+
+
+def fmt_unit(unit: Any) -> str:
+    """One unit formatter for the whole board: "C" -> "°C", "kpa" -> "kPa", "KPH" -> "km/h" ..."""
+    u = str(unit or "").strip()
+    return _UNIT_MAP.get(u.lower(), u)
+
+
 def plain_name(ch: dict[str, Any]) -> str:
     name = str(ch.get("name") or ch.get("id") or "").strip().replace("vapor", "vapour")
     return (name[:1].upper() + name[1:]) if name else str(ch.get("id") or "")
@@ -102,7 +115,7 @@ def _rank(ch: dict[str, Any], order: int) -> tuple[int, int, int]:
 def band_note(ch: dict[str, Any]) -> str:
     """"88-105 C normal, >130 alarm" -- the numbers only; how sure is a separate chip."""
     b = ch.get("band") or {}
-    unit = ch.get("unit") or ""
+    unit = fmt_unit(ch.get("unit"))
     bits = []
     n = b.get("normal")
     if isinstance(n, (list, tuple)) and len(n) == 2 and n[0] is not None and n[1] is not None:
@@ -134,7 +147,7 @@ def _item(chs: list[tuple[int, dict[str, Any]]], group_label: str) -> dict[str, 
 
 
 def view_channel(ch: dict[str, Any]) -> dict[str, Any]:
-    return {"id": ch.get("id"), "name": plain_name(ch), "unit": ch.get("unit") or "", "note": band_note(ch),
+    return {"id": ch.get("id"), "name": plain_name(ch), "unit": fmt_unit(ch.get("unit")), "note": band_note(ch),
             "conf": conf_word(ch)}
 
 

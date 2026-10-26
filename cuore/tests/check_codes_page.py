@@ -66,7 +66,13 @@ r = client.get(f"/v/{VIN}/codes")
 t = r.text
 check(r.status_code == 200, "page 200")
 check('id="codes-call"' in t and re.search(r'id="codes-call">[^<]*(<a [^>]*>[^<]*</a>[^<]*)*codes? ', t) is not None, "one-line call present")
-check(t.index('class="cd-search"') < t.index('id="codes-call"'), "search sits above the call")
+check(t.index('id="codes-call"') < t.index('class="cd-search"'), "call sits above the search")
+rq = client.get(f"/v/{VIN}/codes?q=zzzznomatch")
+tq = rq.text
+check(rq.status_code == 200 and "No code matches" in tq.split('id="codes-call"')[1][:300],
+      "filtered call line reflects the filtered (empty) rows")
+check('class="cd-gochip cd-go-state"' not in tq, "chips with 0 rows are hidden under a search")
+check("unfiltered" in tq, "unfiltered total kept in small text")
 check('aria-label="Go to"' in t and 'href="#grp-chronic"' in t, "Go-to chips link to the groups")
 check('id="cd-legend"' in t and "What the states mean" in t, "state legend in a fold")
 check('id="cd-adv"' in t and t.index('id="cd-adv"') < t.index("Include simulation") < t.index("</details>", t.index('id="cd-adv"')),

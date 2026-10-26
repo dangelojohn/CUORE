@@ -43,14 +43,6 @@
               "distance": ("Distance", "shortest first", "longest first")} %}
 
 <div class="codes-page" id="codes-top">
-<form class="cd-search" method="get" action="/v/{{ vin }}/codes" role="search">
-  <input type="search" name="q" value="{{ q }}" placeholder="Search: P0456, evap, window, BCM" aria-label="Search codes" maxlength="80">
-  {% if system_filter %}<input type="hidden" name="system" value="{{ system_filter }}">{% endif %}
-  {% if include_simulation %}<input type="hidden" name="include_simulation" value="true">{% endif %}
-  {% if sort %}<input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="dir" value="{{ sort_dir }}">{% endif %}
-  <button type="submit">Search</button>
-  {% if q %}<a href="{{ href({'q': ''}) }}">Clear search</a>{% endif %}
-</form>
 
 <h1 class="cd-h1">Codes</h1>
 <p class="cd-lede">Every code this car has set, worst first.</p>
@@ -63,6 +55,15 @@
   {% for c in go_chips %}<a class="cd-gochip cd-go-{{ c.kind }}" href="{{ c.href }}">{{ c.text }}</a>{% endfor %}
 </nav>
 {% endif %}
+
+<form class="cd-search" method="get" action="/v/{{ vin }}/codes" role="search">
+  <input type="search" name="q" value="{{ q }}" placeholder="Search: P0456, evap, window, BCM" aria-label="Search codes" maxlength="80">
+  {% if system_filter %}<input type="hidden" name="system" value="{{ system_filter }}">{% endif %}
+  {% if include_simulation %}<input type="hidden" name="include_simulation" value="true">{% endif %}
+  {% if sort %}<input type="hidden" name="sort" value="{{ sort }}"><input type="hidden" name="dir" value="{{ sort_dir }}">{% endif %}
+  <button type="submit">Search</button>
+  {% if q %}<a href="{{ href({'q': ''}) }}">Clear search</a>{% endif %}
+</form>
 
 <details class="cd-fold" id="cd-legend">
   <summary>What the states mean</summary>
@@ -107,7 +108,7 @@
   </div>
 </details>
 
-<p class="cd-count muted">{{ rows|length }} of {{ data.count }} codes, {{ data.logs_considered }} logs, {{ 'simulation included' if data.simulation_included else 'real logs only' }}.</p>
+<p class="cd-count muted">{{ rows|length }} of {{ data.count }} codes{% if q %} (matching &ldquo;{{ q }}&rdquo;; {{ total_rows }} unfiltered){% endif %}, {{ data.logs_considered }} logs, {{ 'simulation included' if data.simulation_included else 'real logs only' }}.</p>
 </div>
 <script>
 (function(){var h=location.hash;if(h.indexOf('#grp-')===0){var d=document.getElementById(h.slice(1));if(d&&d.tagName==='DETAILS'){d.open=true;d.scrollIntoView();}}})();

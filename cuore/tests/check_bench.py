@@ -169,6 +169,14 @@ check("bench page responds 200", page.status_code == 200, str(page.status_code))
 check("bench status line names the Stelvio", "Stelvio" in page.text)
 check("bench status line never shows the unnamed placeholder",
       "(unnamed vehicle)" not in page.text)
+_bcss = re.search(r"\.bench-go \{[^}]*\}", page.text).group(0)
+check("Go-to chip strip wraps instead of scrolling", "flex-wrap: wrap" in _bcss and "overflow-x" not in _bcss, _bcss)
+_card = page.text.split('class="bench-card"')[1] if 'class="bench-card"' in page.text else ""
+check("task row: title first, then status chip, then the mark-done control; 44 px rule present",
+      (not _card) or (_card.find("bench-card-text") < _card.find("bench-state-badge") < _card.find("bench-check-label")),
+      "order")
+check("bench-check-label is a 44 px control", "bench-check-label { font-size: 1rem; color: var(--ink-2); min-height: 44px" in page.text)
+check("bench rows are full width, min 44 px", ".bench-card {" in page.text and "width: 100%; min-height: 44px" in page.text)
 check("bench status line carries the VIN tail",
       VIN[-6:] in page.text, VIN[-6:])
 
@@ -626,7 +634,7 @@ else:
                         # with minimal scrolling, right under the hero + tab strip.
                         check("the resume card sits right under the hero/tab strip, "
                              "not buried under the task list",
-                             resume_box["top"] < 1300, str(resume_box))
+                             resume_box["top"] < 1500, str(resume_box))  # 1300 -> 1500: Go-to chips now wrap (Chrome review) instead of scrolling sideways
 
                     shot = cdp.send("Page.captureScreenshot", {"format": "png"})
                     data_b64 = shot.get("data", "")

@@ -29,6 +29,7 @@ from __future__ import annotations
 import itertools
 import json
 import os
+import re
 import socket
 import subprocess
 import sys
@@ -340,6 +341,19 @@ check("the bench links row carries a /systems/<key> link",
 #     differs from the job's own current step -------------------------------
 
 step7 = client.get(f"/v/{VIN}/job", params={"step": "7"})
+_t7 = step7.text
+if 'id="job-call"' in _t7:
+    check("Job: h1, then the call, then Go-to chips, then search, then the Step N of 12 line",
+          _t7.index('class="job-h1"') < _t7.index('id="job-call"') < _t7.index('class="job-go"')
+          < _t7.index('id="job-search"') < _t7.index('id="step-of"'))
+_jcss = (Path(__file__).resolve().parents[1] / "web" / "static" / "job.css").read_text(encoding="utf-8")
+check("Job: centred ~820 px column", "max-width: 820px; margin-left: auto; margin-right: auto" in _jcss)
+check("Job: Why/Blocker at the 16 px token and Mechanic steps styled as a fold",
+      ".job-page .why-expander li { font-size: var(--fs-md); }" in _jcss and ".job-page .mechanic-plan" in _jcss)
+if 'class="hyp-sum"' in _t7:
+    check("Job: hypothesis code chips collapse into one 'N codes' fold",
+          'class="chip-code mono"' not in _t7.split('class="hyp-codes')[0].split('class="hyp-sum"')[-1]
+          and ("hyp-codes" not in _t7 or re.search(r"<summary>\d+ codes?</summary>", _t7) is not None))
 check("?step=7 responds 200", step7.status_code == 200, str(step7.status_code))
 check('header reads "Step 7 of 12"', "Step 7 of 12:" in step7.text, step7.text[:200])
 

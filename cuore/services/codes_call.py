@@ -84,12 +84,17 @@ def group_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def build_call(rows: list[dict[str, Any]], job_codes: set[str], blocker: Optional[str], vin: str,
-               action_text: Optional[str] = None) -> dict[str, Any]:
+               action_text: Optional[str] = None, query: str = "") -> dict[str, Any]:
     """``call_segs`` (``{text, href}`` pieces), ``call`` (the same line as text) and ``targets`` (Go-to chips)."""
     mine = [r for r in rows if r.get("in_job")]
     segs: list[dict[str, str]] = []
     targets: list[dict[str, str]] = []
-    if not mine:
+    if not mine and query:
+        n = len(rows)
+        txt = (f"{n} code{'' if n == 1 else 's'} match “{query}”; none on the open job."
+               if n else f"No code matches “{query}”.")
+        segs.append({"text": txt, "href": ""})
+    elif not mine:
         segs.append({"text": "No open codes on this car right now.", "href": ""})
     else:
         cnt = Counter(r.get("system_bucket") or "Other" for r in mine)

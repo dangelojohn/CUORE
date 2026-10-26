@@ -366,3 +366,11 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
 /* 44 px targets on the controls that moved under Advanced */
 .bc-btn, .ff-btn, .bc-cable-change, .bc-chip-btn { min-height: 44px; min-width: 44px; }
 .bc-row select, .bc-row input[type="text"] { min-height: 44px; font-size: var(--fs-md); }
+
+/* compact header row (the board has no vehicle strip / tab bar by design) */
+.lb-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 0; }
+.lb-head-car { font-weight: var(--fw-semibold); font-size: var(--fs-md); margin-right: auto; }
+.lb-back, .lb-tabs-link { min-height: 44px; }
+/* fold rows: 44 px, 16 px text (scale tokens) */
+.lb-others > summary, .lb-why > summary { min-height: 44px; font-size: var(--fs-md); }
+.lb-chan-unit { font-size: var(--fs-md); }

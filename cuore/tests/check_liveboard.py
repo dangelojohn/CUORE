@@ -34,6 +34,7 @@ Run:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import re
 import sys
 import tempfile
@@ -383,8 +384,21 @@ adv_html = adv.group(0) if adv else ""
 for needle in ('id="lb-demo"', 'id="ff-start"', 'id="bc-start"', 'id="bc-panel"', 'id="ff-panel"'):
     check(f"Advanced fold holds {needle}", needle in adv_html)
 check("Start/Snapshot are not inside Advanced", 'id="lb-start"' not in adv_html and 'id="lb-snapshot"' not in adv_html)
-check("search form at the top, before the call",
-      0 < html.find('class="lb-search"') < html.find('id="lb-call"'))
+check("call comes before the search form (search is below the call)",
+      0 < html.find('id="lb-call"') < html.find('class="lb-search"'))
+check("compact header row with vehicle name and a Back to Bench link above the h1",
+      0 < html.find('id="lb-head"') < html.find('class="lb-h1"') and 'id="lb-back"' in html
+      and "Back to Bench" in html and 'id="lb-tabs"' in html)
+_css = (Path(__file__).resolve().parents[1] / "web" / "static" / "liveboard.css").read_text(encoding="utf-8")
+check("lb-back is a 44 px target and Others/Why folds are 44 px at --fs-md",
+      ".lb-back, .lb-tabs-link { min-height: 44px; }" in _css
+      and ".lb-others > summary, .lb-why > summary { min-height: 44px; font-size: var(--fs-md); }" in _css)
+from cuore.web import liveboard_view as _lbv
+check("unit formatter: C -> degC, kpa -> kPa, kph -> km/h, others kept",
+      _lbv.fmt_unit("C") == "°C" and _lbv.fmt_unit("°C") == "°C" and _lbv.fmt_unit("kpa") == "kPa"
+      and _lbv.fmt_unit("KPH") == "km/h" and _lbv.fmt_unit("bar") == "bar" and _lbv.fmt_unit("V") == "V"
+      and _lbv.fmt_unit("%") == "%" and _lbv.fmt_unit("rpm") == "rpm" and _lbv.fmt_unit(None) == "")
+check("band note shows °C", "°C normal" in _lbv.band_note({"unit": "C", "band": {"normal": [88, 105]}}))
 check("one 'no reading' message, not a wall of dashes",
       html.count("No reading - start a session.") == 1 and html.count(">—<") == 0)
 

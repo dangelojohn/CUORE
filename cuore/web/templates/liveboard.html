@@ -17,12 +17,14 @@
      Everything the old page had still exists (same ids) -- Demo, Freeze frame and Bus capture now sit under
      "Advanced". Structure is rendered here (cuore/web/liveboard_view.py); liveboard.js only fills in values. #}
   {% set tok = request.query_params.get('token') %}
-  <form class="lb-search" method="get" action="/v/{{ vin }}/liveboard" role="search">
-    {% if tok %}<input type="hidden" name="token" value="{{ tok }}">{% endif %}
-    <input type="search" name="q" value="{{ q }}" placeholder="Search: coolant, fuel level, kPa, temperatures" aria-label="Search the readings on this page" maxlength="80">
-    <button type="submit">Search</button>
-    {% if q %}<a class="lb-clear" href="/v/{{ vin }}/liveboard{% if tok %}?token={{ tok }}{% endif %}">Clear</a>{% endif %}
-  </form>
+
+  {# Deliberately bare cockpit layout (no hero / tab row), so it gets its own compact header row:
+     vehicle name, a 44 px way back to the Bench, and a link to the tab pages. #}
+  <div class="lb-head" id="lb-head">
+    <span class="lb-head-car">{{ bar.name }}</span>
+    <a class="lb-gochip lb-back" id="lb-back" href="/v/{{ vin }}{% if tok %}?token={{ tok }}{% endif %}">Back to Bench</a>
+    <a class="lb-gochip lb-tabs-link" id="lb-tabs" href="/v/{{ vin }}/job{% if tok %}?token={{ tok }}{% endif %}">Tab pages</a>
+  </div>
 
   <h1 class="lb-h1">Live board <span class="lb-h1-car">{{ bar.name }}</span></h1>
 
@@ -30,6 +32,20 @@
     <p class="lb-call-line" id="lb-call-line">{{ view.call_off }}</p>
     <p class="lb-call-cable" id="lb-call-cable">{{ view.cable }}</p>
   </div>
+
+  <div class="fuse-go lb-go">
+    <span class="lb-go-l">Go to</span>
+    <a class="lb-gochip" id="lb-recordings" href="/v/{{ vin }}/recordings{% if tok %}?token={{ tok }}{% endif %}">Recordings</a>
+    <a class="lb-gochip" href="/v/{{ vin }}/job{% if tok %}?token={{ tok }}{% endif %}">Job</a>
+    <a class="lb-gochip" href="/v/{{ vin }}{% if tok %}?token={{ tok }}{% endif %}">Bench</a>
+  </div>
+
+  <form class="lb-search" method="get" action="/v/{{ vin }}/liveboard" role="search">
+    {% if tok %}<input type="hidden" name="token" value="{{ tok }}">{% endif %}
+    <input type="search" name="q" value="{{ q }}" placeholder="Search: coolant, fuel level, kPa, temperatures" aria-label="Search the readings on this page" maxlength="80">
+    <button type="submit">Search</button>
+    {% if q %}<a class="lb-clear" href="/v/{{ vin }}/liveboard{% if tok %}?token={{ tok }}{% endif %}">Clear</a>{% endif %}
+  </form>
 
   <div class="lb-status" id="lb-status">
     <span class="lb-status-chip" id="lb-status-adapter">adapter: checking</span>
@@ -63,12 +79,6 @@
     <button type="submit" class="lb-btn" id="lb-record">Record this drive</button>
   </form>
 
-  <div class="fuse-go lb-go">
-    <span class="lb-go-l">Go to</span>
-    <a class="lb-gochip" id="lb-recordings" href="/v/{{ vin }}/recordings{% if tok %}?token={{ tok }}{% endif %}">Recordings</a>
-    <a class="lb-gochip" href="/v/{{ vin }}/job{% if tok %}?token={{ tok }}{% endif %}">Job</a>
-    <a class="lb-gochip" href="/v/{{ vin }}{% if tok %}?token={{ tok }}{% endif %}">Bench</a>
-  </div>
 
   <div class="lb-snapshot-result" id="lb-snapshot-result" hidden></div>
 
