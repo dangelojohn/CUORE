@@ -1,0 +1,146 @@
+{# Power and ground budget panel for ONE electrical element. Embed with:
+     {% with pb = power_budget_panel(vin, "g003a") %}{% include "_power_budget_panel.html" %}{% endwith %}
+   pb comes from cuore.services.power_budget.panel (via power_budget_panel). #}
+{% set eid = pb.element.id %}
+<link rel="stylesheet" href="{{ static_url('power_budget.css') }}">
+<section class="pb-panel" id="pb-{{ eid }}" aria-labelledby="pb-h-{{ eid }}">
+  <p class="pb-call pb-call-{{ pb.call.level }}" role="status">
+    <span class="pb-call-lab">{{ {'todo': 'Next', 'alert': 'Over limit', 'warn': 'Watch', 'good': 'Result'}[pb.call.level] }}</span>
+    {{ pb.call.text }}
+  </p>
+  <h3 id="pb-h-{{ eid }}" class="pb-title">
+    <a href="{{ pb.page_url }}">Power and ground budget: {{ pb.element.label }}</a>
+    <span class="pb-chip pb-v-{{ pb.verdict.key }}">{{ pb.verdict.label }}</span>
+  </h3>
+  {% if pb.saved %}<p class="note good"><span class="lab">Recorded</span>Measurement saved.</p>{% endif %}
+  {% if pb.error %}<p class="note alert"><span class="lab">Not recorded</span>{{ pb.error }}</p>{% endif %}
+
+  {% if pb.segments %}
+  <ol class="pb-ladder">
+    {% for s in pb.segments %}
+    <li class="pb-seg pb-v-{{ s.verdict.key }}-edge">
+      <div class="pb-seg-head">
+        <span class="pb-pt">{{ s.from }}</span>
+        <span class="pb-arrow" aria-hidden="true">&rarr;</span>
+        <span class="pb-pt">{{ s.to }}</span>
+        <span class="pb-chip pb-v-{{ s.verdict.key }}">{{ s.verdict.label }}</span>
+        {% if s.role == 'cross_check' %}<span class="pb-chip pb-v-none">Cross-check, not added to the total</span>{% endif %}
+      </div>
+      {% if s.bars %}
+        {% for b in s.bars %}
+        <div class="pb-bar-row">
+          <svg class="pb-bar" viewBox="0 0 100 14" preserveAspectRatio="none" role="img"
+               aria-label="{{ b.name ~ ' ' if b.name }}{{ b.volts }} volts, {{ b.verdict.label }}">
+            <rect class="pb-track" x="0" y="0" width="100" height="14"/>
+            <rect class="pb-fill pb-fill-{{ b.verdict.key }}{{ ' pb-fill-before' if b.name == 'before' }}" x="0" y="0" width="{{ b.pct }}" height="14"/>
+            <line class="pb-tick" x1="{{ b.good_pct }}" x2="{{ b.good_pct }}" y1="0" y2="14"/>
+            <line class="pb-tick pb-tick-watch" x1="{{ b.watch_pct }}" x2="{{ b.watch_pct }}" y1="0" y2="14"/>
+          </svg>
+          <span class="pb-val"><b>{{ '%.3f'|format(b.volts) }} V</b>
+            <span class="muted">{{ (b.name ~ ' &middot; ')|safe if b.name }}{{ b.condition }} &middot; {{ b.verdict.label }}</span></span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="pb-none">Not measured</p>
+      {% endif %}
+      <table class="pb-table">
+        <thead><tr><th scope="col">Condition</th><th scope="col">Latest</th><th scope="col">Verdict</th><th scope="col">When, who, meter</th></tr></thead>
+        <tbody>
+        {% for r in s.readings %}
+          <tr>
+            <th scope="row">{{ r.label }}</th>
+            {% if r.rec %}
+              <td><b>{{ '%.3f'|format(r.rec.volts) }} V</b>{% if r.rec.tag %} <span class="muted">({{ r.rec.tag }})</span>{% endif %}</td>
+              <td><span class="pb-chip pb-v-{{ r.verdict.key }}">{{ r.verdict.label }}</span></td>
+              <td class="muted">{{ r.rec.at|replace('T', ' ') }} &middot; {{ r.rec.by }}{% if r.rec.meter %} &middot; {{ r.rec.meter }}{% endif %}{% if r.rec.battery_v %} &middot; battery {{ '%.2f'|format(r.rec.battery_v) }} V{% endif %}{% if r.rec.note %}<br>{{ r.rec.note }}{% endif %}</td>
+            {% else %}
+              <td colspan="3" class="muted">Not measured</td>
+            {% endif %}
+          </tr>
+          {% if r.compare %}
+          <tr class="pb-compare"><td colspan="4"><b>Before / after:</b> {{ r.compare.text }}
+            ({{ r.compare.before_verdict.label }} &rarr; {{ r.compare.after_verdict.label }})</td></tr>
+          {% endif %}
+        {% endfor %}
+        </tbody>
+      </table>
+      {% if s.wiggle_note %}<p class="note warn"><span class="lab">Wiggle</span>{{ s.wiggle_note }}</p>{% endif %}
+      <p class="small muted pb-basis">Limits for this segment: good up to {{ s.limit.good_max }} V, watch up to {{ s.limit.watch_max }} V. Basis: {{ s.limit.basis }}</p>
+      {% if s.why %}<p class="small muted">{{ s.why }}</p>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% for t in pb.totals %}
+    <p class="pb-total"><b>Total drop, {{ t.label|lower }}:</b> {{ '%.3f'|format(t.volts) }} V
+      <span class="pb-chip pb-v-{{ t.verdict.key }}">{{ t.verdict.label }}</span>
+      {% if t.partial %}<span class="muted">(partial: {{ t.count }} of {{ t.of }} segments measured)</span>{% endif %}
+      <span class="small muted">Basis: {{ t.basis }}</span></p>
+  {% endfor %}
+  {% else %}
+    <p class="muted">No suggested segments for this element yet. Record a drop between two points you name.</p>
+  {% endif %}
+
+  <details class="pb-form-wrap"{{ ' open' if pb.open_form }}>
+    <summary class="btn{{ ' primary' if pb.n_measurements == 0 }}">{{ 'Measure before cleaning' if pb.n_measurements == 0 else 'Record a measurement' }}</summary>
+    <form method="post" action="/v/{{ pb.vin }}/power-budget/measure" class="pb-form">
+      <input type="hidden" name="element" value="{{ eid }}">
+      <input type="hidden" name="redirect_to" value="{{ pb.redirect_to }}">
+      <fieldset class="field"><legend>Segment (meter probes from, to)</legend>
+        <div class="tag-grid">
+          {% for p in pb.presets %}
+          <span class="tag-chip"><input type="radio" id="pb_{{ eid }}_{{ p.id }}" name="preset" value="{{ p.id }}"{{ ' checked' if loop.first }}>
+            <label for="pb_{{ eid }}_{{ p.id }}">{{ p.from }} &rarr; {{ p.to }}</label></span>
+          {% endfor %}
+          <span class="tag-chip"><input type="radio" id="pb_{{ eid }}_other" name="preset" value=""{{ ' checked' if not pb.presets }}>
+            <label for="pb_{{ eid }}_other">Other points (type below)</label></span>
+        </div>
+        <div class="pb-grid">
+          <div><label for="pb_{{ eid }}_from">From (only for &ldquo;Other&rdquo;)</label>
+            <input type="text" id="pb_{{ eid }}_from" name="from_point" maxlength="80"></div>
+          <div><label for="pb_{{ eid }}_to">To (only for &ldquo;Other&rdquo;)</label>
+            <input type="text" id="pb_{{ eid }}_to" name="to_point" maxlength="80"></div>
+        </div>
+      </fieldset>
+      <fieldset class="field"><legend>Condition</legend>
+        <div class="tag-grid">
+          {% for c in pb.conditions %}
+          <span class="tag-chip"><input type="radio" id="pb_{{ eid }}_c_{{ c.key }}" name="condition" value="{{ c.key }}" required{{ ' checked' if c.key == 'running_loads' }}>
+            <label for="pb_{{ eid }}_c_{{ c.key }}" title="{{ c.hint }}">{{ c.label }}</label></span>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <div class="pb-grid">
+        <div><label for="pb_{{ eid }}_v">Measured drop (volts)</label>
+          <input type="text" id="pb_{{ eid }}_v" name="volts" inputmode="decimal" required placeholder="0.042" autocomplete="off"></div>
+        <div><label for="pb_{{ eid }}_bat">Battery volts at the posts (optional)</label>
+          <input type="text" id="pb_{{ eid }}_bat" name="battery_v" inputmode="decimal" autocomplete="off"></div>
+      </div>
+      <fieldset class="field"><legend>Tag (for a before / after comparison)</legend>
+        <div class="tag-grid">
+          <span class="tag-chip"><input type="radio" id="pb_{{ eid }}_t_none" name="tag" value=""{{ ' checked' if pb.n_measurements }}>
+            <label for="pb_{{ eid }}_t_none">No tag</label></span>
+          {% for t in pb.tags %}
+          <span class="tag-chip"><input type="radio" id="pb_{{ eid }}_t_{{ loop.index }}" name="tag" value="{{ t.key }}"{{ ' checked' if loop.first and not pb.n_measurements }}>
+            <label for="pb_{{ eid }}_t_{{ loop.index }}">{{ t.label }}</label></span>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <fieldset class="field"><legend>Which side of the car's wiring</legend>
+        <div class="tag-grid">
+          {% for k, sd in pb.sides.items() %}
+          <span class="tag-chip"><input type="radio" id="pb_{{ eid }}_s_{{ k }}" name="side" value="{{ k }}"{{ ' checked' if k == pb.element.side }}>
+            <label for="pb_{{ eid }}_s_{{ k }}">{{ sd.label }}</label></span>
+          {% endfor %}
+        </div>
+        <p class="small muted">Ignored when you pick a suggested segment above, which carries its own side.</p>
+      </fieldset>
+      <div class="pb-grid">
+        <div><label for="pb_{{ eid }}_by">By</label><input type="text" id="pb_{{ eid }}_by" name="by" value="owner" maxlength="60"></div>
+        <div><label for="pb_{{ eid }}_meter">Meter (optional)</label><input type="text" id="pb_{{ eid }}_meter" name="meter" maxlength="60"></div>
+        <div><label for="pb_{{ eid }}_media">Photo / media id (optional)</label><input type="text" id="pb_{{ eid }}_media" name="media_id" maxlength="60"></div>
+        <div><label for="pb_{{ eid }}_note">Note: loads used, probe points (optional)</label><input type="text" id="pb_{{ eid }}_note" name="note" maxlength="500"></div>
+      </div>
+      <p><button class="btn primary" type="submit">Save measurement</button></p>
+    </form>
+  </details>
+</section>

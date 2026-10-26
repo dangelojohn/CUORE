@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Sensor cross-checks — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<style>
+.ccp { padding-inline: 16px; max-width: 820px; margin-inline: auto; font-size: var(--fs-md); overflow-wrap: anywhere; }
+.ccp h1 { font-size: var(--fs-xl); margin: 12px 0 4px; }
+.ccp .muted { color: var(--ink-2); }
+.ccp-form { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: end; margin: 8px 0 12px; }
+.ccp-form label { display: grid; gap: 2px; font-weight: 600; }
+.ccp-form input, .ccp-form button { min-height: var(--tap, 44px); box-sizing: border-box; font-size: var(--fs-md); padding: 0 12px; }
+.ccp-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.ccp-links a { display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 0 16px; border: 2px solid var(--ink-3); border-radius: 999px; color: var(--ink); text-decoration: none; font-size: var(--fs-md); }
+.ccp-links a[aria-current="true"] { border-color: var(--accent); font-weight: 700; }
+</style>
+<div class="ccp">
+  <h1>Sensor cross-checks</h1>
+  <p class="muted">Sensors that must agree with each other, checked against each other instead of against a fixed range. Reads saved readings and the running live session; it never contacts the car.</p>
+
+  <form class="ccp-form" method="get" action="/v/{{ vin }}/crosschecks">
+    <label>Hours the engine was off before the first read (empty = unknown)
+      <input type="number" name="soaked_h" min="0" max="8760" step="0.5" inputmode="decimal" value="{{ soaked_in }}"></label>
+    {% if cc.recording %}<input type="hidden" name="recording" value="{{ cc.recording }}">{% endif %}
+    <button type="submit">Apply</button>
+  </form>
+
+  <nav class="ccp-links" aria-label="What to check">
+    <a href="/v/{{ vin }}/crosschecks{% if soaked_in %}?soaked_h={{ soaked_in }}{% endif %}"{% if not cc.recording %} aria-current="true"{% endif %}>Latest readings</a>
+    {% for r in recordings %}
+    <a href="/v/{{ vin }}/crosschecks?recording={{ r.id }}{% if soaked_in %}&amp;soaked_h={{ soaked_in }}{% endif %}"{% if cc.recording == r.id %} aria-current="true"{% endif %}>Recording {{ r.id }}{% if r.label %} ({{ r.label }}){% endif %}</a>
+    {% endfor %}
+    <a href="/v/{{ vin }}/sensors">Back to Sensors</a>
+  </nav>
+
+  {% include "_crosscheck_panel.html" %}
+</div>
+{% endblock %}

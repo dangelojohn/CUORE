@@ -1,0 +1,48 @@
+/* Intermittent-fault correlator (cuore/services/intermittent.py).
+ * Text is never below --fs-md (16px); tap targets are at least --tap (44px).
+ * Colours come from the cuore.css tokens, so light and dark both work; every
+ * colour is paired with a written label. */
+.im-panel { margin: var(--pad) 0; }
+.im-panel h3 { font-size: var(--fs-xl); margin-top: 0; }
+.im-panel p, .im-panel li, .im-panel td, .im-panel th, .im-panel summary,
+.im-page p, .im-page li, .im-page td, .im-page th, .im-page summary {
+  font-size: var(--fs-md); line-height: var(--lh-body);
+}
+.im-hint {
+  font-size: var(--fs-lg); font-weight: var(--fw-semibold); margin: 8px 0;
+  padding: 10px 12px; border-left: 4px solid var(--sev-chronic);
+  background: var(--sev-chronic-bg); border-radius: var(--radius);
+}
+.im-hint.im-none { border-left-color: var(--sev-once); background: var(--sev-once-bg); font-weight: var(--fw-regular); }
+.im-hint.im-bad { border-left-color: var(--sev-returned); background: var(--sev-returned-bg); }
+.im-caveat { color: var(--ink-2); margin: 4px 0 10px; }
+.im-lines { list-style: none; padding: 0; margin: 8px 0; }
+.im-lines > li { border-top: 1px solid var(--rule-soft); padding: 8px 0; }
+.im-lines > li:first-child { border-top: none; }
+.im-tag {
+  display: inline-block; font-family: var(--mono); font-size: var(--fs-md);
+  text-transform: uppercase; letter-spacing: var(--tracking-caps);
+  padding: 2px 8px; margin-right: 8px; border-radius: var(--radius); border: 1px solid;
+  vertical-align: middle;
+}
+.im-tag.all  { color: var(--sev-returned); background: var(--sev-returned-bg); border-color: var(--sev-returned); }
+.im-tag.most { color: var(--sev-chronic);  background: var(--sev-chronic-bg);  border-color: var(--sev-chronic); }
+.im-tag.about-half-or-more { color: var(--sev-cleared); background: var(--sev-cleared-bg); border-color: var(--sev-cleared); }
+.im-tag.some { color: var(--ink-2); background: var(--sev-once-bg); border-color: var(--sev-once); }
+.im-count { font-weight: var(--fw-semibold); }
+.im-base { color: var(--ink-2); display: block; }
+.im-panel details, .im-page details { margin: 4px 0; }
+.im-panel summary, .im-page summary {
+  cursor: pointer; min-height: var(--tap); display: flex; align-items: center;
+  color: var(--ink-2);
+}
+.im-ev { font-family: var(--mono); }
+.im-table-wrap { overflow-x: auto; max-width: 100%; }
+.im-table { border-collapse: collapse; min-width: 640px; }
+.im-table th, .im-table td { padding: 6px 10px; text-align: left; vertical-align: top; border-top: 1px solid var(--rule-soft); }
+.im-table .im-nr { color: var(--ink-3); font-style: italic; }
+.im-link { min-height: var(--tap); display: inline-flex; align-items: center; }
+.im-src { color: var(--ink-2); }
+.im-ovl { list-style: none; padding: 0; }
+.im-ovl > li { border-top: 1px solid var(--rule-soft); padding: 10px 0; }
+.im-ovl a.im-key { display: inline-flex; align-items: center; min-height: var(--tap); font-weight: var(--fw-semibold); font-size: var(--fs-lg); margin-right: 10px; }

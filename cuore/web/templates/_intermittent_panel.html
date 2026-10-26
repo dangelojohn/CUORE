@@ -1,0 +1,102 @@
+{# Intermittent-fault panel. Embed with `vin` and `code` in scope:
+       {% include "_intermittent_panel.html" %}
+   It calls the Jinja global intermittent_panel(vin, code) (registered by
+   cuore/web/intermittent_routes.py; same as cuore.services.intermittent.panel).
+   Or pass a ready result as `im`. Set `im_full` true to show every line. #}
+{% set _im = im if (im is defined and im) else (intermittent_panel(vin, code) if intermittent_panel is defined else none) %}
+{% set _full = im_full is defined and im_full %}
+<link rel="stylesheet" href="{{ static_url('intermittent.css') }}">
+{% if _im %}
+<section class="panel im-panel" aria-labelledby="im-h-{{ _im.subject.key }}">
+  <h3 id="im-h-{{ _im.subject.key }}">Intermittent pattern: {{ _im.subject.key }}</h3>
+
+  {% if _im.error %}
+    <p class="im-hint im-bad"><b>Not available:</b> {{ _im.error }}</p>
+  {% elif _im.hint %}
+    <p class="im-hint"><b>Pattern in the records:</b> {{ _im.hint.text }}</p>
+    <p class="im-caveat">{{ _im.hint.caveat }}
+      {% if _im.hint.next_test_source %}Test suggestion from: {{ _im.hint.next_test_source }}.{% endif %}</p>
+  {% elif not _im.enough %}
+    <p class="im-hint im-none"><b>{{ _im.headline|capitalize }}.</b>
+      {% if _im.n_events %}They are listed below.{% else %}No set event with recorded conditions is on file for this car.{% endif %}</p>
+  {% else %}
+    <p class="im-hint im-none">{{ _im.headline }}.</p>
+  {% endif %}
+
+  {% if not _im.error and _im.sightings %}
+    <p class="im-src">Seen in {{ _im.sightings }} logged read(s). A read shows the code was present; it does not record the conditions.</p>
+  {% endif %}
+
+  {% if _im.lines %}
+  <ul class="im-lines">
+    {% for r in _im.lines %}{% if _full or loop.index <= 3 %}
+    <li>
+      <span class="im-tag {{ r.emphasis|replace(' ', '-') }}">{{ r.emphasis }}</span>
+      <span class="im-count">{{ r.text }}</span>
+      {% if r.baseline %}<span class="im-base">For comparison, other codes on this car: {{ r.baseline.n }} of {{ r.baseline.m }}.</span>{% endif %}
+      <details>
+        <summary>{{ r.n }} event(s) behind this line</summary>
+        <ul>
+          {% for e in r.events %}
+          <li><span class="im-ev">{{ e.id }}</span> {{ e.source_label }}, {{ e.ref }}, {{ e.at or 'time not recorded' }}
+            &mdash; {{ e.conditions[r.condition].text if e.conditions[r.condition] else 'not recorded' }}</li>
+          {% endfor %}
+        </ul>
+        <p class="im-src">Band basis: {{ r.basis or 'none given' }}</p>
+      </details>
+    </li>
+    {% endif %}{% endfor %}
+  </ul>
+  {% if not _full and _im.lines|length > 3 %}<p class="im-src">{{ _im.lines|length - 3 }} more line(s) on the full page.</p>{% endif %}
+  {% endif %}
+
+  {% if _full and _im.never %}
+  <details>
+    <summary>Conditions that never appear ({{ _im.never|length }})</summary>
+    <ul>{% for r in _im.never %}<li>{{ r.text }}</li>{% endfor %}</ul>
+  </details>
+  {% endif %}
+
+  {% if _full and _im.not_recorded %}
+  <details>
+    <summary>What was not recorded ({{ _im.not_recorded|length }} condition(s))</summary>
+    <ul>{% for m in _im.not_recorded %}
+      <li>{{ m.label }}: recorded for {{ m.recorded }} of {{ m.of }} events; not recorded for {{ m.not_recorded }}.</li>
+    {% endfor %}</ul>
+  </details>
+  {% endif %}
+
+  {% if _im.events and (_full or not _im.enough) %}
+  <details {{ 'open' if (not _im.enough or _full) }}>
+    <summary>The {{ _im.n_events }} event(s) on file</summary>
+    {% set cols = [('battery_v','Battery'),('coolant_c','Engine temp'),('rpm','Engine speed'),('speed_kmh','Speed'),('startups','Startups counter'),('time_of_day','Time of day'),('wiggle_near','Wiggle nearby')] %}
+    <div class="im-table-wrap">
+    <table class="im-table">
+      <thead><tr><th>Event</th><th>Source</th><th>Record</th><th>Time</th>{% for k, l in cols %}<th>{{ l }}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% for e in _im.events %}
+        <tr><td class="im-ev">{{ e.id }}</td><td>{{ e.source_label }}</td><td>{{ e.ref }}</td>
+            <td>{{ e.at or 'not recorded' }}{% if e.source == 'freeze_frame' %} (log time){% endif %}</td>
+          {% for k, l in cols %}{% set c = e.conditions.get(k) %}
+            {% if c %}<td>{{ c.text }}</td>{% else %}<td class="im-nr">not recorded</td>{% endif %}
+          {% endfor %}</tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+  {% endif %}
+
+  {% if _full and _im.sources %}
+  <details>
+    <summary>Where the events came from</summary>
+    <ul>{% for s in _im.sources %}<li>{{ s.label }}: {{ s.found }} found{% if s.note %} &mdash; {{ s.note }}{% endif %}</li>{% endfor %}</ul>
+    <p class="im-src">Bands and their bases: {{ _im.basis_file }}.</p>
+  </details>
+  {% endif %}
+
+  {% if not _full %}
+  <p><a class="btn im-link" href="/v/{{ _im.vin }}/intermittent/{{ _im.subject.key }}">Full intermittent view</a></p>
+  {% endif %}
+</section>
+{% endif %}

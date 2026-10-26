@@ -1,0 +1,109 @@
+{# Trends across visits, embeddable.
+   Context: `trends` = cuore.web.trends_routes.trends_panel_context(vin); `vin`.
+   Optional: `trends_full` (true on the trends page itself: shows the working for every trend).
+   First line is the one-line call; below it each trend that has readings, with a sparkline whose
+   axes are labelled. No JS. Status is label + symbol + colour, never colour alone. #}
+<link rel="stylesheet" href="{{ static_url('trends.css') }}">
+{% set H = trends.headline %}
+<section class="tr-panel panel" id="trends" aria-labelledby="tr-h">
+  <h2 id="tr-h" style="margin:0 0 8px">Trends across visits</h2>
+  <p class="tr-headline">
+    <span class="tr-chip {{ H.chip }}"><span aria-hidden="true">{{ H.symbol }}</span> {{ H.status_label }}</span>
+    <span>{{ H.text }}</span>
+  </p>
+  <p class="tr-muted">Compares like with like across days and weeks, before a code sets. {{ trends.counts.with_enough_data }}
+    of {{ trends.counts.metrics }} trends have enough data to call.</p>
+
+  <div class="tr-grid">
+  {% for m in trends.metrics_shown %}
+    <article class="tr-card" id="tr-{{ m.id }}" aria-labelledby="tr-{{ m.id }}-h">
+      <h3 id="tr-{{ m.id }}-h">{{ m.label }}</h3>
+      <p class="tr-headline" style="font-size:var(--fs-md)">
+        <span class="tr-chip {{ m.chip }}"><span aria-hidden="true">{{ m.symbol }}</span> {{ m.status_label }}</span>
+        <span>{{ m.detail }}</span>
+      </p>
+      {% if m.sentence %}<p class="tr-text">{{ m.sentence }}.</p>{% endif %}
+      {% set S = m.series_with_data[0] if m.series_with_data else none %}
+      {% if S and S.plot %}
+        <figure class="tr-fig" style="margin:8px 0">
+          <div class="tr-plot">
+            <div class="tr-y" aria-hidden="true"><span>{{ S.plot.y_top }}</span><span>{{ S.plot.y_bottom }}</span></div>
+            {{ S.plot.svg|safe }}
+          </div>
+          <div class="tr-x" aria-hidden="true"><span>{{ S.plot.x_left }}</span><span>{{ S.plot.x_right }}</span></div>
+          <figcaption class="tr-cap">{{ S.stream }}. {{ S.plot.caption }}</figcaption>
+        </figure>
+        {% if S.margin %}<p class="tr-text">Latest value: {{ S.margin.text }}.</p>{% endif %}
+        {% if S.projection_note %}<p class="tr-muted">{{ S.projection_note }}.</p>{% endif %}
+      {% endif %}
+      {% if trends_full %}
+      <details>
+        <summary>How this was worked out</summary>
+        <h4>Which readings count</h4>
+        <p class="tr-text">{{ m.condition_text }}</p>
+        <h4>Limit used</h4>
+        <p class="tr-text">{{ m.limit.text }}</p>
+        <h4>Why it matters</h4>
+        <p class="tr-text">{{ m.why }}</p>
+        <h4>Sources, one line per instrument (never mixed)</h4>
+        <div class="tw"><table class="tr-table">
+          <thead><tr><th>Source</th><th>Daily points</th><th>Readings used</th><th>Left out</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for s in m.series %}
+            <tr><td>{{ s.stream }}</td><td class="tr-num">{{ s.n }}</td><td class="tr-num">{{ s.readings_used }}</td>
+                <td class="tr-num">{{ s.excluded.count }}</td>
+                <td>{{ s.status|replace('_', ' ') }}{% if s.slope_per_day_txt %}; slope {{ s.slope_per_day_txt }} {{ m.unit }}/day{% endif %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table></div>
+        {% set ex = namespace(any=false) %}
+        {% for s in m.series %}{% if s.excluded.count %}{% set ex.any = true %}{% endif %}{% endfor %}
+        {% if ex.any %}
+        <h4>Readings left out, and why</h4>
+        <ul class="tr-list">
+          {% for s in m.series if s.excluded.count %}
+            {% for r in s.excluded.reasons[:3] %}
+              <li>{{ s.stream }}: {{ r.count }} reading{{ '' if r.count == 1 else 's' }} left out: {{ r.reason }}</li>
+            {% endfor %}
+          {% endfor %}
+        </ul>
+        {% endif %}
+        {% if S and S.points %}
+        <h4>Daily points</h4>
+        <div class="tw"><table class="tr-table">
+          <thead><tr><th>Day</th><th>Median ({{ m.unit }})</th><th>Readings that day</th></tr></thead>
+          <tbody>{% for p in S.points %}<tr><td class="tr-num">{{ p.date }}</td><td class="tr-num">{{ '%.*f'|format(m.decimals, p.value) }}</td><td class="tr-num">{{ p.readings }}</td></tr>{% endfor %}</tbody>
+        </table></div>
+        {% endif %}
+      </details>
+      {% endif %}
+    </article>
+  {% endfor %}
+  </div>
+
+  {% if trends.metrics_idle %}
+  <details>
+    <summary>{{ trends.metrics_idle|length }} trend{{ '' if trends.metrics_idle|length == 1 else 's' }} with no comparable readings yet</summary>
+    <ul class="tr-idle">
+      {% for m in trends.metrics_idle %}
+        {% set ex = namespace(n=0) %}{% for s in m.series %}{% set ex.n = ex.n + s.excluded.count %}{% endfor %}
+        <li><strong>{{ m.label }}</strong>:
+          {% if ex.n %}{{ ex.n }} stored reading{{ '' if ex.n == 1 else 's' }} did not meet the condition. {{ m.condition_text }}{% else %}nothing stored yet from any source.{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+
+  {% if trends_full and trends.not_trendable %}
+  <details>
+    <summary>{{ trends.not_trendable|length }} Mode 06 test{{ '' if trends.not_trendable|length == 1 else 's' }} cannot be trended</summary>
+    <ul class="tr-idle">
+      {% for n in trends.not_trendable %}<li><strong>{{ n.label }}</strong>: {{ n.reason }} ({{ n.readings }} stored).</li>{% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+
+  {% if not trends_full %}
+    <p><a class="tr-link" href="/v/{{ vin }}/trends">All trends, with the working</a></p>
+  {% endif %}
+</section>

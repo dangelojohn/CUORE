@@ -1,0 +1,217 @@
+{
+  "schema": 1,
+  "about": "Bands used by cuore/services/intermittent.py to line up the conditions at each recorded set event. Every band edge is a documented, adjustable threshold, never a statistic. 'lo' is inclusive, 'hi' is exclusive. A value that no band covers is shown as 'not recorded', never as 0. Change an edge here and the page re-bands on the next load.",
+  "min_events": 3,
+  "min_hits": 2,
+  "emphasis": {
+    "about": "Wording only, from the counts themselves: 'all' when n equals m, 'most' when n/m is at least 0.75, 'about half or more' when at least 0.5, otherwise 'some'. These are labels for a count, not probabilities.",
+    "most": 0.75,
+    "half": 0.5
+  },
+  "wiggle_window_s": {
+    "before": 5,
+    "after": 20,
+    "basis": "cuore/services/path_diag.py WIGGLE_BEFORE_S / WIGGLE_AFTER_S (the window the wiggle recorder already uses)."
+  },
+  "nearest_recording_row_s": 2,
+  "conditions": [
+    {
+      "key": "battery_v", "label": "Battery / supply voltage", "unit": "V", "kind": "band",
+      "fields": ["volt"],
+      "exclude_fields": ["^ibs", "charge"],
+      "bands": [
+        {"id": "low", "lo": null, "hi": 12.0, "phrase": "battery below 12.0 V", "short": "low voltage",
+         "basis": "cuore/services/path_diag.py _patterns: 'all N occurrences below 12.0 V' (same edge). Heuristic, adjustable; a running engine normally charges above this.",
+         "next_test": "test the supply and the ground path under load (watch voltage at the module while wiggling and switching loads)"},
+        {"id": "mid", "lo": 12.0, "hi": 13.0, "phrase": "battery 12.0 to 13.0 V", "short": "mid voltage",
+         "basis": "Between the two edges used in cuore/services/path_diag.py _patterns (12.0 and 13.0 V). Heuristic, adjustable."},
+        {"id": "high", "lo": 13.0, "hi": null, "phrase": "battery at or above 13.0 V", "short": "charging voltage",
+         "basis": "cuore/services/path_diag.py _patterns: 'at or above 13.0 V' (same edge). Heuristic, adjustable."}
+      ]
+    },
+    {
+      "key": "coolant_c", "label": "Engine / coolant temperature", "unit": "C", "kind": "band",
+      "fields": ["^engine temperature$", "coolant"],
+      "bands": [
+        {"id": "cold", "lo": null, "hi": 40, "phrase": "engine below 40 C (cold)", "short": "cold engine",
+         "basis": "cuore/services/path_diag.py _patterns: 'engine temperature < 40'. Heuristic, adjustable.",
+         "next_test": "recreate it from a cold start and watch for the code in the first minutes"},
+        {"id": "warming", "lo": 40, "hi": 80, "phrase": "engine 40 to 80 C (warming)", "short": "warming engine",
+         "basis": "Between the two edges in cuore/services/path_diag.py _patterns (40 and 80). Heuristic, adjustable."},
+        {"id": "hot", "lo": 80, "hi": null, "phrase": "engine at or above 80 C (warm)", "short": "warm engine",
+         "basis": "cuore/services/path_diag.py _patterns: 'engine temperature >= 80'. Heuristic, adjustable.",
+         "next_test": "recreate it with the engine fully warm (heat soak)"}
+      ]
+    },
+    {
+      "key": "air_c", "label": "Air temperature (intake / ambient)", "unit": "C", "kind": "band",
+      "fields": ["^air temperature$", "ambient", "intake air temp(?!.*post)", "intake_air_temp"],
+      "bands": [
+        {"id": "cool", "lo": null, "hi": 10, "phrase": "air below 10 C", "short": "cool air",
+         "basis": "Heuristic, adjustable (no repo citation; chosen to separate a cool day from a mild one)."},
+        {"id": "mild", "lo": 10, "hi": 25, "phrase": "air 10 to 25 C", "short": "mild air",
+         "basis": "Heuristic, adjustable."},
+        {"id": "warm", "lo": 25, "hi": null, "phrase": "air at or above 25 C", "short": "warm air",
+         "basis": "Heuristic, adjustable."}
+      ]
+    },
+    {
+      "key": "rpm", "label": "Engine speed", "unit": "rpm", "kind": "band",
+      "fields": ["^engine speed$", "^engine rpm$", "engine_rpm"],
+      "bands": [
+        {"id": "stopped", "lo": 0, "hi": 1, "phrase": "engine not running (0 rpm)", "short": "engine stopped",
+         "basis": "cuore/services/path_diag.py _patterns: 'at 0 rpm'. Exact zero, not a heuristic."},
+        {"id": "idle", "lo": 1, "hi": 1000, "phrase": "engine 1 to 999 rpm (idle range)", "short": "idle range",
+         "basis": "Heuristic, adjustable: this ECM idled at 794 rpm in a recorded freeze frame (FES 2026-08-31)."},
+        {"id": "off_idle", "lo": 1000, "hi": null, "phrase": "engine at or above 1,000 rpm", "short": "off idle",
+         "basis": "Heuristic, adjustable."}
+      ]
+    },
+    {
+      "key": "speed_kmh", "label": "Vehicle speed", "unit": "km/h", "kind": "band",
+      "fields": ["^vehicle speed$", "vehicle_speed"],
+      "bands": [
+        {"id": "stationary", "lo": 0, "hi": 1, "phrase": "stationary (0 km/h)", "short": "stationary",
+         "basis": "cuore/services/path_diag.py _patterns: 'at 0 km/h (stationary)'. Exact zero, not a heuristic.",
+         "next_test": "recreate it stationary (ignition on, engine running, wheels not turning)"},
+        {"id": "slow", "lo": 1, "hi": 60, "phrase": "moving below 60 km/h", "short": "slow",
+         "basis": "Heuristic, adjustable."},
+        {"id": "fast", "lo": 60, "hi": null, "phrase": "at or above 60 km/h", "short": "above 60 km/h",
+         "basis": "Heuristic, adjustable.",
+         "next_test": "recreate it at road speed"}
+      ]
+    },
+    {
+      "key": "load_pct", "label": "Pedal / engine load", "unit": "%", "kind": "band",
+      "fields": ["^gas pedal position$", "^absolute load$", "^throttle position$", "absolute_load", "throttle_position"],
+      "bands": [
+        {"id": "none", "lo": null, "hi": 0.5, "phrase": "pedal released (about 0 %)", "short": "no load",
+         "basis": "Heuristic, adjustable."},
+        {"id": "light", "lo": 0.5, "hi": 40, "phrase": "light load (below 40 %)", "short": "light load",
+         "basis": "Heuristic, adjustable."},
+        {"id": "heavy", "lo": 40, "hi": null, "phrase": "heavy load (40 % or more)", "short": "heavy load",
+         "basis": "Heuristic, adjustable."}
+      ]
+    },
+    {
+      "key": "fuel_pct", "label": "Fuel level", "unit": "%", "kind": "band",
+      "fields": ["^fuel level$"],
+      "bands": [
+        {"id": "low", "lo": null, "hi": 25, "phrase": "fuel below 25 %", "short": "low fuel",
+         "basis": "Heuristic, adjustable."},
+        {"id": "mid", "lo": 25, "hi": 75, "phrase": "fuel 25 to 75 %", "short": "mid fuel",
+         "basis": "Heuristic, adjustable."},
+        {"id": "high", "lo": 75, "hi": null, "phrase": "fuel at or above 75 %", "short": "high fuel",
+         "basis": "Heuristic, adjustable."}
+      ]
+    },
+    {
+      "key": "soc_pct", "label": "Battery state of charge (IBS)", "unit": "%", "kind": "band",
+      "fields": ["^ibs battery charge status$", "^ibs state of charge$"],
+      "bands": [
+        {"id": "low", "lo": null, "hi": 60, "phrase": "battery charge below 60 % (IBS)", "short": "low charge",
+         "basis": "Heuristic, adjustable."},
+        {"id": "ok", "lo": 60, "hi": null, "phrase": "battery charge 60 % or more (IBS)", "short": "charged",
+         "basis": "Heuristic, adjustable."}
+      ]
+    },
+    {
+      "key": "since_start_s", "label": "Time since engine start", "unit": "s", "kind": "band",
+      "fields": ["^runtime since start$", "runtime_since_start"],
+      "bands": [
+        {"id": "early", "lo": null, "hi": 120, "phrase": "within 2 min of engine start", "short": "just after start",
+         "basis": "Heuristic, adjustable. Only recordings / live reads carry this; a freeze frame does not.",
+         "next_test": "recreate it in the first two minutes after a start"},
+        {"id": "settling", "lo": 120, "hi": 600, "phrase": "2 to 10 min after engine start", "short": "settling",
+         "basis": "Heuristic, adjustable."},
+        {"id": "settled", "lo": 600, "hi": null, "phrase": "more than 10 min after engine start", "short": "well after start",
+         "basis": "Heuristic, adjustable."}
+      ]
+    },
+    {
+      "key": "time_of_day", "label": "Time of day", "unit": "", "kind": "time_of_day",
+      "bands": [
+        {"id": "night", "lo": 0, "hi": 6, "phrase": "between midnight and 06:00", "short": "night",
+         "basis": "Heuristic, adjustable. Uses an event's own recorded clock time only; a log's file time is not the time a code set, so it is never used."},
+        {"id": "morning", "lo": 6, "hi": 12, "phrase": "in the morning (06:00 to 12:00)", "short": "morning",
+         "basis": "Heuristic, adjustable."},
+        {"id": "afternoon", "lo": 12, "hi": 18, "phrase": "in the afternoon (12:00 to 18:00)", "short": "afternoon",
+         "basis": "Heuristic, adjustable."},
+        {"id": "evening", "lo": 18, "hi": 24, "phrase": "in the evening (18:00 to midnight)", "short": "evening",
+         "basis": "Heuristic, adjustable."}
+      ]
+    },
+    {
+      "key": "wiggle_near", "label": "Wiggle mark nearby", "unit": "", "kind": "wiggle",
+      "bands": [
+        {"id": "yes", "phrase": "within the wiggle-test window of a recorded wiggle mark", "short": "during a wiggle",
+         "basis": "cuore/services/path_diag.py wiggle window (-5 s to +20 s).",
+         "next_test": "repeat the wiggle test on that hop with a live session running"}
+      ]
+    },
+    {
+      "key": "startups", "label": "Same ignition cycle (startups counter)", "unit": "", "kind": "same_value",
+      "fields": ["^startups counter$", "ignition cycle"],
+      "phrase_template": "in the same ignition cycle (startups counter {value})",
+      "short_template": "same key-on",
+      "basis": "Events that carry an identical startups counter set within one key-on. Exact match, no band.",
+      "next_test": "look at what else set in that one key-on; a supply or ground fault takes several modules at once"
+    },
+    {
+      "key": "wiggle_hop", "label": "Hop being wiggled", "unit": "", "kind": "same_value",
+      "phrase_template": "while hop '{value}' was being wiggled",
+      "short_template": "same wiggled hop",
+      "basis": "Exact match on the hop id the wiggle recorder stored.",
+      "next_test": "that hop is the first place to check; repeat the wiggle with a live session on"
+    },
+    {
+      "key": "gear", "label": "Gear engaged", "unit": "", "kind": "same_value",
+      "fields": ["^gear engaged$", "^current engaged gear$"],
+      "phrase_template": "in gear '{value}'",
+      "short_template": "same gear",
+      "basis": "Exact match on the text the freeze frame stored."
+    },
+    {
+      "key": "brake", "label": "Brake pedal", "unit": "", "kind": "same_value",
+      "fields": ["^brake pedal$", "^brake pedal switch$"],
+      "phrase_template": "with the brake pedal '{value}'",
+      "short_template": "same brake state",
+      "basis": "Exact match on the text the freeze frame stored."
+    },
+    {
+      "key": "stop_start", "label": "Stop&Start status", "unit": "", "kind": "same_value",
+      "fields": ["^stop&start temporary deactivation status$"],
+      "phrase_template": "with Stop&Start status '{value}'",
+      "short_template": "same Stop&Start status",
+      "basis": "Exact match on the text the freeze frame stored."
+    },
+    {
+      "key": "reported_conditions", "label": "Conditions the person reported", "unit": "", "kind": "tags",
+      "phrase_template": "reported as '{value}'",
+      "short_template": "reported condition",
+      "basis": "The condition tags on a symptom report (mes/symptoms.py CONDITIONS): cold_start, hot, just_refuelled, highway, city, idle, rain. Attested by the person, not measured."
+    }
+  ],
+  "hints": [
+    {
+      "about": "Code-specific next tests, used only when the matching condition is the top pattern. The sentence is a pattern in CUORE's records, never a proven cause.",
+      "code_prefix": ["U"], "condition": "battery_v", "band": "low",
+      "next_test": "test the G003A frame ground and the BCM supply under load (bulletin S2008000032, S1808000005)",
+      "source": "cuore/services/dossier_bridge.py FAMILY_STEPS['network']; bulletin S2008000032"
+    },
+    {
+      "code_prefix": ["U"], "condition": "startups",
+      "next_test": "several modules losing contact in one key-on points at the shared supply or ground; test G003A under load (bulletin S2008000032)",
+      "source": "cuore/services/dossier_bridge.py FAMILY_STEPS['network']"
+    },
+    {
+      "code_prefix": ["B1176"], "condition": "battery_v", "band": "low",
+      "next_test": "check the window-riser motor circuit supply (fuses F33/F34) and the door-module ground while operating the window",
+      "source": "cuore/data/components_stelvio_2018.json window_riser_circuit (fuses f33_interior, f34_interior)"
+    }
+  ],
+  "code_symptom_words": {
+    "about": "Free-text symptom reports are matched to a code when the report's text names the code (for example 'B1176-97'). No keyword guessing beyond the code itself.",
+    "enabled": true
+  }
+}

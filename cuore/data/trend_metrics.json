@@ -1,0 +1,179 @@
+{
+  "_about": "Which values CUORE trends across visits, which readings are comparable, and what each is compared against. Read by cuore/services/trends.py. Every number marked 'heuristic, adjustable' is a CUORE rule of thumb, not a Stelvio specification: edit it here. Nothing in this file is a measurement.",
+  "version": 1,
+
+  "defaults": {
+    "min_points": 5,
+    "projection_min_points": 6,
+    "projection_min_span_days": 14,
+    "max_projection_days": 3650,
+    "context_window_s": 180,
+    "engine_rpm_running_min": 400,
+    "engine_voltage_off_max_v": 13.0,
+    "engine_voltage_running_min_v": 13.2,
+    "rest_window_min": 10,
+    "cusum": {
+      "baseline_points": 3,
+      "slack_sd": 0.5,
+      "threshold_sd": 4.0,
+      "note": "Textbook two-sided CUSUM defaults (slack 0.5 sd, decision limit 4 sd). A shift is flagged only if it is also at least the metric's min_change."
+    },
+    "aggregate": "median per calendar day (one point per day with a comparable reading, so a long session cannot outvote a short one)",
+    "untagged_vin_rule": "A stored reading with no VIN is used only when every VIN ever recorded in this state directory is the one being viewed (a single-car workshop). Otherwise it is left out."
+  },
+
+  "quantities": {
+    "rpm": {"unit": "rpm", "context_only": true, "sources": [
+      {"type": "obs_pid", "pid": "0C", "label": "OBD PID 0x0C"},
+      {"type": "snapshot", "channel": "engine_rpm", "label": "live snapshot engine_rpm"},
+      {"type": "snapshot", "channel": "ecm_1000", "label": "live snapshot ecm_1000"}
+    ]},
+    "speed": {"unit": "km/h", "context_only": true, "sources": [
+      {"type": "obs_pid", "pid": "0D", "label": "OBD PID 0x0D"},
+      {"type": "snapshot", "channel": "vehicle_speed", "label": "live snapshot vehicle_speed"},
+      {"type": "snapshot", "channel": "ecm_1002", "label": "live snapshot ecm_1002"}
+    ]},
+    "coolant": {"unit": "C", "context_only": true, "sources": [
+      {"type": "obs_pid", "pid": "05", "label": "OBD PID 0x05"},
+      {"type": "snapshot", "channel": "engine_coolant_temp", "label": "live snapshot engine_coolant_temp"}
+    ]},
+    "oil_temp": {"unit": "C", "context_only": true, "sources": [
+      {"type": "obs_did", "ecu": "ECM", "did": "1302", "label": "ECM DID 0x1302"},
+      {"type": "snapshot", "channel": "ecm_1302", "label": "live snapshot ecm_1302"}
+    ]},
+
+    "battery_v": {"unit": "V", "sources": [
+      {"type": "obs_did", "ecu": "BCM", "did": "1004", "label": "BCM DID 0x1004"},
+      {"type": "obs_did", "ecu": "ECM", "did": "1955", "label": "ECM DID 0x1955"},
+      {"type": "obs_pid", "pid": "42", "label": "OBD PID 0x42 (control module voltage)"},
+      {"type": "obs_probe_voltage", "label": "adapter ATRV at probe"},
+      {"type": "snapshot", "channel": "battery_voltage", "label": "live snapshot battery_voltage"},
+      {"type": "snapshot", "channel": "bcm_1004", "label": "live snapshot bcm_1004"},
+      {"type": "mes_param", "name": "Battery voltage", "label": "MES log 'Battery voltage'"},
+      {"type": "recording_load_step", "channel": "battery_voltage", "label": "load-step recording baseline"}
+    ]},
+    "ibs_soc": {"unit": "%", "sources": [
+      {"type": "obs_did", "ecu": "ECM", "did": "19BD", "label": "ECM DID 0x19BD"},
+      {"type": "snapshot", "channel": "ecm_19bd", "label": "live snapshot ecm_19bd"},
+      {"type": "mes_param", "name": "IBS Battery charge status", "label": "MES log 'IBS Battery charge status'"}
+    ]},
+    "ltft": {"unit": "%", "plausibility_unit": "trim", "sources": [
+      {"type": "obs_pid", "pid": "07", "label": "OBD PID 0x07"},
+      {"type": "snapshot", "channel": "long_fuel_trim_b1", "label": "live snapshot long_fuel_trim_b1"}
+    ]},
+    "stft": {"unit": "%", "plausibility_unit": "trim", "sources": [
+      {"type": "obs_pid", "pid": "06", "label": "OBD PID 0x06"},
+      {"type": "snapshot", "channel": "short_fuel_trim_b1", "label": "live snapshot short_fuel_trim_b1"}
+    ]},
+    "oil_level_l": {"unit": "L", "sources": [
+      {"type": "obs_did", "ecu": "ECM", "did": "3A41", "label": "ECM DID 0x3A41"},
+      {"type": "snapshot", "channel": "ecm_3a41", "label": "live snapshot ecm_3a41"}
+    ]},
+    "warmup_min": {"unit": "min", "sources": [
+      {"type": "recording_warmup", "channel": "engine_coolant_temp", "cold_max_c": 40, "target_c": 80,
+       "label": "CUORE recording, coolant warm-up"}
+    ]}
+  },
+
+  "metrics": [
+    {
+      "id": "batt_rest_v",
+      "label": "Battery voltage at rest",
+      "quantity": "battery_v",
+      "unit": "V", "decimals": 2,
+      "why": "A battery that rests lower each visit is losing capacity or something draws current when the car is off.",
+      "condition": {"engine": "off", "quiet_hours": 2},
+      "condition_text": "Engine not running (RPM 0, or voltage 13.0 V or lower) and no CUORE or MES activity for 2 hours before the reading, taken in the first 10 minutes of the visit. 'Quiet' is a proxy: the car may have been driven in between without CUORE connected.",
+      "limit": {"lo": 12.0, "kind": "heuristic", "text": "12.0 V at rest (heuristic, adjustable; a rule of thumb, not a Stelvio specification)"},
+      "min_change": 0.2, "noise_floor": 0.1
+    },
+    {
+      "id": "batt_keyon_v",
+      "label": "Battery voltage, key on, engine off",
+      "quantity": "battery_v",
+      "unit": "V", "decimals": 2,
+      "why": "Key-on voltage under the car's own loads drops sooner than resting voltage when the battery weakens.",
+      "condition": {"engine": "off", "not_rest": true},
+      "condition_text": "Engine not running (RPM 0, or voltage 13.0 V or lower) and not a rested reading. Loads vary between visits, so this is a coarse trend.",
+      "limit": {"lo": 11.5, "kind": "cuore", "text": "11.5 V, the lower end of CUORE's own battery gauge range (cuore/live/layouts.py)"},
+      "min_change": 0.3, "noise_floor": 0.15
+    },
+    {
+      "id": "batt_run_v",
+      "label": "Charging voltage, engine running",
+      "quantity": "battery_v",
+      "unit": "V", "decimals": 2,
+      "why": "A falling charging voltage points at the alternator, its regulator, or the wiring before the battery warning light does.",
+      "condition": {"engine": "running"},
+      "condition_text": "Engine running: RPM of 400 or more, or (when no RPM was recorded) voltage of 13.2 V or more. Readings that rely on the voltage alone cannot show a charging voltage that has already fallen below 13.2 V, so a failing alternator can hide from them; RPM-backed readings do not have this gap.",
+      "limit": {"lo": 13.2, "kind": "heuristic", "text": "13.2 V while running (heuristic, adjustable; a rule of thumb, not a Stelvio specification)"},
+      "min_change": 0.3, "noise_floor": 0.1
+    },
+    {
+      "id": "ibs_soc_pct",
+      "label": "Battery state of charge (IBS)",
+      "quantity": "ibs_soc",
+      "unit": "%", "decimals": 0,
+      "why": "The battery sensor's own charge estimate; a state of charge that settles lower each visit means the battery is not being refilled.",
+      "condition": {"engine": "off"},
+      "condition_text": "Engine not running (RPM 0, or voltage 13.0 V or lower in the same reading window).",
+      "limit": {"lo": 60, "kind": "heuristic", "text": "60 % (heuristic, adjustable; a rule of thumb, not a Stelvio specification)"},
+      "min_change": 5, "noise_floor": 2
+    },
+    {
+      "id": "ltft_idle_pct",
+      "label": "Long-term fuel trim at warm idle",
+      "quantity": "ltft",
+      "unit": "%", "decimals": 1,
+      "why": "A long-term trim creeping away from zero is the engine compensating for a slow air or fuel problem, usually long before a trim code sets.",
+      "condition": {"rpm_min": 400, "rpm_max": 1100, "speed_max": 0.5, "coolant_min": 80},
+      "condition_text": "Idle and warm: RPM 400 to 1100, speed 0, coolant 80 C or more, all recorded in the same reading window.",
+      "limit": {"lo": -15, "hi": 15, "kind": "heuristic", "text": "plus or minus 15 % (heuristic, adjustable; not the ECM's own set-code threshold, which CUORE does not know)"},
+      "min_change": 2, "noise_floor": 1
+    },
+    {
+      "id": "stft_idle_pct",
+      "label": "Short-term fuel trim at warm idle",
+      "quantity": "stft",
+      "unit": "%", "decimals": 1,
+      "why": "Short-term trim moves fast, so only its daily median is trended; a persistent offset at idle suggests a leak or a weak sensor.",
+      "condition": {"rpm_min": 400, "rpm_max": 1100, "speed_max": 0.5, "coolant_min": 80},
+      "condition_text": "Idle and warm: RPM 400 to 1100, speed 0, coolant 80 C or more, all recorded in the same reading window.",
+      "limit": {"lo": -10, "hi": 10, "kind": "heuristic", "text": "plus or minus 10 % (heuristic, adjustable)"},
+      "min_change": 2, "noise_floor": 1
+    },
+    {
+      "id": "oil_level_l",
+      "label": "Engine oil level (sensor DID 0x3A41)",
+      "quantity": "oil_level_l",
+      "unit": "L", "decimals": 2,
+      "why": "Oil level falling between visits is consumption or a leak; this is the car's own sensor, not a dipstick.",
+      "condition": {"engine": "off", "oil_temp_max": 60},
+      "condition_text": "Engine not running and oil temperature 60 C or lower in the same reading window (a hot, just-stopped engine reads low: 4.17 L hot against 5.31 L cool was seen on this car).",
+      "limit": {"kind": "oil_min_mark", "text": "dipstick MIN mark = capacity minus the dipstick MIN-to-MAX volume (heuristic, adjustable; that volume is an unmeasured assumption in mes/oil_level.py, and the sensor-to-litres scale is unverified)"},
+      "min_change": 0.15, "noise_floor": 0.05
+    },
+    {
+      "id": "warmup_min",
+      "label": "Time for coolant to warm from cold to 80 C",
+      "quantity": "warmup_min",
+      "unit": "min", "decimals": 1,
+      "why": "A warm-up that takes longer each cold start can mean a thermostat stuck open; this is drift only, there is no limit.",
+      "condition": {},
+      "condition_text": "A CUORE recording that starts with coolant at or below 40 C and reaches 80 C.",
+      "limit": {"kind": "none", "text": "no limit defined: drift only"},
+      "min_change": 2, "noise_floor": 0.5
+    }
+  ],
+
+  "mode06": {
+    "enabled": true,
+    "mids": ["3A", "3B", "3C", "3D", "A1", "A2", "A3", "A4", "A5"],
+    "mid_note": "3A-3D are the EVAP leak monitors (3A and 3C answer on this car); A1-A5 are misfire counters. Only MIDs the ECM actually answered appear.",
+    "limit_source": "The test's own Mode 06 minimum and maximum from the latest stored reply. A bound of 0 for the minimum or 65535 for the maximum is the 'no limit' placeholder and is ignored.",
+    "no_limit_sentinels": {"min": [0], "max": [65535]},
+    "require_known_scaling": true,
+    "min_change_fraction_of_range": 0.05,
+    "decimals": 0
+  }
+}

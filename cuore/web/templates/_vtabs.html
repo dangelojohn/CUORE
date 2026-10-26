@@ -35,7 +35,8 @@
 {% set _visible = ("bench", "job", "codes", "liveboard", "tests", "systems", "sensors", "fuses", "report", "mobile") %}
 {% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "parts", "media",
                  "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard", "scans",
-                 "scan", "mods", "tsb", "harnesses", "recordings", "procedures") %}
+                 "scan", "mods", "tsb", "harnesses", "recordings", "procedures",
+                 "diagnosis", "crosschecks", "intermittent", "trends", "power-budget") %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
 {% set _flow_key = (flow.steps|selectattr("n", "equalto", flow.current)|map(attribute="key")|first)
                     if flow and flow.steps else none %}
@@ -85,6 +86,13 @@
       {{ vtab("mods", "/v/" + bar.vin + "/mods", _lbl("mods", "Modifications")) }}
       {{ vtab("media", "/v/" + bar.vin + "/media", _lbl("media", "Media")) }}
       {{ vtab("service-hub", "/v/" + bar.vin + "/service-hub", _lbl("service", "Service")) }}
+      {# Diagnose group: five pages added 2026-10-26 (routes land separately;
+         until then these hrefs 404, nothing else breaks). #}
+      {{ vtab("diagnosis", "/v/" + bar.vin + "/diagnosis", _lbl("diagnosis", "Diagnosis")) }}
+      {{ vtab("crosschecks", "/v/" + bar.vin + "/crosschecks", _lbl("crosschecks", "Cross-checks")) }}
+      {{ vtab("intermittent", "/v/" + bar.vin + "/intermittent", _lbl("intermittent", "Intermittent")) }}
+      {{ vtab("trends", "/v/" + bar.vin + "/trends", _lbl("trends", "Trends")) }}
+      {{ vtab("power-budget", "/v/" + bar.vin + "/power-budget", _lbl("power_budget", "Power and ground")) }}
       {{ vtab("tree", "/v/" + bar.vin + "/tree", _lbl("fault_tree", "Fault tree")) }}
       {{ vtab("gate", "/v/" + bar.vin + "/gate", _lbl("evidence_gate", "Evidence gate")) }}
       {{ vtab("inbox", "/v/" + bar.vin + "/inbox", _lbl("inbox", "Inbox"), (' <span class="chip chronic">' + _fb_open|string + '</span>') if _fb_open else "") }}

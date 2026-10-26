@@ -48,6 +48,11 @@ from .web import harness_routes  # noqa: E402
 from .web import mes_param_routes  # noqa: E402
 from .web import path_diag_routes  # noqa: E402
 from .web import path_tests_routes  # noqa: E402
+from .web import diagnosis_routes  # noqa: E402
+from .web import crosscheck_routes  # noqa: E402
+from .web import intermittent_routes  # noqa: E402
+from .web import power_budget_routes  # noqa: E402
+from .web import trends_routes  # noqa: E402
 from .web import load_step_routes  # noqa: E402
 from .web import purge_trim_routes  # noqa: E402
 from .web import fullscan_routes  # noqa: E402
@@ -250,6 +255,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(path_diag_routes.router)
     app.include_router(harness_routes.router)
     app.include_router(path_tests_routes.router)
+    app.include_router(diagnosis_routes.router)
+    app.include_router(crosscheck_routes.router)
+    app.include_router(intermittent_routes.router)
+    app.include_router(power_budget_routes.router)
+    app.include_router(trends_routes.router)
     app.include_router(load_step_routes.router)
     app.include_router(purge_trim_routes.router)
     app.include_router(modules_routes.router)

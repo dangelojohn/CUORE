@@ -17,8 +17,13 @@ encoding was actually used so callers can surface it.
 
 from __future__ import annotations
 
+import os
+import re
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, Callable
 
 #: BOM prefixes, longest first so utf-32 is tested before utf-16.
 _BOMS: tuple[tuple[bytes, str], ...] = (
@@ -38,6 +43,56 @@ _FALLBACKS: tuple[str, ...] = ("utf-8", "cp1252", "latin-1")
 #: Control characters that are legitimate in a text log. Everything else in
 #: the C0 range is stray binary.
 _ALLOWED_CONTROL = {"\t", "\n", "\r"}
+
+#: Every C0 control character except tab, LF and CR (precompiled: the old
+#: per-character generator cost seconds per cold report).
+_CONTROL_RE = re.compile("[" + "".join(
+    re.escape(chr(i)) for i in range(32) if chr(i) not in _ALLOWED_CONTROL) + "]")
+
+
+def memoize_by_file(maxsize: int = 1024) -> Callable:
+    """Decorator: memoise ``fn(path, *, timestamp="")`` on the file's identity.
+
+    Key is (path as given, mtime_ns, size, timestamp), so an edited or replaced
+    log is re-parsed. Bounded LRU, thread-safe (parse runs outside the lock; a
+    race costs a duplicate parse, never a wrong result). A path that cannot be
+    stat'ed bypasses the cache so the original error surfaces. The cached
+    object is shared: callers must treat it as read-only (audited).
+    """
+    def deco(fn: Callable[..., Any]) -> Callable[..., Any]:
+        cache: OrderedDict = OrderedDict()
+        lock = threading.Lock()
+
+        def wrapper(path, *, timestamp: str = ""):
+            try:
+                st = os.stat(path)
+                key = (str(path), st.st_mtime_ns, st.st_size, timestamp)
+            except (OSError, TypeError, ValueError):
+                return fn(path, timestamp=timestamp)
+            with lock:
+                hit = cache.get(key)
+                if hit is not None:
+                    cache.move_to_end(key)
+                    return hit
+            result = fn(path, timestamp=timestamp)
+            with lock:
+                cache[key] = result
+                cache.move_to_end(key)
+                while len(cache) > maxsize:
+                    cache.popitem(last=False)
+            return result
+
+        def cache_clear() -> None:
+            with lock:
+                cache.clear()
+
+        wrapper.__wrapped__ = fn
+        wrapper.__doc__ = fn.__doc__
+        wrapper.__name__ = fn.__name__
+        wrapper.cache_clear = cache_clear
+        wrapper.cache_len = lambda: len(cache)
+        return wrapper
+    return deco
 
 
 @dataclass(frozen=True)
@@ -82,16 +137,10 @@ def strip_control(text: str) -> tuple[str, int]:
     wrong codec corrupts meaning, whereas these bytes are debris that would
     otherwise break line matching in the middle of an identifier field.
     """
-    if not any(ord(c) < 32 and c not in _ALLOWED_CONTROL for c in text):
+    cleaned, removed = _CONTROL_RE.subn("", text)
+    if not removed:
         return text, 0
-    kept = []
-    removed = 0
-    for c in text:
-        if ord(c) < 32 and c not in _ALLOWED_CONTROL:
-            removed += 1
-            continue
-        kept.append(c)
-    return "".join(kept), removed
+    return cleaned, removed
 
 
 def decode_bytes(data: bytes, *, truncated: bool = False) -> DecodedText:

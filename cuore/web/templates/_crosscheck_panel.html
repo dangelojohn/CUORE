@@ -1,0 +1,88 @@
+{# Sensor cross-checks panel. Embeddable.
+   Needs in context:  cc  = cuore.services.sensor_crosscheck.panel(vin[, recording, soaked_h])
+                      vin = the VIN (for the link to the full page)
+   Self-contained: carries its own small <style> (only --fs-* type tokens, 44 px targets, light/dark via the
+   shared colour tokens), needs no JavaScript. Status is always a mark + a word; colour is only a second cue. #}
+<style>
+.cc-panel { max-width: 820px; font-size: var(--fs-md); }
+.cc-call { font-size: var(--fs-lg); font-weight: 600; margin: 4px 0 8px; border-left: 6px solid var(--ink-3); padding: 6px 12px; background: var(--surface-2); }
+.cc-call.cc-tone-bad { border-left-color: var(--sev-returned, #e8565c); }
+.cc-call.cc-tone-warn { border-left-color: var(--fam-body, #d98a3c); }
+.cc-call.cc-tone-ok { border-left-color: var(--ok); }
+.cc-meta { color: var(--ink-2); margin: 0 0 8px; }
+.cc-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.cc-item { background: var(--surface-2); border: 1px solid var(--rule); border-left: 6px solid var(--cc-c, var(--ink-3)); border-radius: var(--radius, 3px); }
+.cc-item.cc-agree { --cc-c: var(--ok); }
+.cc-item.cc-disagree { --cc-c: var(--sev-returned, #e8565c); }
+.cc-item.cc-unconfirmed { --cc-c: var(--fam-body, #d98a3c); border-left-style: double; }
+.cc-item.cc-notmet, .cc-item.cc-notrec { --cc-c: var(--ink-3); border-left-style: dashed; }
+.cc-item > summary { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: center; min-height: var(--tap, 44px); padding: 6px 12px; cursor: pointer; list-style: none; font-size: var(--fs-md); }
+.cc-item > summary::-webkit-details-marker { display: none; }
+.cc-badge { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 2px solid var(--cc-c, var(--ink-3)); border-radius: 999px; font-weight: 700; font-size: var(--fs-md); white-space: normal; }
+.cc-title { font-weight: 600; }
+.cc-line { flex-basis: 100%; color: var(--ink-2); }
+.cc-body { padding: 4px 12px 12px; border-top: 1px solid var(--rule-soft, var(--rule)); }
+.cc-body dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+.cc-body dt { font-weight: 600; color: var(--ink-2); }
+.cc-body dd { margin: 0; overflow-wrap: anywhere; }
+.cc-body p { margin: 6px 0; }
+.cc-sub { font-size: var(--fs-md); margin: 16px 0 6px; }
+.cc-needs { padding-left: 20px; margin: 0 0 8px; }
+.cc-needs li { margin: 0 0 8px; }
+.cc-full { display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 0 8px; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 520px) { .cc-body dl { grid-template-columns: 1fr; } }
+</style>
+{% macro cc_val(s, r) -%}
+{%- if s.value is none -%}<b>not recorded</b>{%- else -%}<b>{{ s.value|round(2) }} {{ r.unit }}</b>{% if s.converted %} (read as {{ s.raw_value|round(2) }} {{ s.unit }}){% endif %}{%- endif -%}
+{%- endmacro %}
+<section class="cc-panel" id="cc-panel" aria-label="Sensor cross-checks">
+  <p class="cc-call cc-tone-{{ cc.tone|default('warn') }}" id="cc-call" role="status">{{ cc.call }}</p>
+  <p class="cc-meta">
+    {% if cc.recording_info is defined and cc.recording_info %}Recording {{ cc.recording_info.id }}{% if cc.recording_info.label %} ({{ cc.recording_info.label }}){% endif %}, {{ cc.recording_info.rows }} rows, every row judged on its own.
+    {% else %}Newest moment at which each check could be read{% if cc.live_used %}, including the running live session{% endif %}.{% endif %}
+    Two values count as the same moment when they were read within the check's time limit (default {{ cc.default_max_skew_s|round|int }} s).
+    {% if cc.soaked_h is not none %}Cold soak stated by you: {{ cc.soaked_h|round(1) }} h.{% endif %}
+    <a class="cc-full" href="/v/{{ vin }}/crosschecks{% if cc.recording %}?recording={{ cc.recording }}{% endif %}">Open all checks</a>
+  </p>
+  {% if cc.error %}<p class="cc-call cc-tone-warn" role="alert">{{ cc.error }}</p>{% endif %}
+  {% if cc.counts and cc.counts.total %}
+  <p class="cc-meta">{{ cc.counts['DISAGREE'] }} disagree, {{ cc.counts['UNCONFIRMED DECODING'] }} unconfirmed decoding, {{ cc.counts['AGREE'] }} agree, {{ cc.counts['CONDITION NOT MET'] }} condition not met, {{ cc.counts['NOT RECORDED'] }} not recorded.</p>
+  {% endif %}
+  <ul class="cc-list">
+  {% for r in cc.results %}
+    <li><details class="cc-item cc-{{ r.css }}"{% if r.status == 'DISAGREE' or (r.status == 'UNCONFIRMED DECODING' and r.would_be == 'DISAGREE') %} open{% endif %}>
+      <summary>
+        <span class="cc-badge"><span aria-hidden="true">{{ r.mark }}</span> {{ r.status }}{% if r.status == 'UNCONFIRMED DECODING' and r.would_be %} (values {{ 'agree' if r.would_be == 'AGREE' else 'disagree' }}){% endif %}</span>
+        <span class="cc-title">{{ r.title }}</span>
+        {% if r.status in ('AGREE', 'DISAGREE', 'UNCONFIRMED DECODING') %}
+        <span class="cc-line">{{ r.a.label }} {{ cc_val(r.a, r) }} vs {{ r.b.label }} {{ cc_val(r.b, r) }}: differ by {{ r.diff|round(2) }} {{ r.unit }}, allowed {{ r.tolerance.text }}.</span>
+        {% else %}
+        <span class="cc-line">{{ r.reason }}</span>
+        {% endif %}
+      </summary>
+      <div class="cc-body">
+        {% if r.suspects and r.status in ('DISAGREE', 'UNCONFIRMED DECODING') and r.would_be != 'AGREE' %}<p><b>{{ r.suspects }}.</b></p>{% endif %}
+        {% if r.reason and r.status in ('AGREE', 'DISAGREE', 'UNCONFIRMED DECODING') %}<p>{{ r.reason }}</p>{% endif %}
+        <dl>
+          {% for s in r.sides %}
+          <dt>{{ s.label }}</dt>
+          <dd>{{ cc_val(s, r) }}{% if s.at %}, read {{ s.at }} ({{ s.source }}){% endif %}.
+            {% if s.confirmed %}Decoding confirmed.{% else %}Decoding NOT confirmed{% if s.note %}: {{ s.note }}{% endif %}.{% endif %}</dd>
+          {% endfor %}
+          <dt>Condition</dt><dd>{{ r.condition_text }}</dd>
+          <dt>Tolerance</dt><dd>{{ r.tolerance.text }}. Source of the number: {{ r.tolerance.basis }}</dd>
+          <dt>Why they must agree</dt><dd>{{ r.basis }}</dd>
+          <dt>Time limit</dt><dd>{{ r.max_skew_s|round|int }} s between readings{% if r.skew_s is not none %}; these were {{ r.skew_s }} s apart{% endif %}.{% if r.at %} Moment: {{ r.at }} ({{ r.age_text }}).{% endif %}</dd>
+          {% if r.rows %}<dt>Recording rows</dt><dd>{{ r.rows.evaluated }} judged of {{ r.rows.rows }}: {{ r.rows.agree }} agree, {{ r.rows.disagree }} disagree, {{ r.rows.unconfirmed }} unconfirmed, {{ r.rows.condition_not_met }} condition not met, {{ r.rows.not_recorded }} not recorded.</dd>{% endif %}
+        </dl>
+      </div>
+    </details></li>
+  {% endfor %}
+  </ul>
+  {% if cc.needs %}
+  <h3 class="cc-sub">Checks that cannot run yet</h3>
+  <ul class="cc-needs">
+    {% for n in cc.needs %}<li><b>{{ n.title }}</b> &mdash; needs {{ n.needs }}. {{ n.why }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+</section>

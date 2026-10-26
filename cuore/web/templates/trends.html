@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Trends across visits — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<h1>Trends across visits</h1>
+<p class="lede" style="font-size:var(--fs-md)">Watches values across days and weeks, not inside one session, and flags a
+value moving toward its limit before a code sets. Only readings taken under the same condition are compared, one
+point per day, one instrument at a time. Readings that are invalid or suspect are left out and listed with the reason.
+Nothing here is read from the car now: it all comes from what CUORE and MultiEcuScan already stored.</p>
+
+{% set trends_full = true %}
+{% include "_trends_panel.html" %}
+
+<section class="panel" aria-labelledby="tr-method">
+  <h2 id="tr-method" style="margin:0 0 8px">Method</h2>
+  <ul class="tr-list">
+    <li><strong>One point per day.</strong> {{ trends.method.aggregate }}.</li>
+    <li><strong>Slope.</strong> {{ trends.method.slope }}.</li>
+    <li><strong>Drift flag.</strong> {{ trends.method.drift_flag }}.</li>
+    <li><strong>Shift flag.</strong> {{ trends.method.shift_flag }}.</li>
+    <li><strong>Projection.</strong> {{ trends.method.projection }}.</li>
+    <li><strong>Readings with no VIN.</strong> {{ trends.method.untagged_vin_rule }}</li>
+    <li><strong>Limits.</strong> A limit marked heuristic is a CUORE rule of thumb, editable in
+      <span class="tr-num">cuore/data/trend_metrics.json</span>; it is not a Stelvio specification. A Mode 06 limit is the
+      ECM's own, taken from the latest stored reply.</li>
+    <li><strong>Sources.</strong> {{ trends.sources_note }}</li>
+  </ul>
+  <p class="tr-muted">Computed {{ trends.generated_at }}. JSON: <a class="tr-link" href="/api/vehicles/{{ vin }}/trends">/api/vehicles/{{ vin }}/trends</a></p>
+</section>
+{% endblock %}

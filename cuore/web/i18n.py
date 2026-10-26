@@ -308,6 +308,12 @@ STRINGS: dict[str, dict[str, str]] = {
     "service": {"en": "Service", "it": "Assistenza"},
     "labels": {"en": "Labels", "it": "Etichette"},
     "more": {"en": "More", "it": "Altro"},
+    # -- Diagnose pages (nav labels) --
+    "diagnosis": {"en": "Diagnosis", "it": "Diagnosi"},
+    "crosschecks": {"en": "Cross-checks", "it": "Controlli incrociati"},
+    "intermittent": {"en": "Intermittent", "it": "Intermittenti"},
+    "trends": {"en": "Trends", "it": "Tendenze"},
+    "power_budget": {"en": "Power and ground", "it": "Alimentazione e massa"},
     "more_vehicle_tabs": {"en": "More vehicle tabs", "it": "Altre schede veicolo"},
     "more_vehicle_details": {"en": "More vehicle details", "it": "Altri dettagli veicolo"},
     "full_vin": {"en": "Full VIN", "it": "VIN completo"},

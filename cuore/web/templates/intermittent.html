@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Intermittent faults &mdash; {{ (vehicle_display_name(vin) if vehicle_display_name is defined else none) or bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('intermittent.css') }}">
+<div class="im-page">
+  <h1>Intermittent faults</h1>
+  <p class="lede">Every recorded occasion a code set (or a symptom happened), lined up against the conditions at that moment.
+    Counts of CUORE's own records only; a shared condition is a pattern to test, not a proven cause.</p>
+
+  {% if mode == "overview" %}
+    {% if ov.rows %}
+    <ul class="im-ovl">
+      {% for r in ov.rows %}
+      <li>
+        <a class="im-key" href="/v/{{ vin }}/intermittent/{{ r.key }}">{{ r.key }}</a>
+        <span class="im-tag {{ 'most' if r.n_lines else 'some' }}">{{ 'pattern found' if r.n_lines else ('too few events' if not r.enough else 'no shared condition') }}</span>
+        <span class="im-src">{{ r.n_events }} event(s){% if r.description %} &mdash; {{ r.description }}{% endif %}</span>
+        <div>{{ r.hint or r.headline }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No code or symptom has a recorded event on this car yet.</p>
+    {% endif %}
+    <p class="im-src">{{ ov.note }}</p>
+  {% else %}
+    <p><a class="btn im-link" href="/v/{{ vin }}/intermittent">All codes</a>
+       {% if im.subject.kind == 'code' %}<a class="btn im-link" href="/v/{{ vin }}/code/{{ im.subject.key }}">{{ im.subject.key }} code page</a>{% endif %}
+       <a class="btn im-link" href="/api/vehicles/{{ vin }}/intermittent/{{ im.subject.key }}">JSON</a></p>
+    {% set im_full = true %}
+    {% include "_intermittent_panel.html" %}
+  {% endif %}
+</div>
+{% endblock %}

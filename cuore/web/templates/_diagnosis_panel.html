@@ -1,0 +1,130 @@
+{# Diagnosis panel: shared causes + ranked suspects + best next test.
+   Embed with:  {% set dx = diagnosis_for(vin) %}{% include "_diagnosis_panel.html" %}
+   Needs: dx (diagnosis_for(vin), registered by cuore/web/diagnosis_routes.py), vin.
+   Optional: dx_full (true on /v/{vin}/diagnosis) also shows the scoring table.
+   No JavaScript; text uses only --fs-md and larger. #}
+{% set cc = dx.common_cause %}
+<link rel="stylesheet" href="{{ static_url('diagnosis.css') }}">
+<section class="dx" id="diagnosis" aria-labelledby="dx-call-h">
+  <h2 class="dx-h" id="dx-call-h">Call</h2>
+  {% if dx.error %}
+    <p class="dx-warn"><b class="dx-tag">Not available</b> The diagnosis could not be computed: {{ dx.error }}</p>
+  {% else %}
+  <p class="dx-call">{{ dx.call }}</p>
+
+  {% if dx.next_test %}
+  {% set nt = dx.next_test %}
+  <div class="dx-next">
+    <b class="dx-tag">Next test</b>
+    {% if nt.href %}<a class="dx-link" href="{{ nt.href }}">{{ nt.name }}</a>{% else %}<b>{{ nt.name }}</b>{% endif %}
+    <span class="dx-effort">{{ nt.effort }}{% if nt.read_only %} &middot; read-only{% endif %}</span>
+    <p class="dx-why">Why: {{ nt.why }}</p>
+    <details class="dx-fold">
+      <summary>What a pass or a fail means</summary>
+      <p><b>A pass clears:</b> {% for t in nt.if_pass_rules_out %}{{ t }}{% if not loop.last %}; {% endif %}{% else %}nothing{% endfor %}.</p>
+      <p><b>A fail makes these less likely:</b> {% for t in nt.if_fail_rules_out %}{{ t }}{% if not loop.last %}; {% endif %}{% else %}nothing{% endfor %}.</p>
+      {% if nt.alternatives %}<p><b>Other candidates:</b> {% for a in nt.alternatives %}{{ a.name }}{% if a.minutes is not none %} ({{ a.minutes }} min){% else %} (effort unknown){% endif %}{% if not loop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
+    </details>
+  </div>
+  {% endif %}
+
+  <h2 class="dx-h">Ranked suspects</h2>
+  {% if dx.suspects %}
+  <p class="dx-sub">Band = points from real evidence (heuristic, adjustable weights). Open a suspect to see every reason and its source.</p>
+  <ol class="dx-list">
+    {% for s in dx.suspects %}
+    <li>
+      <details class="dx-item">
+        <summary>
+          <span class="dx-rank">{{ s.rank }}</span>
+          <span class="dx-band dx-band-{{ s.band|lower }}">{{ '&#9650;'|safe if s.band == 'High' else ('&#9670;'|safe if s.band == 'Medium' else '&#9661;'|safe) }} {{ s.band }}</span>
+          <span class="dx-title">{{ s.title }}</span>
+          <span class="dx-kind">{{ {'hypothesis': 'job hypothesis', 'shared_cause': 'shared cause', 'bulletin': 'bulletin'}[s.kind] }}</span>
+        </summary>
+        {% if s.reasons %}
+        <ul class="dx-reasons">
+          {% for r in s.reasons %}
+          <li>
+            <b class="dx-pts dx-{{ 'plus' if r.points >= 0 else 'minus' }}">{{ '+' if r.points >= 0 else '&minus;'|safe }}{{ '%.1f'|format(r.points|abs) }}</b>
+            <span class="dx-src">{{ {'tsb': 'TSB', 'case': 'Prior case', 'job': 'Job', 'common_cause': 'Shared cause', 'inspection': 'Inspection', 'fuse_health': 'Fuse health'}.get(r.source, r.source) }} {{ r.source_id }}</span>
+            {% if r.href %}<a class="dx-link" href="{{ r.href }}">{{ r.text }}</a>{% else %}{{ r.text }}{% endif %}
+            {% if r.rationale %}<span class="dx-rat"> Weight: {{ r.rationale }}</span>{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="dx-none">No evidence on record for this suspect, so it stays Low. This is not evidence against it.</p>
+        {% endif %}
+        {% if s.next_test %}<p class="dx-nt"><b>Job's next test:</b> {{ s.next_test[:300] }}{% if s.next_test|length > 300 %}...{% endif %}</p>{% endif %}
+        {% if s.href %}<p><a class="dx-link" href="{{ s.href }}">Open</a></p>{% endif %}
+      </details>
+    </li>
+    {% endfor %}
+  </ol>
+  {% else %}
+  <p class="dx-none">No suspects yet: there is no open job hypothesis, shared cause or applicable bulletin for this car's current codes.</p>
+  {% endif %}
+
+  <h2 class="dx-h">Shared causes</h2>
+  <p class="dx-sub">{{ cc.n_faults }} current fault{{ '' if cc.n_faults == 1 else 's' }} (active or recent codes, open symptoms, failed tests); {{ cc.n_covered }} with dependency data.
+    {% if cc.sets_found %}{{ cc.sets_found }} minimal set{{ '' if cc.sets_found == 1 else 's' }} of up to 3 causes explain all {{ cc.n_covered }}.{% elif cc.n_covered %}No set of up to 3 causes explains every covered fault.{% endif %}</p>
+
+  {% for group_title, group in [('Explains every covered fault', cc.sets), ('Explains some faults (single causes)', cc.partial)] %}
+  {% if group %}
+  <h3 class="dx-h3">{{ group_title }}</h3>
+  <ol class="dx-list">
+    {% for s in group %}
+    <li>
+      <details class="dx-item">
+        <summary>
+          <span class="dx-rank">{{ loop.index }}</span>
+          <span class="dx-band dx-band-{{ 'high' if s.explains_n == s.of_n else 'low' }}">{{ 'All' if s.explains_n == s.of_n else 'Part' }} {{ s.explains_n }}/{{ s.of_n }}</span>
+          <span class="dx-title">{% for m in s.members %}{{ m.label }}{% if not loop.last %} + {% endif %}{% endfor %}</span>
+          <span class="dx-kind">{{ s.size }} cause{{ '' if s.size == 1 else 's' }}{% if s.level == 'system' %} &middot; system-level only{% endif %}</span>
+        </summary>
+        {% for p in s.paths %}
+        <div class="dx-path">
+          <p class="dx-pathh"><b>{{ p.cause }}</b> &mdash; explains {{ p.explains_n }} fault{{ '' if p.explains_n == 1 else 's' }}.
+            {% if p.equivalent|length > 1 %}<span class="dx-rat">These cannot be told apart by the faults alone: {% for e in p.equivalent %}{{ e.label }}{% if not loop.last %}, {% endif %}{% endfor %}.</span>{% endif %}</p>
+          {% for g in p.groups %}
+          <p class="dx-faults">
+            {% for f in g.faults %}{% if f.href %}<a class="dx-link" href="{{ f.href }}">{{ f.label.split(' ')[0] if f.kind == 'code' else f.label }}</a>{% else %}{{ f.label }}{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
+          </p>
+          <ol class="dx-chain" aria-label="Dependency path">
+            {% for h in g.chain %}
+            <li class="{{ 'dx-hit' if h.hit }}">{{ h.label }}{% if h.role %} <span class="dx-rat">({{ h.role }})</span>{% endif %}{% if h.hit %} <b class="dx-tag">candidate</b>{% endif %}{% if h.why and h.hit %}<br><span class="dx-rat">{{ h.why }}</span>{% endif %}</li>
+            {% endfor %}
+          </ol>
+          {% endfor %}
+        </div>
+        {% endfor %}
+        {% if s.does_not_explain %}
+        <p class="dx-miss"><b>Does not explain:</b> {% for f in s.does_not_explain %}{{ f.label.split(' ')[0] if f.kind == 'code' else f.label }}{% if not loop.last %}, {% endif %}{% endfor %}.</p>
+        {% endif %}
+      </details>
+    </li>
+    {% endfor %}
+  </ol>
+  {% endif %}
+  {% endfor %}
+
+  {% if cc.uncovered %}
+  <h3 class="dx-h3">Not covered</h3>
+  <p class="dx-sub">These faults have no dependency data in CUORE, so no shared cause can include or exclude them. They are not counted as explained.</p>
+  <ul class="dx-reasons">
+    {% for f in cc.uncovered %}<li><b class="dx-tag">Not covered</b> {{ f.label }}</li>{% endfor %}
+  </ul>
+  {% endif %}
+
+  {% if dx_full %}
+  <h2 class="dx-h">How this is scored</h2>
+  <details class="dx-fold">
+    <summary>Weights table (heuristic, adjustable)</summary>
+    <p class="dx-sub">{{ dx.table_note }} Edit <code>cuore/data/diagnosis_weights.json</code>; the next page load uses it.</p>
+    <ul class="dx-reasons">
+      {% for w in dx.weights %}<li><b>{{ w.section }}.{{ w.name }} = {{ w.value }}</b> <span class="dx-rat">{{ w.why }}</span></li>{% endfor %}
+    </ul>
+  </details>
+  {% endif %}
+  {% endif %}
+</section>

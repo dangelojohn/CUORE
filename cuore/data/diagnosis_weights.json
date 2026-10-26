@@ -1,0 +1,90 @@
+{
+  "_label": "heuristic, adjustable",
+  "_about": "Scoring table for cuore/services/common_cause.py and cuore/services/suspect_ranking.py. Every value is a heuristic weight chosen by the CUORE maintainers, NOT a measured probability. Points add up to a qualitative band (High / Medium / Low); CUORE never converts them to percentages. Edit a value and the next page load uses it (caches key on this file's mtime).",
+  "common_cause": {
+    "max_set_size":      {"value": 3,    "why": "A cause set larger than 3 'explains' almost anything, so it stops being a diagnosis."},
+    "max_sets":          {"value": 10,   "why": "Keeps the page readable; the count found is still reported."},
+    "max_partial":       {"value": 8,    "why": "Single causes that explain only some of the faults, best first."},
+    "stale_code_days":   {"value": 14,   "why": "A code not seen for two weeks and not in open work is history, not a current fault."},
+    "symptom_days":      {"value": 30,   "why": "A reported symptom older than a month is treated as no longer current unless the owner re-reports it."},
+    "specificity_element": {"value": 1.0,  "why": "A named wire, fuse, ground, connector or module is something a mechanic can go and test."},
+    "specificity_system":  {"value": 0.35, "why": "A whole system (e.g. electrical supply) is a hint, not a place to put a meter."},
+    "role_supply":       {"value": 1.0,  "why": "Supply, fuse, ground and connector hops are shared upstream causes of many faults."},
+    "role_controller":   {"value": 0.7,  "why": "A controller usually reports a fault rather than causing it, so it ranks below what feeds it when coverage ties."},
+    "role_other":        {"value": 0.85, "why": "Sensors, valves and lines are specific parts but usually explain few faults."}
+  },
+  "scoring": {
+    "tsb_strong":        {"value": 2.5,  "why": "A bulletin that explains this car's codes and scores 5+ in the TSB cross-reference."},
+    "tsb_moderate":      {"value": 1.5,  "why": "A bulletin scoring 3-4: same system or partial code match."},
+    "tsb_weak":          {"value": 0.5,  "why": "A bulletin scoring 1-2: only loosely related."},
+    "tsb_not_the_fix":   {"value": -2.0, "why": "The bulletin's remedy was already done on this car and the code came back."},
+    "tsb_ruled_out":     {"value": -2.0, "why": "An inspection recorded on a job says the bulletin's condition was ruled out."},
+    "case_fix_worked":   {"value": 3.0,  "why": "A prior case on this model lists a matching fix under 'fixes that worked'."},
+    "case_hyp_confirmed":{"value": 2.0,  "why": "A prior case on this model confirmed a matching hypothesis."},
+    "case_fix_did_not":  {"value": -2.0, "why": "A prior case lists a matching fix under 'did not work'."},
+    "case_hyp_refuted":  {"value": -2.0, "why": "A prior case on this model refuted a matching hypothesis."},
+    "case_synthetic_factor": {"value": 0.5, "why": "A case built from logs rather than a closed real job counts half."},
+    "job_status_confirmed": {"value": 3.0, "why": "The mechanic confirmed this hypothesis on the job (it had to pass the confirm gate)."},
+    "job_status_supported": {"value": 1.5, "why": "The mechanic marked this hypothesis supported."},
+    "job_evidence_for_cap":     {"value": 4.0, "why": "Many 'for' items are not four times as good as one; cap the total."},
+    "job_evidence_against_cap": {"value": 4.0, "why": "Same cap on the refuting side."},
+    "job_evidence_against_mult":{"value": 1.5, "why": "A refuting reading counts more than a supporting one (one counter-example beats several confirmations)."},
+    "repair_did_not_resolve":   {"value": -2.0, "why": "A repair on this suspect was recorded and a related code was seen again afterwards."},
+    "cc_explains_all":      {"value": 3.0, "why": "The shared-cause finder says one cause explains every covered fault."},
+    "cc_explains_majority": {"value": 2.0, "why": "It explains at least half of the covered faults."},
+    "cc_explains_some":     {"value": 1.0, "why": "It explains two or more faults."},
+    "inspection_bad":       {"value": 3.0, "why": "A recorded inspection of this part found loose / chafed / corroded / water / not found."},
+    "inspection_ok":        {"value": -2.0, "why": "A recorded inspection of this part found it OK."},
+    "fuse_health_bad":      {"value": 2.0, "why": "CUORE's fuse health marks this fuse orange or red."}
+  },
+  "evidence_kind_weight": {
+    "measurement": {"value": 1.0,  "why": "A measured number is the strongest evidence."},
+    "test":        {"value": 1.0,  "why": "A recorded test result."},
+    "inspection":  {"value": 1.0,  "why": "A recorded physical inspection."},
+    "actuator":    {"value": 0.75, "why": "A commanded actuator test."},
+    "freeze_frame":{"value": 0.5,  "why": "Conditions when a code set: context, not proof."},
+    "code":        {"value": 0.5,  "why": "A code is a symptom of the fault, not the fault."},
+    "observation": {"value": 0.5,  "why": "An observation made by the mechanic or CUORE."},
+    "bulletin":    {"value": 0.25, "why": "A bulletin cited as evidence; its own weight is counted under tsb_*."},
+    "note":        {"value": 0.25, "why": "Free-text notes."},
+    "default":     {"value": 0.5,  "why": "Any other evidence kind."}
+  },
+  "bands": {
+    "high_min":   {"value": 5.0, "why": "Points at or above this read as High."},
+    "medium_min": {"value": 2.0, "why": "Points at or above this read as Medium; below it Low."}
+  },
+  "band_prior": {
+    "High":   {"value": 3, "why": "Relative weight of a High suspect when asking how well a test splits the field."},
+    "Medium": {"value": 2, "why": "Relative weight of a Medium suspect."},
+    "Low":    {"value": 1, "why": "Relative weight of a Low suspect."}
+  },
+  "next_test": {
+    "top_suspects":        {"value": 6,  "why": "Tests are judged against the top suspects only."},
+    "effort_floor_min":    {"value": 5,  "why": "Set-up overhead added to every test's minutes so a 0 or 2 minute test does not win on tiny differences."},
+    "unknown_effort_min":  {"value": 15, "why": "A test whose duration CUORE does not know is ranked as if it took this long, and is labelled 'effort unknown'."}
+  },
+  "element_kind_labels": {
+    "ground":     {"value": ["ground/feed fault"], "why": "The test catalogue files voltage-drop tests under this label."},
+    "fuse":       {"value": ["ground/feed fault"], "why": "Fuses are checked with the same voltage-drop test."},
+    "supply":     {"value": ["ground/feed fault"], "why": "Supply feeds are checked with the same voltage-drop test."},
+    "connector":  {"value": ["ground/feed fault"], "why": "A connector is checked for voltage drop across its pins."},
+    "battery":    {"value": ["weak battery", "charging system fault"], "why": "The battery tests in the catalogue use these labels."},
+    "module":     {"value": ["network fault"], "why": "A gateway or module that drops off the bus is tested as a network fault."}
+  },
+  "element_kind_systems": {
+    "ground":    {"value": ["electrical_supply"], "why": "Grounds belong to the electrical supply system."},
+    "fuse":      {"value": ["electrical_supply"], "why": "Fuses belong to the electrical supply system."},
+    "supply":    {"value": ["electrical_supply"], "why": "Supply feeds belong to the electrical supply system."},
+    "connector": {"value": ["electrical_supply"], "why": "Connector pins carry supply and ground."},
+    "battery":   {"value": ["electrical_supply", "starting_charging"], "why": "The battery feeds both."}
+  },
+  "symptom_tag_systems": {
+    "fuel_smell":     {"value": ["fuel", "evap"], "why": "A fuel smell points at the fuel and vapour systems."},
+    "hard_to_refuel": {"value": ["evap", "fuel"], "why": "A nozzle that keeps clicking off points at the vapour path."},
+    "mil_on":         {"value": ["engine_management"], "why": "A lit MIL is an engine-management report."},
+    "hard_start":     {"value": ["starting_charging", "fuel"], "why": "Starting and fuel delivery."},
+    "rough_idle":     {"value": ["engine_management", "ignition"], "why": "Idle quality is engine management and ignition."},
+    "hesitation":     {"value": ["engine_management", "fuel"], "why": "Hesitation is fuel and engine management."},
+    "loss_of_power":  {"value": ["engine_management", "air_intake_boost", "fuel"], "why": "Power loss is fuel, air and engine management."}
+  }
+}

@@ -37,3 +37,22 @@ for log in real_with_dtc:
     for w in log.warnings:
         print(f"      WARN: {w}")
     print()
+
+# --- strip_control equivalence + memo invalidation ---------------------------
+import os, tempfile
+from mes import encoding
+
+tricky = "a\x00b\x03c\td\ne\rf\x0bg\x0ch\x1fi\x7fj°k\x08"
+assert encoding.strip_control(tricky) == ("abc\td\ne\rfghi\x7fj°k", 6), "strip_control"
+assert encoding.strip_control("clean\r\n") == ("clean\r\n", 0)
+
+with tempfile.TemporaryDirectory() as td:
+    tp = Path(td) / "FESLog_2601010000_x.txt"
+    tp.write_text("(Multiecuscan 5.0)\n1/1/2026 10:00:00 AM\nCar A\nECU A\n", encoding="utf-8")
+    first = fes.load_fes(tp)
+    assert fes.load_fes(tp) is first, "memo should hit for an unchanged file"
+    tp.write_text("(Multiecuscan 5.0)\n1/1/2026 10:00:00 AM\nCar B\nECU B\n", encoding="utf-8")
+    os.utime(tp, ns=(1_800_000_000 * 10**9, 1_800_000_000 * 10**9))
+    second = fes.load_fes(tp)
+    assert second is not first and second.vehicle == "Car B", "memo must refresh after mtime change"
+print("memo/strip_control checks OK")

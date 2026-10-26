@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Power and ground budget — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<div class="pb-page">
+  <h1>Power and ground budget</h1>
+  <p class="muted">Volts lost along a feed or a ground, from your own meter readings. Take each reading across the
+    section while it carries current (engine running, loads on); a meter across an unloaded wire reads 0 V and proves nothing.
+    <a href="/v/{{ vin }}/electrical">Electrical diagram</a>
+    {% if element %}&middot; <a href="/v/{{ vin }}/power-budget">All paths</a>{% endif %}</p>
+  {% for pb in panels %}
+    <div class="panel pb-card">{% include "_power_budget_panel.html" %}</div>
+  {% else %}
+    <p class="note"><span class="lab">None</span>No measurements recorded yet for this vehicle.</p>
+  {% endfor %}
+  <details class="pb-limits">
+    <summary class="btn">Reference limits and their basis</summary>
+    <ul>
+      {% for k, sd in basis.sides.items() %}
+        <li><b>{{ sd.label }}:</b> good up to {{ sd.good_max }} V, watch up to {{ sd.watch_max }} V. {{ sd.basis }}</li>
+      {% endfor %}
+      <li><b>Total:</b> good up to {{ basis.total.good_max }} V, watch up to {{ basis.total.watch_max }} V. {{ basis.total.basis }}</li>
+    </ul>
+    <p class="small muted">{{ basis.about }} Table: cuore/data/voltage_drop_limits.json. Procedure: {{ basis.basis_doc }}.</p>
+  </details>
+</div>
+{% endblock %}

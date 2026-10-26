@@ -1,0 +1,55 @@
+/* Power and ground budget. Text sizes use only the --fs-* tokens. */
+.pb-call { margin: 0 0 10px; padding: 10px 14px; border-left: 4px solid var(--rule);
+  background: var(--surface-2); font-size: var(--fs-md); line-height: var(--lh-snug); }
+.pb-call-todo  { border-left-color: var(--sev-cleared); background: var(--sev-cleared-bg); }
+.pb-call-warn  { border-left-color: var(--sev-chronic); background: var(--sev-chronic-bg); }
+.pb-call-alert { border-left-color: var(--sev-returned); background: var(--sev-returned-bg); }
+.pb-call-good  { border-left-color: var(--ok); background: var(--ok-bg); }
+.pb-call-lab { font-weight: var(--fw-bold); text-transform: uppercase; letter-spacing: var(--tracking-caps);
+  margin-right: 8px; font-size: var(--fs-sm); }
+.pb-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: var(--fs-lg); }
+.pb-title a { min-height: var(--tap); display: inline-flex; align-items: center; }
+.pb-chip { display: inline-block; padding: 4px 10px; border-radius: var(--radius-pill);
+  font-size: var(--fs-sm); font-weight: var(--fw-semibold); border: 1px solid var(--rule);
+  color: var(--ink-2); background: var(--surface-2); }
+.pb-v-good  { color: var(--ok); background: var(--ok-bg); border-color: var(--ok); }
+.pb-v-watch { color: var(--sev-chronic); background: var(--sev-chronic-bg); border-color: var(--sev-chronic); }
+.pb-v-over  { color: var(--sev-returned); background: var(--sev-returned-bg); border-color: var(--sev-returned); }
+.pb-v-no_load, .pb-v-none { color: var(--ink-3); background: var(--surface-2); }
+.pb-ladder { list-style: none; margin: 0; padding: 0; }
+.pb-seg { margin: 0 0 14px; padding: 6px 0 6px 16px; border-left: 4px solid var(--rule); }
+.pb-v-good-edge { border-left-color: var(--ok); }
+.pb-v-watch-edge { border-left-color: var(--sev-chronic); }
+.pb-v-over-edge { border-left-color: var(--sev-returned); }
+.pb-seg-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-bottom: 8px;
+  font-size: var(--fs-md); }
+.pb-pt { font-weight: var(--fw-semibold); }
+.pb-arrow { color: var(--ink-3); }
+.pb-bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 4px 0; }
+.pb-bar { flex: 1 1 200px; min-width: 160px; max-width: 420px; height: 20px; display: block; }
+.pb-track { fill: var(--surface-2); stroke: var(--rule); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pb-fill-good { fill: var(--ok); }
+.pb-fill-watch { fill: var(--sev-chronic); }
+.pb-fill-over { fill: var(--sev-returned); }
+.pb-fill-no_load { fill: var(--ink-3); }
+.pb-fill-before { opacity: .55; }
+.pb-tick { stroke: var(--ink); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.pb-tick-watch { stroke-dasharray: 3 2; }
+.pb-val { font-size: var(--fs-md); }
+.pb-none { margin: 4px 0; color: var(--ink-3); font-size: var(--fs-md); }
+.pb-table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); margin: 8px 0; }
+.pb-table th, .pb-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+.pb-table thead th { font-size: var(--fs-sm); color: var(--ink-3); }
+.pb-compare td { background: var(--surface-2); }
+.pb-basis { margin: 4px 0; }
+.pb-total { font-size: var(--fs-md); margin: 8px 0; }
+.pb-form-wrap { margin-top: 12px; }
+.pb-form-wrap > summary, .pb-limits > summary { cursor: pointer; min-height: var(--tap); display: inline-flex; align-items: center; }
+.pb-form fieldset { border: 0; padding: 0; margin: 0 0 12px; min-width: 0; }
+.pb-form legend { font-size: var(--fs-md); font-weight: var(--fw-semibold); margin-bottom: 6px; padding: 0; }
+.pb-form label { font-size: var(--fs-md); }
+.pb-form input[type="text"] { min-height: var(--tap); width: 100%; box-sizing: border-box; font-size: var(--fs-md); }
+.pb-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 10px; }
+.pb-card { margin-bottom: 16px; }
+.pb-limits { margin-top: 16px; }
+.pb-limits li { font-size: var(--fs-md); margin-bottom: 6px; }

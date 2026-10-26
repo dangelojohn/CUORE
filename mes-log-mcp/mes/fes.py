@@ -317,7 +317,7 @@ class FesLog:
         if self.truncated:
             d["truncated"] = True
         if self.warnings:
-            d["warnings"] = self.warnings
+            d["warnings"] = list(self.warnings)
         return d
 
 
@@ -697,6 +697,7 @@ def _assign_statuses(log: FesLog) -> None:
                 d.status = DtcStatus.STORED
 
 
+@encoding.memoize_by_file(1024)
 def load_fes(path: Path, *, timestamp: str = "") -> FesLog:
     """Read and parse a FES log from disk."""
     decoded = encoding.read_log_text(path)

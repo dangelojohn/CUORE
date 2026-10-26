@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "about": "Reference limits for the power and ground budget (cuore/services/power_budget.py). Volts of drop measured ACROSS a section of wiring that is carrying current. These are general automotive screening figures, NOT an FCA / Alfa Romeo specification: if the dealer gives an FCA figure for this car, it replaces these.",
+  "basis_doc": "docs/maintenance/GROUND_VOLTAGE_DROP_TEST.md",
+  "conditions": [
+    {"key": "engine_off", "label": "Engine off", "loaded": false,
+     "hint": "Little or no current flows, so a drop here proves nothing (GROUND_VOLTAGE_DROP_TEST.md section 1). Recorded for the baseline only; never judged."},
+    {"key": "running", "label": "Engine running", "loaded": true,
+     "hint": "Idle (or about 1500 rpm if idle voltage is unstable), no extra loads."},
+    {"key": "running_loads", "label": "Running + loads on", "loaded": true,
+     "hint": "Engine running with loads switched on (for example blower and rear heater/defrost; the procedure's own example is high beam + blower maximum). Note the loads used."},
+    {"key": "wiggle", "label": "Wiggling the harness", "loaded": true,
+     "hint": "Engine running, loads on, harness or connector wiggled by hand while watching the meter. A jump means an intermittent joint."}
+  ],
+  "tags": [
+    {"key": "before cleaning", "label": "Before cleaning", "phase": "before"},
+    {"key": "after cleaning", "label": "After cleaning", "phase": "after"},
+    {"key": "before repair", "label": "Before repair", "phase": "before"},
+    {"key": "after repair", "label": "After repair", "phase": "after"}
+  ],
+  "sides": {
+    "ground": {
+      "label": "Ground side",
+      "good_max": 0.10,
+      "watch_max": 0.20,
+      "basis": "General guideline (outside fact): about 0.2 V or less on the ground side (Fluke starter-circuit voltage-drop page, as cited in GROUND_VOLTAGE_DROP_TEST.md section 5). The 0.10 V 'good' line is that document's own screening rule (inference), not a published specification."
+    },
+    "feed": {
+      "label": "Positive / feed side",
+      "good_max": 0.10,
+      "watch_max": 0.30,
+      "basis": "General guideline (outside fact): about 0.3 V on the positive side (Fluke, as cited in GROUND_VOLTAGE_DROP_TEST.md section 5). The 0.10 V 'good' line is that document's screening rule (inference)."
+    }
+  },
+  "total": {
+    "good_max": 0.20,
+    "watch_max": 0.50,
+    "basis": "General guideline (outside fact): total acceptable drop 0.2 to 0.5 V, positive plus ground (Fluke, as cited in GROUND_VOLTAGE_DROP_TEST.md section 5). Applied here to the sum of the chain segments measured under one condition."
+  },
+  "presets": {
+    "by_kind": {
+      "ground": [
+        {"from": "{label} stud / terminal", "to": "Battery negative post", "side": "ground", "role": "chain",
+         "why": "The owner's G003A test: from the ground stud/terminal to the battery negative post, under load (GROUND_VOLTAGE_DROP_TEST.md section 4; touch the post itself, not the clamp)."}
+      ]
+    },
+    "by_element": {
+      "battery": [
+        {"from": "Battery negative post", "to": "Engine block", "side": "ground", "role": "chain",
+         "why": "Doc section 4, measurement 1: battery negative cable, its terminal and the cable-to-block connection."},
+        {"from": "Engine block", "to": "Body / chassis", "side": "ground", "role": "chain",
+         "why": "Doc section 4, measurement 2: engine-to-body ground strap(s)."},
+        {"from": "Body / chassis", "to": "Battery negative post", "side": "ground", "role": "cross_check",
+         "why": "Doc section 4, measurement 3: total body-side ground path, a cross-check of 1 and 2, so it is not added into the total."},
+        {"from": "Battery negative post", "to": "Battery negative clamp", "side": "ground", "role": "chain",
+         "limit": {"good_max": 0.05, "watch_max": 0.05,
+                   "basis": "Doc section 4 (optional measurement): any reading above about 0.05 V means a loose or corroded clamp."}},
+        {"from": "Battery positive post", "to": "Battery positive cable lug", "side": "feed", "role": "chain",
+         "why": "Doc section 4 (optional measurement): positive post to positive cable lug."}
+      ]
+    }
+  }
+}

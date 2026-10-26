@@ -394,6 +394,7 @@ def parse_scan_text(text: str, *, name: str = "", path: Path | None = None,
     return log
 
 
+@encoding.memoize_by_file(1024)
 def load_scan(path: Path, *, timestamp: str = "") -> ScanLog:
     """Read and parse a SCAN log from disk."""
     decoded = encoding.read_log_text(path)

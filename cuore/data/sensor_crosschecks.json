@@ -1,0 +1,723 @@
+{
+  "version": 1,
+  "about": "Analytic-redundancy rules: pairs of readings that must agree with each other, instead of each being judged against a fixed range. A rule runs only when every side and every condition channel was read at the same moment (max_skew_s). 'basis' says why the two must agree: 'physics', a citation already in this repo, or 'heuristic, adjustable'. 'tolerance_basis' says where the tolerance number comes from. Edit the numbers here to adjust them; nothing else needs changing. Side keys: 'channel' (cuore.live.channels id), 'channel.part' (one field of a multi-part value), 'channel@18DAF1xx' (that module's own answer to the PID; only present in saved pids_snapshot observations).",
+  "defaults": {
+    "max_skew_s": 5
+  },
+  "rules": [
+    {
+      "id": "map_vs_baro_engine_off",
+      "group": "Pressure",
+      "title": "MAP vs barometric pressure, engine off",
+      "sides": [
+        {
+          "key": "intake_map",
+          "label": "MAP (PID 0B)",
+          "unit": "kPa"
+        },
+        {
+          "key": "barometric_pressure",
+          "label": "Barometric pressure (PID 33)",
+          "unit": "kPa"
+        }
+      ],
+      "unit": "kPa",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 0,
+          "max": 0,
+          "text": "engine stopped (RPM 0)"
+        }
+      ],
+      "tolerance": {
+        "abs": 3
+      },
+      "tolerance_basis": "heuristic, adjustable (both PIDs are whole kPa)",
+      "basis": "physics: with the engine stopped the intake manifold is open to the atmosphere, so MAP equals barometric pressure",
+      "max_skew_s": 10
+    },
+    {
+      "id": "baro_pid_vs_ecm_1956",
+      "group": "Pressure",
+      "title": "Barometric pressure: PID 33 vs ECM DID 1956",
+      "sides": [
+        {
+          "key": "barometric_pressure",
+          "label": "Barometric pressure (PID 33)",
+          "unit": "kPa"
+        },
+        {
+          "key": "ecm_1956",
+          "label": "Ambient pressure (ECM DID 1956)",
+          "unit": "mbar",
+          "scale": 0.1
+        }
+      ],
+      "unit": "kPa",
+      "conditions": [],
+      "tolerance": {
+        "abs": 3
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "physics: two readings of the one atmospheric pressure. Repo citation: cuore/live/did_catalog.py, ECM 0x1956 ('barometric PID 100 kPa agrees')",
+      "max_skew_s": 30
+    },
+    {
+      "id": "boost_abs_vs_baro_engine_off",
+      "group": "Pressure",
+      "title": "Absolute boost (DID 195A) vs barometric pressure, engine off",
+      "sides": [
+        {
+          "key": "ecm_195a",
+          "label": "Boost, absolute (ECM DID 195A)",
+          "unit": "mbar",
+          "scale": 0.1
+        },
+        {
+          "key": "barometric_pressure",
+          "label": "Barometric pressure (PID 33)",
+          "unit": "kPa"
+        }
+      ],
+      "unit": "kPa",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 0,
+          "max": 0,
+          "text": "engine stopped (RPM 0)"
+        }
+      ],
+      "tolerance": {
+        "abs": 4
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "physics: an absolute pressure sensor in the intake reads atmospheric pressure with the engine stopped. Repo citation: the 0x195A decoding bug of 2026-10-25 (cuore/services/sensor_health.py FORMULA_FIX_AT) is exactly what this catches",
+      "max_skew_s": 10
+    },
+    {
+      "id": "boost_abs_vs_ecm_1956_engine_off",
+      "group": "Pressure",
+      "title": "Absolute boost (DID 195A) vs ambient pressure (DID 1956), engine off",
+      "sides": [
+        {
+          "key": "ecm_195a",
+          "label": "Boost, absolute (ECM DID 195A)",
+          "unit": "mbar"
+        },
+        {
+          "key": "ecm_1956",
+          "label": "Ambient pressure (ECM DID 1956)",
+          "unit": "mbar"
+        }
+      ],
+      "unit": "mbar",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 0,
+          "max": 0,
+          "text": "engine stopped (RPM 0)"
+        }
+      ],
+      "tolerance": {
+        "abs": 40
+      },
+      "tolerance_basis": "heuristic, adjustable. Repo evidence: 1001 vs 1004 mbar and MES 988 vs 990 mbar (cuore/live/did_catalog.py notes)",
+      "basis": "physics: engine stopped, both DIDs are the same atmospheric pressure",
+      "max_skew_s": 10
+    },
+    {
+      "id": "boost_abs_vs_map_wot",
+      "group": "Pressure",
+      "title": "Absolute boost (DID 195A) vs MAP, throttle wide open",
+      "sides": [
+        {
+          "key": "ecm_195a",
+          "label": "Boost, absolute (ECM DID 195A)",
+          "unit": "mbar",
+          "scale": 0.1
+        },
+        {
+          "key": "intake_map",
+          "label": "MAP (PID 0B)",
+          "unit": "kPa"
+        }
+      ],
+      "unit": "kPa",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "throttle_position"
+          ],
+          "min": 80,
+          "max": 100,
+          "text": "throttle 80 % or more"
+        },
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 1500,
+          "max": 8000,
+          "text": "engine at 1500 rpm or more"
+        }
+      ],
+      "tolerance": {
+        "abs": 15
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "heuristic, adjustable: with the throttle wide open the charge pipe and the manifold should be at the same pressure (engineering inference, not a repo citation). NOT checked at idle: this car's own readings show they differ there (2026-10-13 20:38, idle 734 rpm: DID 195A 98.2 kPa = ambient, MAP 32 kPa), consistent with the boost sensor sitting upstream of a closed throttle",
+      "max_skew_s": 2
+    },
+    {
+      "id": "coolant_ecm_vs_tcm",
+      "group": "Temperature",
+      "title": "Coolant temperature: ECM vs TCM answer to PID 05",
+      "sides": [
+        {
+          "key": "engine_coolant_temp@18DAF110",
+          "label": "Coolant, ECM 18DAF110 (PID 05)",
+          "unit": "C"
+        },
+        {
+          "key": "engine_coolant_temp@18DAF118",
+          "label": "Coolant, TCM 18DAF118 (PID 05)",
+          "unit": "C"
+        }
+      ],
+      "unit": "C",
+      "conditions": [],
+      "tolerance": {
+        "abs": 3
+      },
+      "tolerance_basis": "heuristic, adjustable (2026-10-26: 64 vs 63 C; 2026-10-14: 72 vs 71 C)",
+      "basis": "heuristic, adjustable: both modules report the car's coolant temperature; they may filter or sample it differently",
+      "max_skew_s": 10
+    },
+    {
+      "id": "coolant_pid_vs_ecm_1003",
+      "group": "Temperature",
+      "title": "Coolant temperature: PID 05 vs ECM DID 1003",
+      "sides": [
+        {
+          "key": "engine_coolant_temp",
+          "label": "Coolant (PID 05)",
+          "unit": "C"
+        },
+        {
+          "key": "ecm_1003",
+          "label": "Coolant (ECM DID 1003)",
+          "unit": "C"
+        }
+      ],
+      "unit": "C",
+      "conditions": [],
+      "tolerance": {
+        "abs": 3
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "physics: the same coolant temperature read two ways. DID 1003 decoding is unverified on the 2.0T (cuore/live/did_catalog.py)",
+      "max_skew_s": 30
+    },
+    {
+      "id": "coolant_vs_ambient_cold_soak",
+      "group": "Temperature (cold soak)",
+      "title": "Coolant vs ambient air, after a long cold soak",
+      "sides": [
+        {
+          "key": "engine_coolant_temp",
+          "label": "Coolant (PID 05)",
+          "unit": "C"
+        },
+        {
+          "key": "ambient_air_temp",
+          "label": "Ambient air (PID 46)",
+          "unit": "C"
+        }
+      ],
+      "unit": "C",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 0,
+          "max": 0,
+          "text": "engine stopped (RPM 0)"
+        },
+        {
+          "type": "soak",
+          "hours": 6,
+          "text": "engine off for at least 6 h (stated by you, not readable from the car)"
+        }
+      ],
+      "tolerance": {
+        "abs": 5
+      },
+      "tolerance_basis": "heuristic, adjustable (sun, wind and bumper-mounted ambient sensors add error)",
+      "basis": "physics: after hours with the engine off, every fluid and air temperature relaxes to ambient",
+      "max_skew_s": 120
+    },
+    {
+      "id": "coolant_vs_oil_cold_soak",
+      "group": "Temperature (cold soak)",
+      "title": "Coolant vs engine oil temperature, after a long cold soak",
+      "sides": [
+        {
+          "key": "engine_coolant_temp",
+          "label": "Coolant (PID 05)",
+          "unit": "C"
+        },
+        {
+          "key": "ecm_1302",
+          "label": "Engine oil (ECM DID 1302)",
+          "unit": "C"
+        }
+      ],
+      "unit": "C",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 0,
+          "max": 0,
+          "text": "engine stopped (RPM 0)"
+        },
+        {
+          "type": "soak",
+          "hours": 6,
+          "text": "engine off for at least 6 h (stated by you, not readable from the car)"
+        }
+      ],
+      "tolerance": {
+        "abs": 5
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "physics: after hours with the engine off, oil and coolant reach the same temperature. DID 1302 decoding is unverified (single byte, cuore/live/did_catalog.py)",
+      "max_skew_s": 120
+    },
+    {
+      "id": "coolant_vs_iat_cold_soak",
+      "group": "Temperature (cold soak)",
+      "title": "Coolant vs intake air (sensor 1), after a long cold soak",
+      "sides": [
+        {
+          "key": "engine_coolant_temp",
+          "label": "Coolant (PID 05)",
+          "unit": "C"
+        },
+        {
+          "key": "intake_air_temp_sensors.bank1_sensor1",
+          "label": "Intake air, bank 1 sensor 1 (PID 68)",
+          "unit": "C"
+        }
+      ],
+      "unit": "C",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 0,
+          "max": 0,
+          "text": "engine stopped (RPM 0)"
+        },
+        {
+          "type": "soak",
+          "hours": 6,
+          "text": "engine off for at least 6 h (stated by you, not readable from the car)"
+        }
+      ],
+      "tolerance": {
+        "abs": 5
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "physics: after hours with the engine off, intake air relaxes to the same temperature as the coolant",
+      "max_skew_s": 120
+    },
+    {
+      "id": "iat_vs_ambient_cold_soak",
+      "group": "Temperature (cold soak)",
+      "title": "Intake air (sensor 1) vs ambient air, after a long cold soak",
+      "sides": [
+        {
+          "key": "intake_air_temp_sensors.bank1_sensor1",
+          "label": "Intake air, bank 1 sensor 1 (PID 68)",
+          "unit": "C"
+        },
+        {
+          "key": "ambient_air_temp",
+          "label": "Ambient air (PID 46)",
+          "unit": "C"
+        }
+      ],
+      "unit": "C",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 0,
+          "max": 0,
+          "text": "engine stopped (RPM 0)"
+        },
+        {
+          "type": "soak",
+          "hours": 6,
+          "text": "engine off for at least 6 h (stated by you, not readable from the car)"
+        }
+      ],
+      "tolerance": {
+        "abs": 5
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "physics: after hours with the engine off, intake air relaxes to ambient",
+      "max_skew_s": 120
+    },
+    {
+      "id": "coolant_vs_gearbox_oil_cold_soak",
+      "group": "Temperature (cold soak)",
+      "title": "Coolant vs gearbox oil temperature, after a long cold soak",
+      "sides": [
+        {
+          "key": "engine_coolant_temp",
+          "label": "Coolant (PID 05)",
+          "unit": "C"
+        },
+        {
+          "key": "tcm_04fe",
+          "label": "Gearbox oil (TCM DID 04FE)",
+          "unit": "C"
+        }
+      ],
+      "unit": "C",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 0,
+          "max": 0,
+          "text": "engine stopped (RPM 0)"
+        },
+        {
+          "type": "soak",
+          "hours": 6,
+          "text": "engine off for at least 6 h (stated by you, not readable from the car)"
+        }
+      ],
+      "tolerance": {
+        "abs": 6
+      },
+      "tolerance_basis": "heuristic, adjustable (the gearbox cools differently from the engine)",
+      "basis": "physics: after hours with the engine off, gearbox oil relaxes to ambient like the coolant. DID 04FE decoding is unverified on the 2.0T (cuore/live/did_catalog.py)",
+      "max_skew_s": 120
+    },
+    {
+      "id": "battery_atrv_vs_pid42",
+      "group": "Voltage",
+      "title": "Battery voltage: adapter (ATRV) vs ECM control-module voltage (PID 42)",
+      "sides": [
+        {
+          "key": "battery_voltage",
+          "label": "Battery at the OBD port (adapter ATRV)",
+          "unit": "V"
+        },
+        {
+          "key": "control_module_voltage",
+          "label": "ECM supply voltage (PID 42)",
+          "unit": "V"
+        }
+      ],
+      "unit": "V",
+      "conditions": [],
+      "tolerance": {
+        "abs": 0.5
+      },
+      "tolerance_basis": "heuristic, adjustable (ATRV is a coarse ADC and sees cable drop)",
+      "basis": "physics: one battery, measured at two points of the same 12 V supply. Repo citation: cuore/live/channels.py load_step_voltage preset (ATRV 14.5 V vs BCM 14.5 V on 2026-10-23)",
+      "max_skew_s": 5
+    },
+    {
+      "id": "battery_atrv_vs_bcm_1004",
+      "group": "Voltage",
+      "title": "Battery voltage: adapter (ATRV) vs BCM DID 1004",
+      "sides": [
+        {
+          "key": "battery_voltage",
+          "label": "Battery at the OBD port (adapter ATRV)",
+          "unit": "V"
+        },
+        {
+          "key": "bcm_1004",
+          "label": "Battery voltage (BCM DID 1004)",
+          "unit": "V"
+        }
+      ],
+      "unit": "V",
+      "conditions": [],
+      "tolerance": {
+        "abs": 0.5
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "physics: one battery. Repo citation: cuore/live/channels.py load_step_voltage preset (ATRV 14.5 V vs BCM 14.5 V on 2026-10-23). DID 1004 formula A/10 is unverified",
+      "max_skew_s": 5
+    },
+    {
+      "id": "speed_pid_vs_ecm_1002",
+      "group": "Motion",
+      "title": "Vehicle speed: PID 0D vs ECM DID 1002",
+      "sides": [
+        {
+          "key": "vehicle_speed",
+          "label": "Vehicle speed (PID 0D)",
+          "unit": "km/h"
+        },
+        {
+          "key": "ecm_1002",
+          "label": "Vehicle speed (ECM DID 1002)",
+          "unit": "km/h"
+        }
+      ],
+      "unit": "km/h",
+      "conditions": [],
+      "tolerance": {
+        "abs": 2
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "physics: one road speed read two ways. DID 1002 decoding is unverified on the 2.0T (cuore/live/did_catalog.py)",
+      "max_skew_s": 2
+    },
+    {
+      "id": "rpm_pid_vs_ecm_1000",
+      "group": "Motion",
+      "title": "Engine speed: PID 0C vs ECM DID 1000",
+      "sides": [
+        {
+          "key": "engine_rpm",
+          "label": "Engine speed (PID 0C)",
+          "unit": "rpm"
+        },
+        {
+          "key": "ecm_1000",
+          "label": "Engine speed (ECM DID 1000)",
+          "unit": "rpm"
+        }
+      ],
+      "unit": "rpm",
+      "conditions": [],
+      "tolerance": {
+        "abs": 50
+      },
+      "tolerance_basis": "heuristic, adjustable (idle RPM wanders by tens of rpm between two reads)",
+      "basis": "physics: one crankshaft speed read two ways. DID 1000 is unverified on the 2.0T (cuore/live/did_catalog.py)",
+      "max_skew_s": 2
+    },
+    {
+      "id": "throttle_a_vs_b",
+      "group": "Driver inputs",
+      "title": "Throttle position: PID 11 vs PID 47",
+      "sides": [
+        {
+          "key": "throttle_position",
+          "label": "Throttle position (PID 11)",
+          "unit": "%"
+        },
+        {
+          "key": "throttle_position_b",
+          "label": "Throttle position B (PID 47)",
+          "unit": "%"
+        }
+      ],
+      "unit": "%",
+      "conditions": [],
+      "tolerance": {
+        "abs": 5
+      },
+      "tolerance_basis": "heuristic, adjustable (2026-10-25: 13.3 vs 13.7 %)",
+      "basis": "heuristic, adjustable: the two throttle tracks measure one plate and should follow each other",
+      "max_skew_s": 2
+    },
+    {
+      "id": "pedal_d_vs_e",
+      "group": "Driver inputs",
+      "title": "Accelerator pedal: PID 49 vs PID 4A",
+      "sides": [
+        {
+          "key": "accelerator_pedal_d",
+          "label": "Accelerator pedal D (PID 49)",
+          "unit": "%"
+        },
+        {
+          "key": "accelerator_pedal_e",
+          "label": "Accelerator pedal E (PID 4A)",
+          "unit": "%"
+        }
+      ],
+      "unit": "%",
+      "conditions": [],
+      "tolerance": {
+        "abs": 3
+      },
+      "tolerance_basis": "heuristic, adjustable (2026-10-25: 20.0 vs 19.6 %)",
+      "basis": "heuristic, adjustable: redundant pedal tracks report the one pedal position",
+      "max_skew_s": 2
+    },
+    {
+      "id": "fuel_level_pid_vs_ecm_1001",
+      "group": "Other",
+      "title": "Fuel level: PID 2F vs ECM DID 1001",
+      "sides": [
+        {
+          "key": "fuel_level",
+          "label": "Fuel level (PID 2F)",
+          "unit": "%"
+        },
+        {
+          "key": "ecm_1001",
+          "label": "Fuel tank level (ECM DID 1001)",
+          "unit": "%"
+        }
+      ],
+      "unit": "%",
+      "conditions": [],
+      "tolerance": {
+        "abs": 3
+      },
+      "tolerance_basis": "heuristic, adjustable (2026-10-25: 89.80 vs 89.80 %)",
+      "basis": "physics: one tank level read two ways. DID 1001 is unverified on the 2.0T (cuore/live/did_catalog.py)",
+      "max_skew_s": 60
+    },
+    {
+      "id": "runtime_pid_1f_vs_ecm_1009",
+      "group": "Other",
+      "title": "Engine run time: PID 1F vs ECM DID 1009",
+      "sides": [
+        {
+          "key": "runtime_since_start",
+          "label": "Run time since start (PID 1F)",
+          "unit": "s"
+        },
+        {
+          "key": "ecm_1009",
+          "label": "Time since start (ECM DID 1009)",
+          "unit": "min",
+          "scale": 60
+        }
+      ],
+      "unit": "s",
+      "conditions": [
+        {
+          "type": "range",
+          "channels": [
+            "engine_rpm",
+            "ecm_1000"
+          ],
+          "min": 400,
+          "max": 8000,
+          "text": "engine running (RPM 400 or more)"
+        }
+      ],
+      "tolerance": {
+        "abs": 90
+      },
+      "tolerance_basis": "heuristic, adjustable",
+      "basis": "heuristic, adjustable: both count time since the engine started. DID 1009 decoding is unverified (cuore/live/did_catalog.py)",
+      "max_skew_s": 5
+    }
+  ],
+  "needs": [
+    {
+      "id": "wheel_speeds",
+      "title": "Wheel speeds against each other and against vehicle speed",
+      "needs": "ABS wheel-speed channels FL, FR, RL, RR",
+      "kind": "channel_missing",
+      "why": "No ABS wheel-speed channel exists in cuore/live/channels.py (DID_MODULES is ECM, TCM, BCM, IPC, RFHUB only).",
+      "basis": "physics: on a straight, steady drive the four wheel speeds equal each other and the vehicle speed within tyre-radius differences"
+    },
+    {
+      "id": "throttle_commanded_vs_actual",
+      "title": "Throttle: commanded vs actual",
+      "needs": "PID 4C (commanded throttle actuator)",
+      "kind": "channel_missing",
+      "why": "The decoder in cuore/live/obd.py has actual throttle (PID 11, 47) and pedal (49, 4A) but no commanded-throttle PID.",
+      "basis": "physics: a healthy throttle body follows its command"
+    },
+    {
+      "id": "purge_commanded_vs_actual",
+      "title": "EVAP purge: commanded vs actual flow",
+      "needs": "a measured purge-flow or ESIM channel",
+      "kind": "channel_missing",
+      "why": "PID 2E is the commanded purge only. 'esim_status' has no readable DID, and the ESIM probe channels need hardware on CUORE_ESIM_PROBE_PORT.",
+      "basis": "physics: commanded purge duty should move manifold pressure and fuel trim"
+    },
+    {
+      "id": "fuel_trim_vs_purge_duty",
+      "title": "Fuel trims against purge duty",
+      "needs": "a purge on/off transition, not a single moment",
+      "kind": "dynamic_test",
+      "why": "The channels exist (commanded_evap_purge, short_fuel_trim_b1, long_fuel_trim_b1) but the expected relation is a change over time, handled by cuore/live/purge_trim.py, not by a same-moment agreement.",
+      "basis": "repo: cuore/live/purge_trim.py and docs/maintenance/PURGE_TRIM_TEST.md"
+    },
+    {
+      "id": "battery_ibs_vs_atrv",
+      "title": "Battery voltage: IBS (battery sensor) vs adapter",
+      "needs": "a decoded voltage field from BCM DID 1005 (IBS composite)",
+      "kind": "channel_missing",
+      "why": "bcm_1005 has only a prose description, no machine-readable formula (cuore/live/channels.py treats 'multi-field' as undecoded).",
+      "basis": "physics: one battery"
+    },
+    {
+      "id": "battery_ecm_1955",
+      "title": "Battery voltage: ECM DID 1955",
+      "needs": "ECM DID 1955 to answer",
+      "kind": "channel_missing",
+      "why": "It answered requestOutOfRange (NRC 31) on this car on 2026-10-23 (cuore/live/channels.py, load_step_voltage comment).",
+      "basis": "physics: one battery"
+    },
+    {
+      "id": "boost_sensor_voltage",
+      "title": "Boost sensor raw voltage (DID 195B) vs boost pressure (195A)",
+      "needs": "the boost sensor's voltage-to-pressure transfer function",
+      "kind": "channel_missing",
+      "why": "195B is an unconfirmed decoding (reads about 0.03 V while the module answers; cuore/services/sensor_health.py flags it) and no transfer function is on record.",
+      "basis": "physics: the sensor output voltage is a fixed function of its pressure"
+    },
+    {
+      "id": "throttle_sensors_1_2_3",
+      "title": "Throttle sensors 2 and 3 (DIDs 1925, 1926) against sensor 1",
+      "needs": "confirmed decoding of DIDs 1925 and 1926",
+      "kind": "channel_missing",
+      "why": "They are not percent (likely degrees); cuore/services/sensor_health.py suspect_reason says they are not comparable with throttle position in %.",
+      "basis": "repo: cuore/services/sensor_health.py suspect_reason"
+    }
+  ]
+}
