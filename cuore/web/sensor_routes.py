@@ -16,7 +16,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from ..api.deps import require_token
 from . import page_search, sensor_profile_svg
-from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
+from .routes import _dossier, _page, _set_active_vehicle, _status_strip, _vehicle_bar
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
 
@@ -37,8 +37,9 @@ def _safe_redirect(url: str) -> bool:
     return url.startswith("/") and not url.startswith("//") and not any(c in url for c in (chr(92), chr(13), chr(10)))
 
 
-def _back(vin: str, msg: str) -> RedirectResponse:
-    return RedirectResponse(url=f"/v/{vin}/sensors?msg={quote(msg)}", status_code=303)
+def _back(vin: str, msg: str, to: str = "") -> RedirectResponse:
+    page = "sensors/data" if to == "data" else "sensors"
+    return RedirectResponse(url=f"/v/{vin}/{page}?msg={quote(msg)}", status_code=303)
 
 
 STATUS_WORDS = {"green": "ok good healthy", "orange": "fault out of range", "red": "dead not responding fault",
@@ -83,9 +84,54 @@ def component_images_json(vin: str, key: str = "", limit: int = 3) -> JSONRespon
     return JSONResponse({"key": key, "images": _photos(key, max(1, min(int(limit or 3), 12)))})
 
 
+def _job_inputs(vin: str, dossier: dict[str, Any]) -> tuple[list[str], list[dict[str, Any]], dict[str, str]]:
+    """(the job's current codes, open symptoms newest first, {code: description}). Never raises, never touches the car."""
+    try:
+        from ..services import fuse_direct, mes_bridge
+        codes = list(mes_bridge.open_codes_for(dossier))
+        syms, ctext = fuse_direct.job_inputs(vin, codes, dossier)
+        return codes, syms, ctext
+    except Exception:  # noqa: BLE001 -- the page works without a job
+        return [], [], {}
+
+
+def check_state(strip: Optional[dict[str, Any]]) -> dict[str, Any]:
+    """Can "Check all sensors" work right now? Read from the connection state the vehicle bar already shows."""
+    if not strip or strip.get("error"):
+        why = (strip or {}).get("error") or "unknown"
+        return {"ok": False, "reason": f"The scanner state is unknown ({str(why)[:80]}). Use Connect to car first."}
+    if strip.get("mes_state") == "connected":
+        return {"ok": False, "reason": "MultiEcuScan has the adapter. Close MultiEcuScan, then check."}
+    if not strip.get("buses_verified"):
+        return {"ok": False, "reason": f"The car is not connected: the top bar shows Live {strip.get('buses_verified') or 0}/"
+                                       f"{strip.get('buses_total') or 0} buses verified. Use Connect to car first."}
+    return {"ok": True, "reason": ""}
+
+
+def _zone_label(zone: Optional[str]) -> str:
+    z = sensor_profile_svg.resolve_zone(zone)
+    top = sensor_profile_svg.TOP_ZONES.get(z or "") or {}
+    return top.get("label") or sensor_profile_svg.ZONE_BY_ID.get(z or "", {}).get("label") or ""
+
+
+KIND_ORDER = {"fault": 0, "code_live": 1, "code_history": 2, "never": 3, "ok_nojudge": 4, "ok_judged": 5}
+
+
+def _photo_for(s: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """ONE catalogue photo per sensor: the first, de-duplicated by its picture file."""
+    seen: set[str] = set()
+    for ph in _photos(s["id"], 3):
+        if ph.get("photo_url") and ph["photo_url"] not in seen:
+            seen.add(ph["photo_url"])
+            return {"url": ph["photo_url"], "href": ph.get("part_url") or "", "name": ph.get("name") or "",
+                    "alt": f"Mopar catalogue photo of the part type for: {s.get('label') or s['id']}"}
+    return None
+
+
 @router.get("/v/{vin}/sensors", response_class=HTMLResponse)
 def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
-                 msg: str = "", q: str = "") -> HTMLResponse:
+                 msg: str = "", q: str = "", zone: str = "") -> HTMLResponse:
+    from ..services import sensor_direct
     dossier = _dossier(vin)
     error: Optional[str] = None
     try:
@@ -103,10 +149,18 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
             counts[s.get("status") if s.get("status") in counts else "grey"] += 1
     status_f = status.strip().lower() if status.strip().lower() in STATUSES else ""
     system_f = system.strip()
+    zone_f = sensor_profile_svg.resolve_zone(zone.strip()) or ""
     systems = sorted({str(s.get("system") or "other") for s in sensors})
+
+    codes, syms, ctext = _job_inputs(vin, dossier)
+    strip = _status_strip()
+    call = sensor_direct.direct(sensors, numbers, codes, ctext, syms)
+    rows = call["rows"]
 
     def match(s: dict[str, Any]) -> bool:
         if status_f and s.get("status") != status_f:
+            return False
+        if zone_f and sensor_profile_svg.resolve_zone(s.get("zone")) != zone_f:
             return False
         return not system_f or str(s.get("system") or "other") == system_f
 
@@ -119,28 +173,66 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
                         "line": " · ".join(x for x in (str(s.get("system") or "other"), s.get("module") or "",
                                                        STATUS_LABEL[st]) if x)})
     dim = {s["id"] for s in sensors if not match(s)}
-    groups: dict[str, list[dict[str, Any]]] = {}
-    for s in shown:
-        groups.setdefault(str(s.get("system") or "other"), []).append(s)
 
-    _, unplaced_ids = sensor_profile_svg.layout(sensors)
-    unplaced = [s for s in sensors if s["id"] in set(unplaced_ids) and match(s)]
-    svg = sensor_profile_svg.render(sensors, numbers, dim)
+    open_ids = set(call["call_ids"]) if len(call["call_ids"]) <= 3 else set()
+    open_ids |= {r["id"] for r in results[:1]}
+    grouped: dict[str, list[dict[str, Any]]] = {g: [] for g, _, _ in sensor_direct.GROUPS}
+    for s in sorted(shown, key=lambda s: (KIND_ORDER[rows[s["id"]]["kind"]],
+                                           {"red": 0, "orange": 1}.get(s.get("status"), 2), numbers[s["id"]])):
+        r = rows[s["id"]]
+        grouped[r["group"]].append({"s": s, "r": r, "n": numbers[s["id"]], "photo": _photo_for(s),
+                                    "zone_label": _zone_label(s.get("zone")), "open": s["id"] in open_ids})
+    sections = [{"id": g, "title": title, "sub": sub, "items": grouped[g]}
+                for g, title, sub in sensor_direct.GROUPS if grouped[g]]
 
-    def href(st: str = "", sy: str = "", keep_q: bool = True) -> str:
-        parts = [f"{k}={quote(v)}" for k, v in (("status", st), ("system", sy), ("q", q if keep_q else "")) if v]
+    placed_ids = {s["id"] for s in sensors if sensor_profile_svg.resolve_zone(s.get("zone"))}
+    unplaced = [{"s": s, "n": numbers[s["id"]], "r": rows[s["id"]]} for s in shown if s["id"] not in placed_ids]
+
+    def href(st: str = "", sy: str = "", zn: str = "", keep_q: bool = True) -> str:
+        parts = [f"{k}={quote(v)}" for k, v in (("status", st), ("system", sy), ("zone", zn), ("q", q if keep_q else "")) if v]
         return f"/v/{vin}/sensors" + ("?" + "&".join(parts) if parts else "")
 
-    chip_href = {k: href("" if status_f == k else k, system_f) for k in STATUSES}
-    sys_href = {sy: href(status_f, sy) for sy in systems}
+    items = [{**s, "number": numbers[s["id"]],
+              "title": f'{s.get("label", s["id"])} — {rows[s["id"]]["chip"]}'} for s in sensors]
+    svg = sensor_profile_svg.sensor_map(items, cluster_href=lambda z: href(status_f, system_f, z, False) + "#sens-list",
+                                        dim=dim)
+    areas: dict[str, dict[str, Any]] = {}
+    for s in sensors:
+        z = sensor_profile_svg.resolve_zone(s.get("zone"))
+        if z:
+            a = areas.setdefault(z, {"zone": z, "label": _zone_label(z), "n": 0,
+                                     "href": href(status_f, system_f, z, False) + "#sens-list"})
+            a["n"] += 1
 
-    photos = {s["id"]: _photos(s["id"]) for s in shown}
-    response = _page(request, "sensors.html", vin=vin, photos=photos, bar=_vehicle_bar(vin, dossier), tab="sensors",
-                     svg=svg, groups=groups, numbers=numbers, unplaced=unplaced, counts=counts,
+    chip_href = {k: href("" if status_f == k else k, system_f, zone_f) for k in STATUSES}
+    sys_href = {sy: href(status_f, sy, zone_f) for sy in systems}
+    response = _page(request, "sensors.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="sensors", live_strip=strip,
+                     svg=svg, sections=sections, numbers=numbers, unplaced=unplaced, counts=counts, call=call,
+                     check=check_state(strip), areas=sorted(areas.values(), key=lambda a: -a["n"]),
                      total=len(sensors), shown=len(shown), checked_at=data.get("checked_at"),
-                     status_f=status_f, q=q, results=results, results_shown=results[:10],
-                     no_match_hint=page_search.HINT_SENSORS, clear_href=href(status_f, system_f, False), chip_href=chip_href, sys_href=sys_href, system_f=system_f, systems=systems,
+                     status_f=status_f, zone_f=zone_f, zone_label=_zone_label(zone_f), q=q, results=results,
+                     results_shown=results[:10], no_match_hint=page_search.HINT_SENSORS,
+                     clear_href=href(status_f, system_f, zone_f, False), chip_href=chip_href, sys_href=sys_href,
+                     system_f=system_f, systems=systems, all_href=f"/v/{vin}/sensors",
                      status_label=STATUS_LABEL, status_mark=STATUS_MARK, msg=msg, error=error)
+    _set_active_vehicle(response, vin)
+    return response
+
+
+@router.get("/v/{vin}/sensors/data", response_class=HTMLResponse)
+def sensors_data(request: Request, vin: str, msg: str = "") -> HTMLResponse:
+    """Owner page: the normal-range forms and the location links, kept off the mechanic's page."""
+    dossier = _dossier(vin)
+    error: Optional[str] = None
+    try:
+        data = _sensor_health().health(vin)
+    except Exception as exc:  # noqa: BLE001
+        data, error = {"sensors": []}, f"Sensor health is not available yet: {exc}"
+    sensors = sorted(data.get("sensors") or [], key=lambda s: (str(s.get("system") or "zz"), str(s.get("label") or s.get("id"))))
+    numbers = {s["id"]: i for i, s in enumerate(sensors, 1)}
+    response = _page(request, "sensor_data.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="sensors",
+                     sensors=sensors, numbers=numbers, msg=msg, error=error,
+                     zone_label=_zone_label, placed=lambda s: bool(sensor_profile_svg.resolve_zone(s.get("zone"))))
     _set_active_vehicle(response, vin)
     return response
 
@@ -172,23 +264,25 @@ def sensors_check(vin: str) -> RedirectResponse:
 async def sensors_range(request: Request, vin: str) -> RedirectResponse:
     form = await request.form()
 
+    to = str(form.get("back", "") or "").strip()
+
     def f(k: str) -> str:
         return str(form.get(k, "") or "").strip()
 
     if not f("source"):
-        return _back(vin, "A normal range needs a source (manual page, TechAuthority, measured on this car). Nothing saved.")
+        return _back(vin, "A normal range needs a source (manual page, TechAuthority, measured on this car). Nothing saved.", to)
     try:
         lo, hi = float(f("min")), float(f("max"))
     except ValueError:
-        return _back(vin, "Min and max must be numbers. Nothing saved.")
+        return _back(vin, "Min and max must be numbers. Nothing saved.", to)
     try:
         _sensor_health().add_range(MODEL, f("sensor_id"), f("channel"), lo, hi, f("unit"),
                                    f("source"), "technician")
     except ValueError as exc:
-        return _back(vin, _short(f"Range not saved: {exc}"))
+        return _back(vin, _short(f"Range not saved: {exc}"), to)
     except Exception as exc:  # noqa: BLE001
-        return _back(vin, _short(f"Range not saved: {exc}"))
-    return _back(vin, "Normal range saved")
+        return _back(vin, _short(f"Range not saved: {exc}"), to)
+    return _back(vin, "Normal range saved", to)
 
 
 def _fmt(v: Any) -> str:

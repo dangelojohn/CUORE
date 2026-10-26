@@ -515,5 +515,160 @@ def render(sensors: list[dict[str, Any]], numbers: Optional[dict[str, int]] = No
                       aria_label="Side view of the car with {n} sensors placed by zone")
 
 
+# --- the mechanic's map: ONE view with a Side / Top toggle, clusters as count markers -------------
+#
+# Used by the sensors page only (the fuse page keeps both_views / box_map). One marker per area:
+# a numbered dot for a lone sensor, a count marker for several (it opens the list filtered to that area).
+# Labels are placed greedily where they touch neither a marker nor another label.
+
+_MARK_R = 17          # numbered dot radius, drawing units
+_CLUSTER_R = 24       # count marker radius
+_HIT_R = 27           # invisible tap target: >= 44 px on screen once the drawing is >= 0.84 scale
+_LABEL_FS = 19        # label font size in drawing units (16 px on screen at 0.84)
+_STATUS_ORDER = ("red", "orange", "grey", "green")
+_WORD = {"red": "not responding", "orange": "fault / out of range", "grey": "not read yet", "green": "OK"}
+
+
+#: top-view anchors moved for THIS map only, so two tap targets never overlap (the fuse page keeps TOP_ZONES as is)
+_MAP_NUDGE_TOP = {"windscreen": (398, 128), "under_car_exhaust": (430, 206)}
+
+
+def _worst(statuses: Iterable[str]) -> str:
+    s = set(statuses)
+    return next((k for k in _STATUS_ORDER if k in s), "grey")
+
+
+def _st(i: dict[str, Any]) -> str:
+    return i.get("status") if i.get("status") in _STATUS_WORD else "grey"
+
+
+def _map_groups(items: list[dict[str, Any]], view: str) -> list[dict[str, Any]]:
+    groups: dict[str, dict[str, Any]] = {}
+    for it in items:
+        zid = resolve_zone(it.get("zone"))
+        if zid is None:
+            continue
+        if view == "top":
+            a = _top_anchor(it)
+            if a is None:
+                continue
+            key, x, y = a
+            x, y = _MAP_NUDGE_TOP.get(zid, (x, y))
+        else:
+            key, x, y = zid, ZONE_BY_ID[zid]["ax"], ZONE_BY_ID[zid]["ay"]
+        g = groups.setdefault(key, {"key": key, "zone": zid, "x": x, "y": y, "items": []})
+        g["items"].append(it)
+    return list(groups.values())
+
+
+def _label_text(g: dict[str, Any], view: str) -> str:
+    top = TOP_ZONES.get(g["zone"]) or {}
+    base = top.get("label") or ZONE_BY_ID[g["zone"]]["label"] or g["zone"].replace("_", " ")
+    side = g["key"].partition("|")[2]
+    return f"{base} ({side})" if view == "top" and side in ("left", "right") and top.get("sided") else base
+
+
+def _rects_hit(a: tuple, b: tuple) -> bool:
+    return not (a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1])
+
+
+def _place_labels(groups: list[dict[str, Any]], view: str, w: float, h: float, fixed: list[tuple]) -> dict[str, tuple]:
+    """{group key: (x, y, text-anchor, text)} for every label that fits without touching a marker or a label."""
+    own_box = {g["key"]: (g["x"] - _HIT_R, g["y"] - _HIT_R, g["x"] + _HIT_R, g["y"] + _HIT_R) for g in groups}
+    avoid = list(own_box.values()) + list(fixed)
+    out: dict[str, tuple] = {}
+    for g in sorted(groups, key=lambda g: (-len(g["items"]), g["x"], g["y"])):
+        text = _label_text(g, view)
+        tw = 0.56 * _LABEL_FS * len(text) + 6
+        r = _CLUSTER_R + 5 if len(g["items"]) > 1 else _MARK_R
+        x, y = g["x"], g["y"]
+        for dx, dy, ta in ((0, r + _LABEL_FS + 2, "middle"), (0, -(r + 8), "middle"),
+                           (r + 8, 6, "start"), (-(r + 8), 6, "end"),
+                           (r + 4, r + _LABEL_FS, "start"), (-(r + 4), r + _LABEL_FS, "end"),
+                           (r + 4, -(r + 2), "start"), (-(r + 4), -(r + 2), "end"),
+                           (0, r + 2 * _LABEL_FS + 6, "middle"), (0, -(r + _LABEL_FS + 12), "middle")):
+            lx, ly = x + dx, y + dy
+            x0 = lx - tw / 2 if ta == "middle" else lx if ta == "start" else lx - tw
+            box = (x0, ly - _LABEL_FS, x0 + tw, ly + 6)
+            if box[0] < 2 or box[2] > w - 2 or box[1] < 2 or box[3] > h - 2:
+                continue
+            if any(_rects_hit(box, a) for a in avoid if a is not own_box[g["key"]]):
+                continue
+            out[g["key"]] = (lx, ly, ta, text)
+            avoid.append(box)
+            break
+    return out
+
+
+def _marker(g: dict[str, Any], href_prefix: str, cluster_href: Any, dim: set) -> str:
+    its = g["items"]
+    st = _worst(_st(i) for i in its)
+    x, y = g["x"], g["y"]
+    faded = " sens-dim" if all(i["id"] in dim for i in its) else ""
+    if len(its) == 1:
+        i = its[0]
+        href = f"#{href_prefix}{i['id']}"
+        tip = i.get("title") or f"{i.get('label', i['id'])} — {_STATUS_WORD[st]}"
+        body = (f'<circle class="sm-fill" cx="{x:.1f}" cy="{y:.1f}" r="{_MARK_R}"/>'
+                f'<text class="sm-num" x="{x:.1f}" y="{y + 6:.1f}" text-anchor="middle">{escape(str(i.get("number", "")))}</text>')
+        cls = "sm-single"
+    else:
+        href = cluster_href(g["zone"]) if cluster_href else f"#{href_prefix}{its[0]['id']}"
+        counts = {k: sum(1 for i in its if _st(i) == k) for k in _STATUS_ORDER}
+        detail = ", ".join(f"{n} {_WORD[k]}" for k, n in counts.items() if n)
+        tip = f"{_label_text(g, 'side')}: {len(its)} sensors ({detail}). Opens the list for this area."
+        body = (f'<circle class="sm-ring" cx="{x:.1f}" cy="{y:.1f}" r="{_CLUSTER_R + 5}"/>'
+                f'<circle class="sm-fill" cx="{x:.1f}" cy="{y:.1f}" r="{_CLUSTER_R}"/>'
+                f'<text class="sm-num sm-count" x="{x:.1f}" y="{y + 7:.1f}" text-anchor="middle">{len(its)}</text>')
+        cls = "sm-cluster"
+    return (f'<a class="sm-mark {cls} sens-{st}{faded}" href="{escape(href, quote=True)}"><title>{escape(tip)}</title>'
+            f'<circle class="sm-hit" cx="{x:.1f}" cy="{y:.1f}" r="{_HIT_R}"/>{body}</a>')
+
+
+def map_view_svg(items: list[dict[str, Any]], view: str, *, href_prefix: str = "sensor-", cluster_href: Any = None,
+                 dim: Iterable[str] = ()) -> tuple[str, list[dict[str, Any]]]:
+    """(svg, groups) for ``view`` in {"side", "top"}. Items without a drawn zone are not in the svg."""
+    dim = set(dim)
+    w, h = (_VB_W, _VB_H) if view == "side" else (_TOP_W, _TOP_H)
+    groups = _map_groups(items, view)
+    fixed = [(14, 138, 70, 156)] if view == "side" else [(14, 160, 70, 178), (740, 26, 850, 44), (660, 356, 850, 374)]
+    labels = _place_labels(groups, view, w, h, fixed)
+    art = _car_line_art() if view == "side" else _car_top_art()
+    name = "Side view (the car's left side)" if view == "side" else "Top view"
+    p = [f'<svg class="sens-profile sens-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" '
+         f'aria-label="{escape(name)} with {len(groups)} areas marked">', art, '<g aria-hidden="true">']
+    for g in groups:
+        if g["key"] in labels:
+            lx, ly, ta, text = labels[g["key"]]
+            p.append(f'<text class="sm-label" x="{lx:.1f}" y="{ly:.1f}" text-anchor="{ta}">{escape(text)}</text>')
+    p.append("</g>")
+    p += [_marker(g, href_prefix, cluster_href, dim) for g in groups]
+    p.append("</svg>")
+    return "".join(p), groups
+
+
+def sensor_map(items: list[dict[str, Any]], *, href_prefix: str = "sensor-", cluster_href: Any = None,
+               default_view: str = "side", dim: Iterable[str] = ()) -> str:
+    """ONE car picture with a Side / Top toggle (no script: two radios, like the fuse page). Safe for []."""
+    dim = list(dim)
+    side, _ = map_view_svg(items, "side", href_prefix=href_prefix, cluster_href=cluster_href, dim=dim)
+    top, _ = map_view_svg(items, "top", href_prefix=href_prefix, cluster_href=cluster_href, dim=dim)
+    top_on = default_view == "top"
+    c = SIDE_VIEW_CREDIT
+    return ('<div class="sv-wrap">'
+            f'<input class="sv-radio" type="radio" name="sv-view" id="sv-side"{"" if top_on else " checked"}>'
+            f'<input class="sv-radio" type="radio" name="sv-view" id="sv-top"{" checked" if top_on else ""}>'
+            '<div class="sv-tabs" role="group" aria-label="Car view"><label for="sv-side">Side</label>'
+            '<label for="sv-top">Top</label></div>'
+            "<figure class=\"sv-fig sv-sidev\"><figcaption>Side view: the car's left (driver's) side, front to the left. "
+            f'Each marker is an area, not an exact spot.</figcaption><div class="sv-scroll">{side}</div>'
+            f'<p class="sens-credit">{escape(c["text"])} (<a href="{c["photo"]}" rel="noopener">photo</a>, '
+            f'<a href="{c["licence"]}" rel="noopener">licence</a>)</p></figure>'
+            "<figure class=\"sv-fig sv-topv\"><figcaption>Top view: looking down, front to the left; left (driver's) "
+            f'side at the bottom, right side at the top.</figcaption><div class="sv-scroll">{top}</div></figure></div>')
+
+
+
+
 __all__ = ["SIDE_VIEW_CREDIT", "render", "profile_svg", "top_svg", "both_views", "layout", "top_layout", "resolve_zone",
-           "ZONES", "ZONE_ANCHORS", "TOP_ZONES"]
+           "ZONES", "ZONE_ANCHORS", "TOP_ZONES", "sensor_map", "map_view_svg"]

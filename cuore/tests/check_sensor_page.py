@@ -52,9 +52,16 @@ SENSORS = [
     sensor("wssfl", "Wheel speed FL", "red", "front_left_wheel_well", side="left", system="Brakes"),
     sensor("wssfr", "Wheel speed FR", "green", "front_right_wheel_well", side="right", system="Brakes"),
     sensor("park", "Parking sensor", "grey", "front_bumper", conf="INFERRED", system="Body",
-           readable=False, readable_note="needs the grey cable"),
+           readable=False, readable_note="no channel", last_read=None, values=[]),
     sensor("cam", "Reverse camera", "grey", None, system="Body", element_id="rev_cam", conf="UNKNOWN"),
     sensor("noel", "Rain sensor", "grey", "not_a_zone", system="Body"),
+    sensor("iat", "Intake air temp", "green", "engine_bay",
+           codes=[{"code": "P0098-00", "module": "ECM", "description": "Air temperature sensor", "state": "superseded",
+                   "superseded_by": "not present in SCAN_X at 13:45 on 2026-10-25"}]),
+    sensor("wsrl", "Wheel speed RL", "grey", "rear_left_wheel_well", side="left", system="Brakes", bus="can_ch",
+           readable=False, readable_note="needs the grey cable", last_read=None, values=[],
+           codes=[{"code": "C0035-00", "module": "ABS", "description": "Wheel speed RL", "state": "superseded",
+                   "superseded_by": "not present in SCAN_X at 13:45 on 2026-10-25"}]),
 ] + [sensor(f"eb{i}", f"Engine bay probe {i}", ["green", "orange", "grey"][i % 3], "engine_bay") for i in range(8)]
 
 CALLS: dict[str, list] = {"check": [], "range": []}
@@ -145,37 +152,185 @@ check(all(f'href="#fuse-F{i}"' in fsvg for i in (1, 2, 3)) and fsvg.count("sens-
 check(len(sensor_profile_svg.layout(fitems)[0]) == 3, "fuse-box zones place dots")
 
 # --- the page -----------------------------------------------------------
+from cuore.web import sensor_routes  # noqa: E402
+from cuore.services import sensor_direct  # noqa: E402
+
+JOB = {"codes": ["P0131", "C0035"], "syms": [{"text": "Rough idle and a lambda warning on cold start", "at": "2026-10-25T08:00", "id": "aa"}],
+       "ctext": {"P0131": "O2 low", "C0035": "Wheel speed sensor rear left"}}
+sensor_routes._job_inputs = lambda vin, dossier: (JOB["codes"], JOB["syms"], JOB["ctext"])
+STRIP = {"port": "COM3", "baud": 115200, "mes_state": "not_running", "cable": "none", "buses_verified": 0, "buses_total": 3,
+         "lock_holder": None, "error": None}
+sensor_routes._status_strip = lambda: dict(STRIP)
+
 r = client.get(f"/v/{VIN}/sensors")
 html = r.text
 check(r.status_code == 200, f"page 200 (got {r.status_code})")
-for k in ("green", "orange", "red", "grey"):
-    check(f"sens-dot sens-{k}" in html, f"dot class sens-{k} present")
 ids = [s["id"] for s in SENSORS]
-hrefs = set(re.findall(r'<a class="sens-dot[^"]*" href="#(sensor-[^"]+)"', html))
-check(hrefs == {f"sensor-{i}" for i in ids}, "every sensor has a dot, placed or in the not-sourced tray")
-check(html.count("Location not sourced yet (") == 2, "unplaced sensors shown in a tray under both views")
-check(all(f'id="{h}"' in html for h in hrefs), "every dot anchor has a list row")
-check("Unplaced (2)" in html and "Reverse camera" in html and "Rain sensor" in html, "unplaced tray lists both")
-check("/v/%s/electrical?find=rev_cam" % VIN in html, "Set location link for the unplaced sensor with an element")
-check("location not sourced yet" in html, "plain text when no element id")
-check('class="sens-ring"' in html, "INFERRED sensor gets a dashed ring")
-check(">R</text>" in html and ">L</text>" in html, "L and R tags drawn")
-check("Check all sensors (read-only)" in html and "Last checked" in html, "check button and last-checked line")
+
+# the call, built from the open job, the codes and the sensor states
+m = re.search(r'<p class="sens-call" id="sens-call">(.*?)</p>', html, re.S)
+call_html = m.group(1) if m else ""
+call_txt = re.sub(r"<[^>]+>", "", call_html)
+check("Fault: #" in call_txt and call_txt.index("Wheel speed FL") < call_txt.index("Upstream O2") and 'href="#sensor-o2f"' in call_html,
+      f"call names the faulty sensor and links its row ({call_txt[:80]})")
+check("Past code, no live fault - read now:" in call_txt and "Intake air temp" in call_txt and "P0098-00" in call_txt,
+      "call: history code on a readable sensor -> read it now")
+check("Wheel speed RL" in call_txt and "C0035-00 - on this job" in call_txt and "grey cable" in call_txt,
+      "call: a code on the job's list on a sensor that needs the grey cable")
+check("never read" in call_txt and "need the grey cable" in call_txt and "no live channel" in call_txt,
+      f"call: never-read sensors with the grey-cable breakdown ({call_txt[-90:]})")
+check('id="sens-go"' in html and html.count('class="sens-gochip"') >= 2 and 'href="#sensor-iat"' in html.split('id="sens-go"')[1][:900],
+      "Go-to chips link to the sensors in the call")
+check('id="sens-why"' in html and "linked by name only" in html and "lambda" in html.split('id="sens-why"')[1][:1500],
+      "Why-these fold lists the symptom link by name")
+check(html.index('id="sens-call"') < html.index('id="sens-actions"') < html.index('id="sens-map"') < html.index('id="sens-list"'),
+      "order: call, check action, map, list")
+sensor_routes._job_inputs = lambda vin, dossier: ([], [], {})
+t0 = client.get(f"/v/{VIN}/sensors").text
+c0 = re.sub(r"<[^>]+>", "", re.search(r'<p class="sens-call" id="sens-call">(.*?)</p>', t0, re.S).group(1))
+check("Fault:" in c0 and "Past code" in c0, "call still built from sensor states with no open job")
+sensor_routes._job_inputs = lambda vin, dossier: (JOB["codes"], JOB["syms"], JOB["ctext"])
+
+# the single primary action, disabled with a visible reason when the car is not connected
+check(html.count('class="sens-primary"') == 1 and ">Check all sensors<" in html, "one primary action: Check all sensors")
+btn = re.search(r'<button type="submit" class="sens-primary"([^>]*)>', html).group(1)
+check("disabled" in btn and "Live 0/3 buses verified" in html and "Connect to car" in html.split('id="sens-off"')[1][:300],
+      "button disabled with the reason when no bus is verified")
+STRIP.update(buses_verified=1)
+t1 = client.get(f"/v/{VIN}/sensors").text
+check("disabled" not in re.search(r'<button type="submit" class="sens-primary"([^>]*)>', t1).group(1) and 'id="sens-off"' not in t1,
+      "button enabled when the car is connected")
+STRIP.update(mes_state="connected")
+t2 = client.get(f"/v/{VIN}/sensors").text
+check("disabled" in re.search(r'<button type="submit" class="sens-primary"([^>]*)>', t2).group(1) and "MultiEcuScan has the adapter" in t2,
+      "button disabled when MultiEcuScan holds the adapter")
+STRIP.update(mes_state="not_running", buses_verified=0)
+more = html.split('id="sens-more"')[1][:900]
+check("/sensors/readings" in more and "readings.csv" in more and "/mes-parameters" in more and "/sensors/data" in more,
+      "More row: All readings, CSV, MES parameter inventory, Owner data")
+check("Last checked" in html, "last-checked line")
+
+# no data entry on the mechanic's page
+check("Add a normal range" not in html and "<form class=\"sens-form\"" not in html and 'name="source"' not in html,
+      "no range form on /sensors")
+check("Set location" not in html, "no Set location link on /sensors")
+
+# rows: one per sensor, grouped by status, details on tap
+rows_html = re.findall(r'<details class="sens-item" id="sensor-([^"]+)"', html)
+check(sorted(rows_html) == sorted(ids), "one tappable row per sensor")
+secs = re.findall(r'<section class="sens-sec" id="sens-sec-(\w+)"', html)
+check(secs == ["attention", "never", "ok"], f"groups: needs attention, never read, OK ({secs})")
+
+
+def sec_ids(name):
+    body = re.search(rf'id="sens-sec-{name}".*?</section>', html, re.S).group(0)
+    return re.findall(r'id="sensor-([^"]+)"', body)
+
+
+att, nev, okk = sec_ids("attention"), sec_ids("never"), sec_ids("ok")
+check(att[0] == "wssfl" and {"wssfl", "o2f", "iat", "wsrl"} <= set(att) and att.index("o2f") < att.index("wsrl") < att.index("iat"),
+      f"needs attention: faults first, then sensors with a code ({att})")
+check({"park", "cam", "noel"} <= set(nev) and not set(nev) & set(att), f"never read group ({nev})")
+check("map" in okk and "wssfr" in okk and not set(okk) & set(att), "OK group holds the read sensors")
+row = re.search(r'<details class="sens-item" id="sensor-map".*?</summary>', html, re.S).group(0)
+check("sens-judged" in row and "OK - in range" in row, "judged OK row says in range")
+row = re.search(r'<details class="sens-item" id="sensor-wssfr".*?</summary>', html, re.S).group(0)
+check("sens-nojudge" in row and "OK - read, no range to judge" in row and "OK - in range" not in row,
+      "not-judged OK is a distinct chip: 'OK - read, no range to judge'")
+check(".sens-st.sens-nojudge" in open(Path(__file__).resolve().parents[1] / "web/static/sensors.css", encoding="utf-8").read(),
+      "CSS gives the not-judged chip its own look")
+row = re.search(r'<details class="sens-item" id="sensor-iat".*?</summary>', html, re.S).group(0)
+check("history, no live fault" in row and "P0098-00" in row, "superseded code is shown as 'history, no live fault'")
+check("(superseded)" not in html, "the word superseded is not shown")
+for sid in ids:
+    d = re.search(rf'<details class="sens-item" id="sensor-{sid}".*?</summary>', html, re.S).group(0)
+    check(d.count('class="sens-line"') == 1, f"exactly one reason line on the row of {sid}")
+body = re.search(r'id="sensor-o2f".*?</details>\s*(?=<details|</div>)', html, re.S).group(0)
+check(body.count("Upstream O2 is orange") == 1, "the reason text is not repeated in the opened row")
+check("Area: general knowledge" in html or "Area: from a source" in html, "short area chip")
+check("How sure is this place?" in html and "fixture" in html, "long location text lives in a fold")
+check("no normal range on record" in html and "fixture manual" in html, "range / no range shown in details")
 check("/v/%s/code/P0131" % VIN in html, "code links to the base code page")
-check("no range yet" in html and "fixture manual" in html, "range / no range shown")
-check("e.g. service manual page, TechAuthority, measured on this car" in html, "source placeholder")
+check("/v/%s/electrical?find=rev_cam" % VIN in html, "Electrical path link for the sensor with an element")
+check("Not on the picture" in html and "Reverse camera" in html and "Rain sensor" in html, "unplaced sensors listed without editing links")
 check('/static/sensors.css' in html, "sensors.css linked")
 check("/v/%s/sensors" % VIN in html and ">Sensors<" in html, "Sensors tab in the tab strip")
+check("style=" not in html.split('class="sens-page')[1], "no inline styles on the page")
 
+# one photo per sensor
+fake_imgs = {"throttle": [{"photo_url": "/p/tb.webp", "part_url": "/part/1", "name": "Throttle Body"},
+                          {"photo_url": "/p/tb.webp", "part_url": "/part/1", "name": "Throttle Body"},
+                          {"photo_url": "/p/tb2.webp", "part_url": "/part/2", "name": "Throttle Body Gasket"}]}
+_orig_photos = sensor_routes._photos
+sensor_routes._photos = lambda key, limit=2: fake_imgs.get("throttle") if key in ("map", "o2f") else []
+tp = client.get(f"/v/{VIN}/sensors").text
+sensor_routes._photos = _orig_photos
+check(tp.count('class="sens-photo-frame"') == 2 and tp.count('/p/tb.webp') == 2 and "/p/tb2.webp" not in tp,
+      "one photo per sensor, duplicates dropped")
+check("Mopar catalogue photo of the part type for: Upstream O2" in tp and "not this car" in tp, "photo labelled by the sensor's own name")
+css = open(Path(__file__).resolve().parents[1] / "web/static/sensors.css", encoding="utf-8").read()
+check(".sens-photo-frame" in css and "background: #f4f4f1" in css, "photo styles + neutral frame are in CSS")
+
+# the car view: ONE view, Side / Top toggle, count markers, big targets
+check(html.count('class="sv-wrap"') == 1 and 'id="sv-side"' in html and 'id="sv-top"' in html and 'class="sv-tabs"' in html,
+      "one car view with a Side / Top toggle")
+check(html.count("<svg") == 2 and html.count("sm-cluster") >= 2, "side and top drawings (toggled) with count markers")
+side_svg = html.split('<svg')[1]
+check('class="sm-mark sm-cluster' in side_svg and "Opens the list for this area" in side_svg and "?zone=engine_bay" in side_svg,
+      "engine-bay cluster is a count marker that opens the filtered list")
+check(re.search(r'sm-count"[^>]*>\s*(\d+)</text>', side_svg).group(1) == str(sum(1 for s in SENSORS if s["zone"] == "engine_bay")),
+      "cluster count equals the sensors in that area")
+check(re.findall(r'class="sm-hit"[^>]*r="(\d+)"', side_svg) and all(int(x) * 2 * 0.837 >= 44 for x in re.findall(r'class="sm-hit"[^>]*r="(\d+)"', html)),
+      "every marker has a tap area of at least 44 px")
+check("min-width: 720px" in css and "font: 600 19px" in css, "drawing keeps >= 0.84 scale and labels >= 16 px")
+import math  # noqa: E402
+for view in ("side", "top"):
+    svg_v, groups_v = sensor_profile_svg.map_view_svg([{**s, "number": i} for i, s in enumerate(SENSORS, 1)], view)
+    pts = [(g["x"], g["y"]) for g in groups_v]
+    check(all(math.dist(a, b) >= 54 for i, a in enumerate(pts) for b in pts[i + 1:]), f"{view} view: tap areas never overlap")
+tv_labels = re.findall(r'class="sm-label" x="([\d.]+)" y="([\d.]+)" text-anchor="(\w+)">([^<]+)<', sensor_profile_svg.map_view_svg(
+    [{**s, "number": i} for i, s in enumerate(SENSORS, 1)], "top")[0])
+boxes = []
+for x, y, ta, tx in tv_labels:
+    w = 0.56 * 19 * len(tx) + 6
+    x = float(x)
+    x0 = x - w / 2 if ta == "middle" else x if ta == "start" else x - w
+    boxes.append((x0, float(y) - 19, x0 + w, float(y) + 6))
+check(all(a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1] for i, a in enumerate(boxes) for b in boxes[i + 1:]),
+      "top view: no two labels overlap")
+
+# filters
 r = client.get(f"/v/{VIN}/sensors?status=red")
-n_rows = len(re.findall(r'<article class="sens-row"', r.text))
-dimmed = len(re.findall(r'sens-dot sens-\w+ sens-dim', r.text))
+n_rows = len(re.findall(r'<details class="sens-item"', r.text))
 check(r.status_code == 200 and n_rows == 1, f"status filter narrows the list (rows={n_rows})")
-check(dimmed == 2 * (len(ids) - 1), f"status filter dims the other dots in both views ({dimmed})")
+check("sens-dim" in r.text and not re.search(r'sm-single sens-red sens-dim', r.text) and "sm-single sens-red" in r.text,
+      "status filter dims the markers with nothing to show, keeps the matching one")
 r = client.get(f"/v/{VIN}/sensors?system=Brakes")
-check(len(re.findall(r'<article class="sens-row"', r.text)) == 2, "system filter narrows the list")
+check(len(re.findall(r'<details class="sens-item"', r.text)) == 3, "system filter narrows the list")
+r = client.get(f"/v/{VIN}/sensors?zone=engine_bay")
+check(len(re.findall(r'<details class="sens-item"', r.text)) == sum(1 for s in SENSORS if s["zone"] == "engine_bay")
+      and "Area: Engine bay" in r.text, "area (cluster) filter narrows the list")
 r = client.get(f"/v/{VIN}/sensors?status=bogus")
-check(len(re.findall(r'<article class="sens-row"', r.text)) == len(SENSORS), "bad status ignored")
+check(len(re.findall(r'<details class="sens-item"', r.text)) == len(SENSORS), "bad status ignored")
+a_chips = html.count('class="sens-chip ')
+check(a_chips >= 4 and "min-height: var(--tap, 44px); padding: 4px 14px" in css, "status chips are 44 px")
+
+# the owner page keeps the data entry, and its POSTs still work
+od = client.get(f"/v/{VIN}/sensors/data")
+check(od.status_code == 200 and od.text.count("Add a normal range") == len(SENSORS), "owner page has a range form on every sensor")
+check("Set location" in od.text and "/v/%s/electrical?find=rev_cam" % VIN in od.text, "owner page has Set location")
+check("e.g. service manual page, TechAuthority, measured on this car" in od.text and 'name="back" value="data"' in od.text,
+      "owner page range form posts back to the owner page")
+r = client.post(f"/v/{VIN}/sensors/range", data={"sensor_id": "map", "channel": "value", "min": "1", "max": "2", "unit": "kPa",
+                                                 "source": "bench", "back": "data"})
+check(r.status_code == 303 and r.headers["location"].startswith(f"/v/{VIN}/sensors/data?msg="), "range POST from the owner page returns there")
+CALLS["range"].clear()
+
+# direct(): call logic on its own
+rows_ = sensor_direct.direct([s for s in SENSORS], {s["id"]: i for i, s in enumerate(SENSORS, 1)}, [], {}, [])
+check(rows_["rows"]["map"]["kind"] == "ok_judged" and rows_["rows"]["wssfr"]["kind"] == "ok_nojudge", "kinds: judged vs not judged")
+quiet = sensor_direct.direct([sensor("a", "Alpha", "green", "roof")], {"a": 1}, [], {}, [])
+check(quiet["call"] == "All 1 sensors read; nothing flagged.", f"quiet call ({quiet['call']})")
 
 # --- check / range posts --------------------------------------------------
 r = client.post(f"/v/{VIN}/sensors/check")

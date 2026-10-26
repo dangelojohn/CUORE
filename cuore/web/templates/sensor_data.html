@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Sensor data (owner) — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('sensors.css') }}">
+{% set base = "/v/" ~ vin ~ "/sensors" %}
+<div class="sens-page sens-col">
+<h1 class="sens-h1">Sensor data (owner)</h1>
+<p class="lede"><a class="sens-link" href="{{ base }}">&larr; Back to the sensors page</a></p>
+<p>Normal ranges and sensor locations are set here, not on the mechanic's page. A range needs a source (manual page, TechAuthority, measured on this car); without a range CUORE reports a reading as "read, no range to judge" and never as a judged OK.</p>
+{% if msg %}<p class="sens-msg" role="status">{{ msg }}</p>{% endif %}
+{% if error %}<p class="sens-msg" role="alert">{{ error }}</p>{% endif %}
+{% for s in sensors %}
+<details class="sens-fold sens-datarow" id="data-{{ s.id }}">
+  <summary><span class="n">#{{ numbers[s.id] }}</span> {{ s.label }}</summary>
+  <p class="muted">{{ s.module or "module not recorded" }}{% if s.bus %} · {{ s.bus }}{% endif %} · {{ zone_label(s.zone) or "not placed" }} [{{ s.location_confidence or "UNKNOWN" }}]</p>
+  <p>{% if s.element_id %}<a class="sens-link" href="/v/{{ vin }}/electrical?find={{ s.element_id|urlencode }}#el-{{ s.element_id|urlencode }}">Set location</a>{% else %}<span class="muted">Location not sourced yet; no electrical element to set it on.</span>{% endif %}</p>
+  {% for v in s['values'] %}
+    <p class="small">{{ v.label or v.channel }}: {% if v.range %}normal {{ v.range.min }}&ndash;{{ v.range.max }} {{ v.range.unit or v.unit or "" }} ({{ v.range.source }}){% else %}<span class="muted">no range yet</span>{% endif %}</p>
+  {% endfor %}
+  <details class="sens-fold">
+    <summary>Add a normal range</summary>
+    <form class="sens-form" method="post" action="{{ base }}/range">
+      <input type="hidden" name="sensor_id" value="{{ s.id }}">
+      <input type="hidden" name="back" value="data">
+      <label>Channel
+        {% if s.channels %}<select name="channel">{% for ch in s.channels %}<option>{{ ch }}</option>{% endfor %}</select>
+        {% else %}<input name="channel" required>{% endif %}</label>
+      <label>Min <input name="min" inputmode="decimal" required></label>
+      <label>Max <input name="max" inputmode="decimal" required></label>
+      <label>Unit <input name="unit"></label>
+      <label class="wide">Source (required)
+        <input name="source" required placeholder="e.g. service manual page, TechAuthority, measured on this car"></label>
+      <button class="wide" type="submit">Save range</button>
+    </form>
+  </details>
+</details>
+{% endfor %}
+</div>
+{% endblock %}

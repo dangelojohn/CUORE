@@ -1,20 +1,37 @@
 {% extends "base.html" %}
-{% block title %}Sensor health — {{ bar.name }}{% endblock %}
+{% block title %}Sensors — {{ bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('sensors.css') }}">
 {% set base = "/v/" ~ vin ~ "/sensors" %}
-<div class="sens-page">
+{% macro vals(s) %}
+  {% if s['values'] %}
+  <ul class="sens-vals">
+    {% for v in s['values'] %}
+    <li><b>{{ v.label or v.channel }}</b>: {% if v.value is mapping %}{% for k, x in v.value.items() %}{{ k }} {{ x }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}{{ v.value }}{% endif %}{% if v.unit %} {{ v.unit }}{% endif %}
+      {% if v.range %}&mdash; normal {{ v.range.min }}&ndash;{{ v.range.max }} {{ v.range.unit or v.unit or "" }} ({{ v.range.source }}){% if v.in_range is sameas false %} <b>outside range</b>{% endif %}
+      {% else %}&mdash; <span class="muted">no normal range on record</span>{% endif %}
+      {% if v.read_at %}<span class="muted"> read {{ v.read_at }}</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+{% endmacro %}
+<div class="sens-page sens-col">
 <form class="sens-search" id="sens-search" method="get" action="{{ base }}" role="search">
   <input type="search" name="q" value="{{ q }}" placeholder="Search: oxygen, tyre, coolant, wheel speed, P0131" aria-label="Search the sensors on this page" maxlength="80">
   {% if status_f %}<input type="hidden" name="status" value="{{ status_f }}">{% endif %}
   {% if system_f %}<input type="hidden" name="system" value="{{ system_f }}">{% endif %}
+  {% if zone_f %}<input type="hidden" name="zone" value="{{ zone_f }}">{% endif %}
   <button type="submit">Search</button>
   {% if q %}<a href="{{ clear_href }}">Clear search</a>{% endif %}
 </form>
 
-<h1>Sensor health</h1>
-<p class="lede">Every sensor of the car, placed by zone on a side view, coloured by what CUORE last read. Dots show the area, not an exact spot.</p>
+<h1 class="sens-h1">Sensors</h1>
+
+{% if msg %}<p class="sens-msg" role="status">{{ msg }}</p>{% endif %}
+{% if error %}<p class="sens-msg" role="alert">{{ error }}</p>{% endif %}
+
+<p class="sens-call" id="sens-call">{% for sg in call.call_segs %}{% if sg.href %}<a href="{{ sg.href }}">{{ sg.text }}</a>{% else %}{{ sg.text }}{% endif %}{% endfor %}</p>
 
 {% if q %}
 <section class="sens-results" id="sens-results" aria-label="Search results">
@@ -25,146 +42,155 @@
   {% endfor %}
   {% if results|length > results_shown|length %}<p class="muted sens-more">Showing the first {{ results_shown|length }}. Add a word to narrow it.</p>{% endif %}
   {% else %}
-  <h2>No match for &ldquo;{{ q }}&rdquo;. {{ no_match_hint }}{% if status_f or system_f %} The status or system filter is also on.{% endif %}</h2>
+  <h2>No match for &ldquo;{{ q }}&rdquo;. {{ no_match_hint }}{% if status_f or system_f or zone_f %} The status, system or area filter is also on.{% endif %}</h2>
   {% endif %}
 </section>
 {% endif %}
 
-{% if msg %}<p class="sens-msg" role="status">{{ msg }}</p>{% endif %}
-{% if error %}<p class="sens-msg" role="alert">{{ error }}</p>{% endif %}
-
-<div class="sens-chips" role="group" aria-label="Filter by status">
-  {% for k in ("green", "orange", "red", "grey") %}
-    <a class="sens-chip sens-{{ k }}{{ ' on' if status_f == k }}"
-       href="{{ chip_href[k] }}"
-       title="{{ status_label[k] }}"><b>{{ status_mark[k] }}</b> {{ counts[k] }} {{ status_label[k] }}</a>
-  {% endfor %}
-  {% if status_f or system_f %}<a class="sens-chip all" href="{{ base }}">Show all {{ total }}</a>{% endif %}
-</div>
-
-{% if systems|length > 1 %}
-<div class="sens-sys" aria-label="Filter by system">
-  <span class="muted">System:</span>
-  {% for sy in systems %}
-    <a class="{{ 'on' if system_f == sy }}" href="{{ sys_href[sy] }}">{{ sy }}</a>
-  {% endfor %}
-</div>
+{% if call.targets %}
+<nav class="sens-go" id="sens-go" aria-label="Go to">
+  <span class="sens-go-l">Go to</span>
+  {% for c in call.targets %}<a class="sens-gochip" href="{{ c.href }}">{{ c.text }}</a>{% endfor %}
+</nav>
 {% endif %}
 
-<form class="sens-check" method="post" action="{{ base }}/check">
-  <button type="submit" class="btn">Check all sensors (read-only)</button>
-  <a class="btn" href="{{ base }}/readings">All readings — compare checks</a>
-  <a class="btn" href="{{ base }}/readings.csv">Download readings (CSV)</a>
-  <a class="btn" href="/v/{{ vin }}/mes-parameters">MES parameter inventory</a>
-  <p class="note small muted">Last checked: <b>{{ checked_at or "never" }}</b>.
-    Needs the car connected and ignition on, with MultiEcuScan closed. It never clears codes.
-    Sensors on the CAN-CH bus need the grey cable.</p>
-</form>
+{% if call.why %}
+<details class="sens-fold sens-why" id="sens-why">
+  <summary>Why these?</summary>
+  <p class="muted">From this car's open symptoms, the job's code list and CUORE's own last readings. "History, no live fault" means CUORE stored the code earlier and a later scan did not show it.</p>
+  <ul>{% for w in call.why %}<li>{{ w }}</li>{% endfor %}</ul>
+</details>
+{% endif %}
 
-<div class="sens-map">
+<div class="sens-checkrow" id="sens-actions">
+  <form method="post" action="{{ base }}/check">
+    <button type="submit" class="sens-primary"{% if not check.ok %} disabled aria-describedby="sens-off"{% endif %}>Check all sensors</button>
+  </form>
+  {% if not check.ok %}<p class="sens-off" id="sens-off" role="note">{{ check.reason }}</p>{% endif %}
+  <p class="sens-note">Last checked: <b>{{ checked_at or "never" }}</b>. Read-only; it never clears codes. Needs ignition on and MultiEcuScan closed.</p>
+</div>
+<div class="sens-more-row" id="sens-more">
+  <span class="sens-more-l">More</span>
+  <a href="{{ base }}/readings">All readings</a>
+  <a href="{{ base }}/readings.csv">Download CSV</a>
+  <a href="/v/{{ vin }}/mes-parameters">MES parameter inventory</a>
+  <a href="{{ base }}/data">Owner data</a>
+</div>
+
+<section class="sens-mapbox" id="sens-map" aria-label="Where the sensors are">
   {{ svg|safe }}
   <p class="sens-legend">
     <span class="sens-green"><i></i>OK</span>
-    <span class="sens-orange"><i></i>Fault / outside normal range</span>
+    <span class="sens-orange"><i></i>Fault / out of range</span>
     <span class="sens-red"><i></i>Dead / not responding</span>
-    <span class="sens-grey"><i class="hollow"></i>Not read yet / not readable with this cable</span>
-    <span><i class="dashed"></i>Dashed ring = location inferred</span>
-    <span><i class="dotted"></i>Dotted ring = area from general knowledge, not verified on this car</span>
-    <span>L / R = left / right of car</span>
+    <span class="sens-grey"><i class="hollow"></i>Not read yet</span>
+    <span>A number is one sensor; a larger marker with a count is several in that area &mdash; tap it for the list.</span>
   </p>
-</div>
-
-{% if unplaced %}
-<section class="sens-tray panel" aria-labelledby="sens-unplaced-h">
-  <h2 id="sens-unplaced-h">Unplaced ({{ unplaced|length }})</h2>
-  <p class="small muted">No location sourced yet, so these are not on the drawing.</p>
-  <ul>
-  {% for s in unplaced %}
-    <li class="sens-{{ s.status or 'grey' }}"><span class="sens-pip">{{ numbers[s.id] }}</span>
-      <span><a href="#sensor-{{ s.id }}">{{ s.label }}</a>
-      {% if s.element_id %}<br><a class="small" href="/v/{{ vin }}/electrical?find={{ s.element_id|urlencode }}#el-{{ s.element_id|urlencode }}">Set location</a>
-      {% else %}<br><span class="small muted">location not sourced yet</span>{% endif %}</span></li>
-  {% endfor %}
-  </ul>
+  {% if areas %}
+  <details class="sens-fold sens-areas">
+    <summary>Areas on this picture ({{ areas|length }})</summary>
+    <div class="sens-areachips">{% for a in areas %}<a class="sens-areachip{{ ' on' if zone_f == a.zone }}" href="{{ a.href }}">{{ a.label }} <b>{{ a.n }}</b></a>{% endfor %}</div>
+  </details>
+  {% endif %}
 </section>
+
+<div class="sens-chips" id="sens-chips" role="group" aria-label="Filter by status">
+  {% for k in ("green", "orange", "red", "grey") %}
+    <a class="sens-chip sens-{{ k }}{{ ' on' if status_f == k }}" href="{{ chip_href[k] }}#sens-list"
+       title="{{ status_label[k] }}"><b>{{ status_mark[k] }}</b> {{ counts[k] }} {{ status_label[k] }}</a>
+  {% endfor %}
+  {% if zone_f %}<a class="sens-chip on-zone" href="{{ all_href }}#sens-list">Area: {{ zone_label }} &times; show all areas</a>{% endif %}
+  {% if status_f or system_f or zone_f %}<a class="sens-chip all" href="{{ all_href }}#sens-list">Show all {{ total }}</a>{% endif %}
+</div>
+{% if systems|length > 1 %}
+<details class="sens-fold sens-sys"{{ ' open' if system_f }}>
+  <summary>Filter by system{% if system_f %}: {{ system_f }}{% endif %}</summary>
+  <div class="sens-syslinks">{% for sy in systems %}<a class="{{ 'on' if system_f == sy }}" href="{{ sys_href[sy] }}#sens-list">{{ sy }}</a>{% endfor %}</div>
+</details>
 {% endif %}
 
+<div id="sens-list">
 {% if not total %}
   <p class="panel muted">No sensors known for this car yet.</p>
-{% elif not groups %}
-  <p class="panel muted">No sensors match this filter. <a href="{{ base }}">Show all</a></p>
+{% elif not sections and not unplaced %}
+  <p class="panel muted">No sensors match this filter. <a href="{{ all_href }}">Show all</a></p>
 {% endif %}
 
-{% for sy, rows in groups.items() %}
-<h2 class="sens-group">{{ sy }} <span class="muted small">({{ rows|length }})</span></h2>
-{% for s in rows %}
+{% for sec in sections %}
+<section class="sens-sec" id="sens-sec-{{ sec.id }}" aria-labelledby="sens-h-{{ sec.id }}">
+<h2 class="sens-group" id="sens-h-{{ sec.id }}">{{ sec.title }} <span class="muted">({{ sec['items']|length }})</span></h2>
+<p class="sens-sub muted">{{ sec.sub }}</p>
+<div class="sens-list sens-inset">
+{% for it in sec['items'] %}
+{% set s = it.s %}{% set r = it.r %}
 {% set st = s.status if s.status in status_label else "grey" %}
-<article class="sens-row" id="sensor-{{ s.id }}">
-  <span class="n">#{{ numbers[s.id] }}</span>
-  <span class="sens-st sens-{{ st }}">{{ status_mark[st] }} {{ status_label[st] }}</span>
+<details class="sens-item" id="sensor-{{ s.id }}"{{ ' open' if it.open }}>
+  <summary>
+    <span class="n">#{{ it.n }}</span>
+    <span class="sens-name">{{ s.label }}</span>
+    <span class="sens-st sens-{{ st }}{{ ' sens-nojudge' if r.kind == 'ok_nojudge' }}{{ ' sens-judged' if r.kind == 'ok_judged' }}">{{ status_mark[st] }} {{ r.chip }}</span>
+    {% for c in r.codes %}<span class="sens-code{{ ' sens-code-hist' if c.history }}">{{ c.code }} {{ c.text }}</span>{% endfor %}
+    <span class="sens-line">{{ r.line }}</span>
+  </summary>
   <div class="sens-body">
-    <h3>{{ s.label }}</h3>
-    {% if photos and photos.get(s.id) %}
-    <div class="sens-photos" style="display:flex;gap:.6rem;flex-wrap:wrap;margin:.3rem 0">
-      {% for ph in photos[s.id] %}
-      <figure style="margin:0;max-width:140px">
-        <a href="{{ ph.part_url }}"><img src="{{ ph.photo_url }}" alt="{{ ph.name }}" loading="lazy" style="width:96px;height:96px;object-fit:contain;background:#fff;border-radius:4px"></a>
-        <figcaption class="small muted">Mopar catalogue photo - the part, not this car<br>{{ ph.name }}</figcaption>
-      </figure>
-      {% endfor %}
-    </div>
+    {% if it.photo %}
+    <figure class="sens-photo">
+      <a class="sens-photo-frame" href="{{ it.photo.href }}"><img src="{{ it.photo.url }}" alt="{{ it.photo.alt }}" width="96" height="96" loading="lazy"></a>
+      <figcaption>Mopar catalogue photo: {{ it.photo.name }}. The part type, not this car's {{ s.label }}.</figcaption>
+    </figure>
     {% endif %}
-    <p class="small muted">{{ s.module or "module not recorded" }}{% if s.bus %} · {{ s.bus }}{% endif %}{% if not s.readable %} · not readable: {{ s.readable_note or "with the current cable" }}{% endif %}</p>
-    {% if s.reasons %}<ul>{% for r in s.reasons %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
-    {% if s['values'] %}
-    <ul class="small">
-      {% for v in s['values'] %}
-      <li><b>{{ v.label or v.channel }}</b>: {% if v.value is mapping %}{% for k, x in v.value.items() %}{{ k }} {{ x }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}{{ v.value }}{% endif %}{% if v.unit %} {{ v.unit }}{% endif %}
-        {% if v.range %}&mdash; normal {{ v.range.min }}&ndash;{{ v.range.max }} {{ v.range.unit or v.unit or "" }} ({{ v.range.source }})
-          {% if v.in_range is sameas false %} <b>outside range</b>{% endif %}
-        {% else %}&mdash; <span class="muted">no range yet</span>{% endif %}
-        {% if v.read_at %}<span class="muted"> read {{ v.read_at }}</span>{% endif %}</li>
-      {% endfor %}
-    </ul>
-    {% endif %}
+    <dl class="sens-facts">
+      <div><dt>Module</dt><dd>{{ s.module or "not recorded" }}{% if s.bus %} · {{ s.bus }}{% endif %}</dd></div>
+      <div><dt>Last read</dt><dd>{{ s.last_read or "never" }}</dd></div>
+      <div><dt>Where</dt><dd>{{ it.zone_label or "not placed on the car" }}{% if s.side in ("left", "right") %} ({{ s.side }}){% endif %} <span class="sens-chipl">{{ r.area_chip }}</span></dd></div>
+    </dl>
+    {{ vals(s) }}
+    {% if r.extra %}<ul class="sens-extra">{% for x in r.extra %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
     {% if s.codes %}
-    <p class="small">Codes:
-      {% for c in s.codes %}<a href="/v/{{ vin }}/code/{{ (c.code or '').split('-')[0]|urlencode }}">{{ c.code }}</a>{% if c.state %} <span class="muted">({{ c.state }})</span>{% endif %}{% if c.description %} {{ c.description }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}</p>
+    <p>Codes:
+      {% for c in s.codes %}<a class="sens-link" href="/v/{{ vin }}/code/{{ (c.code or '').split('-')[0]|urlencode }}">{{ c.code }}</a>{% if c.state == 'superseded' %} <span class="muted">(history, no live fault)</span>{% elif c.state %} <span class="muted">({{ c.state }})</span>{% endif %}{% if c.description %} {{ c.description }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}</p>
     {% endif %}
-    <p class="small muted">Last read: {{ s.last_read or "never" }}</p>
-    <p class="small">Location: {{ s.zone or "not placed" }}{% if s.side %} ({{ s.side }}){% endif %}
-      <span class="sens-conf">[{{ s.location_confidence or "UNKNOWN" }}]</span>
-      <span class="muted">{{ s.location_source or "no source" }}</span></p>
-    <details>
-      <summary class="small">Add a normal range</summary>
-      <form class="sens-form" method="post" action="{{ base }}/range">
-        <input type="hidden" name="sensor_id" value="{{ s.id }}">
-        <label>Channel
-          {% if s.channels %}<select name="channel">{% for ch in s.channels %}<option>{{ ch }}</option>{% endfor %}</select>
-          {% else %}<input name="channel" required>{% endif %}</label>
-        <label>Min <input name="min" inputmode="decimal" required></label>
-        <label>Max <input name="max" inputmode="decimal" required></label>
-        <label>Unit <input name="unit"></label>
-        <label class="wide">Source (required)
-          <input name="source" required placeholder="e.g. service manual page, TechAuthority, measured on this car"></label>
-        <button class="wide" type="submit">Save range</button>
-      </form>
-    </details>
+    <p class="sens-links">
+      {% if s.element_id %}<a class="sens-link" href="/v/{{ vin }}/electrical?find={{ s.element_id|urlencode }}#el-{{ s.element_id|urlencode }}">Electrical path for this sensor</a>{% endif %}
+      {% if s.zone %}<a class="sens-link" href="#sens-map">Show on the car</a>{% endif %}
+    </p>
+    <details class="sens-fold sens-sure"><summary>How sure is this place?</summary>
+      <p>{{ r.area_chip }}. {{ s.location_source or "No source recorded." }}</p></details>
   </div>
-</article>
-{% endfor %}
+</details>
 {% endfor %}
 </div>
+</section>
+{% endfor %}
+
+{% if unplaced %}
+<section class="sens-tray" aria-labelledby="sens-unplaced-h">
+  <h2 class="sens-group" id="sens-unplaced-h">Not on the picture <span class="muted">({{ unplaced|length }})</span></h2>
+  <p class="sens-sub muted">No area is sourced for these yet, so they are not drawn.</p>
+  <div class="sens-inset">
+  {% for u in unplaced %}
+    <a class="sens-unrow sens-{{ u.s.status or 'grey' }}" href="#sensor-{{ u.s.id }}"><span class="n">#{{ u.n }}</span> <span>{{ u.s.label }}</span> <span class="sens-st sens-{{ u.s.status if u.s.status in status_label else 'grey' }}">{{ u.r.chip }}</span></a>
+  {% endfor %}
+  </div>
+</section>
+{% endif %}
+</div>
+</div>
 <script>
-/* Optional: filter the cards as you type. The page works without this. */
+/* Optional: the page works without this. Filter the rows as you type; open the row a link points at. */
 (function () {
   var i = document.querySelector('#sens-search input[type=search]');
   if (i) i.addEventListener('input', function () {
     var q = i.value.toLowerCase().trim();
-    document.querySelectorAll('.sens-row').forEach(function (r) {
+    document.querySelectorAll('.sens-item').forEach(function (r) {
       r.hidden = !!q && r.textContent.toLowerCase().replace(/\s+/g, ' ').indexOf(q) < 0;
     });
   });
+  function openHash() {
+    var el = location.hash.length > 1 ? document.getElementById(decodeURIComponent(location.hash.slice(1))) : null;
+    if (el && el.tagName === 'DETAILS') { el.open = true; }
+  }
+  window.addEventListener('hashchange', openHash); openHash();
 })();
 </script>
 {% endblock %}

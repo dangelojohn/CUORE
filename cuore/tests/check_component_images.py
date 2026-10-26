@@ -95,9 +95,9 @@ check(client.get(f"/v/{VIN}/component-images?key=nope").json()["images"] == [], 
 
 r = client.get(f"/v/{VIN}/sensors")
 check("/catalog/img/fix-cat/" + "b" * 20 + ".png" in r.text, "sensor card shows photo")
-check("Mopar catalogue photo - the part, not this car" in r.text, "sensor card caption")
+check("The part type, not this car" in r.text, "sensor card caption")
 check('href="/catalog/p/BBB222"' in r.text and "Oxygen Sensor" in r.text, "photo links to part page, part name shown")
-check(r.text.count("Mopar catalogue photo") == 2, "only sensors with photos get a caption")
+check(r.text.count("<figcaption>Mopar catalogue photo") == r.text.count("class=\"sens-photo-frame\"") >= 1, "only sensors with photos get a caption, one photo each")
 
 # keys file
 raw = (Path(__file__).resolve().parents[1] / "data" / "component_image_keys.json").read_text(encoding="utf-8")
