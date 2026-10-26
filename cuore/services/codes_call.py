@@ -126,3 +126,33 @@ def job_state(vin: str, dossier: dict[str, Any]) -> tuple[set[str], Optional[str
         return codes, b, (act[:1].lower() + act[1:]) if act else None
     except Exception:  # noqa: BLE001 -- the page works without a job
         return set(), None, None
+
+
+#: board statuses worth a chip on the Codes page (the row's own state chip already says the rest)
+BOARD_CHIPS = {"verifying": "Verifying", "proven-fixed": "Proven fixed"}
+
+
+def attach_board(rows: list[dict[str, Any]], vin: str) -> None:
+    """Give each row ``fb`` = the fault board's card for that code (key, chip, can_fix/can_undo). Never raises.
+
+    Uses ``fault_board.board`` (its facts are cached on the log/state fingerprint). The fault key is the card's own
+    ``code:<module>:<code>``; with two modules for one code the one matching the row's module wins.
+    """
+    try:
+        from . import fault_board
+        by_code: dict[str, list[dict[str, Any]]] = {}
+        for c in fault_board.board(vin):
+            if c.get("kind") == "code":
+                by_code.setdefault(c["code"], []).append(c)
+        for r in rows:
+            cards = by_code.get(base(r.get("dtc", "")))
+            if not cards:
+                continue
+            mod = fault_board._short_module(r.get("modules") or [])
+            c = (next((x for x in cards if x["module"] == mod), None)
+                 or next((x for x in cards if x.get("fixed")), None) or cards[0])
+            chip = ("Returned after fix" if c.get("returned_after_fix") else BOARD_CHIPS.get(c["status"], ""))
+            r["fb"] = {"key": c["key"], "chip": chip, "status": c["status"], "can_fix": bool(c.get("can_fix")),
+                       "can_undo": bool(c.get("can_undo")), "detail": c.get("status_detail", "")}
+    except Exception:  # noqa: BLE001 -- the Codes page works without the board
+        return

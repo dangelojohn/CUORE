@@ -447,6 +447,7 @@ def codes(request: Request, vin: str,
     from . import page_search
     job_codes, blocker, action = codes_call.job_state(vin, dossier)
     codes_call.shape(data["dtcs"], job_codes)
+    codes_call.attach_board(data["dtcs"], vin)
     system_filter = (system or "").strip()
     rows = data["dtcs"]
     if system_filter:
@@ -466,6 +467,7 @@ def codes(request: Request, vin: str,
                 for g in all_groups] + call["targets"]
 
     response = _page(request, "codes.html", vin=vin, rows=rows, data=data,
+                     flash_msg=(request.query_params.get("msg") or "")[:300], flash_kind=request.query_params.get("mk") or "ok",
                      sort=sort, sort_dir=dir, q=q, groups=groups, call=call, go_chips=go_chips,
                      total_rows=len(data["dtcs"]),
                      state_help=codes_call.STATE_HELP, no_match_hint=page_search.HINT_CODES,
@@ -1239,11 +1241,22 @@ def _safe_redirect(url: str, fallback: str) -> str:
 
 @router.get("/v/{vin}/notes", response_class=HTMLResponse)
 def notes_page(request: Request, vin: str, target_kind: str = "",
-              target_id: str = "") -> HTMLResponse:
-    """Every technician note for this vehicle, with edit/hide and a filter."""
+              target_id: str = "", q: str = "") -> HTMLResponse:
+    """Every technician note for this vehicle, grouped by target (active codes
+    first, then newest), one line each with expand, edit/hide, and a search."""
+    from ..services import list_groups
+    from . import page_search
     dossier = _dossier(vin)
     rows = mes_bridge.notes(vin, target_kind=target_kind, target_id=target_id)["notes"]
+    q = page_search.clean_q(q)
+    total = len(rows)
+    if q:
+        rows = [n for n in rows if page_search.matches(
+            q, page_search.haystack([n.get("text"), n.get("target_kind"), n.get("target_id"),
+                                     " ".join(n.get("tags") or []), n.get("author")]), ())]
+    groups = list_groups.group_notes(rows, list_groups.active_codes(vin))
     response = _page(request, "notes.html", vin=vin, notes_list=rows,
+                     notes_groups=groups, notes_q=q, notes_total=total,
                      filter_target_kind=target_kind, filter_target_id=target_id,
                      note_target_kind=target_kind or "vehicle",
                      note_target_id=target_id, note_redirect=f"/v/{vin}/notes",

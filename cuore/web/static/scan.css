@@ -172,6 +172,13 @@
 .cd-desc { flex: 1 1 200px; }
 .cd-mod { color: var(--ink-2); font-family: var(--mono); }
 .cd-job { border: 1px solid var(--accent); border-radius: 999px; padding: 0 8px; }
+.cd-fb { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 2px solid var(--ink-3); border-radius: 999px; font-weight: 700; }
+.cd-fb-verifying { border-color: var(--sev-chronic, #d9a63c); }
+.cd-fb-proven-fixed { border-color: var(--ok); }
+.cd-fb-returned { border-color: var(--sev-returned, #e8565c); }
+.cd-act { flex: 0 0 auto; display: flex; align-items: center; padding: 0 6px; }
+.cd-btn { min-height: var(--tap, 44px); min-width: 88px; padding: 0 16px; font-size: var(--fs-md); font-weight: 700; cursor: pointer; border-radius: var(--radius, 3px); border: 2px solid var(--ink); background: var(--surface); color: var(--ink); }
+.cd-btn.fix { background: var(--ok-bg); border-color: var(--ok); }
 .cd-more { flex: 0 0 auto; }
 .cd-more > summary { padding: 0 12px; color: var(--ink-2); font-weight: 400; }
 .cd-more[open] { flex-basis: 100%; }
@@ -181,3 +188,5 @@
 .cd-detail dd { margin: 0; }
 .cd-empty, .cd-count { margin: 12px 0; }
 @media (max-width: 560px) { .cd-detail > div { grid-template-columns: 1fr; gap: 0; } }
+.codes-page .flash-toast { padding: 10px 14px; margin: 0 0 10px; border-radius: 8px; font-size: var(--fs-md); background: var(--surface-2); border: 2px solid var(--ok); }
+.codes-page .flash-err { border-color: var(--sev-returned, #e8565c); }

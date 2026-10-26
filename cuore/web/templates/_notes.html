@@ -12,6 +12,9 @@ Context expected:
                           fat-fingering the target.
 #}
 
+{% if notes_groups is defined %}
+{% include "_notes_grouped.html" %}
+{% else %}
 <div class="panel tight">
   <div class="tw">
   <table>
@@ -49,6 +52,8 @@ Context expected:
   </table>
   </div>
 </div>
+
+{% endif %}
 
 <div class="panel">
   <h3>Add a note</h3>

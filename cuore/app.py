@@ -91,6 +91,7 @@ from .web import ask_claude_routes  # noqa: E402
 from .web import slvt_routes  # noqa: E402
 from .web import inbox_routes  # noqa: E402
 from .web import jobs_routes  # noqa: E402
+from .web import fault_board_routes  # noqa: E402
 from .web import flow_globals, tools_kb_globals  # noqa: F401
 from .web import icons, i18n  # noqa: F401
 from .web import static_version  # noqa: F401
@@ -233,6 +234,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(slvt_routes.router)
     app.include_router(inbox_routes.router)
     app.include_router(jobs_routes.router)
+    app.include_router(fault_board_routes.router)
     app.include_router(live_dashboard_routes.router)
     app.include_router(liveboard_routes.router)
     app.include_router(recordings_routes.router)

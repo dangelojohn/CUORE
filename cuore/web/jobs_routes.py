@@ -36,8 +36,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from ..api.deps import require_token
-from ..services import (cases_bridge, dossier_bridge, job_direct, jobs_bridge, mechanic_plan_bridge,
-                        tools_kb_bridge)
+from ..services import (cases_bridge, dossier_bridge, fault_board, job_direct, job_log, jobs_bridge,
+                        mechanic_plan_bridge, tools_kb_bridge)
 from ..services.errors import BridgeError
 from . import routes as web_routes
 
@@ -227,6 +227,25 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
         hit = set(found["hyp_ids"])
         job_view["job"]["hypotheses"] = sorted(live_hyps, key=lambda h: h["id"] not in hit)
 
+    # Fault board (every step) and the organised repair log (step 9): each isolated so neither can 500 the page.
+    job_obj = job_view.get("job") or {}
+    keep = {k: qp.get(k) for k in ("step", "q", "log_kind", "log_sort", "log_q", "log_fault") if qp.get(k)}
+    # Sort/Group links keep the step and the other params; the board's own links append sort= and group=.
+    link_base = f"/v/{vin}/job{'/' + quote(job_id) if job_id else ''}?" + "".join(f"{k}={quote(v)}&" for k, v in keep.items())
+    ctl = "".join(f"{k}={quote(qp.get(k))}&" for k in ("sort", "group") if qp.get(k))
+    ret = (link_base + ctl).rstrip("?&")
+    try:
+        fb = fault_board.fault_board_context(vin, job_obj.get("id") or None, qp.get("sort") or "importance",
+                                             qp.get("group") or "none", return_to=ret)
+        fb["step"] = step
+        fb["link_base"] = link_base
+    except Exception:  # noqa: BLE001
+        fb = None
+    try:
+        jl = job_log.job_log_context(job_obj, qp, vin=vin) if job_obj else {"log": None}
+    except Exception:  # noqa: BLE001
+        jl = {"log": None}
+
     # `view` carries the full dossier view -- the shape _verdict_card.html,
     # _codes_table.html and _open_work.html already expect everywhere else
     # they're included; `job_view` carries the Job-specific data only
@@ -239,7 +258,7 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
                                 systems_taxonomy=SYSTEMS_TAXONOMY,
                                 prefill_system=prefill_system, prefill_codes=prefill_codes,
                                 prefill_hypothesis=prefill_hypothesis,
-                                mechanic_plans=mechanic_plans, direction=direction, found=found,
+                                mechanic_plans=mechanic_plans, direction=direction, found=found, fb=fb, **jl,
                                 q=found["q"], sys_labels=sys_labels,
                                 hyp_title=lambda h: job_direct.hyp_title(h, sys_labels),
                                 first_step=job_direct.first_step,

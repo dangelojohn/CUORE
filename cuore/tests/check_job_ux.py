@@ -729,7 +729,7 @@ else:
                     # proved flaky; a short poll is cheap and robust.
                     gap_val = -1
                     ready_val = None
-                    deadline = time.time() + 8
+                    deadline = time.time() + 20
                     while time.time() < deadline:
                         probe = cdp.send("Runtime.evaluate", {
                             "expression": (
@@ -748,7 +748,8 @@ else:
                         data = json.loads(probe.get("result", {}).get("value", "{}"))
                         ready_val = data.get("ready")
                         gap_val = data.get("gap", -1)
-                        if gap_val != -1:
+                        # Both: the element exists AND the document finished parsing.
+                        if gap_val != -1 and ready_val in ("complete", "interactive"):
                             break
                         time.sleep(0.4)
 

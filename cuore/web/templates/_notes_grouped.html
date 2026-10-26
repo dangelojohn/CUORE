@@ -1,0 +1,53 @@
+{# Grouped notes: kind -> target -> one-line entries (expand for the full text). #}
+<p class="small muted">
+  {% if notes_q %}{{ notes_list|length }} of {{ notes_total }} notes match &ldquo;{{ notes_q }}&rdquo;.
+  {% else %}{{ notes_list|length }} note{{ '' if notes_list|length == 1 else 's' }}.{% endif %}
+  Notes on active codes first, then newest. Tap a line for the full text.</p>
+
+{% for kg in notes_groups %}
+<details class="fold panel" {% if kg.open %}open{% endif %}>
+  <summary><h2 style="display:inline">{{ kg.kind }}
+    <span class="chip plain">{{ kg.n }}</span>
+    {% if kg.active %}<span class="chip chronic">Active code</span>{% endif %}
+    <span class="small muted" title="{{ kg.latest }}">latest {{ kg.age }}</span></h2></summary>
+  {% for t in kg.targets %}
+    <details class="fold fb-group" {% if t.open %}open{% endif %}>
+      <summary>
+        <span class="fb-title mono">{{ t.target_id or ('(whole ' ~ kg.kind ~ ')') }}</span>
+        {% if t.active %}<span class="chip chronic">Active code</span>{% endif %}
+        <span class="muted" title="{{ t.latest }}">{{ t.n }} note{{ '' if t.n == 1 else 's' }} &middot; {{ t.age }}</span>
+      </summary>
+      <div class="fb-body">
+      {% for e in t.entries %}
+        {% set n = e.note %}
+        <details class="fold nt-entry">
+          <summary>
+            <span class="nt-sum">{{ e.summary }}</span>
+            {% if e.count > 1 %}<span class="chip plain">&times;{{ e.count }} same</span>{% endif %}
+            {% if e.resolved %}<span class="chip ok">Resolved</span>{% endif %}
+            {% if n.tags and not e.resolved %}<span class="chip plain">{{ n.tags|join(", ") }}</span>{% endif %}
+            <span class="small muted" title="{{ n.at }}">{{ e.age }} &middot; {{ n.author }}</span>
+          </summary>
+          <div class="fb-body">
+            {% if n.edited_at %}<div class="small muted">edited {{ n.edited_at }}</div>{% endif %}
+            <form method="post" action="/v/{{ vin }}/notes/{{ n.id }}/edit">
+              <input type="hidden" name="redirect_to" value="{{ note_redirect }}">
+              <textarea name="text" rows="{{ 6 if e.long else 2 }}" style="width:100%" maxlength="4000" aria-label="Full note text (edit and save to amend)">{{ n.text }}</textarea>
+              <button class="btn" type="submit">Save changes</button>
+            </form>
+            <div class="fb-bulk">
+              <form method="post" action="/v/{{ vin }}/notes/{{ n.id }}/hide">
+                <input type="hidden" name="redirect_to" value="{{ note_redirect }}">
+                <button class="btn" type="submit">Hide{% if e.count > 1 %} latest{% endif %}</button>
+              </form>
+            </div>
+          </div>
+        </details>
+      {% endfor %}
+      </div>
+    </details>
+  {% endfor %}
+</details>
+{% else %}
+<div class="panel"><p class="muted">{% if notes_q %}No notes match &ldquo;{{ notes_q }}&rdquo;.{% else %}No notes yet.{% endif %}</p></div>
+{% endfor %}

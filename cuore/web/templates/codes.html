@@ -14,14 +14,23 @@
   /v/{{ vin }}/codes{% set ns = namespace(first=true) %}{% for k, v in d.items() if v %}{{ '?' if ns.first else '&' }}{{ k }}={{ v|string|urlencode }}{% set ns.first = false %}{% endfor %}
 {%- endmacro %}
 {% macro row(r) %}
-  <li class="cd-item">
+  <li class="cd-item" id="row-{{ r.code_href_id }}">
     <a class="row-link cd-row" href="/v/{{ vin }}/code/{{ r.code_href_id }}">
       <span class="cd-code">{{ r.dtc }}</span>
       <span class="chip {{ r.severity }}">{{ r.severity }}</span>
       <span class="cd-desc">{{ r.desc_short or "No description on file" }}</span>
       {% if r.modules_short %}<span class="cd-mod">{{ r.modules_short }}</span>{% endif %}
       {% if r.in_job %}<span class="cd-job">this job</span>{% endif %}
+      {% if r.fb and r.fb.chip %}<span class="cd-fb cd-fb-{{ 'returned' if r.fb.chip.startswith('Returned') else r.fb.status }}" title="{{ r.fb.detail }}"><span aria-hidden="true">{{ '!' if r.fb.chip.startswith('Returned') else ('&#10003;' if r.fb.status == 'proven-fixed' else '&hellip;') }}</span> {{ r.fb.chip }}</span>{% endif %}
     </a>
+    {% if r.fb and (r.fb.can_fix or r.fb.can_undo) %}
+    <form class="cd-act" method="post" action="/v/{{ vin }}/fault-board/{{ 'undo' if r.fb.can_undo else 'fixed' }}">
+      <input type="hidden" name="fault_key" value="{{ r.fb.key }}">
+      <input type="hidden" name="return_to" value="/v/{{ vin }}/codes#row-{{ r.code_href_id }}">
+      {% if r.fb.can_undo %}<button type="submit" class="cd-btn undo" aria-label="Undo the fixed mark on {{ r.dtc }}">Undo</button>
+      {% else %}<button type="submit" class="cd-btn fix" aria-label="Mark {{ r.dtc }} fixed" title="Records the repair and starts verification; CUORE shows Proven fixed only when the readings say so">Fixed</button>{% endif %}
+    </form>
+    {% endif %}
     <details class="cd-more">
       <summary aria-label="Details for {{ r.dtc }}">Details</summary>
       <dl class="cd-detail">
@@ -44,6 +53,7 @@
 
 <div class="codes-page" id="codes-top">
 
+{% if flash_msg %}<div class="flash-toast flash-{{ flash_kind }}" role="status" data-flash>{{ flash_msg }}</div>{% endif %}
 <h1 class="cd-h1">Codes</h1>
 <p class="cd-lede">Every code this car has set, worst first.</p>
 

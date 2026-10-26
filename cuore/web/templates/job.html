@@ -400,6 +400,13 @@
 {% endif %}
 {% endif %}
 
+{% if fb is defined and fb %}
+<details class="fold fb-wrap" id="fault-board-wrap" {% if _current_n in (4, 5, 9, 10) or (flow and flow.current == _current_n) %}open{% endif %}>
+  <summary><b>Fault board</b> &middot; {{ fb.total }} faults &middot; {{ fb.n_active }} present now{% if fb.n_verifying %} &middot; {{ fb.n_verifying }} verifying{% endif %}</summary>
+  {% include "_fault_board.html" %}
+</details>
+{% endif %}
+
 <form class="job-search" id="job-search" method="get" action="/v/{{ vin }}/job" role="search">
   <input type="search" name="q" value="{{ q }}" placeholder="Search: brake, network, P0455, smoke test" aria-label="Search this job's hypotheses, codes, evidence and tests" maxlength="80">
   {% if step %}<input type="hidden" name="step" value="{{ step }}">{% endif %}
@@ -495,14 +502,6 @@
 <section class="dossier-section">
   <h2 id="step-4" class="section-h step-title">4. {{ t("scan_codes") }}</h2>
   {{ step_oneliner(4) }}
-  {% if view.codes %}
-    <ul class="checklist priority-codes-list">
-      {% for c in view.codes %}
-        <li class="checklist-step"><span class="step-text">{{ priority_icon(c.status) }}
-          <span class="mono">{{ c.code }}</span> <span class="muted small">{{ c.status_label or c.status }}</span></span></li>
-      {% endfor %}
-    </ul>
-  {% endif %}
   <details class="step-collapse" open>
     <summary>{{ t('codes_on_file') }}</summary>
     {% include "_codes_table.html" %}
@@ -751,15 +750,7 @@
 <section class="dossier-section">
   <h2 id="step-9" class="section-h step-title">9. {{ t("repair") }}</h2>
   {{ step_oneliner(9) }}
-  <ul class="checklist">
-    {% for a in job.actions %}
-      <li class="checklist-step"><span class="step-text">
-        <span class="chip plain">{{ a.kind }}</span> {{ a.text }}
-        <span class="muted small step-meta">{{ a.effective_date or a.at }}{% if a.date_uncertain %} (approx.){% endif %}{% if a.effective_date_source != 'at' %} &middot; recorded {{ a.at }}{% endif %}</span></span></li>
-    {% else %}
-      <li class="muted small">{{ t('no_actions_recorded') }}</li>
-    {% endfor %}
-  </ul>
+  {% if log is defined and log %}{% include "_job_log.html" %}{% else %}<p class="muted small">{{ t('no_actions_recorded') }}</p>{% endif %}
   <div class="panel" id="actions">
     <h3>{{ t('record_an_action') }}</h3>
     <form method="post" action="/v/{{ vin }}/job/{{ job.id }}/actions">
