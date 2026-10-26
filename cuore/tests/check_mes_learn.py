@@ -265,12 +265,82 @@ check("the session was opened passive (STCMM 0 sent)", "STCMM 0" in _car.sent, s
 
 # Inject the richer synthetic capture built in part 2 -- the thread has
 # already fully stopped, so there is no race with this assignment.
-_state["frames"] = align_frames
+_pre_count = _state["frame_count"]
+mes_learn._record(_state, align_frames)  # streams to disk like the live thread does
 
 _stopped = mes_learn.stop(csv=str(_csv_path))
 check("stop reports stopped", _stopped["status"] == "stopped", str(_stopped))
 check("stop aligned against the given csv", _stopped["aligned"] is True, str(_stopped))
 check("stop reports the csv basename", _stopped["csv"] == _csv_path.name, str(_stopped))
+
+# --- saved frames, header, automatic review, recorded bitrate ---------------
+import json  # noqa: E402
+from cuore.live import procedure_capture as _pc  # noqa: E402
+
+_f = Path(_stopped["file"])
+check("frames file is under <state dir>/mes_learn/<vin>/",
+      _f.parent == Path(_TMP) / "mes_learn" / VIN and _f.suffix == ".jsonl", str(_f))
+_hdr, _saved = mes_learn.load_capture(str(_f))
+check("every frame is saved (incl. >_MAX_FRAMES-independent streaming)",
+      len(_saved) >= len(align_frames) and _stopped["frame_count"] == _pre_count + len(align_frames),
+      f"{len(_saved)} saved, status {_stopped['frame_count']}")
+check("saved frames carry t/id/data", all({"t", "id", "data"} <= set(f) for f in _saved))
+check("header: port, bitrate, bus, mes_port, start and stop time",
+      _hdr.get("port") == "COM5" and _hdr.get("bitrate") == 500000 and _hdr.get("bus") == "can_c"
+      and _hdr.get("mes_port") == "COM3" and _hdr.get("started_at") and _hdr.get("stopped_at"),
+      str(_hdr))
+check("status exposes file and recorded bitrate",
+      _stopped["file"] == str(_f) and _stopped["bitrate"] == 500000, str(_stopped))
+check("review report stored next to the frames",
+      _stopped["review_file"] and Path(_stopped["review_file"]).parent == _f.parent
+      and Path(_stopped["review_file"]).exists(), str(_stopped.get("review_file")))
+_rv = json.loads(Path(_stopped["review_file"]).read_text(encoding="utf-8"))
+check("stored review has text, modules and gates", _rv.get("text") and "gates" in _rv, str(_rv)[:200])
+check("status carries the review", bool(_stopped["review"] and _stopped["review"].get("text")))
+check("gate is fed the RECORDED rate, not a caller value (no bitrate-mismatch failure)",
+      _rv["recorded_bitrate"] == 500000
+      and not any("capture bitrate" in r for g in _rv["gates"] for r in g["reasons"]),
+      str(_rv["gates"]))
+_lr = mes_learn.latest_review(VIN)
+check("latest_review reads the stored report", _lr["found"] and _lr["recorded_bitrate"] == 500000,
+      str(_lr)[:200])
+check("latest_review for an unknown VIN is a clean not-found",
+      mes_learn.latest_review("NOSUCHVIN")["found"] is False)
+
+# crash safety: frames written by _record survive without stop() ever running
+_crash = {"port": "COM5", "bitrate": 500000, "mes_port": "COM3", "vin": "CRASHVIN",
+          "started_at": "t0", "file": None, "frames": [], "frame_count": 0}
+mes_learn._open_file(_crash)
+mes_learn._record(_crash, [{"t": 0.1, "id": "18DA10F1", "data": "0322DE0000000000"}])
+_h2, _f2 = mes_learn.load_capture(_crash["file"])
+check("crash-safe: frames on disk before any stop", len(_f2) == 1 and _h2.get("stopped_at") is None)
+with open(_crash["file"], "a", encoding="utf-8") as _fh:
+    _fh.write('{"t": 0.2, "id": "18DA')  # torn last line from a crash
+check("crash-safe: a torn last line is tolerated", len(mes_learn.load_capture(_crash["file"])[1]) == 1)
+_big = [{"t": i / 1000, "id": "18DA10F1", "data": "0322DE0000000000"} for i in range(mes_learn._MAX_FRAMES + 500)]
+_crash = dict(_crash, file=None, frames=[], frame_count=0)
+mes_learn._open_file(_crash)
+mes_learn._record(_crash, _big)
+check("memory is bounded but disk keeps every frame",
+      len(_crash["frames"]) == mes_learn._MAX_FRAMES
+      and len(mes_learn.load_capture(_crash["file"])[1]) == len(_big))
+
+# bitrate: refuse any rate but CAN-C's confirmed one
+_orig_rate = mes_learn.declared_rate
+mes_learn.declared_rate = lambda bus, cable: 125000
+try:
+    mes_learn._configured_rate()
+    check("a non-confirmed configured rate is refused", False)
+except Refused as e:
+    check("a non-confirmed configured rate is refused", "confirmed" in str(e), str(e))
+_s_before = mes_learn._STATE
+try:
+    mes_learn.start("COM5", vin=VIN)  # previous state stopped, so only the rate guard can refuse
+    check("start refuses before opening at a wrong rate", False)
+except Refused:
+    check("start refuses before opening at a wrong rate", mes_learn._STATE is _s_before)
+mes_learn.declared_rate = _orig_rate
+check("configured rate for CAN-C is 500000", mes_learn._configured_rate() == 500000)
 
 _cands = mes_learn.candidates()
 check("candidates: two entries (one per named column)", len(_cands["candidates"]) == 2,
@@ -367,6 +437,11 @@ client = TestClient(create_app())
 _page_resp = client.get(f"/v/{VIN}/learn-mes")
 check("the learn-mes page responds 200", _page_resp.status_code == 200, str(_page_resp.status_code))
 check("the learn-mes page renders the panel", 'id="lm-panel"' in _page_resp.text)
+
+_rev_resp = client.get(f"/api/mes-learn/review?vin={VIN}")
+check("GET /api/mes-learn/review returns the stored review",
+      _rev_resp.status_code == 200 and _rev_resp.json().get("found") is True, _rev_resp.text[:200])
+check("the learn-mes page shows the latest review", 'id="lm-review-text"' in _page_resp.text)
 
 _status_resp = client.get("/api/mes-learn/status")
 check("GET /api/mes-learn/status responds 200", _status_resp.status_code == 200,

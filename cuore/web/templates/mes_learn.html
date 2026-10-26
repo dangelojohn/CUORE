@@ -59,6 +59,21 @@
     <div class="bc-result" id="lm-result" hidden></div>
   </div>
 
+  <section id="lm-review" class="bc-panel">
+    <h3>Latest procedure review (read-only, never replayed)</h3>
+    {% if review and review.found %}
+    <p class="mono">captured at {{ review.recorded_bitrate }} bit/s &middot; reviewed {{ review.reviewed_at }}</p>
+    <pre id="lm-review-text">{{ review.text }}</pre>
+    {% for g in review.gates %}
+    <p class="lm-gate"><b>{{ g.module or g.target }}</b>: {{ g.status }}
+      {% if g.passed %}(consent phrase: {{ g.consent }}){% endif %}</p>
+    <ul>{% for r in g.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+    {% endfor %}
+    {% else %}
+    <p>No review stored yet. One is made automatically when a listener is stopped.</p>
+    {% endif %}
+  </section>
+
 </div>
 
 <script>

@@ -891,6 +891,14 @@ def mes_learn_status() -> str:
 
 
 @mcp.tool()
+def mes_learn_review(vin: str = "") -> str:
+    """Read-only: the newest stored procedure review (services, 0x27, writes,
+    replay verdict) and gate result for the MES-learn captures of ``vin``.
+    Nothing is replayed. Also shown on ``/v/{vin}/learn-mes``."""
+    return _via("GET", "/mes-learn/review", lambda: _mes_learn.latest_review(vin))
+
+
+@mcp.tool()
 def mes_learn_candidates() -> str:
     """Fit candidates from the last alignment, with their fit numbers (R²,
     scale, offset, sample count) -- review on ``/v/{vin}/learn-mes`` before

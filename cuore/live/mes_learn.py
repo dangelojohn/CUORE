@@ -39,6 +39,9 @@ load_custom_channels` already uses for custom channels). Rejecting
 from __future__ import annotations
 
 import bisect
+import json
+import os
+import re
 import threading
 import time
 from datetime import datetime
@@ -48,19 +51,23 @@ from typing import Any, Optional
 from . import audit
 from . import capture as capture_mod
 from . import interlock
+from . import procedure_capture
 from . import learn as learn_mod
 from . import learned as learned_mod
 from .addressing import MODULES
 from .buses import CAN_C
-from .config import mes_registry
+from .config import mes_registry, state_dir
 from .errors import BadCommand, Refused
-from .transport import link
+from .transport import declared_rate, link
 
 #: One capture window inside the background thread's loop -- same posture as
 #: ``cuore.live.buscapture._WINDOW_S``.
 _WINDOW_S = 1.0
-#: Safety cap on frames retained in memory.
+#: Cap on frames kept IN MEMORY (a recent tail, for status). Every frame is
+#: streamed to disk as it arrives, so the cap never loses data.
 _MAX_FRAMES = 20000
+#: The listener opens ONLY at this bus's confirmed bitrate.
+_BUS = CAN_C
 
 #: A column only becomes a confident candidate at this R² or better, over at
 #: least this many distinct raw values -- a session with a sensor that never
@@ -124,8 +131,97 @@ def _check_two_adapters(port: str) -> None:
 # capture lifecycle: Start / Stop
 # ===========================================================================
 
-def _new_state(port: str, vin: str) -> dict[str, Any]:
+def _configured_rate() -> int:
+    """The bitrate CUORE's bus table configures for CAN-C under the declared cable.
+    Refuses anything but CAN-C's own confirmed rate (500000)."""
+    if _BUS.key != "can_c" or _BUS.bitrate_confidence != "confirmed":
+        raise Refused(f"{_BUS.key} bitrate is not confirmed; the listener will not open")
+    rate = int(declared_rate(_BUS, link().cable))
+    if rate != _BUS.bitrate:
+        raise Refused(f"configured rate {rate} != confirmed {_BUS.bitrate} for {_BUS.key}; "
+                      f"the listener opens only at the confirmed bitrate and refuses any other")
+    return rate
+
+
+def _sanitize(name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", name or "") or "unknown-vin"
+
+
+def _capture_path(vin: str, stamp: str) -> Path:
+    return state_dir() / "mes_learn" / _sanitize(vin) / f"{stamp}.jsonl"
+
+
+def _header(state: dict[str, Any], stopped_at: Optional[str]) -> dict[str, Any]:
+    return {"type": "header", "port": state["port"], "bitrate": state["bitrate"],
+            "bus": _BUS.key, "mes_port": state["mes_port"], "vin": state["vin"],
+            "started_at": state["started_at"], "stopped_at": stopped_at}
+
+
+def _open_file(state: dict[str, Any]) -> None:
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    path = _capture_path(state["vin"], stamp)
+    n = 1
+    while path.exists():  # never overwrite an earlier capture
+        path = _capture_path(state["vin"], f"{stamp}-{n}")
+        n += 1
+    path.parent.mkdir(parents=True, exist_ok=True)
+    state["file"] = str(path)
+    with path.open("w", encoding="utf-8") as fh:  # header first: a crash leaves a labelled file
+        fh.write(json.dumps(_header(state, None)) + "\n")
+
+
+def _record(state: dict[str, Any], frames: list[dict[str, Any]]) -> None:
+    """Append frames to the capture file (flushed + fsynced: a crash keeps them)
+    and to the bounded in-memory tail."""
+    if not frames:
+        return
+    if state.get("file"):
+        with open(state["file"], "a", encoding="utf-8") as fh:
+            fh.write("".join(json.dumps({"t": f["t"], "id": f["id"], "data": f["data"]}) + "\n"
+                             for f in frames))
+            fh.flush()
+            os.fsync(fh.fileno())
+    state["frame_count"] += len(frames)
+    state["frames"].extend(frames)
+    if len(state["frames"]) > _MAX_FRAMES:
+        del state["frames"][:len(state["frames"]) - _MAX_FRAMES]
+
+
+def load_capture(path: str) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """(header, frames) from a saved capture; tolerates a torn last line."""
+    header: dict[str, Any] = {}
+    frames: list[dict[str, Any]] = []
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if row.get("type") == "header":
+                header = row
+            elif "id" in row and "data" in row:
+                frames.append(row)
+    return header, frames
+
+
+def _finalize_file(state: dict[str, Any]) -> None:
+    """Rewrite the header with the stop time (streaming, atomic replace)."""
+    path = state.get("file")
+    if not path or not os.path.exists(path):
+        return
+    tmp = path + ".tmp"
+    with open(path, encoding="utf-8") as src, open(tmp, "w", encoding="utf-8") as dst:
+        next(src, None)
+        dst.write(json.dumps(_header(state, state["finished_at"])) + "\n")
+        for line in src:
+            dst.write(line)
+    os.replace(tmp, path)
+
+
+def _new_state(port: str, vin: str, rate: int = 0) -> dict[str, Any]:
     return {
+        "bitrate": rate, "mes_port": _mes_port(), "file": None, "review_file": None,
+        "review": None, "frame_count": 0,
         "port": port.strip().upper(), "vin": (vin or "").strip(), "status": "running",
         "started_at": datetime.now().isoformat(timespec="seconds"), "finished_at": None,
         "stream": "", "frames": [], "error": None, "last_rate_hz": 0.0,
@@ -141,6 +237,9 @@ def _run(port: str, state: dict[str, Any]) -> None:
         with lk.session("mes_learn", bus=CAN_C, port=port, passive=True,
                         allow_while_mes_connected=True) as sess:
             state["stream"] = sess.stream.describe
+            used = sess.route.bitrate_override or sess.bus.bitrate
+            if int(used) != state["bitrate"]:  # belt and braces: never listen at another rate
+                raise Refused(f"session opened at {used}, not the confirmed {state['bitrate']}")
             while not state["_stop"].is_set():
                 window_t0 = time.monotonic() - session_start
                 cap = capture_mod.listen(sess, seconds=_WINDOW_S, max_frames=2000)
@@ -148,10 +247,8 @@ def _run(port: str, state: dict[str, Any]) -> None:
                 if err and err not in ("DATA ERROR", "STOPPED"):
                     state["error"] = err
                 state["last_rate_hz"] = cap.get("rate_hz", 0.0)
-                for f in cap.get("frames", []):
-                    if len(state["frames"]) < _MAX_FRAMES:
-                        state["frames"].append(
-                            {"t": round(window_t0 + f["t"], 4), "id": f["id"], "data": f["data"]})
+                _record(state, [{"t": round(window_t0 + f["t"], 4), "id": f["id"],
+                                 "data": f["data"]} for f in cap.get("frames", [])])
     except Exception as e:  # noqa: BLE001 -- the thread must never die silently
         state["error"] = str(e)
     finally:
@@ -165,16 +262,18 @@ def start(port: str, vin: str = "") -> dict[str, Any]:
     is already running."""
     global _STATE
     _check_two_adapters(port)
+    rate = _configured_rate()
     with _LOCK:
         if _STATE is not None and _STATE["status"] == "running":
             raise Refused("a MES-learn capture is already running; stop it first")
-        state = _new_state(port, vin)
+        state = _new_state(port, vin, rate)
+        _open_file(state)
         _STATE = state
     thread = threading.Thread(target=_run, args=(state["port"], state), daemon=True,
                               name="cuore-mes-learn")
     state["_thread"] = thread
     thread.start()
-    audit.record("mes_learn_start", port=state["port"])
+    audit.record("mes_learn_start", port=state["port"], bitrate=rate, file=state["file"])
     return _public(state)
 
 
@@ -189,7 +288,9 @@ def _public(state: dict[str, Any]) -> dict[str, Any]:
     return {
         "port": state["port"], "status": state["status"], "started_at": state["started_at"],
         "finished_at": state["finished_at"], "elapsed_s": elapsed,
-        "frame_count": len(state["frames"]), "rate_hz": state["last_rate_hz"],
+        "frame_count": state["frame_count"], "bitrate": state["bitrate"], "bus": _BUS.key,
+        "file": state["file"], "review_file": state["review_file"], "review": state["review"],
+        "rate_hz": state["last_rate_hz"],
         "error": state["error"], "csv": state["csv_name"], "aligned": state["aligned"],
         "candidate_count": len(state["candidates"]),
     }
@@ -199,7 +300,9 @@ def status() -> dict[str, Any]:
     return _public(_require_state())
 
 
-def stop(csv: str = "") -> dict[str, Any]:
+def stop(csv: str = "", *, pre: Optional[dict[str, Any]] = None,
+         post: Optional[dict[str, Any]] = None, name: str = "",
+         max_seconds: Optional[float] = None, mes_function: str = "") -> dict[str, Any]:
     """Stop the listener, then align every captured transaction against
     ``csv`` (an MES CSV recording -- an absolute path, or a bare filename
     resolved through ``mes.csvlog``'s own CSV roots). With no ``csv`` given,
@@ -213,10 +316,55 @@ def stop(csv: str = "") -> dict[str, Any]:
     if state["status"] != "stopped":
         state["status"] = "stopped"
         state["finished_at"] = datetime.now().isoformat(timespec="seconds")
-    _align(state, csv)
-    audit.record("mes_learn_stop", frame_count=len(state["frames"]),
-                 candidates=len(state["candidates"]))
+    _finalize_file(state)
+    frames = _all_frames(state)
+    _align(state, csv, frames)
+    _auto_review(state, frames, pre=pre, post=post, name=name, max_seconds=max_seconds,
+                 mes_function=mes_function)
+    audit.record("mes_learn_stop", frame_count=state["frame_count"], file=state["file"],
+                 review_file=state["review_file"], candidates=len(state["candidates"]))
     return _public(state)
+
+
+def _all_frames(state: dict[str, Any]) -> list[dict[str, Any]]:
+    """Every captured frame, from disk (memory holds only a tail)."""
+    if state.get("file") and os.path.exists(state["file"]):
+        return load_capture(state["file"])[1]
+    return list(state["frames"])
+
+
+def _auto_review(state: dict[str, Any], frames: list[dict[str, Any]], **gate_kw: Any) -> None:
+    """Run procedure_capture.review + gate on the saved frames and store the report
+    beside them. Read-only: nothing is replayed. The gate is fed the RECORDED
+    bitrate, never a caller value."""
+    try:
+        rep = procedure_capture.review(frames)
+        rep["gates"] = procedure_capture.gate_report(
+            rep, listen_bitrate=state["bitrate"], **gate_kw)
+        rep["capture_file"] = state["file"]
+        rep["recorded_bitrate"] = state["bitrate"]
+        rep["reviewed_at"] = datetime.now().isoformat(timespec="seconds")
+        out = Path(state["file"]).with_suffix(".review.json") if state.get("file") else None
+        if out is not None:
+            out.write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
+            state["review_file"] = str(out)
+        state["review"] = {"text": rep["text"], "gates": rep["gates"],
+                           "recorded_bitrate": rep["recorded_bitrate"]}
+    except Exception as e:  # noqa: BLE001 -- a review failure must not lose the capture
+        state["review"] = {"error": f"review failed: {e}"}
+
+
+def latest_review(vin: str = "") -> dict[str, Any]:
+    """Newest stored review report for ``vin`` (read-only; survives restarts)."""
+    base = state_dir() / "mes_learn"
+    dirs = [base / _sanitize(vin)] if vin else [d for d in base.glob("*") if d.is_dir()]
+    files = sorted((f for d in dirs for f in d.glob("*.review.json")), key=lambda f: f.name)
+    if not files:
+        return {"found": False, "message": "no MES-learn review stored yet"}
+    rep = json.loads(files[-1].read_text(encoding="utf-8"))
+    return {"found": True, "file": str(files[-1]), "text": rep.get("text"),
+            "gates": rep.get("gates", []), "recorded_bitrate": rep.get("recorded_bitrate"),
+            "capture_file": rep.get("capture_file"), "reviewed_at": rep.get("reviewed_at")}
 
 
 def _load_recording(csv: str, since_s: float) -> Optional[Any]:
@@ -244,7 +392,7 @@ def _load_recording(csv: str, since_s: float) -> Optional[Any]:
     return csvlog.load_csv(newest) if newest is not None else None
 
 
-def _align(state: dict[str, Any], csv: str) -> None:
+def _align(state: dict[str, Any], csv: str, frames: list[dict[str, Any]]) -> None:
     rec = _load_recording(csv, state.get("_t0", 0.0))
     if rec is None:
         if not state["error"]:
@@ -253,7 +401,7 @@ def _align(state: dict[str, Any], csv: str) -> None:
         return
     state["csv_name"] = rec.name
     today = datetime.now().strftime("%Y-%m-%d")
-    fitted = align(state["frames"], rec)
+    fitted = align(frames, rec)
     out: list[dict[str, Any]] = []
     for i, c in enumerate(fitted, start=1):
         c = dict(c)
@@ -453,4 +601,5 @@ def align(frames: list[dict[str, Any]], recording: Any) -> list[dict[str, Any]]:
     return results
 
 
-__all__ = ["start", "stop", "status", "candidates", "accept", "reject", "align"]
+__all__ = ["start", "stop", "status", "candidates", "accept", "reject", "align",
+           "latest_review", "load_capture"]

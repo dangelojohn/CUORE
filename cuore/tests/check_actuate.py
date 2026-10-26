@@ -260,7 +260,7 @@ def use(car: FakeECU) -> AdapterLink:
 def actuation_sent(car: FakeECU) -> list[str]:
     """``car.sent`` minus AT/ST adapter setup, the monitor interrupt, and PID reads."""
     return [c for c in car.sent
-           if c and c[:2] not in ("AT", "ST") and c not in ("010C", "010D")]
+           if c and c[:2] not in ("AT", "ST") and c not in ("0100", "010C", "010D")]  # 0100 = legislated CAN-C verification probe, not an actuation
 
 
 def make_procedure(name: str, *, steps, replayable=True, reasons=None,

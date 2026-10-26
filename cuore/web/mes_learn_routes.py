@@ -20,6 +20,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
+from ..live import mes_learn
 from ..services import shop_bridge
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
@@ -34,7 +35,8 @@ def learn_mes_page(request: Request, vin: str) -> HTMLResponse:
     dossier = _dossier(vin)
     bar = _vehicle_bar(vin, dossier)
     bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
-    response = _page(request, "mes_learn.html", vin=vin, bar=bar)
+    response = _page(request, "mes_learn.html", vin=vin, bar=bar,
+                     review=mes_learn.latest_review(vin))
     _set_active_vehicle(response, vin)
     return response
 

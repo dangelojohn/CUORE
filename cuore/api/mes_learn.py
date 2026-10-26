@@ -29,8 +29,18 @@ def status() -> dict[str, Any]:
 
 @router.post("/mes-learn/stop",
             summary="Stop the listener and align its capture against an MES CSV recording")
-def stop(csv: str = Body("", embed=True)) -> dict[str, Any]:
-    return mes_learn.stop(csv=csv)
+def stop(csv: str = Body("", embed=True), name: str = Body("", embed=True),
+         mes_function: str = Body("", embed=True), pre: dict = Body(None, embed=True),
+         post: dict = Body(None, embed=True),
+         max_seconds: float = Body(None, embed=True)) -> dict[str, Any]:
+    return mes_learn.stop(csv=csv, name=name, mes_function=mes_function, pre=pre, post=post,
+                          max_seconds=max_seconds)
+
+
+@router.get("/mes-learn/review",
+            summary="Latest stored procedure review + gate result (read-only, never replays)")
+def review(vin: str = "") -> dict[str, Any]:
+    return mes_learn.latest_review(vin)
 
 
 @router.get("/mes-learn/candidates", summary="Fit candidates from the last alignment")
