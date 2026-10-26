@@ -6,18 +6,18 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 |---|---|---|---|
 | observations.jsonl | skipped-unchanged | 2285253 | 352 |
 | owner_events.jsonl | skipped-unchanged | 996 | 2 |
-| jobs.jsonl | copied | 219880 | 244 |
-| checklists.json | copied | 615 | - |
+| jobs.jsonl | skipped-unchanged | 219880 | 244 |
+| checklists.json | skipped-unchanged | 615 | - |
 | cases.jsonl | skipped-unchanged | 1491 | 1 |
 | symptoms.jsonl | skipped-unchanged | 2074 | 4 |
 | shop_visits.jsonl | skipped-unchanged | 216 | 1 |
 | audit.jsonl | skipped-unchanged | 646719 | 3367 |
 | fullscan_last.json | skipped-unchanged | 6870 | - |
-| notes.jsonl | copied | 53189 | 41 |
+| notes.jsonl | copied | 54471 | 42 |
 | service_records.jsonl | skipped-unchanged | 5594 | 3 |
 | addresses.json | skipped-unchanged | 1183 | - |
 | learned_dids.json | skipped-unchanged | 34704 | - |
-| feedback.jsonl | copied | 28295 | 54 |
+| feedback.jsonl | skipped-unchanged | 28295 | 54 |
 | experience_inputs.jsonl | skipped-unchanged | 548 | 2 |
 | live_snapshots.jsonl | skipped-unchanged | 6342 | 2 |
 | fullscan_guided.json | skipped-unchanged | 6958 | - |
@@ -33,7 +33,7 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 | recordings/live_load-step-voltage_20261023-005308.json | skipped-unchanged | 3722 | - |
 | recordings/live_load-step-voltage_20261023-005518.csv | skipped-unchanged | 13375 | - |
 | recordings/live_load-step-voltage_20261023-005518.json | skipped-unchanged | 3725 | - |
-| bench/visits.json | copied | 413 | - |
+| bench/visits.json | skipped-unchanged | 413 | - |
 | media/index.jsonl | skipped-unchanged | 813 | - |
 | media/ZASFAKPN5J7B88115/e2553eec8fd74b62985fd09c7377bbc9.pdf | skipped-unchanged | 9068 | - |
 
