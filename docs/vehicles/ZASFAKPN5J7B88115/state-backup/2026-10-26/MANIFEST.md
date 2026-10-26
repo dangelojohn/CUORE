@@ -6,18 +6,18 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 |---|---|---|---|
 | observations.jsonl | skipped-unchanged | 2285253 | 352 |
 | owner_events.jsonl | skipped-unchanged | 996 | 2 |
-| jobs.jsonl | skipped-unchanged | 219504 | 241 |
-| checklists.json | skipped-unchanged | 599 | - |
+| jobs.jsonl | copied | 219880 | 244 |
+| checklists.json | copied | 615 | - |
 | cases.jsonl | skipped-unchanged | 1491 | 1 |
 | symptoms.jsonl | skipped-unchanged | 2074 | 4 |
 | shop_visits.jsonl | skipped-unchanged | 216 | 1 |
 | audit.jsonl | skipped-unchanged | 646719 | 3367 |
 | fullscan_last.json | skipped-unchanged | 6870 | - |
-| notes.jsonl | skipped-unchanged | 50894 | 39 |
+| notes.jsonl | copied | 53189 | 41 |
 | service_records.jsonl | skipped-unchanged | 5594 | 3 |
 | addresses.json | skipped-unchanged | 1183 | - |
 | learned_dids.json | skipped-unchanged | 34704 | - |
-| feedback.jsonl | skipped-unchanged | 25228 | 47 |
+| feedback.jsonl | copied | 28295 | 54 |
 | experience_inputs.jsonl | skipped-unchanged | 548 | 2 |
 | live_snapshots.jsonl | skipped-unchanged | 6342 | 2 |
 | fullscan_guided.json | skipped-unchanged | 6958 | - |
