@@ -66,6 +66,9 @@ check_eq("coolant temp formula, zero raw", eval_formula("(((A*256)+B)*0.02)-40",
          -40.0)
 # EPS steering angle, from addressing.DIDS 0x083C: SIGNED(A)*256+B, all over 16.
 check_eq("EPS steering-angle formula", eval_formula("(SIGNED(A)*256+B)/16", [0xFF, 0x00]), -16.0)
+# SIGNED over a two-byte combination: width comes from the bytes, not the magnitude.
+check_eq("SIGNED(2 bytes) small positive", eval_formula("SIGNED((A*256)+B)", [0x00, 0xF0]), 240)
+check_eq("SIGNED(2 bytes) negative", eval_formula("SIGNED((A*256)+B)", [0xFF, 0xF0]), -16)
 check_eq("division formula", eval_formula("A/10", [100]), 10.0)
 check_eq("unary minus", eval_formula("-A", [5]), -5)
 check_eq("nested parens and precedence", eval_formula("(A+B)*2-C", [1, 2, 3]), 3)

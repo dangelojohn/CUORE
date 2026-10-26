@@ -105,8 +105,14 @@ def decode_bytes(data: bytes, *, truncated: bool = False) -> DecodedText:
 
     bom_enc = sniff_encoding(data[:4])
     if bom_enc:
+        # The endian-specific codecs ("utf-16-le") keep the BOM as a leading
+        # U+FEFF, which then glues itself to the first header/line and defeats
+        # every anchored match (the CSV "Time" column, the "(Multiecuscan"
+        # preamble). The generic codecs consume it and pick the endianness.
+        codec = {"utf-16-le": "utf-16", "utf-16-be": "utf-16",
+                 "utf-32-le": "utf-32", "utf-32-be": "utf-32"}.get(bom_enc, bom_enc)
         try:
-            return _finish(data.decode(bom_enc), bom_enc)
+            return _finish(data.decode(codec), bom_enc)
         except UnicodeDecodeError:
             # A truncated utf-16 read can split a surrogate pair; fall through
             # rather than failing the whole call.
@@ -123,6 +129,27 @@ def decode_bytes(data: bytes, *, truncated: bool = False) -> DecodedText:
                    lossy=True)
 
 
+def _cut_clean(raw: bytes, limit: int) -> bytes:
+    """``raw[:limit]`` backed off to a character boundary. A plain byte cut
+    through a multi-byte UTF-8 character makes the strict utf-8 decode fail,
+    and the ladder then falls to cp1252 and mangles every non-ASCII character
+    in the whole file (degree signs become 'Â°') with ``lossy`` still False."""
+    cut = raw[:limit]
+    bom = sniff_encoding(raw[:4])
+    if bom in ("utf-16-le", "utf-16-be"):
+        return cut[:len(cut) - (len(cut) % 2)]
+    if bom in ("utf-32-le", "utf-32-be"):
+        return cut[:len(cut) - (len(cut) % 4)]
+    for back in range(4):
+        trial = cut[:len(cut) - back] if back else cut
+        try:
+            trial.decode("utf-8")
+            return trial
+        except UnicodeDecodeError:
+            continue
+    return cut  # not UTF-8 at all (cp1252 etc.): any cut is a clean cut
+
+
 def read_log_text(path: Path, *, max_bytes: int | None = None) -> DecodedText:
     """Read and decode a log file, optionally capping the bytes read.
 
@@ -131,8 +158,8 @@ def read_log_text(path: Path, *, max_bytes: int | None = None) -> DecodedText:
     """
     raw = path.read_bytes()
     truncated = False
-    if max_bytes is not None and len(raw) > max_bytes:
-        raw = raw[:max_bytes]
+    if max_bytes is not None and len(raw) > max(0, max_bytes):
+        raw = _cut_clean(raw, max(0, max_bytes))
         truncated = True
 
     decoded = decode_bytes(raw, truncated=truncated)

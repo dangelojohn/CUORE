@@ -312,9 +312,20 @@ def _state_fingerprint() -> float:
     """
     try:
         d = live_config.state_dir()
-        return max((p.stat().st_mtime for p in d.iterdir() if p.is_file()), default=0.0)
+        names = list(d.iterdir())
     except OSError:
         return 0.0
+    newest = 0.0
+    for p in names:
+        if p.name.startswith(".") or p.name == "audit.jsonl" or p.suffix == ".log" or ".bak" in p.name:
+            continue                        # probe file / wire audit / logs / backups: never read by the view,
+                                            # but audit.jsonl grows on every command and would defeat the cache
+        try:
+            if p.is_file():
+                newest = max(newest, p.stat().st_mtime)
+        except OSError:                     # a file vanished mid-listing: skip it, keep the rest
+            continue
+    return newest
 
 
 def live_available(live_status: dict[str, Any] | None) -> bool:
@@ -375,7 +386,7 @@ def _latest_readiness(vin: str, after: str | None) -> dict[str, Any] | None:
     reasoning ``mes.verdict._last_clear`` already applies to live DTC reads.
     """
     try:
-        obs = live_store.recent_observations(200, vin=vin, kind="readiness")
+        obs = cache.recent_observations(200, vin=vin, kind="readiness")
     except Exception:  # noqa: BLE001 -- a broken store must never break the verdict
         return None
     best = None
@@ -421,8 +432,8 @@ def _latest_live_fuel_pid(vin: str) -> dict[str, Any] | None:
     if not vin.strip():
         return None
     try:
-        obs = (live_store.recent_observations(200, vin=vin, kind="pids_snapshot")
-              + live_store.recent_observations(200, vin=vin, kind="pid"))
+        obs = (cache.recent_observations(200, vin=vin, kind="pids_snapshot")
+              + cache.recent_observations(200, vin=vin, kind="pid"))
     except Exception:  # noqa: BLE001
         return None
     best: dict[str, Any] | None = None
@@ -561,7 +572,7 @@ def _latest_live_dtcs(vin: str, after: str | None) -> dict[str, dict[str, Any]]:
     nothing about the car now, same reasoning as :func:`_latest_readiness`.
     Never raises -- a broken store must never break the verdict."""
     try:
-        obs = live_store.recent_observations(300, vin=vin, kind="obd_dtcs")
+        obs = cache.recent_observations(300, vin=vin, kind="obd_dtcs")
     except Exception:  # noqa: BLE001
         return {}
     best: dict[str, dict[str, Any]] = {}
@@ -599,7 +610,7 @@ def _live_module_dtcs(vin: str, after: str | None) -> list[dict[str, Any]]:
     observation) reported ACTIVE or HISTORY on a from-car read after
     ``after``, newest read per (ecu, code) winning. Never raises."""
     try:
-        obs = live_store.recent_observations(500, vin=vin, kind="module_dtcs")
+        obs = cache.recent_observations(500, vin=vin, kind="module_dtcs")
     except Exception:  # noqa: BLE001
         return []
     best: dict[tuple[str, str], dict[str, Any]] = {}
@@ -663,7 +674,7 @@ def _build_live_freeze_frames(vin: str, after: str | None) -> dict[str, Any] | N
     nothing has been read since the clear. Reads the ``freeze_frame``
     observation kind :func:`cuore.live.ops.obd_freeze_frame` records."""
     try:
-        obs = live_store.recent_observations(1000, vin=vin, kind="freeze_frame")
+        obs = cache.recent_observations(1000, vin=vin, kind="freeze_frame")
     except Exception:  # noqa: BLE001
         return None
     frames: dict[str, dict[str, Any]] = {}
@@ -753,7 +764,7 @@ def _build_mode06_view(vin: str, after: str | None) -> dict[str, Any] | None:
     flat list of MID/TID rows plus the failing EVAP rows as ready-made
     evidence items -- never auto-attached, just offered."""
     try:
-        obs = live_store.recent_observations(50, vin=vin, kind="mode06")
+        obs = cache.recent_observations(50, vin=vin, kind="mode06")
     except Exception:  # noqa: BLE001
         return None
     best = None
@@ -893,7 +904,7 @@ def _mil_distance_km(vin: str) -> float | None:
     best_at = ""
     km: float | None = None
     for kind in ("pids_snapshot", "pid"):
-        for o in live_store.recent_observations(10_000_000, kind=kind):
+        for o in cache.recent_observations(10_000_000, kind=kind):
             if not live_store.is_from_car(o):
                 continue
             v = o.get("vin") or ""
@@ -929,7 +940,7 @@ def _first_mil_commanded(vin: str, after: str | None) -> dict[str, Any] | None:
     time it still was. Never raises -- a broken store must never break the
     verdict."""
     try:
-        obs = live_store.recent_observations(300, vin=vin, kind="readiness")
+        obs = cache.recent_observations(300, vin=vin, kind="readiness")
     except Exception:  # noqa: BLE001
         return None
     best = None

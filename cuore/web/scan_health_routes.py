@@ -28,9 +28,22 @@ from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
 from ..services import scan_health_bridge, shop_bridge
+from ..services.errors import BridgeError, Unavailable
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
+
+
+def _report(vin: str, scan_id: "str | None") -> dict:
+    """Build the report; an unexpected failure on odd stored data becomes a
+    503 error page naming the cause, never a bare 500."""
+    try:
+        return scan_health_bridge.build_cached(vin, scan_id)
+    except BridgeError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise Unavailable(f"The scan health report could not be built from the stored scan data "
+                          f"({type(exc).__name__}: {exc}).") from exc
 
 
 def _bar(vin: str) -> dict:
@@ -50,7 +63,7 @@ def latest_health_page(request: Request, vin: str) -> HTMLResponse:
                          report=None, scan_id=None)
         _set_active_vehicle(response, vin)
         return response
-    report = scan_health_bridge.build_cached(vin, None)
+    report = _report(vin, None)
     response = _page(request, "scan_health.html", vin=vin, bar=bar, tab="health",
                      report=report, scan_id=report["scan_id"])
     _set_active_vehicle(response, vin)
@@ -63,7 +76,7 @@ def scan_health_page(request: Request, vin: str, scan_id: str) -> HTMLResponse:
     ``NotFound`` out of the bridge, which ``cuore.app``'s exception handler
     renders as a 404 page -- not handled here."""
     bar = _bar(vin)
-    report = scan_health_bridge.build_cached(vin, scan_id)
+    report = _report(vin, scan_id)
     response = _page(request, "scan_health.html", vin=vin, bar=bar, tab="health",
                      report=report, scan_id=report["scan_id"])
     _set_active_vehicle(response, vin)

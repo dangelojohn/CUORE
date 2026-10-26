@@ -96,6 +96,15 @@ def _vehicle_bar(vin: str, dossier: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def form_sync(request: Request):
+    """Read the form body from a plain ``def`` handler (which FastAPI runs in
+    the threadpool), so the handler's blocking work -- dossier build, log
+    parsing, serial reads -- never runs on the event loop."""
+    from anyio import from_thread
+    return from_thread.run(request.form)
+
+
+
 def _page(request: Request, name: str, **ctx: Any) -> HTMLResponse:
     settings = settings_of(request)
     ctx.setdefault("version", __version__)
@@ -127,8 +136,8 @@ def oil_change_form(request: Request, vin: str) -> HTMLResponse:
 
 
 @router.post("/v/{vin}/oil-change", response_class=HTMLResponse)
-async def oil_change_submit(request: Request, vin: str) -> HTMLResponse:
-    form = await request.form()
+def oil_change_submit(request: Request, vin: str) -> HTMLResponse:
+    form = form_sync(request)
 
     def field(name: str) -> str:
         return str(form.get(name, "")).strip()
@@ -200,8 +209,8 @@ def service_form(request: Request, vin: str, category: str = "") -> HTMLResponse
 
 
 @router.post("/v/{vin}/service", response_class=HTMLResponse)
-async def service_submit(request: Request, vin: str) -> HTMLResponse:
-    form = await request.form()
+def service_submit(request: Request, vin: str) -> HTMLResponse:
+    form = form_sync(request)
 
     def field(name: str) -> str:
         return str(form.get(name, "")).strip()
@@ -275,8 +284,8 @@ def brakes_tires_form(request: Request, vin: str) -> HTMLResponse:
 
 
 @router.post("/v/{vin}/brakes-tires", response_class=HTMLResponse)
-async def brakes_tires_submit(request: Request, vin: str) -> HTMLResponse:
-    form = await request.form()
+def brakes_tires_submit(request: Request, vin: str) -> HTMLResponse:
+    form = form_sync(request)
     from mes import service as service_mod
 
     def field(name: str) -> str:
@@ -422,8 +431,8 @@ def maintenance_form(request: Request, vin: str,
 
 
 @router.post("/v/{vin}/maintenance", response_class=HTMLResponse)
-async def maintenance_submit(request: Request, vin: str) -> HTMLResponse:
-    form = await request.form()
+def maintenance_submit(request: Request, vin: str) -> HTMLResponse:
+    form = form_sync(request)
 
     def field(name: str) -> str:
         return str(form.get(name, "")).strip()

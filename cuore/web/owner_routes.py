@@ -787,7 +787,7 @@ def edit_confirm(request: Request, vin: str, id: str) -> HTMLResponse:
 
 
 @router.post("/m/{vin}/history/{id}/delete", response_class=HTMLResponse)
-async def history_delete(request: Request, vin: str, id: str) -> RedirectResponse:
+def history_delete(request: Request, vin: str, id: str) -> RedirectResponse:
     try:
         bridge.delete(id)
     except BridgeError as exc:
@@ -808,7 +808,7 @@ def deleted_confirm(request: Request, vin: str, id: str) -> HTMLResponse:
 
 
 @router.post("/m/{vin}/history/{id}/restore", response_class=HTMLResponse)
-async def history_restore(request: Request, vin: str, id: str) -> RedirectResponse:
+def history_restore(request: Request, vin: str, id: str) -> RedirectResponse:
     try:
         bridge.restore(id)
     except BridgeError as exc:

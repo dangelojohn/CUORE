@@ -630,7 +630,7 @@ class LivePoller:
             data = next(iter(q["ecus"].values()), None)
             if q["error"] or not data:
                 self._pid_multi_ok = False
-                return touched
+                return touched   # next tick polls each PID on its own and records any miss
             parsed = _parse_multi_pid(data, pids)
             if len(parsed) < len(pids):
                 self._pid_multi_ok = False
@@ -656,6 +656,8 @@ class LivePoller:
         decoded = decode_pid(pid, spec, raw)
         if "value" in decoded:
             self._publish(cid, decoded["value"], decoded.get("unit", ""))
+        else:   # short/undecodable reply: a miss, not a silent keep-the-old-value
+            self._note_miss(cid, decoded.get("error") or "no decodable value")
 
     def _poll_dids(self, sess: Session, due_ids: list[str]) -> set[str]:
         from .readall import FormulaError, eval_formula
@@ -678,13 +680,19 @@ class LivePoller:
                     continue
                 try:
                     val = eval_formula(ch.formula, [int(b, 16) for b in data])
-                except FormulaError:
+                except FormulaError as e:
+                    self._note_miss(cid, f"formula: {e}")
                     continue
                 if isinstance(val, dict):
                     val = val.get(ch.field)
-                if val is None:
+                try:
+                    fval = float(val)
+                except (TypeError, ValueError):
+                    fval = None
+                if fval is None or fval != fval or fval in (float("inf"), float("-inf")):
+                    self._note_miss(cid, "no decodable value")
                     continue
-                self._publish(cid, float(val), ch.unit)
+                self._publish(cid, fval, ch.unit)
                 touched.add(cid)
         return touched
 
@@ -706,13 +714,20 @@ class LivePoller:
         touched: set[str] = set()
         for cid in due_ids:
             ch = self._channels[cid]
+            now = time.time()
             with self._lock:
                 values = {dep: self._last_value.get(dep) for dep in ch.depends_on}
-            if any(v is None for v in values.values()):
+                # An input that stopped answering keeps its last value in
+                # _last_value; never compute from it once it is stale.
+                stale = [dep for dep in ch.depends_on if not self._fresh(dep, now)]
+            if any(v is None for v in values.values()) or stale:
+                self._note_miss(cid, "input not current: " + ", ".join(
+                    stale or [d for d, v in values.items() if v is None]))
                 continue
             try:
                 val = eval_expr(ch.expr, values)
-            except ComputedError:
+            except ComputedError as e:
+                self._note_miss(cid, str(e))
                 continue
             self._publish(cid, val, ch.unit)
             touched.add(cid)
@@ -774,11 +789,23 @@ class LivePoller:
              "pending": sorted(pending)},
             stream=getattr(getattr(sess, "stream", None), "describe", "") or "live_poller")
 
+    def _fresh(self, cid: str, now: float) -> bool:
+        """True if ``cid`` has a sample newer than a few of its own periods.
+        Caller holds the lock."""
+        ring = self._ring.get(cid)
+        if not ring:
+            return False
+        max_age = max(3.0, 4.0 / self._rates.get(cid, 1.0))
+        return now - ring[-1][0] <= max_age
+
     def _note_miss(self, cid: str, error: Any) -> None:
         """Record that a read of ``cid`` was attempted and not answered."""
         with self._lock:
             self._poll_attempts[cid] = self._poll_attempts.get(cid, 0) + 1
             self._last_error[cid] = str(error)[:80]
+            if self._recorder is not None:
+                # the CSV must show a gap, not the last good value repeated
+                self._recorder.update(cid, None)
 
     # --- publish: ring buffer, alarms, subscribers, recorder --------------
 

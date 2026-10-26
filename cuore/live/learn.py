@@ -70,7 +70,12 @@ def isotp_reassemble(frames: list[dict[str, Any]]) -> dict[str, Any]:
         b = [raw[i:i + 2] for i in range(0, len(raw) - 1, 2)]
         if not b:
             continue
-        pci = int(b[0], 16)
+        try:
+            pci = int(b[0], 16)
+            if len(b) > 1 and (pci >> 4) == 1:
+                int(b[1], 16)
+        except ValueError:
+            continue   # non-hex junk in a captured frame: skip it, don't abort the analysis
         ftype = pci >> 4
 
         if ftype == 0:
@@ -367,10 +372,16 @@ def _numeric_candidates(target: str, did: str, label: str, pts: list[dict[str, A
         if not ok or len(set(xs)) < 2:
             continue
         scale, offset, r2 = _linreg(xs, ys)
-        cands.append({"target": target, "did": did, "label": label, "kind": "numeric",
-                      "field": {"offset": off, "width": kind},
-                      "scale": scale, "offset": offset, "score": r2, "r2": r2,
-                      "evidence": ev})
+        cand = {"target": target, "did": did, "label": label, "kind": "numeric",
+                "field": {"offset": off, "width": kind},
+                "scale": scale, "offset": offset, "score": r2, "r2": r2,
+                "evidence": ev}
+        if len(xs) < 3:
+            # Any two points fit a line exactly: R^2 = 1.0 for every field, which
+            # would rank noise as a perfect fit. Keep the candidate, rank it last.
+            cand["score"] = 0.0
+            cand["note"] = "only 2 marks: any two points fit a line; add a third to test the fit"
+        cands.append(cand)
     return cands
 
 

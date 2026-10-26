@@ -236,9 +236,10 @@ if (-not $NoCommit) {
             $existing = $touchedPaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -Unique
             if ($existing.Count -gt 0) {
                 git add -- $existing | Out-Null
-                $staged = git diff --cached --name-only
+                # only OUR paths: never sweep up something else already staged
+                $staged = git diff --cached --name-only -- $existing
                 if ($staged) {
-                    git commit -m "Archive: $Date state + sessions" -q | Out-Null
+                    git commit -m "Archive: $Date state + sessions" -q -- $existing | Out-Null
                     $hash = (git rev-parse --short HEAD)
                     "Committed locally as $hash (no push)."
                 } else {
@@ -253,3 +254,9 @@ if (-not $NoCommit) {
         Pop-Location
     }
 }
+
+# Success: a native git command above may have left a non-zero $LASTEXITCODE
+# (e.g. 'git add' warning on an ignored path); without an explicit exit that
+# can surface as the script's exit code even though the run completed.
+$global:LASTEXITCODE = 0
+exit 0

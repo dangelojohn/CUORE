@@ -28,6 +28,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import re
 import mimetypes
 import shutil
 import threading
@@ -108,7 +109,14 @@ def index_path() -> Path:
     return _root() / "index.jsonl"
 
 
+_VIN_DIR_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
 def vin_dir(vin: str) -> Path:
+    # ``vin`` is caller input and becomes a directory name: refuse anything
+    # that could leave <state>/media (separators, "..", drive letters).
+    if not isinstance(vin, str) or not _VIN_DIR_RE.match(vin):
+        raise BadMedia(f"invalid vin for a media folder: {vin!r}")
     return _root() / vin
 
 

@@ -31,3 +31,27 @@ scratch/
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# --- Public-repo safety (the GitHub remote is PUBLIC) ---------------------
+# Session transcripts / agent output hold credentials (NAS admin password) and
+# personal e-mail addresses. Never commit them. (Files already committed stay
+# tracked until removed from history by the owner.)
+docs/sessions/raw/
+**/transcript/
+*.jsonl.gz
+docs/sessions/archive-errors.log
+# Parts catalogue (data, diagram art, part numbers) lives in C:\ProgramData\cuore only
+parts_catalog/
+**/parts_catalog/**/catalog.json
+**/parts_catalog/**/img/
+stelvio-*-catalogue.json
+stelvio-*-diagram-rows.json
+# Claude Code per-machine state
+.claude/projects/
+.claude/settings.local.json
+# Credentials
+*.cred
+.cred
+*.pem
+*.pfx
+id_rsa*

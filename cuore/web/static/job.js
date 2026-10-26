@@ -355,22 +355,30 @@
       }) || null;
     }
 
+    // stepText comes from a DOM textContent read (already entity-decoded),
+    // and hypothesis text/ids from JSON: all must be escaped before they go
+    // into the dialog's innerHTML.
+    function escHtml(s) {
+      return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
     function buildSheet(li, stepId, stepText) {
       var dlg = document.createElement("dialog");
       dlg.className = "job-confirm-modal result-sheet";
       var spec = specFromText(stepText);
       var nextTestMatch = matchByNextTest(stepText);
       var preselect = (nextTestMatch && nextTestMatch.id) || fromHyp || "";
-      var html = '<p><b>Record a result</b></p><p class="small muted">' + stepText + '</p>' +
+      var html = '<p><b>Record a result</b></p><p class="small muted">' + escHtml(stepText) + '</p>' +
         '<div class="field"><label>Result</label><div class="result-radios">' +
         RESULTS.map(function (r) {
           return '<label><input type="radio" name="result" value="' + r + '" data-meaning="1"> '
-            + resultMeaning(stepText, r) + '</label>';
+            + escHtml(resultMeaning(stepText, r)) + '</label>';
         }).join("") + '</div></div>' +
         '<div class="field"><label>Measured value</label>' +
         '<input type="number" step="any" name="value" style="width:48%"> ' +
         '<input type="text" name="unit" placeholder="unit" style="width:40%"></div>' +
-        (spec ? '<p class="small muted spec-line">' + spec + '</p>' : '') +
+        (spec ? '<p class="small muted spec-line">' + escHtml(spec) + '</p>' : '') +
         // Review 6 UI: a reason is often more than one clause worth
         // writing ("leak found at the canister purge valve; vapour line
         // also looks kinked near the tank" -- the kind of detail a
@@ -382,8 +390,8 @@
         '<div class="field"><label>Supports/refutes which hypothesis?</label>' +
         '<select name="hypothesis_id" style="width:100%"><option value="">Choose a hypothesis&hellip;</option>' +
         hyps.map(function (h) {
-          return '<option value="' + h.id + '"' + (h.id === preselect ? " selected" : "") + '>'
-            + h.text.replace(/</g, "&lt;") + '</option>';
+          return '<option value="' + escHtml(h.id) + '"' + (h.id === preselect ? " selected" : "") + '>'
+            + escHtml(h.text) + '</option>';
         }).join("") +
         '</select>' +
         '<p class="small unlinked-warning" hidden></p></div>' +

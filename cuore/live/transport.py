@@ -110,6 +110,13 @@ _ELM_EQUIVALENT = {"33": "6", "34": "7", "35": "8", "36": "9", "31": "6", "32": 
 MAX_MULTI_PID = 6
 
 
+#: PIDs whose reply length is not the fixed ``PID.n_bytes`` (a presence bitmap followed by
+#: one field per sensor/bank, see the decoders in obd.py). Splitting a multi-PID reply by
+#: n_bytes would cut them short and silently drop the sensor fields, so they are always
+#: requested on their own.
+_VARIABLE_LENGTH_PIDS = frozenset({"68", "6B", "70", "72"})
+
+
 def _split_multi_pid(data: list[str], pids: list[str]) -> dict[str, list[str]]:
     """Split one ECU's ``41 <pid> <data> 41 <pid> <data> ...`` reply by the
     PIDs asked, in order. Stops at the first group that does not match the
@@ -130,6 +137,13 @@ def _split_multi_pid(data: list[str], pids: list[str]) -> dict[str, list[str]]:
         out[pid] = data[i + 2:i + 2 + n]
         i += 2 + n
     return out
+
+
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, default))
+    except ValueError:
+        return default
 
 
 def clamp_timeout(t: float) -> float:
@@ -304,8 +318,10 @@ class Session:
         sent = 0
         multi_used = False
         singles: list[str] = list(pids)
-        if allow_multi and len(pids) > 1:
-            singles = []
+        batchable = [p for p in pids if p not in _VARIABLE_LENGTH_PIDS]
+        if allow_multi and len(batchable) > 1:
+            singles = [p for p in pids if p in _VARIABLE_LENGTH_PIDS]
+            pids = batchable
             for start in range(0, len(pids), MAX_MULTI_PID):
                 batch = pids[start:start + MAX_MULTI_PID]
                 q = self.query("01" + "".join(batch), "41", timeout)
@@ -439,6 +455,10 @@ class Session:
                 # header must then be restated because STP resets it as well.
                 self.cmd("STCFCPC", 2)
                 self.cmd(f"STP {self.route.stn_protocol}", 2)
+                if self.route.bitrate_override:
+                    # STP re-selects the preset's own rate (500k); a cable route runs at its
+                    # override (125k), so restate it before anything can open the bus.
+                    self.cmd(f"STPBR {self.route.bitrate_override}", 2)
                 if self.header_bits == 29:
                     self.cmd("ATCP18", 2)
                     self.cmd("ATSHDB33F1", 2)
@@ -545,11 +565,16 @@ class AdapterLink:
         # the passive listen itself instead of refusing. Off with
         # CUORE_AUTO_VERIFY=0; the proof window is CUORE_VERIFY_TTL seconds.
         self.auto_verify: bool = os.environ.get("CUORE_AUTO_VERIFY", "1") != "0"
-        self.verify_ttl: float = float(os.environ.get("CUORE_VERIFY_TTL", "600"))
+        self.verify_ttl: float = _env_float("CUORE_VERIFY_TTL", 600.0)
         self.verifier: Optional[Callable[..., dict[str, Any]]] = None
         self.last_auto_verify: Optional[dict[str, Any]] = None
         self.vin: str = ""                               # last VIN the car reported
         self.current: Optional[Session] = None
+        self.current_purpose: Optional[str] = None
+        # How long a caller waits for the adapter lock before being told the adapter is
+        # busy. Without a bound, a long capture/learn session (which holds the lock for
+        # its whole run) hangs every other request until it is stopped.
+        self.lock_wait_s: float = _env_float("CUORE_LOCK_WAIT", 30.0)
         # Probe-based lighter pass-filter restore for untarget() (point d of
         # docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md). None until
         # the first untarget() on an STN link probes it; then "pass_filter"
@@ -696,7 +721,23 @@ class AdapterLink:
     # --- sessions -------------------------------------------------------
 
     @contextmanager
-    def session(self, purpose: str, *, bus: Bus = CAN_C, port: str = "", baud: int = 0,
+    def session(self, purpose: str, **kwargs: Any) -> Iterator[Session]:
+        """Open the adapter for one operation (see :meth:`_session_locked`), waiting at
+        most ``lock_wait_s`` for any other operation to finish first. The lock is
+        re-entrant, so a nested call on the same thread never waits."""
+        if not self.lock.acquire(timeout=max(0.0, self.lock_wait_s)):
+            raise LinkUnavailable(
+                f"the adapter is busy with {self.current_purpose or 'another operation'}; waited "
+                f"{self.lock_wait_s:g} s. Try again when it finishes (stop the live session, "
+                f"bus capture or MES-learn listener if one is running).")
+        try:
+            with self._session_locked(purpose, **kwargs) as sess:
+                yield sess
+        finally:
+            self.lock.release()
+
+    @contextmanager
+    def _session_locked(self, purpose: str, *, bus: Bus = CAN_C, port: str = "", baud: int = 0,
                 passive: bool = False, confirm: bool = False,
                 allow_while_mes_connected: bool = False,
                 stream: Optional[Stream] = None,
@@ -779,8 +820,8 @@ class AdapterLink:
                     f"{ms['pids']}). Disconnect in MES first, or pass "
                     f"allow_while_mes_connected=True if MES is on a different port.")
             interlock.acquire(p or "stream", purpose, process=self.process)
-            st = stream or self.stream_factory(p or "", b)
             try:
+                st = stream or self.stream_factory(p or "", b)
                 st.open()
             except Exception as e:  # serial.SerialException, OSError
                 interlock.release()
@@ -792,12 +833,13 @@ class AdapterLink:
                 raise LinkUnavailable(f"could not open {p}@{b} ({psrc}, {bsrc}): {e}.{hint}")
             self.port, self.baud, self.port_source, self.baud_source = p, b, psrc, bsrc
             self.last_open = datetime.now().isoformat(timespec="seconds")
-            sess = Session(self, st, bus, chosen, passive=passive, confirmed=confirm)
-            sess.auto_verified = auto
-            self.current = sess
-            audit.record("session_open", purpose=purpose, bus=bus.key, cable=self.cable,
-                         passive=passive, port=p, baud=b, stream=st.describe)
             try:
+                sess = Session(self, st, bus, chosen, passive=passive, confirmed=confirm)
+                sess.auto_verified = auto
+                self.current = sess
+                self.current_purpose = purpose
+                audit.record("session_open", purpose=purpose, bus=bus.key, cable=self.cable,
+                             passive=passive, port=p, baud=b, stream=st.describe)
                 self._init(sess)
                 yield sess
                 audit.record("session_close", purpose=purpose, bus=bus.key, ok=True)
@@ -808,6 +850,7 @@ class AdapterLink:
                 raise
             finally:
                 self.current = None
+                self.current_purpose = None
                 try:
                     st.close()
                 except Exception:

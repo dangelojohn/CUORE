@@ -88,9 +88,10 @@ def _out(r: dict[str, Any]) -> dict[str, Any]:
     return {k: r[k] for k in ("pn", "name", "description", "photo_url", "part_url", "diagram_id")}
 
 
-def images_for_pn(pn: str) -> list[dict[str, Any]]:
+def images_for_pn(pn: str, *, exclude_placeholders: bool = True) -> list[dict[str, Any]]:
     n = pc.norm_pn(pn)
-    return [_out(r) for r in _rows() if pc.norm_pn(r["pn"]) == n][:1]
+    out = [_pick(r, exclude_placeholders) for r in _rows() if pc.norm_pn(r["pn"]) == n]
+    return [o for o in out if o][:1]
 
 
 def images_for(terms: list[str], *, fitment_own: bool = True, limit: int = 3,

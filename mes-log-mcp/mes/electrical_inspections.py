@@ -23,6 +23,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from . import paths
+
 CONDITIONS = (
     "ok", "corroded", "chafed", "loose", "water", "repaired", "replaced",
     "not_found",
@@ -58,30 +60,11 @@ def store_path() -> Path:
 
 
 def _append(entry: dict[str, Any]) -> None:
-    p = store_path()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    paths.append_jsonl(store_path(), entry)
 
 
 def _raw_records() -> list[dict[str, Any]]:
-    p = store_path()
-    if not p.exists():
-        return []
-    try:
-        lines = p.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    out: list[dict[str, Any]] = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            out.append(json.loads(line))
-        except ValueError:
-            continue
-    return out
+    return paths.read_jsonl(store_path())
 
 
 def add(vin: str, element: str, condition: str, by: str = "technician",

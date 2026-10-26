@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -297,7 +298,9 @@ def search(pattern: str, since: str = "", until: str = "",
         if not path.exists():
             continue
         try:
-            lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+            lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
+            if lines and lines[-1] == "":
+                lines.pop()  # trailing newline, not a record (JSONL splits on LF only: U+2028 etc. live inside records)
         except OSError:
             continue
         for i, line in enumerate(lines):
@@ -322,7 +325,9 @@ def search(pattern: str, since: str = "", until: str = "",
                 csvs = []
             for p in csvs:
                 try:
-                    head = p.read_text(encoding="utf-8", errors="replace").splitlines()[:2]
+                    with p.open("r", encoding="utf-8", errors="replace") as fh:
+                        head = [fh.readline().rstrip("\r\n"), fh.readline().rstrip("\r\n")]
+                    head = [h for h in head if h]
                 except OSError:
                     continue
                 for i, line in enumerate(head):
@@ -408,8 +413,17 @@ def log_archive(label: str = "") -> dict[str, Any]:
     them."""
     d = state_dir()
     stamp = datetime.now().strftime("%Y%m%d%H%M%S")
-    name = f"{stamp}-{label.strip()}" if label.strip() else stamp
-    dest = archive_dir() / name
+    # The label becomes a directory name: keep it to one safe path component
+    # (a label such as "x/../../y" or "..\\.." must not place the copies, or
+    # the manifest, outside the archive folder).
+    safe = re.sub(r"[^A-Za-z0-9._ -]+", "_", label.strip()).strip(" .")[:60]
+    name = f"{stamp}-{safe}" if safe else stamp
+    root = archive_dir()
+    dest = root / name
+    n = 1
+    while dest.exists():  # same-second archives must not overwrite each other
+        n += 1
+        dest = root / f"{name}-{n}"
     dest.mkdir(parents=True, exist_ok=True)
 
     manifest: dict[str, Any] = {
@@ -442,7 +456,9 @@ def log_integrity() -> dict[str, Any]:
             report[fname] = {"exists": False}
             continue
         try:
-            lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+            lines = p.read_text(encoding="utf-8", errors="replace").split("\n")
+            if lines and lines[-1] == "":
+                lines.pop()
         except OSError as exc:
             report[fname] = {"exists": True, "error": str(exc)}
             continue

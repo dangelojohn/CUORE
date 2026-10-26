@@ -239,6 +239,21 @@ with lk4.session("query_pids-single", bus=CAN_C) as sess:
 check_eq("single PID: multi_pid_used is False", r4["multi_pid_used"], False)
 check_eq("single PID: exactly one request", r4["requests_sent"], 1)
 
+# Variable-length PIDs (68 = presence bitmap + one byte per sensor) are never batched: splitting
+# by the fixed n_bytes would cut the sensor bytes off and report a truncated reading as complete.
+script_var = dict(_BASE)
+script_var["010C0D"] = _frames("7E8", "410C1F40" + "410D3C")
+script_var["0168"] = _frames("7E8", "41680325" + "26")
+lk5, stream5 = _link(script_var)
+with lk5.session("query_pids-variable", bus=CAN_C) as sess:
+    sess.untarget()
+    r5 = sess.query_pids(["0C", "68", "0D"])
+check("variable-length PID is requested on its own", "0168" in stream5.sent
+      and not any(c.startswith("01") and "68" in c[2:] and len(c) > 4 for c in stream5.sent),
+      str(stream5.sent))
+check_eq("variable-length PID keeps every byte", r5["by_ecu"]["7E8"]["68"], ["03", "25", "26"])
+check_eq("fixed-length PIDs still batch around it", r5["by_ecu"]["7E8"]["0D"], ["3C"])
+
 
 # ===========================================================================
 # (b) uds.sweep_bus_full: DTCs + identity + DID per module, one session

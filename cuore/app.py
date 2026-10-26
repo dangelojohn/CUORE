@@ -18,6 +18,7 @@ from contextlib import asynccontextmanager
 
 from . import __version__, bootstrap  # noqa: F401  -- bootstrap has a side effect
 
+import anyio  # noqa: E402
 from fastapi import FastAPI, Request  # noqa: E402
 from fastapi.responses import JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
@@ -121,6 +122,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "customer VINs and is now readable by every device on this "
                 "network. Set CUORE_TOKEN.", settings.host)
         yield
+        # Shutdown: end a running live-data poll session so its recorder is
+        # flushed and the adapter released rather than dropped mid-frame. A
+        # no-op when nothing is running; never allowed to block shutdown.
+        try:
+            from .live import ops as live_ops
+            await anyio.to_thread.run_sync(live_ops.live_session_stop)
+        except Exception:  # noqa: BLE001
+            log.exception("live session stop at shutdown failed")
 
     app = FastAPI(
         title="CUORE",

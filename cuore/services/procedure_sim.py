@@ -353,6 +353,8 @@ def start(proc: str, token: str, car: Optional[SimCar] = None) -> tuple[Optional
             b = (rd["blockers"] or [{"label": "a question", "unblock": "Answer the question"}])[0]
             return None, f"Start refused: {b['label']} - {b['unblock']}."
         run = Run(proc, car)
+        for old in [k for k, v in RUNS.items() if v.state != "running"][:-49]:
+            RUNS.pop(old, None)                       # keep the newest finished runs only
         RUNS[run.id] = run
         car.answers.clear()                           # every run asks again
         if PROCS[proc]["kind"] == "reset":

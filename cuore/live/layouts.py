@@ -22,6 +22,7 @@ from ..services import known_good_bridge
 from ..services.errors import BadRequest, NotFound
 from . import channels as channels_mod
 from .config import state_dir
+from .ui_store import atomic_write_text
 
 _LOCK = threading.Lock()
 
@@ -431,7 +432,7 @@ def _load_user(layout_id: str) -> Optional[dict[str, Any]]:
 
 def _save_user(layout: dict[str, Any]) -> None:
     p = _path_for(layout["id"])
-    p.write_text(json.dumps(layout, indent=2), encoding="utf-8")
+    atomic_write_text(p, json.dumps(layout, indent=2))
 
 
 def list_layouts() -> list[dict[str, Any]]:

@@ -69,6 +69,7 @@ same split ``cuore.live.media`` / nothing-yet-equivalent keeps.
 from __future__ import annotations
 
 import json
+import math
 import threading
 import uuid
 from datetime import datetime
@@ -812,6 +813,8 @@ def add(vin: str, category: str, kind: str, *, at: Optional[str] = None,
             odo = float(odometer_km)
         except (TypeError, ValueError) as exc:
             raise ValueError("odometer_km must be numeric") from exc
+        if not math.isfinite(odo):
+            raise ValueError("odometer_km must be numeric")
 
     # A meta tag is only kept for a field that (a) actually survived cleaning
     # above -- a source note for a field that was blank/dropped would be a
@@ -1032,6 +1035,8 @@ def edit(id: str, *, fields: Optional[dict[str, Any]] = None, note: Optional[str
                 odo_v: Optional[float] = float(odometer_km)
             except (TypeError, ValueError) as exc:
                 raise ValueError("odometer_km must be numeric") from exc
+            if not math.isfinite(odo_v):
+                raise ValueError("odometer_km must be numeric")
             changes["odometer_km"] = {"from": current.get("odometer_km"), "to": odo_v}
         if at is not None:
             at_v = _parse_iso_or_date(at)

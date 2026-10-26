@@ -73,6 +73,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from . import paths
+
 STATUSES = ("open", "verifying", "closed")
 OUTCOMES = ("fixed", "not_fixed", "deferred")
 HYP_STATUSES = ("open", "supported", "refuted", "confirmed")
@@ -161,30 +163,11 @@ def store_path() -> Path:
 
 
 def _append(entry: dict[str, Any]) -> None:
-    p = store_path()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    paths.append_jsonl(store_path(), entry)
 
 
 def _raw_records() -> list[dict[str, Any]]:
-    p = store_path()
-    if not p.exists():
-        return []
-    try:
-        lines = p.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    out: list[dict[str, Any]] = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            out.append(json.loads(line))
-        except ValueError:
-            continue
-    return out
+    return paths.read_jsonl(store_path())
 
 
 def _new_job(rec: dict[str, Any]) -> dict[str, Any]:
@@ -264,202 +247,210 @@ def _check_event_date(event_date: Optional[str]) -> Optional[str]:
     return ev
 
 
+def _fold_record(jobs: dict[str, dict[str, Any]], rec: dict[str, Any]) -> None:
+    """Apply one record to the folded state."""
+    op = rec.get("op")
+    if op == "open":
+        jid = rec.get("id")
+        if not jid or jid in jobs:
+            return
+        jobs[jid] = _new_job(rec)
+        return
+
+    jid = rec.get("job_id")
+    job = jobs.get(jid) if jid else None
+    if job is None:
+        return
+
+    if op == "hypothesis_add":
+        at = rec["at"]
+        # Migration (JOB_UX_FIXES-era records predate system_text): an
+        # old-shape record has no "system_text" key at all (raw text
+        # lived in "system" itself); a current-shape one always has
+        # "system_text", even "" for no system given. Either way the
+        # key is re-resolved here, on read, from whichever raw text
+        # exists -- never rewritten in the log itself, and re-run every
+        # fold so an ALIASES table improvement benefits old records too.
+        raw_system = rec.get("system_text")
+        if raw_system is None:
+            raw_system = rec.get("system") or ""
+        job["hypotheses"].append({
+            "id": rec["id"], "text": rec.get("text") or "",
+            "system": _normalize_system(raw_system) or "",
+            "system_text": raw_system, "status": "open",
+            "evidence_for": [], "evidence_against": [],
+            "next_test": rec.get("next_test") or "",
+            "codes": list(rec.get("codes") or []),
+            "likelihood": rec.get("likelihood"),
+            "safety": bool(rec.get("safety")),
+            "attested_resolved": bool(rec.get("attested_resolved")),
+            "updated_at": at, "deleted": False,
+            "confirmed_by": None, "confirmed_at": None,
+            "audit": [{"at": at, "by": rec.get("by"), "action": "created",
+                      "detail": rec.get("text") or ""}],
+        })
+    elif op == "hypothesis_set":
+        hyp = _hyp(job, rec.get("hyp_id"))
+        if hyp is None:
+            return
+        at = rec["at"]
+        old_status = hyp["status"]
+        if rec.get("status") is not None:
+            hyp["status"] = rec["status"]
+            if rec["status"] == "confirmed":
+                hyp["confirmed_by"] = rec.get("by")
+                hyp["confirmed_at"] = at
+            _audit(hyp, at, rec.get("by"), "status",
+                  f"{old_status} -> {rec['status']}")
+        if rec.get("next_test") is not None:
+            hyp["next_test"] = rec["next_test"]
+        hyp["updated_at"] = at
+    elif op == "hypothesis_edit":
+        hyp = _hyp(job, rec.get("hyp_id"))
+        if hyp is None:
+            return
+        at = rec["at"]
+        changed = []
+        for field in ("text", "next_test"):
+            if rec.get(field) is not None:
+                hyp[field] = rec[field]
+                changed.append(field)
+        # Same migration-safe resolution as hypothesis_add: an edit
+        # record carries "system_text" (current shape) going forward,
+        # but a record written before that existed still only has
+        # "system" -- either way, re-resolve from whichever is there.
+        raw_system = rec.get("system_text")
+        if raw_system is None:
+            raw_system = rec.get("system")
+        if raw_system is not None:
+            hyp["system_text"] = raw_system
+            hyp["system"] = _normalize_system(raw_system) or ""
+            changed.append("system")
+        if rec.get("codes") is not None:
+            hyp["codes"] = list(rec["codes"])
+            changed.append("codes")
+        if rec.get("likelihood") is not None:
+            hyp["likelihood"] = rec["likelihood"]
+            changed.append("likelihood")
+        if rec.get("safety") is not None:
+            hyp["safety"] = bool(rec["safety"])
+            changed.append("safety")
+        if rec.get("attested_resolved") is not None:
+            hyp["attested_resolved"] = bool(rec["attested_resolved"])
+            changed.append("attested_resolved")
+        hyp["updated_at"] = at
+        if changed:
+            _audit(hyp, at, rec.get("by"), "edited", ", ".join(changed))
+    elif op == "hypothesis_delete":
+        hyp = _hyp(job, rec.get("hyp_id"))
+        if hyp is None:
+            return
+        hyp["deleted"] = True
+        hyp["updated_at"] = rec["at"]
+        _audit(hyp, rec["at"], rec.get("by"), "deleted", "")
+    elif op == "hypothesis_undelete":
+        hyp = _hyp(job, rec.get("hyp_id"))
+        if hyp is None:
+            return
+        hyp["deleted"] = False
+        hyp["updated_at"] = rec["at"]
+        _audit(hyp, rec["at"], rec.get("by"), "undeleted", "")
+    elif op == "action_add":
+        job["actions"].append(_decorate_action({
+            "id": rec.get("id"),
+            "at": rec["at"], "kind": rec.get("kind") or "note",
+            "text": rec.get("text") or "", "ref": rec.get("ref"),
+            "event_date": rec.get("event_date") or None,
+        }))
+    elif op == "action_retract":
+        aid = rec.get("action_id")
+        keep = [a for a in job["actions"] if not (aid and a.get("id") == aid)]
+        for a in job["actions"]:
+            if aid and a.get("id") == aid:
+                job["retracted_actions"].append(dict(
+                    a, retracted_at=rec.get("at"), retract_reason=rec.get("reason") or "",
+                    retracted_by=rec.get("by")))
+        job["actions"] = keep
+    elif op == "action_event_date":
+        for a in job["actions"]:
+            if a.get("id") and a.get("id") == rec.get("action_id"):
+                a["event_date"] = rec.get("event_date") or None
+                _decorate_action(a)
+    elif op == "attach":
+        ref = rec.get("ref")
+        hyp_id = rec.get("hyp_id")
+        if hyp_id:
+            hyp = _hyp(job, hyp_id)
+            if hyp is None:
+                return
+            supports = rec.get("supports", True)
+            bucket = "evidence_for" if supports else "evidence_against"
+            if ref and ref not in hyp[bucket]:
+                hyp[bucket].append(ref)
+                hyp["updated_at"] = rec["at"]
+                label = (ref or {}).get("label") or (ref or {}).get("id")
+                _audit(hyp, rec["at"], rec.get("by"), "evidence_added",
+                      f"{'for' if supports else 'against'}: {label}")
+        else:
+            link = rec.get("link")
+            if link in job["links"] and ref:
+                ids = job["links"][link]
+                if ref.get("id") not in ids:
+                    ids.append(ref.get("id"))
+    elif op == "evidence_remove":
+        hyp = _hyp(job, rec.get("hyp_id"))
+        if hyp is None:
+            return
+        bucket = "evidence_for" if rec.get("side") == "for" else "evidence_against"
+        ref_id = rec.get("ref_id")
+        ref_kind = rec.get("ref_kind")
+        before = len(hyp[bucket])
+        hyp[bucket] = [r for r in hyp[bucket] if not (
+            r.get("id") == ref_id and (ref_kind is None or r.get("kind") == ref_kind))]
+        if len(hyp[bucket]) != before:
+            hyp["updated_at"] = rec["at"]
+            _audit(hyp, rec["at"], rec.get("by"), "evidence_removed",
+                  f"{rec.get('side')}: {ref_id}")
+    elif op == "evidence_resolve":
+        hyp = _hyp(job, rec.get("hyp_id"))
+        if hyp is None:
+            return
+        ref_id = rec.get("ref_id")
+        ref_kind = rec.get("ref_kind")
+        resolved = bool(rec.get("resolved", True))
+        touched = False
+        for r in hyp["evidence_against"]:
+            if r.get("id") == ref_id and (ref_kind is None or r.get("kind") == ref_kind):
+                r["resolved"] = resolved
+                touched = True
+        if touched:
+            hyp["updated_at"] = rec["at"]
+            _audit(hyp, rec["at"], rec.get("by"),
+                  "evidence_resolved" if resolved else "evidence_unresolved",
+                  str(ref_id))
+    elif op == "close":
+        job["status"] = "closed"
+        job["closed_at"] = rec["at"]
+        job["outcome"] = rec.get("outcome")
+        v = job["verification"]
+        if rec.get("readiness_at") is not None:
+            v["readiness_at"] = rec["readiness_at"]
+        if rec.get("codes_returned") is not None:
+            v["codes_returned"] = rec["codes_returned"]
+        if rec.get("verdict") is not None:
+            v["verdict"] = rec["verdict"]
+
+
 def _fold() -> dict[str, dict[str, Any]]:
     """Every record folded into current job state, keyed by job id, in the
     order jobs were opened. One bad/unknown-op line is skipped, never sinks
     the rest of the store -- same posture as ``mes.notes._raw_records``."""
     jobs: dict[str, dict[str, Any]] = {}
     for rec in _raw_records():
-        op = rec.get("op")
-        if op == "open":
-            jid = rec.get("id")
-            if not jid or jid in jobs:
-                continue
-            jobs[jid] = _new_job(rec)
-            continue
-
-        jid = rec.get("job_id")
-        job = jobs.get(jid) if jid else None
-        if job is None:
-            continue
-
-        if op == "hypothesis_add":
-            at = rec["at"]
-            # Migration (JOB_UX_FIXES-era records predate system_text): an
-            # old-shape record has no "system_text" key at all (raw text
-            # lived in "system" itself); a current-shape one always has
-            # "system_text", even "" for no system given. Either way the
-            # key is re-resolved here, on read, from whichever raw text
-            # exists -- never rewritten in the log itself, and re-run every
-            # fold so an ALIASES table improvement benefits old records too.
-            raw_system = rec.get("system_text")
-            if raw_system is None:
-                raw_system = rec.get("system") or ""
-            job["hypotheses"].append({
-                "id": rec["id"], "text": rec.get("text") or "",
-                "system": _normalize_system(raw_system) or "",
-                "system_text": raw_system, "status": "open",
-                "evidence_for": [], "evidence_against": [],
-                "next_test": rec.get("next_test") or "",
-                "codes": list(rec.get("codes") or []),
-                "likelihood": rec.get("likelihood"),
-                "safety": bool(rec.get("safety")),
-                "attested_resolved": bool(rec.get("attested_resolved")),
-                "updated_at": at, "deleted": False,
-                "confirmed_by": None, "confirmed_at": None,
-                "audit": [{"at": at, "by": rec.get("by"), "action": "created",
-                          "detail": rec.get("text") or ""}],
-            })
-        elif op == "hypothesis_set":
-            hyp = _hyp(job, rec.get("hyp_id"))
-            if hyp is None:
-                continue
-            at = rec["at"]
-            old_status = hyp["status"]
-            if rec.get("status") is not None:
-                hyp["status"] = rec["status"]
-                if rec["status"] == "confirmed":
-                    hyp["confirmed_by"] = rec.get("by")
-                    hyp["confirmed_at"] = at
-                _audit(hyp, at, rec.get("by"), "status",
-                      f"{old_status} -> {rec['status']}")
-            if rec.get("next_test") is not None:
-                hyp["next_test"] = rec["next_test"]
-            hyp["updated_at"] = at
-        elif op == "hypothesis_edit":
-            hyp = _hyp(job, rec.get("hyp_id"))
-            if hyp is None:
-                continue
-            at = rec["at"]
-            changed = []
-            for field in ("text", "next_test"):
-                if rec.get(field) is not None:
-                    hyp[field] = rec[field]
-                    changed.append(field)
-            # Same migration-safe resolution as hypothesis_add: an edit
-            # record carries "system_text" (current shape) going forward,
-            # but a record written before that existed still only has
-            # "system" -- either way, re-resolve from whichever is there.
-            raw_system = rec.get("system_text")
-            if raw_system is None:
-                raw_system = rec.get("system")
-            if raw_system is not None:
-                hyp["system_text"] = raw_system
-                hyp["system"] = _normalize_system(raw_system) or ""
-                changed.append("system")
-            if rec.get("codes") is not None:
-                hyp["codes"] = list(rec["codes"])
-                changed.append("codes")
-            if rec.get("likelihood") is not None:
-                hyp["likelihood"] = rec["likelihood"]
-                changed.append("likelihood")
-            if rec.get("safety") is not None:
-                hyp["safety"] = bool(rec["safety"])
-                changed.append("safety")
-            if rec.get("attested_resolved") is not None:
-                hyp["attested_resolved"] = bool(rec["attested_resolved"])
-                changed.append("attested_resolved")
-            hyp["updated_at"] = at
-            if changed:
-                _audit(hyp, at, rec.get("by"), "edited", ", ".join(changed))
-        elif op == "hypothesis_delete":
-            hyp = _hyp(job, rec.get("hyp_id"))
-            if hyp is None:
-                continue
-            hyp["deleted"] = True
-            hyp["updated_at"] = rec["at"]
-            _audit(hyp, rec["at"], rec.get("by"), "deleted", "")
-        elif op == "hypothesis_undelete":
-            hyp = _hyp(job, rec.get("hyp_id"))
-            if hyp is None:
-                continue
-            hyp["deleted"] = False
-            hyp["updated_at"] = rec["at"]
-            _audit(hyp, rec["at"], rec.get("by"), "undeleted", "")
-        elif op == "action_add":
-            job["actions"].append(_decorate_action({
-                "id": rec.get("id"),
-                "at": rec["at"], "kind": rec.get("kind") or "note",
-                "text": rec.get("text") or "", "ref": rec.get("ref"),
-                "event_date": rec.get("event_date") or None,
-            }))
-        elif op == "action_retract":
-            aid = rec.get("action_id")
-            keep = [a for a in job["actions"] if not (aid and a.get("id") == aid)]
-            for a in job["actions"]:
-                if aid and a.get("id") == aid:
-                    job["retracted_actions"].append(dict(
-                        a, retracted_at=rec.get("at"), retract_reason=rec.get("reason") or "",
-                        retracted_by=rec.get("by")))
-            job["actions"] = keep
-        elif op == "action_event_date":
-            for a in job["actions"]:
-                if a.get("id") and a.get("id") == rec.get("action_id"):
-                    a["event_date"] = rec.get("event_date") or None
-                    _decorate_action(a)
-        elif op == "attach":
-            ref = rec.get("ref")
-            hyp_id = rec.get("hyp_id")
-            if hyp_id:
-                hyp = _hyp(job, hyp_id)
-                if hyp is None:
-                    continue
-                supports = rec.get("supports", True)
-                bucket = "evidence_for" if supports else "evidence_against"
-                if ref and ref not in hyp[bucket]:
-                    hyp[bucket].append(ref)
-                    hyp["updated_at"] = rec["at"]
-                    label = (ref or {}).get("label") or (ref or {}).get("id")
-                    _audit(hyp, rec["at"], rec.get("by"), "evidence_added",
-                          f"{'for' if supports else 'against'}: {label}")
-            else:
-                link = rec.get("link")
-                if link in job["links"] and ref:
-                    ids = job["links"][link]
-                    if ref.get("id") not in ids:
-                        ids.append(ref.get("id"))
-        elif op == "evidence_remove":
-            hyp = _hyp(job, rec.get("hyp_id"))
-            if hyp is None:
-                continue
-            bucket = "evidence_for" if rec.get("side") == "for" else "evidence_against"
-            ref_id = rec.get("ref_id")
-            ref_kind = rec.get("ref_kind")
-            before = len(hyp[bucket])
-            hyp[bucket] = [r for r in hyp[bucket] if not (
-                r.get("id") == ref_id and (ref_kind is None or r.get("kind") == ref_kind))]
-            if len(hyp[bucket]) != before:
-                hyp["updated_at"] = rec["at"]
-                _audit(hyp, rec["at"], rec.get("by"), "evidence_removed",
-                      f"{rec.get('side')}: {ref_id}")
-        elif op == "evidence_resolve":
-            hyp = _hyp(job, rec.get("hyp_id"))
-            if hyp is None:
-                continue
-            ref_id = rec.get("ref_id")
-            ref_kind = rec.get("ref_kind")
-            resolved = bool(rec.get("resolved", True))
-            touched = False
-            for r in hyp["evidence_against"]:
-                if r.get("id") == ref_id and (ref_kind is None or r.get("kind") == ref_kind):
-                    r["resolved"] = resolved
-                    touched = True
-            if touched:
-                hyp["updated_at"] = rec["at"]
-                _audit(hyp, rec["at"], rec.get("by"),
-                      "evidence_resolved" if resolved else "evidence_unresolved",
-                      str(ref_id))
-        elif op == "close":
-            job["status"] = "closed"
-            job["closed_at"] = rec["at"]
-            job["outcome"] = rec.get("outcome")
-            v = job["verification"]
-            if rec.get("readiness_at") is not None:
-                v["readiness_at"] = rec["readiness_at"]
-            if rec.get("codes_returned") is not None:
-                v["codes_returned"] = rec["codes_returned"]
-            if rec.get("verdict") is not None:
-                v["verdict"] = rec["verdict"]
+        try:
+            _fold_record(jobs, rec)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue  # a record missing a required field must not sink the store
     return jobs
 
 

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from ..services import shop_bridge
@@ -50,13 +50,20 @@ class ReleaseBody(BaseModel):
 
 @router.get("/shop/board", summary="The day board: cars currently in, plus today's throughput")
 def board() -> dict[str, Any]:
+    # shop_bridge has no build_board yet; a 500 AttributeError helps nobody.
+    if not hasattr(shop_bridge, "build_board"):
+        raise HTTPException(status_code=501, detail="the day board is not implemented")
     return shop_bridge.build_board()
 
 
 @router.post("/shop/intake", summary="Take a car in: register the visit and open a linked Job")
 def intake(body: Intake) -> dict[str, Any]:
-    return shop_bridge.intake(body.vin, body.complaint, technician=body.technician,
-                              bay=body.bay, promised_at=body.promised_at)
+    # shop_bridge.intake takes no bay / promised_at (passing them was a
+    # TypeError, i.e. a 500 on every call); refuse them rather than drop them.
+    if body.bay or body.promised_at:
+        raise HTTPException(status_code=400,
+                            detail="bay and promised_at are not supported by intake")
+    return shop_bridge.intake(body.vin, body.complaint, technician=body.technician)
 
 
 @router.get("/shop/visits/{visit_id}", summary="One visit by id")
@@ -66,6 +73,8 @@ def get_visit(visit_id: str) -> dict[str, Any]:
 
 @router.post("/shop/visits/{visit_id}/status", summary="Move a visit to a new status")
 def set_status(visit_id: str, body: StatusSet) -> dict[str, Any]:
+    if not hasattr(shop_bridge, "set_status"):
+        raise HTTPException(status_code=501, detail="visit status changes are not implemented")
     return shop_bridge.set_status(visit_id, body.status)
 
 

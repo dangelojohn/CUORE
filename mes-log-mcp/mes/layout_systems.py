@@ -719,7 +719,9 @@ ELEMENTS: dict[str, dict[str, Any]] = {
                          "confirmed (do not assume it is the same)",
         notes="DTCM module (Magna Q4 Transfer Case) answers on CAN-C, no "
               "cable -- CONFIRMED network identity per " + _MODULE_MAP +
-              "; TA address 0x29 is UNVERIFIED (stelvio_scan only).",
+              "; stelvio_scan's TA 0x29 is UNVERIFIED and superseded: CUORE "
+              "discovery 2026-10-24 resolves DTCM at 0x1A "
+              "(cuore/tests/check_path_diag.py).",
     ),
 
     "propshaft": _el(
@@ -813,8 +815,10 @@ ELEMENTS: dict[str, dict[str, Any]] = {
     "eps_motor_rack": _el(
         "component", "EPS (electric power steering) motor/rack",
         _unknown_loc("GIORGIO_MODULE_MAP.md confirms the EPS module's "
-                      "network address (CAN-CH, grey A6, TA 0x2A) but "
-                      "gives no panel/physical mounting location."),
+                      "network address (CAN-CH, grey A6) but gives no "
+                      "panel/physical mounting location. (TA 0x2A is the "
+                      "ABS on this car, CONFIRMED by CUORE discovery "
+                      "2026-10-15; the EPS address is UNKNOWN.)"),
         part_of_systems=["steering"],
         inspection_hint="",
         notes="ZF Electric Steering; also hosts the steering-angle "
@@ -1421,7 +1425,7 @@ FUEL_TRIM_CODES = frozenset({"P0171", "P0172"})
 
 
 def _base(code: str) -> str:
-    c = code.strip().upper()
+    c = (code or "").strip().upper()
     if "-" in c:
         c = c.split("-", 1)[0]
     return c

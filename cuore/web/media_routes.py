@@ -417,7 +417,8 @@ async def media_upload(request: Request, vin: str) -> RedirectResponse:
         return str(form.get(name, default) or "").strip()
 
     redirect_base = field("redirect_to") or f"/v/{vin}/media"
-    if not redirect_base.startswith("/") or redirect_base.startswith("//"):
+    if (not redirect_base.startswith("/") or redirect_base.startswith("//")
+            or any(c in redirect_base for c in (chr(92), chr(13), chr(10)))):
         redirect_base = f"/v/{vin}/media"
 
     caption = field("caption")

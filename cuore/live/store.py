@@ -7,6 +7,7 @@ from the spec; the interface stays.
 from __future__ import annotations
 
 import json
+import os
 import threading
 from datetime import datetime
 from pathlib import Path
@@ -29,8 +30,13 @@ def _load() -> dict[str, Any]:
 
 
 def _save(data: dict[str, Any]) -> None:
+    # Write-then-replace: a crash mid-write used to leave a truncated file that
+    # _load() read as {} and the next save then overwrote, losing every confirmation.
+    p = path()
+    tmp = p.with_name(p.name + ".tmp")
     try:
-        path().write_text(json.dumps(data, indent=2), encoding="utf-8")
+        tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        os.replace(tmp, p)
     except OSError:
         pass
 
@@ -39,7 +45,13 @@ def confirmed_targets(vin: str) -> dict[str, int]:
     """``{module_code: target}`` confirmed on this VIN."""
     with _LOCK:
         entry = _load().get(vin, {})
-    return {code: int(rec["target"], 16) for code, rec in entry.items()}
+    out: dict[str, int] = {}
+    for code, rec in (entry.items() if isinstance(entry, dict) else ()):
+        try:
+            out[code] = int(rec["target"], 16)
+        except (KeyError, TypeError, ValueError):   # one damaged record must not break every read
+            continue
+    return out
 
 
 def confirm_target(vin: str, code: str, target: int, source: str = "discover") -> None:
@@ -59,7 +71,6 @@ def all_confirmations() -> dict[str, Any]:
 # --- observations: what the car said, when, so the evidence gate can cite it --
 
 def observations_path() -> Path:
-    import os
     env = os.environ.get("MES_LIVE_OBSERVATIONS")
     return Path(env) if env else state_dir() / "observations.jsonl"
 
@@ -79,7 +90,7 @@ def record_observation(kind: str, data: dict[str, Any], *, vin: str = "",
         with _LOCK:
             with observations_path().open("a", encoding="utf-8") as f:
                 f.write(json.dumps(entry, default=str) + "\n")
-    except OSError:
+    except (OSError, TypeError, ValueError):
         pass
 
 

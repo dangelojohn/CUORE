@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import os
 import sys
+import threading
 from pathlib import Path
 from typing import Any, Optional
 
@@ -144,9 +145,15 @@ def state_dir() -> Path:
     for d in candidates:
         try:
             d.mkdir(parents=True, exist_ok=True)
-            probe = d / ".write-test"
+            # Unique per process and thread: two threads sharing one probe name raced
+            # (one unlink hit FileNotFoundError), and the loser was handed a DIFFERENT
+            # state directory, splitting the lock file and observations between two places.
+            probe = d / f".write-test-{os.getpid()}-{threading.get_ident()}"
             probe.write_text("", encoding="utf-8")
-            probe.unlink()
+            try:
+                probe.unlink()
+            except FileNotFoundError:
+                pass
             return d
         except OSError:
             continue

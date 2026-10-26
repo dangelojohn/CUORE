@@ -1220,14 +1220,14 @@ def evaluate(codes, vin: str = "") -> dict[str, Any]:
                     "finding": finding,
                     "source": "dealer slvt (technician-entered from wiTECH)",
                 })
-        if purge_runs:
+        if purge_runs and any(t.key == "evap-leak" for t in matched):
             evidence.append({
                 "step": "E3",
                 "finding": (
                     f"The purge valve has already COMPLETED {purge_runs} "
-                    "actuator test(s) in this car's own logs -- including "
-                    "while P0456 was stored. The valve actuates; weight "
-                    "diagnosis toward the vent/canister side."),
+                    "actuator test(s) in this car's own logs. The valve "
+                    "actuates; weight diagnosis toward the vent/canister "
+                    "side."),
                 "source": "actuator_history for this VIN",
             })
         history = {}

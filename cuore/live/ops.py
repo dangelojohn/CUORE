@@ -944,6 +944,8 @@ def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
             cands = [int(c, 16) for c in candidates]
         except ValueError:
             raise BadCommand("candidates must be hex target bytes")
+        if any(not 0 <= c <= 0xFF for c in cands):
+            raise BadCommand("candidates must be single hex target bytes (00..FF)")
     pdids = tuple(d.upper() for d in probe_dids) if probe_dids else ("F190",)
     if not all(len(d) == 4 and all(c in "0123456789ABCDEF" for c in d) for d in pdids):
         raise BadCommand("probe_dids must be 4-hex-digit DIDs")
@@ -972,6 +974,8 @@ def discover_11bit(bus: str = "can_ch", vin: str = "", confirm: bool = False,
             cands = [int(c, 16) for c in candidates]
         except ValueError:
             raise BadCommand("candidates must be hex 11-bit request ids")
+        if any(not 0x100 <= c <= 0x7FF for c in cands):
+            raise BadCommand("candidates must be 11-bit request ids (100..7FF)")
     with link().session(f"discover_11bit {b.key}", bus=b, confirm=confirm,
                         route=r11[0], **kw) as sess:
         return _stamp(sess, discover11.discover_11bit(
@@ -1211,6 +1215,7 @@ def learn_actuator(capture_name: str, module: str, name: str, tool: str = "MES")
     """
     import json as _json
     from . import actuate
+    from .config import state_dir
     p = state_dir() / "captures" / Path(capture_name).name
     if not p.exists():
         raise BadCommand(f"no capture named {capture_name!r}")
@@ -1471,6 +1476,9 @@ _POLLER_GUARDED = (
     "module_identity", "module_did", "scan_modules", "discover", "obd_mode06",
     "module_dtc_detail", "module_dtc_count", "module_read_all", "module_discover_dids",
     "clear_module_dtcs", "run_actuator",
+    # these open their own sessions too; unguarded they would wait on the poller's lock
+    "obd_pids_snapshot", "obd_freeze_frames", "module_did_sweep", "sweep_bus_full",
+    "discover_11bit",
 )
 
 

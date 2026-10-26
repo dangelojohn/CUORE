@@ -12,8 +12,9 @@ completion-rate evidence), and 0x0A (ECU name).
 
 Response format (SAE J1979, Mode 09): ``49 <pid> <count> <data...>`` for
 0x02/0x04/0x06/0x0A, where ``count`` is the number of data items (messages);
-0x08 (IPT) has no leading count byte -- it is a flat stream of 16-bit
-counters, source SAE J1979 (CORROBORATED).
+0x08 (IPT) is a stream of 16-bit counters; the ECM on this car leads it with a
+word-count byte (seen live: ``49 08 1C`` + 28 words), which is honoured when it
+matches the length exactly.
 """
 
 from __future__ import annotations
@@ -89,7 +90,12 @@ _IPT_MONITORS: tuple[tuple[str, str, str], ...] = (
 
 
 def _decode_ipt(data: list[str]) -> dict[str, Any]:
-    payload = data[2:]  # no count byte: PID 08 is a flat 16-bit-word stream
+    # A real ECM reply (Stelvio, 49 08 1C + 56 bytes) leads with a count byte
+    # = number of 16-bit words; reading it as data shifts every word by one
+    # byte. Honour it only when it matches the length exactly, else flat stream.
+    payload = data[2:]
+    if len(data) > 2 and int(data[2], 16) * 2 == len(data) - 3:
+        payload = data[3:]
     words = [_u16(payload[i], payload[i + 1]) for i in range(0, len(payload) - 1, 2)]
     out: dict[str, Any] = {}
     idx = 0

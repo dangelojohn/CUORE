@@ -414,6 +414,15 @@ def coverage_gap_text(category: Optional[str], why: Optional[str]) -> str:
 # file answer nothing yet (every PID comes back in ``gaps``), and that is
 # reported as an absence (``{}`` / ``None``), never a placeholder number.
 
+def _ecu_entries(results: Any, pid: str) -> list[dict[str, Any]]:
+    """The per-ECU dicts under one PID. A PID that did not answer is stored
+    as ``{"warning": "NO DATA"}`` (a string, not an ECU entry) -- skipped."""
+    by_ecu = results.get(pid) if isinstance(results, dict) else None
+    if not isinstance(by_ecu, dict):
+        return []
+    return [e for e in by_ecu.values() if isinstance(e, dict)]
+
+
 def mode09_header_extras(mode09_obs: Optional[dict[str, Any]]) -> dict[str, Any]:
     """``{"calibration_ids": [...], "cvns": [...]}`` for whichever of PID
     04/06 actually answered this scan -- keys omitted (not ``None``/``[]``)
@@ -425,12 +434,12 @@ def mode09_header_extras(mode09_obs: Optional[dict[str, Any]]) -> dict[str, Any]
         return out
     results = (mode09_obs.get("mode09") or {}).get("results") or {}
     cal_ids: list[str] = []
-    for entry in (results.get("04") or {}).values():
+    for entry in _ecu_entries(results, "04"):
         cal_ids.extend(entry.get("calibration_ids") or [])
     if cal_ids:
         out["calibration_ids"] = cal_ids
     cvns: list[str] = []
-    for entry in (results.get("06") or {}).values():
+    for entry in _ecu_entries(results, "06"):
         cvns.extend(entry.get("cvns") or [])
     if cvns:
         out["cvns"] = cvns
@@ -445,7 +454,7 @@ def evap_iupr(mode09_obs: Optional[dict[str, Any]]) -> Optional[dict[str, Any]]:
     if not mode09_obs:
         return None
     results = (mode09_obs.get("mode09") or {}).get("results") or {}
-    for entry in (results.get("08") or {}).values():
+    for entry in _ecu_entries(results, "08"):
         evap = (entry.get("monitors") or {}).get("EVAP")
         if evap:
             return evap
@@ -636,7 +645,15 @@ def classify_system(system_key: str, *,
                     m = margin(value, hi)
                 elif lo:
                     m = margin(value, lo)
-            return {"system": system_key, "health": OK if ok else FAULT,
+            health = OK if ok else FAULT
+            direction = kg.get("direction")
+            if (not ok and ((direction == "above" and value < lo)
+                            or (direction == "below" and value > hi))):
+                # The band only flags the concerning side (e.g. coolant temp
+                # "above"): a reading on the other side (cold engine) is a
+                # reading with no verdict, never a FAULT.
+                health = READING_ONLY
+            return {"system": system_key, "health": health,
                     "reading": f"{value}{unit}",
                     "spec_confidence": kg.get("confidence"), "spec_source": kg.get("source"),
                     "margin": m}
@@ -701,7 +718,9 @@ def verdict(*, stored: Optional[list[str]] = None, pending: Optional[list[str]] 
     mode06_fail_rows = mode06_fail_rows or []
     basis: list[str] = []
 
-    if stored or permanent:
+    if stored or permanent or mode06_fail_rows:
+        # A failed Mode 06 test is a measured fault (classify_system grades it
+        # FAULT), so it must never fall through to VERIFIED_CLEAN.
         state = ACTIVE_FAULTS
         if stored:
             basis.append(f"stored: {', '.join(stored)}")

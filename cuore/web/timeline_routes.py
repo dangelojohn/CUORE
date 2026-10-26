@@ -411,7 +411,8 @@ async def symptoms_submit(request: Request, vin: str) -> RedirectResponse:
     re-rendering so a reload cannot double-submit."""
     form = await request.form()
     redirect_base = str(form.get("redirect_to", "") or f"/v/{vin}/timeline")
-    if not redirect_base.startswith("/") or redirect_base.startswith("//"):
+    if (not redirect_base.startswith("/") or redirect_base.startswith("//")
+            or any(c in redirect_base for c in (chr(92), chr(13), chr(10)))):
         redirect_base = f"/v/{vin}/timeline"
 
     at = str(form.get("at", "")).strip() or datetime.now().isoformat(timespec="minutes")

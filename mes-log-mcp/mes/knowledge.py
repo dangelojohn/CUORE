@@ -25,8 +25,9 @@ _BASE_RE = re.compile(r"^([PBCU][0-9A-F]{4})", re.IGNORECASE)
 
 
 def base_code(code: str) -> str:
-    m = _BASE_RE.match(code.strip().upper())
-    return m.group(1) if m else code.strip().upper()
+    code = (code or "").strip().upper()
+    m = _BASE_RE.match(code)
+    return m.group(1) if m else code
 
 
 @dataclass(frozen=True)

@@ -17,6 +17,7 @@ serving yesterday's picture of a car that is on the lift right now.
 
 from __future__ import annotations
 
+import json
 from collections import OrderedDict
 from typing import Any, Callable
 
@@ -47,8 +48,54 @@ def get_or_build(key: tuple, build: Callable[[], Any]) -> Any:
 def clear() -> None:
     """Drop everything. Used by tests; not wired to a route."""
     _store.clear()
+    _obs_index.clear()
 
 
 def stats() -> dict[str, Any]:
     """What the cache is currently holding, for the status endpoint."""
     return {"entries": len(_store), "capacity": MAX_ENTRIES}
+
+
+# --- observations.jsonl, parsed once per file state ------------------------
+#
+# ``live.store.recent_observations`` reads and json-parses the WHOLE
+# observations file on every call (2.3 MB / ~9000 lines on the real car), and
+# one Job page render makes about twenty such calls: ~0.6 s warm, ~1.9 s
+# cold. This keeps (vin, kind, raw line) per file state -- (path, mtime, size)
+# -- so the file is parsed once until something appends to it, and each call
+# json-parses only the last ``n`` lines it actually returns. Same result as
+# the store function (fresh dicts, same filters, same ``[-n:]`` slice).
+
+_obs_index: dict[str, tuple[tuple[int, int], list[tuple[Any, Any, str]]]] = {}
+
+
+def recent_observations(n: int = 50, vin: str = "", kind: str = "") -> list[dict[str, Any]]:
+    """Drop-in for ``live.store.recent_observations`` that parses the file once."""
+    from ..live import store as live_store          # lazy: keeps this module import-free
+    p = live_store.observations_path()
+    try:
+        st = p.stat()
+    except OSError:
+        return []
+    stamp = (st.st_mtime_ns, st.st_size)
+    hit = _obs_index.get(str(p))
+    if hit is None or hit[0] != stamp:
+        try:
+            lines = p.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            return []
+        rows: list[tuple[Any, Any, str]] = []
+        for line in lines:
+            try:
+                obj = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(obj, dict):
+                rows.append((obj.get("vin"), obj.get("kind"), line))
+        hit = (stamp, rows)
+        _obs_index[str(p)] = hit
+        while len(_obs_index) > 4:                  # tests point this at temp files
+            _obs_index.pop(next(iter(_obs_index)))
+    picked = [line for v, k, line in hit[1]
+              if (not vin or v == vin) and (not kind or k == kind)]
+    return [json.loads(line) for line in picked[-n:]]

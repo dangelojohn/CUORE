@@ -11,6 +11,7 @@ them into the poller's registry with no special case.
 from __future__ import annotations
 
 import json
+import os
 import re
 import threading
 import uuid
@@ -34,6 +35,31 @@ _SAMPLE_BYTES = [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0]
 _BYTE_NAMES = "ABCDEFGH"
 
 
+def atomic_write_text(path: Path, text: str) -> None:
+    """Write via a temp file + ``os.replace`` so a crash or a concurrent
+    reader never sees a truncated file (a bare ``write_text`` truncates first)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+    try:
+        tmp.write_text(text, encoding="utf-8")
+        os.replace(tmp, path)
+    finally:
+        if tmp.exists():
+            try:
+                tmp.unlink()
+            except OSError:
+                pass
+
+
+def quarantine_corrupt(path: Path) -> None:
+    """Move an unparseable store aside (``.corrupt``) so the next save does
+    not silently overwrite what might still be recoverable by hand."""
+    try:
+        os.replace(path, path.with_name(path.name + ".corrupt"))
+    except OSError:
+        pass
+
+
 # ===========================================================================
 # custom channels
 # ===========================================================================
@@ -48,14 +74,17 @@ def _load_raw() -> list[dict[str, Any]]:
         return []
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except ValueError:
+        quarantine_corrupt(p)
+        return []
+    except OSError:
         return []
     return list(data.get("channels", [])) if isinstance(data, dict) else []
 
 
 def _save_raw(channels: list[dict[str, Any]]) -> None:
-    custom_channels_path().write_text(
-        json.dumps({"channels": channels}, indent=2), encoding="utf-8")
+    atomic_write_text(custom_channels_path(),
+                      json.dumps({"channels": channels}, indent=2))
 
 
 def _validate_formula(cid: str, formula: str) -> None:
@@ -414,8 +443,7 @@ def save_triggers(rules: list[dict[str, Any]]) -> dict[str, Any]:
         seen.add(vr["id"])
         validated.append(vr)
     with _LOCK:
-        triggers_path().write_text(json.dumps({"rules": validated}, indent=2),
-                                   encoding="utf-8")
+        atomic_write_text(triggers_path(), json.dumps({"rules": validated}, indent=2))
     return {"rules": validated}
 
 

@@ -129,7 +129,7 @@ def _any_car_observation_after(vin: str, since: Optional[str]) -> bool:
     if live_store is None or not since:
         return False
     try:
-        obs = live_store.recent_observations(200, vin=vin)
+        obs = cache.recent_observations(200, vin=vin)
     except Exception:  # noqa: BLE001
         return False
     return any(live_store.is_from_car(o) and _after(o.get("at"), since) for o in obs)

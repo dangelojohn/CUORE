@@ -8,9 +8,11 @@ layer and turns its results (or its ``BadMedia``/``UnknownMedia``) into HTTP.
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse
 
 from ..live import media as media_store
@@ -23,6 +25,18 @@ router = APIRouter(tags=["media"], dependencies=[Depends(require_token)])
 #: fallback). iPhone photos/HEIC/Live Photos are the case this is sized
 #: for; a fast, clear 413 beats reading a huge body only to 400 later.
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024  # 25 MB
+
+
+_SAFE_VIN = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def _check_vin(vin: str) -> str:
+    """``media_store.vin_dir`` joins the VIN onto a path as-is, so ``..`` or
+    ``..%5Cx`` (a backslash is a separator on Windows) would write outside the
+    media root. Refuse anything that is not a plain id."""
+    if not _SAFE_VIN.match(vin or ""):
+        raise HTTPException(status_code=400, detail=f"invalid vehicle id {vin!r}")
+    return vin
 
 
 def _row_or_404(id_: str) -> dict[str, Any]:
@@ -59,6 +73,7 @@ async def upload(
     event_id: str = Form(default="", description="Shorthand for target_kind=timeline, target_id=event_id."),
     keep_location: bool = Form(default=False, description="Keep decoded GPS lat/lon on the record. Default off (owner privacy) -- has_gps is reported either way."),
 ) -> dict[str, Any]:
+    _check_vin(vin)
     tag_list = [t.strip() for t in tags.split(",") if t.strip()]
     symptom_tag_list = [t.strip() for t in symptom_tags.split(",") if t.strip()]
     effective_caption = caption or note
@@ -67,6 +82,12 @@ async def upload(
         effective_target_kind, effective_target_id = "timeline", event_id
     rows = []
     for up in file:
+        if up.size is not None and up.size > MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail=(f"{up.filename or 'file'} is {up.size} bytes, over the "
+                        f"{MAX_UPLOAD_BYTES} byte (25 MB) upload limit"),
+            )
         body = await up.read()
         if len(body) > MAX_UPLOAD_BYTES:
             raise HTTPException(
@@ -76,8 +97,9 @@ async def upload(
             )
         mime = up.content_type or "application/octet-stream"
         try:
-            row = media_store.add(
-                vin, body, up.filename or "upload", mime,
+            # add() hashes, writes and thumbnails: blocking, so off the loop.
+            row = await run_in_threadpool(
+                media_store.add, vin, body, up.filename or "upload", mime,
                 caption=effective_caption, tags=tag_list, target_kind=effective_target_kind,
                 target_id=effective_target_id, odometer_km=odometer_km, author=author,
                 symptom_tags=symptom_tag_list, feels_like=feels_like,
@@ -101,6 +123,7 @@ def list_media(
     until: str = Query(default=""),
     symptom_tag: str = Query(default=""),
 ) -> dict[str, Any]:
+    _check_vin(vin)
     rows = media_store.search(vin, q=q, kind=kind, tag=tag, target_kind=target_kind,
                               target_id=target_id, since=since, until=until,
                               symptom_tag=symptom_tag)
@@ -109,7 +132,7 @@ def list_media(
 
 @router.get("/vehicles/{vin}/media/export.zip", summary="Export every file plus the index, for recovery")
 def export(vin: str) -> FileResponse:
-    zpath = media_store.export_zip(vin)
+    zpath = media_store.export_zip(_check_vin(vin))
     return FileResponse(zpath, media_type="application/zip",
                         filename=f"{vin}-media.zip",
                         content_disposition_type="attachment")

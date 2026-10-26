@@ -20,7 +20,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from ..api.deps import require_token
 from ..services import slvt_bridge, tsb_bridge
 from ..services.errors import BadRequest
-from .routes import _active_vehicle, _dossier, _page, _set_active_vehicle, _vehicle_bar
+from .routes import _active_vehicle, form_sync, _dossier, _page, _set_active_vehicle, _vehicle_bar
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
 
@@ -54,8 +54,8 @@ def slvt_page(request: Request, vin: str = "", ran: str = "") -> HTMLResponse:
 
 
 @router.post("/slvt/run")
-async def slvt_run(request: Request) -> Response:
-    form = await request.form()
+def slvt_run(request: Request) -> Response:
+    form = form_sync(request)
     vin = _vin_for(request, str(form.get("vin") or ""))
     result = slvt_bridge.run(vin, [str(v) for v in form.getlist("pre")])
     return RedirectResponse(

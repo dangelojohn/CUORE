@@ -930,9 +930,24 @@ def load(vin: str = "", kind: Optional[str] = None) -> list[dict[str, Any]]:
     return out
 
 
+def _newest_by_date(entries: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """The entry with the latest service ``date`` (then odometer, then
+    recording order), so an older service entered late is not mistaken for
+    the newest. Falls back to recording order if any date is unparseable."""
+    if not entries:
+        return None
+    keys = []
+    for i, e in enumerate(entries):
+        d = e.get("data", {}) or {}
+        parsed = _parse_date(d.get("date"))
+        if parsed is None:
+            return entries[-1]
+        keys.append((parsed, _num(d.get("odometer_km")) or 0.0, i))
+    return entries[max(range(len(entries)), key=lambda i: keys[i])]
+
+
 def last_oil_change(vin: str) -> Optional[dict[str, Any]]:
-    entries = load(vin, "oil_change")
-    return entries[-1] if entries else None
+    return _newest_by_date(load(vin, "oil_change"))
 
 
 def last_of_kind(vin: str, kind: str) -> Optional[dict[str, Any]]:
@@ -950,14 +965,20 @@ def last_drivetrain(vin: str, section: str) -> Optional[dict[str, Any]]:
     return entries[-1] if entries else None
 
 
-def last_maintenance_item(vin: str, item_key: str) -> Optional[dict[str, Any]]:
+def last_maintenance_item(vin: str, item_key: str,
+                          records: Optional[list[dict[str, Any]]] = None
+                          ) -> Optional[dict[str, Any]]:
     """The newest ``maintenance`` record that covered ``item_key``, with that
     item's own entry pulled out alongside the visit's date/odometer/
     technician. ``None`` if this item has never been recorded for this VIN.
     A record can cover several items at once, so this scans every record's
     ``items`` list rather than filtering on a top-level field.
     """
-    for entry in reversed(load(vin, "maintenance")):
+    covering = [e for e in (records if records is not None else load(vin, "maintenance"))
+                if any(it.get("item_key") == item_key
+                       for it in (e.get("data", {}) or {}).get("items", []))]
+    entry = _newest_by_date(covering)
+    if entry is not None:
         d = entry.get("data", {}) or {}
         for it in d.get("items", []):
             if it.get("item_key") == item_key:
@@ -1026,10 +1047,11 @@ def next_oil_change(vin: str) -> dict[str, Any]:
     if last:
         d = last["data"]
         override = d.get("next_due_override") or {}
-        base_odo = d["odometer_km"]
-        base_date = d["date"]
-        next_km = override.get("odometer_km") or (
-            base_odo + interval_km if interval_km is not None else None)
+        base_odo = _num(d.get("odometer_km"))  # amend() does not re-validate
+        base_date = d.get("date")
+        next_km = _num(override.get("odometer_km")) or (
+            base_odo + interval_km
+            if interval_km is not None and base_odo is not None else None)
         next_date = override.get("date") or (
             _add_months(base_date, interval_months) if interval_months else None)
         return {
@@ -1100,15 +1122,16 @@ def maintenance_due(vin: str, current_odometer_km: Optional[float] = None) -> di
     """
     today = datetime.now().date()
     items_out: list[dict[str, Any]] = []
+    records = load(vin, "maintenance")  # once, not once per item
     for key, spec in maintenance_specs.ITEMS.items():
-        last = last_maintenance_item(vin, key)
+        last = last_maintenance_item(vin, key, records)
         interval_km = spec.get("interval_km")
         if interval_km is None and spec.get("interval_miles") is not None:
             interval_km = round(spec["interval_miles"] * _KM_PER_MILE)
         interval_months = spec.get("interval_months")
 
         last_date = last["date"] if last else None
-        last_odo = last["odometer_km"] if last else None
+        last_odo = _num(last["odometer_km"]) if last else None
         next_due_km = (last_odo + interval_km
                       if last_odo is not None and interval_km is not None else None)
         next_due_date = (_add_months(last_date, interval_months)

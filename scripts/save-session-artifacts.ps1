@@ -10,12 +10,21 @@
 
 param(
     [Parameter(Mandatory)][string]$SessionId,
+    [switch]$IKnowTranscriptsAreSensitive,
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
     [string]$Date = (Get-Date).ToString('yyyy-MM-dd'),
     [string]$ClaudeProjectsDir = (Join-Path $env:USERPROFILE '.claude\projects\C--Users-User'),
     [string]$ClaudeTempDir = (Join-Path $env:TEMP 'claude\C--Users-User'),
     [switch]$NoCommit
 )
+
+# Transcripts can contain credentials (NAS admin password) and the remote is
+# PUBLIC. Refuse unless explicitly acknowledged, and never auto-commit them.
+if (-not $IKnowTranscriptsAreSensitive) {
+    Write-Error "Refusing: session transcripts contain secrets. Re-run with -IKnowTranscriptsAreSensitive -NoCommit and do NOT push the result to the public remote."
+    exit 2
+}
+if (-not $NoCommit) { Write-Error "Refusing to commit transcripts; add -NoCommit."; exit 2 }
 
 & (Join-Path $PSScriptRoot 'backup-cuore-state.ps1') `
     -RepoRoot $RepoRoot -Date $Date -ClaudeProjectsDir $ClaudeProjectsDir -ClaudeTempDir $ClaudeTempDir `

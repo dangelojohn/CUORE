@@ -576,7 +576,7 @@ def clear_dtcs(confirm: bool = False, override_speed_check: bool = False) -> str
                 raise LiveError("could not read vehicle speed (ignition off or bus error); "
                                 "refusing to clear. Pass override_speed_check=True if the car "
                                 "is stationary and you accept that.")
-            if speed and not override_speed_check:
+            if speed:   # the override is for an unreadable speed only, never for a moving car
                 raise LiveError(f"vehicle speed is {speed} km/h; refusing to clear while moving")
             before = {k: ops._dtc_read(sess, m, r, k) for k, (m, r) in ops._KINDS.items()}
             before["freeze_frame_dtc"] = sess.query("020200", "42")["raw"]
@@ -594,6 +594,9 @@ def clear_dtcs(confirm: bool = False, override_speed_check: bool = False) -> str
             err = adapter_error(raw)
             if err:
                 out["error"] = f"clear did not complete: {err}"
+                # the request was transmitted: it belongs in the audit log either way
+                audit.record("clear_dtcs", acknowledged=False, error=err, raw=raw[:200],
+                             evidence=str(path))
                 return out
             acked = any(d and d[0] == "44" for d in reassemble(raw, headers_on=True).values())
             out["acknowledged"] = acked
@@ -653,6 +656,7 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
         passive = kind == "adapter_state" or is_adapter_only(cmd)
         with link().session(f"send_raw {cmd}", bus=b, passive=passive, confirm=confirm,
                             allow_while_mes_connected=allow_while_mes_connected) as sess:
+            audit.record("send_raw_request", command=cmd, kind=kind, bus=b.key, passive=passive)
             raw = sess.cmd(cmd, timeout_seconds)
             err = adapter_error(raw)
             out: dict[str, Any] = {"command": cmd, "kind": kind, "raw": raw, "bus": b.key}
@@ -660,7 +664,7 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
                 out["error"] = err
             elif cmd[:2].upper() not in ("AT", "ST"):
                 out["ecus"] = reassemble(raw, headers_on=sess.headers_on)
-            audit.record("send_raw", command=cmd, kind=kind, error=err or None)
+            audit.record("send_raw", command=cmd, kind=kind, error=err or None, raw=raw[:200])
             return out
 
     return _json(body)

@@ -570,7 +570,7 @@ _FAMILY_DATA = {
 #: Kept for API symmetry with mes.knowledge.base_code -- accepts a failure
 #: byte suffix ("P0456-00") and strips it.
 def _base(code: str) -> str:
-    c = code.strip().upper()
+    c = (code or "").strip().upper()
     if "-" in c:
         c = c.split("-", 1)[0]
     return c

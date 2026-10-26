@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi.concurrency import run_in_threadpool
 
 from ..services import vision_bridge
 from .deps import require_token, settings_of
@@ -47,5 +48,8 @@ async def read_photo(
         )
     image_bytes = await file.read()
     mime = file.content_type or "image/jpeg"
-    return vision_bridge.read_photo(hint=hint, image_bytes=image_bytes, mime=mime,
-                                    settings=settings_of(request))
+    # The claude provider makes a blocking HTTPS call (up to its timeout):
+    # keep it off the event loop so /api/health and everything else stays live.
+    return await run_in_threadpool(vision_bridge.read_photo, hint=hint,
+                                   image_bytes=image_bytes, mime=mime,
+                                   settings=settings_of(request))

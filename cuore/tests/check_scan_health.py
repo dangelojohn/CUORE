@@ -408,6 +408,15 @@ if "rec_atf_temp" in rec_by_id:
          "rec_atf_temp" not in board.get("all_channel_ids", []))
 
 
+# A Mode 09 read where no PID answered is stored as {"04": {"warning":
+# "NO DATA"}, ...} on this car -- a string where an ECU entry would be.
+# That shape made /health a 500 (2026-10-26).
+from mes import scan_health as _sh  # noqa: E402
+_nodata = {"mode09": {"results": {p: {"warning": "NO DATA"} for p in ("04", "06", "08", "0A")}}}
+check("a Mode 09 read with every PID 'NO DATA' gives no header extras and no IUPR, not a crash",
+      _sh.mode09_header_extras(_nodata) == {} and _sh.evap_iupr(_nodata) is None)
+
+
 print(f"{checks} checks, {len(failures)} failures")
 for f in failures:
     print(f"FAIL: {f}")

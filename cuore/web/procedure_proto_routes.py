@@ -105,6 +105,6 @@ def proto_stop(vin: str, proc: str, run: str = Form(default="")) -> RedirectResp
 
 
 @router.get("/v/{vin}/procedures/prototype/{proc}/stream")
-async def proto_stream(vin: str, proc: str, run: str = "") -> StreamingResponse:
+def proto_stream(vin: str, proc: str, run: str = "") -> StreamingResponse:
     return StreamingResponse(sim.stream_events(run), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

@@ -140,7 +140,7 @@ async def record_submit(request: Request, vin: str) -> RedirectResponse:
 
 
 @router.post("/v/{vin}/mods/{entry_id}/delete", response_class=HTMLResponse)
-async def delete_submit(vin: str, entry_id: str) -> RedirectResponse:
+def delete_submit(vin: str, entry_id: str) -> RedirectResponse:
     try:
         bridge.delete(entry_id)
     except BridgeError as exc:
@@ -149,7 +149,7 @@ async def delete_submit(vin: str, entry_id: str) -> RedirectResponse:
 
 
 @router.post("/v/{vin}/mods/{entry_id}/restore", response_class=HTMLResponse)
-async def restore_submit(vin: str, entry_id: str) -> RedirectResponse:
+def restore_submit(vin: str, entry_id: str) -> RedirectResponse:
     try:
         bridge.restore(entry_id)
     except BridgeError as exc:

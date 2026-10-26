@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{{ name }} — CUORE{% endblock %}
+{% block content %}
+<h1>{{ data.file }}</h1>
+<p class="lede">{{ data.columns|length }} columns, {{ data.timing.samples }} samples over {{ data.timing.duration_s }} s.
+Encoding {{ data.encoding }}, separator {{ data.separator }}.</p>
+<p><a class="btn" href="/recordings">All CSV recordings</a></p>
+{% for w in data.warnings or [] %}<p class="note warn">{{ w }}</p>{% endfor %}
+
+<form class="panel" method="get" action="/recording/{{ name|urlencode }}">
+  <label for="cond">Threshold condition</label>
+  <input id="cond" name="condition" type="text" value="{{ condition }}" placeholder="e.g. Engine speed > 3000">
+  <button class="btn primary" type="submit">Analyse</button>
+</form>
+{% if events_error %}<p class="note warn">{{ events_error }}</p>{% endif %}
+{% if events and events.threshold %}<pre class="panel">{{ events.threshold|tojson(indent=2) }}</pre>{% endif %}
+
+<h2>Events</h2>
+<div class="panel tight"><div class="tw"><table>
+  <thead><tr><th class="n">Time s</th><th>Marker</th><th>DTCs</th></tr></thead>
+  <tbody>
+  {% for t in data.tag_events %}
+    <tr><td class="n">{{ t.time_s }}</td><td>{{ t.text }}</td><td>{{ (t.dtcs or [])|join(", ") }}</td></tr>
+  {% else %}<tr><td colspan="3">No markers or DTC tags in this recording.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+
+<h2>First rows</h2>
+<div class="panel tight"><div class="tw"><table>
+  <thead><tr><th class="n">Time s</th>{% for c in data.columns %}<th>{{ c.name }}</th>{% endfor %}</tr></thead>
+  <tbody>
+  {% for row in data.preview or [] %}
+    <tr><td class="n">{{ row.time_s }}</td>{% for c in data.columns %}<td>{{ row[c.name] }}</td>{% endfor %}</tr>
+  {% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

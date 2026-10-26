@@ -19,3 +19,9 @@ pyserial>=3.5
 reportlab>=4.0
 pillow>=10.0
 python-multipart>=0.0.9
+
+# Used only by the check_*.py tests and the docs PDF builders (already in the
+# venv; listed so a fresh install can run the suite):
+httpx>=0.27
+pypdf>=4.0
+pypdfium2>=4.0

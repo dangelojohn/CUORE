@@ -162,6 +162,12 @@ def call(method: str, path: str, *, query: Optional[dict[str, Any]] = None,
                                            and "timed out" in str(e)):
             raise CuoreTimeout(f"cuore did not finish {path} within {timeout:.0f} s; it may "
                                f"still be running there, so it was not retried") from e
+        if not isinstance(e, urllib.error.URLError):
+            # A bare connection reset / abort arrives after the request was sent (urllib wraps
+            # only connect-time failures in URLError): cuore may have transmitted it already,
+            # so repeating it -- here or in-process -- could transmit twice.
+            raise CuoreTimeout(f"the connection to cuore broke during {path} ({e}); the "
+                               f"request may have run there, so it was not retried") from e
         ensure_server()
         return _request(method, path, query, body, timeout)
 

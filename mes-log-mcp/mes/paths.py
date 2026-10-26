@@ -22,9 +22,13 @@ inside a root that points outside it is still rejected.
 
 from __future__ import annotations
 
+import contextlib
+import json
 import os
 import re
+import time
 from pathlib import Path
+from typing import Any
 
 from .errors import MesNotFound, MesPathError
 
@@ -281,3 +285,103 @@ def iter_csv_files() -> list[Path]:
                 claimed.add(key)
                 out.append(p)
     return out
+
+
+# --- append-only JSONL helpers shared by the record stores -------------------
+
+
+def read_jsonl(p: Path) -> list[dict[str, Any]]:
+    """Every parseable JSON-object line of an append-only store.
+
+    One bad line must never sink the store, so: undecodable bytes (a write
+    torn mid-character) are replaced instead of raising, lines are split on
+    ``\n`` only (``str.splitlines`` also splits on U+2028/U+2029/U+0085,
+    which ``json.dumps(ensure_ascii=False)`` writes raw -- a note containing
+    one would be cut in two and lost), unparseable lines are skipped, and a
+    valid-JSON line that is not an object is skipped (callers do
+    ``rec.get(...)``).
+    """
+    try:
+        if not p.exists():
+            return []
+        text = p.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    out: list[dict[str, Any]] = []
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            out.append(obj)
+    return out
+
+
+@contextlib.contextmanager
+def _append_lock(p: Path):
+    """Cross-process mutex for appends to one store (best effort).
+
+    On Windows an ``O_APPEND`` write is "seek to end, then write" -- two
+    processes (the CUORE server and an MCP server both write the same
+    stores) can seek to the same offset and overwrite each other's record.
+    Measured: 4 processes x 150 appends kept 522 of 600 lines. A byte-range
+    lock on a sidecar ``<store>.lock`` file serialises them; if it cannot
+    be taken within ~2 s the append goes ahead unlocked rather than failing.
+    """
+    fd = None
+    locked = False
+    try:
+        fd = os.open(str(p.with_name(p.name + ".lock")), os.O_RDWR | os.O_CREAT)
+        try:
+            import msvcrt
+        except ImportError:
+            import fcntl
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            locked = True
+        else:
+            for _ in range(400):
+                try:
+                    os.lseek(fd, 0, os.SEEK_SET)
+                    msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+                    locked = True
+                    break
+                except OSError:
+                    time.sleep(0.005)
+    except OSError:
+        pass
+    try:
+        yield
+    finally:
+        if fd is not None:
+            if locked:
+                try:
+                    import msvcrt
+                    os.lseek(fd, 0, os.SEEK_SET)
+                    msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+                except (ImportError, OSError):
+                    pass  # flock (non-Windows) is released by close
+            os.close(fd)
+
+
+def append_jsonl(p: Path, entry: dict[str, Any]) -> None:
+    """Append one record as a single write. If a previous writer died
+    mid-line (file does not end in a newline) the new record starts on a
+    fresh line instead of being glued onto the torn one and lost with it."""
+    p.parent.mkdir(parents=True, exist_ok=True)
+    data = (json.dumps(entry, ensure_ascii=False) + "\n").encode("utf-8")
+    with _append_lock(p), p.open("a+b") as f:
+        try:
+            f.seek(0, os.SEEK_END)
+            if f.tell() > 0:
+                f.seek(-1, os.SEEK_END)
+                if f.read(1) not in (b"\n", b""):
+                    data = b"\n" + data
+        except OSError:
+            pass
+        f.seek(0, os.SEEK_END)
+        f.write(data)
+        f.flush()

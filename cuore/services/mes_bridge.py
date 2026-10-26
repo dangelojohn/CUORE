@@ -18,6 +18,7 @@ import re
 from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
+from . import cache
 from .errors import BadRequest, NotFound
 
 from mes import (  # noqa: E402  -- must follow the bootstrap import
@@ -208,7 +209,7 @@ def _newest_live_read(vin: str) -> str | None:
     best: str | None = None
     for kind in _LIVE_SCAN_KINDS:
         try:
-            obs = live_store.recent_observations(50, vin=vin, kind=kind)
+            obs = cache.recent_observations(50, vin=vin, kind=kind)
         except Exception:  # noqa: BLE001
             continue
         for o in obs:

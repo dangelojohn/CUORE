@@ -5,7 +5,8 @@
 #
 # Loop, every 10 s:
 #   * nothing listening on 127.0.0.1:5000        -> start cuore
-#   * listening but /api/health fails 3x in a row -> restart cuore (hung)
+#   * listening but /api/health fails 5x in a row (20 s timeout each, so a
+#     slow page render is never mistaken for a hang) -> restart cuore
 # Server output goes to C:\ProgramData\cuore\logs\server.log (rotated at 10 MB).
 # Only one keep-alive runs at a time (a named mutex).
 
@@ -29,6 +30,8 @@ if (-not $created) {
 }
 
 function Write-KeepLog([string]$msg) {
+    # keep the keep-alive log from growing without bound (rotate at 2 MB)
+    if ((Test-Path $KeepLog) -and ((Get-Item $KeepLog).Length -gt 2MB)) { Move-Item -Force $KeepLog "$KeepLog.old" }
     "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')  $msg" | Out-File -FilePath $KeepLog -Append -Encoding utf8
 }
 
@@ -38,10 +41,12 @@ function Get-Listener {
     return $null
 }
 
-function Test-Health {
-    # 200 with cuore's own health body ({"ok":..,"profile":..,"version":..})
+function Test-Health([int]$TimeoutSec = 20) {
+    # 200 with cuore's own health body ({"ok":..,"profile":..,"version":..}).
+    # 20 s: cuore is a single process and a heavy page (MES corpus, PDFs) can
+    # hold it for several seconds; 5 s x3 once killed it mid-render.
     try {
-        $r = Invoke-WebRequest -UseBasicParsing $Health -TimeoutSec 5
+        $r = Invoke-WebRequest -UseBasicParsing $Health -TimeoutSec $TimeoutSec
         return ($r.StatusCode -eq 200 -and $r.Content -match '"profile"')
     } catch { return $false }
 }
@@ -54,6 +59,14 @@ function Test-IsCuore($p) {
     return (Test-Health)
 }
 
+function Test-CuoreStarting {
+    # a "-m cuore" python started in the last 3 minutes that is not listening
+    # yet (cold start loads the MES corpus): do not launch a second copy
+    $p = Get-CimInstance Win32_Process -Filter "Name='python.exe'" |
+         Where-Object { $_.CommandLine -match '-m\s+cuore' -and $_.CreationDate -gt (Get-Date).AddMinutes(-3) }
+    return [bool]$p
+}
+
 function Start-Cuore {
     if ((Test-Path $Log) -and ((Get-Item $Log).Length -gt 10MB)) {
         Move-Item -Force $Log "$Log.old"
@@ -63,7 +76,7 @@ function Start-Cuore {
     # the extra outer quotes survive cmd's strip-first-and-last-quote rule
     Start-Process -FilePath "cmd.exe" -ArgumentList "/c `"$cmd`"" -WorkingDirectory $Repo -WindowStyle Hidden
     Write-KeepLog "started cuore"
-    for ($i = 0; $i -lt 60; $i++) { if (Test-Health) { Write-KeepLog "cuore healthy"; return }; Start-Sleep 1 }
+    for ($i = 0; $i -lt 60; $i++) { if (Test-Health 3) { Write-KeepLog "cuore healthy"; return }; Start-Sleep 1 }
     Write-KeepLog "cuore did not answer within 60 s"
 }
 
@@ -74,7 +87,7 @@ while ($true) {
     $listener = Get-Listener
     if (-not $listener) {
         $fails = 0
-        Start-Cuore
+        if (Test-CuoreStarting) { Start-Sleep 10 } else { Start-Cuore }
     } elseif (-not (Test-IsCuore $listener)) {
         # another program owns the port: never touch it, just note it
         Write-KeepLog "port $Port is held by another program: $($listener.CommandLine)"
@@ -83,8 +96,8 @@ while ($true) {
         $fails = 0
     } else {
         $fails++
-        if ($fails -ge 3) {
-            Write-KeepLog "cuore not answering (3 checks); restarting pid $($listener.ProcessId)"
+        if ($fails -ge 5) {
+            Write-KeepLog "cuore not answering (5 checks of 20 s); restarting pid $($listener.ProcessId)"
             Stop-Process -Id $listener.ProcessId -Force
             Start-Sleep 2
             $fails = 0

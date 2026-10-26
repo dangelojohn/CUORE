@@ -699,7 +699,9 @@ def for_code(code: str, include_siblings: bool = False) -> list[dict[str, Any]]:
     ``vehicle_fit`` already says so -- see module docstring.
     """
     key = _norm(code).upper()
-    return _filtered([e for e in LINKS if key in e["keys"]], include_siblings)
+    # A full code carries a failure-type byte ("P0456-00"); keys are base codes.
+    keys = {key, key.split("-", 1)[0]}
+    return _filtered([e for e in LINKS if keys & set(e["keys"])], include_siblings)
 
 
 def for_family(family: str, include_siblings: bool = False) -> list[dict[str, Any]]:

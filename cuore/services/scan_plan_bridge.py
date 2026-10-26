@@ -37,7 +37,7 @@ from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401 -- side effect: puts `mes` on sys.path
 from ..live import checklists as checklist_store
-from . import scanlog_bridge
+from . import cache, scanlog_bridge
 from .errors import BadRequest
 
 from mes import scan_plan as scan_plan_knowledge  # noqa: E402
@@ -127,7 +127,7 @@ def _last_clear_at(vin: str) -> Optional[datetime]:
     except Exception:  # noqa: BLE001
         return None
     newest: Optional[datetime] = None
-    for o in live_store.recent_observations(10_000_000, vin=vin, kind="clear_evidence"):
+    for o in cache.recent_observations(10_000_000, vin=vin, kind="clear_evidence"):
         at = _parse_at(o.get("at"))
         if at and (newest is None or at > newest):
             newest = at

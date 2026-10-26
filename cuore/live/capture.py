@@ -14,6 +14,7 @@ from collections import Counter
 from typing import Any, Optional
 
 from . import audit, rawframes
+from .errors import Refused
 from .framing import adapter_error, parse_frames
 from .transport import Session
 
@@ -59,6 +60,9 @@ def listen(sess: Session, *, seconds: float = 2.0, max_frames: int = 500,
     The protocol is closed by the adapter when monitoring ends; the session
     is single-purpose so nothing depends on it afterwards.
     """
+    if getattr(sess, "passive", True) is False:
+        # A listen on a transmit-mode session (STCMM 1) ACKs every frame it hears: not passive.
+        raise Refused("a passive listen needs a passive session (receive-only, no CAN ACK)")
     err = _add_filters(sess, filters or [])
     if err:
         return {"bus": sess.bus.key, "error": err, "frames": [], "count": 0}

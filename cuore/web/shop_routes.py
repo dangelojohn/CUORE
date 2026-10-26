@@ -50,7 +50,7 @@ def start_page(request: Request, intake_error: str = "") -> HTMLResponse:
 
 
 @router.post("/start", response_class=HTMLResponse)
-async def start_submit(request: Request, vin: str = Form(...),
+def start_submit(request: Request, vin: str = Form(...),
                        complaint: str = Form(default=""),
                        technician: str = Form(default="")) -> HTMLResponse:
     """Intake + open Job in one step, then straight to that car's job page --
@@ -80,7 +80,7 @@ def release_page(request: Request, vin: str) -> HTMLResponse:
 
 
 @router.post("/v/{vin}/release", response_class=HTMLResponse)
-async def release_submit(request: Request, vin: str, visit_id: str = Form(...),
+def release_submit(request: Request, vin: str, visit_id: str = Form(...),
                          report_printed: str = Form(default=""),
                          labels_printed: str = Form(default=""),
                          parts_logged: str = Form(default=""),

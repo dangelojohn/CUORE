@@ -505,6 +505,49 @@ check("a routine refuses the ordinary actuation phrase", _msg is not None and "R
 _r4 = _act.run_actuator(_FakeSess(), _ecm, _routine, consent="RUN ROUTINE ECM RELEARN")
 check("a routine runs with its own phrase and is flagged", _r4["routine"] is True)
 
+# --- review 2026-10-26: an earlier stop step must not excuse a later actuation; a refused
+# learned stop step must not count; a learned procedure only runs on the target it was learned for.
+_two = {"name": "Two", "vin": "V", "replayable": True, "reasons": [], "session_sub": None,
+        "steps": [{"service": "2F", "payload": ["12", "34", "03", "01"], "request": [], "t_req": 0.0},
+                  {"service": "2F", "payload": ["12", "34", "00"], "request": [], "t_req": 0.0},
+                  {"service": "2F", "payload": ["56", "78", "03", "01"], "request": [], "t_req": 0.0}],
+        "synthesised_terminator": {"service": "2F", "payload": ["56", "78", "00"], "request": []}}
+_s5 = _FakeSess()
+_r5 = _act.run_actuator(_s5, _ecm, _two, consent="ACTUATE ECM TWO", max_seconds=2.0)
+check("a later actuation is still terminated after an earlier accepted stop step",
+      any(req == "2F567800" for req, *_ in _s5.sent), str(_s5.sent))
+check("and control is reported returned only once that terminator is accepted",
+      _r5["control_returned"] is True, str(_r5))
+_stop_only = {"name": "StopNrc", "vin": "V", "replayable": True, "reasons": [], "session_sub": None,
+              "steps": [{"service": "2F", "payload": ["12", "34", "03", "01"], "request": [], "t_req": 0.0},
+                        {"service": "2F", "payload": ["12", "34", "00"], "request": [], "t_req": 0.0}],
+              "synthesised_terminator": None}
+_s6 = _FakeSess(terminator_reply="nrc")
+_r6 = _act.run_actuator(_s6, _ecm, _stop_only, consent="ACTUATE ECM STOPNRC", max_seconds=2.0)
+check("a learned stop step the module refused is NOT counted as control returned",
+      _r6["control_returned"] is False, str(_r6))
+check("and the stop step is sent again",
+      len([1 for req, *_ in _s6.sent if req == "2F123400"]) >= 2, str(_s6.sent))
+_wrong = dict(_proc, name="Moved", target="99")
+try:
+    _act.assert_actuate_allowed(_ecm, _wrong, "ACTUATE ECM MOVED", "Moved")
+    _m = None
+except _Refused as e:
+    _m = str(e)
+check("a procedure learned for another target byte is refused",
+      _m is not None and "learn it again" in _m, str(_m))
+
+from cuore.live import ops as _ops  # noqa: E402
+try:
+    _ops.learn_actuator("no-such-capture.json", "ECM", "X")
+    _m = None
+except _Refused as e:
+    _m = str(e)
+except Exception as e:  # noqa: BLE001 -- a NameError here was the bug
+    _m = f"{type(e).__name__}: {e}"
+check("learn_actuator on a missing capture is a clean BadCommand, not a NameError",
+      _m is not None and "NameError" not in _m and "no capture named" in _m, str(_m))
+
 print(f"checks run: {checks}")
 if failures:
     print(f"FAILURES: {len(failures)}")

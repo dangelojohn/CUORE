@@ -185,6 +185,13 @@ check("mode09 08 EVAP numerator/denominator", m08["EVAP"]["numerator"] == 17
       and m08["EVAP"]["denominator"] == 34, str(m08))
 check("mode09 08 EVAP completion rate", m08["EVAP"]["completion_rate"] == 0.5, str(m08))
 
+# PID 08 as the real Stelvio ECM sent it (2026-10-23 capture): 49 08 <1C = 28 words>.
+real08 = ("49 08 1C 09 2C 24 BB 0C 7C 09 0A 00 00 00 00 0E 79 09 19 00 00 00 00 07 BA 09 2C "
+          "00 00 00 00 06 38 01 31 0E 34 09 18 00 00 00 00 1B 79 09 18 "
+          + "00 " * 12).split()
+rr08 = mode09.decode_mode09("08", {"7E8": real08})["7E8"]
+check("mode09 08 honours the word-count byte", rr08["OBDCOND"] == 0x092C and rr08["IGNCNTR"] == 0x24BB, str(rr08))
+
 # Mode 09 PID the module has no decoder for still returns raw, not a guess.
 raw_ecus_unk = {"7E8": ["49", "11", "AA", "BB"]}
 r_unk = mode09.decode_mode09("11", raw_ecus_unk)

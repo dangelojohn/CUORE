@@ -114,6 +114,8 @@ def _finish(rec: _Rec, reason: str) -> None:
         try:
             _write(rec, {"type": "end", "reason": reason, "rows": rec.rows,
                          "duration_s": round(time.monotonic() - rec.m0, 3), "end": _iso(time.time())})
+        except (OSError, ValueError):
+            pass  # disk full / closed file: still release the recorder below
         finally:
             try:
                 rec.fh.close()
@@ -139,8 +141,11 @@ def sample_once(rec: _Rec) -> Optional[str]:
     with _lock:
         if rec.reason is not None:
             return rec.reason
-        _write(rec, {"type": "row", "t": round(time.monotonic() - rec.m0, 3), "at": _iso(time.time()),
-                     "v": vals})
+        try:
+            _write(rec, {"type": "row", "t": round(time.monotonic() - rec.m0, 3), "at": _iso(time.time()),
+                         "v": vals})
+        except (OSError, ValueError, TypeError) as e:
+            return f"error: write failed: {type(e).__name__}: {e}"[:200]
         rec.rows += 1
     return None
 

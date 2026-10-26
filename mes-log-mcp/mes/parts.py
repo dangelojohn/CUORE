@@ -849,10 +849,13 @@ def for_code(code: str, include_siblings: bool = False) -> list[dict[str, Any]]:
     flagged ``{"sibling_of": <model>, "verify_fit": True}``. No current
     ``PARTS`` entry has such a ``fits`` value -- see ``SIBLING_FITS``.
     """
-    code_u = code.strip().upper()
+    code_u = (code or "").strip().upper()
+    # A full code carries a failure-type byte ("P0456-00"); related_codes
+    # are base codes, so match on either form.
+    wanted = {code_u, code_u.split("-", 1)[0]}
     out = []
     for key, rec in PARTS.items():
-        if code_u in (c.upper() for c in rec.get("related_codes", [])):
+        if wanted & {c.upper() for c in rec.get("related_codes", [])}:
             out.append({"key": key, **rec})
     return _split_siblings(out, include_siblings)
 

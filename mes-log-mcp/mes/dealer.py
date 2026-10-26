@@ -34,6 +34,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from . import paths
+
 KINDS = ("flash_check", "slvt", "dtc_report", "recall_status", "routine")
 
 
@@ -138,31 +140,14 @@ def record(vin: str, kind: str, data: dict[str, Any], note: str = "") -> dict[st
         "note": (note or "").strip(),
         "source": "technician-entered from wiTECH",
     }
-    p = store_path()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    paths.append_jsonl(store_path(), entry)
     return entry
 
 
 def load(vin: str = "", kind: Optional[str] = None) -> list[dict[str, Any]]:
     """Dealer results oldest-first, filtered by VIN and kind when given."""
-    p = store_path()
-    if not p.exists():
-        return []
     out: list[dict[str, Any]] = []
-    try:
-        lines = p.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            obj = json.loads(line)
-        except ValueError:
-            continue
+    for obj in paths.read_jsonl(store_path()):
         if vin and obj.get("vin") != vin:
             continue
         if kind and obj.get("kind") != kind:

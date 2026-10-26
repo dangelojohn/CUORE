@@ -3,8 +3,9 @@
 # .git/hooks/pre-push by scripts/install-git-hooks.ps1 (run that once per
 # clone -- git never reads hooks from a tracked path, only from .git/hooks).
 #
-# What it does: runs scripts/backup-cuore-state.ps1 (CUORE car-state snapshot
-# + session/agent transcript sweep + discoveries digest) before every push,
+# What it does: runs scripts/backup-cuore-state.ps1 -SkipSessionSweep (CUORE
+# car-state snapshot ONLY; session transcripts contain credentials and must
+# never be pushed to the public remote) before every push,
 # so that data is captured as a side effect of normal work instead of a
 # separate chore.
 #
@@ -39,7 +40,7 @@ fi
 
 before_head=$(git rev-parse HEAD 2>/dev/null)
 
-archive_output=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$script_path" 2>&1)
+archive_output=$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$script_path" -SkipSessionSweep 2>&1)
 archive_status=$?
 
 if [ $archive_status -ne 0 ]; then

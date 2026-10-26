@@ -118,7 +118,7 @@ def _step_redirect(vin: str, step: str = "", anchor: str = "", msg: str = "",
 
 
 @router.post("/tools-kb/inventory-form", response_class=HTMLResponse)
-async def tools_inventory_form(status: str = Form(...), tool: str = Form(...),
+def tools_inventory_form(status: str = Form(...), tool: str = Form(...),
                                return_to: str = Form(default="/")) -> RedirectResponse:
     """The "I have this / I don't" button pair on the tools panel -- a
     garage-wide owned/not-owned list (``cuore.services.tools_kb_bridge``),
@@ -126,7 +126,9 @@ async def tools_inventory_form(status: str = Form(...), tool: str = Form(...),
     ``/v/{vin}/...`` even though the tools panel itself renders on
     vehicle-scoped pages (job.html, maintenance.html)."""
     tools_kb_bridge.inventory_set(tool, status)
-    return RedirectResponse(url=return_to or "/", status_code=303)
+    safe = (return_to if return_to.startswith("/") and not return_to.startswith("//")
+            and not any(c in return_to for c in (chr(92), chr(13), chr(10))) else "/")
+    return RedirectResponse(url=safe, status_code=303)
 
 
 def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = "",
@@ -268,7 +270,7 @@ def job_page_one(request: Request, vin: str, job_id: str, tools_step: str = "",
 
 
 @router.post("/v/{vin}/job/open", response_class=HTMLResponse)
-async def job_open(request: Request, vin: str,
+def job_open(request: Request, vin: str,
                    technician: str = Form(default=""),
                    complaint: str = Form(default="")) -> RedirectResponse:
     """Step 1: open a new case for this vehicle, in the driver's own words."""
@@ -277,7 +279,7 @@ async def job_open(request: Request, vin: str,
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses", response_class=HTMLResponse)
-async def hypothesis_add(request: Request, vin: str, job_id: str,
+def hypothesis_add(request: Request, vin: str, job_id: str,
                          text: str = Form(...), system: str = Form(default=""),
                          next_test: str = Form(default=""),
                          likelihood: str = Form(default=""),
@@ -315,7 +317,7 @@ def hypothesis_similar(vin: str, job_id: str, text: str = "", system: str = "") 
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/suggested", response_class=HTMLResponse)
-async def hypothesis_add_suggested(request: Request, vin: str, job_id: str,
+def hypothesis_add_suggested(request: Request, vin: str, job_id: str,
                                    text: str = Form(...), system: str = Form(default=""),
                                    next_test: str = Form(default=""),
                                    evidence_for: str = Form(default="[]"),
@@ -337,7 +339,7 @@ async def hypothesis_add_suggested(request: Request, vin: str, job_id: str,
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/status", response_class=HTMLResponse)
-async def hypothesis_set_status(request: Request, vin: str, job_id: str, hyp_id: str,
+def hypothesis_set_status(request: Request, vin: str, job_id: str, hyp_id: str,
                                 status: str = Form(...), step: str = Form(default="7"),
                                 ack: str = Form(default=""),
                                 by: str = Form(default="")) -> RedirectResponse:
@@ -383,7 +385,7 @@ async def hypothesis_set_status(request: Request, vin: str, job_id: str, hyp_id:
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/next_test", response_class=HTMLResponse)
-async def hypothesis_set_next_test(request: Request, vin: str, job_id: str, hyp_id: str,
+def hypothesis_set_next_test(request: Request, vin: str, job_id: str, hyp_id: str,
                                    next_test: str = Form(default=""),
                                    step: str = Form(default="7")) -> RedirectResponse:
     jobs_bridge.set_hypothesis(job_id, hyp_id, next_test=next_test)
@@ -405,7 +407,7 @@ def hypothesis_plan_api(job_id: str, hyp_id: str, vin: str = "") -> JSONResponse
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/plan/save", response_class=HTMLResponse)
-async def hypothesis_plan_save(request: Request, vin: str, job_id: str, hyp_id: str,
+def hypothesis_plan_save(request: Request, vin: str, job_id: str, hyp_id: str,
                                step: str = Form(default="7")) -> RedirectResponse:
     """"Save as next test": explicit button press only -- writes the
     generated steps into this hypothesis's next_test via the jobs edit
@@ -419,7 +421,7 @@ async def hypothesis_plan_save(request: Request, vin: str, job_id: str, hyp_id: 
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/edit", response_class=HTMLResponse)
-async def hypothesis_edit(request: Request, vin: str, job_id: str, hyp_id: str,
+def hypothesis_edit(request: Request, vin: str, job_id: str, hyp_id: str,
                           text: str = Form(default=""), system: str = Form(default=""),
                           next_test: str = Form(default=""),
                           likelihood: str = Form(default=""),
@@ -450,7 +452,7 @@ async def hypothesis_edit(request: Request, vin: str, job_id: str, hyp_id: str,
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/evidence", response_class=HTMLResponse)
-async def hypothesis_evidence(request: Request, vin: str, job_id: str, hyp_id: str,
+def hypothesis_evidence(request: Request, vin: str, job_id: str, hyp_id: str,
                               side: str = Form(default="for"),
                               kind: str = Form(default="observation"),
                               ref_id: str = Form(default=""),
@@ -482,7 +484,7 @@ async def hypothesis_evidence(request: Request, vin: str, job_id: str, hyp_id: s
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/delete", response_class=HTMLResponse)
-async def hypothesis_delete(request: Request, vin: str, job_id: str, hyp_id: str,
+def hypothesis_delete(request: Request, vin: str, job_id: str, hyp_id: str,
                             by: str = Form(default=""),
                             step: str = Form(default="7")) -> RedirectResponse:
     """Fix #2: Delete, soft (``jobs_bridge.delete_hypothesis``) -- the card
@@ -497,7 +499,7 @@ async def hypothesis_delete(request: Request, vin: str, job_id: str, hyp_id: str
 
 
 @router.post("/v/{vin}/job/{job_id}/hypotheses/{hyp_id}/undelete", response_class=HTMLResponse)
-async def hypothesis_undelete(request: Request, vin: str, job_id: str, hyp_id: str,
+def hypothesis_undelete(request: Request, vin: str, job_id: str, hyp_id: str,
                               by: str = Form(default=""),
                               step: str = Form(default="7")) -> RedirectResponse:
     try:
@@ -508,7 +510,7 @@ async def hypothesis_undelete(request: Request, vin: str, job_id: str, hyp_id: s
 
 
 @router.post("/v/{vin}/job/{job_id}/actions", response_class=HTMLResponse)
-async def action_add(request: Request, vin: str, job_id: str,
+def action_add(request: Request, vin: str, job_id: str,
                      kind: str = Form(...), text: str = Form(...),
                      event_date: str = Form(default=""),
                      step: str = Form(default="9")) -> RedirectResponse:
@@ -574,7 +576,7 @@ async def tools_review_add(request: Request, vin: str, job_id: str) -> RedirectR
 
 
 @router.post("/v/{vin}/job/{job_id}/close", response_class=HTMLResponse)
-async def job_close(request: Request, vin: str, job_id: str,
+def job_close(request: Request, vin: str, job_id: str,
                     outcome: str = Form(...),
                     codes_returned: str = Form(default=""),
                     verdict: str = Form(default=""),
@@ -599,7 +601,7 @@ async def job_close(request: Request, vin: str, job_id: str,
 
 
 @router.post("/v/{vin}/job/{job_id}/close-as-case", response_class=HTMLResponse)
-async def job_close_as_case(request: Request, vin: str, job_id: str) -> HTMLResponse:
+def job_close_as_case(request: Request, vin: str, job_id: str) -> HTMLResponse:
     """Step 12's "Close this job as a case" action: folds this job (plus
     the real shop timing, parts, tool-usage and symptom/note records that
     sit alongside it -- see ``mes.cases.case_from_job``) into a portable

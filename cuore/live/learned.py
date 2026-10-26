@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .config import state_dir
+from .ui_store import atomic_write_text, quarantine_corrupt
 
 _LOCK = threading.Lock()
 
@@ -31,16 +32,19 @@ def path() -> Path:
 
 def _load() -> dict[str, Any]:
     try:
-        return json.loads(path().read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        data = json.loads(path().read_text(encoding="utf-8"))
+    except FileNotFoundError:
         return {}
+    except OSError:
+        return {}
+    except ValueError:
+        quarantine_corrupt(path())
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _save(data: dict[str, Any]) -> None:
-    try:
-        path().write_text(json.dumps(data, indent=2), encoding="utf-8")
-    except OSError:
-        pass
+    atomic_write_text(path(), json.dumps(data, indent=2))
 
 
 def _field_key(module_code: str, did: str, field: Optional[dict[str, Any]]) -> tuple[str, str, str]:
@@ -266,9 +270,12 @@ def _mes_formula(field: dict[str, Any], scale: float, offset: float) -> str:
         expr = f"SIGNED({hi})" if signed else hi
     scale_r = round(float(scale), 6)
     offset_r = round(float(offset), 6)
-    formula = f"{expr}*{scale_r}"
+    def _num(x: float) -> str:   # plain decimal: the formula grammar has no 1e-05 exponent form
+        return format(x, "f").rstrip("0").rstrip(".") if "." in format(x, "f") else format(x, "f")
+
+    formula = f"{expr}*{_num(scale_r)}"
     if offset_r:
-        formula += f" - {abs(offset_r)}" if offset_r < 0 else f" + {offset_r}"
+        formula += f" - {_num(abs(offset_r))}" if offset_r < 0 else f" + {_num(offset_r)}"
     return formula
 
 

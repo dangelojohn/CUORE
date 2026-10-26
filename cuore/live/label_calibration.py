@@ -18,12 +18,14 @@ backing, not this interface).
 from __future__ import annotations
 
 import json
+import math
 import threading
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
 from .config import state_dir
+from .ui_store import atomic_write_text, quarantine_corrupt
 
 _LOCK = threading.Lock()
 
@@ -34,16 +36,17 @@ def path() -> Path:
 
 def _load() -> dict[str, Any]:
     try:
-        return json.loads(path().read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        data = json.loads(path().read_text(encoding="utf-8"))
+    except ValueError:
+        quarantine_corrupt(path())
         return {}
+    except OSError:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _save(data: dict[str, Any]) -> None:
-    try:
-        path().write_text(json.dumps(data, indent=2), encoding="utf-8")
-    except OSError:
-        pass
+    atomic_write_text(path(), json.dumps(data, indent=2))
 
 
 def _key(template_id: str, printer_name: str) -> str:
@@ -61,6 +64,8 @@ def save(template_id: str, printer_name: str, offset_x_mm: float, offset_y_mm: f
         raise ValueError("template_id is required")
     if not printer_name:
         raise ValueError("printer_name is required")
+    if not (math.isfinite(float(offset_x_mm)) and math.isfinite(float(offset_y_mm))):
+        raise ValueError("offsets must be finite numbers")
     entry = {
         "template_id": template_id,
         "printer_name": printer_name,

@@ -36,6 +36,10 @@ _KV_RE = re.compile(r"^\s*([^:]+?)\s*:\s*(.*?)\s*$")
 #: value like ``Speed<10km/h`` is *not* mistaken for the number 10.
 _NUM_RE = re.compile(r"^([+-]?\d+(?:[.,]\d+)?)\s*(.*)$")
 
+#: What follows the leading digits of a date/clock literal ("/12/2026",
+#: ":30:45", "-10-23"): a separator immediately followed by another digit.
+_DATELIKE_TAIL_RE = re.compile(r"^[/:\-]\d")
+
 #: Textual states MES uses, normalised to booleans where the meaning is
 #: unambiguous. Anything not listed stays a plain string -- guessing at the
 #: polarity of an unknown state would be worse than leaving it alone.
@@ -153,6 +157,11 @@ def parse_value(name: str, raw: str) -> ParamValue:
             # A trailing token that is clearly words rather than a unit means
             # this was a state that merely began with a digit.
             if unit and len(unit) > 12 and " " in unit:
+                return ParamValue(name=name, raw=raw, state=raw)
+            # A date or clock ("09/12/2026", "12:30:45", "2026-10-23") is not a
+            # number followed by a unit: the leading digits would otherwise be
+            # reported as the value 9 / 12 / 2026 with a unit "/12/2026".
+            if unit and _DATELIKE_TAIL_RE.match(unit):
                 return ParamValue(name=name, raw=raw, state=raw)
             return ParamValue(name=name, raw=raw, number=number,
                               unit=canonical_unit(unit),

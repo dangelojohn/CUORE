@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import state_dir
+from .ui_store import atomic_write_text, quarantine_corrupt
 
 _LOCK = threading.Lock()
 
@@ -30,16 +31,19 @@ def path() -> Path:
 
 def _load() -> dict[str, Any]:
     try:
-        return json.loads(path().read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+        data = json.loads(path().read_text(encoding="utf-8"))
+    except FileNotFoundError:
         return {}
+    except OSError:
+        return {}
+    except ValueError:
+        quarantine_corrupt(path())
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 def _save(data: dict[str, Any]) -> None:
-    try:
-        path().write_text(json.dumps(data, indent=2), encoding="utf-8")
-    except OSError:
-        pass
+    atomic_write_text(path(), json.dumps(data, indent=2))
 
 
 def get(vin: str) -> dict[str, Any]:

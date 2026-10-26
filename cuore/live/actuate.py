@@ -26,6 +26,7 @@ Persistence: ``<state_dir>/actuators.json``, ``{vin: {module: {name: entry}}}``
 from __future__ import annotations
 
 import json
+import os
 import threading
 import time
 from datetime import datetime
@@ -216,8 +217,12 @@ def _load() -> dict[str, Any]:
 
 
 def _save(data: dict[str, Any]) -> None:
+    # Write-then-replace: a crash mid-write must not truncate every learned procedure.
+    p = path()
+    tmp = p.with_name(p.name + ".tmp")
     try:
-        path().write_text(json.dumps(data, indent=2), encoding="utf-8")
+        tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        os.replace(tmp, p)
     except OSError:
         pass
 
@@ -283,6 +288,12 @@ def assert_actuate_allowed(ecu: ECUAddress, procedure: Optional[dict[str, Any]],
                else "actuating it moves hardware")
         raise Refused(f"{ecu.code} {name!r}: {why}; type the consent phrase exactly: {phrase!r}")
     assert_actuation_module_allowed(ecu.code, ecu.bus_key)
+    learned_target = str((procedure or {}).get("target") or "").upper()
+    if learned_target and ecu.target is not None and learned_target != f"{ecu.target:02X}":
+        # The procedure's requests were learned for one target byte; sending them to a
+        # module now resolved to a different byte would actuate something else.
+        raise Refused(f"the learned procedure for {ecu.code} {name!r} targets {learned_target}, "
+                      f"but {ecu.code} now resolves to {ecu.target:02X}; learn it again")
     if not procedure.get("replayable"):
         raise Refused(f"the learned procedure for {ecu.code} {name!r} is not replayable: "
                       + "; ".join(procedure.get("reasons") or ["unknown reason"]))
@@ -360,13 +371,17 @@ def run_actuator(sess: Any, ecu: ECUAddress, procedure: dict[str, Any], *, conse
                                     # terminator must still be sent in the finally block below
                 log.append({"label": "learned", "sent": step.get("request"), "error": str(e)})
                 break
-            if step["service"] == "2F" and len(step.get("payload") or []) > 2 \
-                    and step["payload"][2] == "00":
-                control_returned = True
-            elif step["service"] == "31" and (step.get("payload") or [None])[0] == "02":
-                control_returned = True
+            # Control counts as returned only if THIS step is a stop step AND the module
+            # accepted it; any other 2F/31 step (a new actuation) takes control again, so an
+            # earlier stop step cannot excuse a later actuation left running.
+            accepted = bool(log and log[-1].get("accepted"))
+            if step["service"] == "2F":
+                control_returned = (len(step.get("payload") or []) > 2
+                                    and step["payload"][2] == "00" and accepted)
+            elif step["service"] == "31":
+                control_returned = (step.get("payload") or [None])[0] == "02" and accepted
             if step["service"] == "10":
-                session_restored = (step.get("payload") or [None])[0] == "01"
+                session_restored = (step.get("payload") or [None])[0] == "01" and accepted
     finally:
         try:
             term = procedure.get("synthesised_terminator")

@@ -199,6 +199,15 @@ check(any("not present in SCAN_2610251345 at 13:45" in r for r in S["adas_camera
       "reason names the scan evidence")
 check(S["map_sensor"]["status"] == "orange", "later scan still listing the code keeps it")
 EVIDENCE.clear()
+EVIDENCE.append({"at": "2026-10-25T13:45:00", "label": "SCAN_OTHERCAR", "vin": "ZFBCFABH1EZ020882",
+                 "modules": {"DASM": set()}})
+EVIDENCE.append({"at": "2026-10-25T13:46:00", "label": "SCAN_NOVIN", "vin": "", "modules": {"DASM": set()}})
+check(by_id(H())["adas_camera"]["codes"][0]["state"] == "stored",
+      "another car's (or a VIN-less) SCAN log never supersedes this car's code")
+EVIDENCE.clear()
+write("observations.jsonl", jl({"at": "2026-10-25T13:35:00", "kind": "module_dtcs", "vin": "ZFBCFABH1EZ020882",
+                                "data": {"ecu": "DASM", "error": None, "codes": []}}))
+check(by_id(H())["adas_camera"]["codes"][0]["state"] == "stored", "another car's UDS read never supersedes")
 write("observations.jsonl", jl({"at": "2026-10-25T13:35:00", "kind": "module_dtcs",
                                 "data": {"ecu": "DASM", "error": None, "codes": []}}))
 S = by_id(H())

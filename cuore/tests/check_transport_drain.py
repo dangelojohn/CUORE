@@ -135,6 +135,75 @@ with lk.session("fresh", bus=CAN_C) as sess:
     sess.untarget()
 check("flag on, no physical target before: no reset", "ATWS" not in st.sent, str(st.sent))
 
+# 6. a second caller waits a bounded time for a long-held session, then is told the adapter is busy
+import threading  # noqa: E402
+import time  # noqa: E402
+from cuore.live import interlock  # noqa: E402
+from cuore.live.errors import LinkUnavailable  # noqa: E402
+
+os.environ["CUORE_OBD_PORT"] = "COM99"
+lk, st = _link()
+lk.lock_wait_s = 0.3
+inside, release = threading.Event(), threading.Event()
+
+
+def _hold():
+    with lk.session("long capture", bus=CAN_C, passive=True):
+        inside.set()
+        release.wait(5)
+
+
+th = threading.Thread(target=_hold, daemon=True)
+th.start()
+inside.wait(5)
+t0 = time.monotonic()
+msg = None
+try:
+    with lk.session("second", bus=CAN_C):
+        pass
+except LinkUnavailable as e:
+    msg = str(e)
+check("a second caller is refused after a bounded wait, naming the holder",
+      msg is not None and "long capture" in msg and time.monotonic() - t0 < 3.0, str(msg))
+release.set()
+th.join(5)
+with lk.session("after", bus=CAN_C):
+    pass
+check("the adapter is usable again once the holder finishes", lk.current is None)
+
+# 7. a stream factory that raises must release the lock file and the adapter lock
+def _boom(p, b):
+    raise OSError("no such device")
+
+
+lk = AdapterLink(stream_factory=_boom, process="check_transport_drain")
+lk.mark_verified(CAN_C, 10)
+msg = None
+try:
+    with lk.session("boom", bus=CAN_C):
+        pass
+except LinkUnavailable as e:
+    msg = str(e)
+check("a failing stream factory surfaces as LinkUnavailable", msg is not None, str(msg))
+check("and leaves no advisory lock file behind", interlock.read_lock() is None, str(interlock.read_lock()))
+got = []
+th = threading.Thread(target=lambda: got.append(lk.lock.acquire(timeout=1)), daemon=True)
+th.start()
+th.join(3)
+check("and does not leave the adapter lock held", got == [True], str(got))
+
+# 8. untarget() on a cable route re-selects the protocol AND restates the route's bit rate
+from cuore.live.buses import CAN_IHS  # noqa: E402
+
+lk, st = _link()
+lk.set_cable("blue_a5")
+with lk.session("ihs-untarget", bus=CAN_IHS, passive=True) as sess:
+    st.sent.clear()
+    sess.untarget()
+stp = [i for i, c in enumerate(st.sent) if c.startswith("STP ")]
+check("untarget on the 125k cable route restates STPBR 125000 after STP",
+      bool(stp) and "STPBR 125000" in st.sent[stp[-1]:], str(st.sent))
+
 print(f"checks run: {checks}")
 if failures:
     print(f"FAILURES: {len(failures)}")

@@ -712,8 +712,17 @@ def gate_form(request: Request, vin: str, codes: str = "") -> HTMLResponse:
     return response
 
 
+def form_sync(request: Request):
+    """Read the form body from a plain ``def`` handler (which FastAPI runs in
+    the threadpool), so the handler's blocking work -- dossier build, log
+    parsing, serial reads -- never runs on the event loop."""
+    from anyio import from_thread
+    return from_thread.run(request.form)
+
+
+
 @router.post("/v/{vin}/gate", response_class=HTMLResponse)
-async def gate_submit(request: Request, vin: str,
+def gate_submit(request: Request, vin: str,
                       codes: str = Form(default=""),
                       component: str = Form(default=""),
                       mechanism: str = Form(default=""),
@@ -726,7 +735,7 @@ async def gate_submit(request: Request, vin: str,
     oily hands, and a page that needs a working script to submit is a page that
     fails at the worst moment.
     """
-    form = await request.form()
+    form = form_sync(request)
     rows: list[dict[str, Any]] = []
     for i, mtype in enumerate(form.getlist("m_type")):
         def field(key: str) -> str:
@@ -825,7 +834,7 @@ def modules(request: Request, domain: str = "", view: str = "") -> HTMLResponse:
 
 @router.get("/recordings", response_class=HTMLResponse)
 def recordings(request: Request) -> HTMLResponse:
-    return _page(request, "recordings.html",
+    return _page(request, "mes_recordings.html",
                  data=mes_bridge.list_recordings())
 
 
@@ -839,7 +848,7 @@ def recording(request: Request, name: str, condition: str = "") -> HTMLResponse:
         events = mes_bridge.recording_events(name, condition=condition)
     except BridgeError as exc:
         events_error = str(exc)
-    return _page(request, "recording.html", name=name, data=data,
+    return _page(request, "mes_recording.html", name=name, data=data,
                  events=events, events_error=events_error,
                  condition=condition)
 
@@ -1160,7 +1169,7 @@ def dealer_form(request: Request, vin: str) -> HTMLResponse:
 
 
 @router.post("/v/{vin}/dealer", response_class=HTMLResponse)
-async def dealer_submit(request: Request, vin: str) -> HTMLResponse:
+def dealer_submit(request: Request, vin: str) -> HTMLResponse:
     """Record one technician-entered wiTECH result.
 
     One shared endpoint for all five kinds, distinguished by a ``kind`` hidden
@@ -1168,7 +1177,7 @@ async def dealer_submit(request: Request, vin: str) -> HTMLResponse:
     working with no JavaScript, and matches how ``/gate`` handles measurement
     rows.
     """
-    form = await request.form()
+    form = form_sync(request)
     kind = str(form.get("kind", "")).strip()
     note = str(form.get("note", "")).strip()
 
@@ -1222,7 +1231,8 @@ async def dealer_submit(request: Request, vin: str) -> HTMLResponse:
 def _safe_redirect(url: str, fallback: str) -> str:
     """Only ever redirect somewhere inside this app -- ``redirect_to`` is a
     hidden form field a client controls, not a trusted URL."""
-    if url.startswith("/") and not url.startswith("//"):
+    if (url.startswith("/") and not url.startswith("//")
+            and not any(c in url for c in (chr(92), chr(13), chr(10)))):
         return url
     return fallback
 

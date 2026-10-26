@@ -37,6 +37,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from . import paths
+
 STATUSES = ("in", "out")
 
 #: WMI (VIN positions 1-4) -> make, decoded as the last-resort fallback when
@@ -115,30 +117,11 @@ def store_path() -> Path:
 
 
 def _append(entry: dict[str, Any]) -> None:
-    p = store_path()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    paths.append_jsonl(store_path(), entry)
 
 
 def _raw_records() -> list[dict[str, Any]]:
-    p = store_path()
-    if not p.exists():
-        return []
-    try:
-        lines = p.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    out: list[dict[str, Any]] = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            out.append(json.loads(line))
-        except ValueError:
-            continue
-    return out
+    return paths.read_jsonl(store_path())
 
 
 def _new_visit(rec: dict[str, Any]) -> dict[str, Any]:
@@ -155,43 +138,51 @@ def _new_visit(rec: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _fold_record(visits: dict[str, dict[str, Any]], rec: dict[str, Any]) -> None:
+    """Apply one record to the folded state."""
+    op = rec.get("op")
+    if op == "intake":
+        vid = rec.get("id")
+        if not vid or vid in visits:
+            return
+        visits[vid] = _new_visit(rec)
+        return
+
+    vid = rec.get("visit_id")
+    visit = visits.get(vid) if vid else None
+    if visit is None:
+        return
+
+    if op == "step_start":
+        visit["step_times"].append({
+            "step": rec.get("step"), "started_at": rec["at"],
+            "ended_at": None, "minutes": None,
+        })
+    elif op == "step_end":
+        open_entry = next((s for s in reversed(visit["step_times"])
+                          if s["step"] == rec.get("step") and s["ended_at"] is None),
+                         None)
+        if open_entry is None:
+            return
+        open_entry["ended_at"] = rec["at"]
+        open_entry["minutes"] = rec.get("minutes")
+    elif op == "release":
+        visit["release"] = rec.get("release") or visit["release"]
+        visit["status"] = "out"
+        visit["out_at"] = rec["at"]
+        visit["outcome"] = rec.get("outcome")
+
+
 def _fold() -> dict[str, dict[str, Any]]:
     """Every record folded into current visit state, keyed by visit id, in
     the order visits were taken in. One bad/unknown-op line is skipped,
     never sinks the rest of the store -- same posture as ``mes.jobs._fold``."""
     visits: dict[str, dict[str, Any]] = {}
     for rec in _raw_records():
-        op = rec.get("op")
-        if op == "intake":
-            vid = rec.get("id")
-            if not vid or vid in visits:
-                continue
-            visits[vid] = _new_visit(rec)
-            continue
-
-        vid = rec.get("visit_id")
-        visit = visits.get(vid) if vid else None
-        if visit is None:
-            continue
-
-        if op == "step_start":
-            visit["step_times"].append({
-                "step": rec.get("step"), "started_at": rec["at"],
-                "ended_at": None, "minutes": None,
-            })
-        elif op == "step_end":
-            open_entry = next((s for s in reversed(visit["step_times"])
-                              if s["step"] == rec.get("step") and s["ended_at"] is None),
-                             None)
-            if open_entry is None:
-                continue
-            open_entry["ended_at"] = rec["at"]
-            open_entry["minutes"] = rec.get("minutes")
-        elif op == "release":
-            visit["release"] = rec.get("release") or visit["release"]
-            visit["status"] = "out"
-            visit["out_at"] = rec["at"]
-            visit["outcome"] = rec.get("outcome")
+        try:
+            _fold_record(visits, rec)
+        except (KeyError, TypeError, ValueError, AttributeError):
+            continue  # a record missing a required field must not sink the store
     return visits
 
 

@@ -89,6 +89,7 @@ from . import store
 from .addressing import on_bus
 from .buses import BUSES, buses_for_cable
 from .config import state_dir
+from .ui_store import atomic_write_text
 from .errors import BadCommand, LinkUnavailable, LiveError, Refused
 from ..services.errors import NotFound
 
@@ -457,12 +458,16 @@ def _sweep_bus_modules(bus_key: str, car_vin: str, cable: str, stream_desc: str,
               "not_run": cls["not_run_since_clear"]}
         coverage_rows.append(row)
 
-        store.record_observation(
-            "module_dtcs",
-            {"ecu": code, "bus": bus_key,
-             "dtcs": [{"code": r["code"], "status": r["status"], "flags": r["flags"]}
-                     for r in records]},
-            vin=car_vin, bus=bus_key, cable=cable, stream=stream_desc)
+        # Only a module that actually answered gets a module_dtcs observation:
+        # an errored/NRC/silent one would otherwise be recorded as "answered
+        # with zero codes" and read as clean by everything downstream.
+        if category == "answered":
+            store.record_observation(
+                "module_dtcs",
+                {"ecu": code, "bus": bus_key,
+                 "dtcs": [{"code": r["code"], "status": r["status"], "flags": r["flags"]}
+                         for r in records]},
+                vin=car_vin, bus=bus_key, cable=cable, stream=stream_desc)
 
         if category not in ("answered", "silent"):
             continue
@@ -620,7 +625,7 @@ def run(vin: str = "", buses: Optional[list[str]] = None, budget_s: Optional[flo
                              stream=stream_desc)
 
     try:
-        _last_file().write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
+        atomic_write_text(_last_file(), json.dumps(result, indent=2, default=str))
     except OSError:
         pass
     return result
@@ -682,7 +687,7 @@ def _load_guided() -> Optional[dict[str, Any]]:
 
 def _save_guided(state: dict[str, Any]) -> None:
     try:
-        _guided_file().write_text(json.dumps(state, indent=2, default=str), encoding="utf-8")
+        atomic_write_text(_guided_file(), json.dumps(state, indent=2, default=str))
     except OSError:
         pass
 
@@ -803,7 +808,7 @@ def _record_guided_coverage(state: dict[str, Any]) -> None:
     store.record_observation("scan_coverage", result, vin=state["vin"], bus="",
                              cable=state["cable"], stream=state["stream"])
     try:
-        _last_file().write_text(json.dumps(result, indent=2, default=str), encoding="utf-8")
+        atomic_write_text(_last_file(), json.dumps(result, indent=2, default=str))
     except OSError:
         pass
 

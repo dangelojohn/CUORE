@@ -28,7 +28,7 @@ _TRUE = ("1", "true", "on", "yes")
 
 
 @router.post("/v/{vin}/checklist", response_class=HTMLResponse)
-async def checklist_submit(request: Request, vin: str,
+def checklist_submit(request: Request, vin: str,
                            step_id: str = Form(...),
                            done: str = Form(default=""),
                            by: str = Form(default="")) -> RedirectResponse:

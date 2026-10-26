@@ -36,7 +36,7 @@ from ..live import mode06 as mode06_mod
 from ..live import ops as live_ops
 from ..live import store as live_store
 from ..live.errors import LiveError
-from . import dossier_bridge, jobs_bridge, tsb_bridge
+from . import cache, dossier_bridge, jobs_bridge, tsb_bridge
 from .errors import BadRequest
 
 BULLETIN = "18-048-23"
@@ -299,7 +299,7 @@ def _stream_since(vin: str, since: str) -> str:
     """The stream of the ECM DTC read this run just made (so the replica's own
     observation is only 'from the car' when its reads were); ``unknown`` if none."""
     try:
-        for o in reversed(live_store.recent_observations(20, vin=vin, kind="module_dtcs")):
+        for o in reversed(cache.recent_observations(20, vin=vin, kind="module_dtcs")):
             if (o.get("at") or "") >= since:
                 return str(o.get("stream") or "unknown")
     except Exception:  # noqa: BLE001
@@ -356,7 +356,7 @@ def _record_on_job(vin: str, result: dict[str, Any]) -> Optional[str]:
         job = jobs_bridge.jobs_mod.current(vin)
         if not job:
             return None
-        obs = live_store.recent_observations(1, vin=vin, kind=OBSERVATION_KIND)
+        obs = cache.recent_observations(1, vin=vin, kind=OBSERVATION_KIND)
         at = obs[-1]["at"] if obs else result.get("at", "")
         missing = result["preconditions"]["missing"]
         text = (f"SLVT replica (read-only, bulletin {BULLETIN}): {result['summary']}"
@@ -384,7 +384,7 @@ def bulletin_links() -> dict[str, str]:
 
 
 def last_result(vin: str) -> Optional[dict[str, Any]]:
-    obs = live_store.recent_observations(1, vin=vin, kind=OBSERVATION_KIND)
+    obs = cache.recent_observations(1, vin=vin, kind=OBSERVATION_KIND)
     if not obs:
         return None
     data = dict(obs[-1].get("data") or {})

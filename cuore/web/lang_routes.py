@@ -19,12 +19,13 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 
 
 @router.post("/lang")
-async def set_lang(lang: str = Form(...), next: str = Form(default="/")) -> RedirectResponse:
+def set_lang(lang: str = Form(...), next: str = Form(default="/")) -> RedirectResponse:
     """Set the ``lang`` cookie and redirect back to wherever the chooser
     was submitted from. ``next`` is trusted only as a same-site path --
     anything not starting with ``/`` falls back to ``/`` rather than
     letting this become an open redirect."""
-    safe_next = next if next.startswith("/") and not next.startswith("//") else "/"
+    safe_next = (next if next.startswith("/") and not next.startswith("//")
+                 and not any(c in next for c in (chr(92), chr(13), chr(10))) else "/")
     response = RedirectResponse(url=safe_next, status_code=303)
     return i18n.set_lang_cookie(response, lang)
 

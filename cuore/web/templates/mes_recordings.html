@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}MES CSV recordings — CUORE{% endblock %}
+{% block content %}
+<h1>MES CSV recordings</h1>
+<p class="lede">CSV exports from the MES Graph tab, newest first by file time.
+Drive recordings taken by CUORE live under each vehicle's Recordings tab.</p>
+{% if data.note %}<p class="note">{{ data.note }}</p>{% endif %}
+<div class="panel tight">
+  <div class="tw">
+  <table>
+    <thead><tr><th>File time</th><th>File</th><th class="n">Samples</th><th class="n">Seconds</th><th class="n">Tags</th></tr></thead>
+    <tbody>
+    {% for r in data.recordings %}
+      <tr>
+        <td>{{ r.mtime }}</td>
+        <td><a href="/recording/{{ r.file|urlencode }}">{{ r.file }}</a>
+          {% if r.parse_error %}<br><span class="small">Could not parse: {{ r.parse_error }}</span>{% endif %}</td>
+        <td class="n">{{ r.samples if r.samples is defined else "—" }}</td>
+        <td class="n">{{ r.duration_s if r.duration_s is defined else "—" }}</td>
+        <td class="n">{{ r.tag_events if r.tag_events is defined else "—" }}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5">No CSV recordings found.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

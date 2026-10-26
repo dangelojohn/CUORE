@@ -38,6 +38,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from . import paths
+
 WAS_RIGHT_VALUES = ("yes", "no", "unsure")
 
 #: Garage tool inventory: a simple owned/not-owned list, independent of any
@@ -73,30 +75,11 @@ def store_path() -> Path:
 
 
 def _append(entry: dict[str, Any]) -> None:
-    p = store_path()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    paths.append_jsonl(store_path(), entry)
 
 
 def _raw_records() -> list[dict[str, Any]]:
-    p = store_path()
-    if not p.exists():
-        return []
-    try:
-        lines = p.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    out: list[dict[str, Any]] = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            out.append(json.loads(line))
-        except ValueError:
-            continue
-    return out
+    return paths.read_jsonl(store_path())
 
 
 def _clean_tools_used(tools_used: Optional[list[dict[str, Any]]]) -> list[dict[str, Any]]:
@@ -247,30 +230,11 @@ def inventory_store_path() -> Path:
 
 
 def _inventory_append(entry: dict[str, Any]) -> None:
-    p = inventory_store_path()
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    paths.append_jsonl(inventory_store_path(), entry)
 
 
 def _inventory_raw_records() -> list[dict[str, Any]]:
-    p = inventory_store_path()
-    if not p.exists():
-        return []
-    try:
-        lines = p.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    out: list[dict[str, Any]] = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            out.append(json.loads(line))
-        except ValueError:
-            continue
-    return out
+    return paths.read_jsonl(inventory_store_path())
 
 
 def inventory_set(tool: str, status: str, *, note: str = "") -> dict[str, Any]:

@@ -6,7 +6,7 @@
 <p class="m-sub">Pick what you want to tell CUORE about this car.</p>
 <div class="m-rowlist">
   {% for c in categories %}
-  <a class="m-row" href="/m/{{ vin }}/add/{{ c.key }}{{ '?' + carry if carry %}">
+  <a class="m-row" href="/m/{{ vin }}/add/{{ c.key }}{{ '?' + carry if carry }}">
     <span class="m-row-label">{{ c.label }}</span>
     <span class="m-row-count">{{ c.kind_count }}</span>
   </a>

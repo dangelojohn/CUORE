@@ -327,7 +327,11 @@ class RecordingStream(Stream):
 
     def open(self) -> None:
         self._inner.open()
-        self._rec.open(transport=type(self._inner).__name__)
+        try:
+            self._rec.open(transport=type(self._inner).__name__)
+        except Exception:
+            self._inner.close()   # don't leave the adapter held open if the log can't be created
+            raise
 
     def close(self) -> None:
         try:
@@ -453,9 +457,16 @@ class PlaybackStream(Stream):
                 obj = json.loads(line)
             except json.JSONDecodeError:
                 continue
+            if not isinstance(obj, dict):
+                continue
             kind = obj.get("kind")
             if kind in ("read", "write"):
-                return (kind, obj.get("data", ""))
+                data = obj.get("data", "")
+                try:
+                    bytes.fromhex(data)
+                except (TypeError, ValueError):
+                    continue   # one bad line must not abort the whole replay
+                return (kind, data)
             # header / footer / unknown — keep going
         return None
 

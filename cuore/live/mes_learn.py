@@ -316,7 +316,10 @@ def stop(csv: str = "", *, pre: Optional[dict[str, Any]] = None,
     if state["status"] != "stopped":
         state["status"] = "stopped"
         state["finished_at"] = datetime.now().isoformat(timespec="seconds")
-    _finalize_file(state)
+    try:
+        _finalize_file(state)
+    except OSError as e:   # the frames are already on disk; do not lose the alignment over a header rewrite
+        state["error"] = state["error"] or f"could not rewrite the capture header: {e}"
     frames = _all_frames(state)
     _align(state, csv, frames)
     _auto_review(state, frames, pre=pre, post=post, name=name, max_seconds=max_seconds,

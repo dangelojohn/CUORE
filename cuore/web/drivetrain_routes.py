@@ -33,6 +33,7 @@ from ..services import service_bridge
 from ..services.errors import BridgeError
 from ..api.deps import require_token
 from .service_routes import (
+    form_sync,
     _current_odometer,
     _dossier,
     _page,
@@ -92,8 +93,8 @@ def drivetrain_section_form(request: Request, vin: str, section: str,
 
 
 @router.post("/v/{vin}/drivetrain/{section}", response_class=HTMLResponse)
-async def drivetrain_section_submit(request: Request, vin: str, section: str) -> HTMLResponse:
-    form = await request.form()
+def drivetrain_section_submit(request: Request, vin: str, section: str) -> HTMLResponse:
+    form = form_sync(request)
 
     def field(name: str) -> str:
         return str(form.get(name, "")).strip()

@@ -415,7 +415,8 @@ def live_events(vin: str, t0: datetime, t1: datetime,
     if observations is None:
         try:
             from ..live import store
-            observations = store.recent_observations(2000, kind="live_alarm")
+            from . import cache
+            observations = cache.recent_observations(2000, kind="live_alarm")
             observations = [o for o in observations if store.is_from_car(o)]
         except Exception:  # noqa: BLE001
             observations = []

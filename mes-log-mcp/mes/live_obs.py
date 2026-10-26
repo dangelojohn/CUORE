@@ -71,7 +71,7 @@ def load(vin: Optional[str] = None, kind: Optional[str] = None,
         return []
     out: list[dict[str, Any]] = []
     try:
-        with p.open("r", encoding="utf-8") as f:
+        with p.open("r", encoding="utf-8", errors="replace") as f:
             lines = f.readlines()[-limit:]
     except OSError:
         return []
@@ -82,6 +82,8 @@ def load(vin: Optional[str] = None, kind: Optional[str] = None,
         try:
             obj = json.loads(line)
         except ValueError:
+            continue
+        if not isinstance(obj, dict):
             continue
         if vin and (obj.get("vin") or "") != vin:  # untagged reads never match a named car
             continue

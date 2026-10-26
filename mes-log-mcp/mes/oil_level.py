@@ -29,6 +29,7 @@ numbers (confidence "reported"), never car measurements.
 
 from __future__ import annotations
 
+import math
 import os
 from typing import Any, Optional
 
@@ -66,9 +67,10 @@ def _num(v: Any) -> Optional[float]:
     if v is None or isinstance(v, bool) or str(v).strip() == "":
         return None
     try:
-        return float(v)
+        f = float(v)
     except (TypeError, ValueError):
         return None
+    return f if math.isfinite(f) else None  # "nan"/"inf" are not readings
 
 
 def validate(fields: dict[str, Any]) -> list[str]:

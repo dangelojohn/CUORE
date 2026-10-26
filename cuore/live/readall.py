@@ -130,7 +130,10 @@ class _Parser:
     def _primary(self):
         kind, val = self._advance()
         if kind == "NUM":
-            return ("num", float(val) if "." in val else int(val))
+            try:
+                return ("num", float(val) if "." in val else int(val))
+            except ValueError:   # a lone "."
+                raise FormulaError(f"malformed number {val!r}")
         if kind == "LETTER":
             return ("byte", val)
         if kind == "SIGNED":
@@ -146,15 +149,31 @@ class _Parser:
 
 
 def _parse_expr(text: str):
-    return _Parser(_tokenize(text)).parse()
+    try:
+        return _Parser(_tokenize(text)).parse()
+    except RecursionError:
+        raise FormulaError(f"formula nested too deeply: {text[:60]!r}")
 
 
-def _signed(value: Any) -> int:
-    """Two's-complement reinterpretation, byte-width chosen by magnitude.
+def _letters_in(node) -> set[str]:
+    """Distinct data-byte letters referenced anywhere under ``node``."""
+    if node[0] == "byte":
+        return {node[1]}
+    out: set[str] = set()
+    for child in node[1:]:
+        if isinstance(child, tuple):
+            out |= _letters_in(child)
+    return out
 
-    Covers both ``SIGNED(A)`` (one byte) and ``SIGNED((A*256)+B)`` (two
-    bytes combined first, then sign-corrected) -- both forms are used in
-    the sourced formulas.
+
+def _signed(value: Any, width_bytes: int = 0) -> int:
+    """Two's-complement reinterpretation.
+
+    ``width_bytes`` is the number of data bytes the operand combines (one for
+    ``SIGNED(A)``, two for ``SIGNED((A*256)+B)``). Without it the width would
+    be guessed from the magnitude, which misreads a two-byte value whose high
+    byte is 0 (0x00F0 -> -16 instead of 240); magnitude is only the fallback
+    for an operand that references no byte at all.
     """
     try:
         iv = int(value)
@@ -162,7 +181,8 @@ def _signed(value: Any) -> int:
         raise FormulaError(f"SIGNED() operand is not an integer: {value!r}")
     if float(iv) != float(value):
         raise FormulaError(f"SIGNED() operand is not an integer: {value!r}")
-    for bits in (8, 16, 24, 32, 40, 48, 56, 64):
+    widths = (8 * width_bytes,) if width_bytes > 0 else (8, 16, 24, 32, 40, 48, 56, 64)
+    for bits in widths:
         span = 1 << bits
         if 0 <= iv < span:
             return iv - span if iv >= span // 2 else iv
@@ -180,7 +200,7 @@ def _eval_node(node, data: list[int]) -> float:
                 f"formula references byte {node[1]!r} but only {len(data)} byte(s) were returned")
         return data[idx]
     if kind == "signed":
-        return _signed(_eval_node(node[1], data))
+        return _signed(_eval_node(node[1], data), len(_letters_in(node[1])))
     if kind == "unary":
         v = _eval_node(node[2], data)
         return -v if node[1] == "-" else v

@@ -17,7 +17,7 @@ Feedback is ATTESTED input from a person, never a car measurement. It must
 never be fed into :mod:`mes.verdict` (the evidence gate) as evidence -- same
 rule as :mod:`mes.symptoms`.
 
-Rows are never rewritten in place; ``answer`` and ``set_status`` overwrite
+``add`` appends one line; ``answer`` and ``set_status`` overwrite
 the stored row's ``answer``/``status``/``applied_note`` fields and rewrite
 the whole file, the same one-row-per-id model :mod:`mes.dealer` uses, chosen
 here (over :mod:`mes.notes`'s append-only amendment log) because a feedback
@@ -41,10 +41,13 @@ from __future__ import annotations
 
 import json
 import os
+import time
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
+
+from . import paths
 
 KINDS = ("correction", "question", "confirm", "input", "disagree")
 STATUSES = ("open", "answered", "applied", "dismissed")
@@ -90,31 +93,26 @@ def _target_key(target: dict[str, Any]) -> str:
 
 
 def _read_all() -> list[dict[str, Any]]:
-    p = store_path()
-    if not p.exists():
-        return []
-    try:
-        lines = p.read_text(encoding="utf-8").splitlines()
-    except OSError:
-        return []
-    out: list[dict[str, Any]] = []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            out.append(json.loads(line))
-        except ValueError:
-            continue
-    return out
+    return paths.read_jsonl(store_path())
 
 
 def _write_all(rows: list[dict[str, Any]]) -> None:
+    """Replace the file atomically (temp file + rename): the old ``open("w")``
+    truncated the store first, so a crash mid-write lost every row."""
     p = store_path()
     p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("w", encoding="utf-8") as f:
+    tmp = p.with_name(p.name + f".{os.getpid()}.tmp")
+    with tmp.open("w", encoding="utf-8", newline="\n") as f:
         for row in rows:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
+    for attempt in range(40):  # a reader holding the file open blocks the rename on Windows
+        try:
+            os.replace(tmp, p)
+            return
+        except PermissionError:
+            if attempt == 39:
+                raise
+            time.sleep(0.05)
 
 
 def _validate_target(target: dict[str, Any]) -> dict[str, Any]:
@@ -163,9 +161,9 @@ def add(vin: str, kind: str, target: dict[str, Any], text: str = "",
         "answer": None,
         "applied_note": None,
     }
-    rows = _read_all()
-    rows.append(entry)
-    _write_all(rows)
+    # Append, not read-all/rewrite: a rewrite loses a row another process
+    # (CUORE server vs MCP server) added in between.
+    paths.append_jsonl(store_path(), entry)
     return entry
 
 
@@ -212,11 +210,12 @@ def answer(id: str, by: str, text: str) -> dict[str, Any]:
         raise ValueError("text is required")
     if len(text) > MAX_TEXT:
         raise ValueError(f"text must be {MAX_TEXT} characters or fewer")
-    rows, i = _find(id)
-    rows[i]["answer"] = {"at": datetime.now().isoformat(timespec="seconds"),
-                         "by": (by or "claude").strip() or "claude", "text": text}
-    rows[i]["status"] = "answered"
-    _write_all(rows)
+    with paths._append_lock(store_path()):  # no add() may land between read and rewrite
+        rows, i = _find(id)
+        rows[i]["answer"] = {"at": datetime.now().isoformat(timespec="seconds"),
+                             "by": (by or "claude").strip() or "claude", "text": text}
+        rows[i]["status"] = "answered"
+        _write_all(rows)
     return rows[i]
 
 
@@ -229,12 +228,13 @@ def set_status(id: str, status: str, note: Optional[str] = None) -> dict[str, An
     status = (status or "").strip().lower()
     if status not in STATUSES:
         raise ValueError("status must be one of: " + ", ".join(STATUSES))
-    rows, i = _find(id)
-    rows[i]["status"] = status
-    if note is not None:
-        note = note.strip()
-        rows[i]["applied_note"] = note or None
-    _write_all(rows)
+    with paths._append_lock(store_path()):
+        rows, i = _find(id)
+        rows[i]["status"] = status
+        if note is not None:
+            note = note.strip()
+            rows[i]["applied_note"] = note or None
+        _write_all(rows)
     return rows[i]
 
 

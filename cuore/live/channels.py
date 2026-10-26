@@ -734,7 +734,10 @@ def eval_expr(expr: str, values: dict[str, float]) -> float:
     text = expr.strip()
     if not text:
         raise ComputedError("empty expression")
-    return _eval_node(_ExprParser(_tokenize_expr(text)).parse(), values)
+    try:
+        return _eval_node(_ExprParser(_tokenize_expr(text)).parse(), values)
+    except (ValueError, RecursionError) as exc:   # lone "." number; absurd paren nesting
+        raise ComputedError(f"malformed expression {text[:80]!r}: {exc}") from exc
 
 
 __all__ = ["Channel", "available_channels", "registry", "invalidate_registry",

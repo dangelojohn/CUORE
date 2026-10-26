@@ -224,6 +224,12 @@ class Catalog:
                 # SCAN logs carry no marker, so simulation is undecidable.
                 entry.simulation = False
                 entry.simulation_determinable = False
+                # No banner, but MES's practice mode fills identity fields with
+                # fixed placeholder values (see fes.SIM_FINGERPRINTS). A scan
+                # carrying one is practice data, not a car.
+                seen = {log.vin.strip(), *(m.iso_code.strip() for m in log.entries)}
+                if seen & fes.SIM_FINGERPRINTS:
+                    entry.simulation = True
                 if log.modules:
                     entry.ecu = log.modules[0].ecu_description
             else:

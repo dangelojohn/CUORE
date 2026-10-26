@@ -34,7 +34,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ..live import config as _config
-from . import element_locations
+from . import cache, element_locations
 from .errors import BadRequest
 
 REGISTRY_PATH = Path(__file__).resolve().parents[1] / "data" / "sensors_stelvio_2018.json"
@@ -455,9 +455,14 @@ def _failure_text(code: str) -> str:
         return ""
 
 
+#: (path, mtime) -> parsed record, so the 20-odd SCAN logs are parsed once, not on every page view.
+_scan_ev_cache: dict[tuple[str, float], Optional[dict[str, Any]]] = {}
+
+
 def _scan_evidence() -> list[dict[str, Any]]:
     """Later-evidence source (a): every MES SCAN log, parsed with the mes
-    package's own parser -> [{"at","label","modules": {abbrev: {full codes}}}]."""
+    package's own parser -> [{"at","label","vin","modules": {abbrev: {full codes}}}].
+    ``vin`` is the car the log says it came from ("" when it names none)."""
     out: list[dict[str, Any]] = []
     try:
         from . import mes_bridge
@@ -465,15 +470,21 @@ def _scan_evidence() -> list[dict[str, Any]]:
         for entry in mes_bridge.CATALOG.select(kind="scan"):
             if entry.parse_error:
                 continue
-            try:
-                log = scan_mod.load_scan(entry.path, timestamp=entry.timestamp)
-            except Exception:  # noqa: BLE001
-                continue
-            mods: dict[str, set[str]] = {}
-            for e in log.modules:
-                mods.setdefault(e.abbrev, set()).update(d.full for d in e.dtcs)
-            out.append({"at": str(entry.timestamp or "").replace(" ", "T"),
-                        "label": Path(str(entry.path)).stem, "modules": mods})
+            key = (str(entry.path), entry.mtime)
+            if key not in _scan_ev_cache:
+                try:
+                    log = scan_mod.load_scan(entry.path, timestamp=entry.timestamp)
+                except Exception:  # noqa: BLE001
+                    _scan_ev_cache[key] = None
+                    continue
+                mods: dict[str, set[str]] = {}
+                for e in log.modules:
+                    mods.setdefault(e.abbrev, set()).update(d.full for d in e.dtcs)
+                _scan_ev_cache[key] = {
+                    "at": str(entry.timestamp or "").replace(" ", "T"),
+                    "label": Path(str(entry.path)).stem, "vin": entry.vin or "", "modules": mods}
+            if _scan_ev_cache[key] is not None:
+                out.append(_scan_ev_cache[key])
     except Exception:  # noqa: BLE001 - no MES logs: no evidence from them
         pass
     return out
@@ -483,12 +494,15 @@ def _uds_evidence() -> list[dict[str, Any]]:
     """Source (c): CUORE UDS module-DTC reads recorded in observations.jsonl
     that answered (no error) and list the module's codes."""
     out: list[dict[str, Any]] = []
-    for o in _read_jsonl("observations.jsonl"):
+    for o in cache.recent_observations(10 ** 9, kind="module_dtcs"):
         d = o.get("data") or {}
-        if o.get("kind") != "module_dtcs" or d.get("error") or not d.get("ecu")                 or not isinstance(d.get("codes"), list):
+        if d.get("error") or not d.get("ecu") or not isinstance(d.get("codes"), list):
             continue
-        out.append({"at": str(o.get("at") or ""), "label": "a CUORE module DTC read",
-                    "modules": {str(d["ecu"]): set(d["codes"])}})
+        row = {"at": str(o.get("at") or ""), "label": "a CUORE module DTC read",
+               "modules": {str(d["ecu"]): set(d["codes"])}}
+        if o.get("vin"):                    # an untagged read was of whatever car was on the bench
+            row["vin"] = str(o["vin"])
+        out.append(row)
     return out
 
 
@@ -513,7 +527,11 @@ def _current_codes(vin: str, mods: dict[str, dict[str, Any]]) -> list[dict[str, 
         dtcs = _load_dtcs(vin)
     except Exception:  # noqa: BLE001 - no MES logs / bridge unavailable: no code evidence
         return []
-    evidence = _scan_evidence() + _uds_evidence()
+    # Only this car's own reads can show one of its codes gone: a SCAN log of another car (or one
+    # naming no VIN), or a UDS read tagged with another VIN, answers for a different vehicle.
+    # Entries with no "vin" key are untagged UDS reads.
+    evidence = [e for e in _scan_evidence() + _uds_evidence()
+                if "vin" not in e or str(e["vin"]).upper() == vin.upper()]
     out: list[dict[str, Any]] = []
     for r in dtcs:
         code = str(r.get("dtc") or "")

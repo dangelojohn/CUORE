@@ -150,7 +150,7 @@ def _all_observations(vin: str) -> list[dict[str, Any]]:
     """Every observation for this VIN (an untagged read is kept, the same
     single-car assumption ``scan_health_bridge`` documents), oldest first."""
     out: list[tuple[datetime, dict[str, Any]]] = []
-    for o in live_store.recent_observations(n=10 ** 9):
+    for o in cache.recent_observations(n=10 ** 9):
         if (o.get("vin") or "").upper() not in ("", vin):
             continue
         at = _parse_at(o.get("at"))

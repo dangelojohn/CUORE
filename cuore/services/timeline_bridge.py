@@ -332,7 +332,7 @@ def _family_lane(family: str, occs: list[dict[str, Any]]) -> dict[str, Any]:
 def _mil_lane(vin: str) -> dict[str, Any]:
     events: list[dict[str, Any]] = []
     try:
-        obs = live_store.recent_observations(200, vin=vin, kind="readiness")
+        obs = cache.recent_observations(200, vin=vin, kind="readiness")
     except Exception:  # noqa: BLE001 -- the timeline must render without a live link
         obs = []
     for o in obs:
