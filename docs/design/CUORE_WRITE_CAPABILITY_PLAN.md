@@ -53,7 +53,9 @@ generated from `mes-log-mcp/mes/mes_functions.py`), `cuore/live/actuate.py`
 4. **Safety record.** On 2026-10-14 one wrong-bitrate passive listen on CAN-CH set
    the airbag lamp. Writing carries far more risk than listening.
 5. **Missing functions.** No graph / CSV recording; none of MES's adjustment
-   procedures (PROXI alignment, service resets, battery registration).
+   procedures (PROXI alignment, service resets, battery registration). Verified
+   plan for each, with this car's evidence: `docs/design/CUORE_ADJUSTMENTS_PLAN.md`
+   (2026-10-26). Graph / CSV recording is being built.
 
 ## The staged path
 
