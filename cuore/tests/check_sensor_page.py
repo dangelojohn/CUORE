@@ -173,22 +173,25 @@ call_html = m.group(1) if m else ""
 call_txt = re.sub(r"<[^>]+>", "", call_html)
 check("Fault: #" in call_txt and call_txt.index("Wheel speed FL") < call_txt.index("Upstream O2") and 'href="#sensor-o2f"' in call_html,
       f"call names the faulty sensor and links its row ({call_txt[:80]})")
-check("Past code, no live fault - read now:" in call_txt and "Intake air temp" in call_txt and "P0098-00" in call_txt,
-      "call: history code on a readable sensor -> read it now")
-check("Wheel speed RL" in call_txt and "C0035-00 - on this job" in call_txt and "grey cable" in call_txt,
-      "call: a code on the job's list on a sensor that needs the grey cable")
-check("never read" in call_txt and "need the grey cable" in call_txt and "no live channel" in call_txt,
-      f"call: never-read sensors with the grey-cable breakdown ({call_txt[-90:]})")
+check("Read now: #" in call_txt and "Intake air temp (P0098 history)" in call_txt,
+      f"call: history code on a readable sensor -> 'Read now: #n name (P0098 history)' ({call_txt})")
+check(chr(10) not in call_txt.strip() and "can't read" not in call_txt and "never read" not in call_txt and "grey cable" not in call_txt
+      and "Wheel speed RL" not in call_txt, "call is ONE line: the can't-read-yet and never-read clauses are not in it")
+why_txt = re.sub(r"<[^>]+>", "", html.split('id="sens-why"')[1].split("</details>")[0])
+check("Wheel speed RL" in why_txt and "C0035 history" in why_txt and "needs the grey cable" in why_txt and "never read" not in call_txt
+      and "no reading yet" in why_txt and "need the grey cable" in why_txt and "no live channel" in why_txt,
+      "Why-these fold holds the can't-read-yet and never-read clauses")
+check(html.index('id="sens-call"') < html.index('id="sens-go"') < html.index('id="sens-map"'), "Go-to chips and the map come right after the call")
 check('id="sens-go"' in html and html.count('class="sens-gochip"') >= 2 and 'href="#sensor-iat"' in html.split('id="sens-go"')[1][:900],
       "Go-to chips link to the sensors in the call")
 check('id="sens-why"' in html and "linked by name only" in html and "lambda" in html.split('id="sens-why"')[1][:1500],
       "Why-these fold lists the symptom link by name")
-check(html.index('id="sens-call"') < html.index('id="sens-actions"') < html.index('id="sens-map"') < html.index('id="sens-list"'),
-      "order: call, check action, map, list")
+check(html.index('id="sens-call"') < html.index('id="sens-map"') < html.index('id="sens-actions"') < html.index('id="sens-list"'),
+      "order: call, map, check action, list")
 sensor_routes._job_inputs = lambda vin, dossier: ([], [], {})
 t0 = client.get(f"/v/{VIN}/sensors").text
 c0 = re.sub(r"<[^>]+>", "", re.search(r'<p class="sens-call" id="sens-call">(.*?)</p>', t0, re.S).group(1))
-check("Fault:" in c0 and "Past code" in c0, "call still built from sensor states with no open job")
+check("Fault:" in c0 and "Read now:" in c0, "call still built from sensor states with no open job")
 sensor_routes._job_inputs = lambda vin, dossier: (JOB["codes"], JOB["syms"], JOB["ctext"])
 
 # the single primary action, disabled with a visible reason when the car is not connected
@@ -235,8 +238,17 @@ check("map" in okk and "wssfr" in okk and not set(okk) & set(att), "OK group hol
 row = re.search(r'<details class="sens-item" id="sensor-map".*?</summary>', html, re.S).group(0)
 check("sens-judged" in row and "OK - in range" in row, "judged OK row says in range")
 row = re.search(r'<details class="sens-item" id="sensor-wssfr".*?</summary>', html, re.S).group(0)
-check("sens-nojudge" in row and "OK - read, no range to judge" in row and "OK - in range" not in row,
-      "not-judged OK is a distinct chip: 'OK - read, no range to judge'")
+check("sens-nojudge" in row and "not judged" in row and "OK - read, no range" not in row and "OK - in range" not in row,
+      "not-judged OK is a distinct short chip: 'not judged'")
+check("1.2 V" in re.search(r'<span class="sens-reading">([^<]*)</span>', row).group(1),
+      "collapsed row shows the last reading with its unit")
+check('title="2026-10-25T09:00:00"' in row and "Oct 25, 09:00" in row and "2026-10-25 09:00" not in row,
+      "timestamps read 'Oct 25, 09:00' with the ISO kept in a title")
+check("Oct 25, 09:00" in html.split('id="sens-actions"')[1][:700] and 'class="chip ' in row and "font: " not in row,
+      "last-checked time is formatted; row chips use the app's chip class")
+_sd = sensor_direct.reading_text({"values": [{"label": "O2", "value": {"lambda": 0.9931}, "unit": ""}]})
+_sd2 = sensor_direct.reading_text({"values": [{"label": "Rail", "value": 6.07, "unit": "bar"}]})
+check(_sd == "lambda 0.9931" and _sd2 == "6.07 bar", f"reading text: {_sd!r}, {_sd2!r}")
 check(".sens-st.sens-nojudge" in open(Path(__file__).resolve().parents[1] / "web/static/sensors.css", encoding="utf-8").read(),
       "CSS gives the not-judged chip its own look")
 row = re.search(r'<details class="sens-item" id="sensor-iat".*?</summary>', html, re.S).group(0)
@@ -299,6 +311,31 @@ for x, y, ta, tx in tv_labels:
 check(all(a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1] for i, a in enumerate(boxes) for b in boxes[i + 1:]),
       "top view: no two labels overlap")
 
+# markers: every one labelled (or in the legend), labels next to their own marker, right side not stacked on left
+_items = [{**s, "number": i} for i, s in enumerate(SENSORS, 1)]
+for view in ("side", "top"):
+    _svg, _gs = sensor_profile_svg.map_view_svg(_items, view)
+    for g in _gs:
+        if not g["label"]:
+            continue
+        b = g["box"]
+        own = sensor_profile_svg._box_dist(b, g["x"], g["y"])
+        check(own <= 70, f"{view}: label '{g['label']}' is within 70 px of its marker ({own:.0f})")
+        check(all(sensor_profile_svg._box_dist(b, o["x"], o["y"]) > own for o in _gs if o is not g),
+              f"{view}: label '{g['label']}' is nearer its own marker than any other")
+    _full = sensor_map_html = sensor_profile_svg.sensor_map(_items)
+    for g in _gs:
+        check(bool(g["label"]) or g["name"] in _full, f"{view}: marker '{g['name']}' has a label or a legend entry")
+_sg = sensor_profile_svg.map_view_svg(_items, "side")[1]
+check(not any(i.get("side") == "right" or str(i["zone"]).endswith("right_wheel_well") for g in _sg for i in g["items"]),
+      "side view: right-side items are not drawn on top of the left ones")
+check("+ right side: see Top" in sensor_profile_svg.sensor_map(_items) and "Front wheel wells (1)" in sensor_profile_svg.sensor_map(_items),
+      "side view: always-visible '+ right side: see Top' note per area")
+_big = [{"id": f"x{i}", "label": "x", "zone": z, "side": "left", "status": "green", "number": i}
+        for i, z in enumerate(sensor_profile_svg.ZONE_BY_ID, 1)]
+_bs = sensor_profile_svg.map_view_svg(_big, "side")[1]
+check(len(_bs) >= 12 and sum(1 for g in _bs if g["label"]) >= len(_bs) // 2, f"side view with every area used: labels fit ({sum(1 for g in _bs if g['label'])}/{len(_bs)})")
+
 # filters
 r = client.get(f"/v/{VIN}/sensors?status=red")
 n_rows = len(re.findall(r'<details class="sens-item"', r.text))
@@ -309,7 +346,13 @@ r = client.get(f"/v/{VIN}/sensors?system=Brakes")
 check(len(re.findall(r'<details class="sens-item"', r.text)) == 3, "system filter narrows the list")
 r = client.get(f"/v/{VIN}/sensors?zone=engine_bay")
 check(len(re.findall(r'<details class="sens-item"', r.text)) == sum(1 for s in SENSORS if s["zone"] == "engine_bay")
-      and "Area: Engine bay" in r.text, "area (cluster) filter narrows the list")
+      and "Showing: Engine bay" in r.text and 'id="sens-showing"' in r.text and "clear</a>" in r.text,
+      "area (cluster) filter narrows the list and shows 'Showing: Engine bay - clear'")
+check('id="sens-showing"' not in client.get(f"/v/{VIN}/sensors").text, "no Showing chip without a filter")
+check("Showing: Dead / not responding, Brakes" in client.get(f"/v/{VIN}/sensors?status=red&system=Brakes").text,
+      "Showing chip names status and system filters")
+_q = client.get(f"/v/{VIN}/sensors?q=wheel").text
+check(_q.index('id="sens-results"') < _q.index('id="sens-call"') < _q.index('id="sens-go"'), "with ?q= the matches come first, above the call")
 r = client.get(f"/v/{VIN}/sensors?status=bogus")
 check(len(re.findall(r'<details class="sens-item"', r.text)) == len(SENSORS), "bad status ignored")
 a_chips = html.count('class="sens-chip ')

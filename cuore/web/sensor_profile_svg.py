@@ -542,12 +542,30 @@ def _st(i: dict[str, Any]) -> str:
     return i.get("status") if i.get("status") in _STATUS_WORD else "grey"
 
 
+def _is_right(it: dict[str, Any], zid: str) -> bool:
+    return (it.get("side") or "").lower() == "right" or zid.endswith("_right_wheel_well")
+
+
+def right_hidden(items: list[dict[str, Any]]) -> list[tuple[str, int]]:
+    """[(area label, how many)] for the right-side items the SIDE view leaves out (the Top view shows them)."""
+    out: dict[str, int] = {}
+    for it in items:
+        zid = resolve_zone(it.get("zone"))
+        if zid and _is_right(it, zid):
+            left = ZONE_BY_ID.get(zid.replace("_right_", "_left_"), ZONE_BY_ID[zid])
+            name = left["label"] or zid.replace("_", " ")
+            out[name] = out.get(name, 0) + 1
+    return list(out.items())
+
+
 def _map_groups(items: list[dict[str, Any]], view: str) -> list[dict[str, Any]]:
     groups: dict[str, dict[str, Any]] = {}
     for it in items:
         zid = resolve_zone(it.get("zone"))
         if zid is None:
             continue
+        if view != "top" and _is_right(it, zid):
+            continue   # the side view is the car's left side: right-side items live on the Top view
         if view == "top":
             a = _top_anchor(it)
             if a is None:
@@ -572,6 +590,10 @@ def _rects_hit(a: tuple, b: tuple) -> bool:
     return not (a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1])
 
 
+def _box_dist(box: tuple, x: float, y: float) -> float:
+    return math.hypot(max(box[0] - x, 0, x - box[2]), max(box[1] - y, 0, y - box[3]))
+
+
 def _place_labels(groups: list[dict[str, Any]], view: str, w: float, h: float, fixed: list[tuple]) -> dict[str, tuple]:
     """{group key: (x, y, text-anchor, text)} for every label that fits without touching a marker or a label."""
     own_box = {g["key"]: (g["x"] - _HIT_R, g["y"] - _HIT_R, g["x"] + _HIT_R, g["y"] + _HIT_R) for g in groups}
@@ -586,7 +608,9 @@ def _place_labels(groups: list[dict[str, Any]], view: str, w: float, h: float, f
                            (r + 8, 6, "start"), (-(r + 8), 6, "end"),
                            (r + 4, r + _LABEL_FS, "start"), (-(r + 4), r + _LABEL_FS, "end"),
                            (r + 4, -(r + 2), "start"), (-(r + 4), -(r + 2), "end"),
-                           (0, r + 2 * _LABEL_FS + 6, "middle"), (0, -(r + _LABEL_FS + 12), "middle")):
+                           (0, r + 2 * _LABEL_FS + 6, "middle"), (0, -(r + _LABEL_FS + 12), "middle"),
+                           (r + 8, r + 2 * _LABEL_FS, "start"), (-(r + 8), r + 2 * _LABEL_FS, "end"),
+                           (r + 8, -(r + _LABEL_FS), "start"), (-(r + 8), -(r + _LABEL_FS), "end")):
             lx, ly = x + dx, y + dy
             x0 = lx - tw / 2 if ta == "middle" else lx if ta == "start" else lx - tw
             box = (x0, ly - _LABEL_FS, x0 + tw, ly + 6)
@@ -594,6 +618,10 @@ def _place_labels(groups: list[dict[str, Any]], view: str, w: float, h: float, f
                 continue
             if any(_rects_hit(box, a) for a in avoid if a is not own_box[g["key"]]):
                 continue
+            mine = _box_dist(box, x, y)
+            if any(_box_dist(box, o["x"], o["y"]) <= mine for o in groups if o is not g):
+                continue   # a label must be nearer its own marker than any other
+            g["box"] = box
             out[g["key"]] = (lx, ly, ta, text)
             avoid.append(box)
             break
@@ -642,6 +670,9 @@ def map_view_svg(items: list[dict[str, Any]], view: str, *, href_prefix: str = "
             lx, ly, ta, text = labels[g["key"]]
             p.append(f'<text class="sm-label" x="{lx:.1f}" y="{ly:.1f}" text-anchor="{ta}">{escape(text)}</text>')
     p.append("</g>")
+    for g in groups:
+        g["label"] = labels[g["key"]][3] if g["key"] in labels else ""
+        g["name"] = _label_text(g, view)
     p += [_marker(g, href_prefix, cluster_href, dim) for g in groups]
     p.append("</svg>")
     return "".join(p), groups
@@ -651,21 +682,33 @@ def sensor_map(items: list[dict[str, Any]], *, href_prefix: str = "sensor-", clu
                default_view: str = "side", dim: Iterable[str] = ()) -> str:
     """ONE car picture with a Side / Top toggle (no script: two radios, like the fuse page). Safe for []."""
     dim = list(dim)
-    side, _ = map_view_svg(items, "side", href_prefix=href_prefix, cluster_href=cluster_href, dim=dim)
-    top, _ = map_view_svg(items, "top", href_prefix=href_prefix, cluster_href=cluster_href, dim=dim)
+    side, sg = map_view_svg(items, "side", href_prefix=href_prefix, cluster_href=cluster_href, dim=dim)
+    top, tg = map_view_svg(items, "top", href_prefix=href_prefix, cluster_href=cluster_href, dim=dim)
     top_on = default_view == "top"
     c = SIDE_VIEW_CREDIT
+
+    def unl(gs: list[dict[str, Any]]) -> str:
+        miss = [g for g in gs if not g["label"]]
+        if not miss:
+            return ""
+        return ('<p class="sv-legend">Not labelled on the drawing: '
+                + "; ".join(escape(f"{g['name']} ({', '.join('#' + str(i.get('number', '')) for i in g['items'])})") for g in miss)
+                + "</p>")
+
+    hidden = right_hidden(items)
+    note = ('<p class="sv-legend sv-right">+ right side: see Top. '
+            + "; ".join(f"{escape(n)} ({k})" for n, k in hidden) + "</p>") if hidden else ""
     return ('<div class="sv-wrap">'
             f'<input class="sv-radio" type="radio" name="sv-view" id="sv-side"{"" if top_on else " checked"}>'
             f'<input class="sv-radio" type="radio" name="sv-view" id="sv-top"{" checked" if top_on else ""}>'
             '<div class="sv-tabs" role="group" aria-label="Car view"><label for="sv-side">Side</label>'
             '<label for="sv-top">Top</label></div>'
             "<figure class=\"sv-fig sv-sidev\"><figcaption>Side view: the car's left (driver's) side, front to the left. "
-            f'Each marker is an area, not an exact spot.</figcaption><div class="sv-scroll">{side}</div>'
+            f'Each marker is an area, not an exact spot.</figcaption><div class="sv-scroll">{side}</div>{note}{unl(sg)}'
             f'<p class="sens-credit">{escape(c["text"])} (<a href="{c["photo"]}" rel="noopener">photo</a>, '
             f'<a href="{c["licence"]}" rel="noopener">licence</a>)</p></figure>'
             "<figure class=\"sv-fig sv-topv\"><figcaption>Top view: looking down, front to the left; left (driver's) "
-            f'side at the bottom, right side at the top.</figcaption><div class="sv-scroll">{top}</div></figure></div>')
+            f'side at the bottom, right side at the top.</figcaption><div class="sv-scroll">{top}</div>{unl(tg)}</figure></div>')
 
 
 

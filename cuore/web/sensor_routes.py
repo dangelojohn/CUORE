@@ -204,6 +204,7 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
                                      "href": href(status_f, system_f, z, False) + "#sens-list"})
             a["n"] += 1
 
+    showing = [x for x in (_zone_label(zone_f) if zone_f else "", STATUS_LABEL[status_f] if status_f else "", system_f) if x]
     chip_href = {k: href("" if status_f == k else k, system_f, zone_f) for k in STATUSES}
     sys_href = {sy: href(status_f, sy, zone_f) for sy in systems}
     response = _page(request, "sensors.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="sensors", live_strip=strip,
@@ -214,7 +215,8 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
                      results_shown=results[:10], no_match_hint=page_search.HINT_SENSORS,
                      clear_href=href(status_f, system_f, zone_f, False), chip_href=chip_href, sys_href=sys_href,
                      system_f=system_f, systems=systems, all_href=f"/v/{vin}/sensors",
-                     status_label=STATUS_LABEL, status_mark=STATUS_MARK, msg=msg, error=error)
+                     status_label=STATUS_LABEL, status_mark=STATUS_MARK, msg=msg, error=error,
+                     fmt_time=sensor_direct.fmt_time, showing=showing)
     _set_active_vehicle(response, vin)
     return response
 

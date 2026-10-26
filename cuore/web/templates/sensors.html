@@ -4,6 +4,7 @@
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('sensors.css') }}">
 {% set base = "/v/" ~ vin ~ "/sensors" %}
+{% macro when(t) %}{% if t %}<span title="{{ t }}">{{ fmt_time(t) }}</span>{% else %}never{% endif %}{% endmacro %}
 {% macro vals(s) %}
   {% if s['values'] %}
   <ul class="sens-vals">
@@ -11,7 +12,7 @@
     <li><b>{{ v.label or v.channel }}</b>: {% if v.value is mapping %}{% for k, x in v.value.items() %}{{ k }} {{ x }}{% if not loop.last %}, {% endif %}{% endfor %}{% else %}{{ v.value }}{% endif %}{% if v.unit %} {{ v.unit }}{% endif %}
       {% if v.range %}&mdash; normal {{ v.range.min }}&ndash;{{ v.range.max }} {{ v.range.unit or v.unit or "" }} ({{ v.range.source }}){% if v.in_range is sameas false %} <b>outside range</b>{% endif %}
       {% else %}&mdash; <span class="muted">no normal range on record</span>{% endif %}
-      {% if v.read_at %}<span class="muted"> read {{ v.read_at }}</span>{% endif %}</li>
+      {% if v.read_at %}<span class="muted"> read {{ when(v.read_at) }}</span>{% endif %}</li>
     {% endfor %}
   </ul>
   {% endif %}
@@ -25,13 +26,6 @@
   <button type="submit">Search</button>
   {% if q %}<a href="{{ clear_href }}">Clear search</a>{% endif %}
 </form>
-
-<h1 class="sens-h1">Sensors</h1>
-
-{% if msg %}<p class="sens-msg" role="status">{{ msg }}</p>{% endif %}
-{% if error %}<p class="sens-msg" role="alert">{{ error }}</p>{% endif %}
-
-<p class="sens-call" id="sens-call">{% for sg in call.call_segs %}{% if sg.href %}<a href="{{ sg.href }}">{{ sg.text }}</a>{% else %}{{ sg.text }}{% endif %}{% endfor %}</p>
 
 {% if q %}
 <section class="sens-results" id="sens-results" aria-label="Search results">
@@ -47,6 +41,14 @@
 </section>
 {% endif %}
 
+<h1 class="sens-h1 sens-sr">Sensors</h1>
+
+{% if msg %}<p class="sens-msg" role="status">{{ msg }}</p>{% endif %}
+{% if error %}<p class="sens-msg" role="alert">{{ error }}</p>{% endif %}
+
+<p class="sens-call" id="sens-call">{% for sg in call.call_segs %}{% if sg.href %}<a href="{{ sg.href }}">{{ sg.text }}</a>{% else %}{{ sg.text }}{% endif %}{% endfor %}</p>
+
+
 {% if call.targets %}
 <nav class="sens-go" id="sens-go" aria-label="Go to">
   <span class="sens-go-l">Go to</span>
@@ -56,26 +58,11 @@
 
 {% if call.why %}
 <details class="sens-fold sens-why" id="sens-why">
-  <summary>Why these?</summary>
+  <summary>Why these? What else could not be read</summary>
   <p class="muted">From this car's open symptoms, the job's code list and CUORE's own last readings. "History, no live fault" means CUORE stored the code earlier and a later scan did not show it.</p>
   <ul>{% for w in call.why %}<li>{{ w }}</li>{% endfor %}</ul>
 </details>
 {% endif %}
-
-<div class="sens-checkrow" id="sens-actions">
-  <form method="post" action="{{ base }}/check">
-    <button type="submit" class="sens-primary"{% if not check.ok %} disabled aria-describedby="sens-off"{% endif %}>Check all sensors</button>
-  </form>
-  {% if not check.ok %}<p class="sens-off" id="sens-off" role="note">{{ check.reason }}</p>{% endif %}
-  <p class="sens-note">Last checked: <b>{{ checked_at or "never" }}</b>. Read-only; it never clears codes. Needs ignition on and MultiEcuScan closed.</p>
-</div>
-<div class="sens-more-row" id="sens-more">
-  <span class="sens-more-l">More</span>
-  <a href="{{ base }}/readings">All readings</a>
-  <a href="{{ base }}/readings.csv">Download CSV</a>
-  <a href="/v/{{ vin }}/mes-parameters">MES parameter inventory</a>
-  <a href="{{ base }}/data">Owner data</a>
-</div>
 
 <section class="sens-mapbox" id="sens-map" aria-label="Where the sensors are">
   {{ svg|safe }}
@@ -93,13 +80,27 @@
   </details>
   {% endif %}
 </section>
+<div class="sens-checkrow" id="sens-actions">
+  <form method="post" action="{{ base }}/check">
+    <button type="submit" class="sens-primary"{% if not check.ok %} disabled aria-describedby="sens-off"{% endif %}>Check all sensors</button>
+  </form>
+  {% if not check.ok %}<p class="sens-off" id="sens-off" role="note">{{ check.reason }}</p>{% endif %}
+  <p class="sens-note">Last checked: <b>{{ when(checked_at) }}</b>. Read-only; it never clears codes. Needs ignition on and MultiEcuScan closed.</p>
+</div>
+<div class="sens-more-row" id="sens-more">
+  <span class="sens-more-l">More</span>
+  <a href="{{ base }}/readings">All readings</a>
+  <a href="{{ base }}/readings.csv">Download CSV</a>
+  <a href="/v/{{ vin }}/mes-parameters">MES parameter inventory</a>
+  <a href="{{ base }}/data">Owner data</a>
+</div>
+
 
 <div class="sens-chips" id="sens-chips" role="group" aria-label="Filter by status">
   {% for k in ("green", "orange", "red", "grey") %}
     <a class="sens-chip sens-{{ k }}{{ ' on' if status_f == k }}" href="{{ chip_href[k] }}#sens-list"
        title="{{ status_label[k] }}"><b>{{ status_mark[k] }}</b> {{ counts[k] }} {{ status_label[k] }}</a>
   {% endfor %}
-  {% if zone_f %}<a class="sens-chip on-zone" href="{{ all_href }}#sens-list">Area: {{ zone_label }} &times; show all areas</a>{% endif %}
   {% if status_f or system_f or zone_f %}<a class="sens-chip all" href="{{ all_href }}#sens-list">Show all {{ total }}</a>{% endif %}
 </div>
 {% if systems|length > 1 %}
@@ -110,6 +111,7 @@
 {% endif %}
 
 <div id="sens-list">
+{% if showing %}<p class="sens-showing" id="sens-showing"><span class="chip plain">Showing: {{ showing|join(", ") }}</span> <a class="sens-clear" href="{{ all_href }}#sens-list">&middot; clear</a></p>{% endif %}
 {% if not total %}
   <p class="panel muted">No sensors known for this car yet.</p>
 {% elif not sections and not unplaced %}
@@ -128,9 +130,10 @@
   <summary>
     <span class="n">#{{ it.n }}</span>
     <span class="sens-name">{{ s.label }}</span>
-    <span class="sens-st sens-{{ st }}{{ ' sens-nojudge' if r.kind == 'ok_nojudge' }}{{ ' sens-judged' if r.kind == 'ok_judged' }}">{{ status_mark[st] }} {{ r.chip }}</span>
-    {% for c in r.codes %}<span class="sens-code{{ ' sens-code-hist' if c.history }}">{{ c.code }} {{ c.text }}</span>{% endfor %}
-    <span class="sens-line">{{ r.line }}</span>
+    {% if r.reading %}<span class="sens-reading">{{ r.reading }}</span>{% endif %}
+    <span class="chip {{ {'green': 'ok', 'orange': 'chronic', 'red': 'returned', 'grey': 'plain'}[st] }} sens-st sens-{{ st }}{{ ' sens-nojudge' if r.kind == 'ok_nojudge' }}{{ ' sens-judged' if r.kind == 'ok_judged' }}">{{ status_mark[st] }} {{ r.chip }}</span>
+    {% for c in r.codes %}<span class="chip plain sens-code{{ ' sens-code-hist' if c.history }}">{{ c.code }} {{ c.text }}</span>{% endfor %}
+    <span class="sens-line"{% if r.read_iso %} title="{{ r.read_iso }}"{% endif %}>{{ r.line }}</span>
   </summary>
   <div class="sens-body">
     {% if it.photo %}
@@ -141,7 +144,7 @@
     {% endif %}
     <dl class="sens-facts">
       <div><dt>Module</dt><dd>{{ s.module or "not recorded" }}{% if s.bus %} · {{ s.bus }}{% endif %}</dd></div>
-      <div><dt>Last read</dt><dd>{{ s.last_read or "never" }}</dd></div>
+      <div><dt>Last read</dt><dd>{{ when(s.last_read) }}</dd></div>
       <div><dt>Where</dt><dd>{{ it.zone_label or "not placed on the car" }}{% if s.side in ("left", "right") %} ({{ s.side }}){% endif %} <span class="sens-chipl">{{ r.area_chip }}</span></dd></div>
     </dl>
     {{ vals(s) }}

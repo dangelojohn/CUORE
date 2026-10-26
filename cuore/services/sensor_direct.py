@@ -21,7 +21,7 @@ GROUPS = (("attention", "Needs attention", "Faults and sensors with a code on th
           ("never", "Never read", "No reading from this sensor yet"),
           ("ok", "OK", "Read, nothing wrong found"))
 CHIP = {"red": "Dead / not responding", "orange": "Fault / out of range", "grey": "Not read yet",
-        OK_JUDGED: "OK - in range", OK_NOJUDGE: "OK - read, no range to judge"}
+        OK_JUDGED: "OK - in range", OK_NOJUDGE: "not judged"}
 CONF_WORDS = {"SOURCED": "from a source", "INFERRED": "worked out, not checked", "GENERAL": "general knowledge",
               "UNKNOWN": "not known"}
 CABLE = "needs the grey cable"
@@ -75,9 +75,39 @@ def code_chips(s: dict[str, Any]) -> list[dict[str, str]]:
     return out
 
 
+def fmt_time(t: Any) -> str:
+    """ISO timestamp -> "Oct 25, 19:56" (the text unchanged when it is not an ISO time)."""
+    from datetime import datetime
+    raw = str(t or "").strip()
+    if not raw:
+        return ""
+    try:
+        d = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return raw
+    return f"{d:%b} {d.day}, {d:%H:%M}"
+
+
 def _read_when(s: dict[str, Any]) -> str:
-    t = str(s.get("last_read") or "")
-    return f"{t[:10]} {t[11:16]}".strip()
+    return fmt_time(s.get("last_read"))
+
+
+def _num(v: Any) -> str:
+    return f"{v:.4g}" if isinstance(v, float) else str(v)
+
+
+def reading_text(s: dict[str, Any], limit: int = 2) -> str:
+    """The last reading(s) with units for the collapsed row, e.g. "6.07 bar" or "lambda 0.993"."""
+    vals = [v for v in s.get("values") or [] if v.get("value") is not None]
+    out = []
+    for v in vals[:limit]:
+        x, unit = v.get("value"), str(v.get("unit") or "").strip()
+        if isinstance(x, dict):
+            out.append(", ".join(f"{k} {_num(y)}" for k, y in x.items()) + (f" {unit}" if unit else ""))
+        else:
+            name = f"{v.get('label') or v.get('channel')}: " if len(vals) > 1 else ""
+            out.append(f"{name}{_num(x)}" + (f" {unit}" if unit else ""))
+    return "; ".join(out) + (f" (+{len(vals) - limit} more)" if len(vals) > limit else "")
 
 
 def one_line(s: dict[str, Any], kind: str) -> str:
@@ -102,8 +132,7 @@ def one_line(s: dict[str, Any], kind: str) -> str:
     when = _read_when(s)
     if kind == OK_JUDGED:
         return f"Read {when}; inside the normal range." if when else "Inside the normal range."
-    return f"Read {when}; CUORE has no normal range for it, so the value is not judged." if when else \
-        "Read; no normal range on record."
+    return f"Read {when}; no normal range on record, so not judged." if when else "Read; no normal range on record."
 
 
 def detail_reasons(s: dict[str, Any], line: str) -> list[str]:
@@ -138,7 +167,8 @@ def sensor_row(s: dict[str, Any], job_bases: frozenset = frozenset()) -> dict[st
     for c in chips:
         c["job"] = c["base"] in job_bases
     return {"kind": kind, "group": group_of(kind), "chip": chip, "line": line, "codes": chips,
-            "extra": detail_reasons(s, line),
+            "extra": detail_reasons(s, line), "reading": reading_text(s),
+            "read_when": _read_when(s), "read_iso": str(s.get("last_read") or ""),
             "area_chip": "Area: " + CONF_WORDS.get(s.get("location_confidence") or "UNKNOWN", "not known"),
             "never_why": never_why(s) if kind == NEVER else ""}
 
@@ -214,7 +244,7 @@ def direct(sensors: list[dict[str, Any]], numbers: dict[str, int], codes: list[s
 
     def codes_of(s: dict[str, Any]) -> str:
         cs = rows[s["id"]]["codes"]
-        return " (" + ", ".join(c["code"] + (" - on this job" if c["job"] else "") for c in cs[:2]) + ")"
+        return " (" + ", ".join(c["code"].split("-")[0] + (" history" if c["history"] else " live") for c in cs[:2]) + ")"
 
     def cable_of(s: dict[str, Any]) -> bool:
         return never_why(s) == CABLE
@@ -230,17 +260,16 @@ def direct(sensors: list[dict[str, Any]], numbers: dict[str, int], codes: list[s
     def job_first(group: list[dict[str, Any]]) -> list[dict[str, Any]]:
         return sorted(group, key=lambda s: (not any(c["job"] for c in rows[s["id"]]["codes"]), numbers.get(s["id"], 0)))
 
-    for group, lead in ((live, "Live code"), (hist, "Past code, no live fault")):
-        now = job_first([s for s in group if s.get("readable", True)])
-        if now:
-            put(f"{lead} - read now: ")
-            names(now, codes_of)
-            put(". ")
+    now = job_first([s for s in live + hist if s.get("readable", True)])
+    if now:
+        put("Read now: ")
+        names(now, codes_of)
+        put(".")
     later = job_first([s for s in live + hist if not s.get("readable", True)])
     if later:
-        put("Code on these but CUORE can't read them yet: ")
-        names(later, lambda s: codes_of(s) + (" - grey cable" if cable_of(s) else " - no live channel"))
-        put(". ")
+        why.append("Code on these but CUORE can't read them yet: " + "; ".join(
+            ref(s) + codes_of(s) + (" - needs the grey cable" if cable_of(s) else " - no live channel in CUORE yet")
+            for s in later) + ".")
     for s in live + hist:
         for c in rows[s["id"]]["codes"]:
             why.append(f"{c['code']} on {ref(s)}: {c['text']}" + (" (it is on this job's code list)" if c["job"] else "")
@@ -250,7 +279,7 @@ def direct(sensors: list[dict[str, Any]], numbers: dict[str, int], codes: list[s
         lk = links[0]
         put(f"Open symptom \"{lk['symptom']}\" mentions {lk['word']}: ")
         names([by[i] for i in lk["ids"]])
-        put(". ")
+        put(".")
     for lk in links:
         why.append(f"Symptom \"{lk['symptom']}\" shares the word \"{lk['word']}\" with: "
                    + ", ".join(ref(by[i]) for i in lk["ids"]) + " (linked by name only).")
@@ -261,10 +290,13 @@ def direct(sensors: list[dict[str, Any]], numbers: dict[str, int], codes: list[s
              (n_ans, "did not answer last time")]
     parts = [f"{n} {w}" for n, w in parts if n]
     if never:
-        put(f"{len(never)} sensor{'s' if len(never) != 1 else ''} never read: " + ", ".join(parts) + ".")
         why.append(f"{len(never)} sensors have no reading yet: " + "; ".join(parts) + ".")
     if not segs:
-        put(f"All {len(sensors)} sensors read; nothing flagged." if sensors else "No sensors known for this car yet.")
+        if sensors and (never or later):
+            put(f"Nothing readable is flagged; {len(never)} sensor{'s' if len(never) != 1 else ''} not read yet "
+                "(see Why these?).")
+        else:
+            put(f"All {len(sensors)} sensors read; nothing flagged." if sensors else "No sensors known for this car yet.")
     segs[-1]["text"] = segs[-1]["text"].rstrip() if not segs[-1]["href"] else segs[-1]["text"]
     counts = {g: sum(1 for r in rows.values() if r["group"] == g) for g, _, _ in GROUPS}
     return {"call": "".join(x["text"] for x in segs).strip(), "call_segs": segs, "targets": targets[:6],

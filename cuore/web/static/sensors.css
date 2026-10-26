@@ -123,7 +123,7 @@
 .sens-col .small, .sens-col small, .sens-col figcaption { font-size: 1rem; }
 .sens-col .muted { color: var(--ink-2); }
 .sens-h1 { margin: 12px 0 4px; }
-.sens-call { font-size: var(--fs-lg, 18px); font-weight: 600; margin: 4px 0 8px; }
+.sens-call { font-size: var(--fs-lg, 18px); font-weight: 600; margin: 4px 0 4px; }
 .sens-call a { color: var(--ink); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
 .sens-go { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 12px; }
 .sens-go-l { font-weight: 700; color: var(--ink-2); }
@@ -197,11 +197,15 @@
 .sens-item .n, .sens-unrow .n { font-family: var(--mono); font-weight: 700; min-width: 44px; color: var(--ink-2); }
 .sens-name { font-weight: 600; flex: 1 1 200px; }
 .sens-line { flex-basis: 100%; color: var(--ink-2); padding-left: 54px; }
-.sens-col .sens-st { font-size: 1rem; padding: 2px 8px; background: var(--surface); }
-.sens-st.sens-nojudge { border-style: dashed; border-color: var(--sens-green); color: var(--ink); background: transparent; }
-.sens-st.sens-judged { background: var(--sens-green); color: var(--sens-ink); }
-.sens-code { font-family: var(--mono); border: 1px solid var(--ink-3); border-radius: 999px; padding: 0 8px; color: var(--ink); }
+.sens-col .chip { font-family: var(--sans), sans-serif; font-size: 1rem; letter-spacing: 0; text-transform: none; padding: 1px 10px; border-radius: 999px; white-space: normal; }
+.sens-st.sens-nojudge { border-style: dashed; border-color: var(--ink-3); color: var(--ink-2); background: transparent; }
+.sens-code { color: var(--ink); }
 .sens-code-hist { border-style: dashed; color: var(--ink-2); }
+.sens-reading { font-weight: 700; font-family: var(--mono), monospace; }
+.sens-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sens-showing { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; margin: 4px 0 8px; min-height: var(--tap, 44px); }
+.sens-clear { display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 0 8px; }
+.sv-legend { margin: 4px 0 0; color: var(--ink-2); font-size: 1rem; }
 .sens-body { padding: 4px 12px 12px; }
 .sens-body > * { margin: 6px 0; }
 .sens-facts { margin: 0; background: var(--surface); border: 1px solid var(--rule-soft, var(--rule)); border-radius: var(--radius, 3px); }
