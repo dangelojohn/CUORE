@@ -39,7 +39,8 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
-from ..services import parts_bridge
+from ..services import codes_call, parts_bridge
+from . import page_search
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 from .routes import templates as _shared_templates
 
@@ -83,23 +84,78 @@ def _media_page_exists(request: Request) -> bool:
     return False
 
 
-def _group_by_job(rows: list[dict[str, Any]]) -> list[tuple[str, str, list[dict[str, Any]]]]:
-    """Rows grouped by each of their ``related_jobs`` (a part with two jobs
-    appears in both groups -- the same deliberate duplication
-    ``mes.service_specs``'s torque rows use for the same reason). Parts with
-    no job land in a trailing "Other" group rather than being dropped."""
+_CONF_RANK = {"CONFIRMED": 0, "CORROBORATED": 1, "SINGLE-SOURCE": 2}
+_UNKNOWN_RANK = 9
+_REST_RANK = 3        # any other stated confidence: ranked after the three above, before UNKNOWN
+
+
+def _rank(conf: Any) -> int:
+    c = str(conf or "UNKNOWN").upper()
+    return _UNKNOWN_RANK if c == "UNKNOWN" else _CONF_RANK.get(c, _REST_RANK)
+
+
+_LISTS = (("oem", "OEM number", "number"), ("aftermarket", "Aftermarket", "number"),
+          ("torques", "Torque", "display"))
+
+
+def _shape_part(p: dict[str, Any], job_codes: set[str]) -> dict[str, Any]:
+    """A copy of ``p`` for the page: UNKNOWN entries are lifted out of the card's
+    tables into ``unknown`` (identical notes folded into one counted line), plus
+    ``rank`` (best stated confidence), ``active`` (its related codes open on the job)."""
+    out = dict(p)
+    unknown: dict[str, dict[str, Any]] = {}
+    ranks = []
+    n_unknown = 0
+    for key, label, field in _LISTS:
+        keep = []
+        for e in p.get(key) or []:
+            ranks.append(_rank(e.get("confidence")))
+            if _rank(e.get("confidence")) == _UNKNOWN_RANK:
+                n_unknown += 1
+                note = (e.get("note") or e.get("notes") or "").strip()
+                g = unknown.setdefault(note, {"note": note, "count": 0, "labels": []})
+                g["count"] += 1
+                g["labels"].append(f"{label} {e.get(field) or e.get('brand') or e.get('component') or ''}".strip())
+            else:
+                keep.append(e)
+        out[key] = keep
+    out["rank"] = min(ranks) if ranks else _UNKNOWN_RANK
+    out["unknown_n"] = n_unknown
+    out["unknown"] = list(unknown.values())
+    out["active"] = sorted(c for c in (p.get("related_codes") or []) if codes_call.base(c) in job_codes)
+    out["shown_rows"] = sum(len(out[k]) for k, _l, _f in _LISTS)
+    return out
+
+
+def _part_text(p: dict[str, Any]) -> str:
+    bits = [p.get("name"), p.get("what_it_does"), p.get("key"), p.get("location"),
+            " ".join(p.get("related_jobs") or []), " ".join(p.get("related_codes") or [])]
+    for k in ("oem", "aftermarket"):
+        bits += [f"{e.get('number')} {e.get('brand')}" for e in p.get(k) or []]
+    return page_search.haystack(bits)
+
+
+def _group_by_job(rows: list[dict[str, Any]], job_codes: set[str]) -> list[dict[str, Any]]:
+    """Job groups, each part once per job it belongs to (a part with two jobs
+    appears in both -- the deliberate duplication ``mes.service_specs``'s torque
+    rows use). Parts with no job land in a trailing "Other" group.
+
+    Inside a group: parts tied to the open job's codes first, then by best
+    confidence; parts whose every number is UNKNOWN fold into one counted
+    ``unverified`` list. Groups are ordered the same way (active, confidence)."""
     groups: dict[str, list[dict[str, Any]]] = {}
-    unassigned: list[dict[str, Any]] = []
     for p in rows:
-        jobs = p.get("related_jobs") or []
-        if not jobs:
-            unassigned.append(p)
-            continue
-        for j in jobs:
-            groups.setdefault(j, []).append(p)
-    out = [(j, _job_label(j), groups[j]) for j in sorted(groups)]
-    if unassigned:
-        out.append(("", "Other", unassigned))
+        for j in (p.get("related_jobs") or [""]):
+            groups.setdefault(j, []).append(_shape_part(p, job_codes))
+    out = []
+    for j, ps in groups.items():
+        ps.sort(key=lambda p: (-len(p["active"]), p["rank"], str(p.get("name"))))
+        main = [p for p in ps if p["rank"] != _UNKNOWN_RANK or p["active"]]
+        out.append({"key": j, "label": _job_label(j) if j else "Other", "main": main,
+                    "unverified": [p for p in ps if p not in main], "n": len(ps),
+                    "active_n": sum(1 for p in ps if p["active"]),
+                    "rank": min(p["rank"] for p in ps)})
+    out.sort(key=lambda g: (g["key"] == "", -g["active_n"], g["rank"], g["label"]))
     return out
 
 
@@ -112,12 +168,13 @@ def parts_page(request: Request, vin: str, q: str = "", job: str = "") -> HTMLRe
     dossier = _dossier(vin)
     if job:
         rows = parts_bridge.parts_for_job(job)
-    elif q:
-        rows = parts_bridge.search_parts(q=q)
+    elif page_search.clean_q(q):
+        q = page_search.clean_q(q)
+        rows = [p for p in parts_bridge.all_parts() if page_search.matches(q, _part_text(p), ())]
     else:
         rows = parts_bridge.all_parts()
     response = _page(request, "parts.html", vin=vin, q=q, job=job,
-                     groups=_group_by_job(rows), count=len(rows),
+                     groups=_group_by_job(rows, codes_call.job_state(vin, dossier)[0]), count=len(rows),
                      bar=_vehicle_bar(vin, dossier), tab="parts",
                      media_page_exists=_media_page_exists(request))
     _set_active_vehicle(response, vin)

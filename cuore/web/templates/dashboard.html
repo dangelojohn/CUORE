@@ -76,32 +76,44 @@ dealer result or clear from the ledger below.</p>
 </div>
 </div>
 
-<h2>Codes</h2>
+<h2>Codes <span class="small muted">top {{ code_groups|sum(attribute='shown') }} of {{ codes_total }}</span></h2>
+<p class="small muted" style="margin-top:-6px">Worst first (returned, chronic, recurring, cleared, seen once),
+newest first inside each. The full list, with sorting and search, is on Codes.</p>
 <div class="panel tight">
-  <div class="tw">
-  <table>
-    <thead>
-      <tr><th>Code</th><th>Class</th><th>Description</th><th>Module</th>
-          <th class="n">Sessions</th><th>First</th><th>Last</th><th class="n">Distance</th></tr>
-    </thead>
-    <tbody>
-    {% for r in d.code_timeline %}
-      <tr class="row-link" data-href="/v/{{ vin }}/code/{{ r.code.split('-')[0] }}" tabindex="0">
-        <td><a class="mono" href="/v/{{ vin }}/code/{{ r.code.split('-')[0] }}">{{ r.code }}</a></td>
-        <td><span class="chip {{ r['class'] }}">{{ r['class'] }}</span></td>
-        <td>{{ r.description }}</td>
-        <td class="small muted">{{ r.module }}</td>
-        <td class="n">{{ r.sessions }}</td>
-        <td class="mono small">{{ r.first_seen }}</td>
-        <td class="mono small">{{ r.last_seen }}</td>
-        <td class="n">{% if r.distance_span_km %}{{ "{:,}".format(r.distance_span_km|int) }} km{% else %}—{% endif %}</td>
-      </tr>
-    {% else %}
-      <tr><td colspan="8" class="muted">No codes for this vehicle.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  </div>
+  {% for g in code_groups %}
+  <details class="fold" {{ 'open' if g.open }} style="border-bottom:1px solid var(--rule)">
+    <summary style="min-height:44px;display:flex;align-items:center;gap:8px;padding:0 var(--pad)">
+      <span class="chip {{ g.key }}">{{ g.label }}</span>
+      <span class="small muted">{{ g.shown }}{% if g.shown != g.n %} of {{ g.n }}{% endif %}{% if g.job_n %} &middot; {{ g.job_n }} on this job{% endif %}</span>
+    </summary>
+    <div class="tw">
+    <table>
+      <thead>
+        <tr><th>Code</th><th>Description</th><th>Module</th>
+            <th class="n">Sessions</th><th>First</th><th>Last</th><th class="n">Distance</th></tr>
+      </thead>
+      <tbody>
+      {% for r in g.rows %}
+        <tr class="row-link" data-href="/v/{{ vin }}/code/{{ r.code.split('-')[0] }}" tabindex="0">
+          <td><a class="mono" href="/v/{{ vin }}/code/{{ r.code.split('-')[0] }}" style="display:inline-block;min-height:44px;line-height:44px">{{ r.code }}</a></td>
+          <td>{{ r.description }}</td>
+          <td class="small muted">{{ r.module }}</td>
+          <td class="n">{{ r.sessions }}</td>
+          <td class="mono small" title="{{ r.first_seen }}">{{ r.first_ago }}</td>
+          <td class="mono small" title="{{ r.last_seen }}">{{ r.ago }}</td>
+          <td class="n">{% if r.distance_span_km %}{{ "{:,}".format(r.distance_span_km|int) }} km{% else %}&mdash;{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+  {% else %}
+  <p class="muted" style="padding:10px 14px">No codes for this vehicle.</p>
+  {% endfor %}
+  {% if codes_total %}
+  <p style="margin:0;padding:0 var(--pad)"><a href="/v/{{ vin }}/codes" style="display:inline-block;min-height:44px;line-height:44px">All {{ codes_total }} codes &rarr;</a></p>
+  {% endif %}
 </div>
 
 <h2>Repairs &amp; tests</h2>

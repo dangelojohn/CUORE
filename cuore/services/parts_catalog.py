@@ -180,10 +180,24 @@ def listings_view(cat: dict[str, Any]) -> list[dict[str, Any]]:
         rows = sorted(v, key=lambda x: (_FIT_ORDER.get(x["fitment"], 9), x.get("category", ""),
                                         _IX_ORDER.get((x.get("interchange") or {}).get("status"), 9), x["name"]))
         shop = {"source_name": k, "kind": v[0]["kind"], "source": v[0]["source"], "rows": rows, "categories": []}
-        if shop["kind"] == "wrangler":  # own section, grouped by category, interchange chip first
-            for cname in sorted({x.get("category", "") for x in rows}):
-                shop["categories"].append({"title": cname, "rows": [x for x in rows if x.get("category", "") == cname]})
-            shop["matched"] = sum(1 for x in rows if (x.get("interchange") or {}).get("status") == "same-pn")
+        ix = [x.get("interchange") or {} for x in rows if x.get("interchange")]
+        legend: dict[str, dict[str, Any]] = {}   # one caveat per interchange status, printed once
+        for i in ix:
+            e = legend.setdefault(i.get("status"), {"status": i.get("status"), "label": i.get("label"),
+                                                    "text": i.get("text"), "count": 0, "same_text": True})
+            e["count"] += 1
+            e["same_text"] = e["same_text"] and e["text"] == i.get("text")
+        shop["legend"] = sorted(legend.values(), key=lambda e: _IX_ORDER.get(e["status"], 9))
+        if shop["kind"] == "wrangler":  # exact-number matches first, then the rest by category
+            exact = [x for x in rows if (x.get("interchange") or {}).get("status") == "same-pn"]
+            rest = [x for x in rows if x not in exact]
+            shop["exact"] = exact
+            for cname in sorted({x.get("category", "") for x in rest}):
+                shop["categories"].append({"title": cname, "rows": [x for x in rest if x.get("category", "") == cname]})
+            shop["matched"] = len(exact)
+        else:  # fitment groups, this car's own listings first
+            shop["fit_groups"] = [{"key": k, "rows": [x for x in rows if x["fitment"] == k]}
+                                  for k in sorted({x["fitment"] for x in rows}, key=lambda k: _FIT_ORDER.get(k, 9))]
         out.append(shop)
     return out
 

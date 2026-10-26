@@ -22,17 +22,48 @@ what it does.</p>
   <div class="panel"><p class="muted">No part data yet.</p></div>
 {% endif %}
 
-{% for job_key, label, parts in groups %}
-<h2>{{ label }}</h2>
-<div class="cols two">
-{% for part in parts %}
+{% macro card(part) %}
   <div id="fb-part-{{ part.key or part.name }}" data-fact="parts|{{ part.key or part.name }}">
+  {% if part.active %}<p class="small" style="margin:0 0 4px"><span class="chip returned">open on this job</span>
+    {% for c in part.active %}<a class="chip-code sm" href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% endfor %}</p>{% endif %}
   {% set p = part %}
   {% set compact = False %}
   {% include "_part_card.html" %}
+  {% if part.unknown_n %}
+  <details class="fold" style="margin:-4px 0 12px">
+    <summary style="min-height:44px;display:flex;align-items:center"><span class="chip plain">UNKNOWN</span>
+      <span class="small muted" style="margin-left:8px">{{ part.unknown_n }} number{{ '' if part.unknown_n == 1 else 's' }} not known yet</span></summary>
+    <ul class="small" style="margin:0 0 0 24px">
+    {% for u in part.unknown %}<li>{{ u.labels|join(", ") }}{% if u.count > 1 %} <span class="chip plain">&times;{{ u.count }}</span>{% endif %}{% if u.note %}: {{ u.note }}{% endif %}</li>{% endfor %}
+    </ul>
+  </details>
+  {% endif %}
   </div>
-{% endfor %}
-</div>
+{% endmacro %}
+
+<p class="small muted">Order: parts tied to codes open on this job, then best-sourced first (confirmed, corroborated, single source); parts with no known number are folded at the end of each job.</p>
+
+{% for g in groups %}
+<details class="fold" {{ 'open' if g.active_n or g.rank <= 1 }} style="margin-bottom:8px">
+  <summary style="min-height:44px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <h2 style="margin:0">{{ g.label }}</h2>
+    <span class="small muted">{{ g.n }} part{{ '' if g.n == 1 else 's' }}</span>
+    {% if g.active_n %}<span class="chip returned">{{ g.active_n }} on this job</span>{% endif %}
+    {% if g.unverified %}<span class="chip plain">{{ g.unverified|length }} UNKNOWN</span>{% endif %}
+  </summary>
+  <div class="cols two">
+  {% for part in g.main %}{{ card(part) }}{% endfor %}
+  </div>
+  {% if g.unverified %}
+  <details class="fold">
+    <summary style="min-height:44px;display:flex;align-items:center"><span class="chip plain">UNKNOWN</span>
+      <span class="small muted" style="margin-left:8px">{{ g.unverified|length }} part{{ '' if g.unverified|length == 1 else 's' }} with no known number yet</span></summary>
+    <div class="cols two">
+    {% for part in g.unverified %}{{ card(part) }}{% endfor %}
+    </div>
+  </details>
+  {% endif %}
+</details>
 {% endfor %}
 
 {% endblock %}

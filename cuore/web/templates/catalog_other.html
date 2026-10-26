@@ -11,14 +11,38 @@
   <button class="btn" type="submit">Search</button>
 </form>
 {% if not shops %}<p class="muted">No other shop's list has been added yet.</p>{% endif %}
+{% set fit_title = {'own': 'Listed for this car', 'by-name': 'Name says Stelvio / 2.0', 'unverified': 'Fitment not given', 'other-engine': 'Other engine / model'} %}
+{% if shops %}<p class="small muted">Each shop's caveat is printed once, under its heading. Rows keep their own label and colour.</p>{% endif %}
 {% for s in shops %}
+{% set legend_text = {} %}{% for e in s.legend %}{% if e.same_text %}{% set _ = legend_text.update({e.status: e.text}) %}{% endif %}{% endfor %}
+{% set quiet = True %}
 <section class="panel" id="shop-{{ 'wrangler' if s.kind == 'wrangler' else loop.index }}">
   <h2>{{ s.source_name }} <span class="small muted">· {{ s.rows|length }} item{{ '' if s.rows|length == 1 else 's' }} · {{ 'aftermarket brands' if s.kind == 'aftermarket' else ('2019 Jeep Wrangler Sport 2.0L eTorque, store.mopar.com' if s.kind == 'wrangler' else 'retailer list') }}</span></h2>
   {% if s.kind == 'wrangler' %}
   <p class="small">Engine parts for a different vehicle. {{ s.matched }} share a Mopar part number with this Stelvio's catalogue; that is a catalogue fact, not proof of fit on this VIN. The rest are unverified.</p>
-  {% for c in s.categories %}<h3>{{ c.title }} <span class="small muted">· {{ c.rows|length }}</span></h3>
-  {% set items = c.rows %}{% include "_catalog_listings.html" %}{% endfor %}
-  {% else %}{% set items = s.rows %}{% include "_catalog_listings.html" %}{% endif %}
+  <p class="cat-caveat">Mopar store prices are dated retailer prices, not quotes. Interchange status comes only from comparing part numbers in the two catalogues; nothing here says a Wrangler part fits.</p>
+  {% if s.legend %}<ul class="cat-caveat">{% for e in s.legend %}<li><span class="cat-tag {{ 'ok' if e.status == 'same-pn' else '' }}">{{ e.label }}</span> {{ e.count }} item{{ '' if e.count == 1 else 's' }}{% if e.same_text %}: {{ e.text }}{% else %} (the wording differs per row; see each row's Why){% endif %}</li>{% endfor %}</ul>{% endif %}
+  {% if s.exact %}
+  <details class="fold cat-fold" open>
+    <summary><h3>Exact part-number match with the Stelvio</h3><span class="chip ok">{{ s.exact|length }}</span></summary>
+    {% set items = s.exact %}{% include "_catalog_listings.html" %}
+  </details>
+  {% endif %}
+  {% for c in s.categories %}
+  <details class="fold cat-fold">
+    <summary><h3>{{ c.title }}</h3><span class="chip plain">{{ c.rows|length }}</span></summary>
+    {% set items = c.rows %}{% include "_catalog_listings.html" %}
+  </details>
+  {% endfor %}
+  {% else %}
+  <p class="cat-caveat">Not in the Mopar dealer catalogue. Fitment is the shop's own wording (for Autodoc UK, its own vehicle selection), not a part-number match: confirm before buying. Hover a fitment tag for the shop's reason.</p>
+  {% for g in s.fit_groups %}
+  <details class="fold cat-fold" {{ 'open' if g.key == 'own' }}>
+    <summary><h3>{{ fit_title.get(g.key, g.key) }}</h3><span class="chip {{ 'ok' if g.key == 'own' else ('returned' if g.key == 'other-engine' else 'plain') }}">{{ g.rows|length }}</span></summary>
+    {% set items = g.rows %}{% include "_catalog_listings.html" %}
+  </details>
+  {% endfor %}
+  {% endif %}
 </section>
 {% endfor %}
 <script src="{{ static_url('catalog.js') }}" defer></script>

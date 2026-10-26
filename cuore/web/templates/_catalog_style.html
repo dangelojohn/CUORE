@@ -26,14 +26,14 @@
 .cat-table td, .cat-table th { vertical-align: top; text-align: left; padding: 8px; }
 .cat-table .ref { font-family: var(--mono); font-size: 18px; font-weight: 700; width: 44px; text-align: center; }
 .cat-table .pn a { font-family: var(--mono); font-size: 15px; white-space: nowrap; display: inline-block; padding: 6px 0; }
-.cat-table .sub { font-size: 12px; color: var(--ink-3); }
+.cat-table .sub { font-size: var(--fs-md); color: var(--ink-3); }
 .cat-table tr.other-engine td { opacity: .55; }
 .cat-tq { white-space: nowrap; font-family: var(--mono); font-weight: 700; }
 .cat-photos { display: flex; flex-wrap: wrap; gap: 10px; }
 .cat-photos figure { margin: 0; flex: 1 1 260px; max-width: 560px; background: #fff; border: 1px solid var(--rule); border-radius: var(--radius); padding: 6px; }
 .cat-photos img { width: 100%; height: auto; }
 .cat-photos figcaption { font-size: 13px; color: #333; padding-top: 4px; }
-.cat-tag { font-size: 11px; letter-spacing: .04em; padding: 1px 6px; border: 1px solid currentColor; border-radius: var(--radius); white-space: nowrap; display: inline-block; }
+.cat-tag { font-size: var(--fs-md); letter-spacing: .04em; padding: 1px 6px; border: 1px solid currentColor; border-radius: var(--radius); white-space: nowrap; display: inline-block; }
 .cat-thumb { float: right; width: 64px; height: 64px; object-fit: contain; margin: 0 0 4px 8px; background: #fff; border: 1px solid var(--rule); border-radius: var(--radius); }
 .cat-specs-fold summary { font-size: var(--fs-md); cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--ink-2, var(--ink)); }
 .cat-specs-fold dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; margin: 0 0 8px; font-size: var(--fs-md); }
@@ -51,9 +51,9 @@
 .cat-spec .meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .cat-callout.sm { min-width: 28px; height: 28px; font-size: 15px; padding: 0 6px; vertical-align: middle; }
 .cat-why { width: 100%; }
-.cat-why > summary { cursor: pointer; font-size: 12px; color: var(--ink-3); display: inline-block; padding: 6px 0; }
+.cat-why > summary { cursor: pointer; font-size: var(--fs-md); color: var(--ink-3); display: inline-block; padding: 6px 0; }
 .cat-why p { margin: 4px 0; }
-.cat-src { font-size: 11px; color: var(--ink-3); overflow-wrap: anywhere; }
+.cat-src { font-size: var(--fs-md); color: var(--ink-3); overflow-wrap: anywhere; }
 .cat-mech dt { font-size: 12px; color: var(--ink-3); margin-top: 8px; }
 .cat-mech dd { margin: 2px 0 0; }
 .cat-mech ul { margin: 2px 0; padding-left: 18px; }
@@ -107,4 +107,8 @@
 .wr-mark span { background: var(--ink); color: var(--surface); border: 2px solid var(--surface); border-radius: 12px; min-width: 24px; padding: 0 4px; text-align: center; font: 700 var(--fs-md) var(--mono); }
 .wr-mark:hover span, .wr-mark:focus-visible span { outline: 3px solid var(--ok); }
 tr.wr-on { outline: 3px solid var(--ok); }
+.cat-fold > summary { min-height: 44px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cat-fold > summary h3 { margin: 0; }
+.cat-caveat { margin: 6px 0 10px; font-size: var(--fs-md); }
+.cat-caveat li { margin-bottom: 4px; }
 </style>

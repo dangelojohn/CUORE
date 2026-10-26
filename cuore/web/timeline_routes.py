@@ -32,11 +32,11 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from ..services import cache, mes_bridge
+from ..services import cache, codes_call, mes_bridge
 from ..services.errors import BridgeError
 from ..api.deps import require_token
 from . import timeline_svg
-from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
+from .routes import _dossier, _page, _relative_ago, _set_active_vehicle, _vehicle_bar
 from .routes import templates as _shared_templates
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
@@ -330,6 +330,63 @@ def _verdict_class(verdict: str) -> str:
     return "plain"         # grey-neutral
 
 
+def _fold_findings(findings: list[str]) -> list[dict[str, Any]]:
+    """Fold near-identical findings into one counted line each.
+
+    "<family> codes appeared in <n> session(s); <same tail>" lines that share
+    the tail become one line listing every family; exact repeats get a count.
+    Any other finding passes through untouched."""
+    import re
+    pat = re.compile(r"^(\S+) codes appeared in (\d+) session\(s\); (.*)$")
+    out: list[dict[str, Any]] = []
+    by_tail: dict[str, dict[str, Any]] = {}
+    seen: dict[str, dict[str, Any]] = {}
+    for f in findings or []:
+        m = pat.match(f)
+        if m:
+            fam, n, tail = m.groups()
+            g = by_tail.get(tail)
+            if g is None:
+                g = {"text": "", "count": 0, "fams": [], "tail": tail}
+                by_tail[tail] = g
+                out.append(g)
+            g["fams"].append((fam, n))
+            g["count"] += 1
+        elif f in seen:
+            seen[f]["count"] += 1
+        else:
+            seen[f] = {"text": f, "count": 1}
+            out.append(seen[f])
+    for g in out:
+        if "fams" not in g:
+            continue
+        if g["count"] == 1:
+            fam, n = g["fams"][0]
+            g["text"] = f"{fam} codes appeared in {n} session(s); {g['tail']}"
+        else:
+            g["text"] = (f"{g['count']} code families appeared in sessions ("
+                         + ", ".join(f"{fam} {n}" for fam, n in g["fams"]) + f"); {g['tail']}")
+    return out
+
+
+def _order_families(tl: dict[str, Any], job_codes: set[str]) -> None:
+    """Order the correlation rows: families with codes on the open job first,
+    then the most recently seen. Adds ``active_n`` and ``last_ago`` to each row."""
+    bar_events: list[dict[str, Any]] = []
+    for lane in tl.get("lanes", []):
+        if (lane.get("kind") or "bars") == "bars":
+            bar_events += lane.get("events", [])
+    for row in tl.get("correlation", []):
+        codes = set(row.get("codes") or [])
+        row["active_n"] = sum(1 for c in codes if codes_call.base(c) in job_codes)
+        stamps = [str(e.get("t_end") or e.get("t") or "") for e in bar_events
+                  if set(str(e.get("label") or "").split("/")) & codes]
+        row["last_at"] = max(stamps) if stamps else ""
+        row["last_ago"] = _relative_ago(row["last_at"].replace("T", " ")) if stamps else "—"
+    rows = sorted(tl.get("correlation", []), key=lambda r: r["last_at"], reverse=True)
+    tl["correlation"] = sorted(rows, key=lambda r: -r["active_n"])  # stable: recency kept inside
+
+
 # --- the page ------------------------------------------------------------
 
 
@@ -352,6 +409,8 @@ def timeline_page(request: Request, vin: str, axis: str = "time",
     tl = _timeline(vin)
     tl = _apply_range(tl, range)
     _attach_sparklines(tl)
+    _order_families(tl, codes_call.job_state(vin, dossier)[0])
+    findings_view = _fold_findings(tl.get("findings") or [])
     for row in tl.get("correlation", []):
         row["verdict_class"] = _verdict_class(row.get("verdict", ""))
 
@@ -363,7 +422,7 @@ def timeline_page(request: Request, vin: str, axis: str = "time",
     svg = timeline_svg.render(tl_chart, axis=axis, width=1000)
     layout = timeline_svg.lane_layout(tl_chart)
 
-    response = _page(request, "timeline.html", vin=vin, tl=tl, svg=svg, layout=layout,
+    response = _page(request, "timeline.html", vin=vin, tl=tl, findings_view=findings_view, svg=svg, layout=layout,
                      axis=axis, range_key=range, lanes_mode=lanes_mode,
                      bar=_vehicle_bar(vin, dossier),
                      tab="timeline", saved=bool(saved), symptom_error=error,

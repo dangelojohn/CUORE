@@ -18,9 +18,9 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
-from ..services import cache, dashboard_bridge, mes_bridge, oil_level_bridge
+from ..services import cache, codes_call, dashboard_bridge, mes_bridge, oil_level_bridge
 from . import dashboard_charts
-from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
+from .routes import _dossier, _page, _relative_ago, _set_active_vehicle, _vehicle_bar
 
 #: Server-rendered page: same posture as ``cuore.web.routes.router``.
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
@@ -60,6 +60,30 @@ def _recent(timeline: list[dict[str, Any]], ledger: list[dict[str, Any]], days: 
     return rows, led
 
 
+TOP_CODES = 8
+
+
+def _top_code_groups(vin: str, dossier: dict[str, Any], timeline: list[dict[str, Any]]):
+    """The worst ``TOP_CODES`` codes in /codes' own order (``codes_call.group_rows``:
+    returned, chronic, recurring, cleared, seen-once; the open job's codes first),
+    newest first inside each state; plus the total so the page can link to /codes."""
+    job_codes = codes_call.job_state(vin, dossier)[0]
+    rows = []
+    for r in sorted(timeline, key=lambda r: str(r.get("last_seen") or ""), reverse=True):
+        rows.append({**r, "dtc": r.get("code", ""), "severity": r.get("class"),
+                     "in_job": codes_call.base(r.get("code", "")) in job_codes,
+                     "ago": _relative_ago(r.get("last_seen")),
+                     "first_ago": _relative_ago(r.get("first_seen"))})
+    left = TOP_CODES
+    groups = []
+    for g in codes_call.group_rows(rows):
+        keep = g["rows"][:left]
+        left -= len(keep)
+        if keep:
+            groups.append({**g, "rows": keep, "shown": len(keep)})
+    return groups, len(rows)
+
+
 @router.get("/v/{vin}/dashboard", response_class=HTMLResponse)
 def dashboard_page(request: Request, vin: str) -> HTMLResponse:
     """Verdict-first: the headline numbers, then the three charts, then the tables."""
@@ -75,7 +99,9 @@ def dashboard_page(request: Request, vin: str) -> HTMLResponse:
         "modules": dashboard_charts.module_bar_svg(data["modules"]),
     }
     oil = oil_level_bridge.card(vin)
+    code_groups, codes_total = _top_code_groups(vin, dossier, data["code_timeline"])
     response = _page(request, "dashboard.html", vin=vin, d=data, bar=bar,
+                     code_groups=code_groups, codes_total=codes_total,
                      charts=charts, tab="dashboard", oil=oil,
                      oil_error=request.query_params.get("oil_error", ""))
     _set_active_vehicle(response, vin)
