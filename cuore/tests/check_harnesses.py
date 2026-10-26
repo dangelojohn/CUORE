@@ -9,6 +9,7 @@ Run:
 from __future__ import annotations
 
 import json
+from html import escape
 import os
 import re
 import sys
@@ -59,7 +60,7 @@ VIN = "ZASFAKPN5J7B88115"
 r = client.get(f"/v/{VIN}/harnesses")
 html = r.text
 check(r.status_code == 200, f"page renders ({r.status_code})")
-check('id="hn-call"' in html and "harness diagrams" in html, "call line at the top")
+check('id="hn-call"' in html and "harness diagrams" in html and "What this page is" not in html, "call line at the top")
 check(len(DATA["harnesses"]) == 9, "nine harness entries in the data file")
 
 v = svc.view(VIN)
@@ -67,13 +68,16 @@ svg = svc.map_svg(v["harnesses"])
 for h in DATA["harnesses"]:
     hid = h["id"]
     check(h["areas"] and all(a in {x["id"] for x in DATA["areas"]} for a in h["areas"]), f"{hid}: areas known")
-    check(f'data-harness="{hid}"' in svg, f"{hid}: route on the map")
+    low = h.get("confidence_level") == "low"
     m = re.search(rf'data-harness="{re.escape(hid)}">.*?</g>', svg, re.S)
-    check(bool(m) and 'class="hn-line"' in m.group(0) and 'class="hn-arrow"' in m.group(0), f"{hid}: route line + arrow")
+    if low:
+        check(f'data-harness="{hid}"' not in svg, f"{hid}: low confidence, no route drawn")
+    else:
+        check(bool(m) and 'class="hn-line"' in m.group(0) and 'class="hn-arrow"' in m.group(0), f"{hid}: route line + arrow")
     check(f'id="harness-{hid}"' in html, f"{hid}: card")
     check(h["confidence"] and h["direction"] and h["ends"], f"{hid}: confidence, direction and ends stated")
     check(all(f"/catalog/d/{d}" in html for d in h["diagram_ids"]), f"{hid}: link to the catalogue diagram")
-check(html.count('class="hn-line"') == 9 and html.count('class="hn-arrow"') == 9, "9 lines, 9 arrows")
+check(html.count('class="hn-line"') == 7 and html.count('class="hn-arrow"') == 7, "7 lines, 7 arrows (2 low-confidence not drawn)")
 check("Mopar parts diagram - harness as drawn for parts, not a wiring diagram" in html, "image caption")
 check("service manual" in html and "CUORE does not have" in html, "pin-level wiring note")
 check(f"/v/{VIN}/electrical" in html, "link to electrical")
@@ -104,7 +108,7 @@ check(not re.search(r'"pn"|\b[0-9]{8}[A-Z]{0,2}\b|\.png|https?://', raw), "no pa
 # no catalogue at all: page still renders, says so
 os.environ["CUORE_STATE_DIR"] = str(TMP / "empty")
 r2 = client.get(f"/v/{VIN}/harnesses")
-check(r2.status_code == 200 and "not built on this computer" in r2.text and r2.text.count('class="hn-line"') == 9,
+check(r2.status_code == 200 and "not built on this computer" in r2.text and r2.text.count('class="hn-line"') == 7,
       "page renders without a catalogue")
 
 # links from the electrical page and the More list
@@ -144,7 +148,100 @@ t, sec = hsrch("?q=<img src=x onerror=1>")
 check("<img src=x" not in t and "&lt;img" in t, "query is escaped")
 check(client.get(f"/v/{VIN}/harnesses?q=" + "x" * 500).status_code == 200, "long q is safe")
 check('id="hn-results"' not in client.get(f"/v/{VIN}/harnesses").text, "no results block without q")
-check(len(re.findall(r'class="hn-card"', client.get(f"/v/{VIN}/harnesses?q=door").text)) == 9, "cards stay without JavaScript")
+check(len(re.findall(r'class="hn-card[ "]', client.get(f"/v/{VIN}/harnesses?q=door").text)) == 9, "cards stay without JavaScript")
+
+
+# --- rebuild: call, fold, low confidence, labels, rows, summaries, zoom, parts, 44 px -------------------------
+from cuore.web import harness_routes as hroutes  # noqa: E402
+
+lows = [h["id"] for h in DATA["harnesses"] if h.get("confidence_level") == "low"]
+check(set(lows) == {"instrument-panel-body", "console"}, "two low-confidence harnesses flagged in the data")
+for hid in lows:
+    card = re.search(rf'<article class="hn-card[^"]*" id="harness-{hid}".*?</article>', html, re.S).group(0)
+    check('class="chip hollow">unresolved' in card, f"{hid}: hollow unresolved chip")
+    check("No route drawn" in card, f"{hid}: says no route is drawn")
+    check(f'data-harness="{hid}"' not in html, f"{hid}: no drawn route in the page")
+check("areas, not paths" in html, "'areas, not paths' next to the routes")
+
+# no overlapping label boxes
+boxes = svc.label_layout([a for a in v["areas"]])
+for i, a in enumerate(boxes):
+    for b in boxes[i + 1:]:
+        sep = a["x1"] + 1 <= b["x0"] or b["x1"] + 1 <= a["x0"] or a["y1"] <= b["y0"] or b["y1"] <= a["y0"]
+        check(sep, f"label boxes distinct: {a['id']} / {b['id']}")
+svg_boxes = re.findall(r'class="hn-lbox" data-area="([^"]+)" x="(-?\d+)" y="(-?\d+)" width="(\d+)" height="(\d+)"', svg)
+check(len(svg_boxes) == len({a for h in v["harnesses"] if not h["low"] for a in [x["id"] for x in h["route"]]}),
+      "one label box per drawn area")
+rects = [(int(x), int(y), int(x) + int(w), int(y) + int(hh)) for _, x, y, w, hh in svg_boxes]
+check(all(a[2] <= b[0] or b[2] <= a[0] or a[3] <= b[1] or b[3] <= a[1]
+          for i, a in enumerate(rects) for b in rects[i + 1:]), "rendered label rectangles do not overlap")
+
+# one-line summaries: route + chip, details in one fold, caption once per card
+for h in v["harnesses"]:
+    card = re.search(rf'<article class="hn-card[^"]*" id="harness-{h["id"]}".*?</article>', html, re.S).group(0)
+    check(card.count('class="hn-sum"') == 1 and escape(h["summary"]) in card, f"{h['id']}: one-line summary")
+    check(card.count("<details class=\"hn-more\"") == 1, f"{h['id']}: details in one fold")
+    check(card.count("Mopar parts diagram - harness as drawn") == 1, f"{h['id']}: caption once")
+    check("<b>Direction:</b>" not in card and "<dt>Direction</dt>" in card, f"{h['id']}: direction inside the fold")
+check(html.count("Not shown in the diagram:") == 9, "not-shown line only where there is something")
+
+# empty-harness fold: harnesses touching nothing sit behind a fold
+m = re.search(r'<details class="hn-bare" id="hn-bare"[^>]*><summary>(.*?)</summary>(.*?)<p class="hn-foot">', html, re.S)
+check(bool(m) and "7 harnesses that touch nothing CUORE knows" in m.group(1), "empty harnesses behind a fold with a count")
+linked_ids = {"headlamp-to-dash", "engine"}
+check(bool(m) and all(f'id="harness-{x}"' not in m.group(2) for x in linked_ids)
+      and all(f'id="harness-{h["id"]}"' in m.group(2) for h in DATA["harnesses"] if h["id"] not in linked_ids),
+      "only the two linked harnesses sit outside the fold")
+check("2 of the 9 harness diagrams link to anything CUORE knows" in html, "honest count of connected harnesses")
+
+# whole rows are links, 44 px
+area_rows = re.findall(r'<a class="row" href="#harness-[^"]+">', re.search(r'id="hn-by-area".*?</div>', html, re.S).group(0))
+check(len(area_rows) >= 8, "By area rows are links")
+by_item = re.search(r'By fuse box, sensor or electrical item.*?</div>', html, re.S).group(0)
+check(by_item.count('<a class="row"') == by_item.count('class="row"') >= 2, "By item rows are links")
+css = (ROOT / "cuore/web/static/harnesses.css").read_text(encoding="utf-8")
+check("min-height: var(--tap, 44px)" in css and ".hn-key a" in css, "44 px rows and swatch links")
+check(not re.search(r".hn-(?!area|num)[w-]+[^{]*{[^}]*font-size: (1[0-5]|[0-9])(.d+)?px", css.split("/* --- mechanic-first")[1]), "no text under 16 px in the rebuild css")
+
+# enlarge + caption + door parts dedupe (fixture: same ref/name twice with two part numbers)
+check('class="hn-zoomlink"' in html and 'class="hn-zoom"' in html and "Tap the picture to enlarge" in html, "tap to enlarge")
+dd = svc.dedupe_parts([{"ref": "1", "name": "Front Door Wiring, Left", "description": "", "pn": "A1"},
+                       {"ref": "1", "name": "Front Door Wiring, Left", "description": "", "pn": "A2"},
+                       {"ref": "1", "name": "Front Door Wiring, Right", "description": "FRONT DOOR", "pn": "B1"},
+                       {"ref": "2", "name": "Wiring Rear Door", "description": "Wiring Rear Door", "pn": "C1"}])
+check(len(dd) == 3 and dd[0]["pns"] == ["A1", "A2"], "door parts deduped, part numbers merged")
+check([r["side"] for r in dd] == ["left", "right", ""], "side marked only when the catalogue text says so")
+
+# the directing call, from a fixture job (pure function)
+hv = v["harnesses"]
+def fake_path(c):
+    return {"path": {"B9": [{"element": "battery", "role": "supply"}],
+                     "B8": [{"element": "bcm", "role": "controller"}, {"element": "window_riser_circuit", "role": "component"}],
+                     "P1": [{"element": "ecm", "role": "controller"}]}.get(c, [])}
+items = [{"id": "f1", "box": "engine_pdc", "position": "F1", "label": "x", "feeds_elements": ["bcm"]}]
+d1 = svc.direct(VIN, hv, [], v["elem_labels"], [], ["B9"], {"B9": "Battery thing"}, fake_path)
+check(d1["order"] == ["engine"] and "Look at harness 9, Engine Wiring, first" in d1["call"], "call: element on the path names the harness")
+d2 = svc.direct(VIN, hv, items, v["elem_labels"], [], ["B8"], {}, fake_path)
+check(d2["order"] == ["headlamp-to-dash"] and "PDC" in d2["hits"]["headlamp-to-dash"][0], "call: fuse box on the path names the harness")
+d3 = svc.direct(VIN, hv, [], v["elem_labels"], [{"text": "Front left window stops"}], [], {}, fake_path)
+check(d3["order"] == ["front-door-left"], "call: symptom words name the left front door harness")
+d4 = svc.direct(VIN, hv, [], v["elem_labels"], [{"text": "Rear-left window stops part way"}], ["B8"], {"B8": "Rear left window riser"}, fake_path)
+check(d4["order"] == [] and d4["call"].startswith("No open job points to a harness - harness maps are areas, not wiring paths"),
+      "call: rear window does not point at the front door harness")
+check(d4["instead"] and d4["instead"]["href"] == f"/v/{VIN}/electrical#el-window_riser_circuit", "'what to do instead' links the electrical item")
+d5 = svc.direct(VIN, hv, [], v["elem_labels"], [], [], {}, fake_path)
+check("No open job" in d5["call"] and d5["instead"] is None, "call: no job at all")
+check("2 of the 9" in d1["stat"], "stat counts linked harnesses")
+
+# the page uses the job inputs: matched card goes first, call + go-to chip + reason
+orig = hroutes._inputs
+hroutes._inputs = lambda vin, dossier: (["B9"], [], {"B9": "Battery thing"}, fake_path, [])
+th = client.get(f"/v/{VIN}/harnesses").text
+cs = re.search(r'id="hn-call".*?</section>', th, re.S).group(0)
+check("Look at harness 9, Engine Wiring, first" in cs and 'class="chip hn-gochip" href="#harness-engine"' in cs, "page call + go-to chip from the job")
+check("Why these?" in cs and "on the open job" in th, "why fold + card chip")
+check(th.index('id="harness-engine"') < th.index('id="harness-headlamp-to-dash"'), "matched harness listed first")
+hroutes._inputs = orig
 
 print(f"{passed} passed, {len(failures)} failed")
 for f in failures:

@@ -10,9 +10,17 @@
   {% if q %}<a href="{{ base }}">Clear search</a>{% endif %}
 </form>
 <h1>Wiring harnesses</h1>
-<section class="hn-call" id="hn-call"><div class="eyebrow">What this page is</div>
-  <h2>{{ v.call }}</h2>
-  <p>Follow a harness by area, see what it touches, then open the Mopar drawing. Routes are read from the parts diagrams only.</p>
+<section class="hn-call{{ ' hn-hit' if d.order }}" id="hn-call" aria-label="What to check">
+  <div class="eyebrow">{{ 'Look here first' if d.order else 'Harness check' }}</div>
+  <p class="hn-callline">{{ d.call }}</p>
+  {% if d.order %}<p class="hn-go"><span class="hn-gl">Go to:</span>
+    {% for h in v.harnesses if h.id in d.order %}<a class="chip hn-gochip" href="#harness-{{ h.id }}"><span class="hn-sw" style="--c: {{ colour(h.n) }}">{{ h.n }}</span> {{ h.title }}</a>{% endfor %}</p>{% endif %}
+  <p class="hn-stat">{{ d.stat }}</p>
+  {% if d.instead %}<p><a class="btn hn-instead" href="{{ d.instead.href }}">{{ d.instead.text }}</a></p>{% endif %}
+  <details class="hn-why"><summary>{{ 'Why these?' if d.order else 'Why none?' }}</summary>
+    <p>Checked {{ d.checked }}. A harness is named only when (a) a fuse box or electrical item it lists sits on CUORE's electrical path for an open code, or (b) a symptom or code description names its area in words. Harness maps are areas read from parts drawings, not wiring paths, so no wire is traced here.</p>
+    {% if d.order %}<ul>{% for h in v.harnesses if h.id in d.order %}{% for r in h.why %}<li><b>{{ h.n }}. {{ h.title }}</b>: {{ r }}</li>{% endfor %}{% endfor %}</ul>{% endif %}
+  </details>
 </section>
 {% if q %}
 <section class="hn-results" id="hn-results" aria-label="Search results">
@@ -27,27 +35,28 @@
   {% endif %}
 </section>
 {% endif %}
-<p class="hn-links"><a class="btn" href="/v/{{ vin }}/electrical">Electrical</a>
+<p class="hn-links"><span class="hn-gl">Wiring paths and parts live on:</span> <a class="btn" href="/v/{{ vin }}/electrical">Electrical paths</a>
   <a class="btn" href="/v/{{ vin }}/fuses">Fuses</a>
   <a class="btn" href="/v/{{ vin }}/sensors">Sensors</a></p>
 {% if not v.catalogue_ok %}<p class="hn-note" role="status">The parts catalogue is not built on this computer, so the drawings and part names are not shown. The routes below still are.</p>{% endif %}
 
 <figure class="hn-mapbox" id="hn-map">
+  <div class="hn-maphead"><span class="chip plain">areas, not paths</span> <span class="muted">{{ drawn_n }} of {{ v.harnesses|length }} drawn</span></div>
   {{ svg|safe }}
-  <figcaption>Top view, front of the car on the left, driver (left) side at the bottom. Each coloured line is one harness, numbered; the arrow shows the order the areas are listed in. Dashed line = placed by title only. A short line with an arrow on one area means only that area is known. Areas, not exact paths.</figcaption>
+  <figcaption>Top view, front of the car on the left, driver side at the bottom. Each line joins the areas a harness is listed in, front to back; it is not the wire's route. Dashed = placed by title only. A short arrow = one area only. Harnesses with an unresolved area are listed, not drawn.</figcaption>
   <ul class="hn-key">
   {% for h in v.harnesses %}
-    <li><a href="#harness-{{ h.id }}"><span class="hn-sw" style="--c: {{ colour(h.n) }}">{{ h.n }}</span> {{ h.title }}</a></li>
+    <li><a href="#harness-{{ h.id }}"><span class="hn-sw{{ ' hn-hollow' if h.low }}" style="--c: {{ colour(h.n) }}">{{ h.n }}</span> {{ h.title }}{% if h.low %} <span class="chip hollow">unresolved</span>{% endif %}</a></li>
   {% endfor %}
   </ul>
 </figure>
 
 <h2 class="ghead">By area</h2>
-<div class="group hn-group">
-{% for g in v.by_area %}
-  <div class="row"><span class="lab"><span class="t">{{ g.area.label }}</span>
-    <span class="s">{% for h in g.harnesses %}<a href="#harness-{{ h.id }}">{{ h.n }}. {{ h.title }}</a>{{ ", " if not loop.last }}{% endfor %}</span></span></div>
-{% endfor %}
+<div class="group hn-group" id="hn-by-area">
+{% for g in v.by_area %}{% for h in g.harnesses %}
+  <a class="row" href="#harness-{{ h.id }}"><span class="lab"><span class="t">{{ g.area.label }}</span>
+    <span class="s">{{ h.n }}. {{ h.title }}</span></span><span class="chip plain">{{ h.chip }}</span></a>
+{% endfor %}{% endfor %}
 </div>
 
 {% if v.by_item %}
@@ -60,43 +69,59 @@
 </div>
 {% endif %}
 
-<h2 class="ghead">Harness cards</h2>
-{% for h in v.harnesses %}
-<article class="hn-card" id="harness-{{ h.id }}" style="--c: {{ colour(h.n) }}">
-  <h3><span class="hn-sw">{{ h.n }}</span> {{ h.title }}
-    <span class="chip {{ 'ok' if h.placement_basis == 'drawn' else 'plain' }}">{{ 'placed by drawing' if h.placement_basis == 'drawn' else 'placed by title only' }}</span></h3>
-  <p class="hn-route"><b>Route:</b> <span class="hn-words">{{ h.route_words }}</span>
-    {% if h.route|length > 1 %}<span class="hn-dir" aria-hidden="true">&rarr;</span>{% endif %}</p>
-  <p><b>Direction:</b> {{ h.direction }}</p>
-  <p><b>Ends:</b> {{ h.ends }}</p>
-  <p class="hn-related"><b>Touches:</b>
-    {% if h.has_related %}
-      {% for kind in ("fuse_boxes", "sensors", "elements") %}{% for r in h.related[kind] %}
-        <a class="chip plain hn-rel" href="{{ r.href }}">{{ r.label }}</a>
-      {% endfor %}{% endfor %}
-    {% else %}<span class="muted">nothing named in the diagram</span>{% endif %}
-    {% if h.related_basis %}<span class="small muted"> {{ h.related_basis }}</span>{% endif %}</p>
-  <p class="small muted"><b>Confidence:</b> {{ h.confidence }}</p>
-  <details><summary>Not shown in the diagram</summary><ul>{% for x in h.not_shown %}<li>{{ x }}</li>{% endfor %}</ul></details>
-  {% for dg in h.diagrams %}
-  <figure class="hn-fig">
-    {% if dg.image %}<img src="{{ dg.image }}" alt="Mopar parts diagram for {{ h.title }}" loading="lazy">
-    {% else %}<p class="muted">Drawing not available on this computer.</p>{% endif %}
-    <figcaption>{{ v.caption }}</figcaption>
-    {% if dg.parts %}<details><summary>Parts named in the diagram ({{ dg.parts|length }})</summary>
-      <ul class="hn-parts">{% for p in dg.parts %}<li>{% if p.ref %}<b>{{ p.ref }}</b> {% endif %}{{ p.name }}{% if p.description and p.description != p.name %} <span class="muted">- {{ p.description }}</span>{% endif %}{% if p.pn %} <span class="mono small muted">{{ p.pn }}</span>{% endif %}</li>{% endfor %}</ul></details>
-    {% elif dg.in_catalogue %}<p class="small muted">The saved catalogue has no parts list for this diagram.</p>{% endif %}
-    <a class="btn" href="{{ dg.href }}">Open the diagram in the parts catalogue</a>
-  </figure>
-  {% endfor %}
+{% macro card(h) %}
+<article class="hn-card{{ ' hn-lowcard' if h.low }}" id="harness-{{ h.id }}" style="--c: {{ colour(h.n) }}">
+  <h3><span class="hn-sw{{ ' hn-hollow' if h.low }}">{{ h.n }}</span> {{ h.title }}</h3>
+  <p class="hn-sum"><span class="hn-words">{{ h.summary }}</span>
+    <span class="chip {{ 'hollow' if h.low else 'ok' if h.placement_basis == 'drawn' else 'plain' }}">{{ h.chip }}</span>
+    {% if h.why %}<span class="chip warn">on the open job</span>{% endif %}</p>
+  {% if h.why %}<ul class="hn-whyl">{% for r in h.why %}<li>{{ r }}</li>{% endfor %}</ul>{% endif %}
+  <details class="hn-more"><summary>Details and drawing</summary>
+    <dl class="hn-dl">
+      <dt>Direction</dt><dd>{{ h.direction }}</dd>
+      <dt>Ends</dt><dd>{{ h.ends }}</dd>
+      <dt>Confidence</dt><dd>{{ h.confidence }}</dd>
+      <dt>Touches</dt><dd>
+        {% if h.has_related %}{% for kind in ("fuse_boxes", "sensors", "elements") %}{% for r in h.related[kind] %}<a class="chip plain hn-rel" href="{{ r.href }}">{{ r.label }}</a> {% endfor %}{% endfor %}
+        {% else %}<span class="muted">nothing CUORE knows</span>{% endif %}
+        {% if h.related_basis %}<span class="muted"> {{ h.related_basis }}</span>{% endif %}</dd>
+    </dl>
+    {% if h.not_shown %}<p class="hn-ns"><b>Not shown in the diagram:</b> {{ h.not_shown|join("; ") }}.</p>{% endif %}
+    {% for dg in h.diagrams %}
+    <figure class="hn-fig">
+      {% if dg.image %}<a class="hn-zoomlink" href="#zoom-{{ h.id }}-{{ loop.index }}" title="Tap to enlarge"><img src="{{ dg.image }}" alt="Mopar parts diagram for {{ h.title }}" loading="lazy"></a>
+      <div class="hn-zoom" id="zoom-{{ h.id }}-{{ loop.index }}"><a class="hn-zclose" href="#harness-{{ h.id }}" aria-label="Close the enlarged diagram">Close</a><img src="{{ dg.image }}" alt="Enlarged Mopar parts diagram for {{ h.title }}" loading="lazy"></div>
+      {% else %}<p class="muted">Drawing not available on this computer.</p>{% endif %}
+      {% if loop.first %}<figcaption>{{ v.caption }}. Tap the picture to enlarge.</figcaption>{% endif %}
+      {% if dg.parts %}<details><summary>Parts named in the diagram ({{ dg.parts|length }})</summary>
+        <ul class="hn-parts">{% for p in dg.parts %}<li>{% if p.ref %}<b>{{ p.ref }}</b> {% endif %}{{ p.name }}{% if p.description %} <span class="muted">- {{ p.description }}</span>{% endif %}{% if p.side %} <span class="chip {{ 'ok' if p.side == 'left' else 'plain' }}">{{ p.side }} side, per the catalogue</span>{% endif %}{% if p.pn %} <span class="mono muted">{{ p.pn }}</span>{% endif %}</li>{% endfor %}</ul></details>
+      {% elif dg.in_catalogue %}<p class="muted">The saved catalogue has no parts list for this diagram.</p>{% endif %}
+      <a class="btn" href="{{ dg.href }}">Open the diagram in the parts catalogue</a>
+    </figure>
+    {% endfor %}
+  </details>
 </article>
-{% endfor %}
+{% endmacro %}
+<h2 class="ghead">Harnesses that link to something CUORE knows ({{ linked|length }})</h2>
+{% if not linked %}<p class="muted">None of the {{ v.harnesses|length }} harness diagrams links to a fuse box, sensor or electrical item.</p>{% endif %}
+{% for h in linked %}{{ card(h) }}{% endfor %}
+{% if bare %}
+<details class="hn-bare" id="hn-bare"{{ ' open' if q }}><summary>{{ bare|length }} harness{{ '' if bare|length == 1 else 'es' }} that touch nothing CUORE knows</summary>
+{% for h in bare %}{{ card(h) }}{% endfor %}
+</details>
+{% endif %}
 
 <p class="hn-foot"><b>Pin-level wiring diagrams</b> (which wire, which pin, which colour, which connector) are in the service manual, which CUORE does not have. Everything above comes from Mopar parts diagrams, which are drawn to order parts, not to trace circuits.</p>
 </div>
 <script>
 /* Optional: filter the harness cards as you type. The page works without this. */
 (function () {
+  function openFor() {
+    var t = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+    for (var e = t; e; e = e.parentElement) if (e.tagName === 'DETAILS') e.open = true;
+    if (t) t.scrollIntoView();
+  }
+  window.addEventListener('hashchange', openFor); openFor();
   var i = document.querySelector('#hn-search input[type=search]');
   if (i) i.addEventListener('input', function () {
     var q = i.value.toLowerCase().trim();
