@@ -13,7 +13,7 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 | shop_visits.jsonl | skipped-unchanged | 216 | 1 |
 | audit.jsonl | skipped-unchanged | 646719 | 3367 |
 | fullscan_last.json | skipped-unchanged | 6870 | - |
-| notes.jsonl | copied | 48045 | 37 |
+| notes.jsonl | copied | 49525 | 38 |
 | service_records.jsonl | skipped-unchanged | 5594 | 3 |
 | addresses.json | skipped-unchanged | 1183 | - |
 | learned_dids.json | skipped-unchanged | 34704 | - |
