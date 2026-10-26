@@ -34,6 +34,14 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 _shared_templates.env.globals["intermittent_panel"] = intermittent.panel
 
 
+def _im_ago(iso: Any) -> str:
+    from ..services.list_groups import age_label
+    return age_label(iso)
+
+
+_shared_templates.env.filters["im_ago"] = _im_ago
+
+
 @router.get("/v/{vin}/intermittent", response_class=HTMLResponse)
 def intermittent_overview(request: Request, vin: str) -> HTMLResponse:
     data = intermittent.overview(vin)

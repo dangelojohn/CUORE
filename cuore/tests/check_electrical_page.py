@@ -275,9 +275,10 @@ check("legend explains every glyph",
 
 # companion: check_api.py must still pass -------------------------------------
 proc = subprocess.run([sys.executable, str(Path(__file__).parent / "check_api.py")],
-                      cwd=str(ROOT), capture_output=True, text=True)
+                      cwd=str(ROOT), capture_output=True, text=True,
+                      encoding="utf-8", errors="replace")
 check("check_api.py exits 0", proc.returncode == 0,
-     (proc.stdout[-1200:] + proc.stderr[-800:]) if proc.returncode else "")
+     ((proc.stdout or "")[-1200:] + (proc.stderr or "")[-800:]) if proc.returncode else "")
 
 
 # 6. no horizontal overflow at 400px, one screenshot -------------------------

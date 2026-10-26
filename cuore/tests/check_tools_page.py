@@ -218,7 +218,18 @@ else:
                     cdp.send("Emulation.setDeviceMetricsOverride",
                              {"width": 400, "height": 1200, "deviceScaleFactor": 1, "mobile": True})
                     cdp.send("Page.navigate", {"url": f"http://127.0.0.1:{port}/tools"})
-                    time.sleep(1.8)  # tools.js render pass
+                    # tools.js renders after /api/tools/catalogue, whose first (cold)
+                    # call alone takes >1 s -- poll for the first card, don't guess.
+                    _deadline = time.monotonic() + 30
+                    while time.monotonic() < _deadline:
+                        _r = cdp.send("Runtime.evaluate", {
+                            "expression": "!!document.querySelector('.t-run') && "
+                                          "!!document.querySelector('.t-disabled-reason')",
+                            "returnByValue": True})
+                        if _r.get("result", {}).get("value") is True:
+                            break
+                        time.sleep(0.3)
+                    time.sleep(0.3)
                     metrics = cdp.send("Runtime.evaluate", {
                         "expression": (
                             "JSON.stringify({"

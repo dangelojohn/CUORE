@@ -91,16 +91,17 @@ def free_port() -> int:
     return port
 
 
-def wait_for_port(port: int, timeout: float = 15.0) -> bool:
+def wait_for_port(port: int, timeout: float = 60.0) -> bool:
+    """Wait until the server answers /api/health (create_app can take many
+    seconds under load; the port only opens after it returns)."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.3)
-                s.connect(("127.0.0.1", port))
-                return True
-        except OSError:
-            time.sleep(0.2)
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/health", timeout=3) as r:
+                if r.status == 200:
+                    return True
+        except Exception:  # noqa: BLE001 -- not up yet
+            time.sleep(0.3)
     return False
 
 

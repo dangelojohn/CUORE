@@ -261,6 +261,7 @@ def build(inp: dict[str, Any]) -> dict[str, Any]:
         title = h.get("_title") or text[:100]
         sysk = h.get("system") or ""
         s = {"id": f"hyp:{h['id']}", "kind": "hypothesis", "title": title, "text": text,
+             "job_id": inp.get("job_id") or "", "updated_at": _hyp_latest(h),
              "system": sysk, "system_label": label_of.get(sysk, sysk), "codes": list(h.get("codes") or []),
              "status": h.get("status"), "next_test": h.get("next_test") or "", "systems": [sysk] if sysk else [],
              "test_labels": [], "href": f"/v/{vin}/job#hyp-{h['id']}", "ref_id": h["id"]}
@@ -363,7 +364,74 @@ def build(inp: dict[str, Any]) -> dict[str, Any]:
         s["rank"] = i
 
     nt = pick_next_test(suspects, inp)
-    return {"suspects": suspects, "next_test": nt}
+    ruled_out = [{"id": h["id"], "job_id": inp.get("job_id") or "", "title": h.get("_title") or (h.get("text") or "")[:100],
+                  "system": h.get("system") or "", "system_label": label_of.get(h.get("system") or "", h.get("system") or ""),
+                  "when": _hyp_latest(h), "href": f"/v/{vin}/job#hyp-{h['id']}"}
+                 for h in inp.get("hypotheses") or [] if not h.get("deleted") and h.get("status") == "refuted"]
+    ruled_out.sort(key=lambda r: r["when"], reverse=True)
+    for s in suspects:
+        _present(s, code_seen)
+    return {"suspects": suspects, "next_test": nt, "groups": _group(suspects), "ruled_out": ruled_out}
+
+
+# --- presentation (summary line, folded repeats, system groups) --------------------
+
+_BAND_RANK = {"High": 0, "Medium": 1, "Low": 2}
+
+
+def _hyp_latest(h: dict[str, Any]) -> str:
+    """Newest dated thing on a hypothesis: evidence added, status change or last update."""
+    cands = [str(h.get("updated_at") or "")]
+    for a in h.get("audit") or []:
+        if a.get("action") in ("evidence_added", "status", "created"):
+            cands.append(str(a.get("at") or ""))
+    return max(cands)
+
+
+def _norm_reason(text: str) -> str:
+    t = re.sub(r"[PCBU]\d{4}(-\d+)?", "CODE", text or "")
+    return re.sub(r"\d+(\.\d+)?", "#", t).strip().lower()[:90]
+
+
+def _present(s: dict[str, Any], code_seen: dict[str, str]) -> None:
+    """Add the one-line summary, folded reason groups and newest-evidence date."""
+    folded: dict[tuple, dict[str, Any]] = {}
+    for r in sorted(s["reasons"], key=lambda r: -abs(r["points"])):
+        key = (r["source"], r["points"] >= 0, r["weight_name"], _norm_reason(r["text"]))
+        g = folded.get(key)
+        if g is None:
+            folded[key] = {**r, "count": 1, "total": r["points"]}
+        else:
+            g["count"] += 1
+            g["total"] = round(g["total"] + r["points"], 2)
+    s["reason_groups"] = list(folded.values())
+    s["top_reason"] = (s["reason_groups"][0]["text"] if s["reason_groups"] else "")
+    seen = [str(code_seen.get(c) or "") for c in s.get("codes") or []]
+    s["latest_at"] = max([str(s.get("updated_at") or "")] + seen)[:19]
+
+
+def _group(suspects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Suspects grouped by system; groups ordered by best band, then newest evidence.
+    Inside a group the order is the existing rank (points)."""
+    groups: dict[str, dict[str, Any]] = {}
+    for s in suspects:
+        key = s.get("system") or "_other"
+        g = groups.setdefault(key, {"key": key, "label": (s.get("system_label") or key.replace("_", " ").title())
+                                    if key != "_other" else "Other / no single system", "suspects": []})
+        g["suspects"].append(s)
+    out = list(groups.values())
+    for g in out:
+        g["best_band"] = min((x["band"] for x in g["suspects"]), key=lambda b: _BAND_RANK[b])
+        g["latest_at"] = max(x["latest_at"] for x in g["suspects"])
+        g["n"] = len(g["suspects"])
+        g["open"] = g["best_band"] == "High"
+    out.sort(key=lambda g: (_BAND_RANK[g["best_band"]], _neg(g["latest_at"])))
+    return out
+
+
+def _neg(iso: str) -> tuple:
+    """Sort key putting the newest ISO date first (and undated last)."""
+    return tuple(-ord(c) for c in iso)
 
 
 # --- next test --------------------------------------------------------------------
@@ -584,7 +652,7 @@ def gather(vin: str) -> dict[str, Any]:
             tree_hyps += [{"text": h.text, "tests": list(h.tests)} for h in t.hypotheses]
     except Exception:  # noqa: BLE001
         pass
-    return {"vin": vin, "hypotheses": hyps, "actions": actions, "cc": cc_res, "xref": xref, "cases": cases,
+    return {"vin": vin, "job_id": job.get("id") or "", "hypotheses": hyps, "actions": actions, "cc": cc_res, "xref": xref, "cases": cases,
             "element_info": elem_info, "inspections": inspections, "fuse_items": fuse_items,
             "tests": tests, "test_results": results, "tree_hyps": tree_hyps, "code_last_seen": code_seen,
             "system_labels": labels}

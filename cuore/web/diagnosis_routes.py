@@ -20,8 +20,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from datetime import datetime
+from urllib.parse import quote
+
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..api.deps import require_token
 from ..services import suspect_ranking
@@ -45,12 +48,54 @@ def diagnosis_for(vin: str) -> dict[str, Any]:
 _shared_templates.env.globals["diagnosis_for"] = diagnosis_for
 
 
+def dx_ago(iso: Any) -> str:
+    """'2 d ago' from an ISO timestamp; '' when there is no date."""
+    try:
+        secs = (datetime.now() - datetime.fromisoformat(str(iso)[:19])).total_seconds()
+    except (TypeError, ValueError):
+        return ""
+    if secs < 0 or secs < 3600:
+        return "just now" if secs < 120 else f"{int(secs // 60)} min ago"
+    if secs < 86400:
+        return f"{int(secs // 3600)} h ago"
+    return f"{int(secs // 86400)} d ago"
+
+
+_shared_templates.env.filters["dx_ago"] = dx_ago
+
+
+@router.post("/v/{vin}/diagnosis/hypothesis/{job_id}/{hyp_id}/status", response_class=HTMLResponse,
+             include_in_schema=False)
+def diagnosis_set_status(vin: str, job_id: str, hyp_id: str, status: str = Form(...),
+                         return_to: str = Form(default="")) -> RedirectResponse:
+    """One-tap Rule out (refuted) / Confirmed through the existing hypothesis status
+    API. The engine's own rules apply unchanged: a confirm without passed/failed test
+    evidence (or with unresolved evidence against) is refused and its message shown."""
+    from ..services import jobs_bridge
+    from .jobs_routes import _rule_violation_msg
+    back = return_to if return_to.startswith(f"/v/{vin}/") else f"/v/{vin}/diagnosis"
+    back = back.split("#")[0].split("?")[0]
+    if status not in ("refuted", "confirmed"):
+        msg, mk = "Only Rule out or Confirmed can be set from here.", "err"
+    else:
+        try:
+            jobs_bridge.set_hypothesis(job_id, hyp_id, status=status)
+            msg, mk = ("Ruled out." if status == "refuted" else "Confirmed."), "ok"
+        except jobs_bridge.RuleViolation as exc:
+            msg, mk = _rule_violation_msg(exc), "err"
+        except Exception as exc:  # noqa: BLE001 -- BridgeError / unknown ids: say so, never a 500
+            msg, mk = str(exc) or "That could not be saved.", "err"
+    return RedirectResponse(url=f"{back}?msg={quote(msg)}&mk={mk}#dx-suspects", status_code=303)
+
+
 @router.get("/v/{vin}/diagnosis", response_class=HTMLResponse, include_in_schema=False)
 def diagnosis_page(request: Request, vin: str) -> HTMLResponse:
     dossier = _dossier(vin)
     dx = diagnosis_for(vin)
+    flash = (request.query_params.get("msg") or "")[:400]
     response = _page(request, "diagnosis.html", vin=vin, bar=_vehicle_bar(vin, dossier), dx=dx,
-                     tab="diagnosis")
+                     tab="diagnosis", dx_flash=flash,
+                     dx_flash_kind="err" if request.query_params.get("mk") == "err" else "ok")
     _set_active_vehicle(response, vin)
     return response
 

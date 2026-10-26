@@ -5,19 +5,10 @@
    axes are labelled. No JS. Status is label + symbol + colour, never colour alone. #}
 <link rel="stylesheet" href="{{ static_url('trends.css') }}">
 {% set H = trends.headline %}
-<section class="tr-panel panel" id="trends" aria-labelledby="tr-h">
-  <h2 id="tr-h" style="margin:0 0 8px">Trends across visits</h2>
-  <p class="tr-headline">
-    <span class="tr-chip {{ H.chip }}"><span aria-hidden="true">{{ H.symbol }}</span> {{ H.status_label }}</span>
-    <span>{{ H.text }}</span>
-  </p>
-  <p class="tr-muted">Compares like with like across days and weeks, before a code sets. {{ trends.counts.with_enough_data }}
-    of {{ trends.counts.metrics }} trends have enough data to call.</p>
-
-  <div class="tr-grid">
-  {% for m in trends.metrics_shown %}
+{% macro tr_card(m, trends_full) %}
     <article class="tr-card" id="tr-{{ m.id }}" aria-labelledby="tr-{{ m.id }}-h">
       <h3 id="tr-{{ m.id }}-h">{{ m.label }}</h3>
+      {% if m.last_ago %}<p class="tr-muted" style="margin:0 0 4px">Latest sample {{ m.last_ago }} ({{ m.last_date }}).</p>{% endif %}
       <p class="tr-headline" style="font-size:var(--fs-md)">
         <span class="tr-chip {{ m.chip }}"><span aria-hidden="true">{{ m.symbol }}</span> {{ m.status_label }}</span>
         <span>{{ m.detail }}</span>
@@ -37,7 +28,7 @@
         {% if S.projection_note %}<p class="tr-muted">{{ S.projection_note }}.</p>{% endif %}
       {% endif %}
       {% if trends_full %}
-      <details>
+      <details class="fold">
         <summary>How this was worked out</summary>
         <h4>Which readings count</h4>
         <p class="tr-text">{{ m.condition_text }}</p>
@@ -49,13 +40,14 @@
         <div class="tw"><table class="tr-table">
           <thead><tr><th>Source</th><th>Daily points</th><th>Readings used</th><th>Left out</th><th>Status</th></tr></thead>
           <tbody>
-          {% for s in m.series %}
+          {% for s in m.series_used %}
             <tr><td>{{ s.stream }}</td><td class="tr-num">{{ s.n }}</td><td class="tr-num">{{ s.readings_used }}</td>
                 <td class="tr-num">{{ s.excluded.count }}</td>
                 <td>{{ s.status|replace('_', ' ') }}{% if s.slope_per_day_txt %}; slope {{ s.slope_per_day_txt }} {{ m.unit }}/day{% endif %}</td></tr>
           {% endfor %}
           </tbody>
         </table></div>
+        {% if m.series_none %}<p class="tr-muted">{{ m.series_none|length }} other source{{ '' if m.series_none|length == 1 else 's' }} with no data: {% for s in m.series_none %}{{ s.stream }}{% if not loop.last %}, {% endif %}{% endfor %}.</p>{% endif %}
         {% set ex = namespace(any=false) %}
         {% for s in m.series %}{% if s.excluded.count %}{% set ex.any = true %}{% endif %}{% endfor %}
         {% if ex.any %}
@@ -78,11 +70,31 @@
       </details>
       {% endif %}
     </article>
-  {% endfor %}
+{% endmacro %}
+
+<section class="tr-panel panel" id="trends" aria-labelledby="tr-h">
+  <h2 id="tr-h" style="margin:0 0 8px">Trends across visits</h2>
+  <p class="tr-headline">
+    <span class="tr-chip {{ H.chip }}"><span aria-hidden="true">{{ H.symbol }}</span> {{ H.status_label }}</span>
+    <span>{{ H.text }}</span>
+  </p>
+  <p class="tr-muted">Compares like with like across days and weeks, before a code sets. {{ trends.counts.with_enough_data }}
+    of {{ trends.counts.metrics }} trends have enough data to call.</p>
+
+  <div class="tr-grid">
+  {% for m in trends.metrics_main %}{{ tr_card(m, trends_full) }}{% endfor %}
   </div>
+  {% if trends.metrics_thin %}
+  <details class="fold tr-thin">
+    <summary>{{ trends.metrics_thin|length }} trend{{ '' if trends.metrics_thin|length == 1 else 's' }} with some readings but too few to call (newest sample {{ trends.metrics_thin[0].last_ago }})</summary>
+    <div class="tr-grid">
+    {% for m in trends.metrics_thin %}{{ tr_card(m, trends_full) }}{% endfor %}
+    </div>
+  </details>
+  {% endif %}
 
   {% if trends.metrics_idle %}
-  <details>
+  <details class="fold">
     <summary>{{ trends.metrics_idle|length }} trend{{ '' if trends.metrics_idle|length == 1 else 's' }} with no comparable readings yet</summary>
     <ul class="tr-idle">
       {% for m in trends.metrics_idle %}
@@ -95,7 +107,7 @@
   {% endif %}
 
   {% if trends_full and trends.not_trendable %}
-  <details>
+  <details class="fold">
     <summary>{{ trends.not_trendable|length }} Mode 06 test{{ '' if trends.not_trendable|length == 1 else 's' }} cannot be trended</summary>
     <ul class="tr-idle">
       {% for n in trends.not_trendable %}<li><strong>{{ n.label }}</strong>: {{ n.reason }} ({{ n.readings }} stored).</li>{% endfor %}

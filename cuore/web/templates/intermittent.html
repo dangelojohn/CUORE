@@ -9,17 +9,37 @@
     Counts of CUORE's own records only; a shared condition is a pattern to test, not a proven cause.</p>
 
   {% if mode == "overview" %}
-    {% if ov.rows %}
-    <ul class="im-ovl">
-      {% for r in ov.rows %}
+    {% macro im_row(r) %}
       <li>
         <a class="im-key" href="/v/{{ vin }}/intermittent/{{ r.key }}">{{ r.key }}</a>
+        {% if r.active %}<span class="im-tag all">active now</span>{% endif %}
         <span class="im-tag {{ 'most' if r.n_lines else 'some' }}">{{ 'pattern found' if r.n_lines else ('too few events' if not r.enough else 'no shared condition') }}</span>
-        <span class="im-src">{{ r.n_events }} event(s){% if r.description %} &mdash; {{ r.description }}{% endif %}</span>
-        <div>{{ r.hint or r.headline }}</div>
+        <span class="im-src">{{ r.n_events }} event(s){% if r.last_at %}, latest {{ r.last_at|im_ago }}{% endif %}{% if r.description %} &mdash; {{ r.description }}{% endif %}</span>
+        {% if r.enough or r.n_lines %}<div>{{ r.hint or r.headline }}</div>{% endif %}
       </li>
-      {% endfor %}
-    </ul>
+    {% endmacro %}
+    {% if ov.rows %}
+    {% if ov.patterns %}
+    <h2 class="im-h">Patterns found ({{ ov.patterns|length }})</h2>
+    <ul class="im-ovl">{% for r in ov.patterns %}{{ im_row(r) }}{% endfor %}</ul>
+    {% else %}
+    <p class="im-src">No code has a shared condition across its events yet.</p>
+    {% endif %}
+    {% if ov.no_shared %}
+    <details class="fold im-group"{{ ' open' if ov.no_shared|selectattr('active')|list }}>
+      <summary>{{ ov.no_shared|length }} code{{ '' if ov.no_shared|length == 1 else 's' }} with enough events but no shared condition</summary>
+      <ul class="im-ovl">{% for r in ov.no_shared %}{{ im_row(r) }}{% endfor %}</ul>
+    </details>
+    {% endif %}
+    {% if ov.too_few %}
+    <details class="fold im-group"{{ ' open' if ov.too_few|selectattr('active')|list and not ov.patterns }}>
+      <summary>{{ ov.too_few|length }} code{{ '' if ov.too_few|length == 1 else 's' }} with too few events to correlate</summary>
+      <ul class="im-chips">
+        {% for r in ov.too_few %}<li><a class="im-key" href="/v/{{ vin }}/intermittent/{{ r.key }}">{{ r.key }}</a>
+          <span class="im-src">{{ r.n_events }} event{{ '' if r.n_events == 1 else 's' }}{% if r.last_at %}, {{ r.last_at|im_ago }}{% endif %}{% if r.active %} &middot; active now{% endif %}</span></li>{% endfor %}
+      </ul>
+    </details>
+    {% endif %}
     {% else %}
     <p>No code or symptom has a recorded event on this car yet.</p>
     {% endif %}

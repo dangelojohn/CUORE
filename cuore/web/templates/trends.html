@@ -12,7 +12,8 @@ Nothing here is read from the car now: it all comes from what CUORE and MultiEcu
 {% include "_trends_panel.html" %}
 
 <section class="panel" aria-labelledby="tr-method">
-  <h2 id="tr-method" style="margin:0 0 8px">Method</h2>
+  <details class="fold">
+  <summary><h2 id="tr-method" style="margin:0;display:inline">Method</h2></summary>
   <ul class="tr-list">
     <li><strong>One point per day.</strong> {{ trends.method.aggregate }}.</li>
     <li><strong>Slope.</strong> {{ trends.method.slope }}.</li>
@@ -25,6 +26,7 @@ Nothing here is read from the car now: it all comes from what CUORE and MultiEcu
       ECM's own, taken from the latest stored reply.</li>
     <li><strong>Sources.</strong> {{ trends.sources_note }}</li>
   </ul>
+  </details>
   <p class="tr-muted">Computed {{ trends.generated_at }}. JSON: <a class="tr-link" href="/api/vehicles/{{ vin }}/trends">/api/vehicles/{{ vin }}/trends</a></p>
 </section>
 {% endblock %}

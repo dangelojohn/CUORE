@@ -192,7 +192,9 @@ for label, url in PAGES.items():
               "stelvioforum" not in text.lower())
     else:
         check(f"{label} page has no literal \"Stelvio\" text", "Stelvio" not in text)
-        check(f"{label} page has no literal \"Alfa\" text", "Alfa" not in text)
+        # "AlfaCore" is the shop-system product name (Export panel), not the marque.
+        check(f"{label} page has no literal \"Alfa\" text",
+              "Alfa" not in text.replace("AlfaCore", ""))
 
 
 # --- 7. known_good gating itself (2026-10-14 marque-port fix) -------------

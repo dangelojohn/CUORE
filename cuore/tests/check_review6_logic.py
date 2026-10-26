@@ -349,7 +349,8 @@ if step_id:
     job2 = jobs_bridge.open_job(VIN, technician="tester", complaint="")
     api_resp = client.post(
         f"/api/vehicles/{VIN}/checklist/{step_id}/result",
-        json={"result": "pass", "hypothesis_text": "EVAP: created via the API",
+        json={"job_id": job2["id"],  # two open jobs can tie on last-update second
+              "result": "pass", "hypothesis_text": "EVAP: created via the API",
              "hypothesis_system": "EVAP", "supports": "for"})
     check("4i. the create-and-link POST responds 200", api_resp.status_code == 200,
          api_resp.text)

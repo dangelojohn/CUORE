@@ -48,11 +48,11 @@ def summary(vin: str) -> Optional[dict[str, Any]]:
 
 
 def nav_label(vin: Optional[str] = None) -> str:
-    """Header link text: the file's ``nav_label`` (e.g. "Stelvio facts"), else "Facts"."""
+    """Header link text: the file's ``nav_label`` (e.g. "Stelvio facts"), else "Facts" (also when no vehicle is chosen)."""
+    # Only the vehicle's own facts file may name it. With no vehicle chosen yet
+    # (/start) or none on file, stay marque-neutral rather than borrowing
+    # another car's label (a Maserati page must never say "Stelvio facts").
     data = load(vin) if vin else None
-    if data is None:
-        first = first_vin_with_facts()
-        data = load(first) if first else None
     label = (data or {}).get("nav_label")
     return label if isinstance(label, str) and label.strip() else "Facts"
 

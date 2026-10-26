@@ -807,6 +807,16 @@ def panel(vin: str, code: str) -> dict[str, Any]:
                 "n_events": 0, "enough": False, "hint": None, "headline": ""}
 
 
+def _last_at(result: dict[str, Any]) -> str:
+    """ISO time of the newest dated event ('' when none carries a time)."""
+    ats = [str(e.get("at") or "").replace(" ", "T") for e in result.get("events") or [] if e.get("at")]
+    return max(ats) if ats else ""
+
+
+def _newest_first(iso: str) -> tuple:
+    return tuple(-ord(ch) for ch in iso)
+
+
 def overview(vin: str) -> dict[str, Any]:
     """One row per code (and per open symptom tag) that has any event."""
     vin = (vin or "").strip()
@@ -821,6 +831,11 @@ def overview(vin: str) -> dict[str, Any]:
             codes.setdefault(_base(rec["dtc"]), "; ".join(rec.get("descriptions") or [])[:90])
     except Exception:  # noqa: BLE001
         pass
+    try:
+        from .list_groups import active_codes
+        active = {c.upper() for c in active_codes(vin)}
+    except Exception:  # noqa: BLE001
+        active = set()
     rows = []
     for c in sorted(codes):
         try:
@@ -832,7 +847,8 @@ def overview(vin: str) -> dict[str, Any]:
         rows.append({"key": c, "kind": "code", "description": codes[c], "n_events": r["n_events"],
                      "enough": r["enough"], "headline": r["headline"],
                      "hint": (r["hint"] or {}).get("text", ""), "n_lines": len(r["lines"]),
-                     "sightings": r["sightings"]})
+                     "sightings": r["sightings"], "active": c.upper() in active,
+                     "last_at": _last_at(r)})
     tags = sorted({t for s in _symptom_rows(vin) for t in (s.get("tags") or [])})
     for t in tags:
         try:
@@ -841,9 +857,14 @@ def overview(vin: str) -> dict[str, Any]:
             continue
         rows.append({"key": t, "kind": "symptom", "description": "", "n_events": r["n_events"],
                      "enough": r["enough"], "headline": r["headline"],
-                     "hint": (r["hint"] or {}).get("text", ""), "n_lines": len(r["lines"]), "sightings": 0})
-    rows.sort(key=lambda r: (not r["n_lines"], -r["n_events"], r["key"]))
-    return {"vin": vin, "rows": rows,
+                     "hint": (r["hint"] or {}).get("text", ""), "n_lines": len(r["lines"]), "sightings": 0,
+                     "active": False, "last_at": _last_at(r)})
+    # Priority first (patterns, then active codes), then the most recent event, then the busiest.
+    rows.sort(key=lambda r: (not r["n_lines"], not r["active"], _newest_first(r["last_at"]), -r["n_events"], r["key"]))
+    patterns = [r for r in rows if r["n_lines"]]
+    no_shared = [r for r in rows if not r["n_lines"] and r["enough"]]
+    too_few = [r for r in rows if not r["n_lines"] and not r["enough"]]
+    return {"vin": vin, "rows": rows, "patterns": patterns, "no_shared": no_shared, "too_few": too_few,
             "note": "Only codes and symptoms with at least one recorded event are listed."}
 
 

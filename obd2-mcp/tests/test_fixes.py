@@ -116,10 +116,12 @@ for bad in ["ATI\r04", "ATI\n04", "STI|04", "", "   ", "ATI\x0004"]:
 check("plain command passes", validate_command(" 0100 "), "0100")
 
 print("\n7. command classification")
+# 31/2E/34 are configuration writes: safety.assert_not_configuration_write refuses
+# them outright (kind "blocked", stricter than the confirm-gated "vehicle_write").
 cases = [
     ("04", "vehicle_write"), ("0400", "vehicle_write"), ("ATSH 7E0", "vehicle_write"),
-    ("2F0102", "vehicle_write"), ("31010203", "vehicle_write"), ("14FFFFFF", "vehicle_write"),
-    ("2E F190", "vehicle_write"), ("34", "vehicle_write"), ("1003", "vehicle_write"),
+    ("2F0102", "vehicle_write"), ("31010203", "blocked"), ("14FFFFFF", "vehicle_write"),
+    ("2E F190", "blocked"), ("34", "blocked"), ("1003", "vehicle_write"),
     ("1101", "vehicle_write"), ("STPX h:7E0,d:0100", "vehicle_write"),
     ("ATRV", "read"), ("ATDP", "read"), ("ATDPN", "read"), ("ATI", "read"),
     ("0100", "read"), ("0902", "read"), ("19020C", "read"), ("22F190", "read"),

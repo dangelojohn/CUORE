@@ -193,7 +193,10 @@ try:
     check("?exp=forums shows only forum threads",
           forums_resp.status_code == 200
           and "P0456 after battery disconnect" in forums_resp.text
-          and 'href="https://youtube.example/v1"' not in forums_resp.text,
+          # scope to the card's own row list: the page legitimately repeats the
+          # video elsewhere (verified-links list, copy-for-AI prompt block)
+          and 'href="https://youtube.example/v1"' not in
+          forums_resp.text.split("data-exp-list", 1)[1].split("</details>", 1)[0],
           forums_resp.text[:2000])
 finally:
     _unpatched()
@@ -241,9 +244,10 @@ print("=== companion checks ===")
 for script in ("check_dossier_page.py", "check_maintenance_page.py",
               "check_service_page.py", "check_api.py"):
     proc = subprocess.run([sys.executable, str(Path(__file__).parent / script)],
-                          cwd=str(ROOT), capture_output=True, text=True)
+                          cwd=str(ROOT), capture_output=True, text=True,
+                      encoding="utf-8", errors="replace")
     ok = proc.returncode == 0
-    check(f"{script} exits 0", ok, (proc.stdout[-1200:] + proc.stderr[-1200:]) if not ok else "")
+    check(f"{script} exits 0", ok, ((proc.stdout or "")[-1200:] + (proc.stderr or "")[-1200:]) if not ok else "")
 
 
 # ===========================================================================

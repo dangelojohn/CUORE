@@ -168,7 +168,11 @@ fo.scans["can_c"] = [
 ]
 st = coverage.run_pass("c_first", ops=fo)
 disc = [c for c in fo.calls if c[0] == "discover"]
-check_eq("baseline discovers the three unaddressed CAN-C modules", disc[0][2], 3)
+# DTCM, ESM, DASM are unaddressed and present; ETM (moved to CAN-C 2026-10-23) is
+# still "unverified", so discovery must NOT stop early (stop_after None) -- it
+# only stops once every missing module is a known-present one.
+check_eq("baseline discovers unaddressed CAN-C modules without an early stop "
+         "while ETM is unverified", disc[0][2], None)
 rep = coverage.report()
 rows = {r["code"]: r for r in rep["modules"]}
 check_eq("ECM read with one active fault", rows["ECM"]["active"], ["P0455-00"])

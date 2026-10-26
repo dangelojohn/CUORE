@@ -28,39 +28,77 @@
   </div>
   {% endif %}
 
-  <h2 class="dx-h">Ranked suspects</h2>
+  <h2 class="dx-h" id="dx-suspects">Ranked suspects</h2>
+  {% if dx_flash %}<p class="dx-flash dx-flash-{{ dx_flash_kind }}" role="status"><b class="dx-tag">{{ 'Refused' if dx_flash_kind == 'err' else 'Saved' }}</b> {{ dx_flash }}</p>{% endif %}
   {% if dx.suspects %}
-  <p class="dx-sub">Band = points from real evidence (heuristic, adjustable weights). Open a suspect to see every reason and its source.</p>
-  <ol class="dx-list">
-    {% for s in dx.suspects %}
+  <p class="dx-sub">{{ dx.suspects|length }} suspect{{ '' if dx.suspects|length == 1 else 's' }} in {{ dx.groups|length }} system group{{ '' if dx.groups|length == 1 else 's' }}. Strongest group first, then the one with the newest evidence. Band = points from real evidence (heuristic, adjustable weights). Open a suspect for its reasons.</p>
+  {% set rt = request.url.path if request is defined else '' %}
+  {% for g in dx.groups %}
+  <details class="fold dx-group"{{ ' open' if g.open }}>
+    <summary class="dx-gsum">
+      <span class="dx-band dx-band-{{ g.best_band|lower }}">{{ '&#9650;'|safe if g.best_band == 'High' else ('&#9670;'|safe if g.best_band == 'Medium' else '&#9661;'|safe) }} {{ g.best_band }}</span>
+      <b class="dx-title">{{ g.label }}</b>
+      <span class="dx-kind">{{ g.n }} suspect{{ '' if g.n == 1 else 's' }}{% if g.latest_at %} &middot; newest evidence {{ g.latest_at|dx_ago }}{% endif %}</span>
+    </summary>
+    <ol class="dx-list">
+    {% for s in g.suspects %}
     <li>
-      <details class="dx-item">
+      <details class="fold dx-item">
         <summary>
           <span class="dx-rank">{{ s.rank }}</span>
           <span class="dx-band dx-band-{{ s.band|lower }}">{{ '&#9650;'|safe if s.band == 'High' else ('&#9670;'|safe if s.band == 'Medium' else '&#9661;'|safe) }} {{ s.band }}</span>
           <span class="dx-title">{{ s.title }}</span>
-          <span class="dx-kind">{{ {'hypothesis': 'job hypothesis', 'shared_cause': 'shared cause', 'bulletin': 'bulletin'}[s.kind] }}</span>
+          <span class="dx-kind">{{ {'hypothesis': 'job hypothesis', 'shared_cause': 'shared cause', 'bulletin': 'bulletin'}[s.kind] }}{% if s.status %} &middot; {{ s.status }}{% endif %}{% if s.latest_at %} &middot; {{ s.latest_at|dx_ago }}{% endif %}</span>
+          {% if s.top_reason %}<span class="dx-top">Top reason: {{ s.top_reason[:150] }}{{ '...' if s.top_reason|length > 150 }}</span>{% endif %}
         </summary>
-        {% if s.reasons %}
+        {% if s.reason_groups %}
+        <details class="fold dx-fold dx-reasonfold">
+          <summary>{{ s.reasons|length }} reason{{ '' if s.reasons|length == 1 else 's' }}{% if s.reason_groups|length != s.reasons|length %} in {{ s.reason_groups|length }} line{{ '' if s.reason_groups|length == 1 else 's' }}{% endif %}</summary>
         <ul class="dx-reasons">
-          {% for r in s.reasons %}
+          {% for r in s.reason_groups %}
           <li>
-            <b class="dx-pts dx-{{ 'plus' if r.points >= 0 else 'minus' }}">{{ '+' if r.points >= 0 else '&minus;'|safe }}{{ '%.1f'|format(r.points|abs) }}</b>
+            <b class="dx-pts dx-{{ 'plus' if r.total >= 0 else 'minus' }}">{{ '+' if r.total >= 0 else '&minus;'|safe }}{{ '%.1f'|format(r.total|abs) }}</b>
             <span class="dx-src">{{ {'tsb': 'TSB', 'case': 'Prior case', 'job': 'Job', 'common_cause': 'Shared cause', 'inspection': 'Inspection', 'fuse_health': 'Fuse health'}.get(r.source, r.source) }} {{ r.source_id }}</span>
+            {% if r.count > 1 %}<b class="dx-tag">&times;{{ r.count }} similar</b>{% endif %}
             {% if r.href %}<a class="dx-link" href="{{ r.href }}">{{ r.text }}</a>{% else %}{{ r.text }}{% endif %}
             {% if r.rationale %}<span class="dx-rat"> Weight: {{ r.rationale }}</span>{% endif %}
           </li>
           {% endfor %}
         </ul>
+        </details>
         {% else %}
         <p class="dx-none">No evidence on record for this suspect, so it stays Low. This is not evidence against it.</p>
         {% endif %}
         {% if s.next_test %}<p class="dx-nt"><b>Job's next test:</b> {{ s.next_test[:300] }}{% if s.next_test|length > 300 %}...{% endif %}</p>{% endif %}
-        {% if s.href %}<p><a class="dx-link" href="{{ s.href }}">Open</a></p>{% endif %}
+        <div class="dx-actions">
+        {% if s.kind == 'hypothesis' and s.job_id %}
+          {% for st, lab in [('refuted', 'Rule out'), ('confirmed', 'Confirmed')] %}
+          {% if s.status != st %}
+          <form method="post" action="/v/{{ vin }}/diagnosis/hypothesis/{{ s.job_id }}/{{ s.ref_id }}/status">
+            <input type="hidden" name="status" value="{{ st }}">
+            <input type="hidden" name="return_to" value="{{ rt }}">
+            <button class="btn dx-btn dx-btn-{{ st }}" type="submit">{{ lab }}</button>
+          </form>
+          {% endif %}
+          {% endfor %}
+        {% endif %}
+        {% if s.href %}<a class="dx-link" href="{{ s.href }}">Open</a>{% endif %}
+        </div>
       </details>
     </li>
     {% endfor %}
-  </ol>
+    </ol>
+  </details>
+  {% endfor %}
+  {% if dx.ruled_out %}
+  <details class="fold dx-group">
+    <summary class="dx-gsum"><b class="dx-title">Ruled out</b> <span class="dx-kind">{{ dx.ruled_out|length }} hypothes{{ 'is' if dx.ruled_out|length == 1 else 'es' }}, newest {{ dx.ruled_out[0].when|dx_ago }}</span></summary>
+    <p class="dx-sub">A ruled-out hypothesis cannot be moved back to open: the job rules do not allow it. If it was a mistake, add it again on the job.</p>
+    <ul class="dx-reasons">
+      {% for r in dx.ruled_out %}<li><b class="dx-tag">Ruled out</b> <a class="dx-link" href="{{ r.href }}">{{ r.title }}</a> <span class="dx-rat">{{ r.system_label }}{% if r.when %} &middot; {{ r.when|dx_ago }}{% endif %}</span></li>{% endfor %}
+    </ul>
+  </details>
+  {% endif %}
   {% else %}
   <p class="dx-none">No suspects yet: there is no open job hypothesis, shared cause or applicable bulletin for this car's current codes.</p>
   {% endif %}

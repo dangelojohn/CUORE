@@ -204,16 +204,17 @@ def open_target(port: int, url: str) -> dict:
         return json.loads(r.read().decode("utf-8"))
 
 
-def wait_for_port(port: int, timeout: float = 15.0) -> bool:
+def wait_for_port(port: int, timeout: float = 60.0) -> bool:
+    """Wait until the server answers /api/health (create_app can take many
+    seconds under load; the port only opens after it returns)."""
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.settimeout(0.3)
-                s.connect(("127.0.0.1", port))
-                return True
-        except OSError:
-            time.sleep(0.2)
+            with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/health", timeout=3) as r:
+                if r.status == 200:
+                    return True
+        except Exception:  # noqa: BLE001 -- not up yet
+            time.sleep(0.3)
     return False
 
 
@@ -277,8 +278,12 @@ else:
                     })
                     time.sleep(0.5)
 
-                    nav = cdp.send("Runtime.evaluate", {
-                        "expression": "document.readyState", "returnByValue": True})
+                    for _ in range(100):  # up to ~30 s for a loaded machine
+                        nav = cdp.send("Runtime.evaluate", {
+                            "expression": "document.readyState", "returnByValue": True})
+                        if nav.get("result", {}).get("value") in ("complete", "interactive"):
+                            break
+                        time.sleep(0.3)
                     check("job page (step=7) loaded in the headless browser",
                           nav.get("result", {}).get("value") in ("complete", "interactive"),
                           str(nav))

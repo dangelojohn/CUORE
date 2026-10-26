@@ -121,6 +121,15 @@ def sparkline(series: dict[str, Any], unit: str, dec: int) -> Optional[dict[str,
                        (f" ({note})" if note else "")}
 
 
+def _days_ago(day: str) -> str:
+    """'3 d ago' / 'today' for a YYYY-MM-DD sample day ('' when unknown)."""
+    try:
+        n = (date.today() - date.fromisoformat(str(day)[:10])).days
+    except ValueError:
+        return ""
+    return "today" if n <= 0 else f"{n} d ago"
+
+
 def trends_panel_context(vin: str) -> dict[str, Any]:
     """The context object the ``_trends_panel.html`` partial needs, passed as ``trends``.
 
@@ -138,11 +147,23 @@ def trends_panel_context(vin: str) -> dict[str, Any]:
             for k in ("first", "last", "slope_per_day", "change"):
                 s2[k + "_txt"] = _fmt(s[k], dec if k != "slope_per_day" else dec + 2) if s.get(k) is not None else ""
             series.append(s2)
+        used = [s for s in series if s["n"] or s["readings_used"] or s["excluded"]["count"]]
+        dated = [p["date"] for s in series for p in (s.get("points") or [])]
+        last = max(dated) if dated else ""
         metrics.append({**m, "series": series,
                         "series_with_data": [s for s in series if s["n"]],
-                        "series_empty": [s for s in series if not s["n"]]})
-    shown = [m for m in metrics if m["status"] != "no_data"]
-    return {**base, "metrics": metrics, "metrics_shown": shown,
+                        "series_empty": [s for s in series if not s["n"]],
+                        "series_used": used,
+                        "series_none": [s for s in series if s not in used],
+                        "last_date": last, "last_ago": _days_ago(last)})
+    # Priority first (flagged / drifting), then metrics that have points, then the newest sample.
+    def _order(m: dict[str, Any]) -> tuple:
+        return (-trends._PRIORITY.get(m["status"], 0), 0 if m["n"] else 1,
+                tuple(-ord(ch) for ch in m["last_date"]), m["label"])
+    shown = sorted((m for m in metrics if m["status"] != "no_data"), key=_order)
+    main = [m for m in shown if m["status"] != "not_enough_data"]
+    thin = [m for m in shown if m["status"] == "not_enough_data"]
+    return {**base, "metrics": metrics, "metrics_shown": shown, "metrics_main": main, "metrics_thin": thin,
             "metrics_idle": [m for m in metrics if m["status"] == "no_data"]}
 
 

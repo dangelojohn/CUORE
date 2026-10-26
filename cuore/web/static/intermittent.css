@@ -46,3 +46,11 @@
 .im-ovl { list-style: none; padding: 0; }
 .im-ovl > li { border-top: 1px solid var(--rule-soft); padding: 10px 0; }
 .im-ovl a.im-key { display: inline-flex; align-items: center; min-height: var(--tap); font-weight: var(--fw-semibold); font-size: var(--fs-lg); margin-right: 10px; }
+
+/* Overview grouping: patterns first, the rest folded into counted lines. */
+.im-h { font-size: var(--fs-xl); margin: 16px 0 6px; }
+.im-group { margin: 10px 0; border: 1px solid var(--rule); border-radius: var(--radius); padding: 0 12px; }
+.im-group > summary { color: var(--ink); font-weight: var(--fw-semibold); }
+.im-chips { list-style: none; padding: 0; margin: 0 0 8px; display: flex; flex-wrap: wrap; gap: 4px 18px; }
+.im-chips > li { display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); }
+.im-chips a.im-key { display: inline-flex; align-items: center; min-height: var(--tap); font-weight: var(--fw-semibold); font-size: var(--fs-lg); }

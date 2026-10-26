@@ -14,8 +14,14 @@ Run:
 """
 
 import json
+import os
 import sys
+import tempfile
 from pathlib import Path
+
+# Isolate from the live ProgramData notes (they grow and made the 24 KB size
+# check depend on the bench's own state). Must be set before importing server.
+os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore_compact_")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 

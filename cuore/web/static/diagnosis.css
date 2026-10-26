@@ -48,3 +48,19 @@
 .dx-chain > li { padding: 2px 0; }
 .dx-chain > li.dx-hit { font-weight: 600; border-left: 4px solid var(--accent);
   padding-left: 8px; margin-left: -12px; }
+
+/* Grouped suspects: system group > suspect summary line > folded reasons. */
+.dx-group { margin: 0 0 10px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface-2); }
+.dx-group > .dx-list, .dx-group > .dx-sub, .dx-group > .dx-reasons { margin-left: 8px; margin-right: 8px; }
+.dx-group > .dx-list { padding-bottom: 8px; }
+.dx-gsum { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 44px;
+  padding: 8px 12px; font-size: var(--fs-md); }
+.dx-top { flex: 1 1 100%; color: var(--ink-2); overflow-wrap: anywhere; margin-left: 36px; }
+.dx-reasonfold > summary { display: flex; align-items: center; min-height: 44px; }
+.dx-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; margin-bottom: 10px; }
+.dx-actions form { margin: 0; }
+.dx-btn { min-height: 44px; min-width: 44px; padding: 0 16px; font-size: var(--fs-md); }
+.dx-btn-refuted { border-color: var(--sev-returned); color: var(--sev-returned); }
+.dx-btn-confirmed { border-color: var(--ok); color: var(--ok); }
+.dx-flash { padding: 10px 14px; border-left: 4px solid var(--ok); background: var(--surface-2); margin: 0 0 10px; }
+.dx-flash-err { border-left-color: var(--sev-returned); background: var(--sev-returned-bg); }
