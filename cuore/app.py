@@ -42,6 +42,7 @@ from .web import dossier_routes  # noqa: E402
 from .web import electrical_routes  # noqa: E402
 from .web import sensor_routes  # noqa: E402
 from .web import fuse_routes  # noqa: E402
+from .web import procedure_proto_routes  # noqa: E402
 from .web import harness_routes  # noqa: E402
 from .web import mes_param_routes  # noqa: E402
 from .web import path_diag_routes  # noqa: E402
@@ -235,6 +236,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(electrical_routes.router)
     app.include_router(sensor_routes.router)
     app.include_router(fuse_routes.router)
+    app.include_router(procedure_proto_routes.router)
     app.include_router(mes_param_routes.router)
     app.include_router(path_diag_routes.router)
     app.include_router(harness_routes.router)

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ p.title }} (prototype) — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('procedure_proto.css') }}">
+<main class="pp-page" id="pp-root">
+  {% include "_proc_proto_banner.html" %}
+  <p class="pp-back"><a href="{{ base }}">&larr; All prototype procedures</a></p>
+  <h1 class="pp-h1">{{ p.title }} <small>{{ p.module }} | {{ p.bus }}</small></h1>
+  {% if msg %}<p class="pp-msg" role="alert">{{ msg }}</p>{% endif %}
+
+  {% if view == "setup" %}
+  <section class="pp-card pp-why"><h2>WHY</h2>
+    {% if job %}<p>For the open job <a href="/v/{{ vin }}/job">{{ job.id[:8] }}</a>{% if job.text %}: {{ job.text }}{% endif %}. {{ p.why_generic }}</p>
+    {% else %}<p>{{ p.why_generic }} <span class="pp-muted">(No open job found, so this is the general reason.)</span></p>{% endif %}
+  </section>
+
+  <section class="pp-card" aria-labelledby="pp-ready"><h2 id="pp-ready">1 READY? <small>CUORE checks these itself</small></h2>
+    <ul class="pp-chips">
+      {% for c in rd.chips %}
+      <li class="pp-chip {{ 'pp-ok' if c.state == 'ok' else 'pp-bad' }}"><span class="pp-mark">{{ 'OK' if c.state == 'ok' else '!!' }}</span> {{ c.label }}: {{ c.value }}</li>
+      {% endfor %}
+    </ul>
+    {% for c in rd.blockers %}<p class="pp-block"><b>{{ c.label }}</b> is blocking. {{ c.unblock }}.</p>{% endfor %}
+    <form method="post" action="{{ base }}/{{ proc }}/recheck" class="pp-ask">
+      {% for a in rd.asks %}
+      <p class="pp-askrow"><span>{{ a.text }}</span>
+        {% if a.answered %}<span class="pp-chip pp-ok"><span class="pp-mark">OK</span> Yes</span>
+        {% else %}<button type="submit" name="ask" value="{{ a.key }}" class="pp-btn">Yes</button>{% endif %}</p>
+      {% endfor %}
+      <button type="submit" class="pp-btn pp-ghost">Re-check</button>
+    </form>
+  </section>
+
+  <section class="pp-card"><h2>2 BEFORE <small>saved to the job when you start</small></h2>
+    {% if p.kind == "run" %}<p>EVAP vapour pressure <b>0.05 kPa</b> (expected to fall).</p>
+    {% else %}<p>The 8 service values are read and saved before anything is written.</p>{% endif %}
+  </section>
+
+  <section class="pp-card pp-start"><h2>3 START</h2>
+    {% if token %}
+    <form method="post" action="{{ base }}/{{ proc }}/start" id="pp-startform">
+      <input type="hidden" name="token" value="{{ token }}">
+      <button type="button" id="pp-hold" class="pp-hold" aria-label="Hold for 2 seconds to start">
+        <svg viewBox="0 0 100 100" aria-hidden="true"><circle class="pp-ring-bg" cx="50" cy="50" r="44"/><circle id="pp-ring" class="pp-ring" cx="50" cy="50" r="44"/></svg>
+        <span>HOLD 2 s TO START</span>
+      </button>
+      <p class="pp-muted">Mouse or touch: press and hold. Keyboard: hold Space or Enter. Let go early and it cancels.</p>
+      <noscript><p class="pp-block">The hold-to-start needs scripts. Nothing starts without it.</p></noscript>
+    </form>
+    {% else %}
+    <p class="pp-hold pp-hold-off" aria-disabled="true">HOLD 2 s TO START - not ready</p>
+    <p class="pp-muted">Clear the items marked !! above (and answer the question), then Re-check.</p>
+    {% endif %}
+  </section>
+
+  {% elif view == "running" %}
+  <section class="pp-card pp-run" aria-live="polite">
+    <h2>RUNNING <span id="pp-el">{{ '%d:%02d' % (snap.elapsed // 60, snap.elapsed % 60) }}</span> / 0:{{ max_run }}</h2>
+    <form method="post" action="{{ base }}/{{ proc }}/stop">
+      <input type="hidden" name="run" value="{{ run.id }}">
+      <button type="submit" class="pp-stop">STOP</button>
+    </form>
+    {% if snap.proof %}
+    <p class="pp-proof"><span>{{ snap.proof.label }}</span>
+      <b>{{ '%.2f' % snap.proof.before }} &rarr; <span id="pp-pnow">{{ '%.2f' % snap.proof.now }}</span> {{ snap.proof.unit }}</b>
+      <span class="pp-chip pp-info">expected: {{ snap.proof.expected }}</span></p>
+    {% endif %}
+    <ul class="pp-chips" id="pp-guards">
+      {% for g in snap.guards %}<li class="pp-chip {{ 'pp-ok' if g.ok else 'pp-bad' }}"><span class="pp-mark">{{ 'OK' if g.ok else '!!' }}</span> {{ g.label }} {{ g.value }} (guard)</li>{% endfor %}
+    </ul>
+    <p class="pp-muted">CUORE stops this by itself at {{ max_run }} s, if a guard trips, or if this screen disconnects.</p>
+    <noscript><p class="pp-block">Live numbers need scripts. STOP still works.</p></noscript>
+  </section>
+
+  {% else %}
+  <section class="pp-card pp-after">
+    {% set w = run.result.word %}
+    <h2 class="pp-word {{ 'pp-w-ok' if w == 'WORKED' else ('pp-w-bad' if w == "DIDN'T" else 'pp-w-un') }}">{{ w }}</h2>
+    <p class="pp-call">{{ run.result.reason }}</p>
+    <p class="pp-muted">Ended: {{ run.stop_text }} ({{ '%.1f' % run.elapsed_final }} s)</p>
+    <table class="pp-table"><thead><tr><th>Value</th><th>Before</th><th>After</th></tr></thead><tbody>
+      {% if p.kind == "reset" %}
+        {% for n, b in run.before %}{% set a = run.after[loop.index0][1] %}
+        <tr class="{{ 'pp-changed' if a != b }}"><td>{{ n }}</td><td>{{ b }}</td><td>{{ a }}{% if a != b %} <b>(changed)</b>{% endif %}</td></tr>{% endfor %}
+      {% else %}
+        <tr class="{{ 'pp-changed' if run.p_min != run.p_before }}"><td>EVAP vapour pressure</td><td>{{ '%.2f' % run.p_before }} kPa</td><td>{{ '%.2f' % run.p_min }} kPa</td></tr>
+      {% endif %}
+    </tbody></table>
+    <p class="pp-evidence">Would be saved to {% if job %}job {{ job.id[:8] }}{% else %}the job{% endif %} as evidence <b>{{ evidence }}</b> "{{ p.hypothesis }}".
+      <span class="pp-muted">Prototype: not written to the real job; kept in procedure_prototype.jsonl.</span></p>
+    <p class="pp-actions"><a class="pp-btn" href="{{ base }}/{{ proc }}">Run again</a> <a class="pp-btn pp-ghost" href="/v/{{ vin }}/job">Back to the job</a></p>
+  </section>
+  {% endif %}
+
+  <details class="pp-card pp-sim"{% if active_faults %} open{% endif %}><summary>Simulator controls (prototype only)</summary>
+    <p class="pp-muted">Switch a fault to see how every state looks. Works mid-run too.</p>
+    <div class="pp-faults">
+      {% for k, label in faults.items() %}
+      <form method="post" action="{{ base }}/{{ proc }}/sim"><input type="hidden" name="fault" value="{{ k }}">
+        <button type="submit" class="pp-btn {{ 'pp-on' if k in active_faults else 'pp-ghost' }}" aria-pressed="{{ 'true' if k in active_faults else 'false' }}">{{ 'ON' if k in active_faults else 'off' }} - {{ label }}</button></form>
+      {% endfor %}
+      <form method="post" action="{{ base }}/{{ proc }}/sim"><input type="hidden" name="clear" value="1"><button type="submit" class="pp-btn pp-ghost">Clear all faults</button></form>
+    </div>
+  </details>
+</main>
+<script>
+(function () {
+  {% if view == "setup" and token %}
+  var btn = document.getElementById("pp-hold"), ring = document.getElementById("pp-ring"), form = document.getElementById("pp-startform");
+  var HOLD = 2000, C = 2 * Math.PI * 44, t0 = 0, raf = 0, done = false;
+  ring.style.strokeDasharray = C; ring.style.strokeDashoffset = C;
+  function frame(now) {
+    var f = Math.min(1, (now - t0) / HOLD);
+    ring.style.strokeDashoffset = C * (1 - f);
+    if (f >= 1) { done = true; if (navigator.vibrate) navigator.vibrate(60); form.submit(); return; }
+    raf = requestAnimationFrame(frame);
+  }
+  function begin() { if (done || raf) return; btn.classList.add("pp-holding"); t0 = performance.now(); raf = requestAnimationFrame(frame); }
+  function cancel() { if (done) return; cancelAnimationFrame(raf); raf = 0; btn.classList.remove("pp-holding"); ring.style.strokeDashoffset = C; }
+  btn.addEventListener("pointerdown", function (e) { e.preventDefault(); try { btn.setPointerCapture(e.pointerId); } catch (x) {} begin(); });
+  ["pointerup", "pointercancel", "pointerleave", "lostpointercapture"].forEach(function (n) { btn.addEventListener(n, cancel); });
+  btn.addEventListener("keydown", function (e) { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); begin(); } });
+  btn.addEventListener("keyup", function (e) { if (e.key === " " || e.key === "Enter") cancel(); });
+  btn.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+  {% elif view == "running" %}
+  var es = new EventSource("{{ base }}/{{ proc }}/stream?run={{ run.id }}");
+  function mm(s) { s = Math.floor(s); return Math.floor(s / 60) + ":" + ("0" + (s % 60)).slice(-2); }
+  es.addEventListener("tick", function (e) {
+    var d = JSON.parse(e.data);
+    document.getElementById("pp-el").textContent = mm(d.elapsed);
+    if (d.proof) document.getElementById("pp-pnow").textContent = d.proof.now.toFixed(2);
+    var g = document.getElementById("pp-guards");
+    g.innerHTML = "";
+    d.guards.forEach(function (x) {
+      var li = document.createElement("li"); li.className = "pp-chip " + (x.ok ? "pp-ok" : "pp-bad");
+      li.textContent = (x.ok ? "OK" : "!!") + " " + x.label + " " + x.value + " (guard)"; g.appendChild(li);
+    });
+  });
+  var sf = document.querySelector("form[action$='/stop']");
+  sf.addEventListener("submit", function (e) {   /* with scripts: POST first, then leave, so the stop reason is STOP not "disconnect"; without scripts the plain form POST still works */
+    e.preventDefault();
+    fetch(sf.action, { method: "POST", body: new URLSearchParams(new FormData(sf)), credentials: "same-origin", redirect: "manual" })
+      .finally(function () { es.close(); window.location = "{{ base }}/{{ proc }}?run={{ run.id }}"; });
+  });
+  es.addEventListener("done", function () { es.close(); window.location = "{{ base }}/{{ proc }}?run={{ run.id }}"; });
+  {% endif %}
+})();
+</script>
+{% endblock %}
