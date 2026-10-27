@@ -96,3 +96,67 @@ generated from `mes-log-mcp/mes/mes_functions.py`), `cuore/live/actuate.py`
 Choose one Stage 1 candidate (recommended: the **ESIM commanded vent test**, which
 also serves the EVAP job). With the second adapter fitted, run it once in MES while
 CUORE listens, review the learned sequence, then decide whether CUORE may run it.
+
+---
+
+## Status 2026-10-26
+
+Checked against the code on 2026-10-26. The sections above are left as written; where
+they differ, this section is current.
+
+**What changed in the code today**
+
+- **Read-only service-value discovery** (`cuore/live/service_dids.py`). A 0x22-only sweep
+  of the IPC (0xF180-F1FF, 0x0100-01FF, 0x2000-207F) and ECM (0x2000-203F) on CAN-C,
+  capped at 576 requests (about 144 s), matched against the values MES logged for this
+  car (odometer, distance and days till next service, last service date). A match is a
+  CANDIDATE, "unconfirmed until it changes after a reset". MCP tools `service_dids_plan`,
+  `service_dids_discover`, `service_dids_results`; a section on the MES-parameters page.
+  No car contact has happened yet.
+- **Procedure dry run** (`cuore/live/procedure_dry_run.py`). A captured MES procedure goes
+  through the real `procedure_capture.review` / `gate`, then the unmodified
+  `actuate.run_actuator` against an in-memory `FakeSession`. It prints the exact bytes a
+  real run would send. CLI: `python -m cuore.live.procedure_dry_run <capture>`. The
+  prototype procedure screen uses it when `<state dir>/procedure_captures/<proc>.json`
+  exists (`procedure_dry_bridge.py`, `procedure_sim._judge`). Replies are simulated:
+  WORKED means the protocol logic completes, never that the car did it.
+- **Consent phrases.** `send_raw` writes need `i_understand_this_writes_to_the_vehicle`,
+  `module=`, and exactly `SEND RAW <SS> TO <MODULE>`; refused on the module blocklist
+  (ABS, EPS, ORC, HALF, DASM, ESL, TVM, TCM, ESM, DTCM, RFHUB and **IPC**) and on CAN-CH;
+  27/2E/31/34/36/37/85 are blocked on every module. `clear_dtcs` needs `confirm=True` and
+  exactly `CLEAR ALL EMISSIONS CODES`.
+- **Web login.** Signed-cookie session (`api/deps.py`, `web/login_routes.py`); token set
+  with `scripts/web_token.py`. Writes accept only the cookie or the header, never
+  `?token=`. With no token set, auth is off, so the lock is inert until one is set.
+- **Safety tightening** in `actuate.py` / `transport.py`: a stop step counts as control
+  returned only when the module accepted it; a learned procedure is refused if its target
+  byte differs from the module's current one; waiting for the adapter lock is bounded
+  (`CUORE_LOCK_WAIT`, 30 s default).
+
+**Staged path, status column**
+
+| Stage | Status 2026-10-26 |
+|---|---|
+| 0 - clear codes | Built. Consent phrase `CLEAR ALL EMISSIONS CODES`, MCP-only. |
+| 1 - actuator tests | Not started. Needs a capture; dry-run harness and gate exist. Blocked by the engine-running question (owner decision). |
+| 2 - service resets | **First write target: the service-interval reset.** Service values not yet located; discovery built, not yet run. |
+| 3 - PROXI, battery registration, coding | **Decided: stay in MES permanently for this car.** SecurityAccess (0x27) keys held only in MES's database; a failed alignment risks P1500 limp-in; there is no spare BCM to recover with. |
+
+**Decisions recorded.** (1) PROXI alignment and battery registration stay in MES for
+good. (2) The first CUORE write is the service-interval reset. (3) Capture options: (a) a
+second adapter plus Y-splitter, or (b) a PC-side serial mirror (design in preparation:
+`docs/design/SERIAL_MIRROR_CAPTURE.md`).
+
+**Still open for the owner:** (1) allow gated procedures in the web UI; (2) an
+engine-running test class; (3) which capture option.
+
+**Caveat found in the code.** The reset runs on the IPC. `send_raw` refuses IPC and
+refuses 0x2E/0x31 everywhere, so it is not a route. `actuate` allows 0x2F and 0x31 but not
+0x2E. If MES's reset turns out to be a 0x2E write, no CUORE path exists until the owner
+changes that rule; a 0x31 routine would replay through `actuate` under its routine consent
+phrase. The capture decides which.
+
+**First concrete step (replaces the ESIM suggestion above).** At the next car connection:
+run the discovery (after the cold RFHUB read and the EVAP reads) and record the
+candidates; then capture one service reset in MES; dry-run it; gate it; then the first
+real write with typed consent and a read-back.

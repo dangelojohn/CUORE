@@ -72,3 +72,37 @@ proof).
 - `run_actuator` requires engine off and stationary, but MES lists the ESIM
   test as needing the engine running. The learned test may therefore not be
   replayable under today's interlock. Decide that before promising a replay.
+
+---
+
+## Status 2026-10-26
+
+Not yet run on the car. Updates to this runbook:
+
+- **First target changed.** The first procedure to learn is the **service-interval reset**
+  (IPC), not the ESIM vent test. The ESIM test needs the engine running and `run_actuator`
+  requires engine off, which is still an owner decision (below). Steps 1-7 apply unchanged
+  to the new target; "ECM" and the ESIM menu path become the IPC and MES's Service
+  Interval Reset.
+- **Before the capture, run the discovery.** At the next connection, after the cold RFHUB
+  read and the EVAP reads, run `service_dids_discover` (0x22 only, MES closed) and record
+  the candidates. Re-run after the captured reset to see which DID changed.
+- **Capture options.** (a) Second adapter plus Y-splitter, as in "Hardware" above. (b) A
+  PC-side serial mirror between MES and its own adapter; design in preparation:
+  `docs/design/SERIAL_MIRROR_CAPTURE.md`. The owner chooses (open).
+- **Step 7 is now doable.** `python -m cuore.live.procedure_dry_run <capture>` runs the real
+  review and gate and the real replay logic on a fake session and prints the exact bytes a
+  real run would send. It writes only audit records tagged `dry_run`. Save the capture as
+  `<state dir>/procedure_captures/<proc>.json` and the prototype screen uses it too.
+  Simulated replies prove the protocol logic, never the car's response.
+- **Known gaps.** Gap 1 (`mes_learn.stop` does not call `review`) was not checked today and
+  stands. Gap 2 (engine-running tests) is open. Separately, the replay is tighter: a stop
+  step counts as control returned only when the module accepted it, the learned target
+  byte must match the module's current one, and the adapter-lock wait is bounded (30 s).
+- **The reset has no actuator stop.** If the capture shows a 0x2E write, `actuate` cannot
+  replay it (0x2E is not on its allowlist) and `send_raw` refuses IPC; see the write plan's
+  2026-10-26 caveat. A 0x31 routine can replay under its routine consent phrase.
+- **Do not use `send_raw` for any of this.** Writes need `SEND RAW <SS> TO <MODULE>`, and
+  IPC and CAN-CH are refused.
+- **Decisions still open:** web-UI gated procedures; an engine-running test class; the
+  capture option.

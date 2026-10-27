@@ -165,3 +165,50 @@ minimum, high contrast in light and dark; usable at arm's length on the bay tabl
    off. Keep the interlock (ESIM stays MES-only) or approve a running-engine class of
    tests with stricter guards (stationary, P, hood-open prompt, 30 s max)?
 3. Second adapter + Y-splitter (needed to learn any procedure). No product recommended.
+
+---
+
+## Status 2026-10-26 (later)
+
+Verified in code. The design above is unchanged; this records what now exists and what
+was decided.
+
+**Built since**
+- **Dry-run harness** (`cuore/live/procedure_dry_run.py`). Delivery step 1's "simulated
+  procedure" can now be a real captured procedure: real `review` and `gate`, real
+  `actuate.run_actuator`, an in-memory fake session, scripted failure replies (NRC, no
+  reply, 0x78 pending, disconnect, dropped stop). Output: gate result, exact would-send
+  bytes, a WORKED / DIDN'T / UNCLEAR verdict with one line. Audit records carry
+  `dry_run=true`; nothing is written to the observation store.
+- **Prototype wiring.** `services/procedure_dry_bridge.py` loads
+  `<state dir>/procedure_captures/<proc>.json` if present; `procedure_sim._judge` then
+  takes the verdict from the dry run. Without a capture the hand-written simulator is used
+  as before. The fault buttons map to scripted replies (no proof -> NRC 22 at step 2;
+  ambiguous -> no stop acknowledgement).
+- **Web login** (`api/deps.py`, `web/login_routes.py`, `scripts/web_token.py`): signed
+  cookie, 30-day session, rotating the token ends every session; state-changing requests
+  need the cookie or header, never `?token=`; inert until a token is set. A code comment
+  marks the spot for the one-controller session check (section 5). This is groundwork for
+  decision 1 and does not itself allow web-UI writes.
+- **Safety tightening:** stop counts only when accepted; target-byte check; bounded lock
+  wait (30 s). These support principle 3 and the "server owns the stop" rule.
+- **Consent phrases** remain typed on the MCP side (`CLEAR ALL EMISSIONS CODES`,
+  `SEND RAW <SS> TO <MODULE>`, and the per-procedure `ACTUATE ...` phrase). The hold-to-
+  start token described in section 2 is not built.
+
+**Decisions recorded**
+- PROXI alignment and battery registration stay in MES permanently for this car.
+- The first procedure is the **service-interval reset**, which also reorders step 4 of the
+  delivery plan: it now comes before any actuator test. It is a reset with no stop step, so
+  the "Show the proof" layout becomes the before -> after table (10268 -> 16000 km).
+- Capture: (a) second adapter plus Y-splitter, or (b) a PC-side serial mirror (design in
+  preparation: `docs/design/SERIAL_MIRROR_CAPTURE.md`).
+
+**Still open for the owner (section 8):** (1) web-UI gated procedures; (2) the
+engine-running test class; (3) the capture option.
+
+**Order from here:** next car connection, run the service-value discovery; capture one MES
+service reset; dry-run; gate; first real write with consent and read-back. The reset runs
+on the IPC; if it proves to be a 0x2E write, `actuate` (no 0x2E) and `send_raw` (IPC and
+0x2E refused) both block it, and that needs an owner rule decision before anything else.
+(The crawl-ingest endpoint added today is for the parts catalogue and is unrelated.)

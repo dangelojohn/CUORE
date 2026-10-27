@@ -228,3 +228,54 @@ What would have to be true to move either to CUORE:
 - [8] diag.net, "Caution on FCA Vehicles - Disconnecting the Battery": https://diag.net/msg/m4oauyn8nfysjhbmb8rpygoywe (title only)
 - Forum byte values are community compilations, not Alfa documentation; the search tool returned snippets and I did not open the pages (time/token limits), so quotes are second-hand.
 - Local: files cited inline above; MES ECU database never opened.
+
+---
+
+## Status 2026-10-26 (later the same day)
+
+Checked against the code. Nothing above is rewritten.
+
+**Decisions**
+- **PROXI alignment and battery registration stay in MES permanently for this car.** Reasons:
+  they need UDS SecurityAccess (0x27) whose keys sit only in MES's database; a failed or
+  partial alignment leaves the TCM in P1500 limp-in; and there is no spare BCM to recover
+  with. Part 2's Stage B and C for these two are withdrawn; the MES-only card (Stage A)
+  stands.
+- **The service-interval reset is the first write target** (Part 1). The oil-change (ECM)
+  reset follows only after the service one is proven.
+
+**What now exists for Part 1, Section 3 ("what CUORE can verify read-only")**
+- `cuore/live/service_dids.py`: 0x22-only sweep of the IPC and ECM on CAN-C (max 576
+  requests, about 144 s), matched against the values in the 10-23 log (16000 km, 365 days,
+  odometer, last service date) under many decodings (1-4 byte, both endians, x10, BCD and
+  binary dates). Tools `service_dids_plan` / `service_dids_discover` / `service_dids_results`
+  and a section on `/v/{vin}/mes-parameters`.
+- Every hit is labelled "candidate - unconfirmed until it changes after a reset". The same
+  value can match two quantities (16000 is both the interval and the countdown after a
+  reset); the matcher says so in a warning. The proof remains: re-run after the next MES
+  reset and see which DID moved off 16000.
+- It has not been run on the car. The 8-row table in Section 3 is unchanged: still no
+  confirmed DID.
+- The sweep needs MES closed, no live poll, plain cable on CAN-C, ignition on, engine off.
+
+**What now exists for Stage B/C**
+- `procedure_dry_run` replays a capture through the real gate and replay logic on a fake
+  session and prints the exact would-send bytes. This is the "dry run" step of the plan.
+- `actuate` tightening: a stop step counts only if accepted; target-byte check; bounded
+  adapter-lock wait.
+- Consent phrases: `CLEAR ALL EMISSIONS CODES` (clear), `SEND RAW <SS> TO <MODULE>` (raw
+  write).
+
+**Revised order for the service reset**
+1. Next car connection: discovery (after the cold RFHUB read and the EVAP reads); record
+   candidates.
+2. Capture one MES service reset: second adapter plus Y-splitter, or the PC-side serial
+   mirror (design in preparation: `docs/design/SERIAL_MIRROR_CAPTURE.md`).
+3. Dry-run, then gate.
+4. First real write with consent and read-back, compared with the before/after pattern
+   from FESLog_2610230114.
+
+**Caveat from the code.** The service module is the IPC. The raw-send path refuses IPC, and
+refuses 0x2E and 0x31 on every module. `actuate` allows 0x31 and 0x2F, not 0x2E. Whether the
+reset is a 0x2E write or a 0x31 routine is UNKNOWN until captured; if 0x2E, CUORE cannot
+send it under today's rules and the owner would have to decide whether to change them.
