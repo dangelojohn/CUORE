@@ -17,7 +17,7 @@
 {% set legend_text = {} %}{% for e in s.legend %}{% if e.same_text %}{% set _ = legend_text.update({e.status: e.text}) %}{% endif %}{% endfor %}
 {% set quiet = True %}
 <section class="panel" id="shop-{{ 'wrangler' if s.kind == 'wrangler' else loop.index }}">
-  <h2>{{ s.source_name }} <span class="small muted">· {{ s.rows|length }} item{{ '' if s.rows|length == 1 else 's' }} · {{ 'aftermarket brands' if s.kind == 'aftermarket' else ('2019 Jeep Wrangler Sport 2.0L eTorque, store.mopar.com' if s.kind == 'wrangler' else 'retailer list') }}</span></h2>
+  <h2>{{ s.source_name }} <span class="small muted">· {{ s.count if s.lazy else s.rows|length }} item{{ '' if (s.count if s.lazy else s.rows|length) == 1 else 's' }} · {{ 'aftermarket brands' if s.kind == 'aftermarket' else ('2019 Jeep Wrangler Sport 2.0L eTorque, store.mopar.com' if s.kind == 'wrangler' else 'retailer list') }}</span></h2>
   {% if s.kind == 'wrangler' %}
   <p class="small">Engine parts for a different vehicle. {{ s.matched }} share a Mopar part number with this Stelvio's catalogue; that is a catalogue fact, not proof of fit on this VIN. The rest are unverified.</p>
   <p class="cat-caveat">Mopar store prices are dated retailer prices, not quotes. Interchange status comes only from comparing part numbers in the two catalogues; nothing here says a Wrangler part fits.</p>
@@ -32,6 +32,19 @@
   <details class="fold cat-fold">
     <summary><h3>{{ c.title }}</h3><span class="chip plain">{{ c.rows|length }}</span></summary>
     {% set items = c.rows %}{% include "_catalog_listings.html" %}
+  </details>
+  {% endfor %}
+  {% elif s.lazy %}
+  <p class="cat-caveat">Not in the Mopar dealer catalogue. Fitment is Autodoc's own vehicle selection, not a part-number match: confirm before buying. Rows load only when you open a category; search above covers every row.</p>
+  {% for g in s.autodoc_groups %}
+  <details class="fold cat-fold">
+    <summary><h3>{{ g.title }}</h3><span class="chip plain">{{ g.count }}</span></summary>
+    {% for c in g.cats %}
+    <details class="fold cat-fold">
+      <summary><h3>{{ c.title }}</h3><span class="chip plain">{{ c.count }}</span></summary>
+      <p><a class="btn" href="/catalog/other/autodoc/{{ c.slug }}">Show the {{ c.count }} row{{ '' if c.count == 1 else 's' }}</a></p>
+    </details>
+    {% endfor %}
   </details>
   {% endfor %}
   {% else %}

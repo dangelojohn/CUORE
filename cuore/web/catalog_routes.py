@@ -34,6 +34,7 @@ def catalog_index(request: Request, q: str = "") -> Response:
     if not cat:
         return web_routes._page(request, "catalog_index.html", **ctx, groups=[], hits=None, spec_hits=[], q=q, stats=None)
     hits = pc.search(cat, q) if q.strip() else None
+    listing_hits, listing_total = pc.search_listings_page(cat, q) if q.strip() else ([], 0)
     if hits is not None and q.strip():
         pns = {h["pn"] for h in hits}
         if len(pns) == 1 and pc.norm_pn(q) == pc.norm_pn(next(iter(pns))):
@@ -41,7 +42,7 @@ def catalog_index(request: Request, q: str = "") -> Response:
     spec_hits = pc.search_specs(cat, q) if q.strip() else []
     return web_routes._page(request, "catalog_index.html", **ctx, groups=pc.groups_view(cat),
                             hits=hits, spec_hits=spec_hits, q=q, stats=pc.stats(cat),
-                            listing_hits=pc.search_listings(cat, q))
+                            listing_hits=listing_hits, listing_more=max(0, listing_total - len(listing_hits)))
 
 
 @router.get("/catalog/other", response_class=HTMLResponse)
@@ -50,6 +51,16 @@ def catalog_other(request: Request):
     ctx = _ctx(request, cat)
     return web_routes._page(request, "catalog_other.html", **ctx,
                             shops=pc.listings_view(cat) if cat else [])
+
+
+@router.get("/catalog/other/autodoc/{slug}", response_class=HTMLResponse)
+def catalog_other_autodoc(request: Request, slug: str) -> Response:
+    """One Autodoc UK category's rows, rendered only when asked for."""
+    cat = pc.load()
+    c = pc.autodoc_category(cat, slug) if cat else None
+    if not c:
+        return RedirectResponse("/catalog/other", status_code=303)
+    return web_routes._page(request, "catalog_other_cat.html", **_ctx(request, cat), c=c)
 
 
 @router.get("/catalog/g/{gid}", response_class=HTMLResponse)

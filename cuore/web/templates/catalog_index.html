@@ -51,6 +51,7 @@
   <section class="panel" id="cat-other-results">
     <h2>{{ listing_hits|length }} from other shops for “{{ q }}”</h2>
     {% set items = listing_hits %}{% include "_catalog_listings.html" %}
+    {% if listing_more %}<p class="small muted">{{ listing_more }} more match{{ '' if listing_more == 1 else 'es' }} not shown (first {{ listing_hits|length }} listed). Add a word or the part number to narrow it down.</p>{% endif %}
   </section>
   {% endif %}
 {% endif %}

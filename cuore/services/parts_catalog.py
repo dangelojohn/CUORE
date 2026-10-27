@@ -154,19 +154,61 @@ _IX_ORDER = {"same-pn": 0, "same-base": 1, "none": 2}
 _FIT_ORDER = {"own": 0, "by-name": 1, "unverified": 2, "other-engine": 3}
 
 
-def search_listings(cat: dict[str, Any], q: str, limit: int = 60) -> list[dict[str, Any]]:
-    """Other shops' items the dealer catalogue lacks: part number or shop code
-    first, else every query word in the name; this car's fitment first."""
+def search_listings_page(cat: dict[str, Any], q: str, limit: int = 60) -> tuple[list[dict[str, Any]], int]:
+    """(first ``limit`` hits, total hits) over EVERY listing, Autodoc's included."""
     q = (q or "").strip()
     rows = cat.get("listings") or []
     if not q:
-        return []
+        return [], 0
     n = norm_pn(q)
     hits = [x for x in rows if n and len(n) >= 4 and (n in norm_pn(x.get("pn", "")) or n in norm_pn(x.get("sku", "")) or n in norm_pn(x.get("ean", "")))]
     words = _query_words(q)
     if not hits and words:
         hits = [x for x in rows if all(w in f"{x['name']} {x.get('brand', '')} {x.get('notes', '')} {x.get('category', '')}".lower() for w in words)]
-    return sorted(hits, key=lambda x: _FIT_ORDER.get(x["fitment"], 9))[:limit]
+    return sorted(hits, key=lambda x: _FIT_ORDER.get(x["fitment"], 9))[:limit], len(hits)
+
+
+def search_listings(cat: dict[str, Any], q: str, limit: int = 60) -> list[dict[str, Any]]:
+    """Other shops' items the dealer catalogue lacks: part number or shop code
+    first, else every query word in the name; this car's fitment first."""
+    return search_listings_page(cat, q, limit)[0]
+
+
+AUTODOC_SHOP = "Autodoc UK"
+
+
+def _cat_slug(x: dict[str, Any]) -> str:
+    return x.get("category_slug") or re.sub(r"[^a-z0-9]+", "-", (x.get("category") or "").lower()).strip("-")
+
+
+def _cat_title(x: dict[str, Any]) -> str:
+    return re.sub(r" for (Alfa Romeo|the) .*$", "", x.get("category") or "") or _cat_slug(x)
+
+
+def _autodoc_groups(cat: dict[str, Any], rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Autodoc categories under the catalogue groups: titles and counts only (no rows)."""
+    titles = {g["id"]: g["title"] for g in cat.get("groups", [])}
+    order = [g["id"] for g in cat.get("groups", [])]
+    by: dict[str, dict[str, dict[str, Any]]] = {}
+    for x in rows:
+        c = by.setdefault(x.get("group") or "other", {}).setdefault(_cat_slug(x), {"slug": _cat_slug(x), "title": _cat_title(x), "count": 0})
+        c["count"] += 1
+    out = []
+    for gid in sorted(by, key=lambda g: order.index(g) if g in order else 99):
+        cats = sorted(by[gid].values(), key=lambda c: c["title"].lower())
+        out.append({"id": gid, "title": titles.get(gid, gid), "cats": cats, "count": sum(c["count"] for c in cats)})
+    return out
+
+
+def autodoc_category(cat: dict[str, Any], slug: str) -> Optional[dict[str, Any]]:
+    """One Autodoc category's rows, rendered on demand by /catalog/other/autodoc/{slug}."""
+    rows = [x for x in cat.get("listings") or [] if x.get("source_name") == AUTODOC_SHOP and _cat_slug(x) == slug]
+    if not rows:
+        return None
+    titles = {g["id"]: g["title"] for g in cat.get("groups", [])}
+    rows = sorted(rows, key=lambda x: (x.get("brand", ""), x["name"]))
+    return {"slug": slug, "title": _cat_title(rows[0]), "group_title": titles.get(rows[0].get("group", ""), ""),
+            "rows": [{**x, "group_title": ""} for x in rows], "source": rows[0]["source"]}
 
 
 def listings_view(cat: dict[str, Any]) -> list[dict[str, Any]]:
@@ -188,6 +230,13 @@ def listings_view(cat: dict[str, Any]) -> list[dict[str, Any]]:
             e["count"] += 1
             e["same_text"] = e["same_text"] and e["text"] == i.get("text")
         shop["legend"] = sorted(legend.values(), key=lambda e: _IX_ORDER.get(e["status"], 9))
+        if k == AUTODOC_SHOP:  # ~10k rows: categories and counts only; rows come from /catalog/other/autodoc/{cat}
+            shop["lazy"] = True
+            shop["autodoc_groups"] = _autodoc_groups(cat, rows)
+            shop["rows"] = []
+            shop["count"] = len(rows)
+            out.append(shop)
+            continue
         if shop["kind"] == "wrangler":  # exact-number matches first, then the rest by category
             exact = [x for x in rows if (x.get("interchange") or {}).get("status") == "same-pn"]
             rest = [x for x in rows if x not in exact]

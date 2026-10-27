@@ -170,12 +170,22 @@ def load_listings(paths: list[Path], core_pns: set[str]) -> list[dict]:
     return out
 
 
-def autodoc_group(cat_slug: str, rules: dict) -> str:
-    slug = re.sub(r"-\d+$", "", (cat_slug or "").lower())
-    for r in rules.get("rules", []):
-        if any(k in slug for k in r["keywords"]):
-            return r["group"]
-    return rules.get("fallback", "other")
+def _autodoc_slug(cat_slug: str) -> str:
+    return re.sub(r"-\d+$", "", (cat_slug or "").lower())
+
+
+def autodoc_group(cat_slug: str, rules: dict, group: str = "", group_name: str = "") -> str:
+    """Catalogue group for an Autodoc category. A per-category override wins; otherwise
+    Autodoc's own group slug (or group_name, slugified) is looked up; else the fallback."""
+    fb = rules.get("fallback", "other")
+    ov = (rules.get("overrides") or {}).get(_autodoc_slug(cat_slug))
+    if ov:
+        return ov
+    gm = rules.get("groups") or {}
+    for g in (group, re.sub(r"[^a-z0-9]+", "-", (group_name or "").lower()).strip("-")):
+        if g and g in gm:
+            return gm[g]
+    return fb
 
 
 def load_autodoc(path: Path | None) -> list[dict]:
@@ -207,8 +217,9 @@ def load_autodoc(path: Path | None) -> list[dict]:
                 "notes": "",
                 "specs": {str(k): str(v) for k, v in (r.get("sp") or {}).items()},
                 "price": _first(r, "pr"), "currency": raw.get("currency") or "GBP", "price_date": day,
-                "msrp": "", "url": _first(r, "u"), "image_url": _first(r, "im"),
-                "category": c.get("title") or c.get("cat", ""), "group": autodoc_group(c.get("cat", ""), rules),
+                "msrp": "", "url": _first(r, "u"), "image_url": _first(r, "im") or None,
+                "category": c.get("title") or c.get("cat", ""), "category_slug": _autodoc_slug(c.get("cat", "")),
+                "group": autodoc_group(c.get("cat", ""), rules, c.get("group") or "", c.get("group_name") or ""),
                 "fitment": "unverified", "fitment_label": "AUTODOC VEHICLE SELECTION",
                 "fitment_why": f"Listed by Autodoc for its own vehicle selection ({sel or 'Stelvio 2.0 Q4'}). "
                                "A retailer claim, not verified on this car.",

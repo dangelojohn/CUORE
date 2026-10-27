@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{# One Autodoc UK category, rendered on demand from /catalog/other. cuore/web/catalog_routes.py #}
+{% block title %}{{ c.title }} · Autodoc UK · Parts{% endblock %}
+{% block content %}
+{% include "_catalog_style.html" %}
+<p class="cat-crumbs"><a href="/catalog">Parts catalogue</a> › <a href="/catalog/other">Other shops</a></p>
+<h1>{{ c.title }}</h1>
+<p class="small muted">Autodoc UK · {{ c.rows|length }} item{{ '' if c.rows|length == 1 else 's' }}{% if c.group_title %} · {{ c.group_title }}{% endif %}</p>
+<form class="cat-search" method="get" action="/catalog" role="search">
+  <input type="search" name="q" placeholder="Part number, name, or “caliper bolt torque”" aria-label="Search parts and torque values">
+  <button class="btn" type="submit">Search</button>
+</form>
+<section class="panel">
+  <p class="cat-caveat">Not in the Mopar dealer catalogue. Fitment is Autodoc's own vehicle selection, not a part-number match: confirm before buying. Hover a fitment tag for the shop's reason.</p>
+  {% set items = c.rows %}{% set quiet = True %}{% include "_catalog_listings.html" %}
+  <p><a class="btn" href="/catalog/other">Back to other shops</a></p>
+</section>
+<script src="{{ static_url('catalog.js') }}" defer></script>
+{% endblock %}

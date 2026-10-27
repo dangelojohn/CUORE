@@ -78,11 +78,12 @@ def main() -> None:
     ad = STATE / "autodoc.json"
     ad.write_text(json.dumps({"source": "https://autodoc.example", "fetched_at": "2026-10-26T09:00:00Z", "currency": "GBP",
         "vehicle": {"label": "TEST Stelvio 2.0", "engine_code": "TEST.ENG"},
-        "categories": [{"cat": "brake-pad-set-10130", "title": "Brake pad set for TEST", "rows": [
+        "categories": [{"cat": "brake-pad-set-10130", "title": "Brake pad set for TEST", "group": "brake-system", "rows": [
             {"n": "TESTBRAND TEST-001 Brake pad set", "no": "TEST-001", "b": "TESTBRAND", "ean": "0000000000001",
              "pr": "£24.49", "u": "https://autodoc.example/p1", "im": "https://cdn.example/p1.jpg",
              "sp": {"Height 1 [mm]": "58,7"}}]},
-            {"cat": "mystery-widget-999", "title": "Widget", "rows": [{"n": "TESTBRAND TEST-002 Widget", "no": "TEST-002", "b": "TESTBRAND", "pr": "£1.00", "im": None}]}]}), encoding="utf-8")
+            {"cat": "brake-fluid-12308", "title": "Brake fluid for TEST", "group": "oils-and-fluids", "rows": [{"n": "TESTBRAND TEST-003 Brake fluid", "no": "TEST-003", "b": "TESTBRAND", "pr": "£5.00", "im": ""}]},
+            {"cat": "mystery-widget-999", "title": "Widget", "group": "no-such-group", "rows": [{"n": "TESTBRAND TEST-002 Widget", "no": "TEST-002", "b": "TESTBRAND", "pr": "£1.00", "im": None}]}]}), encoding="utf-8")
     wr = STATE / "wrangler.json"
     wr.write_text(json.dumps({"source": "https://store.example", "vehicle": "TEST Wrangler 2.0L", "fetched_at": "2026-10-26T10:00:00Z",
         "currency": "USD", "categories": [{"title": "Test Turbo Parts", "path": "/v-test/2-0l-i4-dohc-di-turbo-engine--turbo-and-super-chargers",
@@ -107,6 +108,9 @@ def main() -> None:
     lst = json.loads((out / "catalog.json").read_text(encoding="utf-8"))["listings"]
     adl = {x["pn"]: x for x in lst if x["source_name"] == "Autodoc UK"}
     assert adl["TEST-001"]["group"] == "brakes" and adl["TEST-002"]["group"] == "other", adl
+    assert adl["TEST-003"]["group"] == "brakes", "override beats the oils-and-fluids group default"
+    assert adl["TEST-001"]["image_url"] == "https://cdn.example/p1.jpg" and adl["TEST-002"]["image_url"] is None and adl["TEST-003"]["image_url"] is None
+    assert adl["TEST-001"]["category_slug"] == "brake-pad-set"
     assert adl["TEST-001"]["fitment"] == "unverified" and adl["TEST-001"]["currency"] == "GBP" and adl["TEST-001"]["specs"]["Height 1 [mm]"] == "58,7"
     assert not list((out / "img").glob("*")), "autodoc images must stay remote"
     wl = {x["pn"]: x for x in lst if x["kind"] == "wrangler"}
@@ -151,9 +155,17 @@ def main() -> None:
     assert r.status_code == 200 and "EG213" in r.text and "OTHER ENGINE / MODEL" in r.text and "Dealership Sign" not in r.text
     r = c.get("/catalog/other")
     t = r.text
+    assert "Autodoc UK" in t and "TEST-001" not in t and "TESTBRAND" not in t, "autodoc rows are not rendered inline"
+    assert 'href="/catalog/other/autodoc/brake-pad-set"' in t and 'href="/catalog/other/autodoc/mystery-widget"' in t and "Brake pad set" in t
+    r = c.get("/catalog/other/autodoc/brake-pad-set")
+    t = r.text
     for needle in ("Autodoc UK", "TEST-001", "TESTBRAND", "EAN 0000000000001", "58,7", "Specs (1)",
                    "£24.49 (Autodoc UK, 2026-10-26)", "AUTODOC VEHICLE SELECTION", "https://cdn.example/p1.jpg"):
         assert needle in t, needle
+    assert "TEST-002" not in t and c.get("/catalog/other/autodoc/nope").status_code == 303
+    from cuore.services import parts_catalog as _pc
+    _h, _n = _pc.search_listings_page(_pc.load(), "testbrand", limit=2)
+    assert len(_h) == 2 and _n == 3, (len(_h), _n)
     assert "TEST-001" in c.get("/catalog?q=0000000000001").text  # EAN search
     r = c.get("/catalog/other")
     t = r.text
