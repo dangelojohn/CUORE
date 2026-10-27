@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -46,7 +47,7 @@ def state_dir() -> Path:
     for d in candidates:
         try:
             d.mkdir(parents=True, exist_ok=True)
-            probe = d / ".write-test"
+            probe = d / f".write-test-{os.getpid()}-{threading.get_ident()}"  # per-thread: a shared name raced (one thread unlinked another's probe -> OSError -> wrong state dir)
             probe.write_text("", encoding="utf-8")
             probe.unlink()
             return d
