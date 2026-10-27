@@ -83,9 +83,7 @@
         <button type="submit" class="ts-btn ts-btn-fail" name="result" value="fail">FAIL</button>
         <button type="submit" class="ts-btn ts-btn-sm" name="result" value="inconclusive">Inconclusive</button>
         <button type="submit" class="ts-btn ts-btn-sm" name="result" value="not_possible">Not possible</button>
-        {% if t.latest_result.result != "not_done" %}
-        <button type="submit" class="ts-btn ts-btn-sm ts-btn-undo" name="result" value="">Undo (clear result)</button>
-        {% endif %}
+        <button type="submit" class="ts-btn ts-btn-sm ts-btn-undo" name="result" value=""{{ ' hidden' if t.latest_result.result == "not_done" }}>Undo (clear result)</button>
       </div>
       <input type="hidden" name="unit" value="{{ t.pass_criteria[0].unit if t.pass_criteria else '' }}">
       <input type="hidden" name="has_spec" value="{{ '1' if t.pass_criteria else '0' }}">

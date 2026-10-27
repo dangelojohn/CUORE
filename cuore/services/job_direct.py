@@ -10,6 +10,8 @@ from ..web import page_search as ps  # noqa: E402
 
 MAX_TITLE = 110
 MAX_STEP = 170
+MAX_CALL = 110   # the whole one-sentence call, link text included
+_DANGLING = {"a", "an", "and", "or", "of", "the", "to", "on", "in", "at", "for", "with", "from", "by", "then", "is", "as"}
 
 # blocker word -> (what to do, where to do it). The words come from the dossier verdict's own blocker.
 _BLOCKER_FIX = (
@@ -39,6 +41,29 @@ def _clip(text: str, n: int) -> str:
     if cut.count("(") > cut.count(")"):   # never end inside an open bracket
         cut = cut[:cut.rindex("(")]
     return cut.rstrip(" ,;:-(") + "..."
+
+
+def sentence(text: str, n: int) -> str:
+    """``text`` as ONE sentence of at most ``n`` characters: cut at a word boundary, never inside a bracket or on a
+    dangling little word, always closed with a full stop (never "...")."""
+    t = re.sub(r"\s+", " ", text or "").strip().rstrip(" .;:,-")
+    t = re.sub(r"\.\.\.$", "", t).rstrip(" .;:,-")
+    if len(t) > n - 1:
+        t = t[:n - 1].rsplit(" ", 1)[0]
+        if t.count("(") > t.count(")"):
+            t = t[:t.rindex("(")]
+        words = t.rstrip(" ,;:-(").split(" ")
+        while len(words) > 1 and words[-1].lower().strip(",;:") in _DANGLING:
+            words.pop()
+        t = " ".join(words)
+    return t.rstrip(" .,;:-(") + "."
+
+
+def call_step(next_test: str) -> str:
+    """The action of the first numbered test: from the first "1)" when a long note (e.g. a repair report) comes before it."""
+    t = re.sub(r"\s+", " ", next_test or "").strip()
+    i = t.find("1) ")
+    return first_step(t[i:] if i > 0 else t)
 
 
 def priority_of(text: str) -> int:
@@ -106,18 +131,25 @@ def build_call(vin: str, verdict: dict | None, hyps: list[dict], labels: dict[st
             pct = _fuel_pct(verdict or {})
             head = f"Fuel {pct} %: " if pct else "Fuel is out of the window: "
             segs += [{"text": head, "href": ""}, {"text": fix[1], "href": ""}, {"text": ". Go to ", "href": ""},
-                     {"text": fix[2], "href": fix[3].format(vin=vin)}, {"text": ".", "href": ""}]
+                     {"text": fix[2], "href": fix[3].format(vin=vin)}, {"text": ". ", "href": ""},
+                     {"text": "Do it now", "href": fix[3].format(vin=vin)}]
         else:
-            segs += [{"text": f"Blocked: {blocker}. ", "href": ""},
+            segs += [{"text": sentence(f"Blocked: {blocker}", MAX_CALL - 14) + " ", "href": ""},
                      {"text": "Verify repair", "href": f"/v/{vin}/verify"}]
         why += [b for b in ((verdict or {}).get("basis") or [])]
         if (verdict or {}).get("summary"):
             why.insert(0, verdict["summary"])
     if top:
-        step = first_step(top["next_test"])
-        lead = " Meanwhile, next test: " if segs else "Next test: "
+        step = call_step(top["next_test"])
         title = hyp_title(top, labels)
-        segs += [{"text": lead + step + " ", "href": ""}, {"text": "Do it now", "href": next_href}]
+        if segs:   # the blocker is the call; the test is the second line of "Why this?"
+            why.insert(0, f"Also next: {step}")
+        else:
+            lead = "Next test: "
+            one = sentence(step, MAX_CALL - len("Do it now") - 1 - len(lead))
+            segs += [{"text": lead + one + " ", "href": ""}, {"text": "Do it now", "href": next_href}]
+            if one.rstrip(".") != step.rstrip(".").rstrip():
+                why.insert(0, f"Next test in full: {step}")
         why.append(f"Next test is for: {title} ({system_label(top.get('system') or '', labels)}).")
     if not segs:
         segs = [{"text": "No test is waiting. Add a hypothesis or read the car.", "href": ""}]

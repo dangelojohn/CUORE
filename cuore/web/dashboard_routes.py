@@ -63,16 +63,19 @@ def _recent(timeline: list[dict[str, Any]], ledger: list[dict[str, Any]], days: 
 TOP_CODES = 8
 
 
-def _top_code_groups(vin: str, dossier: dict[str, Any], timeline: list[dict[str, Any]]):
+def _top_code_groups(vin: str, dossier: dict[str, Any], timeline: list[dict[str, Any]],
+                     views: list[dict[str, Any]] | None = None):
     """The worst ``TOP_CODES`` codes in /codes' own order (``codes_call.group_rows``:
     returned, chronic, recurring, cleared, seen-once; the open job's codes first),
     newest first inside each state; plus the total so the page can link to /codes."""
     job_codes = codes_call.job_state(vin, dossier)[0]
     rows = []
+    views = views if views is not None else []
     for r in sorted(timeline, key=lambda r: str(r.get("last_seen") or ""), reverse=True):
         rows.append({**r, "dtc": r.get("code", ""), "severity": r.get("class"),
                      "in_job": codes_call.base(r.get("code", "")) in job_codes,
                      "ago": _relative_ago(r.get("last_seen")),
+                     "fb": codes_call.code_view(vin, r.get("code", ""), views),
                      "first_ago": _relative_ago(r.get("first_seen"))})
     left = TOP_CODES
     groups = []
@@ -99,9 +102,12 @@ def dashboard_page(request: Request, vin: str) -> HTMLResponse:
         "modules": dashboard_charts.module_bar_svg(data["modules"]),
     }
     oil = oil_level_bridge.card(vin)
-    code_groups, codes_total = _top_code_groups(vin, dossier, data["code_timeline"])
+    views = codes_call.board_views(vin)
+    standing = codes_call.standing_views(vin, views)
+    code_groups, codes_total = _top_code_groups(vin, dossier, data["code_timeline"], views)
     response = _page(request, "dashboard.html", vin=vin, d=data, bar=bar,
                      code_groups=code_groups, codes_total=codes_total,
+                     standing=standing, standing_shown=standing[:TOP_CODES],
                      charts=charts, tab="dashboard", oil=oil,
                      oil_error=request.query_params.get("oil_error", ""))
     _set_active_vehicle(response, vin)

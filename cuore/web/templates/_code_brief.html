@@ -25,15 +25,70 @@
    confidence badges (still shown exactly once) but leaves the code text to
    the caller's own line, which cuore.css sizes to the same >=24px mono
    floor as this h1 so there is still exactly one, readable, DTC. #}
+{% set _pattern = (records[0].severity if records is defined and records else none) %}
 <div class="code-head">
   {% if not compact %}<h1 class="mono">{{ code }}</h1>{% endif %}
-  {% if _latest_status %}
+  {# ONE story per fault: the status word and last-seen come from the fault board (`fbc`, passed by the code page);
+     the read state and the pattern word ("chronic") are second chips and never replace it. #}
+  {% set _fbc = fbc if (fbc is defined and fbc) else (board_card_for(vin, code) if (board_card_for is defined and vin is defined) else none) %}
+  {% if _fbc %}
+    <span class="chip {{ _fbc.chip }} code-head-chip" title="{{ _fbc.detail }}"><span aria-hidden="true">{{ _fbc.mark }}</span> {{ _fbc.label }}</span>
+    {% if _fbc.returned %}<span class="chip returned code-head-chip"><span aria-hidden="true">!</span> {{ _fbc.chip_extra }}</span>{% endif %}
+    <span class="chip plain code-head-chip">Last seen {{ _fbc.last_seen_text }}</span>
+    {% if _pattern %}<span class="chip {{ _pattern }} code-head-chip" title="Pattern across sessions">Pattern: {{ _pattern }}</span>{% endif %}
+    {% if _latest_status and not (_dtc_status_labels.get(_latest_status) == "Cleared" and _fbc.standing) %}
+      <span class="chip plain code-head-chip" title="most recent read: {{ _latest_status }}">Latest read: {{ _dtc_status_labels.get(_latest_status, _latest_status|title) }}</span>
+    {% endif %}
+  {% elif _latest_status %}
     <span class="chip plain code-head-chip" title="most recent read: {{ _latest_status }}">{{
       _dtc_status_labels.get(_latest_status, _latest_status|title) }}</span>
   {% endif %}
   {% if cf.feel and cf.feel.mil %}<span class="chip plain code-head-chip">MIL: {{ cf.feel.mil }}</span>{% endif %}
   {% if cf.feel and cf.feel.confidence %}<span class="chip plain code-head-chip">Confidence: {{ cf.feel.confidence }}</span>{% endif %}
 </div>
+
+{# Similar faults (code page only: `sim` comes from fault_similarity.strip). Links and label + word, never colour alone. #}
+{% if not compact and ((sim is defined and sim and (sim["faults"] or sim["also"])) or (_fbc and (_fbc.can_fix or _fbc.can_undo))) %}
+<style>
+.sim-strip { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 0 0 8px; font-size: var(--fs-md); }
+.sim-strip a.sim-code { display: inline-flex; align-items: center; min-height: 44px; padding: 0 4px; font-weight: 700; }
+.sim-strip .sim-why { flex: 1 1 100%; margin: 0; }
+.sim-strip .sim-why > summary { min-height: 44px; display: inline-flex; align-items: center; }
+.sim-strip .sim-act { margin: 0; margin-left: auto; }
+.sim-btn { min-height: 44px; min-width: 88px; padding: 0 16px; font-size: var(--fs-md); font-weight: 700; cursor: pointer; border-radius: var(--radius, 3px); border: 2px solid var(--ink); background: var(--surface); color: var(--ink); }
+.sim-btn.fix { background: var(--ok-bg); border-color: var(--ok); }
+.sim-why-list { margin: 0; padding-left: 20px; }
+</style>
+{% endif %}
+{% if not compact and ((sim is defined and sim and (sim["faults"] or sim["also"])) or (_fbc and (_fbc.can_fix or _fbc.can_undo))) %}
+<div class="sim-strip" id="similar-faults">
+  {% if sim is defined and sim and (sim["faults"] or sim["also"]) %}
+  <span><b>Similar:</b>
+    {% if sim["faults"] %}{% for i in sim["faults"] %}{% if i.href %}<a class="mono sim-code" href="{{ i.href }}" title="{{ i.label }} ({{ i.module }}): {{ i.status }}">{{ i.code }}</a>{% else %}<span class="mono" title="{{ i.label }}">{{ i.code or i.label }}</span>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
+    {% if sim.phrases %} &mdash; {{ sim.phrases|join(" · ") }}{% endif %}
+    {% else %}none with shared evidence beyond appearing together{% endif %}
+    {% if sim.stale %}<span class="muted">(updating)</span>{% endif %}</span>
+  <details class="fold sim-why">
+    <summary>Why</summary>
+    <ul class="sim-why-list small">
+      {% for i in sim["faults"] %}<li><a class="mono" href="{{ i.href or '#' }}">{{ i.code }}</a> {{ i.label }}:
+        <ul>{% for w in i.why %}<li>{{ w.label }}{% if w.evidence %} <span class="muted">({{ w.evidence }})</span>{% endif %}</li>{% endfor %}</ul></li>{% endfor %}
+      {% if sim["also"] %}<li>Also appeared / cleared together:
+        {% for i in sim["also"] %}{% if i.href %}<a class="mono" href="{{ i.href }}" title="{{ i.label }} ({{ i.module }}): {{ i.status }}">{{ i.code }}</a>{% else %}<span class="mono">{{ i.code or i.label }}</span>{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}
+        <ul>{% for i in sim["also"] %}<li><span class="mono">{{ i.code }}</span>: {% for w in i.why if w.kind != 'same_module' %}{{ w.label }}{% if not loop.last %}; {% endif %}{% endfor %}</li>{% endfor %}</ul></li>{% endif %}
+    </ul>
+  </details>
+  {% endif %}
+  {% if _fbc and (_fbc.can_fix or _fbc.can_undo) %}
+  <form class="sim-act" method="post" action="/v/{{ vin }}/fault-board/{{ 'undo' if _fbc.can_undo else 'fixed' }}">
+    <input type="hidden" name="fault_key" value="{{ _fbc.key }}">
+    <input type="hidden" name="return_to" value="/v/{{ vin }}/code/{{ code }}">
+    {% if _fbc.can_undo %}<button type="submit" class="sim-btn undo" aria-label="Undo the fixed mark on {{ code }}">Undo</button>
+    {% else %}<button type="submit" class="sim-btn fix" aria-label="Mark {{ code }} fixed" title="Records the repair and starts verification; CUORE shows Proven fixed only when the readings say so">Fixed</button>{% endif %}
+  </form>
+  {% endif %}
+</div>
+{% endif %}
 
 {# Failure-type-byte suffix, additive: when this code's occurrence history
    (`records`, from code.html's own route -- see the top of this partial)

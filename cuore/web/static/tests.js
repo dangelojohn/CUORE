@@ -28,6 +28,8 @@
     if (!chip) return;
     chip.className = "chip ts-result-chip ts-result-" + result;
     chip.textContent = resultLabel(result);
+    var undo = qs(".ts-btn-undo", row); // only offered while a result is on file
+    if (undo) undo.hidden = (result === "not_done");
   }
 
   function initRow(form) {

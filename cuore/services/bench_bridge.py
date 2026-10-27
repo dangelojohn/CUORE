@@ -33,7 +33,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import cache, dossier_bridge, known_good_bridge, mes_bridge, parts_bridge, tools_kb_bridge
+from . import cache, codes_call, dossier_bridge, known_good_bridge, mes_bridge, parts_bridge, tools_kb_bridge
 from .errors import BadRequest
 from ..live import checklists as checklist_store
 from ..live.config import state_dir
@@ -718,6 +718,22 @@ def call_line(banner: dict[str, Any] | None, fuel_gate: dict[str, Any]) -> str:
     return banner["action"]
 
 
+def _work_line(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """The visible "Work on now" row: faults with the same status and last-seen age share one segment
+    (``[{codes: "P0440 · P0456", mark, label, seen}]``), so two permanent codes read as one clause."""
+    segs: list[dict[str, str]] = []
+    for r in rows:
+        code = r.get("code") or r.get("title") or ""
+        seen = (r.get("last_seen_text") or "").split(" · ")[0]
+        for sg in segs:
+            if sg["label"] == r.get("label") and sg["seen"] == seen:
+                sg["codes"] += " · " + code
+                break
+        else:
+            segs.append({"codes": code, "mark": r.get("mark") or "", "label": r.get("label") or "", "seen": seen})
+    return segs
+
+
 def last_scan_line(ls: dict[str, Any] | None) -> str:
     """"Last scan 4 h ago, partial, no active codes" -- the collapsed card."""
     if not ls:
@@ -903,7 +919,13 @@ def build_bench(vin: str) -> dict[str, Any]:
     fuel_gate = _fuel_gate(vin, view.get("freeze_frames") or [], readiness.get("at"))
     banner = _blocker_banner(verdict)
     last_scan = last_scan_summary(vin)
+    views = codes_call.board_views(vin)
+    work_now = views[0] if views else None
+    standing = codes_call.standing_views(vin, views)
     return {
+        "work_now": work_now,
+        "standing": standing,
+        "work_line": _work_line(standing if standing else ([work_now] if work_now else [])),
         "call_line": call_line(banner, fuel_gate),
         "last_scan_line": last_scan_line(last_scan),
         "technician": _technician(vin),

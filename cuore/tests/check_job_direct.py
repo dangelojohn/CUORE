@@ -61,8 +61,9 @@ check(jd.system_label("brakes_abs", LABELS) == "Brakes / ABS" and jd.system_labe
 call = jd.build_call(VIN, VERDICT, HYPS, LABELS)
 check(call["text"].startswith("Fuel 93.7 %: burn fuel into the 15-85 % window. Go to Bench fuel gate."), call["text"])
 check(any(s["text"] == "Bench fuel gate" and s["href"] == f"/v/{VIN}" for s in call["segs"]), "blocker links to the Bench fuel gate")
-check("ext test: Ask the owner the open questions" in call["text"] and call["text"].endswith("Do it now"),
-      "call carries 'Next test: <test> Do it now'")
+check("Meanwhile" not in call["text"] and call["text"].endswith("Do it now") and len(call["text"]) <= 110
+      and "..." not in call["text"] and any("Also next: " in w and "Ask the owner the open questions" in w for w in call["why"]),
+      "blocker call is one short sentence; the test moves to 'Also next:' in Why this?")
 check(call["next_href"] == f"/v/{VIN}/job?step=6&hypothesis=h1#hyp-h1", call["next_href"])
 nb = jd.build_call(VIN, None, HYPS, LABELS)
 check(nb["text"].startswith("Next test: ") and nb["text"].endswith("Do it now"), "no blocker: the call is the next test")

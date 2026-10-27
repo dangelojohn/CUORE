@@ -534,7 +534,8 @@
         </div>
       {% endfor %}
     {% else %}
-      <p class="muted small">{{ t('no_active_codes') }}</p>
+      {% if fb is defined and fb %}<p class="small"><b>{{ fb.present_line }}</b> &mdash; <a href="#fault-board">see the Fault board</a></p>
+      {% else %}<p class="muted small">{{ t('no_active_codes') }}</p>{% endif %}
     {% endif %}
   </details>
   {% if diagnosis_for is defined %}{% set dx = diagnosis_for(vin) %}{% if dx %}{% include "_diagnosis_panel.html" %}{% endif %}{% endif %}

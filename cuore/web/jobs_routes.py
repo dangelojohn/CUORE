@@ -236,7 +236,7 @@ def _job_page(request: Request, vin: str, job_id: str = "", tools_step: str = ""
     ret = (link_base + ctl).rstrip("?&")
     try:
         fb = fault_board.fault_board_context(vin, job_obj.get("id") or None, qp.get("sort") or "importance",
-                                             qp.get("group") or "none", return_to=ret)
+                                             qp.get("group") or "tiers", return_to=ret)
         fb["step"] = step
         fb["link_base"] = link_base
     except Exception:  # noqa: BLE001

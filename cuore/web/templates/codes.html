@@ -17,11 +17,13 @@
   <li class="cd-item" id="row-{{ r.code_href_id }}">
     <a class="row-link cd-row" href="/v/{{ vin }}/code/{{ r.code_href_id }}">
       <span class="cd-code">{{ r.dtc }}</span>
-      <span class="chip {{ r.severity }}">{{ r.severity }}</span>
+      {% if r.fb %}<span class="chip {{ r.fb.chip }} cd-status" title="{{ r.fb.detail }}"><span aria-hidden="true">{{ r.fb.mark }}</span> {{ r.fb.label }}</span>
+      {% if r.fb.returned %}<span class="chip returned"><span aria-hidden="true">!</span> {{ r.fb.chip_extra }}</span>{% endif %}{% endif %}
+      <span class="chip {{ r.severity }}"{% if r.fb %} title="Pattern across sessions"{% endif %}>{{ r.severity }}</span>
       <span class="cd-desc">{{ r.desc_short or "No description on file" }}</span>
       {% if r.modules_short %}<span class="cd-mod">{{ r.modules_short }}</span>{% endif %}
+      <span class="cd-seen muted">last seen {{ r.last_seen_ago }}</span>
       {% if r.in_job %}<span class="cd-job">this job</span>{% endif %}
-      {% if r.fb and r.fb.chip %}<span class="cd-fb cd-fb-{{ 'returned' if r.fb.chip.startswith('Returned') else r.fb.status }}" title="{{ r.fb.detail }}"><span aria-hidden="true">{{ '!' if r.fb.chip.startswith('Returned') else ('&#10003;' if r.fb.status == 'proven-fixed' else '&hellip;') }}</span> {{ r.fb.chip }}</span>{% endif %}
     </a>
     {% if r.fb and (r.fb.can_fix or r.fb.can_undo) %}
     <form class="cd-act" method="post" action="/v/{{ vin }}/fault-board/{{ 'undo' if r.fb.can_undo else 'fixed' }}">

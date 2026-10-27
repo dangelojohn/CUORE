@@ -77,7 +77,8 @@ def group_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         g = [r for r in rows if (r.get("severity") or "seen-once") == key]
         if not g:
             continue
-        g = sorted(g, key=lambda r: 0 if r.get("in_job") else 1)
+        # the open job's codes first, then the fault board's own order (priority tier, then most recent)
+        g = sorted(g, key=lambda r: (0 if r.get("in_job") else 1, (r.get("fb") or {}).get("rank", 9999)))
         out.append({"key": key, "label": label, "open": opened, "rows": g, "n": len(g),
                     "job_n": sum(1 for r in g if r.get("in_job"))})
     return out
@@ -152,7 +153,71 @@ def attach_board(rows: list[dict[str, Any]], vin: str) -> None:
             c = (next((x for x in cards if x["module"] == mod), None)
                  or next((x for x in cards if x.get("fixed")), None) or cards[0])
             chip = ("Returned after fix" if c.get("returned_after_fix") else BOARD_CHIPS.get(c["status"], ""))
-            r["fb"] = {"key": c["key"], "chip": chip, "status": c["status"], "can_fix": bool(c.get("can_fix")),
+            v = view(c)
+            r["fb"] = {**v, "key": c["key"], "chip": chip, "status": c["status"], "can_fix": bool(c.get("can_fix")),
                        "can_undo": bool(c.get("can_undo")), "detail": c.get("status_detail", "")}
+            r["last_seen_ago"] = v["last_seen_text"]
     except Exception:  # noqa: BLE001 -- the Codes page works without the board
         return
+
+
+# --- one story per fault: the fault board's card, the same words on every page -----------------
+
+#: chip class (existing cuore.css classes) per board status; the word and mark always sit beside the colour
+_STATUS_CHIP = {"permanent": "returned", "active": "returned", "pending": "chronic", "verifying": "chronic",
+                "history": "plain", "proven-fixed": "ok", "resolved": "ok"}
+#: board statuses that mean "the car reports it now"
+STANDING = ("permanent", "active", "pending")
+
+
+def last_seen_text(ts: Any, now: Any = None) -> str:
+    """"11 h ago · 2026-10-26" (under a day) or "3 d ago · 2026-10-23". One formatter for every page."""
+    from datetime import datetime
+    from . import fault_board
+    d = fault_board._dt(ts)
+    if d is None:
+        return "—"
+    secs = max(0.0, ((now or datetime.now()) - d).total_seconds())
+    ago = "just now" if secs < 3600 else (f"{int(secs // 3600)} h ago" if secs < 86400 else f"{int(secs // 86400)} d ago")
+    return f"{ago} · {d.strftime('%Y-%m-%d')}"
+
+
+def view(card: dict[str, Any], now: Any = None) -> dict[str, Any]:
+    """The small, template-ready story of one board card (status word, mark, last seen, tier, Fixed state)."""
+    returned = bool(card.get("returned_after_fix"))
+    return {
+        "key": card["key"], "code": card.get("code") or "", "module": card.get("module") or "",
+        "kind": card.get("kind"), "title": card.get("label") or card.get("code") or "",
+        "status": card["status"], "label": card["status_label"], "mark": card["status_mark"],
+        "chip": _STATUS_CHIP.get(card["status"], "plain"),
+        "returned": returned, "chip_extra": "Returned after fix" if returned else "",
+        "last_seen": card.get("last_seen"), "last_seen_text": last_seen_text(card.get("last_seen"), now),
+        "present_text": card.get("present_text", ""), "rank": card.get("rank", 9999),
+        "tier": (card.get("importance") or {}).get("tier", 99), "tier_name": (card.get("importance") or {}).get("name", ""),
+        "standing": card["status"] in STANDING, "can_fix": bool(card.get("can_fix")),
+        "can_undo": bool(card.get("can_undo")), "detail": card.get("status_detail", ""),
+        "href": card.get("href") or "",
+    }
+
+
+def board_views(vin: str) -> list[dict[str, Any]]:
+    """Every board card as a :func:`view`, board order (priority tier, then most recent). Never raises."""
+    try:
+        from datetime import datetime
+        from . import fault_board
+        now = datetime.now()
+        return [view(c, now) for c in fault_board.board(vin)]
+    except Exception:  # noqa: BLE001 -- pages work without the board
+        return []
+
+
+def code_view(vin: str, code: str, views: Optional[list[dict[str, Any]]] = None) -> Optional[dict[str, Any]]:
+    """The best (lowest rank) board view for a code across modules, or None."""
+    b = base(code)
+    hits = [v for v in (views if views is not None else board_views(vin)) if v["kind"] == "code" and v["code"] == b]
+    return min(hits, key=lambda v: v["rank"]) if hits else None
+
+
+def standing_views(vin: str, views: Optional[list[dict[str, Any]]] = None) -> list[dict[str, Any]]:
+    """Present / permanent / active (pending) code faults, board order."""
+    return [v for v in (views if views is not None else board_views(vin)) if v["kind"] == "code" and v["standing"]]

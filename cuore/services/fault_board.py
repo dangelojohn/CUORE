@@ -47,7 +47,7 @@ STATUS_MARKS = {
 }
 STATUS_ORDER = ["permanent", "active", "pending", "verifying", "history", "proven-fixed", "resolved"]
 SORTS = ("importance", "newest", "oldest", "longest-present", "system", "code")
-GROUPS = ("none", "related", "system", "status")
+GROUPS = ("none", "related", "system", "status", "tiers")
 FIXED_MARKER = "Marked fixed by mechanic"
 _HEADER_MODULE = {"18DAF110": "ECM", "18DAF118": "TCM"}
 _SYSTEM_BY_LETTER = {"P": "Powertrain", "C": "Chassis", "B": "Body", "U": "Network"}
@@ -354,11 +354,18 @@ def _scoped_clears(facts: dict[str, Any], module: str) -> list[dict[str, Any]]:
 
 def _clear_counts(events: list[dict[str, Any]], clears: list[dict[str, Any]], tol: float
                   ) -> tuple[int, int, list[str], list[str]]:
+    return _clear_counts_ts(events, clears, tol)[:4]
+
+
+def _clear_counts_ts(events: list[dict[str, Any]], clears: list[dict[str, Any]], tol: float
+                     ) -> tuple[int, int, list[str], list[str], str]:
+    """Like :func:`_clear_counts` plus the time of the newest return after a clear ("" when none)."""
     sight = [e for e in events if e["state"] in _POSITIVE or e["state"] == "permanent"]
     back = [e for e in events if e["state"] in _POSITIVE]
     prev, cleared, returned = "", 0, 0
     c_ids: list[str] = []
     r_ids: list[str] = []
+    last_ret = ""
     for c in clears:
         lim = _plus(c["ts"], tol)
         if any(prev < e["ts"] <= lim for e in sight):
@@ -369,7 +376,8 @@ def _clear_counts(events: list[dict[str, Any]], clears: list[dict[str, Any]], to
             if later:
                 returned += 1
                 r_ids.append(later[0]["id"])
-    return cleared, returned, c_ids, r_ids
+                last_ret = later[0]["ts"]
+    return cleared, returned, c_ids, r_ids, last_ret
 
 
 def _monitor_for(code: str, cfg: dict[str, Any]) -> Optional[str]:
@@ -564,7 +572,7 @@ def board(vin: str, job_id: Optional[str] = None, now: Optional[datetime] = None
         safety = (module.upper() in cfg["safety_modules"] or code[:1] in cfg["safety_code_prefixes"]
                   or any(k in desc.lower() for k in cfg["safety_keywords"]))
         mil = cur["mil"] or bool(emissions and ready_last and ready_last["mil_on"] and status in present)
-        cleared, returned, c_ids, r_ids = _clear_counts(ev, _scoped_clears(facts, module), tol)
+        cleared, returned, c_ids, r_ids, last_ret = _clear_counts_ts(ev, _scoped_clears(facts, module), tol)
         fd, ld = _dt(first["ts"]), _dt(last["ts"])
         age_days = max(0, (now - fd).days) if fd else 0
         last_days = max(0, (now - ld).days) if ld else 0
@@ -588,7 +596,7 @@ def board(vin: str, job_id: Optional[str] = None, now: Optional[datetime] = None
             "status": status, "status_detail": detail, "safety": safety, "mil": mil, "emissions": emissions,
             "permanent": cur["permanent"], "first_seen": first["ts"], "last_seen": last["ts"],
             "present_days": age_days,
-            "times_cleared": cleared, "times_returned_after_clear": returned,
+            "times_cleared": cleared, "times_returned_after_clear": returned, "last_return": last_ret,
             "returned_after_fix": False, "returned_after_fix_count": 0,
             "group": ({"id": grp["id"], "label": grp["label"], "n": grp["n"]} if grp
                       else {"id": f"sys:{module}", "label": module, "n": None}),
@@ -646,7 +654,7 @@ def board(vin: str, job_id: Optional[str] = None, now: Optional[datetime] = None
         card = {
             "key": f"symptom:{sid}", "kind": "symptom", "code": "Symptom", "label": _clip(text, 90), "module": s.get("reporter") or "",
             "system": "Symptom", "system_kind": "Symptom", "description": text, "status": status,
-            "status_detail": f"Reported by {s.get('reporter') or '?'}; tags {', '.join(tags) or 'none'}",
+            "status_detail": f"Reported by the driver; tags {', '.join(tags) or 'none'}",
             "safety": safety, "mil": mil, "emissions": False, "permanent": False,
             "first_seen": _n(s.get("at")), "last_seen": _n(s.get("at")), "present_days": age,
             "times_cleared": 0, "times_returned_after_clear": 0, "returned_after_fix": False, "returned_after_fix_count": 0,
@@ -674,8 +682,18 @@ def _finish(cards: list[dict[str, Any]], cfg: dict[str, Any], now: datetime) -> 
         d = c["present_days"]
         if c["kind"] == "symptom":
             c["present_text"] = f"reported {_ago(d)}"
+            if c["status"] == "active":   # a driver report has no test behind it: never "Test failing"
+                c["status_label"] = "Reported by the driver \u00b7 not resolved"
+                c["importance"]["reason"] = "Driver report, no test behind it; ranks with the active faults."
         elif c["status"] in ("active", "pending", "permanent"):
-            c["present_text"] = "present since today" if d <= 0 else f"present {d} day{'s' if d != 1 else ''}"
+            lr = _dt(c.get("last_return"))
+            if c["times_cleared"] and lr:
+                since = max(0, (now - lr).days)
+                c["present_text"] = f"first seen {d} d ago \u00b7 present since {lr.date().isoformat()} ({since} d)"
+            elif c["times_cleared"]:
+                c["present_text"] = f"first seen {d} d ago"
+            else:
+                c["present_text"] = f"present {d} d"
         else:
             ld = _dt(c["last_seen"])
             c["present_text"] = f"last seen {_ago(max(0, (now - ld).days) if ld else 0)}"
@@ -687,6 +705,20 @@ def _finish(cards: list[dict[str, Any]], cfg: dict[str, Any], now: datetime) -> 
     cards.sort(key=lambda c: (c["importance"]["tier"], -c["_ls"], -c["times_returned_after_clear"], c["code"], c["module"]))
     for i, c in enumerate(cards, 1):
         c["rank"] = i
+    # Related: the other members of a shared-cause group (a module-only fallback group is not "related").
+    members: dict[str, list[dict[str, Any]]] = {}
+    for c in cards:
+        if c["group"]["id"].startswith("cc:"):
+            members.setdefault(c["group"]["id"], []).append(c)
+    for c in cards:
+        c["related"] = None
+        names: list[str] = []
+        for m in members.get(c["group"]["id"], []):
+            nm = "symptom" if m["kind"] == "symptom" else m["code"]
+            if m is not c and nm != c["code"] and nm not in names:
+                names.append(nm)
+        if names:
+            c["related"] = {"codes": names[:3], "more": max(0, len(names) - 3), "label": c["group"]["label"]}
 
 
 # --- sorting and grouping ------------------------------------------------------
@@ -707,6 +739,17 @@ def sort_by(cards: list[dict[str, Any]], how: str = "importance") -> list[dict[s
     return sorted(cards, key=imp)
 
 
+_TIER_ORDER = ["now", "history", "resolved"]
+_TIER_LABELS = {"now": "Work on now", "history": "History", "resolved": "Resolved / proven fixed"}
+
+
+def tier_of(c: dict[str, Any]) -> str:
+    """The default board's three folds: what to work on now, stored history, closed."""
+    if c["status"] in ("active", "pending", "permanent", "verifying") or c.get("returned_after_fix"):
+        return "now"
+    return "history" if c["status"] == "history" else "resolved"
+
+
 def group_by(cards: list[dict[str, Any]], how: str = "none") -> list[dict[str, Any]]:
     """Groups of the (already sorted) cards. Each group: ``{id, label, cards, count, active, open}``. ``open`` is
     True when the group holds an active / pending / permanent / verifying fault or a safety fault."""
@@ -720,6 +763,9 @@ def group_by(cards: list[dict[str, Any]], how: str = "none") -> list[dict[str, A
             gid, label = "system:" + c["system"], c["system"] + (f" ({c['system_kind']})" if c["kind"] == "code" else "")
         elif how == "status":
             gid, label = "status:" + c["status"], STATUS_LABELS[c["status"]]
+        elif how == "tiers":
+            gid = tier_of(c)
+            label = _TIER_LABELS[gid]
         else:
             gid, label = "all", "All faults"
         if gid not in buckets:
@@ -734,10 +780,17 @@ def group_by(cards: list[dict[str, Any]], how: str = "none") -> list[dict[str, A
         g["active"] = sum(1 for c in cs if c["status"] in ("active", "pending", "permanent"))
         g["open"] = any(c["status"] in ("active", "pending", "permanent", "verifying") or (c["safety"] and c["status"] == "history")
                         for c in cs)
+        if how == "tiers":
+            g["open"] = g["id"] == "now"
+            g["summary"] = f"{g['label']} \u2014 {g['count']}"
+            out.append(g)
+            continue
         g["summary"] = (f"{g['label']} — {g['count']} fault{'s' if g['count'] != 1 else ''}"
                         + (f" · {g['active']} active" if g["active"] else ""))
         out.append(g)
-    if how in ("related", "system"):
+    if how == "tiers":
+        out.sort(key=lambda g: _TIER_ORDER.index(g["id"]))
+    elif how in ("related", "system"):
         # highest-priority member first, then the group whose most recent member is newest
         out.sort(key=lambda g: (min(c["importance"]["tier"] for c in g["cards"]), -max(c["_ls"] for c in g["cards"])))
     elif how == "status":
@@ -816,6 +869,73 @@ def undo_fixed(vin: str, fault_key: str, job_id: Optional[str] = None, by: Optio
     return {"fault_key": fault_key, "retracted": m["action_id"], "job_id": m["job_id"]}
 
 
+def _similar_groups(vin: str, cards: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], bool]:
+    """Similarity groups (``fault_similarity.groups``) and whether they are stale / being rebuilt. Sets ``c["sim"]``
+    on every card: up to 3 other member codes, ``more``, and the group label (``None`` for a fault in no group).
+    Never raises; the page renders without it."""
+    for c in cards:
+        c["sim"] = None
+        c["sim_group"] = None
+    try:
+        from . import fault_similarity
+        groups = fault_similarity.groups(vin)
+        updating = fault_similarity.is_updating(vin) or any(g.get("stale") for g in groups)
+    except Exception:  # noqa: BLE001
+        return [], False
+    by_key = {c["key"]: c for c in cards}
+    for g in groups:
+        mem = [by_key[k] for k in g["members"] if k in by_key]
+        for c in mem:
+            names: list[str] = []
+            for m in mem:
+                nm = "symptom" if m["kind"] == "symptom" else m["code"]
+                if m is not c and nm not in names and nm != c["code"]:
+                    names.append(nm)
+            c["sim_group"] = g["id"]
+            c["sim"] = {"codes": names[:3], "more": max(0, len(names) - 3), "label": g["label"]}
+    return groups, updating
+
+
+def _why_line(g: dict[str, Any]) -> str:
+    """"shared Fuse F82, Frame ground G003A · appeared together 4 of 15 reads · cleared together 4x" -- counts of
+    CUORE records from the group's own links."""
+    els = [e["label"] for e in (g.get("why_elements") or [])[:3]]
+    parts = ["shared " + ", ".join(els) if els else "same system"]
+    h = g.get("history") or {}
+    if h.get("together"):
+        parts.append(f"appeared together {h['together']} of {h['either']} reads")
+    if h.get("cleared"):
+        parts.append(f"cleared together {h['cleared']}×")
+    return " · ".join(parts)
+
+
+def _related_groups(cards: list[dict[str, Any]], sim_groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The ?group=related view: one group per similarity group (already ordered best tier, then newest), then the
+    faults that are in none. Open when a member is present now."""
+    by_key = {c["key"]: c for c in cards}
+    out: list[dict[str, Any]] = []
+    used: set[str] = set()
+
+    def make(gid: str, label: str, cs: list[dict[str, Any]], why: str) -> dict[str, Any]:
+        n_present = sum(1 for c in cs if c["status"] in ("active", "pending", "permanent"))
+        n_open = any(c["status"] in ("active", "pending", "permanent", "verifying") for c in cs)
+        return {"id": gid, "label": label, "cards": cs, "count": len(cs), "active": n_present, "n_present": n_present,
+                "open": n_open, "why": why,
+                "summary": f"{label} — {len(cs)} fault{'s' if len(cs) != 1 else ''} · {n_present} present"}
+
+    for g in sim_groups:
+        mem = {k for k in g["members"] if k in by_key}
+        cs = [c for c in cards if c["key"] in mem]      # keeps the chosen sort
+        if len(cs) < 2:
+            continue
+        used |= mem
+        out.append(make(g["id"], g["label"], cs, _why_line(g)))
+    rest = [c for c in cards if c["key"] not in used]
+    if rest:
+        out.append(make("sim:none", "Not linked to another fault", rest, ""))
+    return out
+
+
 # --- page context ---------------------------------------------------------------
 
 def fault_board_context(vin: str, job_id: Optional[str] = None, sort: str = "importance",
@@ -824,9 +944,31 @@ def fault_board_context(vin: str, job_id: Optional[str] = None, sort: str = "imp
     sort = sort if sort in SORTS else "importance"
     group = group if group in GROUPS else "none"
     cards = sort_by(board(vin, job_id), sort)
-    groups = group_by(cards, group)
-    return {"vin": vin, "job_id": job_id or "", "sort": sort, "group": group, "sorts": SORTS, "groups_choices": GROUPS,
-            "groups": groups, "total": len(cards),
+    sim_groups, sim_updating = _similar_groups(vin, cards)
+    groups = _related_groups(cards, sim_groups) if group == "related" else group_by(cards, group)
+    for c in cards:
+        c["group_lead"] = None
+        c["group_first"] = False
+    if group == "tiers":
+        # Show a shared group's next test / hypotheses once: on its first card; the other members point to it.
+        lead: dict[str, dict[str, Any]] = {}
+        for g in groups:
+            for c in g["cards"]:
+                gid = c["group"]["id"]
+                if gid.startswith("cc:") and c["related"]:
+                    if gid in lead:
+                        c["group_lead"] = {"key": lead[gid]["key"], "code": lead[gid]["code"]}
+                    else:
+                        lead[gid] = c
+                        c["group_first"] = True
+    present = [c for c in cards if c["status"] in ("active", "pending", "permanent")]
+    codes_p = [c["code"] + " (" + c["status"] + ")" for c in present if c["kind"] == "code"]
+    n_sym = sum(1 for c in present if c["kind"] == "symptom")
+    parts = codes_p + ([f"{n_sym} symptom{'s' if n_sym != 1 else ''}"] if n_sym else [])
+    present_line = (f"{len(present)} present now: " + ", ".join(parts)) if present else "Nothing present now"
+    return {"vin": vin, "job_id": job_id or "", "sort": sort, "group": group, "sorts": SORTS,
+            "groups_choices": ("tiers", "none", "related", "system", "status"), "present_line": present_line,
+            "groups": groups, "total": len(cards), "sim_updating": sim_updating,
             "n_active": sum(1 for c in cards if c["status"] in ("active", "pending", "permanent")),
             "n_verifying": sum(1 for c in cards if c["status"] == "verifying"),
             "return_to": return_to or f"/v/{vin}/job",

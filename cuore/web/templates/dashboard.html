@@ -22,15 +22,25 @@ what has already been tried — before the drill-down.</p>
   <div style="flex:1;min-width:130px">
     <div class="small muted">Standing codes</div>
     <div class="mono" style="font-size:1.3em">
-      <span class="chip {{ 'returned' if s.open_codes_count else 'ok' }}">{{ s.open_codes_count }}</span>
+      <span class="chip {{ 'returned' if standing else 'ok' }}">{{ standing|length }}</span>
     </div>
-    {% if s.newest_session_after_clear %}
-      <div class="small" style="color:var(--sev-returned)">newest read came after a clear
-        ({{ s.newest_session_after_clear.cleared_at }}): tests not re-run yet, so 0 means
-        nothing. Before the clear:
+    {% if standing %}
+      <ul class="dash-standing" style="list-style:none;margin:4px 0 0;padding:0">
+        {% for c in standing_shown %}
+        <li style="min-height:44px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center">
+          <a class="mono" href="/v/{{ vin }}/code/{{ c.code }}">{{ c.code }}</a>
+          <span class="chip {{ c.chip }}"><span aria-hidden="true">{{ c.mark }}</span> {{ c.label }}</span>
+          <span class="muted">{{ c.last_seen_text }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      <a href="/v/{{ vin }}/codes" style="display:inline-flex;min-height:44px;align-items:center">{% if standing|length > standing_shown|length %}All {{ standing|length }} on Codes{% else %}See Codes{% endif %}</a>
+    {% elif s.newest_session_after_clear %}
+      <div class="small" style="color:var(--sev-returned)">none standing; the newest read came after a clear
+        ({{ s.newest_session_after_clear.cleared_at }}), so tests may not have re-run yet. Before the clear:
         <span class="mono">{{ s.newest_session_after_clear.findings_before|join(", ") }}</span></div>
     {% else %}
-      <div class="small muted">in the newest session</div>
+      <div class="small muted">present, permanent or active on the fault board</div>
     {% endif %}
   </div>
   <div style="flex:1;min-width:130px">
@@ -100,7 +110,7 @@ newest first inside each. The full list, with sorting and search, is on Codes.</
           <td class="small muted">{{ r.module }}</td>
           <td class="n">{{ r.sessions }}</td>
           <td class="mono small" title="{{ r.first_seen }}">{{ r.first_ago }}</td>
-          <td class="mono small" title="{{ r.last_seen }}">{{ r.ago }}</td>
+          <td class="mono small" title="{{ r.last_seen }}">{% if r.fb %}<span class="chip {{ r.fb.chip }}"><span aria-hidden="true">{{ r.fb.mark }}</span> {{ r.fb.label }}</span> {{ r.fb.last_seen_text }}{% else %}{{ r.ago }}{% endif %}</td>
           <td class="n">{% if r.distance_span_km %}{{ "{:,}".format(r.distance_span_km|int) }} km{% else %}&mdash;{% endif %}</td>
         </tr>
       {% endfor %}

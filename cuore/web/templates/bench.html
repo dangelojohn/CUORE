@@ -41,11 +41,22 @@
 .bench-why p, .bench-why ul { margin: 4px 0; }
 
 /* Go to chip row */
-.bench-go { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; padding-bottom: 0; }
+.bench-go { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: center; padding-bottom: 0; }
 .bench-go > *, .bench-scan-links > * { flex: none; white-space: nowrap; }
+/* Narrow screens: ONE horizontally scrollable chip row (full labels kept). */
+@media (max-width: 600px) {
+  .bench-go {
+    flex-wrap: nowrap; white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin; max-width: 100%;
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  }
+  .bench-go::-webkit-scrollbar { height: 4px; }
+  .bench-gochip { min-height: 44px; font-size: var(--fs-md, 1rem); }
+}
 .bench-go-l { font-weight: 700; color: var(--ink-2); }
 .bench-gochip {
-  display: inline-flex; align-items: center; min-height: 44px; padding: 2px 12px; border-radius: 999px;
+  display: inline-flex; align-items: center; min-height: 44px; padding: 2px 8px; border-radius: 999px;
   border: 2px solid var(--accent); background: var(--surface-2); color: var(--ink);
   text-decoration: none; font-weight: 600; font-size: 1rem; cursor: pointer;
 }
@@ -55,6 +66,11 @@
 .bench-scan > summary::-webkit-details-marker { display: none; }
 .bench-scan-links { display: contents; }
 .bench-scan[open] > summary { background: var(--accent); }
+
+/* Work on now: one compact, always-visible row under the Go-to chips */
+.bench-worknow-row { display: flex; align-items: center; min-height: 44px; margin: 0; padding: 0 8px; border: 1px solid var(--rule); border-left: 6px solid var(--ink); border-radius: var(--radius, 3px); background: var(--surface-2); color: var(--ink); text-decoration: none; font-size: var(--fs-md); line-height: 1.25; }
+.bench-worknow-row:hover, .bench-worknow-row:focus-visible { background: var(--accent); }
+.bench-worknow-row b { margin-right: 4px; }
 
 /* MIL diagnostics */
 .bench-mil {
@@ -111,6 +127,11 @@
 .bench-outcome-fields input[type="text"] { flex: 1 1 140px; min-width: 0; }
 .bench-outcome-fields .btn { min-height: 48px; min-width: 48px; }
 .bench-done-summary { margin: 0; }
+
+.bench-standing-row { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; min-height: 44px; line-height: 1.3; }
+.bench-standing-row form { margin: 0; flex: none; margin-left: auto; }
+.bench-standing-btn { min-height: 44px; min-width: 88px; font-size: var(--fs-md); font-weight: 700; }
+.bench-standing-list { display: flex; flex-direction: column; gap: 2px; }
 
 /* Resume (progress only; scan age + scanner live in the vehicle bar) */
 .bench-resume { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius); padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
@@ -205,6 +226,13 @@
     </details>
   </nav>
 
+  {# Work on now: visible on load, one row; the Fixed buttons live on the Job and Codes pages. #}
+  {% if bench.work_line %}
+    <a class="bench-worknow-row" id="bench-worknow-row" href="/v/{{ vin }}/job"><span><b>Work on now:</b>
+      {% for sg in bench.work_line %}{{ sg.codes }} &mdash; <span aria-hidden="true">{{ sg.mark }}</span> {{ sg.label }}{% if sg.seen %} &middot; last seen {{ sg.seen }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}
+      &rarr; Job</span></a>
+  {% endif %}
+
   {# MIL diagnostics: ECM-commanded MIL vs the dash lamp the owner saw. #}
   {% if bench.verdict.mil %}
     <div class="bench-mil{{ ' is-mismatch' if bench.verdict.mil.mismatch }}">
@@ -240,10 +268,19 @@
           {% if bench.last_scan.status == "attempt" %}<span class="chip chronic">attempt &mdash; adapter not reachable</span>
           {% elif bench.last_scan.partial %}<span class="chip chronic">partial</span>{% endif %}
         </div>
-        <p class="bench-lastscan-codes">
-          <b>Active:</b> {% if bench.last_scan.active_codes %}{% for c in bench.last_scan.active_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
+        <div class="bench-lastscan-codes">
+          <b>Standing &middot; work on now:</b>
+          {% if bench.standing or bench.work_now %}
+          <span class="bench-standing-list" id="bench-worknow">
+          {% set _rows = (bench.standing if bench.standing else [bench.work_now]) %}
+          {% for c in _rows %}
+            <span class="bench-standing-row"><a class="chip-code sm" href="/v/{{ vin }}/code/{{ c.code }}" title="Open {{ c.code }}">{{ c.code or c.title }}</a> <span class="chip {{ c.chip }}"><span aria-hidden="true">{{ c.mark }}</span> {{ c.label }}</span> <span>last seen {{ c.last_seen_text }}</span>
+              {% if c.can_fix %}<form method="post" action="/v/{{ vin }}/fault-board/fixed"><input type="hidden" name="fault_key" value="{{ c.key }}"><input type="hidden" name="return_to" value="/v/{{ vin }}"><button type="submit" class="btn bench-standing-btn" aria-label="Mark {{ c.code or c.title }} fixed" title="Records the repair and starts verification; CUORE shows Proven fixed only when the readings say so">Fixed</button></form>{% endif %}</span>
+          {% endfor %}
+          </span>
+          {% elif bench.last_scan.active_codes %}{% for c in bench.last_scan.active_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
           &middot; <b>History:</b> {% if bench.last_scan.history_codes %}{% for c in bench.last_scan.history_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
-        </p>
+        </div>
         {% if bench.last_scan.coverage_line %}
           <p class="bench-lastscan-coverage">{{ bench.last_scan.coverage_line }}</p>
         {% elif bench.last_scan.status == "attempt" %}

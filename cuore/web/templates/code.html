@@ -46,7 +46,7 @@
     <tr><td class="k">Module</td><td>{{ r.modules|join(", ") }}</td></tr>
     <tr><td class="k">Sessions</td><td class="n">{{ r.sessions }}</td></tr>
     <tr><td class="k">First seen</td><td class="mono">{{ r.first_seen }}</td></tr>
-    <tr><td class="k">Last seen</td><td class="mono">{{ r.last_seen }}</td></tr>
+    <tr><td class="k">Last seen</td><td class="mono" title="this record: {{ r.last_seen }}">{{ fbc.last_seen_text if fbc else r.last_seen }}</td></tr>
     {% if r.odometer_first_km is defined and r.odometer_first_km is not none %}
     <tr><td class="k">Odometer</td>
         <td class="mono">{{ "{:,}".format(r.odometer_first_km|int) }} &rarr;

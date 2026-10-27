@@ -652,7 +652,14 @@ def code_detail(request: Request, vin: str, code: str) -> HTMLResponse:
     except BridgeError:
         frames = {"count": 0, "frames": []}
     code_notes = mes_bridge.notes(vin, target_kind="code", target_id=code_upper)["notes"]
+    from ..services import codes_call, fault_similarity
+    fbc = codes_call.code_view(vin, code_upper)
+    try:
+        sim = fault_similarity.strip(vin, fbc["key"], limit=5) if fbc else {}
+    except Exception:  # noqa: BLE001 -- the code page renders without the similar-faults strip
+        sim = {}
     response = _page(request, "code.html", vin=vin, code=code_upper,
+                     fbc=fbc, sim=sim,
                      records=history["matches"], frames=frames,
                      notes_list=code_notes, note_target_kind="code",
                      note_target_id=code_upper, note_redirect=f"/v/{vin}/code/{code_upper}",
@@ -663,6 +670,19 @@ def code_detail(request: Request, vin: str, code: str) -> HTMLResponse:
                      bar=_vehicle_bar(vin, dossier), tab="codes")
     _set_active_vehicle(response, vin)
     return response
+
+
+def _board_card_for(vin: str, code: str):
+    """Jinja global for _code_brief.html when its caller (job.html) passes no ``fbc``: the fault-board view of
+    ``code`` (``fault_board.board`` is cached), or None."""
+    from ..services import codes_call
+    try:
+        return codes_call.code_view(vin, code)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+templates.env.globals["board_card_for"] = _board_card_for
 
 
 @router.get("/v/{vin}/tree", response_class=HTMLResponse)

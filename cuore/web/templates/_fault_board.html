@@ -14,6 +14,7 @@
 .fb-opt[aria-current="true"] { border: 2px solid var(--ink); font-weight: 700; }
 .fb-group { border: 1px solid var(--rule); border-radius: var(--radius, 3px); margin: 0 0 10px; background: var(--surface); }
 .fb-group > summary { min-height: var(--tap, 44px); padding: 6px 12px; cursor: pointer; font-weight: 700; font-size: var(--fs-lg); }
+.fb-why { display: block; font-weight: 400; font-size: var(--fs-md); color: var(--ink-2); overflow-wrap: anywhere; }
 .fb-list { list-style: none; margin: 0; padding: 0 8px 8px; display: grid; gap: 8px; }
 .fb-card { display: flex; gap: 8px; align-items: flex-start; background: var(--surface-2); border: 1px solid var(--rule); border-left: 6px solid var(--fb-c, var(--ink-3)); border-radius: var(--radius, 3px); }
 .fb-card.s-active, .fb-card.s-permanent { --fb-c: var(--sev-returned, #e8565c); }
@@ -27,6 +28,7 @@
 .fb-meta { color: var(--ink-2); }
 .fb-when { font-weight: 600; }
 .fb-line { flex-basis: 100%; color: var(--ink-2); }
+.fb-rel { color: var(--ink); font-weight: 600; }
 .fb-body { padding: 4px 12px 12px; border-top: 1px solid var(--rule-soft, var(--rule)); }
 .fb-body dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
 .fb-body dt { font-weight: 600; color: var(--ink-2); }
@@ -49,6 +51,7 @@
       <span class="fb-meta">{{ c.present_text }}{% if c.kind == 'code' %} &middot; {{ c.cleared_text }}{% endif %}</span>
       {% if c.returned_after_fix %}<span class="fb-chip"><span aria-hidden="true">!</span> Returned after fix{% if c.returned_after_fix_count > 1 %} ({{ c.returned_after_fix_count }}&times;){% endif %}</span>{% endif %}
       <span class="fb-line">{% if c.kind == 'symptom' %}{{ c.label }} &mdash; {% endif %}{{ c.importance.reason }}</span>
+      {% if c.sim %}<span class="fb-line fb-rel">with {{ c.sim.codes|join(', ') }}{% if c.sim.more %} +{{ c.sim.more }}{% endif %} &mdash; {{ c.sim.label }}</span>{% endif %}
     </summary>
     <div class="fb-body">
       {% if c.description and c.kind == 'code' %}<p>{{ c.description }}</p>{% endif %}
@@ -60,11 +63,15 @@
       <dl>
         <dt>Status</dt><dd>{{ c.status_detail }}</dd>
         <dt>First seen</dt><dd>{{ c.first_seen[:16]|replace('T', ' ') }}</dd>
-        <dt>Group</dt><dd>{{ c.group.label }}{% if c.group.n %} &mdash; {{ c.group.n }} faults{% endif %}</dd>
+        {% if c.group_lead %}
+        <dt>Group</dt><dd>{{ c.group.label }} &mdash; its next test and hypotheses are shown once, on <a href="#fb-{{ c.group_lead.key|replace(':', '-') }}">{{ c.group_lead.code }}</a></dd>
+        {% else %}
+        <dt>Group</dt><dd>{{ c.group.label }}{% if c.group.n %} &mdash; {{ c.group.n }} faults{% endif %}{% if c.group_first %} &mdash; next test and hypotheses below are for the whole group{% endif %}</dd>
         {% if c.next_test %}<dt>Next test</dt><dd>{{ c.next_test.text }} <span class="fb-meta">({{ c.next_test.source }})</span></dd>{% endif %}
         {% if c.hypotheses %}<dt>Hypotheses</dt><dd>{% for h in c.hypotheses %}<a href="/v/{{ fb.vin }}/job?step=7#hyp-{{ h.id }}">{{ h.title }}</a> ({{ h.status }}){% if not loop.last %}; {% endif %}{% endfor %}</dd>{% endif %}
-        <dt>Priority</dt><dd>#{{ c.rank }} &mdash; {{ c.importance.reason }} <span class="fb-meta">({{ c.importance.label }})</span></dd>
-        <dt>Evidence</dt><dd class="fb-ids">{% for k, ids in c.evidence.items() %}{% if ids %}<b>{{ k }}</b>: {{ ids|join(', ') }}<br>{% endif %}{% endfor %}</dd>
+        {% endif %}
+        <dt>Priority</dt><dd>#{{ c.rank }} <span class="fb-meta">({{ c.importance.label }}; the reason is on the summary line)</span></dd>
+        <dt>Evidence</dt><dd class="fb-ids">{% for k, ids in c.evidence.items() %}{% if ids and not (c.group_lead and k in ('group', 'hypotheses', 'next_test')) %}<b>{{ k }}</b>: {{ ids|join(', ') }}<br>{% endif %}{% endfor %}</dd>
       </dl>
       {% if c.href %}<a href="{{ c.href }}">Open code page</a>{% endif %}
     </div>
@@ -84,21 +91,21 @@
   {% if not (fb_in_fold is defined and fb_in_fold) %}{# the Job page's fold summary already shows this line #}
   <div class="fb-head">
     <h2 class="section-h">Fault board</h2>
-    <span>{{ fb.total }} faults &middot; {{ fb.n_active }} present now{% if fb.n_verifying %} &middot; {{ fb.n_verifying }} verifying{% endif %}</span>
+    <span>{{ fb.total }} faults &middot; {{ fb.n_active }} present now{% if fb.n_verifying %} &middot; {{ fb.n_verifying }} verifying{% endif %}{% if fb.sim_updating %} &middot; similar faults updating&hellip;{% endif %}</span>
   </div>
   {% endif %}
-  <p class="fb-order">Ordered by priority, then most recent. The priority rules are a table ({{ fb.priority_label }}).</p>
+  <p class="fb-order">Ordered by priority, then most recent. The priority rules are a table ({{ fb.priority_label }}).{% if fb.sim_updating and (fb_in_fold is defined and fb_in_fold) %} &middot; similar faults updating&hellip;{% endif %}</p>
   <div class="fb-ctl" role="group" aria-label="Sort">
     <b>Sort</b>
     {% for s in fb.sorts %}<a class="fb-opt" href="{{ fb.link_base|default('?') }}sort={{ s }}&amp;group={{ fb.group }}#fault-board" {% if s == fb.sort %}aria-current="true"{% endif %}>{{ {'importance': 'Priority, then newest', 'newest': 'Newest', 'oldest': 'Oldest', 'longest-present': 'Longest present', 'system': 'System', 'code': 'Code'}[s] }}</a>{% endfor %}
   </div>
   <div class="fb-ctl" role="group" aria-label="Group">
     <b>Group</b>
-    {% for g in fb.groups_choices %}<a class="fb-opt" href="{{ fb.link_base|default('?') }}sort={{ fb.sort }}&amp;group={{ g }}#fault-board" {% if g == fb.group %}aria-current="true"{% endif %}>{{ {'none': 'None', 'related': 'Related', 'system': 'System', 'status': 'Status'}[g] }}</a>{% endfor %}
+    {% for g in fb.groups_choices %}<a class="fb-opt" href="{{ fb.link_base|default('?') }}sort={{ fb.sort }}&amp;group={{ g }}#fault-board" {% if g == fb.group %}aria-current="true"{% endif %}>{{ {'tiers': 'Work on now', 'none': 'Flat list', 'related': 'Related', 'system': 'System', 'status': 'Status'}[g] }}</a>{% endfor %}
   </div>
   {% for g in fb.groups %}
   <details class="fold fb-group" {% if g.open %}open{% endif %}>
-    <summary>{{ g.summary }}</summary>
+    <summary>{{ g.summary }}{% if g.why %}<span class="fb-why">{{ g.why }}</span>{% endif %}</summary>
     <ul class="fb-list">{% for c in g.cards %}{{ fb_card(c, fb) }}{% endfor %}</ul>
   </details>
   {% endfor %}
