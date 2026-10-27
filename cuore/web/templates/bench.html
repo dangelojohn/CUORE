@@ -435,6 +435,8 @@
         {% endfor %}
       </ul>
     </section>
+    {% include "_bench_live_proof.html" %}
+    {% include "_bench_fault_map.html" %}
   {% endif %}
 
   {# Next connection: the plan for the next time the car is connected; open only while a connection is live. #}

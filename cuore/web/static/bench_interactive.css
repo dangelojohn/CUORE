@@ -1,0 +1,101 @@
+/* Bench interactive pieces: live proof (.bi-*) and fault map (.bf-*).
+   Tokens only: --fs-* for every size (16 px floor = --fs-md), app colour tokens so light/dark come free.
+   Status/legend are never colour alone: each carries a mark and a word, markers a shape and a number.
+   44 px targets, no horizontal scroll at 400 px. */
+
+.bi-proof, .bf { max-width: 820px; margin: 0 0 12px; font-size: var(--fs-md); overflow-wrap: anywhere; }
+.bi-h { margin: 0 0 6px; font-size: var(--fs-lg); font-weight: 700; }
+.bi-muted { color: var(--ink-2); }
+.bi-note, .bi-hyp, .bi-stream, .bi-why, .bi-src, .bi-unconf { margin: 4px 0; font-size: var(--fs-md); }
+.bi-note { color: var(--ink-2); }
+.bi-mark { display: inline-block; min-width: 1.1em; text-align: center; font-weight: 700; }
+.bi-stream { color: var(--ink-2); }
+.bi-stream[data-state="live"] { color: var(--ink); }
+
+.bi-rows { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.bi-row { padding: 10px 12px; border: 1px solid var(--rule); border-left: 6px solid var(--bi-c, var(--ink-3)); border-radius: var(--radius, 3px); background: var(--surface-2); }
+.bi-row.s-in { --bi-c: var(--ok); }
+.bi-row.s-out { --bi-c: var(--sev-returned, var(--accent)); }
+.bi-row.s-no_band { --bi-c: var(--ink-3); }
+.bi-row.s-missing { --bi-c: var(--ink-3); }
+.bi-rowhead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; align-items: baseline; }
+.bi-name { font-weight: 700; font-size: var(--fs-lg); }
+.bi-state { font-weight: 700; }
+
+/* the bar: scale track, shaded target band (also named in text), current-value marker */
+.bi-bar { position: relative; height: 28px; margin: 10px 4px 2px; border: 1px solid var(--ink-3); border-radius: 4px; background: var(--surface); }
+.bi-row.s-missing .bi-bar { background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--rule) 6px 8px); }
+.bi-band { position: absolute; top: 0; bottom: 0; background: var(--ok-bg); border-left: 2px solid var(--ok); border-right: 2px solid var(--ok); box-sizing: border-box; }
+.bi-marker { position: absolute; top: -6px; bottom: -6px; width: 6px; margin-left: -3px; background: var(--ink); border: 1px solid var(--surface); border-radius: 2px; }
+.bi-row.s-out .bi-marker { background: var(--sev-returned, var(--accent)); }
+.bi-scale { display: flex; justify-content: space-between; gap: 8px; margin: 0 4px; color: var(--ink-2); font-size: var(--fs-md); }
+.bi-bandlabel { text-align: center; flex: 1; }
+.bi-val { display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; margin-top: 4px; }
+.bi-num { font-size: var(--fs-xl); font-variant-numeric: tabular-nums; }
+.bi-age { color: var(--ink-2); }
+.bi-why { color: var(--ink); }
+.bi-src { color: var(--ink-2); }
+.bi-unconf { padding: 4px 8px; border: 1px dashed var(--ink-3); border-radius: var(--radius, 3px); }
+.bi-row.is-stale .bi-age::after { content: " (no update lately)"; font-weight: 700; }
+
+/* ---- fault map ---- */
+.bf-choose { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 8px; }
+.bf-opt, .bf-pathlink, .bf-open, .bf-unplaced a, .bf-btn {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-size: var(--fs-md);
+  border: 1px solid var(--rule); border-radius: var(--radius, 3px); background: var(--surface-2); color: var(--ink); text-decoration: none;
+}
+.bf-opt[aria-current="true"] { border: 2px solid var(--ink); font-weight: 700; }
+.bf-pathlink { font-weight: 700; }
+.bf-pathrow { margin: 0 0 6px; }
+.bf-legend { list-style: none; margin: 0 0 8px; padding: 0; display: grid; gap: 4px; }
+.bf-legend li { display: flex; gap: 8px; align-items: center; }
+
+.bf-mark { --bf-c: var(--accent); }
+.bf-mark.bf-sim { --bf-c: var(--fam-chassis, #5b8fd9); }
+.bf-n { font-size: var(--fs-md); font-weight: 700; line-height: 1; }
+
+/* markers: fault = filled circle, similar = dashed rounded square (shape differs, not only colour) */
+.bf-stage { position: relative; width: 100%; }
+.bf-svg { display: block; width: 100%; height: auto; }
+.bf-stage > .bf-mark {
+  position: absolute; transform: translate(-50%, -50%); width: 44px; height: 44px; box-sizing: border-box;
+  display: inline-flex; align-items: center; justify-content: center; text-decoration: none; cursor: pointer;
+}
+.bf-mark.bf-fault { background: var(--bf-c); color: var(--accent-ink, #fff); border: 3px solid var(--surface); border-radius: 50%; box-shadow: 0 0 0 2px var(--bf-c); }
+.bf-mark.bf-sim { background: var(--surface); color: var(--ink); border: 3px dashed var(--bf-c); border-radius: 10px; }
+.bf-mark.bf-both { outline: 3px dashed var(--fam-chassis, #5b8fd9); outline-offset: 3px; }
+.bf-mark.is-on { outline: 3px solid var(--ink); outline-offset: 3px; }
+.bf-mark:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.bf-mark.bf-key { position: static; transform: none; flex: 0 0 auto; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; }
+.bf-ch .bf-mark.bf-key { width: 44px; }
+
+/* Side / Top toggle without script: two radios */
+.bf-radio { position: absolute; opacity: 0; pointer-events: none; }
+.bf-tabs { display: flex; gap: 6px; margin: 0 0 6px; }
+.bf-tabs label { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 88px; padding: 0 16px; border: 1px solid var(--rule); border-radius: var(--radius, 3px); background: var(--surface-2); cursor: pointer; font-size: var(--fs-md); }
+#bf-v-side:checked ~ .bf-tabs label[for="bf-v-side"], #bf-v-top:checked ~ .bf-tabs label[for="bf-v-top"] { border: 2px solid var(--ink); font-weight: 700; }
+#bf-v-side:focus-visible ~ .bf-tabs label[for="bf-v-side"], #bf-v-top:focus-visible ~ .bf-tabs label[for="bf-v-top"] { outline: 3px solid var(--ink); outline-offset: 2px; }
+.bf-fig { margin: 0; }
+.bf-fig figcaption { color: var(--ink-2); margin: 0 0 4px; font-size: var(--fs-md); }
+#bf-v-side:checked ~ .bf-fig-top, #bf-v-top:checked ~ .bf-fig-side { display: none; }
+.bf-credit { margin: 6px 0; color: var(--ink-2); font-size: var(--fs-md); }
+.bf-unplaced { margin: 6px 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+.bf-pop { margin: 8px 0; padding: 10px 12px; border: 2px solid var(--ink); border-radius: var(--radius, 3px); background: var(--surface-2); }
+.bf-pop[hidden] { display: none; }
+.bf-pop-close { margin-top: 6px; cursor: pointer; font-weight: 700; }
+.bf-fold > summary { min-height: 44px; display: flex; align-items: center; font-size: var(--fs-md); }
+.bf-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.bf-card { padding: 8px 12px; border: 1px solid var(--rule); border-left: 6px solid var(--bf-c, var(--ink-3)); border-radius: var(--radius, 3px); background: var(--surface-2); }
+.bf-card-fault { --bf-c: var(--accent); }
+.bf-card-sim { --bf-c: var(--fam-chassis, #5b8fd9); }
+.bf-card:target { outline: 3px solid var(--ink); }
+.bf-ch { display: flex; gap: 8px; align-items: center; margin: 0; font-size: var(--fs-lg); }
+.bf-which { margin: 4px 0; color: var(--ink-2); font-weight: 600; }
+.bf-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 6px 0 0; }
+.bf-dl dt { font-weight: 600; color: var(--ink-2); }
+.bf-dl dd { margin: 0; }
+.bf-pop .bf-ch { font-size: var(--fs-lg); }
+@media (max-width: 480px) { .bf-dl { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .bi-marker { transition: none; } }
+.bi-marker { transition: left .3s linear; }

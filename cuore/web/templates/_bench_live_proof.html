@@ -1,0 +1,47 @@
+{# Bench "Live proof": the 2-4 readings that bear on the top present fault's leading hypothesis.
+   Embeddable partial. Context: vin, and optionally proof = cuore.services.bench_interactive.live_proof(vin)
+   (else the bench_live_proof() Jinja global computes it). Works with no JavaScript: the server-rendered
+   latest snapshot. With JavaScript (bench_interactive.js) a connected session's SSE stream moves the markers
+   in place. Status is always a mark + a word; the band is a shaded span AND a text label. --fs-* tokens only. #}
+{% if proof is not defined and bench_live_proof is defined %}{% set proof = bench_live_proof(vin, request.query_params.get('token') if request is defined and request else '') %}{% endif %}
+{% if proof %}
+<link rel="stylesheet" href="{{ static_url('bench_interactive.css') }}">
+<section class="bi-proof" id="bi-proof" data-live="{{ 1 if proof.connected else 0 }}" data-stream="{{ proof.stream_url }}" aria-labelledby="bi-proof-h">
+  <h3 class="bi-h" id="bi-proof-h">Live proof{% if proof.fault %} for {{ proof.fault.code }}{% endif %}</h3>
+  {% if not proof.fault or not proof.rows %}
+    <p class="bi-note">{{ proof.note }}</p>
+  {% else %}
+    {% if proof.hypothesis %}<p class="bi-hyp"><b>Leading hypothesis:</b> {{ proof.hypothesis.title }}{% if proof.hypothesis.rank %} <span class="bi-muted">(suspect rank {{ proof.hypothesis.rank }})</span>{% endif %}<br><span class="bi-muted">The readings below show whether the test can run and the path is working; the hypothesis's own proof steps are on its Job card.</span></p>{% endif %}
+    <p class="bi-stream" id="bi-stream" role="status" data-connected="{{ 1 if proof.connected else 0 }}">
+      {% if proof.connected %}<span class="bi-mark" aria-hidden="true">&#9679;</span> Session connected. Values move live when this page has script.{% else %}<span class="bi-mark" aria-hidden="true">&#9675;</span> {{ proof.connect_text }}{% endif %}
+    </p>
+    <ul class="bi-rows">
+    {% for r in proof.rows %}
+      <li class="bi-row s-{{ r.state }}" data-channel="{{ r.channel }}" data-unit="{{ r.unit }}" data-min="{{ r.scale[0] }}" data-max="{{ r.scale[1] }}"
+          {% if r.band %}data-blo="{{ r.band.lo }}" data-bhi="{{ r.band.hi }}"{% endif %} data-in="{{ r.in_label }}" data-out="{{ r.out_label }}">
+        <div class="bi-rowhead">
+          <span class="bi-name">{{ r.name }}</span>
+          <span class="bi-state" data-role="state"><span class="bi-mark" aria-hidden="true">{% if r.state == 'in' %}&#10003;{% elif r.state == 'out' %}&#10007;{% elif r.state == 'no_band' %}&ndash;{% else %}?{% endif %}</span> <span data-role="state-text">{{ r.state_text }}</span></span>
+        </div>
+        <div class="bi-bar" data-role="bar" role="img"
+             aria-label="{{ r.name }}: {{ r.value_text or 'not recorded' }}. Scale {{ r.scale[0] }} to {{ r.scale[1] }} {{ r.unit }}. {{ ('Target ' ~ r.band.label) if r.band else 'No target band' }}. {{ r.state_text }}.">
+          {% if r.band_pos %}<span class="bi-band" style="left:{{ r.band_pos[0] }}%;width:{{ r.band_pos[1] - r.band_pos[0] }}%"></span>{% endif %}
+          <span class="bi-marker" data-role="marker" style="left:{{ r.pos if r.pos is not none else 0 }}%"{% if r.pos is none %} hidden{% endif %}></span>
+        </div>
+        <div class="bi-scale"><span>{{ r.scale[0]|int if r.scale[0] == r.scale[0]|int else r.scale[0] }}</span>
+          <span class="bi-bandlabel">{% if r.band %}shaded: {{ r.band.label }}{% else %}{{ 'no sourced target band' }}{% endif %}</span>
+          <span>{{ r.scale[1]|int if r.scale[1] == r.scale[1]|int else r.scale[1] }} {{ r.unit }}</span></div>
+        <div class="bi-val">
+          <b class="bi-num" data-role="value">{{ r.value_text or 'not recorded' }}</b>
+          <span class="bi-age" data-role="age">{% if r.value is not none %}{{ r.age }}{% if r.origin and not r.live %} &middot; {{ r.origin }}{% endif %}{% else %}never read on this car{% endif %}</span>
+        </div>
+        <p class="bi-why">{{ r.why }}</p>
+        {% if r.unconfirmed %}<p class="bi-unconf"><b>Unconfirmed.</b> {{ r.unconfirmed }}</p>{% endif %}
+        <p class="bi-src">PID {{ r.pid or '?' }}, decoding: {{ r.decode }}.{% if r.band and r.band.source %} Band source: {{ r.band.source }}.{% endif %}</p>
+      </li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+</section>
+<script src="{{ static_url('bench_interactive.js') }}" defer></script>
+{% endif %}

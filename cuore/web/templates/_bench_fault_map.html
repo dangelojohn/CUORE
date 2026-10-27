@@ -1,0 +1,77 @@
+{# Bench "Fault map": car outline (side / top) with the fault's dependency elements and similar faults' elements.
+   Embeddable partial. Context: vin, and optionally fmap = cuore.services.bench_interactive.fault_map(vin, fault)
+   (else the bench_fault_map() Jinja global is called with ?fault=). No JavaScript needed: every marker is a link to
+   its card, and all cards are listed under the drawing in a details.fold. With JavaScript (bench_interactive.js)
+   a tap shows the card inline. Marker = shape + number + colour: filled circle "1" = this fault's path;
+   dashed square "S1" = a similar fault's path. 44 px targets, --fs-* tokens only. #}
+{% if fmap is not defined and bench_fault_map is defined %}{% set fmap = bench_fault_map(vin, request.query_params.get('fault') if request is defined and request else None, request.query_params.get('token') if request is defined and request else '') %}{% endif %}
+{% if fmap %}
+<link rel="stylesheet" href="{{ static_url('bench_interactive.css') }}">
+<section class="bf" id="bf" aria-labelledby="bf-h">
+  <h3 class="bi-h" id="bf-h">Fault map{% if fmap.fault %} for {{ fmap.fault.code }}{% endif %}</h3>
+  {% if fmap.choices|length > 1 %}
+  <nav class="bf-choose" aria-label="Choose the fault to map"><b>Fault:</b>
+    {% for c in fmap.choices %}<a class="bf-opt" href="{{ c.href }}"{% if c.current %} aria-current="true"{% endif %}>{{ c.code }}</a>{% endfor %}
+  </nav>
+  {% endif %}
+  {% if not fmap.fault or not fmap['items'] %}
+    <p class="bi-note">{{ fmap.note }}</p>
+  {% else %}
+  <p class="bf-pathrow"><a class="bf-pathlink" href="{{ fmap.fault.path_href }}">Electrical path for: {{ fmap.fault.label }} &rarr;</a></p>
+  <ul class="bf-legend" aria-label="Legend">
+    {% for l in fmap.legend %}<li><span class="bf-mark {{ l.cls }} bf-key" aria-hidden="true"><span class="bf-n">{{ l.mark }}</span></span> <span>{{ l.text }}</span></li>{% endfor %}
+  </ul>
+
+  <div class="bf-views">
+    <input class="bf-radio" type="radio" name="bf-view" id="bf-v-side" checked>
+    <input class="bf-radio" type="radio" name="bf-view" id="bf-v-top">
+    <div class="bf-tabs" role="group" aria-label="Car view"><label for="bf-v-side">Side</label><label for="bf-v-top">Top</label></div>
+    {% for v in ['side', 'top'] %}
+    {% set vw = fmap[v] %}
+    <figure class="bf-fig bf-fig-{{ v }}">
+      <figcaption>{% if v == 'side' %}Side view: the car's left (driver's) side, front to the left. Right-side items are on the Top view.{% else %}Top view: looking down, front to the left; left (driver's) side at the bottom. Each marker is an area, not an exact spot.{% endif %}</figcaption>
+      <div class="bf-stage">{{ vw.svg|safe }}
+        {% for m in vw.marks %}<a class="bf-mark {{ 'bf-sim' if m.which == 'similar' else ('bf-fault bf-both' if m.which == 'both' else 'bf-fault') }}" href="#bf-card-{{ m.id }}" data-card="bf-card-{{ m.id }}"
+           style="left:{{ m.left }}%;top:{{ m.top }}%" aria-label="{{ m.num }}: {{ m.label }} ({{ {'fault': 'this fault', 'both': 'this fault and a similar fault', 'similar': 'similar fault'}[m.which] }})"><span class="bf-n">{{ m.num }}</span></a>{% endfor %}
+      </div>
+      {% if not vw.marks %}<p class="bi-note">Nothing on this fault's path has a known place in this view.</p>{% endif %}
+    </figure>
+    {% endfor %}
+    <p class="bf-credit">{{ fmap.credit.text }} (<a href="{{ fmap.credit.photo }}" rel="noopener">photo</a>, <a href="{{ fmap.credit.licence }}" rel="noopener">licence</a>)</p>
+  </div>
+
+  {% if fmap.unplaced %}<p class="bf-unplaced"><b>Not placed on the drawing (location unknown):</b>
+    {% for i in fmap.unplaced %}<a href="#bf-card-{{ i.id }}" data-card="bf-card-{{ i.id }}">{{ i.num }} {{ i.label }}</a>{% endfor %}</p>{% endif %}
+
+  <div class="bf-pop" id="bf-pop" role="region" aria-label="Selected element" aria-live="polite" hidden></div>
+
+  <details class="fold bf-fold" id="bf-fold" open>
+    <summary>All {{ fmap['items']|length }} elements: what, where, last check</summary>
+    <ol class="bf-cards">
+    {% for i in fmap['items'] %}
+      <li class="bf-card {{ 'bf-card-sim' if i.which == 'similar' else 'bf-card-fault' }}" id="bf-card-{{ i.id }}" tabindex="-1">
+        <h4 class="bf-ch"><span class="bf-mark {{ 'bf-sim' if i.which == 'similar' else ('bf-fault bf-both' if i.which == 'both' else 'bf-fault') }} bf-key" aria-hidden="true"><span class="bf-n">{{ i.num }}</span></span> {{ i.label }}</h4>
+        <p class="bf-which">{% if i.on_fault %}On {{ fmap.fault.code }}'s own path{% else %}On a similar fault's path only{% endif %}{% if i.also_on %}{{ ' ' if not i.on_fault }}{{ '; also ' if i.on_fault else ': ' }}{{ i.also_on|join(', ') }}{% endif %}.</p>
+        <dl class="bf-dl">
+          <dt>What it is</dt>
+          <dd>{{ i.kind_word|capitalize }}{% if i.role and i.role != i.kind %}, role in the path: {{ i.role|replace('_', ' ') }}{% endif %}.{% if i.hint %} Look for: {{ i.hint }}.{% endif %}</dd>
+          <dt>Where</dt>
+          <dd>{% if i.placed %}Drawn in: {{ i.zone_label }}.{% else %}Not placed on the drawing: no sourced zone.{% endif %}
+            {% if i.loc_text %}{{ i.loc_text|truncate(300) }}{% endif %}
+            {% if i.loc_conf %}<span class="bi-muted">({{ i.loc_conf }} confidence{% if i.loc_source %}; source: {{ i.loc_source|truncate(120) }}{% endif %})</span>{% endif %}
+            <br><a class="bf-open" href="{{ i.layout_href }}">Open in layout &rarr;</a></dd>
+          <dt>Last measurement</dt>
+          <dd>{% if i.measurement %}{{ i.measurement.volts }} V drop, {{ i.measurement.from }} to {{ i.measurement.to }}: {{ i.measurement.condition }} ({{ i.measurement.age or i.measurement.at }}).{% else %}None recorded.{% endif %}</dd>
+          <dt>Last inspection</dt>
+          <dd>{% if i.inspection %}{{ i.inspection.condition }}{% if i.inspection.by %} by {{ i.inspection.by }}{% endif %} ({{ i.inspection.age or i.inspection.at }}){% if i.inspection.note %}: {{ i.inspection.note }}{% endif %}.{% else %}Never inspected.{% endif %}</dd>
+          <dt>Evidence touching it</dt>
+          <dd>On the dependency path of {{ i.codes|join(', ') }}.{% if i.tsb_refs %} Bulletins: {{ i.tsb_refs|join(', ') }}.{% endif %}{% if i.source %} Path source: {{ i.source|truncate(140) }}.{% endif %}</dd>
+        </dl>
+      </li>
+    {% endfor %}
+    </ol>
+  </details>
+  {% endif %}
+</section>
+<script src="{{ static_url('bench_interactive.js') }}" defer></script>
+{% endif %}
