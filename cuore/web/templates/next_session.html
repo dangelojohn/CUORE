@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}{{ bar.name }} — Next connection{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{% include "_next_session_css.html" %}
+<div class="ns-page">
+  <h1>Next connection</h1>
+  {% if ns %}
+    <p class="lede">{{ ns.summary }}. Open steps first, in order; done steps at the bottom.
+      Edit the plan in <code>next_session_plan.json</code> in the CUORE state folder.</p>
+    {% set return_to = "/v/" ~ vin ~ "/next-session" %}
+    {% include "_next_session_rows.html" %}
+  {% else %}
+    <p class="lede">No next-connection plan is stored for this car.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{# One line per step; 44 px Done/Undo button, plain POST. Expects ns, return_to. #}
+<ol class="ns-list">
+{% for s in ns.steps %}
+  <li class="ns-row{{ ' is-done' if s.done }}">
+    <details class="ns-fold">
+      <summary><span class="ns-n">{{ s.order }}.</span> <span class="ns-t">{{ s.title }}</span>
+        {% if s.done %}<span class="chip plain">Done {{ s.done_at or '' }}{{ ' (auto)' if s.done_how == 'auto' }}</span>{% endif %}</summary>
+      <div class="ns-body">
+        <p>{{ s.why }}</p>
+        {% if s.preconditions %}<p class="muted"><b>Needs:</b> {{ s.preconditions }}</p>{% endif %}
+        <p class="muted"><b>Source:</b> {{ s.source }}{% if s.href %} &middot; <a href="{{ s.href }}">{{ s.link_label or 'Open' }}</a>{% endif %}</p>
+      </div>
+    </details>
+    <form method="post" action="/v/{{ ns.vin }}/next-session/{{ s.id }}" class="ns-form">
+      <input type="hidden" name="return_to" value="{{ return_to }}">
+      {% if s.done %}<input type="hidden" name="action" value="undo"><button type="submit" class="btn ns-btn">Undo</button>
+      {% else %}<input type="hidden" name="action" value="done"><button type="submit" class="btn ns-btn">Done</button>{% endif %}
+    </form>
+  </li>
+{% endfor %}
+</ol>

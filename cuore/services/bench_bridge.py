@@ -812,6 +812,16 @@ def last_scan_summary(vin: str) -> dict[str, Any] | None:
     }
 
 
+def _next_session(vin: str, live_status: dict[str, Any]) -> "dict[str, Any] | None":
+    """The "Next connection" plan summary; never lets a plan problem 500 the bench."""
+    try:
+        from . import next_session
+        return next_session.view(vin, live=bool(live_status.get("lock_holder") == "cuore"
+                                          or live_status.get("mes_state") == "connected"))
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def build_bench(vin: str) -> dict[str, Any]:
     """Everything ``bench.html`` needs, computed once.
 
@@ -954,6 +964,7 @@ def build_bench(vin: str) -> dict[str, Any]:
         "scanner_label": scanner_label(live_status),
         "blocker_banner": banner,
         "last_scan": last_scan,
+        "next_session": _next_session(vin, live_status),
     }
 
 

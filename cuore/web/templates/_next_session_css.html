@@ -1,0 +1,15 @@
+<style>
+.ns-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ns-row { display: flex; align-items: flex-start; gap: 8px; border-bottom: 1px solid var(--rule); }
+.ns-row.is-done { opacity: 0.75; }
+.ns-fold { flex: 1 1 auto; min-width: 0; }
+.ns-fold summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 6px; font-size: var(--fs-md); }
+.ns-n { font-weight: 700; }
+.ns-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.ns-body { padding: 0 0 8px; font-size: var(--fs-md); }
+.ns-body p { margin: 2px 0; }
+.ns-form { margin: 0; flex: none; }
+.ns-btn { min-height: 44px; min-width: 88px; font-size: var(--fs-md); font-weight: 700; }
+.ns-panel { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius); padding: 0 12px; }
+.ns-panel > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; font-size: var(--fs-md); }
+</style>

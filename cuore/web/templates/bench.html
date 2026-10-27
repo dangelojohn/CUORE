@@ -233,6 +233,16 @@
       &rarr; Job</span></a>
   {% endif %}
 
+  {# Next connection: the plan for the next time the car is connected; open only while a connection is live. #}
+  {% if bench.next_session %}
+    {% include "_next_session_css.html" %}
+    <details class="ns-panel" id="bench-next-session"{{ ' open' if bench.next_session.live }}>
+      <summary>{{ bench.next_session.summary }}</summary>
+      {% with ns = bench.next_session, return_to = "/v/" ~ vin %}{% include "_next_session_rows.html" %}{% endwith %}
+      <p class="small"><a href="/v/{{ vin }}/next-session">Full list</a></p>
+    </details>
+  {% endif %}
+
   {# MIL diagnostics: ECM-commanded MIL vs the dash lamp the owner saw. #}
   {% if bench.verdict.mil %}
     <div class="bench-mil{{ ' is-mismatch' if bench.verdict.mil.mismatch }}">
