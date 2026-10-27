@@ -314,17 +314,31 @@ else:
                 try:
                     cdp.send("Page.enable")
                     cdp.send("Runtime.enable")
-                    time.sleep(1.5)
                     cdp.send("Emulation.setDeviceMetricsOverride", {
                         "width": 400, "height": 1400, "deviceScaleFactor": 1, "mobile": True,
                     })
-                    time.sleep(0.6)
-
-                    nav = cdp.send("Runtime.evaluate", {
-                        "expression": "document.readyState", "returnByValue": True})
-                    check("job page loaded in the headless browser",
-                          nav.get("result", {}).get("value") in ("complete", "interactive"),
-                          str(nav))
+                    # First load after app start can take ~10 s (fault board +
+                    # similarity caches): poll for a ready document that also
+                    # has the page's content, instead of a fixed wait.
+                    nav = {}
+                    ready_ok = False
+                    poll_deadline = time.time() + 30
+                    while time.time() < poll_deadline:
+                        nav = cdp.send("Runtime.evaluate", {
+                            "expression": (
+                                "JSON.stringify({rs: document.readyState, "
+                                "has: !!document.querySelector('main, .flow-bar, header.top')})"),
+                            "returnByValue": True})
+                        try:
+                            st = json.loads(nav.get("result", {}).get("value", "{}"))
+                        except (TypeError, ValueError):
+                            st = {}
+                        if st.get("has") and st.get("rs") in ("complete", "interactive"):
+                            ready_ok = True
+                            break
+                        time.sleep(0.4)
+                    check("job page loaded in the headless browser", ready_ok, str(nav))
+                    time.sleep(0.3)
 
                     overflow = cdp.send("Runtime.evaluate", {
                         "expression": (
