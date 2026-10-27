@@ -132,6 +132,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 "customer VINs and is now readable by every device on this "
                 "network. Set CUORE_TOKEN or run scripts/web_token.py --set.",
                 settings.host)
+        try:
+            from .services import warmup
+            warmup.start()          # background daemon thread; never blocks startup
+        except Exception:  # noqa: BLE001
+            log.exception("warm-up could not start")
         yield
         # Shutdown: end a running live-data poll session so its recorder is
         # flushed and the adapter released rather than dropped mid-frame. A
