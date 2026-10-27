@@ -25,6 +25,52 @@
   <p class="small muted">Read-only: this never clears codes or runs tests. CUORE reads the MES log files on this PC; it does not talk to the car here.</p>
 </section>
 
+{% if flash_msg %}<p class="sens-msg" role="status"><b>{{ "Problem" if flash_kind == "err" else "Done" }}:</b> {{ flash_msg }}</p>{% endif %}
+<section class="panel" id="service-dids">
+  <h2>Service values on the cluster — discovery (read-only)</h2>
+  <p>Before CUORE can ever reset the service interval it must be able to read the cluster's service values. This sweep asks the cluster and engine module with UDS service 0x22 only and compares the replies with the values MultiEcuScan logged for this car. A match is a candidate, <b>unconfirmed until the value changes after a real reset</b>.</p>
+  {% if sd.error %}<p class="sens-msg" role="alert">{{ sd.error }}</p>{% endif %}
+
+  <h3>Expected values (from MES logs)</h3>
+  {% if sd.expected["values"] %}
+  <div class="sens-readings-wrap"><table class="sens-readings">
+    <thead><tr><th>Value</th><th>Unit</th><th>Source log</th><th>Logged at</th></tr></thead>
+    <tbody>{% for v in sd.expected["values"] %}
+      <tr><td>{{ v.name }}: <b>{{ v.value }}</b></td><td>{{ v.unit }}</td><td>{{ v.source.log }}</td><td>{{ v.source.at }}</td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">No expected values found in the MES logs.</p>{% endif %}
+  {% if sd.expected.note %}<p class="muted">{{ sd.expected.note }}</p>{% endif %}
+
+  {% if sd.plan %}
+  <h3>Plan</h3>
+  <ul>
+    <li>Modules: {% for m in sd.plan.modules %}<b>{{ m.code }}</b> ({{ m.bus }}) — {{ m.why }}{% if not loop.last %}; {% endif %}{% endfor %}</li>
+    <li>Identifier ranges: {{ sd.plan.did_ranges|join(", ") }}</li>
+    <li>Services: {{ sd.plan.services|join(", ") }}</li>
+    <li>Requests: up to {{ sd.plan.max_requests }}; estimated time {{ sd.plan.est_seconds }} s</li>
+  </ul>
+  <p><b>Before you run it</b></p>
+  <ul>{% for p in sd.plan.preconditions %}<li>{{ p }}</li>{% endfor %}</ul>
+  <p><b>This sweep never</b></p>
+  <ul>{% for n in sd.plan.never %}<li>{{ n }}</li>{% endfor %}</ul>
+  <form method="post" action="/v/{{ vin }}/mes-parameters/service-dids/run" class="sens-check">
+    <button type="submit" class="btn">Run the read-only discovery</button>
+  </form>
+  {% endif %}
+
+  <h3>Last results{% if sd.results.ran_at %} <span class="muted">({{ sd.results.ran_at }})</span>{% endif %}</h3>
+  {% if sd.results.matches %}
+  <div class="sens-readings-wrap"><table class="sens-readings">
+    <thead><tr><th>Module</th><th>Identifier</th><th>Offset</th><th>Decoding</th><th>Value</th><th>Matches</th><th>Status</th></tr></thead>
+    <tbody>{% for m in sd.results.matches %}
+      <tr><td>{{ m.module }}</td><td>{{ m.did }}</td><td>{{ m.offset }}</td><td>{{ m.decoding }}</td><td>{{ m.value }}</td><td>{{ m.matches }}</td>
+        <td><b>Status: {{ m.status }}</b></td></tr>
+    {% endfor %}</tbody></table></div>
+  {% else %}<p class="muted">No discovery results yet.</p>{% endif %}
+  {% if sd.results.next_step %}<p><b>Next step:</b> {{ sd.results.next_step }}</p>{% endif %}
+  <p class="muted">Read-back path for the service-reset "MES only" handoff: this discovery. Until a candidate is confirmed, the reset itself stays in MES.</p>
+</section>
+
 <h2 class="sens-group">Still to capture <span class="muted small">({{ todo|length }})</span></h2>
 <div class="sens-readings-wrap">
 <table class="sens-readings">

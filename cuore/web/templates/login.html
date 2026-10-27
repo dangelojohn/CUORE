@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Log in — CUORE{% endblock %}
+{% block content %}
+<style>
+  .login-card { max-width: 420px; }
+  .login-card input[type=text] { min-height: var(--tap); font-size: var(--fs-md); }
+  .login-card .btn { min-height: var(--tap); font-size: var(--fs-md); }
+</style>
+<h1>Log in</h1>
+<div class="login-card">
+  {% if error %}
+  <div class="note alert" role="alert">
+    <span class="lab">Not logged in</span> {{ error }}
+  </div>
+  {% endif %}
+  <p class="lede">This CUORE is locked. Enter the access token once; this
+  device then stays logged in for 30 days.</p>
+  <form method="post" action="/login">
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="field">
+      <label for="login-token">Access token</label>
+      <input type="text" id="login-token" name="token" autocomplete="off"
+             autocapitalize="off" autocorrect="off" spellcheck="false" required>
+    </div>
+    <button type="submit" class="btn primary">Log in</button>
+  </form>
+</div>
+{% endblock %}

@@ -175,6 +175,25 @@ def live_module_discover_dids(code: str, vin: str = Body(default="", embed=True)
                                     confirm=confirm)
 
 
+@router.get("/live/service-dids/plan", summary="Service-value discovery plan and expected values (no car contact)")
+def live_service_dids_plan(vin: str = Query(...)) -> dict[str, Any]:
+    from ..live import service_dids
+    return {"expected": service_dids.expected_values(vin), "plan": service_dids.plan(vin)}
+
+
+@router.post("/live/service-dids/discover", summary="Read-only UDS 0x22 sweep for the cluster's service values")
+def live_service_dids_discover(vin: str = Body(..., embed=True),
+                               max_seconds: float = Body(default=180, embed=True)) -> dict[str, Any]:
+    from ..live import service_dids
+    return service_dids.run(vin, max_seconds=max_seconds)
+
+
+@router.get("/live/service-dids/results", summary="Last service-value discovery results")
+def live_service_dids_results(vin: str = Query(...)) -> dict[str, Any]:
+    from ..live import service_dids
+    return service_dids.results(vin)
+
+
 @router.post("/live/learn/capture", summary="Passive capture while a dealer tool reads (learning)")
 def live_learn_capture(bus: str = Body(default="can_c", embed=True),
                        seconds: float = Body(default=20.0, embed=True)) -> dict[str, Any]:

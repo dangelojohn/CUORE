@@ -207,6 +207,7 @@ What would have to be true to move either to CUORE:
 - Add a "MES only" card to the job page for both procedures: when needed (module replaced/flashed, roster shows Added/Removed/EOL Failed, MES says "not needed" otherwise; battery type changed), exact MES menu paths from section 1, battery support on, no door/key cycling, cable change per MES prompt, record who/when/why.
 - Before (read-only via CUORE sessions): BCM and TCM DTCs (note B10AA, P1500), battery voltage, IBS SoC/voltage if the DID answers; owner states battery type/Ah from the plate (UNKNOWN today). In MES: run only the "Reading CAN configuration data" step first; save its log (this captures the roster that CUORE lacks).
 - After: same reads; MES log with the byte 63 pattern; PROXI write counter should rise by 1 if a write happened (counter is currently 1). Acceptance: no new codes, B10AA state recorded, IBS charge status plausible after 2-4 h sleep (OUTSIDE TSB note above).
+- Service-interval reset stays "MES only"; the read-back path is now the read-only service-value discovery on the MES-parameters page (/v/{vin}/mes-parameters, UDS 0x22 only; candidates unconfirmed until a value changes after a real reset).
 - Gate: do NOT run alignment if MES prints "PROXI Alignment is not needed!". Do not blind charge.
 
 **Stage B (learn passively, only with owner consent and MES doing the work)**

@@ -133,3 +133,29 @@ def to_csv(vin: str) -> str:
 
 
 __all__ = ["inventory", "to_csv", "CABLE"]
+
+
+# --- service values on the cluster: read-only discovery (UDS 0x22 only) ---------------------
+
+def _sd():
+    from ..live import service_dids
+    return service_dids
+
+
+def service_dids_view(vin: str) -> dict[str, Any]:
+    """Expected values, sweep plan and last results for the page. Never contacts the car."""
+    out: dict[str, Any] = {"expected": {"values": [], "note": ""}, "plan": None,
+                           "results": {"matches": [], "next_step": "", "ran_at": ""}, "error": ""}
+    try:
+        sd = _sd()
+        out["expected"] = sd.expected_values(vin)
+        out["plan"] = sd.plan(vin)
+        out["results"] = sd.results(vin)
+    except Exception as exc:  # noqa: BLE001 -- the page must render without the discovery module
+        out["error"] = f"Service-value discovery is unavailable: {exc}"
+    return out
+
+
+def service_dids_run(vin: str, max_seconds: float = 180) -> dict[str, Any]:
+    """Run the read-only sweep. Refusals (MES holds the adapter, live poll running) raise LiveError."""
+    return _sd().run(vin, max_seconds=max_seconds)

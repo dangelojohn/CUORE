@@ -112,6 +112,63 @@ check(r.status_code == 200 and r.headers["content-type"].startswith("text/csv")
       and "attachment" in r.headers.get("content-disposition", ""), "CSV downloads")
 check("/mes-parameters" in client.get(f"/v/{VIN}/sensors").text, "sensor page links the inventory")
 
+# --- service-value discovery section (service_dids faked; never touches the car) ----------
+from cuore.live.errors import LiveError  # noqa: E402
+
+FAKE_STATE = {"hold": False, "ran": 0}
+
+
+def _fake_sd():
+    m = types.ModuleType("cuore.live.service_dids")
+    m.expected_values = lambda vin: {"values": [
+        {"name": "Service distance", "value": "16000", "unit": "km", "source": {"log": "FESLog_C.txt", "at": "2026-10-23 01:14:00"}},
+        {"name": "Odometer", "value": "148207", "unit": "km", "source": {"log": "FESLog_A.txt", "at": "2026-10-23 01:16:00"}}],
+        "note": "Values are what MES printed."}
+    m.plan = lambda vin: {"modules": [{"code": "IPC", "bus": "can_c", "why": "holds the service counters"}],
+                          "did_ranges": ["F100-F1FF"], "services": ["0x22"], "max_requests": 512,
+                          "est_seconds": 95, "preconditions": ["Close MES", "Key on, engine off"],
+                          "never": ["write any identifier", "clear codes"]}
+    m.results = lambda vin: {"matches": [{"module": "IPC", "did": "0x2A10", "offset": 2, "decoding": "u16 x 1 km",
+                                          "value": 16000, "matches": "Service distance", "status": "unconfirmed",
+                                          "raw": "62 2A 10 3E 80"}],
+                             "next_step": "Read again after a real reset in MES.", "ran_at": "2026-10-26 10:00:00"}
+
+    def run(vin, max_seconds=180):
+        if FAKE_STATE["hold"]:
+            raise LiveError("MultiEcuScan is connected (pids 1234)")
+        FAKE_STATE["ran"] += 1
+        return {"started": "a", "finished": "b", "requests": 40, "replies": 12, "matches": [1], "errors": 0,
+                "aborted_reason": None}
+    m.run = run
+    return m
+
+
+import cuore.live as _live_pkg  # noqa: E402
+_orig_sd = sys.modules.get("cuore.live.service_dids")
+_fake = _fake_sd()
+sys.modules["cuore.live.service_dids"] = _fake
+_live_pkg.service_dids = _fake
+
+r = client.get(f"/v/{VIN}/mes-parameters")
+t = r.text
+check("Service values on the cluster" in t and "discovery (read-only)" in t, "service section titled")
+check("16000" in t and "FESLog_C.txt" in t and "148207" in t, "section shows expected values with sources")
+check("holds the service counters" in t and "F100-F1FF" in t and "512" in t and "95 s" in t, "section shows the plan")
+check("write any identifier" in t and "This sweep never" in t, "never list shown plainly")
+check("0x2A10" in t and "Status: unconfirmed" in t and "Read again after a real reset" in t, "section shows results, status and next step")
+r = client.post(f"/v/{VIN}/mes-parameters/service-dids/run")
+check(r.status_code == 303 and "Discovery%20finished" in r.headers["location"] and FAKE_STATE["ran"] == 1, "POST runs the sweep and redirects")
+FAKE_STATE["hold"] = True
+r = client.post(f"/v/{VIN}/mes-parameters/service-dids/run")
+check(r.status_code == 303 and "Not%20run" in r.headers["location"] and "MultiEcuScan" in r.headers["location"]
+      and FAKE_STATE["ran"] == 1, "POST refuses while MES holds the adapter")
+r2 = client.get(r.headers["location"])
+check("MultiEcuScan is connected" in r2.text and "Problem" in r2.text, "refusal message shown on the page")
+if _orig_sd is not None:
+    sys.modules["cuore.live.service_dids"] = _orig_sd
+else:
+    sys.modules.pop("cuore.live.service_dids", None)
+
 print(f"{passed}/{passed + len(failures)} checks passed")
 for f in failures:
     print("FAIL:", f)

@@ -19,8 +19,9 @@ from contextlib import asynccontextmanager
 from . import __version__, bootstrap  # noqa: F401  -- bootstrap has a side effect
 
 import anyio  # noqa: E402
-from fastapi import FastAPI, Request  # noqa: E402
-from fastapi.responses import JSONResponse  # noqa: E402
+from fastapi import Depends, FastAPI, Request  # noqa: E402
+from fastapi.openapi.docs import get_swagger_ui_html  # noqa: E402
+from fastapi.responses import JSONResponse, RedirectResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
 
 from mes.errors import MesError  # noqa: E402  -- needs bootstrap to have run
@@ -93,6 +94,8 @@ from .web import slvt_routes  # noqa: E402
 from .web import inbox_routes  # noqa: E402
 from .web import jobs_routes  # noqa: E402
 from .web import fault_board_routes  # noqa: E402
+from .web import login_routes  # noqa: E402
+from .api.deps import LoginRedirect, require_token, resolve_token  # noqa: E402
 from .web import flow_globals, tools_kb_globals  # noqa: F401
 from .web import icons, i18n  # noqa: F401
 from .web import static_version  # noqa: F401
@@ -123,11 +126,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         log.info("CUORE %s starting: profile=%s bind=%s:%s",
                  __version__, settings.profile.value, settings.host,
                  settings.port)
-        if settings.unguarded_lan:
+        if settings.lan_exposed and not resolve_token(settings.token):
             log.warning(
                 "Bound to %s with no token set. The log corpus contains "
                 "customer VINs and is now readable by every device on this "
-                "network. Set CUORE_TOKEN.", settings.host)
+                "network. Set CUORE_TOKEN or run scripts/web_token.py --set.",
+                settings.host)
         yield
         # Shutdown: end a running live-data poll session so its recorder is
         # flushed and the adapter released rather than dropped mid-frame. A
@@ -143,9 +147,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=__version__,
         description=DESCRIPTION,
         lifespan=lifespan,
-        docs_url="/api/docs",
+        docs_url=None,       # re-added below behind require_token
         redoc_url=None,
-        openapi_url="/api/openapi.json",
+        openapi_url=None,
     )
     app.state.settings = settings
 
@@ -172,7 +176,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def _mes_error(request: Request, exc: MesError):
         return _render_failure(request, exc, 400)
 
+    @app.exception_handler(LoginRedirect)
+    async def _login_redirect(request: Request, exc: LoginRedirect):
+        return RedirectResponse(exc.location, status_code=302)
+
     # --- routes -----------------------------------------------------------
+    app.include_router(login_routes.router)
+
+    @app.get("/api/openapi.json", include_in_schema=False,
+             dependencies=[Depends(require_token)])
+    async def _openapi():
+        return JSONResponse(app.openapi())
+
+    @app.get("/api/docs", include_in_schema=False,
+             dependencies=[Depends(require_token)])
+    async def _docs():
+        return get_swagger_ui_html(openapi_url="/api/openapi.json",
+                                   title="CUORE - API docs")
+
     app.include_router(system.router, prefix="/api")
     app.include_router(ingest_api.router, prefix="/api")
     app.include_router(attested_api.router, prefix="/api")

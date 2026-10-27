@@ -15,7 +15,7 @@ from ..models import AdapterInfo, Capabilities, CorpusInfo, Health
 from ..profiles import Profile, features_for
 from ..live import link as live_link
 from ..services import cache, mes_bridge
-from .deps import require_token, settings_of
+from .deps import require_token, resolve_token, settings_of
 
 router = APIRouter(tags=["system"], dependencies=[Depends(require_token)])
 
@@ -69,7 +69,7 @@ def capabilities(request: Request) -> Capabilities:
         corpus=corpus,
         adapter=adapter,
         lan_exposed=settings.lan_exposed,
-        authenticated=bool(settings.token.strip()),
+        authenticated=bool(resolve_token(settings.token)),
     )
 
 
