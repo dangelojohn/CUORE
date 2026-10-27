@@ -42,10 +42,13 @@ from cuore.live import audit  # noqa: E402
 from cuore.live import fullscan  # noqa: E402
 from cuore.live.buses import CAN_C  # noqa: E402
 from cuore.live.config import state_dir  # noqa: E402
-from cuore.live.errors import LiveError  # noqa: E402
+from cuore.live.errors import LiveError, Refused  # noqa: E402
+from cuore.live import addressing as _addressing  # noqa: E402
+from cuore.live import clear as _clear  # noqa: E402
 from cuore.live.framing import adapter_error, reassemble  # noqa: E402
 from cuore.live.obd import decode_obd_dtcs  # noqa: E402
-from cuore.live.safety import classify_command, is_adapter_only, validate_command  # noqa: E402
+from cuore.live.safety import (assert_raw_write_allowed, classify_command, is_adapter_only,  # noqa: E402
+                               raw_write_phrase, validate_command)
 from cuore.live.transport import DEFAULT_TIMEOUT, link  # noqa: E402
 
 # Name this process in the advisory lock so the bench UI can show "held by
@@ -401,6 +404,37 @@ def discover_module_dids(code: str, vin: str = "", ranges: str = "", max_dids: i
 
 
 @mcp.tool()
+def service_dids_plan(vin: str) -> str:
+    """Service-value discovery plan plus the values MES logged for this car (16000 km, 365 days,
+    odometer, last service date). No car contact. Candidates stay unconfirmed until the value
+    changes after a real reset."""
+    def local() -> dict[str, Any]:
+        from cuore.live import service_dids
+        return {"expected": service_dids.expected_values(vin), "plan": service_dids.plan(vin)}
+    return _via("GET", "/live/service-dids/plan", local, query={"vin": vin})
+
+
+@mcp.tool()
+def service_dids_discover(vin: str, max_seconds: float = 180) -> str:
+    """Read-only UDS 0x22 sweep of the cluster/ECM, matched against the MES-logged service values.
+    Refused while MES holds the adapter or a live poll session runs. Never writes."""
+    def local() -> dict[str, Any]:
+        from cuore.live import service_dids
+        return service_dids.run(vin, max_seconds=max_seconds)
+    return _via("POST", "/live/service-dids/discover", local,
+                body={"vin": vin, "max_seconds": max_seconds}, timeout=max_seconds + 120)
+
+
+@mcp.tool()
+def service_dids_results(vin: str) -> str:
+    """Last service-value discovery candidates with status and the next step. No car contact."""
+    def local() -> dict[str, Any]:
+        from cuore.live import service_dids
+        return service_dids.results(vin)
+    return _via("GET", "/live/service-dids/results", local, query={"vin": vin})
+
+
+@mcp.tool()
 def learn_capture(bus: str = "can_c", seconds: float = 20.0) -> str:
     """Passive capture while wiTECH reads live data (splitter cable); lists identifiers seen."""
     return _via("POST", "/live/learn/capture", lambda: ops.learn_capture(bus, seconds=seconds),
@@ -549,18 +583,29 @@ def clear_module_dtcs(code: str, consent: str, vin: str = "", confirm: bool = Fa
 # --- the two MCP-only surfaces ------------------------------------------------
 
 @mcp.tool()
-def clear_dtcs(confirm: bool = False, override_speed_check: bool = False) -> str:
+def clear_dtcs(confirm: bool = False, override_speed_check: bool = False,
+               consent: str = "") -> str:
     """Clear stored DTCs, freeze frames and readiness. Mode 04. DESTRUCTIVE. MCP-only.
 
-    Captures stored, pending and permanent codes, the freeze-frame DTC and readiness to
-    a file first, refuses while the vehicle reports motion, and reads back afterwards.
+    Needs confirm=True AND consent set to exactly "CLEAR ALL EMISSIONS CODES" (show this
+    phrase to the owner and have them type it; never guess it). Captures stored, pending
+    and permanent codes, the freeze-frame DTC and readiness to a file first, refuses while
+    the vehicle reports motion, refuses while MultiEcuScan is connected or a live-data poll
+    holds the adapter, and reads back afterwards.
     """
+    try:
+        _clear.assert_clear_all_allowed(consent)
+    except Refused as e:
+        audit.record("clear_dtcs_refused", reason=str(e))
+        return json.dumps({"refused": str(e), "consent_phrase": _clear.CLEAR_ALL_PHRASE}, indent=2)
     if not confirm:
+        audit.record("clear_dtcs_refused", reason="confirm=True missing")
         return json.dumps({"refused": "pass confirm=True; this destroys the freeze-frame "
                                       "evidence and resets readiness monitors"}, indent=2)
 
     def body() -> dict[str, Any]:
         _sync_cable()
+        ops._poller_active_guard()
         lk = link()
         with lk.session("clear_dtcs", bus=CAN_C) as sess:
             sess.untarget()
@@ -621,24 +666,50 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
              i_understand_this_writes_to_the_vehicle: bool = False,
              allow_adapter_reconfiguration: bool = False,
              allow_while_mes_connected: bool = False, bus: str = "can_c",
-             confirm: bool = False) -> str:
+             confirm: bool = False, module: str = "", consent: str = "") -> str:
     """One AT/ST/OBD/UDS command on the adapter with the reply parsed. MCP-only.
 
-    Vehicle writes need i_understand_this_writes_to_the_vehicle=True; adapter
-    reconfiguration needs allow_adapter_reconfiguration=True and lasts only this call;
-    monitor modes are refused (use capture). One command per call.
+    Reads need nothing extra. A VEHICLE WRITE (UDS 10/11/14/28/2C/2F/3D/87 ...) needs ALL of:
+    i_understand_this_writes_to_the_vehicle=True, module=<target module code, e.g. ECM>, and
+    consent set to exactly "SEND RAW <SERVICE> TO <MODULE>" where SERVICE is the command's
+    first byte in hex (e.g. "SEND RAW 2F TO ECM"). Show that phrase to the owner and have
+    them type it; never guess it. Writes are refused outright on ABS, EPS, ORC (airbag),
+    HALF, DASM, ESL, TVM, TCM, ESM, DTCM, RFHUB (immobiliser), IPC (odometer) and anything on
+    CAN-CH; UDS 27/2E/31/34/36/37/85 are blocked on every module; ATSH, STPX and Mode 04 are
+    not accepted as writes here (use clear_dtcs for Mode 04). Writes also refuse while
+    MultiEcuScan is connected (allow_while_mes_connected is ignored) or a live-data poll holds
+    the adapter. Adapter reconfiguration needs allow_adapter_reconfiguration=True and lasts
+    only this call; monitor modes are refused (use capture). One command per call.
     """
+    def refuse(why: str, **extra: Any) -> str:
+        audit.record("send_raw_refused", command=command[:80], reason=why, module=module or None)
+        return json.dumps({"refused": why, "command": command, **extra}, indent=2)
+
     try:
         cmd = validate_command(command)
     except LiveError as e:
-        return json.dumps({"refused": str(e), "command": command}, indent=2)
+        return refuse(str(e))
     kind, reason = classify_command(cmd)
     if kind == "blocked":
-        return json.dumps({"refused": reason, "command": cmd}, indent=2)
-    if kind == "vehicle_write" and not i_understand_this_writes_to_the_vehicle:
-        return json.dumps({"refused": reason, "command": cmd, "kind": kind,
-                           "how_to_proceed": "pass i_understand_this_writes_to_the_vehicle=True; "
-                                             "prefer MultiEcuScan for FCA actuator tests"}, indent=2)
+        return refuse(reason)
+    write_ecu = None
+    if kind == "vehicle_write":
+        if not i_understand_this_writes_to_the_vehicle:
+            return refuse(reason, kind=kind,
+                          how_to_proceed="pass i_understand_this_writes_to_the_vehicle=True "
+                                         "plus module= and the consent phrase "
+                                         f"{raw_write_phrase(cmd, module or '<MODULE>')!r}; "
+                                         "prefer MultiEcuScan for FCA actuator tests")
+        try:
+            known = _addressing.by_code(module.strip().upper()) if module.strip() else None
+            if module.strip() and known is None:
+                raise Refused(f"unknown module code {module!r}")
+            assert_raw_write_allowed(cmd, module, consent,
+                                     bus_key=known.bus_key if known else "")
+            write_ecu = ops.uds_mod.resolve_module(module.strip())
+        except (Refused, LiveError) as e:
+            return refuse(str(e), kind=kind)
+        allow_while_mes_connected = False
     if kind == "adapter_state" and not allow_adapter_reconfiguration:
         return json.dumps({"refused": reason, "command": cmd, "kind": kind,
                            "how_to_proceed": "pass allow_adapter_reconfiguration=True; the change "
@@ -646,7 +717,9 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
 
     def body() -> dict[str, Any]:
         _sync_cable()
-        b = ops._bus(bus)
+        if write_ecu is not None:
+            ops._poller_active_guard()
+        b = ops._bus(write_ecu.bus_key if write_ecu is not None else bus)
         # Pure adapter commands (ATI, ATRV, STPRS, ATDPN, STI, STDI, ...) and
         # adapter reconfiguration are passive: they never put a frame on the
         # vehicle bus, so the bus-silence guard (auto-verify / the transmit
@@ -656,7 +729,10 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
         passive = kind == "adapter_state" or is_adapter_only(cmd)
         with link().session(f"send_raw {cmd}", bus=b, passive=passive, confirm=confirm,
                             allow_while_mes_connected=allow_while_mes_connected) as sess:
-            audit.record("send_raw_request", command=cmd, kind=kind, bus=b.key, passive=passive)
+            audit.record("send_raw_request", command=cmd, kind=kind, bus=b.key, passive=passive,
+                         module=write_ecu.code if write_ecu is not None else None)
+            if write_ecu is not None:
+                sess.target(write_ecu)
             raw = sess.cmd(cmd, timeout_seconds)
             err = adapter_error(raw)
             out: dict[str, Any] = {"command": cmd, "kind": kind, "raw": raw, "bus": b.key}

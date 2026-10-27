@@ -46,6 +46,17 @@ def consent_phrase(module_code: str) -> str:
     return f"CLEAR {module_code.upper()}"
 
 
+#: Consent phrase for the legislated Mode 04 clear (clear_dtcs): every module, all emissions codes.
+CLEAR_ALL_PHRASE = "CLEAR ALL EMISSIONS CODES"
+
+
+def assert_clear_all_allowed(consent: str) -> None:
+    """Gate for Mode 04: the typed phrase is required in addition to confirm=True."""
+    if (consent or "").strip().upper() != CLEAR_ALL_PHRASE:
+        raise Refused("Mode 04 erases every emissions code, the freeze frame and the readiness "
+                      f"monitors; type the consent phrase exactly: {CLEAR_ALL_PHRASE!r}")
+
+
 def assert_clear_allowed(module_code: str, consent: str, group: str) -> bytes:
     """The clear gate. Returns the 3-byte group on success."""
     if (consent or "").strip().upper() != consent_phrase(module_code):
@@ -133,4 +144,4 @@ def clear_module(sess: Any, ecu: ECUAddress, *, consent: str, vin: str = "",
     return out
 
 
-__all__ = ["consent_phrase", "assert_clear_allowed", "clear_module", "CLEAR_NRC"]
+__all__ = ["CLEAR_ALL_PHRASE", "assert_clear_all_allowed", "consent_phrase", "assert_clear_allowed", "clear_module", "CLEAR_NRC"]

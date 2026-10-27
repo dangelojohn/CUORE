@@ -284,10 +284,55 @@ def assert_actuation_module_allowed(module_code: str, bus_key: str) -> None:
             f"never a replay here")
 
 
+#: Modules a raw vehicle write (send_raw) is refused on, whatever the consent:
+#: everything an actuator replay refuses (brakes, airbag/ORC, steering, torque
+#: vectoring, driveline/park lock, immobiliser/keyless hub) plus the instrument
+#: cluster (odometer / mileage storage). Reflash services (34/35/36/37) are
+#: refused for every module by :func:`classify_command`. CAN-CH is refused too.
+RAW_WRITE_BLOCKED_MODULES: frozenset[str] = ACTUATION_BLOCKED_MODULES | frozenset({"IPC"})
+
+
+def raw_write_phrase(cmd: str, module_code: str) -> str:
+    """The exact consent phrase a raw vehicle write needs: ``SEND RAW <SERVICE> TO <MODULE>``
+    (service = the command's first byte as two hex digits, e.g. ``SEND RAW 2F TO ECM``)."""
+    compact = cmd.strip().upper().replace(" ", "")
+    return f"SEND RAW {compact[:2]} TO {(module_code or '').strip().upper()}"
+
+
+def assert_raw_write_allowed(cmd: str, module_code: str, consent: str,
+                             bus_key: str = "") -> None:
+    """Raise :class:`Refused` unless a raw vehicle write may be sent to ``module_code``.
+
+    Order: a write with no nameable module (ATSH, STPX arbitrary frames, Mode 04)
+    is refused outright -- the module blocklist could not be applied to it; then
+    the module blocklist / CAN-CH; then the typed consent phrase.
+    """
+    compact = cmd.strip().upper().replace(" ", "")
+    if compact in ("04", "0400"):
+        raise Refused("Mode 04 clears emissions codes: use the clear_dtcs tool (it captures "
+                      "evidence first and needs its own consent phrase)")
+    if compact.startswith(("AT", "ST")):
+        raise Refused(f"{compact[:4]} would send an arbitrary frame or redirect later requests, "
+                      f"so the module blocklist cannot be applied to it; send_raw refuses it. "
+                      f"Send the UDS request itself with module= set")
+    code = (module_code or "").strip().upper()
+    if not code:
+        raise Refused("a vehicle write through send_raw must name its target module (module=); "
+                      f"consent phrase for it will be 'SEND RAW {compact[:2]} TO <MODULE>'")
+    if code in RAW_WRITE_BLOCKED_MODULES or bus_key == "can_ch":
+        raise Refused(f"raw writes are refused on {code}: safety-critical (brakes, airbag/ORC, "
+                      f"steering, driveline/park lock, immobiliser, odometer/cluster) or on "
+                      f"CAN-CH; use MultiEcuScan or wiTECH, never a raw send here")
+    want = raw_write_phrase(cmd, code)
+    if (consent or "").strip().upper() != want:
+        raise Refused(f"this command writes to {code}; type the consent phrase exactly: {want!r}")
+
+
 __all__ = [
     "WRITE_SERVICES", "AT_READ_ONLY", "ST_READ_ONLY", "MONITOR_COMMANDS", "READ_ONLY_UDS",
     "ACTUATION_UDS", "ACTUATION_BLOCKED_MODULES", "CONFIGURATION_WRITE_SERVICES",
     "validate_command", "classify_command", "is_adapter_only", "assert_read_only_uds",
     "assert_transmit_allowed", "assert_actuation_allowed", "assert_actuation_module_allowed",
     "assert_not_configuration_write",
+    "RAW_WRITE_BLOCKED_MODULES", "raw_write_phrase", "assert_raw_write_allowed",
 ]
