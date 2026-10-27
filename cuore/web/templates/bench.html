@@ -1,12 +1,19 @@
 {# The bench: what to do to this car right now. cuore/services/bench_bridge.py
-   already boiled the dossier down to a resume summary, a verdict sentence
-   and a small task roster (each with procedure, pass criteria,
-   preconditions and parts/tools already resolved) -- this template's only
-   job is to lay those out small enough that the call and first task
-   are on-screen on a 400x800 phone with no scrolling. See that module's own
-   docstring for where each field comes from; nothing here recomputes a
-   verdict, a part number, a tool's have/not-have status, or a pass
-   criterion. #}
+   already boiled the dossier down to a resume summary, a verdict sentence,
+   the NEXT undone inspection step, the present faults and a step roster
+   (each with procedure, pass criteria, preconditions and parts/tools already
+   resolved) -- this template's only job is to lay those out small enough that
+   the call, the next step and the faults are on-screen on a 400x800 phone.
+   See that module's own docstring for where each field comes from; nothing
+   here recomputes a verdict, a part number, a tool's have/not-have status, or
+   a pass criterion.
+
+   Order (docs/design/BENCH_UX_REVIEW_2026-10-26.md): call, state line
+   (not connected: Connect to car; connected: live strip), Go-to chips, the
+   NEXT step with OK / Fault found / Skip, Faults with Fixed, Next connection,
+   then the folds. Words: faults say Permanent / Verifying / Proven fixed /
+   Returned after fix exactly as the Job and Codes pages do; steps say
+   READY / BLOCKED / DONE. #}
 {% extends "base.html" %}
 {% block title %}{{ bench.vehicle }} &mdash; Bench &middot; {{ bench.progress.done }}/{{ bench.progress.total }} &middot; {{ bench.verdict.state or "NO_DATA" }}{% endblock %}
 
@@ -18,16 +25,23 @@
 {% block content %}
 <style>
 /* Scoped to .bench. Mechanic-first standard (docs/design/cuore-bay-tablet.html):
-   one-line call, grouped lists, 44 px targets, 16 px text, ~820 px column,
-   app tokens so light/dark come free. */
+   one-line call, grouped lists, 44 px targets, 16 px text (--fs-* tokens only),
+   ~820 px column, app tokens so light/dark come free. */
 .bench {
   display: flex; flex-direction: column; gap: 12px; max-width: 820px; margin-inline: auto;
-  padding-inline: 16px; font-size: 1rem; overflow-wrap: anywhere;
+  padding-inline: 16px; font-size: var(--fs-md); overflow-wrap: anywhere;
 }
-.bench .small, .bench small { font-size: 1rem; }
+.bench .small, .bench small { font-size: var(--fs-md); }
 .bench .muted { color: var(--ink-2); }
+/* 16 px floor for every chip and code chip on this page (the shared 12 px chip is for tables). */
+.bench .chip, .bench .chip-code, .bench .chip-code.sm { font-size: var(--fs-md); letter-spacing: .02em; padding: 2px 10px; }
+.bench .chip { text-transform: none; white-space: normal; }
+/* Every link on the bench is a 44 px target. */
+.bench a { display: inline-flex; align-items: center; min-height: 44px; }
+.bench p, .bench li, .bench dd { font-size: var(--fs-md); }
 .bench-complaint { margin: 4px 0 0; font-style: italic; color: var(--ink-2); }
 .bench-case-hint { margin: 0; }
+.bench-h { margin: 0; font-size: var(--fs-lg); font-weight: 700; }
 
 /* The one-line call */
 .bench-call { padding: 10px 12px; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface-2); }
@@ -36,9 +50,19 @@
 .bench-next-action { margin: 0; font-size: var(--fs-lg, 18px); line-height: 1.3; font-weight: 600; color: var(--ink); flex: 1 1 auto; }
 .bench-why { margin: 0; }
 .bench-why summary, .bench-fold summary {
-  cursor: pointer; font-size: 1rem; min-height: 44px; display: flex; align-items: center;
+  cursor: pointer; font-size: var(--fs-md); min-height: 44px; display: flex; align-items: center;
 }
 .bench-why p, .bench-why ul { margin: 4px 0; }
+
+/* State line: not connected = the one red Connect to car; connected = a live strip */
+.bench-state { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 0; }
+.bench-state p { margin: 0; flex: 1 1 160px; }
+.bench .bench-connect {
+  justify-content: center; min-height: 48px; padding: 6px 18px; font-size: var(--fs-md); font-weight: 700;
+  background: var(--accent); border-color: var(--accent); color: var(--accent-ink); text-decoration: none;
+}
+.bench-live { padding: 4px 12px; border: 1px solid var(--ok); border-radius: var(--radius); background: var(--ok-bg); min-height: 44px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.bench-live p { margin: 0; }
 
 /* Go to chip row */
 .bench-go { display: flex; flex-wrap: wrap; gap: 0 4px; align-items: center; padding-bottom: 0; }
@@ -52,13 +76,13 @@
     mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
   }
   .bench-go::-webkit-scrollbar { height: 4px; }
-  .bench-gochip { min-height: 44px; font-size: var(--fs-md, 1rem); }
+  .bench-gochip { min-height: 44px; font-size: var(--fs-md); }
 }
 .bench-go-l { font-weight: 700; color: var(--ink-2); }
-.bench-gochip {
+.bench .bench-gochip {
   display: inline-flex; align-items: center; min-height: 44px; padding: 2px 8px; border-radius: 999px;
   border: 2px solid var(--accent); background: var(--surface-2); color: var(--ink);
-  text-decoration: none; font-weight: 600; font-size: 1rem; cursor: pointer;
+  text-decoration: none; font-weight: 600; font-size: var(--fs-md); cursor: pointer;
 }
 .bench-gochip:hover, .bench-gochip:focus-visible { background: var(--accent); }
 .bench-scan { display: contents; }
@@ -67,10 +91,10 @@
 .bench-scan-links { display: contents; }
 .bench-scan[open] > summary { background: var(--accent); }
 
-/* Work on now: one compact, always-visible row under the Go-to chips */
-.bench-worknow-row { display: flex; align-items: center; min-height: 44px; margin: 0; padding: 0 8px; border: 1px solid var(--rule); border-left: 6px solid var(--ink); border-radius: var(--radius, 3px); background: var(--surface-2); color: var(--ink); text-decoration: none; font-size: var(--fs-md); line-height: 1.25; }
-.bench-worknow-row:hover, .bench-worknow-row:focus-visible { background: var(--accent); }
-.bench-worknow-row b { margin-right: 4px; }
+/* Saved + Undo banner (after a one-tap save) */
+.bench-saved { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; padding: 4px 12px; border: 1px solid var(--ok); border-radius: var(--radius); background: var(--ok-bg); }
+.bench-saved p { margin: 0; flex: 1 1 160px; }
+.bench-saved form { margin: 0; }
 
 /* MIL diagnostics */
 .bench-mil {
@@ -81,6 +105,19 @@
 .bench-mil-line { margin: 0; }
 .bench-mil-explanations { margin: 4px 0 0; padding-left: 18px; }
 
+/* Faults: one line per present fault, Fixed/Undo and the electrical path on the same row */
+.bench-faults { display: flex; flex-direction: column; gap: 4px; }
+.bench-fault-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.bench-fault { background: var(--raised); border: 1px solid var(--rule); border-left: 6px solid var(--ink); border-radius: var(--radius); padding: 6px 10px; display: flex; flex-direction: column; gap: 2px; }
+.bench-fault.is-verifying { border-left-color: var(--sev-chronic); }
+.bench-fault-main { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.bench-fault-main form { margin: 0; margin-left: auto; }
+.bench-fault-meta { margin: 0; }
+.bench-fault-acts { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.bench .bench-pathchip { padding: 2px 12px; border: 2px solid var(--accent); border-radius: 999px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 600; font-size: var(--fs-md); }
+.bench-pathchip:hover, .bench-pathchip:focus-visible { background: var(--accent); }
+.bench-fixed-btn { min-height: 44px; min-width: 88px; font-size: var(--fs-md); font-weight: 700; }
+
 /* Last scan: one line + fold */
 .bench-lastscan { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius); padding: 0 12px; }
 .bench-lastscan summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; }
@@ -90,25 +127,26 @@
 .bench-lastscan-coverage, .bench-lastscan-codes { margin: 0; }
 .bench-lastscan-codes b { font-weight: 650; }
 
-/* Tasks */
+/* Steps */
 .bench-actions { display: flex; flex-direction: column; gap: 10px; }
+.bench-steps-fold { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius); padding: 0 12px; }
+.bench-steps-fold > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: var(--fs-md); }
+.bench-steps-list { display: flex; flex-direction: column; gap: 10px; padding-bottom: 10px; }
 .bench-card {
   display: flex; gap: 10px; align-items: flex-start; width: 100%; min-height: 44px; box-sizing: border-box; background: var(--raised);
   border: 1px solid var(--rule); border-radius: var(--radius); padding: 10px; max-width: 100%;
 }
 .bench-card[data-state="blocked"] { border-color: var(--sev-chronic); }
 .bench-card[data-state="done"] { opacity: 0.85; }
-.bench-check { flex: none; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; margin-left: auto; }
-.bench-checkbox-real { width: 28px; height: 28px; cursor: pointer; }
-.bench-check-label { font-size: 1rem; color: var(--ink-2); min-height: 44px; display: inline-flex; align-items: center; cursor: pointer; font-weight: 600; }
 .bench-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
-.bench-card-text { font-size: 1rem; display: flex; align-items: center; gap: 8px; cursor: pointer; min-height: 44px; }
-.bench-state-badge { font-size: 1rem; font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+.bench-step-head { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.bench-step-n { font-weight: 700; color: var(--ink-2); }
+.bench-card-text { margin: 0; font-size: var(--fs-lg); font-weight: 600; line-height: 1.3; display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.bench-state-badge { font-size: var(--fs-md); font-weight: 700; padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
 .bench-state-badge.state-ready { color: var(--ok); background: var(--ok-bg); }
 .bench-state-badge.state-blocked { color: var(--sev-returned); background: var(--sev-returned-bg); }
 .bench-state-badge.state-done { color: var(--ink-2); background: var(--surface-2); }
 .bench-state-line { margin: 0; }
-.bench-state-line a { min-height: 44px; display: inline-flex; align-items: center; }
 .bench-bulletin { align-self: flex-start; white-space: normal; max-width: 100%; }
 .bench-parts { overflow-wrap: anywhere; }
 .bench-part { margin-right: 6px; }
@@ -117,21 +155,21 @@
 .bench-tool.not-ok { color: var(--sev-returned); background: var(--sev-returned-bg); }
 .bench-fold { margin: 0; }
 .bench-card-detail { display: flex; flex-direction: column; gap: 4px; padding-top: 4px; }
+.bench-card-detail p { margin: 0; }
 .bench-preconditions { display: flex; flex-wrap: wrap; gap: 6px; }
 .bench-precondition.ok { color: var(--ok); background: var(--ok-bg); }
 .bench-precondition.not-ok { color: var(--sev-returned); background: var(--sev-returned-bg); }
 .bench-pass-line { font-weight: 600; }
 .bench-inspect-steps { margin: 0; padding-left: 18px; }
-.bench-outcome-fields { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding-top: 4px; }
-.bench-outcome-fields select, .bench-outcome-fields input[type="text"] { min-height: 48px; font-size: 1rem; }
-.bench-outcome-fields input[type="text"] { flex: 1 1 140px; min-width: 0; }
-.bench-outcome-fields .btn { min-height: 48px; min-width: 48px; }
+/* One-tap outcome: three 44 px buttons, one POST each, no typing */
+.bench-onetap { display: grid; grid-template-columns: 1fr 1.5fr 1fr; gap: 8px; margin: 0; }
+.bench-onetap .btn { min-height: 44px; font-size: var(--fs-md); font-weight: 700; padding-inline: 6px; }
+.bench-onetap .bench-out-fault { border-color: var(--sev-returned); color: var(--sev-returned); }
+.bench-undo-form { margin: 0; }
+.bench-undo-btn { min-height: 44px; min-width: 88px; font-size: var(--fs-md); font-weight: 700; }
 .bench-done-summary { margin: 0; }
-
-.bench-standing-row { display: flex; flex-wrap: wrap; gap: 2px 8px; align-items: center; min-height: 44px; line-height: 1.3; }
-.bench-standing-row form { margin: 0; flex: none; margin-left: auto; }
-.bench-standing-btn { min-height: 44px; min-width: 88px; font-size: var(--fs-md); font-weight: 700; }
-.bench-standing-list { display: flex; flex-direction: column; gap: 2px; }
+.bench-done-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.bench-done-row form { margin: 0; margin-left: auto; }
 
 /* Resume (progress only; scan age + scanner live in the vehicle bar) */
 .bench-resume { background: var(--raised); border: 1px solid var(--rule); border-radius: var(--radius); padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
@@ -141,18 +179,18 @@
 /* Gates */
 .bench-gates { display: flex; flex-wrap: wrap; gap: 8px; }
 .bench-gate { flex: 1 1 200px; background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--radius); padding: 8px 12px; }
-.bench-gate h4 { margin: 0 0 4px; font-size: 1rem; }
+.bench-gate h4 { margin: 0 0 4px; font-size: var(--fs-md); }
 .bench-gate.out { border-color: var(--sev-returned); }
 .bench-gate summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; }
 
 /* Codes */
 .bench-shortcuts { display: flex; flex-wrap: wrap; gap: 8px; }
-.bench-shortcut { white-space: normal; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; font-size: 1rem; }
+.bench-shortcut { white-space: normal; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; font-size: var(--fs-md); }
 .bench-shortcut.v-active { color: var(--sev-returned); background: var(--sev-returned-bg); }
 .bench-shortcut.v-cleared-unverified { color: var(--sev-chronic); background: var(--sev-chronic-bg); }
 .bench-legend { margin: 2px 0 0; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .bench-legend-sep { color: var(--ink-3); }
-.bench .bench-facts { font-size: 1rem !important; }
+.bench .bench-facts { font-size: var(--fs-md) !important; }
 </style>
 
 {% macro toolchips(tools) %}
@@ -163,31 +201,156 @@
   {% endfor %}
 {% endmacro %}
 
+{# Undo for one step: a POST without "done" is the store's own un-tick (route clears outcome and note). #}
+{% macro undo_form(a, label="Undo") %}
+  <form method="post" action="{{ a.href_tick }}" class="bench-undo-form">
+    <input type="hidden" name="step_id" value="{{ a.step_id }}">
+    <button type="submit" class="btn bench-undo-btn" aria-label="Undo step {{ a.n }}: {{ a.text }}">{{ label }}</button>
+  </form>
+{% endmacro %}
+
+{# One step. lead=True is the big "Step N of M" card; others sit in the folds.
+   Buttons only while READY (a BLOCKED step shows its reason and the unblock step instead). #}
+{% macro step_card(a, lead=false) %}
+  <div class="bench-card" data-task-id="{{ a.step_id }}" data-state="{{ a.state|lower }}" id="task-{{ a.step_id }}">
+    <div class="bench-card-body">
+      <p class="bench-step-head">
+        <span class="bench-step-n">{{ 'Next step: ' if lead }}Step {{ a.n }} of {{ a.of }}</span>
+        <span class="chip plain bench-state-badge state-{{ a.state|lower }}">{{ a.state }}</span>
+        {% if a.bulletin %}<span class="chip plain bench-bulletin">{{ a.bulletin.id }}</span>{% endif %}
+      </p>
+      <p class="bench-card-text">
+        {% if icon is defined %}{{ icon(a.icon, size="s") }}{% endif %}
+        <span>{{ a.text }}</span>
+      </p>
+      {% if a.state == "BLOCKED" %}
+        <p class="bench-state-line">
+          {% if a.blocked_reason %}{{ a.blocked_reason }}{% endif %}
+          {% if a.unblock %} &mdash; to unblock:
+            {% if a.unblock_href %}<a href="{{ a.unblock_href }}">{{ a.unblock }}</a>{% else %}{{ a.unblock }}{% endif %}
+          {% endif %}
+        </p>
+      {% endif %}
+      {% if a.done %}
+        <div class="bench-done-row">
+          <p class="bench-done-summary muted">Done {{ a.done_at }}{% if a.done_by %} by {{ a.done_by }}{% endif %}
+            {% if a.outcome %} &mdash; {{ a.outcome|replace('_', ' ') }}{% endif %}{% if a.note %}: {{ a.note }}{% endif %}</p>
+          {{ undo_form(a) }}
+        </div>
+      {% elif a.state == "READY" %}
+        <form method="post" action="{{ a.href_tick }}" class="bench-onetap" aria-label="Record the result of step {{ a.n }}">
+          <input type="hidden" name="step_id" value="{{ a.step_id }}">
+          <input type="hidden" name="done" value="1">
+          <input type="hidden" name="label" value="{{ a.text }}">
+          {% if bench.technician %}<input type="hidden" name="by" value="{{ bench.technician }}">{% endif %}
+          <button type="submit" name="outcome" value="ok" class="btn bench-out-ok" aria-label="OK: {{ a.text }}">OK</button>
+          <button type="submit" name="outcome" value="fault_found" class="btn bench-out-fault" aria-label="Fault found: {{ a.text }}">Fault found</button>
+          <button type="submit" name="outcome" value="skipped" class="btn bench-out-skip" aria-label="Skip: {{ a.text }}">Skip</button>
+        </form>
+      {% endif %}
+      <details class="fold bench-fold">
+        <summary>Procedure, pass criteria, parts</summary>
+        <div class="bench-card-detail">
+          {% if a.preconditions %}
+            <div class="bench-preconditions">
+              {% for p in a.preconditions %}
+                <span class="chip plain bench-precondition {{ 'ok' if p.ok else 'not-ok' }}">
+                  {{ p.label }}: {{ 'ok' if p.ok else 'blocked' }}
+                  {% if not p.ok and p.fix_href %} &mdash; <a href="{{ p.fix_href }}">{{ p.fix_label }}</a>{% endif %}
+                  {% if not p.ok and p.fix_text %} &mdash; {{ p.fix_text }}{% endif %}
+                </span>
+              {% endfor %}
+            </div>
+          {% endif %}
+          <p><b>Procedure:</b>
+            {{ a.detail.procedure.test or "UNKNOWN -- no sourced procedure for this step yet; confirm on the car / service manual" }}</p>
+          {% if a.detail.procedure.tools %}
+            <p class="muted">Tool: {{ a.detail.procedure.tools }}</p>
+          {% endif %}
+          <p class="bench-pass-line">Pass = {{ a.detail.pass_line }}</p>
+          {% if a.detail.if_abnormal %}
+            <p class="muted">If abnormal: {{ a.detail.if_abnormal }}</p>
+          {% endif %}
+          {% if a.detail.doc %}
+            <p>Doc:
+              {% if a.detail.doc.href %}<a href="{{ a.detail.doc.href }}">{{ a.detail.doc.id }}</a>{% else %}{{ a.detail.doc.id }}{% endif %}
+              {% if a.detail.doc.title %} &mdash; {{ a.detail.doc.title }}{% endif %}</p>
+          {% endif %}
+          {% if a.detail.inspect_steps %}
+            <ul class="bench-inspect-steps muted">
+              {% for s in a.detail.inspect_steps %}
+                <li>{{ s.element }}: {{ s.what }} ({{ s.how }}) &mdash; {{ s.source }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+          {% if a.parts %}
+            <div class="bench-parts muted">
+              {% for p in a.parts %}
+                <span class="bench-part">{{ p.name }}{% if p.number %} &middot;
+                  <span class="mono">{{ p.number }}</span>{% endif %}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+          {% if a.tools %}
+            <details class="fold bench-fold bench-tools-fold">
+              <summary>Tools ({{ a.tools|length }})</summary>
+              <div class="bench-tools">{{ toolchips(a.tools) }}</div>
+            </details>
+          {% endif %}
+        </div>
+      </details>
+    </div>
+  </div>
+{% endmacro %}
+
 <div class="bench" data-vin="{{ vin }}">
 
   {% if bench.complaint %}
     <p class="bench-complaint">&ldquo;{{ bench.complaint }}&rdquo;</p>
   {% endif %}
 
-  {# The call: ONE line (bench_bridge.call_line carries the fuel gate
-     readout when the gate is what blocks), "Why?" folds the full sentence. #}
-  {% if bench.blocker_banner %}
-    <div class="bench-call bench-blocker-banner{{ ' is-blocker' if bench.blocker_banner.is_blocker }}" id="bench-call">
+  {# The call: ONE line for the whole job (bench_bridge.call_line: the blocker --
+     fuel gate readout, then not connected -- else the top fault). "Why?" folds
+     the full sentence, its basis and the one copy of the fuel gate. #}
+  {% if bench.call_line %}
+    {% set _fg = bench.fuel_gate %}
+    <div class="bench-call bench-blocker-banner{{ ' is-blocker' if (bench.blocker_banner and bench.blocker_banner.is_blocker) or not bench.connected }}" id="bench-call">
       <div class="bench-call-row">
-        {% if icon is defined %}{{ icon(bench.blocker_banner.icon, size="s") }}{% endif %}
-        <p class="bench-next-action">{{ bench.call_line or bench.blocker_banner.action }}</p>
+        {% if icon is defined and bench.blocker_banner %}{{ icon(bench.blocker_banner.icon, size="s") }}{% endif %}
+        <p class="bench-next-action">{{ bench.call_line }}</p>
       </div>
-      {% if bench.blocker_banner.why != (bench.call_line or bench.blocker_banner.action) or bench.blocker_banner.basis %}
-        <details class="bench-why">
-          <summary>Why?</summary>
+      <details class="bench-why">
+        <summary>Why?</summary>
+        {% if bench.blocker_banner %}
           <p class="muted">{{ bench.blocker_banner.why }}</p>
           {% if bench.blocker_banner.basis %}
             <ul class="muted">
               {% for b in bench.blocker_banner.basis %}<li>{{ b }}</li>{% endfor %}
             </ul>
           {% endif %}
-        </details>
-      {% endif %}
+        {% endif %}
+        <p class="muted bench-fuel-why"><b>Fuel gate</b> (EVAP needs 15&ndash;85 %):
+          {% if _fg.level is not none %}{{ _fg.level }} %
+            {% if _fg.in_window %}&mdash; in window.
+            {% else %}&mdash; {{ _fg.direction }} window.{% endif %}
+            {% if _fg.litres_to_target is not none %}burn ~{{ _fg.litres_to_target }} L to reach 85 %.
+            {% elif _fg.in_window == False and _fg.direction == "above" %}litres to burn: n/a - tank capacity not sourced{% endif %}
+          {% else %}No fuel reading on file.{% endif %}</p>
+      </details>
+    </div>
+  {% endif %}
+
+  {# Two states. NOT connected: the one red Connect to car + what waits for the car.
+     CONNECTED (a CUORE or MES session is live): a one-line live strip. #}
+  {% if bench.connected %}
+    <div class="bench-live" id="bench-live" role="status">
+      <span class="chip ok">Connected</span>
+      <p>{{ bench.live_strip.session }}{% if bench.live_strip.voltage %} &middot; {{ bench.live_strip.voltage.volts }} V
+        <span class="muted">(read {{ bench.live_strip.voltage.relative or bench.live_strip.voltage.at }})</span>{% else %} &middot; <span class="muted">voltage not read yet</span>{% endif %}</p>
+    </div>
+  {% else %}
+    <div class="bench-state is-off" id="bench-state">
+      <p>Not connected &mdash; tap Connect to car (top of page).{% if bench.blocked_count %} {{ bench.blocked_count }} step{{ 's' if bench.blocked_count != 1 }} wait{{ '' if bench.blocked_count != 1 else 's' }} for the car.{% endif %}</p>
     </div>
   {% endif %}
 
@@ -200,9 +363,10 @@
     <a class="bench-gochip" href="/v/{{ vin }}/sensors">Sensor health</a>
     <a class="bench-gochip" href="/v/{{ vin }}/fuses">Fuses &amp; relays</a>
     <a class="bench-gochip" href="/v/{{ vin }}/electrical">Electrical layout</a>
-    {# One-tap jump to the top code's own primary system (same Jinja globals
-       _code_brief.html uses; "primary" only). #}
-    {% set _top_code = bench.shortcuts[0].code if bench.shortcuts else none %}
+    {# One-tap jump to the TOP fault's own primary system (the first fault in
+       the Faults list, i.e. the call's fault -- not the alphabetically first
+       code). Falls back to the first code chip only when no code fault stands. #}
+    {% set _top_code = bench.top_fault_code or (bench.shortcuts[0].code if bench.shortcuts else none) %}
     {% if _top_code and systems_for_code is defined %}
       {% set _top_badge = (systems_for_code(_top_code)|selectattr("role", "equalto", "primary")|list|first) %}
       {% if _top_badge %}
@@ -226,17 +390,57 @@
     </details>
   </nav>
 
-  {# Work on now: visible on load, one row; the Fixed buttons live on the Job and Codes pages. #}
-  {% if bench.work_line %}
-    <a class="bench-worknow-row" id="bench-worknow-row" href="/v/{{ vin }}/job"><span><b>Work on now:</b>
-      {% for sg in bench.work_line %}{{ sg.codes }} &mdash; <span aria-hidden="true">{{ sg.mark }}</span> {{ sg.label }}{% if sg.seen %} &middot; last seen {{ sg.seen }}{% endif %}{% if not loop.last %}; {% endif %}{% endfor %}
-      &rarr; Job</span></a>
+  {# After a one-tap save: what was saved, and Undo (plain POST). #}
+  {% if bench.saved %}
+    <div class="bench-saved" id="bench-saved" role="status">
+      <p>Saved: Step {{ bench.saved.n }} of {{ bench.saved.of }}, {{ bench.saved.outcome }}.</p>
+      <form method="post" action="/v/{{ vin }}/bench/done" class="bench-undo-form">
+        <input type="hidden" name="step_id" value="{{ bench.saved.step_id }}">
+        <button type="submit" class="btn bench-undo-btn" aria-label="Undo the save of step {{ bench.saved.n }}: {{ bench.saved.text }}">Undo</button>
+      </form>
+    </div>
+  {% endif %}
+
+  {# The NEXT undone step leads (first READY one; the first undone if none is ready). #}
+  <div class="bench-actions" id="bench-next">
+    {% if bench.next_step %}
+      {{ step_card(bench.next_step, true) }}
+    {% elif bench.next_actions %}
+      <p class="bench-allclear"><b>All {{ bench.progress.total }} steps are done.</b></p>
+    {% else %}
+      <p class="muted">{{ t('nothing_open') if t is defined else 'Nothing open on the checklist.' }}</p>
+    {% endif %}
+  </div>
+
+  {# Faults: the present / permanent / verifying faults, one line each. History stays on the Job page. #}
+  {% if bench.faults %}
+    <section class="bench-faults" id="fault-board" aria-labelledby="bench-faults-h">
+      <h2 class="bench-h" id="bench-faults-h">Faults ({{ bench.faults|length }})</h2>
+      <ul class="bench-fault-list">
+        {% for f in bench.faults %}
+          <li class="bench-fault{{ ' is-verifying' if f.status == 'verifying' }}">
+            <div class="bench-fault-main">
+              {% if f.href %}<a class="chip-code sm" href="{{ f.href }}" title="Open {{ f.name }}">{{ f.name }}</a>{% else %}<b>{{ f.name }}</b>{% endif %}
+              <span class="chip {{ f.chip }}"><span aria-hidden="true">{{ f.mark }}</span> {{ f.label }}</span>
+              {% if f.returned %}<span class="chip returned">Returned after fix</span>{% endif %}
+              {% if f.can_fix %}
+                <form method="post" action="/v/{{ vin }}/fault-board/fixed"><input type="hidden" name="fault_key" value="{{ f.key }}"><input type="hidden" name="return_to" value="/v/{{ vin }}"><button type="submit" class="btn bench-fixed-btn" aria-label="Mark {{ f.name }} fixed" title="Records the repair and starts verification; CUORE shows Proven fixed only when the readings say so">Fixed</button></form>
+              {% elif f.can_undo %}
+                <form method="post" action="/v/{{ vin }}/fault-board/undo"><input type="hidden" name="fault_key" value="{{ f.key }}"><input type="hidden" name="return_to" value="/v/{{ vin }}"><button type="submit" class="btn bench-fixed-btn" aria-label="Undo the fixed mark on {{ f.name }}">Undo</button></form>
+              {% endif %}
+            </div>
+            <p class="bench-fault-meta muted">{% if f.module %}{{ f.module }} &middot; {% endif %}last seen {{ f.seen }}{% if f.present %} &middot; {{ f.present }}{% endif %}</p>
+            {% if f.path_href %}<div class="bench-fault-acts"><a class="bench-pathchip" href="{{ f.path_href }}" aria-label="Electrical path for {{ f.name }}">Electrical path for {{ f.name }}</a></div>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
   {% endif %}
 
   {# Next connection: the plan for the next time the car is connected; open only while a connection is live. #}
   {% if bench.next_session %}
     {% include "_next_session_css.html" %}
-    <details class="ns-panel" id="bench-next-session"{{ ' open' if bench.next_session.live }}>
+    <details class="fold ns-panel" id="bench-next-session"{{ ' open' if (bench.connected or bench.next_session.live) }}>
       <summary>{{ bench.next_session.summary }}</summary>
       {% with ns = bench.next_session, return_to = "/v/" ~ vin %}{% include "_next_session_rows.html" %}{% endwith %}
       <p class="small"><a href="/v/{{ vin }}/next-session">Full list</a></p>
@@ -265,6 +469,24 @@
     <p class="bench-case-hint muted">{{ bench.case_hint }}</p>
   {% endif %}
 
+  {# The rest of the steps, grouped like the list-organisation rules: waiting/ready first, done last (closed). #}
+  {% if bench.upcoming_steps %}
+    <details class="fold bench-steps-fold" id="bench-upcoming">
+      <summary>Up next ({{ bench.upcoming_steps|length }}){% if bench.blocked_count %} <span class="muted">&middot; {{ bench.blocked_count }} blocked</span>{% endif %}</summary>
+      <div class="bench-steps-list">
+        {% for a in bench.upcoming_steps %}{{ step_card(a) }}{% endfor %}
+      </div>
+    </details>
+  {% endif %}
+  {% if bench.done_steps %}
+    <details class="fold bench-steps-fold" id="bench-done">
+      <summary>Done ({{ bench.done_steps|length }})</summary>
+      <div class="bench-steps-list">
+        {% for a in bench.done_steps %}{{ step_card(a) }}{% endfor %}
+      </div>
+    </details>
+  {% endif %}
+
   {# Last scan: one line, the engineer data folded. #}
   {% if bench.last_scan %}
     <details class="bench-lastscan">
@@ -279,16 +501,7 @@
           {% elif bench.last_scan.partial %}<span class="chip chronic">partial</span>{% endif %}
         </div>
         <div class="bench-lastscan-codes">
-          <b>Standing &middot; work on now:</b>
-          {% if bench.standing or bench.work_now %}
-          <span class="bench-standing-list" id="bench-worknow">
-          {% set _rows = (bench.standing if bench.standing else [bench.work_now]) %}
-          {% for c in _rows %}
-            <span class="bench-standing-row"><a class="chip-code sm" href="/v/{{ vin }}/code/{{ c.code }}" title="Open {{ c.code }}">{{ c.code or c.title }}</a> <span class="chip {{ c.chip }}"><span aria-hidden="true">{{ c.mark }}</span> {{ c.label }}</span> <span>last seen {{ c.last_seen_text }}</span>
-              {% if c.can_fix %}<form method="post" action="/v/{{ vin }}/fault-board/fixed"><input type="hidden" name="fault_key" value="{{ c.key }}"><input type="hidden" name="return_to" value="/v/{{ vin }}"><button type="submit" class="btn bench-standing-btn" aria-label="Mark {{ c.code or c.title }} fixed" title="Records the repair and starts verification; CUORE shows Proven fixed only when the readings say so">Fixed</button></form>{% endif %}</span>
-          {% endfor %}
-          </span>
-          {% elif bench.last_scan.active_codes %}{% for c in bench.last_scan.active_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
+          <b>Active:</b> {% if bench.last_scan.active_codes %}{% for c in bench.last_scan.active_codes %}<a class="chip-code sm" href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
           &middot; <b>History:</b> {% if bench.last_scan.history_codes %}{% for c in bench.last_scan.history_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
         </div>
         {% if bench.last_scan.coverage_line %}
@@ -301,114 +514,6 @@
       </div>
     </details>
   {% endif %}
-
-  <div class="bench-actions">
-    {% for a in bench.next_actions %}
-      <div class="bench-card" id="task-{{ a.step_id }}" data-task-id="{{ a.step_id }}" data-state="{{ a.state|lower }}">
-        <div class="bench-card-body">
-          <details>
-            <summary class="bench-card-text">
-              {% if icon is defined %}{{ icon(a.icon, size="s") }}{% endif %}
-              <span>{{ a.text }}</span>
-            </summary>
-            <div class="bench-card-detail">
-              {% if a.preconditions %}
-                <div class="bench-preconditions">
-                  {% for p in a.preconditions %}
-                    <span class="chip plain bench-precondition {{ 'ok' if p.ok else 'not-ok' }}">
-                      {{ p.label }}: {{ 'ok' if p.ok else 'blocked' }}
-                      {% if not p.ok and p.fix_href %} &mdash; <a href="{{ p.fix_href }}">{{ p.fix_label }}</a>{% endif %}
-                      {% if not p.ok and p.fix_text %} &mdash; {{ p.fix_text }}{% endif %}
-                    </span>
-                  {% endfor %}
-                </div>
-              {% endif %}
-              <p style="margin:0"><b>Procedure:</b>
-                {{ a.detail.procedure.test or "UNKNOWN -- no sourced procedure for this step yet; confirm on the car / service manual" }}</p>
-              {% if a.detail.procedure.tools %}
-                <p class="muted" style="margin:0">Tool: {{ a.detail.procedure.tools }}</p>
-              {% endif %}
-              <p class="bench-pass-line" style="margin:0">Pass = {{ a.detail.pass_line }}</p>
-              {% if a.detail.if_abnormal %}
-                <p class="muted" style="margin:0">If abnormal: {{ a.detail.if_abnormal }}</p>
-              {% endif %}
-              {% if a.detail.doc %}
-                <p style="margin:0">Doc:
-                  {% if a.detail.doc.href %}<a href="{{ a.detail.doc.href }}">{{ a.detail.doc.id }}</a>{% else %}{{ a.detail.doc.id }}{% endif %}
-                  {% if a.detail.doc.title %} &mdash; {{ a.detail.doc.title }}{% endif %}</p>
-              {% endif %}
-              {% if a.detail.inspect_steps %}
-                <ul class="bench-inspect-steps muted">
-                  {% for s in a.detail.inspect_steps %}
-                    <li>{{ s.element }}: {{ s.what }} ({{ s.how }}) &mdash; {{ s.source }}</li>
-                  {% endfor %}
-                </ul>
-              {% endif %}
-
-              <form method="post" action="{{ a.href_tick }}" id="form-{{ a.step_id }}" class="bench-outcome-fields">
-                <input type="hidden" name="step_id" value="{{ a.step_id }}">
-                {% if bench.technician %}
-                  <input type="hidden" name="by" value="{{ bench.technician }}">
-                {% else %}
-                  <input type="text" name="by" placeholder="done by (optional)" value="{{ a.done_by or '' }}" aria-label="Done by">
-                {% endif %}
-                <select name="outcome" aria-label="Outcome">
-                  <option value="ok" {% if a.outcome == 'ok' %}selected{% endif %}>OK</option>
-                  <option value="fault_found" {% if a.outcome == 'fault_found' %}selected{% endif %}>Fault found</option>
-                  <option value="skipped" {% if a.outcome == 'skipped' %}selected{% endif %}>Skipped</option>
-                </select>
-                <input type="text" name="note" placeholder="summary (optional)" aria-label="Summary" value="{{ a.note or '' }}">
-                <button type="submit" class="btn">Save</button>
-              </form>
-              {% if a.done %}
-                <p class="bench-done-summary muted">Done {{ a.done_at }}{% if a.done_by %} by {{ a.done_by }}{% endif %}
-                  {% if a.outcome %} &mdash; {{ a.outcome|replace('_', ' ') }}{% endif %}{% if a.note %}: {{ a.note }}{% endif %}</p>
-              {% endif %}
-            </div>
-          </details>
-          {# READY / BLOCKED chip with the reason and the unblock step in the row text #}
-          <p class="bench-state-line">
-            <span class="chip plain bench-state-badge state-{{ a.state|lower }}">{{ a.state }}</span>
-            {% if a.state == "BLOCKED" %}
-              {% if a.blocked_reason %}{{ a.blocked_reason }}{% endif %}
-              {% if a.unblock %} &mdash; to unblock:
-                {% if a.unblock_href %}<a href="{{ a.unblock_href }}">{{ a.unblock }}</a>{% else %}{{ a.unblock }}{% endif %}
-              {% endif %}
-            {% elif a.state == "READY" %}
-              <span class="muted">nothing in the way</span>
-            {% endif %}
-          </p>
-          {% if a.bulletin %}
-            <span class="chip plain bench-bulletin">{{ a.bulletin.id }}</span>
-          {% endif %}
-          {% if a.parts %}
-            <div class="bench-parts muted">
-              {% for p in a.parts %}
-                <span class="bench-part">{{ p.name }}{% if p.number %} &middot;
-                  <span class="mono">{{ p.number }}</span>{% endif %}</span>
-              {% endfor %}
-            </div>
-          {% endif %}
-          {% if a.tools %}
-            <details class="bench-fold bench-tools-fold">
-              <summary>Tools ({{ a.tools|length }})</summary>
-              <div class="bench-tools">{{ toolchips(a.tools) }}</div>
-            </details>
-          {% endif %}
-        </div>
-        <form method="post" action="{{ a.href_tick }}" class="bench-check">
-          <input type="hidden" name="step_id" value="{{ a.step_id }}">
-          <input type="checkbox" id="chk-{{ a.step_id }}" name="done" value="1"
-                 class="bench-checkbox-real" {% if a.done %}checked{% endif %}
-                 aria-label="{{ (t('mark_done') if t is defined else 'Mark done') }}: {{ a.text }}"
-                 form="form-{{ a.step_id }}">
-          <label for="chk-{{ a.step_id }}" class="bench-check-label">{{ t('mark_done') if t is defined else 'Mark done' }}</label>
-        </form>
-      </div>
-    {% else %}
-      <p class="muted">{{ t('nothing_open') if t is defined else 'Nothing open on the checklist.' }}</p>
-    {% endfor %}
-  </div>
 
   {# Progress only: last-scan age and scanner state are in the vehicle bar. #}
   <div class="bench-resume">
@@ -423,23 +528,8 @@
     {% endif %}
   </div>
 
-  {# Fuel gate + readiness #}
+  {# Readiness + Mode 06 (the fuel gate lives once, in the call's Why? fold). #}
   <div class="bench-gates">
-    <div class="bench-gate {{ 'out' if bench.fuel_gate.in_window == False }}">
-      <h4>Fuel gate (EVAP needs 15&ndash;85 %)</h4>
-      {% if bench.fuel_gate.level is not none %}
-        <p style="margin:0">{{ bench.fuel_gate.level }} %
-          {% if bench.fuel_gate.in_window %} &mdash; in window
-          {% else %} &mdash; {{ bench.fuel_gate.direction }} window{% endif %}</p>
-        {% if bench.fuel_gate.litres_to_target is not none %}
-          <p class="muted" style="margin:0">burn ~{{ bench.fuel_gate.litres_to_target }} L to reach 85 %</p>
-        {% elif bench.fuel_gate.in_window == False and bench.fuel_gate.direction == "above" %}
-          <p class="muted" style="margin:0">litres to burn: n/a - tank capacity not sourced</p>
-        {% endif %}
-      {% else %}
-        <p class="muted" style="margin:0">No fuel reading on file</p>
-      {% endif %}
-    </div>
     <div class="bench-gate">
       <h4>Readiness</h4>
       {% if bench.readiness.monitors %}

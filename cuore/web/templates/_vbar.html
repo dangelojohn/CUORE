@@ -128,107 +128,93 @@
     {%- for raw, label in _enum_to_label.items() -%}{%- set ns.out = ns.out|replace(raw, label) -%}{%- endfor -%}
     {{- ns.out -}}
   {%- endmacro %}
+  {# Header/bar pass 2026-10-26 (BENCH_UX_REVIEW_2026-10-26.md, decisions 1-4).
+     ONE row at phone width -- .vid (vehicle name over odometer) + the red
+     single-tap Connect to car -- and everything secondary (scanner state,
+     last scan, buses, verdict, blocker, VIN, logs, port) on ONE
+     details.fold line right under it, so the page's own content starts
+     within ~200px at 400px wide. The fold sits OUTSIDE .vline on purpose:
+     only the one-row .vline is sticky (--vline-h), never the fold.
+     Scanner chip: label and colour always agree -- connected = the "live"
+     (ok) colour, anything else (not running, disconnected, unknown) =
+     neutral plain; the words carry the state, colour is never alone.
+     Works with scripting off: <details> and the Connect link are plain HTML. #}
   <div class="vline">
-    <span class="vname" title="{{ bar.name }}">{{ bar.name }}</span>
-    <span class="vin-tail mono" title="{{ bar.vin }}">&hellip;{{ bar.vin[-8:] }}</span>
-    {% if bar.odo_last is not none %}
-      <span class="mono vkm">{{ "{:,}".format(bar.odo_last|int) }} km</span>
-    {% endif %}
-    {# "Connect to car" (owner spec 2026-10-14): one red 48px primary, left
-       of the scanner label, on every /v/{vin} page -- adapter -> bus -> VIN
-       -> guided full scan, with live progress in the drawer right below.
-       Plain <a href="/v/{vin}/scan"> is the whole no-JS story (the wizard
-       page already works with zero JS -- see fullscan_routes.py's own
-       docstring); connect.js intercepts the tap and runs the same sequence
-       inline instead, reusing /api/live/connect/start plus the existing
-       guided-scan endpoints (/api/live/fullscan/guided/*) for every step
-       after the kickoff. Never fires on page load, never clears a code. #}
-    {# Hardcoded English, same posture as flow_bar.html's "Tools away..."
-       and job.html's "Tools used review": i18n.py is outside this task's
-       file list, so this stays untranslated rather than adding a key
-       there (``t`` would otherwise just render the bare key, unmissed by
-       any error but a worse read than the plain string). #}
+    <div class="vid">
+      <span class="vname" title="{{ bar.name }}">{{ bar.name }}</span>
+      {% if bar.odo_last is not none %}
+        <span class="mono vkm">{{ "{:,}".format(bar.odo_last|int) }} km</span>
+      {% endif %}
+    </div>
+    {# "Connect to car" (owner spec 2026-10-14): one red primary on every
+       /v/{vin} page -- adapter -> bus -> VIN -> guided full scan, with live
+       progress in the drawer right below. Plain <a href="/v/{vin}/scan"> is
+       the whole no-JS story (the wizard page already works with zero JS --
+       see fullscan_routes.py's own docstring); connect.js intercepts the
+       tap and runs the same sequence inline instead. Never fires on page
+       load, never clears a code. Hardcoded English like flow_bar.html's
+       "Tools away..." (i18n.py is outside this task's file list). #}
     <a class="btn connect-btn" id="connect-car-btn" href="/v/{{ bar.vin }}/scan"
        data-vin="{{ bar.vin }}">Connect to car</a>
-    {% if live_strip %}
-      {% if live_strip.error %}
-        <span class="chip plain" title="{{ live_strip.error }}">Scanner: unknown</span>
-      {% else %}
-        <span class="chip chip-wrap {{ 'ok' if live_strip.mes_state != 'connected' else 'returned' }}"
-              title="Scanner: {{ _scanner_labels.get(live_strip.mes_state, (live_strip.mes_state or 'unknown')|replace('_', ' ')) }}">Scanner:
-          {{ _scanner_labels.get(live_strip.mes_state, (live_strip.mes_state or 'unknown')|replace('_', ' ')) }}</span>
-        <span class="chip plain" title="{{ live_strip.buses_verified }}/{{ live_strip.buses_total }} buses verified">
-          Live {{ live_strip.buses_verified }}/{{ live_strip.buses_total }}</span>
+  </div>
+  {% if live_strip and not live_strip.error %}
+    {% set _scn = _scanner_labels.get(live_strip.mes_state, (live_strip.mes_state or 'unknown')|replace('_', ' ')) %}
+    {% set _scn_cls = 'ok' if live_strip.mes_state == 'connected' else 'plain' %}
+  {% elif live_strip %}
+    {% set _scn = 'unknown' %}
+    {% set _scn_cls = 'plain' %}
+  {% endif %}
+  <details class="fold vmore vstatus">
+    <summary>
+      {% if live_strip %}
+        <span class="chip chip-wrap vscan {{ _scn_cls }}"
+              title="{% if live_strip.error %}{{ live_strip.error }}{% else %}Scanner: {{ _scn }}{% endif %}">Scanner: {{ _scn }}</span>
       {% endif %}
-    {% endif %}
-    {% if not _show_hero %}
-      {# The compact status strip every non-bench/report /v/ page relies on
-         now that it doesn't also get the hero: the verdict at a glance and
-         any blocker -- the "Next" pointer used to be here too, but it only
-         duplicated the primary Next button each step already has (item 9),
-         so it is gone, not just reworded. #}
-      {# Item 14 (BENCH_UX_SPEC 2026-10-08): these header chips wrap in
-         sentence case instead of hard-truncating -- `.chip-wrap` (cuore.css)
-         drops the chip's usual all-caps/no-wrap treatment just for these;
-         title="" still carries the full text for a tap/hover. #}
+      {% if bar.last_log %}<span class="vlast" title="last scan {{ bar.last_log }}">scan {{ (bar.last_log|string)[:10] }}</span>{% else %}<span class="vlast">no scan on file</span>{% endif %}
+    </summary>
+    <div class="vmore-panel">
+      {% if live_strip and not live_strip.error %}
+        <div class="small"><span class="chip plain" title="{{ live_strip.buses_verified }}/{{ live_strip.buses_total }} buses verified">Live {{ live_strip.buses_verified }}/{{ live_strip.buses_total }}</span></div>
+      {% endif %}
       {% if view is defined and view and view.verdict %}
         {% set _vs = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
-        <span class="chip-verdict status-verdict chip-wrap v-{{ _vs }}" title="{{ view.verdict.summary or '' }}">{{ view.verdict.label }}</span>
+        <div class="small"><span class="chip-verdict status-verdict chip-wrap v-{{ _vs }}" title="{{ view.verdict.summary or '' }}">{{ view.verdict.label }}</span></div>
+        {% if tab == "job" %}
+          {# Job page: the ECM's own MIL request (view.verdict.mil_on), same
+             field _verdict_card.html shows -- the ECM's request only, never
+             a claim about what the dash lamp did. Moved here from the old
+             separate car-state-line so the Job page keeps its steps near
+             the top. #}
+          {% set _mil = view.verdict.mil_on %}
+          <div class="small car-state-mil">{{ "MIL requested ON by the ECM" if _mil
+                        else ("MIL requested OFF by the ECM" if _mil is not none
+                              else "MIL request: unknown") }}</div>
+        {% endif %}
       {% endif %}
       {% if flow and flow.blockers %}
-        <span class="chip chronic status-blocker chip-wrap" title="{{ _sanitize(flow.blockers[0].why or flow.blockers[0]) }}">{{ flow.blockers|length }}&#9888; <span class="status-blocker-label">{{ t('blocked_label') }}</span></span>
+        <div class="small"><span class="chip chronic status-blocker chip-wrap" title="{{ _sanitize(flow.blockers[0].why or flow.blockers[0]) }}">{{ flow.blockers|length }}&#9888; <span class="status-blocker-label">{{ t('blocked_label') }}</span></span></div>
       {% endif %}
-    {% endif %}
-    <details class="vmore">
-      <summary aria-label="{{ t('more_vehicle_details') }}">&hellip;</summary>
-      <div class="vmore-panel">
-        <div class="small">{{ t('full_vin') }} <span class="mono">{{ bar.vin }}</span></div>
-        {% if bar.odo_first is not none and bar.odo_last is not none %}
-          <div class="small">{{ "{:,}".format(bar.odo_first|int) }} &rarr;
-            {{ "{:,}".format(bar.odo_last|int) }} km{% if bar.odo_span %}
-            <span class="muted">({{ "{:,}".format(bar.odo_span|int) }} {{ t('km_span') }})</span>{% endif %}</div>
+      <div class="small">{{ t('full_vin') }} <span class="mono vin-tail" title="{{ bar.vin }}">{{ bar.vin }}</span></div>
+      {% if bar.odo_first is not none and bar.odo_last is not none %}
+        <div class="small">{{ "{:,}".format(bar.odo_first|int) }} &rarr;
+          {{ "{:,}".format(bar.odo_last|int) }} km{% if bar.odo_span %}
+          <span class="muted">({{ "{:,}".format(bar.odo_span|int) }} {{ t('km_span') }})</span>{% endif %}</div>
+      {% endif %}
+      {% if bar.logs %}
+        <div class="small"><b>{{ bar.logs }}</b> {{ t('logs') }}{% if bar.first_log %}
+          &middot; {{ bar.first_log }} &rarr; {{ bar.last_log }}{% endif %}</div>
+      {% endif %}
+      {% if bar.ecus %}<div class="small">{{ bar.ecus|length }} ECU{{ "s" if bar.ecus|length != 1 }}</div>{% endif %}
+      {% if live_strip and not live_strip.error %}
+        <div class="small mono">{{ live_strip.port or 'no port' }}{% if live_strip.baud %}@{{ live_strip.baud }}{% endif %}
+          &middot; cable {{ live_strip.cable or 'none' }}</div>
+        {% if live_strip.lock_holder and live_strip.lock_holder != 'cuore' %}
+          <div class="small">held by {{ live_strip.lock_holder }}</div>
         {% endif %}
-        {% if bar.logs %}
-          <div class="small"><b>{{ bar.logs }}</b> {{ t('logs') }}{% if bar.first_log %}
-            &middot; {{ bar.first_log }} &rarr; {{ bar.last_log }}{% endif %}</div>
-        {% endif %}
-        {% if bar.ecus %}<div class="small">{{ bar.ecus|length }} ECU{{ "s" if bar.ecus|length != 1 }}</div>{% endif %}
-        {% if live_strip and not live_strip.error %}
-          <div class="small mono">{{ live_strip.port or 'no port' }}{% if live_strip.baud %}@{{ live_strip.baud }}{% endif %}
-            &middot; cable {{ live_strip.cable or 'none' }}</div>
-          {% if live_strip.lock_holder and live_strip.lock_holder != 'cuore' %}
-            <div class="small">held by {{ live_strip.lock_holder }}</div>
-          {% endif %}
-        {% endif %}
-        <div class="small"><a href="/live">{{ t('live_link') }} &rarr;</a></div>
-      </div>
-    </details>
-  </div>
-  {# Job page UX pass 2026-10-14: a one-line "car state" sentence so the
-     mechanic sees the car before the steps -- the verdict (already a chip
-     in .vline above, restated here with the rest of the sentence so it
-     reads as one line rather than two disconnected facts), the ECM's own
-     MIL request (``view.verdict.mil_on``, the same readiness-derived field
-     _verdict_card.html already shows), and the last scan/log date already
-     on file (``bar.last_log``). The owner/dash-lamp comparison
-     (dossier_bridge._build_mil_block) is Bench/Report-only and not part of
-     this view -- never fabricated here, so this stays the ECM's own
-     request only, not a claim about what the lamp actually did. Job-page
-     only: the hero pages (bench/report) already carry their own verdict
-     sentence (hero-verdict-sentence) and other tabs have no step content
-     to orient before. #}
-  {% if tab == "job" and view is defined and view and view.verdict %}
-    {% set _vs2 = (view.verdict.state or "NO_DATA")|lower|replace("_", "-") %}
-    {% set _mil = view.verdict.mil_on %}
-    {% set _mil_text = "MIL requested ON by the ECM" if _mil
-                        else ("MIL requested OFF by the ECM" if _mil is not none
-                              else "MIL request: unknown") %}
-    <p class="car-state-line small">
-      <span class="chip-verdict chip-wrap v-{{ _vs2 }}">{{ view.verdict.label }}</span>
-      <span class="car-state-mil">{{ _mil_text }}</span>
-      {% if bar.last_log %}<span class="car-state-scan">&middot; last scan {{ bar.last_log }}</span>{% endif %}
-    </p>
-  {% endif %}
+      {% endif %}
+      <div class="small"><a href="/live">{{ t('live_link') }} &rarr;</a></div>
+    </div>
+  </details>
   {# "Connect to car"'s own progress drawer -- hidden until the button is
      tapped (connect.js toggles it), empty markup server-side so a no-JS
      reader sees nothing extra and the button's own href keeps working. #}

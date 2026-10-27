@@ -63,7 +63,7 @@
   --tap: 44px;
   --space-6: 32px;
   --space-7: 48px;
-  --vline-h: 49px; /* R7: .vline's own rendered height -- flow.css's sticky .flow-bar sits at top:var(--vline-h) instead of also claiming top:0 */
+  --vline-h: 44px; /* R7 (44 since 2026-10-26 bar pass): .vline's own rendered height -- flow.css's sticky .flow-bar sits at top:var(--vline-h) instead of also claiming top:0 */
 
   /* Colour: neutral true black (what users actually see), re-derived from
    * itself rather than left mixed with the blue-grey tokens the palette
@@ -86,15 +86,18 @@
   /* Semantic severity. Deliberately not the accent: a code's state must not
    * read as "the brand colour", and these four have to be distinguishable
    * from each other at a glance across a workshop. */
-  --sev-returned: #e8565c;   --sev-returned-bg: #33191b;
-  --sev-chronic:  #d9a63c;   --sev-chronic-bg:  #2e2513;
-  --sev-cleared:  #6aa6d8;   --sev-cleared-bg:  #16242e;
-  --sev-once:     #7d888f;   --sev-once-bg:     #21282c;
+  /* Dark chip pairs all >= 7:1 on their own tint (2026-10-26 bench UX review:
+   * returned was 4.6:1, once was 4.1:1). Text token + tint are moved together,
+   * never per element. Ratios: returned 7.3, chronic 7.9, cleared 7.6, once 7.0, ok 7.4. */
+  --sev-returned: #f58086;   --sev-returned-bg: #240d0f;
+  --sev-chronic:  #e6b447;   --sev-chronic-bg:  #2e2513;
+  --sev-cleared:  #86b9e2;   --sev-cleared-bg:  #16242e;
+  --sev-once:     #aab3b9;   --sev-once-bg:     #21282c;
   /* True green, not the teal this token used to carry -- it now sits at the
    * same lightness/saturation the other four severities use, but reads as
    * unambiguously "good" the way it does on this app's subject rather than
    * being mistaken for --sev-cleared's blue. */
-  --ok:           #52b579;   --ok-bg:           #12291d;
+  --ok:           #6cc690;   --ok-bg:           #12291d;
 
   /* Per-code-family colours for cuore/web/timeline_svg.py. Chosen to stay
    * visually distinct from --accent and from each other, and from
@@ -1861,4 +1864,90 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
 @media (max-width: 480px) {
   .vline { row-gap: var(--space-1); }
   #connect-car-btn { padding: 0 var(--space-2); }
+}
+
+/* =========================================================================
+ * Header / vehicle-bar pass (BENCH_UX_REVIEW_2026-10-26.md, decisions 1-4).
+ * Appended override layer; scoped to the header and .vbar so tables, cards
+ * and the page body keep their own sizes.
+ *  1. Phone: ONE bar row (.vid = name over odometer, plus the red Connect to
+ *     car) and one details.fold line (.vstatus: scanner state + last scan,
+ *     the rest inside). The image hero of the Bench is skipped at phone
+ *     width. The header drops the three text links that the menu already
+ *     carries, so nothing overlaps the CUORE wordmark at 400px.
+ *  2. Header / chip / hero meta text uses --fs-md or larger; chips, buttons,
+ *     tabs and the fold line in the bar are 44px tall.
+ *  3. Scanner chip: .ok (live colour) only when connected, .plain otherwise.
+ *  4. Dark chip tokens (top of file) are >= 7:1 on their tints.
+ * ========================================================================= */
+
+header.top .brand { font-size: var(--fs-md); }
+header.top .top-tagline, header.top .profile,
+header.top .live-link, header.top .facts-link, header.top .parts-link,
+header.top nav a { font-size: var(--fs-md); }
+
+@media (max-width: 759px) {
+  header.top { padding: 2px 10px; }
+  header.top .icon-btn { margin: 0; }
+  header.top .live-link, header.top .facts-link, header.top .parts-link { display: none; }
+}
+
+.vbar .vline {
+  display: flex; align-items: center; gap: 10px; flex-wrap: nowrap;
+  min-height: 44px; padding: 0 var(--pad);
+}
+.vbar .vline .vid {
+  flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; justify-content: center;
+  line-height: 1.25;
+}
+.vbar .vline .vname {
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%; font-size: var(--fs-md); font-weight: var(--fw-semibold);
+}
+.vbar .vline .vkm { font-size: var(--fs-md); color: var(--ink-2); white-space: nowrap; }
+.vbar #connect-car-btn {
+  min-height: 44px; padding: 0 14px; font-size: var(--fs-md); flex: none;
+}
+
+/* The one fold line under the bar row. */
+.vbar details.vstatus { margin: 0; flex: none; position: static; }
+.vbar details.vstatus > summary {
+  display: flex; align-items: center; gap: 10px; width: auto; min-width: 0;
+  min-height: 44px; padding: 0 var(--pad); border: 0; border-radius: 0;
+  justify-content: flex-start; font-size: var(--fs-md); color: var(--ink-2);
+}
+.vbar details.vstatus > summary .vlast { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vbar details.vstatus .vmore-panel {
+  position: static; min-width: 0; box-shadow: none; border: 0;
+  border-top: 1px solid var(--rule-soft); border-radius: 0;
+  background: var(--surface-2); padding: 8px var(--pad);
+}
+.vbar details.vstatus .vmore-panel .small, .vbar details.vstatus .vmore-panel .vin-tail { font-size: var(--fs-md); margin-bottom: 6px; }
+.vbar details.vstatus .vmore-panel a { display: inline-flex; align-items: center; min-height: 44px; }
+
+/* Chips in the bar: 16px+, 44px tall, sentence case, label + colour. */
+.vbar .chip, .vbar .chip-verdict, .vbar .hero-verdict-chip {
+  font-size: var(--fs-md); display: inline-flex; align-items: center;
+  min-height: 44px; padding: 0 12px; letter-spacing: .02em;
+}
+.vbar .chip.plain { color: var(--ink-2); }
+.vbar .vscan { flex: none; white-space: nowrap; font-family: var(--sans); border-color: var(--rule); }
+.vbar .chip.plain, .vbar .chip-verdict { border: 1px solid var(--rule); }
+
+/* Tabs in the bar. */
+.vbar .vtabs { margin-top: 0; padding-bottom: 0; }
+.vbar .vtabs a, .vbar .vtabs details.vmore-tab summary {
+  min-height: 44px; font-size: var(--fs-md); letter-spacing: .02em; padding: 0 12px;
+}
+
+/* Hero meta (Report hero + Bench compact hero). */
+.vhero .hero-vin, .vhero .hero-km, .vhero .hero-figure-label { font-size: var(--fs-md); }
+
+@media (max-width: 600px) {
+  /* Bench compact hero: the name and verdict are in the bar row / fold
+     already; the image band is what ate 51 % of the screen. */
+  .vhero.vhero-compact { display: none; }
+}
+@media (min-width: 601px) {
+  .vbar .vline .vid { flex-direction: row; align-items: baseline; gap: 12px; }
 }

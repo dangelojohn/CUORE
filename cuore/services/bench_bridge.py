@@ -64,9 +64,9 @@ except Exception:  # noqa: BLE001
     scanlog_bridge = None
 
 
-#: Capped the same way the spec caps each bench card: 3 next actions, each
-#: with at most 3 parts and 4 tools.
-_MAX_ACTIONS = 3
+#: Each step carries at most 3 parts and 4 tools. The roster itself is no
+#: longer capped: the bench leads with the NEXT undone step ("Step 3 of 19")
+#: and folds the rest, so it needs all of them.
 _MAX_PARTS = 3
 _MAX_TOOLS = 4
 _MAX_SHORTCUTS = 6
@@ -521,7 +521,7 @@ def _next_actions(vin: str, open_work: list[dict[str, Any]],
                   codes_by_base: dict[str, str], checklist: dict[str, Any],
                   live_status: dict[str, Any], fuel_blocked: bool,
                   bulletins_by_id: dict[str, Any], mtime: float) -> list[dict[str, Any]]:
-    """The top :data:`_MAX_ACTIONS` open-work steps across every family,
+    """Every open-work step across every family (numbered ``n`` of ``of``),
     ACTIVE families first (any of that family's codes currently ACTIVE in
     the code table), then in the same order
     ``dossier_bridge._build_open_work`` already put the cards in (curated
@@ -541,8 +541,6 @@ def _next_actions(vin: str, open_work: list[dict[str, Any]],
 
     actions: list[dict[str, Any]] = []
     for card in ordered:
-        if len(actions) >= _MAX_ACTIONS:
-            return actions
         family = card.get("family") or ""
         codes = card.get("codes") or []
         # Computed once per CARD, not per step: every step in a card shares
@@ -581,8 +579,8 @@ def _next_actions(vin: str, open_work: list[dict[str, Any]],
                 "href_tick": f"/v/{vin}/bench/done",
                 "icon": FAMILY_ICON.get(family.lower(), "tools"),
             })
-            if len(actions) >= _MAX_ACTIONS:
-                return actions
+    for i, a in enumerate(actions, 1):
+        a["n"], a["of"] = i, len(actions)
     return actions
 
 
@@ -702,20 +700,76 @@ def _fmt_pct(v: Any) -> str:
     return str(int(f)) if f == int(f) else f"{f:.1f}"
 
 
-def call_line(banner: dict[str, Any] | None, fuel_gate: dict[str, Any]) -> str:
-    """The Bench's ONE-line call. When the fuel gate is what blocks the job,
-    the line carries the gate readout ("Fuel 93.7 % - burn below 85 %, then
-    run a drive cycle"); otherwise the banner's own short action."""
-    if not banner:
-        return ""
+def call_line(banner: dict[str, Any] | None, fuel_gate: dict[str, Any],
+              connected: bool | None = None,
+              faults: list[dict[str, Any]] | None = None) -> str:
+    """The Bench's ONE-line call, for the whole job: the blocker if there is
+    one (the fuel gate readout first -- "Fuel 93.7 % - burn below 85 %, then
+    run a drive cycle" -- then "not connected"), else the top fault, else the
+    banner's own short action. ``connected``/``faults`` default to "unknown"
+    so older callers keep the old behaviour."""
     level = fuel_gate.get("level")
     window = fuel_gate.get("window") or [15, 85]
     direction = fuel_gate.get("direction")
-    if banner.get("is_blocker") and level is not None and direction in ("above", "below"):
+    if banner and banner.get("is_blocker") and level is not None and direction in ("above", "below"):
         if direction == "above":
             return f"Fuel {_fmt_pct(level)} % - burn below {_fmt_pct(window[1])} %, then run a drive cycle"
         return f"Fuel {_fmt_pct(level)} % - add fuel above {_fmt_pct(window[0])} %, then run a drive cycle"
-    return banner["action"]
+    top = (faults or [None])[0]
+    if connected is False:
+        return (f"Not connected - connect to car to check {top['name']}" if top
+                else "Not connected - connect to car to read it")
+    if banner and banner.get("is_blocker"):
+        return banner["action"]
+    if top:
+        more = len(faults) - 1
+        return (f"{top['name']} {top['label'].lower()} - start there"
+                + (f" ({more} more fault{'s' if more != 1 else ''})" if more else ""))
+    return banner["action"] if banner else ""
+
+
+_PRESENT_DAYS = re.compile(r"\((\d+ d)\)")
+#: board statuses shown as "present" faults on the bench (history stays on the Job page)
+_FAULT_STATUSES = ("permanent", "active", "pending", "verifying")
+
+
+def _faults(vin: str, views: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The bench's one Faults list: present / permanent / verifying board
+    cards, board order (priority, then most recent). Words are the Job and
+    Codes pages' own (``codes_call.view``): the status label, "Returned after
+    fix", Verifying; Fixed/Undo post to the fault board's own routes."""
+    out: list[dict[str, Any]] = []
+    for v in views:
+        if v.get("kind") not in ("code", "symptom") or v.get("status") not in _FAULT_STATUSES:
+            continue
+        is_code = v["kind"] == "code"
+        m = _PRESENT_DAYS.search(v.get("present_text") or "")
+        out.append({
+            "key": v["key"], "kind": v["kind"],
+            "name": v["code"] if is_code else (v.get("title") or "Symptom"),
+            "module": v.get("module") or "", "label": v["label"], "mark": v.get("mark") or "", "status": v["status"],
+            "chip": v.get("chip") or "plain", "returned": bool(v.get("returned")),
+            "seen": (v.get("last_seen_text") or "").split(" · ")[0],
+            "present": (f"present {m.group(1)}" if m else (v.get("present_text") or "")),
+            "can_fix": bool(v.get("can_fix")), "can_undo": bool(v.get("can_undo")),
+            "href": (f"/v/{vin}/code/{v['code']}" if is_code else None),
+            "path_href": (f"/v/{vin}/electrical?code={v['code']}" if is_code else None),
+        })
+    return out
+
+
+def _last_voltage(vin: str) -> dict[str, Any] | None:
+    """Newest recorded battery voltage (adapter probe observation) with its
+    age. Read from saved observations only -- never contacts the adapter."""
+    try:
+        from ..live import store as live_store
+        for o in live_store.recent_observations(400, vin=vin, kind="adapter_identity"):
+            volts = (((o.get("data") or {}).get("probe") or {}).get("battery_voltage"))
+            if volts is not None:
+                return {"volts": volts, "at": o.get("at"), "relative": _relative_time(o.get("at"))}
+    except Exception:  # noqa: BLE001 -- the strip must never 500 the bench
+        pass
+    return None
 
 
 def _work_line(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -932,11 +986,30 @@ def build_bench(vin: str) -> dict[str, Any]:
     views = codes_call.board_views(vin)
     work_now = views[0] if views else None
     standing = codes_call.standing_views(vin, views)
+    faults = _faults(vin, views)
+    connected = bool(live_status.get("lock_holder") == "cuore"
+                     or live_status.get("mes_state") == "connected")
+    undone = [a for a in next_actions if not a["done"]]
+    next_step = next((a for a in undone if a["state"] == "READY"), undone[0] if undone else None)
+    top_code = next((f["name"] for f in faults if f["kind"] == "code"), None)
+    live_strip = None
+    if connected:
+        live_strip = {"session": ("CUORE session" if live_status.get("lock_holder") == "cuore"
+                                  else "MES session"),
+                      "voltage": _last_voltage(vin)}
     return {
+        "faults": faults,
+        "top_fault_code": top_code,
+        "connected": connected,
+        "live_strip": live_strip,
+        "blocked_count": sum(1 for a in undone if a["state"] == "BLOCKED"),
+        "next_step": next_step,
+        "upcoming_steps": [a for a in undone if a is not next_step],
+        "done_steps": [a for a in next_actions if a["done"]],
         "work_now": work_now,
         "standing": standing,
         "work_line": _work_line(standing if standing else ([work_now] if work_now else [])),
-        "call_line": call_line(banner, fuel_gate),
+        "call_line": call_line(banner, fuel_gate, connected, faults),
         "last_scan_line": last_scan_line(last_scan),
         "technician": _technician(vin),
         "vin": vin,

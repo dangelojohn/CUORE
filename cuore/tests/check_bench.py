@@ -69,6 +69,7 @@ if _REAL_MES_DIR.exists():
         shutil.copyfile(_f, _MES_LOG_DIR / _f.name)
 
 from fastapi.testclient import TestClient  # noqa: E402
+from markupsafe import escape as _escape  # noqa: E402
 
 from cuore.app import create_app  # noqa: E402
 from cuore.live import checklists as checklist_store  # noqa: E402
@@ -136,8 +137,17 @@ check("vehicle name is never the unnamed placeholder",
 check("vehicle name names the Stelvio", "Stelvio" in bench["vehicle"], str(bench["vehicle"]))
 check("vin_tail is the VIN's last 6 characters", bench["vin_tail"] == VIN[-6:],
       str(bench["vin_tail"]))
-check("at most 3 next actions", len(bench["next_actions"]) <= 3,
-      str(len(bench["next_actions"])))
+# LAYOUT CHANGE (bench UX review 2026-10-26): the roster is no longer capped at 3;
+# every step is numbered "Step n of N" and the page leads with the next undone one.
+check("every step is numbered n of N",
+      all(a.get("n") == i and a.get("of") == len(bench["next_actions"]) for i, a in enumerate(bench["next_actions"], 1)),
+      str([(a.get("n"), a.get("of")) for a in bench["next_actions"]]))
+_undone = [a for a in bench["next_actions"] if not a["done"]]
+check("the lead step is the first READY undone step (never a done one)",
+      (bench["next_step"] is None and not _undone)
+      or (bench["next_step"] is not None and not bench["next_step"]["done"]
+          and bench["next_step"] is next((a for a in _undone if a["state"] == "READY"), _undone[0])),
+      str(bench["next_step"] and bench["next_step"]["step_id"]))
 check("at most 6 shortcuts", len(bench["shortcuts"]) <= 6, str(len(bench["shortcuts"])))
 
 # --- Last scan card (bench_bridge.last_scan_summary) -----------------------
@@ -172,10 +182,54 @@ check("bench status line never shows the unnamed placeholder",
 _bcss = re.search(r"\.bench-go \{[^}]*\}", page.text).group(0)
 check("Go-to chip strip wraps instead of scrolling", "flex-wrap: wrap" in _bcss and "overflow-x" not in _bcss, _bcss)
 _card = page.text.split('class="bench-card"')[1] if 'class="bench-card"' in page.text else ""
-check("task row: title first, then status chip, then the mark-done control; 44 px rule present",
-      (not _card) or (_card.find("bench-card-text") < _card.find("bench-state-badge") < _card.find("bench-check-label")),
+# LAYOUT CHANGE: status chip, then the title, then the one-tap OK / Fault found / Skip buttons
+# (the Save button and the dead "Mark done" tick are gone).
+check("lead step: status chip, then title, then the three one-tap buttons",
+      (not _card) or (_card.find("bench-state-badge") < _card.find("bench-card-text") < _card.find("bench-onetap")),
       "order")
-check("bench-check-label is a 44 px control", "bench-check-label { font-size: 1rem; color: var(--ink-2); min-height: 44px" in page.text)
+check("one-tap outcome buttons are 44 px controls", ".bench-onetap .btn { min-height: 44px" in page.text)
+check("no Save button and no Mark done tick on the bench", ">Save</button>" not in page.text
+      and "bench-check" not in page.text and "Mark done" not in page.text)
+check("no Fixed row is hidden in the Last scan fold (one Faults list)", "Standing &middot; work on now" not in page.text
+      and 'id="bench-worknow-row"' not in page.text)
+check("Faults list has a Fixed (or Undo) form per present fault",
+      page.text.count(f'action="/v/{VIN}/fault-board/fixed"') == len([f for f in bench["faults"] if f["can_fix"]])
+      and page.text.count(f'action="/v/{VIN}/fault-board/undo"') == len([f for f in bench["faults"] if not f["can_fix"] and f["can_undo"]]),
+      str(len(bench["faults"])))
+check("Fixed is a 44 px control", ".bench-fixed-btn { min-height: 44px" in page.text)
+# unit checks on the pure pieces (the fixture corpus may carry no present fault)
+_views = [{"kind": "code", "status": "permanent", "key": "code:ECM:P0440", "code": "P0440", "module": "ECM",
+           "label": "Permanent", "mark": "!", "chip": "returned", "returned": False,
+           "last_seen_text": "14 h ago · 2026-10-26", "present_text": "first seen 60 d ago · present since 2026-10-23 (3 d)",
+           "can_fix": True, "can_undo": False},
+          {"kind": "code", "status": "history", "key": "code:ECM:P0455", "code": "P0455", "module": "ECM",
+           "label": "Stored history", "mark": "", "chip": "plain", "returned": False, "last_seen_text": "3 d ago",
+           "present_text": "", "can_fix": True, "can_undo": False},
+          {"kind": "code", "status": "verifying", "key": "code:ECM:P0456", "code": "P0456", "module": "ECM",
+           "label": "Verifying", "mark": "~", "chip": "chronic", "returned": False, "last_seen_text": "1 d ago · x",
+           "present_text": "", "can_fix": False, "can_undo": True}]
+_f = bench_bridge._faults(VIN, _views)
+check("Faults keep present, permanent and verifying only (history stays on the Job page)",
+      [x["name"] for x in _f] == ["P0440", "P0456"], str([x["name"] for x in _f]))
+check("a fault row carries module, last seen, present N d and its electrical path link",
+      _f[0]["module"] == "ECM" and _f[0]["seen"] == "14 h ago" and _f[0]["present"] == "present 3 d"
+      and _f[0]["path_href"] == f"/v/{VIN}/electrical?code=P0440", str(_f[0]))
+check("a verifying fault offers Undo, not Fixed", _f[1]["can_undo"] and not _f[1]["can_fix"])
+_banner = {"is_blocker": False, "action": "x"}
+check("the call: no blocker + connected -> the top fault",
+      bench_bridge.call_line(_banner, {"level": None}, True, _f).startswith("P0440 permanent"),
+      bench_bridge.call_line(_banner, {"level": None}, True, _f))
+check("the call: not connected is a blocker ahead of the top fault",
+      bench_bridge.call_line(_banner, {"level": None}, False, _f).startswith("Not connected"))
+check("the call: the fuel gate blocker still comes first",
+      bench_bridge.call_line({"is_blocker": True, "action": "x"},
+                             {"level": 93.7, "window": [15, 85], "direction": "above"}, False, _f).startswith("Fuel 93.7 %"))
+check("each code fault links its electrical path",
+      all(f["path_href"] in page.text for f in bench["faults"] if f["path_href"]))
+_first_code_fault = next((f["name"] for f in bench["faults"] if f["kind"] == "code"), None)
+check("Go-to System chip follows the TOP fault (first code fault), not shortcuts[0]",
+      bench["top_fault_code"] == _first_code_fault, f"{bench['top_fault_code']} vs {_first_code_fault}")
+check("the System: chip renders in the Go-to row", "System:" in page.text.split('aria-label="Go to"')[1].split("</nav>")[0])
 check("bench rows are full width, min 44 px", ".bench-card {" in page.text and "width: 100%; min-height: 44px" in page.text)
 check("bench status line carries the VIN tail",
       VIN[-6:] in page.text, VIN[-6:])
@@ -227,8 +281,8 @@ if any(a["tools"] for a in bench["next_actions"]) or bench["job_tools"]:
     check("tools sit in a collapsed 'Tools' fold", "bench-tools-fold" in page.text and "<summary>Tools (" in page.text)
 check("the resume row no longer repeats the vehicle bar's scanner state",
       "Scanner:" not in page.text.split('class="bench-resume"')[-1].split("bench-gates")[0])
-check("done-by is either auto-filled or optional",
-      ('name="by" value=' in page.text) or "done by (optional)" in page.text)
+check("done-by is auto-filled from the open job's technician when known (no typing on the one-tap form)",
+      (not bench["technician"]) or ('name="by" value=' in page.text))
 check("code legend has explicit separators", (not bench["shortcuts"]) or "bench-legend-sep" in page.text)
 
 
@@ -287,13 +341,20 @@ any_part_number = (
 check("at least one next action (or the job-level shared list) carries a real "
       "part number", any_part_number,
       str([a.get("parts") for a in bench["next_actions"]] + [bench.get("job_parts")]))
-check("every rendered next-action card posts to the bench's own outcome-capturing "
-      "route (2 forms per card: the checkbox, and the outcome Save button)",
-      page.text.count(f'action="/v/{VIN}/bench/done"') == 2 * len(bench["next_actions"]),
-      str(page.text.count(f'action="/v/{VIN}/bench/done"')))
+# LAYOUT CHANGE: one form per READY undone step (3 submit buttons) and one Undo form per done step.
+_ready_undone = [a for a in bench["next_actions"] if not a["done"] and a["state"] == "READY"]
+_done_n = len([a for a in bench["next_actions"] if a["done"]])
+_done_action = 'action="/v/' + VIN + '/bench/done"'
+check("every READY step posts its one-tap outcome to the bench's own route; done steps post Undo",
+      page.text.count(_done_action) == len(_ready_undone) + _done_n,
+      f"{page.text.count(_done_action)} vs {len(_ready_undone)}+{_done_n}")
+check("each one-tap form has OK, Fault found and Skip submit buttons",
+      page.text.count('name="outcome" value="ok"') == len(_ready_undone)
+      and page.text.count('name="outcome" value="fault_found"') == len(_ready_undone)
+      and page.text.count('name="outcome" value="skipped"') == len(_ready_undone))
 
 for a in bench["next_actions"]:
-    check(f"step {a['step_id']} text is on the page", a["text"] in page.text)
+    check(f"step {a['step_id']} text is on the page", str(_escape(a["text"])) in page.text)
     for p in a.get("parts", []):
         if p.get("number"):
             check(f"part number {p['number']} is on the page", p["number"] in page.text)
@@ -382,14 +443,37 @@ if mes_task:
           str(mes_precond))
     check("the MES precondition label is shown on the page", mes_precond["label"] in page.text)
 
-# 5. every task row has a labelled checkbox and data-task-id
+# 5. every task row carries data-task-id; READY rows have labelled one-tap buttons
+#    (LAYOUT CHANGE: the checkbox + "Mark done" label are replaced by OK / Fault found / Skip)
 for a in bench["next_actions"]:
     check(f"task row {a['step_id']} carries data-task-id",
           f'data-task-id="{a["step_id"]}"' in page.text)
-    check(f"task row {a['step_id']} has a real checkbox input",
-          f'id="chk-{a["step_id"]}"' in page.text)
-    check(f"task row {a['step_id']}'s checkbox is labelled with its task title",
-          f'Mark done: {a["text"]}' in page.text)
+    if a["state"] == "READY" and not a["done"]:
+        check(f"task row {a['step_id']}'s OK button is labelled with its task title",
+              f'aria-label="OK: {_escape(a["text"])}"' in page.text)
+
+# 5b. one-tap save: a plain POST records the outcome, redirects with ?saved=, the page shows
+#     "Saved ... Undo", and Undo (a POST without "done") puts the step back.
+if _ready_undone:
+    _one = _ready_undone[0]["step_id"]
+    _r = client.post(f"/v/{VIN}/bench/done", data={"step_id": _one, "done": "1", "outcome": "ok"},
+                     follow_redirects=False)
+    check("one-tap OK is a plain POST that redirects with ?saved=",
+          _r.status_code == 303 and f"saved={_one}" in _r.headers.get("location", ""),
+          _r.headers.get("location", ""))
+    _after = client.get(_r.headers.get("location", f"/v/{VIN}"))
+    check("the Saved banner names the step and offers Undo",
+          'id="bench-saved"' in _after.text and "Saved: Step " in _after.text and ">Undo</button>" in _after.text)
+    _fresh = bench_bridge.build_bench(VIN)
+    check("after a one-tap save the lead step moves on",
+          _fresh["next_step"] is None or _fresh["next_step"]["step_id"] != _one, str(_fresh["next_step"] and _fresh["next_step"]["step_id"]))
+    client.post(f"/v/{VIN}/bench/done", data={"step_id": _one}, follow_redirects=False)
+    check("Undo restores the step to not-done", not checklist_store.get(VIN).get(_one, {}).get("done"))
+    _ff = client.post(f"/v/{VIN}/bench/done", data={"step_id": _one, "done": "1", "outcome": "fault_found",
+                                                    "label": "one-tap label check"}, follow_redirects=False)
+    check("one-tap Fault found files a mechanic note naming the step",
+          any("one-tap label check" in (n.get("text") or "") for n in mes_bridge.notes(VIN).get("notes", [])))
+    client.post(f"/v/{VIN}/bench/done", data={"step_id": _one}, follow_redirects=False)
 
 # 6. title contains "UNVERIFIED"
 title_match = re.search(r"<title>(.*?)</title>", page.text, re.DOTALL)

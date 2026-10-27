@@ -22,6 +22,7 @@ the dossier's own History.
 from __future__ import annotations
 
 from typing import Optional
+from urllib.parse import quote
 
 from fastapi import Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -40,10 +41,12 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 #: (not imported) so this HTML form route has no dependency on the JSON API
 #: module; the vocabulary is tiny and documented in both places.
 _OUTCOMES = {"ok", "fault_found", "skipped"}
+#: the words the buttons and the Undo banner show (same as the outcome vocabulary)
+_OUTCOME_WORDS = {"ok": "OK", "fault_found": "Fault found", "skipped": "Skipped"}
 
 
 @router.get("/v/{vin}", response_class=HTMLResponse)
-def bench_page(request: Request, vin: str) -> HTMLResponse:
+def bench_page(request: Request, vin: str, saved: str = "") -> HTMLResponse:
     """What to do right now: the resume card, the task roster (each with
     procedure, pass criteria, preconditions and parts/tools already
     resolved), the live fuel gate and readiness panel, and jump-off points
@@ -71,6 +74,15 @@ def bench_page(request: Request, vin: str) -> HTMLResponse:
     # A3 asks for -- reuse it here so the shared hero never regresses to the
     # placeholder this VIN's own dossier.identity has no "vehicle" field for.
     bar["name"] = bench["vehicle"]
+    # The one-tap save redirects here with ?saved=<step id>; the page then
+    # shows "Saved ... Undo" for that step (plain GET + POST, no JS). Only
+    # while the step is still done, so a reload after Undo shows no banner.
+    saved_step = next((a for a in bench["next_actions"]
+                       if a["step_id"] == saved and a["done"]), None) if saved else None
+    bench["saved"] = ({"step_id": saved_step["step_id"], "n": saved_step["n"], "of": saved_step["of"],
+                       "text": saved_step["text"],
+                       "outcome": _OUTCOME_WORDS.get(saved_step.get("outcome") or "", "Done")}
+                      if saved_step else None)
     response = web_routes._page(request, "bench.html", vin=vin, bench=bench,
                                 bar=bar, view=view, tab="bench",
                                 facts_summary=vehicle_facts_bridge.summary(vin))
@@ -81,12 +93,13 @@ def bench_page(request: Request, vin: str) -> HTMLResponse:
 @router.post("/v/{vin}/bench/done")
 def bench_mark_done(vin: str, step_id: str = Form(...),
                     done: Optional[str] = Form(None), outcome: str = Form(""),
-                    note: str = Form(""), by: str = Form("")) -> RedirectResponse:
+                    note: str = Form(""), by: str = Form(""),
+                    label: str = Form("")) -> RedirectResponse:
     """Mark (or un-mark) one bench task, with an outcome.
 
     ``done`` follows plain HTML checkbox semantics: present (``"1"``) only
     when the box was checked on submit, absent entirely when it was not --
-    so un-checking the box and pressing Save is the bench's own "undo": the
+    so posting without it (the Undo button) is the bench's own "undo": the
     step goes back to not-done and ``cuore.live.checklists.set_step``
     already clears its outcome/note when ``done`` is false.
 
@@ -108,15 +121,20 @@ def bench_mark_done(vin: str, step_id: str = Form(...),
 
     checklist_store.set_step(vin, step_id, is_done, by=by, outcome=clean_outcome, note=note)
 
-    if is_done and clean_outcome == "fault_found" and note.strip():
+    # The one-tap "Fault found" button carries no typed note: file one naming
+    # the step (``label``), so the finding still reaches History.
+    finding = note.strip() or (f"Fault found at: {label.strip()}" if label.strip() else "")
+    if is_done and clean_outcome == "fault_found" and finding:
         try:
-            mes_bridge.add_note(vin, note.strip(), target_kind="tree_step",
+            mes_bridge.add_note(vin, finding, target_kind="tree_step",
                                 target_id=step_id, author=by or "technician",
                                 tags=["bench", "finding"])
         except Exception:  # noqa: BLE001 -- the checklist write must still succeed
             pass
 
-    return RedirectResponse(f"/v/{vin}#task-{step_id}", status_code=303)
+    if is_done:  # one-tap save: land on the next step with the Undo banner
+        return RedirectResponse(f"/v/{vin}?saved={quote(step_id, safe='')}#bench-saved", status_code=303)
+    return RedirectResponse(f"/v/{vin}#bench-next", status_code=303)
 
 
 __all__ = ["router"]
