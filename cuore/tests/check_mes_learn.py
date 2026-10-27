@@ -301,6 +301,10 @@ check("gate is fed the RECORDED rate, not a caller value (no bitrate-mismatch fa
       _rv["recorded_bitrate"] == 500000
       and not any("capture bitrate" in r for g in _rv["gates"] for r in g["reasons"]),
       str(_rv["gates"]))
+check("stop returns a one-line verdict", str(_stopped.get("verdict", "")).startswith("replayable:"),
+      str(_stopped.get("verdict")))
+check("stored review carries the same verdict", _rv.get("verdict") == _stopped["verdict"])
+print("VERDICT stop:", _stopped["verdict"])
 _lr = mes_learn.latest_review(VIN)
 check("latest_review reads the stored report", _lr["found"] and _lr["recorded_bitrate"] == 500000,
       str(_lr)[:200])

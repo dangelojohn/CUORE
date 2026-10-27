@@ -211,3 +211,86 @@ def gate(proc_or_module: dict[str, Any], *, listen_bitrate: Optional[int] = None
     return {"passed": not fails, "status": status,
             "reasons": fails or ["all gate checks passed"], "consent": consent,
             "interlock_conflicts": conflicts}
+
+
+# ===========================================================================
+# automatic review of a SAVED capture (mes_learn.stop and serial-mirror saves)
+# ===========================================================================
+
+#: Gate reasons that only say "the owner has not filled in the replay form yet";
+#: they say nothing about whether the capture itself is replayable.
+_FORM_REASON_PREFIXES = ("pre-condition", "post-condition", "no procedure name")
+
+
+def verdict_line(rep: dict[str, Any], gates: list[dict[str, Any]], path: str = "") -> str:
+    """One line: is this capture replayable, and if not, the first blocker."""
+    mods = rep.get("modules") or []
+    if not mods:
+        return "replayable: no - no UDS requests found in the capture (check bitrate and splitter)"
+    for m, g in zip(mods, gates):
+        seq = m["sequence"]
+        reasons = [r for r in g.get("reasons", [])
+                   if not r.startswith(_FORM_REASON_PREFIXES) and r != "all gate checks passed"]
+        who = m["module"] or f"target {m['target']}"
+        if "27" in seq:
+            return (f"replayable: no - 0x27 SecurityAccess present at step {seq.index('27') + 1}"
+                    f" ({who})")
+        if reasons:
+            return f"replayable: no - {reasons[0]} ({who})"
+    m = mods[0]
+    seq = m["sequence"]
+    proc = m.get("procedure", {})
+    stop = (f"stop step at {len(seq)}" if proc.get("ended_with_terminator")
+            else "stop step synthesised")
+    nxt = f"; dry-run next: python -m cuore.live.procedure_dry_run {path}" if path else ""
+    return f"replayable: yes, {len(seq)} steps, {stop}{nxt}"
+
+
+def review_frames(frames: list[dict[str, Any]], *, path: str = "",
+                  listen_bitrate: Optional[int] = None, **gate_kw: Any) -> dict[str, Any]:
+    """review + gate_report + verdict; writes ``<path stem>.review.json`` beside
+    the capture when ``path`` is given. NEVER raises: a bad capture is reported
+    in the returned dict (``verdict`` says so) and the capture is untouched."""
+    import json
+    from datetime import datetime
+    from pathlib import Path
+    try:
+        rep = review(frames)
+        rep["gates"] = gate_report(rep, listen_bitrate=listen_bitrate, **gate_kw)
+        rep["recorded_bitrate"] = listen_bitrate
+        rep["capture_file"] = path or None
+        rep["verdict"] = verdict_line(rep, rep["gates"], path)
+        rep["reviewed_at"] = datetime.now().isoformat(timespec="seconds")
+        rep["review_file"] = None
+        if path:
+            out = Path(path).with_suffix(".review.json")
+            out.write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
+            rep["review_file"] = str(out)
+        return rep
+    except Exception as e:  # noqa: BLE001
+        return {"verdict": f"replayable: no - review failed: {e}", "error": str(e),
+                "text": "", "gates": [], "modules": [], "review_file": None,
+                "recorded_bitrate": listen_bitrate, "capture_file": path or None}
+
+
+def review_file(path: str, **gate_kw: Any) -> dict[str, Any]:
+    """:func:`review_frames` for a saved JSONL capture (mes_learn or
+    ``serial_mirror.write_capture``); the gate gets the header's RECORDED bitrate."""
+    import json
+    header: dict[str, Any] = {}
+    frames: list[dict[str, Any]] = []
+    try:
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if row.get("type") == "header":
+                    header = row
+                elif "id" in row and "data" in row:
+                    frames.append(row)
+    except OSError as e:
+        return {"verdict": f"replayable: no - cannot read capture: {e}", "error": str(e),
+                "text": "", "gates": [], "modules": [], "review_file": None}
+    return review_frames(frames, path=str(path), listen_bitrate=header.get("bitrate"), **gate_kw)

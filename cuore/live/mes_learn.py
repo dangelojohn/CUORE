@@ -221,7 +221,7 @@ def _finalize_file(state: dict[str, Any]) -> None:
 def _new_state(port: str, vin: str, rate: int = 0) -> dict[str, Any]:
     return {
         "bitrate": rate, "mes_port": _mes_port(), "file": None, "review_file": None,
-        "review": None, "frame_count": 0,
+        "review": None, "verdict": None, "frame_count": 0,
         "port": port.strip().upper(), "vin": (vin or "").strip(), "status": "running",
         "started_at": datetime.now().isoformat(timespec="seconds"), "finished_at": None,
         "stream": "", "frames": [], "error": None, "last_rate_hz": 0.0,
@@ -290,6 +290,7 @@ def _public(state: dict[str, Any]) -> dict[str, Any]:
         "finished_at": state["finished_at"], "elapsed_s": elapsed,
         "frame_count": state["frame_count"], "bitrate": state["bitrate"], "bus": _BUS.key,
         "file": state["file"], "review_file": state["review_file"], "review": state["review"],
+        "verdict": state["verdict"],
         "rate_hz": state["last_rate_hz"],
         "error": state["error"], "csv": state["csv_name"], "aligned": state["aligned"],
         "candidate_count": len(state["candidates"]),
@@ -340,21 +341,15 @@ def _auto_review(state: dict[str, Any], frames: list[dict[str, Any]], **gate_kw:
     """Run procedure_capture.review + gate on the saved frames and store the report
     beside them. Read-only: nothing is replayed. The gate is fed the RECORDED
     bitrate, never a caller value."""
-    try:
-        rep = procedure_capture.review(frames)
-        rep["gates"] = procedure_capture.gate_report(
-            rep, listen_bitrate=state["bitrate"], **gate_kw)
-        rep["capture_file"] = state["file"]
-        rep["recorded_bitrate"] = state["bitrate"]
-        rep["reviewed_at"] = datetime.now().isoformat(timespec="seconds")
-        out = Path(state["file"]).with_suffix(".review.json") if state.get("file") else None
-        if out is not None:
-            out.write_text(json.dumps(rep, indent=1, default=str), encoding="utf-8")
-            state["review_file"] = str(out)
+    rep = procedure_capture.review_frames(
+        frames, path=state.get("file") or "", listen_bitrate=state["bitrate"], **gate_kw)
+    state["review_file"] = rep.get("review_file")
+    state["verdict"] = rep["verdict"]
+    if rep.get("error"):
+        state["review"] = {"error": f"review failed: {rep['error']}"}
+    else:
         state["review"] = {"text": rep["text"], "gates": rep["gates"],
                            "recorded_bitrate": rep["recorded_bitrate"]}
-    except Exception as e:  # noqa: BLE001 -- a review failure must not lose the capture
-        state["review"] = {"error": f"review failed: {e}"}
 
 
 def latest_review(vin: str = "") -> dict[str, Any]:

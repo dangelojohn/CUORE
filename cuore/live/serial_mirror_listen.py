@@ -143,6 +143,6 @@ def run(stop: threading.Event, *, vin: str = "", baud: int = DEFAULT_BAUD, bitra
     while path.exists():
         path = Path(out_dir) / f"{stamp}-mirror-{n}.jsonl"
         n += 1
-    write_capture(cap, path)
+    write_capture(cap, path)   # also auto-reviews: cap["verdict"], cap["review_file"]
     cap["file"] = str(path)
     return cap

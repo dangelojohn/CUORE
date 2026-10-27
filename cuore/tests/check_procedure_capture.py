@@ -177,6 +177,60 @@ mr = pc.review(build([([0x22, 0xDE, 0x00], [0x62, 0xDE, 0x00, 1])]))["modules"][
 check("read-only capture fails gate", not pc.gate(mr, **GOOD)["passed"])
 check("empty capture report", "No UDS requests" in pc.review([])["text"])
 
+# --- automatic review of a saved capture: verdict line + <name>.review.json ---
+import json as _json  # noqa: E402
+import tempfile as _tmp  # noqa: E402
+
+
+def _save(frames, path, bitrate=500000):
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write(_json.dumps({"type": "header", "bitrate": bitrate, "bus": "can_c"}) + chr(10))
+        for f in frames:
+            fh.write(_json.dumps(f) + chr(10))
+
+
+with _tmp.TemporaryDirectory() as _td:
+    _good = str(Path(_td) / "good.jsonl")
+    _save(ESIM, _good)
+    _rg = pc.review_file(_good)
+    check("saved good capture: review file written next to it",
+          _rg["review_file"] == str(Path(_td) / "good.review.json")
+          and Path(_rg["review_file"]).exists(), str(_rg.get("review_file")))
+    check("good capture verdict: replayable yes, steps, stop step, dry-run hint",
+          _rg["verdict"].startswith("replayable: yes, 6 steps")
+          and "stop step" in _rg["verdict"] and "procedure_dry_run " + _good in _rg["verdict"],
+          _rg["verdict"])
+    print("VERDICT good:", _rg["verdict"])
+    _bad = str(Path(_td) / "bad.jsonl")
+    _save(WITH27, _bad)
+    _rb = pc.review_file(_bad)
+    check("0x27 capture verdict names SecurityAccess and step 2",
+          _rb["verdict"].startswith("replayable: no - 0x27 SecurityAccess present at step 2"),
+          _rb["verdict"])
+    print("VERDICT 0x27:", _rb["verdict"])
+    check("0x27 review file stored", Path(_rb["review_file"]).exists())
+    _wrong = str(Path(_td) / "wrong.jsonl")
+    _save(ESIM, _wrong, bitrate=250000)
+    check("unconfirmed/wrong bitrate is called out",
+          "capture bitrate" in pc.review_file(_wrong)["verdict"], pc.review_file(_wrong)["verdict"])
+    _empty = str(Path(_td) / "empty.jsonl")
+    _save([], _empty)
+    check("empty capture: verdict says so, no raise",
+          pc.review_file(_empty)["verdict"].startswith("replayable: no"))
+    check("missing file never raises",
+          pc.review_file(str(Path(_td) / "nope.jsonl"))["verdict"].startswith("replayable: no"))
+    # serial-mirror capture saved through serial_mirror.write_capture gets the same review
+    from cuore.live import serial_mirror as _sm  # noqa: E402
+    _par = _sm.parse_lines(["[1.000] TX: ATSH DA10F1", "[1.010] RX: OK", "[1.020] RX: >",
+                            "[1.100] TX: 2701", "[1.110] RX: 67 01 AA BB", "[1.120] RX: >"])
+    _sp = _sm.write_capture(_sm.to_capture(_par, bitrate=500000, vin="SYNTHETIC"),
+                            Path(_td) / "mirror.jsonl")
+    _rm = pc.review_file(str(_sp))
+    check("serial-mirror capture gets a review file and a verdict",
+          Path(_rm["review_file"]).exists() and _rm["verdict"].startswith("replayable: no"),
+          str(_rm["verdict"]))
+    print("VERDICT mirror:", _rm["verdict"])
+
 print(f"{checks - len(failures)}/{checks} checks passed")
 for f in failures:
     print("FAIL:", f)

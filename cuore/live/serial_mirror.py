@@ -512,6 +512,10 @@ def write_capture(cap: dict[str, Any], path: "str | Path") -> Path:
     side = p.with_name(p.stem + ".exchanges.json")
     side.write_text(json.dumps({k: cap[k] for k in ("exchanges", "unparsed", "stats", "flags",
                                                       "config_log")}, indent=1), encoding="utf-8")
+    from . import procedure_capture   # auto-review like mes_learn.stop(); never raises
+    rep = procedure_capture.review_file(str(p))
+    cap["verdict"] = rep["verdict"]   # return value stays the path
+    cap["review_file"] = rep.get("review_file")
     return p
 
 

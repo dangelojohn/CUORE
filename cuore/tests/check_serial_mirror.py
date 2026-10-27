@@ -217,6 +217,10 @@ with tempfile.TemporaryDirectory() as td:
     hdr, frames = load_capture(str(out))
     check("mes_learn.load_capture reads the written file",
           hdr.get("bus") == "can_c" and hdr.get("source") == "serial_mirror" and frames == cap["frames"])
+    c27 = sm.to_capture(sm.parse_lines(LOG_27.splitlines()), bitrate=500000, vin="SYNTHETIC")
+    sm.write_capture(c27, Path(td) / "cap" / "y.jsonl")
+    check("write_capture auto-reviews: 0x27 verdict + review file",
+          Path(c27["review_file"]).exists() and "0x27" in c27["verdict"], str(c27.get("verdict")))
     try:
         sm.write_capture(cf, out)
         check("never overwrites", False)
