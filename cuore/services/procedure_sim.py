@@ -21,6 +21,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Optional
 
+from . import procedure_dry_bridge as dry_bridge
+
 CLOCK = time.monotonic          # tests replace this
 TODAY = date.today              # tests replace this
 MAX_RUN = 30.0                  # seconds, server-enforced
@@ -217,6 +219,7 @@ class Run:
         self.p_before = 0.05
         self.p_min = 0.05
         self.result: Optional[dict[str, Any]] = None
+        self.dry: Optional[dict[str, Any]] = None   # procedure_dry_run report when a capture file exists
 
     def _proof_at(self, e: float) -> float:
         f = self.car.faults
@@ -268,6 +271,8 @@ class Run:
 
 
 def _judge(run: Run) -> dict[str, Any]:
+    if run.dry is not None:
+        return {"word": run.dry["verdict"], "reason": run.dry["verdict_line"], "dry_run": True}
     if PROCS[run.proc]["kind"] == "reset":
         changed = {n for (n, b), (_, a) in zip(run.before, run.after) if b != a}
         want = changed & SERVICE_CHANGES
@@ -302,7 +307,7 @@ def state_dir() -> Path:
 
 def _save(run: Run) -> None:
     rec = {"at": time.strftime("%Y-%m-%dT%H:%M:%S"), "prototype": True, "run": run.id, "procedure": run.proc,
-           "result": run.result, "stop_reason": run.stop_reason, "elapsed_s": round(run.elapsed_final, 1),
+           "result": run.result, "dry_gate_passed": (run.dry or {}).get("gate", {}).get("passed"), "stop_reason": run.stop_reason, "elapsed_s": round(run.elapsed_final, 1),
            "before": run.before, "after": run.after, "p_before": run.p_before, "p_min": run.p_min}
     try:
         with (state_dir() / "procedure_prototype.jsonl").open("a", encoding="utf-8") as fh:
@@ -357,7 +362,10 @@ def start(proc: str, token: str, car: Optional[SimCar] = None) -> tuple[Optional
             RUNS.pop(old, None)                       # keep the newest finished runs only
         RUNS[run.id] = run
         car.answers.clear()                           # every run asks again
-        if PROCS[proc]["kind"] == "reset":
+        run.dry = dry_bridge.report_for(proc, car.faults)
+        if run.dry is not None:                       # a captured procedure exists: real gate + scripted replies
+            run.finish("complete", "Dry run of the captured procedure (gate + fake transport)")
+        elif PROCS[proc]["kind"] == "reset":
             run.before = list(SERVICE_BEFORE)
             run.after = _service_after(car)
             run.finish("complete", "Reset written and read back")

@@ -81,6 +81,17 @@
     <h2 class="pp-word {{ 'pp-w-ok' if w == 'WORKED' else ('pp-w-bad' if w == "DIDN'T" else 'pp-w-un') }}">{{ w }}</h2>
     <p class="pp-call">{{ run.result.reason }}</p>
     <p class="pp-muted">Ended: {{ run.stop_text }} ({{ '%.1f' % run.elapsed_final }} s)</p>
+    {% if run.dry %}
+    <div class="pp-dry">
+      <p><b>Gate: {{ 'PASS' if run.dry.gate.passed else 'FAIL' }}</b> ({{ run.dry.gate.status }})</p>
+      <ul>{% for r in run.dry.gate.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
+      {% if run.dry.would_send %}<p><b>Would send to the car, in order:</b></p><pre>{{ run.dry.would_send_text }}</pre>{% endif %}
+      {% if run.dry.steps %}<table class="pp-table"><thead><tr><th>Sent</th><th>Reply (simulated)</th><th>Meaning</th></tr></thead><tbody>
+        {% for s in run.dry.steps %}<tr class="{{ '' if s.accepted else 'pp-changed' }}"><td>{{ s.request }}</td><td>{{ s.reply or '-' }}</td><td>{{ s.meaning }}</td></tr>{% endfor %}
+      </tbody></table>{% endif %}
+      <p class="pp-muted">{% for w in run.dry.warnings %}{{ w }} {% endfor %}</p>
+    </div>
+    {% else %}
     <table class="pp-table"><thead><tr><th>Value</th><th>Before</th><th>After</th></tr></thead><tbody>
       {% if p.kind == "reset" %}
         {% for n, b in run.before %}{% set a = run.after[loop.index0][1] %}
@@ -89,6 +100,7 @@
         <tr class="{{ 'pp-changed' if run.p_min != run.p_before }}"><td>EVAP vapour pressure</td><td>{{ '%.2f' % run.p_before }} kPa</td><td>{{ '%.2f' % run.p_min }} kPa</td></tr>
       {% endif %}
     </tbody></table>
+    {% endif %}
     <p class="pp-evidence">{% if job %}Would be saved to job {{ job.id[:8] }} as evidence <b>{{ evidence }}</b> "{{ p.hypothesis }}".{% else %}No open job needs this test, so nothing would be attached.{% endif %}
       <span class="pp-muted">Prototype: not written to the real job; kept in procedure_prototype.jsonl.</span></p>
     <p class="pp-actions"><a class="pp-btn" href="{{ base }}/{{ proc }}">Run again</a> <a class="pp-btn pp-ghost" href="/v/{{ vin }}/job">Back to the job</a></p>
