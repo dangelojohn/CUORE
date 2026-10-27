@@ -17,6 +17,10 @@ The mechanic decides; CUORE remembers. It serves the owners' maxim, passion and 
 - Every finished job becomes a case, so the next car with the same fault starts where the last one finished.
 - CUORE advises and records. It never blocks, manages or replaces the mechanic or his other tools.
 
+## Status (2026-10-26)
+
+CUORE now reasons across a job (common cause, ranked suspects, the best next test), leads every list with what matters now, and moves each fault from Fixed to Verifying to Proven fixed on the car's own readings. Writing to the car is still MES's job; CUORE is earning it in stages, see `docs/design/CUORE_WRITE_CAPABILITY_PLAN.md`. Lists follow `docs/design/CUORE_LIST_ORGANISATION.md`.
+
 ## Where to read more
 
 `docs/handbook/` is the place to understand everything gathered and to build on: decisions and rules, architecture, knowledge tables, the Stelvio case, methods, roadmap. `docs/vehicles/<VIN>/` holds each car's case folder.

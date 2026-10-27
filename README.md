@@ -10,6 +10,10 @@ parser and analysis library for MultiEcuScan (MES) logs, and a web app that
 puts both in front of a mechanic, one car at a time. See [CUORE.md](CUORE.md)
 for the short statement of purpose.
 
+**Status (2026-10-26):** the diagnosis layer, mechanic-first lists, the parts
+catalogue sources and the first stage of the write path (read-only discovery
+and dry run) are in place. Writing to the car is still done in MES.
+
 ## Core directive
 
 **Diagnose on evidence. Prove the fix. Learn for the next car.**
@@ -100,8 +104,24 @@ Each item below is described, with its routes and data sources, in
   procedure in bulletin 18-048-23.
 - **Vehicle, dossier and systems.** The code history, freeze frames, a map of
   vehicle systems and their dependencies, and electrical and drivetrain pages.
-- **Modules, parts and service.** The module tree as MES shows it, a parts
-  catalogue, service records, torque values, maintenance and labels.
+- **Diagnosis layer.** On the Job, code, sensor and electrical pages: the
+  likely common cause of the active faults, ranked suspects with the best next
+  test, sensor cross-checks, an intermittent-fault correlator, trends, a
+  power and ground budget, and similar faults from earlier cases (all in
+  `cuore/services`: `common_cause`, `suspect_ranking`, `sensor_crosscheck`,
+  `intermittent`, `trends`, `power_budget`, `fault_similarity`). Each panel
+  cites captured readings or says it cannot.
+- **Fault board and mechanic-first lists.** Every list follows
+  [docs/design/CUORE_LIST_ORGANISATION.md](docs/design/CUORE_LIST_ORGANISATION.md):
+  priority first, then most recent, groups folded behind a rotate arrow. The
+  Job page opens on "Work on now" and the fault board (`fault_board`), where
+  one tap marks a fault Fixed, then Verifying, and it becomes Proven fixed
+  only when the car's own readings show it.
+- **Modules, parts and service.** The module tree as MES shows it, service
+  records, torque values, maintenance and labels, and a parts catalogue with
+  four sources: the Mopar Stelvio catalogue, Autodoc UK aftermarket, Jeep
+  Wrangler GME engine parts (schematics and interchange) and standard parts.
+  The catalogue data is kept in CUORE's state directory, never in the repo.
 - **Owner page.** A phone-first page where the owner or mechanic records what
   the car cannot report itself.
 - **Learning tools.** Bus capture and signal learning, and DID discovery by
@@ -112,7 +132,8 @@ Each item below is described, with its routes and data sources, in
 ## Safety rules
 
 - **Read-only by design.** The diagnostic service allowlist is `10 01`, `19`,
-  `22` and `3E`. The web app cannot write to the car.
+  `22` and `3E`. The web app cannot write to the car. Writing is being
+  earned in stages (see Write path below); nothing is enabled yet.
 - **Never clear codes without consent.** A clear erases evidence and proves
   nothing; after a clear the monitors have not yet run. The one gated clear
   is on the MCP surface, with evidence capture, a speed check and a read-back.
@@ -130,6 +151,19 @@ Each item below is described, with its routes and data sources, in
   are done in MES or wiTECH from a handoff card and then recorded in CUORE;
   CUORE does not perform them.
 
+## Write path
+
+Planned in [docs/design/CUORE_WRITE_CAPABILITY_PLAN.md](docs/design/CUORE_WRITE_CAPABILITY_PLAN.md):
+MES makes the changes, CUORE does the thinking, and CUORE earns write ability
+one low-risk procedure at a time. Built so far: read-only service-value
+discovery (`discover_module_dids`), a dry-run harness that replays a captured
+procedure through the real gate on a fake session (`cuore/live/procedure_dry_run.py`),
+typed consent phrases for the gated clear, actuator and raw sends (MCP only),
+serial-mirror capture prep ([docs/design/SERIAL_MIRROR_CAPTURE.md](docs/design/SERIAL_MIRROR_CAPTURE.md),
+not yet set up), a lockable web login (`scripts/web_token.py`, with a login
+rate limit) and a crawl ingest endpoint for allow-listed parts sites
+(`scripts/ingest_token.py`, `/api/ingest`).
+
 ## Testing
 
 - `cuore/tests/check_*.py`: web app, API, live link (including a playback
@@ -138,7 +172,9 @@ Each item below is described, with its routes and data sources, in
   log corpus.
 - `obd2-mcp/tests/`: the MCP wrapper.
 
-Each check is a standalone script, run with the `.venv` interpreter.
+Each check is a standalone plain script (no pytest): it prints its results
+and exits non-zero on failure. Run one with the `.venv` interpreter, for
+example `.venv\Scripts\python.exe cuore	ests\check_fault_board.py`.
 
 ## Repository layout
 
@@ -166,6 +202,8 @@ mcp-servers/
 - [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): layers, files, how a scan runs,
   how evidence is graded.
 - [docs/FEATURES.md](docs/FEATURES.md): every page and route group.
+- [docs/design/](docs/design): list organisation, write-capability plan,
+  serial-mirror capture and other design notes.
 - [docs/handbook/](docs/handbook/README.md): decisions and rules, knowledge
   tables, methods, roadmap.
 - [docs/reference/TSB_CATALOGUE.md](docs/reference/TSB_CATALOGUE.md): the
