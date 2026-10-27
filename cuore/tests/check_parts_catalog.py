@@ -25,7 +25,8 @@ IMG = "https://cdn-illustrations.example/strapr1/abc/front.png"
 EXPORT = {
     "source": "https://parts.example.com/v-2018-alfa-romeo-stelvio--base--2-0l-l4-gas",
     "fetched_at": "2026-10-24T12:00:00Z",
-    "cats": ["brakes--front-brakes", "2-9l-gas-engine--engine-mounting"],
+    "cats": ["brakes--front-brakes", "2-9l-gas-engine--engine-mounting",
+             "2-0l-direct-inject-turbo-engine--engine-oiling-oil-pan-and-indicator-dipstick"],
     "errors": [],
     "pages": {
         "brakes--front-brakes": {
@@ -50,6 +51,12 @@ EXPORT = {
             "slug": "2-9l-gas-engine--engine-mounting", "title": "Engine Mounting for 2018 Alfa Romeo Stelvio",
             "heads": ["Diagram 1: Mount"], "thumbs": [],
             "rows": [{"d": 0, "ref": "1", "pn": "99999999AA", "name": "Engine Mount", "href": "", "img": "", "info": {}}]},
+        "2-0l-direct-inject-turbo-engine--engine-oiling-oil-pan-and-indicator-dipstick": {
+            "slug": "2-0l-direct-inject-turbo-engine--engine-oiling-oil-pan-and-indicator-dipstick",
+            "title": "Engine Oiling for 2018 Alfa Romeo Stelvio",
+            "heads": ["Diagram 1: Engine Oil Filter Housing"], "thumbs": [],
+            "rows": [{"d": 0, "ref": "4", "pn": "05000001AB", "name": "Filter, Engine Oil",
+                      "href": "/oem-parts/x-05000001ab", "img": "", "info": {"Description": "Made-up test filter."}}]},
     },
 }
 
@@ -265,14 +272,56 @@ def main() -> None:
         "retailer_ref": {"shop": "TestShop", "url": "https://shop.example/x", "price": "£9.29", "fetched": "2026-10-26"}}}}}),
         encoding="utf-8")
     from cuore.services import standard_parts as sp
+    from cuore.services import parts_catalog as pc
     got = sp.for_vin(tvin)
     assert len(got) == 1 and got[0]["part_number"] == "TEST-H1" and got[0]["images"] == ["test-h1-aaaaaaaaaaaa.jpg"]         and got[0]["key_specs"][0] == ("Height", "85") and sp.for_vin("NOPE") == [] and sp.oil_filter_conflict(tvin)
-    r = c.get("/catalog", cookies={"cuore_vin": tvin})
-    t = r.text
+    ck = {"cuore_vin": tvin}
+    t = c.get("/catalog", cookies=ck).text
+    assert "Standard on this car" not in t and 'id="standard-parts"' not in t and "TEST-H1" not in t  # top panel gone
+    where = None
+    # matched by name ("Filter, Engine Oil" in the engine-oiling section): chip on the section row
+    d_oil = "2-0l-direct-inject-turbo-engine--engine-oiling-oil-pan-and-indicator-dipstick--1"
+    t = c.get(f"/catalog/d/{d_oil}", cookies=ck).text
+    assert "Standard on this car: TESTMAKER TEST-H1" in t and "05000001AB" in t and 'id="standard-parts"' not in t
+    t = c.get("/catalog/p/05000001AB", cookies=ck).text
     for needle in ("Standard on this car", "TESTMAKER", "TEST-H1", "ALFA-TEST-9", "OE-TEST-1", "M0x0",
                    "Owner-attested: the only oil filter used on this car", "£9.29</b> at TestShop (2026-10-26)",
-                   "/catalog/standard-img/test-h1-aaaaaaaaaaaa.jpg"):
+                   "/catalog/standard-img/test-h1-aaaaaaaaaaaa.jpg", "not settled by any official source",
+                   "compare with 04892339AB"):
         assert needle in t, needle
+    assert t.index("Standard on this car") < t.index('id="cat-torque"')
+    # an unrelated part page carries no standard block
+    assert "Standard on this car" not in c.get("/catalog/p/68400577AA", cookies=ck).text
+    # search: H98W-style number, brand, and words rank with the catalogue rows
+    for q in ("TEST-H1", "testh1", "testmaker", "oil filter", "Filter, Engine Oil"):
+        t = c.get("/catalog", params={"q": q}, cookies=ck).text
+        assert "Standard on this car: TESTMAKER TEST-H1" in t and "/catalog/p/05000001AB" in t, q
+        assert t.count("05000001AB") >= 1 and 'class="cat-tag ok"' in t, q
+    t = c.get("/catalog", params={"q": "oil filter"}, cookies=ck).text
+    assert t.count("/catalog/p/05000001AB") == 2, t.count("/catalog/p/05000001AB")  # one row (href + data-href), no duplicate
+    # no matching row in the export: its own flagged row in the oiling section, never dropped
+    import copy
+    cat = pc.load()
+    cat2 = copy.deepcopy(cat)
+    cat2["diagrams"][d_oil]["parts"] = []
+    att = sp.attach(cat2, got)
+    assert att["by_pn"] == {} and [x["key"] for x in att["own"][d_oil]] == ["oil_filter"], att
+    o = sp.own_row(att["own"][d_oil][0])
+    assert "not in the Mopar catalogue export" in o["flag"] and o["pn"] == "TEST-H1"
+    hit = sp.search(cat2, got, "testmaker", att)
+    assert hit and hit[0]["href"] == f"/catalog/d/{d_oil}#standard-oil_filter" and hit[0]["flag"]
+    cat3 = copy.deepcopy(cat2)
+    cat3["diagrams"] = {k: v for k, v in cat3["diagrams"].items() if k != d_oil}
+    assert sp.attach(cat3, got)["own"] == {"": got}, "never silently dropped"
+    import cuore.web.catalog_routes as cr
+    real = cr.sp.attach
+    cr.sp.attach = lambda cat_, std_: real(cat2, std_)
+    try:
+        t = c.get(f"/catalog/d/{d_oil}", cookies=ck).text
+    finally:
+        cr.sp.attach = real
+    assert "standard on this car (not in the Mopar catalogue export)" in t and 'id="standard-oil_filter"' in t
+    assert "Standard on this car: TESTMAKER TEST-H1" in t and "TEST-H1" in t
     assert c.get("/catalog/standard-img/test-h1-aaaaaaaaaaaa.jpg").status_code == 200
     for bad in ("..%2Fstandard_parts.json", "%2e%2e%2fcatalog.json", "test-h1-aaaaaaaaaaaa.png", "x.jpg"):
         assert c.get(f"/catalog/standard-img/{bad}").status_code == 404, bad

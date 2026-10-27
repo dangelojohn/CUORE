@@ -1,0 +1,114 @@
+/* Sensors outline: validity-coloured tap targets on the car, inline card (.si-*).
+   Tokens only: --fs-* for every size (16 px floor = --fs-md), app colour tokens so light/dark come free.
+   Validity is never colour alone: each state has its own SHAPE, a number or glyph, and a word in the legend and card.
+   Targets are 44 px. No horizontal scroll at 400 px: the drawing scales, text wraps. */
+
+.si { max-width: 820px; margin: 0 0 12px; font-size: var(--fs-md); overflow-wrap: anywhere; }
+.si-h { margin: 0 0 6px; font-size: var(--fs-lg); font-weight: 700; }
+.si-muted { color: var(--ink-2); }
+.si-note, .si-stream, .si-src, .si-which, .si-valid, .si-credit, .si-unplaced, .si-partners { margin: 4px 0; font-size: var(--fs-md); }
+.si-note, .si-stream { color: var(--ink-2); }
+.si-stream[data-state="live"] { color: var(--ink); font-weight: 600; }
+.si-src { color: var(--ink-2); }
+
+/* validity colours (one token each, light/dark from the app theme) */
+.si-st-invalid { --si-c: var(--sev-returned); }
+.si-st-suspect { --si-c: var(--sev-chronic); }
+.si-st-unconfirmed { --si-c: var(--fam-network); }
+.si-st-not_recorded { --si-c: var(--ink-3); }
+.si-st-ok { --si-c: var(--ok); }
+
+/* marker: a 44 px link; the shape lives on ::before so rings can sit outside it */
+.si-mark { position: relative; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px; text-decoration: none; cursor: pointer; color: var(--bg); }
+.si-mark::before { content: ""; position: absolute; inset: 3px; background: var(--si-c, var(--ink-3)); z-index: 0; }
+.si-n { position: relative; z-index: 1; font-size: var(--fs-md); font-weight: 700; line-height: 1; }
+.si-mark.si-st-ok::before { border-radius: 50%; }
+.si-mark.si-st-suspect::before { border-radius: 10px; }
+.si-mark.si-st-invalid::before { inset: 1px; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
+.si-mark.si-st-unconfirmed::before { border-radius: 50%; background: var(--surface); border: 3px dashed var(--si-c); }
+.si-mark.si-st-unconfirmed { color: var(--ink); }
+.si-mark.si-st-not_recorded::before { border-radius: 50%; background: var(--surface); border: 3px solid var(--si-c); }
+.si-mark.si-st-not_recorded { color: var(--ink); }
+.si-mark.is-sel { outline: 4px solid var(--ink); outline-offset: 2px; border-radius: 50%; }
+.si-mark.is-partner { outline: 3px dashed var(--fam-chassis); outline-offset: 2px; border-radius: 50%; }
+.si-mark:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; border-radius: 50%; }
+
+.si-legend { list-style: none; margin: 8px 0; padding: 0; display: grid; gap: 4px; }
+.si-legend li { display: flex; gap: 8px; align-items: center; }
+.si-mark.si-key { flex: 0 0 auto; cursor: default; }
+
+/* the stage: the SVG scales, markers are placed in % of it */
+.si-stage { position: relative; width: 100%; }
+.si-svg { display: block; width: 100%; height: auto; }
+.si-stage > .si-mark { position: absolute; transform: translate(-50%, -50%); }
+
+/* Side / Top toggle without script: two radios */
+.si-radio { position: absolute; opacity: 0; pointer-events: none; }
+.si-tabs { display: flex; gap: 6px; margin: 0 0 6px; }
+.si-tabs label { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 88px; padding: 0 16px;
+  border: 1px solid var(--rule); border-radius: var(--radius, 3px); background: var(--surface-2); cursor: pointer; font-size: var(--fs-md); }
+#si-v-side:checked ~ .si-tabs label[for="si-v-side"], #si-v-top:checked ~ .si-tabs label[for="si-v-top"] { border: 2px solid var(--ink); font-weight: 700; }
+#si-v-side:focus-visible ~ .si-tabs label[for="si-v-side"], #si-v-top:focus-visible ~ .si-tabs label[for="si-v-top"] { outline: 3px solid var(--ink); outline-offset: 2px; }
+.si-fig { margin: 0; }
+.si-fig figcaption { color: var(--ink-2); margin: 0 0 4px; font-size: var(--fs-md); }
+#si-v-side:checked ~ .si-fig-top, #si-v-top:checked ~ .si-fig-side { display: none; }
+.si-credit { color: var(--ink-2); }
+.si-unplaced { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* links and buttons: 44 px */
+.si-pl, .si-btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; font-size: var(--fs-md);
+  border: 1px solid var(--rule); border-radius: var(--radius, 3px); background: var(--surface-2); color: var(--ink); text-decoration: none; cursor: pointer; }
+.si-pathlink { font-weight: 700; }
+.si-links { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
+.si-partners { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+
+/* the card */
+.si-pop { margin: 8px 0; padding: 10px 12px; border: 2px solid var(--ink); border-radius: var(--radius, 3px); background: var(--surface-2); }
+.si-pop[hidden] { display: none; }
+.si-pop-close { margin-top: 6px; font-weight: 700; }
+.si-fold > summary { min-height: 44px; display: flex; align-items: center; font-size: var(--fs-md); }
+.si-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.si-card { padding: 8px 12px; border: 1px solid var(--rule); border-left: 6px solid var(--si-c, var(--ink-3)); border-radius: var(--radius, 3px); background: var(--surface-2); }
+.si-card-invalid { --si-c: var(--sev-returned); }
+.si-card-suspect { --si-c: var(--sev-chronic); }
+.si-card-unconfirmed { --si-c: var(--fam-network); }
+.si-card-ok { --si-c: var(--ok); }
+.si-card:target { outline: 3px solid var(--ink); }
+.si-ch { display: flex; gap: 8px; align-items: center; margin: 0; font-size: var(--fs-lg); }
+.si-h5 { margin: 10px 0 2px; font-size: var(--fs-md); font-weight: 700; }
+.si-chip { display: inline-block; padding: 0 8px; border: 2px solid var(--si-c, var(--ink-3)); border-radius: var(--radius-pill, 999px); font-weight: 700; }
+.si-rc-agree { --si-c: var(--ok); }
+.si-rc-disagree { --si-c: var(--sev-returned); }
+.si-rc-unconfirmed { --si-c: var(--fam-network); }
+.si-rc-notmet, .si-rc-notrec { --si-c: var(--ink-3); }
+.si-rule { margin: 6px 0; padding: 6px 10px; border: 1px solid var(--rule); border-radius: var(--radius, 3px); background: var(--surface); }
+.si-rule-h { margin: 0 0 2px; }
+.si-sides { margin: 2px 0; padding-left: 20px; }
+
+/* readings with the band bar */
+.si-rows { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.si-row { padding: 8px 10px; border: 1px solid var(--rule); border-left: 6px solid var(--si-rc, var(--ink-3)); border-radius: var(--radius, 3px); background: var(--surface); }
+.si-row.s-in { --si-rc: var(--ok); }
+.si-row.s-out { --si-rc: var(--sev-returned); }
+.si-rowhead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; align-items: baseline; }
+.si-name { font-weight: 700; }
+.si-st { font-weight: 700; }
+.si-val { margin: 2px 0; display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: baseline; }
+.si-num { font-size: var(--fs-xl); font-variant-numeric: tabular-nums; }
+.si-age { color: var(--ink-2); }
+.si-row.is-stale .si-age::after { content: " (no update lately)"; font-weight: 700; }
+.si-bar { position: relative; height: 28px; margin: 10px 4px 2px; border: 1px solid var(--ink-3); border-radius: 4px; background: var(--surface-2); }
+.si-row.s-missing .si-bar { background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--rule) 6px 8px); }
+.si-band { position: absolute; top: 0; bottom: 0; background: var(--ok-bg); border-left: 2px solid var(--ok); border-right: 2px solid var(--ok); box-sizing: border-box; }
+.si-marker { position: absolute; top: -6px; bottom: -6px; width: 6px; margin-left: -3px; background: var(--ink); border: 1px solid var(--surface); border-radius: 2px; transition: left .3s linear; }
+.si-marker[hidden] { display: none; }
+.si-row.s-out .si-marker { background: var(--sev-returned); }
+.si-scale { display: flex; justify-content: space-between; gap: 8px; margin: 0 4px; color: var(--ink-2); font-size: var(--fs-md); }
+.si-bandlabel { text-align: center; flex: 1; }
+
+.si-dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; margin: 10px 0 0; }
+.si-dl dt { font-weight: 600; color: var(--ink-2); }
+.si-dl dd { margin: 0; }
+@media (max-width: 480px) { .si-dl { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .si-marker { transition: none; } }

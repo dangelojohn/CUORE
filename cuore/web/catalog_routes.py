@@ -23,8 +23,9 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 
 def _ctx(request: Request, cat) -> dict:
     vin = web_routes._active_vehicle(request)
+    std = sp.for_vin(vin or sp.sole_vin())
     return {"cat": cat, "cid": cat["id"] if cat else "", "vin": vin or "", "live_strip": None, "tab": "catalog",
-            "rail": pc.rail(cat) if cat else [], "standard": sp.for_vin(vin or sp.sole_vin())}
+            "rail": pc.rail(cat) if cat else [], "standard": std, "std_att": sp.attach(cat, std), "std_label": sp.label, "std_q": sp.question}
 
 
 @router.get("/catalog", response_class=HTMLResponse)
@@ -40,6 +41,13 @@ def catalog_index(request: Request, q: str = "") -> Response:
         if len(pns) == 1 and pc.norm_pn(q) == pc.norm_pn(next(iter(pns))):
             return RedirectResponse(f"/catalog/p/{next(iter(pns))}", status_code=303)
     spec_hits = pc.search_specs(cat, q) if q.strip() else []
+    if hits is not None:
+        att = ctx["std_att"]
+        mine = sp.search(cat, ctx["standard"], q, att)
+        have = {(h["pn"], h["diagram_id"]) for h in mine if h["pn"]}
+        for h in hits:
+            h["standard"] = att["by_pn"].get(pc.norm_pn(h["pn"]))
+        hits = mine + [h for h in hits if (h["pn"], h["diagram_id"]) not in have]
     return web_routes._page(request, "catalog_index.html", **ctx, groups=pc.groups_view(cat),
                             hits=hits, spec_hits=spec_hits, q=q, stats=pc.stats(cat),
                             listing_hits=listing_hits, listing_more=max(0, listing_total - len(listing_hits)))
@@ -79,9 +87,14 @@ def catalog_diagram(request: Request, did: str, all: int = 0, side: str = "", op
     if not d:
         return RedirectResponse("/catalog", status_code=303)
     show_all = bool(all)
-    shown = [r for r in d["rows"] if (show_all or r.get("fitment") != "other-engine") and pc.row_passes(r, side, opt)]
-    return web_routes._page(request, "catalog_diagram.html", **_ctx(request, cat), d=d, show_all=show_all,
-                            shown=shown, side=side, opt=opt)
+    ctx = _ctx(request, cat)
+    att = ctx["std_att"]
+    shown = [{**r, "standard": att["by_pn"].get(pc.norm_pn(r["pn"]))} for r in d["rows"]
+             if (show_all or r.get("fitment") != "other-engine") and pc.row_passes(r, side, opt)]
+    own = [sp.own_row(x) for x in att["own"].get(did, [])]
+    ctx["standard"] = [o["standard"] for o in own]
+    return web_routes._page(request, "catalog_diagram.html", **ctx, d=d, show_all=show_all,
+                            shown=shown, own_rows=own, side=side, opt=opt)
 
 
 @router.get("/catalog/api/typeahead")
@@ -96,7 +109,10 @@ def catalog_part(request: Request, pn: str) -> Response:
     p = pc.part(cat, pn) if cat else None
     if not p:
         return RedirectResponse(f"/catalog?q={pc.norm_pn(pn)}", status_code=303)
-    return web_routes._page(request, "catalog_part.html", **_ctx(request, cat), p=p)
+    ctx = _ctx(request, cat)
+    std = ctx["std_att"]["by_pn"].get(pc.norm_pn(p["pn"]))
+    ctx["standard"] = [std] if std else []
+    return web_routes._page(request, "catalog_part.html", **ctx, p=p, std=std)
 
 
 @router.get("/catalog/standard-img/{name}")

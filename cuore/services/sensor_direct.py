@@ -357,3 +357,240 @@ def direct(sensors: list[dict[str, Any]], numbers: dict[str, int], codes: list[s
             "why": why, "rows": rows, "counts": counts, "call_ids": call_ids,
             "never": {"cable": n_cable, "no_channel": n_chan, "no_answer": n_ans, "no_valid": n_inv, "total": len(never)},
             "links": links}
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# The Sensors page's one-line rows, worst first (Bench-screen principles: one call, then rows ordered by priority
+# then most recent, each opening to its detail). Pure functions; nothing here touches the car.
+# ---------------------------------------------------------------------------------------------------------------
+
+# the same validity words everywhere on the page
+INVALID, SUSPECT_W, UNCONF, NOT_REC, OK_W = "Invalid", "Suspect", "Unconfirmed decoding", "Not recorded", "OK"
+MARKS = {INVALID: "✕", SUSPECT_W: "!", UNCONF: "?", NOT_REC: "–", OK_W: "✓"}
+TONE_CHIP = {"bad": "returned", "warn": "chronic", "ok": "ok", "plain": "plain"}
+# (group id, title, open by default). Faults and codes first (hard evidence), then the ladder.
+PGROUPS = (("fault", "Fault or code on it", True), ("invalid", "Invalid", True),
+           ("suspect", "Suspect or unconfirmed decoding", True), ("crosscheck", "Cross-check disagrees", True),
+           ("nodata", "No data", False), ("ok", "OK", False))
+CC_WORDS = {"DISAGREE": "Disagrees", "UNCONFIRMED DECODING": "Unconfirmed decoding", "AGREE": "Agrees",
+            "CONDITION NOT MET": "Condition not met", "NOT RECORDED": "Not recorded"}
+
+
+def age_seconds(iso: Any, now: Any = None) -> Optional[float]:
+    from datetime import datetime
+    raw = str(iso or "").strip()
+    if not raw:
+        return None
+    try:
+        t = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    n = now or datetime.now(t.tzinfo)
+    return max(0.0, (n - t).total_seconds())
+
+
+def age_text(sec: Optional[float]) -> str:
+    """"just now" / "12 min ago" / "15 h ago" / "3 d ago"; "never" when there is no time."""
+    if sec is None:
+        return "never"
+    if sec < 90:
+        return "just now"
+    if sec < 5400:
+        return f"{round(sec / 60)} min ago"
+    if sec < 172800:
+        return f"{round(sec / 3600)} h ago"
+    return f"{round(sec / 86400)} d ago"
+
+
+def _base_key(key: Any) -> str:
+    return re.split(r"[@.]", str(key or ""), 1)[0]
+
+
+def _cc_val(side: dict[str, Any], unit: str) -> str:
+    v = side.get("value")
+    if v is None:
+        return "not recorded"
+    try:
+        return f"{round(float(v), 2):g} {unit}".strip()
+    except (TypeError, ValueError):
+        return f"{v} {unit}".strip()
+
+
+def crosscheck_links(sensors: list[dict[str, Any]], results: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """{sensor id: [the cross-checks that have one of the sensor's channels on a side]}. Each link carries the
+    status word, the readings of both sides and whether THIS sensor's side has a confirmed decoding."""
+    by_ch: dict[str, list[str]] = {}
+    for s in sensors:
+        for ch in s.get("channels") or []:
+            by_ch.setdefault(ch, []).append(s["id"])
+    out: dict[str, list[dict[str, Any]]] = {s["id"]: [] for s in sensors}
+    for r in results or []:
+        sides = r.get("sides") or []
+        unit = r.get("unit") or ""
+        seen: set[str] = set()
+        for i, side in enumerate(sides):
+            for sid in by_ch.get(_base_key(side.get("key")), []):
+                if sid in seen:
+                    continue
+                seen.add(sid)
+                other = [x for j, x in enumerate(sides) if j != i]
+                has_vals = r.get("status") in ("AGREE", "DISAGREE", "UNCONFIRMED DECODING")
+                sus = str(r.get("suspects") or "")
+                lab = str(side.get("label") or "")
+                out[sid].append({
+                    "title": r.get("title") or "", "status": r.get("status") or "", "word": CC_WORDS.get(r.get("status"), ""),
+                    "would_be": r.get("would_be") or "", "this_confirmed": bool(side.get("confirmed")),
+                    "line": (f"{lab} {_cc_val(side, unit)} vs " + ", ".join(f"{o.get('label')} {_cc_val(o, unit)}" for o in other)
+                             if has_vals else str(r.get("reason") or "")),
+                    "named": bool(sus and lab and lab in sus.split(";")[0]),
+                    "suspects": sus, "condition": str(r.get("condition_text") or ""),
+                    "tolerance": (r.get("tolerance") or {}).get("text", ""), "age": str(r.get("age_text") or "")})
+    return out
+
+
+def priority_rows(sensors: list[dict[str, Any]], rows: dict[str, dict[str, Any]], numbers: dict[str, int],
+                  cc_results: list[dict[str, Any]], now: Any = None,
+                  live: Optional[dict[str, dict[str, Any]]] = None) -> list[dict[str, Any]]:
+    """One entry per sensor, already in page order: group (PGROUPS order), then the rank inside the group, then the
+    most recent reading first. ``live``: {channel: {value, unit}} from the running live session, if any."""
+    links = crosscheck_links(sensors, cc_results)
+    live = live or {}
+    gorder = {g: i for i, (g, _, _) in enumerate(PGROUPS)}
+    out: list[dict[str, Any]] = []
+    for s in sensors:
+        r = rows[s["id"]]
+        kind, lk = r["kind"], links.get(s["id"], [])
+        dis = [x for x in lk if x["status"] == "DISAGREE"]
+        unc = [x for x in lk if x["status"] == "UNCONFIRMED DECODING" and not x["this_confirmed"]]
+        why, sub = r["line"], 0
+        if kind in (FAULT, CODE_LIVE):
+            group, word, tone = "fault", r["chip"], "bad" if s.get("status") == "red" else "warn"
+            sub = {FAULT: 0, CODE_LIVE: 1}[kind] * 2 + (0 if s.get("status") == "red" else 1)
+        elif s.get("no_valid"):
+            group, word, tone, sub = "invalid", INVALID, "bad", 0
+        elif s.get("suspect"):
+            group, word, tone, sub = "suspect", SUSPECT_W, "warn", 0
+        elif unc:
+            group, word, tone = "suspect", UNCONF, "warn"
+            sub = 1 if any(x["would_be"] == "DISAGREE" for x in unc) else 2
+            why = ("Decoding not confirmed on this car: " + "; ".join(
+                f"{x['title']} ({'values would disagree' if x['would_be'] == 'DISAGREE' else 'values agree'})" for x in unc[:2]) + ".")
+        elif dis:
+            group, word, tone = "crosscheck", SUSPECT_W, "warn"
+            sub = 0 if any(x["named"] for x in dis) else 1
+            why = "Cross-check disagrees: " + dis[0]["title"] + (f" - {dis[0]['suspects']}" if dis[0]["suspects"] else "") + "."
+        elif kind == NEVER or (kind == CODE_HISTORY and s.get("status") != "green"):
+            group, word, tone = "nodata", NOT_REC, "plain"
+            why = "Not recorded: " + (s["reasons"][0] if s.get("stale") and s.get("reasons") else
+                                      {CABLE: "needs the grey (CAN-CH) cable", NO_CHANNEL: "CUORE has no live channel for it yet",
+                                       NO_ANSWER: "timeout - it did not answer last time"}.get(never_why(s), r["line"])).rstrip(".") + "."
+        else:
+            group, word, tone = "ok", OK_W, "ok"
+        if group == "nodata":
+            reading = {CABLE: "needs grey cable", NO_CHANNEL: "no channel", NO_ANSWER: "timeout"}.get(never_why(s), "no data")
+            if s.get("stale"):
+                reading = "old reading"
+        elif group == "invalid":
+            reading = "no valid value"
+        else:
+            reading = reading_text(s, 1) or ("no value" if not s.get("values") else "")
+        live_hit = next((c for c in s.get("channels") or [] if c in live), "")
+        if live_hit:
+            lv = live[live_hit]
+            try:
+                reading = f"{round(float(lv.get('value')), 2):g} {_unit(lv.get('unit'))}".strip()
+            except (TypeError, ValueError):
+                live_hit = ""
+        iso = str(s.get("last_read") or "")
+        age_s = age_seconds(iso, now)
+        out.append({"s": s, "r": r, "n": numbers.get(s["id"], 0), "group": group, "sub": sub, "word": word, "tone": tone,
+                    "chip": TONE_CHIP[tone], "mark": MARKS.get(word, "!"), "reading": reading, "why": why,
+                    "age_s": age_s, "age": "now" if live_hit else age_text(age_s),
+                    "iso": iso, "live": bool(live_hit), "links": lk})
+    out.sort(key=lambda x: (gorder[x["group"]], x["sub"], x["age_s"] if x["age_s"] is not None else 1e12, x["n"]))
+    return out
+
+
+def nodata_summary(rows_: list[dict[str, Any]]) -> str:
+    """"7 no live channel in CUORE, 4 need the grey cable" for the folded No data group."""
+    n = {"no channel": 0, "needs grey cable": 0, "timeout": 0}
+    for x in rows_:
+        if x["reading"] in n:
+            n[x["reading"]] += 1
+    parts = [(n["no channel"], "no live channel in CUORE"), (n["needs grey cable"], "need the grey cable"),
+             (n["timeout"], "timed out last time")]
+    return ", ".join(f"{k} {w}" for k, w in parts if k)
+
+
+def page_call(prio: list[dict[str, Any]], cc: Optional[dict[str, Any]]) -> dict[str, Any]:
+    """The ONE line at the top: which sensor to look at first and why. ``sid`` links the row; ``why`` = lines for the
+    "Why this?" fold; ``eid`` / ``elabel`` = element id and name for the "Electrical path for <sensor>" chip."""
+    n = len(prio)
+    why: list[str] = []
+    top: Optional[dict[str, Any]] = None
+    text = ""
+    dis = sorted((x for x in prio if x["group"] == "crosscheck"), key=lambda x: x["sub"])
+    if dis:   # a confirmed cross-check disagreement names the culprit sensor
+        top = dis[0]
+        lk = next(l for l in top["links"] if l["status"] == "DISAGREE")
+        cond = lk["condition"] if lk["condition"] and not lk["condition"].startswith("none") else ""
+        label = top["s"].get("label") or top["s"]["id"]
+        text = (f"{label}: {lk['line']} disagree" + (f" at {cond}" if cond else "")
+                + (f", allowed {lk['tolerance']}" if lk["tolerance"] else "") + " - "
+                + ("check its connector and wiring" if top["s"].get("element_id") else "check its decoding and wiring") + ".")
+        why.append(f"A confirmed cross-check disagrees: {lk['title']}. {lk['suspects'] or 'Either reading may be wrong.'}")
+    else:
+        first = next((x for x in prio if x["group"] in ("fault", "invalid", "suspect")), None)
+        if first:
+            top = first
+            label = first["s"].get("label") or first["s"]["id"]
+            reasons = [str(r) for r in first["s"].get("reasons") or [] if r]
+            if first["group"] == "fault":
+                text = f"{label}: {first['r']['line']}"
+                why.append("A fault or a stored code on a sensor outranks decoding doubts.")
+            elif first["group"] == "invalid":
+                lead = next((r for r in reasons if r.startswith("No valid reading")), first["r"]["line"])
+                text = f"{label}: Invalid - {lead.rstrip('.')}."
+                why.append("Invalid = the module returned a value it marks 'not available', or an impossible one.")
+            elif first["word"] == SUSPECT_W:
+                lead = next((r for r in reasons if r.startswith("Suspect")), first["r"]["line"])
+                body = re.sub(r"^Suspect - check decoding:\s*", "", lead).rstrip(".")
+                head, sep, rest = body.partition(": ")
+                if sep and head.lower().startswith(label.lower()[:10]):    # do not say the sensor's name twice
+                    body = rest
+                text = f"{label}: Suspect - " + body + "; check the decoding before trusting it."
+                why.append("Suspect = a reading that disagrees with a related channel or looks decoded wrongly.")
+            else:
+                text = f"{label}: Unconfirmed decoding - " + first["why"].replace("Decoding not confirmed on this car: ", "").rstrip(".") + "."
+                why.append("Unconfirmed decoding = the channel's formula is not yet confirmed on this car, so its number is not proof.")
+    if top is not None:
+        others = [x for x in prio if x["group"] in ("fault", "invalid", "suspect", "crosscheck") and x is not top]
+        if others:
+            why.append("Also needs a look: " + "; ".join(f"{x['s'].get('label') or x['s']['id']} ({x['word']})" for x in others[:6])
+                       + (f"; and {len(others) - 6} more" if len(others) > 6 else "") + ".")
+        why.append("Row order: faults and codes, invalid, suspect or unconfirmed decoding, cross-check disagreement, no data, OK. "
+                   "Inside each group the newest reading is first.")
+    nd = [x for x in prio if x["group"] == "nodata"]
+    last = min((x["age_s"] for x in prio if x["age_s"] is not None), default=None)
+    if top is None:
+        read_n = n - len(nd)
+        if not n:
+            text = "No sensors known for this car yet."
+        elif read_n:
+            text = (f"All {read_n} sensors read plausibly" if not nd else
+                    f"All {read_n} sensors that gave a reading read plausibly; {len(nd)} have no data")
+            text += f" · last read {age_text(last)}." if last is not None else "."
+        else:
+            text = f"No sensor has a reading yet ({len(nd)} not recorded)."
+        why.append(f"{sum(1 for x in prio if x['group'] == 'ok')} sensors are OK; none is invalid, suspect, unconfirmed or in disagreement.")
+    if nd:
+        why.append(f"{len(nd)} sensors have no data: {nodata_summary(nd)}.")
+    if cc and (cc.get("counts") or {}).get("total"):
+        c = cc["counts"]
+        why.append(f"Cross-checks: {c.get('DISAGREE', 0)} disagree, {c.get('UNCONFIRMED DECODING', 0)} unconfirmed decoding, "
+                   f"{c.get('AGREE', 0)} agree, {c.get('CONDITION NOT MET', 0)} condition not met, {c.get('NOT RECORDED', 0)} not recorded.")
+    cand = ([top] if top else []) + prio
+    ep = next((x for x in cand if x["s"].get("element_id")), None)
+    return {"text": text, "sid": top["s"]["id"] if top else "", "why": why,
+            "eid": ep["s"]["element_id"] if ep else "", "elabel": (ep["s"].get("label") or ep["s"]["id"]) if ep else "",
+            "last_age": age_text(last)}

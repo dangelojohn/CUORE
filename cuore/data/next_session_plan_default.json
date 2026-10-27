@@ -35,12 +35,12 @@
     {"id": "confirm-decodings", "order": 7, "title": "Confirm decodings at a different load",
      "why": "Compare 195B, 1925, 1926, 1009, 1959 with MES live values at a second load point.",
      "preconditions": "Engine running at a load different from the first check.",
-     "link": "/v/{vin}/live", "link_label": "Live",
+     "link": "/v/{vin}/liveboard", "link_label": "Live",
      "source": "CUORE note ce54db3f26e5 and the 2026-10-26 cross-check findings"},
     {"id": "can-captures", "order": 8, "title": "CAN captures A, B and C with live rpm and speed",
      "why": "Validates the opendbc signal decodings against this car.",
      "preconditions": "Live rpm and speed visible while capturing.",
-     "link": "/v/{vin}/live", "link_label": "Live",
+     "link": "/v/{vin}/liveboard", "link_label": "Live",
      "source": "docs/research/OPENDBC_VALIDATION_2026-10-26.md"}
   ]
 }

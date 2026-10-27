@@ -137,6 +137,55 @@ def _crosscheck_panel(vin: str) -> Optional[dict[str, Any]]:
         return None
 
 
+def _live_values() -> dict[str, dict[str, Any]]:
+    """{channel: {value, unit}} of the live session the poller is ALREADY running (in-memory; no adapter contact,
+    no new polling). Empty when no session is active or anything goes wrong."""
+    try:
+        from ..live import ops as live_ops
+        snap = live_ops.live_snapshot()
+        if not snap.get("active"):
+            return {}
+        return {cid: {"value": c.get("value"), "unit": c.get("unit") or ""}
+                for cid, c in (snap.get("channels") or {}).items() if c.get("value") is not None and not c.get("last_error")}
+    except Exception:  # noqa: BLE001 -- live chips are decoration
+        return {}
+
+
+def _latest_inspections(vin: str) -> dict[str, dict[str, Any]]:
+    """{element id: newest electrical inspection of it}, for the "last inspected" line. {} when the store is unavailable."""
+    try:
+        from ..services import electrical_bridge
+        out: dict[str, dict[str, Any]] = {}
+        for rec in electrical_bridge.list_inspections(vin):      # oldest first, so the newest wins
+            out[str(rec.get("element") or "")] = rec
+        return out
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+@router.post("/v/{vin}/sensors/inspect", response_class=HTMLResponse)
+async def sensors_inspect(request: Request, vin: str) -> RedirectResponse:
+    """One tap, no typing: record "checked OK" on the sensor's electrical element through the existing inspections
+    store (the same record the electrical page's form writes). It is an inspection finding, never a value edit.
+    The element comes from the sensor registry, not from the form."""
+    form = await request.form()
+    sid = str(form.get("sensor_id", "") or "").strip()
+    try:
+        sensor = next((s for s in _sensor_health().health(vin).get("sensors") or [] if s.get("id") == sid), None)
+    except Exception as exc:  # noqa: BLE001
+        return _back(vin, _short(f"Not recorded: {exc}"))
+    if not sensor or not sensor.get("element_id"):
+        return _back(vin, "Not recorded: that sensor has no electrical element to inspect.")
+    try:
+        from ..services import electrical_bridge
+        electrical_bridge.add_inspection(vin, sensor["element_id"], "ok", by="mechanic",
+                                         note="Checked OK from the Sensors page (one tap)")
+    except Exception as exc:  # noqa: BLE001
+        return _back(vin, _short(f"Not recorded: {exc}"))
+    return RedirectResponse(url=f"/v/{vin}/sensors?msg={quote('Recorded: ' + str(sensor.get('label') or sid) + ' checked OK (electrical inspection). A later finding on its electrical path replaces it.')}#sensor-{quote(sid)}",
+                            status_code=303)
+
+
 @router.get("/v/{vin}/sensors", response_class=HTMLResponse)
 def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
                  msg: str = "", q: str = "", zone: str = "") -> HTMLResponse:
@@ -174,6 +223,14 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
         return not system_f or str(s.get("system") or "other") == system_f
 
     shown = [s for s in sensors if match(s)]
+    cc =_crosscheck_panel(vin)
+    connected = bool(strip and not strip.get("error") and strip.get("buses_verified"))
+    live_vals = _live_values() if connected else {}
+    prio = sensor_direct.priority_rows(sensors, rows, numbers, (cc or {}).get("results") or [], live=live_vals)
+    pcall = sensor_direct.page_call(prio, cc)
+    # the code / symptom / can't-read-yet lines of the older call go in the same fold (its fault lines repeat the rows)
+    pcall["why"] = [w for w in pcall["why"] if "have no data:" not in w] + [w for w in call["why"] if not w.startswith("#")]
+    insp = _latest_inspections(vin)
     q = page_search.clean_q(q)
     results = []
     for s in (search_sensors(q, shown) if q else []):
@@ -183,16 +240,32 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
                                                        STATUS_LABEL[st]) if x)})
     dim = {s["id"] for s in sensors if not match(s)}
 
-    open_ids = set(call["call_ids"]) if len(call["call_ids"]) <= 3 else set()
-    open_ids |= {r["id"] for r in results[:1]}
-    grouped: dict[str, list[dict[str, Any]]] = {g: [] for g, _, _ in sensor_direct.GROUPS}
-    for s in sorted(shown, key=lambda s: (KIND_ORDER[rows[s["id"]]["kind"]],
-                                           {"red": 0, "orange": 1}.get(s.get("status"), 2), numbers[s["id"]])):
-        r = rows[s["id"]]
-        grouped[r["group"]].append({"s": s, "r": r, "n": numbers[s["id"]], "photo": _photo_for(s),
-                                    "zone_label": _zone_label(s.get("zone")), "open": s["id"] in open_ids})
-    sections = [{"id": g, "title": title, "sub": sub, "items": grouped[g]}
-                for g, title, sub in sensor_direct.GROUPS if grouped[g]]
+    shown_ids = {s["id"] for s in shown}
+    result_ids = {r["id"] for r in results}
+    narrowed = bool(status_f or system_f or zone_f or q)
+    groups = []
+    for g, title, is_open in sensor_direct.PGROUPS:
+        items = []
+        for x in prio:
+            if x["group"] != g or x["s"]["id"] not in shown_ids:
+                continue
+            s = x["s"]
+            items.append({**x, "photo": _photo_for(s), "zone_label": _zone_label(s.get("zone")),
+                          "insp": insp.get(s.get("element_id") or "")})
+        if not items:
+            continue
+        # a group opens by itself when it is a top group, when a filter/search narrowed the list, or when it holds a hit
+        opens = is_open or narrowed or any(i["s"]["id"] in result_ids for i in items)
+        summary = f"{title} ({len(items)})"
+        sub = ""
+        if g == "ok":
+            summary = f"OK — {len(items)} sensor{'' if len(items) == 1 else 's'}"
+            sub = "Read, nothing wrong found. Newest reading first."
+        elif g == "nodata":
+            summary = f"No data — {len(items)} sensor{'' if len(items) == 1 else 's'}"
+            sub = sensor_direct.nodata_summary(items)
+        groups.append({"id": g, "title": title, "summary": summary, "sub": sub, "open": opens, "items": items})
+    ncon = sum(1 for x in prio if x["s"]["id"] in shown_ids)
 
     placed_ids = {s["id"] for s in sensors if sensor_profile_svg.resolve_zone(s.get("zone"))}
     unplaced = [{"s": s, "n": numbers[s["id"]], "r": rows[s["id"]]} for s in shown if s["id"] not in placed_ids]
@@ -217,7 +290,7 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
     chip_href = {k: href("" if status_f == k else k, system_f, zone_f) for k in STATUSES}
     sys_href = {sy: href(status_f, sy, zone_f) for sy in systems}
     response = _page(request, "sensors.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="sensors", live_strip=strip,
-                     svg=svg, sections=sections, numbers=numbers, unplaced=unplaced, counts=counts, call=call,
+                     svg=svg, groups=groups, pcall=pcall, connected=connected, ncon=ncon, numbers=numbers, unplaced=unplaced, counts=counts, call=call,
                      check=check_state(strip), areas=sorted(areas.values(), key=lambda a: -a["n"]),
                      total=len(sensors), shown=len(shown), checked_at=data.get("checked_at"),
                      status_f=status_f, zone_f=zone_f, zone_label=_zone_label(zone_f), q=q, results=results,
@@ -227,7 +300,7 @@ def sensors_page(request: Request, vin: str, status: str = "", system: str = "",
                      status_label=STATUS_LABEL, status_mark=STATUS_MARK, msg=msg, error=error,
                      fmt_time=sensor_direct.fmt_time, human_label=sensor_direct.human_label,
                      split_parts=sensor_direct.split_parts, showing=showing,
-                     crosscheck_panel=_crosscheck_panel(vin))
+                     crosscheck_panel=cc, live_n=sum(1 for x in prio if x["live"]), narrowed=narrowed)
     _set_active_vehicle(response, vin)
     return response
 
@@ -307,14 +380,20 @@ def _fmt(v: Any) -> str:
 
 
 @router.get("/v/{vin}/sensors/readings", response_class=HTMLResponse)
-def sensors_readings(request: Request, vin: str, last: int = 8) -> HTMLResponse:
+def sensors_readings(request: Request, vin: str, last: int = 8, sensor: str = "") -> HTMLResponse:
     """Every saved reading side by side, one column per check, newest first."""
     dossier = _dossier(vin)
     data = _sensor_health().readings(vin)
     last = max(1, min(int(last or 8), 50))
     cols = list(reversed(data["checks"]))[:last]
+    sensor = sensor.strip()[:80]
+    sensor_label = ""
     table: dict[tuple[str, str], dict[str, Any]] = {}
     for r in data["rows"]:
+        if sensor and sensor not in (r.get("sensor_ids") or []):
+            continue
+        if sensor and not sensor_label:
+            sensor_label = ", ".join(r.get("sensors") or [])
         if r["at"] not in cols:
             continue
         key = (r["channel"], r["part"])
@@ -330,13 +409,14 @@ def sensors_readings(request: Request, vin: str, last: int = 8) -> HTMLResponse:
         row["delta"] = (_fmt(nums[0] - nums[1]) if len(nums) == 2
                         and all(isinstance(n, (int, float)) and not isinstance(n, bool) for n in nums) else "")
     response = _page(request, "sensor_readings.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="sensors",
-                     cols=cols, rows=rows, total_checks=len(data["checks"]), last=last)
+                     cols=cols, rows=rows, total_checks=len(data["checks"]), last=last,
+                     sensor=sensor, sensor_label=sensor_label, all_href=f"/v/{vin}/sensors/readings")
     _set_active_vehicle(response, vin)
     return response
 
 
 @router.get("/v/{vin}/sensors/readings.csv")
-def sensors_readings_csv(vin: str):
+def sensors_readings_csv(vin: str, sensor: str = ""):
     """Every saved reading, one line per channel part per check (long form, for a spreadsheet)."""
     import csv
     import io
@@ -348,6 +428,8 @@ def sensors_readings_csv(vin: str):
     w = csv.writer(buf)
     w.writerow(["check_at", "sensor", "sensor_id", "channel", "part", "name", "value", "unit", "error"])
     for r in data["rows"]:
+        if sensor and sensor not in (r.get("sensor_ids") or []):
+            continue
         w.writerow([r["at"], "; ".join(r["sensors"]), "; ".join(r["sensor_ids"]), r["channel"], r["part"],
                     r["name"], "" if r["value"] is None else r["value"], r["unit"], r["error"] or ""])
     return Response(buf.getvalue().encode("utf-8-sig"), media_type="text/csv",

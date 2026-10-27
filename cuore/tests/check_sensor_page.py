@@ -167,31 +167,32 @@ html = r.text
 check(r.status_code == 200, f"page 200 (got {r.status_code})")
 ids = [s["id"] for s in SENSORS]
 
-# the call, built from the open job, the codes and the sensor states
-m = re.search(r'<p class="sens-call" id="sens-call">(.*?)</p>', html, re.S)
-call_html = m.group(1) if m else ""
-call_txt = re.sub(r"<[^>]+>", "", call_html)
-check("Fault: #" in call_txt and call_txt.index("Wheel speed FL") < call_txt.index("Upstream O2") and 'href="#sensor-o2f"' in call_html,
-      f"call names the faulty sensor and links its row ({call_txt[:80]})")
-check("Read now: #" in call_txt and "Intake air temp (P0098 history)" in call_txt,
-      f"call: history code on a readable sensor -> 'Read now: #n name (P0098 history)' ({call_txt})")
-check(chr(10) not in call_txt.strip() and "can't read" not in call_txt and "never read" not in call_txt and "grey cable" not in call_txt
-      and "Wheel speed RL" not in call_txt, "call is ONE line: the can't-read-yet and never-read clauses are not in it")
+# the call: ONE line, the one sensor to look at first and why (layout changed: was "Fault: #n ..., Read now: ...")
+m = re.search(r'<a class="sens-call sens-call-link" id="sens-call" href="#sensor-([^"]+)">(.*?)</a>', html, re.S)
+call_id, call_txt = (m.group(1), re.sub(r"<[^>]+>", "", m.group(2))) if m else ("", "")
+check(call_id == "wssfl" and call_txt.startswith("Wheel speed FL:"),
+      f"call names the top sensor (the dead one) and links its row ({call_id}: {call_txt[:80]})")
+check(chr(10) not in call_txt.strip() and "grey cable" not in call_txt and "Wheel speed RL" not in call_txt,
+      "call is ONE line: the can't-read-yet and never-read clauses are not in it")
 why_txt = re.sub(r"<[^>]+>", "", html.split('id="sens-why"')[1].split("</details>")[0])
 check("Wheel speed RL" in why_txt and "C0035 history" in why_txt and "needs the grey cable" in why_txt and "never read" not in call_txt
       and "no reading yet" in why_txt and "need the grey cable" in why_txt and "no live channel" in why_txt,
-      "Why-these fold holds the can't-read-yet and never-read clauses")
-check(html.index('id="sens-call"') < html.index('id="sens-go"') < html.index('id="sens-map"'), "Go-to chips and the map come right after the call")
-check('id="sens-go"' in html and html.count('class="sens-gochip"') >= 2 and 'href="#sensor-iat"' in html.split('id="sens-go"')[1][:900],
-      "Go-to chips link to the sensors in the call")
-check('id="sens-why"' in html and "linked by name only" in html and "lambda" in html.split('id="sens-why"')[1][:1500],
-      "Why-these fold lists the symptom link by name")
-check(html.index('id="sens-call"') < html.index('id="sens-map"') < html.index('id="sens-actions"') < html.index('id="sens-list"'),
-      "order: call, map, check action, list")
+      "Why-this fold holds the can't-read-yet and never-read clauses")
+check("Also needs a look" in why_txt and "Upstream O2" in why_txt and "Row order" in why_txt, "Why-this fold says what else needs a look and the row order")
+check(html.index('id="sens-state"') < html.index('id="sens-call"') < html.index('id="sens-go"') < html.index('id="sens-list"'),
+      "order: state line, call, Go-to chips, rows")
+_go = html.split('id="sens-go"')[1].split("</nav>")[0]
+check(html.count('class="sens-gochip"') >= 4 and "/job" in _go and "/crosschecks" in _go and "readings.csv" in _go
+      and "/electrical\"" in _go and "Electrical path for Reverse camera" in _go,
+      "Go-to chips: Job, Cross-checks, Electrical path for <sensor>, Data / CSV, Layout")
+check('id="sens-why"' in html and "linked by name only" in html and "lambda" in html.split('id="sens-why"')[1][:2500],
+      "Why-this fold lists the symptom link by name")
+check(html.index('id="sens-call"') < html.index('id="sens-list"') < html.index('id="sens-actions"') < html.index('id="sens-map"'),
+      "order: call, rows, check action (disabled: below the rows), the outline map below")
 sensor_routes._job_inputs = lambda vin, dossier: ([], [], {})
 t0 = client.get(f"/v/{VIN}/sensors").text
-c0 = re.sub(r"<[^>]+>", "", re.search(r'<p class="sens-call" id="sens-call">(.*?)</p>', t0, re.S).group(1))
-check("Fault:" in c0 and "Read now:" in c0, "call still built from sensor states with no open job")
+check('id="sens-call"' in t0 and "Wheel speed FL" in re.sub(r"<[^>]+>", "", re.search(r'id="sens-call"[^>]*>(.*?)</a>', t0, re.S).group(1)),
+      "call still built from sensor states with no open job")
 sensor_routes._job_inputs = lambda vin, dossier: (JOB["codes"], JOB["syms"], JOB["ctext"])
 
 # the single primary action, disabled with a visible reason when the car is not connected
@@ -219,31 +220,34 @@ check("Add a normal range" not in html and "<form class=\"sens-form\"" not in ht
 check("Set location" not in html, "no Set location link on /sensors")
 
 # rows: one per sensor, grouped by status, details on tap
-rows_html = re.findall(r'<details class="sens-item" id="sensor-([^"]+)"', html)
+rows_html = re.findall(r'<details class="fold sens-item sens-prow" id="sensor-([^"]+)"', html)
 check(sorted(rows_html) == sorted(ids), "one tappable row per sensor")
-secs = re.findall(r'<section class="sens-sec" id="sens-sec-(\w+)"', html)
-check(secs == ["attention", "never", "ok"], f"groups: needs attention, never read, OK ({secs})")
+secs = re.findall(r'<details class="fold sens-grp sens-grp-(\w+)" id="sens-sec-\w+"( open)?', html)
+check([g for g, _ in secs] == ["fault", "nodata", "ok"], f"groups (layout changed: priority groups, not attention/never/OK): {secs}")
+check(dict(secs) == {"fault": " open", "nodata": "", "ok": ""}, "fault group starts open; No data and OK start folded")
+check("OK \u2014 6 sensors" in html and "No data \u2014 " in html and "Fault or code on it (" in html, "group summaries say label + count")
 
 
 def sec_ids(name):
-    body = re.search(rf'id="sens-sec-{name}".*?</section>', html, re.S).group(0)
+    body = re.search(rf'id="sens-sec-{name}".*?(?=id="sens-sec-|id="sens-actions"|id="sens-cc"|id="sens-map")', html, re.S).group(0)
     return re.findall(r'id="sensor-([^"]+)"', body)
 
 
-att, nev, okk = sec_ids("attention"), sec_ids("never"), sec_ids("ok")
-check(att[0] == "wssfl" and {"wssfl", "o2f", "iat", "wsrl"} <= set(att) and att.index("o2f") < att.index("wsrl") < att.index("iat"),
-      f"needs attention: faults first, then sensors with a code ({att})")
-check({"park", "cam", "noel"} <= set(nev) and not set(nev) & set(att), f"never read group ({nev})")
-check("map" in okk and "wssfr" in okk and not set(okk) & set(att), "OK group holds the read sensors")
-row = re.search(r'<details class="sens-item" id="sensor-map".*?</summary>', html, re.S).group(0)
-check("sens-judged" in row and "OK - in range" in row, "judged OK row says in range")
-row = re.search(r'<details class="sens-item" id="sensor-wssfr".*?</summary>', html, re.S).group(0)
-check("sens-nojudge" in row and "not judged" in row and "OK - read, no range" not in row and "OK - in range" not in row,
-      "not-judged OK is a distinct short chip: 'not judged'")
+att, nev, okk = sec_ids("fault"), sec_ids("nodata"), sec_ids("ok")
+check(att[0] == "wssfl" and {"wssfl", "o2f"} <= set(att) and att.index("wssfl") < att.index("o2f") and "iat" not in att,
+      f"fault group: the dead sensor first, then the faulty one; a history code is not a fault ({att})")
+check({"park", "cam", "noel", "wsrl"} <= set(nev) and not set(nev) & set(att), f"no-data group ({nev})")
+check("map" in okk and "wssfr" in okk and "iat" in okk and not set(okk) & set(att), "OK group holds the read sensors (a history code stays OK)")
+row = re.search(r'<details class="fold sens-item sens-prow" id="sensor-map".*?</summary>', html, re.S).group(0)
+check("sens-judged" in row and "\u2713 OK" in row and "101 kPa" in row, "judged OK row: reading, OK chip")
+row = re.search(r'<details class="fold sens-item sens-prow" id="sensor-wssfr".*?</summary>', html, re.S).group(0)
+full = re.search(r'<details class="fold sens-item sens-prow" id="sensor-wssfr".*?</dl>', html, re.S).group(0)
+check("sens-nojudge" in row and "\u2713 OK" in row and "not judged" in full and "OK - in range" not in row,
+      "not-judged OK keeps the word OK with its own dashed look; 'not judged' is in the opened row")
 check("1.2 V" in re.search(r'<span class="sens-reading">([^<]*)</span>', row).group(1),
       "collapsed row shows the last reading with its unit")
-check('title="2026-10-25T09:00:00"' in row and "Oct 25, 09:00" in row and "2026-10-25 09:00" not in row,
-      "timestamps read 'Oct 25, 09:00' with the ISO kept in a title")
+check('title="2026-10-25T09:00:00"' in row and "Oct 25, 09:00" in full and "2026-10-25 09:00" not in full and 'class="sens-age"' in row,
+      "row shows an age; the ISO time is a title; the opened row reads 'Oct 25, 09:00'")
 check("Oct 25, 09:00" in html.split('id="sens-actions"')[1][:700] and 'class="chip ' in row and "font: " not in row,
       "last-checked time is formatted; row chips use the app's chip class")
 _sd = sensor_direct.reading_text({"values": [{"label": "O2", "value": {"lambda": 0.9931}, "unit": ""}]})
@@ -251,12 +255,14 @@ _sd2 = sensor_direct.reading_text({"values": [{"label": "Rail", "value": 6.07, "
 check(_sd == "lambda 0.9931" and _sd2 == "6.07 bar", f"reading text: {_sd!r}, {_sd2!r}")
 check(".sens-st.sens-nojudge" in open(Path(__file__).resolve().parents[1] / "web/static/sensors.css", encoding="utf-8").read(),
       "CSS gives the not-judged chip its own look")
-row = re.search(r'<details class="sens-item" id="sensor-iat".*?</summary>', html, re.S).group(0)
-check("history, no live fault" in row and "P0098-00" in row, "superseded code is shown as 'history, no live fault'")
+row = re.search(r'<details class="fold sens-item sens-prow" id="sensor-iat".*?</summary>', html, re.S).group(0)
+full = re.search(r'<details class="fold sens-item sens-prow" id="sensor-iat".*?</dl>', html, re.S).group(0)
+check("P0098 history" in row and "history, no live fault" in full and "P0098-00" in full, "superseded code is shown as 'P0098 history' and, opened, 'history, no live fault'")
 check("(superseded)" not in html, "the word superseded is not shown")
 for sid in ids:
-    d = re.search(rf'<details class="sens-item" id="sensor-{sid}".*?</summary>', html, re.S).group(0)
-    check(d.count('class="sens-line"') == 1, f"exactly one reason line on the row of {sid}")
+    d = re.search(rf'<details class="fold sens-item sens-prow" id="sensor-{sid}".*?</details>', html, re.S).group(0)
+    check(d.count('class="sens-why-line"') == 1 and d.count('<time class="sens-age"') == 1 and d.count('class="sens-name"') == 1,
+          f"one name, one age and one reason line on the row of {sid}")
 body = re.search(r'id="sensor-o2f".*?</details>\s*(?=<details|</div>)', html, re.S).group(0)
 check(body.count("Upstream O2 is orange") == 1, "the reason text is not repeated in the opened row")
 check("Area: general knowledge" in html or "Area: from a source" in html, "short area chip")
@@ -338,14 +344,14 @@ check(len(_bs) >= 12 and sum(1 for g in _bs if g["label"]) >= len(_bs) // 2, f"s
 
 # filters
 r = client.get(f"/v/{VIN}/sensors?status=red")
-n_rows = len(re.findall(r'<details class="sens-item"', r.text))
+n_rows = len(re.findall(r'<details class="fold sens-item sens-prow"', r.text))
 check(r.status_code == 200 and n_rows == 1, f"status filter narrows the list (rows={n_rows})")
 check("sens-dim" in r.text and not re.search(r'sm-single sens-red sens-dim', r.text) and "sm-single sens-red" in r.text,
       "status filter dims the markers with nothing to show, keeps the matching one")
 r = client.get(f"/v/{VIN}/sensors?system=Brakes")
-check(len(re.findall(r'<details class="sens-item"', r.text)) == 3, "system filter narrows the list")
+check(len(re.findall(r'<details class="fold sens-item sens-prow"', r.text)) == 3, "system filter narrows the list")
 r = client.get(f"/v/{VIN}/sensors?zone=engine_bay")
-check(len(re.findall(r'<details class="sens-item"', r.text)) == sum(1 for s in SENSORS if s["zone"] == "engine_bay")
+check(len(re.findall(r'<details class="fold sens-item sens-prow"', r.text)) == sum(1 for s in SENSORS if s["zone"] == "engine_bay")
       and "Showing: Engine bay" in r.text and 'id="sens-showing"' in r.text and "clear</a>" in r.text,
       "area (cluster) filter narrows the list and shows 'Showing: Engine bay - clear'")
 check('id="sens-showing"' not in client.get(f"/v/{VIN}/sensors").text, "no Showing chip without a filter")
@@ -354,7 +360,7 @@ check("Showing: Dead / not responding, Brakes" in client.get(f"/v/{VIN}/sensors?
 _q = client.get(f"/v/{VIN}/sensors?q=wheel").text
 check(_q.index('id="sens-results"') < _q.index('id="sens-call"') < _q.index('id="sens-go"'), "with ?q= the matches come first, above the call")
 r = client.get(f"/v/{VIN}/sensors?status=bogus")
-check(len(re.findall(r'<details class="sens-item"', r.text)) == len(SENSORS), "bad status ignored")
+check(len(re.findall(r'<details class="fold sens-item sens-prow"', r.text)) == len(SENSORS), "bad status ignored")
 a_chips = html.count('class="sens-chip ')
 check(a_chips >= 4 and "min-height: var(--tap, 44px); padding: 4px 14px" in css, "status chips are 44 px")
 
@@ -511,6 +517,91 @@ _sus = {"values": [{"label": "Throttle position, sensor 2", "value": 0.39, "unit
 _sr = sensor_direct.sensor_row(_sus)
 check(_sr["chip"] == "Suspect - check decoding" and _sr["kind"] == "never" and _sr["reading"] == "" and "Suspect" in _sr["line"],
       "suspect row: neutral chip, no number in the collapsed row")
+
+# --- Bench-screen layout: priority rows, the one-line call, two states, one-tap inspection -----------------------------
+_pn = {"inv": 1, "sus": 2, "unc": 3, "map": 4, "baro": 5, "nod": 6, "good": 7}
+_psens = [
+    sensor("good", "Good sensor", "green", "roof", last_read="2026-10-25T10:00:00"),
+    sensor("nod", "Silent sensor", "grey", "roof", readable=False, last_read=None, values=[]),
+    sensor("baro", "Barometric sensor", "green", "roof", channels=["barometric_pressure"], last_read="2026-10-25T09:30:00"),
+    sensor("map", "MAP sensor", "green", "roof", channels=["intake_map"], element_id="map_el", last_read="2026-10-25T09:00:00"),
+    sensor("unc", "Fuel level sensor", "green", "roof", channels=["ecm_1001"], last_read="2026-10-25T11:00:00"),
+    sensor("sus", "Throttle B", "grey", "roof", suspect=True, last_read="2026-10-25T08:00:00",
+           reasons=["Suspect - check decoding: Throttle B: disagrees with throttle A."]),
+    sensor("inv", "Boost sensor", "grey", "roof", no_valid=True, last_read="2026-10-25T07:00:00",
+           reasons=["No valid reading for Boost: raw -32768 = not available marker."],
+           values=[{"channel": "value", "label": "Boost", "value": -32.7, "unit": "bar", "invalid": "raw -32768 = not available marker",
+                    "read_at": "t", "range": None, "in_range": None}]),
+]
+_cc = [{"status": "DISAGREE", "title": "MAP vs barometric pressure, engine off", "unit": "kPa", "would_be": "", "tolerance": {"text": "within 10 kPa"},
+        "condition_text": "engine stopped (RPM 0)", "suspects": "suspect MAP (PID 0B); Barometric (PID 33) agrees elsewhere", "reason": "",
+        "sides": [{"key": "intake_map", "label": "MAP (PID 0B)", "value": 32.0, "confirmed": True},
+                  {"key": "barometric_pressure", "label": "Barometric (PID 33)", "value": 100.0, "confirmed": True}]},
+       {"status": "UNCONFIRMED DECODING", "title": "Fuel level: PID 2F vs ECM DID 1001", "unit": "%", "would_be": "AGREE", "tolerance": {"text": "within 5 %"},
+        "condition_text": "none (always applies)", "suspects": "", "reason": "",
+        "sides": [{"key": "fuel_level", "label": "Fuel level (PID 2F)", "value": 50.0, "confirmed": True},
+                  {"key": "ecm_1001", "label": "Fuel tank level (ECM DID 1001)", "value": 49.0, "confirmed": False}]}]
+_prow = sensor_direct.direct(_psens, _pn, [], {}, [])["rows"]
+_pr = sensor_direct.priority_rows(_psens, _prow, _pn, _cc)
+check([x["s"]["id"] for x in _pr][:4] == ["inv", "sus", "unc", "map"],
+      f"row order: invalid, suspect, unconfirmed decoding, cross-check disagreement ({[x['s']['id'] for x in _pr]})")
+check([x["group"] for x in _pr] == ["invalid", "suspect", "suspect", "crosscheck", "crosscheck", "nodata", "ok"]
+      and [x["word"] for x in _pr] == ["Invalid", "Suspect", "Unconfirmed decoding", "Suspect", "Suspect", "Not recorded", "OK"],
+      f"groups and the shared validity words ({[(x['group'], x['word']) for x in _pr]})")
+check(_pr[3]["s"]["id"] == "map" and _pr[3]["sub"] < _pr[4]["sub"], "cross-check: the sensor the check names as the culprit comes first")
+check(_pr[0]["reading"] == "no valid value" and _pr[5]["reading"] == "no channel", "no value is shown as a number: invalid / no channel reasons instead")
+_pc = sensor_direct.page_call(_pr, {"counts": {"total": 2, "DISAGREE": 1}})
+check(_pc["sid"] == "map" and _pc["text"].startswith("MAP sensor: MAP (PID 0B) 32 kPa vs Barometric (PID 33) 100 kPa disagree at engine stopped (RPM 0)")
+      and "check its connector" in _pc["text"] and _pc["eid"] == "map_el", f"call: a disagreeing cross-check names the sensor ({_pc['text']})")
+_pc2 = sensor_direct.page_call([x for x in _pr if x["group"] != "crosscheck"], None)
+check(_pc2["sid"] == "inv" and "Invalid" in _pc2["text"], f"call without a disagreement: the top invalid sensor ({_pc2['text']})")
+_pc3 = sensor_direct.page_call([x for x in _pr if x["group"] == "ok"], None)
+check(_pc3["text"].startswith("All 1 sensors read plausibly") and "last read" in _pc3["text"] and _pc3["sid"] == "",
+      f"call when everything is fine ({_pc3['text']})")
+check(sensor_direct.age_text(54000) == "15 h ago" and sensor_direct.age_text(30) == "just now" and sensor_direct.age_text(None) == "never",
+      "age phrases")
+
+# the two states
+check("<b>Not connected</b> &mdash; tap Connect to car (top of page). Values are from Oct 25, 09:00." in html,
+      "not connected: the state line says so and names the date of the values")
+STRIP.update(buses_verified=1)
+sensor_routes._live_values = lambda: {"value": {"value": 1.5, "unit": "V"}}
+tc = client.get(f"/v/{VIN}/sensors").text
+check("<b>Connected</b>" in tc and tc.count('class="chip ok sens-live"') == len(SENSORS)
+      and "1.5 V" in tc and "live</span>" in tc and 'data-connected="1"' in tc,
+      "connected: state line, a live chip + live value on polled sensors, ages tick")
+check('data-age="' not in re.search(r'<details class="fold sens-item sens-prow" id="sensor-map".*?</summary>', tc, re.S).group(0), "a live row has no ticking age")
+sensor_routes._live_values = lambda: {}
+tc2 = client.get(f"/v/{VIN}/sensors").text
+check('class="chip ok sens-live"' not in tc2 and 'data-age="' in tc2, "connected without a live session: no live chip, ages still tick")
+STRIP.update(buses_verified=0)
+check('data-connected="0"' in html and "setInterval" in html, "script ticks only when connected (flag in markup)")
+
+# one-tap inspection on the sensor's electrical element, no typing, never a value edit
+_insp: list = []
+from cuore.services import electrical_bridge  # noqa: E402
+_orig_add = electrical_bridge.add_inspection
+electrical_bridge.add_inspection = lambda vin, element, condition, by="technician", note="", media_ids=None: _insp.append((vin, element, condition, by, note)) or {}
+check(html.count('class="sens-one"') == 1 and "Checked OK" in html, "Checked OK button only on sensors that have an electrical element")
+r = client.post(f"/v/{VIN}/sensors/inspect", data={"sensor_id": "cam", "element": "hacked", "condition": "loose"})
+check(r.status_code == 303 and _insp == [(VIN, "rev_cam", "ok", "mechanic", "Checked OK from the Sensors page (one tap)")]
+      and "Recorded" in unquote(r.headers["location"]) and r.headers["location"].endswith("#sensor-cam"),
+      f"inspect POST records condition ok on the registry's element, ignoring any element/condition in the form ({_insp})")
+_insp.clear()
+r = client.post(f"/v/{VIN}/sensors/inspect", data={"sensor_id": "map"})
+check(r.status_code == 303 and not _insp and "Not recorded" in unquote(r.headers["location"]), "no element: nothing recorded, says so")
+electrical_bridge.add_inspection = _orig_add
+
+# value history per sensor, and a CSV per sensor
+rh = client.get(f"/v/{VIN}/sensors/readings?sensor=oil_temp").text
+check("Oil temperature" in rh and "Coolant temperature" not in rh and "Sensor readings: Oil temperature" in rh, "readings page filters to one sensor")
+cv = client.get(f"/v/{VIN}/sensors/readings.csv?sensor=coolant_temp").content.decode("utf-8-sig")
+check(len(cv.strip().splitlines()) == 3 and "Oil temperature" not in cv, "CSV filters to one sensor")
+check('href="/v/%s/sensors/readings?sensor=map"' % VIN in html and 'readings.csv?sensor=map"' in html, "each row links its value history and its CSV")
+
+# type scale: the new rules use --fs-* tokens only
+_newcss = css.split("Sensors page, Bench-screen layout")[1]
+check(not re.search(r"font-size:\s*[\d.]+(px|rem)", _newcss), "new CSS: no literal font sizes")
 
 print(f"{passed}/{passed + len(failures)} checks passed")
 for f in failures:

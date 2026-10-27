@@ -300,7 +300,7 @@ def index(request: Request) -> HTMLResponse:
     from ..services import flow_bridge
     vin = flow_bridge.current_vehicle()
     if vin:
-        return RedirectResponse(url=f"/v/{vin}/job", status_code=303)
+        return RedirectResponse(url=f"/v/{vin}", status_code=303)   # the Bench is the mechanic's home
     return RedirectResponse(url="/start", status_code=303)
 
 

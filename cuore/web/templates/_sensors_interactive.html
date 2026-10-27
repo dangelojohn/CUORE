@@ -1,0 +1,128 @@
+{# Sensors "Outline": side / top car outline, every sensor a 44 px tap target coloured by VALIDITY, with an inline card.
+   Embeddable partial. Context: vin, and optionally sio = cuore.services.sensors_interactive.outline(vin, sensor)
+   (else the sensors_interactive_outline() Jinja global is called with ?sensor=). No JavaScript needed: every marker is a
+   link to ?sensor=<id> (that sensor and its cross-check partners are highlighted and its card is open), and all cards are
+   listed under the drawing in a details.fold. With JavaScript (sensors_interactive.js) a tap shows the card inline and
+   a connected session's SSE stream moves the value markers. Marker = shape + number + colour; the legend names each.
+   Font sizes come from the --fs-* tokens in the stylesheet only. #}
+{% if sio is not defined and sensors_interactive_outline is defined %}{% set sio = sensors_interactive_outline(vin, request.query_params.get('sensor') if request is defined and request else None, request.query_params.get('token') if request is defined and request else '') %}{% endif %}
+
+{% macro rowbar(r) %}
+  {% set b = r.band %}
+  <li class="si-row s-{{ r.state }} v-{{ r.validity }}" data-channel="{{ r.channel }}" data-unit="{{ r.unit }}" data-validity="{{ r.validity }}"
+      {% if b %}data-min="{{ b.scale[0] }}" data-max="{{ b.scale[1] }}" data-blo="{{ b.lo }}" data-bhi="{{ b.hi }}" data-idle="{{ 1 if b.idle else 0 }}" data-applies="{{ '' if b.applies is none else (1 if b.applies else 0) }}" data-cond="{{ b.conditions }}"{% endif %}
+      {% if r.plaus %}data-plo="{{ r.plaus[0] }}" data-phi="{{ r.plaus[1] }}"{% endif %}>
+    <div class="si-rowhead"><span class="si-name">{{ r.name }}</span>
+      <span class="si-st" data-role="state"><span aria-hidden="true" data-role="glyph">{{ r.glyph }}</span> <span data-role="state-text">{{ r.state_text }}</span></span></div>
+    <p class="si-val">{% if r.missing %}<span class="si-num" data-role="value">Not recorded</span>{% else %}<span class="si-num" data-role="value">{{ r.value_text }}</span>{% endif %}
+      <span class="si-age" data-role="age">{% if r.live %}live{% elif r.age %}{{ r.age }}{% endif %}</span></p>
+    <p class="si-valid" data-role="valid">{% if r.validity == 'ok' %}{% if r.missing %}No reading on record.{% else %}Valid reading.{% endif %}
+      {% elif r.validity == 'invalid' %}Invalid: {{ r.why }}.
+      {% elif r.validity == 'suspect' %}Suspect: {{ r.why }}.
+      {% else %}Unconfirmed decoding: {{ r.why }}.{% endif %}{% if r.redecoded %} <span class="si-muted">({{ r.redecoded }})</span>{% endif %}</p>
+    {% if b %}
+    <div class="si-bar" data-role="bar" role="img" aria-label="{{ r.name }}: {{ r.state_text }}. Expected band {{ b.text }}.">
+      <span class="si-band" style="left:{{ ((b.lo - b.scale[0]) / (b.scale[1] - b.scale[0]) * 100)|round(1) }}%;width:{{ ((b.hi - b.lo) / (b.scale[1] - b.scale[0]) * 100)|round(1) }}%"></span>
+      <span class="si-marker" data-role="marker"{% if r.pos is none %} hidden{% else %} style="left:{{ r.pos }}%"{% endif %}></span>
+    </div>
+    <p class="si-scale"><span>{{ b.scale[0]|round(1) }}</span><span class="si-bandlabel">expected {{ b.text }}</span><span>{{ b.scale[1]|round(1) }}</span></p>
+    <p class="si-src"><b>Expected for:</b> {{ b.conditions or 'no condition stated' }}.{% if b.applies_note %} <span data-role="cond">Car: {{ b.applies_note }}.</span>{% endif %}
+      {{ 'Generic guideline' if b.generic else 'Band' }}, {{ b.confidence|lower|replace('_', ' ') }}{% if b.source %}; source: {{ b.source|truncate(110) }}{% endif %}.</p>
+    {% else %}
+    <p class="si-src"><b>Expected band:</b> none on record for this channel{% if r.parts %} (a multi-part value has no single band){% endif %}.</p>
+    {% endif %}
+  </li>
+{% endmacro %}
+
+{% macro card(c, cid) %}
+  <article class="si-card si-card-{{ c.state }}"{% if cid %} id="{{ cid }}" tabindex="-1"{% endif %} data-sensor="{{ c.id }}" data-partners="{{ c.partners|join(' ') }}">
+    <h4 class="si-ch"><span class="si-mark si-key si-st-{{ c.state }}" aria-hidden="true"><span class="si-n">{{ c.n }}</span></span> {{ c.label }}</h4>
+    <p class="si-which"><b class="si-chip si-st-{{ c.state }}"><span aria-hidden="true">{{ c.glyph }}</span> {{ c.state_label }}</b> {{ c.why|truncate(320) }}</p>
+    {% if c.codes %}<p class="si-which">Stored code{{ 's' if c.codes|length > 1 }}: {% for k in c.codes %}{{ k.code }} ({{ k.state }}){{ ', ' if not loop.last }}{% endfor %}.</p>{% endif %}
+    {% if c.stale %}<p class="si-which">{{ c.health_reason }}</p>{% endif %}
+    {% if c.rows %}<ul class="si-rows" aria-label="Readings of {{ c.label }}">{% for r in c.rows %}{{ rowbar(r) }}{% endfor %}</ul>
+    {% else %}<p class="si-note">No live channel in CUORE for this sensor{% if c.readable_note %}: {{ c.readable_note }}{% endif %}. Nothing is shown rather than guessed.</p>{% endif %}
+
+    <h5 class="si-h5">Partner readings</h5>
+    {% if c.rules %}
+      {% for r in c.rules %}
+      <div class="si-rule si-rule-{{ r.css }}">
+        <p class="si-rule-h"><b class="si-chip si-rc-{{ r.css }}"><span aria-hidden="true">{{ r.mark }}</span> {{ r.word }}</b> {{ r.title }}{% if r.age %} <span class="si-muted">({{ r.age }})</span>{% endif %}</p>
+        <ul class="si-sides">{% for sd in r.sides %}<li>{{ sd.label }}: <b>{{ sd.value_text }}</b>{% if sd.at %} <span class="si-muted">({{ sd.at }})</span>{% endif %}{% if not sd.confirmed %} <span class="si-muted">- unconfirmed decoding</span>{% endif %}</li>{% endfor %}</ul>
+        <p class="si-src">{{ r.reason|truncate(260) }}{% if r.would_be %} If the decodings were confirmed this would read: {{ r.would_be }}.{% endif %} Tolerance {{ r.tolerance }}; applies when {{ r.condition }}.</p>
+      </div>
+      {% endfor %}
+      {% if c.partner_labels %}<p class="si-partners"><b>Partner sensors:</b>
+        {% for p in c.partner_labels %}<a class="si-pl" href="{{ p.href }}" data-sensor="{{ p.id }}">{{ p.n }} {{ p.label|truncate(40) }} ({{ p.state_label }})</a>{% endfor %}</p>
+      {% else %}<p class="si-note">None of the readings above belongs to another sensor of this list.</p>{% endif %}
+    {% else %}<p class="si-note">No cross-check rule names this sensor's channels, so there is no partner reading to compare.</p>{% endif %}
+
+    <dl class="si-dl">
+      <dt>Where</dt>
+      <dd>{% if c.zone_label %}Drawn in: {{ c.zone_label }}.{% else %}Not placed on the drawing: no sourced zone.{% endif %}
+        <span class="si-muted">({{ c.loc_conf_word }}{% if c.loc_source %}; {{ c.loc_source|truncate(150) }}{% endif %})</span></dd>
+      <dt>Element</dt>
+      <dd>{% if c.element %}{{ c.element.label }}{% if c.element.kind %} ({{ c.element.kind|replace('_', ' ') }}){% endif %}.{% if c.element.hint %} Look for: {{ c.element.hint|truncate(220) }}.{% endif %}{% if c.element.tsb_refs %} Bulletins: {{ c.element.tsb_refs|join(', ') }}.{% endif %}{% else %}No electrical element is linked to this sensor.{% endif %}</dd>
+      <dt>Connector</dt>
+      <dd>{% if c.connector %}{{ c.connector.label }}.{% else %}Not on record for this sensor.{% endif %}</dd>
+      <dt>Harness</dt>
+      <dd>{% if c.harness %}{% for h in c.harness %}{{ h.title }}{{ '; ' if not loop.last }}{% endfor %}.{% else %}Not on record for this sensor.{% endif %}</dd>
+      <dt>Module</dt>
+      <dd>{{ c.module }}{% if c.bus %}, bus {{ c.bus|replace('_', '-')|upper }}{% endif %}{% if c.last_read %}; last read {{ c.last_read[:16] }}{% endif %}.</dd>
+    </dl>
+    <p class="si-links">
+      {% if c.path_href %}<a class="si-btn si-pathlink" href="{{ c.path_href }}">Electrical path for: {{ c.label|truncate(48) }} ({{ c.path_code }}, {{ c.path_from }}) &rarr;</a>{% endif %}
+      {% if c.layout_href %}<a class="si-btn si-open" href="{{ c.layout_href }}">Open in layout &rarr;</a>{% endif %}
+      <a class="si-btn" href="{{ c.data_href }}">Sensor data</a>
+      <a class="si-btn" href="{{ c.readings_href }}">Saved readings</a>
+      <a class="si-btn" href="{{ c.csv_href }}">CSV</a>
+    </p>
+  </article>
+{% endmacro %}
+
+{% if sio %}
+<link rel="stylesheet" href="{{ static_url('sensors_interactive.css') }}">
+<section class="si" id="si" aria-labelledby="si-h" data-live="{{ 1 if sio.connected else 0 }}" data-stream="{{ sio.stream_url }}" data-base="{{ sio.base }}">
+  <h3 class="si-h" id="si-h">Sensors on the car</h3>
+  {% if sio.error %}<p class="si-note">{{ sio.error }}</p>
+  {% elif not sio.sensors %}<p class="si-note">No sensors are registered for this vehicle.</p>
+  {% else %}
+  <p class="si-stream" id="si-stream" role="status" data-state="{{ 'live' if sio.connected else 'off' }}">{% if sio.connected %}A session is open: values update as it reads them.{% else %}{{ sio.connect_text }}{% endif %}</p>
+  <ul class="si-legend" aria-label="Legend: validity of each sensor's latest reading">
+    {% for l in sio.legend %}<li><span class="si-mark si-key si-st-{{ l.key }}" aria-hidden="true"><span class="si-n">{{ l.glyph }}</span></span> <span><b>{{ l.label }}</b> ({{ l.n }}): {{ l.means }}</span></li>{% endfor %}
+    <li><span class="si-mark si-key si-st-ok is-sel" aria-hidden="true"><span class="si-n">&bull;</span></span> <span><b>Selected</b>: solid dark ring</span></li>
+    <li><span class="si-mark si-key si-st-ok is-partner" aria-hidden="true"><span class="si-n">&bull;</span></span> <span><b>Partner</b>: dashed blue ring, a sensor whose reading is cross-checked against the selected one</span></li>
+  </ul>
+
+  <div class="si-views">
+    <input class="si-radio" type="radio" name="si-view" id="si-v-side" checked>
+    <input class="si-radio" type="radio" name="si-view" id="si-v-top">
+    <div class="si-tabs" role="group" aria-label="Car view"><label for="si-v-side">Side</label><label for="si-v-top">Top</label></div>
+    {% for v in ['side', 'top'] %}
+    {% set vw = sio.views[v] %}
+    <figure class="si-fig si-fig-{{ v }}">
+      <figcaption>{% if v == 'side' %}Side view: the car's left (driver's) side, front to the left. Right-side sensors are on the Top view.{% else %}Top view: looking down, front to the left; left (driver's) side at the bottom. Each marker is an area, not an exact spot.{% endif %}</figcaption>
+      <div class="si-stage">{{ vw.svg|safe }}
+        {% for m in vw.marks %}<a class="si-mark si-st-{{ m.state }}{{ ' is-sel' if m.sel }}{{ ' is-partner' if m.partner }}" href="{{ m.href }}" data-sensor="{{ m.id }}" data-partners="{{ m.partners }}"
+           style="left:{{ m.left }}%;top:{{ m.top }}%" aria-label="{{ m.n }}: {{ m.label }}: {{ m.state_label }}{{ ' (selected)' if m.sel }}{{ ' (partner of the selected sensor)' if m.partner }}"{% if m.sel %} aria-current="true"{% endif %}><span class="si-n">{{ m.n }}</span></a>{% endfor %}
+      </div>
+      {% if vw.unfit %}<p class="si-unplaced"><b>No room on this view:</b>
+        {% for c in vw.unfit %}<a class="si-pl" href="{{ c.href }}" data-sensor="{{ c.id }}">{{ c.n }} {{ c.label|truncate(36) }} ({{ c.state_label }})</a>{% endfor %}</p>{% endif %}
+    </figure>
+    {% endfor %}
+    <p class="si-credit">{{ sio.credit.text }} (<a href="{{ sio.credit.photo }}" rel="noopener">photo</a>, <a href="{{ sio.credit.licence }}" rel="noopener">licence</a>)</p>
+  </div>
+
+  {% if sio.unplaced %}<p class="si-unplaced"><b>Not placed on the drawing (location unknown):</b>
+    {% for c in sio.unplaced %}<a class="si-pl" href="{{ c.href }}" data-sensor="{{ c.id }}">{{ c.n }} {{ c.label|truncate(36) }} ({{ c.state_label }})</a>{% endfor %}</p>{% endif %}
+
+  <div class="si-pop" id="si-pop" role="region" aria-label="Selected sensor" aria-live="polite"{% if not sio.selected_card %} hidden{% endif %}>{% if sio.selected_card %}{{ card(sio.selected_card, none) }}{% endif %}</div>
+
+  <details class="fold si-fold" id="si-fold" open>
+    <summary>All {{ sio.sensors|length }} sensors: latest value, expected band, partners</summary>
+    <ol class="si-cards">{% for c in sio.sensors %}<li class="si-item">{{ card(c, 'si-card-' ~ c.id) }}</li>{% endfor %}</ol>
+  </details>
+  {% endif %}
+</section>
+<script src="{{ static_url('sensors_interactive.js') }}" defer></script>
+{% endif %}

@@ -39,6 +39,7 @@
       {% if s.oe_alfa %}<p class="small"><b>Alfa OE numbers:</b> <span class="mono">{{ s.oe_alfa|join(", ") }}</span></p>{% endif %}
       {% if s.retailer %}<p class="std-retail">Retailer price (not a quote): <b>{{ s.retailer.price }}</b> at {{ s.retailer.shop }} ({{ s.retailer.fetched }}){% if s.retailer.url %} · <a href="{{ s.retailer.url }}" target="_blank" rel="noopener">listing</a>{% endif %}</p>{% endif %}
       {% if _mode != "fit" %}
+      {% if std_q and std_q(s) %}<p class="note warn small"><span class="lab">Open question</span> {{ std_q(s) }}</p>{% endif %}
       {% if s.oe_numbers %}<details class="std-fold"><summary>All {{ s.oe_numbers|length }} OE / cross-reference numbers</summary>
         <ul class="mono">{% for o in s.oe_numbers %}<li>{{ o.number }} <span class="muted">{{ o.maker }}</span></li>{% endfor %}</ul></details>{% endif %}
       {% if s.other_specs %}<details class="std-fold"><summary>More specs ({{ s.other_specs|length }})</summary>

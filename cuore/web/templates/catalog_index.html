@@ -6,7 +6,6 @@
 {% block content %}
 {% include "_catalog_style.html" %}
 <h1>Parts catalogue</h1>
-{% include "_standard_parts.html" %}
 {% if not cat %}
   <div class="note warn"><span class="lab">Not built yet</span>
     The catalogue has not been built on this computer. Run
@@ -37,10 +36,10 @@
     <div class="cat-wrap"><table class="cat-table">
       <thead><tr><th class="ref">Ref</th><th>Part number</th><th>Part name / description</th><th>Schematic</th></tr></thead>
       <tbody>{% for h in hits %}
-        <tr class="{{ 'other-engine' if h.fitment == 'other-engine' }}" data-href="/catalog/p/{{ h.pn }}">
+        <tr class="{{ 'other-engine' if h.fitment == 'other-engine' }}" data-href="{{ h.href or ('/catalog/p/' ~ h.pn) }}">
           <td class="ref">{{ h.ref }}</td>
-          <td class="pn"><a href="/catalog/p/{{ h.pn }}">{{ h.pn }}</a></td>
-          <td>{{ h.name }}{% if h.description %}<div class="sub">{{ h.description }}</div>{% endif %}
+          <td class="pn"><a href="{{ h.href or ('/catalog/p/' ~ h.pn) }}">{{ h.pn }}</a></td>
+          <td>{{ h.name }}{% if h.standard %} <span class="cat-tag ok">Standard on this car: {{ std_label(h.standard) }}</span>{% endif %}{% if h.flag %} <span class="cat-tag warn">{{ h.flag }}</span>{% endif %}{% if h.description %}<div class="sub">{{ h.description }}</div>{% endif %}
               {% if h.fitment == 'other-engine' %}<span class="cat-tag">OTHER ENGINE</span>{% endif %}</td>
           <td><a href="/catalog/d/{{ h.diagram_id }}">{{ h.diagram_title }}</a><div class="sub">{{ h.section }}</div></td>
         </tr>{% endfor %}</tbody>

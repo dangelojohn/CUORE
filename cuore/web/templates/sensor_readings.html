@@ -4,15 +4,16 @@
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('sensors.css') }}">
 {% set base = "/v/" ~ vin ~ "/sensors" %}
-<div class="sens-page">
-<h1>Sensor readings</h1>
+<div class="sens-page sens-col sens-readings-page">
+<h1>Sensor readings{% if sensor %}: {{ sensor_label or sensor }}{% endif %}</h1>
 <p class="lede">Every value CUORE saved from each "Check all sensors", one column per check, newest first, so checks can be compared. Raw values only: nothing here is judged.</p>
-<p class="sens-actions"><a class="btn" href="{{ base }}">Back to sensor health</a>
-  <a class="btn" href="{{ base }}/readings.csv">Download all readings (CSV)</a>
-  <span class="muted small">{{ total_checks }} check(s) saved{% if total_checks > cols|length %}, showing the last {{ cols|length }}{% endif %}</span></p>
+<p class="sens-actions"><a class="btn" href="{{ base }}{% if sensor %}#sensor-{{ sensor|urlencode }}{% endif %}">Back to sensor health</a>
+  <a class="btn" href="{{ base }}/readings.csv{% if sensor %}?sensor={{ sensor|urlencode }}{% endif %}">Download {{ 'these readings' if sensor else 'all readings' }} (CSV)</a>
+  {% if sensor %}<a class="btn" href="{{ all_href }}">All sensors</a>{% endif %}
+  <span class="muted">{{ total_checks }} check(s) saved{% if total_checks > cols|length %}, showing the last {{ cols|length }}{% endif %}</span></p>
 
-{% if not cols %}
-  <p class="panel muted">No sensor check saved yet. Run "Check all sensors" on the sensor health page.</p>
+{% if not cols or (sensor and not rows) %}
+  <p class="panel muted">{% if sensor %}No saved reading for this sensor yet (none of its channels was read by a check).{% else %}No sensor check saved yet. Run "Check all sensors" on the sensor health page.{% endif %}</p>
 {% else %}
 <div class="sens-readings-wrap">
 <table class="sens-readings">
@@ -22,7 +23,7 @@
   <tbody>
   {% for r in rows %}
     <tr><td>{{ r.sensors|join(", ") or "—" }}</td>
-      <td>{{ r.name }}{% if r.part %} · {{ r.part }}{% endif %}<br><span class="muted small">{{ r.channel }}</span></td>
+      <td>{{ r.name }}{% if r.part %} · {{ r.part }}{% endif %}<br><span class="muted">{{ r.channel }}</span></td>
       <td>{{ r.unit }}</td>
       {% for at in cols %}{% set c = r.cells.get(at) %}
         <td class="{{ 'err' if c and c.err }}">{% if c %}{{ c.text }}{% else %}<span class="muted">—</span>{% endif %}</td>

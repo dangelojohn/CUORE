@@ -55,15 +55,25 @@
           <tr class="{{ 'other-engine' if p.fitment == 'other-engine' }}" data-href="/catalog/p/{{ p.pn }}">
             <td class="ref">{{ p.ref }}</td>
             <td class="pn"><a href="/catalog/p/{{ p.pn }}">{{ p.pn }}</a></td>
-            <td>{{ p.name }}{% if p.fitment == 'other-engine' %} <span class="cat-tag">OTHER ENGINE</span>{% endif %}
+            <td>{{ p.name }}{% if p.standard %} <span class="cat-tag ok">Standard on this car: {{ std_label(p.standard) }}</span>{% endif %}{% if p.fitment == 'other-engine' %} <span class="cat-tag">OTHER ENGINE</span>{% endif %}
                 {% if p.description %}<div class="sub">{{ p.description }}</div>{% endif %}
                 {% if p.notes %}<div class="sub">{{ p.notes }}</div>{% endif %}
                 {% for k, v in p.info.items() %}<div class="sub">{{ k }}: {{ v }}</div>{% endfor %}</td>
             <td>{% for s in p.specs %}<div class="cat-tq" title="{{ s.item }} ({{ s.confidence }}; matched by name)">{{ s.value }}{% if s.angle %} + {{ s.angle }}{% endif %}</div>{% if s.single_use %}<span class="cat-tag warn">REPLACE</span>{% endif %}{% else %}<span class="muted">–</span>{% endfor %}</td>
-          </tr>{% else %}<tr><td colspan="4" class="muted">No part matches these filters. <a href="/catalog/d/{{ d.id }}">Clear filters</a></td></tr>{% endfor %}</tbody>
+          </tr>{% else %}{% if not own_rows %}<tr><td colspan="4" class="muted">No part matches these filters. <a href="/catalog/d/{{ d.id }}">Clear filters</a></td></tr>{% endif %}{% endfor %}
+          {% for o in own_rows %}<tr data-href="#{{ o.anchor }}">
+            <td class="ref">{{ o.ref }}</td>
+            <td class="pn"><a href="#{{ o.anchor }}">{{ o.pn }}</a></td>
+            <td>{{ o.name }} <span class="cat-tag ok">Standard on this car: {{ std_label(o.standard) }}</span> <span class="cat-tag warn">{{ o.flag }}</span>
+                <div class="sub">{{ o.description }}</div></td>
+            <td><span class="muted">–</span></td>
+          </tr>{% endfor %}</tbody>
       </table></div>
       <p class="cat-src">Torque column: a torque value whose description names this part (matched by name; confirm against the fastener on the drawing). Side and option-code filters read the catalogue's own wording; parts without a side or option tag always show.</p>
     </section>
+    {% if own_rows %}
+    <div id="{{ own_rows[0].anchor }}">{% include "_standard_parts.html" %}</div>
+{% endif %}
     {% set notes = d.notes %}{% include "_catalog_mechanic.html" %}
     <div class="cat-pager">
       <span>{% if d.prev %}<a href="/catalog/d/{{ d.prev }}">‹ Previous schematic</a>{% endif %}</span>
