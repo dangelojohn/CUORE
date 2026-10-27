@@ -206,8 +206,9 @@ def open_job(vin: str, proc: str = "") -> Optional[dict[str, str]]:
 
 
 class Run:
-    def __init__(self, proc: str, car: SimCar) -> None:
+    def __init__(self, proc: str, car: SimCar, owner: str = "") -> None:
         self.id = secrets.token_hex(6)
+        self.owner = owner                  # controller id (login session or screen cookie); STOP is open to anyone
         self.proc, self.car = proc, car
         self.t0 = CLOCK()
         self.state = "running"
@@ -343,21 +344,25 @@ def _service_after(car: SimCar) -> list[tuple[str, str]]:
     return [(n, d[n]) for n, _ in SERVICE_BEFORE]
 
 
-def start(proc: str, token: str, car: Optional[SimCar] = None) -> tuple[Optional[Run], str]:
-    """Consume the token and start. Returns (run, "") or (None, refusal line)."""
+def start(proc: str, token: str, car: Optional[SimCar] = None, owner: str = "") -> tuple[Optional[Run], str]:
+    """Consume the token and start. Returns (run, "") or (None, refusal line).
+    One controller at a time: any running procedure refuses a start; ``owner`` identifies the controller."""
     car = car or CAR
     reap()
     with _LOCK:
         if not token or _TOKENS.get(token) != proc:
             return None, "Start refused: no valid one-time token. Re-check READY first."
         _TOKENS.pop(token, None)                      # single use, consumed even when refused below
-        if active_run():
-            return None, "Start refused: running on another screen. STOP it first."
+        busy = active_run()
+        if busy:
+            if owner and busy.owner == owner:
+                return None, "Start refused: a procedure is already running on this screen. STOP it first."
+            return None, "Start refused: Running on another screen. STOP it first."
         rd = readiness(proc, car)
         if not rd["ready"]:
             b = (rd["blockers"] or [{"label": "a question", "unblock": "Answer the question"}])[0]
             return None, f"Start refused: {b['label']} - {b['unblock']}."
-        run = Run(proc, car)
+        run = Run(proc, car, owner)
         for old in [k for k, v in RUNS.items() if v.state != "running"][:-49]:
             RUNS.pop(old, None)                       # keep the newest finished runs only
         RUNS[run.id] = run
@@ -382,8 +387,9 @@ def stop(run_id: str, reason: str = "stop") -> Optional[Run]:
     return run
 
 
-async def stream_events(run_id: str, interval: float = 0.5):
-    """Server-sent events for one run. If the consumer goes away while the run is live, the run is stopped."""
+async def stream_events(run_id: str, interval: float = 0.5, viewer: bool = False):
+    """Server-sent events for one run. If the controller's consumer goes away while the run is live, the run is
+    stopped. A view-only consumer (``viewer``) going away never stops it."""
     import asyncio
     run = RUNS.get(run_id)
     try:
@@ -396,5 +402,5 @@ async def stream_events(run_id: str, interval: float = 0.5):
             await asyncio.sleep(interval)
         yield "event: done\ndata: {}\n\n"
     finally:
-        if run is not None and run.state == "running":
+        if run is not None and not viewer and run.state == "running":
             run.finish("disconnect")

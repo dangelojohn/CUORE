@@ -113,6 +113,42 @@ check("env token honoured", c4.get(PAGE + "?token=env-token").status_code == 200
 check("env beats file", c4.get(PAGE + "?token=another-token").status_code == 302)
 os.environ.pop("CUORE_TOKEN")
 
+# --- rate limit: 5 failures / 10 min per client -> 429 + Retry-After ---------------
+from cuore.web import login_routes  # noqa: E402
+
+Path(STATE, "web_token.txt").write_text(TOKEN + "\n", encoding="utf-8")
+login_routes._FAILS.clear()
+c5 = client()
+XF = {"X-Forwarded-For": "203.0.113.9, 10.0.0.1"}
+codes = [c5.get("/login?token=bad%d" % i, headers=XF).status_code for i in range(5)]
+check("5 wrong tries are 403", codes == [403] * 5, str(codes))
+r = c5.get("/login?token=bad6", headers=XF)
+check("6th failed attempt -> 429", r.status_code == 429, str(r.status_code))
+check("429 has Retry-After", r.headers.get("retry-after", "").isdigit() and 0 < int(r.headers["retry-after"]) <= 600,
+      r.headers.get("retry-after", ""))
+check("429 page says when to retry", "Try again in" in r.text and "bad6" not in r.text)
+r = c5.get(f"/login?token={TOKEN}", headers=XF)
+check("correct token still locked out while limited", r.status_code == 429 and "set-cookie" not in r.headers)
+r = c5.post("/login", content="token=bad7", headers={**XF, "content-type": "application/x-www-form-urlencoded"})
+check("POST form also limited", r.status_code == 429)
+r = c5.get("/login?token=bad", headers={"X-Forwarded-For": "198.51.100.7"})
+check("another client unaffected", r.status_code == 403, str(r.status_code))
+tick = [login_routes.CLOCK()]
+login_routes.CLOCK = lambda: tick[0]
+login_routes._FAILS.clear()
+for i in range(5):
+    c5.get("/login?token=nope", headers=XF)
+check("locked at 5 (fake clock)", c5.get("/login?token=x", headers=XF).status_code == 429)
+tick[0] += 601
+check("window expires after 10 min", c5.get("/login?token=x", headers=XF).status_code == 403)
+login_routes._FAILS.clear()
+for i in range(4):
+    c5.get("/login?token=nope", headers=XF)
+r = c5.get(f"/login?token={TOKEN}", headers=XF)
+check("success under the limit logs in", r.status_code == 302 and "cuore_session" in r.headers.get("set-cookie", ""))
+codes = [c5.get("/login?token=nope", headers=XF).status_code for _ in range(5)]
+check("success reset the counter (5 more wrong tries allowed)", codes == [403] * 5, str(codes))
+
 print(f"{checks} checks, {len(failures)} failed")
 for f in failures:
     print("FAIL:", f)

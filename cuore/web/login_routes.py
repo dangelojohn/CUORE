@@ -9,6 +9,10 @@ Not behind require_token (it *is* the way in).
 """
 from __future__ import annotations
 
+import logging
+import math
+import threading
+import time
 from urllib.parse import parse_qs
 
 from fastapi import APIRouter, Request
@@ -20,6 +24,39 @@ from ..api.deps import (COOKIE, SESSION_MAX_AGE, make_session, resolve_token,
 from .routes import templates
 
 router = APIRouter(include_in_schema=False)
+log = logging.getLogger("cuore.login")
+
+MAX_FAILS = 5                 # failed attempts allowed ...
+WINDOW = 10 * 60.0            # ... per this many seconds, per client
+CLOCK = time.monotonic        # tests replace this
+_FAILS: dict[str, list[float]] = {}
+_FLOCK = threading.Lock()
+
+
+def _client(request: Request) -> str:
+    xff = request.headers.get("x-forwarded-for", "")
+    first = xff.split(",")[0].strip()
+    return first or (request.client.host if request.client else "unknown")
+
+
+def _retry_after(client: str) -> int:
+    """Seconds until this client may try again (0 = not locked out)."""
+    with _FLOCK:
+        now = CLOCK()
+        hits = [t for t in _FAILS.get(client, []) if now - t < WINDOW]
+        if hits:
+            _FAILS[client] = hits
+        else:
+            _FAILS.pop(client, None)
+        if len(hits) < MAX_FAILS:
+            return 0
+        return max(1, math.ceil(WINDOW - (now - hits[0])))
+
+
+def _record_fail(client: str) -> None:
+    with _FLOCK:
+        _FAILS.setdefault(client, []).append(CLOCK())
+    log.warning("failed login from %s", client)      # never the token value
 
 
 def _form(request: Request, nxt: str, error: str, status: int) -> HTMLResponse:
@@ -34,8 +71,19 @@ def _attempt(request: Request, offered: str, nxt: str):
     expected = resolve_token(settings_of(request).token)
     if not expected:
         return RedirectResponse(nxt, status_code=302)
+    client = _client(request)
+    wait = _retry_after(client)
+    if wait:
+        mins = math.ceil(wait / 60)
+        resp = _form(request, nxt, f"Too many wrong tries. Try again in {mins} minute"
+                     f"{'' if mins == 1 else 's'}.", 429)
+        resp.headers["Retry-After"] = str(wait)
+        return resp
     if not token_ok(offered, expected):
+        _record_fail(client)
         return _form(request, nxt, "That token is not correct.", 403)
+    with _FLOCK:
+        _FAILS.pop(client, None)
     resp = RedirectResponse(nxt, status_code=302)
     resp.set_cookie(COOKIE, make_session(expected), max_age=SESSION_MAX_AGE,
                     httponly=True, samesite="lax", path="/")

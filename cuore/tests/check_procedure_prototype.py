@@ -189,6 +189,41 @@ other, why5 = sim.start("esim-vent", sim.mint_token("esim-vent") or "")
 check(other is None, "second screen cannot start while one runs")
 sim.stop(run.id)
 
+# one controller across screens (two browsers = two cookies)
+fresh()
+scr_a, scr_b = TestClient(create_app()), TestClient(create_app())
+scr_a.get(f"{BASE}/esim-vent")
+scr_b.get(f"{BASE}/esim-vent")
+check(bool(scr_a.cookies.get("cuore_ctl")) and scr_a.cookies.get("cuore_ctl") != scr_b.cookies.get("cuore_ctl"), "each screen gets its own controller cookie")
+sim.answer("hood")
+ta_ = sim.mint_token("esim-vent")
+resp = scr_a.post(f"{BASE}/esim-vent/start", data={"token": ta_}, follow_redirects=False)
+rid_a = resp.headers["location"].split("run=")[1]
+check(sim.RUNS[rid_a].state == "running", "screen A starts and controls the run")
+pa = scr_a.get(f"{BASE}/esim-vent?run={rid_a}").text
+check("Running on another screen" not in pa and ">STOP<" in pa, "controller sees no 'another screen' notice")
+pb = scr_b.get(f"{BASE}/esim-vent").text
+check("Running on another screen" in pb and ">STOP<" in pb and "(guard)" in pb, "screen B sees view-only readings + STOP")
+sim.answer("hood")
+tb_ = sim.mint_token("esim-vent") or ""
+n_runs = len(sim.RUNS)
+resp = scr_b.post(f"{BASE}/esim-vent/start", data={"token": tb_}, follow_redirects=False)
+check(resp.status_code == 303 and "Running%20on%20another%20screen" in resp.headers["location"] and len(sim.RUNS) == n_runs,
+      "screen B start refused with 'Running on another screen'")
+check("Running on another screen" in scr_b.get(resp.headers["location"]).text and sim.RUNS[rid_a].state == "running" and sim.RUNS[rid_a].owner,
+      "refusal shown on B; A still owns a running run")
+sim.RUNS[rid_a].snapshot()
+check(sim.active_run() is sim.RUNS[rid_a], "first controller still owns it")
+async def _view_drop():
+    agen = sim.stream_events(rid_a, interval=0.01, viewer=True)
+    await agen.__anext__()
+    await agen.aclose()
+asyncio.run(_view_drop())
+check(sim.RUNS[rid_a].state == "running", "a view-only stream closing does not stop the run")
+now[0] += 2
+scr_b.post(f"{BASE}/esim-vent/stop", data={"run": rid_a}, follow_redirects=False)
+check(sim.RUNS[rid_a].state == "done" and sim.RUNS[rid_a].stop_reason == "stop", "screen B can STOP the run")
+
 # -- POST start -> run page; STOP POST stops
 fresh()
 tok = ready_esim()

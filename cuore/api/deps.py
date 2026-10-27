@@ -78,8 +78,8 @@ def _sign(sid: str, expected: str) -> str:
 
 
 def make_session(expected: str) -> str:
-    """A signed cookie value. HOOK (one controller): the random id below is
-    where a single-controller check would register/validate a session id."""
+    """A signed cookie value. The random id below is the one-controller key:
+    see :func:`session_id` (used by the procedure prototype routes)."""
     sid = f"{secrets.token_urlsafe(16)}.{int(time.time())}"
     return f"{sid}.{_sign(sid, expected)}"
 
@@ -95,6 +95,15 @@ def _valid_session(value: str | None, expected: str) -> bool:
     except (IndexError, ValueError):
         return False
     return 0 <= time.time() - issued <= SESSION_MAX_AGE
+
+
+def session_id(request: Request) -> str | None:
+    """The id inside a valid login cookie (one-controller key), else None."""
+    expected = resolve_token(settings_of(request).token)
+    value = request.cookies.get(COOKIE)
+    if not expected or not _valid_session(value, expected):
+        return None
+    return (value or "").rpartition(".")[0]
 
 
 def token_ok(offered: str, expected: str) -> bool:

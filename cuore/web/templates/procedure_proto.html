@@ -58,6 +58,7 @@
 
   {% elif view == "running" %}
   <section class="pp-card pp-run" aria-live="polite">
+    {% if not ctl %}<p class="pp-msg" role="alert"><b>Running on another screen.</b> This screen is view-only: live readings below. STOP works from here.</p>{% endif %}
     <h2>RUNNING <span id="pp-el">{{ '%d:%02d' % (snap.elapsed // 60, snap.elapsed % 60) }}</span> / 0:{{ max_run }}</h2>
     <form method="post" action="{{ base }}/{{ proc }}/stop">
       <input type="hidden" name="run" value="{{ run.id }}">
