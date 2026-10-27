@@ -1,0 +1,119 @@
+{# Systems "tap a system" map: each system is a 44 px+ target coloured and worded by its worst present fault.
+   Embeddable partial. Context: vin, and optionally sx = cuore.services.systems_interactive.map(vin, system)
+   (else the systems_interactive_map() Jinja global is called with ?system=). No JavaScript needed: a node is a link
+   to ?system=KEY (the card and the highlighting are then drawn by the server), and every system's dependency chain
+   and card are listed under the drawing in a details.fold. With JavaScript (systems_interactive.js) a tap
+   highlights on the same drawing and shows the card inline. Relations are never colour alone: each highlighted
+   node / part carries a word (Selected / Depends on / Shares a cause) and its own outline shape. --fs-* tokens only. #}
+{% macro sx_card(c, vin) %}
+<article class="sx-card">
+  <h4 class="sx-ch"><span class="sx-sevmark {{ c.node.cls }}" aria-hidden="true">{{ c.node.glyph }}</span> {{ c.label }}: {{ c.node.word }}</h4>
+
+  <h5 class="sx-sh">Present faults</h5>
+  {% if c.faults %}
+  <ul class="sx-faults">
+    {% for f in c.faults %}
+    <li><a class="sx-code" href="{{ f.href }}">{{ f.code }}</a> <span class="sx-chip {{ 'sx-chip-act' if f.status in ('active', 'permanent') else '' }}">{{ f.status_word }}</span>
+      <span class="sx-muted">{{ f.label|replace(f.code ~ ' ', '', 1)|truncate(90) }}{% if f.age %}; last seen {{ f.age }}{% endif %}</span></li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="sx-muted">No fault is present in this system now.{% if c.n_history %} {{ c.n_history }} earlier fault{{ 's' if c.n_history != 1 }} on record, none present.{% endif %}</p>{% endif %}
+  {% if c.faults and c.n_history %}<p class="sx-muted">{{ c.n_history }} more fault{{ 's' if c.n_history != 1 }} on record in this system, not present now.</p>{% endif %}
+
+  <h5 class="sx-sh">Dependency chain</h5>
+  <p class="sx-chain" aria-label="Dependency chain">{% for s in c.chain %}{% if not loop.first %} <span class="sx-arrow" aria-hidden="true">&larr;</span><span class="sr-only"> depends on </span> {% endif %}{% if s.href %}<a href="{{ s.href }}">{{ s.text }}</a>{% else %}<b>{{ s.text }}</b>{% endif %}{% endfor %}</p>
+  {% if c.deps %}
+  <ul class="sx-deps">
+    {% for d in c.deps %}
+    <li><b>{{ d.from }}</b> depends on <b>{{ d.label }}</b>{% if d.carries %} ({{ d.carries }}){% endif %}, {{ d.conf_word }}.
+      {% if d.parts %}Via {{ d.parts|join(', ') }}.{% endif %}{% if d.bus %} Bus {{ d.bus }}.{% endif %}
+      {% if d.propagates %}<span class="sx-muted">{{ d.propagates|truncate(220) }}</span>{% endif %}
+      {% if d.source %}<span class="sx-muted"> Source: {{ d.source|truncate(120) }}.</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="sx-muted">No upstream dependency is recorded for this system.</p>{% endif %}
+  {% if c.dependents %}<p class="sx-muted">Systems with a present fault that depend on this one:
+    {% for d in c.dependents %}{{ d.label }} ({{ d.codes|join(', ') }}){{ ', ' if not loop.last }}{% endfor %}.</p>{% endif %}
+
+  <h5 class="sx-sh">Shares a cause with</h5>
+  {% if c.groups %}
+  {% for g in c.groups %}
+  <div class="sx-group">
+    <p><b>{{ g.label }}</b>: {{ g.n }} faults, {{ g.n_present }} present. Evidence: {{ g.evidence|join('; ') }}.</p>
+    <p class="sx-muted">Other systems in it: {% if g.others %}{% for o in g.others %}<a href="?system={{ o.key }}#sx" data-system="{{ o.key }}">{{ o.label }}</a>{{ ', ' if not loop.last }}{% endfor %}{% else %}none (every member is in this system){% endif %}.</p>
+    <ul class="sx-members">{% for m in g.members %}<li>{% if m.href %}<a class="sx-code" href="{{ m.href }}">{{ m.code }}</a>{% else %}<b>{{ m.code }}</b>{% endif %} <span class="sx-muted">{{ m.status_word }}{% if m.systems %}; {{ m.systems|join(', ') }}{% endif %}</span></li>{% endfor %}</ul>
+  </div>
+  {% endfor %}
+  {% else %}<p class="sx-muted">No fault group links this system's faults to another system's.</p>{% endif %}
+
+  <p class="sx-links">
+    <a class="sx-btn sx-primary" href="{{ c.path_href }}">Electrical path for: {{ c.label }} &rarr;</a>
+    <a class="sx-btn" href="{{ c.layout_href }}">Open in layout &rarr;</a>
+    <a class="sx-btn" href="{{ c.detail_href }}">System detail &rarr;</a>
+  </p>
+</article>
+{% endmacro %}
+{% if sx is not defined and systems_interactive_map is defined %}{% set sx = systems_interactive_map(vin, request.query_params.get('system') if request is defined and request else None, request.query_params.get('token') if request is defined and request else '') %}{% endif %}
+{% if sx %}
+<link rel="stylesheet" href="{{ static_url('systems_interactive.css') }}">
+<section class="sx" id="sx" aria-labelledby="sx-h">
+  <h3 class="sx-h" id="sx-h">Systems: tap one to see what it depends on</h3>
+  <p class="sx-note">Each box is a system, coloured and worded by its worst present fault. Tap one to light up, on this drawing, what it depends on and which systems share a cause with it.{% if sx.note %} {{ sx.note }}{% endif %}</p>
+
+  <ul class="sx-legend" aria-label="Legend">
+    {% for l in sx.legend_sev %}<li><span class="sx-sevmark {{ l.cls }}" aria-hidden="true">{{ l.glyph }}</span> <span>{{ l.word }}</span></li>{% endfor %}
+    {% for l in sx.legend_rel %}<li><span class="sx-relkey {{ l.cls }}" aria-hidden="true"></span> <span>{{ l.word }}</span></li>{% endfor %}
+  </ul>
+
+  <div class="sx-stage" style="--sx-rows: {{ sx.n_rows }}; --sx-cols: {{ sx.cols }}">
+    <svg class="sx-svg" viewBox="0 0 {{ sx.cols }} {{ sx.n_rows }}" preserveAspectRatio="none" role="img" aria-label="Dependency lines between the systems on the map" focusable="false">
+      {% for e in sx.edges %}<line class="sx-edge{{ ' is-on' if e.on }}" data-from="{{ e.from }}" data-to="{{ e.to }}" x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}"{% if e.dash %} stroke-dasharray="{{ e.dash }}"{% endif %} vector-effect="non-scaling-stroke"><title>{{ e.title }}</title></line>{% endfor %}
+    </svg>
+    {% for n in sx.nodes %}
+    <a class="sx-node {{ n.cls }}{% for r in n.rels %} rel-{{ r }}{% endfor %}" id="sx-node-{{ n.key }}" href="{{ n.href }}" data-system="{{ n.key }}" data-id="{{ n.id }}" data-deps="{{ n.deps }}" data-shared="{{ n.shared }}"
+       style="grid-column: {{ n.col }}; grid-row: {{ n.row }}"{% if 'selected' in n.rels %} aria-current="true"{% endif %}
+       title="{{ n.label }}: {{ n.word }}{% if n.worst %}, {{ n.worst.code }}{% endif %}">
+      <span class="sx-nl">{{ n.short }}</span>
+      <span class="sx-ns"><span class="sx-sevmark {{ n.cls }}" aria-hidden="true">{{ n.glyph }}</span> {{ n.word }}{% if n.worst %}: {{ n.worst.code }}{% if n.n_present > 1 %} +{{ n.n_present - 1 }}{% endif %}{% endif %}</span>
+      <span class="sx-tag">{{ n.rel_text }}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if sx.parts %}
+  <div class="sx-partsbox">
+    <h4 class="sx-sh">Feeds, fuses, grounds, modules and buses these systems depend on</h4>
+    <ul class="sx-parts">
+      {% for p in sx.parts %}
+      <li class="sx-part{% for r in p.rels %} rel-{{ r }}{% endfor %}" data-id="{{ p.id }}">{% if p.href %}<a href="{{ p.href }}">{{ p.text }}</a>{% else %}<span>{{ p.text }}</span>{% endif %}<span class="sx-tag">{{ p.rel_text }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <div class="sx-pop" id="sx-pop" role="region" aria-label="Selected system" aria-live="polite"{% if not sx.selected %} hidden{% endif %}>
+    {% if sx.selected %}{{ sx_card(sx.selected, vin) }}<p><a class="sx-btn sx-pop-close" href="?{{ 'token=' ~ (sx.token|urlencode) if sx.token }}#sx">Close</a></p>{% endif %}
+  </div>
+
+  <details class="fold sx-fold" id="sx-fold"{% if not sx.selected %} open{% endif %}>
+    <summary>Every system's dependency chain and card ({{ sx.faulty|length }} with faults)</summary>
+    <ol class="sx-cards">
+    {% for k in sx.faulty %}{% set c = sx.cards[k] %}
+      <li id="sx-card-{{ k }}" tabindex="-1">{{ sx_card(c, vin) }}</li>
+    {% endfor %}
+    </ol>
+    {% set others = sx.cards|length - sx.faulty|length %}
+    {% if others %}
+    <details class="fold sx-fold-more">
+      <summary>Systems with no fault on record ({{ others }})</summary>
+      <ol class="sx-cards">
+      {% for k, c in sx.cards.items() if k not in sx.faulty %}
+        <li id="sx-card-{{ k }}" tabindex="-1">{{ sx_card(c, vin) }}</li>
+      {% endfor %}
+      </ol>
+    </details>
+    {% endif %}
+  </details>
+</section>
+<script src="{{ static_url('systems_interactive.js') }}" defer></script>
+{% endif %}

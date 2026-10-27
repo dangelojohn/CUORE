@@ -1,0 +1,80 @@
+/* Systems map, tappable (.sx-*). Tokens only: --fs-md (16 px) and up for every size, app colour tokens so light and
+   dark come free. Severity and relation are never colour alone: each carries a glyph or an outline shape AND a word.
+   44 px targets; the grid is 4 columns of fractions, so nothing scrolls sideways at 400 px. */
+
+.sx { max-width: 880px; margin: 0 0 12px; font-size: var(--fs-md); overflow-wrap: anywhere; }
+.sx-h { margin: 0 0 6px; font-size: var(--fs-lg); font-weight: 700; }
+.sx-note, .sx-muted { margin: 4px 0; font-size: var(--fs-md); color: var(--ink-2); }
+.sx .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.sx-legend { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; }
+.sx-legend li { display: flex; gap: 8px; align-items: center; }
+.sx-sevmark { display: inline-block; min-width: 1.2em; text-align: center; font-weight: 700; }
+.sx-sevmark.sev-act { color: var(--sev-returned); }
+.sx-sevmark.sev-pend { color: var(--sev-chronic); }
+.sx-sevmark.sev-ver { color: var(--sev-cleared); }
+.sx-sevmark.sev-hist, .sx-sevmark.sev-none { color: var(--ink-3); }
+.sx-relkey { flex: 0 0 auto; width: 28px; height: 20px; box-sizing: border-box; border-radius: 6px; background: var(--surface-2); }
+.sx-relkey.rel-selected { border: 4px solid var(--ink); }
+.sx-relkey.rel-dep { border: 3px dashed var(--fam-chassis); }
+.sx-relkey.rel-shared { border: 3px dotted var(--fam-network); }
+
+/* the drawing: a grid of system boxes with the dependency lines underneath */
+.sx-stage { position: relative; display: grid; grid-template-columns: repeat(var(--sx-cols), minmax(0, 1fr)); grid-auto-rows: 124px; gap: 0; width: 100%; }
+.sx-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.sx-edge { stroke: var(--ink-3); stroke-width: 1.5; fill: none; opacity: 0.7; }
+.sx-edge.is-on { stroke: var(--fam-chassis); stroke-width: 4; opacity: 1; }
+
+.sx-node {
+  position: relative; z-index: 1; margin: 6px; padding: 6px 8px; box-sizing: border-box; min-height: 44px; min-width: 44px;
+  display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; overflow: hidden;
+  border: 2px solid var(--rule); border-left-width: 8px; border-radius: 10px; background: var(--surface-2);
+  color: var(--ink); text-decoration: none; font-size: var(--fs-md); line-height: 1.2;
+}
+.sx-node.sev-act { border-color: var(--sev-returned); background: var(--sev-returned-bg); }
+.sx-node.sev-pend { border-color: var(--sev-chronic); background: var(--sev-chronic-bg); }
+.sx-node.sev-ver { border-color: var(--sev-cleared); background: var(--sev-cleared-bg); }
+.sx-node.sev-hist { border-color: var(--ink-3); background: var(--surface-2); }
+.sx-node.sev-none { border-color: var(--rule); background: var(--surface); }
+.sx-nl { font-weight: 700; }
+.sx-ns { color: var(--ink); }
+.sx-tag { font-weight: 700; color: var(--ink); }
+.sx-tag:empty { display: none; }
+/* relations: outline shape differs (solid heavy / dashed / dotted), and the .sx-tag word says it */
+.sx-node.rel-selected { outline: 4px solid var(--ink); outline-offset: 2px; }
+.sx-node.rel-dep, .sx-part.rel-dep { outline: 3px dashed var(--fam-chassis); outline-offset: 2px; }
+.sx-node.rel-shared, .sx-part.rel-shared { outline: 3px dotted var(--fam-network); outline-offset: 2px; }
+.sx-node.rel-dep.rel-shared, .sx-part.rel-dep.rel-shared { outline-style: double; outline-width: 5px; }
+.sx-node:focus-visible, .sx-btn:focus-visible, .sx-part a:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+
+/* the parts these systems depend on */
+.sx-partsbox { margin: 10px 0 0; }
+.sx-sh { margin: 10px 0 4px; font-size: var(--fs-md); font-weight: 700; }
+.sx-parts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.sx-part { display: flex; flex-direction: column; justify-content: center; min-height: 44px; padding: 4px 10px; box-sizing: border-box; border: 1px solid var(--rule); border-radius: var(--radius, 3px); background: var(--surface-2); }
+.sx-part a { color: var(--ink); text-decoration: underline; display: inline-flex; align-items: center; min-height: 36px; }
+
+/* the card */
+.sx-pop { margin: 12px 0 0; padding: 10px 12px; border: 2px solid var(--ink); border-radius: var(--radius, 3px); background: var(--surface); }
+.sx-ch { margin: 0 0 4px; font-size: var(--fs-lg); font-weight: 700; }
+.sx-faults, .sx-deps, .sx-members { margin: 0; padding-left: 0; list-style: none; display: grid; gap: 6px; }
+.sx-deps li, .sx-faults li { padding: 6px 0; border-top: 1px solid var(--rule-soft); }
+.sx-code { font-weight: 700; }
+.sx-chip { display: inline-block; padding: 0 8px; border: 1px solid var(--ink-3); border-radius: 999px; font-weight: 700; }
+.sx-chip-act { border-color: var(--sev-returned); color: var(--sev-returned); }
+.sx-chain { margin: 2px 0 6px; font-size: var(--fs-lg); line-height: 1.6; }
+.sx-arrow { font-weight: 700; color: var(--ink-2); }
+.sx-group { margin: 4px 0 8px; padding: 6px 10px; border: 1px dotted var(--fam-network); border-radius: var(--radius, 3px); }
+.sx-group p { margin: 2px 0; }
+.sx-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.sx-btn {
+  display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; box-sizing: border-box; font-size: var(--fs-md);
+  border: 1px solid var(--rule); border-radius: var(--radius, 3px); background: var(--surface-2); color: var(--ink); text-decoration: none; cursor: pointer;
+}
+.sx-primary { font-weight: 700; border: 2px solid var(--ink); }
+.sx-fold { margin: 10px 0 0; }
+.sx-fold > summary { min-height: 44px; display: flex; align-items: center; }
+.sx-cards { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.sx-cards > li { padding: 8px 10px; border: 1px solid var(--rule); border-radius: var(--radius, 3px); }
+.sx-cards > li .sx-card { margin: 0; }
+.sx-cards > li:target { outline: 3px solid var(--ink); }

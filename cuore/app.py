@@ -85,6 +85,7 @@ from .web import scan_plan_routes  # noqa: E402
 from .web import scanlog_routes  # noqa: E402
 from .web import service_routes  # noqa: E402
 from .web import shop_routes  # noqa: E402
+from .web import systems_interactive_routes  # noqa: E402
 from .web import system_routes  # noqa: E402
 from .web import systems_routes  # noqa: E402
 from .web import tests_routes  # noqa: E402
@@ -282,6 +283,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(mods_routes.router)
     app.include_router(report_routes.router)
     app.include_router(systems_routes.router)
+    app.include_router(systems_interactive_routes.router)
     app.include_router(system_routes.router)
     app.include_router(electrical_routes.router)
     app.include_router(sensor_routes.router)
