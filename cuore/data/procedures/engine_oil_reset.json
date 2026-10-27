@@ -1,0 +1,51 @@
+{
+  "schema": 1,
+  "name": "engine_oil_reset",
+  "module": "ECM",
+  "intent": "Reset the ECM's engine-oil life / change counter after an oil change.",
+  "status": "awaiting source",
+  "status_note": "Research is in progress. steps is EMPTY on purpose: no bytes are invented. Fill steps (from published documentation, open-source code or a published trace) in CUORE_STATE_DIR/procedures/engine_oil_reset.json; cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session (0x10 sub-function) comes with the source steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "candidate",
+    "label": "DID ids from service_dids discovery candidates; unconfirmed until one changes after a real reset",
+    "module": "ECM",
+    "did_candidates_from": "cuore.live.service_dids.results(vin)",
+    "checks": [
+      {
+        "quantity": "ECM oil counter",
+        "did": null,
+        "expect": {
+          "value": "reset (back to its fresh-oil value)"
+        }
+      }
+    ]
+  },
+  "preconditions": {
+    "engine_state": "running",
+    "voltage_v": null,
+    "label": "engine running: from MES prompts (conflicts with CUORE's run_actuator interlock engine-off; the gate reports it as needing an owner decision)",
+    "voltage_note": "recorded by the owner at run time; not assumed"
+  },
+  "postconditions": {
+    "engine_state": "off",
+    "voltage_v": null,
+    "label": "from MES prompts / assumed: engine stopped afterwards",
+    "note": "counter re-read after the run"
+  },
+  "verification_rule": "Read the ECM oil counter before and after; PASS only if it returns to its fresh-oil value in the live DID read.",
+  "mes_function": "Engine Oil Change",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "accepted_by_owner": false
+}

@@ -415,10 +415,19 @@ def _add(found: dict, module: str, did: str, off: int, decoding: str, value: Any
 
 # --- run ---------------------------------------------------------------------------------
 
+def _new_run_id() -> str:
+    return datetime.now().strftime("%Y%m%dT%H%M%S%f")[:-3]
+
+
 def run(vin: str, max_seconds: float = 180, *, _plan: Optional[dict[str, Any]] = None,
-        log_dir: Optional[str | Path] = None) -> dict[str, Any]:
-    """Sweep the planned DID ranges (0x22 only) via ops.module_discover_dids, record and match."""
+        log_dir: Optional[str | Path] = None, label: str = "") -> dict[str, Any]:
+    """Sweep the planned DID ranges (0x22 only) via ops.module_discover_dids, record and match.
+
+    Every run is kept under a ``run_id``; ``label`` ("before" / "after" / "") is stored with it
+    so :func:`diff` can compare runs either side of a service reset."""
     from . import ops
+    run_id = _new_run_id()
+    label = str(label or "")
     started = datetime.now().isoformat(timespec="seconds")
     t0 = time.monotonic()
     p = _plan or plan(vin)
@@ -462,7 +471,7 @@ def run(vin: str, max_seconds: float = 180, *, _plan: Optional[dict[str, Any]] =
                     rep = {"module": code, "did": h["did"], "bytes": h.get("bytes") or [],
                            "ascii": h.get("ascii")}
                     replies.append(rep)
-                    store.record_observation(OBS_KIND, {"entry": "reply", **rep}, vin=vin,
+                    store.record_observation(OBS_KIND, {"entry": "reply", "run_id": run_id, **rep}, vin=vin,
                                              bus="can_c", cable="", stream="service_dids sweep (see did_discovery for the wire record)")
             if aborted:
                 break
@@ -471,10 +480,10 @@ def run(vin: str, max_seconds: float = 180, *, _plan: Optional[dict[str, Any]] =
     exp = expected_values(vin, log_dir=log_dir)
     matches = match(replies, exp)
     finished = datetime.now().isoformat(timespec="seconds")
-    summary = {"started": started, "finished": finished, "requests": requests,
-               "replies": len(replies), "matches": matches, "errors": errors,
-               "aborted_reason": aborted}
-    store.record_observation(OBS_KIND, {"entry": "summary", **summary,
+    summary = {"run_id": run_id, "label": label, "started": started, "finished": finished,
+               "requests": requests, "replies": len(replies), "matches": matches,
+               "errors": errors, "aborted_reason": aborted}
+    store.record_observation(OBS_KIND, {"entry": "summary", **summary, "reply_data": replies,
                                         "expected": exp["values"]}, vin=vin, bus="can_c",
                              cable="", stream="service_dids sweep (see did_discovery for the wire record)")
     audit.record("service_dids_run_end", vin=vin, requests=requests, replies=len(replies),
@@ -482,32 +491,186 @@ def run(vin: str, max_seconds: float = 180, *, _plan: Optional[dict[str, Any]] =
     return summary
 
 
-# --- results -----------------------------------------------------------------------------
+# --- runs and before/after diff ----------------------------------------------------------
 
-NEXT_STEP = ("record these; after the next MES service reset, re-run: the DID whose value "
-             "changes from 16000 is confirmed")
+NEXT_STEP = ("record these; run it again after the service reset (label \"after\"), then diff: "
+             "the DIDs whose bytes changed are candidate write targets -- confirm with a third run")
+NEXT_STEP_DIFF = ("diff shown: changed DIDs are candidates only; run a third time (same label as "
+                  "the latest) to confirm they hold steady before relying on one")
+DIFF_STATUS = ("changed between runs -- candidate write target; encoding as shown; "
+               "confirm with a third run")
 
 
-def results(vin: str) -> dict[str, Any]:
-    """The last run's candidates plus the next step. Never raises."""
+def _summaries(vin: str) -> list[dict[str, Any]]:
+    """Every kept run's summary observation, oldest first."""
     try:
-        rows = store.recent_observations(500, vin=vin, kind=OBS_KIND)
+        rows = store.recent_observations(5000, vin=vin, kind=OBS_KIND)
     except Exception:
-        rows = []
-    last = None
+        return []
+    out = []
     for r in rows:
         d = r.get("data") or {}
-        if d.get("entry") == "summary":
-            if last is None or str(r.get("at") or "") >= str(last.get("at") or ""):
-                last = r
-    if last is None:
+        if d.get("entry") != "summary":
+            continue
+        out.append({"at": str(r.get("at") or ""), "data": d,
+                    "run_id": d.get("run_id") or "legacy-" + str(d.get("started") or r.get("at"))})
+    out.sort(key=lambda x: (str(x["data"].get("started") or x["at"]), x["run_id"]))
+    return out
+
+
+def list_runs(vin: str) -> list[dict[str, Any]]:
+    """Kept runs, oldest first: [{run_id, at, requests, replies, label}]."""
+    return [{"run_id": x["run_id"], "at": x["data"].get("started") or x["at"],
+             "requests": x["data"].get("requests"), "replies": x["data"].get("replies"),
+             "label": x["data"].get("label") or ""} for x in _summaries(vin)]
+
+
+def _reply_map(entry: dict[str, Any]) -> dict[tuple[str, str], list[int]]:
+    out: dict[tuple[str, str], list[int]] = {}
+    for rep in entry["data"].get("reply_data") or []:
+        if not isinstance(rep, dict):
+            continue
+        raw = _payload(rep)
+        if raw:
+            out[(str(rep.get("module") or ""), str(rep.get("did") or ""))] = raw
+    return out
+
+
+def _hexs(raw: list[int]) -> str:
+    return " ".join(f"{b:02X}" for b in raw)
+
+
+def _chunk_forms(chunk: bytes) -> list[tuple[str, float]]:
+    w = len(chunk)
+    forms: list[tuple[str, float]] = [
+        ("u8" if w == 1 else f"u{w * 8} BE", int.from_bytes(chunk, "big"))]
+    if w > 1:
+        forms.append((f"u{w * 8} LE", int.from_bytes(chunk, "little")))
+    digits = chunk.hex()
+    if digits.isdigit():
+        forms.append((f"BCD {w * 2} digits", int(digits)))
+    return forms
+
+
+def _note_for(before: float, after: float, exp: list[dict[str, Any]]) -> str:
+    notes = []
+    for item in exp:
+        v, unit, name = item.get("value"), item.get("unit"), item.get("name")
+        if not isinstance(v, (int, float)) or isinstance(v, bool):
+            continue
+        targets = [(float(v), "")]
+        if unit == "km":
+            targets.append((float(v) * 10, ", tenths of km"))
+        for t, suf in targets:
+            if float(after) == t:
+                notes.append(f"{name}: matches the new value{suf}")
+            elif float(before) == t:
+                notes.append(f"{name}: matches the old value{suf}")
+    return "; ".join(notes)
+
+
+def _decode_change(b: list[int], a: list[int], exp: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    n = min(len(b), len(a))
+    changed = [i for i in range(n) if b[i] != a[i]]
+    if not changed:
+        return []
+    lo, hi = changed[0], changed[-1]
+    decs: list[dict[str, Any]] = []
+    for w in (1, 2, 3, 4):
+        for off in range(max(0, hi - w + 1), min(lo, n - w) + 1):
+            cb, ca = bytes(b[off:off + w]), bytes(a[off:off + w])
+            if cb == ca:
+                continue
+            for (enc, vb), (_, va) in zip(_chunk_forms(cb), _chunk_forms(ca)):
+                note = _note_for(vb, va, exp)
+                decs.append({"offset": off, "encoding": enc, "before": vb, "after": va,
+                             "note": note,
+                             "text": f"{enc} at offset {off}: {_fmt_value(vb)} -> {_fmt_value(va)}"
+                                     + (f" ({note})" if note else "")})
+    decs.sort(key=lambda d: not d["note"])  # stable: annotated decodings first
+    return decs[:12]
+
+
+def diff(vin: str, run_a: Optional[str] = None, run_b: Optional[str] = None, *,
+         log_dir: Optional[str | Path] = None) -> dict[str, Any]:
+    """Compare two kept runs (default: the two most recent; a = earlier, b = later).
+
+    Changed DIDs are reported as candidates only -- never as "the" counter."""
+    runs = _summaries(vin)
+    by_id = {x["run_id"]: x for x in runs}
+    if run_a or run_b:
+        ea, eb = by_id.get(run_a or ""), by_id.get(run_b or "")
+        if ea is None or eb is None:
+            return {"ok": False,
+                    "note": f"unknown run id; kept runs: {[x['run_id'] for x in runs]}"}
+    elif len(runs) >= 2:
+        ea, eb = runs[-2], runs[-1]
+    else:
+        return {"ok": False, "runs": len(runs),
+                "note": "need two kept runs to diff; run discovery before and after a reset"}
+    ma, mb = _reply_map(ea), _reply_map(eb)
+    try:
+        exp = list(expected_values(vin, log_dir=log_dir)["values"])
+    except Exception:
+        exp = []
+    exp += [e for e in (eb["data"].get("expected") or []) if e not in exp]
+    changed, only_a, only_b, cands = [], [], [], []
+    unchanged = 0
+    for key in sorted(set(ma) | set(mb)):
+        module, did = key
+        if key not in mb:
+            only_a.append({"module": module, "did": did, "bytes": _hexs(ma[key]),
+                           "note": "answered in the earlier run only (noise or a real change)"})
+        elif key not in ma:
+            only_b.append({"module": module, "did": did, "bytes": _hexs(mb[key]),
+                           "note": "answered in the later run only (noise or a real change)"})
+        elif ma[key] == mb[key]:
+            unchanged += 1
+        else:
+            decs = _decode_change(ma[key], mb[key], exp)
+            item = {"module": module, "did": did, "before": _hexs(ma[key]),
+                    "after": _hexs(mb[key]), "status": DIFF_STATUS, "decodings": decs}
+            if len(ma[key]) != len(mb[key]):
+                item["note"] = "reply length differs between runs; decoded over the common bytes"
+            changed.append(item)
+            best = decs[0] if decs else None
+            cands.append({"module": module, "did": did,
+                          "offset": best["offset"] if best else None,
+                          "encoding": best["encoding"] if best else None,
+                          "before": best["before"] if best else _hexs(ma[key]),
+                          "after": best["after"] if best else _hexs(mb[key]),
+                          "length": len(mb[key]),
+                          "status": "unconfirmed -- " + DIFF_STATUS})
+    return {"ok": True,
+            "run_a": ea["run_id"], "label_a": ea["data"].get("label") or "",
+            "run_b": eb["run_id"], "label_b": eb["data"].get("label") or "",
+            "changed": changed, "unchanged_count": unchanged,
+            "only_in_a": only_a, "only_in_b": only_b, "write_candidates": cands,
+            "note": "DIDs answering in one run only are listed separately, not counted as changes"}
+
+
+# --- results -----------------------------------------------------------------------------
+
+def results(vin: str) -> dict[str, Any]:
+    """The last run's candidates plus the next step (and the last diff once two runs exist)."""
+    runs = _summaries(vin)
+    if not runs:
         return {"ran": False, "candidates": [], "next_step": NEXT_STEP,
                 "note": "no service-DID run recorded for this VIN yet"}
+    last = runs[-1]
     d = last["data"]
-    return {"ran": True, "at": last.get("at"), "requests": d.get("requests"),
-            "replies": d.get("replies"), "candidates": d.get("matches") or [],
-            "errors": d.get("errors") or [], "aborted_reason": d.get("aborted_reason"),
-            "next_step": NEXT_STEP}
+    out = {"ran": True, "at": last["at"], "run_id": last["run_id"], "label": d.get("label") or "",
+           "requests": d.get("requests"), "replies": d.get("replies"),
+           "candidates": d.get("matches") or [], "errors": d.get("errors") or [],
+           "aborted_reason": d.get("aborted_reason"), "runs": len(runs),
+           "next_step": NEXT_STEP}
+    if len(runs) >= 2:
+        try:
+            out["last_diff"] = diff(vin)
+            out["next_step"] = NEXT_STEP_DIFF
+        except Exception as exc:  # never raise
+            out["last_diff"] = {"ok": False, "note": f"diff failed: {exc}"}
+    return out
 
 
-__all__ = ["expected_values", "plan", "run", "match", "results", "STATUS"]
+__all__ = ["expected_values", "plan", "run", "match", "results", "list_runs", "diff", "STATUS"]

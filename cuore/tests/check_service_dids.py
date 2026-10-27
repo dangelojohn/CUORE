@@ -173,7 +173,7 @@ store.confirm_target(VIN, "IPC", 0x60, "check")
 small = {"modules": [{"code": "IPC", "bus": "can_c", "why": "t"}],
          "did_ranges": [{"module": "IPC", "start": "0120", "end": "0127", "count": 8, "why": "t"}],
          "services": ["0x22"], "max_requests": 8}
-res = sd.run(VIN, max_seconds=30, _plan=small, log_dir=logs)
+res = sd.run(VIN, max_seconds=30, _plan=small, log_dir=logs, label="before")
 check("run: two replies, eight requests", res["replies"] == 2 and res["requests"] == 8, str(res))
 check("run: matcher found the planted 16000 and date",
       any(c["did"] == "0123" and c["matches"] == "next service km = 16000" for c in res["matches"])
@@ -193,8 +193,64 @@ except Exception as exc:  # noqa: BLE001
 check("run: audited", "service_dids_run_end" in atext and "discover_dids" in atext, atext[:120])
 rs = sd.results(VIN)
 check("results: candidates plus next step", rs["ran"] and len(rs["candidates"]) >= 2
-      and "changes from 16000" in rs["next_step"], str(rs)[:200])
+      and "then diff" in rs["next_step"] and "last_diff" not in rs, str(rs)[:200])
 check("results: unknown VIN never raises", sd.results("X" * 17)["ran"] is False)
+
+
+# --- runs and diff ------------------------------------------------------------------------
+runs1 = sd.list_runs(VIN)
+check("runs: first run kept with id and label", len(runs1) == 1 and runs1[0]["label"] == "before"
+      and runs1[0]["run_id"] and runs1[0]["replies"] == 2, str(runs1))
+check("diff: refuses with one run", sd.diff(VIN)["ok"] is False)
+# second run: 0123 changes 0x2834 -> 0x3E80 in a fresh baseline; build both fake runs directly
+vin2 = "ZASFAKPN5J7B00002"
+exp16 = {"values": [{"name": "next service km", "value": 16000, "unit": "km", "source": {}}]}
+
+
+def fake_run(v, label, replies, tag):
+    store.record_observation(sd.OBS_KIND, {
+        "entry": "summary", "run_id": tag, "label": label, "started": "2026-10-26T10:0" + tag[-1] + ":00",
+        "requests": 8, "replies": len(replies), "matches": [], "errors": [], "aborted_reason": None,
+        "reply_data": replies, "expected": exp16["values"]}, vin=v, bus="can_c", cable="", stream="fake")
+
+
+fake_run(vin2, "before", [
+    {"module": "IPC", "did": "0123", "bytes": ["28", "34", "00"]},
+    {"module": "IPC", "did": "0124", "bytes": ["01", "02"]},
+    {"module": "IPC", "did": "0130", "bytes": ["AA"]}], "run1")
+fake_run(vin2, "after", [
+    {"module": "IPC", "did": "0123", "bytes": ["3E", "80", "00"]},
+    {"module": "IPC", "did": "0124", "bytes": ["01", "02"]},
+    {"module": "IPC", "did": "0131", "bytes": ["BB"]}], "run2")
+check("runs: two fake runs listed with labels", [(r["run_id"], r["label"]) for r in sd.list_runs(vin2)]
+      == [("run1", "before"), ("run2", "after")], str(sd.list_runs(vin2)))
+df = sd.diff(vin2, log_dir=logs / "nope")
+check("diff: ok, ids and labels", df["ok"] and df["run_a"] == "run1" and df["run_b"] == "run2"
+      and df["label_a"] == "before" and df["label_b"] == "after", str(df)[:200])
+ch = df["changed"]
+check("diff: one changed DID, before/after bytes", len(ch) == 1 and ch[0]["did"] == "0123"
+      and ch[0]["before"] == "28 34 00" and ch[0]["after"] == "3E 80 00", str(ch))
+top = ch[0]["decodings"][0] if ch and ch[0]["decodings"] else {}
+check("diff: u16 BE 10292 -> 16000 at offset 0, annotated against next service km",
+      top.get("encoding") == "u16 BE" and top.get("offset") == 0 and top.get("before") == 10292
+      and top.get("after") == 16000 and "next service km" in top.get("note", "")
+      and "matches the new value" in top["note"], str(ch))
+check("diff: status says candidate, never confirmed",
+      "candidate write target" in ch[0]["status"] and "third run" in ch[0]["status"])
+check("diff: unchanged count", df["unchanged_count"] == 1, str(df["unchanged_count"]))
+check("diff: DIDs in one run only listed apart",
+      [d["did"] for d in df["only_in_a"]] == ["0130"] and [d["did"] for d in df["only_in_b"]] == ["0131"],
+      str(df["only_in_a"]) + str(df["only_in_b"]))
+wc = df["write_candidates"]
+check("diff: write_candidate summary, unconfirmed",
+      len(wc) == 1 and wc[0]["module"] == "IPC" and wc[0]["did"] == "0123" and wc[0]["offset"] == 0
+      and wc[0]["encoding"] == "u16 BE" and wc[0]["before"] == 10292 and wc[0]["after"] == 16000
+      and wc[0]["length"] == 3 and "unconfirmed" in wc[0]["status"], str(wc))
+rs2 = sd.results(vin2)
+check("results: last_diff with two runs", rs2["ran"] and rs2["last_diff"]["ok"]
+      and rs2["last_diff"]["changed"][0]["did"] == "0123", str(rs2)[:200])
+check("diff: explicit ids and bad id", sd.diff(vin2, "run1", "run2")["ok"]
+      and sd.diff(vin2, "run1", "nope")["ok"] is False)
 
 print(f"{checks} checks, {len(failures)} failures")
 for f in failures:

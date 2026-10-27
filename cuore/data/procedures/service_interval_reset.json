@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "name": "service_interval_reset",
+  "module": "IPC",
+  "intent": "Reset the instrument cluster's service-interval counters after a service (next-service distance and days back to the interval, last-service date to today).",
+  "status": "awaiting source",
+  "status_note": "Research is in progress. steps is EMPTY on purpose: no bytes are invented. Fill steps (from published documentation, open-source code or a published trace) in CUORE_STATE_DIR/procedures/service_interval_reset.json; cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session (0x10 sub-function) comes with the source steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "candidate",
+    "label": "DID ids from service_dids discovery candidates; unconfirmed until one changes after a real reset",
+    "module": "IPC",
+    "did_candidates_from": "cuore.live.service_dids.results(vin)",
+    "checks": [
+      {
+        "quantity": "next service distance",
+        "did": null,
+        "expect": {
+          "value": 16000,
+          "unit": "km"
+        }
+      },
+      {
+        "quantity": "next service days",
+        "did": null,
+        "expect": {
+          "value": 365,
+          "unit": "days"
+        }
+      },
+      {
+        "quantity": "last service date",
+        "did": null,
+        "expect": {
+          "value": "today"
+        }
+      }
+    ]
+  },
+  "preconditions": {
+    "engine_state": "off",
+    "voltage_v": null,
+    "label": "engine off: from MES prompts",
+    "voltage_note": "recorded by the owner at run time; not assumed"
+  },
+  "postconditions": {
+    "engine_state": "off",
+    "voltage_v": null,
+    "label": "from MES prompts / assumed unchanged",
+    "note": "ignition cycled and values re-read per the verification rule"
+  },
+  "verification_rule": "Read the three quantities before and after. PASS only if next-service km = 16000 and days = 365 (the interval values) and last-service date = the run date, in the DIDs read live; an unchanged read-back means the reset did not take.",
+  "mes_function": "Service Interval Reset",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "accepted_by_owner": false
+}

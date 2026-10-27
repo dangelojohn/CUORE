@@ -41,10 +41,70 @@ def _module_for(target_hex: str):
     return next((m for m in MODULES if m.target == t), None)
 
 
-def review(frames: list[dict[str, Any]]) -> dict[str, Any]:
-    """Reassemble the capture and report, per module the tester talked to."""
-    txs = uds_transactions(frames)
+def _norm_request(raw: Any) -> list[str]:
+    """A documented step's request as upper-case hex bytes (``"22F190"`` or ``["22","F1","90"]``)."""
+    if isinstance(raw, dict):
+        raw = raw.get("request")
+    if isinstance(raw, str):
+        h = re.sub(r"[^0-9A-Fa-f]", "", raw)
+        if len(h) % 2:
+            raise ValueError(f"odd-length hex request {raw!r}")
+        return [h[i:i + 2].upper() for i in range(0, len(h), 2)]
+    return [str(b).upper().zfill(2) for b in (raw or [])]
+
+
+def documented_transactions(defn: dict[str, Any]) -> list[dict[str, Any]]:
+    """A DOCUMENTED procedure definition (``steps`` = ordered requests, from published
+    documentation / open-source code / a published trace) as ``uds_transactions``-shaped rows, so
+    the very same :func:`actuate.extract_procedure` rules apply. Never invents anything: no
+    ``steps`` means no transactions."""
+    addr = next((m for m in MODULES if m.code == str(defn.get("module", "")).upper()), None)
+    target = f"{addr.target:02X}" if addr else str(defn.get("target", "")).upper()
+    return [{"target": target, "request": _norm_request(st), "response": None, "nrc": None,
+             "t_req": float(i), "t_resp": None} for i, st in enumerate(defn.get("steps") or [])]
+
+
+def review_documented(defn: dict[str, Any]) -> dict[str, Any]:
+    """:func:`review` for a documented definition; the result is tagged ``source="documented"``."""
+    return review(defn)
+
+
+def documented_procedure(defn: dict[str, Any]) -> dict[str, Any]:
+    """The ``extract_procedure`` dict for a documented definition, plus the fields
+    ``procedure_dry_run.load`` / :func:`gate` read (name, pre, post, bitrate, max_seconds).
+    ``source="documented"``; an empty ``steps`` yields a non-replayable, kind ``empty`` procedure."""
+    txs = documented_transactions(defn)
+    target = txs[0]["target"] if txs else (
+        f"{next((m.target for m in MODULES if m.code == str(defn.get('module', '')).upper()), 0):02X}")
+    proc = actuate.extract_procedure(txs, target)
+    sess = defn.get("session") or {}
+    pre = {k: v for k, v in (defn.get("preconditions") or {}).items() if k in ("engine_state", "voltage_v")}
+    post = {k: v for k, v in (defn.get("postconditions") or {}).items() if k in ("engine_state", "voltage_v")}
+    proc.update({
+        "source": "documented", "name": defn.get("name", ""), "pre": pre, "post": post,
+        "bitrate": sess.get("bitrate"), "max_seconds": defn.get("max_seconds"),
+        "citation": (defn.get("source") or {}).get("citation"),
+    })
+    return proc
+
+
+def review(frames: Any) -> dict[str, Any]:
+    """Reassemble the capture and report, per module the tester talked to. ``frames`` is the
+    MES-learn frame list, or a DOCUMENTED procedure definition (a dict with ``steps``), which
+    goes through the same rules and is tagged ``source="documented"``."""
+    documented = isinstance(frames, dict)
+    txs = documented_transactions(frames) if documented else uds_transactions(frames)
     modules: list[dict[str, Any]] = []
+    if documented and not txs:                  # awaiting source: report it, never invent steps
+        addr = next((m for m in MODULES if m.code == str(frames.get("module", "")).upper()), None)
+        txs = []
+        proc = documented_procedure(frames)
+        modules.append({
+            "target": proc["target"], "module": addr.code if addr else None,
+            "bus": addr.bus_key if addr else None, "sequence": [], "services": [],
+            "has_security_access": False, "write_reset_services": [], "unanswered": 0,
+            "negative_responses": [], "replay_allowed": False,
+            "replay_reasons": proc["reasons"], "procedure": proc, "source": "documented"})
     for target in sorted({t["target"] for t in txs}):
         proc = actuate.extract_procedure(txs, target)
         seq = [s["service"] for s in proc["steps"]]
@@ -60,15 +120,19 @@ def review(frames: list[dict[str, Any]]) -> dict[str, Any]:
             "negative_responses": [s["nrc"] for s in proc["steps"] if s["nrc"]],
             "replay_allowed": bool(proc["replayable"]),
             "replay_reasons": proc["reasons"],
-            "procedure": proc,
+            "procedure": proc, "source": "documented" if documented else "captured",
         })
-    rep: dict[str, Any] = {"transactions": len(txs), "modules": modules}
+        if documented:
+            proc.update({k: v for k, v in documented_procedure(frames).items()
+                         if k in ("source", "name", "pre", "post", "bitrate", "max_seconds", "citation")})
+    rep: dict[str, Any] = {"transactions": len(txs), "modules": modules,
+                           "source": "documented" if documented else "captured"}
     rep["text"] = report_text(rep)
     return rep
 
 
 def report_text(rep: dict[str, Any]) -> str:
-    lines = [f"Procedure review: {rep['transactions']} UDS transaction(s), "
+    lines = [f"Procedure review [{rep.get('source', 'captured')}]: {rep['transactions']} UDS transaction(s), "
              f"{len(rep['modules'])} module(s)."]
     if not rep["modules"]:
         lines.append("No UDS requests found. Nothing to review (check the bitrate and splitter).")
@@ -208,7 +272,8 @@ def gate(proc_or_module: dict[str, Any], *, listen_bitrate: Optional[int] = None
         fails.extend(conflicts)
     status = (INTERLOCK_CONFLICT_STATUS if conflicts
               else "passed" if not fails else "failed")
-    return {"passed": not fails, "status": status,
+    src = proc_or_module.get("source") or proc.get("source") or "captured"
+    return {"passed": not fails, "status": status, "source": src,
             "reasons": fails or ["all gate checks passed"], "consent": consent,
             "interlock_conflicts": conflicts}
 
