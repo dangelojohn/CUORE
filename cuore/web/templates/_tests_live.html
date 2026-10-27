@@ -1,0 +1,68 @@
+{# Tests "Live band": the expected pass band as a bar with the current value marker, the criterion in words, and a
+   one-tap record. Embeddable partial. Context: `test` (needs .id) and vin (or view.vin), optionally tlive =
+   cuore.services.tests_interactive.live_band(vin, test.id); else the tests_live_band() Jinja global computes it.
+   No JavaScript needed: band + snapshot + the normal PASS / FAIL (plain POST to the existing result route).
+   With JavaScript (tests_interactive.js) a connected session's SSE stream moves the markers, "Record PASS" unlocks
+   after the hold time inside the band and "Record FAIL" is offered outside it. Status = mark + word. --fs-* only. #}
+{% set _vin = vin if vin is defined else view.vin %}
+{% if tlive is not defined and tests_live_band is defined %}{% set tlive = tests_live_band(_vin, test.id, request.query_params.get('token') if request is defined and request else '') %}{% endif %}
+{% if tlive %}
+<link rel="stylesheet" href="{{ static_url('tests_interactive.css') }}">
+<section class="tl" id="tl-{{ tlive.test.id }}" data-live="{{ 1 if (tlive.connected and tlive.any_live) else 0 }}" data-stream="{{ tlive.stream_url }}" data-hold="{{ tlive.hold_s }}" aria-labelledby="tl-h-{{ tlive.test.id }}">
+  <h4 class="ti-h" id="tl-h-{{ tlive.test.id }}">Expected reading: {{ tlive.test.name }}</h4>
+  {% if not tlive.readings %}
+    <p class="ti-note">{{ tlive.note }}</p>
+  {% else %}
+    <p class="tl-stream" role="status" data-role="stream">
+      {% if tlive.any_live and tlive.connected %}<span class="ti-mark" aria-hidden="true">&#9679;</span> Session connected. Live values move when this page has script.
+      {% elif tlive.any_live %}<span class="ti-mark" aria-hidden="true">&#9675;</span> {{ tlive.connect_text }}
+      {% else %}<span class="ti-mark" aria-hidden="true">&#9675;</span> This test is read with a meter: type the number you measured.{% endif %}
+    </p>
+    <form class="tl-form" method="post" action="{{ tlive.form.action }}" data-primary="{{ tlive.primary.parameter }}">
+    <ul class="tl-rows">
+    {% for r in tlive.readings %}
+      <li class="tl-row s-{{ r.state }}" data-param="{{ r.parameter }}" data-kind="{{ r.kind }}" data-unit="{{ r.unit }}"
+          {% if r.scale %}data-min="{{ r.scale[0] }}" data-max="{{ r.scale[1] }}"{% endif %}
+          {% if r.band %}data-blo="{{ r.band.lo }}" data-bhi="{{ r.band.hi }}"{% endif %}>
+        <div class="tl-rowhead">
+          <span class="tl-name">{{ r.name }}{% if r.unit %} <span class="ti-muted">({{ r.unit }})</span>{% endif %}</span>
+          <span class="tl-state"><span class="ti-mark" data-role="glyph" aria-hidden="true">{% if r.state == 'in' %}&#10003;{% elif r.state == 'out' %}&#10007;{% elif r.state == 'no_band' %}&ndash;{% else %}?{% endif %}</span> <span data-role="state-text">{{ r.state_text }}</span></span>
+        </div>
+        {% if r.band %}
+        <div class="tl-bar" data-role="bar" role="img" aria-label="{{ r.name }}: {{ r.value_text or 'not recorded' }}. Pass band {{ r.band.lo }} to {{ r.band.hi }} {{ r.unit }}. {{ r.state_text }}.">
+          <span class="tl-band" style="left:{{ r.band_pos[0] }}%;width:{{ r.band_pos[1] - r.band_pos[0] }}%"></span>
+          <span class="tl-marker" data-role="marker" style="left:{{ r.pos if r.pos is not none else 0 }}%"{% if r.pos is none %} hidden{% endif %}></span>
+        </div>
+        <div class="tl-scale"><span>{{ r.scale[0] }}</span><span class="tl-bandlabel">shaded: pass band {{ r.band.lo }} to {{ r.band.hi }}</span><span>{{ r.scale[1] }} {{ r.unit }}</span></div>
+        {% endif %}
+        <p class="tl-crit"><b>Pass criterion:</b> {{ r.parameter }} {{ r.criterion }}.</p>
+        <div class="tl-val">
+          {% if r.kind == 'live' %}
+          <b class="tl-num" data-role="value">{{ r.value_text or 'not recorded' }}</b>
+          <span class="tl-age" data-role="age">{% if r.value is not none %}{{ r.age }}{% if r.origin and not r.live %} &middot; {{ r.origin }}{% endif %}{% else %}never read on this car{% endif %}</span>
+          {% else %}
+          <label class="tl-meter">Measured value{% if r.unit %} ({{ r.unit }}){% endif %}
+            <input class="tl-input" type="text" inputmode="decimal" autocomplete="off" data-role="meter"{% if loop.first %} name="value"{% endif %} value="{{ r.value if (r.value is not none and loop.first) else '' }}">
+          </label>
+          <span class="tl-age" data-role="age">{% if r.value is not none %}last: {{ r.value_text }} &middot; {{ r.age }} &middot; {{ r.origin }}{% else %}not recorded{% endif %}</span>
+          {% endif %}
+        </div>
+        {% if r.unconfirmed %}<p class="tl-unconf"><b>Unconfirmed.</b> This channel's decoding is rated "{{ r.decode or 'unknown' }}" in CUORE's channel registry; check it against a scan tool before relying on the band.</p>{% endif %}
+        <p class="tl-src">Source: {{ r.source|truncate(160) }} ({{ r.confidence }}).{% if r.kind == 'live' %} PID {{ r.pid or '?' }}, decoding: {{ r.decode or 'unknown' }}.{% endif %}</p>
+      </li>
+    {% endfor %}
+    </ul>
+    <p class="tl-hint" data-role="hint" role="status"></p>
+    {% if tlive.primary.kind == 'live' %}<input type="hidden" name="value" value="{{ tlive.primary.value if tlive.primary.value is not none else '' }}" data-role="hvalue">{% endif %}
+    <input type="hidden" name="unit" value="{{ tlive.primary.unit }}">
+    <input type="hidden" name="reason" value="Reading evidence: {{ tlive.primary.source }}" data-role="reason">
+    <div class="tl-buttons">
+      <button type="submit" class="ti-btn ti-btn-pass" name="result" value="pass" data-role="pass">Record PASS</button>
+      <button type="submit" class="ti-btn ti-btn-fail" name="result" value="fail" data-role="fail">Record FAIL</button>
+    </div>
+    </form>
+    {% if tlive.last.result != 'not_done' %}<p class="tl-last ti-muted">Latest recorded: {{ tlive.last.result|replace('_', ' ') }}{% if tlive.last.value is not none %} at {{ tlive.last.value }}{{ tlive.last.unit }}{% endif %}{% if tlive.last.age %} ({{ tlive.last.age }}){% endif %}.</p>{% endif %}
+  {% endif %}
+</section>
+<script src="{{ static_url('tests_interactive.js') }}" defer></script>
+{% endif %}

@@ -49,3 +49,53 @@
   .sys-legend-row { font-size: var(--fs-xs); }
   .sysb-chip { font-size: var(--fs-xs); padding: 3px 7px; }
 }
+
+/* --- Systems page, Bench-style first screen (2026-10-27) ------------------
+ * State line, one-line call, Go-to chips, then systems as one-line rows.
+ * Only --fs-* tokens; 44 px targets; chips carry a mark + word (colour is a
+ * second cue); wraps instead of scrolling sideways at 400 px. */
+.sys-state { margin: 0 0 8px; font-size: var(--fs-md); color: var(--ink-2); }
+.sys-state b { color: var(--ink); }
+.sys-state.on b { color: var(--ok); }
+.sys-call { margin: 0 0 8px; padding: 8px 12px; border: 2px solid var(--sev-chronic, var(--ink-3)); border-radius: var(--radius);
+            background: var(--sev-chronic-bg, var(--surface-2)); font-size: var(--fs-lg); font-weight: 600; overflow-wrap: anywhere; }
+.sys-call-line { margin: 0; }
+.sys-call a { color: var(--ink); }
+.sys-why > summary { min-height: var(--tap); display: flex; align-items: center; font-size: var(--fs-md); font-weight: 600; }
+.sys-why ul { margin: 0 0 4px; padding-left: 20px; font-size: var(--fs-md); font-weight: 400; color: var(--ink-2); }
+.sys-go { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 12px; }
+.sys-go-l { font-size: var(--fs-md); font-weight: 700; color: var(--ink-2); }
+.sys-chip { display: inline-flex; align-items: center; min-height: var(--tap); padding: 2px 12px; border: 2px solid var(--accent);
+            border-radius: 999px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 600;
+            font-size: var(--fs-md); }
+.sys-chip:hover, .sys-chip:focus-visible { background: var(--accent); }
+.sys-rows { margin: 0 0 16px; }
+.sysrow { border: 1px solid var(--rule); border-left: 6px solid var(--sr-c, var(--ink-3)); border-radius: var(--radius);
+          margin: 0 0 8px; background: var(--surface); }
+.sysrow.has-present { --sr-c: var(--sev-returned, #e8565c); }
+.sysrow.quiet { --sr-c: var(--ok); }
+.sysrow > summary { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: center; min-height: var(--tap);
+                    padding: 6px 10px; font-size: var(--fs-md); }
+.sysrow-name { font-weight: 700; font-size: var(--fs-lg); color: var(--ink); text-decoration: none; display: inline-flex;
+               align-items: center; min-height: var(--tap); }
+.sysrow-n { font-weight: 600; }
+.sysrow-seen, .sysrow-shared { color: var(--ink-2); }
+.sys-live { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 10px; border: 2px solid var(--ok);
+            border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-weight: 700; font-size: var(--fs-md); }
+.sysfaults, .sysquiet { list-style: none; margin: 0; padding: 0 8px 8px; display: grid; gap: 8px; }
+.sysfault { padding: 6px 8px; border: 1px solid var(--rule); border-left: 6px solid var(--sf-c, var(--ink-3)); border-radius: var(--radius);
+            background: var(--surface-2); }
+.sysfault.s-active, .sysfault.s-permanent { --sf-c: var(--sev-returned, #e8565c); }
+.sysfault.s-pending, .sysfault.s-verifying { --sf-c: var(--sev-chronic, #d9a63c); }
+.sysfault.s-proven-fixed, .sysfault.s-resolved { --sf-c: var(--ok); }
+.sysfault-top { display: flex; flex-wrap: wrap; gap: 2px 10px; align-items: center; font-size: var(--fs-md); }
+.sysfault-code { font-weight: 700; font-size: var(--fs-lg); color: var(--ink); display: inline-flex; align-items: center; min-height: var(--tap); }
+.sysfault-mod, .sysfault-seen { color: var(--ink-2); }
+.sys-status { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 2px solid var(--sf-c, var(--ink-3));
+              border-radius: 999px; font-weight: 700; font-size: var(--fs-md); }
+.sysfault-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sysfault-acts form { margin: 0; }
+.sys-btn { min-height: var(--tap); min-width: 88px; padding: 0 16px; font-size: var(--fs-md); font-weight: 700; cursor: pointer;
+           border-radius: var(--radius); border: 2px solid var(--ok); background: var(--ok-bg); color: var(--ink); }
+.sys-toggle-line { font-size: var(--fs-md); }
+.sys-toggle-line a { display: inline-flex; align-items: center; min-height: var(--tap); font-size: var(--fs-md); }

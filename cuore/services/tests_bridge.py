@@ -182,6 +182,19 @@ def _hyp_rank(t: dict[str, Any], open_hyps: list[dict[str, Any]],
 
 SORT_KEYS = ("priority", "system", "duration")
 
+#: The state words every list page uses (Job / Codes / Bench / Tests): one
+#: vocabulary, label always carried with the colour.
+STATE_WORDS = {"pass": "PASS", "fail": "FAIL", "inconclusive": "Inconclusive",
+               "not_possible": "Not possible", "skipped": "Skipped",
+               "recommended": "Recommended", "not_done": "Not done"}
+
+#: Skips live beside results in the checklist store under their own step id,
+#: so a skip is never a result (it neither counts as done nor feeds evidence).
+_SKIP_PREFIX = "testskip:"
+
+#: Tool wording that means "read live values through the car link".
+_LIVE_TOOL_WORDS = ("scan tool", "live ", "mcp obd2", "cuore", "mode $06")
+
 
 def age_text(iso: Optional[str], now: Optional[datetime] = None) -> str:
     """"2 d ago" style age of an ISO timestamp; empty string when unknown
@@ -211,20 +224,57 @@ def _state_of(r: dict[str, Any]) -> tuple[str, str]:
     words so colour is never the only cue."""
     res = r["latest_result"]["result"]
     if res != "not_done":
-        return res, res.replace("_", " ").upper()
+        return res, STATE_WORDS.get(res, res.replace("_", " ").capitalize())
+    if r.get("skip"):
+        return "skipped", STATE_WORDS["skipped"]
     blk = r.get("blocker")
     if blk and blk.get("window"):
-        return "blocked", "BLOCKED: " + str(blk.get("reason") or "see note")
+        return "blocked", "Blocked: " + str(blk.get("reason") or "see note")
     if r["recommended"]:
-        return "recommended", "RECOMMENDED"
-    return "not_done", "NOT DONE"
+        return "recommended", STATE_WORDS["recommended"]
+    return "not_done", STATE_WORDS["not_done"]
+
+
+def _needs_live(t: dict[str, Any]) -> bool:
+    """True when the test reads live values through the car link (a scan
+    tool / CUORE live read / Mode $06), as opposed to hands, a meter or a
+    smoke machine. Read from the catalogue's own tool wording, never guessed
+    from the test's name."""
+    return any(w in str(tool).lower() for tool in t.get("tools") or [] for w in _LIVE_TOOL_WORDS)
+
+
+def _expects_reading(t: dict[str, Any]) -> bool:
+    """True when the pass criteria carry a number or a unit to record."""
+    return any(pc.get("unit") or isinstance(pc.get("spec"), (int, float))
+               for pc in t.get("pass_criteria") or [])
+
+
+def _skip_entry(vin: str, test_id: str, store: Optional[dict[str, Any]] = None) -> Optional[dict[str, Any]]:
+    entry = (store if store is not None else checklist_store.get(vin)).get(_SKIP_PREFIX + test_id) or {}
+    if entry.get("done") and entry.get("outcome") == "skipped":
+        return {"reason": entry.get("note") or "skipped", "when": entry.get("done_at"),
+                "age": age_text(entry.get("done_at"))}
+    return None
+
+
+def _matched_codes(t: dict[str, Any], open_codes: list[str]) -> list[str]:
+    out: list[str] = []
+    for rel in t.get("related_codes") or []:
+        rel_u = rel.strip().upper()
+        for c in open_codes:
+            if c and _base_code(c).startswith(rel_u) and c not in out:
+                out.append(c)
+    return out
 
 
 def _layout(rows: list[dict[str, Any]], open_hyps: list[dict[str, Any]],
-            next_test_ids: set[str], sort: str) -> dict[str, Any]:
-    """Split the rows into the mechanic's reading order: Do next (recommended,
-    unblocked, not done), Blocked, Done (newest first), then everything else
-    folded by system. ``sort`` re-orders inside each section."""
+            next_test_ids: set[str], sort: str,
+            pick_id: Optional[str] = None) -> dict[str, Any]:
+    """Split the rows into the mechanic's reading order: the next test (one
+    card), the rest of Do next, Blocked, Done (newest first), Skipped, then
+    everything else folded by system. ``sort`` re-orders inside each section;
+    ``pick_id`` is the test the suspect ranking says splits the suspects best
+    (falls back to the first Do-next row)."""
     order = {r["id"]: i for i, r in enumerate(rows)}  # catalogue/priority order
 
     def prio(r: dict[str, Any]) -> tuple:
@@ -247,21 +297,141 @@ def _layout(rows: list[dict[str, Any]], open_hyps: list[dict[str, Any]],
     todo = [r for r in rows if r["state"] in ("recommended", "not_done", "blocked")]
     do_next = sorted([r for r in todo if r["state"] == "recommended"], key=key)
     blocked = sorted([r for r in todo if r["state"] == "blocked"], key=key)
-    done = sorted([r for r in rows if r["state"] not in ("recommended", "not_done", "blocked")],
+    done = sorted([r for r in rows if r["state"] not in ("recommended", "not_done", "blocked", "skipped")],
                   key=lambda r: r["latest_result"].get("when") or "", reverse=True)
+    skipped = sorted([r for r in rows if r["state"] == "skipped"],
+                     key=lambda r: (r["skip"] or {}).get("when") or "", reverse=True)
     rest_rows = sorted([r for r in todo if r["state"] == "not_done"], key=key)
+
+    # the one next test: the ranking's pick if it can be done now, else the
+    # first Do-next row, else the first undone test of any kind
+    card = next((r for r in do_next + rest_rows if r["id"] == pick_id), None)
+    if card is None and do_next:
+        card = do_next[0]
+    if card is None and rest_rows:
+        card = rest_rows[0]
+    if card is not None:
+        do_next = [r for r in do_next if r is not card]
+        rest_rows = [r for r in rest_rows if r is not card]
+
     groups: dict[str, list[dict[str, Any]]] = {}
     for r in rest_rows:
         groups.setdefault(r["system"], []).append(r)
     rest = [{"system": k, "label": k.replace("_", " "), "rows": v, "count": len(v),
              "minutes": sum(x["duration_min"] for x in v)}
             for k, v in sorted(groups.items())]
-    return {"do_next": do_next, "blocked": blocked, "done": done, "rest": rest,
+    return {"card": card, "do_next": do_next, "blocked": blocked, "done": done,
+            "skipped": skipped, "rest": rest,
             "rest_count": len(rest_rows), "sort": sort,
             "done_fail": sum(1 for r in done if r["state"] == "fail")}
 
 
-def build_tests_view(vin: str, sort: str = "priority") -> dict[str, Any]:
+def _ranking_pick(vin: str) -> Optional[dict[str, Any]]:
+    """The suspect ranking's next-test pick (the test that best splits the
+    top suspects per minute), or ``None`` -- the page then falls back to the
+    first Do-next row. Cached inside ``suspect_ranking.diagnose``."""
+    try:
+        from . import suspect_ranking
+        nt = suspect_ranking.diagnose(vin).get("next_test")
+        return nt if nt and nt.get("kind") == "catalogue" else None
+    except Exception:  # noqa: BLE001 -- the call degrades to the plain order
+        return None
+
+
+def _short(text: str, n: int = 110) -> str:
+    text = " ".join(str(text or "").split())
+    return text if len(text) <= n else text[:n - 1].rstrip() + "..."
+
+
+def _build_call(vin: str, layout: dict[str, Any], open_codes: list[str],
+                open_hyps: list[dict[str, Any]], pick: Optional[dict[str, Any]],
+                connected: bool) -> Optional[dict[str, Any]]:
+    """The one-line directing call for the card test, its "Why this?" text
+    and the go-to links. ``None`` when nothing is left to do."""
+    t = layout["card"]
+    if t is None:
+        return None
+    hyp = next((h for h in open_hyps if h.get("next_test") == t["id"]), None)
+    proves = hyp.get("text") if hyp else None
+    if not proves:
+        texts = {(h.get("text") or "").strip() for h in open_hyps}
+        proves = next((s for s in t.get("supports_hypotheses") or [] if s in texts), None)
+    if not proves:
+        proves = next(iter(t.get("supports_hypotheses") or []), None)
+    if not proves:
+        proves = t["system"].replace("_", " ")
+    blockers: list[str] = []
+    blk = t.get("blocker")
+    if blk and blk.get("window"):
+        blockers.append(f"Blocked: fuel level {blk.get('level')}% is {blk.get('direction')} the "
+                        f"{blk['window'][0]}-{blk['window'][1]}% window")
+    elif blk:
+        blockers.append(f"Check first: {blk.get('reason')}")
+    if t["needs_live"] and not connected:
+        blockers.append("needs the car, not connected")
+    ranked = bool(pick and pick.get("id") == t["id"])
+    why: list[str] = []
+    if ranked:
+        why.append(str(pick.get("why") or "").rstrip("."))
+        if pick.get("if_pass_rules_out"):
+            why.append("A pass clears: " + "; ".join(_short(x, 90) for x in pick["if_pass_rules_out"][:2]))
+        if pick.get("if_fail_rules_out"):
+            why.append("A fail makes these less likely: " + "; ".join(_short(x, 90) for x in pick["if_fail_rules_out"][:3]))
+    else:
+        why.extend(t.get("why") or [])
+    if not why:
+        why.append("Next undone test in the catalogue order; no open code or hypothesis ranks it.")
+    code = (_matched_codes(t, open_codes) or [None])[0]
+    links = [{"label": "Job", "href": f"/v/{vin}/job"},
+             {"label": "Codes", "href": f"/v/{vin}/codes"},
+             {"label": f"Electrical path {code}" if code else "Electrical layout",
+              "href": f"/v/{vin}/electrical" + (f"?code={code}" if code else "")},
+             {"label": "Procedure sheet", "href": f"/v/{vin}/tests/{t['id']}/print"}]
+    return {"id": t["id"], "name": t["name"],
+            "effort": f"{t['duration_min']} min" if t.get("duration_min") else "effort unknown",
+            "proves": _short(proves, 100), "blockers": blockers, "ranked": ranked,
+            "why": why, "links": links}
+
+
+def undo_banner(vin: str, did: str) -> Optional[dict[str, Any]]:
+    """What the "just recorded" banner shows for ``?did=<test id>``: the
+    result (or skip) now on file, with what Undo will clear. ``None`` when
+    the id is unknown or nothing is on file for it."""
+    t = mechanic_tests.test(did or "")
+    if t is None:
+        return None
+    r = _result_entry(vin, did)
+    if r["result"] != "not_done":
+        return {"id": did, "name": t["name"], "kind": "result",
+                "label": STATE_WORDS.get(r["result"], r["result"]),
+                "result": r["result"], "value": r["value"], "unit": r["unit"], "reason": r["reason"],
+                "expects_reading": _expects_reading(t), "system": (t["systems"] or [""])[0]}
+    sk = _skip_entry(vin, did)
+    if sk:
+        return {"id": did, "name": t["name"], "kind": "skip", "label": STATE_WORDS["skipped"],
+                "result": "", "value": None, "unit": "", "reason": sk["reason"],
+                "expects_reading": False, "system": ""}
+    return None
+
+
+def skip_test(vin: str, test_id: str, reason: str = "", *, undo: bool = False,
+              connected: bool = False) -> dict[str, Any]:
+    """Defer a test to the bottom of the page (``undo=True`` puts it back).
+    The reason defaults to the plainest true one: needs the car and it is not
+    connected, else skipped by the mechanic. Never a result, never evidence."""
+    t = mechanic_tests.test(test_id)
+    if t is None:
+        raise BadRequest(f"unknown test id {test_id!r}")
+    if undo:
+        checklist_store.set_step(vin, _SKIP_PREFIX + test_id, False)
+        return {"test_id": test_id, "skipped": False}
+    why = (reason or "").strip() or ("needs the car, not connected" if _needs_live(t) and not connected
+                                      else "skipped by mechanic")
+    checklist_store.set_step(vin, _SKIP_PREFIX + test_id, True, outcome="skipped", note=why[:120])
+    return {"test_id": test_id, "skipped": True, "reason": why[:120]}
+
+
+def build_tests_view(vin: str, sort: str = "priority", connected: bool = False) -> dict[str, Any]:
     """Everything ``tests.html`` needs: the full catalogue, each test's
     latest result, relevance ranking, and category/summary counts."""
     vin = (vin or "").strip()
@@ -311,6 +481,7 @@ def build_tests_view(vin: str, sort: str = "priority") -> dict[str, Any]:
     next_test_ids = {h["next_test"] for h in open_hyps if h.get("next_test")}
 
     rows: list[dict[str, Any]] = []
+    store = checklist_store.get(vin)
     counts = {k: 0 for k in RESULT_COUNT_KEYS}
     for t in catalogue:
         rid = t["id"]
@@ -343,6 +514,9 @@ def build_tests_view(vin: str, sort: str = "priority") -> dict[str, Any]:
             "recommended": rid in recommended_ids,
             "why": why,
             "blocker": blocker,
+            "needs_live": _needs_live(t),
+            "expects_reading": _expects_reading(t),
+            "skip": _skip_entry(vin, rid, store),
         })
 
     # Recommended rows rank by the fault tree's next test, then by
@@ -360,10 +534,17 @@ def build_tests_view(vin: str, sort: str = "priority") -> dict[str, Any]:
     categories = sorted({t["category"] for t in catalogue})
     if sort not in SORT_KEYS:
         sort = "priority"
-    layout = _layout(rows, open_hyps, next_test_ids, sort)
+    pick = _ranking_pick(vin)
+    layout = _layout(rows, open_hyps, next_test_ids, sort, pick.get("id") if pick else None)
+    call = _build_call(vin, layout, open_codes, open_hyps, pick, connected)
+    live_waiting = sum(1 for r in ([layout["card"]] if layout["card"] else []) + layout["do_next"]
+                       if r["needs_live"])
 
     return {
         "layout": layout,
+        "call": call,
+        "connected": connected,
+        "live_waiting": live_waiting,
         "vin": vin,
         "tests": rows,
         "categories": categories,
@@ -435,4 +616,5 @@ def record_result(vin: str, test_id: str, result: Optional[str], *, reason: str 
 
 
 __all__ = ["build_tests_view", "build_test_print_view", "record_result", "step_id",
-          "test_id_from_step", "open_hypotheses_for_form", "RESULT_COUNT_KEYS"]
+          "test_id_from_step", "open_hypotheses_for_form", "RESULT_COUNT_KEYS",
+          "skip_test", "undo_banner", "STATE_WORDS"]

@@ -1,0 +1,64 @@
+{# Tests "Test map": the car outline with the elements this test touches (what to probe: connector, sensor, fuse,
+   ground ...). Embeddable partial. Context: `test` (needs .id) and vin (or view.vin), optionally tmap =
+   cuore.services.tests_interactive.test_map(vin, test.id); else the tests_map() Jinja global computes it.
+   No JavaScript needed: every marker links to its card, and all cards are listed in a details.fold. With
+   JavaScript (tests_interactive.js) a tap shows the card inline. Marker = numbered circle (never colour alone). #}
+{% set _vin = vin if vin is defined else view.vin %}
+{% if tmap is not defined and tests_map is defined %}{% set tmap = tests_map(_vin, test.id, request.query_params.get('token') if request is defined and request else '') %}{% endif %}
+{% if tmap %}
+<link rel="stylesheet" href="{{ static_url('tests_interactive.css') }}">
+{% set k = tmap.test.id %}
+<section class="tm" id="tm-{{ k }}" aria-labelledby="tm-h-{{ k }}">
+  <h4 class="ti-h" id="tm-h-{{ k }}">Where to probe: {{ tmap.test.name }}</h4>
+  {% if not tmap['items'] %}
+    <p class="ti-note">{{ tmap.note }}</p>
+  {% else %}
+  <p class="tm-pathrow"><a class="tm-pathlink" href="{{ tmap.path.href }}">Electrical path for: {{ tmap.path.label }} &rarr;</a></p>
+  <ul class="tm-legend" aria-label="Legend"><li><span class="tm-mark tm-key" aria-hidden="true"><span class="tm-n">1</span></span> <span>An element this test touches (numbered circle). Each marker is an area, not an exact spot.</span></li></ul>
+  <div class="tm-views">
+    <input class="tm-radio" type="radio" name="tm-view-{{ k }}" id="tm-v-side-{{ k }}" checked>
+    <input class="tm-radio" type="radio" name="tm-view-{{ k }}" id="tm-v-top-{{ k }}">
+    <div class="tm-tabs" role="group" aria-label="Car view"><label for="tm-v-side-{{ k }}">Side</label><label for="tm-v-top-{{ k }}">Top</label></div>
+    {% for v in ['side', 'top'] %}{% set vw = tmap[v] %}
+    <figure class="tm-fig tm-fig-{{ v }}">
+      <figcaption>{% if v == 'side' %}Side view: the car's left (driver's) side, front to the left. Right-side items are on the Top view.{% else %}Top view: looking down, front to the left; left (driver's) side at the bottom.{% endif %}</figcaption>
+      <div class="tm-stage">{{ vw.svg|safe }}
+        {% for m in vw.marks %}<a class="tm-mark" href="#tm-card-{{ k }}-{{ m.id }}" data-card="tm-card-{{ k }}-{{ m.id }}" style="left:{{ m.left }}%;top:{{ m.top }}%" aria-label="{{ m.num }}: {{ m.label }}"><span class="tm-n">{{ m.num }}</span></a>{% endfor %}
+      </div>
+      {% if not vw.marks %}<p class="ti-note">Nothing this test touches has a known place in this view.</p>{% endif %}
+    </figure>
+    {% endfor %}
+    <p class="tm-credit">{{ tmap.credit.text }} (<a href="{{ tmap.credit.photo }}" rel="noopener">photo</a>, <a href="{{ tmap.credit.licence }}" rel="noopener">licence</a>)</p>
+  </div>
+  {% if tmap.unplaced %}<p class="tm-unplaced"><b>Not placed on the drawing (location unknown):</b>
+    {% for i in tmap.unplaced %}<a href="#tm-card-{{ k }}-{{ i.id }}" data-card="tm-card-{{ k }}-{{ i.id }}">{{ i.num }} {{ i.label }}</a>{% endfor %}</p>{% endif %}
+  <div class="tm-pop" role="region" aria-label="Selected element" aria-live="polite" hidden></div>
+  <details class="fold tm-fold" open>
+    <summary>All {{ tmap['items']|length }} elements: what, where, last check</summary>
+    <ol class="tm-cards">
+    {% for i in tmap['items'] %}
+      <li class="tm-card" id="tm-card-{{ k }}-{{ i.id }}" tabindex="-1">
+        <h5 class="tm-ch"><span class="tm-mark tm-key" aria-hidden="true"><span class="tm-n">{{ i.num }}</span></span> {{ i.label }}</h5>
+        <dl class="tm-dl">
+          <dt>What it is</dt>
+          <dd>{{ i.kind_word|capitalize }}{% if i.role and i.role != i.kind %}, role: {{ i.role|replace('_', ' ') }}{% endif %}. Touched by this test: {{ i.via }}.{% if i.hint %} Look for: {{ i.hint }}.{% endif %}</dd>
+          <dt>Where</dt>
+          <dd>{% if i.placed %}Drawn in: {{ i.zone_label }}.{% else %}Not placed on the drawing: no sourced zone.{% endif %}
+            {% if i.loc_text %}{{ i.loc_text|truncate(300) }}{% endif %}
+            {% if i.loc_conf %}<span class="ti-muted">({{ i.loc_conf }} confidence{% if i.loc_source %}; source: {{ i.loc_source|truncate(120) }}{% endif %})</span>{% endif %}
+            <br><a class="tm-open" href="{{ i.layout_href }}">Open in layout &rarr;</a>
+            <a class="tm-open" href="{{ i.path_href }}">Electrical path for: {{ i.label|truncate(40) }} &rarr;</a></dd>
+          <dt>Last measurement</dt>
+          <dd>{% if i.measurement %}{{ i.measurement.volts }} V drop, {{ i.measurement.from }} to {{ i.measurement.to }}: {{ i.measurement.condition }} ({{ i.measurement.age or i.measurement.at }}).{% else %}None recorded.{% endif %}</dd>
+          <dt>Last inspection</dt>
+          <dd>{% if i.inspection %}{{ i.inspection.condition }}{% if i.inspection.by %} by {{ i.inspection.by }}{% endif %} ({{ i.inspection.age or i.inspection.at }}){% if i.inspection.note %}: {{ i.inspection.note }}{% endif %}.{% else %}Never inspected.{% endif %}</dd>
+          {% if i.tsb_refs %}<dt>Bulletins</dt><dd>{{ i.tsb_refs|join(', ') }}.</dd>{% endif %}
+        </dl>
+      </li>
+    {% endfor %}
+    </ol>
+  </details>
+  {% endif %}
+</section>
+<script src="{{ static_url('tests_interactive.js') }}" defer></script>
+{% endif %}

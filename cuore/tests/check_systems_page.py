@@ -92,6 +92,19 @@ check("dashed/dotted edge strokes are emitted (stroke-dasharray)",
       "stroke-dasharray" in page.text)
 check("per-system card anchors present (id=\"sys-...\")", 'id="sys-evap"' in page.text)
 check("vbar carries a Systems tab", ">Systems<" in page.text)
+# Bench-style rows (added 2026-10-27; existing expectations above unchanged)
+check("state line says Not connected + Connect to car", 'id="sys-state"' in page.text and "tap Connect to car" in page.text)
+# the throwaway state dir has no scans, so the call / rows only exist when faults do
+_has_faults = 'class="fold sysrow' in page.text and "has-present" in page.text
+check("one-line call (with Why this? fold) when a fault is present",
+      (not _has_faults) or ('id="sys-call"' in page.text and "Why this?" in page.text))
+check("Go-to chips: Job, Codes, Electrical path, Sensors",
+      all(x in page.text for x in (f'/v/{VIN}/job"', f'/v/{VIN}/codes"', "Electrical path", f'/v/{VIN}/sensors"')))
+check("systems with faults render as details.fold rows; those with present faults start open",
+      (not _has_faults) or ' open>' in page.text.split("has-present", 1)[1][:200] or " open" in page.text.split("has-present", 1)[1][:200])
+check("per-fault Fixed posts to fault-board/fixed and returns here",
+      f'action="/v/{VIN}/fault-board/fixed"' in page.text and f'value="/v/{VIN}/systems#sysrows"' in page.text)
+check("systems with no faults are folded", "No faults" in page.text)
 
 print("=== code page system badge ===")
 code_resp = client.get(f"/v/{VIN}/code/P0455")

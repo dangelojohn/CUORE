@@ -367,6 +367,23 @@ def _build_view(vin: str, show_all: bool = True) -> dict[str, Any]:
 
 # --- the page ---------------------------------------------------------------
 
+def _board(vin: str, systems: list[dict[str, Any]]) -> dict[str, Any]:
+    """Bench-style rows: faults under their system, priority then newest,
+    plus the one-line call and the connected / not-connected state. Never
+    raises: an empty board just renders the "no faults" fold."""
+    empty = {"rows": [], "quiet": [], "call": None, "connected": False, "mes_holds": False,
+             "n_live": 0, "ok": False}
+    bridge = _bridge()
+    if bridge is None or not hasattr(bridge, "systems_board"):
+        return empty
+    try:
+        corr = _correlate(vin)
+        by_system = {r.get("system"): r for r in (corr.get("by_system") or [])}
+        labels = {s.get("key"): s.get("label") or s.get("key") for s in systems}
+        return bridge.systems_board(vin, systems, by_system, labels)
+    except Exception:  # noqa: BLE001
+        return empty
+
 
 @router.get("/v/{vin}/systems", response_class=HTMLResponse)
 def systems_page(request: Request, vin: str, all: bool = False) -> HTMLResponse:
@@ -378,6 +395,7 @@ def systems_page(request: Request, vin: str, all: bool = False) -> HTMLResponse:
     dossier = _dossier(vin)
     view = _build_view(vin, show_all=all)
     svg = systems_svg.render(view["nodes"], view["edges"], vin=vin)
+    board = _board(vin, _systems())
     bar = _vehicle_bar(vin, dossier)
     # F2 (MECHANIC_REVIEW_3): _vehicle_bar's bare dossier.identity fallback
     # can regress to "(unnamed vehicle)" depending on request order (shared
@@ -387,7 +405,7 @@ def systems_page(request: Request, vin: str, all: bool = False) -> HTMLResponse:
     # the cached dossier's own identity.vehicle for the hero name here.
     bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
     response = _page(request, "systems.html", vin=vin, bar=bar,
-                     tab="systems", view=view, svg=svg)
+                     tab="systems", view=view, svg=svg, board=board)
     _set_active_vehicle(response, vin)
     return response
 

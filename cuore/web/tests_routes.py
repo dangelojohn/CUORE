@@ -28,15 +28,21 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from ..api.deps import require_token
 from ..services import shop_bridge, tests_bridge
 from ..services.errors import NotFound
-from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar, templates
+from .routes import _dossier, _page, _set_active_vehicle, _status_strip, _vehicle_bar, templates
 
 #: Server-rendered page: same posture as ``cuore.web.routes.router`` and
 #: ``cuore.web.liveboard_routes.router``.
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
 
 
+def _car_connected(strip: dict) -> bool:
+    """Same definition the Bench uses: CUORE holds the port, or MES reports
+    the car connected. Read from the registry, never from the adapter."""
+    return bool(strip.get("lock_holder") == "cuore" or strip.get("mes_state") == "connected")
+
+
 @router.get("/v/{vin}/tests", response_class=HTMLResponse)
-def tests_page(request: Request, vin: str, sort: str = "priority") -> HTMLResponse:
+def tests_page(request: Request, vin: str, sort: str = "priority", did: str = "") -> HTMLResponse:
     """The Tests catalogue: summary strip, filter chips, every test as a
     row with its latest result and a PASS/FAIL/Inconclusive/Not possible
     result form."""
@@ -47,8 +53,12 @@ def tests_page(request: Request, vin: str, sort: str = "priority") -> HTMLRespon
     # the corpus name / WMI decode fallback bench_routes.py already relies
     # on, so reuse it here rather than let this surface regress.
     bar["name"] = shop_bridge.resolve_vehicle_name(vin) or bar["name"]
-    view = tests_bridge.build_tests_view(vin, sort)
-    response = _page(request, "tests.html", vin=vin, bar=bar, tab="tests", view=view)
+    strip = _status_strip()
+    connected = _car_connected(strip)
+    view = tests_bridge.build_tests_view(vin, sort, connected=connected)
+    view["undo"] = tests_bridge.undo_banner(vin, did) if did else None
+    response = _page(request, "tests.html", vin=vin, bar=bar, tab="tests", view=view,
+                     live_strip=strip)
     _set_active_vehicle(response, vin)
     return response
 
@@ -94,7 +104,22 @@ def tests_result_form(request: Request, vin: str, test_id: str,
     tests_bridge.record_result(vin, test_id, result or None, reason=reason, value=val,
                                unit=unit, hypothesis_id=hypothesis_id or None,
                                supports=supports or "for", by=by)
+    if result:  # land on the page that shows what was recorded, with Undo
+        return RedirectResponse(url=f"/v/{vin}/tests?did={test_id}#ts-undo", status_code=303)
     return RedirectResponse(url=f"/v/{vin}/tests#test-{test_id}", status_code=303)
+
+
+@router.post("/v/{vin}/tests/{test_id}/skip", response_class=HTMLResponse)
+def tests_skip_form(vin: str, test_id: str, undo: str = Form(""),
+                    reason: str = Form("")) -> HTMLResponse:
+    """Defer a test to the bottom (Skipped fold) with a reason, or put it back
+    (``undo=1``). A skip is not a result: nothing is counted done, nothing
+    becomes evidence. Plain POST/redirect, so it works with no JavaScript."""
+    tests_bridge.skip_test(vin, test_id, reason, undo=bool(undo),
+                           connected=_car_connected(_status_strip()))
+    if undo:
+        return RedirectResponse(url=f"/v/{vin}/tests#test-{test_id}", status_code=303)
+    return RedirectResponse(url=f"/v/{vin}/tests?did={test_id}#ts-undo", status_code=303)
 
 
 __all__ = ["router"]

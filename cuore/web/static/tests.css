@@ -225,3 +225,73 @@ a.ts-filter-chip {
 .ts-row-head, .ts-why, .ts-latest, .ts-blocker, .ts-status { font-size: var(--fs-md); }
 .ts-duration, .ts-result-chip { font-size: var(--fs-md); }
 .ts-btn-sm { font-size: var(--fs-md); }
+
+/* ---------- Bench principles pass (2026-10-26) ----------
+ * One call, one next-test card, one-line rows. Every size is --fs-md (16px)
+ * or larger; every target is >= 44px; label + colour on every chip. */
+.ts-summary-chip, .ts-filter-chip, .ts-conf-chip, .ts-cat-chip, .ts-state-chip,
+.ts-criteria, .ts-purpose, .ts-procedure, .ts-field, .ts-field input, .ts-field select,
+.ts-status, .ts-details summary, .ts-group > summary { font-size: var(--fs-md); }
+.ts-summary { padding: 6px 0; margin-top: 10px; }
+.ts-summary-chip { padding: 6px 10px; }
+
+.ts-call {
+  margin: 8px 0 6px; padding: 10px 12px; border: 1px solid var(--rule);
+  border-left: 4px solid var(--accent, var(--ok)); border-radius: var(--radius);
+  background: var(--surface);
+}
+.ts-call-line { margin: 0; font-size: var(--fs-md); line-height: 1.4; overflow-wrap: anywhere; }
+.ts-call-block { color: var(--sev-chronic); font-weight: var(--fw-semibold); }
+.ts-why-fold { margin: 2px 0 0; }
+.ts-why-fold > summary { min-height: 44px; display: flex; align-items: center; font-size: var(--fs-md); }
+.ts-why-list { margin: 0 0 8px; padding-left: 20px; font-size: var(--fs-md); overflow-wrap: anywhere; }
+.ts-go { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+.ts-gochip {
+  min-height: 44px; display: inline-flex; align-items: center; padding: 4px 14px;
+  border: 1px solid var(--rule); border-radius: 999px; background: var(--surface-2);
+  color: var(--ink); text-decoration: none; font-size: var(--fs-md);
+}
+.ts-gochip:hover { border-color: var(--ink-3); }
+
+.ts-state { margin: 4px 0 8px; font-size: var(--fs-md); color: var(--ink-2); }
+
+.ts-undo {
+  margin: 8px 0; padding: 8px 12px; border: 1px solid var(--ok); border-radius: var(--radius);
+  background: var(--ok-bg); scroll-margin-top: 90px;
+}
+.ts-undo-line { margin: 0 0 6px; font-size: var(--fs-md); overflow-wrap: anywhere; }
+
+.ts-next { border: 2px solid var(--accent, var(--ok)); padding: 12px; margin: 6px 0 10px; }
+.ts-next .ts-row-name { font-size: var(--fs-lg); }
+.ts-meta { font-size: var(--fs-md); color: var(--ink-2); margin-top: 2px; }
+.ts-list { gap: 8px; padding-bottom: 12px; }
+.ts-row { padding: 8px 10px; }
+.ts-row-head { gap: 6px 8px; }
+
+.ts-buttons { margin-top: 8px; }
+.ts-btn { min-height: 44px; padding: 0 12px; flex: 1 1 0; min-width: 0; font-size: var(--fs-md); }
+.ts-btn-skip { color: var(--ink-2); flex: 0 1 30%; }
+.ts-buttons-more { margin: 8px 0; }
+.ts-live-chip, .ts-result-chip { font-size: var(--fs-md); padding: 2px 9px; }
+.ts-live-chip {
+  border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink-2); background: var(--surface-2);
+}
+.ts-live-chip.is-live { color: var(--ok); border-color: var(--ok); background: var(--ok-bg); }
+.ts-result-skipped { color: var(--ink-2); border-color: var(--ink-3); background: var(--surface-2); }
+
+.ts-value-panel, .ts-details { margin-top: 6px; }
+.ts-extra { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 0; align-items: end; }
+.ts-extra .ts-field { flex: 1 1 140px; min-width: 0; }
+.ts-extra .ts-field-wide { flex: 1 1 100%; }
+.ts-field input, .ts-field select { min-height: 44px; width: 100%; box-sizing: border-box; }
+.ts-sheet-link { display: inline-flex; align-items: center; min-height: 44px; }
+.ts-detail-body, .ts-detail-body p, .ts-detail-body li, .ts-detail-body td, .ts-detail-body th { font-size: var(--fs-md); }
+.ts-from-list { margin: 0; padding: 0 12px 10px 32px; font-size: var(--fs-md); }
+.ts-filters { padding: 4px 0; }
+.ts-h { font-size: var(--fs-lg); margin: 12px 0 6px; }
+.ts-value-panel > summary { min-height: 44px; display: flex; align-items: center; font-size: var(--fs-md); }
+.ts-why { margin: 6px 0; color: var(--ok); }
+.ts-call { padding: 8px 12px 4px; }
+.ts-gochip { padding: 2px 12px; }
+.ts-go { gap: 6px; }
+.ts-state { margin: 2px 0 6px; }

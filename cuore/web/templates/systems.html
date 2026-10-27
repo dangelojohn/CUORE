@@ -5,12 +5,98 @@
 <link rel="stylesheet" href="{{ static_url('systems.css') }}">
 <link rel="stylesheet" href="{{ static_url('scan.css') }}">
 
-<h1>System dependencies</h1>
+<h1>Systems</h1>
+
+{# Bench-style first screen: state line, the one-line call, Go-to chips, then
+   systems as one-line rows (priority first, then most recent). No JavaScript:
+   every fold is a <details>, Fixed is a plain form POST. #}
+{% set b = board or {} %}
+<p class="sys-state {{ 'on' if b.connected else 'off' }}" id="sys-state" role="status">
+  {% if b.connected %}
+    <b>Connected</b> &mdash; {% if b.n_live %}live data is polling {{ b.n_live }} channel{{ 's' if b.n_live != 1 else '' }}; systems marked Live are being read now.{% else %}the adapter is yours; no live channels are being polled yet.{% endif %}
+  {% elif b.mes_holds %}
+    <b>Not connected</b> &mdash; MultiEcuScan has the adapter. Tap Connect to car (top of page) once it is closed.
+  {% else %}
+    <b>Not connected</b> &mdash; tap Connect to car (top of page).
+  {% endif %}
+</p>
+
+{% if b.call %}
+<div class="sys-call" id="sys-call">
+  <p class="sys-call-line">{{ b.call.text }}
+    &mdash; next: {% if b.call.next %}{{ b.call.next }}{% else %}no test on file yet (open the code page){% endif %}</p>
+  <details class="fold sys-why">
+    <summary>Why this?</summary>
+    <ul>{% for w in b.call.why %}<li>{{ w }}</li>{% endfor %}</ul>
+  </details>
+</div>
+{% elif b.ok %}
+<p class="sys-call" id="sys-call">Nothing is present now on any system. History is listed below.</p>
+{% endif %}
+
+<nav class="sys-go" aria-label="Go to">
+  <span class="sys-go-l">Go to</span>
+  <a class="sys-chip" href="/v/{{ vin }}/job">Job</a>
+  <a class="sys-chip" href="/v/{{ vin }}/codes">Codes</a>
+  <a class="sys-chip" href="{{ b.call.path_href if b.call else '/v/' ~ vin ~ '/electrical' }}">Electrical path{% if b.call %} for {{ b.call.code }}{% endif %}</a>
+  <a class="sys-chip" href="/v/{{ vin }}/sensors">Sensors</a>
+</nav>
+
+<div id="sysrows" class="sys-rows">
+{% for r in b.rows or [] %}
+  <details class="fold sysrow s{{ r.tier }}{{ ' has-present' if r.n_present }}" id="sysrow-{{ r.key }}"{{ ' open' if r.open }}>
+    <summary>
+      <span class="sysrow-name">{{ r.label }}</span>
+      <span class="sysrow-n">{{ r.n_present }} present / {{ r.n_history }} history</span>
+      <span class="sysrow-seen">last seen {{ r.last_seen_ago }}</span>
+      {% if r.shared %}<span class="sysrow-shared">shared cause: {{ r.shared }}</span>{% endif %}
+      {% if r.live %}<span class="sys-live"><span aria-hidden="true">&#9679;</span> Live</span>{% endif %}
+    </summary>
+    <ul class="sysfaults">
+    {% for f in r.faults %}
+      <li class="sysfault s-{{ f.status }}">
+        <div class="sysfault-top">
+          <a class="sysfault-code" href="{{ f.href }}">{{ f.code }}</a>
+          <span class="sysfault-mod">{{ f.module }}</span>
+          <span class="sys-status"><span aria-hidden="true">{{ f.status_mark }}</span> {{ f.status_label }}</span>
+          {% if f.returned_after_fix %}<span class="sys-status"><span aria-hidden="true">!</span> Returned after fix</span>{% endif %}
+          <span class="sysfault-seen">last seen {{ f.last_seen_ago }}</span>
+        </div>
+        <div class="sysfault-acts">
+          {% if f.can_fix %}
+          <form method="post" action="/v/{{ vin }}/fault-board/fixed">
+            <input type="hidden" name="fault_key" value="{{ f.key }}">
+            <input type="hidden" name="return_to" value="/v/{{ vin }}/systems#sysrows">
+            <button type="submit" class="sys-btn" aria-label="Mark {{ f.code }} fixed" title="Records the repair and starts verification; CUORE shows Proven fixed only when the readings say so">Fixed</button>
+          </form>
+          {% endif %}
+          <a class="sys-chip" href="{{ f.href }}">Code page</a>
+          <a class="sys-chip" href="{{ f.path_href }}">Electrical path</a>
+          <a class="sys-chip" href="/v/{{ vin }}/systems/{{ r.key }}">System detail</a>
+        </div>
+      </li>
+    {% endfor %}
+    </ul>
+  </details>
+{% endfor %}
+{% if b.quiet %}
+  <details class="fold sysrow quiet" id="sys-quiet">
+    <summary><span class="sysrow-name">No faults &mdash; {{ b.quiet|length }} system{{ 's' if b.quiet|length != 1 else '' }}</span></summary>
+    <ul class="sysquiet">
+    {% for q in b.quiet %}
+      <li><a class="sys-chip" href="/v/{{ vin }}/systems/{{ q.key }}">{{ q.label }}</a>{% if q.live %} <span class="sys-live"><span aria-hidden="true">&#9679;</span> Live</span>{% endif %}</li>
+    {% endfor %}
+    </ul>
+  </details>
+{% endif %}
+</div>
+
+<h2>System dependencies</h2>
 <p class="lede">What may sit upstream of what, and what this car's own history does
   (or does not yet) corroborate. A dashed or dotted line is a guess, not a finding --
   read each edge's own note before treating it as diagnosis.</p>
 
-<h2>Dependency graph</h2>
+<h3>Dependency graph</h3>
 <p class="small muted sys-toggle-line">
   {% if view.show_all %}
     Showing all {{ view.total_systems }} systems in the taxonomy.
