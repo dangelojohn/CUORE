@@ -802,8 +802,8 @@ def live_channels() -> str:
 @mcp.tool()
 def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
                        rates_json: str = "", monitor_dtcs: bool = False,
-                       dtc_interval_s: float = 10.0) -> str:
-    """Start a live-data poll session: round-robins the given channels (and/or preset) at
+                       dtc_interval_s: float = 10.0, code_watch: bool = False) -> str:
+    """Start a live-data poll session (code_watch=True adds the read-only new-code alert): round-robins the given channels (and/or preset) at
     their configured rates, holding the adapter until stopped. Read-only (Mode 01, UDS
     0x22, ATRV) but refuses other live operations while it runs, and itself refuses while
     MultiEcuScan is connected. rates_json overrides per-channel Hz, e.g. '{"engine_rpm": 10}'.
@@ -818,10 +818,13 @@ def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
     if monitor_dtcs:
         body["monitor_dtcs"] = True
         body["dtc_interval_s"] = dtc_interval_s
+    if code_watch:
+        body["code_watch"] = True
     return _via("POST", "/live/session/start",
                 lambda: ops.live_session_start(channels, preset=preset, rates=rates,
                                                monitor_dtcs=monitor_dtcs,
-                                               dtc_interval_s=dtc_interval_s),
+                                               dtc_interval_s=dtc_interval_s,
+                                               code_watch=code_watch),
                 body=body)
 
 

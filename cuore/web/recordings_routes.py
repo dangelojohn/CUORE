@@ -80,8 +80,16 @@ def _x(t: float, tmax: float) -> float:
     return PAD_L + (t / tmax if tmax > 0 else 0) * (W - PAD_L - PAD_R)
 
 
+def _tag_lines(tags: list[dict[str, Any]], tmax: float, y1: float, y2: float) -> str:
+    """Vertical marks at each keyed tag (the key digit is printed on the axis copy only)."""
+    return "".join(f'<line class="rg-tagline" x1="{_x(float(t["t"]), tmax):.1f}" y1="{y1}" '
+                   f'x2="{_x(float(t["t"]), tmax):.1f}" y2="{y2}"/>'
+                   for t in tags if t.get("t") is not None)
+
+
 def chart_svg(channel: str, unit: str, tmax: float,
-              a: list[tuple[float, Optional[float]]], b: Optional[list[tuple[float, Optional[float]]]]) -> str:
+              a: list[tuple[float, Optional[float]]], b: Optional[list[tuple[float, Optional[float]]]],
+              tags: Optional[list[dict[str, Any]]] = None) -> str:
     allv = [v for s in (a, b or []) for _, v in s if v is not None]
     if allv:
         lo, hi = min(allv), max(allv)
@@ -100,6 +108,7 @@ def chart_svg(channel: str, unit: str, tmax: float,
     for t in _ticks(tmax):
         xx = _x(t, tmax)
         parts.append(f'<line class="rg-grid" x1="{xx:.1f}" y1="{PAD_T}" x2="{xx:.1f}" y2="{H - PAD_B}"/>')
+    parts.append(_tag_lines(tags or [], tmax, PAD_T, H - PAD_B))
     parts.append(f'<text class="rg-lab" x="{PAD_L - 6}" y="{PAD_T + 14}" text-anchor="end">{escape(_g(hi))}</text>')
     parts.append(f'<text class="rg-lab" x="{PAD_L - 6}" y="{H - PAD_B - 2}" text-anchor="end">{escape(_g(lo))}</text>')
     for cls, s in (("rg-a", a), ("rg-b", b)):
@@ -122,13 +131,18 @@ def chart_svg(channel: str, unit: str, tmax: float,
     return "".join(parts)
 
 
-def axis_svg(tmax: float) -> str:
+def axis_svg(tmax: float, tags: Optional[list[dict[str, Any]]] = None) -> str:
     parts = [f'<svg class="rg rg-axis" viewBox="0 0 {W} 30" role="img" aria-label="Time axis, minutes:seconds" '
              f'preserveAspectRatio="none">']
     for t in _ticks(tmax):
         xx = _x(t, tmax)
         parts.append(f'<line class="rg-tick" x1="{xx:.1f}" y1="0" x2="{xx:.1f}" y2="5"/>')
         parts.append(f'<text class="rg-lab" x="{xx:.1f}" y="24" text-anchor="middle">{escape(fmt_dur(t))}</text>')
+    parts.append(_tag_lines(tags or [], tmax, 0, 30))
+    for t in tags or []:
+        if t.get("t") is not None:
+            parts.append(f'<text class="rg-lab rg-tagkey" x="{_x(float(t["t"]), tmax) + 3:.1f}" y="14">'
+                         f'{escape(str(t.get("key", "")))}</text>')
     parts.append("</svg>")
     return "".join(parts)
 
@@ -142,6 +156,7 @@ def _span(rec: Optional[dict[str, Any]]) -> float:
 
 def build_charts(a: dict[str, Any], b: Optional[dict[str, Any]]) -> dict[str, Any]:
     tmax = max(_span(a), _span(b), 0.001)
+    tags = list(a.get("tags") or [])
     ach = list(a.get("channels") or [])
     bch = list((b or {}).get("channels") or [])
     chans = ach + [c for c in bch if c not in ach]
@@ -155,9 +170,10 @@ def build_charts(a: dict[str, Any], b: Optional[dict[str, Any]]) -> dict[str, An
             note = "only in this recording"
         elif b and c not in ach:
             note = "only in the compared recording"
-        charts.append({"channel": c, "unit": unit, "svg": Markup(chart_svg(c, unit, tmax, sa, sb)),
+        charts.append({"channel": c, "unit": unit, "svg": Markup(chart_svg(c, unit, tmax, sa, sb, tags)),
                        "a": stats(sa) if sa else None, "b": stats(sb) if sb else None, "note": note})
-    return {"charts": charts, "axis": Markup(axis_svg(tmax)), "tmax": tmax}
+    return {"charts": charts, "axis": Markup(axis_svg(tmax, tags)), "tmax": tmax,
+            "tags": tags}
 
 
 def _cell(v: Any) -> Any:

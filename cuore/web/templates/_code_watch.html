@@ -1,0 +1,54 @@
+{# Live new-code alert banner. Embeddable partial; needs no context except `vin` (and optional `tok`).
+   Hidden when the running live session has seen no new code since the last "Seen"; otherwise one line:
+   "! New code P0456 (pending) 12 s ago", the count, a 44 px Seen button and a link to the code page.
+   Without JS it is a static render of the state at page load (code_watch_state global); with JS it polls
+   GET /api/live/session every 5 s. Read-only on the car side: Seen only POSTs the ack. Own <style>. #}
+{% set cw = code_watch_state() if code_watch_state is defined else none %}
+{% set cwn = (cw.new if cw else []) %}
+<style>
+.cw { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: 0 0 10px; padding: 4px 12px; font-size: var(--fs-md); border: 2px solid var(--sev-returned, #e8565c); border-left-width: 8px; border-radius: var(--radius, 3px); background: var(--surface-2); color: var(--ink); }
+.cw[hidden] { display: none; }
+.cw-mark { font-weight: 700; font-size: var(--fs-lg); }
+.cw-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.cw-link { display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 0 12px; color: var(--ink); font-weight: 700; font-size: var(--fs-md); }
+.cw-btn { min-height: 44px; min-width: 88px; padding: 0 16px; font-size: var(--fs-md); font-weight: 700; cursor: pointer; border-radius: var(--radius, 3px); border: 2px solid var(--ink); background: var(--surface); color: var(--ink); }
+</style>
+<div class="cw" id="cw-banner" role="status" aria-live="polite" data-vin="{{ vin }}"{% if not cwn %} hidden{% endif %}>
+  <span class="cw-mark" aria-hidden="true">!</span>
+  <span class="cw-text" id="cw-text">{% if cwn %}{% set e = cwn[-1] %}New code {{ e.code }} ({{ e.kind }}) {{ e.age_s }} s ago{% if cwn|length > 1 %} &middot; {{ cwn|length }} new codes{% endif %}{% endif %}</span>
+  <a class="cw-link" id="cw-link" href="/v/{{ vin }}/code/{{ cwn[-1].code if cwn else '' }}">Open code page</a>
+  {% set cwtok = request.query_params.get('token') if request else none %}
+  <form method="post" action="/api/live/session/code-watch/ack{% if cwtok %}?token={{ cwtok|urlencode }}{% endif %}" style="margin:0">
+    <input type="hidden" name="return_to" value="{{ request.url.path if request else '/v/' ~ vin }}{% if cwtok %}?token={{ cwtok|urlencode }}{% endif %}">
+    <button type="submit" class="cw-btn" id="cw-seen">Seen</button>
+  </form>
+</div>
+<script>
+(function () {
+  var b = document.getElementById("cw-banner");
+  if (!b || !window.fetch) return;
+  var vin = b.getAttribute("data-vin");
+  var tok = new URLSearchParams(location.search).get("token");
+  function u(p) { return tok ? p + "?token=" + encodeURIComponent(tok) : p; }
+  function show(cw) {
+    var n = (cw && cw.new) || [];
+    b.hidden = n.length === 0;
+    if (!n.length) return;
+    var e = n[n.length - 1];
+    document.getElementById("cw-text").textContent = "New code " + e.code + " (" + e.kind + ") " +
+      e.age_s + " s ago" + (n.length > 1 ? " · " + n.length + " new codes" : "");
+    document.getElementById("cw-link").href = "/v/" + vin + "/code/" + encodeURIComponent(e.code);
+  }
+  function poll() {
+    fetch(u("/api/live/session")).then(function (r) { return r.json(); })
+      .then(function (s) { show(s && s.code_watch); }).catch(function () {});
+  }
+  document.getElementById("cw-seen").addEventListener("click", function (ev) {
+    ev.preventDefault();
+    fetch(u("/api/live/session/code-watch/ack"), { method: "POST" })
+      .then(function (r) { return r.json(); }).then(show).catch(function () {});
+  });
+  setInterval(poll, 5000);
+  poll();
+})();
+</script>

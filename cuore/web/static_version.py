@@ -49,8 +49,18 @@ def static_url(path: str) -> str:
         return f"/static/{path}"
 
 
+def code_watch_state() -> dict:
+    """The live new-code alert's current state for ``_code_watch.html``'s no-JS render."""
+    try:
+        from ..live import poller as poller_mod
+        return poller_mod.poller().status()["code_watch"]
+    except Exception:  # noqa: BLE001 -- a banner must never 500 a page
+        return {"enabled": False, "new": [], "count_new": 0}
+
+
 def _register(templates: Any) -> None:
     templates.env.globals["static_url"] = static_url
+    templates.env.globals["code_watch_state"] = code_watch_state
 
 
 # The four distinct ``Jinja2Templates`` instances in this package (``routes``

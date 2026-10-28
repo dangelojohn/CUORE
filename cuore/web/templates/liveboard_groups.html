@@ -28,6 +28,16 @@
 </div>
 {% endmacro %}
 
+{# Sort bar: shown by list_controls.js only (no JS = server order). No channel checkboxes on this page, so no Select All/None. #}
+<div class="lb-sortbar" id="lb-sortbar" role="toolbar" aria-label="Sort the readings" hidden>
+  <span class="lb-sortbar-l">Sort by</span>
+  <button type="button" class="lb-btn lb-sort" data-sort="name" aria-pressed="false">Name</button>
+  <button type="button" class="lb-btn lb-sort" data-sort="value" aria-pressed="false">Value</button>
+  <button type="button" class="lb-btn lb-sort" data-sort="alarm" aria-pressed="false">Alarm state</button>
+  <button type="button" class="lb-btn lb-sort" data-sort="group" aria-pressed="false">Group</button>
+</div>
+<script src="{{ static_url('list_controls.js') }}"></script>
+
 <div class="lb-groups" id="lb-groups" data-server="1">
   <p class="lb-noread" id="lb-noread">No reading - start a session.</p>
 

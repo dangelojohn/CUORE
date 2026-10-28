@@ -1308,8 +1308,13 @@ def live_channels() -> dict[str, Any]:
 
 def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
                        rates: Optional[dict[str, float]] = None, monitor_dtcs: bool = False,
-                       dtc_interval_s: float = 10.0) -> dict[str, Any]:
+                       dtc_interval_s: float = 10.0, code_watch: bool = False,
+                       code_watch_interval_s: float = 10.0, vin: str = "",
+                       priorities: Optional[dict[str, int]] = None) -> dict[str, Any]:
     """Start the live-data poll session on the given channels and/or preset.
+
+    ``code_watch`` adds the read-only "live new-code alert": Mode 03/07 every
+    ``code_watch_interval_s`` (minimum 5); see :meth:`LivePoller._code_watch_update`.
 
     Read-only (Mode 01, UDS 0x22, ATRV only) but holds the adapter for the
     whole session: other live operations refuse while this runs (see the
@@ -1324,7 +1329,15 @@ def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
     from . import poller as poller_mod
     chans = channels_mod.resolve_channels(channels, preset)
     return poller_mod.poller().start(chans, rates=rates, monitor_dtcs=monitor_dtcs,
-                                     dtc_interval_s=dtc_interval_s)
+                                     dtc_interval_s=dtc_interval_s, code_watch=code_watch,
+                                     code_watch_interval_s=code_watch_interval_s, vin=vin,
+                                     priorities=priorities)
+
+
+def live_code_watch_ack() -> dict[str, Any]:
+    """Mark the session's new-code events seen (no car contact)."""
+    from . import poller as poller_mod
+    return poller_mod.poller().code_watch_ack()
 
 
 def live_session_stop() -> dict[str, Any]:
@@ -1349,6 +1362,17 @@ def live_record_start() -> dict[str, Any]:
     """Start mirroring the running live session to an MES-format CSV recording."""
     from . import poller as poller_mod
     return poller_mod.poller().start_recording()
+
+
+def live_record_tag(key: str, vin: str = "") -> Optional[dict[str, Any]]:
+    """Insert keyed tag 0-9 (label from the per-VIN store) into the running CSV recording;
+    None when no CSV recording is running."""
+    from . import poller as poller_mod
+    from . import ui_store
+    k = str(key).strip()
+    if k not in ui_store.TAG_KEYS:
+        raise BadCommand("tag key must be a single digit 0-9")
+    return poller_mod.poller().insert_recording_tag(k, ui_store.load_tag_labels(vin)[k])
 
 
 def live_record_stop() -> dict[str, Any]:

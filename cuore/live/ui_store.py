@@ -447,7 +447,55 @@ def save_triggers(rules: list[dict[str, Any]]) -> dict[str, Any]:
     return {"rules": validated}
 
 
-__all__ = ["custom_channels_path", "load_custom_channels_raw", "save_custom_channels",
+# ===========================================================================
+# record tags: keys 0-9 and their per-VIN labels (the "record_tags" store)
+# ===========================================================================
+
+TAG_KEYS = tuple("0123456789")
+
+
+def record_tags_path() -> Path:
+    return state_dir() / "record_tags.json"
+
+
+def _tag_store() -> dict[str, Any]:
+    p = record_tags_path()
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    except (ValueError, OSError):
+        quarantine_corrupt(p)
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def load_tag_labels(vin: str = "") -> dict[str, str]:
+    """All ten labels for a VIN; any not renamed read "Tag <n>"."""
+    mine = _tag_store().get("record_tags", {}).get(vin or "", {})
+    out = {}
+    for k in TAG_KEYS:
+        v = mine.get(k) if isinstance(mine, dict) else None
+        out[k] = v.strip() if isinstance(v, str) and v.strip() else f"Tag {k}"
+    return out
+
+
+def save_tag_labels(vin: str, labels: dict[str, Any]) -> dict[str, str]:
+    clean: dict[str, str] = {}
+    for k, v in (labels or {}).items():
+        if str(k) not in TAG_KEYS:
+            raise BadRequest(f"unknown tag key {k!r}; keys are 0-9")
+        text = re.sub(r'[\t\r\n"]+', " ", str(v or "")).strip()[:40]
+        if text and text != f"Tag {k}":
+            clean[str(k)] = text
+    with _LOCK:
+        store = _tag_store()
+        store.setdefault("record_tags", {})[vin or ""] = clean
+        atomic_write_text(record_tags_path(), json.dumps(store, indent=2))
+    return load_tag_labels(vin)
+
+
+__all__ = ["TAG_KEYS", "load_tag_labels", "save_tag_labels", "custom_channels_path", "load_custom_channels_raw", "save_custom_channels",
           "load_custom_channels", "snapshots_path", "save_snapshot", "list_snapshots",
           "get_snapshot", "snapshot_csv", "triggers_path", "load_triggers", "save_triggers",
           "validate_custom_channels", "validate_trigger_rule"]

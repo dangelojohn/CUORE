@@ -11,10 +11,11 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from fastapi import APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query, Request
 
 from ..live import dtc_records
 from ..live import ops
+from ..live import ui_store
 from ..live import audit as audit_mod
 from .deps import require_token
 
@@ -364,10 +365,36 @@ def live_session_start_route(channels: Optional[list[str]] = Body(default=None, 
                              preset: str = Body(default="", embed=True),
                              rates: Optional[dict[str, float]] = Body(default=None, embed=True),
                              monitor_dtcs: bool = Body(default=False, embed=True),
-                             dtc_interval_s: float = Body(default=10.0, embed=True)
+                             dtc_interval_s: float = Body(default=10.0, embed=True),
+                             code_watch: bool = Body(default=False, embed=True),
+                             code_watch_interval_s: float = Body(default=10.0, embed=True),
+                             vin: str = Body(default="", embed=True),
+                             priorities: Optional[dict[str, int]] = Body(
+                                 default=None, embed=True,
+                                 description="Per-channel recording priority 1-5 = poll divisor "
+                                             "(1 every cycle, the default; 5 every 5th)")
                              ) -> dict[str, Any]:
     return ops.live_session_start(channels, preset=preset, rates=rates,
-                                  monitor_dtcs=monitor_dtcs, dtc_interval_s=dtc_interval_s)
+                                  monitor_dtcs=monitor_dtcs, dtc_interval_s=dtc_interval_s,
+                                  code_watch=code_watch,
+                                  code_watch_interval_s=code_watch_interval_s, vin=vin,
+                                  priorities=priorities)
+
+
+@router.post("/live/session/code-watch/ack",
+             summary="Mark the live new-code alerts seen (banner clears; events stay listed)")
+def live_code_watch_ack_route(request: Request):
+    """JSON for fetch/API callers; a plain form post with a same-site ``return_to``
+    (the banner's no-JS Seen button) gets a 303 back to that page instead."""
+    out = ops.live_code_watch_ack()
+    ctype = request.headers.get("content-type", "")
+    if "application/json" in request.headers.get("accept", "") or "form" not in ctype:
+        return out
+    from anyio import from_thread
+    from fastapi.responses import RedirectResponse
+    from ..web.fault_board_routes import _safe_return
+    back = _safe_return(str(from_thread.run(request.form).get("return_to", "")), "")
+    return RedirectResponse(url=back, status_code=303) if back else out
 
 
 @router.post("/live/session/stop", summary="Stop the live-data poll session, release the adapter")
@@ -388,6 +415,31 @@ def live_snapshot_route() -> dict[str, Any]:
 @router.post("/live/record/start", summary="Start mirroring the live session to an MES-format CSV")
 def live_record_start_route() -> dict[str, Any]:
     return ops.live_record_start()
+
+
+@router.post("/live/record/tag", summary="Insert keyed tag 0-9 into the running recording")
+def live_record_tag_route(key: str = Body(..., embed=True), vin: str = Body(default="", embed=True)
+                          ) -> dict[str, Any]:
+    """One instantaneous tag event (a single CSV row whose TAG cell is ``TAG <key>: <label>``,
+    and a ``tag`` line in a running drive recording). 409 when nothing is recording."""
+    from fastapi import HTTPException
+    from ..services import recordings as rec_svc
+    ev = ops.live_record_tag(key, vin=vin)
+    drive = rec_svc.add_tag(key, ui_store.load_tag_labels(vin)[str(key).strip()])
+    if ev is None and drive is None:
+        raise HTTPException(status_code=409, detail="not recording")
+    return {"tag": ev or drive, "csv": ev is not None, "drive_recording": drive is not None}
+
+
+@router.get("/live/record/tag-labels", summary="The ten tag labels for a VIN")
+def live_record_tag_labels_get(vin: str = Query(default="")) -> dict[str, Any]:
+    return {"vin": vin, "labels": ui_store.load_tag_labels(vin)}
+
+
+@router.post("/live/record/tag-labels", summary="Rename tags 0-9 for a VIN")
+def live_record_tag_labels_set(labels: dict[str, str] = Body(..., embed=True),
+                               vin: str = Body(default="", embed=True)) -> dict[str, Any]:
+    return {"vin": vin, "labels": ui_store.save_tag_labels(vin, labels)}
 
 
 @router.post("/live/record/stop", summary="Stop the live-session CSV recording")

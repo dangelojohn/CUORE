@@ -409,6 +409,8 @@
     var p = this.sourceKind ? this.stop() : Promise.resolve();
     return p.then(function () {
       var body = { channels: self.allChannelIds, rates: self.rates };
+      var cw = self.doc.getElementById("lb-codewatch");
+      if (cw && cw.checked) { body.code_watch = true; body.code_watch_interval_s = 10; body.vin = self.vin || ""; }
       return self.api("/api/live/session/start", { method: "POST", body: JSON.stringify(body) });
     }).then(function (session) {
       self.sourceKind = "live";

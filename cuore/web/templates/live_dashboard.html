@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="{{ static_url('live/dashboard.css') }}">
 
 <h1>Gauges</h1>
+{% include "_code_watch.html" %}
 <p class="lede">A customizable live-data dashboard: pick a layout, connect to
 the car (or replay a recording, or run on demo data), and watch it update.
 Everything here is a client of the same <code>/api/live</code> engine the
@@ -64,9 +65,18 @@ the car is plugged in or not.</p>
     <a id="dd-hud-link" class="btn" href="/v/{{ vin }}/gauges/hud" target="_blank" rel="noopener">HUD</a>
   </div>
 
+  {% include "_record_tags.html" %}
+
   <div class="dd-pagetabs" id="dd-pagetabs" role="tablist"></div>
 
   <div class="dd-grid" id="dd-grid"></div>
+
+  <section class="gg-panel" id="gg-panel" data-vin="{{ vin }}" aria-label="Graphs">
+    <h2>Graphs</h2>
+    <div class="gg-count" id="gg-count" role="group" aria-label="Number of graphs"></div>
+    <div id="gg-graphs"></div>
+    <pre class="gg-readout" id="gg-readout" aria-live="polite"></pre>
+  </section>
 
   <div class="dd-drawer" id="dd-alarm-drawer" hidden>
     <button class="btn dd-close" type="button" onclick="document.getElementById('dd-alarm-drawer').hidden=true">Close</button>
@@ -82,6 +92,7 @@ the car is plugged in or not.</p>
 
 <script src="{{ static_url('live/widgets.js') }}"></script>
 <script src="{{ static_url('live/dashboard.js') }}"></script>
+<script src="{{ static_url('live/graphs.js') }}"></script>
 <script>
   document.addEventListener("DOMContentLoaded", function () {
     if (window.CuoreDashboard) window.CuoreDashboard.init();

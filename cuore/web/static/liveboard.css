@@ -374,3 +374,10 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
 /* fold rows: 44 px, 16 px text (scale tokens) */
 .lb-others > summary, .lb-why > summary { min-height: 44px; font-size: var(--fs-md); }
 .lb-chan-unit { font-size: var(--fs-md); }
+
+/* ---------- sort bar (list_controls.js) ---------- */
+.lb-sortbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0; }
+.lb-sortbar[hidden] { display: none; }
+.lb-sortbar-l { font-size: var(--fs-md); color: var(--ink-2); }
+.lb-sort[aria-pressed="true"] { border-color: var(--accent); border-width: 2px; font-weight: var(--fw-bold); }
+.lb-sort[aria-pressed="true"]::before { content: "\2713\00a0"; }

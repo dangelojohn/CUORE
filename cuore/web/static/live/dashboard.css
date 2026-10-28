@@ -175,3 +175,19 @@ dialog.dd-dialog h2 { margin-top: 0; }
 @media (prefers-reduced-motion: reduce) {
   .dd-widget.dd-level-alarm { animation: none; }
 }
+
+/* ---------- Graphs panel (graphs.js) ---------- */
+.gg-panel { margin: 16px 0; font-size: var(--fs-md); }
+.gg-count { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+.gg-label { font-size: var(--fs-md); color: var(--ink-2); }
+.gg-btn { min-height: 44px; min-width: 44px; font-size: var(--fs-md); }
+.gg-btn[aria-pressed="true"] { border-color: var(--accent); border-width: 2px; font-weight: var(--fw-bold); }
+.gg-btn[aria-pressed="true"]::after { content: "\00a0\2713"; }
+.gg-graph { margin-bottom: 12px; }
+.gg-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 4px; }
+.gg-row select { min-height: 44px; font-size: var(--fs-md); }
+.gg-row .gg-chan { flex: 1 1 14em; min-width: 0; }
+.gg-wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: stretch; }
+.gg-canvas { flex: 1 1 18em; min-width: 0; width: 100%; height: 160px; border: 1px solid var(--rule); border-radius: var(--radius); touch-action: manipulation; cursor: crosshair; }
+.gg-stats { font-family: var(--mono); font-size: var(--fs-md); display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+.gg-readout { white-space: pre-wrap; font-family: var(--mono); font-size: var(--fs-md); color: var(--ink); margin: 8px 0 0; }

@@ -123,6 +123,16 @@ class AlarmSpec:
 # CSV recording, in the MES graph-CSV shape mes.csvlog parses
 # ===========================================================================
 
+def _clean_priority(v: Any, cid: str) -> int:
+    try:
+        n = int(v)
+    except (TypeError, ValueError):
+        raise BadCommand(f"priority for {cid!r} must be an integer 1-5") from None
+    if not 1 <= n <= 5:
+        raise BadCommand(f"priority for {cid!r} must be 1-5 (1 = every cycle, 5 = every 5th)")
+    return n
+
+
 class CsvRecorder:
     """Mirrors a live session to a CSV in the shape ``mes.csvlog.load_csv`` reads:
     ``Time`` first, ``TAG`` last, row 1 names, row 2 units, tab-separated."""
@@ -138,6 +148,20 @@ class CsvRecorder:
         #: Label written into the TAG column of every row until changed
         #: (a scripted test sets it per step; "" for an ordinary recording).
         self.tag = ""
+        #: Keyed tag events inserted while recording (see :meth:`add_tag`).
+        self.tag_events: list[dict[str, Any]] = []
+
+    def add_tag(self, key: str, label: str) -> dict[str, Any]:
+        """Insert one instantaneous keyed tag: exactly one extra CSV row whose TAG cell
+        reads ``TAG <key>: <label>`` (an ordinary non-empty TAG cell, so the MES parser
+        and CUORE replay see it as a marker); every other row's TAG cell is unchanged."""
+        clean = re.sub(r'[\t\r\n"]+', " ", str(label or "")).strip()
+        with self._row_lock:
+            self._write_row(tag=f"TAG {key}: {clean}")
+            ev = {"at": datetime.now().isoformat(timespec="milliseconds"), "key": str(key),
+                  "label": clean, "row": self._rows}
+            self.tag_events.append(ev)
+        return dict(ev)
 
     def start(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
@@ -196,6 +220,7 @@ class LivePoller:
         self._stop_event = threading.Event()
         self._channels: dict[str, Channel] = {}
         self._rates: dict[str, float] = {}
+        self._priorities: dict[str, int] = {}
         self._ring_minutes = DEFAULT_RING_MINUTES
         self._ring: dict[str, deque] = {}
         self._last_value: dict[str, Any] = {}
@@ -228,6 +253,16 @@ class LivePoller:
         #: code -> iso timestamp this poller session first saw it (stored or
         #: pending) -- read by :meth:`dtc_snapshot`, never by ``_run`` itself.
         self._dtc_first_seen: dict[str, str] = {}
+        #: "Live new-code alert" (read-only Mode 03/07 reads on the held session).
+        self._cw_enabled = False
+        self._cw_interval = DEFAULT_DTC_INTERVAL_S
+        self._cw_vin = ""
+        self._cw_session_id = ""
+        self._cw_prev: Optional[set[tuple[str, str]]] = None   # last read, (code, kind)
+        self._cw_baseline: list[str] = []
+        self._cw_events: list[dict[str, Any]] = []
+        self._cw_last_read_at: Optional[str] = None
+        self._cw_last_error: Optional[str] = None
 
     # --- lifecycle -----------------------------------------------------
 
@@ -247,8 +282,9 @@ class LivePoller:
             return self._holding
 
     def start(self, channels: list[Channel], rates: Optional[dict[str, float]] = None,
-             monitor_dtcs: bool = False, dtc_interval_s: float = DEFAULT_DTC_INTERVAL_S
-             ) -> dict[str, Any]:
+             monitor_dtcs: bool = False, dtc_interval_s: float = DEFAULT_DTC_INTERVAL_S,
+             code_watch: bool = False, code_watch_interval_s: float = DEFAULT_DTC_INTERVAL_S,
+             vin: str = "", priorities: Optional[dict[str, int]] = None) -> dict[str, Any]:
         with self._lock:
             if self.is_active():
                 raise Refused("a live-data poll session is already running; stop it first")
@@ -261,6 +297,10 @@ class LivePoller:
             self._channels = {c.id: c for c in channels}
             self._rates = {c.id: max(0.05, float((rates or {}).get(c.id, c.default_rate_hz)))
                           for c in channels}
+            #: Recording priority 1-5 per channel = poll divisor: 1 reads on every
+            #: scheduled cycle (default), 5 on every 5th, freeing bus time for 1s.
+            self._priorities = {c.id: _clean_priority((priorities or {}).get(c.id, 1), c.id)
+                                for c in channels}
             self._ring = {c.id: deque(maxlen=self._ring_len(self._rates[c.id])) for c in channels}
             self._last_value = {}
             self._last_unit = {}
@@ -276,6 +316,12 @@ class LivePoller:
             self._dtc_interval = max(MIN_DTC_INTERVAL_S, float(dtc_interval_s))
             self._dtc_state = None
             self._dtc_first_seen = {}
+            self._cw_enabled = bool(code_watch)
+            self._cw_interval = max(MIN_DTC_INTERVAL_S, float(code_watch_interval_s))
+            self._cw_vin = str(vin or "")
+            self._cw_session_id = "live-" + datetime.now().strftime("%Y%m%d-%H%M%S")
+            self._cw_prev, self._cw_baseline, self._cw_events = None, [], []
+            self._cw_last_read_at = self._cw_last_error = None
             if any(c.kind == "probe" for c in channels):
                 from . import esim_probe
                 if esim_probe.configured_port():
@@ -337,6 +383,13 @@ class LivePoller:
             "channels": [c.to_dict() for c in self._channels.values()],
             "rates_hz": dict(self._rates),
             "achieved_hz": achieved,
+            "priority": dict(self._priorities),
+            "channel_rates": {cid: {"priority": self._priorities.get(cid, 1),
+                                    "divisor": self._priorities.get(cid, 1),
+                                    "configured_hz": self._rates.get(cid),
+                                    "achieved_hz": achieved.get(cid)}
+                              for cid in self._channels},
+            "recording_tags": [dict(e) for e in self._recorder.tag_events] if self._recorder else [],
             "poll_attempts": dict(self._poll_attempts),
             "last_error": dict(self._last_error),
             "elapsed_s": round(elapsed, 1) if elapsed else None,
@@ -346,8 +399,26 @@ class LivePoller:
             "alarms": {cid: a.to_dict() for cid, a in self._alarms.items()},
             "monitor_dtcs": self._monitor_dtcs,
             "dtc_interval_s": self._dtc_interval,
+            "code_watch": self._code_watch_locked(),
             "esim_probe": self._probe.status() if self._probe is not None else None,
         }
+
+    def _code_watch_locked(self) -> dict[str, Any]:
+        now = time.time()
+        evs = [dict(e, age_s=int(max(0, now - e["t"]))) for e in self._cw_events]
+        new = [e for e in evs if not e["seen"]]
+        return {"enabled": self._cw_enabled, "interval_s": self._cw_interval,
+                "session_id": self._cw_session_id, "last_read_at": self._cw_last_read_at,
+                "last_error": self._cw_last_error, "baseline": list(self._cw_baseline),
+                "new": new, "seen": [e for e in evs if e["seen"]],
+                "count_new": len(new)}
+
+    def code_watch_ack(self) -> dict[str, Any]:
+        """Mark every current new-code event seen (kept in the list; the banner clears)."""
+        with self._lock:
+            for e in self._cw_events:
+                e["seen"] = True
+            return self._code_watch_locked()
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:
@@ -357,7 +428,8 @@ class LivePoller:
                      "last_error": self._last_error.get(cid)}
                 for cid in self._channels
             }
-            return {"active": self.is_active(), "channels": channels}
+            return {"active": self.is_active(), "channels": channels,
+                    "code_watch": self._code_watch_locked()}
 
     def dtc_snapshot(self) -> dict[str, Any]:
         """Read-only view of "Monitor DTCs" state for a caller that wants to
@@ -434,6 +506,12 @@ class LivePoller:
             return {"recording": str(path), "name": safe,
                     "columns": [c.id for c in self._channels.values()]}
 
+    def insert_recording_tag(self, key: str, label: str) -> Optional[dict[str, Any]]:
+        """Insert a keyed tag event into the running recording; None if not recording."""
+        with self._lock:
+            rec = self._recorder
+        return rec.add_tag(key, label) if rec is not None else None
+
     def set_recording_tag(self, tag: str) -> bool:
         """Label every subsequent row of the running recording; False if not recording."""
         with self._lock:
@@ -508,7 +586,7 @@ class LivePoller:
                         while not self._stop_event.is_set():
                             now = time.monotonic()
                             due = [cid for cid, t in next_due.items() if t <= now]
-                            dtc_due = self._monitor_dtcs and next_dtc_due <= now
+                            dtc_due = (self._monitor_dtcs or self._cw_enabled) and next_dtc_due <= now
                             if not due and not dtc_due:
                                 time.sleep(MIN_TICK)
                                 continue
@@ -532,11 +610,26 @@ class LivePoller:
                             # fast channel's due sample, only ever adds a bounded, rare
                             # extra pair of requests once every dtc_interval seconds.
                             if dtc_due:
-                                self._poll_dtcs(sess)
-                                next_dtc_due = time.monotonic() + self._dtc_interval
+                                # Skip (retry next tick) if a live channel is already more than
+                                # two periods overdue: the watch never starves the channels.
+                                t_now = time.monotonic()
+                                behind = any(t_now - t > 2.0 / self._rates.get(cid, 1.0)
+                                             for cid, t in next_due.items() if cid not in due)
+                                if not (self._cw_enabled and not self._monitor_dtcs and behind):
+                                    try:
+                                        self._poll_dtcs(sess)
+                                    except Exception as e:  # noqa: BLE001
+                                        if not self._cw_enabled:
+                                            raise
+                                        with self._lock:
+                                            self._cw_last_error = str(e)[:120]
+                                    ivs = ([self._dtc_interval] if self._monitor_dtcs else []) + \
+                                          ([self._cw_interval] if self._cw_enabled else [])
+                                    next_dtc_due = time.monotonic() + min(ivs)
                             later = time.monotonic()
                             for cid in due:
-                                next_due[cid] = later + 1.0 / self._rates.get(cid, 1.0)
+                                next_due[cid] = (later + self._priorities.get(cid, 1)
+                                                 / self._rates.get(cid, 1.0))
                             if touched:
                                 with self._lock:
                                     rec = self._recorder
@@ -755,6 +848,9 @@ class LivePoller:
         stored = self._read_dtc_codes(sess, "03", "43")
         pending = self._read_dtc_codes(sess, "07", "47")
         if stored is None or pending is None:
+            if self._cw_enabled:
+                with self._lock:
+                    self._cw_last_error = "code read did not complete (adapter/bus error)"
             return   # adapter/bus error this cycle; try again next interval
         prev = self._dtc_state
         self._dtc_state = (stored, pending)
@@ -762,6 +858,10 @@ class LivePoller:
         with self._lock:
             for code in stored | pending:
                 self._dtc_first_seen.setdefault(code, now_iso)
+        if self._cw_enabled:
+            self._code_watch_update(stored, pending, now_iso, sess)
+        if self._cw_enabled and not self._monitor_dtcs:
+            return   # code watch alone: no stream/TAG/legacy observation
         if prev is None:
             return   # first read only establishes the baseline, not a "change"
         prev_stored, prev_pending = prev
@@ -788,6 +888,35 @@ class LivePoller:
             {"added": added, "removed": removed, "stored": sorted(stored),
              "pending": sorted(pending)},
             stream=getattr(getattr(sess, "stream", None), "describe", "") or "live_poller")
+
+    def _code_watch_update(self, stored: set[str], pending: set[str], now_iso: str,
+                           sess: Session) -> None:
+        """Diff this read against the last one; a (code, kind) not in the last
+        read is a new event (the first read is only the baseline)."""
+        cur = {(c, "stored") for c in stored} | {(c, "pending") for c in pending}
+        fresh: list[dict[str, Any]] = []
+        with self._lock:
+            self._cw_last_read_at, self._cw_last_error = now_iso, None
+            prev, self._cw_prev = self._cw_prev, cur
+            if prev is None:
+                self._cw_baseline = sorted({c for c, _ in cur})
+                return
+            for code, kind in sorted(cur - prev):
+                first = self._dtc_first_seen.get(code, now_iso)
+                ev = {"at": now_iso, "code": code, "kind": kind, "first_seen": first,
+                      "seen": False, "t": time.time()}
+                self._cw_events.append(ev)
+                fresh.append(ev)
+            vin, sid = self._cw_vin, self._cw_session_id
+        stream = getattr(getattr(sess, "stream", None), "describe", "") or "live_poller"
+        for ev in fresh:
+            store.record_observation(
+                "live_new_code",
+                {"session_id": sid, "code": ev["code"], "kind": ev["kind"],
+                 "at": ev["at"], "first_seen": ev["first_seen"]},
+                vin=vin, stream=stream)
+            self._broadcast({"type": "new_code", "t": time.time(), "code": ev["code"],
+                             "kind": ev["kind"]})
 
     def _fresh(self, cid: str, now: float) -> bool:
         """True if ``cid`` has a sample newer than a few of its own periods.

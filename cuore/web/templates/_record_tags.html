@@ -1,0 +1,104 @@
+{# Record tags. Embeddable partial for the gauges page.  Needs in context: vin.
+   Keys 0-9 insert an instantaneous tag into the running recording (POST /api/live/record/tag); the owner can rename
+   them per VIN (GET/POST /api/live/record/tag-labels). The buttons show only while a recording runs; the rename form is
+   always there. Plain server-rendered markup + a small inline script, no framework. Own <style>: --fs-* tokens only,
+   44 px targets, every state is a word as well as a colour. #}
+<style>
+.rt { max-width: 980px; margin: 8px 0; font-size: var(--fs-md); }
+.rt-on { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 8px; border: 2px solid var(--ink); border-radius: var(--radius, 3px); background: var(--surface); }
+.rt-on[hidden] { display: none; }
+.rt-title { font-weight: 700; font-size: var(--fs-md); margin-right: 6px; }
+.rt-btn { min-height: 44px; min-width: 88px; padding: 0 12px; font-size: var(--fs-md); font-weight: 700; cursor: pointer; border-radius: var(--radius, 3px); border: 2px solid var(--ink); background: var(--surface-2); color: var(--ink); overflow-wrap: anywhere; }
+.rt-btn.rt-hit { background: var(--ok-bg); border-color: var(--ok); }
+.rt-say { flex-basis: 100%; min-height: 24px; margin: 0; color: var(--ink-2); font-size: var(--fs-md); }
+.rt-ren > summary { min-height: 44px; padding: 6px 4px; cursor: pointer; font-weight: 700; font-size: var(--fs-md); }
+.rt-form { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px 12px; padding: 4px 4px 8px; }
+.rt-form label { display: grid; gap: 2px; font-size: var(--fs-md); color: var(--ink-2); }
+.rt-form input { min-height: 44px; padding: 0 8px; font-size: var(--fs-md); color: var(--ink); background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius, 3px); }
+.rt-save { min-height: 44px; min-width: 88px; padding: 0 16px; font-size: var(--fs-md); font-weight: 700; cursor: pointer; border-radius: var(--radius, 3px); border: 2px solid var(--ink); background: var(--surface); color: var(--ink); }
+</style>
+<section class="rt" id="rt" data-vin="{{ vin }}" aria-label="Recording tags">
+  <div class="rt-on" id="rt-on" role="group" aria-label="Insert a tag into the recording" hidden>
+    <span class="rt-title">Recording &mdash; press 0-9 to tag</span>
+    {% for k in range(10) %}<button type="button" class="rt-btn" data-key="{{ k }}">{{ k }} Tag {{ k }}</button>{% endfor %}
+    <p class="rt-say" id="rt-say" role="status" aria-live="polite"></p>
+  </div>
+  <details class="fold rt-ren">
+    <summary>Rename tags</summary>
+    <form class="rt-form" id="rt-form">
+      {% for k in range(10) %}<label>Key {{ k }}<input type="text" name="{{ k }}" maxlength="40" value="Tag {{ k }}" autocomplete="off"></label>{% endfor %}
+      <div><button type="submit" class="rt-save">Save</button> <span id="rt-saved" role="status" aria-live="polite"></span></div>
+    </form>
+  </details>
+</section>
+<script>
+(function () {
+  var root = document.getElementById("rt");
+  if (!root) return;
+  var vin = root.getAttribute("data-vin") || "";
+  var tok = (new URLSearchParams(location.search)).get("token") || "";
+  var on = document.getElementById("rt-on"), say = document.getElementById("rt-say");
+  var form = document.getElementById("rt-form"), saved = document.getElementById("rt-saved");
+  var recording = false;
+  function url(p, extra) {
+    var q = [];
+    if (extra) q.push(extra);
+    if (tok) q.push("token=" + encodeURIComponent(tok));
+    return p + (q.length ? "?" + q.join("&") : "");
+  }
+  function labels(map) {
+    on.querySelectorAll(".rt-btn").forEach(function (b) {
+      var k = b.getAttribute("data-key"); b.textContent = k + " " + (map[k] || ("Tag " + k));
+    });
+    form.querySelectorAll("input").forEach(function (i) { i.value = map[i.name] || ("Tag " + i.name); });
+  }
+  function loadLabels() {
+    fetch(url("/api/live/record/tag-labels", "vin=" + encodeURIComponent(vin)))
+      .then(function (r) { return r.json(); }).then(function (j) { labels(j.labels || {}); }).catch(function () {});
+  }
+  function poll() {
+    fetch(url("/api/live/session")).then(function (r) { return r.json(); }).then(function (s) {
+      recording = !!(s && s.recording);
+      on.hidden = !recording;
+    }).catch(function () {});
+  }
+  function tag(key) {
+    if (!recording) return;
+    fetch(url("/api/live/record/tag"), { method: "POST", headers: { "Content-Type": "application/json" },
+                                          body: JSON.stringify({ key: String(key), vin: vin }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (!x.ok) { say.textContent = "Not tagged: " + ((x.j && x.j.detail) || "failed"); return; }
+        var t = x.j.tag || {};
+        say.textContent = "Tagged: " + key + " " + (t.label || "") + (t.row != null ? " at row " + t.row : "");
+        var b = on.querySelector('[data-key="' + key + '"]');
+        if (b) { b.classList.add("rt-hit"); setTimeout(function () { b.classList.remove("rt-hit"); }, 600); }
+      }).catch(function () { say.textContent = "Not tagged: no answer from CUORE"; });
+  }
+  on.addEventListener("click", function (ev) {
+    var b = ev.target.closest(".rt-btn"); if (b) tag(b.getAttribute("data-key"));
+  });
+  // Capture phase on window: while recording the digits are tags, ahead of the page-switch keys.
+  window.addEventListener("keydown", function (ev) {
+    if (!recording || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (!/^[0-9]$/.test(ev.key)) return;
+    var t = ev.target, n = t && t.tagName;
+    if (n === "INPUT" || n === "TEXTAREA" || n === "SELECT" || (t && t.isContentEditable)) return;
+    if (document.querySelector("dialog[open]")) return;
+    ev.preventDefault(); ev.stopImmediatePropagation();
+    tag(ev.key);
+  }, true);
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    var map = {};
+    form.querySelectorAll("input").forEach(function (i) { map[i.name] = i.value; });
+    fetch(url("/api/live/record/tag-labels"), { method: "POST", headers: { "Content-Type": "application/json" },
+                                                  body: JSON.stringify({ vin: vin, labels: map }) })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (x) {
+        if (x.ok) { labels(x.j.labels || {}); saved.textContent = "Saved"; } else { saved.textContent = "Not saved: " + ((x.j && x.j.detail) || "failed"); }
+      }).catch(function () { saved.textContent = "Not saved: no answer from CUORE"; });
+  });
+  loadLabels(); poll(); setInterval(poll, 2000);
+})();
+</script>

@@ -28,6 +28,8 @@
 
   <h1 class="lb-h1">Live board <span class="lb-h1-car">{{ bar.name }}</span></h1>
 
+  {% include "_code_watch.html" %}
+
   <div class="lb-call" id="lb-call" data-off="{{ view.call_off }}" data-on="{{ view.call_on }}">
     <p class="lb-call-line" id="lb-call-line">{{ view.call_off }}</p>
     <p class="lb-call-cable" id="lb-call-cable">{{ view.cable }}</p>
@@ -69,6 +71,7 @@
     <button type="button" id="lb-start" class="lb-btn lb-btn-primary lb-btn-start">Start</button>
     <button type="button" id="lb-stop" class="lb-btn lb-btn-stop lb-btn-start" hidden>Stop</button>
     <button type="button" id="lb-snapshot" class="lb-btn" disabled title="Start a session first">Snapshot</button>
+    <label class="lb-codewatch" style="display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:var(--fs-md)"><input type="checkbox" id="lb-codewatch" checked style="width:24px;height:24px"> Watch for new codes (every 10 s)</label>
   </div>
 
   {# Drive recording (cuore/services/recordings.py): samples this running session's cache -- no extra bus

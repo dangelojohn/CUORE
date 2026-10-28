@@ -221,6 +221,21 @@ def stop(reason: str = "stopped") -> "dict[str, Any]":
     return {"stopped": True, "id": rec.id, "rows": rec.rows, "reason": rec.reason}
 
 
+def add_tag(key: str, label: str) -> Optional["dict[str, Any]"]:
+    """Insert a keyed tag (0-9) into the running drive recording; None when none is running."""
+    with _lock:
+        rec = _active
+        if rec is None or rec.reason is not None:
+            return None
+        ev = {"type": "tag", "t": round(time.monotonic() - rec.m0, 3), "at": _iso(time.time()),
+              "key": str(key), "label": str(label), "row": rec.rows}
+        try:
+            _write(rec, ev)
+        except (OSError, ValueError):
+            return None
+        return {k: v for k, v in ev.items() if k != "type"}
+
+
 def current() -> Optional["dict[str, Any]"]:
     with _lock:
         rec = _active
@@ -249,6 +264,7 @@ def live_state() -> "dict[str, Any]":
 def _read(path: Path) -> "dict[str, Any]":
     header: dict[str, Any] = {}
     rows: "list[dict[str, Any]]" = []
+    tags: "list[dict[str, Any]]" = []
     end: dict[str, Any] = {}
     with path.open("r", encoding="utf-8", errors="replace") as fh:
         for line in fh:
@@ -264,12 +280,14 @@ def _read(path: Path) -> "dict[str, Any]":
                 header = o
             elif t == "row":
                 rows.append(o)
+            elif t == "tag":
+                tags.append({k: o.get(k) for k in ("key", "label", "at", "t", "row")})
             elif t == "end":
                 end = o
     dur = end.get("duration_s")
     if dur is None:
         dur = rows[-1]["t"] if rows else 0.0
-    return {**header, "rows": rows, "n_rows": len(rows), "duration_s": dur,
+    return {**header, "rows": rows, "tags": tags, "n_rows": len(rows), "duration_s": dur,
             "end_reason": end.get("reason") or ("interrupted" if header else ""), "ended": bool(end)}
 
 

@@ -15,6 +15,12 @@
   .rc-stats{font-size:1rem}
   .rc-key-a{border-bottom:3px solid var(--accent)}
   .rc-key-b{border-bottom:3px dashed var(--sev-cleared)}
+  .rg-tagline{stroke:var(--ink);stroke-width:2;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
+  .rg-tagkey{fill:var(--ink);font-weight:700}
+  .rt-h{font-size:var(--fs-lg)}
+  .rt-list{list-style:none;margin:0 0 8px;padding:0;font-size:var(--fs-md)}
+  .rt-list li{min-height:44px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;border-bottom:1px solid var(--rule)}
+  .rt-key{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;border:2px solid var(--ink);border-radius:999px;font-weight:700}
   .rc-btn{min-height:44px;display:inline-flex;align-items:center;font-size:1rem}
 </style>
 <h1>{{ rec.label or rec.id }}</h1>
@@ -36,6 +42,14 @@
 <p class="rc-stats"><span class="rc-key-a">This: {{ rec.label or rec.id }} ({{ rec.dur }})</span> &nbsp;
   <span class="rc-key-b">Compared (dashed): {{ other.label or other.id }} ({{ other.dur }})</span>
   &mdash; both drawn from their own start time on the same axes.</p>
+{% endif %}
+
+{% if tags %}
+<h2 class="rt-h">Tags in this recording ({{ tags|length }})</h2>
+<ul class="rt-list">
+  {% for t in tags %}<li><span class="rt-key">{{ t.key }}</span> <b>{{ t.label }}</b> &middot; {{ (t.at or '')[11:19] }} &middot; {{ fmt_dur(t.t) }} into the recording &middot; row {{ t.row }}</li>{% endfor %}
+</ul>
+<p class="small muted">Each tag is also marked on every chart and on the time axis, as a vertical line with its key number.</p>
 {% endif %}
 
 {% for c in charts %}

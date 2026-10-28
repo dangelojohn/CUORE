@@ -68,6 +68,20 @@ readout coloured by how far it is out of its known-good band
 and a snapshot-to-job action are under `/api/liveboard/{vin}/*`. Known-good
 bands: `/api/live/known-good`.
 
+## Live new-code alert
+
+While a live-data session runs with the code watch on (the "Watch for new codes
+(every 10 s)" box on the Live board, default on; `code_watch` and
+`code_watch_interval_s`, minimum 5, on `POST /api/live/session/start`), the poller
+reads OBD Mode 03 (stored) and Mode 07 (pending) on its own held session. Read-only:
+nothing is ever cleared. The first read is the baseline; a code not in the previous
+read raises a "! New code P0456 (pending) 12 s ago" banner (`_code_watch.html`) on the
+Live board and Gauges pages, with a link to the code page and a Seen button
+(`POST /api/live/session/code-watch/ack`). A code that clears and returns alerts
+again. Each event is also an observation (`live_new_code`, with the session id) for
+the evidence gate. State is under `code_watch` in `GET /api/live/session`. The watch
+skips a read when a live channel is behind.
+
 ## Gauges dashboard
 
 `/v/{vin}/gauges` and `/v/{vin}/gauges/hud` are a customisable live-data
@@ -78,6 +92,41 @@ recordings replay are stored through `/api/live/layouts`,
 `/api/live/replay/*` (`cuore/live/ui_store.py`, `layouts.py`, `replay.py`).
 The live stream is `/api/live/stream`, fed by the poller session
 (`/api/live/session/*`).
+
+## Live list sorting
+
+The Live board (`/v/{vin}/liveboard`) has a "Sort by" bar: Name, Value, Alarm
+state or Group (`web/static/list_controls.js`). Sorting is client-side on the
+rendered rows and remembered per VIN in localStorage; the server order is the
+default, so the page works without JS. The page has no channel checkboxes, so
+there is no Select All/None there.
+
+## Live graphs
+
+The Gauges page has a Graphs panel (`web/static/live/graphs.js`): 1 to 4
+stacked canvas graphs, each with a channel list and a 30 s / 2 min / 10 min
+window, fed by a rolling history from `/api/live/snapshot`. Now, min and max
+show beside each graph. A tap on any graph puts one cursor on all graphs and
+reads each channel's value at that time; a second tap clears it. Channels and
+graph count are remembered per VIN.
+
+## Recording tags and channel priority
+
+While a gauges recording runs, keys 0-9 (or the ten buttons in
+`_record_tags.html`) insert an instantaneous tag: one extra CSV row whose TAG
+cell reads `TAG <key>: <label>`, so MES's parser and CUORE replay see an
+ordinary marker. Labels default to "Tag 0".."Tag 9" and are renamed per VIN
+under "Rename tags" (`ui_store.py`, `record_tags.json`). API:
+`POST /api/live/record/tag` (409 when not recording) and
+`GET/POST /api/live/record/tag-labels`; `status()` lists `recording_tags`.
+Drive recordings (`/v/{vin}/recordings/{id}`) list their tags with time and row
+and mark them on every chart and the time axis.
+
+`POST /api/live/session/start` takes optional `priorities` (channel id to 1-5,
+default 1). The value is a poll divisor: 1 reads on every scheduled cycle, 5 on
+every 5th, freeing bus time for priority-1 channels. `status()` reports
+`channel_rates` (priority, divisor, configured and achieved Hz). API only; the
+gauges page has no channel picker.
 
 ## Vehicle dashboard
 
