@@ -32,7 +32,7 @@ def check(label: str, cond: bool) -> None:
 
 
 v = next_session.view(VIN)
-check("seed loads 8 steps, 0 done", bool(v) and v["total"] == 8 and v["done"] == 0)
+check("seed loads 13 steps, 0 done", bool(v) and v["total"] == 13 and v["done"] == 0)
 check("seed file written to state dir", (Path(STATE) / "next_session_plan.json").exists())
 check("other VIN has no plan", next_session.view("0" * 17) is None)
 
@@ -63,7 +63,7 @@ r = client.post(f"/v/{VIN}/next-session/can-captures", data={"action": "done", "
                 follow_redirects=False)
 check("POST done redirects back to the home", r.status_code == 303 and r.headers["location"] == f"/v/{VIN}")
 r = client.get(f"/v/{VIN}")
-check("home panel shows count", r.status_code == 200 and "Next connection — 8 steps (1 done)" in r.text
+check("home panel shows count", r.status_code == 200 and "Next connection — 13 steps (1 done)" in r.text
       and 'id="bench-next-session"' in r.text)
 
 print(f"\n{len(failures)} failure(s)")

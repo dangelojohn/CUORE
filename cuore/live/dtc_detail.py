@@ -62,6 +62,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, Optional
 
+from . import snapshot_bindings as _sb
 from . import uds
 from .addressing import ANNEX_C, DIDS, ECUAddress
 from .errors import BadCommand
@@ -336,7 +337,19 @@ def decode_snapshot_identification(data: list[str]) -> list[dict[str, Any]]:
     return out
 
 
-def decode_snapshot_record(data: list[str], ecu_code: str) -> dict[str, Any]:
+def _bound_identifier(did_hex: str, value: list[str], b: dict[str, Any]) -> dict[str, Any]:
+    """Identifier for a DID the owner bound (``snapshot_bindings``). The value is
+    decoded only when the owner supplied a divisor; otherwise raw bytes only."""
+    div = b.get("div")
+    field = _SnapField(len(value), b["name"], b.get("unit"), mul=b.get("mul") or 1, div=div,
+                       offset=b.get("offset") or 0)
+    return {"did": did_hex, "name": b["name"], "bytes": value,
+            "value": _snapshot_value(field, value) if div else None,
+            "unit": b.get("unit") if div else None,
+            "confidence": "owner-bound", "status": _sb.BOUND_STATUS}
+
+
+def decode_snapshot_record(data: list[str], ecu_code: str, vin: Optional[str] = None) -> dict[str, Any]:
     """``59 04 DTC(3) status(1) (recordNum(1) numIds(1) (DID(2) data(?))*)*``.
 
     A DID's data length is not in the frame. Where it is known (the ECM/BCM
@@ -345,9 +358,15 @@ def decode_snapshot_record(data: list[str], ecu_code: str) -> dict[str, Any]:
     are returned raw under ``undecoded_from`` -- never guessed. Each
     identifier is ``{did, name|None, bytes, value|None, unit|None,
     confidence[, basis]}``; ``bytes`` is always the raw value.
+
+    ``vin`` (optional) selects the owner bindings in snapshot_bindings.json. For
+    a module with a scaffold (ABS) the result also carries ``candidate_fields``
+    (names still unbound), ``unresolved_did`` (the DID that stopped the walk) and
+    ``proposals`` (suggestions by length and range, status "proposed").
     """
     if len(data) < 6 or data[0] != "59" or data[1] != "04":
         return {"error": "not a 59 04 reply", "raw": data}
+    bind_map = _sb.bindings_for(vin, ecu_code)
     h, m, l, status = data[2], data[3], data[4], data[5]
     status_val = int(status, 16)
     out: dict[str, Any] = {"dtc": dtc_from_three_bytes(h, m, l), "status": status_val,
@@ -374,11 +393,15 @@ def decode_snapshot_record(data: list[str], ecu_code: str) -> dict[str, Any]:
             did = int(did_hex, 16)
             layout = _SNAPSHOT_LAYOUTS.get(ecu_code)
             field = layout.get(did) if layout is not None else None
+            bound = bind_map.get(did)
             if layout is None:
-                length = _did_length(ecu_code, did)
+                length = (bound or {}).get("length") or _did_length(ecu_code, did)
             else:
                 length = field.length if field else _STANDARD_FIXED_LENGTHS.get(did)
+                if not (bound and field is not None and field.name is None):
+                    bound = None
             if length is None:
+                out["unresolved_did"] = did_hex
                 out["undecoded_from"] = (f"DID {did_hex} (length unknown); "
                                          f"{len(body) - i} raw byte(s) remain from here: "
                                          f"{body[i:]}")
@@ -391,10 +414,17 @@ def decode_snapshot_record(data: list[str], ecu_code: str) -> dict[str, Any]:
                                          f"{len(value)} remain: {value}")
                 stopped = True
                 break
-            record["identifiers"].append(_snapshot_identifier(ecu_code, did, did_hex, value, field))
+            record["identifiers"].append(_bound_identifier(did_hex, value, bound) if bound
+                                         else _snapshot_identifier(ecu_code, did, did_hex, value, field))
             i += length
         if stopped:
             break
+    if _sb.has_scaffold(ecu_code):
+        out["candidate_fields"] = _sb.unbound_names(ecu_code, vin)
+        out["scaffold_status"] = ("unbound: names from MES FESLog_2609042001 only; no DID, length or "
+                                  "scale is known until the owner binds them")
+        idents = [x for r in out["records"] for x in r["identifiers"]]
+        out["proposals"] = _sb.propose(ecu_code, idents, vin)
     return out
 
 
@@ -482,7 +512,7 @@ def dtc_snapshot(sess: Session, ecu: ECUAddress, dtc: str, record: int = 0xFF) -
         return out
     data = _first_positive(r)
     if data:
-        out.update(decode_snapshot_record(data, ecu.code))
+        out.update(decode_snapshot_record(data, ecu.code, getattr(sess.link, "vin", None) or None))
     elif not r["error"] and not r["nrc"]:
         out["warning"] = "no answer"
     return out

@@ -37,6 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from mcp.server.fastmcp import FastMCP  # noqa: E402
 
 from cuore.live import ops  # noqa: E402
+from cuore.live import responders  # noqa: E402
 import cuore_client  # noqa: E402  -- sibling module; this directory is on sys.path
 from cuore.live import audit  # noqa: E402
 from cuore.live import fullscan  # noqa: E402
@@ -289,6 +290,24 @@ def read_module_identity(code: str, vin: str = "", confirm: bool = False) -> str
     return _via("GET", f"/live/module/{code}/identity",
                 lambda: ops.module_identity(code, vin=vin, confirm=confirm),
                 query={"vin": vin, "confirm": confirm})
+
+
+@mcp.tool()
+def name_responders(vin: str) -> str:
+    """Propose a module name for each stored discovery responder by matching its identity
+    strings with the MES log text (SCAN_*/FESLog_*), citing log and line. No car contact;
+    proposals only, nothing is promoted."""
+    return _via("GET", "/live/responders", lambda: {**responders.list_responders(vin), "naming": responders.name_responders(vin)},
+                query={"vin": vin, "propose": True})
+
+
+@mcp.tool()
+def accept_responder(vin: str, address: str, module: str) -> str:
+    """Owner decision: promote a stored responder address (e.g. 29 or 18DA29F1) to
+    'confirmed (owner)' for a module code (e.g. DTCM). No car contact."""
+    return _via("POST", "/live/responders/accept",
+                lambda: responders.accept_responder(vin, address, module),
+                body={"vin": vin, "address": address, "module": module})
 
 
 @mcp.tool()
@@ -1002,6 +1021,37 @@ def mes_learn_accept(candidate_id: str, vin: str, name: str) -> str:
     never a catalogue DID) -- usable by the Live board as a named channel."""
     return _via("POST", f"/mes-learn/candidates/{candidate_id}/accept",
                lambda: _mes_learn.accept(candidate_id, vin, name), body={"vin": vin, "name": name})
+
+
+from cuore.live import decode_confirm as _decode_confirm  # noqa: E402
+
+
+@mcp.tool()
+def decode_confirm_run(vin: str, mes_log_path: str, cuore_recording_path: str, tolerance: float = 0.05,
+                       mes_interval_s: float = 0.0, mes_start: str = "", mode: str = "static") -> str:
+    """Offline, no car contact. mode=static (default): MES and CUORE logs made one after the other,
+    cut by tag number 1-4 (1 ign on/engine off/pedal up, 2 pedal down, 3 warm idle, 4 2000 rpm),
+    medians compared per condition. mode=timestamp: pair a time-stamped MES graph CSV with a CUORE
+    live-session CSV (state dir recordings/live_*.csv) row by time and
+    value. Per CUORE channel: confirmed | wrong_scale (with the proposed transform) | no_data |
+    ambiguous, sample count, fitted transform, residual. Saved under decode_confirm/<run_id>.json;
+    nothing is changed until decode_confirm_accept."""
+    body = {"vin": vin, "mes_log_path": mes_log_path, "cuore_recording_path": cuore_recording_path,
+            "tolerance": tolerance, "mes_interval_s": mes_interval_s or None, "mes_start": mes_start, "mode": mode}
+    return _via("POST", "/live/decode-confirm/run",
+                lambda: _decode_confirm.run(vin, mes_log_path, cuore_recording_path, tolerance=tolerance,
+                                            mes_interval_s=mes_interval_s or None, mes_start=mes_start, mode=mode),
+                body=body)
+
+
+@mcp.tool()
+def decode_confirm_accept(vin: str, run_id: str, channel: str, confirm_pairing: bool = False) -> str:
+    """Offline, no car contact: write one confirmed / wrong_scale verdict of a saved run into
+    did_overrides.json (read by did_catalog at load time; the shipped catalogue is not edited).
+    A candidate MES pairing needs confirm_pairing=true. Sensor health drops its suspect flag."""
+    return _via("POST", "/live/decode-confirm/accept",
+                lambda: _decode_confirm.accept(vin, run_id, channel, confirm_pairing=confirm_pairing),
+                body={"vin": vin, "run_id": run_id, "channel": channel, "confirm_pairing": confirm_pairing})
 
 
 if __name__ == "__main__":

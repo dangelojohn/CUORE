@@ -112,6 +112,9 @@ def suspect_reason(channel: str, value: Any, lv: dict[str, Any]) -> str:
     of every channel. Never changes data or formulas; it only says the number cannot be trusted as decoded."""
     if not _is_num(value):
         return ""
+    from ..live import did_catalog
+    if did_catalog.is_confirmed(channel):      # owner accepted a decode_confirm run for it
+        return ""
     if channel == "ecm_195b" and value < 0.1:
         return f"raw sensor voltage {value:g} V is under 0.1 V while the module answers"
     if channel in ("ecm_1925", "ecm_1926"):

@@ -950,12 +950,18 @@ def discover(bus: str = "can_c", vin: str = "", confirm: bool = False,
     if not all(len(d) == 4 and all(c in "0123456789ABCDEF" for c in d) for d in pdids):
         raise BadCommand("probe_dids must be 4-hex-digit DIDs")
     with link().session(f"discover {b.key}", bus=b, confirm=confirm, **kw) as sess:
-        return _stamp(sess, uds_mod.discover(sess, b, vin_expected=vin or None,
-                                             candidates=cands,
-                                             per_target_timeout=per_target_timeout,
-                                             stop_after=stop_after, probe_dids=pdids,
-                                             deadline_s=max(5.0, min(float(deadline_s), 170.0)),
-                                             max_targets=max_targets))
+        res = uds_mod.discover(sess, b, vin_expected=vin or None,
+                               candidates=cands,
+                               per_target_timeout=per_target_timeout,
+                               stop_after=stop_after, probe_dids=pdids,
+                               deadline_s=max(5.0, min(float(deadline_s), 170.0)),
+                               max_targets=max_targets)
+        res["bus"], res["cable"] = b.key, sess.link.cable
+        # Responder records: Annex C identity of every hit, kept in responders.json
+        # (read-only 0x22; never changes the modules table).
+        from . import responders
+        res["responders"] = responders.record_sweep(sess, res, vin=vin)
+        return _stamp(sess, res)
 
 
 def discover_11bit(bus: str = "can_ch", vin: str = "", confirm: bool = False,
@@ -978,9 +984,12 @@ def discover_11bit(bus: str = "can_ch", vin: str = "", confirm: bool = False,
             raise BadCommand("candidates must be 11-bit request ids (100..7FF)")
     with link().session(f"discover_11bit {b.key}", bus=b, confirm=confirm,
                         route=r11[0], **kw) as sess:
-        return _stamp(sess, discover11.discover_11bit(
+        res = discover11.discover_11bit(
             sess, b, candidates=cands, per_target_timeout=per_target_timeout,
-            stop_after=stop_after, rx_mode=rx_mode))
+            stop_after=stop_after, rx_mode=rx_mode)
+        from . import responders
+        res["responders"] = responders.record_sweep(sess, res, vin=vin, read_more=False)
+        return _stamp(sess, res)
 
 
 def observations(n: int = 50, vin: str = "", kind: str = "") -> dict[str, Any]:
@@ -1025,6 +1034,11 @@ def obd_mode06(mids: Optional[list[str]] = None, **kw: Any) -> dict[str, Any]:
     def body(sess: Session) -> dict[str, Any]:
         out = mode06.read_mode06(sess, mids=[m.upper() for m in mids] if mids else None)
         out["evap_summary"] = mode06.evap_summary(out)
+        # Read-only: re-parse the raw reply against the assumed record layout and keep
+        # the raw + verdict under <state>/mode06_layout_check/. Never raises.
+        from . import mode06_layout
+        out["layout_check"] = mode06_layout.check_and_save(
+            out.get("raw") or {}, headers_on=bool(getattr(sess, "headers_on", True)))
         return _observe(sess, "mode06", out)
 
     def answered(r: dict[str, Any]) -> bool:
@@ -1042,6 +1056,28 @@ def module_dtc_detail(code: str, dtc: str, vin: str = "", confirm: bool = False,
     with link().session(f"dtc_detail {ecu.code} {dtc}", bus=_bus(ecu.bus_key), confirm=confirm,
                         **kw) as sess:
         return _observe(sess, "dtc_detail", dtc_detail.dtc_detail(sess, ecu, dtc), vin)
+
+
+def module_code_round(bus: str = "can_c", modules: Optional[list[str]] = None, vin: str = "",
+                      confirm: bool = False, only_set: bool = True, max_codes: int = 40,
+                      **kw: Any) -> dict[str, Any]:
+    """19 02, then 19 04 and 19 06 per code, for the named modules on one bus, in one
+    session. Defaults: CAN-C IPC/TCM/ESM/DTCM, CAN-CH ABS. Every module and code is
+    recorded as an observation; the return value is the compact per-module summary."""
+    from . import module_round
+    b = _bus(bus)
+    mods = [m.upper() for m in (modules or module_round.DEFAULT_MODULES.get(b.key, ()))]
+    if not mods:
+        raise BadCommand(f"no default modules for {b.key}; pass modules")
+    with link().session(f"module_code_round {b.key}", bus=b, confirm=confirm, **kw) as sess:
+        v = vin or getattr(sess.link, "vin", "") or ""
+
+        def rec(kind: str, data: dict[str, Any]) -> None:
+            store.record_observation(kind, data, vin=v, bus=b.key, cable=sess.link.cable,
+                                     stream=sess.stream.describe)
+
+        out = module_round.run(sess, b.key, mods, v, only_set=only_set, max_codes=max_codes, record=rec)
+        return _stamp(sess, out)
 
 
 def module_dtc_count(code: str, vin: str = "", mask: int = 0xFF, confirm: bool = False,

@@ -1,0 +1,320 @@
+{
+ "_about": "MES live-parameter name -> CUORE channel id. certainty 'certain' = name and unit mean the same quantity (justified in note); 'candidate' = ranked by value agreement in a live session and never confirmed by name alone. also_try lists extra transforms (degrees = raw/100) for throttle candidates only. MES names are from FESLog_2606071008 (ECM). unpaired = suspects with no same-quantity MES name.",
+ "pairs": [
+  {
+   "mes_name": "Engine speed",
+   "mes_unit": "rpm",
+   "channel": "engine_rpm",
+   "certainty": "certain",
+   "note": "same quantity and unit; Mode 01 PID 0C"
+  },
+  {
+   "mes_name": "Engine speed",
+   "mes_unit": "rpm",
+   "channel": "ecm_1000",
+   "certainty": "certain",
+   "note": "same quantity and unit (ECM DID 1000 'Engine RPM')"
+  },
+  {
+   "mes_name": "Vehicle speed",
+   "mes_unit": "km/h",
+   "channel": "vehicle_speed",
+   "certainty": "certain",
+   "note": "same quantity and unit; PID 0D"
+  },
+  {
+   "mes_name": "Vehicle speed",
+   "mes_unit": "km/h",
+   "channel": "ecm_1002",
+   "certainty": "certain",
+   "note": "same quantity and unit"
+  },
+  {
+   "mes_name": "Battery voltage",
+   "mes_unit": "V",
+   "channel": "ecm_1955",
+   "certainty": "certain",
+   "note": "identical name and unit"
+  },
+  {
+   "mes_name": "Atmospheric pressure",
+   "mes_unit": "mbar",
+   "channel": "barometric_pressure",
+   "certainty": "certain",
+   "note": "atmospheric = barometric; PID 33 is kPa, converted x10 to mbar"
+  },
+  {
+   "mes_name": "Atmospheric pressure",
+   "mes_unit": "mbar",
+   "channel": "ecm_1956",
+   "certainty": "certain",
+   "note": "same quantity, mbar (already confirmed 2026-10-25; regression check)"
+  },
+  {
+   "mes_name": "Boost pressure",
+   "mes_unit": "mbar",
+   "channel": "ecm_195a",
+   "certainty": "certain",
+   "note": "same quantity, absolute mbar (already confirmed; regression check)"
+  },
+  {
+   "mes_name": "Fuel level",
+   "mes_unit": "%",
+   "channel": "fuel_level",
+   "certainty": "certain",
+   "note": "same quantity and unit; PID 2F"
+  },
+  {
+   "mes_name": "Fuel level",
+   "mes_unit": "%",
+   "channel": "ecm_1001",
+   "certainty": "certain",
+   "note": "MES 'Fuel level' = DID 1001 'Fuel tank level', both %"
+  },
+  {
+   "mes_name": "Engine oil temperature",
+   "mes_unit": "°C",
+   "channel": "engine_oil_temp",
+   "certainty": "certain",
+   "note": "identical quantity and unit; PID 5C"
+  },
+  {
+   "mes_name": "Engine oil temperature",
+   "mes_unit": "°C",
+   "channel": "ecm_1302",
+   "certainty": "certain",
+   "note": "identical quantity and unit"
+  },
+  {
+   "mes_name": "Throttle position",
+   "mes_unit": "%",
+   "channel": "throttle_position",
+   "certainty": "certain",
+   "note": "identical name and unit; PID 11"
+  },
+  {
+   "mes_name": "A/C pressure",
+   "mes_unit": "bar",
+   "channel": "ecm_192f",
+   "certainty": "certain",
+   "note": "A/C refrigerant pressure, both bar"
+  },
+  {
+   "mes_name": "Odometer",
+   "mes_unit": "km",
+   "channel": "ecm_2001",
+   "certainty": "certain",
+   "note": "identical name and unit"
+  },
+  {
+   "mes_name": "Target cruise speed",
+   "mes_unit": "km/h",
+   "channel": "ecm_192b",
+   "certainty": "certain",
+   "note": "identical quantity and unit"
+  },
+  {
+   "mes_name": "Engine oil pressure",
+   "mes_unit": "bar",
+   "channel": "ecm_130a",
+   "certainty": "certain",
+   "note": "numeric (bar) row; MES also prints a Low/OK state row, ignored"
+  },
+  {
+   "mes_name": "Engine oil level",
+   "mes_unit": "L",
+   "channel": "ecm_3a41",
+   "certainty": "certain",
+   "note": "litre row; MES also prints a mm row, ignored"
+  },
+  {
+   "mes_name": "Maximum engine over-rev RPM",
+   "mes_unit": "rpm",
+   "channel": "ecm_2005",
+   "certainty": "certain",
+   "note": "same over-rev log value"
+  },
+  {
+   "mes_name": "Number of programmings",
+   "mes_unit": "",
+   "channel": "ecm_2003",
+   "certainty": "certain",
+   "note": "same counter"
+  },
+  {
+   "mes_name": "IBS Battery charge status",
+   "mes_unit": "%",
+   "channel": "ecm_19bd",
+   "certainty": "certain",
+   "note": "IBS state of charge, both %"
+  },
+  {
+   "mes_name": "Engine temperature",
+   "mes_unit": "°C",
+   "channel": "engine_coolant_temp",
+   "certainty": "candidate",
+   "note": "MES 'Engine temperature' is probably coolant; name does not say so"
+  },
+  {
+   "mes_name": "Engine temperature",
+   "mes_unit": "°C",
+   "channel": "ecm_1003",
+   "certainty": "candidate",
+   "note": "as above"
+  },
+  {
+   "mes_name": "Air temperature",
+   "mes_unit": "°C",
+   "channel": "intake_air_temp",
+   "certainty": "candidate",
+   "note": "MES does not say intake; PID 0F"
+  },
+  {
+   "mes_name": "Air temperature (Boost/Manifold)",
+   "mes_unit": "°C",
+   "channel": "ecm_1935",
+   "certainty": "candidate",
+   "note": "post-turbo intake temp vs MES boost/manifold air temp"
+  },
+  {
+   "mes_name": "Air temperature (Boost/Manifold)",
+   "mes_unit": "°C",
+   "channel": "ecm_3a58",
+   "certainty": "candidate",
+   "note": "pre-intercooler manifold temp vs MES boost/manifold air temp"
+  },
+  {
+   "mes_name": "External temperature",
+   "mes_unit": "°C",
+   "channel": "ambient_air_temp",
+   "certainty": "candidate",
+   "note": "external = ambient by usage, not by name; PID 46"
+  },
+  {
+   "mes_name": "Intake pressure",
+   "mes_unit": "mbar",
+   "channel": "intake_map",
+   "certainty": "candidate",
+   "note": "MAP by usage, not by name; PID 0B kPa converted x10"
+  },
+  {
+   "mes_name": "Air flow rate",
+   "mes_unit": "kg/h",
+   "channel": "maf",
+   "certainty": "candidate",
+   "note": "MAF by usage; PID 10 g/s converted x3.6"
+  },
+  {
+   "mes_name": "Battery voltage",
+   "mes_unit": "V",
+   "channel": "control_module_voltage",
+   "certainty": "candidate",
+   "note": "PID 42 is the ECM supply, measured at a different point"
+  },
+  {
+   "mes_name": "Gas pedal position",
+   "mes_unit": "%",
+   "channel": "accelerator_pedal_d",
+   "certainty": "candidate",
+   "note": "pedal sensor; PID 49 vs MES track-averaged value"
+  },
+  {
+   "mes_name": "Boost pressure signal",
+   "mes_unit": "V",
+   "channel": "ecm_195b",
+   "certainty": "candidate",
+   "note": "SUSPECT: DID reads ~0.03 V; MES printed 1.223 V at idle"
+  },
+  {
+   "mes_name": "Desired boost pressure",
+   "mes_unit": "mbar",
+   "channel": "ecm_1959",
+   "certainty": "candidate",
+   "note": "SUSPECT: -32768 offset unconfirmed; DID is bar, MES mbar"
+  },
+  {
+   "mes_name": "Throttle position (Track 2)",
+   "mes_unit": "deg",
+   "channel": "ecm_1925",
+   "certainty": "candidate",
+   "also_try": [
+    "degrees"
+   ],
+   "note": "SUSPECT: DID decoded as % but is probably degrees (raw/100); MES prints these in deg; which track the DID is is unknown"
+  },
+  {
+   "mes_name": "Throttle position (Track 1)",
+   "mes_unit": "deg",
+   "channel": "ecm_1925",
+   "certainty": "candidate",
+   "also_try": [
+    "degrees"
+   ],
+   "note": "SUSPECT: DID decoded as % but is probably degrees (raw/100); MES prints these in deg; which track the DID is is unknown"
+  },
+  {
+   "mes_name": "Throttle angle",
+   "mes_unit": "deg",
+   "channel": "ecm_1925",
+   "certainty": "candidate",
+   "also_try": [
+    "degrees"
+   ],
+   "note": "SUSPECT: DID decoded as % but is probably degrees (raw/100); MES prints these in deg; which track the DID is is unknown"
+  },
+  {
+   "mes_name": "Throttle position",
+   "mes_unit": "%",
+   "channel": "ecm_1925",
+   "certainty": "candidate",
+   "note": "SUSPECT: the % reading, tested as-is"
+  },
+  {
+   "mes_name": "Throttle position (Track 2)",
+   "mes_unit": "deg",
+   "channel": "ecm_1926",
+   "certainty": "candidate",
+   "also_try": [
+    "degrees"
+   ],
+   "note": "SUSPECT: DID decoded as % but is probably degrees (raw/100); MES prints these in deg; which track the DID is is unknown"
+  },
+  {
+   "mes_name": "Throttle position (Track 1)",
+   "mes_unit": "deg",
+   "channel": "ecm_1926",
+   "certainty": "candidate",
+   "also_try": [
+    "degrees"
+   ],
+   "note": "SUSPECT: DID decoded as % but is probably degrees (raw/100); MES prints these in deg; which track the DID is is unknown"
+  },
+  {
+   "mes_name": "Throttle angle",
+   "mes_unit": "deg",
+   "channel": "ecm_1926",
+   "certainty": "candidate",
+   "also_try": [
+    "degrees"
+   ],
+   "note": "SUSPECT: DID decoded as % but is probably degrees (raw/100); MES prints these in deg; which track the DID is is unknown"
+  },
+  {
+   "mes_name": "Throttle position",
+   "mes_unit": "%",
+   "channel": "ecm_1926",
+   "certainty": "candidate",
+   "note": "SUSPECT: the % reading, tested as-is"
+  }
+ ],
+ "unpaired": [
+  {
+   "channel": "ecm_1009",
+   "reason": "SUSPECT: no live MES parameter is a time since start (MES 'Operating time' / 'Functioning time (EEPROM)' are lifetime counters printed once in the header). Check against PID 1F inside CUORE instead."
+  },
+  {
+   "channel": "egr_temperature",
+   "reason": "SUSPECT/untrusted PID 6B: the MES ECM parameter list has no EGR temperature (Exhaust gas temperature and Catalyser temperature are other quantities)."
+  }
+ ]
+}

@@ -124,10 +124,11 @@ def _pid_channels() -> list[Channel]:
     return [
         Channel(id=spec.name, name=spec.name.replace("_", " "), unit=spec.unit,
                kind="pid", bus="can_c", confidence=("untrusted" if spec.name in UNTRUSTED_PIDS
+                                                   and not did_catalog.is_confirmed(spec.name)
                                                    else "legislated"),
                default_rate_hz=_pid_rate(spec.name), pid=spec.pid,
                note=UNTRUSTED_PIDS.get(spec.name, spec.description),
-               untrusted=spec.name in UNTRUSTED_PIDS)
+               untrusted=spec.name in UNTRUSTED_PIDS and not did_catalog.is_confirmed(spec.name))
         for spec in PIDS_BY_HEX.values()
     ]
 

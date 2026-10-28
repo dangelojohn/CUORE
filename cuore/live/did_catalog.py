@@ -376,10 +376,69 @@ BROADCAST_SIGNALS: tuple[dict, ...] = (
 )
 
 
+# --- owner-accepted decode confirmations (state file, never the shipped rows) --
+#
+# ``cuore.live.decode_confirm.accept`` writes ``did_overrides.json`` in the state
+# directory; it is consulted here at load time so the rows above are never
+# edited silently. Shape: {"channels": {"ecm_1925": {"status": "confirmed",
+# "a": 0.15, "b": 0.0, "unit": "deg", ...}}}. y = a*decoded + b.
+
+_OVR_CACHE: dict = {"key": None, "data": {}}
+
+
+def _plain(x: float) -> str:
+    t = format(round(float(x), 9), "f")
+    return t.rstrip("0").rstrip(".") if "." in t else t
+
+
+def overrides() -> dict:
+    """{channel_id: override entry} from ``did_overrides.json`` ({} when absent or unreadable)."""
+    import json
+
+    from .config import state_dir
+    p = state_dir() / "did_overrides.json"
+    try:
+        st = p.stat()
+        key = (str(p), st.st_mtime_ns, st.st_size)
+    except OSError:
+        _OVR_CACHE.update(key=None, data={})
+        return {}
+    if _OVR_CACHE["key"] != key:
+        try:
+            d = json.loads(p.read_text(encoding="utf-8"))
+            ch = d.get("channels") if isinstance(d, dict) else None
+            _OVR_CACHE.update(key=key, data=ch if isinstance(ch, dict) else {})
+        except (OSError, ValueError):
+            _OVR_CACHE.update(key=key, data={})
+    return _OVR_CACHE["data"]
+
+
+def is_confirmed(channel_id: str) -> bool:
+    """True once the owner accepted a decode-confirmation run for this channel."""
+    return (overrides().get(channel_id) or {}).get("status") == "confirmed"
+
+
+def _apply_override(spec: DidSpec) -> DidSpec:
+    from dataclasses import replace
+    ov = overrides().get(f"{spec.module.lower()}_{spec.did:04x}")
+    if not ov or ov.get("status") != "confirmed":
+        return spec
+    a, b = float(ov.get("a", 1.0)), float(ov.get("b", 0.0))
+    formula = spec.formula
+    if formula and (abs(a - 1.0) > 1e-12 or abs(b) > 1e-12):
+        formula = f"({formula})*{_plain(a)}" + (f" - {_plain(-b)}" if b < 0 else f" + {_plain(b)}" if b else "")
+    src = (f"decode_confirm run {ov.get('run_id', '?')}: agreed with MES '{ov.get('mes_name', '?')}' "
+           f"({ov.get('samples', '?')} paired samples, transform {ov.get('transform', 'identity')}); "
+           f"was: {spec.confidence}, {spec.formula or 'no formula'}")
+    return replace(spec, formula=formula, unit=ov.get("unit") or spec.unit, source=src,
+                   confidence="confirmed")
+
+
 def all_dids(module: str, *, include_diesel: bool = False) -> list[DidSpec]:
     """``addressing.dids_for(module)`` plus this module's ``EXTRA_DIDS``,
     de-duplicated by (module, did). ``addressing.DIDS`` wins any collision
-    (there should be none; see ``_check_no_overlap``)."""
+    (there should be none; see ``_check_no_overlap``). Owner-accepted
+    decode confirmations (``did_overrides.json``) are applied last."""
     from .addressing import dids_for
 
     base = dids_for(module, include_diesel=include_diesel)
@@ -387,7 +446,7 @@ def all_dids(module: str, *, include_diesel: bool = False) -> list[DidSpec]:
     extra = [d for d in EXTRA_DIDS
              if d.module == module and (d.module, d.did) not in seen
              and (include_diesel or not d.diesel_only)]
-    return base + extra
+    return [_apply_override(d) for d in base + extra]
 
 
-__all__ = ["EXTRA_DIDS", "BROADCAST_SIGNALS", "all_dids"]
+__all__ = ["EXTRA_DIDS", "BROADCAST_SIGNALS", "all_dids", "overrides", "is_confirmed"]

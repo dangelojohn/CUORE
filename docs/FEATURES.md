@@ -357,6 +357,15 @@ with its source. Parts and media sections are skipped if unavailable.
 `/v/{vin}/code/{code}/report.pdf` is the per-code report. Scan health reports
 also export as Markdown (`/api/scans/{vin}/{scan_id}/health.md`).
 
+## Session kits
+
+Four read-only tools for one car session, all listed step by step in the Bench
+"Next connection" fold: decode confirm (`decode_confirm_run` and
+`/api/live/decode-confirm/*`, MES then CUORE, compared by recording tag), module
+code round with ABS snapshot bindings (`/api/live/round`,
+`/api/live/snapshot-bind`), the Mode 06 layout check (`layout_check` on
+`read_mode06`) and responder naming (`name_responders`, `accept_responder`).
+
 ## Tools
 
 `/tools` lists every CUORE operation reachable from a phone, merged with the

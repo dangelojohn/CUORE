@@ -15,6 +15,7 @@ from fastapi import APIRouter, Body, Depends, Query, Request
 
 from ..live import dtc_records
 from ..live import ops
+from ..live import responders as responders_mod
 from ..live import ui_store
 from ..live import audit as audit_mod
 from .deps import require_token
@@ -149,6 +150,24 @@ def live_obd_mode06(mids: str = Query(default="", description="e.g. 3C,3B; empty
     return ops.obd_mode06([m.strip() for m in mids.split(",") if m.strip()] or None)
 
 
+@router.get("/live/round", summary="Module code round: 19 02, then 19 04 and 19 06 per code")
+def live_module_round(bus: str = Query(default="can_c"), modules: str = Query(default=""),
+                      vin: str = Query(default=""), confirm: bool = Query(default=False)
+                      ) -> dict[str, Any]:
+    mods = [m.strip() for m in modules.split(",") if m.strip()] or None
+    return ops.module_code_round(bus, mods, vin=vin, confirm=confirm)
+
+
+@router.post("/live/snapshot-bind", summary="Owner binds a snapshot DID to a field name")
+def live_snapshot_bind(vin: str = Body(..., embed=True), module: str = Body(..., embed=True),
+                       did: str = Body(..., embed=True), field_name: str = Body(..., embed=True),
+                       length: Optional[int] = Body(default=None, embed=True),
+                       unit: Optional[str] = Body(default=None, embed=True),
+                       div: Optional[int] = Body(default=None, embed=True)) -> dict[str, Any]:
+    from ..live import snapshot_bindings
+    return snapshot_bindings.bind(vin, module, did, field_name, length=length, unit=unit, div=div)
+
+
 @router.get("/live/module/{code}/dtc/{dtc}", summary="One code's status, snapshots and counters")
 def live_module_dtc_detail(code: str, dtc: str, vin: str = Query(default=""),
                            confirm: bool = Query(default=False)) -> dict[str, Any]:
@@ -241,6 +260,22 @@ def live_discover(bus: str = Body(default="can_c", embed=True),
     return ops.discover(bus, vin=vin, confirm=confirm, candidates=candidates,
                         per_target_timeout=per_target_timeout, stop_after=stop_after,
                         deadline_s=deadline_s, max_targets=max_targets)
+
+
+@router.get("/live/responders", summary="Stored discovery responders, each with a proposed MES-log name (no car contact)")
+def live_responders(vin: str = Query(..., description="car VIN"),
+                    propose: bool = Query(default=True)) -> dict[str, Any]:
+    out = responders_mod.list_responders(vin)
+    if propose:
+        out["naming"] = responders_mod.name_responders(vin)
+    return out
+
+
+@router.post("/live/responders/accept",
+             summary="Owner decision: promote one responder address to 'confirmed (owner)' (no car contact)")
+def live_responders_accept(vin: str = Body(..., embed=True), address: str = Body(..., embed=True),
+                           module: str = Body(..., embed=True)) -> dict[str, Any]:
+    return responders_mod.accept_responder(vin, address, module)
 
 
 @router.get("/live/coverage", summary="Whole-vehicle coverage session: passes, next step, report")
@@ -410,6 +445,37 @@ def live_session_status_route() -> dict[str, Any]:
 @router.get("/live/snapshot", summary="Latest value of every channel in the running session")
 def live_snapshot_route() -> dict[str, Any]:
     return ops.live_snapshot()
+
+
+# --- decoding confirmation: MES recording vs CUORE recording (offline, no car contact) ---------
+
+@router.get("/live/decode-confirm/runs", summary="Saved decode-confirmation runs, newest first")
+def decode_confirm_runs_route(vin: str = Query(default=""), run_id: str = Query(default="")) -> dict[str, Any]:
+    from ..live import decode_confirm
+    return decode_confirm.get_run(run_id) if run_id else decode_confirm.list_runs(vin)
+
+
+@router.post("/live/decode-confirm/run",
+             summary="Pair an MES recording with a CUORE live recording; verdict per channel (reads files only)")
+def decode_confirm_run_route(vin: str = Body(..., embed=True), mes_log_path: str = Body(..., embed=True),
+                             cuore_recording_path: str = Body(..., embed=True),
+                             tolerance: float = Body(default=0.05, embed=True),
+                             mes_interval_s: Optional[float] = Body(default=None, embed=True),
+                             mes_start: str = Body(default="", embed=True),
+                             lag_s: Optional[float] = Body(default=None, embed=True),
+                             mode: str = Body(default="static", embed=True)) -> dict[str, Any]:
+    from ..live import decode_confirm
+    return decode_confirm.run(vin, mes_log_path, cuore_recording_path, tolerance=tolerance,
+                              mes_interval_s=mes_interval_s, mes_start=mes_start, lag_s=lag_s, mode=mode)
+
+
+@router.post("/live/decode-confirm/accept",
+             summary="Accept one channel's verdict into did_overrides.json (catalogue file untouched)")
+def decode_confirm_accept_route(vin: str = Body(..., embed=True), run_id: str = Body(..., embed=True),
+                                channel: str = Body(..., embed=True),
+                                confirm_pairing: bool = Body(default=False, embed=True)) -> dict[str, Any]:
+    from ..live import decode_confirm
+    return decode_confirm.accept(vin, run_id, channel, confirm_pairing=confirm_pairing)
 
 
 @router.post("/live/record/start", summary="Start mirroring the live session to an MES-format CSV")
