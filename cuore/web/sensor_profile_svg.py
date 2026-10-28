@@ -28,7 +28,7 @@ _GROUND = 328
 
 #: id, label, anchor (ax, ay), label position (lx, ly), text-anchor.
 #: Anchors follow the drawing below (front axle x=199, rear axle x=650, wheel
-#: centres y=269, sill y=292, roof y~59); a drawing convention, not a measurement.
+#: centres y=269, sill y~300, roof y~54); a drawing convention, not a measurement.
 ZONES: list[dict[str, Any]] = [
     {"id": "front_bumper", "label": "Front bumper", "ax": 66, "ay": 262, "lx": 40, "ly": 346, "ta": "start"},
     {"id": "engine_bay", "label": "Engine bay", "ax": 236, "ay": 178, "lx": 236, "ly": 110, "ta": "middle"},
@@ -81,120 +81,218 @@ def _smooth_closed(pts: list[tuple[float, float]]) -> str:
     return " ".join(d) + " Z"
 
 
-_AXLE_F, _AXLE_R, _WHEEL_Y, _TYRE_R, _RIM_R = 199, 650, 269, 59, 37
-_ARCH_R, _CLAD_R, _SILL_Y = 70, 79, 288
+_AXLE_F, _AXLE_R, _WHEEL_Y, _TYRE_R, _RIM_R = 199, 650, 269, 59, 44
 
-#: Credit for the photo the side view is traced from (CC BY-SA 4.0 requires it;
-#: the traced outline below is a derivative and is shared under the same licence).
+#: Credit for the photo the side view is traced from. The photo is CC0 (no credit
+#: is required); it is given anyway. The trace itself is released the same way.
 SIDE_VIEW_CREDIT = {
-    "text": 'Side view traced from "2018 Alfa Romeo Stelvio 2.1" by Vauxford, Wikimedia Commons, CC BY-SA 4.0',
-    "photo": "https://commons.wikimedia.org/wiki/File:2018_Alfa_Romeo_Stelvio_2.1.jpg",
-    "licence": "https://creativecommons.org/licenses/by-sa/4.0/",
+    "text": 'Side view traced from "Alfa Romeo Stelvio 154026" by Trop86, Wikimedia Commons, CC0',
+    "photo": "https://commons.wikimedia.org/wiki/File:Alfa_Romeo_Stelvio_154026.jpg",
+    "licence": "https://creativecommons.org/publicdomain/zero/1.0/",
+}
+
+# --- side outline, traced from a true side-on photograph -----------------------
+# Source: SIDE_VIEW_CREDIT (2446x1809, grey Stelvio parked side-on, level camera).
+# Method (docs/research/stelvio-side-trace-2026-10-27/): the car was cut from the
+# hedge/road by hue + saturation thresholds and flood fill, the outer contour
+# traced, smoothed, Douglas-Peucker simplified (0.9 unit) and written as
+# corner-aware Catmull-Rom Beziers. The photo was levelled on the two tyres
+# (axle line rotated flat, scale along the car set by the tyre radius so the
+# near-end perspective is removed), then mapped into this drawing's frame:
+# axles pinned at x=199 / 650, wheel centres y=269, tyre radius 59, nose x=57,
+# tail x=801, so every zone anchor keeps its place. Because the axles and both
+# ends are pinned, the photo's overhangs are rescaled to this frame's 142 / 151
+# (nose x1.47, tail x0.89): the nose is the least certain part of the shape.
+#: Arch opening / arch-lining outer radius, from the photo (1.24 and 1.38 tyre radii).
+_ARCH_R, _CLAD_R = 73.2, 81.0
+
+_SIDE_BODY = (
+    "M516.5,55.2 C536.2,54.6 552.0,57.2 560.2,57.4 C568.4,57.6 558.9,56.3 565.6,56.1 "
+    "C572.3,56.0 588.0,56.0 600.2,56.6 C612.4,57.2 631.3,59.3 638.9,59.7 "
+    "C646.6,60.1 643.3,60.2 646.2,59.1 C649.0,58.0 653.2,54.0 656.1,53.1 "
+    "C659.1,52.1 662.1,53.0 663.9,53.3 C665.6,53.6 665.7,53.4 666.5,54.7 "
+    "C667.3,56.0 667.9,59.6 668.7,61.0 C669.4,62.4 666.9,62.3 671.2,63.1 "
+    "C675.5,63.8 685.2,64.3 694.7,65.8 C704.3,67.3 728.4,72.2 728.4,72.2 "
+    "C728.4,72.2 728.4,80.0 728.7,82.0 C729.0,84.0 728.6,83.5 730.2,84.3 "
+    "C731.8,85.1 734.2,85.1 738.2,86.8 C742.2,88.6 748.9,91.5 754.0,94.9 "
+    "C759.2,98.3 765.7,104.6 769.3,107.3 C772.9,109.9 773.1,110.0 775.7,110.7 "
+    "C778.2,111.4 784.5,111.4 784.5,111.4 C784.5,111.4 784.7,115.9 786.4,117.9 "
+    "C788.1,119.9 794.6,123.4 794.6,123.4 C794.6,123.4 795.1,149.0 795.9,156.9 "
+    "C796.6,164.9 798.7,167.2 799.3,171.4 C799.9,175.6 799.8,179.4 799.4,182.0 "
+    "C799.0,184.6 797.3,185.1 796.8,187.0 C796.3,188.8 797.1,191.2 796.5,193.0 "
+    "C795.9,194.9 793.1,198.2 793.1,198.2 C793.1,198.2 798.0,208.0 798.9,214.3 "
+    "C799.9,220.5 799.9,228.6 798.6,235.5 C797.4,242.3 793.3,251.5 791.5,255.3 "
+    "C789.6,259.1 789.2,256.3 787.6,258.3 C785.9,260.3 784.4,264.8 781.6,267.3 "
+    "C778.9,269.8 777.9,270.6 771.0,273.4 C764.1,276.1 749.9,281.7 740.2,283.8 "
+    "C730.5,285.8 712.8,285.8 712.8,285.8 C712.8,285.8 714.8,274.4 714.9,268.3 "
+    "C715.0,262.3 714.6,255.5 713.5,249.5 C712.3,243.6 710.4,237.7 708.1,232.7 "
+    "C705.9,227.7 703.3,223.6 700.2,219.6 C697.1,215.6 693.5,211.8 689.5,208.5 "
+    "C685.4,205.3 680.8,202.4 676.1,200.3 C671.4,198.2 666.5,196.8 661.4,196.0 "
+    "C656.4,195.2 650.9,195.1 645.7,195.5 C640.5,196.0 635.9,196.7 630.2,198.5 "
+    "C624.6,200.4 617.7,203.1 611.9,206.5 C606.0,209.9 599.7,215.0 595.3,219.0 "
+    "C591.0,223.0 588.6,226.1 585.7,230.5 C582.7,234.9 579.7,240.4 577.6,245.3 "
+    "C575.5,250.2 574.1,254.6 573.2,259.9 C572.3,265.2 571.7,271.7 572.0,277.1 "
+    "C572.2,282.6 574.4,289.9 574.7,292.7 C575.0,295.5 573.8,294.2 573.8,294.2 L269.1,297.6 "
+    "C269.1,297.6 267.3,299.8 268.3,296.2 C269.2,292.5 273.6,281.5 274.9,275.6 "
+    "C276.1,269.7 276.1,266.0 275.7,260.8 C275.3,255.5 274.5,249.8 272.6,244.2 "
+    "C270.7,238.6 268.2,232.7 264.5,227.3 C260.9,222.0 255.1,216.0 250.8,212.2 "
+    "C246.5,208.3 243.9,206.6 238.8,204.0 C233.8,201.5 226.5,198.6 220.5,197.1 "
+    "C214.5,195.6 209.1,195.0 202.7,194.8 C196.3,194.7 188.8,195.4 182.1,196.3 "
+    "C175.3,197.3 168.1,198.8 162.1,200.5 C156.1,202.1 151.4,203.6 145.8,206.0 "
+    "C140.2,208.3 134.9,210.5 128.7,214.5 C122.5,218.6 114.0,225.0 108.7,230.1 "
+    "C103.4,235.2 100.1,240.0 97.1,245.2 C94.1,250.5 91.8,257.7 90.5,261.7 "
+    "C89.1,265.7 89.4,265.7 89.2,269.4 C89.1,273.0 89.6,283.5 89.6,283.5 "
+    "C89.6,283.5 82.8,283.8 79.5,283.5 C76.2,283.2 71.8,282.4 69.8,281.8 "
+    "C67.7,281.2 67.0,279.9 67.0,279.9 C67.0,279.9 66.4,277.3 66.8,275.4 "
+    "C67.2,273.4 69.9,271.3 69.4,268.1 C68.9,265.0 65.7,259.8 63.9,256.6 "
+    "C62.1,253.5 60.4,251.3 58.5,249.2 C56.6,247.1 53.7,247.3 52.5,244.0 "
+    "C51.3,240.8 51.1,229.6 51.1,229.6 C51.1,229.6 56.3,226.6 57.5,224.2 "
+    "C58.7,221.9 57.2,218.6 58.1,215.5 C59.0,212.5 61.9,208.7 62.8,205.7 "
+    "C63.8,202.7 62.8,200.0 63.6,197.5 C64.3,195.0 64.4,193.9 67.3,190.8 "
+    "C70.3,187.7 76.5,182.2 81.4,178.9 C86.3,175.5 91.9,172.8 96.7,170.6 "
+    "C101.5,168.4 100.9,168.0 110.1,165.6 C119.3,163.3 141.2,158.5 151.7,156.4 "
+    "C162.2,154.3 167.8,154.2 173.2,153.1 C178.6,152.0 175.0,151.3 184.3,149.7 "
+    "C193.5,148.1 218.6,145.2 228.9,143.4 C239.2,141.6 241.2,139.6 246.1,138.8 "
+    "C251.0,137.9 253.7,138.8 258.1,138.2 C262.4,137.6 268.5,135.8 272.1,135.3 "
+    "C275.7,134.8 279.7,135.2 279.7,135.2 C279.7,135.2 281.1,137.6 281.8,138.2 "
+    "C282.5,138.9 281.5,139.8 284.0,138.9 C286.5,138.0 290.7,134.2 296.9,132.7 "
+    "C303.1,131.3 316.8,130.7 321.1,130.1 C325.4,129.5 322.2,130.3 322.5,128.9 "
+    "C322.8,127.6 322.2,124.6 323.0,122.1 C323.8,119.6 324.6,115.9 327.3,114.1 "
+    "C329.9,112.3 332.8,114.8 339.0,111.3 C345.2,107.9 356.1,98.9 364.5,93.6 "
+    "C372.9,88.3 381.7,83.7 389.4,79.8 C397.1,75.9 405.0,72.3 410.6,70.1 "
+    "C416.3,68.0 420.4,67.7 423.2,66.7 C426.0,65.7 424.3,65.0 427.4,64.1 "
+    "C430.5,63.2 427.0,62.8 441.8,61.3 C456.7,59.9 496.7,55.9 516.5,55.2 Z"
+)
+
+#: Detail paths traced from the same photo, same frame (drawing units).
+_SIDE_DETAIL = {
+    "glass": (
+        "M345.7,144.8 C345.7,144.8 348.7,133.0 350.8,127.6 C352.9,122.3 355.2,117.3 358.4,112.9 "
+        "C361.7,108.5 366.1,104.8 370.1,101.0 C374.2,97.2 378.6,92.9 382.8,90.1 "
+        "C387.1,87.3 391.3,85.8 395.5,84.1 C399.7,82.4 401.4,81.5 408.1,80.0 "
+        "C414.8,78.5 423.7,76.4 435.8,75.2 C447.9,73.9 470.4,72.8 480.8,72.5 "
+        "C491.2,72.1 492.5,72.6 498.1,73.1 C503.8,73.6 506.7,75.1 514.5,75.7 "
+        "C522.3,76.2 537.5,76.3 545.0,76.5 C552.6,76.7 552.4,76.2 559.7,76.7 "
+        "C567.1,77.2 580.1,77.9 589.0,79.4 C598.0,80.9 606.0,83.9 613.3,85.9 "
+        "C620.6,87.9 626.3,89.3 632.7,91.5 C639.0,93.6 647.7,96.5 651.6,98.8 "
+        "C655.6,101.2 656.5,105.5 656.5,105.5 C656.5,105.5 655.6,109.9 653.7,112.5 "
+        "C651.7,115.0 648.2,118.3 644.7,121.0 C641.2,123.6 638.7,126.2 632.7,128.2 "
+        "C626.6,130.2 620.6,131.6 608.5,133.0 C596.3,134.4 576.1,135.5 559.7,136.8 "
+        "C543.4,138.0 524.5,139.6 510.5,140.6 C496.5,141.6 490.8,142.0 475.8,142.6 "
+        "C460.8,143.2 437.5,143.8 420.7,144.4 C404.0,144.9 386.2,145.4 375.2,145.8 "
+        "C364.2,146.1 359.8,146.6 354.9,146.4 C349.9,146.3 345.7,144.8 345.7,144.8 Z"
+    ),
+    "bpillar": "M497.2,73.6 L509.5,74.3 L480.8,142.5 L468.3,142.9 L497.2,73.6 Z",
+    "quarter": "M618.2,86.7 C618.2,86.7 614.3,102.7 612.3,110.3 C610.4,118.0 606.5,132.6 606.5,132.6",
+    "rearglass": (
+        "M690.3,96.9 C690.3,96.9 697.0,96.9 704.4,94.3 C711.8,91.6 734.6,80.9 734.6,80.9 "
+        "L782.4,110.9 L766.5,128.3 C766.5,128.3 745.3,129.0 736.6,127.5 "
+        "C727.9,126.0 722.2,124.3 714.5,119.2 C706.8,114.1 690.3,96.9 690.3,96.9 Z"
+    ),
+    "mirror": (
+        "M314.4,144.8 C314.4,144.8 314.0,138.7 316.5,135.0 C319.0,131.2 324.6,125.4 329.3,122.4 "
+        "C334.0,119.4 339.8,117.5 344.7,117.1 C349.5,116.8 354.9,118.0 358.4,120.2 "
+        "C361.9,122.3 364.5,125.6 365.6,130.1 C366.7,134.7 365.1,147.6 365.1,147.6 "
+        "C365.1,147.6 351.3,151.0 344.7,151.6 C338.0,152.2 330.2,152.4 325.2,151.3 "
+        "C320.2,150.2 314.4,144.8 314.4,144.8 Z"
+    ),
+    "flap": (
+        "M667.9,148.9 C673.6,147.8 690.7,147.7 696.3,148.8 C702.0,149.8 700.8,151.6 701.6,155.3 "
+        "C702.4,159.1 702.4,167.5 701.2,171.2 C700.0,174.8 699.9,176.2 694.3,177.4 "
+        "C688.8,178.5 673.3,179.0 667.9,178.1 C662.6,177.2 663.2,175.7 662.2,172.0 "
+        "C661.3,168.2 661.3,159.4 662.2,155.5 C663.2,151.7 662.3,150.1 667.9,148.9 Z"
+    ),
+    "lamp": (
+        "M714.5,152.6 C714.5,152.6 728.3,149.9 736.6,149.5 C744.9,149.0 757.2,149.1 764.5,149.7 "
+        "C771.8,150.4 780.4,153.6 780.4,153.6 L780.4,168.7 C780.4,168.7 765.2,167.1 756.6,165.2 "
+        "C747.9,163.3 735.6,159.5 728.6,157.4 C721.6,155.3 714.5,152.6 714.5,152.6 Z"
+    ),
+    "head": (
+        "M63.0,200.1 C63.0,200.1 66.3,190.7 70.5,187.6 C74.7,184.6 82.0,183.1 88.5,182.1 "
+        "C94.9,181.0 109.4,181.5 109.4,181.5 L110.9,190.5 C110.9,190.5 94.9,198.3 88.5,202.4 "
+        "C82.0,206.5 72.0,215.1 72.0,215.1 L63.0,200.1 Z"
+    ),
+    "h1": (
+        "M416.7,171.8 C416.7,171.8 422.2,167.7 428.3,166.6 C434.4,165.5 447.7,164.8 453.3,165.2 "
+        "C458.9,165.6 461.8,169.2 461.8,169.2"
+    ),
+    "h2": (
+        "M583.2,162.9 C583.2,162.9 588.1,158.8 593.9,157.5 C599.7,156.2 612.3,154.9 618.2,155.3 "
+        "C624.0,155.6 628.8,159.5 628.8,159.5"
+    ),
+    "door1": (
+        "M308.8,149.9 C308.8,149.9 300.0,163.8 297.4,173.3 C294.8,182.8 293.1,193.1 293.3,206.8 "
+        "C293.5,220.5 296.7,243.3 298.5,255.6 C300.2,268.0 303.6,280.8 303.6,280.8"
+    ),
+    "door2": (
+        "M478.3,143.5 C478.3,143.5 466.4,170.4 463.3,185.2 C460.3,200.1 460.2,217.8 459.8,232.9 "
+        "C459.4,247.9 460.8,275.6 460.8,275.6"
+    ),
+    "door3": (
+        "M653.7,122.1 C653.7,122.1 649.3,141.3 646.2,150.7 C643.0,160.1 637.8,171.6 634.6,178.6 "
+        "C631.4,185.6 626.9,192.7 626.9,192.7"
+    ),
+    "sill": "M267.4,283.4 L578.3,281.9 L578.3,294.4 L267.4,297.7 L267.4,283.4 Z",
+    "exhaust": (
+        "M771.7,248.2 L777.3,246.1 C777.3,246.1 781.5,248.6 782.0,251.1 "
+        "C782.5,253.6 780.4,260.9 780.4,260.9 L774.1,262.2 L771.7,248.2 Z"
+    ),
+    "shoulder": "M95.9,179.8 C95.9,179.8 182.4,163.9 215.3,158.4 C248.2,153.0 293.3,146.9 293.3,146.9",
+    "clad_f": "M123.9,299.3 A81.0,81.0 0 1 1 274.1,299.3 L266.9,296.4 A73.2,73.2 0 1 0 131.1,296.4 Z",
+    "clad_r": "M574.9,299.3 A81.0,81.0 0 1 1 725.1,299.3 L717.9,296.4 A73.2,73.2 0 1 0 582.1,296.4 Z",
 }
 
 
 def _wheel(cx: float) -> str:
-    """Tyre and the five-hole 'telephone dial' rim the reference car wears."""
+    """Tyre and the black five-twin-spoke rim the reference photo shows."""
     cy = _WHEEL_Y
     p = [f'<circle cx="{cx}" cy="{cy}" r="{_TYRE_R}" fill="var(--ink-3)" fill-opacity="0.22" '
          f'stroke="var(--ink-2)" stroke-width="1.6"/>',
-         f'<circle cx="{cx}" cy="{cy}" r="{_RIM_R}" fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.2"/>',
-         f'<circle cx="{cx}" cy="{cy}" r="7" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1"/>']
+         f'<circle cx="{cx}" cy="{cy}" r="{_RIM_R}" fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.2"/>']
     for k in range(5):
-        a = math.radians(-90 + k * 72)
-        p.append(f'<circle cx="{cx + 21 * math.cos(a):.1f}" cy="{cy + 21 * math.sin(a):.1f}" r="10" '
-                 f'fill="var(--ink-3)" fill-opacity="0.35" stroke="var(--ink-3)" stroke-width="1"/>')
+        for off in (-9, 9):
+            a = math.radians(-90 + k * 72 + off)
+            p.append(f'<line x1="{cx + 9 * math.cos(a):.1f}" y1="{cy + 9 * math.sin(a):.1f}" '
+                     f'x2="{cx + 41 * math.cos(a):.1f}" y2="{cy + 41 * math.sin(a):.1f}" '
+                     f'stroke="var(--ink-3)" stroke-width="2.6" stroke-linecap="round"/>')
+    p.append(f'<circle cx="{cx}" cy="{cy}" r="6.5" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1"/>')
     return "".join(p)
 
 
-def _arch(cx: float, r: float) -> tuple[float, float]:
-    dx = math.sqrt(r * r - (_SILL_Y - _WHEEL_Y) ** 2)
-    return cx - dx, cx + dx
-
-
 def _car_line_art() -> str:
-    """Left-side Stelvio (949) profile, nose to the LEFT.
-
-    Traced from a photograph (see :data:`SIDE_VIEW_CREDIT`): the photo was
-    perspective-corrected on the four tyre top/bottom points so the side
-    plane between the wheels is true to scale, and the roofline, window
-    outline (with its pointed rear tip), B-pillar, quarter-glass frame,
-    mirror, door shut lines, handles, shoulder and lower crease, sill strip,
-    fuel flap and tail lamp were read off it. The photo is a front
-    three-quarter view, so the overhangs are set to the car's published
-    length (4687 mm, 2818 mm wheelbase) rather than read from it; the
-    front/rear split of the 1869 mm of overhang is not in any source found,
-    so it is a drawing choice.
-    0.16 drawing units per mm; axles at x=199 / 650, wheel centres y=269,
-    ground y=328."""
+    """Left-side Stelvio (949) profile, nose to the LEFT, traced from a side-on
+    photograph (see the block comment above and :data:`SIDE_VIEW_CREDIT`).
+    Outline, wheel arches, glasshouse (front and rear door glass, B-pillar,
+    quarter glass, rear glass edge), mirror, door shut lines, handles, fuel
+    flap, tail lamp, headlamp, sill and exhaust are all read off that photo.
+    Axles at x=199 / 650, wheel centres y=269, ground y=328."""
     ink = 'stroke="var(--ink-3)" stroke-linecap="round" stroke-linejoin="round"'
     line = f'fill="none" {ink} stroke-width="1.2"'
     thin = f'fill="none" {ink} stroke-width="0.9" opacity="0.8"'
     clad = 'fill="var(--ink-3)" fill-opacity="0.28" stroke="var(--ink-3)" stroke-width="0.9" stroke-linejoin="round"'
-    glass = 'fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.2" stroke-linejoin="round"'
-    fa0, fa1 = _arch(_AXLE_F, _ARCH_R)
-    ra0, ra1 = _arch(_AXLE_R, _ARCH_R)
-    body = (f"M{fa0:.1f},{_SILL_Y} "
-            "L118,292 C92,294 74,296 66,294 "            # front lower lip
-            "C60,290 57,280 57,266 "                      # bumper face
-            "C56,244 57,220 60,204 "                      # nose
-            "C63,188 70,178 82,172 "                      # bonnet leading edge
-            "C160,159 260,148 326,141 "                   # bonnet / fender line to the screen base
-            "C350,112 372,86 396,64 "                     # raked A-pillar
-            "C430,56 490,54 540,56 "                      # roof
-            "C590,59 630,70 660,92 "                      # roof falls to the spoiler
-            "L672,97 L668,103 "                           # roof spoiler lip
-            "C700,114 735,128 756,138 "                   # fast tailgate glass
-            "C772,142 786,146 794,156 "                   # over the tail lamp
-            "C799,170 800,188 800,206 "                   # tailgate edge
-            "L801,244 "                                    # rear bumper face
-            "C801,258 797,268 790,274 "                   # bumper round-under
-            "C780,282 770,288 760,290 "                   # diffuser
-            f"L{ra1:.1f},{_SILL_Y} "
-            f"A{_ARCH_R},{_ARCH_R} 0 1 0 {ra0:.1f},{_SILL_Y} "   # rear arch
-            f"L{fa1:.1f},{_SILL_Y} "                              # sill
-            f"A{_ARCH_R},{_ARCH_R} 0 1 0 {fa0:.1f},{_SILL_Y} Z")  # front arch
+    glass = 'fill="var(--surface-2)" stroke="var(--ink-2)" stroke-width="1.3" stroke-linejoin="round"'
+    d = _SIDE_DETAIL
     p = ['<g class="car-art" aria-hidden="true">',
          f'<line x1="16" y1="{_GROUND}" x2="844" y2="{_GROUND}" stroke="var(--rule)" stroke-width="1"/>',
-         f'<path d="{body}" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.8" stroke-linejoin="round"/>']
-    # black arch cladding (a band outside each opening) and lower sill cladding
-    for cx in (_AXLE_F, _AXLE_R):
-        a0, a1 = _arch(cx, _ARCH_R)
-        c0, c1 = _arch(cx, _CLAD_R)
-        p.append(f'<path d="M{a1:.1f},{_SILL_Y} A{_ARCH_R},{_ARCH_R} 0 1 0 {a0:.1f},{_SILL_Y} L{c0:.1f},{_SILL_Y} '
-                 f'A{_CLAD_R},{_CLAD_R} 0 1 1 {c1:.1f},{_SILL_Y} Z" {clad}/>')
-    p.append(f'<path d="M{_arch(_AXLE_F, _CLAD_R)[1]:.1f},{_SILL_Y} L{_arch(_AXLE_R, _CLAD_R)[0]:.1f},{_SILL_Y} '
-             f'L{_arch(_AXLE_R, _CLAD_R)[0] - 2:.1f},281 L{_arch(_AXLE_F, _CLAD_R)[1] + 2:.1f},281 Z" {clad}/>')
-    p += [_wheel(_AXLE_F), _wheel(_AXLE_R)]
-    # glasshouse: front door glass, rear door glass, fixed quarter glass, rising to a pointed rear tip
-    p.append('<path d="M340,136 C356,112 374,88 396,72 C440,66 500,66 540,70 C574,73 600,82 616,96 '
-             'C622,102 626,108 627,113 C540,120 420,130 340,136 Z" ' + glass + '/>')
-    p.append('<path d="M337,139 C430,131 540,121 630,113" fill="none" stroke="var(--ink-2)" stroke-width="1.2"/>')
-    p.append('<path d="M466,68 L470,128 L486,127 L484,68 Z" fill="var(--ink-3)" fill-opacity="0.6"/>')  # B-pillar
-    p.append('<path d="M580,74 L583,120 L589,119 L587,76 Z" fill="var(--ink-3)" fill-opacity="0.6"/>')  # quarter frame
-    # door mirror on the door, ahead of the glass
-    p.append('<path d="M334,140 C330,126 342,113 362,112 C380,111 391,119 389,129 C387,139 372,145 352,146 '
-             'L346,151 L338,150 Z" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1.2" stroke-linejoin="round"/>')
-    # door shut lines: front door leading edge, front/rear split, rear door around the arch
-    p.append(f'<path d="M327,143 C320,154 316,166 315,182 L314,281" {thin}/>')
-    p.append(f'<path d="M478,130 L482,281" {thin}/>')
-    p.append(f'<path d="M627,114 C640,124 646,136 645,152 C644,168 638,182 630,192" {thin}/>')
-    # handles, shoulder crease through them, lower door crease, chrome sill strip
-    p.append(f'<path d="M436,159 C446,156 466,156 478,158 M590,150 C600,147 618,147 630,149" {line}/>')
-    p.append(f'<path d="M156,178 C280,164 420,152 520,146 C620,140 700,138 760,142" {thin}/>')
-    p.append(f'<path d="M292,248 C380,243 500,239 600,236" {thin}/>')
-    p.append(f'<path d="M296,278 L592,276" fill="none" stroke="var(--ink-2)" stroke-width="1.4" stroke-linecap="round"/>')
-    # rear quarter: fuel flap, tail lamp, reflector; nose: headlamp, side intake, shield edge
-    p.append(f'<path d="M672,146 C672,142 676,141 680,141 L722,141 C727,141 729,144 729,148 L729,166 '
-             f'C729,170 726,172 722,172 L679,172 C675,172 672,170 672,166 Z" {line}/>')
-    p.append(f'<path d="M742,142 C762,141 784,145 795,154 L797,170 C780,166 760,163 742,161 Z" {line}/>')
-    p.append(f'<path d="M778,238 L800,238" {line}/>')
-    p.append(f'<path d="M64,192 C96,182 130,175 158,172 L152,184 C124,188 96,194 66,206 Z" {line}/>')
-    p.append(f'<path d="M64,240 L94,244 L98,282 L68,286 Z" {line}/>')
-    p.append(f'<path d="M57,204 L62,203 L64,246 L58,250 Z" {line}/>')
-    p.append('<text x="18" y="150" font-size="9" fill="var(--ink-3)" letter-spacing="1" '
-             'font-family="var(--sans), sans-serif">FRONT</text>')
-    p.append("</g>")
+         f'<path d="{_SIDE_BODY}" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.8" stroke-linejoin="round"/>',
+         f'<clipPath id="car-body-clip"><path d="{_SIDE_BODY}"/></clipPath>',
+         f'<path d="{d["clad_f"]}" clip-path="url(#car-body-clip)" {clad}/>',
+         f'<path d="{d["clad_r"]}" clip-path="url(#car-body-clip)" {clad}/>',
+         f'<path d="{d["sill"]}" {clad}/>',
+         _wheel(_AXLE_F), _wheel(_AXLE_R),
+         f'<path d="{d["glass"]}" {glass}/>',
+         f'<path d="{d["bpillar"]}" fill="var(--ink-3)" fill-opacity="0.6"/>',
+         f'<path d="{d["quarter"]}" {line}/>',
+         f'<path d="{d["rearglass"]}" {glass}/>',
+         f'<path d="{d["mirror"]}" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1.2" stroke-linejoin="round"/>',
+         f'<path d="{d["door1"]}" {thin}/>', f'<path d="{d["door2"]}" {thin}/>', f'<path d="{d["door3"]}" {thin}/>',
+         f'<path d="{d["shoulder"]}" {thin}/>',
+         f'<path d="{d["h1"]}" {line}/>', f'<path d="{d["h2"]}" {line}/>',
+         f'<path d="{d["flap"]}" {line}/>', f'<path d="{d["lamp"]}" {line}/>',
+         f'<path d="{d["head"]}" {line}/>', f'<path d="{d["exhaust"]}" {line}/>',
+         '<text x="18" y="150" font-size="9" fill="var(--ink-3)" letter-spacing="1" '
+         'font-family="var(--sans), sans-serif">FRONT</text>',
+         "</g>"]
     return "".join(p)
 
 
