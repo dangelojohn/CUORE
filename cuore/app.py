@@ -51,6 +51,7 @@ from .web import mes_param_routes  # noqa: E402
 from .web import parity_routes  # noqa: E402
 from .web import handoff_routes  # noqa: E402
 from .web import adjustments_routes  # noqa: E402
+from .web import configuration_routes  # noqa: E402
 from .web import settings_routes  # noqa: E402
 from .web import path_diag_routes  # noqa: E402
 from .web import path_tests_routes  # noqa: E402
@@ -299,6 +300,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(parity_routes.router)
     app.include_router(handoff_routes.router)
     app.include_router(adjustments_routes.router)
+    app.include_router(configuration_routes.router)
     app.include_router(settings_routes.router)
     app.include_router(path_diag_routes.router)
     app.include_router(harness_routes.router)

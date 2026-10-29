@@ -657,3 +657,22 @@ def live_stream_route():
             yield (": keepalive\n\n" if msg is None else f"data: {_json.dumps(msg)}\n\n")
 
     return StreamingResponse(gen(), media_type="text/event-stream")
+
+
+@router.post("/live/proxi/discover", summary="Read-only UDS 0x22 sweep of the Body computer for the configuration block")
+def live_proxi_discover(vin: str = Body(..., embed=True)) -> dict[str, Any]:
+    from ..live import proxi_read
+    return proxi_read.discover(vin)
+
+
+@router.post("/live/proxi/accept", summary="Owner accepts a candidate as the PROXI block (no car contact)")
+def live_proxi_accept(vin: str = Body(..., embed=True), did: str = Body(..., embed=True),
+                      reason: str = Body(..., embed=True)) -> dict[str, Any]:
+    from ..live import proxi_read
+    return proxi_read.accept_candidate(vin, did, reason)
+
+
+@router.post("/live/proxi/read", summary="Read-only UDS 0x22 read of the accepted PROXI block, with diff")
+def live_proxi_read(vin: str = Body(..., embed=True)) -> dict[str, Any]:
+    from ..live import proxi_read
+    return proxi_read.read(vin)

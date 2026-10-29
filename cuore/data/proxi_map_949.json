@@ -1,0 +1,28 @@
+{
+  "module": "BCM",
+  "platform": "949",
+  "status": "single-source forum figures, reference only. Never written by CUORE. Replace with the manufacturer's map when available.",
+  "index_note": "Byte numbers are a vendor-tool index (MES / AlfaOBD CAN Setup), not a published DID offset. Whether the index starts at 0 is not documented; the page decodes index N as block byte N and says so.",
+  "options": [
+    {
+      "id": "battery_type",
+      "name": "Battery type (IBS / charging logic)",
+      "byte": 63,
+      "mask": "0x0F",
+      "values": {"0x01": "80 Ah / 680 A (EU default)", "0x02": "95 Ah / 800 A (US default)", "0x0B": "H8 AGM (0x8B for the whole byte as reported)"},
+      "source_kind": "forum",
+      "source": "https://www.giuliaforums.com/threads/what-are-proxi-parameters-for-agm-battery-on-giulia-2-2.65519/page-3 ; https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80",
+      "flag": "single-source forum, reference only"
+    },
+    {
+      "id": "paddle_market",
+      "name": "Paddle-shift market behaviour",
+      "byte": 156,
+      "mask": "0x30",
+      "values": {"0x00": "Europe (xx00xxxx)", "0x10": "North America (xx01xxxx)"},
+      "source_kind": "forum",
+      "source": "https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80 ; https://www.giuliaforums.com/threads/alfaobd-and-multiscanecu-some-alfaobd-settings-i-was-surprised-by.55899/",
+      "flag": "single-source forum, reference only"
+    }
+  ]
+}

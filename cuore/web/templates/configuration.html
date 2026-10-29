@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Configuration — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{# Configuration (PROXI), read only. Forms only run the read-only 0x22 discovery/read, record the owner's acceptance
+   and the names read off MES's CAN Setup screen. No JavaScript. Own <style>: --fs-* tokens only, 44 px targets.
+   Data: cuore/live/proxi_read.py, cuore/data/proxi_map_949.json #}
+<style>
+.cfg { max-width: 1040px; font-size: var(--fs-md); }
+.cfg h2 { font-size: var(--fs-lg); margin: 16px 0 6px; }
+.cfg .lede, .cfg .note { color: var(--ink-2); margin: 0 0 10px; }
+.cfg .ro { border: 1px solid var(--rule); border-left: 6px solid var(--ink-3); padding: 8px 12px; margin: 0 0 12px; background: var(--surface-2); font-weight: 600; }
+.cfg .flash { min-height: var(--tap, 44px); display: flex; align-items: center; padding: 0 12px; border: 1px solid var(--rule); margin: 0 0 12px; }
+.cfg table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; }
+.cfg th, .cfg td { border: 1px solid var(--rule); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.cfg .mono { font-family: var(--numerals, monospace); font-variant-numeric: tabular-nums; }
+.cfg .btn, .cfg input, .cfg textarea { min-height: var(--tap, 44px); font-size: var(--fs-md); padding: 0 12px; }
+.cfg textarea { padding: 8px 12px; width: 100%; }
+.cfg label { display: block; margin: 6px 0 2px; font-weight: 600; }
+.cfg .tag { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); }
+.cfg ol { padding-left: 22px; display: grid; gap: 4px; }
+.cfg .grid td { padding: 4px 6px; }
+</style>
+<div class="cfg">
+  <h1>Configuration (PROXI)</h1>
+  <p class="ro">&#9632; Read only. CUORE never writes configuration; changes wait for the manufacturer's procedure (<a href="/v/{{ bar.vin }}/adjustments">Adjustments page</a>).</p>
+  {% if flash_msg %}<p class="flash">{{ "&#10007; " if flash_kind == "err" else "&#10003; " }}{{ flash_msg }}</p>{% endif %}
+
+  {% if c.state == "none" %}
+  <h2>What this is</h2>
+  <p class="lede">The Body computer (BCM) holds the car's vehicle configuration. This page finds the block that holds it with read-only requests (service 0x22), saves it for this car, and shows it byte by byte.</p>
+  <h2>What it needs at the car</h2>
+  <ol>
+    <li>The CAN-C cable (500 kbps) and the Body computer's confirmed address.</li>
+    <li>Key on, engine off.</li>
+    <li>MES closed (CUORE refuses while MES holds the adapter).</li>
+    <li>Battery support connected. The sweep takes about 20 minutes.</li>
+  </ol>
+  <form method="post" action="/v/{{ bar.vin }}/configuration/discover"><button class="btn" type="submit">&#9654; Run discovery</button></form>
+  <h2>Then confirm the block</h2>
+  <p class="lede">Open MES's own PROXI / CAN Setup screen for this car and take a screenshot. Compare its bytes with the candidate's first bytes, then accept the candidate with a reason such as "matches MES CAN Setup screenshot of 2026-10-30". Nothing is called the PROXI block until you accept one.</p>
+  {% endif %}
+
+  {% if c.state == "candidates" %}
+  <h2>Candidates, longest first</h2>
+  <p class="note">Found {{ c.discovery.stamp }}. A length of 64 bytes or more is marked "likely configuration". These are candidates only, none accepted.</p>
+  <table>
+    <tr><th>Identifier</th><th>Length</th><th>First 16 bytes</th><th>Note</th><th>Accept</th></tr>
+    {% for r in c.candidates %}
+    <tr><td class="mono">{{ r.did }}</td><td class="mono">{{ r.length }}</td><td class="mono">{{ r.first16 }}</td>
+      <td>{% if r.likely_configuration %}&#9733; likely configuration{% else %}&#8212;{% endif %}</td>
+      <td><form method="post" action="/v/{{ bar.vin }}/configuration/accept">
+        <input type="hidden" name="did" value="{{ r.did }}">
+        <label for="why-{{ r.did }}">Reason (required)</label>
+        <input id="why-{{ r.did }}" name="reason" required placeholder="matches MES CAN Setup screenshot of ...">
+        <button class="btn" type="submit">&#10003; Accept {{ r.did }}</button></form></td></tr>
+    {% endfor %}
+  </table>
+  <form method="post" action="/v/{{ bar.vin }}/configuration/discover"><button class="btn" type="submit">&#9654; Run discovery again</button></form>
+  {% if c.accepted %}
+  <h2>Accepted: {{ c.accepted.did }}</h2>
+  <p class="note">{{ c.accepted.reason }}</p>
+  <form method="post" action="/v/{{ bar.vin }}/configuration/read"><button class="btn" type="submit">&#9654; Read {{ c.accepted.did }} now</button></form>
+  {% endif %}
+  {% endif %}
+
+  {% if c.state == "accepted" %}
+  <h2>Accepted block</h2>
+  <dl>
+    <dt>Read</dt><dd>{{ c.last.read_at }}</dd>
+    <dt>Identifier</dt><dd class="mono">{{ c.last.did }}</dd>
+    <dt>Length</dt><dd class="mono">{{ c.last.length }} bytes</dd>
+    <dt>Accepted because</dt><dd>{{ c.accepted.reason }}</dd>
+  </dl>
+  <form method="post" action="/v/{{ bar.vin }}/configuration/read"><button class="btn" type="submit">&#9654; Read again</button></form>
+
+  <h2>Known options</h2>
+  <p class="note">Only options with a named source are decoded. Byte numbers are a vendor-tool index and are applied here as block byte N. Every other byte: meaning unknown until the manufacturer's map.</p>
+  <table>
+    <tr><th>Byte</th><th>Bits</th><th>Option</th><th>Value</th><th>Source</th></tr>
+    {% for o in c.options %}
+    <tr><td class="mono">{{ o.byte }}</td><td class="mono">{{ o.mask_hex }}</td><td>{{ o.name }}{% if o.also %}<br><span class="note">also named: {{ o.also | join("; ") }}</span>{% endif %}</td>
+      <td class="mono">{% if o.present %}{{ o.raw }} &rarr; {{ o.masked }}: {{ o.label }}{% else %}{{ o.label }}{% endif %}
+        {% if o.agreement %}<br><span class="tag">{{ "&#10003;" if o.agreement == "agrees" else "&#9888;" }} MES screen {{ o.agreement }}</span>{% endif %}</td>
+      <td><span class="tag">{{ o.kind_label }}</span>{% if o.source_kind == "forum" %} single-source forum, reference only{% endif %}<br><span class="note">{{ o.source }}</span></td></tr>
+    {% endfor %}
+  </table>
+
+  {% if c.last.changed is not none %}
+  <h2>Change since the previous read</h2>
+  {% if c.last.changed %}
+  <table><tr><th>Byte</th><th>Before</th><th>After</th></tr>
+    {% for d in c.last.changed %}<tr><td class="mono">{{ d.index }}</td><td class="mono">{{ d.before or "—" }}</td><td class="mono">{{ d.after or "—" }}</td></tr>{% endfor %}
+  </table>
+  {% else %}<p class="note">&#10003; No byte changed.</p>{% endif %}
+  {% endif %}
+
+  <h2>Name bytes from MES's CAN Setup screen</h2>
+  <p class="note">Naming only. Names are stored with the source "MES display" and are never sent to the car. Enter rows read off MES's screen, with its screenshot and session date. CUORE records whether MES's value agrees with its own byte for the same day.</p>
+  <form method="post" action="/v/{{ bar.vin }}/configuration/names">
+    <label for="n-shot">Screenshot file path or media id (required)</label>
+    <input id="n-shot" name="screenshot" required>
+    <label for="n-date">MES session date (YYYY-MM-DD)</label>
+    <input id="n-date" name="mes_date" required placeholder="2026-10-30">
+    <label for="n-byte">Byte number</label><input id="n-byte" name="byte" inputmode="numeric">
+    <label for="n-mask">Bit mask or "whole byte"</label><input id="n-mask" name="mask" placeholder="0x0F or xxxx1111 or whole byte">
+    <label for="n-name">Option name as MES shows it</label><input id="n-name" name="name">
+    <label for="n-val">Value shown by MES</label><input id="n-val" name="value">
+    <label for="n-bulk">Or paste many rows, one per line: byte;mask;name;value</label>
+    <textarea id="n-bulk" name="bulk" rows="5"></textarea>
+    <button class="btn" type="submit">&#10003; Save names</button>
+  </form>
+  {% if c.names %}
+  <table><tr><th>Byte</th><th>Bits</th><th>Name</th><th>MES shows</th><th>Check</th><th>Source</th></tr>
+    {% for n in c.names %}<tr><td class="mono">{{ n.byte }}</td><td class="mono">{{ n.mask }}</td><td>{{ n.name }}</td><td class="mono">{{ n.mes_value }}</td><td>{{ n.agreement }}</td><td><span class="tag">MES display</span> <span class="note">{{ n.source }}</span></td></tr>{% endfor %}
+  </table>
+  {% endif %}
+
+  <h2>Block, byte by byte</h2>
+  <table class="grid"><tr><th>Index</th><th>Hex</th><th>Binary</th></tr>
+    {% for g in c.grid %}<tr><td class="mono">{{ g.i }}</td><td class="mono">{{ g.hex }}</td><td class="mono">{{ g.bin }}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+</div>
+{% endblock %}

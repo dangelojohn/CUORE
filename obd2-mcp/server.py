@@ -453,6 +453,37 @@ def service_dids_results(vin: str) -> str:
     return _via("GET", "/live/service-dids/results", local, query={"vin": vin})
 
 
+
+@mcp.tool()
+def proxi_discover(vin: str) -> str:
+    """Read-only UDS 0x22 sweep of the Body computer (BCM, CAN-C) for the vehicle configuration block;
+    ranks candidates, never promotes one. Refused while MES holds the adapter. Never writes."""
+    def local() -> dict[str, Any]:
+        from cuore.live import proxi_read
+        return proxi_read.discover(vin)
+    return _via("POST", "/live/proxi/discover", local, body={"vin": vin}, timeout=1800)
+
+
+@mcp.tool()
+def proxi_accept(vin: str, did: str, reason: str) -> str:
+    """Record the owner's acceptance of one candidate identifier as the PROXI block, with the reason
+    (for example "matches MES CAN Setup screenshot of <date>"). No car contact."""
+    def local() -> dict[str, Any]:
+        from cuore.live import proxi_read
+        return proxi_read.accept_candidate(vin, did, reason)
+    return _via("POST", "/live/proxi/accept", local, body={"vin": vin, "did": did, "reason": reason})
+
+
+@mcp.tool()
+def proxi_read(vin: str) -> str:
+    """One read-only 0x22 read of the accepted PROXI identifier, saved, with a byte diff against the
+    previous read. Never writes."""
+    def local() -> dict[str, Any]:
+        from cuore.live import proxi_read as pr
+        return pr.read(vin)
+    return _via("POST", "/live/proxi/read", local, body={"vin": vin}, timeout=300)
+
+
 @mcp.tool()
 def learn_capture(bus: str = "can_c", seconds: float = 20.0) -> str:
     """Passive capture while wiTECH reads live data (splitter cable); lists identifiers seen."""

@@ -141,3 +141,6 @@ Owner decision after Alfa Romeo corporate authorization and funding were reporte
 
 **2026-10-29 - PROXI alignment, battery registration and key learning move into CUORE; AlfaOBD's configuration set is in scope.**
 Owner decision after the manufacturer granted technical access: the adjustments that stayed in MES by the 2026-10-26 decision now come into CUORE from the manufacturer's documented procedures, and the coding functions AlfaOBD offers (market settings such as European and North American paddle-shifter usage, comfort and lighting options) join the parity target. Rule unchanged: no learning from captures; documents only. Record: MES_PARITY_PLAN.md, ALFAOBD_GAP.md.
+
+**2026-10-29 - MES's CAN Setup screen may be used to name PROXI bytes (read-only naming).**
+Owner decision: "use MES's screen for names". The technician types the option names and values shown on MES's CAN Setup screen, with the screenshot and session date, into the Configuration page. They are stored per car as source kind "mes_display" (precedence: manufacturer, then MES display, then forum) and checked against CUORE's own byte for the same day. This is naming only. Names are never sent to the car, and writes still come only from the manufacturer's documents.
