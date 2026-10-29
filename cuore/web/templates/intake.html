@@ -15,16 +15,32 @@
 
 {% if intake_error %}<div class="note alert"><span class="lab">{{ t('not_started') }}</span>{{ intake_error }}</div>{% endif %}
 
+{% if owner_reports %}
+<div class="panel" id="owner-reports">
+  <h2 style="font-size:var(--fs-lg)">New owner reports ({{ owner_reports|length }})</h2>
+  <p style="font-size:var(--fs-sm)">What the owner says (attested, not a reading).</p>
+  {% for r in owner_reports %}
+  <div style="margin:0.5rem 0;font-size:var(--fs-md)">
+    <strong>&#9993; {{ r.vin }}</strong> &middot; {{ r.at[:10] }}{% if r.has_photo %} &middot; photo{% endif %}<br>
+    {{ r.text }}<br>
+    <a class="btn primary" style="min-height:44px;display:inline-flex;align-items:center"
+       href="/start?vin={{ r.vin|urlencode }}&amp;complaint={{ r.text|urlencode }}&amp;report={{ r.id|urlencode }}">Start a job from this</a>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="panel">
   <form method="post" action="/start">
+    <input type="hidden" name="report_id" value="{{ prefill.report if prefill else '' }}">
     <div class="field"><label for="vin">{{ t('vin') }}</label>
-      <input id="vin" name="vin" list="vehicle-vins" required placeholder="{{ t('vin_placeholder') }}" autofocus>
+      <input id="vin" name="vin" list="vehicle-vins" required value="{{ prefill.vin if prefill else '' }}" placeholder="{{ t('vin_placeholder') }}" autofocus>
       <datalist id="vehicle-vins">
         {% for v in vehicle_choices %}<option value="{{ v.vin }}">{{ v.name }}</option>{% endfor %}
       </datalist>
     </div>
     <div class="field"><label for="complaint">{{ t('complaint_label') }}</label>
-      <textarea id="complaint" name="complaint" rows="4"></textarea></div>
+      <textarea id="complaint" name="complaint" rows="4">{{ prefill.complaint if prefill else '' }}</textarea></div>
     <div class="field"><label for="technician">{{ t('technician_label') }}</label>
       <input id="technician" name="technician" placeholder="{{ t('name_initials_placeholder') }}"></div>
     <button class="btn primary release-btn" type="submit">Start this car</button>

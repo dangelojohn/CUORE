@@ -1,0 +1,36 @@
+{% extends "m_base.html" %}
+{% block title %}Report a problem -- Tell CUORE{% endblock %}
+{% block content %}
+<p class="m-back"><a href="/m/{{ vin }}">&larr; Home</a></p>
+<h1 class="m-h1">Report a problem</h1>
+<p class="m-sub">Tell your dealership's technicians what you notice. This is your own account,
+  not a measurement from the car.</p>
+{% if sent %}<p class="m-hint">&#10003; Sent. The technicians will see your report.</p>{% endif %}
+
+<form method="post" action="/m/{{ vin }}/report" class="m-form" enctype="multipart/form-data">
+  {% include "_camera_tile.html" %}
+  <div class="m-field">
+    <label class="m-label" for="description">What happens</label>
+    <textarea id="description" name="description" rows="4" required></textarea>
+  </div>
+  {% for key, label, choices in groups %}
+  <div class="m-field">
+    <span class="m-label">{{ label }}</span>
+    <div class="m-chips" role="group">
+      {% for c in choices %}
+      <label class="m-chip"><input type="radio" name="{{ key }}" value="{{ c }}"><span>{{ c }}</span></label>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+  <div class="m-field">
+    <label class="m-label" for="since">Since when</label>
+    <input id="since" name="since" placeholder="e.g. last week, since the oil change">
+  </div>
+  <div class="m-field">
+    <label class="m-chip"><input type="checkbox" name="consent" value="1" required>
+      <span>I agree to share this report with my dealership's technicians</span></label>
+  </div>
+  <button type="submit" class="m-submit">Send report</button>
+</form>
+{% endblock %}

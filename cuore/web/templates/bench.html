@@ -305,6 +305,8 @@
 
 <div class="bench" data-vin="{{ vin }}">
 
+  {% include "_next_action.html" %}
+
   {% if bench.complaint %}
     <p class="bench-complaint">&ldquo;{{ bench.complaint }}&rdquo;</p>
   {% endif %}

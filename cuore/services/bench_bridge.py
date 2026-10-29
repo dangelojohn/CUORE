@@ -876,6 +876,15 @@ def _next_session(vin: str, live_status: dict[str, Any]) -> "dict[str, Any] | No
         return None
 
 
+def _next_action(vin: str, plan: "dict[str, Any] | None") -> "dict[str, Any] | None":
+    """The single Next-action card; never lets a problem 500 the bench."""
+    try:
+        from . import next_action
+        return next_action.gather(vin, plan)
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def build_bench(vin: str) -> dict[str, Any]:
     """Everything ``bench.html`` needs, computed once.
 
@@ -997,6 +1006,7 @@ def build_bench(vin: str) -> dict[str, Any]:
         live_strip = {"session": ("CUORE session" if live_status.get("lock_holder") == "cuore"
                                   else "MES session"),
                       "voltage": _last_voltage(vin)}
+    next_session_view = _next_session(vin, live_status)
     return {
         "faults": faults,
         "top_fault_code": top_code,
@@ -1037,7 +1047,8 @@ def build_bench(vin: str) -> dict[str, Any]:
         "scanner_label": scanner_label(live_status),
         "blocker_banner": banner,
         "last_scan": last_scan,
-        "next_session": _next_session(vin, live_status),
+        "next_session": next_session_view,
+        "next_action": _next_action(vin, next_session_view),
     }
 
 

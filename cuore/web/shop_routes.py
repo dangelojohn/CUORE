@@ -32,7 +32,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..api.deps import require_token
-from ..services import shop_bridge
+from ..services import owner_reports, shop_bridge
 from ..services.errors import BridgeError
 from . import routes as web_routes
 
@@ -40,25 +40,35 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 
 
 @router.get("/start", response_class=HTMLResponse)
-def start_page(request: Request, intake_error: str = "") -> HTMLResponse:
+def start_page(request: Request, intake_error: str = "", vin: str = "",
+               complaint: str = "", report: str = "") -> HTMLResponse:
     """"Start this Stelvio": the one-car intake form. VIN prefills from the
     corpus; submitting opens the visit and its linked Job in one step, then
-    drops straight into the job page -- the diagnostic work, not a board."""
+    drops straight into the job page -- the diagnostic work, not a board.
+    ``vin``/``complaint``/``report`` prefill it from an owner report."""
+    try:
+        reports = owner_reports.new_reports()
+    except Exception:  # noqa: BLE001 -- never sink the Start step
+        reports = []
     return web_routes._page(request, "intake.html",
                             vehicle_choices=shop_bridge.vehicle_choices(),
-                            intake_error=intake_error or None)
+                            intake_error=intake_error or None, owner_reports=reports,
+                            prefill={"vin": vin, "complaint": complaint, "report": report})
 
 
 @router.post("/start", response_class=HTMLResponse)
 def start_submit(request: Request, vin: str = Form(...),
                        complaint: str = Form(default=""),
-                       technician: str = Form(default="")) -> HTMLResponse:
+                       technician: str = Form(default=""),
+                       report_id: str = Form(default="")) -> HTMLResponse:
     """Intake + open Job in one step, then straight to that car's job page --
     the next thing a mechanic starting a car actually does."""
     try:
         visit = shop_bridge.intake(vin, complaint, technician=technician)
     except BridgeError as exc:
         return start_page(request, intake_error=str(exc))
+    if report_id:
+        owner_reports.mark_used(report_id, str(visit.get("id") or ""))
     return RedirectResponse(url=f"/v/{visit['vin']}/job", status_code=303)
 
 

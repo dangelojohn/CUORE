@@ -255,8 +255,8 @@ _check_remembered_values()
 # === 9. Mobile rebuild (2026-10-13): hero + quick actions + intro overlay ===
 
 home_html = client.get(f"/m/{VIN}").text
-check("home responds with the five quick-action tiles (incl. Transmission, 2026-10-14)",
-      home_html.count('class="m-quick-card') == 5, str(home_html.count('class="m-quick-card')))
+check("home responds with the six quick-action tiles (incl. Transmission, Report a problem)",
+      home_html.count('class="m-quick-card') == 6, str(home_html.count('class="m-quick-card')))
 for label in ("Fill-up", "Oil &amp; fluids", "Battery &amp; electrical", "Snap &amp; fill"):
     check(f"home shows the {label!r} quick action", label in home_html)
 check("home carries the opening-reveal overlay markup",

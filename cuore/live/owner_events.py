@@ -528,6 +528,21 @@ TAXONOMY: dict[str, dict[str, Any]] = {
                 "record, not two.",
                 (),
                 delegate_to_symptoms=True),
+            "problem_report": _kind(
+                "Owner problem report",
+                {"description": _f("text", "What happens", required=True),
+                 "speed": _f("text", "Speed when it happens"),
+                 "temperature": _f("text", "Cold or warm"),
+                 "frequency": _f("text", "How often"),
+                 "since": _f("text", "Since when"),
+                 "warning_lights": _f("text", "Warning lights"),
+                 "consent": _f("bool", "Agreed to share with the dealership technicians"),
+                 "consent_at": _f("text", "When consent was given"),
+                 "source": _f("text", "Where the report came from"),
+                 "used_in_visit": _f("text", "Visit opened from this report")},
+                "The owner's own account of the complaint (attested, never a reading): "
+                "it tells the technician where to start looking.",
+                ()),
             "engine_stalled": _kind(
                 "Engine stalled",
                 {"conditions": _f("text", "Conditions (idle, turning, highway...)")},

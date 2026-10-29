@@ -68,7 +68,7 @@ from ..labels import render as label_render
 from ..live import media as media_store
 from ..live import owner_events as store
 from ..services import (dossier_bridge, labels_bridge, mes_bridge,
-                        owner_events_bridge as bridge, shop_bridge)
+                        owner_events_bridge as bridge, owner_reports, shop_bridge)
 from ..services.errors import BridgeError
 
 HERE = Path(__file__).resolve().parent
@@ -372,6 +372,8 @@ def home(request: Request, vin: str) -> HTMLResponse:
          "href": f"/m/{vin}/add/battery_electrical", "primary": False},
         {"key": "snap", "label": "Snap & fill", "icon": "camera",
          "href": f"/m/{vin}/snap", "primary": False},
+        {"key": "report", "label": "Report a problem", "icon": "symptom_warning_message",
+         "href": f"/m/{vin}/report", "primary": False},
         {"key": "transmission", "label": "Transmission", "icon": "sys_transmission_driveline",
          "href": f"/m/{vin}/add/transmission", "primary": False},
     ]
@@ -590,6 +592,41 @@ async def snap_submit(request: Request, vin: str) -> RedirectResponse:
     if category:
         return RedirectResponse(url=f"/m/{vin}/add/{category}?{qs}", status_code=303)
     return RedirectResponse(url=f"/m/{vin}/add?{qs}", status_code=303)
+
+
+# --- Report a problem (attested owner complaint; never opens a job) ----------
+
+
+@router.get("/m/{vin}/report", response_class=HTMLResponse)
+def report_page(request: Request, vin: str) -> HTMLResponse:
+    groups = [("speed", "Speed", owner_reports.SPEEDS),
+              ("temperature", "Cold or warm", owner_reports.TEMPS),
+              ("frequency", "How often", owner_reports.FREQUENCIES),
+              ("warning_lights", "Warning lights on", owner_reports.LIGHTS)]
+    return _page(request, "m_report.html", vin, "add", groups=groups,
+                 sent="sent" in request.query_params)
+
+
+@router.post("/m/{vin}/report", response_class=HTMLResponse)
+async def report_submit(request: Request, vin: str) -> RedirectResponse:
+    form = await request.form()
+    if not form.get("consent"):
+        msg = quote("Not sent: tick the box to share this report with the technicians.")
+        return RedirectResponse(url=f"/m/{vin}/report?error={msg}", status_code=303)
+    media_id, error = await _upload_photo(vin, form, caption="owner problem report")
+    if error:
+        return RedirectResponse(url=f"/m/{vin}/report?error={quote('photo: ' + error)}",
+                                status_code=303)
+    try:
+        owner_reports.add_report(
+            vin, description=_field(form, "description"), consent=True,
+            speed=_field(form, "speed"), temperature=_field(form, "temperature"),
+            frequency=_field(form, "frequency"), since=_field(form, "since"),
+            warning_lights=_field(form, "warning_lights"),
+            media_ids=[media_id] if media_id else None)
+    except ValueError as exc:
+        return RedirectResponse(url=f"/m/{vin}/report?error={quote(str(exc))}", status_code=303)
+    return RedirectResponse(url=f"/m/{vin}/report?sent=1", status_code=303)
 
 
 # --- Messages ------------------------------------------------------------------
