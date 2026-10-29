@@ -18,6 +18,8 @@ The record of the week CUORE went from a one-car workbench to a project with a m
 
 **2026-10-29, the reference car.** Owner's words: "The Alfa Stelvio we are using is a loaner from Alfa Canada that was planned before Cuore began we are all impressed what Claude and Cuore were able to achieve the corprate vision and excel at it". So the reference Stelvio (VIN ZASFAKPN5J7B88115) is an Alfa Romeo Canada loaner arranged before the project started, and the work on it was followed by the marque.
 
+**2026-10-29, scope decisions.** Owner's words: "PROXI alignment, battery registration and key learning move into CUORE, we will also require what alfaobd offers Such as Euor and North American Paddle Shifter usage (as alfaobd almost became official a few years ago, then MES surpassed it as the Go-to Tool for Mechanics. Cuore now has taken that place .. we only need Mechanic adoption". Recorded in DECISIONS.md and MES_PARITY_PLAN.md; the AlfaOBD gap study is ALFAOBD_GAP.md.
+
 ## What it means
 
 **Positioning (owner decision).** CUORE is the pre-emptive diagnostic tool a shop uses *before* wiTECH is engaged. wiTECH is expensive per use and stays the authoritative manufacturer tool: it keeps the write side (programming, routines, PROXI alignment, battery registration) and the final word. CUORE's job is to arrive at that point with the evidence already gathered, the hypotheses ranked, and the wiTECH session reduced to what only wiTECH can do. This matches the core directive (diagnose on evidence, prove the fix, learn for the next car) and the existing rule that CUORE advises and records while the mechanic decides.

@@ -55,7 +55,7 @@ The write path was designed in stages and is partly built. In order:
 4. **Web execution with a lock.** Today writes are MCP-only with no web button. Technicians need them in the web app: the hold-to-start token and the acceptance record (not yet built) guard a procedure page that shows the source, the dry run, the consent and the read-back result.
 5. **Adjustments screen** (MES F7 equivalent): one list per module of the procedures available for this car, each with its status (documented, accepted, performed, verified), its source and what it writes and reads back.
 6. **Actuator tests** from the documented routine identifiers into the existing replay engine (EVAP valve, EGR, wastegate, turbo vacuum valve first, because MES proved they run on this engine; thermostat and fan after the documents explain why MES failed).
-7. **Owner decisions** recorded as they are taken: do PROXI alignment, battery registration and key learning move into CUORE (they are in MES's set) or count as wiTECH next level; whether the chassis bus is used through the gateway or the cable.
+7. **Owner decision 2026-10-29: PROXI alignment, battery registration and key learning move into CUORE** ("as does MES"), from the manufacturer's documented procedures. Also in scope: the configuration and coding functions AlfaOBD offers, such as the European and North American paddle-shifter settings (docs/project/ALFAOBD_GAP.md). Still open: whether the chassis bus is used through the gateway or the cable.
 
 ## 4. Proving parity (so "fully used" is a measured claim)
 
@@ -68,6 +68,10 @@ The write path was designed in stages and is partly built. In order:
 - Data keyed by platform and model (the 949 and 952 first), so the Giulia is a data import, not a rewrite; Maserati and Ferrari follow the same shape once their packages arrive.
 - A supported interface list for dealers (the consumer vLinker adapter on COM3 proved the concept; its limits, 6 PIDs per frame and the 18 V risk on pin 13 with the grey cable, are recorded).
 - Market settings: units, language, DTC text per market, from section 1 item 4.
+
+## AlfaOBD
+
+The owner's history (2026-10-29): AlfaOBD nearly became the official tool a few years ago, then MES surpassed it as the mechanics' go-to tool; CUORE now takes that place and needs mechanic adoption. AlfaOBD's configuration set (market settings such as paddle-shifter usage, comfort and lighting options through PROXI) is therefore part of the parity target; the AlfaOBD gap study is docs/project/ALFAOBD_GAP.md. The rule is unchanged: nothing is learned by capturing AlfaOBD; the PROXI data and procedures come from the manufacturer.
 
 ## Order of work
 
