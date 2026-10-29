@@ -350,6 +350,18 @@ code, kbd, samp, .mono {
   background-image: url(/static/brand/alfa-romeo-logo.png);
 }
 :root[data-marque="alfa"] .logo-slot::after { content: none; }
+/* Maserati and Ferrari marks (static/brand/README.txt): monochrome SVGs used as a
+ * mask over the ink colour, so they read in both themes. The Ferrari wordmark is
+ * wide, hence its own slot width. */
+:root[data-marque="maserati"] { --marque-mark: url(/static/brand/maserati-trident.svg); --marque-mark-w: 40px; }
+:root[data-marque="ferrari"]  { --marque-mark: url(/static/brand/ferrari-wordmark.svg); --marque-mark-w: 88px; }
+:root[data-marque="maserati"] .logo-slot, :root[data-marque="ferrari"] .logo-slot {
+  border: 0; border-radius: 0; width: var(--marque-mark-w); background: var(--ink);
+  -webkit-mask: var(--marque-mark) center / contain no-repeat; mask: var(--marque-mark) center / contain no-repeat;
+}
+:root[data-marque="maserati"] .logo-slot::after, :root[data-marque="ferrari"] .logo-slot::after { content: none; }
+.intro-mask { display: block; width: 180px; height: 72px; background: #fff;
+  -webkit-mask: var(--marque-mark) center / contain no-repeat; mask: var(--marque-mark) center / contain no-repeat; }
 .top nav { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 /* Mechanic review #3 (N6): the shared header nav (Start/Vehicles/Modules/
  * Recordings/Logs/Live link/Coverage/Tools -- present identically on

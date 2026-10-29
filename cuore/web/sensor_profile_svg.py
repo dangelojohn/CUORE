@@ -1,6 +1,9 @@
 """Server-side SVG: a left-side PROFILE of the Stelvio with one coloured dot
 per sensor, placed at its zone's anchor (``/v/{vin}/sensors``).
 
+The car itself is a traced blueprint (cuore/data/car_art/<platform>.json, CC BY 4.0 source credited
+there and under the drawing); only the markers, labels and the top view are drawn here.
+
 Same house style as :mod:`cuore.web.electrical_svg` (CSS classes / CSS
 variables only, ``_smooth_closed`` for rounded outlines, thin ink-3 line art
 under the data) but a side view, front of the car to the LEFT, because a
@@ -17,8 +20,11 @@ those in a tray instead of guessing.
 """
 from __future__ import annotations
 
+import json
 import math
+from functools import lru_cache
 from html import escape
+from pathlib import Path
 from typing import Any, Iterable, Optional
 
 _VB_W, _VB_H = 860, 360
@@ -83,176 +89,109 @@ def _smooth_closed(pts: list[tuple[float, float]]) -> str:
 
 _AXLE_F, _AXLE_R, _WHEEL_Y, _TYRE_R, _RIM_R = 199, 650, 269, 59, 44
 
-#: Credit for the photo the side view is traced from. The photo is CC0 (no credit
-#: is required); it is given anyway. The trace itself is released the same way.
-SIDE_VIEW_CREDIT = {
-    "text": 'Side view traced from "Alfa Romeo Stelvio 154026" by Trop86, Wikimedia Commons, CC0',
-    "photo": "https://commons.wikimedia.org/wiki/File:Alfa_Romeo_Stelvio_154026.jpg",
-    "licence": "https://creativecommons.org/publicdomain/zero/1.0/",
-}
-
-# --- side outline, drawn to a true side-on photograph -----------------------------
-# Reference: SIDE_VIEW_CREDIT (2446x1809, grey Stelvio parked side-on, about 8 degrees
-# off axis with the rear nearer the camera). The photo was levelled on the two tyres
-# and mapped into this frame (axles pinned at x=199 / 650, wheel centres y=269, tyre
-# radius 59; docs/research/stelvio-side-trace-2026-10-27/). The 2026-10-27 automatic
-# contour trace was replaced on 2026-10-29 by a hand-drawn outline over that
-# rectified photo (named points, corner-aware Catmull-Rom; generator kept with the
-# research tools): the trace had stretched the nose, bloated the tail and floated the
-# rear glass. Arch radii measured on the photo: cladding 78.5 / 77, opening ~70.
-#: Arch opening radius / cladding outer radius (drawing units).
-_ARCH_R, _CLAD_R = 70.0, 78.0
-
-_SIDE_BODY = (
-    "M69.0,185.0 C64.2,187.5 63.0,193.2 61.0,198.0 C59.0,202.8 57.8,208.3 57.0,214.0 C56.2,219.7 "
-    "56.0,226.0 56.0,232.0 C56.0,238.0 55.8,244.3 57.0,250.0 C58.2,255.7 60.5,261.7 63.0,266.0 "
-    "C65.5,270.3 68.2,273.0 72.0,276.0 C75.8,279.0 80.3,282.0 86.0,284.0 C91.7,286.0 106.0,288.0 "
-    "106.0,288.0 C106.0,288.0 118.9,260.8 123.0,251.5 C127.1,242.1 127.1,238.0 130.4,231.9 "
-    "C133.7,225.8 137.9,220.0 142.7,215.0 C147.5,210.0 153.1,205.5 159.1,202.0 C165.0,198.5 "
-    "171.6,195.6 178.3,193.8 C184.9,192.0 192.1,191.0 199.0,191.0 C205.9,191.0 213.1,192.0 "
-    "219.7,193.8 C226.4,195.6 233.0,198.5 238.9,202.0 C244.9,205.5 250.5,210.0 255.3,215.0 "
-    "C260.1,220.0 264.3,225.8 267.6,231.9 C270.9,238.0 272.4,241.1 275.0,251.5 C277.6,261.8 "
-    "283.0,294.0 283.0,294.0 C283.0,294.0 305.5,295.7 330.0,296.0 C354.5,296.3 398.3,296.0 "
-    "430.0,296.0 C461.7,296.0 497.3,296.3 520.0,296.0 C542.7,295.7 566.0,294.0 566.0,294.0 "
-    "C566.0,294.0 571.4,261.9 574.0,251.5 C576.6,241.0 578.3,237.5 581.7,231.3 C585.2,225.1 "
-    "589.6,219.1 594.7,214.0 C599.7,209.0 605.6,204.5 611.8,201.0 C618.0,197.5 625.0,194.8 "
-    "631.9,193.1 C638.9,191.5 646.3,190.8 653.4,191.1 C660.5,191.4 667.9,192.7 674.6,195.0 "
-    "C681.4,197.2 688.1,200.6 694.0,204.6 C699.8,208.6 705.4,213.6 709.9,219.1 C714.5,224.5 "
-    "718.4,230.9 721.3,237.4 C724.2,243.9 723.3,249.4 727.2,258.1 C731.2,266.9 745.0,290.0 "
-    "745.0,290.0 C745.0,290.0 764.5,289.8 772.0,288.0 C779.5,286.2 785.2,283.3 790.0,279.0 "
-    "C794.8,274.7 798.3,268.5 801.0,262.0 C803.7,255.5 804.8,248.3 806.0,240.0 C807.2,231.7 "
-    "807.8,221.7 808.0,212.0 C808.2,202.3 807.7,191.0 807.0,182.0 C806.3,173.0 805.0,164.7 "
-    "804.0,158.0 C803.0,151.3 802.2,147.0 801.0,142.0 C799.8,137.0 798.3,132.2 797.0,128.0 "
-    "C795.7,123.8 795.2,120.7 793.0,117.0 C790.8,113.3 788.8,110.2 784.0,106.0 C779.2,101.8 "
-    "771.7,96.7 764.0,92.0 C756.3,87.3 747.3,82.2 738.0,78.0 C728.7,73.8 718.7,69.8 708.0,67.0 "
-    "C697.3,64.2 686.3,62.3 674.0,61.0 C661.7,59.7 647.7,59.3 634.0,59.0 C620.3,58.7 606.0,58.7 "
-    "592.0,59.0 C578.0,59.3 563.7,60.0 550.0,61.0 C536.3,62.0 523.0,63.3 510.0,65.0 C497.0,66.7 "
-    "483.3,69.0 472.0,71.0 C460.7,73.0 451.0,74.2 442.0,77.0 C433.0,79.8 426.3,83.5 418.0,88.0 "
-    "C409.7,92.5 400.7,98.5 392.0,104.0 C383.3,109.5 373.8,115.5 366.0,121.0 C358.2,126.5 352.3,133.2 "
-    "345.0,137.0 C337.7,140.8 331.8,141.7 322.0,144.0 C312.2,146.3 299.0,148.7 286.0,151.0 "
-    "C273.0,153.3 258.3,155.7 244.0,158.0 C229.7,160.3 214.7,162.7 200.0,165.0 C185.3,167.3 "
-    "170.0,169.7 156.0,172.0 C142.0,174.3 127.0,177.2 116.0,179.0 C105.0,180.8 97.8,182.0 90.0,183.0 "
-    "C82.2,184.0 73.8,182.5 69.0,185.0 Z"
-)
-
-#: Detail paths in the same frame (drawing units).
-_SIDE_DETAIL = {
-    "glass": (
-        "M350.0,140.0 C350.0,140.0 360.7,128.0 368.0,122.0 C375.3,116.0 385.0,109.7 394.0,104.0 "
-        "C403.0,98.3 412.7,92.3 422.0,88.0 C431.3,83.7 436.7,80.7 450.0,78.0 C463.3,75.3 483.3,73.2 "
-        "502.0,72.0 C520.7,70.8 543.3,70.5 562.0,71.0 C580.7,71.5 599.3,72.8 614.0,75.0 C628.7,77.2 "
-        "640.7,80.8 650.0,84.0 C659.3,87.2 664.3,90.0 670.0,94.0 C675.7,98.0 681.0,103.3 684.0,108.0 "
-        "C687.0,112.7 688.0,122.0 688.0,122.0 C688.0,122.0 682.3,131.0 676.0,134.0 C669.7,137.0 "
-        "662.7,138.7 650.0,140.0 C637.3,141.3 621.7,141.7 600.0,142.0 C578.3,142.3 548.3,142.0 "
-        "520.0,142.0 C491.7,142.0 453.3,142.2 430.0,142.0 C406.7,141.8 393.3,141.3 380.0,141.0 "
-        "C366.7,140.7 350.0,140.0 350.0,140.0 Z"
-),
-    "bpillar": "M472.0,75.0 L488.0,75.0 L477.0,141.0 L462.0,141.0 L472.0,75.0 Z",
-    "quarter": "M636.0,76.0 C636.0,76.0 633.3,97.3 632.0,108.0 C630.7,118.7 628.0,140.0 628.0,140.0",
-    "rearglass": (
-        "M712.0,84.0 C712.0,84.0 756.5,94.3 770.0,100.0 C783.5,105.7 788.2,112.7 793.0,118.0 C797.8,123.3 "
-        "799.0,132.0 799.0,132.0 C799.0,132.0 779.8,129.0 770.0,126.0 C760.2,123.0 749.0,118.3 "
-        "740.0,114.0 C731.0,109.7 720.7,105.0 716.0,100.0 C711.3,95.0 712.0,84.0 712.0,84.0 Z"
-),
-    "mirror": (
-        "M330.0,140.0 C329.2,137.0 329.7,131.5 331.0,128.0 C332.3,124.5 334.8,121.0 338.0,119.0 "
-        "C341.2,117.0 346.0,116.2 350.0,116.0 C354.0,115.8 359.0,116.3 362.0,118.0 C365.0,119.7 "
-        "367.2,121.8 368.0,126.0 C368.8,130.2 367.0,143.0 367.0,143.0 C367.0,143.0 355.2,145.5 "
-        "350.0,146.0 C344.8,146.5 339.3,147.0 336.0,146.0 C332.7,145.0 330.8,143.0 330.0,140.0 Z"
-),
-    "flap": "M668.0,144.0 L702.0,144.0 L704.0,176.0 L668.0,176.0 L668.0,144.0 Z",
-    "lamp": (
-        "M714.0,146.0 C714.0,146.0 734.8,142.2 745.0,142.0 C755.2,141.8 765.8,143.3 775.0,145.0 "
-        "C784.2,146.7 800.0,152.0 800.0,152.0 L801.0,166.0 C801.0,166.0 784.3,165.0 775.0,164.0 "
-        "C765.7,163.0 755.2,161.3 745.0,160.0 C734.8,158.7 714.0,156.0 714.0,156.0 L714.0,146.0 Z"
-),
-    "head": (
-        "M66.0,189.0 C66.0,189.0 76.7,186.2 84.0,185.0 C91.3,183.8 101.0,182.5 110.0,182.0 C119.0,181.5 "
-        "138.0,182.0 138.0,182.0 C138.0,182.0 141.0,189.3 136.0,192.0 C131.0,194.7 116.7,195.8 "
-        "108.0,198.0 C99.3,200.2 91.0,203.2 84.0,205.0 C77.0,206.8 66.0,209.0 66.0,209.0 L66.0,189.0 Z"
-),
-    "h1": (
-        "M420.0,166.0 C420.0,166.0 426.7,161.8 432.0,161.0 C437.3,160.2 447.0,160.2 452.0,161.0 "
-        "C457.0,161.8 462.0,166.0 462.0,166.0"
-),
-    "h2": (
-        "M586.0,158.0 C586.0,158.0 592.7,153.8 598.0,153.0 C603.3,152.2 613.0,152.2 618.0,153.0 "
-        "C623.0,153.8 628.0,158.0 628.0,158.0"
-),
-    "door1": (
-        "M312.0,150.0 C312.0,150.0 302.7,165.7 300.0,176.0 C297.3,186.3 296.0,199.7 296.0,212.0 "
-        "C296.0,224.3 298.3,237.3 300.0,250.0 C301.7,262.7 306.0,288.0 306.0,288.0"
-),
-    "door2": (
-        "M470.0,143.0 C470.0,143.0 467.0,158.0 466.0,170.0 C465.0,182.0 464.2,200.8 464.0,215.0 "
-        "C463.8,229.2 464.5,242.5 465.0,255.0 C465.5,267.5 467.0,290.0 467.0,290.0"
-),
-    "door3": (
-        "M636.0,142.0 C636.0,142.0 631.3,160.3 628.0,170.0 C624.7,179.7 619.7,191.3 616.0,200.0 "
-        "C612.3,208.7 606.0,222.0 606.0,222.0"
-),
-    "sill": "M283.0,284.0 L566.0,284.0 L566.0,295.0 L283.0,295.0 L283.0,284.0 Z",
-    "exhaust": "M768.0,270.0 L786.0,262.0 L788.0,270.0 L776.0,280.0 L768.0,270.0 Z",
-    "shoulder": (
-        "M100.0,184.0 C100.0,184.0 166.7,171.3 200.0,166.0 C233.3,160.7 276.7,155.3 300.0,152.0 "
-        "C323.3,148.7 340.0,146.0 340.0,146.0"
-),
-    "clad_f": "M123.0,251.5 A78,78 0 1 1 275.0,251.5 L267.2,253.3 A70,70 0 1 0 130.8,253.3 Z",
-    "clad_r": "M574.0,251.5 A78,78 0 1 1 727.2,258.1 L719.3,259.3 A70,70 0 1 0 581.8,253.3 Z",
-}
+#: The side (and front) view artwork: a traced blueprint, loaded from cuore/data/car_art/<platform>.json.
+#: The ink path is the actual line work of the source drawing (fill trace, evenodd), mapped into this frame by
+#: pinning the wheel centres to the axles; the silhouette is the car's outline for the body fill. The data file
+#: carries the source, licence, attribution and the fit against cuore/data/vehicle_dimensions.json.
+_ART_DIR = Path(__file__).resolve().parents[1] / "data" / "car_art"
 
 
-def _wheel(cx: float) -> str:
-    """Tyre and the black five-twin-spoke rim the reference photo shows."""
-    cy = _WHEEL_Y
-    p = [f'<circle cx="{cx}" cy="{cy}" r="{_TYRE_R}" fill="var(--ink-3)" fill-opacity="0.22" '
-         f'stroke="var(--ink-2)" stroke-width="1.6"/>',
-         f'<circle cx="{cx}" cy="{cy}" r="{_RIM_R}" fill="var(--surface-2)" stroke="var(--ink-3)" stroke-width="1.2"/>']
-    for k in range(5):
-        for off in (-9, 9):
-            a = math.radians(-90 + k * 72 + off)
-            p.append(f'<line x1="{cx + 9 * math.cos(a):.1f}" y1="{cy + 9 * math.sin(a):.1f}" '
-                     f'x2="{cx + 41 * math.cos(a):.1f}" y2="{cy + 41 * math.sin(a):.1f}" '
-                     f'stroke="var(--ink-3)" stroke-width="2.6" stroke-linecap="round"/>')
-    p.append(f'<circle cx="{cx}" cy="{cy}" r="6.5" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1"/>')
-    return "".join(p)
+@lru_cache(maxsize=8)
+def _art(platform: str = "stelvio-949") -> dict[str, Any]:
+    try:
+        return json.loads((_ART_DIR / f"{platform}.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
 
 
-def _car_line_art() -> str:
-    """Left-side Stelvio (949) profile, nose to the LEFT, traced from a side-on
-    photograph (see the block comment above and :data:`SIDE_VIEW_CREDIT`).
-    Outline, wheel arches, glasshouse (front and rear door glass, B-pillar,
-    quarter glass, rear glass edge), mirror, door shut lines, handles, fuel
-    flap, tail lamp, headlamp, sill and exhaust are all read off that photo.
-    Axles at x=199 / 650, wheel centres y=269, ground y=328."""
-    ink = 'stroke="var(--ink-3)" stroke-linecap="round" stroke-linejoin="round"'
-    line = f'fill="none" {ink} stroke-width="1.2"'
-    thin = f'fill="none" {ink} stroke-width="0.9" opacity="0.8"'
-    clad = 'fill="var(--ink-3)" fill-opacity="0.28" stroke="var(--ink-3)" stroke-width="0.9" stroke-linejoin="round"'
-    glass = 'fill="var(--surface-2)" stroke="var(--ink-2)" stroke-width="1.3" stroke-linejoin="round"'
-    d = _SIDE_DETAIL
+def _credit(platform: str = "stelvio-949") -> dict[str, str]:
+    src = _art(platform).get("source") or {}
+    if not src:
+        return {"text": "Side view: artwork not available", "photo": "", "licence": ""}
+    return {"text": f"Side view: {src.get('attribution', src.get('title', ''))}",
+            "photo": src.get("page", ""), "licence": src.get("licence_url", "")}
+
+
+#: Credit line for the side view (template use); kept as a name for the pages that import it.
+SIDE_VIEW_CREDIT = _credit()
+
+
+def _car_line_art(platform: str = "stelvio-949") -> str:
+    """Left-side profile, nose to the LEFT: the traced blueprint ink over the silhouette fill.
+    Axles at x=199 / 650, wheel centres y=269, ground y=328 (the trace is pinned to these)."""
+    a = _art(platform)
+    side = a.get("side") or {}
     p = ['<g class="car-art" aria-hidden="true">',
-         f'<line x1="16" y1="{_GROUND}" x2="844" y2="{_GROUND}" stroke="var(--rule)" stroke-width="1"/>',
-         f'<path d="{_SIDE_BODY}" fill="var(--surface)" stroke="var(--ink-2)" stroke-width="1.8" stroke-linejoin="round"/>',
-         f'<clipPath id="car-body-clip"><path d="{_SIDE_BODY}"/></clipPath>',
-         f'<path d="{d["clad_f"]}" clip-path="url(#car-body-clip)" {clad}/>',
-         f'<path d="{d["clad_r"]}" clip-path="url(#car-body-clip)" {clad}/>',
-         f'<path d="{d["sill"]}" {clad}/>',
-         _wheel(_AXLE_F), _wheel(_AXLE_R),
-         f'<path d="{d["glass"]}" {glass}/>',
-         f'<path d="{d["bpillar"]}" fill="var(--ink-3)" fill-opacity="0.6"/>',
-         f'<path d="{d["quarter"]}" {line}/>',
-         f'<path d="{d["rearglass"]}" {glass}/>',
-         f'<path d="{d["mirror"]}" fill="var(--surface)" stroke="var(--ink-3)" stroke-width="1.2" stroke-linejoin="round"/>',
-         f'<path d="{d["door1"]}" {thin}/>', f'<path d="{d["door2"]}" {thin}/>', f'<path d="{d["door3"]}" {thin}/>',
-         f'<path d="{d["shoulder"]}" {thin}/>',
-         f'<path d="{d["h1"]}" {line}/>', f'<path d="{d["h2"]}" {line}/>',
-         f'<path d="{d["flap"]}" {line}/>', f'<path d="{d["lamp"]}" {line}/>',
-         f'<path d="{d["head"]}" {line}/>', f'<path d="{d["exhaust"]}" {line}/>',
-         '<text x="18" y="150" font-size="9" fill="var(--ink-3)" letter-spacing="1" '
-         'font-family="var(--sans), sans-serif">FRONT</text>',
-         "</g>"]
+         f'<line x1="16" y1="{_GROUND}" x2="844" y2="{_GROUND}" stroke="var(--rule)" stroke-width="1"/>']
+    if side.get("silhouette"):
+        p.append(f'<path d="{side["silhouette"]}" fill="var(--surface)" stroke="none"/>')
+    if side.get("ink"):
+        p.append(f'<path d="{side["ink"]}" fill="var(--ink-2)" fill-rule="evenodd" stroke="none"/>')
+    p.append('<text x="18" y="150" font-size="9" fill="var(--ink-3)" letter-spacing="1" '
+             'font-family="var(--sans), sans-serif">FRONT</text>')
+    p.append("</g>")
     return "".join(p)
+
+
+_DIMS_FILE = Path(__file__).resolve().parents[1] / "data" / "vehicle_dimensions.json"
+
+
+@lru_cache(maxsize=8)
+def _dims(platform: str = "stelvio-949") -> dict[str, Any]:
+    try:
+        return json.loads(_DIMS_FILE.read_text(encoding="utf-8")).get(platform) or {}
+    except (OSError, ValueError):
+        return {}
+
+
+#: Where the dimension rows sit (frame units); the label placer treats these as occupied.
+_DIM_BOXES = [(16, 332, 816, 360), (818, 50, 858, 332)]
+
+
+def _dimension_lines(platform: str = "stelvio-949") -> str:
+    """Wheelbase, overall length and height as dimension lines with the official figure (mm), drawn under
+    the ground line and down the right edge. Values and their sources: cuore/data/vehicle_dimensions.json
+    (status 'third-party' until the manufacturer's sheet replaces them). Nothing is drawn if a value is missing."""
+    d = _dims(platform)
+    def mm(key: str) -> Any:
+        v = d.get(key) or {}
+        return v.get("mm")
+    wb, ln, ht, fo = mm("wheelbase"), mm("length"), mm("height"), mm("front_overhang")
+    if not (wb and ln and ht and fo):
+        return ""
+    k = 0.16
+    nose = _AXLE_F - fo * k
+    tail = nose + ln * k
+    roof = _GROUND - ht * k
+    t = 'font-size="12" fill="var(--ink-2)" font-family="var(--numerals), var(--mono), monospace"'
+    ln_a = 'stroke="var(--ink-3)" stroke-width="0.8"'
+    def hrow(x0: float, x1: float, y: float, label: str) -> str:
+        return (f'<line x1="{x0:.1f}" y1="{y}" x2="{x1:.1f}" y2="{y}" {ln_a}/>'
+                f'<line x1="{x0:.1f}" y1="{y - 4}" x2="{x0:.1f}" y2="{y + 4}" {ln_a}/>'
+                f'<line x1="{x1:.1f}" y1="{y - 4}" x2="{x1:.1f}" y2="{y + 4}" {ln_a}/>'
+                f'<text x="{(x0 + x1) / 2:.1f}" y="{y - 2}" text-anchor="middle" {t}>{escape(label)}</text>')
+    x_h = 838
+    return ('<g class="car-dims" aria-hidden="true">'
+            + hrow(_AXLE_F, _AXLE_R, 343, f"Wheelbase {wb} mm")
+            + hrow(nose, tail, 356, f"Length {ln} mm")
+            + f'<line x1="{x_h}" y1="{roof:.1f}" x2="{x_h}" y2="{_GROUND}" {ln_a}/>'
+            + f'<line x1="{x_h - 4}" y1="{roof:.1f}" x2="{x_h + 4}" y2="{roof:.1f}" {ln_a}/>'
+            + f'<line x1="{x_h - 4}" y1="{_GROUND}" x2="{x_h + 4}" y2="{_GROUND}" {ln_a}/>'
+            + f'<text transform="translate({x_h - 3},{(roof + _GROUND) / 2:.1f}) rotate(-90)" text-anchor="middle" {t}>Height {ht} mm</text>'
+            + "</g>")
+
+
+def front_svg(platform: str = "stelvio-949", *, aria_label: str = "Front view of the car") -> str:
+    """The traced FRONT view (400x360 frame, car centred at x=200, ground y=328), art only; no markers yet."""
+    a = _art(platform)
+    fr = a.get("front") or {}
+    if not fr.get("ink"):
+        return ""
+    return (f'<svg class="sens-profile sens-front" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 360" role="img" '
+            f'aria-label="{escape(aria_label, quote=True)}"><g class="car-art" aria-hidden="true">'
+            f'<line x1="16" y1="{_GROUND}" x2="384" y2="{_GROUND}" stroke="var(--rule)" stroke-width="1"/>'
+            + (f'<path d="{fr["silhouette"]}" fill="var(--surface)" stroke="none"/>' if fr.get("silhouette") else "")
+            + f'<path d="{fr["ink"]}" fill="var(--ink-2)" fill-rule="evenodd" stroke="none"/></g></svg>')
 
 
 def _cells(n: int) -> list[tuple[float, float]]:
@@ -549,7 +488,7 @@ def both_views(items: list[dict[str, Any]], *, href_prefix: str = "sensor-",
     top = top_svg(items, href_prefix=href_prefix, dim=dim)
     c = SIDE_VIEW_CREDIT
     credit = (f'<p class="sens-credit">{escape(c["text"])} '
-              f'(<a href="{c["photo"]}" rel="noopener">photo</a>, '
+              f'(<a href="{c["photo"]}" rel="noopener">source</a>, '
               f'<a href="{c["licence"]}" rel="noopener">licence</a>)</p>')
     return ('<figure class="sens-view"><figcaption>Side view: the car\'s left (driver\'s) side, front to the left'
             f'</figcaption>{side}{credit}</figure>'
@@ -716,12 +655,13 @@ def map_view_svg(items: list[dict[str, Any]], view: str, *, href_prefix: str = "
     dim = set(dim)
     w, h = (_VB_W, _VB_H) if view == "side" else (_TOP_W, _TOP_H)
     groups = _map_groups(items, view)
-    fixed = [(14, 138, 70, 156)] if view == "side" else [(14, 160, 70, 178), (740, 26, 850, 44), (660, 356, 850, 374)]
+    fixed = [(14, 138, 70, 156), *_DIM_BOXES] if view == "side" else [(14, 160, 70, 178), (740, 26, 850, 44), (660, 356, 850, 374)]
     labels = _place_labels(groups, view, w, h, fixed)
     art = _car_line_art() if view == "side" else _car_top_art()
     name = "Side view (the car's left side)" if view == "side" else "Top view"
     p = [f'<svg class="sens-profile sens-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" '
-         f'aria-label="{escape(name)} with {len(groups)} areas marked">', art, '<g aria-hidden="true">']
+         f'aria-label="{escape(name)} with {len(groups)} areas marked">', art,
+         _dimension_lines() if view == "side" else "", '<g aria-hidden="true">']
     for g in groups:
         if g["key"] in labels:
             lx, ly, ta, text = labels[g["key"]]
@@ -762,13 +702,14 @@ def sensor_map(items: list[dict[str, Any]], *, href_prefix: str = "sensor-", clu
             '<label for="sv-top">Top</label></div>'
             "<figure class=\"sv-fig sv-sidev\"><figcaption>Side view: the car's left (driver's) side, front to the left. "
             f'Each marker is an area, not an exact spot.</figcaption><div class="sv-scroll">{side}</div>{note}{unl(sg)}'
-            f'<p class="sens-credit">{escape(c["text"])} (<a href="{c["photo"]}" rel="noopener">photo</a>, '
-            f'<a href="{c["licence"]}" rel="noopener">licence</a>)</p></figure>'
+            f'<p class="sens-credit">{escape(c["text"])} (<a href="{c["photo"]}" rel="noopener">source</a>, '
+            f'<a href="{c["licence"]}" rel="noopener">licence</a>). Dimensions: homologation figures, '
+            f'{escape((_dims().get("status") or "unsourced"))}, see cuore/data/vehicle_dimensions.json.</p></figure>'
             "<figure class=\"sv-fig sv-topv\"><figcaption>Top view: looking down, front to the left; left (driver's) "
             f'side at the bottom, right side at the top.</figcaption><div class="sv-scroll">{top}</div>{unl(tg)}</figure></div>')
 
 
 
 
-__all__ = ["SIDE_VIEW_CREDIT", "render", "profile_svg", "top_svg", "both_views", "layout", "top_layout", "resolve_zone",
+__all__ = ["SIDE_VIEW_CREDIT", "front_svg", "render", "profile_svg", "top_svg", "both_views", "layout", "top_layout", "resolve_zone",
            "ZONES", "ZONE_ANCHORS", "TOP_ZONES", "sensor_map", "map_view_svg"]

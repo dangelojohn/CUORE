@@ -47,6 +47,8 @@
   text-transform: uppercase;
 }
 .m-badge { width: 28px; height: 28px; border-radius: 50%; display: block; }
+.m-badge-mask { border-radius: 0; width: var(--marque-mark-w, 28px); background: var(--ink);
+  -webkit-mask: var(--marque-mark) center / contain no-repeat; mask: var(--marque-mark) center / contain no-repeat; }
 
 .m-main {
   padding: 24px 20px 12px;

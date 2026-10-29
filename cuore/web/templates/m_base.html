@@ -67,7 +67,8 @@
 {% endif %}
 
 <header class="m-top">
-  <a class="m-brand" href="/m/{{ vin }}">{% if marque|default('alfa') == 'alfa' %}<img class="m-badge" src="/static/brand/alfa-romeo-logo.png" alt="Alfa Romeo" width="28" height="28">{% endif %}CUORE</a>
+  {% set _m = marque|default('alfa') %}
+  <a class="m-brand" href="/m/{{ vin }}">{% if _m == 'alfa' %}<img class="m-badge" src="/static/brand/alfa-romeo-logo.png" alt="Alfa Romeo" width="28" height="28">{% elif _m in ('maserati', 'ferrari') %}<span class="m-badge m-badge-mask" role="img" aria-label="{{ 'Maserati' if _m == 'maserati' else 'Ferrari' }}"></span>{% endif %}CUORE</a>
 </header>
 
 <main class="m-main">

@@ -14,6 +14,16 @@ logo.svg  (not present) CUORE's own mark. Until it exists, a marque without
     a badge file shows the dashed "LOGO" stand-in in the header slot and the
     intro overlay shows the CUORE wordmark alone.
 
-Maserati and Ferrari badges: add <marque>-logo.png here and a matching
-:root[data-marque="<marque>"] .logo-slot rule in cuore.css, once their
-permission is on file.
+maserati-trident.svg  Wikimedia Commons "File:Maserati_logo_2.svg", fetched
+    2026-10-29 with the owner's approval (SHA-1 7273968493ea8...). Commons tags:
+    public domain (simple shapes, below the threshold of originality) and
+    "may be protected as a trademark"; single-colour black, no wordmark. Used as
+    a CSS mask in the ink colour for data-marque="maserati" (header, intro,
+    mobile). The owner reports the marque's agreement; keep the written
+    permission with the brand package when it arrives.
+
+ferrari-wordmark.svg  Wikimedia Commons "File:Ferrari_wordmark.svg", fetched
+    2026-10-29 with the owner's approval (SHA-1 3f24e8cc68062...). Tags: public
+    domain, trademarked. The prancing-horse shield is copyrighted artwork that
+    Commons does not host; it must come from Ferrari with permission, and then
+    replaces the wordmark in the same slot (data-marque="ferrari").

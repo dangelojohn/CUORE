@@ -1,0 +1,41 @@
+{
+  "_about": "Exterior dimensions used to pin the car drawings (cuore/web/sensor_profile_svg.py) and to label dimension lines. Every number carries its source. Status 'third-party' means a homologation figure republished by a spec database, to be replaced by the manufacturer's own sheet when Alfa Romeo supplies it (docs/design/CAR_ART_SOURCES.md, 2026-10-29). Units: mm unless stated.",
+  "stelvio-949": {
+    "name": "Alfa Romeo Stelvio (949), 2017-2022, 2.0T Q4",
+    "status": "third-party",
+    "sources": {
+      "A": "https://www.auto-data.net/en/alfa-romeo-stelvio-949-2.0-280hp-awd-automatic-28578",
+      "B": "https://www.carexpert.co.nz/alfa-romeo/stelvio/2018/base/exterior-and-dimensions"
+    },
+    "length": {"mm": 4687, "source": "A, B"},
+    "width": {"mm": 1903, "source": "A, B"},
+    "width_with_mirrors": {"mm": 2163, "source": "A"},
+    "height": {"mm": 1671, "source": "A, B (B also lists 1648 for another configuration)"},
+    "wheelbase": {"mm": 2818, "source": "A, B"},
+    "front_overhang": {"mm": 861, "source": "A"},
+    "rear_overhang": {"mm": 1008, "source": "A"},
+    "front_track": {"mm": 1613, "source": "A, B (2.0T; the 2.2 diesel lists 1627)"},
+    "rear_track": {"mm": 1653, "source": "A, B (2.0T; the 2.2 diesel lists 1674)"},
+    "ground_clearance": {"mm": 200, "source": "A, B"},
+    "turning_circle": {"m": 11.7, "source": "A, B"},
+    "tyres": {"sizes": ["235/60 R18", "235/55 R19", "255/45 R20"], "source": "A (R18), B (R19); R20 is the reference car's fitment, see docs/vehicles/ZASFAKPN5J7B88115/"},
+    "_check": "length - wheelbase = 1869 = 861 + 1008, consistent"
+  },
+  "giulia-952": {
+    "name": "Alfa Romeo Giulia (952), 2016-2022, 2.0T Q4",
+    "status": "third-party, single source",
+    "sources": {"A": "https://www.auto-data.net/"},
+    "length": {"mm": 4643, "source": "A"},
+    "width": {"mm": 1860, "source": "A"},
+    "width_with_mirrors": {"mm": 2024, "source": "A"},
+    "height": {"mm": 1438, "source": "A"},
+    "wheelbase": {"mm": 2820, "source": "A"},
+    "front_overhang": {"mm": null, "source": "not found"},
+    "rear_overhang": {"mm": null, "source": "not found"},
+    "front_track": {"mm": 1556, "source": "A"},
+    "rear_track": {"mm": 1629, "source": "A"},
+    "ground_clearance": {"mm": null, "source": "not found"},
+    "turning_circle": {"m": 10.8, "source": "A"},
+    "tyres": {"sizes": ["225/45 R18 front", "255/40 R18 rear"], "source": "A"}
+  }
+}

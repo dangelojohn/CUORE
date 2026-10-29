@@ -14,7 +14,9 @@
 <input type="checkbox" id="intro-dismiss" class="intro-dismiss-toggle" hidden>
 <label for="intro-dismiss" class="intro-overlay no-print" aria-hidden="true">
   <span class="intro-mark">
-    {% if marque|default('alfa') == 'alfa' %}<img src="/static/brand/alfa-romeo-logo.png" alt="Alfa Romeo" class="intro-logo" width="96" height="96">{% endif %}
+    {% set _m = marque|default('alfa') %}
+    {% if _m == 'alfa' %}<img src="/static/brand/alfa-romeo-logo.png" alt="Alfa Romeo" class="intro-logo" width="96" height="96">
+    {% elif _m in ('maserati', 'ferrari') %}<span class="intro-mask" role="img" aria-label="{{ 'Maserati' if _m == 'maserati' else 'Ferrari' }}"></span>{% endif %}
     <span class="intro-wordmark">CU<span>O</span>RE</span>
   </span>
   <span class="intro-tagline">The mechanic's own record of the car</span>
