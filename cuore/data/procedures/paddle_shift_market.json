@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "name": "paddle_shift_market",
+  "module": "BCM",
+  "title": "Paddle shifter behaviour: Europe or North America",
+  "intent": "Choose whether the steering-wheel paddles behave as on a European or a North American car. This is a configuration (PROXI) change in the Body computer, not a reset.",
+  "status": "awaiting source",
+  "status_note": "steps is EMPTY on purpose: no bytes are invented. The only public figures are single-source forum posts (see public_values), recorded for reference and never to be written. Fill steps only from the manufacturer's documented procedure and cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session comes with the manufacturer's documented steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "unknown",
+    "label": "No read method for the current value is known. The manufacturer must supply one so a before and after can be proven.",
+    "module": "BCM",
+    "checks": [
+      {
+        "quantity": "paddle market setting",
+        "did": null,
+        "expect": {
+          "value": "the chosen option (unknown until documented)"
+        }
+      }
+    ]
+  },
+  "preconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented. The gap study names battery support and engine off as items the manufacturer must confirm (docs/project/ALFAOBD_GAP.md section 3)."
+  },
+  "postconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented",
+    "note": "PROXI alignment is required afterwards (see follow_up)"
+  },
+  "verification_rule": "Unknown until the manufacturer documents a read method. Nothing is claimed.",
+  "mes_function": "CAN Setup (Body computer, PROXI)",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "options": [
+    {
+      "id": "europe",
+      "label": "Europe",
+      "meaning": "The [+] paddle shifts from Park or Reverse into Drive, and [-] together with [+] shifts to Neutral.",
+      "source": "https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80 (repeats a giuliaforums.com post of 2024-04-05 by FizzGiGG; single source, forum, not manufacturer documentation)"
+    },
+    {
+      "id": "north_america",
+      "label": "North America",
+      "meaning": "The paddles do not give the European shift into Drive or Neutral. The source describes only the European behaviour; the North American behaviour is its absence, as stated there, and is not described further.",
+      "source": "https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80 (single forum source; the North American value is given there as the alternative setting)"
+    }
+  ],
+  "follow_up": "PROXI alignment required after the change (source: docs/project/ALFAOBD_GAP.md section 3, citing https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80)",
+  "risks": [
+    {
+      "risk": "Neighbouring bits control other settings; the same forum author warns of this.",
+      "source": "https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80"
+    },
+    {
+      "risk": "A PROXI mismatch is the larger risk: the BCM holds the configuration and downstream modules compare to it. CUORE's own notes record a TCM P1500 limp-in on mismatch and an alignment failure on a wrong or silent module. Owners also report alignment timing out on a Bluetooth adapter (one user).",
+      "source": "docs/design/CUORE_ADJUSTMENTS_PLAN.md Part 2; https://www.multiecuscan.net/forum/viewtopic.php?p=29086"
+    }
+  ],
+  "needs_from_manufacturer": [
+    "The documented configuration (PROXI) data map for the 952 and 949: the identifier or block, option names, allowed values, and which bits are paddle behaviour per market and model year.",
+    "A read method for the current value, so a before and after can be proven.",
+    "The alignment procedure: preconditions (battery support, engine off), module roster rules, failure handling, and the restore path for a backed-up configuration.",
+    "Which trims carry paddles, and the market codes that decide the default.",
+    "Written authority for CUORE to write it, then the existing path: dry run, gate, typed consent, read-back, audit."
+  ],
+  "public_values": {
+    "note": "single-source forum figures, recorded for reference only, never to be written",
+    "detail": "Body computer, CAN Setup, byte 156, bits 4 and 5. Europe is xx00xxxx, North America is xx01xxxx. Source: https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80 (repeating a giuliaforums.com post of 2024-04-05 by FizzGiGG). Another post says a logic 0 enables EU control: https://www.giuliaforums.com/threads/alfaobd-and-multiscanecu-some-alfaobd-settings-i-was-surprised-by.55899/. Byte 156 is a vendor-tool index, not a published DID, so it may differ by build year and trim (inference in docs/project/ALFAOBD_GAP.md section 3)."
+  },
+  "accepted_by_owner": false
+}

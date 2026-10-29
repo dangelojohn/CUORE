@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Adjustments — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{# Adjustments: every reset and configuration procedure CUORE knows, with status, source, what it writes and reads back.
+   Nothing runs here: the Run control is a disabled, non-interactive element. No form, no link, no JavaScript.
+   Status is a mark + a word. Own <style>: --fs-* tokens only, 44 px targets. Data: cuore/services/adjustments.py #}
+<style>
+.adj { max-width: 1040px; font-size: var(--fs-md); }
+.adj .lede { color: var(--ink-2); margin: 0 0 10px; }
+.adj-counts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.adj-chip { display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap, 44px); padding: 0 14px; border: 1px solid var(--rule); border-radius: 999px; color: var(--ink); background: var(--surface-2); font-size: var(--fs-md); }
+.adj-chip .n { font-family: var(--numerals); font-variant-numeric: tabular-nums; font-weight: 700; }
+.adj-sec { border: 1px solid var(--rule); border-radius: var(--radius, 3px); margin: 0 0 12px; background: var(--surface); }
+.adj-sec > summary { min-height: var(--tap, 44px); padding: 6px 12px; cursor: pointer; font-weight: 700; font-size: var(--fs-lg); }
+.adj-why { display: block; font-weight: 400; font-size: var(--fs-md); color: var(--ink-2); }
+.adj-list { list-style: none; margin: 0; padding: 0 8px 8px; display: grid; gap: 8px; }
+.adj-card { border: 1px solid var(--rule); border-left: 6px solid var(--ink-3); border-radius: var(--radius, 3px); background: var(--surface-2); }
+.adj-card > details > summary { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; min-height: var(--tap, 44px); padding: 6px 10px; cursor: pointer; }
+.adj-t { font-weight: 700; font-size: var(--fs-lg); }
+.adj-mod { color: var(--ink-2); }
+.adj-st { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); }
+.adj-body { padding: 4px 12px 12px; border-top: 1px solid var(--rule-soft, var(--rule)); }
+.adj-body dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+.adj-body dt { font-weight: 600; color: var(--ink-2); } .adj-body dd { margin: 0; overflow-wrap: anywhere; }
+.adj-body h3 { font-size: var(--fs-md); margin: 12px 0 4px; }
+.adj-body ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.adj-opts { display: grid; gap: 8px; margin: 4px 0; }
+.adj-opt { border: 1px solid var(--rule); border-radius: var(--radius, 3px); padding: 8px 10px; background: var(--surface); }
+.adj-opt b { font-size: var(--fs-lg); }
+.adj-src { color: var(--ink-2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.adj-run { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 12px 0 0; }
+.adj-btn { display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 0 16px; border: 1px dashed var(--ink-3); border-radius: var(--radius, 3px); color: var(--ink-3); background: transparent; cursor: not-allowed; user-select: none; }
+.adj-whynot { color: var(--ink-2); flex: 1 1 260px; }
+.adj-note { color: var(--ink-2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+@media (max-width: 520px) { .adj-body dl { grid-template-columns: 1fr; } }
+</style>
+<div class="adj" id="adjustments">
+<h1>Adjustments</h1>
+<p class="lede">Every adjustment, reset and configuration procedure CUORE knows about, with its status, its source, what it writes and what it reads back. This is the counterpart of the adjustment functions in MultiEcuScan and AlfaOBD, but nothing runs from this screen. A procedure can run only once it is documented from a cited source and accepted by the owner, and then only through the gated session path.</p>
+
+<div class="adj-counts" role="group" aria-label="By status">
+  <span class="adj-chip"><span class="n">{{ b.total }}</span> procedures</span>
+  {% for k in b.order %}
+  <span class="adj-chip"><span aria-hidden="true">{{ b.mark[k] }}</span> <span class="n">{{ b.counts[k] }}</span> {{ b.word[k] }}</span>
+  {% endfor %}
+</div>
+
+{% if not b.total %}<p class="sens-msg" role="alert">No procedure definitions found in cuore/data/procedures.</p>{% endif %}
+{% if b.open_name and not b.known %}<p class="sens-msg" role="alert">No procedure named {{ b.open_name }}.</p>{% endif %}
+{% for g in b.groups %}
+<details class="fold adj-sec" open>
+  <summary>{{ g.label }} ({{ g.cards|length }})<span class="adj-why">{{ g.why }}</span></summary>
+  <ul class="adj-list">
+  {% for c in g.cards %}
+    <li class="adj-card" id="adj-{{ c.name }}">
+      <details class="fold" {% if c.name == b.open_name %}open{% endif %}>
+        <summary>
+          <span class="adj-t">{{ c.title }}</span>
+          <span class="adj-mod">{{ c.module }}</span>
+          <span class="adj-st"><span aria-hidden="true">{{ c.mark }}</span> {{ c.word }}</span>
+        </summary>
+        <div class="adj-body">
+          <dl>
+            <dt>Source</dt><dd>{{ c.source }}</dd>
+            <dt>Writes</dt><dd>{% if c.writes is string %}{{ c.writes }}{% else %}{{ c.writes|join(', ') }}{% endif %}</dd>
+            <dt>Reads back</dt><dd>{{ c.reads_back }}</dd>
+            {% if c.preconditions %}<dt>Conditions</dt><dd>{{ c.preconditions }}</dd>{% endif %}
+            {% if c.follow_up %}<dt>Follow-up</dt><dd>{{ c.follow_up }}</dd>{% endif %}
+            {% if c.mes_runs %}<dt>MES history</dt><dd>Run in MultiEcuScan on {{ c.mes_runs|join(', ') }}</dd>{% endif %}
+          </dl>
+          {% if c.intent %}<p class="adj-note">{{ c.intent }}</p>{% endif %}
+          {% if c.options %}
+          <h3>Options</h3>
+          <div class="adj-opts">
+            {% for o in c.options %}
+            <div class="adj-opt"><b>{{ o.label }}</b><br>{{ o.meaning }}{% if o.source %}<br><span class="adj-src">Source: {{ o.source }}</span>{% endif %}</div>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% if c.risks %}
+          <h3>Risks</h3>
+          <ul>{% for r in c.risks %}<li>{{ r.risk }}{% if r.source %} <span class="adj-src">Source: {{ r.source }}</span>{% endif %}</li>{% endfor %}</ul>
+          {% endif %}
+          {% if c.needs_from_manufacturer %}
+          <h3>Needed from the manufacturer</h3>
+          <ul>{% for n in c.needs_from_manufacturer %}<li>{{ n }}</li>{% endfor %}</ul>
+          {% endif %}
+          {% if c.public_values %}
+          <h3>Public figures (reference only)</h3>
+          <p class="adj-note">{{ c.public_values.note }}. {{ c.public_values.detail }}</p>
+          {% endif %}
+          <div class="adj-run">
+            <span class="adj-btn" role="note" aria-disabled="true">Run (not available)</span>
+            <span class="adj-whynot">{{ c.why_not }}</span>
+          </div>
+        </div>
+      </details>
+    </li>
+  {% endfor %}
+  </ul>
+</details>
+{% endfor %}
+<p class="adj-note">Related: <a href="/v/{{ vin }}/parity">Parity board</a>, which tracks every MES and AlfaOBD function against CUORE, and docs/project/MES_PARITY_PLAN.md.</p>
+</div>
+{% endblock %}

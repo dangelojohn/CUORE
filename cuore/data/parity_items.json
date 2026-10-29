@@ -1,0 +1,2378 @@
+{
+ "_about": "CUORE parity board data, 2026-10-29: every MES and AlfaOBD function a dealership technician uses, with CUORE state and what closes the gap; from MES_PARITY_PLAN, ALFAOBD_GAP, the 2026-10-14 capability matrix, FEATURES.md and notes c9c9dd720c01, dcb76d25442b, fc047a665508, b31c5c5cd2a6. States: car session, build (code only), documents, decision, done. Reviewed 2026-10-29.",
+ "states": {
+  "car_session": "Needs a car session",
+  "build": "Needs a CUORE build",
+  "documents": "Needs manufacturer documents",
+  "decision": "Decision pending",
+  "done": "Done in CUORE"
+ },
+ "groups": {
+  "reads": "Reads and diagnosis",
+  "writes": "Resets and routines",
+  "configuration": "Configuration and coding",
+  "keys": "Keys and security",
+  "buses": "Modules, buses and interfaces",
+  "features": "Day-to-day features",
+  "cuore_only": "CUORE only"
+ },
+ "items": [
+  {
+   "id": "module-scan",
+   "group": "reads",
+   "function": "Module scan (all buses)",
+   "mes": {
+    "has": "yes",
+    "note": "12 modules reached on the reference car"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "ECU identification and status read"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Last full scan answered 5 of 25 rows; needs A5/A6 swaps"
+   },
+   "state": "car_session",
+   "closes": "Session kit: discovery sweep, name and accept responders, then rescan.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6",
+    "docs/FEATURES.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "module-identity",
+   "group": "reads",
+   "function": "Module info / ECU identity",
+   "mes": {
+    "has": "yes",
+    "note": "ISO-code identification per module"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "ECU ID read"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Standard identity DIDs only, not MES's ISO-code set"
+   },
+   "state": "car_session",
+   "closes": "Discovery sweep re-reads ISO 14229 Annex C identity DIDs on every responder.",
+   "refs": [
+    "fc047a665508",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "dtc-read-canc",
+   "group": "reads",
+   "function": "Read fault codes, CAN-C modules",
+   "mes": {
+    "has": "yes",
+    "note": "Decoded, all reached modules"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Fault read with probable causes"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "/codes full; ECM, TCM, BCM, IPC, RFHUB usable"
+   },
+   "state": "done",
+   "closes": "Done; code round on IPC and TCM still to run (see status row).",
+   "refs": [
+    "fc047a665508",
+    "dcb76d25442b"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "dtc-read-can-ch",
+   "group": "reads",
+   "function": "Read fault codes, CAN-CH (grey A6)",
+   "mes": {
+    "has": "yes",
+    "note": "Via A6 cable; ABS reached 2026-09-04"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Grey adapter for second CAN bus"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "No DTC ever read on CAN-CH; 28 sessions identity only"
+   },
+   "state": "car_session",
+   "closes": "Grey-cable ABS code round with confirm flag.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "dtc-read-can-ihs",
+   "group": "reads",
+   "function": "Read fault codes, CAN-IHS (blue A5)",
+   "mes": {
+    "has": "yes",
+    "note": "Via A5 cable"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Blue adapter where required"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Probes only; HVAC never answered; no code read"
+   },
+   "state": "car_session",
+   "closes": "Blue-cable session after discovery names the responders; IHS62/IHS65 unnamed.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "dtc-status-19-02",
+   "group": "reads",
+   "function": "DTC status list (19 02) per module",
+   "mes": {
+    "has": "yes",
+    "note": "Decoded per module"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Fault read"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Never run on ABS, IPC, TCM, ESM"
+   },
+   "state": "car_session",
+   "closes": "Module code round runs 19 02 on IPC and TCM; ESM and DTCM once accepted.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "dtc-text",
+   "group": "reads",
+   "function": "Official DTC descriptions per module and market",
+   "mes": {
+    "has": "yes",
+    "note": "Decoded text"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Probable causes shown"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Text is inferred, not manufacturer-cited"
+   },
+   "state": "documents",
+   "closes": "Manufacturer fault memory definitions: DTC text per module and market.",
+   "refs": [
+    "docs/project/MES_PARITY_PLAN.md",
+    "docs/project/ALFAOBD_GAP.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "freeze-ecm-bcm",
+   "group": "reads",
+   "function": "Freeze frames and snapshots, ECM and BCM",
+   "mes": {
+    "has": "yes",
+    "note": "DTC EX tab, decoded"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Freeze-frame data"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "19 04 layouts for ECM and BCM; Mode 02 ECM"
+   },
+   "state": "done",
+   "closes": "Done for ECM and BCM.",
+   "refs": [
+    "dcb76d25442b",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "freeze-ipc-tcm",
+   "group": "reads",
+   "function": "Freeze frames and snapshots, IPC and TCM",
+   "mes": {
+    "has": "yes",
+    "note": "Decoded"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Freeze-frame data"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Raw bytes only (undecoded_from)"
+   },
+   "state": "car_session",
+   "closes": "Code round collects 19 04 snapshots; layouts then bound with owner accept.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "freeze-abs",
+   "group": "reads",
+   "function": "ABS freeze frame and environmental data",
+   "mes": {
+    "has": "yes",
+    "note": "Op time, startups, brake switches, V, speed, pressures"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Freeze-frame data"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "ABS codes never read; seven fields unbound"
+   },
+   "state": "car_session",
+   "closes": "Grey-cable ABS round, then bind each DID to the seven MES fields.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "freeze-other",
+   "group": "reads",
+   "function": "Freeze frames, ESM, DTCM, DASM, HVAC, ETM and others",
+   "mes": {
+    "has": "yes",
+    "note": "DTC EX tab on reached modules"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Freeze-frame data"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "No layouts; addresses unconfirmed"
+   },
+   "state": "documents",
+   "closes": "Manufacturer 19 04 snapshot layouts per module.",
+   "refs": [
+    "docs/project/MES_PARITY_PLAN.md",
+    "dcb76d25442b"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "dtc-counters-19-06",
+   "group": "reads",
+   "function": "Occurrence and ageing counters (19 06)",
+   "mes": {
+    "has": "yes",
+    "note": "Shown in DTC detail"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Unverified for FCA; read in code round"
+   },
+   "state": "documents",
+   "closes": "Manufacturer meaning of 19 06 counters; car round collects raw values.",
+   "refs": [
+    "docs/project/MES_PARITY_PLAN.md",
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "live-ecm",
+   "group": "reads",
+   "function": "Live data, ECM parameters",
+   "mes": {
+    "has": "yes",
+    "note": "133 parameter names"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Live data with plots"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "About 31 DIDs, 1 confirmed scale"
+   },
+   "state": "documents",
+   "closes": "Manufacturer DID list with scaling and units.",
+   "refs": [
+    "dcb76d25442b",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "live-decode-confirm",
+   "group": "reads",
+   "function": "Confirm shared parameter decodings",
+   "mes": {
+    "has": "yes",
+    "note": "Tagged MES recording is the reference"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Throttle, boost, 1009 flagged suspect"
+   },
+   "state": "car_session",
+   "closes": "MES then CUORE tagged recordings, decode_confirm_run, owner accept.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "live-ipc",
+   "group": "reads",
+   "function": "Live data, IPC",
+   "mes": {
+    "has": "yes",
+    "note": "10 parameters"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Dash live data"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "1 DID (0104 brightness)"
+   },
+   "state": "documents",
+   "closes": "Manufacturer IPC DID list.",
+   "refs": [
+    "dcb76d25442b"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "live-tcm",
+   "group": "reads",
+   "function": "Live data, TCM",
+   "mes": {
+    "has": "partial",
+    "note": "MES has no parameter log for TCM"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Transmission live data"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "86 learned DIDs, none decoded"
+   },
+   "state": "documents",
+   "closes": "Manufacturer TCM DID list with scaling.",
+   "refs": [
+    "dcb76d25442b"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "live-abs-other",
+   "group": "reads",
+   "function": "Live data, ABS and remaining modules",
+   "mes": {
+    "has": "partial",
+    "note": "No parameter logs on other modules"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "ABS and climate live data"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "ABS 0 DIDs"
+   },
+   "state": "documents",
+   "closes": "Manufacturer DID lists per module.",
+   "refs": [
+    "dcb76d25442b",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "mode06-layout",
+   "group": "reads",
+   "function": "Mode 06 record layout check",
+   "mes": {
+    "has": "partial",
+    "note": "Not described in sources"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Layout never checked against a live reply"
+   },
+   "state": "car_session",
+   "closes": "Shudder read now runs mode06_layout check and saves raw reply.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "mode06-scaling",
+   "group": "reads",
+   "function": "Mode 06 test results with limits",
+   "mes": {
+    "has": "partial",
+    "note": "Not described in sources"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Scaling known for UASIDs 01, 0A, 10, 24 only"
+   },
+   "state": "documents",
+   "closes": "Manufacturer Mode 06 test identifiers and scaling for the Marelli ECM.",
+   "refs": [
+    "docs/project/MES_PARITY_PLAN.md",
+    "dcb76d25442b"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "readiness",
+   "group": "reads",
+   "function": "Readiness monitors",
+   "mes": {
+    "has": "partial",
+    "note": "Not covered in the gap study"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Read on the car 2026-10-25/26: readiness per monitor (EVAP, EGR incomplete); EVAP job"
+   },
+   "state": "done",
+   "closes": "Done; readiness read and recorded on the car (notes 4a5d30e4d003, 7ada5cfedef3).",
+   "refs": [
+    "note 4a5d30e4d003",
+    "note 7ada5cfedef3",
+    "job 76d3454bce75"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "permanent-codes",
+   "group": "reads",
+   "function": "Permanent codes (Mode 0A)",
+   "mes": {
+    "has": "partial",
+    "note": "Not covered in the gap study"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Read on the car 2026-10-25/26: permanent P0440 and P0456 held (Mode 0A); EVAP job"
+   },
+   "state": "done",
+   "closes": "Done; permanent codes read and recorded on the car (notes 4a5d30e4d003, 7ada5cfedef3).",
+   "refs": [
+    "note 4a5d30e4d003",
+    "note 7ada5cfedef3",
+    "job 76d3454bce75"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "ibs-battery-read",
+   "group": "reads",
+   "function": "IBS battery sensor read (charge, SoC, SoH)",
+   "mes": {
+    "has": "yes",
+    "note": "BCM Parameters tab, IBS group"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "No CUORE DID for IBS"
+   },
+   "state": "documents",
+   "closes": "Manufacturer BCM DID for IBS values.",
+   "refs": [
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "epb-service",
+   "group": "writes",
+   "function": "Electric parking brake service mode",
+   "mes": {
+    "has": "no",
+    "note": "Native infotainment menu, per owner reports"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Not present"
+   },
+   "state": "decision",
+   "closes": "Not a MES function on this car; owner decides whether it stays on the board.",
+   "refs": [
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "service-interval-reset",
+   "group": "writes",
+   "function": "Service interval reset (IPC)",
+   "mes": {
+    "has": "yes",
+    "note": "Done on car 4 times; km, days, date"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Service light reset"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Definition file, empty steps, awaiting source"
+   },
+   "state": "documents",
+   "closes": "Manufacturer procedure and bytes, then dry run, gate, consent, read-back.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md",
+    "docs/project/ALFAOBD_GAP.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "oil-change-reset",
+   "group": "writes",
+   "function": "Engine oil change reset (ECM)",
+   "mes": {
+    "has": "yes",
+    "note": "Run engine running; done 4 times"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Oil change reset"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Definition empty; interlock needs engine off"
+   },
+   "state": "documents",
+   "closes": "Manufacturer procedure stating engine condition and value written.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md",
+    "docs/project/ALFAOBD_GAP.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "overboost-reset",
+   "group": "writes",
+   "function": "Overboost counter reset (ECM)",
+   "mes": {
+    "has": "yes",
+    "note": "Completed 2025-10-14"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Nothing in CUORE"
+   },
+   "state": "documents",
+   "closes": "Manufacturer procedure; security access need uncertain.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "turbo-replacement",
+   "group": "writes",
+   "function": "Turbocharger replacement reset (ECM)",
+   "mes": {
+    "has": "yes",
+    "note": "Completed 2025-10-14"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Nothing in CUORE"
+   },
+   "state": "documents",
+   "closes": "Manufacturer procedure.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "abs-bleed",
+   "group": "writes",
+   "function": "ABS bleed routine",
+   "mes": {
+    "has": "partial",
+    "note": "ABS reached; bleed not in logs"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "ABS bleed"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Not present"
+   },
+   "state": "documents",
+   "closes": "Manufacturer procedure; ABS reads first.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "trans-calibration",
+   "group": "writes",
+   "function": "Transmission calibration (8HP)",
+   "mes": {
+    "has": "partial",
+    "note": "Not evidenced in logs"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Generic; 8HP scope unknown"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Not present"
+   },
+   "state": "documents",
+   "closes": "Manufacturer procedure and conditions.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "injector-coding",
+   "group": "writes",
+   "function": "Injector coding",
+   "mes": {
+    "has": "partial",
+    "note": "Not evidenced in sources"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "Not found in any source opened"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Not present"
+   },
+   "state": "documents",
+   "closes": "Manufacturer procedure if the engine needs it.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "steering-angle",
+   "group": "writes",
+   "function": "Steering angle sensor calibration",
+   "mes": {
+    "has": "yes",
+    "note": "ABS module, single-source"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "Not found in any source opened"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Write-side, no tool"
+   },
+   "state": "documents",
+   "closes": "Manufacturer routine identifier and conditions.",
+   "refs": [
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md",
+    "docs/project/ALFAOBD_GAP.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "abs-sensor-cal",
+   "group": "writes",
+   "function": "ABS accel and pressure sensor calibration",
+   "mes": {
+    "has": "yes",
+    "note": "ABS Adjustments tab, single-source"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Write-side, no tool"
+   },
+   "state": "documents",
+   "closes": "Manufacturer routines for ABS Continental MK C1.",
+   "refs": [
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "tpms-reset",
+   "group": "writes",
+   "function": "TPMS reference pressure and reset",
+   "mes": {
+    "has": "yes",
+    "note": "RFHub adjustment (MES 4.7R3 and later)"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Likely yes (inference)"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "documents",
+   "closes": "Manufacturer data for RFHub TPMS threshold.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "throttle-relearn",
+   "group": "writes",
+   "function": "Throttle and learned-value reset",
+   "mes": {
+    "has": "partial",
+    "note": "Not evidenced in sources"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "Not found in any source opened"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Not present"
+   },
+   "state": "documents",
+   "closes": "Manufacturer procedure for learned-value resets.",
+   "refs": [
+    "docs/project/MES_PARITY_PLAN.md",
+    "docs/project/ALFAOBD_GAP.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "act-evap",
+   "group": "writes",
+   "function": "Actuator test, EVAP purge/vent valve",
+   "mes": {
+    "has": "yes",
+    "note": "Completed in MES"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Active diagnostics, tests unlisted"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Replay engine built, zero procedures"
+   },
+   "state": "documents",
+   "closes": "Manufacturer routine identifier and conditions into replay engine.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "act-egr",
+   "group": "writes",
+   "function": "Actuator test, EGR solenoid",
+   "mes": {
+    "has": "yes",
+    "note": "Completed in MES"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Active diagnostics, tests unlisted"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Replay engine built, zero procedures"
+   },
+   "state": "documents",
+   "closes": "Manufacturer routine identifier and conditions.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "act-wastegate",
+   "group": "writes",
+   "function": "Actuator test, wastegate solenoid",
+   "mes": {
+    "has": "yes",
+    "note": "Completed in MES"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Active diagnostics, tests unlisted"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Replay engine built, zero procedures"
+   },
+   "state": "documents",
+   "closes": "Manufacturer routine identifier and conditions.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "act-vacuum",
+   "group": "writes",
+   "function": "Actuator test, turbo vacuum valve",
+   "mes": {
+    "has": "yes",
+    "note": "Completed in MES"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Active diagnostics, tests unlisted"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Replay engine built, zero procedures"
+   },
+   "state": "documents",
+   "closes": "Manufacturer routine identifier and conditions.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "act-thermostat",
+   "group": "writes",
+   "function": "Actuator test, electronic thermostat",
+   "mes": {
+    "has": "partial",
+    "note": "Failed: Request out of range every run"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "No working reference exists"
+   },
+   "state": "documents",
+   "closes": "Manufacturer documents explaining why MES failed.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "act-fan",
+   "group": "writes",
+   "function": "Actuator test, cooling fan 1st speed",
+   "mes": {
+    "has": "partial",
+    "note": "Failed: Engine running"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "No working reference exists"
+   },
+   "state": "documents",
+   "closes": "Manufacturer documents explaining why MES failed.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "act-coil-idle",
+   "group": "writes",
+   "function": "Actuator tests, coil and idle/timing",
+   "mes": {
+    "has": "yes",
+    "note": "Listed in capability matrix"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Write-side, no tool"
+   },
+   "state": "documents",
+   "closes": "Manufacturer routine identifiers.",
+   "refs": [
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "act-zf-gear",
+   "group": "writes",
+   "function": "Actuator test, ZF gear shift module",
+   "mes": {
+    "has": "yes",
+    "note": "Actuators tab"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "No OBD-II DID for this actuator"
+   },
+   "state": "documents",
+   "closes": "Manufacturer routine identifier.",
+   "refs": [
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "dpf-regen",
+   "group": "writes",
+   "function": "DPF regeneration",
+   "mes": {
+    "has": "no",
+    "note": "Not applicable to the 2.0T"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Vendor lists it; diesel only"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Not applicable"
+   },
+   "state": "decision",
+   "closes": "Not applicable to the reference car; owner decides whether it stays on the board.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": false
+  },
+  {
+   "id": "air-suspension",
+   "group": "writes",
+   "function": "Air suspension maintenance",
+   "mes": {
+    "has": "no",
+    "note": "Not in sources"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Vendor lists it"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Not applicable"
+   },
+   "state": "decision",
+   "closes": "Not applicable to the reference car; owner decides whether it stays on the board.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md"
+   ],
+   "applies_to_reference_car": false
+  },
+  {
+   "id": "web-write-lock",
+   "group": "writes",
+   "function": "Run a procedure from the web with consent and read-back",
+   "mes": {
+    "has": "yes",
+    "note": "Writes run in MES"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Writes run in AlfaOBD"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Writes MCP-only; hold-to-start token not built"
+   },
+   "state": "documents",
+   "closes": "Procedure page built once procedures exist; 0x2E/0x31 allowlist is an owner rule.",
+   "refs": [
+    "docs/project/MES_PARITY_PLAN.md",
+    "c9c9dd720c01"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "web-clear-codes",
+   "group": "writes",
+   "function": "Clear codes from the web",
+   "mes": {
+    "has": "yes",
+    "note": "Clear plus Monitor DTCs"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Clear and new-fault watch"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "clear_dtcs built, MCP only, no web button"
+   },
+   "state": "decision",
+   "closes": "Owner decision on a web clear button.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "proxi-alignment",
+   "group": "configuration",
+   "function": "PROXI alignment",
+   "mes": {
+    "has": "yes",
+    "note": "CAN Setup procedure"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Works with caveats; some failures reported"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Stays in MES; no roster for this car"
+   },
+   "state": "documents",
+   "closes": "Manufacturer procedure and node roster; owner decided 2026-10-29 to move it in.",
+   "refs": [
+    "docs/project/MES_PARITY_PLAN.md",
+    "docs/project/ALFAOBD_GAP.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "battery-type",
+   "group": "configuration",
+   "function": "Battery type registration",
+   "mes": {
+    "has": "yes",
+    "note": "PROXI byte 63, bits 0-3"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Owner set AGM H8 in AlfaOBD"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Cannot read byte 63; handoff card only"
+   },
+   "state": "documents",
+   "closes": "Manufacturer configuration data; owner decided to move it in.",
+   "refs": [
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "paddle-shifter",
+   "group": "configuration",
+   "function": "Paddle shifter EU or NA behaviour",
+   "mes": {
+    "has": "yes",
+    "note": "Byte 156 bits 4-5, single-source"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Car Configuration Change, search paddle"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "No DID, no read; handoff card"
+   },
+   "state": "documents",
+   "closes": "Manufacturer PROXI map, read method and alignment procedure.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "config-change-tool",
+   "group": "configuration",
+   "function": "Configuration change by name / adjustments screen",
+   "mes": {
+    "has": "yes",
+    "note": "Adjustments screen (F7)"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Car Configuration Change tool"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Adjustments screen absent"
+   },
+   "state": "documents",
+   "closes": "Build once configuration data arrives.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "cfg-cornering",
+   "group": "configuration",
+   "function": "Cornering lights",
+   "mes": {
+    "has": "yes",
+    "note": "Byte 149; one user saw no effect"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Trim dependent"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "documents",
+   "closes": "Manufacturer option list per market.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "cfg-race-mode",
+   "group": "configuration",
+   "function": "Race mode / DNA selector",
+   "mes": {
+    "has": "yes",
+    "note": "Byte 88 (MES 4.5+)"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Unclear"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "documents",
+   "closes": "Manufacturer option list per market.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "cfg-acc",
+   "group": "configuration",
+   "function": "ACC adaptive cruise settings",
+   "mes": {
+    "has": "yes",
+    "note": "CAN Setup cruise settings"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Hardware dependent"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "documents",
+   "closes": "Manufacturer option list per market.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "cfg-window",
+   "group": "configuration",
+   "function": "Window comfort open/close",
+   "mes": {
+    "has": "yes",
+    "note": "Byte 58 bit 1"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Likely"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "documents",
+   "closes": "Manufacturer option list per market.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "cfg-after-wipe",
+   "group": "configuration",
+   "function": "After-wipe",
+   "mes": {
+    "has": "yes",
+    "note": "Byte 126 bit 5"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Likely"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "documents",
+   "closes": "Manufacturer option list per market.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "cfg-seatbelt-chime",
+   "group": "configuration",
+   "function": "Seat belt chime off",
+   "mes": {
+    "has": "yes",
+    "note": "Cluster adjustments"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Likely"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "documents",
+   "closes": "Manufacturer option list per market.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "cfg-compass",
+   "group": "configuration",
+   "function": "Compass display",
+   "mes": {
+    "has": "no",
+    "note": "Not in sources"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Unclear; forum summary only"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "documents",
+   "closes": "Manufacturer option list per market.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "cfg-module-coding",
+   "group": "configuration",
+   "function": "TVM, BCM and ETM module coding",
+   "mes": {
+    "has": "yes",
+    "note": "Per-module Adjustments/Coding tab"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Never performs coding writes"
+   },
+   "state": "documents",
+   "closes": "Manufacturer coding data per module.",
+   "refs": [
+    "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "key-remote-learning",
+   "group": "keys",
+   "function": "Key and remote learning",
+   "mes": {
+    "has": "yes",
+    "note": "Security code entry, per-prompt steps"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "'On some models'; Giulia/Stelvio unconfirmed"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent; 0x27 refused"
+   },
+   "state": "documents",
+   "closes": "Manufacturer security access and procedure; owner decided to move it in.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "security-access",
+   "group": "keys",
+   "function": "Security code entry / UDS 0x27 access",
+   "mes": {
+    "has": "yes",
+    "note": "Asks for security code; algorithms in encrypted DB"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "0x27 refused everywhere by design"
+   },
+   "state": "documents",
+   "closes": "Cited per-module algorithm, allowed only inside a defined procedure.",
+   "refs": [
+    "c9c9dd720c01",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "bcm-commands",
+   "group": "keys",
+   "function": "BCM commands (indicators and similar)",
+   "mes": {
+    "has": "yes",
+    "note": "Indicators command 2026-10-23 asked security code"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Not present"
+   },
+   "state": "documents",
+   "closes": "Manufacturer routine and security access for BCM commands.",
+   "refs": [
+    "c9c9dd720c01"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "mod-main-five",
+   "group": "buses",
+   "function": "ECM, TCM, BCM, IPC, RFHUB reach",
+   "mes": {
+    "has": "yes",
+    "note": "Reached"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Vendor does not list modules per car"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Usable modules"
+   },
+   "state": "done",
+   "closes": "Done for reads.",
+   "refs": [
+    "dcb76d25442b"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "mod-abs",
+   "group": "buses",
+   "function": "ABS (Continental MK C1) reach",
+   "mes": {
+    "has": "yes",
+    "note": "Reached 2026-09-04"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "ABS live data and bleed"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Identity only, grey cable 18DA2AF1"
+   },
+   "state": "car_session",
+   "closes": "Grey-cable ABS code round.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "mod-dtcm-esm-dasm",
+   "group": "buses",
+   "function": "DTCM, ESM, DASM reach",
+   "mes": {
+    "has": "yes",
+    "note": "Reached"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Addresses conflict; DTCM 18DA29F1 unverified"
+   },
+   "state": "car_session",
+   "closes": "Discovery names responders; owner accepts addresses.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "mod-afls-half-pam",
+   "group": "buses",
+   "function": "AFLS, HALF, PAM reach",
+   "mes": {
+    "has": "yes",
+    "note": "Reached 2026-09-04"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "No address"
+   },
+   "state": "documents",
+   "closes": "Manufacturer module-to-bus assignment and addresses.",
+   "refs": [
+    "dcb76d25442b",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "mod-hvac-etm",
+   "group": "buses",
+   "function": "HVAC and ETM reach",
+   "mes": {
+    "has": "yes",
+    "note": "Listed in module set"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Climate live data"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "HVAC and ETM silent"
+   },
+   "state": "documents",
+   "closes": "Manufacturer addresses and bus assignment.",
+   "refs": [
+    "dcb76d25442b",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "bus-can-c",
+   "group": "buses",
+   "function": "CAN-C access",
+   "mes": {
+    "has": "yes",
+    "note": "Standard OBD port"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Standard"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "835 sessions 2026-09-14 to 10-26"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "dcb76d25442b"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "bus-can-ch",
+   "group": "buses",
+   "function": "CAN-CH access (grey A6 cable)",
+   "mes": {
+    "has": "yes",
+    "note": "A6 cable"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Grey adapter"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "28 sessions; no code or parameter read"
+   },
+   "state": "car_session",
+   "closes": "Grey-cable session; cable-free path needs manufacturer.",
+   "refs": [
+    "dcb76d25442b",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "bus-can-ihs",
+   "group": "buses",
+   "function": "CAN-IHS access (blue A5 cable)",
+   "mes": {
+    "has": "yes",
+    "note": "A5 cable"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Blue adapter where needed"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Probes only; IHS62/IHS65 unnamed"
+   },
+   "state": "car_session",
+   "closes": "Blue-cable session with discovery.",
+   "refs": [
+    "dcb76d25442b",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "adapters",
+   "group": "buses",
+   "function": "Adapter support",
+   "mes": {
+    "has": "yes",
+    "note": "vLinker and others"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "OBDLink, ELM327, OBDKey, Kiwi 3, J2534"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "vLinker FS STN1170; 6 PIDs per frame; 18 V pin 13 risk"
+   },
+   "state": "documents",
+   "closes": "Manufacturer supported interface list for dealers.",
+   "refs": [
+    "dcb76d25442b",
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "sgw-gateway",
+   "group": "buses",
+   "function": "Secure gateway access (2018 and later)",
+   "mes": {
+    "has": "yes",
+    "note": "Wrote to ECM without bypass"
+   },
+   "alfaobd": {
+    "has": "partial",
+    "note": "Owner says ran without bypass; no log"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Not gating this car; cables are bus access"
+   },
+   "state": "documents",
+   "closes": "Manufacturer sanctioned gateway route without bypass cables.",
+   "refs": [
+    "docs/project/ALFAOBD_GAP.md",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "monitor-new-codes",
+   "group": "features",
+   "function": "Monitor DTCs, live new-code alert",
+   "mes": {
+    "has": "yes",
+    "note": "Monitor DTCs"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "New-fault monitoring"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Code watch every 10 s with banner"
+   },
+   "state": "done",
+   "closes": "Done; built 2026-10-28.",
+   "refs": [
+    "docs/FEATURES.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "recording-tags",
+   "group": "features",
+   "function": "Keyed recording tags 0-9",
+   "mes": {
+    "has": "yes",
+    "note": "Tags inside a recording"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Keys 0-9 insert TAG rows; renameable"
+   },
+   "state": "done",
+   "closes": "Done; MES-side TAG cell format still to check.",
+   "refs": [
+    "docs/FEATURES.md",
+    "b31c5c5cd2a6"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "graphs",
+   "group": "features",
+   "function": "Live graphs",
+   "mes": {
+    "has": "yes",
+    "note": "1-4 split, click cursor"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Plots"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "1-4 graphs, shared cursor, windows"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "live-sort",
+   "group": "features",
+   "function": "Live list sort and select",
+   "mes": {
+    "has": "yes",
+    "note": "Sort and select all"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Sort done; no select all on Live board"
+   },
+   "state": "build",
+   "closes": "A CUORE build; no documents or car needed. Owner decides whether channel select all is wanted.",
+   "refs": [
+    "docs/FEATURES.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "record-priorities",
+   "group": "features",
+   "function": "Recording per-channel rate and priority 1-5",
+   "mes": {
+    "has": "yes",
+    "note": "Per-channel rate and priority"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "API priorities only; no channel picker"
+   },
+   "state": "build",
+   "closes": "A CUORE build; no documents or car needed. Owner decides whether a gauges channel picker is wanted.",
+   "refs": [
+    "docs/FEATURES.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "adjustments-screen",
+   "group": "features",
+   "function": "Adjustments screen (F7)",
+   "mes": {
+    "has": "yes",
+    "note": "Per-module adjustments list"
+   },
+   "alfaobd": {
+    "has": "yes",
+    "note": "Car Configuration Change"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "documents",
+   "closes": "Build once procedure data arrives.",
+   "refs": [
+    "docs/project/MES_PARITY_PLAN.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "print-pdf",
+   "group": "features",
+   "function": "Print and PDF reports",
+   "mes": {
+    "has": "yes",
+    "note": "Reports"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Print and PDF reports"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "csv-import",
+   "group": "features",
+   "function": "CSV import, export and replay",
+   "mes": {
+    "has": "yes",
+    "note": "Recording CSV"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "CSV import/export, MES replay"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "mes-log-sync",
+   "group": "features",
+   "function": "MES log save and sync",
+   "mes": {
+    "has": "yes",
+    "note": "Logs saved"
+   },
+   "alfaobd": {
+    "has": "no",
+    "note": "Not applicable"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Log saving and MES log sync"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "simulation",
+   "group": "features",
+   "function": "Simulated connection",
+   "mes": {
+    "has": "yes",
+    "note": "Full simulated connect"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Demo data and replay only"
+   },
+   "state": "build",
+   "closes": "A CUORE build; no documents or car needed. Owner decides whether a full simulated connect is wanted.",
+   "refs": [
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "units-settings",
+   "group": "features",
+   "function": "km/mi toggle and folder settings",
+   "mes": {
+    "has": "yes",
+    "note": "Settings"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "no",
+    "note": "Absent"
+   },
+   "state": "build",
+   "closes": "A CUORE build; no documents or car needed. Owner decides; market settings tie to manufacturer item 4.",
+   "refs": [
+    "fc047a665508",
+    "docs/project/MES_PARITY_PLAN.md"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "port-autodetect",
+   "group": "features",
+   "function": "Adapter port auto-detect",
+   "mes": {
+    "has": "yes",
+    "note": "Auto-detect"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "partial",
+    "note": "Port list, no auto-detect"
+   },
+   "state": "build",
+   "closes": "A CUORE build; no documents or car needed. Owner decides.",
+   "refs": [
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "recent-vehicles",
+   "group": "features",
+   "function": "Recent vehicles list",
+   "mes": {
+    "has": "yes",
+    "note": "Recent vehicles"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "not in the gap study"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Done"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "job-workflow",
+   "group": "cuore_only",
+   "function": "Job and evidence workflow",
+   "mes": {
+    "has": "no",
+    "note": "MES has none of the workflow layer"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Job, evidence and verdict gate"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "hypotheses",
+   "group": "cuore_only",
+   "function": "Ranked hypotheses",
+   "mes": {
+    "has": "no",
+    "note": "MES has none of the workflow layer"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Hypotheses with next test per verdict"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "fault-board",
+   "group": "cuore_only",
+   "function": "Fault board with Fixed flow",
+   "mes": {
+    "has": "no",
+    "note": "MES has none"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Priority and one-tap Fixed flow"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "proof-of-repair",
+   "group": "cuore_only",
+   "function": "Proof of repair",
+   "mes": {
+    "has": "no",
+    "note": "MES has none of the workflow layer"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Fixed starts proof by read-back"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "tsb-xref",
+   "group": "cuore_only",
+   "function": "TSB cross-reference",
+   "mes": {
+    "has": "no",
+    "note": "MES has none of the workflow layer"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Bulletin per code with stated reason"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "systems-map",
+   "group": "cuore_only",
+   "function": "Systems dependency map",
+   "mes": {
+    "has": "no",
+    "note": "MES has none"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Built"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "electrical-paths",
+   "group": "cuore_only",
+   "function": "Electrical paths and layout cues",
+   "mes": {
+    "has": "no",
+    "note": "MES has none"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "'Electrical path for' and 'open in layout'"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "parts-catalogue",
+   "group": "cuore_only",
+   "function": "Parts catalogue",
+   "mes": {
+    "has": "no",
+    "note": "MES has none"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Mopar data kept out of git"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "alfacore-bundles",
+   "group": "cuore_only",
+   "function": "Dealer integration, AlfaCore bundles",
+   "mes": {
+    "has": "no",
+    "note": "MES has none of the workflow layer"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Built"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "feedback-store",
+   "group": "cuore_only",
+   "function": "Mechanic feedback store",
+   "mes": {
+    "has": "no",
+    "note": "MES has none of the workflow layer"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Mechanics correct CUORE"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "marque-theming",
+   "group": "cuore_only",
+   "function": "Multi-marque theming",
+   "mes": {
+    "has": "no",
+    "note": "MES has none of the workflow layer"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Data-driven theming"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "did-discovery",
+   "group": "cuore_only",
+   "function": "DID discovery by listening",
+   "mes": {
+    "has": "no",
+    "note": "MES has none"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Read-only"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "scan-health",
+   "group": "cuore_only",
+   "function": "Scan health grading and diffs",
+   "mes": {
+    "has": "no",
+    "note": "MES has none"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Built"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  },
+  {
+   "id": "symptom-timeline",
+   "group": "cuore_only",
+   "function": "Symptom timeline with media",
+   "mes": {
+    "has": "no",
+    "note": "MES has none"
+   },
+   "alfaobd": {
+    "has": "unknown",
+    "note": "published material shows none (inference)"
+   },
+   "cuore": {
+    "has": "yes",
+    "note": "Built"
+   },
+   "state": "done",
+   "closes": "Done.",
+   "refs": [
+    "docs/FEATURES.md",
+    "docs/project/ALFAOBD_GAP.md",
+    "fc047a665508"
+   ],
+   "applies_to_reference_car": true
+  }
+ ]
+}

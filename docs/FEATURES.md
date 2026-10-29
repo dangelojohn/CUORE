@@ -388,3 +388,11 @@ The same data is available to Claude Code through `mes-log-mcp` (log analysis,
 dossier, fault trees, evidence gate) and `obd2-mcp` (live reads, over the
 running CUORE app). `clear_dtcs` and `send_raw` exist only on the MCP surface,
 behind explicit consent flags.
+
+## Parity board
+
+- **Parity board** (`/v/{vin}/parity`, 2026-10-29): every function a technician uses in MultiEcuScan or AlfaOBD with CUORE's state (done / needs a car session / needs manufacturer documents / decision pending) and what closes each gap; filters by state and area, CSV download; data in `cuore/data/parity_items.json`, owner updates in `parity_overrides.json` in the state directory. A row moves to Done only with a recorded side-by-side test on the car.
+
+## Adjustments
+
+- **Adjustments** (`/v/{vin}/adjustments`, `/v/{vin}/adjustments/{name}`, 2026-10-29): every adjustment, reset and configuration procedure CUORE knows, with status (performed and verified / accepted / documented / awaiting source), source, what it writes and what it reads back, options, follow-up, risks and what is needed from the manufacturer. Read-only: no run control exists and no write route; a procedure can run only once it is documented and accepted. Data in `cuore/data/procedures/*.json` (including `paddle_shift_market.json`), logic in `cuore/services/adjustments.py`.

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Parity board — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{# Parity board: every function a technician uses in MES or AlfaOBD, CUORE's state, what closes the gap.
+   No JavaScript: filters are links, groups are details.fold. Status is a mark + a word; colour second.
+   Own <style>: --fs-* tokens only, 44 px targets. Data: cuore/data/parity_items.json (cuore/services/parity.py). #}
+<style>
+.pb { max-width: 1040px; font-size: var(--fs-md); }
+.pb .lede { color: var(--ink-2); margin: 0 0 10px; }
+.pb-counts { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; }
+.pb-chip { display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap, 44px); padding: 0 14px; border: 1px solid var(--rule); border-radius: 999px; text-decoration: none; color: var(--ink); background: var(--surface-2); font-size: var(--fs-md); }
+.pb-chip[aria-current="true"] { border: 2px solid var(--ink); font-weight: 700; }
+.pb-chip .n { font-family: var(--numerals); font-variant-numeric: tabular-nums; font-weight: 700; }
+.pb-ctl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 12px; }
+.pb-ctl b { color: var(--ink-2); margin-right: 4px; }
+.pb-sec { border: 1px solid var(--rule); border-radius: var(--radius, 3px); margin: 0 0 12px; background: var(--surface); }
+.pb-sec > summary { min-height: var(--tap, 44px); padding: 6px 12px; cursor: pointer; font-weight: 700; font-size: var(--fs-lg); }
+.pb-why { display: block; font-weight: 400; font-size: var(--fs-md); color: var(--ink-2); overflow-wrap: anywhere; }
+.pb-list { list-style: none; margin: 0; padding: 0 8px 8px; display: grid; gap: 8px; }
+.pb-row { border: 1px solid var(--rule); border-left: 6px solid var(--pb-c, var(--ink-3)); border-radius: var(--radius, 3px); background: var(--surface-2); }
+.pb-row.s-done { --pb-c: var(--ok); } .pb-row.s-car_session { --pb-c: var(--accent); } .pb-row.s-build { --pb-c: var(--ink-2); } .pb-row.s-documents { --pb-c: var(--sev-chronic, #d9a63c); } .pb-row.s-decision { --pb-c: var(--ink-3); }
+.pb-row > details > summary { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; min-height: var(--tap, 44px); padding: 6px 10px; cursor: pointer; }
+.pb-fn { font-weight: 700; font-size: var(--fs-lg); }
+.pb-grp { color: var(--ink-2); }
+.pb-tools { display: inline-flex; gap: 10px; flex-wrap: wrap; }
+.pb-tool { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 8px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); }
+.pb-tool b { font-size: var(--fs-md); }
+.pb-body { padding: 4px 12px 12px; border-top: 1px solid var(--rule-soft, var(--rule)); }
+.pb-body dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
+.pb-body dt { font-weight: 600; color: var(--ink-2); } .pb-body dd { margin: 0; overflow-wrap: anywhere; }
+.pb-refs { color: var(--ink-2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+@media (max-width: 520px) { .pb-body dl { grid-template-columns: 1fr; } }
+</style>
+<div class="pb" id="parity">
+<h1>Parity board</h1>
+<p class="lede">Every function a technician uses in MultiEcuScan or AlfaOBD, what CUORE does today, and what closes each gap. Order of work: car session first, then what only needs a CUORE build, then documents, then decisions. A row moves to Done only with a recorded side-by-side test on the car. Source: {{ b.about }}</p>
+
+<div class="pb-counts" role="group" aria-label="By state">
+  <a class="pb-chip" href="/v/{{ vin }}/parity{% if b.group %}?group={{ b.group }}{% endif %}" {% if not b.state %}aria-current="true"{% endif %}><span class="n">{{ b.total }}</span> all</a>
+  {% for k in b.state_order %}
+  <a class="pb-chip" href="/v/{{ vin }}/parity?state={{ k }}{% if b.group %}&amp;group={{ b.group }}{% endif %}" {% if b.state == k %}aria-current="true"{% endif %}><span aria-hidden="true">{{ b.state_mark[k] }}</span> <span class="n">{{ b.counts_state[k] }}</span> {{ b.states[k] }}</a>
+  {% endfor %}
+</div>
+<div class="pb-ctl" role="group" aria-label="By area">
+  <b>Area</b>
+  <a class="pb-chip" href="/v/{{ vin }}/parity{% if b.state %}?state={{ b.state }}{% endif %}" {% if not b.group %}aria-current="true"{% endif %}>all</a>
+  {% for g, label in b.groups.items() %}
+  <a class="pb-chip" href="/v/{{ vin }}/parity?group={{ g }}{% if b.state %}&amp;state={{ b.state }}{% endif %}" {% if b.group == g %}aria-current="true"{% endif %}>{{ label }} <span class="n">{{ b.counts_group[g] }}</span></a>
+  {% endfor %}
+  <a class="pb-chip" href="/v/{{ vin }}/parity.csv">Download (CSV)</a>
+</div>
+
+{% if not b.total %}<p class="sens-msg" role="alert">No parity data yet: cuore/data/parity_items.json is missing or empty.</p>{% endif %}
+{% for s in b.sections %}
+<details class="fold pb-sec" {% if s.open %}open{% endif %}>
+  <summary><span aria-hidden="true">{{ s.mark }}</span> {{ s.label }} ({{ s.n }})<span class="pb-why">{{ s.why }}</span></summary>
+  <ul class="pb-list">
+  {% for i in s.rows %}
+    <li class="pb-row s-{{ i.state }}" id="pb-{{ i.id }}">
+      <details class="fold">
+        <summary>
+          <span class="pb-fn">{{ i.function }}</span>
+          <span class="pb-grp">{{ i.group_label }}</span>
+          <span class="pb-tools">
+            <span class="pb-tool" title="MultiEcuScan">MES <b aria-hidden="true">{{ i.mes_mark }}</b> {{ i.mes_word }}</span>
+            <span class="pb-tool" title="AlfaOBD">AlfaOBD <b aria-hidden="true">{{ i.alfaobd_mark }}</b> {{ i.alfaobd_word }}</span>
+            <span class="pb-tool" title="CUORE">CUORE <b aria-hidden="true">{{ i.cuore_mark }}</b> {{ i.cuore_word }}</span>
+          </span>
+        </summary>
+        <div class="pb-body">
+          <dl>
+            <dt>CUORE today</dt><dd>{{ i.cuore.note or i.cuore_word }}</dd>
+            {% if i.mes.note %}<dt>MES</dt><dd>{{ i.mes.note }}</dd>{% endif %}
+            {% if i.alfaobd.note %}<dt>AlfaOBD</dt><dd>{{ i.alfaobd.note }}</dd>{% endif %}
+            <dt>What closes it</dt><dd>{{ i.closes }}</dd>
+            {% if i.override %}<dt>Owner update</dt><dd>{{ i.override.note or "state changed" }}{% if i.override.at %} ({{ i.override.at[:10] }}){% endif %}</dd>{% endif %}
+            {% if not i.applies_to_reference_car %}<dt>Note</dt><dd>Does not apply to the reference car.</dd>{% endif %}
+            {% if i.refs %}<dt>References</dt><dd class="pb-refs">{{ i.refs|join(' · ') }}</dd>{% endif %}
+          </dl>
+        </div>
+      </details>
+    </li>
+  {% endfor %}
+  </ul>
+</details>
+{% endfor %}
+<p class="pb-refs">Related: <a href="/v/{{ vin }}/mes-parameters">MES parameter inventory</a> · docs/project/MES_PARITY_PLAN.md · docs/project/ALFAOBD_GAP.md</p>
+</div>
+{% endblock %}
