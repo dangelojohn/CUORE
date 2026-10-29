@@ -385,6 +385,7 @@
 
 
 <h1 class="job-h1">Job</h1>
+{% if job %}<p class="small no-print"><a href="/v/{{ vin }}/handoff{% if job.id %}?job={{ job.id }}{% endif %}">wiTECH hand-off &rarr;</a></p>{% endif %}
 
 {% if job %}
 <p class="job-call" id="job-call">{% for sg in direction.segs %}{% if sg.href %}<a href="{{ sg.href }}">{{ sg.text }}</a>{% else %}{{ sg.text }}{% endif %}{% endfor %}</p>
@@ -800,6 +801,7 @@
   {{ step_oneliner(11) }}
   <p class="small">
     <a href="/v/{{ vin }}/report.pdf">{{ t('handover_report_pdf') }} &rarr;</a> &middot;
+    <a href="/v/{{ vin }}/handoff">wiTECH hand-off &rarr;</a> &middot;
     <a href="/v/{{ vin }}/labels">{{ t('labels') }} &rarr;</a> &middot;
     <a href="/v/{{ vin }}/inbox">{{ t('inbox') }}{% if job_view.feedback_open_count %} ({{ job_view.feedback_open_count }} {{ t('open_count_suffix') }}){% endif %} &rarr;</a>
   </p>

@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "name": "overboost_counter_reset",
+  "module": "ECM",
+  "title": "Overboost counter reset",
+  "intent": "Clears the engine computer's count of overboost events, normally after a turbocharger or boost-system repair.",
+  "summary": "Clears the engine computer's count of overboost events, normally after a turbocharger or boost-system repair.",
+  "status": "awaiting source",
+  "status_note": "steps is EMPTY on purpose: no bytes, identifiers or procedures are invented. Fill steps only from the manufacturer's documented procedure and cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session comes with the manufacturer's documented steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "unknown",
+    "did": null,
+    "label": "No read method for the current value is known. The manufacturer must supply one so a before and after can be proven.",
+    "module": "ECM",
+    "checks": []
+  },
+  "group": "resets",
+  "conditions": "unknown until documented",
+  "preconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "postconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "verification_rule": "Unknown until the manufacturer documents a read method. Nothing is claimed.",
+  "mes_function": "ECM adjustment: Overboost counter reset",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "needs_from_manufacturer": [
+    "The manufacturer's documented procedure and conditions (engine state, speed, temperature).",
+    "A read method for the current value, so a before and after can be proven.",
+    "Written authority for CUORE to write it, then the existing path: dry run, gate, typed consent, read-back, audit."
+  ],
+  "evidence": [
+    {
+      "source": "docs/research/CONNECTIVITY_AND_SGW.md line 48 (real MES sessions on the ECM: 'Overboost counter reset -> COMPLETED')"
+    },
+    {
+      "source": "docs/research/MES_LOGS_2025-10_TURBO_ERA.md (FESLog_2510142149, 2025-10-14: Adjustment 'Overboost counter reset' COMPLETED; turbo replacement itself owner-attested)"
+    },
+    {
+      "source": "docs/project/MES_PARITY_PLAN.md section 1 item 2"
+    }
+  ],
+  "applies_to_reference_car": true,
+  "accepted_by_owner": false,
+  "mes_runs": [
+    "2025-10-14 FESLog_2510142149 COMPLETED (docs/research/MES_LOGS_2025-10_TURBO_ERA.md)"
+  ]
+}

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}wiTECH hand-off — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{# wiTECH hand-off: what the technician hands over so the wiTECH session covers only what needs it.
+   Built from existing services only (cuore/web/handoff_routes.py). No JavaScript but the Print button's window.print().
+   Own <style>: --fs-* tokens only, 44 px targets. Status is a mark + a word. #}
+<style>
+.ho { max-width: 960px; font-size: var(--fs-md); }
+.ho h1 { font-size: var(--fs-xl); margin: 0 0 6px; }
+.ho h2 { font-size: var(--fs-lg); margin: 22px 0 8px; border-bottom: 1px solid var(--rule); padding-bottom: 4px; }
+.ho h3 { font-size: var(--fs-md); margin: 12px 0 4px; }
+.ho .muted { color: var(--ink-2); }
+.ho-tools { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.ho-btn { display: inline-flex; align-items: center; min-height: var(--tap, 44px); min-width: 44px; padding: 0 16px; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface-2); color: var(--ink); font-size: var(--fs-md); text-decoration: none; cursor: pointer; }
+.ho dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 0; }
+.ho dt { color: var(--ink-2); }
+.ho dd { margin: 0; overflow-wrap: anywhere; }
+.ho table { width: 100%; border-collapse: collapse; font-size: var(--fs-md); }
+.ho th, .ho td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--rule); overflow-wrap: anywhere; }
+.ho th { font-size: var(--fs-sm); color: var(--ink-2); }
+.ho ul { margin: 0; padding-left: 20px; }
+.ho li { margin: 0 0 8px; }
+.ho .why { display: block; color: var(--ink-2); font-size: var(--fs-sm); }
+.ho-foot { margin-top: 24px; padding-top: 8px; border-top: 1px solid var(--rule); color: var(--ink-2); font-size: var(--fs-sm); }
+@media print {
+  .ho h2 { break-after: avoid; }
+  .ho section { break-inside: auto; }
+  .ho #ho-hyps, .ho #ho-needs { break-before: page; }
+  .ho tr, .ho li { break-inside: avoid; }
+}
+</style>
+{% set job = h.job %}
+<div class="ho" data-vin="{{ vin }}">
+  <div class="ho-tools no-print">
+    <button type="button" class="ho-btn" onclick="window.print()">Print</button>
+    <a class="ho-btn" href="/v/{{ vin }}/job{% if job %}/{{ job.id }}{% endif %}">Back to job</a>
+  </div>
+
+  <section id="ho-header">
+    <h1>wiTECH hand-off</h1>
+    <h2>Vehicle and job</h2>
+    <dl>
+      <dt>Vehicle</dt><dd>{{ bar.name }}</dd>
+      <dt>VIN</dt><dd class="mono">{{ vin }}</dd>
+      <dt>Odometer</dt><dd>{% if bar.odo_last is not none %}{{ bar.odo_last|dist }}{% else %}not recorded{% endif %}</dd>
+      {% if job %}
+      <dt>Job</dt><dd class="mono">{{ job.id }} ({{ job.status }})</dd>
+      <dt>Complaint</dt><dd>{{ job.complaint or "none recorded" }}</dd>
+      <dt>Opened</dt><dd>{{ (job.opened_at or "")[:10] }}</dd>
+      {% else %}
+      <dt>Job</dt><dd>No job found for this vehicle. The sections below show what exists.</dd>
+      {% endif %}
+      <dt>Printed</dt><dd>{{ h.printed }}</dd>
+    </dl>
+  </section>
+
+  <section id="ho-codes">
+    <h2>Codes now</h2>
+    <p class="muted">{{ h.present_line }}</p>
+    {% for g in h.codes %}
+      <h3>{{ g.module }}</h3>
+      <table>
+        <thead><tr><th>Code</th><th>Status</th><th>Last read</th><th>Source</th></tr></thead>
+        <tbody>
+        {% for r in g.rows %}
+          <tr><td class="mono">{{ r.code }}<span class="why">{{ r.desc }}</span></td>
+              <td>{{ r.mark }} {{ r.status }}<span class="why">{{ r.detail }}</span></td>
+              <td>{{ r.last_read or "not recorded" }}</td><td>{{ r.source }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No stored, pending or permanent codes are present on the fault board.</p>
+    {% endfor %}
+  </section>
+
+  <section id="ho-evidence">
+    <h2>Evidence</h2>
+    {% if h.evidence %}
+    <table>
+      <thead><tr><th>Reading or record</th><th>Time</th><th>Source</th></tr></thead>
+      <tbody>
+      {% for e in h.evidence %}
+        <tr><td>{{ e.what }}{% if e.side in ("for", "against") %}<span class="why">{{ e.side }} hypothesis: {{ e.hyp }}</span>{% endif %}</td>
+            <td>{{ e.ts or "not recorded" }}</td>
+            <td>{% if e.outside %}outside source{% else %}{{ e.source }}{% endif %}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No readings are attached to this job's hypotheses or to the present codes.</p>
+    {% endif %}
+    <p class="muted">Conclusions rest on these readings only. Anything marked outside source is background, not proof.</p>
+  </section>
+
+  <section id="ho-hyps">
+    <h2>Hypotheses ranked</h2>
+    {% if h.hyps %}
+    <table>
+      <thead><tr><th>Hypothesis</th><th>Status</th><th>Evidence for / against</th><th>Next test</th></tr></thead>
+      <tbody>
+      {% for x in h.hyps %}
+        <tr><td>{{ x.title }}<span class="why">{{ x.system }}{% if x.likelihood %}, likelihood {{ x.likelihood }}{% endif %}</span></td>
+            <td>{{ x.mark }} {{ x.status }}</td>
+            <td>{{ x.n_for }} / {{ x.n_against }}</td>
+            <td>{{ x.next_test or "none recorded" }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No hypotheses are recorded on this job.</p>
+    {% endif %}
+  </section>
+
+  <section id="ho-done">
+    <h2>Already done</h2>
+    {% if h.done %}
+    <ul>
+      {% for d in h.done %}
+        <li><strong>{{ d.kind }}</strong>, {{ d.at or "date not recorded" }}{% if d.clear %} (cleared, not proof){% endif %}<span class="why">{{ d.text }}</span></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No repairs, parts, inspections or clears are recorded on this job.</p>
+    {% endif %}
+  </section>
+
+  <section id="ho-needs">
+    <h2>Needs wiTECH</h2>
+    {% if h.needs %}
+    <ul>
+      {% for n in h.needs %}
+        <li><strong>{{ n.where }}</strong><span class="why">Why wiTECH: {{ n.why }}</span>{% if n.text %}<span class="why">{{ n.text }}</span>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>Nothing on this job needs wiTECH. No hypothesis, action or related parity row mentions it.</p>
+    {% endif %}
+  </section>
+
+  <p class="ho-foot">Prepared by CUORE before wiTECH; readings-only conclusions; outside sources labelled. Generated {{ h.generated }}.</p>
+</div>
+{% endblock %}

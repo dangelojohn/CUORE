@@ -87,7 +87,7 @@ def _card(d: dict[str, Any], verified: set[str]) -> dict[str, Any]:
         "reads_back": reads,
         "preconditions": pre.get("label") or None,
         "options": options,
-        "group": "config" if options else "resets",
+        "group": d.get("group") if d.get("group") in {k for k, _, _ in GROUPS} else ("config" if options else "resets"),
         "follow_up": d.get("follow_up"),
         "risks": d.get("risks") or [],
         "needs_from_manufacturer": d.get("needs_from_manufacturer") or [],

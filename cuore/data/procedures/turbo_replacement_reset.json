@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "name": "turbo_replacement_reset",
+  "module": "ECM",
+  "title": "Turbocharger replacement reset",
+  "intent": "Resets the engine computer's learned turbocharger values after a new turbocharger is fitted.",
+  "summary": "Resets the engine computer's learned turbocharger values after a new turbocharger is fitted.",
+  "status": "awaiting source",
+  "status_note": "steps is EMPTY on purpose: no bytes, identifiers or procedures are invented. Fill steps only from the manufacturer's documented procedure and cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session comes with the manufacturer's documented steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "unknown",
+    "did": null,
+    "label": "No read method for the current value is known. The manufacturer must supply one so a before and after can be proven.",
+    "module": "ECM",
+    "checks": []
+  },
+  "group": "resets",
+  "conditions": "unknown until documented",
+  "preconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "postconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "verification_rule": "Unknown until the manufacturer documents a read method. Nothing is claimed.",
+  "mes_function": "ECM adjustment: Replacement of turbocharger",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "needs_from_manufacturer": [
+    "The manufacturer's documented procedure, what it resets, and its conditions (engine state, speed, temperature).",
+    "A read method for the current value, so a before and after can be proven.",
+    "Written authority for CUORE to write it, then the existing path: dry run, gate, typed consent, read-back, audit."
+  ],
+  "evidence": [
+    {
+      "source": "docs/research/CONNECTIVITY_AND_SGW.md line 48 (real MES sessions on the ECM: 'Replacement of turbocharger -> COMPLETED'; date not stated there)"
+    },
+    {
+      "source": "docs/research/MES_INTEGRATION_SURFACE.md line 116 (MES has 11 'Replacement of *' routines)"
+    },
+    {
+      "source": "docs/project/MES_PARITY_PLAN.md section 1 item 2"
+    }
+  ],
+  "applies_to_reference_car": true,
+  "accepted_by_owner": false
+}

@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "name": "battery_type_registration",
+  "module": "BCM",
+  "title": "Battery type setting and registration (AGM / size)",
+  "intent": "Tells the Body computer which 12 V battery type and size is fitted so the charging logic matches it. Only needed when the new battery differs in type or capacity from the stored setting.",
+  "summary": "Tells the Body computer which 12 V battery type and size is fitted so the charging logic matches it. Only needed when the new battery differs in type or capacity from the stored setting.",
+  "status": "awaiting source",
+  "status_note": "steps is EMPTY on purpose: no bytes, identifiers or procedures are invented. Fill steps only from the manufacturer's documented procedure and cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session comes with the manufacturer's documented steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "unknown",
+    "did": null,
+    "label": "No read method for the current value is known. The manufacturer must supply one so a before and after can be proven.",
+    "module": "BCM",
+    "checks": []
+  },
+  "group": "config",
+  "conditions": "Only when the battery type or capacity changes. Same-type swap: no registration reported (docs/design/CUORE_ADJUSTMENTS_PLAN.md, outside forum reports).",
+  "preconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "Only when the battery type or capacity changes. Same-type swap: no registration reported (docs/design/CUORE_ADJUSTMENTS_PLAN.md, outside forum reports)."
+  },
+  "postconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "verification_rule": "Unknown until the manufacturer documents a read method. Nothing is claimed.",
+  "mes_function": "CAN Setup -> Adjustments -> PROXI byte 63 bits 0-3",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "needs_from_manufacturer": [
+    "The documented battery-type data (block, option names, allowed values) and the IBS (battery sensor) relearn rules.",
+    "A read method for the current value, so a before and after can be proven. The byte 63 value cannot be read by CUORE today.",
+    "The alignment step required afterwards and its preconditions.",
+    "Written authority for CUORE to write it, then the existing path: dry run, gate, typed consent, read-back, audit."
+  ],
+  "evidence": [
+    {
+      "source": "docs/design/CUORE_ADJUSTMENTS_PLAN.md Part 2 (MES path, classed coding, 'static configuration, not a live-learn routine')"
+    },
+    {
+      "source": "docs/project/ALFAOBD_GAP.md section 1 item 12 (forum: an owner set AGM H8 in AlfaOBD then aligned in MES)"
+    },
+    {
+      "source": "docs/maintenance/BATTERY_REGISTRATION_PLAN.md (owner reports the battery was replaced in December 2025 with a correct-size AGM, no registration done; whether byte 63 matches is unknown)"
+    }
+  ],
+  "applies_to_reference_car": true,
+  "accepted_by_owner": false,
+  "follow_up": "PROXI alignment afterwards (docs/maintenance/BATTERY_REGISTRATION_PLAN.md; MES route per docs/design/CUORE_ADJUSTMENTS_PLAN.md Part 2).",
+  "risks": [
+    {
+      "risk": "Wrong type registered; forum reports on the effect on charging are mixed and unconfirmed.",
+      "source": "docs/design/CUORE_ADJUSTMENTS_PLAN.md Part 2"
+    },
+    {
+      "risk": "Interrupted write can leave modules disagreeing (TCM P1500 limp-in recorded on this platform).",
+      "source": "docs/maintenance/BATTERY_REGISTRATION_PLAN.md"
+    }
+  ],
+  "public_values": {
+    "note": "single-source forum figures, recorded for reference only, never to be written",
+    "detail": "CAN Setup, PROXI byte 63, bits 0-3 (MES path per docs/design/CUORE_ADJUSTMENTS_PLAN.md). Forum figures: xxxx0001 = 80Ah 680A (EU default); xxxx0010 = 95Ah 800A (US default); H8 AGM = xxxx1011 (0x8B). Sources: https://www.giuliaforums.com/threads/what-are-proxi-parameters-for-agm-battery-on-giulia-2-2.65519/page-3 and https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80. Byte numbering is a vendor-tool index, not a published DID."
+  }
+}

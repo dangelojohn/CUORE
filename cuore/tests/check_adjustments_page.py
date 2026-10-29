@@ -51,6 +51,8 @@ check(all(r.get("source") for r in pd["risks"]), "paddle: every risk has a sourc
 
 cs = adjustments.cards()
 check(len(cs) >= 3, f"three or more cards ({len(cs)})")
+check(len(cs) == len(files), f"one card per procedure file ({len(cs)} cards, {len(files)} files)")
+check(all(c["group"] in ("resets", "config") for c in cs), "every card has a known group")
 check(all(c["can_run"] is False and c["why_not"] for c in cs), "can_run false everywhere, with a reason")
 by = {c["name"]: c for c in cs}
 check(all(by[n]["status"] == "awaiting source" for n in ("engine_oil_reset", "service_interval_reset", "paddle_shift_market")), "three seed procedures awaiting source")

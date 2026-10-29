@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "name": "key_learning",
+  "module": "BCM",
+  "title": "Key and remote programming (security access needed)",
+  "intent": "Teaches a new key or remote to the car's immobiliser. Needs security access, which CUORE refuses by design until a documented source exists.",
+  "summary": "Teaches a new key or remote to the car's immobiliser. Needs security access, which CUORE refuses by design until a documented source exists.",
+  "status": "awaiting source",
+  "status_note": "steps is EMPTY on purpose: no bytes, identifiers or procedures are invented. Fill steps only from the manufacturer's documented procedure and cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session comes with the manufacturer's documented steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "unknown",
+    "did": null,
+    "label": "No read method for the current value is known. The manufacturer must supply one so a before and after can be proven.",
+    "module": "BCM",
+    "checks": []
+  },
+  "group": "resets",
+  "conditions": "unknown until documented",
+  "preconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "postconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "verification_rule": "Unknown until the manufacturer documents a read method. Nothing is claimed.",
+  "mes_function": "Body -> BCM -> Adjustments -> key learning procedure",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "needs_from_manufacturer": [
+    "The documented key and remote learning procedure for the 952 and 949, including the security access (0x27) method and how the PIN or code is obtained.",
+    "The sanctioned bus route (gateway or cable) for 2018 and later cars.",
+    "A read method for the current value, so a before and after can be proven.",
+    "Written authority for CUORE to write it, then the existing path: dry run, gate, typed consent, read-back, audit."
+  ],
+  "evidence": [
+    {
+      "source": "docs/project/ALFAOBD_GAP.md section 1 item 24 (vendor: key and RF remote programming 'on some models'; a parts listing says Giulia 2018+/Stelvio 2019-2023 needs the gateway bypassed, https://shop.imlss.com/item_view/item/601163; unconfirmed for AlfaOBD)"
+    },
+    {
+      "source": "docs/research/MES_VS_CUORE_CAPABILITY_2026-10-14.md row key_rf_learning (MES: Body -> BCM -> Adjustments tab -> key learning)"
+    },
+    {
+      "source": "docs/project/MES_PARITY_PLAN.md section 1 item 7 (owner moved key learning into CUORE 2026-10-29)"
+    }
+  ],
+  "applies_to_reference_car": "unknown",
+  "accepted_by_owner": false,
+  "risks": [
+    {
+      "risk": "Security access and immobiliser data; CUORE refuses 0x27 by design today.",
+      "source": "docs/project/ALFAOBD_GAP.md section 2"
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "name": "window_comfort",
+  "module": "BCM",
+  "title": "Window comfort open and close",
+  "intent": "Lets the windows open or close from the key or lock button. Likely present.",
+  "summary": "Lets the windows open or close from the key or lock button. Likely present.",
+  "status": "awaiting source",
+  "status_note": "steps is EMPTY on purpose: no bytes, identifiers or procedures are invented. Fill steps only from the manufacturer's documented procedure and cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session comes with the manufacturer's documented steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "unknown",
+    "did": null,
+    "label": "No read method for the current value is known. The manufacturer must supply one so a before and after can be proven.",
+    "module": "BCM",
+    "checks": []
+  },
+  "group": "config",
+  "conditions": "unknown until documented",
+  "preconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "postconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "verification_rule": "Unknown until the manufacturer documents a read method. Nothing is claimed.",
+  "mes_function": "Body computer configuration",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "needs_from_manufacturer": [
+    "The documented configuration data for window comfort open and close: the identifier or block, option names, allowed values and which bits apply per market and model year.",
+    "A read method for the current value, so a before and after can be proven.",
+    "Which trims and markets carry the function, and the default per market.",
+    "Written authority for CUORE to write it, then the existing path: dry run, gate, typed consent, read-back, audit."
+  ],
+  "evidence": [
+    {
+      "source": "docs/project/ALFAOBD_GAP.md section 1 item 20 (tag M, MES-sourced setting AlfaOBD may also offer; INFERENCE for AlfaOBD)"
+    }
+  ],
+  "applies_to_reference_car": "unknown",
+  "accepted_by_owner": false
+}

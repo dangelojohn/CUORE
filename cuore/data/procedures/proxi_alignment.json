@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "name": "proxi_alignment",
+  "module": "BCM",
+  "title": "PROXI alignment (reconcile the car's configuration)",
+  "intent": "Reads the CAN configuration, compares it with the module roster and writes the Body computer's PROXI data so every module agrees. Needed after a module is replaced or reprogrammed.",
+  "summary": "Reads the CAN configuration, compares it with the module roster and writes the Body computer's PROXI data so every module agrees. Needed after a module is replaced or reprogrammed.",
+  "status": "awaiting source",
+  "status_note": "steps is EMPTY on purpose: no bytes, identifiers or procedures are invented. Fill steps only from the manufacturer's documented procedure and cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session comes with the manufacturer's documented steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "unknown",
+    "did": null,
+    "label": "No read method for the current value is known. The manufacturer must supply one so a before and after can be proven.",
+    "module": "BCM",
+    "checks": []
+  },
+  "group": "resets",
+  "conditions": "unknown until documented. docs/design/CUORE_ADJUSTMENTS_PLAN.md notes MES advises battery support; the manufacturer must confirm.",
+  "preconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented. docs/design/CUORE_ADJUSTMENTS_PLAN.md notes MES advises battery support; the manufacturer must confirm."
+  },
+  "postconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "verification_rule": "Unknown until the manufacturer documents a read method. Nothing is claimed.",
+  "mes_function": "CAN Setup / PROXI ALIGNMENT PROCEDURE (952)",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "needs_from_manufacturer": [
+    "The manufacturer's documented alignment procedure for the 952 and 949, including the node roster rules and which result means 'not needed'.",
+    "Preconditions (battery support, engine state), cable or gateway use, failure handling and the restore path for a backed-up configuration.",
+    "A read method for the current value, so a before and after can be proven.",
+    "Written authority for CUORE to write it, then the existing path: dry run, gate, typed consent, read-back, audit."
+  ],
+  "evidence": [
+    {
+      "source": "docs/design/CUORE_ADJUSTMENTS_PLAN.md Part 2 (MES menu CAN Setup / PROXI ALIGNMENT PROCEDURE (952); MES decides by reading the CAN configuration and comparing the node roster)"
+    },
+    {
+      "source": "docs/project/ALFAOBD_GAP.md section 1 item 15; https://www.giuliaforums.com/threads/alfaobd-for-proxi-alignment.58085/ (AlfaOBD names 'Proxy alignment'; forum reports it working on Android, another owner reports failure partway on some modules)"
+    },
+    {
+      "source": "docs/project/DECISIONS.md 2026-10-29 (owner moved PROXI alignment into CUORE)"
+    }
+  ],
+  "applies_to_reference_car": true,
+  "accepted_by_owner": false,
+  "follow_up": "Other write functions that change BCM configuration (paddle market, battery type) require this alignment afterwards (docs/project/ALFAOBD_GAP.md section 3).",
+  "risks": [
+    {
+      "risk": "A failed or partial alignment can leave modules disagreeing; CUORE's own notes record a TCM P1500 limp-in on mismatch, and the BCM already stores B10AA-4A on the reference car.",
+      "source": "docs/design/CUORE_ADJUSTMENTS_PLAN.md Part 2"
+    },
+    {
+      "risk": "Do not align when the tool reports the car is properly configured.",
+      "source": "docs/design/CUORE_ADJUSTMENTS_PLAN.md Part 2 (MES string 1083)"
+    }
+  ]
+}

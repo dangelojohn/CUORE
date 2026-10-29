@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "name": "cornering_lamps",
+  "module": "BCM",
+  "title": "Cornering lamps present or absent",
+  "intent": "Switches the cornering light function on the car's configuration. Trim dependent; one forum user saw no effect.",
+  "summary": "Switches the cornering light function on the car's configuration. Trim dependent; one forum user saw no effect.",
+  "status": "awaiting source",
+  "status_note": "steps is EMPTY on purpose: no bytes, identifiers or procedures are invented. Fill steps only from the manufacturer's documented procedure and cite it in source.",
+  "session": {
+    "bus": "can_c",
+    "bitrate": 500000,
+    "diagnostic_session": null,
+    "note": "bus and bitrate are the confirmed CAN-C values; the diagnostic session comes with the manufacturer's documented steps"
+  },
+  "max_seconds": 10.0,
+  "steps": [],
+  "read_back": {
+    "status": "unknown",
+    "did": null,
+    "label": "No read method for the current value is known. The manufacturer must supply one so a before and after can be proven.",
+    "module": "BCM",
+    "checks": []
+  },
+  "group": "config",
+  "conditions": "unknown until documented",
+  "preconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "postconditions": {
+    "engine_state": null,
+    "voltage_v": null,
+    "label": "unknown until documented"
+  },
+  "verification_rule": "Unknown until the manufacturer documents a read method. Nothing is claimed.",
+  "mes_function": "Body computer configuration",
+  "source": {
+    "kind": "documented",
+    "citation": null,
+    "confidence": "none"
+  },
+  "needs_from_manufacturer": [
+    "The documented configuration data for cornering lamps present or absent: the identifier or block, option names, allowed values and which bits apply per market and model year.",
+    "A read method for the current value, so a before and after can be proven.",
+    "Which trims and markets carry the function, and the default per market.",
+    "Written authority for CUORE to write it, then the existing path: dry run, gate, typed consent, read-back, audit."
+  ],
+  "evidence": [
+    {
+      "source": "docs/project/ALFAOBD_GAP.md section 1 item 17 (tag M, MES-sourced setting AlfaOBD may also offer; INFERENCE for AlfaOBD)"
+    }
+  ],
+  "applies_to_reference_car": "unknown",
+  "accepted_by_owner": false,
+  "public_values": {
+    "note": "single-source forum figures, recorded for reference only, never to be written",
+    "detail": "Body computer, byte 149 (vendor-tool index) per docs/project/ALFAOBD_GAP.md section 1 item 17 citing https://giuliatech.com/t/multiecuscan-mes-popular-settings-compilation/80. Value bits not given in the study."
+  }
+}
