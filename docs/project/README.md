@@ -12,6 +12,7 @@ CUORE is a diagnostic assistant for a mechanic who specialises in one brand and 
 | [DECISIONS.md](DECISIONS.md) | Dated architecture and product decisions, with the reason and the commit where known. |
 | [ROADMAP.md](ROADMAP.md) | Open items: planned work, open tool faults, next on-car tests. |
 | [HISTORY.md](HISTORY.md) | Changelog grouped by month, from git history and session records. |
+| [CORPORATE_ACCEPTANCE_2026-10-29.md](CORPORATE_ACCEPTANCE_2026-10-29.md) | The dealer demo, the manufacturer authorization and funding as reported by the owner, the positioning before wiTECH, what changes and what does not. |
 | [GLOSSARY.md](GLOSSARY.md) | Terms and abbreviations (bus names, adapter commands, UDS services, bulletins, tools). |
 
 ## Core directive (check every feature against it)

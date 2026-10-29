@@ -133,3 +133,8 @@ An EVAP bundle (decoded snapshot, extended data per active EVAP code, Mode 06, r
 **2026-10-20 - README rewritten and FEATURES.md added** (447a46f); architecture doc and an ESIM out-of-car bench-test flowchart (c00d221); captured readings snapshot for the reference car with simulation logs removed (4b061cd, 2df47fe).
 
 **2026-10-23 - jobs.jsonl has one live store and one snapshot.** The live store is `C:\ProgramData\cuore\jobs.jsonl`; `data/captures/stelvio-2018/cuore_state/jobs.jsonl` is a snapshot copied after each change. Agents must append to the live store via `mes.jobs` and then copy it over the snapshot; they are different files. Reconciled tonight as a union (208 records, none dropped).
+
+## Corporate acceptance (2026-10-29)
+
+**2026-10-29 - CUORE is the pre-emptive diagnostic tool used before wiTECH; wiTECH keeps the write side and the final word.**
+Owner decision after Alfa Romeo corporate authorization and funding were reported granted (owner's words: "we will continue with Cuore as a pre-emptive tool that is used to diagnose before Wi-Tech is engaged as that is an expensive tool to use"). CUORE gathers evidence, ranks hypotheses and proves repairs so the wiTECH session is reduced to what only wiTECH can do. Brand permission (Alfa logos, fonts, graphics) and technical access were reported in the same session; the brand package and the technical documents are awaited before either is used; the 2026-10-27 rule (writes only from documented, authoritative sources) is unchanged. Record: CORPORATE_ACCEPTANCE_2026-10-29.md.

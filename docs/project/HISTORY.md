@@ -26,6 +26,8 @@ Changelog grouped by month, summarised from git history (219 commits, 2026-08-27
 - 10-15 Chassis-bus findings: ABS confirmed at 0x2A, identity override, 11-bit discovery, awake judgement, timing fix (48feb5b, 5ddc799); session records (bd4ebee, e8abe8f); bulletin layer, cross-reference engine and catalogue to 99 rows (0cdd74c, 173dc9c); mechanic steps per hypothesis, event dates, sibling analogues (8d9bf34); engine, battery and bus facts (937a5cf).
 - 10-19 Check-engine-lamp visit: legislated route fix (4c35d27); UDS freeze-frame decoder (31eb5b7); CEL diagnosis write-ups, ranking and readings-only ledger (e1e0c68, 821e436, 88e6c96, f76b758); SLVT replica page (bcc62f4); capture net (8dce38d); scan requirements (8edbfe9).
 - 10-20 Architecture document and ESIM out-of-car bench-test flowchart (c00d221); captured readings snapshot for the reference car, simulation logs removed (4b061cd, 2df47fe); README rewritten and FEATURES.md added (447a46f); this project record.
+- 10-28 Dealer visit: recall 93C completed (fuel delivery module replaced), engine and transmission mounts inspected good; CUORE demoed to the dealer's mechanics ("the mechanics loved it"). Recorded in CUORE as a dealer result, job actions and feedback.
+- 10-29 Corporate acceptance reported by the owner: Stellantis / Alfa Romeo Technical Service Manager NA authorized finishing the build for deployment in North America and Europe; permission for technical access and Alfa logos, fonts and graphics; corporate funding granted; Ferrari and Maserati interest; positioning fixed as the pre-emptive tool used before wiTECH. See CORPORATE_ACCEPTANCE_2026-10-29.md.
 
 ## Session records
 
