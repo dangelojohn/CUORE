@@ -14,3 +14,14 @@
 
 - A free, CC-licensed blueprint of the Giulia 952: none on getoutlines.com (the 952 is a paid custom order there) or Wikimedia Commons. Paid vectors exist at the-blueprints.com and getoutlines.com (docs/design/CAR_ART_SOURCES.md). Decision pending with the owner.
 - Official Stellantis line art: request sent to the Alfa contact via the owner (same doc, section 2).
+
+## commons-first-edition-rear-small.jpg (reference only)
+
+- Source: https://commons.wikimedia.org/wiki/File:Alfa_Romeo_STELVIO_FIRST_EDITION_(ABA-94920)_rear.jpg (Tokumeigakarinoaoshima, CC BY-SA 4.0), 2518 x 1864, kept here downscaled to 1259 x 932. Fetched 2026-10-29 with the owner's approval.
+- About 20 to 25 degrees off axis, so it is not a tracing base. It supplied the proportions of the tailgate features (glass, lamps, plate recess, exhaust tips, reflectors) for the constructed rear view; heights came from the side-view trace.
+- No square-on rear photo and no top-down photo of the 949 exists on Commons (2026-10-29 search; tools/view_measurements.json and the search notes).
+
+## Constructed views (tools/construct_views.py)
+
+- Top view: x positions from the side-view trace, widths from the front-view trace and the official tracks; stroked line art, our own work.
+- Rear view: the front-view envelope mirrored (the outer envelope is the same from both ends), feature heights from the side-view trace, feature widths from the reference photograph above; stroked line art, our own work.

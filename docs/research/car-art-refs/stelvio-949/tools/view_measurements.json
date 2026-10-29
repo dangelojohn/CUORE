@@ -1,0 +1,961 @@
+{
+ "side": {
+  "scale_px_per_unit": 1.8203,
+  "ground_y_px": 505,
+  "features": {
+   "nose_tip": {
+    "px": 654,
+    "unit": 60.56,
+    "mm_from_front_axle": -865,
+    "note": "leftmost ink, y~269-360 (bumper face)"
+   },
+   "headlamp_front": {
+    "px": 676,
+    "unit": 72.65,
+    "mm_from_front_axle": -790,
+    "note": "crop-measured, y230-289"
+   },
+   "headlamp_rear": {
+    "px": 804,
+    "unit": 142.97,
+    "mm_from_front_axle": -350,
+    "note": "upper tip of lamp, slim"
+   },
+   "cowl_peak_bonnet_high": {
+    "px": 1014,
+    "unit": 258.33,
+    "mm_from_front_axle": 371,
+    "note": "bonnet topline max y164"
+   },
+   "A_pillar_base_bonnet_shutline": {
+    "px": 1046,
+    "unit": 275.91,
+    "mm_from_front_axle": 481,
+    "note": "profile turns from flat to windscreen slope; y166"
+   },
+   "windscreen_top_roof_start": {
+    "px": 1400,
+    "unit": 470.38,
+    "mm_from_front_axle": 1696,
+    "note": "slope <0.1 px/px from here; y18; roof peak y16 at 1434-1514"
+   },
+   "B_pillar_centre_top(y60)": {
+    "px": 1444,
+    "unit": 494.56,
+    "mm_from_front_axle": 1847,
+    "note": "B-pillar lines 1428/1444/1459 at y60"
+   },
+   "B_pillar_centre_mid(y140)": {
+    "px": 1423,
+    "unit": 483.02,
+    "mm_from_front_axle": 1775,
+    "note": ""
+   },
+   "B_pillar_centre_low(y300)": {
+    "px": 1396,
+    "unit": 468.19,
+    "mm_from_front_axle": 1682,
+    "note": "door split line at sill ~1390"
+   },
+   "front_door_front_edge(y200-380)": {
+    "px": 1091,
+    "unit": 300.63,
+    "mm_from_front_axle": 635,
+    "note": "1091 at y200 -> 1102 at y380"
+   },
+   "front_rear_door_split(y300)": {
+    "px": 1396,
+    "unit": 468.19,
+    "mm_from_front_axle": 1682,
+    "note": "= B-pillar line, slants 1423@y140 to 1390@y380"
+   },
+   "rear_door_rear_edge_top(y150)": {
+    "px": 1718,
+    "unit": 645.08,
+    "mm_from_front_axle": 2788,
+    "note": "slants to ~1688 at y240"
+   },
+   "C_pillar_rear_door_glass_end": {
+    "px": 1718,
+    "unit": 645.08,
+    "mm_from_front_axle": 2788,
+    "note": "glass rear end at y100-140"
+   },
+   "rear_glass_start_top(roof/tailgate junction, spoiler base)": {
+    "px": 1694,
+    "unit": 631.9,
+    "mm_from_front_axle": 2706,
+    "note": "profile drops y16->29 at 1690; antenna fin 1646-1690 peaks y10"
+   },
+   "roof_spoiler_trailing_edge(tailgate rear edge at spoiler)": {
+    "px": 1854,
+    "unit": 719.79,
+    "mm_from_front_axle": 3255,
+    "note": "y48; below it step to y73 at 1858"
+   },
+   "tail_lamp_level_rear": {
+    "px": 1994,
+    "unit": 796.7,
+    "mm_from_front_axle": 3736,
+    "note": "y144"
+   },
+   "tail_tip_bumper": {
+    "px": 2021,
+    "unit": 811.54,
+    "mm_from_front_axle": 3828,
+    "note": "y~360"
+   },
+   "mirror_front": {
+    "px": 1133,
+    "unit": 323.7,
+    "mm_from_front_axle": 779,
+    "note": "crop-measured"
+   },
+   "mirror_rear": {
+    "px": 1200,
+    "unit": 360.51,
+    "mm_from_front_axle": 1009,
+    "note": ""
+   }
+  },
+  "mirror_height_band_px_y": [
+   124,
+   175
+  ],
+  "mirror_height_band_mm_above_ground": [
+   1133,
+   1308
+  ],
+  "roof_y": {
+   "front(x1400)": {
+    "x_px": 1400,
+    "y_px": 18,
+    "x_unit": 470.38,
+    "height_above_ground_mm": 1672
+   },
+   "middle(x1474)": {
+    "x_px": 1474,
+    "y_px": 16,
+    "x_unit": 511.04,
+    "height_above_ground_mm": 1679
+   },
+   "rear(x1620)": {
+    "x_px": 1620,
+    "y_px": 22,
+    "x_unit": 591.24,
+    "height_above_ground_mm": 1658
+   },
+   "peak": {
+    "x_px": 1434,
+    "y_px": 16,
+    "x_unit": 489.06,
+    "height_above_ground_mm": 1679
+   }
+  },
+  "bonnet_y": {
+   "nose(x658)": {
+    "x_px": 658,
+    "y_px": 255,
+    "x_unit": 62.76,
+    "height_above_ground_mm": 858
+   },
+   "nose_x700": {
+    "x_px": 700,
+    "y_px": 230,
+    "x_unit": 85.83,
+    "height_above_ground_mm": 944
+   },
+   "middle(x850)": {
+    "x_px": 850,
+    "y_px": 186,
+    "x_unit": 168.24,
+    "height_above_ground_mm": 1095
+   },
+   "A_pillar_base(x1046)": {
+    "x_px": 1046,
+    "y_px": 166,
+    "x_unit": 275.91,
+    "height_above_ground_mm": 1164
+   },
+   "cowl_peak(x1014)": {
+    "x_px": 1014,
+    "y_px": 164,
+    "x_unit": 258.33,
+    "height_above_ground_mm": 1171
+   }
+  },
+  "beltline_y_approx": "glass lower edge ~ y165-175 at x1180-1400",
+  "top_profile_every20px": [
+   [
+    656,
+    262
+   ],
+   [
+    676,
+    243
+   ],
+   [
+    696,
+    233
+   ],
+   [
+    716,
+    224
+   ],
+   [
+    736,
+    216
+   ],
+   [
+    756,
+    209
+   ],
+   [
+    776,
+    203
+   ],
+   [
+    796,
+    198
+   ],
+   [
+    816,
+    193
+   ],
+   [
+    836,
+    189
+   ],
+   [
+    856,
+    185
+   ],
+   [
+    876,
+    182
+   ],
+   [
+    896,
+    178
+   ],
+   [
+    916,
+    175
+   ],
+   [
+    936,
+    173
+   ],
+   [
+    956,
+    170
+   ],
+   [
+    976,
+    168
+   ],
+   [
+    996,
+    166
+   ],
+   [
+    1016,
+    164
+   ],
+   [
+    1036,
+    167
+   ],
+   [
+    1056,
+    159
+   ],
+   [
+    1076,
+    144
+   ],
+   [
+    1096,
+    131
+   ],
+   [
+    1116,
+    117
+   ],
+   [
+    1136,
+    105
+   ],
+   [
+    1156,
+    93
+   ],
+   [
+    1176,
+    81
+   ],
+   [
+    1196,
+    70
+   ],
+   [
+    1216,
+    60
+   ],
+   [
+    1236,
+    50
+   ],
+   [
+    1256,
+    41
+   ],
+   [
+    1276,
+    35
+   ],
+   [
+    1296,
+    30
+   ],
+   [
+    1316,
+    26
+   ],
+   [
+    1336,
+    24
+   ],
+   [
+    1356,
+    21
+   ],
+   [
+    1376,
+    19
+   ],
+   [
+    1396,
+    18
+   ],
+   [
+    1416,
+    17
+   ],
+   [
+    1436,
+    16
+   ],
+   [
+    1456,
+    16
+   ],
+   [
+    1476,
+    16
+   ],
+   [
+    1496,
+    16
+   ],
+   [
+    1516,
+    17
+   ],
+   [
+    1536,
+    17
+   ],
+   [
+    1556,
+    18
+   ],
+   [
+    1576,
+    19
+   ],
+   [
+    1596,
+    20
+   ],
+   [
+    1616,
+    22
+   ],
+   [
+    1636,
+    23
+   ],
+   [
+    1656,
+    18
+   ],
+   [
+    1676,
+    10
+   ],
+   [
+    1696,
+    29
+   ],
+   [
+    1716,
+    31
+   ],
+   [
+    1736,
+    33
+   ],
+   [
+    1756,
+    35
+   ],
+   [
+    1776,
+    37
+   ],
+   [
+    1796,
+    40
+   ],
+   [
+    1816,
+    43
+   ],
+   [
+    1836,
+    45
+   ],
+   [
+    1856,
+    72
+   ],
+   [
+    1876,
+    81
+   ],
+   [
+    1896,
+    91
+   ],
+   [
+    1916,
+    101
+   ],
+   [
+    1936,
+    112
+   ],
+   [
+    1956,
+    124
+   ],
+   [
+    1976,
+    136
+   ],
+   [
+    1996,
+    162
+   ],
+   [
+    2016,
+    242
+   ]
+  ],
+  "top_profile_every4px_note": "fine profile in console; slopes: windscreen ~ -2.9px/4px? (x1050-1250 : y163->43, 0.6 px/px)"
+ },
+ "front": {
+  "scale_units_per_px": 0.5314,
+  "centre_px": 316.5,
+  "tyre_bottom_y": 502,
+  "silhouette_profile": [
+   {
+    "y": 20,
+    "left": 178,
+    "right": 454,
+    "width_px": 276,
+    "width_mm": 917
+   },
+   {
+    "y": 30,
+    "left": 141,
+    "right": 491,
+    "width_px": 350,
+    "width_mm": 1162
+   },
+   {
+    "y": 40,
+    "left": 134,
+    "right": 499,
+    "width_px": 365,
+    "width_mm": 1212
+   },
+   {
+    "y": 50,
+    "left": 127,
+    "right": 506,
+    "width_px": 379,
+    "width_mm": 1259
+   },
+   {
+    "y": 60,
+    "left": 121,
+    "right": 512,
+    "width_px": 391,
+    "width_mm": 1299
+   },
+   {
+    "y": 70,
+    "left": 115,
+    "right": 518,
+    "width_px": 403,
+    "width_mm": 1338
+   },
+   {
+    "y": 80,
+    "left": 109,
+    "right": 523,
+    "width_px": 414,
+    "width_mm": 1375
+   },
+   {
+    "y": 90,
+    "left": 104,
+    "right": 528,
+    "width_px": 424,
+    "width_mm": 1408
+   },
+   {
+    "y": 100,
+    "left": 99,
+    "right": 533,
+    "width_px": 434,
+    "width_mm": 1441
+   },
+   {
+    "y": 110,
+    "left": 95,
+    "right": 538,
+    "width_px": 443,
+    "width_mm": 1471
+   },
+   {
+    "y": 120,
+    "left": 91,
+    "right": 542,
+    "width_px": 451,
+    "width_mm": 1498
+   },
+   {
+    "y": 130,
+    "left": 19,
+    "right": 620,
+    "width_px": 601,
+    "width_mm": 1996
+   },
+   {
+    "y": 140,
+    "left": 9,
+    "right": 632,
+    "width_px": 623,
+    "width_mm": 2069
+   },
+   {
+    "y": 150,
+    "left": 7,
+    "right": 634,
+    "width_px": 627,
+    "width_mm": 2082
+   },
+   {
+    "y": 160,
+    "left": 14,
+    "right": 627,
+    "width_px": 613,
+    "width_mm": 2036
+   },
+   {
+    "y": 170,
+    "left": 25,
+    "right": 617,
+    "width_px": 592,
+    "width_mm": 1966
+   },
+   {
+    "y": 180,
+    "left": 46,
+    "right": 586,
+    "width_px": 540,
+    "width_mm": 1793
+   },
+   {
+    "y": 190,
+    "left": 45,
+    "right": 587,
+    "width_px": 542,
+    "width_mm": 1800
+   },
+   {
+    "y": 200,
+    "left": 42,
+    "right": 591,
+    "width_px": 549,
+    "width_mm": 1823
+   },
+   {
+    "y": 210,
+    "left": 44,
+    "right": 588,
+    "width_px": 544,
+    "width_mm": 1807
+   },
+   {
+    "y": 220,
+    "left": 44,
+    "right": 588,
+    "width_px": 544,
+    "width_mm": 1807
+   },
+   {
+    "y": 230,
+    "left": 43,
+    "right": 589,
+    "width_px": 546,
+    "width_mm": 1813
+   },
+   {
+    "y": 240,
+    "left": 43,
+    "right": 590,
+    "width_px": 547,
+    "width_mm": 1817
+   },
+   {
+    "y": 250,
+    "left": 42,
+    "right": 591,
+    "width_px": 549,
+    "width_mm": 1823
+   },
+   {
+    "y": 260,
+    "left": 42,
+    "right": 591,
+    "width_px": 549,
+    "width_mm": 1823
+   },
+   {
+    "y": 270,
+    "left": 42,
+    "right": 590,
+    "width_px": 548,
+    "width_mm": 1820
+   },
+   {
+    "y": 280,
+    "left": 42,
+    "right": 590,
+    "width_px": 548,
+    "width_mm": 1820
+   },
+   {
+    "y": 290,
+    "left": 40,
+    "right": 593,
+    "width_px": 553,
+    "width_mm": 1837
+   },
+   {
+    "y": 300,
+    "left": 36,
+    "right": 596,
+    "width_px": 560,
+    "width_mm": 1860
+   },
+   {
+    "y": 310,
+    "left": 36,
+    "right": 597,
+    "width_px": 561,
+    "width_mm": 1863
+   },
+   {
+    "y": 320,
+    "left": 35,
+    "right": 598,
+    "width_px": 563,
+    "width_mm": 1870
+   },
+   {
+    "y": 330,
+    "left": 35,
+    "right": 598,
+    "width_px": 563,
+    "width_mm": 1870
+   },
+   {
+    "y": 340,
+    "left": 34,
+    "right": 599,
+    "width_px": 565,
+    "width_mm": 1877
+   },
+   {
+    "y": 350,
+    "left": 34,
+    "right": 599,
+    "width_px": 565,
+    "width_mm": 1877
+   },
+   {
+    "y": 360,
+    "left": 34,
+    "right": 599,
+    "width_px": 565,
+    "width_mm": 1877
+   },
+   {
+    "y": 370,
+    "left": 34,
+    "right": 599,
+    "width_px": 565,
+    "width_mm": 1877
+   },
+   {
+    "y": 380,
+    "left": 33,
+    "right": 600,
+    "width_px": 567,
+    "width_mm": 1883
+   },
+   {
+    "y": 390,
+    "left": 33,
+    "right": 600,
+    "width_px": 567,
+    "width_mm": 1883
+   },
+   {
+    "y": 400,
+    "left": 32,
+    "right": 601,
+    "width_px": 569,
+    "width_mm": 1890
+   },
+   {
+    "y": 410,
+    "left": 32,
+    "right": 601,
+    "width_px": 569,
+    "width_mm": 1890
+   },
+   {
+    "y": 420,
+    "left": 32,
+    "right": 602,
+    "width_px": 570,
+    "width_mm": 1893
+   },
+   {
+    "y": 430,
+    "left": 31,
+    "right": 602,
+    "width_px": 571,
+    "width_mm": 1896
+   },
+   {
+    "y": 440,
+    "left": 31,
+    "right": 602,
+    "width_px": 571,
+    "width_mm": 1896
+   },
+   {
+    "y": 450,
+    "left": 31,
+    "right": 603,
+    "width_px": 572,
+    "width_mm": 1900
+   },
+   {
+    "y": 460,
+    "left": 30,
+    "right": 603,
+    "width_px": 573,
+    "width_mm": 1903
+   },
+   {
+    "y": 470,
+    "left": 30,
+    "right": 603,
+    "width_px": 573,
+    "width_mm": 1903
+   },
+   {
+    "y": 480,
+    "left": 32,
+    "right": 601,
+    "width_px": 569,
+    "width_mm": 1890
+   },
+   {
+    "y": 490,
+    "left": 33,
+    "right": 600,
+    "width_px": 567,
+    "width_mm": 1883
+   },
+   {
+    "y": 500,
+    "left": 52,
+    "right": 581,
+    "width_px": 529,
+    "width_mm": 1757
+   },
+   {
+    "y": 502,
+    "left": 67,
+    "right": 567,
+    "note": "tyre contact patches only"
+   }
+  ],
+  "mirrors_widest": {
+   "px": [
+    7,
+    634
+   ],
+   "width_px": 627,
+   "width_units": 333.2,
+   "width_mm": 2082,
+   "note": "y100-180; mirror band y~118-179; left mirror x7-99, right 540-634"
+  },
+  "mirror_each_width_px": [
+   92,
+   94
+  ],
+  "roof_top_flat": {
+   "px": [
+    233,
+    401
+   ],
+   "width_px": 168,
+   "width_units": 89.3,
+   "width_mm": 558,
+   "note": "y16 topmost flat"
+  },
+  "roof_width_y20": {
+   "px": [
+    178,
+    454
+   ],
+   "width_px": 276,
+   "width_units": 146.7,
+   "width_mm": 917,
+   "note": "20px below top"
+  },
+  "roof_width_y30": {
+   "px": [
+    141,
+    491
+   ],
+   "width_px": 350,
+   "width_units": 186.0,
+   "width_mm": 1162,
+   "note": "pillars flare; roofline edge"
+  },
+  "windscreen_glass_top_y50": {
+   "px": [
+    155,
+    478
+   ],
+   "width_px": 323,
+   "width_units": 171.6,
+   "width_mm": 1073,
+   "note": "approx, glass top edge y~48"
+  },
+  "windscreen_glass_bottom_y160": {
+   "px": [
+    94,
+    538
+   ],
+   "width_px": 444,
+   "width_units": 235.9,
+   "width_mm": 1475,
+   "note": "approx, at bonnet shutline"
+  },
+  "bonnet_shutline_y165": {
+   "px": [
+    84,
+    549
+   ],
+   "width_px": 465,
+   "width_units": 247.1,
+   "width_mm": 1544,
+   "note": "approx outer body at shut line"
+  },
+  "body_beltline_y190": {
+   "px": [
+    45,
+    587
+   ],
+   "width_px": 542,
+   "width_units": 288.0,
+   "width_mm": 1800,
+   "note": ""
+  },
+  "body_at_sill_y440": {
+   "px": [
+    31,
+    602
+   ],
+   "width_px": 571,
+   "width_units": 303.4,
+   "width_mm": 1896,
+   "note": ""
+  },
+  "body_max_y470": {
+   "px": [
+    30,
+    603
+   ],
+   "width_px": 573,
+   "width_units": 304.5,
+   "width_mm": 1903,
+   "note": ""
+  },
+  "tyre_left": {
+   "outer_inner_px": [
+    30,
+    119
+   ],
+   "width_px": 89,
+   "width_mm": 296,
+   "contact_patch_px": [
+    67,
+    97
+   ],
+   "centre_px": 82
+  },
+  "tyre_right": {
+   "outer_inner_px": [
+    513,
+    603
+   ],
+   "width_px": 90,
+   "width_mm": 299,
+   "contact_patch_px": [
+    534,
+    567
+   ],
+   "centre_px": 550.5
+  },
+  "track_px": 468.5,
+  "track_units": 249.0,
+  "track_mm": 1556,
+  "tyre_centre_x_units": [
+   75.39,
+   324.35
+  ]
+ }
+}

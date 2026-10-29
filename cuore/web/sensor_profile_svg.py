@@ -181,15 +181,33 @@ def _dimension_lines(platform: str = "stelvio-949") -> str:
             + "</g>")
 
 
+_STROKE = 'fill="none" stroke="var(--ink-2)" stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"'
+
+
+def _stroked(view_art: dict[str, Any], fill_opacity: str = "1") -> str:
+    """Silhouette fill + stroked line work (+ dashed wheel outlines) for a constructed view."""
+    p = []
+    if view_art.get("silhouette"):
+        p.append(f'<path d="{view_art["silhouette"]}" fill="var(--surface)" fill-opacity="{fill_opacity}" stroke="none"/>')
+    if view_art.get("wheels"):
+        p.append(f'<path d="{view_art["wheels"]}" fill="var(--ink-3)" fill-opacity="0.16" stroke="var(--ink-3)" '
+                 f'stroke-width="0.9" stroke-dasharray="4 3"/>')
+    if view_art.get("strokes"):
+        p.append(f'<path d="{view_art["strokes"]}" {_STROKE}/>')
+    return "".join(p)
+
+
 def _car_front_art(platform: str = "stelvio-949", view: str = "front") -> str:
     """The traced FRONT (or REAR) view ink over its silhouette (400x360 frame), or just the ground line if no art."""
     fr = (_art(platform).get(view) or {})
     p = ['<g class="car-art" aria-hidden="true">',
          f'<line x1="16" y1="{_GROUND}" x2="{_FRONT_W - 16}" y2="{_GROUND}" stroke="var(--rule)" stroke-width="1"/>']
-    if fr.get("silhouette"):
-        p.append(f'<path d="{fr["silhouette"]}" fill="var(--surface)" stroke="none"/>')
     if fr.get("ink"):
+        if fr.get("silhouette"):
+            p.append(f'<path d="{fr["silhouette"]}" fill="var(--surface)" stroke="none"/>')
         p.append(f'<path d="{fr["ink"]}" fill="var(--ink-2)" fill-rule="evenodd" stroke="none"/>')
+    else:
+        p.append(_stroked(fr))
     p.append("</g>")
     return "".join(p)
 
@@ -425,7 +443,8 @@ def _rear_anchor(item: dict[str, Any]) -> Optional[tuple[str, float, float]]:
 
 def has_view(view: str, platform: str = "stelvio-949") -> bool:
     """True when the art file carries ink for ``view`` (side, front, rear, top)."""
-    return bool((_art(platform).get(view) or {}).get("ink"))
+    v = _art(platform).get(view) or {}
+    return bool(v.get("ink") or v.get("strokes"))
 
 
 def _front_anchor(item: dict[str, Any]) -> Optional[tuple[str, float, float]]:
@@ -496,11 +515,10 @@ def _car_top_art() -> str:
     """Plan view, nose LEFT. From the art file when it carries a "top" view (constructed from the side and
     front traces and the official dimensions); otherwise the proportional drawing below."""
     tp = _art().get("top") or {}
-    if tp.get("ink"):
-        p = ['<g class="car-art" aria-hidden="true">']
-        if tp.get("silhouette"):
-            p.append(f'<path d="{tp["silhouette"]}" fill="var(--surface)" fill-opacity="0.9" stroke="none"/>')
-        p.append(f'<path d="{tp["ink"]}" fill="var(--ink-2)" fill-rule="evenodd" stroke="none"/>')
+    if tp.get("ink") or tp.get("strokes"):
+        p = ['<g class="car-art" aria-hidden="true">', _stroked(tp, "0.9") if not tp.get("ink") else
+             (f'<path d="{tp["silhouette"]}" fill="var(--surface)" fill-opacity="0.9" stroke="none"/>' if tp.get("silhouette") else "")
+             + f'<path d="{tp["ink"]}" fill="var(--ink-2)" fill-rule="evenodd" stroke="none"/>']
         t = 'font-size="9" fill="var(--ink-3)" letter-spacing="1" font-family="var(--sans), sans-serif"'
         p.append(f'<text x="18" y="172" {t}>FRONT</text><text x="848" y="40" text-anchor="end" {t}>RIGHT SIDE</text>'
                  f'<text x="848" y="368" text-anchor="end" {t}>LEFT SIDE (driver)</text></g>')
@@ -834,7 +852,9 @@ def sensor_map(items: list[dict[str, Any]], *, href_prefix: str = "sensor-", clu
                 + "; ".join(f"{escape(n)} ({k})" for n, k in fh) + "</p>") if fh else ""
     fnote = hidden_note("front")
     rear_fig = ("<figure class=\"sv-fig sv-rearv\"><figcaption>Rear view: facing the tailgate; the car's left (driver's) "
-                f'side is on the left.</figcaption><div class="sv-scroll sv-scroll-front">{rear}</div>'
+                f'side is on the left. Constructed: outline from the front drawing, heights from the side drawing, '
+                f'tailgate proportions from a CC BY-SA photograph (credit in the art file).</figcaption>'
+                f'<div class="sv-scroll sv-scroll-front">{rear}</div>'
                 f'{hidden_note("rear")}{unl(rg)}</figure>') if rear_ok else ""
     rear_in = f'<input class="sv-radio" type="radio" name="sv-view" id="sv-rear"{" checked" if rear_on else ""}>' if rear_ok else ""
     rear_tab = '<label for="sv-rear">Rear</label>' if rear_ok else ""
@@ -850,7 +870,8 @@ def sensor_map(items: list[dict[str, Any]], *, href_prefix: str = "sensor-", clu
             f'<a href="{c["licence"]}" rel="noopener">licence</a>). Dimensions: homologation figures, '
             f'{escape((_dims().get("status") or "unsourced"))}, see cuore/data/vehicle_dimensions.json.</p></figure>'
             "<figure class=\"sv-fig sv-topv\"><figcaption>Top view: looking down, front to the left; left (driver's) "
-            f'side at the bottom, right side at the top.</figcaption><div class="sv-scroll">{top}</div>{unl(tg)}</figure>'
+            f'side at the bottom, right side at the top. Constructed from the side and front drawings and the official '
+            f'dimensions.</figcaption><div class="sv-scroll">{top}</div>{unl(tg)}</figure>'
             "<figure class=\"sv-fig sv-frontv\"><figcaption>Front view: facing the nose; the car's left (driver's) side is on the "
             f'right. Traced from the same drawing as the side view.</figcaption><div class="sv-scroll sv-scroll-front">{front}</div>'
             f'{fnote}{unl(fg)}</figure>{rear_fig}</div>')
