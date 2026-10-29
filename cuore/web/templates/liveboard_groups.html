@@ -7,6 +7,12 @@
     <div class="lb-chan-name">{{ label or c.name }}</div>
     {% if c.note %}<div class="lb-chan-band">{{ c.note }}</div>{% endif %}
     {% if c.conf %}<span class="lb-conf">{{ c.conf }}</span>{% endif %}
+    <div class="lb-pick" hidden>
+      <label class="lb-pick-on"><input type="checkbox" class="lb-pick-box" data-pick="{{ c.id }}" checked> Record</label>
+      <label class="lb-pick-pri">Priority
+        <select class="lb-pick-sel" data-pri="{{ c.id }}" aria-label="Recording priority for {{ label or c.name }}">{% for n in range(1, 6) %}<option value="{{ n }}">{{ n }}</option>{% endfor %}</select></label>
+      <span class="lb-pick-rate" data-rate="{{ c.id }}"></span>
+    </div>
   </div>
   <div class="lb-chan-right">
     <span class="lb-chan-state" id="lb-state-{{ c.id }}"></span>
@@ -38,6 +44,11 @@
 </div>
 <script src="{{ static_url('list_controls.js') }}"></script>
 
+<div class="lb-selbar" id="lb-selbar" role="group" aria-label="Choose which readings to record" hidden>
+  <button type="button" class="lb-btn" data-select="all" data-scope="board">&#10003; Select all (whole board)</button>
+  <button type="button" class="lb-btn" data-select="none" data-scope="board">&#10007; Select none (whole board)</button>
+</div>
+<p class="lb-pick-help" id="lb-pick-help" hidden>Priority: 1 = every poll, 5 = every fifth poll; configured and achieved rates show below each reading once a session runs.</p>
 <div class="lb-groups" id="lb-groups" data-server="1">
   <p class="lb-noread" id="lb-noread">No reading - start a session.</p>
 
@@ -53,6 +64,10 @@
   {% if view.job_rows %}
   <details class="lb-group lb-jobgroup" data-group="for_this_job" open>
     <summary>For this job <span class="lb-count">{{ view.job_rows|length }}</span></summary>
+    <div class="lb-selbar" role="group" aria-label="Choose which readings to record" hidden>
+  <button type="button" class="lb-btn" data-select="all" data-scope="group">&#10003; Select all</button>
+  <button type="button" class="lb-btn" data-select="none" data-scope="group">&#10007; Select none</button>
+</div>
     {% for r in view.job_rows %}{{ item(r) }}{% endfor %}
     <details class="lb-why">
       <summary>Why these readings</summary>
@@ -67,6 +82,10 @@
   {% for g in view.groups %}
   <details class="lb-group" data-group="{{ g.label|lower|replace(' ', '_') }}">
     <summary>{{ g.label }} <span class="lb-count">{{ g.rows|length }}</span></summary>
+    <div class="lb-selbar" role="group" aria-label="Choose which readings to record" hidden>
+  <button type="button" class="lb-btn" data-select="all" data-scope="group">&#10003; Select all</button>
+  <button type="button" class="lb-btn" data-select="none" data-scope="group">&#10007; Select none</button>
+</div>
     {% for r in g.rows %}{{ item(r) }}{% endfor %}
   </details>
   {% endfor %}

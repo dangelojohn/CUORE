@@ -82,7 +82,7 @@
         <span class="hero-name">{{ bar.name }}</span>
         <span class="hero-vin mono">&hellip;{{ bar.vin[-6:] }}</span>
         {% if bar.odo_last is not none %}
-          <span class="hero-km mono">{{ "{:,}".format(bar.odo_last|int) }} km</span>
+          <span class="hero-km mono">{{ bar.odo_last|dist }}</span>
         {% endif %}
       </div>
       {% if _tagline %}<div class="hero-tagline">{{ _tagline }}</div>{% endif %}
@@ -143,7 +143,7 @@
     <div class="vid">
       <span class="vname" title="{{ bar.name }}">{{ bar.name }}</span>
       {% if bar.odo_last is not none %}
-        <span class="mono vkm">{{ "{:,}".format(bar.odo_last|int) }} km</span>
+        <span class="mono vkm">{{ bar.odo_last|dist }}</span>
       {% endif %}
     </div>
     {# "Connect to car" (owner spec 2026-10-14): one red primary on every
@@ -197,7 +197,7 @@
       <div class="small">{{ t('full_vin') }} <span class="mono vin-tail" title="{{ bar.vin }}">{{ bar.vin }}</span></div>
       {% if bar.odo_first is not none and bar.odo_last is not none %}
         <div class="small">{{ "{:,}".format(bar.odo_first|int) }} &rarr;
-          {{ "{:,}".format(bar.odo_last|int) }} km{% if bar.odo_span %}
+          {{ bar.odo_last|dist }}{% if bar.odo_span %}
           <span class="muted">({{ "{:,}".format(bar.odo_span|int) }} {{ t('km_span') }})</span>{% endif %}</div>
       {% endif %}
       {% if bar.logs %}

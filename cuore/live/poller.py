@@ -243,6 +243,7 @@ class LivePoller:
         self._pid_route = None
         self._did_route = None
         self._holding = False
+        self._simulation = False
         self._probe = None          # esim_probe.ProbeFeed while a probe channel is polled
         self._monitor_dtcs = False
         self._dtc_interval = DEFAULT_DTC_INTERVAL_S
@@ -284,7 +285,8 @@ class LivePoller:
     def start(self, channels: list[Channel], rates: Optional[dict[str, float]] = None,
              monitor_dtcs: bool = False, dtc_interval_s: float = DEFAULT_DTC_INTERVAL_S,
              code_watch: bool = False, code_watch_interval_s: float = DEFAULT_DTC_INTERVAL_S,
-             vin: str = "", priorities: Optional[dict[str, int]] = None) -> dict[str, Any]:
+             vin: str = "", priorities: Optional[dict[str, int]] = None,
+             simulation: bool = False) -> dict[str, Any]:
         with self._lock:
             if self.is_active():
                 raise Refused("a live-data poll session is already running; stop it first")
@@ -294,6 +296,7 @@ class LivePoller:
                 if c.bus != "can_c" and c.kind not in ("computed", "probe"):
                     raise BadCommand(f"channel {c.id!r} is on bus {c.bus!r}; the live-data "
                                      f"poller currently serves can_c channels only")
+            self._simulation = bool(simulation)
             self._channels = {c.id: c for c in channels}
             self._rates = {c.id: max(0.05, float((rates or {}).get(c.id, c.default_rate_hz)))
                           for c in channels}
@@ -380,6 +383,7 @@ class LivePoller:
             achieved = {cid: round(n / elapsed, 3) for cid, n in self._sample_counts.items()}
         return {
             "active": active,
+            "simulation": bool(getattr(self, "_simulation", False)),
             "channels": [c.to_dict() for c in self._channels.values()],
             "rates_hz": dict(self._rates),
             "achieved_hz": achieved,
@@ -494,6 +498,8 @@ class LivePoller:
         with self._lock:
             if not self.is_active():
                 raise Refused("no live-data session running; start one first")
+            if getattr(self, "_simulation", False):
+                raise Refused("simulation session: recordings are not made from simulated values")
             if self._recorder is not None:
                 return {"recording": str(self._recorder.path), "already_recording": True}
             d = state_dir() / "recordings"
@@ -547,6 +553,9 @@ class LivePoller:
         from . import ops as ops_mod  # local: ops imports poller lazily; avoid a cycle at import time
         lk = link()
         try:
+            if getattr(self, "_simulation", False):
+                self._run_simulation()
+                return
             self._probe_start()
             if all(c.kind == "probe" for c in self._channels.values()):
                 # Probe-only session (e.g. CUORE_ESIM_PROBE_PORT=sim): no OBD adapter is
@@ -645,6 +654,19 @@ class LivePoller:
                 self._holding = False
         finally:
             self._probe_stop()
+
+    def _run_simulation(self) -> None:
+        """SIMULATED session: fixture values at 1 Hz, no adapter, no store writes."""
+        from .demo_source import demo_value
+        t0 = time.monotonic()
+        with self._lock:
+            self._started_at = t0
+        while not self._stop_event.is_set():
+            t = time.monotonic() - t0
+            for cid, c in list(self._channels.items()):
+                if c.kind != "probe":
+                    self._publish(cid, demo_value(cid, t), c.unit)
+            self._stop_event.wait(1.0)
 
     # --- ESIM switch probe (serial-input channel source) ---------------------
 
@@ -968,6 +990,8 @@ class LivePoller:
         self._broadcast(msg)
 
     def _record_alarm_event(self, cid: str, level: str, value: Any) -> None:
+        if getattr(self, "_simulation", False):
+            return   # a simulated value is never evidence
         # the session's real stream (e.g. "serial COM3@115200"), so a real
         # alarm counts as a read from the car and a fake-session one does not
         store.record_observation("live_alarm", {"channel": cid, "level": level, "value": value},

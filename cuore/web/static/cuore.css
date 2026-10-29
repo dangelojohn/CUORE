@@ -1979,3 +1979,9 @@ header.top nav a { font-size: var(--fs-md); }
 @media (min-width: 601px) {
   .vbar .vline .vid { flex-direction: row; align-items: baseline; gap: 12px; }
 }
+
+/* Simulated session banner: mark + word, not colour only */
+.sim-banner { min-height: 44px; display: flex; align-items: center; padding: 8px 14px; margin: 8px 0;
+  font-size: var(--fs-md); border: 2px dashed currentColor; border-radius: 6px; }
+.port-suggest { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: var(--fs-md); }
+.port-suggest input[type=text] { min-height: 44px; font-size: var(--fs-md); }

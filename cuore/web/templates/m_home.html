@@ -5,8 +5,8 @@
   <p class="m-hero-name">{{ vehicle_name }}</p>
   {% if odo_last is not none %}
   <p class="m-hero-odo">
-    <span class="m-hero-odo-fig mono">{{ "{:,}".format(odo_last|int) }}</span>
-    <span class="m-hero-odo-unit">km</span>
+    <span class="m-hero-odo-fig mono">{{ (odo_last|dist).rsplit(" ", 1)[0] }}</span>
+    <span class="m-hero-odo-unit">{{ dist_unit() }}</span>
   </p>
   <p class="m-hero-odo-label">Odometer, last known</p>
   {% endif %}

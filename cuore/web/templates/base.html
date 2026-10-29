@@ -57,6 +57,7 @@
       <a class="navutil" href="/tsb">TSB</a>
       <a class="navutil" href="/slvt">SLVT</a>
       <a class="navutil" href="/tools">Tools</a>
+      <a class="navutil" href="/settings">Settings</a>
     </nav>
   </details>
 </header>
@@ -84,6 +85,9 @@
 {% endif %}
 
 <main>
+{% if simulation_active is defined and simulation_active() %}
+<div class="sim-banner" role="status"><strong>&#9888; SIMULATION</strong>, not the car. Values on this page are fixture data.</div>
+{% endif %}
 {% block content %}{% endblock %}
 
 <div class="foot">

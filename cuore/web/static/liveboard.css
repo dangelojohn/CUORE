@@ -382,3 +382,13 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
 .lb-sortbar-l { font-size: var(--fs-md); color: var(--ink-2); }
 .lb-sort[aria-pressed="true"] { border-color: var(--accent); border-width: 2px; font-weight: var(--fw-bold); }
 .lb-sort[aria-pressed="true"]::before { content: "\2713\00a0"; }
+
+/* ---------- recording picker: select all/none + priority ---------- */
+.lb-selbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.lb-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 4px; font-size: var(--fs-sm); color: var(--ink-2); }
+.lb-pick label { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+.lb-pick-box { width: 24px; height: 24px; }
+.lb-pick-sel { min-height: 44px; min-width: 56px; font-size: var(--fs-md); }
+.lb-pick-rate { font-size: var(--fs-xs); color: var(--ink-3); }
+.lb-pick-help { font-size: var(--fs-sm); color: var(--ink-2); margin: 4px 0; }
+.lb-selbar[hidden], .lb-pick[hidden], .lb-pick-help[hidden] { display: none; }

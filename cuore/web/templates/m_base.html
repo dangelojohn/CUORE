@@ -72,6 +72,9 @@
 </header>
 
 <main class="m-main">
+{% if simulation_active is defined and simulation_active() %}
+<div class="sim-banner" role="status"><strong>&#9888; SIMULATION</strong>, not the car. Values on this page are fixture data.</div>
+{% endif %}
 {% if error is defined and error %}
   <p class="m-flash m-flash-error">{{ error }}</p>
 {% endif %}

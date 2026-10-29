@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block content %}
+{# Settings: units (the one form), then read-only folders and adapter. No JavaScript. Own <style>: --fs-* tokens only, 44 px targets. #}
+<style>
+.set { max-width: 760px; font-size: var(--fs-md); }
+.set h2 { font-size: var(--fs-lg); margin: 18px 0 8px; }
+.set-opt { display: flex; align-items: center; gap: 10px; min-height: var(--tap, 44px); font-size: var(--fs-md); }
+.set-opt input { width: 24px; height: 24px; }
+.set-btn { min-height: var(--tap, 44px); padding: 0 20px; font-size: var(--fs-md); }
+.set-list { list-style: none; margin: 0; padding: 0; }
+.set-list li { min-height: var(--tap, 44px); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; border-bottom: 1px solid var(--rule); font-size: var(--fs-md); }
+.set-list .k { color: var(--ink-2); min-width: 190px; }
+.set-list .v { word-break: break-all; }
+.set-note { color: var(--ink-2); font-size: var(--fs-sm); }
+</style>
+<div class="set">
+  <h1>Settings</h1>
+  <h2>Units</h2>
+  <form method="post" action="/settings">
+    <label class="set-opt"><input type="radio" name="units" value="metric" {% if units == "metric" %}checked{% endif %}> Kilometres (km, km/h)</label>
+    <label class="set-opt"><input type="radio" name="units" value="imperial" {% if units == "imperial" %}checked{% endif %}> Miles (mi, mph)</label>
+    <button class="set-btn" type="submit">Save</button>
+    <p class="set-note">Display only; stored values stay in kilometres. Saved in {{ settings_file }}</p>
+  </form>
+  <h2>Folders</h2>
+  <ul class="set-list">
+    {% for f in folders %}<li><span class="k">{{ f.label }}</span><span class="v mono">{{ f.path }}</span><span>exists: {{ "yes" if f.exists else "no" }}</span></li>{% endfor %}
+  </ul>
+  <h2>Adapter</h2>
+  <ul class="set-list">
+    {% for k, v in adapter %}<li><span class="k">{{ k }}</span><span class="v mono">{{ v }}</span></li>{% endfor %}
+  </ul>
+</div>
+{% endblock %}

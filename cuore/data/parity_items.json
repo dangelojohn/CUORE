@@ -1803,14 +1803,13 @@
     "note": "not in the gap study"
    },
    "cuore": {
-    "has": "partial",
-    "note": "Sort done; no select all on Live board"
+    "has": "yes",
+    "note": "Select all / none per group and whole board; per-channel Record tick (2026-10-29)"
    },
-   "state": "build",
-   "closes": "A CUORE build; no documents or car needed. Owner decides whether channel select all is wanted.",
+   "state": "done",
+   "closes": "Done; proven by cuore/tests/check_live_select_all.py.",
    "refs": [
-    "docs/FEATURES.md",
-    "fc047a665508"
+    "cuore/tests/check_live_select_all.py"
    ],
    "applies_to_reference_car": true
   },
@@ -1827,14 +1826,13 @@
     "note": "not in the gap study"
    },
    "cuore": {
-    "has": "partial",
-    "note": "API priorities only; no channel picker"
+    "has": "yes",
+    "note": "Per-channel priority 1-5 picker; configured and achieved Hz shown (2026-10-29)"
    },
-   "state": "build",
-   "closes": "A CUORE build; no documents or car needed. Owner decides whether a gauges channel picker is wanted.",
+   "state": "done",
+   "closes": "Done; proven by cuore/tests/check_live_select_all.py.",
    "refs": [
-    "docs/FEATURES.md",
-    "fc047a665508"
+    "cuore/tests/check_live_select_all.py"
    ],
    "applies_to_reference_car": true
   },
@@ -1944,13 +1942,13 @@
     "note": "not in the gap study"
    },
    "cuore": {
-    "has": "partial",
-    "note": "Demo data and replay only"
+    "has": "yes",
+    "note": "Simulated session from fixture drive cycles; banner on every page; never written to evidence (2026-10-29)"
    },
-   "state": "build",
-   "closes": "A CUORE build; no documents or car needed. Owner decides whether a full simulated connect is wanted.",
+   "state": "done",
+   "closes": "Done; proven by cuore/tests/check_simulation.py.",
    "refs": [
-    "fc047a665508"
+    "cuore/tests/check_simulation.py"
    ],
    "applies_to_reference_car": true
   },
@@ -1967,14 +1965,13 @@
     "note": "not in the gap study"
    },
    "cuore": {
-    "has": "no",
-    "note": "Absent"
+    "has": "yes",
+    "note": "Settings page: km/mi toggle applied to odometers; folders and adapter shown read-only (2026-10-29)"
    },
-   "state": "build",
-   "closes": "A CUORE build; no documents or car needed. Owner decides; market settings tie to manufacturer item 4.",
+   "state": "done",
+   "closes": "Done; proven by cuore/tests/check_settings_page.py.",
    "refs": [
-    "fc047a665508",
-    "docs/project/MES_PARITY_PLAN.md"
+    "cuore/tests/check_settings_page.py"
    ],
    "applies_to_reference_car": true
   },
@@ -1991,13 +1988,13 @@
     "note": "not in the gap study"
    },
    "cuore": {
-    "has": "partial",
-    "note": "Port list, no auto-detect"
+    "has": "yes",
+    "note": "Suggested port from the port list by adapter name or vendor id, no port opened (2026-10-29)"
    },
-   "state": "build",
-   "closes": "A CUORE build; no documents or car needed. Owner decides.",
+   "state": "done",
+   "closes": "Done; proven by cuore/tests/check_simulation.py.",
    "refs": [
-    "fc047a665508"
+    "cuore/tests/check_simulation.py"
    ],
    "applies_to_reference_car": true
   },

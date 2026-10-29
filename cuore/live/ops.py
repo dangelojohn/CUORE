@@ -72,6 +72,34 @@ def ports() -> dict[str, Any]:
     return {"ports": found, "mes_port": mes_port or None}
 
 
+_ADAPTER_NAMES = ("vlinker", "stn1170", "stn", "obdlink", "elm327")
+_ADAPTER_VIDS = ("VID_0403", "VID:PID=0403")   # FTDI: the USB chip family these adapters commonly use
+
+
+def suggest_port(found: list[dict[str, Any]]) -> Optional[dict[str, str]]:
+    """Pick the likely adapter from an already-listed port list. Reads text only; opens nothing.
+
+    Name match (vLinker / STN / OBDLink / ELM327 in description or hardware id) beats the
+    weaker FTDI vendor-id match. Returns {device, label, reason} or None."""
+    best: Optional[tuple[int, dict[str, str]]] = None
+    for p in found or []:
+        text = f"{p.get('description') or ''} {p.get('hwid') or ''}"
+        low = text.lower()
+        name = next((n for n in _ADAPTER_NAMES if n in low), None)
+        if name:
+            cand = (2, {"device": p["device"], "label": p.get("description") or name,
+                        "reason": f"its description or hardware id names '{name}'"})
+        elif any(v in text.upper() for v in _ADAPTER_VIDS):
+            cand = (1, {"device": p["device"], "label": "FTDI USB serial",
+                        "reason": "FTDI vendor id, the chip family vLinker adapters commonly use "
+                                  "(a guess from the port list, not confirmed)"})
+        else:
+            continue
+        if best is None or cand[0] > best[0]:
+            best = cand
+    return best[1] if best else None
+
+
 def mes_settings() -> dict[str, Any]:
     reg = mes_registry()
     if not reg:
@@ -1346,7 +1374,8 @@ def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
                        rates: Optional[dict[str, float]] = None, monitor_dtcs: bool = False,
                        dtc_interval_s: float = 10.0, code_watch: bool = False,
                        code_watch_interval_s: float = 10.0, vin: str = "",
-                       priorities: Optional[dict[str, int]] = None) -> dict[str, Any]:
+                       priorities: Optional[dict[str, int]] = None,
+                       simulation: bool = False) -> dict[str, Any]:
     """Start the live-data poll session on the given channels and/or preset.
 
     ``code_watch`` adds the read-only "live new-code alert": Mode 03/07 every
@@ -1367,7 +1396,7 @@ def live_session_start(channels: Optional[list[str]] = None, preset: str = "",
     return poller_mod.poller().start(chans, rates=rates, monitor_dtcs=monitor_dtcs,
                                      dtc_interval_s=dtc_interval_s, code_watch=code_watch,
                                      code_watch_interval_s=code_watch_interval_s, vin=vin,
-                                     priorities=priorities)
+                                     priorities=priorities, simulation=simulation)
 
 
 def live_code_watch_ack() -> dict[str, Any]:

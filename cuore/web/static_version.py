@@ -68,10 +68,25 @@ def code_watch_state() -> dict:
         return {"enabled": False, "new": [], "count_new": 0}
 
 
+def simulation_active() -> bool:
+    """True while a SIMULATED live session runs (drives the site-wide banner)."""
+    try:
+        from ..live import poller as poller_mod
+        st = poller_mod.poller().status()
+        return bool(st.get("active") and st.get("simulation"))
+    except Exception:  # noqa: BLE001 -- a banner must never 500 a page
+        return False
+
+
 def _register(templates: Any) -> None:
     templates.env.globals["static_url"] = static_url
     templates.env.globals["fonts_css_link"] = fonts_css_link
     templates.env.globals["code_watch_state"] = code_watch_state
+    templates.env.globals["simulation_active"] = simulation_active
+    from . import units as _units
+    templates.env.filters["dist"] = _units.dist
+    templates.env.filters["speed"] = _units.speed
+    templates.env.globals["dist_unit"] = _units.dist_unit
 
 
 # The four distinct ``Jinja2Templates`` instances in this package (``routes``

@@ -959,6 +959,10 @@ def _live_page(request: Request, vin: str = "", **extra: Any) -> HTMLResponse:
     # This page already shows the live state in full below the fold; the
     # header strip would only repeat it.
     ctx["live_strip"] = None
+    try:
+        ctx["port_suggestion"] = live_ops.suggest_port(live_ops.ports()["ports"])
+    except Exception:  # noqa: BLE001 -- listing ports must never 500 the page
+        ctx["port_suggestion"] = None
     ctx.update(extra)
     return _page(request, "live.html", **ctx)
 
@@ -1006,11 +1010,26 @@ def live_verify(request: Request, bus: str = Form(...),
                       verify_error=error)
 
 
+@router.post("/live/simulation/{action}", response_class=HTMLResponse)
+def live_simulation(request: Request, action: str) -> HTMLResponse:
+    """Start/stop a SIMULATED session (fixture values, no adapter, no store writes)."""
+    err = None
+    try:
+        if action == "start":
+            live_ops.live_session_start(["engine_rpm", "vehicle_speed", "engine_coolant_temp",
+                                         "battery_voltage"], simulation=True)
+        else:
+            live_ops.live_session_stop()
+    except LiveError as exc:
+        err = str(exc)
+    return _live_page(request, simulation_error=err)
+
+
 @router.post("/live/probe", response_class=HTMLResponse)
-def live_probe(request: Request) -> HTMLResponse:
+def live_probe(request: Request, port: str = Form(default="")) -> HTMLResponse:
     """Reset the adapter and read its identity. Holds nothing afterwards."""
     try:
-        result = live_ops.probe()
+        result = live_ops.probe(port=port.strip())
         error = None
     except LiveError as exc:
         result = None

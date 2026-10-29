@@ -196,7 +196,8 @@ def open_replay_stream(recording_id: str, speed: float = 1.0, start: float = 0.0
                 value = _cell_number(raw)
                 yield {"t": time.time(), "channel": slug, "value": value, "unit": col.unit,
                       "replay": True}
-            for text in tags_by_time.get(t, []):
+            # pop, not get: a TAG row shares its time with the data row beside it, and each tag is sent once
+            for text in tags_by_time.pop(t, []):
                 yield {"type": "tag", "t": time.time(), "text": text}
         yield {"type": "end"}
 

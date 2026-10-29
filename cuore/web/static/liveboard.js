@@ -267,6 +267,7 @@
   LiveboardApp.prototype.init = function () {
     var self = this;
     this._wireControls();
+    this._wirePicker();
     return this.loadContract().then(function () {
       self._renderGroups();
       self._syncUi();
@@ -409,6 +410,10 @@
     var p = this.sourceKind ? this.stop() : Promise.resolve();
     return p.then(function () {
       var body = { channels: self.allChannelIds, rates: self.rates };
+      var pk = self._pickState();
+      if (pk.off.length) body.channels = self.allChannelIds.filter(function (id) { return pk.off.indexOf(id) < 0; });
+      body.priorities = {};
+      body.channels.forEach(function (id) { body.priorities[id] = pk.pri[id] || 1; });
       var cw = self.doc.getElementById("lb-codewatch");
       if (cw && cw.checked) { body.code_watch = true; body.code_watch_interval_s = 10; body.vin = self.vin || ""; }
       return self.api("/api/live/session/start", { method: "POST", body: JSON.stringify(body) });
@@ -688,8 +693,75 @@
     var self = this;
     this.api("/api/live/status").then(function (s) { self._renderAdapterChip(s); })
       .catch(function () { self._renderAdapterChip(null); });
-    this.api("/api/live/session").then(function (s) { self.sessionInfo = s; self._renderSessionChip(s); self._renderStates(); self._syncUi(); })
+    this.api("/api/live/session").then(function (s) { self.sessionInfo = s; self._renderPickRates(s); self._renderSessionChip(s); self._renderStates(); self._syncUi(); })
       .catch(function () { self.sessionInfo = null; self._renderSessionChip(null); self._renderStates(); });
+  };
+
+  // ---- recording picker: per-channel tick + priority 1-5, Select all/none --
+  // Saved in localStorage per VIN as {off: [unticked ids], pri: {id: n}}; new channels default to ticked.
+  LiveboardApp.prototype._pickKey = function () { return "cuore.lb.pick." + (this.vin || "demo"); };
+
+  LiveboardApp.prototype._pickState = function () {
+    var st = { off: [], pri: {} };
+    try {
+      var raw = global.localStorage && global.localStorage.getItem(this._pickKey());
+      var v = raw ? JSON.parse(raw) : null;
+      if (v && v.off) st.off = v.off;
+      if (v && v.pri) st.pri = v.pri;
+    } catch (e) { /* storage blocked: defaults */ }
+    return st;
+  };
+
+  LiveboardApp.prototype._pickSave = function () {
+    var st = { off: [], pri: {} };
+    var d = this.doc;
+    Array.prototype.forEach.call(d.querySelectorAll(".lb-pick-box"), function (b) {
+      var id = b.getAttribute("data-pick");
+      if (!b.checked && st.off.indexOf(id) < 0) st.off.push(id);
+    });
+    Array.prototype.forEach.call(d.querySelectorAll(".lb-pick-sel"), function (s) {
+      if (s.value !== "1") st.pri[s.getAttribute("data-pri")] = parseInt(s.value, 10);
+    });
+    try { global.localStorage.setItem(this._pickKey(), JSON.stringify(st)); } catch (e) { /* ignore */ }
+  };
+
+  LiveboardApp.prototype._wirePicker = function () {
+    var self = this, d = this.doc, st = this._pickState();
+    function all(sel, root) { return Array.prototype.slice.call((root || d).querySelectorAll(sel)); }
+    all(".lb-pick, .lb-selbar, .lb-pick-help").forEach(function (el) { el.hidden = false; });
+    all(".lb-pick-box").forEach(function (b) { b.checked = st.off.indexOf(b.getAttribute("data-pick")) < 0; });
+    all(".lb-pick-sel").forEach(function (s) { s.value = String(st.pri[s.getAttribute("data-pri")] || 1); });
+    d.addEventListener("change", function (ev) {
+      var t = ev.target;
+      if (!t.classList) return;
+      var isBox = t.classList.contains("lb-pick-box");
+      if (!isBox && !t.classList.contains("lb-pick-sel")) return;
+      var id = t.getAttribute(isBox ? "data-pick" : "data-pri");
+      // the same channel can appear twice (matches + group): keep copies in step
+      all((isBox ? ".lb-pick-box[data-pick=\"" : ".lb-pick-sel[data-pri=\"") + id + "\"]").forEach(function (o) {
+        if (isBox) o.checked = t.checked; else o.value = t.value;
+      });
+      self._pickSave();
+    });
+    d.addEventListener("click", function (ev) {
+      var b = ev.target.closest && ev.target.closest("[data-select]");
+      if (!b) return;
+      var on = b.getAttribute("data-select") === "all";
+      var scope = b.getAttribute("data-scope") === "group" ? b.closest("details") : d;
+      all(".lb-pick-box", scope).forEach(function (x) {
+        all(".lb-pick-box[data-pick=\"" + x.getAttribute("data-pick") + "\"]").forEach(function (o) { o.checked = on; });
+      });
+      self._pickSave();
+    });
+  };
+
+  LiveboardApp.prototype._renderPickRates = function (s) {
+    var cr = (s && s.channel_rates) || {};
+    Array.prototype.forEach.call(this.doc.querySelectorAll(".lb-pick-rate"), function (el) {
+      var r = cr[el.getAttribute("data-rate")];
+      el.textContent = r ? ("configured " + (r.configured_hz == null ? "-" : Number(r.configured_hz).toFixed(1)) +
+        " Hz, achieved " + (r.achieved_hz == null ? "-" : Number(r.achieved_hz).toFixed(1)) + " Hz") : "";
+    });
   };
 
   LiveboardApp.prototype._renderAdapterChip = function (s) {

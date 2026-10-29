@@ -177,12 +177,33 @@ before this bench UI will ask the live link to try.</p>
   {% endif %}
 {% endif %}
 
+{# ---------------- simulation ---------------- #}
+
+<h2>Simulation</h2>
+<div class="panel">
+  {% if simulation_error is defined and simulation_error %}<div class="note alert">{{ simulation_error }}</div>{% endif %}
+  <form method="post" action="/live/simulation/start" style="display:inline">
+    <button class="btn" type="submit" style="min-height:44px">Start simulation</button></form>
+  <form method="post" action="/live/simulation/stop" style="display:inline">
+    <button class="btn" type="submit" style="min-height:44px">Stop</button></form>
+  <span class="small muted">Training mode: fixture values at 1 Hz, no adapter contact, nothing recorded as evidence.</span>
+</div>
+
 {# ---------------- probe ---------------- #}
 
 <h2>Probe</h2>
 <div class="panel">
-  <form method="post" action="/live/probe">
-    <button class="btn" type="submit">Probe adapter</button>
+  <form method="post" action="/live/probe" class="port-suggest">
+    <label for="probe-port">Port</label>
+    <input type="text" id="probe-port" name="port" class="mono" placeholder="blank = configured port" autocomplete="off">
+    {% if port_suggestion %}
+      <button class="btn" type="button" style="min-height:44px"
+              onclick="document.getElementById('probe-port').value='{{ port_suggestion.device }}'">Use {{ port_suggestion.device }}</button>
+      <span class="small">&#10003; Suggested: {{ port_suggestion.device }} ({{ port_suggestion.label }}), because {{ port_suggestion.reason }}. Nothing was opened to detect it.</span>
+    {% else %}
+      <span class="small">&#9888; No adapter recognised; pick the port.</span>
+    {% endif %}
+    <button class="btn" type="submit" style="min-height:44px">Probe adapter</button>
     <span class="small muted">Resets the adapter and reads its identity and battery voltage. Holds nothing.</span>
   </form>
 </div>

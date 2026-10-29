@@ -407,13 +407,14 @@ def live_session_start_route(channels: Optional[list[str]] = Body(default=None, 
                              priorities: Optional[dict[str, int]] = Body(
                                  default=None, embed=True,
                                  description="Per-channel recording priority 1-5 = poll divisor "
-                                             "(1 every cycle, the default; 5 every 5th)")
+                                             "(1 every cycle, the default; 5 every 5th)"),
+                             simulation: bool = Body(default=False, embed=True)
                              ) -> dict[str, Any]:
     return ops.live_session_start(channels, preset=preset, rates=rates,
                                   monitor_dtcs=monitor_dtcs, dtc_interval_s=dtc_interval_s,
                                   code_watch=code_watch,
                                   code_watch_interval_s=code_watch_interval_s, vin=vin,
-                                  priorities=priorities)
+                                  priorities=priorities, simulation=simulation)
 
 
 @router.post("/live/session/code-watch/ack",
