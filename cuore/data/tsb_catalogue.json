@@ -709,26 +709,25 @@
    "kind": "recall",
    "number": "18V636",
    "nhtsa_id": "18V636",
-   "title": "2.0L engine misfire may overheat catalytic converter / damage wiring",
+   "title": "2.0L misfire may overheat catalytic converter (Stellantis UA4)",
    "date": "2018-09-14",
-   "summary": "2017-2018 Giulia and 2018 Stelvio with 2.0L; misfire can overheat catalytic converter, fire risk or stall. Strongest lead for 'was this ECM ever reflashed': it covers 2017-2018 Giulia and 2018 Stelvio with the 2.0L, and the remedy is an ECM software update. No Transport Canada number found. VIN-specific check needed.",
+   "summary": "2017-2018 Giulia and 2018 Stelvio 2.0L: misfire can overheat the catalyst and damage wiring. Recall began 2018-10-10.",
    "condition": null,
-   "remedy": "Dealer checks for DTCs and updates ECM software",
+   "remedy": "Dealer inspects for diagnostic codes and updates the ECM software free of charge.",
    "systems": [
-    "ECM",
-    "Engine"
+    "ECM"
    ],
    "dtcs": [],
    "links": [
     {
-     "label": "Source",
-     "url": "https://www.nhtsa.gov/recalls?nhtsaId=18V636"
+     "label": "NHTSA API",
+     "url": "https://api.nhtsa.gov/recalls/campaignNumber?campaignNumber=18V636"
     }
    ],
    "applies": "vin_check",
-   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "source": "NHTSA recalls API 2026-10-29 (summary only; remedy document not retrieved)",
    "verified": false,
-   "cuore_relevance": "Strongest lead for 'was this ECM ever reflashed'. ECM reflash, relevant to the EVAP/ECM diagnosis; no Transport Canada number found. Ask the dealer whether it was performed on this VIN.",
+   "cuore_relevance": "Confirmed by the NHTSA API record; ask whether UA4 was done on this VIN.",
    "components": [
     "ECM",
     "catalytic converter"
@@ -745,7 +744,11 @@
     "ignition",
     "exhaust_emissions"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "recall-18v635",
@@ -787,21 +790,23 @@
    "kind": "recall",
    "number": "18V147",
    "nhtsa_id": "18V147",
-   "title": "Wiper motor limited to low speed",
+   "title": "Wiper motor limited to low speed (U24)",
    "date": "2018-03-06",
-   "summary": "Wiper software misreads motor overheating, FMVSS 104 noncompliance (TC: 207 units)",
+   "summary": "2018 Stelvio; wiper software reads the motor as overheating; remedy replaces the wiper motor; began 2018-04-25.",
    "condition": null,
-   "remedy": "Replace wiper motor",
-   "systems": [],
+   "remedy": "Replace wiper motor.",
+   "systems": [
+    "Wipers"
+   ],
    "dtcs": [],
    "links": [
     {
-     "label": "Source",
-     "url": "https://recalls-rappels.canada.ca/en/alert-recall/transport-canada-recall-2018116"
+     "label": "NHTSA API",
+     "url": "https://api.nhtsa.gov/recalls/campaignNumber?campaignNumber=18V147"
     }
    ],
    "applies": "vin_check",
-   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "source": "NHTSA recalls API 2026-10-29 (summary only; remedy document not retrieved)",
    "verified": false,
    "transport_canada_id": "2018116",
    "components": [
@@ -814,7 +819,12 @@
    "depends_on_systems": [
     "body_comfort"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "API text only.",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "recall-18v203",
@@ -895,23 +905,25 @@
    "kind": "recall",
    "number": "17V823",
    "nhtsa_id": "17V823",
-   "title": "Contaminated brake fluid",
+   "title": "Contaminated brake fluid (T84)",
    "date": "2017-12-20",
-   "summary": "2018 Giulia/Stelvio brake system may contain contaminated fluid",
+   "summary": "2018 Giulia and Stelvio; began 2018-02-01.",
    "condition": null,
-   "remedy": "Inspect, replace parts as needed",
-   "systems": [],
+   "remedy": "Dealers inspect the braking system and replace as needed.",
+   "systems": [
+    "Brakes"
+   ],
    "dtcs": [],
    "links": [
     {
-     "label": "Source",
-     "url": "https://www.nhtsa.gov/recalls?nhtsaId=17V823"
+     "label": "NHTSA API",
+     "url": "https://api.nhtsa.gov/recalls/campaignNumber?campaignNumber=17V823"
     }
    ],
    "applies": "vin_check",
-   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "source": "NHTSA recalls API 2026-10-29 (summary only; remedy document not retrieved)",
    "verified": false,
-   "cuore_relevance": "No TC number found",
+   "cuore_relevance": "API text only.",
    "components": [
     "brake fluid",
     "brake system parts"
@@ -923,30 +935,37 @@
    "depends_on_systems": [
     "brakes_abs"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "recall-19v148",
    "kind": "recall",
    "number": "19V148",
    "nhtsa_id": "19V148",
-   "title": "Adaptive cruise cannot be disabled after wheel-slip event",
+   "title": "Adaptive cruise cannot be disabled after wheel slip (V27)",
    "date": "2019-03-01",
-   "summary": "BSM software issue, 2018-2019 Stelvio",
+   "summary": "2017-2019 Giulia, 2018-2019 Stelvio; BSM software update; began 2019-03-25.",
    "condition": null,
-   "remedy": "BSM software update",
-   "systems": [],
+   "remedy": "Update BSM software.",
+   "systems": [
+    "ABS",
+    "ACC"
+   ],
    "dtcs": [],
    "links": [
     {
-     "label": "Source",
-     "url": "https://www.nhtsa.gov/recalls?nhtsaId=19V148"
+     "label": "NHTSA API",
+     "url": "https://api.nhtsa.gov/recalls/campaignNumber?campaignNumber=19V148"
     }
    ],
    "applies": "vin_check",
-   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "source": "NHTSA recalls API 2026-10-29 (summary only; remedy document not retrieved)",
    "verified": false,
-   "cuore_relevance": "No TC number found",
+   "cuore_relevance": "API text only.",
    "components": [
     "BSM"
    ],
@@ -958,30 +977,36 @@
     "adas_sensors",
     "brakes_abs"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "recall-19v551",
    "kind": "recall",
    "number": "19V551",
    "nhtsa_id": "19V551",
-   "title": "BCM fuel level reads high",
+   "title": "BCM fuel level reads high (V84)",
    "date": "2019-07-25",
-   "summary": "Fuel gauge may show more than actual, run-out risk",
+   "summary": "2018-2019 Giulia and Stelvio; remedy BCM software update; began 2019-08-12.",
    "condition": null,
-   "remedy": "BCM software update",
-   "systems": [],
+   "remedy": "Update BCM software.",
+   "systems": [
+    "BCM"
+   ],
    "dtcs": [],
    "links": [
     {
-     "label": "Source",
-     "url": "https://www.nhtsa.gov/recalls?nhtsaId=19V551"
+     "label": "NHTSA API",
+     "url": "https://api.nhtsa.gov/recalls/campaignNumber?campaignNumber=19V551"
     }
    ],
    "applies": "vin_check",
-   "source": "research 2026-10-15: recalls_campaigns.json (NHTSA API paraphrased; Transport Canada from search snippets, verify on recalls-rappels.canada.ca)",
+   "source": "NHTSA recalls API 2026-10-29 (summary only; remedy document not retrieved)",
    "verified": false,
-   "cuore_relevance": "No TC number found",
+   "cuore_relevance": "Another BCM flash that may need proxi follow-up; ask for VIN history.",
    "components": [
     "BCM"
    ],
@@ -994,7 +1019,11 @@
     "body_comfort",
     "fuel"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "recall-23v382",
@@ -1419,31 +1448,40 @@
    "kind": "tsb",
    "number": "08-044-19",
    "nhtsa_id": "10162530",
-   "title": "Flash: Anti-Lock Brake System (ABS) Module Diagnostic and System Updates This bulletin involves reprogramming the ABS module with the latest available software. The following enhancement is included with this update:Improved brake pedal feel.",
+   "title": "ABS module flash with PROXI alignment between steps (2.0L may need three flashes)",
    "date": "2019-05-01",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: SERVICE BRAKES, HYDRAULIC:ANTILOCK/TRACTION CONTROL/ELECTRONIC LIMITED SLIP. NHTSA flat-file records: MC-10162530-9999 2019-05-01 (08-044-19). NHTSA flat-file records: MC-10162530-9999 2019-05-01 (08-044-19).",
-   "condition": null,
-   "remedy": null,
+   "summary": "2018 Stelvio built on or before 2018-03-13 without ACC with Stop (NH3). Flash ABS, run PROXI alignment (wiTECH home, Vehicle View, Diagnostic Procedures tab), flash again, run Restore Vehicle (Control Unit Programming, ABS Misc. Functions), clear codes; 2.0L may need a third flash and a final Restore Vehicle. Improved brake pedal feel. Labour 18-19-10-1C 0.3 h.",
+   "condition": "Pedal feel enhancement.",
+   "remedy": "Three-step ABS flash as described.",
    "systems": [
-    "Brakes"
+    "ABS",
+    "BCM"
    ],
    "dtcs": [],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10162530",
      "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10162530-9999.pdf"
     }
    ],
    "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10162530.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
    "depends_on_systems": [
     "brakes_abs"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "This car (built 09/2017, 2.0L) is inside the build window if it lacks NH3. Names the \"Restore Vehicle\" routine in ABS Misc. Functions.",
+   "parity_items": [
+    "proxi-alignment",
+    "mod-abs",
+    "web-write-lock"
+   ],
+   "applies_to": "2018 Stelvio built on or before 2018-03-13, no NH3",
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-08-081-19",
@@ -1747,31 +1785,38 @@
    "kind": "tsb",
    "number": "S2008000013",
    "nhtsa_id": "10173328",
-   "title": "Key Programming, Security Pin Request, Pin Invalid",
+   "title": "Key programming needs a security PIN; rolling PIN valid 12 h or until the next VIN search",
    "date": "2020-02-26",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM; EQUIPMENT. NHTSA flat-file records: MC-10173328-9999 2020-02-26 (S2008000013). NHTSA flat-file records: MC-10173328-9999 2020-02-26 (S2008000013).",
-   "condition": null,
-   "remedy": null,
+   "summary": "Each vehicle needs a security PIN for secure key programming. Newer cars give a PIN that changes on every VIN search; the latest PIN works for 12 hours or until another search. Source systems: DealerCONNECT KeyCode, or Tech Authority for non-dealers.",
+   "condition": "PIN invalid.",
+   "remedy": "Obtain the PIN from the manufacturer source and use within 12 h.",
    "systems": [
-    "Immobiliser/keys"
+    "RFHUB",
+    "BCM"
    ],
    "dtcs": [],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10173328",
      "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10173328-9999.pdf"
     }
    ],
-   "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "applies": "yes",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10173328.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
    "depends_on_systems": [
     "security_immobiliser"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "Authoritative statement of how the security PIN is obtained: informs security-access and key-remote-learning.",
+   "parity_items": [
+    "security-access",
+    "key-remote-learning"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-s2008000017",
@@ -1912,25 +1957,25 @@
    "kind": "tsb",
    "number": "S1808000005",
    "nhtsa_id": "10175655",
-   "title": "No Start, Multiple Modules Are Not Responding",
+   "title": "No start, multiple modules not responding: BCM feeds and fuse F82 (Stelvio)",
    "date": "2020-04-04",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE. NHTSA flat-file records: MC-10175655-9999 2020-04-04 (S1808000005). NHTSA flat-file records: MC-10175655-9999 2020-04-04 (S1808000005).",
-   "condition": null,
-   "remedy": null,
+   "summary": "Check all BCM power feeds including the 20 A stand-alone fuse and the B+ A0 circuit. On GU (Stelvio) check fuse F82 in the rear PDC for the BCM A901 circuit.",
+   "condition": "No start, many modules silent.",
+   "remedy": "Repair BCM feed or fuse F82.",
    "systems": [
-    "Network/wiring",
-    "ECM"
+    "BCM",
+    "Power"
    ],
    "dtcs": [],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10175655",
      "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175655-9999.pdf"
     }
    ],
-   "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "applies": "yes",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10175655.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
@@ -1938,7 +1983,16 @@
     "network",
     "engine_management"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "Lists Stelvio 2018-2020. Cheap check when several U-codes appear together.",
+   "parity_items": [
+    "electrical-paths",
+    "tsb-xref"
+   ],
+   "reference_codes": [
+    "U1736"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-s2019000002",
@@ -2355,31 +2409,29 @@
   {
    "id": "tsb-s1708000262",
    "kind": "tsb",
-   "number": "S1708000262",
-   "nhtsa_id": "10224037",
-   "title": "(Rev. A) Check Engine Lamp Is On, Intermittent Module CAN Private Or LIN BUS Codes",
+   "number": "S1708000262 Rev A",
+   "nhtsa_id": "10184414",
+   "title": "MIL with intermittent CAN private or LIN codes (U1008-00): inspect ECM connector terminals",
    "date": "2020-11-17",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: no-pdf record 10224037 2020-11-17 (S1708000262); MC-10184414-9999 2020-11-17 (S1708000262 Rev.); MC-10184714-9999 2020-11-17 (S1708000262 Rev.). Revisions seen: S1708000262, S1708000262 Rev.. NHTSA flat-file records: no-pdf record 10224037 2020-11-17 (S1708000262); MC-10184414-9999 2020-11-17 (S1708000262 Rev.); MC-10184714-9999 2020-11-17 (S1708000262 Rev.). Revisions seen: S1708000262, S1708000262 Rev..",
-   "condition": null,
-   "remedy": null,
+   "summary": "Inspect the involved ECM connector terminals for pushed-out or spread pins; repair with the Mopar terminal tools.",
+   "condition": "U1008-00 and similar.",
+   "remedy": "Terminal repair.",
    "systems": [
-    "Network/wiring",
-    "ECM"
+    "ECM",
+    "Wiring"
    ],
-   "dtcs": [],
+   "dtcs": [
+    "U1008-00"
+   ],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10184414",
      "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184414-9999.pdf"
-    },
-    {
-     "label": "NHTSA PDF (10184714)",
-     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184714-9999.pdf"
     }
    ],
-   "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "applies": "yes",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10184414.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
@@ -2389,39 +2441,41 @@
    ],
    "nhtsa_ids": [
     "10184414",
-    "10184714",
     "10224037"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "Lists 2017-2019. Applies to any intermittent U-code on the ECM LIN.",
+   "parity_items": [
+    "electrical-paths"
+   ],
+   "reference_codes": [
+    "U1736"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-9004335",
    "kind": "tsb",
-   "number": "9004335",
+   "number": "9004335 (GPOP)",
    "nhtsa_id": "10184380",
-   "title": "Turbocharger If the turbo is being replaced for an oil leak concern, please inspect the area around the turbo oil feed o-ring for a leak. The o-ring is serviced separately and complete turbo replacement may not be necessary.",
+   "title": "Turbo replaced for an oil leak: check the oil feed o-ring first",
    "date": "2020-11-25",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING:ENGINE:OTHER FUEL TYPES:TURBO/SUPERCHARGER; EQUIPMENT. NHTSA flat-file records: MC-10184380-9999 2020-11-25 (9004335); MC-10184680-9999 2020-11-25 (9004335); no-pdf record 10224003 2020-11-25 (9004335). NHTSA flat-file records: MC-10184380-9999 2020-11-25 (9004335); MC-10184680-9999 2020-11-25 (9004335); no-pdf record 10224003 2020-11-25 (9004335).",
-   "condition": null,
-   "remedy": null,
+   "summary": "Parts tech tip for 2017-2020 Giulia and 2018-2020 Stelvio. Turbo part numbers 04893687A, 68377382A, 05281614A, 05281541A. The o-ring is serviced separately.",
+   "condition": "Turbo oil leak.",
+   "remedy": "Replace the o-ring before the turbo.",
    "systems": [
-    "Turbo",
-    "Lubrication"
+    "Turbo"
    ],
    "dtcs": [],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10184380",
      "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184380-9999.pdf"
-    },
-    {
-     "label": "NHTSA PDF (10184680)",
-     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10184680-9999.pdf"
     }
    ],
-   "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "applies": "yes",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10184380.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
@@ -2434,7 +2488,12 @@
     "10184680",
     "10224003"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "Links to W05 (turbo oil feed thermal stress).",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-01-001-21",
@@ -2511,26 +2570,26 @@
   {
    "id": "tsb-s1809000007",
    "kind": "tsb",
-   "number": "S1809000007",
+   "number": "S1809000007 Rev A / Rev C",
    "nhtsa_id": "10190667",
-   "title": "Customer complaint may include engine oil leak/consumption.",
+   "title": "Oil leak or consumption: oil filter adapter seals first, confirm with leak dye",
    "date": "2021-03-31",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING. NHTSA flat-file records: MC-10190667-9999 2021-03-31 (S1809000007 Rev.); no-pdf record 10212473 2021-06-16 (S1809000007); no-pdf record 10221277 2021-06-16 (S1809000007RevC). Revisions seen: S1809000007, S1809000007 Rev., S1809000007RevC. NHTSA flat-file records: MC-10190667-9999 2021-03-31 (S1809000007 Rev.); no-pdf record 10212473 2021-06-16 (S1809000007); no-pdf record 10221277 2021-06-16 (S1809000007RevC). Revisions seen: S1809000007, S1809000007 Rev., S1809000007RevC.",
-   "condition": null,
-   "remedy": null,
+   "summary": "Look for oil in the engine valley; if the oil filter adapter/cooler is suspected, remove it, clean the valley without degreaser, fit new OFA seals, add dye (Mopar 05010042AC), run 15 minutes, check with a black light.",
+   "condition": "Oil seep.",
+   "remedy": "New OFA seals plus dye check.",
    "systems": [
-    "Lubrication"
+    "Engine oil"
    ],
    "dtcs": [],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10190667",
      "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10190667-9999.pdf"
     }
    ],
-   "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "applies": "yes",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10190667.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
@@ -2539,10 +2598,14 @@
    ],
    "nhtsa_ids": [
     "10190667",
-    "10212473",
     "10221277"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "Pairs with W05 (turbo oil feed) and 9004335 (turbo oil feed o-ring) when an oil seep is reported.",
+   "parity_items": [
+    "hypotheses"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-9004009",
@@ -2604,28 +2667,45 @@
   {
    "id": "tsb-s1821000001",
    "kind": "tsb",
-   "number": "S1821000001",
+   "number": "S1821000001 Rev A",
    "nhtsa_id": "10221150",
-   "title": "Gear Ratio DTC?s, Transmission Shift Concerns, Does Not Shift At Times, Shudders",
+   "title": "Gear ratio DTCs, shift concerns, shudder: check tyre pressures and circumference first",
    "date": "2021-04-16",
-   "summary": "Indexed from NHTSA flat file only (PDF not available). NHTSA component: POWER TRAIN. NHTSA flat-file records: no-pdf record 10221150 2021-04-16 (S1821000001). NHTSA flat-file records: no-pdf record 10221150 2021-04-16 (S1821000001).",
-   "condition": null,
-   "remedy": null,
+   "summary": "STAR case written for many models. On AWD vehicles unequal tyre circumference can cause shudders, binds, gear ratio DTCs and shift complaints. Set pressures to the door placard, then measure all four tyre circumferences with a tape at tread centre; they should agree within 1/8 inch (about 3 mm).",
+   "condition": "Gear ratio DTCs, shudder, does not shift at times.",
+   "remedy": "Equalise pressure and circumference before any transmission work.",
    "systems": [
-    "Transmission"
+    "Drivetrain",
+    "Tyres",
+    "TCM"
    ],
    "dtcs": [],
-   "links": null,
-   "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "links": [
+    {
+     "label": "NHTSA 10221150",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10221150-9999.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10221150.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
    "depends_on_systems": [
     "transmission_driveline"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "The only bulletin text containing the word shudder for these cars. This car is AWD (Q4), so the tyre check is a free first step for the shudder, before TCM or driveline money.",
+   "parity_items": [
+    "hypotheses",
+    "proof-of-repair"
+   ],
+   "reference_codes": [
+    "shudder"
+   ],
+   "applies_to": "2017-2021 Giulia and Stelvio (NHTSA model years)",
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-s1608000226",
@@ -2829,33 +2909,29 @@
    "kind": "tsb",
    "number": "S2208000073",
    "nhtsa_id": "10212318",
-   "title": "No Start, After Flash And Or PCM Replace, DTC P0513 Invalid Skim Key Setting",
-   "date": "2022-03-17",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10212318-9999 2022-03-17 (S2208000073); MC-10220715-9999 2022-03-17 (S2208000073); MC-10223097-9999 2022-03-17 (S2208000073); no-pdf record 10229059 2022-03-17 (S2208000073). NHTSA flat-file records: MC-10212318-9999 2022-03-17 (S2208000073); MC-10220715-9999 2022-03-17 (S2208000073); MC-10223097-9999 2022-03-17 (S2208000073); no-pdf record 10229059 2022-03-17 (S2208000073).",
-   "condition": null,
-   "remedy": null,
+   "title": "No start / P0513 after PCM flash or replacement: PCM/ECM/ESL replace routine, Proxy Configuration Alignment, Learn ETC",
+   "date": "2022-03",
+   "summary": "Flash: charger on, scan tool connected, ignition RUN (do not start), type VIN into wiTECH, flash the PCM, run Proxy Configuration Alignment (Guided Diagnostics, activities). If the PCM was replaced: BCM Misc. Functions, run \"PCM/ECM/ESL replace\" and verify the PCM states programmed after the immobiliser data transfers, run Proxy Configuration Alignment again, run Learn Electronic Throttle Control under PCM Misc. Functions, erase DTCs, road test.",
+   "condition": "No start after flash or PCM replacement, P0513 invalid SKIM key.",
+   "remedy": "As in summary.",
    "systems": [
-    "Immobiliser/keys",
-    "ECM"
+    "ECM",
+    "BCM",
+    "RFHUB",
+    "Immobiliser"
    ],
-   "dtcs": [],
+   "dtcs": [
+    "P0513"
+   ],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10212318",
      "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10212318-9999.pdf"
-    },
-    {
-     "label": "NHTSA PDF (10220715)",
-     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10220715-9999.pdf"
-    },
-    {
-     "label": "NHTSA PDF (10223097)",
-     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10223097-9999.pdf"
     }
    ],
    "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10212318.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
@@ -2869,7 +2945,16 @@
     "10223097",
     "10229059"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "Names the routines and their order after an ECM flash or swap. Informs proxi-alignment, security-access (seed handshake between PCM, BCM and RF Hub) and throttle-relearn.",
+   "parity_items": [
+    "proxi-alignment",
+    "security-access",
+    "throttle-relearn",
+    "key-remote-learning"
+   ],
+   "applies_to": "2018-2022 Giulia and Stelvio (NHTSA model years)",
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-s2209000004",
@@ -2907,25 +2992,28 @@
    "kind": "tsb",
    "number": "S2223000047",
    "nhtsa_id": "10221417",
-   "title": "ACC Does Not Operate. Start Stop Unavailable, ACC Unavailable Service Required Messages. C1452-86 Engine Torque DASM- Signal Invalid",
-   "date": "2022-06-09",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: POWER TRAIN. NHTSA flat-file records: MC-10221417-9999 2022-06-09 (S2223000047). NHTSA flat-file records: MC-10221417-9999 2022-06-09 (S2223000047).",
-   "condition": null,
-   "remedy": null,
+   "title": "ACC and Start-Stop unavailable with C1452-86: check brake switch voltage at PCM pin 71B",
+   "date": "2022-06",
+   "summary": "Brake pedal released under 1 V, pressed above 11 V at PCM connector pin 71B. If it does not change, check wiring between BSM and ECM/BCM/RFHM. If it changes, read PCM \"Fail status\" data; Generic and Current both ON points to PCM replacement.",
+   "condition": "ACC unavailable, Start Stop unavailable.",
+   "remedy": "As in summary.",
    "systems": [
-    "Charging/start-stop",
-    "ADAS"
+    "DASM",
+    "PCM",
+    "Brake switch"
    ],
-   "dtcs": [],
+   "dtcs": [
+    "C1452-86"
+   ],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10221417",
      "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10221417-9999.pdf"
     }
    ],
    "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10221417.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
@@ -2933,7 +3021,16 @@
     "starting_charging",
     "adas_sensors"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "Names two PCM data items (Generic Fail Status, Current Fail Status) and a pin voltage test. Lists 2018-2022.",
+   "parity_items": [
+    "live-ecm",
+    "electrical-paths"
+   ],
+   "reference_codes": [
+    "C104B"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-3100122",
@@ -2980,28 +3077,35 @@
    "kind": "tsb",
    "number": "S2218000018",
    "nhtsa_id": "10225219",
-   "title": "Check engine lamp/Mil lamp-on. Engine misfires.",
-   "date": "2022-08-20",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ENGINE AND ENGINE COOLING. NHTSA flat-file records: MC-10225219-9999 2022-08-20 (S2218000018); MC-10225356-9999 2022-08-20 (S2218000018); no-pdf record 10229499 2022-08-20 (S2218000018). NHTSA flat-file records: MC-10225219-9999 2022-08-20 (S2218000018); MC-10225356-9999 2022-08-20 (S2218000018); no-pdf record 10229499 2022-08-20 (S2218000018).",
-   "condition": null,
-   "remedy": null,
+   "title": "Misfire codes: borescope for coolant in the cylinders after a hot drive cycle",
+   "date": "2022-08",
+   "summary": "STAR case. For P0300-P0304: drive under 4000 rpm to 70 C coolant, then hold about 5200 rpm to 90 C, shut off, cool 20-30 minutes, pull plugs from the misfiring cylinders (all if P0300), borescope for coolant. Coolant means replace the engine; otherwise go to published misfire diagnostics.",
+   "condition": "MIL on with engine misfire and P0300-P0304.",
+   "remedy": "Hot cycle then borescope the plug wells.",
    "systems": [
-    "ECM"
+    "Engine",
+    "Cooling"
    ],
-   "dtcs": [],
+   "dtcs": [
+    "P0300",
+    "P0301",
+    "P0302",
+    "P0303",
+    "P0304"
+   ],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10225219",
      "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10225219-9999.pdf"
     },
     {
-     "label": "NHTSA PDF (10225356)",
+     "label": "NHTSA 10225356",
      "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10225356-9999.pdf"
     }
    ],
    "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10225219.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
@@ -3013,7 +3117,17 @@
     "10225356",
     "10229499"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "NHTSA lists 2017-2020 Giulia and Stelvio. A second documented misfire path; invasive, so only after counters point at a cylinder.",
+   "parity_items": [
+    "proof-of-repair",
+    "hypotheses"
+   ],
+   "reference_codes": [
+    "shudder"
+   ],
+   "applies_to": "2017-2020 Giulia and Stelvio (NHTSA model years)",
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-0100122",
@@ -3112,50 +3226,41 @@
   {
    "id": "tsb-s1408000384",
    "kind": "tsb",
-   "number": "S1408000384",
+   "number": "S1408000384 (Rev C 2023, Rev E 2024, Rev G/H 2025)",
    "nhtsa_id": "10234420",
-   "title": "Start Stop Charging Warning Lamp Illuminated On, Intelligent Battery Sensor (IBS) State of Charge (SOC) Inaccurate, Battery Charging Message, Presence of IBS related Diagnostic Trouble Codes (DTCs), or Battery Warning Lamp On",
-   "date": "2023-02-14",
-   "summary": "Indexed from NHTSA flat file only (PDF present, not opened). NHTSA component: ELECTRICAL SYSTEM. NHTSA flat-file records: MC-10234420-9999 2023-02-14 (S1408000384); MC-10251783-9999 2024-01-10 (S1408000384); MC-11002828-0001 2024-06-25 (S1408000384 REV.F); MC-11012777-0001 2025-01-07 (S1408000384 REV.G); MC-11013171-0002 2025-01-25 (S1408000384 REV.H); MC-11028904-0001 2026-02-14 (S1408000384 REV.I); MC-11030035-0001 2026-03-04 (S1408000384 REV.J). Revisions seen: S1408000384, S1408000384 REV.F, S1408000384 REV.G, S1408000384 REV.H, S1408000384 REV.I, S1408000384 REV.J. NHTSA flat-file records: MC-10234420-9999 2023-02-14 (S1408000384); MC-10251783-9999 2024-01-10 (S1408000384); MC-11002828-0001 2024-06-25 (S1408000384 REV.F); MC-11012777-0001 2025-01-07 (S1408000384 REV.G); MC-11013171-0002 2025-01-25 (S1408000384 REV.H); MC-11028904-0001 2026-02-14 (S1408000384 REV.I); MC-11030035-0001 2026-03-04 (S1408000384 REV.J). Revisions seen: S1408000384, S1408000384 REV.F, S1408000384 REV.G, S1408000384 REV.H, S1408000384 REV.I, S1408000384 REV.J.",
-   "condition": null,
-   "remedy": null,
+   "title": "IBS: Start-Stop charging lamp, SOC inaccurate, B2193 / U113E / P00FD",
+   "date": "2023-02",
+   "summary": "STAR case, revised to Rev H. The IBS measures voltage, current and temperature; do not replace it without DTCs. SOC adaptation needs one crank and 2-4 hours of quiescent time (battery current between -500 mA and +50 mA). B2193 (IBS internal): cycle the two-way connection, start, wait 30 s, replace only if still active. U113E: LIN bus fault; wiggle test, fuse, voltage above 11.8 V at pin 2, scope the LIN. P00FD is the ECM aux versus main battery voltage delta, never an IBS fault; it latches until cleared. Do not blind charge: clamp negative to body or engine ground, or through the IBS.",
+   "condition": "Charging lamp, SOC wrong, IBS DTCs.",
+   "remedy": "As in summary.",
    "systems": [
-    "Charging/start-stop"
+    "IBS",
+    "BCM",
+    "ECM",
+    "Battery"
    ],
-   "dtcs": [],
+   "dtcs": [
+    "B2193",
+    "U113E",
+    "P00FD"
+   ],
    "links": [
     {
-     "label": "NHTSA PDF",
+     "label": "NHTSA 10234420",
      "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10234420-9999.pdf"
     },
     {
-     "label": "NHTSA PDF (10251783)",
-     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-10251783-9999.pdf"
-    },
-    {
-     "label": "NHTSA PDF (11002828)",
+     "label": "NHTSA 11002828",
      "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11002828-0001.pdf"
     },
     {
-     "label": "NHTSA PDF (11012777)",
+     "label": "NHTSA 11012777",
      "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11012777-0001.pdf"
-    },
-    {
-     "label": "NHTSA PDF (11013171)",
-     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11013171-0002.pdf"
-    },
-    {
-     "label": "NHTSA PDF (11028904)",
-     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11028904-0001.pdf"
-    },
-    {
-     "label": "NHTSA PDF (11030035)",
-     "url": "https://static.nhtsa.gov/odi/tsbs/2026/MC-11030035-0001.pdf"
     }
    ],
-   "applies": "vin_check",
-   "source": "NHTSA flat file TSBS_RECEIVED",
-   "verified": false,
+   "applies": "yes",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10234420.txt",
+   "verified": true,
    "components": [],
    "symptoms": [],
    "repair_implied": null,
@@ -3164,14 +3269,19 @@
    ],
    "nhtsa_ids": [
     "10234420",
-    "10251783",
     "11002828",
     "11012777",
-    "11013171",
-    "11028904",
-    "11030035"
+    "11013171"
    ],
-   "vehicle_scope": "this_model"
+   "vehicle_scope": "this_model",
+   "cuore_relevance": "Fits the IBS read parity item and any battery-related U-codes; also a charging rule for any write session.",
+   "parity_items": [
+    "ibs-battery-read",
+    "battery-type",
+    "web-write-lock"
+   ],
+   "applies_to": "2017-2023+ Giulia and Stelvio",
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   },
   {
    "id": "tsb-0700723",
@@ -5407,6 +5517,1314 @@
    "depends_on_systems": [
     "evap"
    ]
+  },
+  {
+   "id": "tsb-s2008000163",
+   "kind": "tsb",
+   "number": "S2008000163",
+   "nhtsa_id": "10183044",
+   "title": "CEL after start-up: check ESIM connector D2812A (P0440 / P0456)",
+   "date": "2020-10-24",
+   "summary": "STAR case. MIL on soon after start-up; P0440 and/or P0456 active on a vehicle that was recently serviced or has low mileage. The listed check is that the EVAP leak detection module (ESIM) connector D2812A, and every connector at the module, is fully seated and fastened.",
+   "condition": "MIL on, P0440 and/or P0456 active after recent repair work or on a low-mileage car.",
+   "remedy": "Inspect connector D2812A at the ESIM and make sure all connectors are fastened. No parts listed.",
+   "systems": [
+    "EVAP",
+    "ESIM"
+   ],
+   "dtcs": [
+    "P0440",
+    "P0456"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10183044",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10183044-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10183044.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2020 Giulia per NHTSA; Stelvio not listed",
+   "cuore_relevance": "NHTSA lists Giulia 2020 only. Same EVAP architecture as the 2018 Stelvio, so a hypothesis, not proof. A free first look after the EVAP parts were replaced: re-seat and photograph D2812A.",
+   "components": [
+    "ESIM",
+    "connector D2812A"
+   ],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref",
+    "proof-of-repair",
+    "electrical-paths"
+   ],
+   "reference_codes": [
+    "P0440",
+    "P0456"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2125000003",
+   "kind": "tsb",
+   "number": "S2125000003",
+   "nhtsa_id": "10221635",
+   "title": "P1CEA alone: borescope the ejector tee in the clean air duct",
+   "date": "2021-07-29",
+   "summary": "STAR case. MIL on with only P1CEA (boost side EVAP purge performance). Before the published P1CEA diagnostic, inspect the ejector tee in the clean air duct with a borescope for material restricting flow; replace and keep the part for return if found; clear DTCs and road test.",
+   "condition": "P1CEA set with no other DTCs.",
+   "remedy": "Borescope the ejector tee; replace if restricted; else follow published diagnostic.",
+   "systems": [
+    "EVAP",
+    "Turbo intake"
+   ],
+   "dtcs": [
+    "P1CEA"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10221635",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10221635-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10221635.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2020-2021 Giulia and Stelvio (NHTSA model years)",
+   "cuore_relevance": "NHTSA lists Giulia and Stelvio 2020-2021. This car has no P1CEA on record, but it is the boost-side purge path that shares the EVAP monitor with P0455/P0456; useful when other EVAP hypotheses run out.",
+   "components": [
+    "ejector tee",
+    "clean air duct"
+   ],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref",
+    "act-evap"
+   ],
+   "reference_codes": [
+    "P0455",
+    "P0456"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2018000014",
+   "kind": "tsb",
+   "number": "S2018000014",
+   "nhtsa_id": "10187651",
+   "title": "Rough running 60-90 s after cold start with P0300: 90 second misfire counts by cylinder, replace the worst injector(s)",
+   "date": "2020-12-12",
+   "summary": "STAR case. Save a scan report; cold start with coolant within 5 F of ambient; monitor per-cylinder misfire counts in wiTECH for the first 90 seconds; replace the injector on the highest-count cylinder (two if two stand out, never all four); replace the combustion tip seals on all injectors; clear codes and repeat the 90 second count to confirm.",
+   "condition": "MIL on, engine runs rough 60-90 s after a cold start, P0300-P0304 pending, stored or active.",
+   "remedy": "Cold-start misfire count test, injector replacement on the high-count cylinder(s), tip seals on all four, retest.",
+   "systems": [
+    "Engine",
+    "Fuel injection"
+   ],
+   "dtcs": [
+    "P0300",
+    "P0301",
+    "P0302",
+    "P0303",
+    "P0304"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10187651",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10187651-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10187651.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2019-2020 Giulia and Stelvio 2.0T (NHTSA model years)",
+   "cuore_relevance": "NHTSA lists Giulia and Stelvio 2019-2020. Best published match for the shudder: a repeatable cold-start test that produces numbers. Needs per-cylinder misfire counters from CUORE (ECM data), the Next-MES-session item.",
+   "components": [
+    "fuel injectors",
+    "injector tip seals"
+   ],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "live-ecm",
+    "proof-of-repair",
+    "dtc-counters-19-06",
+    "hypotheses"
+   ],
+   "reference_codes": [
+    "shudder"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2018000011",
+   "kind": "tsb",
+   "number": "S2018000011",
+   "nhtsa_id": "10183038",
+   "title": "Misfire and P0299 codes after the W05 flash: re-flash (poor connection or low voltage)",
+   "date": "2020-10-27",
+   "summary": "STAR case. After the W05 PCM flash, P0299 and P0300-P0304 may be active, stored or pending. Engineering says the flash is not at fault; a poor internet connection or low system voltage during the update may cause it. Repeat the flash and re-evaluate; cold-start idle roughness without codes is characteristic.",
+   "condition": "P0299, P0300-P0304 after CSN W05.",
+   "remedy": "Repeat the PCM flash with a stable link and charger; if codes return, follow published diagnostics.",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P0299",
+    "P0300",
+    "P0301",
+    "P0302",
+    "P0303",
+    "P0304"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10183038",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10183038-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10183038.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2017-2019 Giulia and Stelvio (NHTSA model years)",
+   "cuore_relevance": "Applies if this car was flashed for W05 (ask dealer history). Confirms voltage and link stability matter for any write CUORE ever does.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "web-write-lock",
+    "proof-of-repair"
+   ],
+   "reference_codes": [
+    "shudder"
+   ],
+   "nhtsa_ids": [
+    "10183038",
+    "10223927"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2018000004",
+   "kind": "tsb",
+   "number": "S2018000004",
+   "nhtsa_id": "10175670",
+   "title": "U04B1-00 in the PCM after the W05 flash: BCM restore configuration",
+   "date": "2020-04-15",
+   "summary": "STAR case. If U04B1-00 (invalid data from battery monitor module) sets after the W05 PCM flash: wiTECH 2, BCM, Misc. menu, run the restore configuration routine, erase PCM codes, key off, start, confirm gone.",
+   "condition": "U04B1-00 after CSN W05.",
+   "remedy": "BCM Misc. restore configuration, erase codes, key cycle.",
+   "systems": [
+    "BCM",
+    "ECM",
+    "Battery monitor"
+   ],
+   "dtcs": [
+    "U04B1-00"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10175670",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175670-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10175670.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2017-2019 Giulia and Stelvio",
+   "cuore_relevance": "Names the BCM routine that completes a PCM flash. Informs the proxi-alignment parity item and a post-flash checklist.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "proxi-alignment",
+    "tsb-xref"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2018000008",
+   "kind": "tsb",
+   "number": "S2018000008",
+   "nhtsa_id": "10223551",
+   "title": "Engine surge or P0299 after a PCM calibration update (no fix published)",
+   "date": "2020-06-19",
+   "summary": "STAR case. Some customers feel intermittent surge under load or at steady highway speed after a PCM update; P0299 may set. Follow published diagnostics; if nothing is found it may be characteristic of the calibration. A software update was in development, no ETA.",
+   "condition": "Surge feel, P0299 after PCM update.",
+   "remedy": "None published.",
+   "systems": [
+    "ECM",
+    "Turbo"
+   ],
+   "dtcs": [
+    "P0299"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10223551",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10223551-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10223551.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2019-2020 Giulia and Stelvio",
+   "cuore_relevance": "A newer calibration can bring its own complaints; relevant before recommending a flash for the shudder.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "hypotheses",
+    "tsb-xref"
+   ],
+   "reference_codes": [
+    "shudder"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-09-002-22",
+   "kind": "tsb",
+   "number": "09-002-22 (RSU 22-014)",
+   "nhtsa_id": "10223001",
+   "title": "Ignition coil double wire causing misfire: replace all four coils",
+   "date": "2022-01-25",
+   "summary": "Replace all four ignition coils (68211953AA x4) on 2021-2022 Giulia and Stelvio 2.0L 280HP built 2021-09-08 to 2021-09-28.",
+   "condition": "P0301-P0304, rough running.",
+   "remedy": "Replace four coils.",
+   "systems": [
+    "Ignition"
+   ],
+   "dtcs": [
+    "P0301",
+    "P0302",
+    "P0303",
+    "P0304"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10223001",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10223001-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10223001.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2021-2022 builds of Sep 8-28 2021 only",
+   "cuore_relevance": "Not this car (2018 build). Listed so a misfire job does not chase it.",
+   "components": [
+    "ignition coil 68211953AA"
+   ],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2308000004",
+   "kind": "tsb",
+   "number": "S2308000004",
+   "nhtsa_id": "10231729",
+   "title": "Cranks, no start: B1081-86 ECM Fire Protection Strategy; run the FPS actuate procedure",
+   "date": "2023-01",
+   "summary": "STAR case. Cranks, no start with B1081-86 (BCM), P1300-00, P008A-00, P0087-00 (ECM). Verify ECM B+ feeds, grounds and fuel pump power; actuate the fuel pump relay On from the scan tool. If B1081-86 is set, run the FPS actuate procedure in the scan tool to re-enable the vehicle, then clear the code.",
+   "condition": "Crank no start, B1081-86 with fuel pressure codes.",
+   "remedy": "Check power and grounds, actuate pump relay, run FPS actuate procedure.",
+   "systems": [
+    "ECM",
+    "BCM",
+    "Fuel"
+   ],
+   "dtcs": [
+    "B1081-86",
+    "P1300-00",
+    "P008A-00",
+    "P0087-00"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10231729",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10231729-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10231729.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2018-2020 Giulia and Stelvio",
+   "cuore_relevance": "A named scan-tool actuation (Fire Protection Strategy re-enable) for the parity actuator list. Lists 2018-2020 Giulia and Stelvio.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "bcm-commands"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2108000196",
+   "kind": "tsb",
+   "number": "S2108000196",
+   "nhtsa_id": "10218498",
+   "title": "Negative response 0x22 when logging battery state of charge in wiTECH new-vehicle prep",
+   "date": "2021-08",
+   "summary": "STAR case. wiTECH may show negative response 0x22 when logging 12 V battery SOC (suspected BCM software). Workaround: manual entry; read SOC in the ECM, Data, \"Battery Charge Status\"; it must be above 70 percent or charge the battery first.",
+   "condition": "NRC 0x22 reading SOC during NVP/PDI.",
+   "remedy": "Manual SOC entry from ECM data Battery Charge Status.",
+   "systems": [
+    "BCM",
+    "ECM",
+    "Battery"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA 10218498",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10218498-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10218498.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2021 Giulia and Stelvio",
+   "cuore_relevance": "Shows the battery SOC value lives in ECM data (Battery Charge Status) and that the BCM read may refuse. Informs ibs-battery-read. Lists 2021 only.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "ibs-battery-read",
+    "live-ecm",
+    "battery-type"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-18-103-19",
+   "kind": "tsb",
+   "number": "18-103-19 (RRT 17-112)",
+   "nhtsa_id": "10170404",
+   "title": "Flash: PCM updates, 2018 Stelvio 2.0L (predecessor of 18-026-20)",
+   "date": "2019-12-19",
+   "summary": "Supersedes 18-051-18 (not on NHTSA); superseded by 18-026-20. 2018 Stelvio 2.0L EC2, North America, no build date limit. DTCs P013A, P015A, P1CEA, P0096, P04DB, P024A, P2097, P2B2F, P24D6, P01BA, P026E, P164E, P0191, P2299, U1008. Steps: flash ECM, ECM Misc. Functions Phonic Wheel Replacement, clear DTCs, update BCM. Includes the turbo coolant pump after-run change.",
+   "condition": "MIL, cold misfire, not-ready after reset.",
+   "remedy": "ECM flash and Phonic Wheel Replacement.",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P013A-00",
+    "P015A-00",
+    "P1CEA-00",
+    "P0096-00",
+    "P04DB-00",
+    "P024A-00",
+    "P2097-00",
+    "P2B2F-00",
+    "P24D6-00",
+    "P01BA-00",
+    "P026E-00",
+    "P164E-00",
+    "P0191-00",
+    "P2299-00",
+    "U1008-00"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10170404",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10170404-9999.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10170404.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Same car, one revision before 18-026-20. No P0440, P0455 or P0456 in the list.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [
+    "P0455",
+    "P0456",
+    "P0440"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-18-101-19-18-024-20",
+   "kind": "tsb",
+   "number": "18-101-19 / 18-024-20",
+   "nhtsa_id": "10170399",
+   "title": "Flash: PCM updates, 2019 Stelvio 2.0L built on or before 2019-10-10",
+   "date": "2019-12-17",
+   "summary": "18-101-19 (Stelvio, 10170399) became 18-024-20 (10174243, 2020-03-25); Giulia equivalents 18-098-19 (10170393) and 18-025-20 (10174246). DTCs P013A, P015A, P026E, P1CEA, U1008 (P0106 added in 2020). Steps: flash ECM, BCM PROXI Alignment (Misc. Functions), ECM Phonic Wheel Replacement, clear DTCs, update TCM.",
+   "condition": "MIL, certification, driveability.",
+   "remedy": "ECM flash, PROXI alignment, Phonic Wheel Replacement, TCM update.",
+   "systems": [
+    "ECM",
+    "BCM",
+    "TCM"
+   ],
+   "dtcs": [
+    "P013A-00",
+    "P015A-00",
+    "P026E-00",
+    "U1008-00",
+    "P1CEA-00",
+    "P0106-00"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10170399",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10170399-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10174243",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174243-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10170393",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10170393-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10174246",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174246-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10170399.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2019 Stelvio and Giulia built on or before 2019-10-10",
+   "cuore_relevance": "2019 build window. Shows the 2019 procedure inserts PROXI alignment between the ECM flash and the phonic wheel step, unlike 2018.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_year",
+   "parity_items": [
+    "proxi-alignment"
+   ],
+   "reference_codes": [],
+   "nhtsa_ids": [
+    "10170399",
+    "10174243",
+    "10170393",
+    "10174246"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-18-097-19-18-027-20",
+   "kind": "tsb",
+   "number": "18-097-19 / 18-027-20 (RRT 17-110)",
+   "nhtsa_id": "10170388",
+   "title": "Flash: PCM updates, 2017-2018 Giulia 2.0L, lists P0440 P0441 P0455 P0456",
+   "date": "2019-12-14",
+   "summary": "Giulia 2017-2018 2.0L EC2 only, all builds. Same DTC list as 18-030-17 Rev D plus P0106 (in 18-027-20, 10174247, 2020-03-25). Steps: flash ECM; BCM PROXI Alignment (Misc.); ECM Misc. Functions Phonic Wheel Replacement first, then RPM Sensor and/or Timing Chain Replacement if errors; clear DTCs; update BCM and TCM. Flash about 7 minutes; labour 18-19-06-A8 0.4 h.",
+   "condition": "Same as 18-030-17 Rev D.",
+   "remedy": "As in summary.",
+   "systems": [
+    "ECM",
+    "EVAP"
+   ],
+   "dtcs": [
+    "P0440",
+    "P0441",
+    "P0455-00",
+    "P0456",
+    "P1CEA-00",
+    "P24D6-00",
+    "P0106-00"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10170388",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2019/MC-10170388-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10174247",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174247-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10170388.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": "2017-2018 Giulia 2.0T",
+   "cuore_relevance": "The later form of the P0440/P0455/P0456 flash, but for Giulia. The Stelvio equivalents (18-103-19, 18-026-20) dropped those three codes. Do not claim it applies to the Stelvio.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [
+    "P0440",
+    "P0455",
+    "P0456"
+   ],
+   "nhtsa_ids": [
+    "10170388",
+    "10174247"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-18-030-17-chain",
+   "kind": "tsb",
+   "number": "18-030-17 base / REV. B / REV. C / REV. D",
+   "nhtsa_id": "10216318",
+   "title": "18-030-17 revision chain (all Giulia 2.0L)",
+   "date": "2017-11-17",
+   "summary": "Base 10140044 (2017-03-23, builds to 2017-02-27, DTCs P0440 P0441 P0002 P0244 P062A P0128 P0514 P2AC0 P0402 P2B89 P0456); REV. B 10138905 (2017-06-09); REV. C 10223658 (2017-07-14); REV. D 10216318 (2017-11-17, builds to 2017-06-29, adds P0455, P1CEA, P24D6 and others, RRT 17-043, labour 18-19-06-SK/TW). No Stelvio copy on NHTSA.",
+   "condition": "See existing row.",
+   "remedy": "See existing row.",
+   "systems": [
+    "ECM",
+    "EVAP"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA 10216318",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2017/MC-10216318-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10140044",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2017/MC-10140044-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10138905",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2017/MC-10138905-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10223658",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2017/MC-10223658-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10216318.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Confirms the earlier finding: 18-030-17 is Giulia only. Existing row tsb-18-030-17-rev-b stays; add these ids to it.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [
+    "P0440",
+    "P0455",
+    "P0456"
+   ],
+   "nhtsa_ids": [
+    "10216318",
+    "10140044",
+    "10138905",
+    "10223658"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2008000001",
+   "kind": "tsb",
+   "number": "S2008000001 / 08-045-20 Rev A / 9004199",
+   "nhtsa_id": "10174139",
+   "title": "FFCM/HALF camera DTCs B1006-49 C141C-86 C1999-86: Restore Vehicle Configuration, then Proxi alignment",
+   "date": "2020-03-05",
+   "summary": "Run BCM Misc. Functions Restore Vehicle (Proxy) Configuration; codes stay active until a key cycle, then go stored; clear; let the car sleep 10-15 minutes; recheck. 08-045-20 Rev A (10180265, 2020-08-18) adds Proxi Configuration Alignment and removing the Micro Pod. 2020 builds only.",
+   "condition": "FCW limited functionality message.",
+   "remedy": "Restore vehicle configuration plus alignment.",
+   "systems": [
+    "HALF",
+    "BCM"
+   ],
+   "dtcs": [
+    "B1006-49",
+    "C141C-86",
+    "C1999-86"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10174139",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10174139-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10180265",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10180265-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10174139.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Not this car. Shows how often a flash only completes after the BCM Restore Vehicle Configuration.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_year",
+   "parity_items": [
+    "proxi-alignment"
+   ],
+   "reference_codes": [],
+   "nhtsa_ids": [
+    "10174139",
+    "10180265"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2008000032",
+   "kind": "tsb",
+   "number": "S2008000032",
+   "nhtsa_id": "10175659",
+   "title": "Multiple EVIC warnings and DTCs: loose inline connector XY201 and grounds G003A/G003B",
+   "date": "2020-04-07",
+   "summary": "Dealer prep found Service ETC, adaptive headlamp, Start Stop not available and park light messages with many active DTCs. Inline connector XY201 was loose; grounds G003A and G003B checked clean and tight; codes cleared, no parts.",
+   "condition": "Many active DTCs together.",
+   "remedy": "Re-seat XY201, check G003A/G003B.",
+   "systems": [
+    "BCM",
+    "Wiring"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA 10175659",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175659-9999.pdf"
+    }
+   ],
+   "applies": "vin_check",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10175659.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Stelvio 2020 per NHTSA. Names a connector and two grounds to check for a communication cascade.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "electrical-paths"
+   ],
+   "reference_codes": [
+    "B1040",
+    "U1736"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-08-064-17",
+   "kind": "tsb",
+   "number": "08-064-17 (RRT 17-065)",
+   "nhtsa_id": "10223650",
+   "title": "Amplifier protective cover: B10AA-4A with U1746-87, U0186-31, U197C-83",
+   "date": "2017-07-21",
+   "summary": "Giulia 2017 with Harman Kardon audio (RCA) built on or before 2017-05-24. Audio warning light, no sound, B10AA-4A (Check Configuration Failed, Incorrect Component Installed). Parts: amplifier 68301024AA, harness 68324837AA.",
+   "condition": "B10AA-4A with amplifier codes.",
+   "remedy": "Replace amplifier with protective cover and harness.",
+   "systems": [
+    "Audio",
+    "Amplifier"
+   ],
+   "dtcs": [
+    "B10AA-4A",
+    "U1746-87",
+    "U0186-31",
+    "U197C-83"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10223650",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2017/MC-10223650-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10223650.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "The only bulletin text that contains this car's B10AA. Different model year and build window, so a code-description match only.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [
+    "B10AA"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-08-069-17",
+   "kind": "tsb",
+   "number": "08-069-17",
+   "nhtsa_id": "10223655",
+   "title": "RFHM flash for B1052-13 remote start antenna (record TPMS IDs, Exit Logistic first)",
+   "date": "2017-07-27",
+   "summary": "Giulia 2017 built on or before 2017-07-10. Before the flash: run the Exit Logistic routine in BCM Misc. Function; record the four tyre pressure sensor IDs from RFHM data; flash RFHM; update BCM.",
+   "condition": "B1052-13.",
+   "remedy": "RFHM flash.",
+   "systems": [
+    "RFHUB"
+   ],
+   "dtcs": [
+    "B1052-13"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10223655",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2017/MC-10223655-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10223655.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Names RFHM data (TPMS IDs) and the BCM Exit Logistic routine.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_model",
+   "parity_items": [
+    "tpms-reset",
+    "key-remote-learning"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-01-001-20",
+   "kind": "tsb",
+   "number": "01-001-20 / 01-001-21",
+   "nhtsa_id": "10175722",
+   "title": "Oil change monitor reset by accelerator-pedal sequence (2.0L 280HP)",
+   "date": "2020-04-08",
+   "summary": "Reset without the brake: press Start/Stop to RUN (engine off), press the accelerator fully five times within 10 s, press Start/Stop once to turn off. Use the scan tool if it fails. Before delivery: reset if under 365 days and 150 miles, otherwise change oil and filter.",
+   "condition": "Oil light early.",
+   "remedy": "Pedal reset or oil change.",
+   "systems": [
+    "Engine oil",
+    "ECM"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA 10175722",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10175722-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10188822",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10188822-9999.pdf"
+    }
+   ],
+   "applies": "yes",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10175722.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "A published manual method for the oil reset. Informs oil-change-reset.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "oil-change-reset"
+   ],
+   "reference_codes": [],
+   "nhtsa_ids": [
+    "10175722",
+    "10188822"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-18-069-22-rev-b",
+   "kind": "tsb",
+   "number": "18-069-22 Rev B / 18-041-23 (RSU 23-098)",
+   "nhtsa_id": "10214611",
+   "title": "Flash: PCM updates, 2022 Stelvio 2.0L: P2AC0 and P1CEA, with accelerator-pedal relearn step",
+   "date": "2022-05-14",
+   "summary": "2022 Stelvio 2.0L 280HP. Rev B builds 2021-11-30 to 2022-04-13 (P2AC0); 18-041-23 (10236901, 2023-04-01) builds 2021-09-16 to 2022-07-20 (adds P1CEA). Steps: flash, BCM Proxi Alignment, ECM Phonic Wheel Replacement, press the accelerator fully and release to idle three times (MIL stops blinking), clear DTCs.",
+   "condition": "MIL, P2AC0, P1CEA.",
+   "remedy": "As in summary.",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P2AC0-00",
+    "P1CEA-00",
+    "P1300"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10214611",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2022/MC-10214611-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10236901",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10236901-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10241060",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10241060-9999.pdf"
+    },
+    {
+     "label": "NHTSA 10241137",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10241137-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10214611.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Not this car. Shows P1CEA was handled as a software problem on 2022 builds.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_year",
+   "parity_items": [
+    "proxi-alignment",
+    "throttle-relearn"
+   ],
+   "reference_codes": [],
+   "nhtsa_ids": [
+    "10214611",
+    "10236901",
+    "10241060",
+    "10241137"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-08-025-21",
+   "kind": "tsb",
+   "number": "08-025-21",
+   "nhtsa_id": "10188814",
+   "title": "EPS module flash: steering wheel vibration, 2019 Stelvio 2.0L",
+   "date": "2021-02-12",
+   "summary": "Stelvio 2019 built 2019-05-08 to 2019-09-19. Flash EPS, turn the wheel lock to lock to set the steering angle, clear DTCs.",
+   "condition": "Steering wheel vibration.",
+   "remedy": "EPS flash.",
+   "systems": [
+    "EPS"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA 10188814",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2021/MC-10188814-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10188814.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Not this car. Names the steering angle step.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_year",
+   "parity_items": [
+    "steering-angle"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-09-013-25",
+   "kind": "tsb",
+   "number": "09-013-25 Rev B",
+   "nhtsa_id": "11018862",
+   "title": "Oil leak from the timing cover: re-torque and reseal (2.0L)",
+   "date": "2025-05-29",
+   "summary": "2020-2024 Giulia and Stelvio 2.0L built up to 2024-05-02. Labour 5.2 to 5.7 h.",
+   "condition": "Oil at timing cover.",
+   "remedy": "Re-torque bolts, reseal if needed.",
+   "systems": [
+    "Engine"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA 11018862",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11018862-0001.pdf"
+    },
+    {
+     "label": "NHTSA 11019431",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2025/MC-11019431-0001.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\11018862.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Outside 2018. Same engine family.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_year",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [],
+   "nhtsa_ids": [
+    "11018862",
+    "11018868",
+    "11019431"
+   ],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-s2418000016",
+   "kind": "tsb",
+   "number": "S2418000016",
+   "nhtsa_id": "11011713",
+   "title": "MIL and limp-in with P0606-00 ECU internal: erase and return",
+   "date": "2024-12",
+   "summary": "No part replacement is expected to fix it; under engineering investigation. 2021-2024.",
+   "condition": "P0606-00.",
+   "remedy": "Erase DTC.",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P0606-00"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 11011713",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2024/MC-11011713-0001.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\11011713.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Outside 2018.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_year",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-18-051-20",
+   "kind": "tsb",
+   "number": "18-051-20",
+   "nhtsa_id": "10177534",
+   "title": "2.9L bypass valve connector (P00C0-00)",
+   "date": "2020-06-19",
+   "summary": "Giulia 2017-2019 2.9L: inspect and replace connector 68369901AA and cover 68519378AA.",
+   "condition": "P00C0-00.",
+   "remedy": "Splice connector.",
+   "systems": [
+    "Turbo"
+   ],
+   "dtcs": [
+    "P00C0-00"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10177534",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2020/MC-10177534-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10177534.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "2.9 V6 only.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_engine",
+   "parity_items": [],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "tsb-18-080-23",
+   "kind": "tsb",
+   "number": "18-080-23 / 18-043-23 / 18-007-25 family",
+   "nhtsa_id": "10241139",
+   "title": "2.9L PCM flashes (P043E EVAP orifice, P2C33, P0607 and others), Stelvio 2021-2022",
+   "date": "2023-06-30",
+   "summary": "Stelvio 2.9L V6 twin turbo. Reprogram primary and secondary ECM, then TCM. Includes P043E-00 EVAP reference orifice low flow.",
+   "condition": "See DTCs.",
+   "remedy": "Flash both ECMs and TCM.",
+   "systems": [
+    "ECM"
+   ],
+   "dtcs": [
+    "P043E-00",
+    "P2C33-00",
+    "P0607-00"
+   ],
+   "links": [
+    {
+     "label": "NHTSA 10241139",
+     "url": "https://static.nhtsa.gov/odi/tsbs/2023/MC-10241139-9999.pdf"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA PDF read in full 2026-10-29 (pdftotext); text saved at C:\\ProgramData\\cuore\\research\\nhtsa_bulletins_2026-10-29\\10241139.txt",
+   "verified": true,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "2.9 only. P043E also appears in the catalogue sibling-engine row MAS003111.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "sibling_engine",
+   "parity_items": [],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "recall-18v828",
+   "kind": "recall",
+   "number": "18V828",
+   "nhtsa_id": "18V828",
+   "title": "Giulia 2.0L AWD exhaust recall",
+   "date": "2018-11-26",
+   "summary": "2017-2018 Giulia GME 280HP AWD only (NHTSA component: exhaust system).",
+   "condition": null,
+   "remedy": "See NHTSA.",
+   "systems": [
+    "Exhaust"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA API",
+     "url": "https://api.nhtsa.gov/recalls/campaignNumber?campaignNumber=18V828"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA recalls API 2026-10-29 (summary only; remedy document not retrieved)",
+   "verified": false,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Giulia only.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "recall-21v309",
+   "kind": "recall",
+   "number": "21V309",
+   "nhtsa_id": "21V309",
+   "title": "Hard braking may damage ABS hydraulic control unit (Y24)",
+   "date": "2021-05-04",
+   "summary": "2019-2021 Stelvio, 2020-2021 Giulia.",
+   "condition": null,
+   "remedy": "See NHTSA.",
+   "systems": [
+    "ABS"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA API",
+     "url": "https://api.nhtsa.gov/recalls/campaignNumber?campaignNumber=21V309"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA recalls API 2026-10-29 (summary only; remedy document not retrieved)",
+   "verified": false,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Not 2018.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "recall-21v878",
+   "kind": "recall",
+   "number": "21V878",
+   "nhtsa_id": "21V878",
+   "title": "Fuel line sensor housing may crack",
+   "date": "2021-11-12",
+   "summary": "2020-2021 Giulia and Stelvio.",
+   "condition": null,
+   "remedy": "See NHTSA.",
+   "systems": [
+    "Fuel"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA API",
+     "url": "https://api.nhtsa.gov/recalls/campaignNumber?campaignNumber=21V878"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA recalls API 2026-10-29 (summary only; remedy document not retrieved)",
+   "verified": false,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Not 2018.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
+  },
+  {
+   "id": "recall-24v512",
+   "kind": "recall",
+   "number": "24V512",
+   "nhtsa_id": "24V512",
+   "title": "Tire pressure label error",
+   "date": "2024-07-03",
+   "summary": "2017-2024 Giulia and 2021-2024 Stelvio.",
+   "condition": null,
+   "remedy": "Replace labels.",
+   "systems": [
+    "Labels"
+   ],
+   "dtcs": [],
+   "links": [
+    {
+     "label": "NHTSA API",
+     "url": "https://api.nhtsa.gov/recalls/campaignNumber?campaignNumber=24V512"
+    }
+   ],
+   "applies": "no",
+   "source": "NHTSA recalls API 2026-10-29 (summary only; remedy document not retrieved)",
+   "verified": false,
+   "supersedes": null,
+   "family": null,
+   "applies_to": null,
+   "cuore_relevance": "Not a 2018 Stelvio.",
+   "components": [],
+   "symptoms": [],
+   "repair_implied": null,
+   "depends_on_systems": [],
+   "vehicle_scope": "this_model",
+   "parity_items": [
+    "tsb-xref"
+   ],
+   "reference_codes": [],
+   "source_note": "NHTSA bulk TSB files, read 2026-10-29; docs/research/NHTSA_BULLETINS_GIULIA_STELVIO_2026-10-29.md"
   }
  ],
  "sources": [
