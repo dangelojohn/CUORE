@@ -74,6 +74,10 @@ Why: on 2026-09-26 scripted test reads and fake sessions had leaked into the rea
 
 The live-data poller is read-only. Coding and configuration writes are blocked on every module by service (157177d). Actuator tests are consent-gated with bounded timing and a return-to-ECU check, and need the engine off. Vehicle modifications (for example paddle-shift) are a separate layer from diagnostics.
 
+## 13. Save everything gathered (owner rule, 2026-10-29)
+
+Every research pass keeps its raw material: fetched pages and PDFs, extracted text, search results, source URLs, owner statements, and a copy of the finished document. Save it the same day so it is available later. Vendor or licensed material and forum text go under C:\ProgramData\cuoreesearch\<topic>_<date>\, not into this public repository, with a SOURCES_AND_FINDINGS.md listing each file and URL. The repo holds only the finished document, with citations. Saving is not permission to act on the material: the write rules above still apply. First instance: C:\ProgramData\cuoreesearchlfaobd_2026-10-29\.
+
 ## Design rules (interface)
 
 - CUORE is the mechanic's diagnostic assistant, not a manager or owner tool. It advises, records and remembers; it never blocks (the release step says "not verified" and records the decision).
