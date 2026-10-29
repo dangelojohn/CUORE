@@ -6,14 +6,14 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 |---|---|---|---|
 | observations.jsonl | skipped-unchanged | 2289191 | 356 |
 | owner_events.jsonl | skipped-unchanged | 996 | 2 |
-| jobs.jsonl | skipped-unchanged | 249101 | 295 |
+| jobs.jsonl | copied | 256122 | 302 |
 | checklists.json | skipped-unchanged | 615 | - |
 | cases.jsonl | skipped-unchanged | 1491 | 1 |
 | symptoms.jsonl | skipped-unchanged | 2074 | 4 |
 | shop_visits.jsonl | skipped-unchanged | 216 | 1 |
 | audit.jsonl | skipped-unchanged | 652164 | 3396 |
 | fullscan_last.json | skipped-unchanged | 6870 | - |
-| notes.jsonl | copied | 125545 | 121 |
+| notes.jsonl | copied | 126738 | 123 |
 | service_records.jsonl | skipped-unchanged | 5594 | 3 |
 | addresses.json | skipped-unchanged | 1183 | - |
 | learned_dids.json | skipped-unchanged | 34704 | - |
@@ -33,7 +33,7 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 | recordings/live_load-step-voltage_20261023-005308.json | skipped-unchanged | 3722 | - |
 | recordings/live_load-step-voltage_20261023-005518.csv | skipped-unchanged | 13375 | - |
 | recordings/live_load-step-voltage_20261023-005518.json | skipped-unchanged | 3725 | - |
-| bench/visits.json | skipped-unchanged | 413 | - |
+| bench/visits.json | copied | 413 | - |
 | media/index.jsonl | skipped-unchanged | 813 | - |
 | media/ZASFAKPN5J7B88115/e2553eec8fd74b62985fd09c7377bbc9.pdf | skipped-unchanged | 9068 | - |
 
