@@ -52,7 +52,7 @@ DRL, auto door lock, Start&Stop memory, mirror fold: no source I opened lists th
 
 **(e) Adapters and Secure Gateway**
 25. Adapters: OBDLink MX+, EX, LX, CX; ELM327 1.3 or later; OBDKey; Kiwi 3 on Android; J2534 on Windows (V, https://www.alfaobd.com/). Giulia and Stelvio need the "grey" adapter for the second high-speed CAN bus; some interfaces (OBDLink MX+/EX, Vgate vLinker MS) do not need the blue adapter (V).
-26. Secure Gateway: from model year 2018 a hardware bypass is needed, and for Giulia/Stelvio it must carry the second high-speed CAN bus on pins 12 and 13 (V, same page). Named bypass makers are listed; the vendor says to remove the bypass before visiting a dealer. The page does not mention AutoAuth or any manufacturer-sanctioned route (INFERENCE: there is none in AlfaOBD).
+26. Secure Gateway: the vendor says 2018 and later cars need a hardware bypass, carrying pins 12 and 13 on Giulia/Stelvio (V, same page). On this car: not gating (local evidence). MES wrote to the ECM with no bypass or authentication (docs/research/CONNECTIVITY_AND_SGW.md section 2), so the vendor banner is range-wide, not a finding for this VIN. The A5 and A6 cables are bus-access cables.
 
 **(f) Platforms and price.** Windows 7 to 11, Android, and Mac via Windows virtualisation; not iOS. One-time paid licence per platform with a limited free demo, no VIN lock (V, https://www.alfaobd.com/download.html).
 
@@ -79,7 +79,7 @@ CUORE today (from FEATURES.md and the gap notes): reads and diagnosis are strong
 | Paddle EU/NA (16) | Byte 156 bits 4-5, single-source | No DID, no read; handoff card | Section 3 |
 | Other options (17 to 23) | Present as bytes | Absent | Manufacturer option list, per market |
 | Key and remote learning (24) | Security code entry | Absent; 0x27 refused | Manufacturer security access and procedure; owner decision made 2026-10-29 |
-| Adapters, SGW (25, 26) | A5 and A6 cables | Same cables; module scan answered 5 of 25 rows | Manufacturer: sanctioned gateway route; supported interface list |
+| Adapters (25), SGW (26) | A5 and A6 cables | Same cables; scan answered 5 of 25 rows; SGW not gating this car (local evidence) | Manufacturer: supported interface list |
 | Windows, Android (f) | Windows | Web app, phone-first | Already done |
 
 **Five biggest gaps for AlfaOBD parity:** (1) PROXI read, alignment and a verified read-back; (2) service and oil resets; (3) the coding option set with market presets (paddle, battery, cluster and body options); (4) key and remote learning with security access; (5) module reach and actuator tests, which depend on gateway access and routine identifiers.
