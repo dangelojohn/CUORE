@@ -1,0 +1,15 @@
+/* Rename to fonts.css once the files listed in README.txt are in this folder. */
+@font-face { font-family: "Jost"; font-weight: 100 900; font-display: swap;
+  src: url("/static/fonts/Jost-VF.ttf") format("truetype"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 400; font-display: swap;
+  src: url("/static/fonts/BarlowCondensed-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Barlow Condensed"; font-weight: 700; font-display: swap;
+  src: url("/static/fonts/BarlowCondensed-Bold.ttf") format("truetype"); }
+@font-face { font-family: "Saira"; font-weight: 100 900; font-stretch: 50% 125%; font-display: swap;
+  src: url("/static/fonts/Saira-VF.ttf") format("truetype"); }
+@font-face { font-family: "Titillium Web"; font-weight: 400; font-display: swap;
+  src: url("/static/fonts/TitilliumWeb-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Titillium Web"; font-weight: 700; font-display: swap;
+  src: url("/static/fonts/TitilliumWeb-Bold.ttf") format("truetype"); }
+@font-face { font-family: "EB Garamond"; font-weight: 400 800; font-display: swap;
+  src: url("/static/fonts/EBGaramond-VF.ttf") format("truetype"); }

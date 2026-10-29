@@ -34,6 +34,16 @@ HERE = Path(__file__).resolve().parent
 STATIC_DIR = HERE / "static"
 
 
+def fonts_css_link() -> str:
+    """``<link>`` for ``static/fonts/fonts.css`` when that file exists, else ``""``.
+    The marque font files are owner-approved drops (static/fonts/README.txt); until
+    they exist no stylesheet is linked, so nothing 404s and the --display /
+    --numerals tokens in cuore.css fall through to the system stacks."""
+    if (STATIC_DIR / "fonts" / "fonts.css").is_file():
+        return f'<link rel="stylesheet" href="{static_url("fonts/fonts.css")}">'
+    return ""
+
+
 def static_url(path: str) -> str:
     """``"cuore.css"`` -> ``"/static/cuore.css?v=<hash of its mtime+size>"``.
 
@@ -60,6 +70,7 @@ def code_watch_state() -> dict:
 
 def _register(templates: Any) -> None:
     templates.env.globals["static_url"] = static_url
+    templates.env.globals["fonts_css_link"] = fonts_css_link
     templates.env.globals["code_watch_state"] = code_watch_state
 
 

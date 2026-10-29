@@ -190,7 +190,8 @@ table.ff-table tr:last-child td { border-bottom: none; }
   white-space: nowrap;
 }
 .lb-chan-value {
-  font-family: var(--mono); font-size: var(--fs-3xl); font-weight: var(--fw-semibold); line-height: 1;
+  font-family: var(--numerals); font-variant-numeric: tabular-nums lining-nums;
+  font-size: var(--fs-3xl); font-weight: var(--fw-semibold); line-height: 1;
   color: var(--ink-3); transition: color .15s linear;
 }
 .lb-chan-unit { font-size: var(--fs-sm); color: var(--ink-3); }

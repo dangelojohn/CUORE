@@ -18,6 +18,7 @@
    cuore.css's colour/spacing tokens (marque accent, true-black ground),
    not its desktop component styles. #}
 <link rel="stylesheet" href="{{ static_url('cuore.css') }}">
+{{ fonts_css_link()|safe if fonts_css_link is defined else '' }}
 <link rel="stylesheet" href="{{ static_url('m.css') }}">
 {# N2, 2026-10-14: the opening splash (_intro.html, unmodified -- see the
    include below) can sit on top of the very first real tap of a session.
@@ -66,7 +67,7 @@
 {% endif %}
 
 <header class="m-top">
-  <a class="m-brand" href="/m/{{ vin }}">CUORE</a>
+  <a class="m-brand" href="/m/{{ vin }}">{% if marque|default('alfa') == 'alfa' %}<img class="m-badge" src="/static/brand/alfa-romeo-logo.png" alt="Alfa Romeo" width="28" height="28">{% endif %}CUORE</a>
 </header>
 
 <main class="m-main">

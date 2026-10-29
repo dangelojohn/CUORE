@@ -38,6 +38,7 @@
 }
 
 .m-brand {
+  display: inline-flex; align-items: center; gap: 10px; font-family: var(--display);
   color: var(--ink-2);
   text-decoration: none;
   font-weight: var(--fw-semibold);
@@ -45,6 +46,7 @@
   letter-spacing: .14em;
   text-transform: uppercase;
 }
+.m-badge { width: 28px; height: 28px; border-radius: 50%; display: block; }
 
 .m-main {
   padding: 24px 20px 12px;

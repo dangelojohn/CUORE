@@ -168,6 +168,14 @@
 
 /* data-marque on <html> ("alfa" default, "maserati", "ferrari") only ever
  * swaps --accent/--accent-dim -- severity/--ok/--fam-* stay marque-invariant. */
+/* Marque typography (docs/design/ALFA_TYPOGRAPHY.md). --display carries the
+ * brand wordmark, h1 and hero names; --numerals carries gauge and live values.
+ * Each stack ends in the existing --sans / --mono so the page looks exactly as
+ * before until the font files are approved and dropped under static/fonts/
+ * (static/fonts/README.txt); fonts.css is linked only when it exists. */
+:root { --display: "Jost", var(--sans); --numerals: "Barlow Condensed", var(--mono); }
+:root[data-marque="ferrari"]  { --display: "Saira", var(--sans); --numerals: "Titillium Web", var(--mono); }
+:root[data-marque="maserati"] { --display: "EB Garamond", Georgia, var(--sans); --numerals: "Jost", var(--mono); }
 :root[data-marque="maserati"]  { --accent: #3d6ea5; --accent-dim: #16263a; }
 :root[data-marque="ferrari"]   { --accent: #d2001f; --accent-dim: #331014; }
 :root[data-theme="light"][data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
@@ -299,7 +307,7 @@ code, kbd, samp, .mono {
   border-bottom: 1px solid var(--rule);
 }
 .top .brand {
-  display: flex; align-items: center; gap: 8px; min-height: 44px;
+  display: flex; align-items: center; gap: 8px; min-height: 44px; font-family: var(--display);
   font-weight: var(--fw-bold); letter-spacing: .06em; text-decoration: none;
   font-size: var(--fs-sm); text-transform: uppercase;
 }
@@ -319,12 +327,11 @@ code, kbd, samp, .mono {
   .top-tagline { display: inline-block; max-width: 240px; }
 }
 
-/* Logo placeholder: a real mark is being designed separately. This is a
- * square slot in the same spot the old inline SVG badge occupied, sized to
- * fit the <=56px header strip. Drop the file at
- * cuore/web/static/brand/logo.svg (see that folder's README) and it shows
- * automatically via the background-image; until then the dashed border +
- * "LOGO" text make it obvious this is a stand-in, not a broken image. */
+/* Marque badge slot. A marque with a supplied badge file fills it (the
+ * Alfa Romeo badge, owner-supplied 2026-10-29 with the manufacturer's
+ * permission as reported; see brand/README.txt). A marque without one
+ * keeps the dashed "LOGO" stand-in so it is obviously a slot, not a broken
+ * image. Sized to fit the <=56px header strip. */
 .logo-slot {
   flex: none; display: block; width: 36px; height: 36px;
   border: 1.5px dashed var(--ink-3); border-radius: var(--radius);
@@ -338,6 +345,11 @@ code, kbd, samp, .mono {
   font-family: var(--mono); text-transform: uppercase; pointer-events: none;
 }
 @media (max-width: 759px) { .logo-slot { width: 32px; height: 32px; } }
+:root[data-marque="alfa"] .logo-slot {
+  border: 0; border-radius: 50%;
+  background-image: url(/static/brand/alfa-romeo-logo.png);
+}
+:root[data-marque="alfa"] .logo-slot::after { content: none; }
 .top nav { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 /* Mechanic review #3 (N6): the shared header nav (Start/Vehicles/Modules/
  * Recordings/Logs/Live link/Coverage/Tools -- present identically on
@@ -430,7 +442,7 @@ main {
 
 /* ---------- type ---------- */
 
-h1 { font-size: var(--fs-xl); margin: 0 0 4px; letter-spacing: -.01em; }
+h1 { font-size: var(--fs-xl); margin: 0 0 4px; letter-spacing: -.01em; font-family: var(--display); }
 h2 {
   font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .12em;
   color: var(--ink-3); margin: 26px 0 8px; font-weight: var(--fw-semibold);
@@ -1409,7 +1421,7 @@ details.vmore-tab:not([open]) .vmore-tab-panel { display: none; }
   background: linear-gradient(to top, rgba(0,0,0,.6), transparent);
   display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap;
 }
-.hero-name { font-size: var(--fs-2xl); font-weight: var(--fw-light); color: #fff; }
+.hero-name { font-size: var(--fs-2xl); font-weight: var(--fw-light); color: #fff; font-family: var(--display); }
 .hero-vin, .hero-km { font-family: var(--mono); font-size: var(--fs-sm); color: rgba(255,255,255,.82); }
 .vline {
   position: sticky; top: 0; z-index: 15; background: var(--bg);
@@ -1590,9 +1602,13 @@ h2, .section-h, .step-title {
   animation: intro-fade 2.2s ease-in forwards;
 }
 .intro-dismiss-toggle:checked ~ .intro-overlay { display: none; }
-.intro-mark { opacity: 0; animation: intro-in .9s ease-out .15s forwards; }
-.intro-logo { height: 64px; max-width: 70vw; display: block; }
+.intro-mark {
+  opacity: 0; animation: intro-in .9s ease-out .15s forwards;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
+}
+.intro-logo { height: 96px; width: 96px; max-width: 70vw; display: block; }
 .intro-wordmark {
+  font-family: var(--display);
   font-size: var(--fs-3xl); font-weight: var(--fw-light); letter-spacing: .04em; color: #fff;
 }
 .intro-wordmark span { color: var(--accent); }

@@ -14,8 +14,8 @@
 <input type="checkbox" id="intro-dismiss" class="intro-dismiss-toggle" hidden>
 <label for="intro-dismiss" class="intro-overlay no-print" aria-hidden="true">
   <span class="intro-mark">
-    <img src="/static/brand/logo.svg" alt="CUORE" class="intro-logo"
-         onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'intro-wordmark',textContent:'CUORE'}))">
+    {% if marque|default('alfa') == 'alfa' %}<img src="/static/brand/alfa-romeo-logo.png" alt="Alfa Romeo" class="intro-logo" width="96" height="96">{% endif %}
+    <span class="intro-wordmark">CU<span>O</span>RE</span>
   </span>
   <span class="intro-tagline">The mechanic's own record of the car</span>
 </label>

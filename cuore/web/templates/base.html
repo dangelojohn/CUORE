@@ -8,6 +8,7 @@
 <script>try{var t=localStorage.getItem("cuore-theme");if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);}catch(e){}</script>
 <title>{% block title %}CUORE{% endblock %}</title>
 <link rel="stylesheet" href="{{ static_url('cuore.css') }}">
+{{ fonts_css_link()|safe if fonts_css_link is defined else '' }}
 <link rel="stylesheet" href="{{ static_url('flow.css') }}">
 <link rel="stylesheet" href="{{ static_url('icons.css') }}">
 <link rel="stylesheet" href="{{ static_url('print.css') }}" media="print">
@@ -18,7 +19,8 @@
 
 <header class="top">
   <a class="brand" href="/" aria-label="CUORE, home">
-    <span class="logo-slot" role="img" aria-label="CUORE logo"></span>
+    {% set _marque_names = {"alfa": "Alfa Romeo", "maserati": "Maserati", "ferrari": "Ferrari"} %}
+    <span class="logo-slot" role="img" aria-label="{{ _marque_names.get(marque|default('alfa'), 'Marque') }} badge"></span>
     CU<span>O</span>RE
   </a>
   {# The header's own tagline echo -- CSS keeps this hidden at every width
