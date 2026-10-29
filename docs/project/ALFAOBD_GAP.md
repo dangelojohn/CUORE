@@ -1,12 +1,12 @@
 # AlfaOBD gap study for CUORE
 
-Date: 2026-10-29. Research only. Outside facts carry a URL. INFERENCE marks my reading where sources are thin. CUORE facts come from docs/FEATURES.md, docs/project/MES_PARITY_PLAN.md, docs/project/CORPORATE_ACCEPTANCE_2026-10-29.md and the three gap notes (c9c9dd720c01 writes, dcb76d25442b reads, fc047a665508 features).
+Date: 2026-10-29. Outside facts carry a URL. INFERENCE marks my reading where sources are thin. CUORE facts come from docs/FEATURES.md, docs/project/MES_PARITY_PLAN.md, docs/project/CORPORATE_ACCEPTANCE_2026-10-29.md and the three gap notes (c9c9dd720c01 writes, dcb76d25442b reads, fc047a665508 features).
 
-Rules held throughout: CUORE never learns a write by capturing AlfaOBD or MES; every write comes from a documented, authoritative source (now the manufacturer); no third-party purchases; paid tools are described neutrally.
+Rules: CUORE never learns a write by capturing AlfaOBD or MES; every write comes from a documented, authoritative source (now the manufacturer); no third-party purchases; paid tools are described neutrally.
 
 ## 0. What the sources do and do not give us
 
-AlfaOBD publishes a general feature summary and a vehicle list, not a per-model function list. Its Windows help manual (https://www.alfaobd.com/AlfaOBD_Help.pdf, 19 pages, read as text) is generic: connection, adapters, live data, procedures. It names no Giulia, Stelvio, PROXI or paddle function. The vehicle list (http://www.alfaobd.com/supported_cars.html) lists the Giulia (2015+) and Stelvio (2016+) with a recommended adapter only. So the Giulia/Stelvio function detail below is owner-forum evidence, graded as such. The giuliaforums.com and stelvioforum.com threads now sit behind a paywall gateway, so some were seen only as search summaries.
+AlfaOBD publishes a general feature summary and a vehicle list, not a per-model function list. Its Windows help manual (https://www.alfaobd.com/AlfaOBD_Help.pdf, 19 pages, read as text) is generic: connection, adapters, live data, procedures. It names no Giulia, Stelvio, PROXI or paddle function. The vehicle list (http://www.alfaobd.com/supported_cars.html) lists the Giulia (2015+) and Stelvio (2016+) with a recommended adapter only. So the Giulia/Stelvio function detail below is owner-forum evidence, graded as such. Some forum threads sit behind a paywall gateway and were seen only as search summaries.
 
 ## 1. AlfaOBD feature inventory (Giulia 952, Stelvio 949)
 
@@ -19,7 +19,7 @@ Source for the general list: https://www.alfaobd.com/. "2.0T?" means whether it 
 4. Live data across engine, transmission, body, dash, ABS and climate, with plots (V). Yes.
 5. Active diagnostics (actuator-style tests) (V, generic wording; which tests exist for 949 is not published). Yes in principle.
 
-The vendor does not list modules per car. INFERENCE: coverage is close to the MES 12-module reach, since both use the same CAN buses.
+The vendor does not list modules per car. 
 
 **(b) Adjustments and resets**
 6. Service light reset (V). Yes.
@@ -52,7 +52,7 @@ DRL, auto door lock, Start&Stop memory, mirror fold: no source I opened lists th
 
 **(e) Adapters and Secure Gateway**
 25. Adapters: OBDLink MX+, EX, LX, CX; ELM327 1.3 or later; OBDKey; Kiwi 3 on Android; J2534 on Windows (V, https://www.alfaobd.com/). Giulia and Stelvio need the "grey" adapter for the second high-speed CAN bus; some interfaces (OBDLink MX+/EX, Vgate vLinker MS) do not need the blue adapter (V).
-26. Secure Gateway: the vendor says 2018 and later cars need a hardware bypass, carrying pins 12 and 13 on Giulia/Stelvio (V, same page). On this car: not gating (local evidence). MES wrote to the ECM with no bypass or authentication (docs/research/CONNECTIVITY_AND_SGW.md section 2), so the vendor banner is range-wide, not a finding for this VIN. The A5 and A6 cables are bus-access cables.
+26. Secure Gateway: the vendor says 2018 and later cars need a hardware bypass, carrying pins 12 and 13 on Giulia/Stelvio (V, same page). On this car: not gating (local evidence). MES wrote to the ECM with no bypass or authentication (docs/research/CONNECTIVITY_AND_SGW.md section 2), and the owner reports AlfaOBD also ran on this car without one (owner-reported, no log in the repo). The vendor banner is range-wide, not a finding for this VIN. The A5 and A6 cables are bus-access cables.
 
 **(f) Platforms and price.** Windows 7 to 11, Android, and Mac via Windows virtualisation; not iOS. One-time paid licence per platform with a limited free demo, no VIN lock (V, https://www.alfaobd.com/download.html).
 
