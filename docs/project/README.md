@@ -13,6 +13,7 @@ CUORE is a diagnostic assistant for a mechanic who specialises in one brand and 
 | [ROADMAP.md](ROADMAP.md) | Open items: planned work, open tool faults, next on-car tests. |
 | [HISTORY.md](HISTORY.md) | Changelog grouped by month, from git history and session records. |
 | [CORPORATE_ACCEPTANCE_2026-10-29.md](CORPORATE_ACCEPTANCE_2026-10-29.md) | The dealer demo, the manufacturer authorization and funding as reported by the owner, the positioning before wiTECH, what changes and what does not. |
+| [MES_PARITY_PLAN.md](MES_PARITY_PLAN.md) | What closes the gap so CUORE is the mechanic's first tool: the ask list for the manufacturer, the read-only car session, the designed write path, the parity board, the exit criterion for MES. |
 | [GLOSSARY.md](GLOSSARY.md) | Terms and abbreviations (bus names, adapter commands, UDS services, bulletins, tools). |
 
 ## Core directive (check every feature against it)
