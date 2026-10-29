@@ -1,4 +1,4 @@
-/* Rename to fonts.css once the files listed in README.txt are in this folder. */
+/* Marque stand-in fonts, SIL OFL; see README.txt. Linked by fonts_css_link() only while this file exists. */
 @font-face { font-family: "Jost"; font-weight: 100 900; font-display: swap;
   src: url("/static/fonts/Jost-VF.ttf") format("truetype"); }
 @font-face { font-family: "Barlow Condensed"; font-weight: 400; font-display: swap;

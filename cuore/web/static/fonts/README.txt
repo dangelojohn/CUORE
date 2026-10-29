@@ -4,10 +4,11 @@ cuore.css defines --display and --numerals per data-marque and base.html links
 fonts/fonts.css ONLY when that file exists. Until then the tokens fall through to
 the system stacks and nothing on the pages changes.
 
-To switch the fonts on:
-  1. Put the approved font files in this folder (names below).
-  2. Rename fonts.css.template to fonts.css (edit it if a file name differs).
-  3. Restart CUORE. No code change needed.
+INSTALLED 2026-10-29 with the owner's approval ("download the fonts"): the seven
+files below were fetched from github.com/google/fonts (commit main of that day),
+checked as TrueType, and fonts.css (from fonts.css.template) is now linked by
+base.html and m_base.html. Each family's OFL.txt is kept here as OFL-<family>.txt.
+To turn the fonts off, delete or rename fonts.css and restart.
 
 Open-licence stand-ins chosen in docs/design/ALFA_TYPOGRAPHY.md (all SIL OFL,
 from github.com/google/fonts; copy each family's OFL.txt next to its files):
