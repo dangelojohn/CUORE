@@ -76,7 +76,7 @@ The live-data poller is read-only. Coding and configuration writes are blocked o
 
 ## 13. Save everything gathered (owner rule, 2026-10-29)
 
-Every research pass keeps its raw material: fetched pages and PDFs, extracted text, search results, source URLs, owner statements, and a copy of the finished document. Save it the same day so it is available later. Vendor or licensed material and forum text go under C:\ProgramData\cuoreesearch\<topic>_<date>\, not into this public repository, with a SOURCES_AND_FINDINGS.md listing each file and URL. The repo holds only the finished document, with citations. Saving is not permission to act on the material: the write rules above still apply. First instance: C:\ProgramData\cuoreesearchlfaobd_2026-10-29\.
+Every research pass keeps its raw material: fetched pages and PDFs, extracted text, search results, source URLs, owner statements, and a copy of the finished document. Save it the same day so it is available later. Vendor or licensed material and forum text go under C:/ProgramData/cuore/research/<topic>_<date>/ with a SOURCES_AND_FINDINGS.md listing each file and URL; vendor files, licensed material and forum text never enter this public repository. The repo holds the finished document, with citations, and a research log of sources and findings (docs/research/<TOPIC>_SOURCES_<date>.md) when it contains no licensed or sensitive material. Saving is not permission to act on the material: the write rules above still apply. First instance: C:/ProgramData/cuore/research/alfaobd_2026-10-29/ with docs/research/ALFAOBD_SOURCES_2026-10-29.md in the repo.
 
 ## Design rules (interface)
 
@@ -85,8 +85,8 @@ Every research pass keeps its raw material: fetched pages and PDFs, extracted te
 - The Job page is the single scrolling workspace in diagnostic order; one step per screen; every section opens from a headline with a count.
 - Single column at every width. No side-by-side panels.
 - Pictograms carry meaning, words are secondary; priorities marked P1/P2/P3.
-- Marque look: dark, calm, true black, large quiet type with light display weight (300), one accent used only for the primary action. Marque font faces are not swapped; only sizes and weights may be tuned. Marque specifics live in data or config, not code.
+- Marque look: dark, calm, true black, large quiet type with light display weight (300), one accent used only for the primary action. Marque specifics live in data or config, not code. Typefaces (owner decision 2026-10-29, after the manufacturers' permission): each marque has its own display and numerals faces carried by the --display and --numerals tokens, self-hosted under static/fonts; open-licence stand-ins until the brand packages arrive, then the manufacturers' own files with their licences. Sizes and weights keep the type scale; nothing is fabricated or copied from the web.
 - CSS is edited incrementally. No consolidation pass without side-by-side screenshot approval. Never write a literal comment-closing marker inside a CSS comment (it silently dropped the whole variable block once, fixed in c50f90d).
-- Offline-safe: no external fonts or CDN assets.
+- Offline-safe: no CDN assets; fonts are self-hosted files, never fetched at page load.
 - Every EVAP-specific path has a general form for any code or family; EVAP is the worked example, not the scope.
 - Owner-facing wording (report, handover) carries care and respect: the standard is the car returned driving as it should.
