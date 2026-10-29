@@ -153,11 +153,16 @@
 .sv-radio { position: absolute; opacity: 0; pointer-events: none; }
 .sv-tabs { display: inline-flex; border: 2px solid var(--rule); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
 .sv-tabs label { min-height: var(--tap, 44px); min-width: 88px; display: inline-grid; place-items: center; cursor: pointer; padding: 0 16px; background: var(--surface-2); }
-#sv-side:checked ~ .sv-tabs label[for="sv-side"], #sv-top:checked ~ .sv-tabs label[for="sv-top"] { background: var(--accent); color: var(--sens-ink); font-weight: 700; }
-#sv-side:focus-visible ~ .sv-tabs label[for="sv-side"], #sv-top:focus-visible ~ .sv-tabs label[for="sv-top"] { outline: 2px solid var(--ink); }
-.sv-topv { display: none; }
+#sv-side:checked ~ .sv-tabs label[for="sv-side"], #sv-top:checked ~ .sv-tabs label[for="sv-top"],
+#sv-front:checked ~ .sv-tabs label[for="sv-front"] { background: var(--accent); color: var(--sens-ink); font-weight: 700; }
+#sv-side:focus-visible ~ .sv-tabs label[for="sv-side"], #sv-top:focus-visible ~ .sv-tabs label[for="sv-top"],
+#sv-front:focus-visible ~ .sv-tabs label[for="sv-front"] { outline: 2px solid var(--ink); }
+.sv-topv, .sv-frontv { display: none; }
 #sv-top:checked ~ .sv-topv { display: block; }
 #sv-top:checked ~ .sv-sidev { display: none; }
+#sv-front:checked ~ .sv-frontv { display: block; }
+#sv-front:checked ~ .sv-sidev { display: none; }
+.sv-scroll-front svg { max-width: 560px; }
 .sv-fig { margin: 0; }
 .sv-fig figcaption { color: var(--ink-2); margin-bottom: 4px; }
 .sv-scroll { overflow-x: auto; }

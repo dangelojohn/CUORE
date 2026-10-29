@@ -290,9 +290,9 @@ css = open(Path(__file__).resolve().parents[1] / "web/static/sensors.css", encod
 check(".sens-photo-frame" in css and "background: #f4f4f1" in css, "photo styles + neutral frame are in CSS")
 
 # the car view: ONE view, Side / Top toggle, count markers, big targets
-check(html.count('class="sv-wrap"') == 1 and 'id="sv-side"' in html and 'id="sv-top"' in html and 'class="sv-tabs"' in html,
-      "one car view with a Side / Top toggle")
-check(html.count("<svg") == 2 and html.count("sm-cluster") >= 2, "side and top drawings (toggled) with count markers")
+check(html.count('class="sv-wrap"') == 1 and 'id="sv-side"' in html and 'id="sv-top"' in html and 'id="sv-front"' in html
+      and 'class="sv-tabs"' in html, "one car view with a Side / Top / Front toggle")
+check(html.count("<svg") == 3 and html.count("sm-cluster") >= 3, "side, top and front drawings (toggled) with count markers")
 side_svg = html.split('<svg')[1]
 check('class="sm-mark sm-cluster' in side_svg and "Opens the list for this area" in side_svg and "?zone=engine_bay" in side_svg,
       "engine-bay cluster is a count marker that opens the filtered list")

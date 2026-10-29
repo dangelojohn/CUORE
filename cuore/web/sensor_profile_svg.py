@@ -181,6 +181,36 @@ def _dimension_lines(platform: str = "stelvio-949") -> str:
             + "</g>")
 
 
+def _car_front_art(platform: str = "stelvio-949") -> str:
+    """The traced FRONT view ink over its silhouette (400x360 frame), or just the ground line if no art."""
+    fr = (_art(platform).get("front") or {})
+    p = ['<g class="car-art" aria-hidden="true">',
+         f'<line x1="16" y1="{_GROUND}" x2="{_FRONT_W - 16}" y2="{_GROUND}" stroke="var(--rule)" stroke-width="1"/>']
+    if fr.get("silhouette"):
+        p.append(f'<path d="{fr["silhouette"]}" fill="var(--surface)" stroke="none"/>')
+    if fr.get("ink"):
+        p.append(f'<path d="{fr["ink"]}" fill="var(--ink-2)" fill-rule="evenodd" stroke="none"/>')
+    p.append("</g>")
+    return "".join(p)
+
+
+def _front_dimension_lines(platform: str = "stelvio-949") -> str:
+    """Overall width (mirrors excluded) under the front view, from vehicle_dimensions.json."""
+    d = _dims(platform)
+    wd = (d.get("width") or {}).get("mm")
+    if not wd:
+        return ""
+    half = wd * 0.16 / 2
+    x0, x1, y = 200 - half, 200 + half, 346
+    ln_a = 'stroke="var(--ink-3)" stroke-width="0.8"'
+    t = 'font-size="12" fill="var(--ink-2)" font-family="var(--numerals), var(--mono), monospace"'
+    return ('<g class="car-dims" aria-hidden="true">'
+            f'<line x1="{x0:.1f}" y1="{y}" x2="{x1:.1f}" y2="{y}" {ln_a}/>'
+            f'<line x1="{x0:.1f}" y1="{y - 4}" x2="{x0:.1f}" y2="{y + 4}" {ln_a}/>'
+            f'<line x1="{x1:.1f}" y1="{y - 4}" x2="{x1:.1f}" y2="{y + 4}" {ln_a}/>'
+            f'<text x="200" y="{y - 2}" text-anchor="middle" {t}>Width {wd} mm</text></g>')
+
+
 def front_svg(platform: str = "stelvio-949", *, aria_label: str = "Front view of the car") -> str:
     """The traced FRONT view (400x360 frame, car centred at x=200, ground y=328), art only; no markers yet."""
     a = _art(platform)
@@ -341,6 +371,52 @@ TOP_ZONES: dict[str, dict[str, Any]] = {
     "fuse_box_rear": {"ax": 752, "ay": 200, "label": "Fuse box (rear)", "lx": 752, "ly": 22, "ta": "middle", "sided": True},
     "rear_bumper": {"ax": 800, "ay": 200, "label": "Rear bumper", "lx": 830, "ly": 386, "ta": "end", "sided": True},
 }
+
+
+# --- front view ---------------------------------------------------------------------
+#
+# The traced blueprint FRONT view (cuore/data/car_art/<platform>.json, 400x360 frame): car centred at x=200,
+# ground y=328, same 0.16 units per mm, body width pinned to 1903 mm (x 48..352), mirrors to about x 36..369.
+# Looking at the nose, the car's LEFT side (driver's side on this car) is on the viewer's RIGHT.
+# Only the areas a mechanic can point at from the front are anchored; the rest stay on Side / Top.
+
+_FRONT_W, _FRONT_H = 400, 360
+_FRONT_TRACK_UNITS = 1613 * 0.16    # front track (mm, cuore/data/vehicle_dimensions.json) in drawing units
+_FRONT_SIDE_SHIFT = 56              # how far a "left"/"right" item moves off the centre line
+
+FRONT_ZONES: dict[str, dict[str, Any]] = {
+    "front_bumper": {"ax": 200, "ay": 292, "label": "Front bumper", "sided": True},
+    "engine_bay": {"ax": 200, "ay": 190, "label": "Engine bay", "sided": True},
+    "fuse_box_engine_bay": {"ax": 200, "ay": 244, "label": "Fuse box (engine bay)", "sided": True},
+    "windscreen": {"ax": 200, "ay": 112, "label": "Windscreen", "sided": True},
+    "cabin_dash": {"ax": 200, "ay": 150, "label": "Dash (behind the glass)", "sided": True},
+    "roof": {"ax": 200, "ay": 74, "label": "Roof", "sided": False},
+    "front_left_wheel_well": {"ax": round(200 + _FRONT_TRACK_UNITS / 2), "ay": 269, "label": "Front left wheel", "sided": False},
+    "front_right_wheel_well": {"ax": round(200 - _FRONT_TRACK_UNITS / 2), "ay": 269, "label": "Front right wheel", "sided": False},
+}
+
+
+def _front_anchor(item: dict[str, Any]) -> Optional[tuple[str, float, float]]:
+    z = resolve_zone(item.get("zone"))
+    t = FRONT_ZONES.get(z or "")
+    if t is None:
+        return None
+    side = (item.get("side") or "").lower()
+    ax = t["ax"]
+    if t["sided"] and side in ("left", "right"):
+        ax += _FRONT_SIDE_SHIFT if side == "left" else -_FRONT_SIDE_SHIFT   # car's left is on the viewer's right
+    return f"{z}|{side if t['sided'] else ''}", ax, t["ay"]
+
+
+def front_hidden(items: list[dict[str, Any]]) -> list[tuple[str, int]]:
+    """[(area label, how many)] for the items the FRONT view cannot show (they are on Side / Top)."""
+    out: dict[str, int] = {}
+    for it in items:
+        zid = resolve_zone(it.get("zone"))
+        if zid and zid not in FRONT_ZONES:
+            name = (TOP_ZONES.get(zid) or {}).get("label") or ZONE_BY_ID[zid]["label"] or zid.replace("_", " ")
+            out[name] = out.get(name, 0) + 1
+    return list(out.items())
 
 
 def _top_anchor(item: dict[str, Any]) -> Optional[tuple[str, float, float]]:
@@ -560,9 +636,14 @@ def _map_groups(items: list[dict[str, Any]], view: str) -> list[dict[str, Any]]:
         zid = resolve_zone(it.get("zone"))
         if zid is None:
             continue
-        if view != "top" and _is_right(it, zid):
-            continue   # the side view is the car's left side: right-side items live on the Top view
-        if view == "top":
+        if view == "side" and _is_right(it, zid):
+            continue   # the side view is the car's left side: right-side items live on the Top / Front views
+        if view == "front":
+            a = _front_anchor(it)
+            if a is None:
+                continue
+            key, x, y = a
+        elif view == "top":
             a = _top_anchor(it)
             if a is None:
                 continue
@@ -576,10 +657,10 @@ def _map_groups(items: list[dict[str, Any]], view: str) -> list[dict[str, Any]]:
 
 
 def _label_text(g: dict[str, Any], view: str) -> str:
-    top = TOP_ZONES.get(g["zone"]) or {}
+    top = (FRONT_ZONES if view == "front" else TOP_ZONES).get(g["zone"]) or {}
     base = top.get("label") or ZONE_BY_ID[g["zone"]]["label"] or g["zone"].replace("_", " ")
     side = g["key"].partition("|")[2]
-    return f"{base} ({side})" if view == "top" and side in ("left", "right") and top.get("sided") else base
+    return f"{base} ({side})" if view in ("top", "front") and side in ("left", "right") and top.get("sided") else base
 
 
 def _rects_hit(a: tuple, b: tuple) -> bool:
@@ -653,15 +734,18 @@ def map_view_svg(items: list[dict[str, Any]], view: str, *, href_prefix: str = "
                  dim: Iterable[str] = ()) -> tuple[str, list[dict[str, Any]]]:
     """(svg, groups) for ``view`` in {"side", "top"}. Items without a drawn zone are not in the svg."""
     dim = set(dim)
-    w, h = (_VB_W, _VB_H) if view == "side" else (_TOP_W, _TOP_H)
+    w, h = {"side": (_VB_W, _VB_H), "top": (_TOP_W, _TOP_H), "front": (_FRONT_W, _FRONT_H)}[view]
     groups = _map_groups(items, view)
-    fixed = [(14, 138, 70, 156), *_DIM_BOXES] if view == "side" else [(14, 160, 70, 178), (740, 26, 850, 44), (660, 356, 850, 374)]
+    fixed = {"side": [(14, 138, 70, 156), *_DIM_BOXES],
+             "top": [(14, 160, 70, 178), (740, 26, 850, 44), (660, 356, 850, 374)],
+             "front": [(16, 332, 384, 360)]}[view]
     labels = _place_labels(groups, view, w, h, fixed)
-    art = _car_line_art() if view == "side" else _car_top_art()
-    name = "Side view (the car's left side)" if view == "side" else "Top view"
+    art = {"side": _car_line_art, "top": _car_top_art, "front": _car_front_art}[view]()
+    name = {"side": "Side view (the car's left side)", "top": "Top view", "front": "Front view"}[view]
     p = [f'<svg class="sens-profile sens-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" role="img" '
          f'aria-label="{escape(name)} with {len(groups)} areas marked">', art,
-         _dimension_lines() if view == "side" else "", '<g aria-hidden="true">']
+         _dimension_lines() if view == "side" else _front_dimension_lines() if view == "front" else "",
+         '<g aria-hidden="true">']
     for g in groups:
         if g["key"] in labels:
             lx, ly, ta, text = labels[g["key"]]
@@ -681,7 +765,9 @@ def sensor_map(items: list[dict[str, Any]], *, href_prefix: str = "sensor-", clu
     dim = list(dim)
     side, sg = map_view_svg(items, "side", href_prefix=href_prefix, cluster_href=cluster_href, dim=dim)
     top, tg = map_view_svg(items, "top", href_prefix=href_prefix, cluster_href=cluster_href, dim=dim)
+    front, fg = map_view_svg(items, "front", href_prefix=href_prefix, cluster_href=cluster_href, dim=dim)
     top_on = default_view == "top"
+    front_on = default_view == "front"
     c = SIDE_VIEW_CREDIT
 
     def unl(gs: list[dict[str, Any]]) -> str:
@@ -695,21 +781,28 @@ def sensor_map(items: list[dict[str, Any]], *, href_prefix: str = "sensor-", clu
     hidden = right_hidden(items)
     note = ('<p class="sv-legend sv-right">+ right side: see Top. '
             + "; ".join(f"{escape(n)} ({k})" for n, k in hidden) + "</p>") if hidden else ""
+    fh = front_hidden(items)
+    fnote = ('<p class="sv-legend sv-right">Not on this view (see Side / Top): '
+             + "; ".join(f"{escape(n)} ({k})" for n, k in fh) + "</p>") if fh else ""
     return ('<div class="sv-wrap">'
-            f'<input class="sv-radio" type="radio" name="sv-view" id="sv-side"{"" if top_on else " checked"}>'
+            f'<input class="sv-radio" type="radio" name="sv-view" id="sv-side"{"" if (top_on or front_on) else " checked"}>'
             f'<input class="sv-radio" type="radio" name="sv-view" id="sv-top"{" checked" if top_on else ""}>'
+            f'<input class="sv-radio" type="radio" name="sv-view" id="sv-front"{" checked" if front_on else ""}>'
             '<div class="sv-tabs" role="group" aria-label="Car view"><label for="sv-side">Side</label>'
-            '<label for="sv-top">Top</label></div>'
+            '<label for="sv-top">Top</label><label for="sv-front">Front</label></div>'
             "<figure class=\"sv-fig sv-sidev\"><figcaption>Side view: the car's left (driver's) side, front to the left. "
             f'Each marker is an area, not an exact spot.</figcaption><div class="sv-scroll">{side}</div>{note}{unl(sg)}'
             f'<p class="sens-credit">{escape(c["text"])} (<a href="{c["photo"]}" rel="noopener">source</a>, '
             f'<a href="{c["licence"]}" rel="noopener">licence</a>). Dimensions: homologation figures, '
             f'{escape((_dims().get("status") or "unsourced"))}, see cuore/data/vehicle_dimensions.json.</p></figure>'
             "<figure class=\"sv-fig sv-topv\"><figcaption>Top view: looking down, front to the left; left (driver's) "
-            f'side at the bottom, right side at the top.</figcaption><div class="sv-scroll">{top}</div>{unl(tg)}</figure></div>')
+            f'side at the bottom, right side at the top.</figcaption><div class="sv-scroll">{top}</div>{unl(tg)}</figure>'
+            "<figure class=\"sv-fig sv-frontv\"><figcaption>Front view: facing the nose; the car's left (driver's) side is on the "
+            f'right. Traced from the same drawing as the side view.</figcaption><div class="sv-scroll sv-scroll-front">{front}</div>'
+            f'{fnote}{unl(fg)}</figure></div>')
 
 
 
 
-__all__ = ["SIDE_VIEW_CREDIT", "front_svg", "render", "profile_svg", "top_svg", "both_views", "layout", "top_layout", "resolve_zone",
+__all__ = ["SIDE_VIEW_CREDIT", "FRONT_ZONES", "front_svg", "render", "profile_svg", "top_svg", "both_views", "layout", "top_layout", "resolve_zone",
            "ZONES", "ZONE_ANCHORS", "TOP_ZONES", "sensor_map", "map_view_svg"]
