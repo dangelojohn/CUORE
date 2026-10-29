@@ -379,8 +379,15 @@ check("Snapshot is disabled until a session runs", re.search(r'id="lb-snapshot"[
 check("Record form is hidden until a session runs",
       re.search(r'<form[^>]*id="lb-record-form"[^>]*\bhidden', html) is not None)
 check("Recordings link kept", f'href="/v/{VIN}/recordings' in html and 'id="lb-recordings"' in html)
-adv = re.search(r'<details class="lb-adv".*?</details>\s*<div class="lb-groups"', html, re.S)
+# the Advanced fold has no nested <details>, so it ends at its first </details>; since 2026-10-28 the sort bar
+# and (2026-10-29) the record-selection bar sit between the fold and the reading groups
+adv = re.search(r'<details class="lb-adv".*?</details>', html, re.S)
 adv_html = adv.group(0) if adv else ""
+check("Advanced fold has no nested folds", adv_html.count("<details") == 1)
+_after = html[adv.end():] if adv else ""
+check("sort and selection bars sit between Advanced and the groups",
+      _after.find('id="lb-sortbar"') != -1 and _after.find('id="lb-selbar"') != -1
+      and max(_after.find('id="lb-sortbar"'), _after.find('id="lb-selbar"')) < _after.find('<div class="lb-groups"'))
 for needle in ('id="lb-demo"', 'id="ff-start"', 'id="bc-start"', 'id="bc-panel"', 'id="ff-panel"'):
     check(f"Advanced fold holds {needle}", needle in adv_html)
 check("Start/Snapshot are not inside Advanced", 'id="lb-start"' not in adv_html and 'id="lb-snapshot"' not in adv_html)
