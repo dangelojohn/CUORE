@@ -54,7 +54,7 @@ from fastapi.templating import Jinja2Templates
 from .. import __version__
 from ..services import cache, experience_bridge, mes_bridge
 from ..services.errors import BridgeError
-from ..api.deps import require_token, settings_of
+from ..api.deps import actor, require_token, settings_of
 
 HERE = Path(__file__).resolve().parent
 TEMPLATE_DIR = HERE / "templates"
@@ -425,7 +425,7 @@ async def media_upload(request: Request, vin: str) -> RedirectResponse:
     tags = [t.strip() for t in re.split(r"[,\n]+", field("tags")) if t.strip()]
     target_kind = field("target_kind", "vehicle") or "vehicle"
     target_id = field("target_id")
-    author = field("author") or "mechanic"
+    author = actor(request, field("author") or "mechanic")
     odometer_raw = field("odometer_km")
     symptom_tags = [t.strip() for t in re.split(r"[,\n]+", field("symptom_tags")) if t.strip()]
     feels_like = field("feels_like")

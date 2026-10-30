@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Hardware{% endblock %}
+{% block content %}
+{# Hardware: is my adapter good enough, supported list, coming from MES. No JavaScript. Own <style>: --fs-* tokens, 44 px targets.
+   Data: cuore/data/supported_hardware.json, cuore/live/adapter_check.py, cuore/data/parity_items.json #}
+<style>
+.hw { max-width: 1040px; font-size: var(--fs-md); }
+.hw h2 { font-size: var(--fs-lg); margin: 18px 0 6px; }
+.hw .note { color: var(--ink-2); margin: 0 0 10px; }
+.hw .flash { min-height: var(--tap, 44px); display: flex; align-items: center; padding: 0 12px; border: 1px solid var(--rule); margin: 0 0 12px; }
+.hw table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; }
+.hw th, .hw td { border: 1px solid var(--rule); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.hw .btn { min-height: var(--tap, 44px); font-size: var(--fs-md); padding: 0 18px; }
+.hw .v { font-weight: 700; white-space: nowrap; }
+.hw ol { padding-left: 22px; display: grid; gap: 4px; }
+</style>
+<div class="hw">
+  <h1>Hardware</h1>
+  {% if flash_msg %}<p class="flash">{{ flash_msg }}</p>{% endif %}
+
+  <h2>Is my adapter good enough?</h2>
+  {% if check.adapter %}<p class="note">Adapter: {{ check.adapter }} (chip: {{ check.chip }}){% if check.matched %}, listed as {{ check.matched }}{% endif %}.</p>
+  {% else %}<p class="note">No adapter identity yet. Plug the adapter in, close MES, then probe.</p>{% endif %}
+  <form method="post" action="/hardware/probe"><button class="btn" type="submit">Probe the adapter now</button></form>
+  <table>
+    <tr><th>CUORE function</th><th>Verdict</th><th>Why</th></tr>
+    {% for f, label in check.labels.items() %}
+    {% set vd = check.verdicts[f].verdict %}
+    <tr><td>{{ label }}</td><td class="v">{% if vd == "pass" %}&#10003; {% elif vd == "limited" %}&#9650; {% elif vd == "fail" %}&#10007; {% else %}&#9675; {% endif %}{{ vd }}</td><td>{{ check.verdicts[f].reason }}</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Supported hardware</h2>
+  <table>
+    <tr><th>Name</th><th>Kind</th><th>Chip</th><th>Can do in CUORE</th><th>Tested on</th></tr>
+    {% for it in hw["items"] %}
+    <tr><td>{{ it.name }}<br><span class="note">{{ it.detail }}</span></td><td>{{ it.kind }}</td><td>{{ it.chip }}</td>
+      <td>{% if it.can_do %}{% for f in it.can_do %}{{ hw["functions"][f] }}{% if not loop.last %}; {% endif %}{% endfor %}{% else %}Not known{% endif %}</td>
+      <td>{% if it.tested_on %}{% for t in it.tested_on %}{{ t.vin_model }}, {{ t.date }} ({{ t.source }})<br>{% endfor %}{% else %}untested{% endif %}</td></tr>
+    {% endfor %}
+  </table>
+
+  <h2>Coming from MES</h2>
+  <ol>
+    <li>CUORE uses the same adapter and COM port MES is set to.
+      {% if mes.error %}MES settings were not found on this computer ({{ mes.error }}).
+      {% elif mes.interfaces %}MES is set to:
+        {% for i in mes.interfaces %}Interface {{ i.index }}: port {{ i.port }}, speed {{ i.speed }}{% if not loop.last %}; {% endif %}{% endfor %}.
+      {% endif %}
+      CUORE is currently set to {{ port or "no port" }}{% if baud %} at {{ baud }}{% endif %}.</li>
+    <li>Close MES before CUORE uses the adapter. Only one program can hold it, and CUORE refuses while MES is connected.</li>
+    <li>MES logs in MES's log folder are read by CUORE and shown as scans and vehicles. A clear recorded in a MES scan or FES log is added to the vehicle's open job; simulation logs and logs without a matching VIN are skipped. CUORE only reads those logs.</li>
+    <li>The table below lists what you used in MES and where it is in CUORE (only functions CUORE has today).</li>
+  </ol>
+  <table>
+    <tr><th>In MES you used&hellip;</th><th>In CUORE it is&hellip;</th><th>State</th></tr>
+    {% for r in rows %}
+    <tr><td>{{ r.function }}<br><span class="note">{{ r.mes }}</span></td>
+      <td>{% if r.screen %}<a href="{{ r.screen }}">{{ r.cuore }}</a>{% else %}{{ r.cuore }}{% endif %}</td><td>{{ r.state }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

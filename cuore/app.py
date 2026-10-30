@@ -51,8 +51,12 @@ from .web import mes_param_routes  # noqa: E402
 from .web import parity_routes  # noqa: E402
 from .web import handoff_routes  # noqa: E402
 from .web import adjustments_routes  # noqa: E402
+from .web import witech_routes  # noqa: E402
 from .web import configuration_routes  # noqa: E402
+from .web import hardware_routes  # noqa: E402
 from .web import settings_routes  # noqa: E402
+from .web import about_routes  # noqa: E402
+from .web import accounts_routes  # noqa: E402
 from .web import path_diag_routes  # noqa: E402
 from .web import path_tests_routes  # noqa: E402
 from .web import diagnosis_routes  # noqa: E402
@@ -197,6 +201,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     # --- routes -----------------------------------------------------------
     app.include_router(login_routes.router)
+    app.include_router(accounts_routes.router)
 
     @app.get("/api/openapi.json", include_in_schema=False,
              dependencies=[Depends(require_token)])
@@ -300,8 +305,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(parity_routes.router)
     app.include_router(handoff_routes.router)
     app.include_router(adjustments_routes.router)
+    app.include_router(witech_routes.router)
     app.include_router(configuration_routes.router)
     app.include_router(settings_routes.router)
+    app.include_router(hardware_routes.router)
+    app.include_router(about_routes.router)
     app.include_router(path_diag_routes.router)
     app.include_router(harness_routes.router)
     app.include_router(path_tests_routes.router)

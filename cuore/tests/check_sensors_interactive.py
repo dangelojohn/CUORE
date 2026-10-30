@@ -129,13 +129,40 @@ for view, w, h in (("side", 400.0, None), ("top", 400.0, None)):
     check(all(0 <= x <= 100 and 0 <= y <= 100 for x, y in pts), f"{view}: marks inside the stage")
 html_all = None
 
+# --- 1b. placement: every target near its zone anchor, crowded zone = one cluster, no overlap
+from cuore.web import sensor_profile_svg as _sp  # noqa: E402
+_syn = [{"id": f"x{i}", "n": i + 1, "zone": "engine_bay", "zone_id": "engine_bay", "side": None, "zone_label": "Engine bay",
+         "state": st} for i, st in enumerate(["ok", "unconfirmed", "invalid", "ok", "not_recorded", "suspect"])]
+_syn += [{"id": "w1", "n": 7, "zone": "roof", "zone_id": "roof", "side": None, "zone_label": "Roof", "state": "ok"}]
+_pl = _si._place(_syn, "side")
+_cl = [k for k in _pl["marks"] if k["count"] > 1]
+check(len(_cl) == 1 and _cl[0]["count"] == 6 and _cl[0]["id"] == "x2" and sorted(_cl[0]["ids"]) == sorted(f"x{i}" for i in range(6)),
+      f"6 sensors in one zone -> ONE cluster, count 6, worst (invalid) is its link: {_cl}")
+check(set(_pl["ids"]) == {x["id"] for x in _syn} and not _pl["unfit"], "cluster members count as placed")
+for view in ("side", "top"):
+    pl = _si._place(m_sens := [{"id": c["id"], "n": c["n"], "zone": c["zone"], "zone_id": c["zone_id"], "side": c.get("side"),
+                                "state": c["state"], "zone_label": c["zone_label"]} for c in m["sensors"]], view)
+    pw = 400.0
+    ph = (_sp._VB_H if view == "side" else _sp._TOP_H) + 2 * _si._PAD_Y[view]
+    ph *= pw / (_sp._VB_W if view == "side" else _sp._TOP_W)
+    pts = [(k["left"] / 100 * pw, k["top"] / 100 * ph) for k in pl["marks"]]
+    check(all(((px - k["anchor"][0]) ** 2 + (py - k["anchor"][1]) ** 2) ** .5 <= _si.MAX_ANCHOR_D + 1
+              for (px, py), k in zip(pts, pl["marks"])), f"{view}: every target within {_si.MAX_ANCHOR_D} px of its zone anchor")
+    check(all(((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** .5 >= 44 for i, a in enumerate(pts) for b in pts[i + 1:]),
+          f"{view}: no two targets overlap")
+check(all(((a["px"][0] - b["px"][0]) ** 2 + (a["px"][1] - b["px"][1]) ** 2) ** .5 >= 44
+          for i, a in enumerate(_pl["marks"]) for b in _pl["marks"][i + 1:]), "synthetic crowd: no overlap")
+check(_si._PAD_Y["side"] <= 40 and _si._PAD_Y["top"] <= 40, "padding is small: no sky/ground band for stray marks")
+_cm = [k for k in si.outline(VIN)["views"]["side"]["marks"] if k["cluster"]]
+check(all(k["members"] and k["count"] == len(k["members"]) for k in _cm), "outline() cluster marks carry their member cards")
+
 # --- 2. selecting a sensor
 sel = si.outline(VIN, "map_sensor", snapshot={"active": False, "channels": {}})
 card = sel["selected_card"]
 check(sel["selected"] == "map_sensor" and card and card["id"] == "map_sensor", "selected card is map_sensor")
 check("baro_pressure" in card["partners"], f"cross-check partner found: {card['partners']}")
-sm = {k["id"]: k for k in sel["views"]["side"]["marks"]}
-check(sm["map_sensor"]["sel"] and sm["baro_pressure"]["partner"] and not sm["coolant_temp"]["partner"], "selected + partner flagged, others not")
+sm = {i: k for k in sel["views"]["side"]["marks"] for i in k["ids"]}   # a crowded zone is one cluster mark
+check(sm["map_sensor"]["sel"] and sm["baro_pressure"]["partner"] and not (sm["coolant_temp"]["partner"] and sm["coolant_temp"] is not sm["baro_pressure"]), "selected + partner flagged, others not")
 words = {r["word"] for r in card["rules"]}
 check(card["rules"] and words <= set(si.RULE_WORD.values()) and words & {"Agree", "Disagree", "Unconfirmed decoding", "Condition not met", "Not recorded"}, f"partner rule words {words}")
 mrow = card["rows"][0]
@@ -232,15 +259,16 @@ document.addEventListener('DOMContentLoaded', function () {{
 try {{
   var es = made[0]; out.url = es.url; es.onopen();
   out.fold_open = document.getElementById("si-fold").hasAttribute("open");
-  var mk = document.querySelector('.si-stage > a.si-mark[data-sensor="coolant_temp"]');
+  var tap = function (id) {{ return document.querySelector('.si-stage > a.si-mark[data-sensor="' + id + '"]') || document.querySelector('.si-members a[data-sensor="' + id + '"]'); }};
+  var mk = tap('coolant_temp');
   out.mk_pre = mk.className;
   mk.click();
   out.pop_hidden = document.getElementById("si-pop").hidden;
   out.pop_title = document.querySelector("#si-pop .si-ch").textContent.trim();
   out.sel = document.querySelectorAll(".si-stage > .si-mark.is-sel").length;
-  var mp = document.querySelector('.si-stage > a.si-mark[data-sensor="map_sensor"]'); mp.click();
-  out.partner = document.querySelector('.si-stage > a.si-mark[data-sensor="baro_pressure"]').className.indexOf("is-partner") > -1;
-  out.sel_after = document.querySelector('.si-stage > a.si-mark[data-sensor="map_sensor"]').className.indexOf("is-sel") > -1;
+  var mp = tap('map_sensor'); mp.click();
+  out.partner = document.querySelector('.si-stage > a.si-mark[data-sensor="baro_pressure"], .si-stage > a.si-mark[data-members~="baro_pressure"]').className.indexOf("is-partner") > -1;
+  out.sel_after = document.querySelector('.si-stage > a.si-mark[data-sensor="map_sensor"], .si-stage > a.si-mark[data-members~="map_sensor"]').className.indexOf("is-sel") > -1;
   es.onmessage({{data: JSON.stringify({{t: 1, channel: "engine_rpm", value: 760, unit: "rpm"}})}});
   es.onmessage({{data: JSON.stringify({{t: 2, channel: "intake_map", value: 30, unit: "kPa"}})}});
   var li = document.querySelector('#si-pop .si-row[data-channel="intake_map"]');

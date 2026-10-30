@@ -90,8 +90,10 @@ check("intake via the real /start form responds 200", intake_resp.status_code ==
       str(intake_resp.status_code))
 
 resp2 = client.get("/", follow_redirects=False)
-check("/ redirects to that car's job page once it is in the bay",
-      resp2.headers.get("location") == f"/v/{VIN}/job", str(resp2.headers.get("location")))
+# "/" lands on the Bench (/v/{vin}), the mechanic's home (routes.index); the job
+# page is one tab away -- checked directly just below.
+check("/ redirects to that car's Bench once it is in the bay",
+      resp2.headers.get("location") == f"/v/{VIN}", str(resp2.headers.get("location")))
 
 job_page = client.get(f"/v/{VIN}/job")
 check("the job page responds 200", job_page.status_code == 200, str(job_page.status_code))

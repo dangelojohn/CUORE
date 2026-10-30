@@ -13,6 +13,23 @@
     <span class="lab">Not logged in</span> {{ error }}
   </div>
   {% endif %}
+  {% if accounts_mode %}
+  <p class="lede">Log in with your CUORE username and password.</p>
+  <form method="post" action="/login">
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="field">
+      <label for="login-user">Username</label>
+      <input type="text" id="login-user" name="username" autocomplete="username"
+             autocapitalize="off" autocorrect="off" spellcheck="false" required>
+    </div>
+    <div class="field">
+      <label for="login-pass">Password</label>
+      <input type="password" id="login-pass" name="password" autocomplete="current-password"
+             style="min-height: var(--tap); font-size: var(--fs-md);" required>
+    </div>
+    <button type="submit" class="btn primary">Log in</button>
+  </form>
+  {% else %}
   <p class="lede">This CUORE is locked. Enter the access token once; this
   device then stays logged in for 30 days.</p>
   <form method="post" action="/login">
@@ -24,5 +41,6 @@
     </div>
     <button type="submit" class="btn primary">Log in</button>
   </form>
+  {% endif %}
 </div>
 {% endblock %}

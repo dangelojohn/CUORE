@@ -1,0 +1,61 @@
+{
+ "_about": "Adapters and cables CUORE knows about. tested_on lists only what CUORE session records show; everything else is untested. No prices, no ratings, no endorsements.",
+ "functions": {
+  "basic_obd": "Basic OBD reads",
+  "uds_can_c": "UDS module reads on CAN-C",
+  "bypass_buses": "Bypass buses (CAN-IHS, CAN-CH)",
+  "listen_only": "Listen-only recording"
+ },
+ "items": [
+  {
+   "id": "vlinker-fs-usb",
+   "name": "vLinker FS USB",
+   "kind": "usb",
+   "chip": "STN",
+   "match": ["vlinker fs", "vlinker"],
+   "detail": "Genuine STN1170 firmware v4.3.2; reports ELM327 v2.3; COM3 at 115200. The same COM port MultiEcuScan Interface 0 uses.",
+   "can_do": ["basic_obd", "uds_can_c", "bypass_buses", "listen_only"],
+   "tested_on": [{"vin_model": "2018 Alfa Romeo Stelvio (reference car)", "date": "2026-10", "source": "CUORE session records"}]
+  },
+  {
+   "id": "cable-a5-can-ihs",
+   "name": "Blue bypass cable A5 (CAN-IHS)",
+   "kind": "cable",
+   "chip": "n/a",
+   "match": [],
+   "detail": "Declared in CUORE with set_cable; connects the adapter to the CAN-IHS bus.",
+   "can_do": ["bypass_buses", "listen_only"],
+   "tested_on": [{"vin_model": "2018 Alfa Romeo Stelvio (reference car)", "date": "2026-10", "source": "CUORE session records"}]
+  },
+  {
+   "id": "cable-a6-can-ch",
+   "name": "Grey bypass cable A6 (CAN-CH)",
+   "kind": "cable",
+   "chip": "n/a",
+   "match": [],
+   "detail": "Declared in CUORE with set_cable; connects the adapter to the CAN-CH bus.",
+   "can_do": ["bypass_buses", "listen_only"],
+   "tested_on": [{"vin_model": "2018 Alfa Romeo Stelvio (reference car)", "date": "2026-10", "source": "CUORE session records"}]
+  },
+  {
+   "id": "obdlink-mx-plus",
+   "name": "OBDLink MX+ (Bluetooth)",
+   "kind": "bluetooth",
+   "chip": "STN",
+   "match": ["obdlink mx+", "obdlink"],
+   "detail": "Untested with CUORE. Uses an STN chip family, which CUORE handles for other STN adapters, but nothing has been recorded on this model.",
+   "can_do": [],
+   "tested_on": []
+  },
+  {
+   "id": "generic-elm327-clone",
+   "name": "Generic ELM327 clone (USB or Bluetooth)",
+   "kind": "usb",
+   "chip": "ELM327 clone",
+   "match": [],
+   "detail": "Untested with CUORE. Clones usually lack the STN commands and have small buffers.",
+   "can_do": [],
+   "tested_on": []
+  }
+ ]
+}

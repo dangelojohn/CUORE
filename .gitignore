@@ -55,3 +55,6 @@ stelvio-*-diagram-rows.json
 *.pem
 *.pfx
 id_rsa*
+
+# Release builds (installer/build-release.ps1)
+dist/

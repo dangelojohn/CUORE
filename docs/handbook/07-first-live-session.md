@@ -371,20 +371,6 @@ refuses to start it (`Refused`) without that cable declared.
 
 Generated straight from the live module registry (`cuore/live/buses.py` + `cuore.live.ops.modules()`) by `docs/handbook/generate_cable_reference.py` -- never hand-typed. This is the same table the Full scan wizard (`/v/{vin}/scan`) shows on its idle screen and on every pause card, so the page and this section can never disagree with each other or with the registry both are drawn from. Re-run the script after any change to `addressing.py` or `buses.py`.
 
-### Standard plug (CAN-C) -- adapter switch: HS
-
-| Module | Confidence |
-|---|---|
-| ECM | confirmed |
-| TCM | confirmed |
-| BCM | confirmed |
-| IPC | confirmed |
-| RFHUB | confirmed |
-| DTCM | unverified |
-| ESM | unknown |
-| DASM | unknown |
-| ETM | unverified |
-
 ### Blue A5 (CAN-IHS) -- adapter switch: HS
 
 | Module | Confidence |
@@ -413,7 +399,22 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 | TVM | unknown |
 | ESL | unknown |
 
+### witech_splitter (CAN-C) -- adapter switch: HS
+
+| Module | Confidence |
+|---|---|
+| ECM | confirmed |
+| TCM | confirmed |
+| BCM | confirmed |
+| IPC | confirmed |
+| RFHUB | confirmed |
+| DTCM | unverified |
+| ESM | unknown |
+| DASM | unknown |
+| ETM | unverified |
+
 <!-- cable-reference:end -->
+
 
 
 

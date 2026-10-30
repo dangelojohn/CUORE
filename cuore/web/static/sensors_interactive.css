@@ -112,3 +112,8 @@
 .si-dl dd { margin: 0; }
 @media (max-width: 480px) { .si-dl { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .si-marker { transition: none; } }
+
+/* cluster target: one per crowded zone, count in the middle, validity glyph as a corner badge */
+.si-mark.si-cluster .si-cg { position: absolute; right: -4px; top: -4px; z-index: 2; min-width: 18px; height: 18px; border-radius: 9px;
+  background: var(--surface); color: var(--ink); border: 2px solid var(--si-c, var(--ink-3)); font-size: var(--fs-md); line-height: 14px; text-align: center; font-weight: 700; }
+.si-members { margin: .35rem 0 0; }

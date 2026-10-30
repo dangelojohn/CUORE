@@ -13,7 +13,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-CABLES = ("none", "blue_a5", "grey_a6")
+#: "witech_splitter" is not a bypass cable: it declares an OBD Y-splitter that puts this adapter on
+#: the same CAN-C pins as the manufacturer's wiTECH pod. It reaches CAN-C only, at CAN-C's own
+#: 500k, and is LISTEN-ONLY (transport refuses any non-passive session under it).
+CABLES = ("none", "blue_a5", "grey_a6", "witech_splitter")
 
 
 @dataclass(frozen=True)
@@ -72,6 +75,14 @@ CAN_C = Bus(
             "anything unprompted -- so a passive listen here is also 0 frames on a healthy "
             "car; verification instead sends one legislated Mode 01 PID 00 request (7DF) and "
             "accepts any 7E8-7EF reply as proof the bus is alive.",
+        ),
+        Route(
+            "witech_splitter",
+            "34",
+            None,
+            "confirmed",
+            "OBD Y-splitter shared with the wiTECH pod: same CAN-C pins, 500000 bps (no override). "
+            "Listen-only: transport refuses any transmitting session while this is declared.",
         ),
     ),
     transmit_needs_confirmation=False,

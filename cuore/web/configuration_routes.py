@@ -8,7 +8,7 @@ from urllib.parse import quote
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from ..api.deps import require_token
+from ..api.deps import require_role, require_token
 from ..live import proxi_read
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
@@ -40,7 +40,7 @@ def configuration_discover(vin: str) -> RedirectResponse:
         return _back(vin, f"Not run: {exc}", "err")
 
 
-@router.post("/v/{vin}/configuration/accept")
+@router.post("/v/{vin}/configuration/accept", dependencies=[Depends(require_role("shop_lead"))])
 def configuration_accept(vin: str, did: str = Form(""), reason: str = Form("")) -> RedirectResponse:
     try:
         a = proxi_read.accept_candidate(vin, did, reason)

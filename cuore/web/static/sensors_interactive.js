@@ -84,9 +84,11 @@
     var set = {}; (partners || []).forEach(function (p) { set[p] = true; });
     all(this.root, ".si-stage > .si-mark").forEach(function (m) {
       var sid = m.getAttribute("data-sensor");
-      m.classList.toggle("is-sel", !!id && sid === id);
-      m.classList.toggle("is-partner", !!id && !!set[sid]);
-      if (id && sid === id) m.setAttribute("aria-current", "true"); else m.removeAttribute("aria-current");
+      var ids = (m.getAttribute("data-members") || sid || "").split(" ").filter(Boolean);   // a cluster stands for its zone's sensors
+      var isSel = !!id && ids.indexOf(id) > -1, isPar = ids.some(function (x) { return !!set[x]; });
+      m.classList.toggle("is-sel", isSel);
+      m.classList.toggle("is-partner", !!id && isPar);
+      if (isSel) m.setAttribute("aria-current", "true"); else m.removeAttribute("aria-current");
     });
   };
   Outline.prototype.show = function (card, trigger) {

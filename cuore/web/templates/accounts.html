@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Accounts — CUORE{% endblock %}
+{% block content %}
+{# Accounts and roles. No JavaScript. Own <style>: --fs-* tokens only, 44 px targets. #}
+<style>
+.acct { max-width: 960px; font-size: var(--fs-md); }
+.acct .flash { min-height: var(--tap, 44px); display: flex; align-items: center; padding: 0 12px; border: 1px solid var(--rule); margin: 0 0 12px; }
+.acct .flash.err { border-color: var(--bad, #b00020); }
+.acct table { width: 100%; border-collapse: collapse; margin: 0 0 24px; }
+.acct th, .acct td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); vertical-align: middle; }
+.acct .btn, .acct input, .acct select { min-height: var(--tap, 44px); font-size: var(--fs-md); padding: 0 12px; }
+.acct form.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin: 0 0 12px; }
+.acct form.row label { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-sm); }
+.acct form.inline { display: inline-flex; gap: 6px; margin: 0; }
+</style>
+<div class="acct">
+<h1>Accounts</h1>
+{% if flash_msg %}<div class="flash {{ flash_kind }}" role="status">{{ flash_msg }}</div>{% endif %}
+{% if not mode_on %}
+<p class="lede">Accounts mode is off: CUORE uses the shared access token. Turn it on from the
+server with <code>python -m cuore.accounts enable-mode</code> after creating an admin.</p>
+{% else %}
+<table>
+  <thead><tr><th>User</th><th>Role</th><th>Shop</th><th>Status</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for u in users %}
+  <tr>
+    <td>{{ u.display_name }} <small>({{ u.username }})</small></td>
+    <td>{{ u.role }}</td>
+    <td>{{ u.shop_id }} <small>{{ u.shop_kind }}</small></td>
+    <td>{{ "disabled" if u.disabled else "active" }}</td>
+    <td>
+      {% if is_admin or u.role == "technician" %}
+      <form method="post" action="/accounts/disable" class="inline">
+        <input type="hidden" name="username" value="{{ u.username }}">
+        {% if u.disabled %}<input type="hidden" name="enable" value="1">{% endif %}
+        <button class="btn" type="submit">{{ "Enable" if u.disabled else "Disable" }}</button>
+      </form>
+      {% endif %}
+      {% if is_admin %}
+      <form method="post" action="/accounts/password" class="inline">
+        <input type="hidden" name="username" value="{{ u.username }}">
+        <input type="password" name="password" placeholder="New password" autocomplete="new-password" required>
+        <button class="btn" type="submit">Reset password</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+<h2>Add a user</h2>
+<form method="post" action="/accounts/add" class="row">
+  <label>Username<input name="username" autocomplete="off" required></label>
+  <label>Display name<input name="display_name" autocomplete="off"></label>
+  <label>Password<input type="password" name="password" autocomplete="new-password" required></label>
+  {% if is_admin %}
+  <label>Role<select name="role"><option>technician</option><option>shop_lead</option><option>admin</option></select></label>
+  <label>Shop<input name="shop_id" value="main"></label>
+  <label>Kind<select name="shop_kind"><option>independent</option><option>dealer</option></select></label>
+  {% else %}
+  <small>New users join your shop ({{ me.shop_id }}) as technicians.</small>
+  {% endif %}
+  <button class="btn primary" type="submit">Add user</button>
+</form>
+{% endif %}
+</div>
+{% endblock %}

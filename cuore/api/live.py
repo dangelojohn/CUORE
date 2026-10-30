@@ -18,7 +18,7 @@ from ..live import ops
 from ..live import responders as responders_mod
 from ..live import ui_store
 from ..live import audit as audit_mod
-from .deps import require_token
+from .deps import require_role, require_token
 
 router = APIRouter(tags=["live"], dependencies=[Depends(require_token)])
 
@@ -665,7 +665,8 @@ def live_proxi_discover(vin: str = Body(..., embed=True)) -> dict[str, Any]:
     return proxi_read.discover(vin)
 
 
-@router.post("/live/proxi/accept", summary="Owner accepts a candidate as the PROXI block (no car contact)")
+@router.post("/live/proxi/accept", summary="Owner accepts a candidate as the PROXI block (no car contact)",
+             dependencies=[Depends(require_role("shop_lead"))])
 def live_proxi_accept(vin: str = Body(..., embed=True), did: str = Body(..., embed=True),
                       reason: str = Body(..., embed=True)) -> dict[str, Any]:
     from ..live import proxi_read

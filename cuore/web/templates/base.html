@@ -57,7 +57,11 @@
       <a class="navutil" href="/tsb">TSB</a>
       <a class="navutil" href="/slvt">SLVT</a>
       <a class="navutil" href="/tools">Tools</a>
+      <a class="navutil" href="/hardware">Adapter</a>
       <a class="navutil" href="/settings">Settings</a>
+      {% set _u = request.state.user if request is defined and request.state and request.state.user is defined else none %}
+      {% if _u and _u.role in ("admin", "shop_lead") %}<a class="navutil" href="/accounts">Accounts</a>{% endif %}
+      <a class="navutil" href="/about">About</a>
     </nav>
   </details>
 </header>

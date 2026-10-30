@@ -77,7 +77,10 @@ def capabilities(request: Request) -> Capabilities:
 def health(request: Request) -> Health:
     settings = settings_of(request)
     _, reachable = _corpus_info(settings.profile)
-    return Health(profile=settings.profile, version=__version__,
+    from ..services import updates
+    info = updates.installed_info()
+    return Health(profile=settings.profile, version=info["version"] or __version__,
+                  build_date=info["build_date"], git_commit=info["git_commit"],
                   corpus_reachable=reachable, cache=cache.stats())
 
 

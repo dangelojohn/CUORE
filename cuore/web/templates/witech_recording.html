@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}wiTECH recording — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{# Listen-only recording of wiTECH on CAN-C behind a declared Y-splitter. No JavaScript, no write route.
+   Data: cuore/live/witech_recording.py #}
+<style>
+.wt { max-width: 1040px; font-size: var(--fs-md); }
+.wt h2 { font-size: var(--fs-lg); margin: 16px 0 6px; }
+.wt .lede, .wt .note { color: var(--ink-2); margin: 0 0 10px; }
+.wt .ro { border: 1px solid var(--rule); border-left: 6px solid var(--ink-3); padding: 8px 12px; margin: 0 0 12px; background: var(--surface-2); font-weight: 600; }
+.wt .flash { min-height: var(--tap, 44px); display: flex; align-items: center; padding: 0 12px; border: 1px solid var(--rule); margin: 0 0 12px; }
+.wt table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; }
+.wt th, .wt td { border: 1px solid var(--rule); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.wt .mono { font-family: var(--numerals, monospace); font-variant-numeric: tabular-nums; }
+.wt .btn, .wt input { min-height: var(--tap, 44px); font-size: var(--fs-md); padding: 0 12px; }
+.wt label { display: block; margin: 6px 0 2px; font-weight: 600; }
+.wt .tag { display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); }
+.wt ol { padding-left: 22px; display: grid; gap: 4px; }
+.wt .pad { border: 1px solid var(--rule); padding: 10px 12px; margin: 0 0 16px; }
+.wt .unlock { font-weight: 600; }
+</style>
+<div class="wt">
+  <h1>wiTECH recording</h1>
+  <p class="ro">&#9632; Listen-only. CUORE never transmits or acknowledges on the bus while recording; it only reads what wiTECH sends. Drafts are never executable.</p>
+  {% if flash_msg %}<p class="flash">{{ "&#10007; " if flash_kind == "err" else "&#10003; " }}{{ flash_msg }}</p>{% endif %}
+
+  <h2>Setup</h2>
+  <ol>
+    <li>Fit the OBD Y-splitter: wiTECH's pod on one leg, CUORE's adapter on the other (same CAN-C pins, 500 kbps).</li>
+    <li>Connect the wiTECH pod to the car and start wiTECH.</li>
+    <li>Close MES. CUORE refuses while MES or the live poller holds the adapter.</li>
+    <li>Declare the splitter below. Cable now: <span class="tag">{{ cable }}</span></li>
+  </ol>
+  <form method="post" action="/v/{{ bar.vin }}/witech-recording/declare-splitter"><button class="btn" type="submit">Declare Y-splitter fitted</button></form>
+
+  <h2>Record</h2>
+  {% if session and session.status == "running" %}
+  <p class="note">Recording "{{ session.action }}": {{ session.frame_count }} frames, {{ session.distinct_ids }} CAN ids, {{ session.rate_hz }} frames/s.</p>
+  <form method="post" action="/v/{{ bar.vin }}/witech-recording/stop"><button class="btn" type="submit">&#9632; Stop and save</button></form>
+  {% else %}
+  <form method="post" action="/v/{{ bar.vin }}/witech-recording/start">
+    <label for="fn">Function the technician is running in wiTECH</label>
+    <input id="fn" name="function" type="text" placeholder="Oil service reset" required>
+    <button class="btn" type="submit">&#9654; Start listening</button>
+  </form>
+  {% endif %}
+
+  <h2>Recordings ({{ recordings | length }})</h2>
+  {% for r in recordings %}
+  <section class="pad">
+    <h3>{{ r.function }} <span class="tag mono">{{ r.id }}</span></h3>
+    <p class="note">{{ r.started_at }}, {{ r.frame_count }} frames, {{ r.bitrate }} bps.</p>
+    {% if r.rows %}
+    <table>
+      <tr><th>Time (s)</th><th>Module</th><th>Service</th><th>Request</th><th>Response</th></tr>
+      {% for x in r.rows %}
+      <tr>
+        <td class="mono">{{ x.t }}</td><td>{{ x.module }}</td>
+        <td>{{ x.service_name }} ({{ x.service }})</td>
+        <td class="mono">{{ x.request }}</td>
+        <td class="mono">{{ x.result }}{% if x.response %}: {{ x.response }}{% endif %}{% if x.nrc %} (NRC {{ x.nrc }} {{ x.nrc_name }}){% endif %}
+          {% if x.flag %}<div class="unlock">&#128274; {{ x.flag }}</div>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}<p class="note">No UDS exchanges decoded from this recording.</p>{% endif %}
+
+    {% for d in r.drafts %}
+    <div class="pad">
+      <strong>{{ d.name }}</strong> <span class="tag">{{ d.status }}</span> <span class="tag">not executable</span>
+      <p class="note">Source: {{ d.source.kind }}, function "{{ d.source.function }}". Accepted by owner: {{ "yes" if d.accepted_by_owner else "no" }}.
+        {% if d.needs_algorithm %}Steps behind 0x27 need the unlock algorithm, which the recording does not give.{% endif %}</p>
+      <p class="note">Gate: {{ d.gate.status }}{% if d.gate.reasons %}: {{ d.gate.reasons | join("; ") }}{% endif %}</p>
+      <table>
+        <tr><th>#</th><th>Request</th><th>Response</th><th>Needs algorithm</th></tr>
+        {% for s in d.steps %}<tr><td>{{ loop.index }}</td><td class="mono">{{ s.request }}</td><td class="mono">{{ s.response or "none" }}{% if s.nrc %} (NRC {{ s.nrc }}){% endif %}</td><td>{{ "yes" if s.needs_algorithm else "no" }}</td></tr>{% endfor %}
+      </table>
+    </div>
+    {% endfor %}
+    <form method="post" action="/v/{{ bar.vin }}/witech-recording/draft">
+      <input type="hidden" name="recording" value="{{ r.id }}">
+      <button class="btn" type="submit">Make draft procedure{{ "s again" if r.drafts else "" }}</button>
+    </form>
+  </section>
+  {% else %}<p class="note">No recordings yet.</p>{% endfor %}
+
+  <h2>Dealer session checklist</h2>
+  <p class="lede">Run these in this order. Record each one separately, with its function name.</p>
+  <ol>
+    {% for c in checklist %}
+    <li><strong>{{ c.function }}</strong>
+      <div>In wiTECH: {{ c.tech }}</div>
+      <div>CUORE read before: {{ c.before }}</div>
+      <div>CUORE read after: {{ c.after }}</div>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="note"><a href="/v/{{ bar.vin }}/adjustments">Back to Adjustments</a></p>
+</div>
+{% endblock %}

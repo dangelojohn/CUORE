@@ -83,6 +83,11 @@ check("warm GET /v/{vin}/job responds 200", warm_job.status_code == 200,
 check(f"warm GET /v/{{vin}}/job renders in under {BUDGET_S}s",
       job_elapsed < BUDGET_S, f"{job_elapsed:.3f}s")
 
+# /v/{vin} is the Bench now, a separate page from /job with its own caches
+# (bench tree candidates, open work); the /job warm-up above does not fill them,
+# so warm it explicitly -- otherwise this times a cold Bench render.
+client.get(f"/v/{VIN}")
+
 t0 = time.perf_counter()
 warm_dossier = client.get(f"/v/{VIN}")
 dossier_elapsed = time.perf_counter() - t0

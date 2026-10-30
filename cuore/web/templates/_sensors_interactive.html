@@ -103,9 +103,11 @@
     <figure class="si-fig si-fig-{{ v }}">
       <figcaption>{% if v == 'side' %}Side view: the car's left (driver's) side, front to the left. Right-side sensors are on the Top view.{% else %}Top view: looking down, front to the left; left (driver's) side at the bottom. Each marker is an area, not an exact spot.{% endif %}</figcaption>
       <div class="si-stage">{{ vw.svg|safe }}
-        {% for m in vw.marks %}<a class="si-mark si-st-{{ m.state }}{{ ' is-sel' if m.sel }}{{ ' is-partner' if m.partner }}" href="{{ m.href }}" data-sensor="{{ m.id }}" data-partners="{{ m.partners }}"
-           style="left:{{ m.left }}%;top:{{ m.top }}%" aria-label="{{ m.n }}: {{ m.label }}: {{ m.state_label }}{{ ' (selected)' if m.sel }}{{ ' (partner of the selected sensor)' if m.partner }}"{% if m.sel %} aria-current="true"{% endif %}><span class="si-n">{{ m.n }}</span></a>{% endfor %}
+        {% for m in vw.marks %}<a class="si-mark si-st-{{ m.state }}{{ ' si-cluster' if m.cluster }}{{ ' is-sel' if m.sel }}{{ ' is-partner' if m.partner }}" href="{{ m.href }}" data-sensor="{{ m.id }}" data-partners="{{ m.partners }}"{% if m.cluster %} data-members="{{ m.ids|join(' ') }}"{% endif %}
+           style="left:{{ m.left }}%;top:{{ m.top }}%" aria-label="{% if m.cluster %}{{ m.count }} sensors in {{ m.zone_label }}, worst: {{ m.n }} {{ m.label }}: {{ m.state_label }}{% else %}{{ m.n }}: {{ m.label }}: {{ m.state_label }}{% endif %}{{ ' (selected)' if m.sel }}{{ ' (partner of the selected sensor)' if m.partner }}"{% if m.sel %} aria-current="true"{% endif %}>{% if m.cluster %}<span class="si-n">{{ m.count }}</span><span class="si-cg" aria-hidden="true">{{ m.glyph }}</span>{% else %}<span class="si-n">{{ m.n }}</span>{% endif %}</a>{% endfor %}
       </div>
+      {% for m in vw.marks if m.cluster %}<p class="si-members"><b>{{ m.count }} sensors in {{ m.zone_label }}</b> (worst state: {{ m.state_label }}):
+        {% for c in m.members %}<a class="si-pl" href="{{ c.href }}" data-sensor="{{ c.id }}">{{ c.n }} {{ c.label|truncate(36) }} ({{ c.state_label }})</a>{% endfor %}</p>{% endfor %}
       {% if vw.unfit %}<p class="si-unplaced"><b>No room on this view:</b>
         {% for c in vw.unfit %}<a class="si-pl" href="{{ c.href }}" data-sensor="{{ c.id }}">{{ c.n }} {{ c.label|truncate(36) }} ({{ c.state_label }})</a>{% endfor %}</p>{% endif %}
     </figure>

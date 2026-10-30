@@ -768,6 +768,9 @@ class AdapterLink:
                 raise LinkUnavailable(
                     f"bus {bus.key} is not reachable with cable {self.cable!r}; declare the "
                     f"right cable first")
+            if self.cable == "witech_splitter" and not passive:
+                raise Refused("cable 'witech_splitter' is listen-only: the manufacturer's tool is "
+                              "on the same bus, so CUORE never transmits or ACKs under it")
             if route is not None:
                 if route.cable != self.cable:
                     raise LinkUnavailable(

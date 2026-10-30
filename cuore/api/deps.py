@@ -99,8 +99,10 @@ def _valid_session(value: str | None, expected: str) -> bool:
 
 def session_id(request: Request) -> str | None:
     """The id inside a valid login cookie (one-controller key), else None."""
-    expected = resolve_token(settings_of(request).token)
     value = request.cookies.get(COOKIE)
+    if value and value.startswith("u~") and _user_from_cookie(value):
+        return value.rpartition(".")[0]
+    expected = resolve_token(settings_of(request).token)
     if not expected or not _valid_session(value, expected):
         return None
     return (value or "").rpartition(".")[0]
@@ -118,6 +120,71 @@ def safe_next(nxt: str | None) -> str:
     return nxt
 
 
+_ACCT_KEY = "cuore-accounts-session"
+
+
+def make_user_session(username: str, role: str) -> str:
+    """Signed cookie for an accounts-mode login: carries username + role."""
+    sid = f"u~{username}~{role}~{secrets.token_urlsafe(8)}.{int(time.time())}"
+    return f"{sid}.{_sign(sid, _ACCT_KEY)}"
+
+
+def _user_from_cookie(value: str | None) -> dict | None:
+    """The live account behind a valid user cookie (re-read, so a disabled
+    account or changed role takes effect at once), else None."""
+    if not value or not value.startswith("u~") or not _valid_session(value, _ACCT_KEY):
+        return None
+    parts = value.split("~")
+    if len(parts) < 4:
+        return None
+    from ..services import accounts
+    u = accounts.get(parts[1])
+    if not u or u["disabled"]:
+        return None
+    return u
+
+
+def identify(request: Request, header_token: str | None = None) -> tuple[str, dict | None]:
+    """Who is asking: ("off", None) accounts mode off; ("machine", None) shared
+    token (header or token cookie); ("user", account); ("anon", None)."""
+    from ..services import accounts
+    if not accounts.mode_active():
+        return "off", None
+    expected = resolve_token(settings_of(request).token)
+    if expected:
+        hdr = header_token if header_token is not None else request.headers.get("x-cuore-token", "")
+        if token_ok(hdr or "", expected) or _valid_session(request.cookies.get(COOKIE), expected):
+            return "machine", None
+    u = _user_from_cookie(request.cookies.get(COOKIE))
+    return ("user", u) if u else ("anon", None)
+
+
+def actor(request: Request, fallback: str) -> str:
+    """The name to record as author: the logged-in username in accounts mode,
+    else the caller-supplied/legacy value."""
+    u = getattr(request.state, "user", None)
+    return u["username"] if u else fallback
+
+
+def require_role(*roles: str):
+    """Dependency: in accounts mode only these roles (admin always) or the
+    shared token may proceed. A no-op when accounts mode is off."""
+    allowed = set(roles) | {"admin"}
+
+    async def _dep(request: Request) -> None:
+        kind, u = identify(request)
+        if kind in ("off", "machine"):
+            return
+        if kind == "user" and u["role"] in allowed:
+            request.state.user = u
+            return
+        if kind == "anon" and request.method in _SAFE and not request.url.path.startswith("/api/"):
+            raise LoginRedirect("/login?next=" + quote(request.url.path, safe=""))
+        raise HTTPException(status_code=403, detail="your role cannot do this")
+
+    return _dep
+
+
 async def require_token(
     request: Request,
     x_cuore_token: str | None = Header(default=None),
@@ -133,6 +200,25 @@ async def require_token(
     pasted link cannot carry write rights). Compared with
     :func:`hmac.compare_digest`.
     """
+    if request.url.path not in OPEN_PATHS:
+        kind, user = identify(request, x_cuore_token)
+        if kind == "user":
+            request.state.user = user
+            return
+        if kind == "machine":
+            return
+        if kind == "anon":
+            expected = resolve_token(settings_of(request).token)
+            if (request.method in _SAFE and expected
+                    and token_ok(token or "", expected)):
+                return
+            path = request.url.path
+            if request.method in _SAFE and (not path.startswith("/api/") or path == "/api/docs"):
+                q = urlencode([(k, v) for k, v in request.query_params.multi_items()
+                               if k != "token"])
+                raise LoginRedirect("/login?next=" + quote(path + (f"?{q}" if q else ""), safe=""))
+            raise HTTPException(status_code=401 if request.method in _SAFE else 403,
+                                detail="login required")
     expected = resolve_token(settings_of(request).token)
     if not expected or request.url.path in OPEN_PATHS:
         return

@@ -38,7 +38,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from ..api.deps import require_token
+from ..api.deps import actor, require_token
 from ..services import feedback_bridge, list_groups
 from ..services.errors import BridgeError
 from .routes import _dossier, _page, _safe_redirect, _set_active_vehicle, _vehicle_bar
@@ -94,7 +94,7 @@ async def feedback_add(request: Request, vin: str) -> RedirectResponse:
     try:
         feedback_bridge.add(vin, str(form.get("kind", "")).strip(), target,
                             text=str(form.get("text", "")).strip(),
-                            author=str(form.get("author", "")).strip() or "technician")
+                            author=actor(request, str(form.get("author", "")).strip() or "technician"))
     except BridgeError:
         pass  # a malformed no-JS submission should not 500 the page it came from
     return RedirectResponse(url=redirect_to, status_code=303)

@@ -409,12 +409,17 @@ def _build_model(vin: str) -> dict[str, Any]:
 
 # --- the drawing -------------------------------------------------------------------------------------------
 
-_PAD_Y = {"side": 120, "top": 130}
+_PAD_Y = {"side": 30, "top": 30}   # just room for a target on a bumper or the ground line
+MAX_ANCHOR_D = 1.5 * _PITCH        # a target never sits farther than this (px) from its zone anchor
+MAX_SINGLES = 3                    # a zone with more sensors than this collapses into one cluster target
+_STATE_RANK = {k: i for i, (k, *_r) in enumerate(STATES)}   # invalid is the worst, ok the best
 
 
 def _place(sensors: list[dict[str, Any]], view: str) -> dict[str, Any]:
-    """Greedy, deterministic placement of 44 px targets on the extended drawing. Positions in % of the stage.
-    Small areas are placed first so they stay on their anchor; a crowded area fans out around its own."""
+    """Deterministic placement of 44 px targets. Every target sits within ``MAX_ANCHOR_D`` of its zone anchor.
+    A zone of up to ``MAX_SINGLES`` sensors that fit near the anchor gets one target each; a busier zone becomes ONE
+    cluster target at the anchor (count + the worst state, linking to the worst sensor's card), as the zone map
+    does. Positions in % of the stage."""
     from ..web import sensor_profile_svg as sp
     if view == "side":
         w, h = sp._VB_W, sp._VB_H
@@ -438,37 +443,61 @@ def _place(sensors: list[dict[str, Any]], view: str) -> dict[str, Any]:
             if a is None:
                 continue
             key, x, y = a[0], float(a[1]), float(a[2])
-        g = groups.setdefault(key, {"x": x * scale, "y": (y + padv) * scale, "items": []})
+        g = groups.setdefault(key, {"x": x * scale, "y": (y + padv) * scale, "items": [], "zone": s.get("zone_label") or ""})
         g["items"].append(s)
-    # candidate offsets on a fine grid, nearest to the anchor first: a crowded area fans out around its own anchor
-    cells = sorted(((float(dx), float(dy)) for dx in range(-400, 401, 8) for dy in range(-300, 301, 8)),
-                   key=lambda c: (c[0] ** 2 + c[1] ** 2, c[1], c[0]))
+    # candidate offsets nearest to the anchor first, never beyond MAX_ANCHOR_D
+    cells = sorted(((float(dx), float(dy)) for dx in range(-72, 73, 6) for dy in range(-72, 73, 6)
+                    if dx * dx + dy * dy <= MAX_ANCHOR_D ** 2), key=lambda c: (c[0] ** 2 + c[1] ** 2, c[1], c[0]))
+    min_d2 = (_PITCH - 2) ** 2
     taken: list[tuple[float, float]] = []
     marks: list[dict[str, Any]] = []
     unfit: list[dict[str, Any]] = []
+
+    def free_spot(g: dict[str, Any], extra: list[tuple[float, float]]) -> Optional[tuple[float, float]]:
+        for dx, dy in cells:
+            px, py = g["x"] + dx, g["y"] + dy
+            if not (_EDGE <= px <= pw - _EDGE and _EDGE <= py <= ph - _EDGE):
+                continue
+            if all((px - tx) ** 2 + (py - ty) ** 2 >= min_d2 for tx, ty in taken + extra):
+                return px, py
+        return None
+
+    def put(spot: tuple[float, float], **kw: Any) -> dict[str, Any]:
+        mk = {"left": round(spot[0] / pw * 100, 2), "top": round(spot[1] / ph * 100, 2), "px": spot,
+              "anchor": (g["x"], g["y"]), **kw}
+        marks.append(mk)
+        return mk
+
     for key in sorted(groups, key=lambda k: (len(groups[k]["items"]), groups[k]["x"], groups[k]["y"])):
         g = groups[key]
-        for s in sorted(g["items"], key=lambda i: i["n"]):
-            spot = None
-            for dx, dy in cells:
-                px, py = g["x"] + dx, g["y"] + dy
-                if not (_EDGE <= px <= pw - _EDGE and _EDGE <= py <= ph - _EDGE):
-                    continue
-                if all((px - tx) ** 2 + (py - ty) ** 2 >= (_PITCH - 2) ** 2 for tx, ty in taken):
-                    spot = (px, py)
+        items = sorted(g["items"], key=lambda i: i["n"])
+        trial: list[tuple[float, float]] = []
+        if len(items) <= MAX_SINGLES:
+            for _s in items:
+                sp_ = free_spot(g, trial)
+                if sp_ is None:
                     break
-            if spot is None:
-                unfit.append(s)
-                continue
-            taken.append(spot)
-            marks.append({"id": s["id"], "left": round(spot[0] / pw * 100, 2), "top": round(spot[1] / ph * 100, 2)})
-    marks.sort(key=lambda m: next(s["n"] for s in sensors if s["id"] == m["id"]))
+                trial.append(sp_)
+        if items and len(trial) == len(items) and len(items) <= MAX_SINGLES:
+            for s, spot in zip(items, trial):
+                put(spot, id=s["id"], ids=[s["id"]], count=1)
+            taken += trial
+            continue
+        spot = free_spot(g, [])
+        if spot is None:
+            unfit += items
+            continue
+        taken.append(spot)
+        worst = min(items, key=lambda i: (_STATE_RANK.get(i["state"], 99), i["n"]))
+        put(spot, id=worst["id"], ids=[i["id"] for i in items], count=len(items), zone_label=g["zone"])
+    nmap = {s["id"]: s["n"] for s in sensors}
+    marks.sort(key=lambda m: min(nmap[i] for i in m["ids"]))
     art = sp._car_line_art() if view == "side" else sp._car_top_art()
     label = ("Side view of the car, left side, nose to the left" if view == "side"
              else "Top view of the car, nose to the left, left side at the bottom")
     svg = (f'<svg class="si-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 {-padv} {w} {h + 2 * padv}" '
            f'role="img" aria-label="{label}">{art}</svg>')
-    placed_ids = {m["id"] for m in marks}
+    placed_ids = {i for m in marks for i in m["ids"]}
     return {"svg": svg, "marks": marks, "ids": placed_ids, "unfit": [s["id"] for s in unfit]}
 
 
@@ -560,9 +589,13 @@ def outline(vin: str, sensor: Optional[str] = None, *, token: str = "", base: st
         marks = []
         for mk in v["marks"]:
             c = byid[mk["id"]]
+            members = [byid[i] for i in mk["ids"] if i in byid]
+            cl = mk["count"] > 1
             marks.append({**mk, "n": c["n"], "label": c["label"], "state": c["state"], "state_label": c["state_label"],
-                          "glyph": c["glyph"], "href": c["href"], "partners": " ".join(c["partners"]),
-                          "sel": mk["id"] == (sensor or ""), "partner": mk["id"] in partner_ids})
+                          "glyph": c["glyph"], "href": c["href"],
+                          "partners": " ".join(sorted({p for mc in members for p in mc["partners"]})) if cl else " ".join(c["partners"]),
+                          "cluster": cl, "members": members if cl else [],
+                          "sel": (sensor or "") in mk["ids"], "partner": bool(set(mk["ids"]) & partner_ids)})
         out["views"][view] = {"svg": v["svg"], "marks": marks,
                               "unfit": [byid[i] for i in v["unfit"] if i in byid]}
     placed_any = m["marks"]["side"]["ids"] | m["marks"]["top"]["ids"]

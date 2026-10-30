@@ -74,6 +74,8 @@ class Health(BaseModel):
     ok: bool = True
     profile: Profile
     version: str
+    build_date: str = ""
+    git_commit: str = ""
     corpus_reachable: bool
     cache: dict[str, Any] = Field(default_factory=dict)
 

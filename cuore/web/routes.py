@@ -39,7 +39,7 @@ from fastapi.templating import Jinja2Templates
 from .. import __version__
 from ..services import cache, dossier_bridge, mes_bridge
 from ..services.errors import BridgeError
-from ..api.deps import require_token, settings_of
+from ..api.deps import actor, require_token, settings_of
 from ..live import ops as live_ops
 from ..live.buses import BUSES, PIN_1_9_WARNING
 from ..live.errors import LiveError
@@ -1316,7 +1316,7 @@ async def notes_add(request: Request, vin: str) -> RedirectResponse:
     mes_bridge.add_note(vin, str(form.get("text", "")),
                         target_kind=str(form.get("target_kind", "vehicle")),
                         target_id=str(form.get("target_id", "")),
-                        author=str(form.get("author", "")).strip() or "technician",
+                        author=actor(request, str(form.get("author", "")).strip() or "technician"),
                         tags=tags)
     return RedirectResponse(url=redirect_to, status_code=303)
 

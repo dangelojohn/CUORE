@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}About — CUORE{% endblock %}
+{% block content %}
+{# About: version, build, state dir, update source. No JavaScript. Own <style>: --fs-* tokens only, 44 px targets.
+   Data: cuore/services/updates.py. A URL source is only contacted when "Check now" is pressed. #}
+<style>
+.abt { max-width: 760px; font-size: var(--fs-md); }
+.abt h2 { font-size: var(--fs-lg); margin: 16px 0 6px; }
+.abt .note { color: var(--ink-2); margin: 0 0 10px; }
+.abt table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; }
+.abt th, .abt td { border: 1px solid var(--rule); padding: 8px 10px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.abt th { width: 11em; background: var(--surface-2); }
+.abt .mono { font-family: var(--numerals, monospace); font-variant-numeric: tabular-nums; }
+.abt .btn { min-height: var(--tap, 44px); font-size: var(--fs-md); padding: 0 16px; }
+.abt .status { border: 1px solid var(--rule); border-left: 6px solid var(--ink-3); padding: 8px 12px; margin: 0 0 12px; min-height: var(--tap, 44px); display: flex; align-items: center; font-weight: 600; }
+</style>
+<div class="abt">
+  <h1>About CUORE</h1>
+  <table>
+    <tr><th>Version</th><td class="mono">{{ info.version }}</td></tr>
+    <tr><th>Build date</th><td class="mono">{{ info.build_date }}</td></tr>
+    <tr><th>Git commit</th><td class="mono">{{ info.git_commit }}</td></tr>
+    <tr><th>State folder</th><td class="mono">{{ state }}</td></tr>
+    <tr><th>Update source</th><td class="mono">{{ source if source else "none (updates are off)" }}</td></tr>
+  </table>
+
+  <h2>Updates</h2>
+  {% if not source %}
+    <p class="status">&#9632; Updates are off. To turn them on, put a folder path or address in <span class="mono">{{ source_file }}</span> as <span class="mono">{"source": "..."}</span>.</p>
+  {% elif result %}
+    {% if result.error %}
+      <p class="status">&#10007; Could not check: {{ result.error }}</p>
+    {% elif result.available %}
+      <p class="status">&#9650; Update available: {{ result.latest }} (installed {{ result.current }}). Run <span class="mono">installer\update-cuore.ps1</span> on this PC to apply it.</p>
+    {% else %}
+      <p class="status">&#10003; Up to date ({{ result.current }}; source has {{ result.latest }}).</p>
+    {% endif %}
+  {% else %}
+    <p class="note">The source is a web address, so CUORE has not looked. Press the button to check.</p>
+  {% endif %}
+  {% if note %}<p class="note">{{ note }}</p>{% endif %}
+  {% if source %}
+  <form method="post" action="/about/check"><button class="btn" type="submit">Check now</button></form>
+  {% endif %}
+  {% if can_rollback %}<p class="note">A previous version is kept for rollback: <span class="mono">installer\update-cuore.ps1 -Rollback</span>.</p>{% endif %}
+</div>
+{% endblock %}
