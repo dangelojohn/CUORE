@@ -41,24 +41,6 @@
 </table>
 </div>
 
-{% if tl.correlation %}
-<h2>Others' experience by family</h2>
-{% set _seen_families = [] %}
-{% for row in tl.correlation %}
-  {% set _fam_raw = row.family or "" %}
-  {% set _fam_key = "EVAP" if _fam_raw|upper == "EVAP" else _fam_raw|lower %}
-  {% if _fam_key and _fam_key not in _seen_families %}
-    {% set _ = _seen_families.append(_fam_key) %}
-    {% set exp = experience_links(family=_fam_key) if experience_links is defined else {"links": [], "count": 0} %}
-    <details class="fold" {{ 'open' if row.active_n }} style="margin-bottom:6px">
-      <summary style="min-height:44px;display:flex;align-items:center"><h3 class="muted" style="margin:0">{{ row.family }}</h3>
-        <span class="small muted" style="margin-left:8px">{{ exp.count if exp.count is defined else '' }} link{{ '' if exp.count == 1 else 's' }}</span></summary>
-      {% include "_experience.html" %}
-    </details>
-  {% endif %}
-{% endfor %}
-{% endif %}
-
 <h2>Swimlane</h2>
 <div class="tl-toolbar">
   <span class="grp">Axis:
@@ -112,6 +94,24 @@
   </table>
   </div>
 </details>
+
+{% if tl.correlation %}
+<h2>Others' experience by family</h2>
+{% set _seen_families = [] %}
+{% for row in tl.correlation %}
+  {% set _fam_raw = row.family or "" %}
+  {% set _fam_key = "EVAP" if _fam_raw|upper == "EVAP" else _fam_raw|lower %}
+  {% if _fam_key and _fam_key not in _seen_families %}
+    {% set _ = _seen_families.append(_fam_key) %}
+    {% set exp = experience_links(family=_fam_key) if experience_links is defined else {"links": [], "count": 0} %}
+    <details class="fold" {{ 'open' if row.active_n }} style="margin-bottom:6px">
+      <summary style="min-height:44px;display:flex;align-items:center"><h3 class="muted" style="margin:0">{{ row.family }}</h3>
+        <span class="small muted" style="margin-left:8px">{{ exp.count if exp.count is defined else '' }} link{{ '' if exp.count == 1 else 's' }}</span></summary>
+      {% include "_experience.html" %}
+    </details>
+  {% endif %}
+{% endfor %}
+{% endif %}
 
 <h2>Log a symptom</h2>
 {% include "_symptom_form.html" %}

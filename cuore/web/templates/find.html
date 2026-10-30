@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Find — CUORE{% endblock %}
+{% block content %}
+{# Site-wide search results. Answer first: the best match as one big button, then grouped links.
+   Data: cuore/services/find.py. No JavaScript. #}
+<div class="find-page">
+  <h1>Find</h1>
+  <form class="find-form" role="search" method="get" action="/find">
+    <label for="find-q" class="sr-only">Search CUORE</label>
+    <input id="find-q" type="search" name="q" value="{{ q }}" autocomplete="off" placeholder="Search CUORE: a page, code, part, bulletin or task…">
+    {% if vin %}<input type="hidden" name="vin" value="{{ vin }}">{% endif %}
+    <button type="submit">Search</button>
+  </form>
+  {% if res.best %}
+  <a class="find-best" href="{{ res.best.href }}">Go to: {{ res.best.title }}{% if res.best.says %} <small>{{ res.best.says }}</small>{% endif %}</a>
+  {% endif %}
+  {% for g in res.groups %}
+  <section class="find-group">
+    <h2>{{ g.title }}</h2>
+    <ul class="find-list">
+      {% for r in g.rows %}
+      <li>{% if r.href %}<a class="find-link" href="{{ r.href }}">{{ r.title }}<small>{{ r.says }}</small></a>
+          {% else %}<div class="find-link">{{ r.title }}<small>{{ r.says }}</small></div>{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+  {% if q and not res.best and not res.groups %}
+  <p class="find-none">No match for &lsquo;{{ q }}&rsquo;. Start from one of these:</p>
+  {% endif %}
+  {% if res.start %}
+  <ul class="navtiles">
+    {% for s in res.start %}<li><a class="navtile" href="{{ s.href }}"><span>{{ s.title }}</span></a></li>{% endfor %}
+  </ul>
+  {% endif %}
+</div>
+{% endblock %}

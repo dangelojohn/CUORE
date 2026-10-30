@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Field-quality early warning{% endblock %}
+{% block content %}
+{# Prototype. Anonymised pattern rows from this install's closed cases. No JavaScript. Data: cuore/services/field_quality.py #}
+<style>
+.fq { max-width: 1040px; font-size: var(--fs-md); }
+.fq h2 { font-size: var(--fs-lg); margin: 16px 0 6px; }
+.fq .answer { border: 1px solid var(--rule); border-left: 6px solid var(--ink); padding: 10px 12px; margin: 0 0 12px; font-weight: 600; font-size: var(--fs-lg); }
+.fq .note { color: var(--ink-2); margin: 0 0 10px; }
+.fq table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; }
+.fq th, .fq td { border: 1px solid var(--rule); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.fq .tag { display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); }
+.fq .tag.on { background: var(--ink); color: var(--surface); }
+.fq .box { border: 1px solid var(--rule); padding: 10px 12px; margin: 0 0 16px; background: var(--surface-2); }
+.fq .btn { min-height: var(--tap, 44px); font-size: var(--fs-md); padding: 0 16px; display: inline-flex; align-items: center; }
+.fq .acts { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+</style>
+<div class="fq">
+  <h1>Field-quality early warning <span class="tag">prototype</span></h1>
+  <p class="answer">Patterns ready for engineering: {{ v.patterns }} (cars in pool: {{ v.cars_in_pool }}; sharing: {{ "on" if v.sharing else "off" }})</p>
+  {% if v.cars_in_pool < v.min_cohort %}
+  <p class="note">This install holds {{ v.cars_in_pool }} car{{ "" if v.cars_in_pool == 1 else "s" }}. A pattern needs at least {{ v.min_cohort }} cars, so one car is not a pattern. The pipeline is built and waits for pooled data from several shops.</p>
+  {% endif %}
+
+  <h2>Rows</h2>
+  {% if v.rows %}
+  <table>
+    <tr><th>Platform</th><th>Year</th><th>Code</th><th>Readings</th><th>Cars</th><th>Cases</th><th>Proven fixes</th><th>Comeback 30 d (yes / no / unknown)</th><th>Fix recorded</th><th>Status</th></tr>
+    {% for r in v.rows %}
+    <tr>
+      <td>{{ r.platform }}</td><td>{{ r.model_year }}</td><td>{{ r.dtc }}-{{ r.failure_type }}</td><td>{{ r.readings_signature }}</td>
+      <td>{{ r.cars }}</td><td>{{ r.cases }}</td><td>{{ r.proven_fixes }}</td>
+      <td>{{ r.comebacks_30d.yes }} / {{ r.comebacks_30d.no }} / {{ r.comebacks_30d.unknown }}</td>
+      <td>{% for f in r.fixes %}{{ f.fix }}: {{ f.proven }} proven of {{ f.cases }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td>
+      <td><span class="tag{{ ' on' if r.is_pattern else '' }}">{{ r.status }}</span></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}<p class="note">No closed cases with codes yet.</p>{% endif %}
+
+  <h2>Privacy</h2>
+  <div class="box">
+    <p>Rows hold only: platform, model year, code, a count of out-of-band and in-band readings, the part number fitted, proven or not, comeback yes or no, and counts. Never included: VIN, customer, plate, names, notes, free text, visit dates, raw readings. Rows with fewer than {{ v.min_cohort }} cars are never exported. Nothing is sent anywhere; the file is a download only.</p>
+  </div>
+
+  <h2>Actions</h2>
+  <div class="acts">
+    <form method="post" action="/field-quality/sharing">
+      <input type="hidden" name="sharing" value="{{ 'off' if v.sharing else 'on' }}">
+      <button class="btn" type="submit">{{ "Turn sharing off" if v.sharing else "Turn sharing on" }}</button>
+    </form>
+    <a class="btn" href="/field-quality.json" download>Download feed (JSON)</a>
+  </div>
+  <p class="note">{% if v.sharing %}Sharing is on: the download holds pattern rows only.{% else %}Sharing is off: the download says so and holds no rows.{% endif %}</p>
+</div>
+{% endblock %}

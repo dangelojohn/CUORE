@@ -44,6 +44,22 @@ def _group(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [{"system": k, "rows": v} for k, v in sorted(groups.items())]
 
 
+def _lead(view: dict[str, Any], xmap: dict[str, Any]) -> dict[str, Any]:
+    """Answer-first block: open recalls for this car, and the bulletins whose
+    DTC list names a code the car shows now (only what the xref already says)."""
+    recalls = [r for r in view["items"] if r.get("kind") == "recall"
+               and r.get("status") == "open" and r.get("applies") != "no"
+               and (r.get("vehicle_scope") or "this_model") == "this_model"]
+    on_codes: list[dict[str, Any]] = []
+    for bid, b in (xmap or {}).items():
+        rel = next((x for x in b.get("relations") or [] if x.get("relation") == "explains"), None)
+        if rel and (b.get("vehicle_scope") or "this_model") == "this_model":
+            on_codes.append({"number": b.get("number"), "title": b.get("title"),
+                             "code": rel.get("code"), "anchor": tsb_bridge.row_anchor(bid),
+                             "reason": rel.get("reason")})
+    return {"recalls": recalls, "on_codes": on_codes}
+
+
 @router.get("/tsb", response_class=HTMLResponse)
 def tsb_page(request: Request, vin: str = "", kind: str = "", system: str = "") -> HTMLResponse:
     vin = _active_vehicle(request, vin).upper()
@@ -64,7 +80,7 @@ def tsb_page(request: Request, vin: str = "", kind: str = "", system: str = "") 
     xr = tsb_xref_bridge.safe_xref(vin)
     xmap = {b["id"]: b for b in (xr or {}).get("bulletins") or []}
     response = _page(request, "tsb.html", vin=vin, bar=bar, tab="tsb", view=view, xmap=xmap,
-                     groups=_group(rows), shown=len(rows), kind=kind, system=system,
+                     lead=_lead(view, xmap), groups=_group(rows), shown=len(rows), kind=kind, system=system,
                      kind_labels=KIND_LABELS, applies_labels=APPLIES_LABELS,
                      status_labels=tsb_bridge.STATUS_LABELS,
                      statuses=tsb_bridge.STATUSES)

@@ -1,0 +1,63 @@
+{# Warranty pack body, shared by the page and the standalone printable file. No JavaScript. #}
+<style>
+.wp { max-width: 1040px; font-size: var(--fs-md, 16px); }
+.wp h1 { font-size: var(--fs-xl, 24px); margin: 0 0 6px; }
+.wp h2 { font-size: var(--fs-lg, 20px); margin: 18px 0 6px; }
+.wp .note { color: var(--ink-2, #444); margin: 0 0 10px; }
+.wp .answer { border: 2px solid var(--ink, #000); padding: 10px 14px; margin: 0 0 14px; }
+.wp .answer.ok { border-left: 10px solid #1a7f37; }
+.wp .answer.gap { border-left: 10px solid #b35900; }
+.wp .answer .big { font-size: var(--fs-lg, 20px); font-weight: 700; margin: 0 0 6px; }
+.wp .chk { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 4px; }
+.wp .chk li { display: flex; gap: 8px; align-items: baseline; min-height: 32px; }
+.wp .mark { font-weight: 700; min-width: 9ch; }
+.wp .why { color: var(--ink-2, #444); }
+.wp table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; }
+.wp th, .wp td { border: 1px solid var(--rule, #999); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.wp .tag { display: inline-block; padding: 0 8px; border: 1px solid var(--rule, #999); border-radius: 999px; font-size: var(--fs-sm, 13px); }
+.wp .mono { font-family: var(--numerals, monospace); font-variant-numeric: tabular-nums; }
+.wp .empty { color: var(--ink-2, #444); font-style: italic; }
+.wp .manifest td { font-size: var(--fs-sm, 13px); }
+@media print { .noprint { display: none !important; } .wp { max-width: none; font-size: 11pt; } .wp h2 { break-after: avoid; } .wp tr { break-inside: avoid; } }
+</style>
+<div class="wp">
+  <h1>Warranty evidence pack</h1>
+  <p class="note">{{ p.note }}</p>
+  <p class="note">{{ p.vehicle or "Vehicle name not on file" }} &middot; VIN <span class="mono">{{ p.vin }}</span> &middot;
+    job <span class="mono">{{ p.job_id or "none" }}</span> &middot; generated <span class="mono">{{ p.generated_at }}</span>
+    {% if p.assembled_by %}&middot; assembled by {{ p.assembled_by }}{% endif %}</p>
+
+  <section class="answer {{ 'ok' if p.score.backed else 'gap' }}" id="answer">
+    <p class="big">{% if p.score.backed %}&#10003; This claim is backed by evidence ({{ p.score.done }} of {{ p.score.total }}).{% else %}&#9888; Not fully backed yet: {{ p.score.done }} of {{ p.score.total }} checks met.{% endif %}</p>
+    <ul class="chk">
+      {% for c in p.checklist %}<li><span class="mark">{{ "&#10003; Yes" if c.ok else "&#10007; Missing" }}</span><span><strong>{{ c.label }}</strong> <span class="why">&mdash; {{ c.detail }}{% if not c.ok %}. Needed: {{ c.missing }}{% endif %}</span></span></li>{% endfor %}
+    </ul>
+  </section>
+
+  {% for s in p.sections %}
+  <section id="sec-{{ s.key }}">
+    <h2>{{ s.title }} ({{ s["items"]|length }})</h2>
+    {% if s["items"] %}
+    <table>
+      <thead><tr><th>When</th><th>Source</th><th>Evidence</th><th>Values</th></tr></thead>
+      <tbody>
+      {% for i in s["items"] %}<tr>
+        <td class="mono">{{ i.at or "no timestamp" }}</td>
+        <td>{{ i.source }}{% if i.by %}<br>by {{ i.by }}{% endif %}</td>
+        <td>{% if i.label %}<span class="tag">{{ i.label }}</span> {% endif %}{{ i.text }}</td>
+        <td class="mono">{% if i.data %}{% for k, v in i.data.items() %}{{ k }}: {{ v }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}</td>
+      </tr>{% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="empty">Nothing recorded for this section.</p>{% endif %}
+  </section>
+  {% endfor %}
+
+  <section id="manifest">
+    <h2>Manifest ({{ p.manifest|length }} items)</h2>
+    <p class="note">SHA-256 of each embedded item (canonical JSON). The JSON download carries the same manifest so the pack can be checked later. Pack hash: <span class="mono">{{ p.pack_sha256 }}</span></p>
+    <table class="manifest"><thead><tr><th>Section</th><th>Item</th><th>SHA-256</th></tr></thead><tbody>
+      {% for m in p.manifest %}<tr><td>{{ m.section }}</td><td class="mono">{{ m.id }}</td><td class="mono">{{ m.sha256 }}</td></tr>{% endfor %}
+    </tbody></table>
+  </section>
+</div>

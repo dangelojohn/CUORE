@@ -4,13 +4,16 @@
 {% block content %}
 
 <h1>Service reminder labels</h1>
+<p class="lede" id="labels-answer"><strong>Pick the label kind, the sheet and the fields, check the preview, then download the PDF.</strong>
+  Print the test grid on plain paper first and hold it against a real sheet before printing to film. <a href="#preview">Jump to the preview</a>.</p>
+<details class="fold" style="margin:0 0 10px"><summary style="min-height:44px;display:flex;align-items:center">About the sheet templates</summary>
 <p class="lede">Print small, information-dense labels on Avery weatherproof
 film sheets. Geometry for each sheet is sourced from Avery where possible —
 see <a href="/api/vehicles/{{ vin }}/labels/templates" target="_blank" rel="noopener">the raw template data</a>
 or <code>docs/reference/AVERY_LABEL_TEMPLATES.md</code>. A template marked
 <span class="chip chronic">not Avery-confirmed</span> uses a computed,
 evenly-spaced placeholder layout — always print the test grid on plain paper
-first and check it against a real sheet before printing to film.</p>
+first and check it against a real sheet before printing to film.</p></details>
 
 {% if error %}
 <div class="note alert"><span class="lab">Not shown</span>{{ error }}</div>
@@ -218,7 +221,7 @@ first and check it against a real sheet before printing to film.</p>
   </form>
 </div>
 
-<div class="panel">
+<div class="panel" id="preview">
   <h2>Preview</h2>
   {% if preview_url %}
   <p class="small muted">One copy of the label at the selected start cell — the exact same PDF the download button produces.</p>

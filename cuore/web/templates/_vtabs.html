@@ -1,115 +1,33 @@
-{# Vehicle tab strip, reordered to the mechanic's flow. Meant to replace
-   the inline `<div class="vtabs">...</div>` block inside _vbar.html --
-   that file's own docstring has the `bar`/`tab`/`live_strip` contract this
-   partial shares with it; swapping that inline markup for
-   `{% include "_vtabs.html" %}` is the other integration line, left for
-   later alongside _flow_bar.html's.
+{# Vehicle tab strip: the everyday tabs only (items flagged primary in
+   cuore/web/nav_items.py -- Bench, Job, Codes, Live, Tests, Systems,
+   Sensors, Fuses, Report), then one big "All pages" tile that opens the
+   header's full-screen Menu sheet (same checkbox, #navsheet-toggle; no JS).
+   Every other page lives in that sheet, grouped by mechanic words; nothing
+   is more than two taps away. Contract shared with _vbar.html: `bar.vin`,
+   `tab`; optional `flow_state_for` / `feedback_open_count` globals.
 
-   Five tabs stay visible -- Job, Dossier, Codes, Systems, Report, the
-   single-car-focus flow's own path -- everything else moves behind a
-   tap-to-open "More" menu so the strip stops needing horizontal scroll on
-   a phone. (Release is reached from the flow bar's own last-step link,
-   /v/{vin}/release, not from this tab strip.)
-
-   Every link path that was in the old flat strip is kept, including
-   Dashboard -- not named in the flow spec's own "More" list, kept anyway
-   so no existing bookmark/link breaks -- plus a new Labels link to the
-   label-printing page (cuore/web/labels_routes.py's /v/{vin}/labels),
-   which had no tab link anywhere before this.
-
-   Two states get marked, and they can differ: `.on` is the tab the
-   browser is actually showing (the same `tab == "..."` check _vbar.html
-   always used); `.flow-current-tab` is whichever tab the flow service
-   thinks is the mechanic's current step, from the same `flow_state_for`
-   Jinja global _flow_bar.html reads (degrades to "nothing highlighted"
-   with no error if that service isn't wired up yet or has no opinion on
-   this VIN). #}
-{# Mechanic-UX review item 4: the Bench landing page (another agent's
-   build, at /v/{vin}) is now the primary tab -- Job, Codes, Live, Systems,
-   Report ride alongside it; the old dossier (same template, moved to
-   /v/{vin}/dossier) drops into More. Live board was promoted out of More
-   and into this visible row (after Codes) per the 2026-10-08 UX pass --
-   six tabs now stay visible on a phone-width strip. #}
-{# Sensors and Fuses promoted to the visible row 2026-10-25 (owner asked for
-   them on the main page, not behind More). #}
-{% set _visible = ("bench", "job", "codes", "liveboard", "tests", "systems", "sensors", "fuses", "report", "mobile") %}
-{% set _more = ("dossier", "modules", "timeline", "gauges", "electrical", "parts", "media",
-                 "service-hub", "tree", "gate", "inbox", "labels", "logs", "dashboard", "scans",
-                 "scan", "mods", "tsb", "harnesses", "recordings", "procedures",
-                 "diagnosis", "crosschecks", "intermittent", "trends", "power-budget") %}
+   Two states get marked: `.on` is the tab the browser is showing (the
+   `tab == key` check); `.flow-current-tab` is the tab the flow service says
+   is the mechanic's current step. When that step's page is not in the strip
+   the "All pages" tile gets `.flow-has-current` instead. #}
+{% set _m = nav_menu(bar.vin, tab|default(''), none, '') if nav_menu is defined else none %}
+{% set _primary = _m.primary if _m else [] %}
+{% set _all_keys = (_m.groups|map(attribute='items')|sum(start=[])|map(attribute='key')|list) if _m else [] %}
+{% set _pkeys = _primary|map(attribute='key')|list %}
 {% set flow = flow_state_for(bar.vin) if flow_state_for is defined else none %}
 {% set _flow_key = (flow.steps|selectattr("n", "equalto", flow.current)|map(attribute="key")|first)
                     if flow and flow.steps else none %}
-{# Only treat it as a highlight if it actually names one of this strip's
-   tabs -- a flow step with no tab of its own (e.g. a "tests" step that
-   lives inside the Job page's own stepper) must not force the More menu
-   open for nothing. #}
-{% set flow_tab_key = _flow_key if (_flow_key in _visible or _flow_key in _more) else none %}
-{% set _fb_open = feedback_open_count(bar.vin) if feedback_open_count is defined else 0 %}
+{% set flow_tab_key = _flow_key if (_flow_key in _all_keys) else none %}
 
-{# This strip is also rendered by check_flow_bar.py against a bare
-   jinja2.Environment with no i18n globals registered -- `_lbl` falls back
-   to the plain English label (the same text that test's own
-   VISIBLE_LABELS/">Dashboard<"/">Labels<" checks expect) whenever `t`
-   isn't available, and uses the real translation whenever it is. #}
+{# Plain-English fallback whenever `t` is missing or knows no such key (this
+   strip is also rendered by tests against a bare jinja2.Environment). #}
 {% macro _lbl(key, fallback) -%}
-{%- if t is defined -%}{%- set _v = t(key) -%}{{ fallback if (_v == key) else _v }}{%- else -%}{{ fallback }}{%- endif -%}
-{%- endmacro %}
-
-{% macro vtab(key, href, label, badge="") -%}
-<a href="{{ href }}" class="{{ 'on' if tab == key }}{{ ' flow-current-tab' if flow_tab_key == key }}">{{ label }}{{ badge|safe }}</a>
+{%- if key and t is defined -%}{%- set _v = t(key) -%}{{ fallback if (_v == key) else _v }}{%- else -%}{{ fallback }}{%- endif -%}
 {%- endmacro %}
 
 <div class="vtabs">
-  {{ vtab("bench", "/v/" + bar.vin, _lbl("bench", "Bench")) }}
-  {{ vtab("job", "/v/" + bar.vin + "/job", _lbl("job", "Job")) }}
-  {{ vtab("codes", "/v/" + bar.vin + "/codes", _lbl("codes", "Codes")) }}
-  {{ vtab("liveboard", "/v/" + bar.vin + "/liveboard", _lbl("live_board", "Live")) }}
-  {{ vtab("tests", "/v/" + bar.vin + "/tests", _lbl("tests", "Tests")) }}
-  {{ vtab("systems", "/v/" + bar.vin + "/systems", _lbl("systems", "Systems")) }}
-  {{ vtab("sensors", "/v/" + bar.vin + "/sensors", "Sensors") }}
-  {{ vtab("fuses", "/v/" + bar.vin + "/fuses", "Fuses") }}
-  {{ vtab("report", "/v/" + bar.vin + "/report", _lbl("report", "Report")) }}
-  {{ vtab("mobile", "/m/" + bar.vin, _lbl("mobile", "Mobile")) }}
-
-  <details class="vmore-tab"{% if flow_tab_key in _more %} open{% endif %}>
-    <summary aria-label="{{ _lbl('more_vehicle_tabs', 'More vehicle tabs') }}" class="{{ 'on' if tab not in _visible }}{{ ' flow-has-current' if flow_tab_key in _more }}">{{ _lbl("more", "More") }}&hellip;</summary>
-    <div class="vmore-tab-panel">
-      {{ vtab("dossier", "/v/" + bar.vin + "/dossier", _lbl("dossier", "Dossier")) }}
-      {{ vtab("modules", "/v/" + bar.vin + "/modules", _lbl("modules", "Modules")) }}
-      {{ vtab("timeline", "/v/" + bar.vin + "/timeline", _lbl("timeline", "Timeline")) }}
-      {{ vtab("gauges", "/v/" + bar.vin + "/gauges", _lbl("gauges", "Gauges")) }}
-      {{ vtab("electrical", "/v/" + bar.vin + "/electrical", _lbl("electrical", "Electrical")) }}
-      {{ vtab("harnesses", "/v/" + bar.vin + "/harnesses", "Harnesses") }}
-      {{ vtab("recordings", "/v/" + bar.vin + "/recordings", "Recordings") }}
-      {{ vtab("parts", "/v/" + bar.vin + "/parts", _lbl("parts", "Parts")) }}
-      {{ vtab("mods", "/v/" + bar.vin + "/mods", _lbl("mods", "Modifications")) }}
-      {{ vtab("media", "/v/" + bar.vin + "/media", _lbl("media", "Media")) }}
-      {{ vtab("service-hub", "/v/" + bar.vin + "/service-hub", _lbl("service", "Service")) }}
-      {{ vtab("parity", "/v/" + bar.vin + "/parity", "Parity") }}
-      {{ vtab("adjustments", "/v/" + bar.vin + "/adjustments", "Adjustments") }}
-      {{ vtab("configuration", "/v/" + bar.vin + "/configuration", "Configuration") }}
-      {# Diagnose group: five pages added 2026-10-26 (routes land separately;
-         until then these hrefs 404, nothing else breaks). #}
-      {{ vtab("diagnosis", "/v/" + bar.vin + "/diagnosis", _lbl("diagnosis", "Diagnosis")) }}
-      {{ vtab("crosschecks", "/v/" + bar.vin + "/crosschecks", _lbl("crosschecks", "Cross-checks")) }}
-      {{ vtab("intermittent", "/v/" + bar.vin + "/intermittent", _lbl("intermittent", "Intermittent")) }}
-      {{ vtab("trends", "/v/" + bar.vin + "/trends", _lbl("trends", "Trends")) }}
-      {{ vtab("power-budget", "/v/" + bar.vin + "/power-budget", _lbl("power_budget", "Power and ground")) }}
-      {{ vtab("tree", "/v/" + bar.vin + "/tree", _lbl("fault_tree", "Fault tree")) }}
-      {{ vtab("gate", "/v/" + bar.vin + "/gate", _lbl("evidence_gate", "Evidence gate")) }}
-      {{ vtab("inbox", "/v/" + bar.vin + "/inbox", _lbl("inbox", "Inbox"), (' <span class="chip chronic">' + _fb_open|string + '</span>') if _fb_open else "") }}
-      {{ vtab("tsb", "/tsb?vin=" + bar.vin, "TSB") }}
-      {{ vtab("labels", "/v/" + bar.vin + "/labels", _lbl("labels", "Labels")) }}
-      {{ vtab("logs", "/logs?vin=" + bar.vin, _lbl("logs", "Logs")) }}
-      {{ vtab("scans", "/v/" + bar.vin + "/scans", _lbl("scans", "Scans")) }}
-      {{ vtab("scan", "/v/" + bar.vin + "/scan", _lbl("full_scan", "Full scan")) }}
-      {{ vtab("dashboard", "/v/" + bar.vin + "/dashboard", _lbl("dashboard", "Dashboard")) }}
-      {{ vtab("procedures", "/v/" + bar.vin + "/procedures/prototype", "Prototype: interactive procedures") }}
-      {# "Tell CUORE" (cuore/web/owner_routes.py) lives on its own /m/{vin}
-         phone-first layout, not under /v/{vin} -- so this is a plain link,
-         not a vtab() call (there is no "tell-cuore" vtab to highlight). #}
-      <a href="/m/{{ bar.vin }}">Tell CUORE</a>
-    </div>
-  </details>
+  {% for it in _primary %}
+  <a href="{{ it.href }}" class="{{ 'on' if tab == it.key }}{{ ' flow-current-tab' if flow_tab_key == it.key }}">{{ _lbl(it.i18n, it.label) }}</a>
+  {%- endfor %}
+  <label for="navsheet-toggle" role="button" class="vtab-all{{ ' on' if tab and tab not in _pkeys }}{{ ' flow-has-current' if flow_tab_key and flow_tab_key not in _pkeys }}" aria-label="{{ _lbl('more_vehicle_tabs', 'All pages for this car') }}">{{ _lbl('all_pages', 'All pages') }}&hellip;</label>
 </div>

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Bay sheet — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{# Bay sheet: one page that travels with the car. Read only, no JavaScript (print with the browser's Print).
+   Own <style>: --fs-* tokens, 44 px targets on screen; @media print = black on white, compact, one page.
+   Data: cuore/services/bay_sheet.py (calls next_action, fault_board, warranty_pack, arrive_ready, mechanic plan) #}
+<style>
+.bay { max-width: 980px; font-size: var(--fs-md); }
+.bay h1 { margin: 0 0 6px; }
+.bay h2 { font-size: var(--fs-lg); margin: 14px 0 6px; }
+.bay section { border: 1px solid var(--rule); padding: 8px 12px; margin: 0 0 10px; break-inside: avoid; page-break-inside: avoid; }
+.bay table { border-collapse: collapse; width: 100%; }
+.bay th, .bay td { border: 1px solid var(--rule); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.bay .mono { font-family: var(--numerals, monospace); font-variant-numeric: tabular-nums; }
+.bay .note { color: var(--ink-2); margin: 4px 0; }
+.bay .next { border-left: 8px solid var(--ink); font-size: var(--fs-lg); font-weight: 700; padding: 8px 12px; }
+.bay ul, .bay ol { margin: 4px 0; padding-left: 22px; }
+.bay li { min-height: 28px; }
+.bay .box { display: inline-block; width: 22px; height: 22px; border: 2px solid var(--ink); vertical-align: middle; margin-right: 8px; }
+.bay .ticks li { list-style: none; min-height: var(--tap, 44px); display: flex; align-items: center; }
+.bay .line { display: inline-block; border-bottom: 1px solid var(--ink); min-width: 260px; height: 30px; vertical-align: bottom; }
+.bay .url { font-size: var(--fs-xl, 28px); font-weight: 700; overflow-wrap: anywhere; }
+.bay a { display: inline-flex; align-items: center; min-height: var(--tap, 44px); }
+@media print {
+  header.top, .vbar, .vtabs, .livestrip, .intro-overlay, .intro-dismiss-toggle, .navsheet-toggle, .menu-btn, .foot,
+  .sim-banner, .no-print, nav { display: none !important; }
+  html, body, main { background: #fff !important; color: #000 !important; margin: 0 !important; padding: 0 !important; }
+  .bay { max-width: none; font-size: 9pt; color: #000; }
+  .bay h1 { font-size: 13pt; margin: 0 0 3px; }
+  .bay h2 { font-size: 10pt; margin: 4px 0 2px; }
+  .bay h3 { font-size: 9pt; margin: 2px 0; }
+  .bay section { border: 1px solid #000; padding: 3px 6px; margin: 0 0 4px; }
+  .bay th, .bay td { border-color: #000; padding: 1px 4px; }
+  .bay .next { font-size: 11pt; border-left-color: #000; padding: 3px 8px; }
+  .bay .note { color: #000; margin: 1px 0; }
+  .bay li, .bay .ticks li, .bay a { min-height: 0; }
+  .bay .box { width: 12px; height: 12px; }
+  .bay .line { height: 18px; min-width: 200px; }
+  .bay .url { font-size: 16pt; }
+  .bay a { color: #000; text-decoration: none; }
+  @page { margin: 10mm; }
+}
+</style>
+<div class="bay">
+  {% set h = s.header %}
+  <section id="header">
+    <h1>Bay sheet &middot; {{ h.name }}</h1>
+    <p><b>VIN</b> <span class="mono">{{ s.vin }}</span>
+      &middot; <b>Odometer</b> {% if h.odo is not none and h.odo != "" %}<span class="mono">{{ h.odo }} km</span>{% if h.odo_date %} (latest on record, {{ h.odo_date }}){% endif %}{% else %}none on record{% endif %}
+      {% if s.job %}&middot; <b>Job</b> <span class="mono">{{ s.job.id }}</span>{% endif %}</p>
+    <p><b>State</b> {{ h.verdict or "no verdict" }}{% if h.summary %}: {{ h.summary }}{% endif %}</p>
+    {% if h.complaint %}<p class="note">Complaint on the job: {{ h.complaint }}</p>{% endif %}
+    {% for w in h.owner_words %}<p class="note">Owner's words: {{ w }} (attested, not a reading)</p>{% endfor %}
+    <p class="next" id="next">Next: {{ s.next.title }}</p>
+    <p class="note">{{ s.next.why }}{% if s.next.needs %} Needs: {{ s.next.needs | join("; ") }}.{% endif %}</p>
+  </section>
+
+  <section id="codes">
+    <h2>1. Open codes, most important first</h2>
+    {% if s.codes %}
+    <table><tr><th>Code</th><th>Status</th><th>Test to run next</th></tr>
+      {% for c in s.codes %}<tr><td class="mono"><b>{{ c.code }}</b> {{ c.label }}{% if c.safety %} (safety){% endif %}</td><td>{{ c.status }}</td>
+        <td>{{ c.test or "none on file" }}</td></tr>{% endfor %}
+    </table>
+    {% if s.more_codes %}<p class="note">+ {{ s.more_codes }} more on the <a href="/v/{{ s.vin }}/codes">Codes page</a>.</p>{% endif %}
+    {% else %}<p class="note">No open code on record.</p>{% endif %}
+  </section>
+
+  <section id="done">
+    <h2>2. Done and to do</h2>
+    <h3>Done</h3>
+    {% if s.tests %}<table><tr><th>Test</th><th>Result</th><th>When</th></tr>
+      {% for t in s.tests %}<tr><td>{{ t.text }}</td><td>{{ t.result }}</td><td class="mono">{{ t.at }}</td></tr>{% endfor %}</table>
+    {% else %}<p class="note">No test recorded on the job.</p>{% endif %}
+    <h3>To do</h3>
+    {% if s.todo %}<ol>{% for t in s.todo %}<li>{{ t.title }}</li>{% endfor %}</ol>
+    {% else %}<p class="note">No remaining step on file.</p>{% endif %}
+  </section>
+
+  <section id="prepare">
+    <h2>3. Prepare: parts and equipment</h2>
+    <ul>
+      <li>Adapter check{% if s.equipment.charger %}; battery charger on the car, 13.2-13.5 V ({{ s.equipment.charger[0] }}){% endif %}</li>
+      {% for w in s.equipment.witech %}<li>wiTECH needed: {{ w.why }}</li>{% endfor %}
+      {% for b in s.equipment.bypass %}<li>{{ b.tag }} bypass cable ({{ b.colour }}, {{ b.bus }}): {{ b.modules | join(", ") }}</li>{% endfor %}
+    </ul>
+    {% if s.parts %}<p><b>Parts</b></p><ul>{% for p in s.parts %}<li>{{ p.name }}{% if p.oem %} <span class="mono">{{ p.oem | join(", ") }}</span>{% endif %} ({{ p.codes | join(", ") }})</li>{% endfor %}</ul>
+    {% else %}<p class="note">No part linked to the open codes.</p>{% endif %}
+  </section>
+
+  <section id="safety">
+    <h2>4. Safety and recalls</h2>
+    <p><b>Recalls and bulletins: {{ s.check_by_vin }}</b>{% if s.platform %} Catalogue platform: {{ s.platform }}.{% endif %}</p>
+    {% if s.bulletins %}<ul>{% for b in s.bulletins %}<li><span class="mono">{{ b.number }}</span> {{ b.kind }}: {{ b.title }} ({{ b.applies }})</li>{% endfor %}</ul>
+    {% if s.more_bulletins %}<p class="note">+ {{ s.more_bulletins }} more on the <a href="/tsb">bulletins page</a>.</p>{% endif %}
+    {% else %}<p class="note">No bulletin in the catalogue.</p>{% endif %}
+    <ul>{% for n in s.safety %}<li>{{ n }}</li>{% endfor %}</ul>
+  </section>
+
+  <section id="closeout">
+    <h2>5. Close-out: proof of repair</h2>
+    <p><b>Proof state:</b> {{ s.proof.state }}{% if s.proof.readiness_at %} (readiness read {{ s.proof.readiness_at }}){% endif %}</p>
+    {% for f in s.proof.fixed %}<p class="note">{{ f.code }}: {{ f.status }}{% if f.rule %}. Rule: {{ f.rule }}{% endif %}</p>{% endfor %}
+    <ul class="ticks">{% for t in s.proof.ticks %}<li><span class="box"></span>{{ t }}</li>{% endfor %}</ul>
+    <p>Technician signature <span class="line"></span> &nbsp; Date <span class="line" style="min-width:140px"></span></p>
+  </section>
+
+  <section id="footer">
+    <p class="note">Job on the tablet:</p>
+    <p class="url mono">{{ s.url }}</p>
+    <p class="note no-print">Print with the browser's Print (Ctrl+P). No QR code: no QR library is installed.</p>
+  </section>
+</div>
+{% endblock %}

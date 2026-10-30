@@ -577,3 +577,15 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   .m-quick-grid { grid-template-columns: 1fr; }
   .m-figrow { flex-direction: column; gap: 22px; }
 }
+
+/* ---------- Menu (staff only, m_base.html): 4th bottom-bar item opening the shared tile sheet ----------
+   Thumb zone, >= 56px. Sheet is cuore.css's .navsheet; here only the 390px sizing. */
+.m-bottomnav .m-menu-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 4px; min-height: 56px; cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+  background: var(--accent); color: var(--accent-ink);
+  font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+}
+.m-menu-ico { font-size: var(--fs-2xl); line-height: 22px; }
+.m-body .navsheet .navtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.m-body .navsheet .navtile { min-height: 72px; min-width: 0; }

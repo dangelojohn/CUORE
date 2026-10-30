@@ -33,6 +33,7 @@
     var sel = root.querySelector(".sx-node.rel-selected");
     if (sel) { this.current = sel.getAttribute("data-system"); }
     this.wireClose();
+    this.initLayers();
   }
 
   SystemsMap.prototype.paint = function (key) {
@@ -64,6 +65,57 @@
     each(root.querySelectorAll(".sx-edge"), function (e) {
       e.classList.toggle("is-on", !!sid && !!chainFrom[e.getAttribute("data-from")] && !!depSys[e.getAttribute("data-to")]);
     });
+  };
+
+  /* Layers + views. Without this script every layer and both views are visible (nothing is hidden by default).
+   * Default here: confirmed relations, severity, issues and live on; guessed links off. The choice is kept for the
+   * session (sessionStorage, in try/catch) so leaving a guide or reloading brings the same map back. */
+  var KEY = "cuore.sx.layers";
+  SystemsMap.prototype.initLayers = function () {
+    var root = this.root, self = this;
+    var bar = root.querySelector("#sx-layers"), vb = root.querySelector("#sx-viewbar");
+    if (!bar) return;
+    var saved = null;
+    try { saved = JSON.parse(global.sessionStorage.getItem(KEY) || "null"); } catch (e) { saved = null; }
+    var off = {};
+    each(bar.querySelectorAll(".sx-lbtn"), function (b) {
+      var id = b.getAttribute("data-layer");
+      var on = saved && saved.off ? !saved.off[id] : b.getAttribute("data-default") === "1";
+      off[id] = !on;
+    });
+    var view = root.getAttribute("data-guided") ? "overlap" : ((saved && saved.view) || "graph");
+    function apply() {
+      var list = [];
+      each(bar.querySelectorAll(".sx-lbtn"), function (b) {
+        var id = b.getAttribute("data-layer");
+        b.setAttribute("aria-pressed", off[id] ? "false" : "true");
+        if (off[id]) list.push(id);
+      });
+      root.setAttribute("data-off", list.join(" "));
+      root.setAttribute("data-view", view);
+      var hidden = {};
+      each(root.querySelectorAll(".sx-node"), function (n) { if (off[n.getAttribute("data-sev")]) hidden["s:" + n.getAttribute("data-system")] = true; });
+      each(root.querySelectorAll(".sx-edge"), function (e) {
+        if (hidden[e.getAttribute("data-from")] || hidden[e.getAttribute("data-to")]) e.setAttribute("data-hide", ""); else e.removeAttribute("data-hide");
+      });
+      if (vb) each(vb.querySelectorAll(".sx-vbtn"), function (b) { b.setAttribute("aria-pressed", b.getAttribute("data-view") === view ? "true" : "false"); });
+      try { global.sessionStorage.setItem(KEY, JSON.stringify({ off: off, view: root.getAttribute("data-guided") ? (saved && saved.view) || "graph" : view })); } catch (e) { /* not kept */ }
+    }
+    root.classList.add("sx-js");
+    bar.hidden = false; if (vb) vb.hidden = false;
+    bar.addEventListener("click", function (ev) {
+      var b = ev.target.closest ? ev.target.closest(".sx-lbtn") : null;
+      if (!b) return;
+      var id = b.getAttribute("data-layer"); off[id] = !off[id]; saved = { off: off, view: view }; apply();
+    });
+    if (vb) vb.addEventListener("click", function (ev) {
+      var b = ev.target.closest ? ev.target.closest(".sx-vbtn") : null;
+      if (!b) return;
+      view = b.getAttribute("data-view"); apply();
+    });
+    apply();
+    var g = root.querySelector("#sx-guide");
+    if (g && g.scrollIntoView) g.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
   SystemsMap.prototype.wireClose = function () {

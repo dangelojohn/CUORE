@@ -3,6 +3,17 @@
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 
+<h1>Module tree</h1>
+{% set _act = rows|selectattr("status","equalto","active")|list %}
+{% set _clr = rows|selectattr("status","equalto","cleared_unverified")|list %}
+{% set _stl = rows|selectattr("status","equalto","stale")|list %}
+{% set _cln = rows|selectattr("status","equalto","clean")|list %}
+<div class="panel" id="module-lead" role="status">
+  <p style="margin:0"><strong>{{ rows|length }} module{{ "s" if rows|length != 1 }}{% if q %} of {{ total }}{% endif %}:
+    {% if _act %}{{ _act|length }} with active errors ({% for m in _act %}<a class="mono" href="/v/{{ vin }}/modules/{{ m.code }}">{{ m.code }}</a>{{ ", " if not loop.last }}{% endfor %}){% else %}none with active errors{% endif %}{% if _clr %}, {{ _clr|length }} cleared and unverified ({% for m in _clr %}<a class="mono" href="/v/{{ vin }}/modules/{{ m.code }}">{{ m.code }}</a>{{ ", " if not loop.last }}{% endfor %}){% endif %}{% if _stl %}, {{ _stl|length }} with only older (stale) errors{% endif %}{% if _cln %}, {{ _cln|length }} clean{% endif %}.</strong></p>
+  <p class="small muted" style="margin:4px 0 0">Worst first. Tap a module for its errors, parameters, actuators and adjustments.</p>
+</div>
+
 <form class="panel" method="get" action="/v/{{ vin }}/modules" role="search"
       style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
   <div style="flex:1;min-width:220px">
@@ -15,7 +26,6 @@
   {% if q %}<a href="/v/{{ vin }}/modules" style="display:inline-flex;align-items:center;min-height:44px;min-width:44px">Clear search</a>{% endif %}
 </form>
 
-<h1>Module tree</h1>
 {% if q %}
 <div class="panel" id="search-results" role="status">
   <p><strong>{{ rows|length }} match{{ "es" if rows|length != 1 }}</strong> for
@@ -31,14 +41,7 @@
   {% endif %}
 </div>
 {% endif %}
-<p class="lede">Every module this car's logs (or the live registry) have anything
-  to say about — identity, open and historical errors, how many live
-  parameters are catalogued, and whether an actuator replay is even
-  permitted. The MultiEcuScan tree, read from the corpus rather than the
-  bench. Tap a module for its full Info / Errors / Parameters / Actuators /
-  Adjustments breakdown.</p>
-
-<div class="mono small muted" style="margin-bottom:8px">{{ rows|length }}{% if q %} of {{ total }}{% endif %} module{{ "s" if rows|length != 1 }}</div>
+<p class="lede">Identity, open and historical errors, catalogued live parameters and whether an actuator replay is permitted, read from the logs rather than the bench.</p>
 
 <div class="panel tight">
   <div class="tw">

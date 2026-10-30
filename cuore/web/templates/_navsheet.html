@@ -1,0 +1,37 @@
+{# Full-screen "Menu" sheet: every CUORE page as a big touch tile, grouped in
+   mechanic words. Data comes from cuore/web/nav_items.py (nav_menu global) --
+   add a page there, not here. No JavaScript: the header's checkbox toggle
+   (#navsheet-toggle) opens it with :checked; the Close tile and the Menu
+   button are labels for the same checkbox. Inputs: vin, tab (optional),
+   request (for role + current path). #}
+{% macro _nl(key, fallback) -%}
+{%- if key and t is defined -%}{%- set _v = t(key) -%}{{ fallback if (_v == key) else _v }}{%- else -%}{{ fallback }}{%- endif -%}
+{%- endmacro %}
+{% set _u = request.state.user if request is defined and request and request.state and request.state.user is defined else none %}
+{% set _vin = vin if vin is defined and vin else none %}
+{% set _tab = tab if tab is defined and tab else '' %}
+{% set _path = request.url.path if request is defined and request else '' %}
+{% set _menu = nav_menu(_vin, _tab, _u.role if _u else none, _path) if nav_menu is defined else none %}
+{% set _fbn = feedback_open_count(_vin) if (feedback_open_count is defined and _vin) else 0 %}
+<div class="navsheet no-print" id="navsheet" role="navigation" aria-label="All CUORE pages">
+  <div class="navsheet-bar">
+    <span class="navsheet-title">Menu{% if _vin %} <span class="mono navsheet-vin">{{ _vin }}</span>{% endif %}</span>
+    <form class="navsheet-search" role="search" method="get" action="/find">
+      <label for="navsheet-q" class="sr-only">Search CUORE</label>
+      <input id="navsheet-q" class="navsheet-q" type="search" name="q" autocomplete="off" placeholder="Search CUORE: a page, code, part, bulletin or task…">
+      {% if _vin %}<input type="hidden" name="vin" value="{{ _vin }}">{% endif %}
+      <button type="submit" class="navsheet-go">Search</button>
+    </form>
+    <label for="navsheet-toggle" class="navtile navsheet-close" role="button">Close</label>
+  </div>
+  {% if _menu %}{% for g in _menu.groups %}
+  <section class="navsec" aria-labelledby="navsec-{{ g.title|lower }}">
+    <h2 id="navsec-{{ g.title|lower }}" class="navsec-title">{{ g.title }}</h2>
+    <ul class="navtiles">
+      {% for it in g['items'] %}
+      <li><a class="navtile ni-{{ it.icon }}{{ ' on' if it.on }}" href="{{ it.href }}" data-nav="{{ it.key }}"{% if it.on %} aria-current="page"{% endif %}><span>{{ _nl(it.i18n, it.label) }}</span>{% if it.key == 'inbox' and _fbn %} <span class="chip chronic">{{ _fbn }}</span>{% endif %}</a></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endfor %}{% endif %}
+</div>

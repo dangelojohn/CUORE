@@ -6,10 +6,18 @@
 
 <div class="scanlog-page">
   <h1>Scans</h1>
+  {% if scans %}
+  {% set L = scans[0] %}
+  {% set lc = (L.dtcs.stored + L.dtcs.pending + L.dtcs.permanent)|unique|list %}
+  <p class="lede" id="scans-answer"><strong>{{ scans|length }} scan{{ '' if scans|length == 1 else 's' }} on file; the latest is {{ L.started }}{% if L.status == "attempt" %} (attempt &mdash; adapter not reachable){% elif L.partial %} (partial){% endif %}:</strong>
+    {% if lc %}{% for c in lc %}<span class="chip-code sm">{{ c }}</span> {% endfor %}{% else %}no codes{% endif %},
+    {% if L.mil is none %}MIL state not read{% elif L.mil %}MIL on{% else %}MIL off{% endif %}. Open a row for its readings or its health report.</p>
+  {% endif %}
+  <details class="fold" style="margin:0 0 10px"><summary style="min-height:44px;display:flex;align-items:center">What a scan is here</summary>
   <p class="lede">Every live read from this car, grouped into one scan per bench
     session (reads within 15 minutes of each other). Nothing here is logged
     anywhere but CUORE itself -- export a scan as an MES-style log to read it
-    with the rest of your MultiEcuScan tooling.</p>
+    with the rest of your MultiEcuScan tooling.</p></details>
 
   {% if plan %}
     <p class="small"><span class="chip plain scanlog-plan-chip">Scan {{ plan.count }} of {{ plan.total }}</span>

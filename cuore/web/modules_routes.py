@@ -75,6 +75,8 @@ def vmodules(request: Request, vin: str, q: str = "") -> HTMLResponse:
     bar = web_routes._vehicle_bar(vin, dossier)
     rows = [_annotate(m) for m in modules_bridge.list_modules(vin)]
     total = len(rows)
+    _rank = {"active": 0, "cleared_unverified": 1, "stale": 2}
+    rows.sort(key=lambda m: _rank.get(m.get("status"), 3))  # worst first (stable)
     q = (q or "").strip()[:80]
     if q:
         needles = q.lower().split()

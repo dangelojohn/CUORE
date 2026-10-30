@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Arrive ready — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{# Arrive-ready job, read only. No JavaScript. Data: cuore/services/arrive_ready.py #}
+<style>
+.arr { max-width: 1040px; font-size: var(--fs-md); }
+.arr h2 { font-size: var(--fs-lg); margin: 18px 0 6px; }
+.arr .note { color: var(--ink-2); margin: 0 0 8px; }
+.arr .answer { border: 2px solid var(--ink); border-left: 8px solid var(--ink); padding: 10px 14px; margin: 0 0 12px; background: var(--surface-2); }
+.arr .answer p { margin: 4px 0; font-weight: 600; }
+.arr .counts { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 0; padding: 0; list-style: none; }
+.arr .counts li { border: 1px solid var(--rule); border-radius: 999px; padding: 4px 12px; font-size: var(--fs-sm); }
+.arr ul.rows { padding-left: 20px; display: grid; gap: 6px; }
+.arr .words { border-left: 4px solid var(--ink-3); padding: 4px 10px; margin: 6px 0; }
+.arr .tag { display: inline-flex; align-items: center; min-height: 28px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); }
+.arr a.btn { min-height: var(--tap, 44px); display: inline-flex; align-items: center; padding: 0 16px; border: 1px solid var(--ink); font-size: var(--fs-md); background: var(--surface); color: var(--ink); text-decoration: none; margin: 4px 8px 4px 0; }
+.arr .actions { margin-top: 20px; border-top: 1px solid var(--rule); padding-top: 10px; }
+@media print { .arr .actions { display: none; } .arr { max-width: none; } }
+</style>
+<div class="arr">
+  <h1>Arrive ready</h1>
+  <section class="answer" id="answer" aria-label="What to have ready">
+    <h2 style="margin-top:0">What do I need ready for this car?</h2>
+    <p>{{ a.top }}</p>
+    <ul class="counts">
+      <li>{{ a.counts.owner }} reported complaint{{ '' if a.counts.owner == 1 else 's' }}</li>
+      <li>{{ a.counts.leads }} lead{{ '' if a.counts.leads == 1 else 's' }} to test</li>
+      <li>{{ a.counts.bulletins }} bulletin/recall row{{ '' if a.counts.bulletins == 1 else 's' }}</li>
+      <li>{{ a.counts.parts }} part{{ '' if a.counts.parts == 1 else 's' }} linked</li>
+      <li>{{ a.counts.equipment }} equipment item{{ '' if a.counts.equipment == 1 else 's' }}</li>
+    </ul>
+  </section>
+
+  <section id="owner"><h2>1. What the owner reported</h2>
+    <p class="note">Newest first. Owner reports, intake complaints and symptom records: attested, not proven, never a reading.</p>
+    {% for r in a.owner %}<div class="words"><span class="tag">{{ r.label }}</span> {{ r.text }}<br><span class="note">{{ r.at }} · {{ r.source }}{% if r.photo %} · photo attached{% endif %}</span></div>
+    {% else %}<p>No owner report on record.</p>{% endfor %}
+  </section>
+
+  <section id="leads"><h2>2. Likely areas to check</h2>
+    <p class="note">Leads to test from what CUORE already holds. None is a conclusion; conclusions need readings.</p>
+    {% if a.leads %}<ul class="rows">{% for l in a.leads %}<li><span class="tag">{{ l.kind }}</span> <strong>{{ l.text }}</strong>{% if l.test %}<br>Next test: {{ l.test }}{% endif %}<br><span class="note">{{ l.why }}{% if l.href %} <a href="{{ l.href }}">Open bulletin</a>{% endif %}</span></li>{% endfor %}</ul>
+    {% else %}<p>No open job, DTC history or bulletin link for this car yet.</p>{% endif %}
+  </section>
+
+  <section id="bulletins"><h2>3. Recalls, campaigns and bulletins</h2>
+    <p class="note">{{ a.verify }}{% if a.platform %} Catalogue compiled for: {{ a.platform }}.{% endif %}</p>
+    {% if a.bulletins %}<ul class="rows">{% for b in a.bulletins %}<li><span class="tag">{{ b.kind }}</span> <a href="{{ b.href }}">{{ b.number }}</a> {{ b.title }}<br><span class="note">{{ b.applies }}{{ '' if b.verified else ' · source not fully verified' }}</span></li>{% endfor %}</ul>
+    {% else %}<p>No catalogue rows on file for this platform. Check by VIN with the manufacturer.</p>{% endif %}
+  </section>
+
+  <section id="parts"><h2>4. Parts to have on the shelf</h2>
+    {% if a.parts %}<ul class="rows">{% for p in a.parts %}<li><strong>{{ p.name }}</strong>{% if p.oem %} · {{ p.oem|join(', ') }}{% endif %}<br><span class="note">Linked in the parts catalogue to: {{ p.codes|join(', ') }}. A lead, not a diagnosis. Verify fit.</span></li>{% endfor %}</ul>
+    {% else %}<p>No parts are linked to these leads in the parts catalogue.</p>{% endif %}
+  </section>
+
+  <section id="equipment"><h2>5. Equipment</h2>
+    <ul class="rows">
+      <li>Adapter: <a href="/hardware">check the adapter and cables</a>.</li>
+      {% if a.equipment.charger %}{% for r in a.equipment.charger %}<li>Battery charger, 13.2-13.5 V: {{ r }}</li>{% endfor %}
+      {% else %}<li>Battery charger: no flash or procedure is indicated by the current leads.</li>{% endif %}
+      {% for b in a.equipment.bypass %}<li>Bypass cable, {{ b.colour }} {{ b.tag }} ({{ b.bus }}): modules on this bus involved: {{ b.modules|join(', ') }}.</li>{% endfor %}
+      {% if a.equipment.witech %}{% for w in a.equipment.witech %}<li>wiTECH may be needed. {{ w.where }}: {{ w.why }}</li>{% endfor %}
+      {% else %}<li>wiTECH: nothing in the current leads calls for it.</li>{% endif %}
+    </ul>
+  </section>
+
+  <section id="time"><h2>6. Time on record</h2>
+    {% if a.times %}<ul class="rows">{% for t in a.times %}<li>In {{ t.in }}{% if t.out %}, out {{ t.out }}{% endif %}{% if t.step_minutes is not none %} · {{ t.step_minutes }} min of timed steps{% endif %}{% if t.complaint %} · {{ t.complaint }}{% endif %}</li>{% endfor %}</ul>
+    <p class="note">Recorded shop times for this car only. Not a labour estimate.</p>
+    {% else %}<p>No time on record.</p>{% endif %}
+  </section>
+
+  <div class="actions">
+    <a class="btn" href="/v/{{ a.vin }}/job">Open the job</a>
+    <span class="note">Print checklist: use your browser's Print (the page prints without these buttons).</span><br>
+    <a class="btn" href="/tsb?vin={{ a.vin }}">Bulletins</a>
+    <a class="btn" href="/v/{{ a.vin }}/handoff">Hand-off</a>
+    <a class="btn" href="/hardware">Hardware</a>
+  </div>
+</div>
+{% endblock %}

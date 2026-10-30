@@ -16,6 +16,16 @@
   {% if saved %}<p class="chip ok mods-flash">Saved.</p>{% endif %}
   {% if error %}<p class="chip returned mods-flash">{{ error }}</p>{% endif %}
 
+  <section class="mods-answer panel" id="mods-answer">
+    {% if not status.modifications %}
+    <p style="margin:0"><strong>This car is stock &mdash; no modifications recorded.</strong>
+      {{ catalog|length }} sourced modification{{ '' if catalog|length == 1 else 's' }} are available below; each opens to its MES steps, risks and record form.</p>
+    {% else %}
+    <p style="margin:0"><strong>{{ status.modifications|length }} modification{{ '' if status.modifications|length == 1 else 's' }} recorded on this car</strong>
+      (listed under &ldquo;This car&rdquo;). {{ catalog|length }} more sourced modification{{ '' if catalog|length == 1 else 's' }} are available below.</p>
+    {% endif %}
+  </section>
+
   <section class="mods-this-car">
     <h2>This car
       <span class="chip {{ 'chronic' if status.status == 'modified' else 'ok' }}">{{ status.status|capitalize }}</span>
@@ -64,6 +74,7 @@
     {% for m in catalog %}
       {% set handoff = handoff_for(m.id) if handoff_for is defined else none %}
       {% set full = True %}
+      {% set fold = True %}
       {% include "_mod_card.html" %}
     {% endfor %}
     </div>

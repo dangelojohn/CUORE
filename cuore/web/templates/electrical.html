@@ -16,6 +16,20 @@
     <button type="button" class="elec-mode-btn" data-mode="expert" aria-pressed="false">Expert</button>
   </div>
 </div>
+{% if not code %}
+<div class="panel" id="elec-lead" role="status">
+  {% if path_codes %}
+  <p style="margin:0"><strong>{{ path_codes|length }} open code{{ "s" if path_codes|length != 1 }} on this car {{ "have" if path_codes|length != 1 else "has" }} a known electrical path.</strong>
+    Pick one to light its circuit on the diagram and start the guided walk-through.</p>
+  <p style="margin:8px 0 0;display:flex;flex-wrap:wrap;gap:8px">
+    {% for c in path_codes %}<a class="btn" style="min-height:44px;min-width:44px" href="/v/{{ vin }}/electrical?code={{ c }}&amp;step=1">{{ c }} &rarr; walk the path</a>{% endfor %}
+  </p>
+  {% else %}
+  <p style="margin:0"><strong>No open code on this car has a known electrical path yet.</strong>
+    Browse the diagram by system below, or use Find on car.</p>
+  {% endif %}
+</div>
+{% endif %}
 <p><a class="btn" href="/v/{{ vin }}/harnesses">Wiring harness maps (from the Mopar parts diagrams)</a></p>
 
 {% if systems_filter %}

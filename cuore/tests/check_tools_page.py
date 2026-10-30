@@ -88,7 +88,7 @@ check("2. /api and /api/ redirect to /tools, /api/docs still 200",
 
 home = client.get("/")
 check("3. header shows 'Tools' (not the old 'API' label); footer has Developer API",
-      'href="/tools">Tools<' in home.text and '>API<' not in home.text
+      'href="/tools"' in home.text and '>Tools<' in home.text and '>API<' not in home.text   # Tools is a Menu tile since 2026-10-30
       and 'href="/api/docs"' in home.text and "Developer API" in home.text)
 
 print(f"checks so far: {checks - len(failures)}/{checks} passed")

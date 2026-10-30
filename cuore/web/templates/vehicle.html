@@ -22,11 +22,20 @@
   {% if open_jobs is defined and open_jobs %}
   <div class="panel open-jobs" id="open-jobs">
     <h3>Open jobs ({{ open_jobs|length }})</h3>
-    <ul class="small">
-      {% for j in open_jobs %}<li><a href="/v/{{ vin }}/job/{{ j.id }}">{{ j.title }}</a>
+    {% macro _job_li(j, first) %}<li><a href="/v/{{ vin }}/job/{{ j.id }}" title="{{ j.title }}">{{ j.title|truncate(110) }}</a>
         {% if j.safety %}<span class="chip returned">SAFETY</span>{% endif %}
-        <span class="muted">{{ j.hypotheses }} hypothes{{ "is" if j.hypotheses == 1 else "es" }}{% if loop.first %} &middot; current{% endif %}</span></li>{% endfor %}
+        <span class="muted">{{ j.hypotheses }} hypothes{{ "is" if j.hypotheses == 1 else "es" }}{% if first %} &middot; current{% endif %}</span></li>{% endmacro %}
+    <ul class="small">
+      {% for j in open_jobs[:3] %}{{ _job_li(j, loop.first) }}{% endfor %}
     </ul>
+    {% if open_jobs|length > 3 %}
+    <details class="card-details">
+      <summary>Show the other {{ open_jobs|length - 3 }} open jobs</summary>
+      <ul class="small">
+        {% for j in open_jobs[3:] %}{{ _job_li(j, false) }}{% endfor %}
+      </ul>
+    </details>
+    {% endif %}
   </div>
   {% endif %}
 

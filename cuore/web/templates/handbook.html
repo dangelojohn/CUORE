@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}How-to guides — CUORE{% endblock %}
+{% block content %}
+{# Handbook index. One big tile per file in docs/handbook. No JavaScript. Data: cuore/services/handbook.py #}
+<style>
+.hb { max-width: 960px; font-size: var(--fs-md); }
+.hb h1 { margin: 0 0 6px; }
+.hb .lede { color: var(--ink-2); margin: 0 0 14px; }
+.hb .tiles { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.hb .tile { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-height: 72px; padding: 10px 14px; border: 1px solid var(--rule); border-radius: 8px; text-decoration: none; color: var(--ink); background: var(--surface-2); }
+.hb .tile strong { font-size: var(--fs-lg); }
+.hb .tile small { font-size: var(--fs-sm); color: var(--ink-2); }
+</style>
+<div class="hb">
+  <h1>How-to guides</h1>
+  <p class="lede">{{ guides | length }} how-to guide{{ "" if guides | length == 1 else "s" }}{% if guides %}; start with {{ guides[0].title }}{% endif %}.</p>
+  <ul class="tiles">
+    {% for g in guides %}<li><a class="tile" href="/handbook/{{ g.slug }}"><strong>{{ g.title }}</strong>{% if g.summary %}<small>{{ g.summary }}</small>{% endif %}</a></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

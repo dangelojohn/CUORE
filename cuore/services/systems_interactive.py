@@ -352,6 +352,7 @@ def _build(vin: str, graph: dict[str, dict[str, Any]], board: list[dict[str, Any
             if to in by_key:
                 conf = (dep.get("confidence") or "UNKNOWN").upper()
                 edges.append({"a": k, "b": to, "from": "s:" + k, "to": "s:" + to, "confidence": conf,
+                              "layer": _edge_layer(conf, (dep.get("technical") or {}).get("path") or [], els),
                               "conf_word": _CONF_WORD.get(conf, conf.lower()), "dash": _DASH.get(conf, ""),
                               "x1": by_key[k]["cx"], "y1": by_key[k]["cy"], "x2": by_key[to]["cx"], "y2": by_key[to]["cy"],
                               "title": f"{labels[k]} depends on {labels[to]} ({_CONF_WORD.get(conf, conf.lower())})"})
@@ -436,11 +437,291 @@ def _build(vin: str, graph: dict[str, dict[str, Any]], board: list[dict[str, Any
                     "detail_href": _tok(f"/v/{vin}/systems/{quote(k)}", token),
                     "components": list((graph[k].get("components") or [])[:8])}
 
+    issues = _issues(vin, groups, board, sys_of_card, by_key, deps, cards, els, token)
+    for n in nodes:
+        n["issues"] = [i["letter"] for i in issues if i["present"] and any(it["key"] == n["id"] for it in i["items"])]
+    act = [i for i in issues if i["present"]]
+    rank = rank_issues(act)
+    guides = {i["letter"]: guide_path(issues.index(i), issues) for i in act}
     return {"vin": vin, "n_rows": n_rows, "cols": COLS, "nodes": nodes, "edges": edges, "parts": chips, "cards": cards,
             "legend_sev": LEGEND_SEV, "legend_rel": LEGEND_REL, "token": token,
+            "issues_all": issues, "overlap": overlap(act), "overlap_all": overlap(issues),
+            "guides": guides,
+            "guide_views": {L: [guide_view(st, n, L, f"token={quote(token)}&" if token else "") for n in range(1, len(st) + 1)]
+                            for L, st in guides.items()},
+            "guide_first": act[rank[0]]["letter"] if act else "",
             "faulty": [k for k in keys if cards[k]["faults"] or cards[k]["n_history"]],
             "has_faults": bool(faults_of),
             "note": "" if faults_of else "No fault on this car maps to a system yet, so the full system list is shown."}
+
+
+# --- layers, issue sets and overlap ---------------------------------------------------------------------
+GUESS_CONF = ("SINGLE-SOURCE", "UNKNOWN")
+#: relation layers (edges carry one of these ids)
+REL_LAYERS = [("dep", "Depends on"), ("pg", "Power or ground path"), ("conn", "Connector or harness path"),
+              ("guess", "Guessed link")]
+LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+NONE_YET = "none captured yet"
+
+
+def _edge_layer(conf: str, path: list, els: dict) -> str:
+    """Which relation layer an edge belongs to: a guess (single source / unverified) is always the guess layer."""
+    if conf in GUESS_CONF:
+        return "guess"
+    kinds = {(els.get(p) or {}).get("kind") for p in path}
+    if kinds & {"connector", "harness_section"}:
+        return "conn"
+    if kinds & {"ground", "fuse", "battery"}:
+        return "pg"
+    return "dep"
+
+
+def date_word(iso: Optional[str]) -> str:
+    """'26 Oct' from a recorded ISO time, or '' when there is none (never a made-up date)."""
+    from datetime import datetime
+    try:
+        d = datetime.fromisoformat(str(iso)[:19])
+    except (TypeError, ValueError):
+        return ""
+    return f"{d.day} {d.strftime('%b')}"
+
+
+def _issues(vin, groups, board, sys_of_card, by_key, deps, cards, els, token) -> list:
+    """One set per shared-cause group (the issue boxes the page shows): the systems its faults sit in, the systems
+    upstream of those (a guess when only guessed edges reach them), and the shared parts the group names."""
+    by_card = {c["key"]: c for c in board}
+    out: list = []
+    for g in groups:
+        mem = [by_card[m] for m in g.get("members") or [] if m in by_card]
+        direct: list = []
+        for m in g.get("members") or []:
+            for k in sys_of_card.get(m, []):
+                if k in by_key and k not in direct:
+                    direct.append(k)
+        if not direct:
+            continue
+        items: dict = {}
+
+        def put(key, label, href, guess, kind, path=""):
+            cur = items.get(key)
+            if cur is None:
+                items[key] = {"key": key, "label": label, "href": href, "guess": guess, "kind": kind, "path": path}
+            elif cur["guess"] and not guess:
+                cur["guess"] = False
+
+        for k in direct:
+            put("s:" + k, by_key[k]["label"], cards[k]["detail_href"], False, "system", cards[k]["path_href"])
+        for k in direct:
+            for e in deps[k]["edges"]:
+                if e["to"] in by_key:
+                    put("s:" + e["to"], by_key[e["to"]]["label"], cards[e["to"]]["detail_href"],
+                        e["confidence"] in GUESS_CONF, "upstream", cards[e["to"]]["path_href"])
+        for we in g.get("why_elements") or []:
+            if we.get("label"):
+                eid = we.get("id") or ""
+                href = _tok(f"/v/{vin}/electrical#el-{quote(eid)}", token) if eid else ""
+                put("p:" + (eid or we["label"]), we["label"], href, False, "part", href)
+        seen = [c.get("last_seen") for c in mem if c.get("last_seen")]
+        out.append({"id": g.get("id") or "", "label": g.get("label") or "Shared cause", "n_codes": len(mem),
+                    "codes": [c["code"] for c in mem], "present": int(g.get("n_present") or 0) >= 1,
+                    "n_present": int(g.get("n_present") or 0), "why": g.get("why") or "",
+                    "last_seen": max(seen) if seen else "", "items": list(items.values()), "letter": "",
+                    "direct": ["s:" + k for k in direct]})
+    for i, iss in enumerate(out):
+        iss["letter"] = LETTERS[i % 26]
+    return out
+
+
+# true-Venn geometry in a 600 x 420 box (2 and 3 sets): circle centres/radius and where each region's label sits
+_VENN = {
+    2: {"r": 140, "c": [(220, 210), (380, 210)],
+        "a": {(0,): (150, 210), (1,): (450, 210), (0, 1): (300, 210)}},
+    3: {"r": 130, "c": [(240, 160), (360, 160), (300, 262)],
+        "a": {(0,): (190, 120), (1,): (410, 120), (2,): (300, 340), (0, 1): (300, 110),
+              (0, 2): (240, 255), (1, 2): (360, 255), (0, 1, 2): (300, 195)}},
+}
+
+
+def overlap(issues: list) -> dict:
+    """Sets and their intersections from ``issues`` (each ``{id, label, items: [{key, label, href, guess}]}``).
+
+    mode: ``none`` (0 issues), ``single`` (1), ``venn`` (2-3: circles, every region present), ``boxes`` (4+: one box
+    per combination that has members, biggest first). A region's item is a guess when any issue that puts it there
+    reached it only by a guessed link. Pure: no I/O."""
+    n = len(issues)
+    iss = [{"idx": i, "letter": x.get("letter") or LETTERS[i % 26], "id": x.get("id", ""), "label": x["label"], "n_items": len(x["items"])}
+           for i, x in enumerate(issues)]
+    out: dict = {"mode": "none" if n == 0 else "single" if n == 1 else "venn" if n <= 3 else "boxes",
+                 "n": n, "issues": iss, "regions": [], "circles": []}
+    if n == 0:
+        return out
+    where: dict = {}
+    for i, x in enumerate(issues):
+        for it in x["items"]:
+            w = where.setdefault(it["key"], {"item": dict(it), "in": [], "guess": False})
+            w["in"].append(i)
+            w["guess"] = w["guess"] or bool(it.get("guess"))
+    combos: dict = {}
+    for w in where.values():
+        combos.setdefault(tuple(w["in"]), []).append({**w["item"], "guess": w["guess"]})
+    if out["mode"] == "venn":
+        geo = _VENN[n]
+        out["circles"] = [{"cx": cx, "cy": cy, "r": geo["r"], **iss[i]} for i, (cx, cy) in enumerate(geo["c"])]
+        keys = list(geo["a"])
+    else:
+        keys = sorted(combos, key=lambda c: (-len(combos[c]), -len(c), c))
+    for c in keys:
+        its = sorted(combos.get(c, []), key=lambda t: (t["guess"], t["label"]))
+        out["regions"].append({"members": list(c), "letters": [iss[i]["letter"] for i in c],
+                               "labels": [iss[i]["label"] for i in c], "size": len(its), "is_overlap": len(c) > 1,
+                               "its": its, "n_guess": sum(1 for t in its if t["guess"]),
+                               "ikeys": [t["key"] for t in its],
+                               "anchor": (_VENN[n]["a"][c] if out["mode"] == "venn" else None)})
+    return out
+
+
+# --- guided path ----------------------------------------------------------------------------------------
+def rank_issues(issues: list) -> list:
+    """Issue indexes, most important first: present faults before history, then more present faults, then more
+    codes (more corroboration), then the page order."""
+    return sorted(range(len(issues)), key=lambda i: (not issues[i]["present"], -issues[i]["n_present"],
+                                                    -issues[i]["n_codes"], i))
+
+
+def guide_path(idx: int, issues: list) -> list:
+    """The ordered steps for issue ``idx`` among ``issues``. Pure.
+
+    1 the issue; 2 its shared suspect (what the most issues share, a finding before a guess; for a single issue the
+    parts its group names); 3.. the next systems upstream, findings before guesses; then the test (the electrical
+    path / system page of the last suspect). If there is no shared suspect and nothing upstream, the last step says
+    what to capture instead of naming a suspect. Each step: n, kind, title, why, basis (finding / guess / none),
+    highlight (item keys), links [(text, href)]."""
+    me = issues[idx]
+    steps: list = []
+
+    def add(kind, title, why, basis, highlight, links):
+        steps.append({"kind": kind, "title": title, "why": why, "basis": basis, "highlight": list(highlight), "links": links})
+
+    codes = ", ".join(me["codes"][:6]) or "no code listed"
+    add("issue", me["label"],
+        f"Start here: {me['n_present']} of its {me['n_codes']} fault{'s' if me['n_codes'] != 1 else ''} present now ({codes})."
+        + (f" {me['why']}." if me["why"] else ""), "finding", me.get("direct") or [], [])
+    count = {}
+    for j, o in enumerate(issues):
+        for it in o["items"]:
+            count.setdefault(it["key"], set()).add(j)
+    others = [i for i in range(len(issues)) if i != idx]
+    shared = [it for it in me["items"] if len(count[it["key"]]) > 1]
+    shared.sort(key=lambda t: (t["guess"], -len(count[t["key"]]), t["label"]))
+    if not [t for t in shared if not t["guess"]]:                          # no shared finding: the parts its own group names come first
+        parts = sorted((it for it in me["items"] if it["kind"] == "part"), key=lambda t: t["label"])
+        shared = parts + [t for t in shared if t not in parts]
+    last = None
+    if shared:
+        s = shared[0]
+        n_iss = len(count[s["key"]])
+        what = (f"also in {n_iss - 1} other issue{'s' if n_iss != 2 else ''}" if n_iss > 1 else "named by this issue's own group")
+        add("shared", s["label"] + (" (guess)" if s["guess"] else ""),
+            f"Check first: {s['label']} is {what}"
+            + (", reached only by a guessed link, so treat it as a guess." if s["guess"] else "."),
+            "guess" if s["guess"] else "finding", [s["key"]], [(f"Open {s['label']}", s["href"])] if s["href"] else [])
+        last = s
+    taken = {s["key"] for s in shared[:1]}
+    up = [it for it in me["items"] if it["kind"] == "upstream" and it["key"] not in taken]
+    up.sort(key=lambda t: (t["guess"], t["label"]))
+    for u in up[:2]:
+        add("upstream", u["label"] + (" (guess)" if u["guess"] else ""),
+            f"Next upstream: {me['label']} depends on {u['label']}"
+            + (", from a single or unverified source only: a guess." if u["guess"] else ", a recorded dependency."),
+            "guess" if u["guess"] else "finding", [u["key"]], [(f"Open {u['label']}", u["href"])] if u["href"] else [])
+        last = u
+    if last is not None:
+        links = []
+        if last.get("path"):
+            links.append((f"Electrical path for {last['label']}", last["path"]))
+        if last.get("href"):
+            links.append((f"System page: {last['label']}", last["href"]))
+        add("test", "Prove it or rule it out",
+            f"Test {last['label']} on the car and record the reading; the system page and electrical path list the checks.",
+            "guess" if last["guess"] else "finding", [last["key"]], links)
+    else:
+        sysk = (me.get("direct") or [""])[0]
+        add("capture", "Capture next",
+            "No shared part and no upstream system is recorded for this issue, so no suspect is named. Capture next: "
+            "re-read these codes with their freeze frames and record a live reading from the system's channels, then "
+            "look again.", "none", me.get("direct") or [], [])
+    for i, s in enumerate(steps):
+        s["n"] = i + 1
+        s["total"] = len(steps)
+    return steps
+
+
+def guide_view(steps: list, step: int, letter: str, base_href: str = "") -> dict:
+    """Navigation for one step: clamped step number, prev/next/restart/exit links, breadcrumb crumbs. ``base_href``
+    is the query prefix to keep (e.g. '?token=x&'); links are '?guide=A&step=N#sx-guide'."""
+    total = len(steps)
+    n = min(max(int(step or 1), 1), total)
+
+    def href(k):
+        return f"?{base_href}guide={letter}&step={k}#sx-guide"
+    return {"n": n, "total": total, "step": steps[n - 1], "progress": f"Step {n} of {total}",
+            "prev": href(n - 1) if n > 1 else "", "next": href(n + 1) if n < total else "",
+            "restart": href(1), "exit": f"?{base_href.rstrip('&')}#sx" if base_href.rstrip("&?") else "?#sx",
+            "crumbs": [{"n": i + 1, "title": s["title"], "href": href(i + 1), "current": i + 1 == n} for i, s in enumerate(steps[:n])]}
+
+
+def _live_state() -> dict:
+    """In-process poller snapshot only (no adapter I/O): {connected, n, by_system: {key: [channel ids]}}."""
+    out: dict = {"connected": False, "n": 0, "by_system": {}}
+    try:
+        from . import systems_bridge, liveboard_bridge
+        st = systems_bridge._poll_state()
+        ch = [c for c in st.get("channels") or [] if c]
+        out["connected"] = bool(st.get("connected")) and bool(ch)
+        out["n"] = len(ch)
+        for c in ch:
+            k = liveboard_bridge.channel_system(c)
+            if k:
+                out["by_system"].setdefault(k, []).append(c)
+    except Exception:  # noqa: BLE001
+        pass
+    return out
+
+
+def _layers(base: dict, live: dict) -> list:
+    """The layer buttons with their own captured data. Every number is a count of what is on the map or in the
+    fault records; nothing is estimated."""
+    def mk(lid, kind, label, parts, on, group):
+        return {"id": lid, "kind": kind, "label": label, "on": on, "group": group, "parts": parts,
+                "text": " · ".join([label] + parts) if parts else f"{label} · {NONE_YET}"}
+
+    out = []
+    for lid, label in REL_LAYERS:
+        es = [e for e in base["edges"] if e["layer"] == lid]
+        parts = [f"{len(es)} link{'s' if len(es) != 1 else ''}"] if es else []
+        if es and lid != "guess":
+            parts.append(f"{sum(1 for e in es if e['confidence'] == 'CONFIRMED')} confirmed")
+        if es and lid == "guess":
+            parts.append("not findings")
+        out.append(mk(lid, "rel", label, parts, lid != "guess", "Relations"))
+    for l in base["legend_sev"]:
+        ns = [n for n in base["nodes"] if n["cls"] == l["cls"]]
+        parts = []
+        if ns:
+            parts.append(f"{len(ns)} system{'s' if len(ns) != 1 else ''}")
+            seen = [f["last_seen"] for n in ns for f in base["cards"][n["key"]]["faults"] if f.get("last_seen")]
+            if seen:
+                parts.append("last read " + date_word(max(seen)))
+        out.append({**mk(l["cls"], "sev", l["word"], parts, True, "Severity"), "glyph": l["glyph"]})
+    act = [i for i in base["issues_all"] if i["present"]]
+    parts = []
+    if act:
+        seen = [i["last_seen"] for i in act if i["last_seen"]]
+        parts = [f"{len(act)} active", f"{sum(i['n_codes'] for i in act)} codes"] + (["last read " + date_word(max(seen))] if seen else [])
+    out.append(mk("issues", "issues", "Issues", parts, True, "Show"))
+    lp = [f"{live['n']} channel{'s' if live['n'] != 1 else ''}", "now"] if live["connected"] else ["not connected", NONE_YET]
+    out.append({**mk("live", "live", "Live", lp, True, "Show"), "text": " · ".join(["Live"] + lp)})
+    return out
 
 
 def _apply(base: dict[str, Any], system: Optional[str]) -> dict[str, Any]:
@@ -498,7 +779,12 @@ def map(vin: str, system: Optional[str] = None, *, token: str = "", cards: Optio
     if system and system not in base["cards"]:
         # a system on the graph but not drawn (no fault touches it): draw it anyway by rebuilding with it forced in
         base = _make(vin, g, cards, groups, token, force=system)
-    return _apply(base, system)
+    out = _apply(base, system)
+    live = _live_state()
+    out["live"] = live
+    out["nodes"] = [{**n, "live_n": len(live["by_system"].get(n["key"], []))} for n in out["nodes"]]
+    out["layers"] = _layers(out, live)
+    return out
 
 
 def _make(vin: str, g: dict[str, dict[str, Any]], cards: Optional[list[dict[str, Any]]], groups: Optional[list[dict[str, Any]]],

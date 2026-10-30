@@ -53,29 +53,74 @@
   </p>
 </article>
 {% endmacro %}
+{% macro sx_overlap(o, hl, idp) %}
+{% if o.mode == 'none' %}
+<p class="sx-muted">No issue to compare: none captured yet.</p>
+{% else %}
+<ul class="sx-issue-key" aria-label="Issues compared">
+  {% for i in o.issues %}<li><b class="sx-letter">{{ i.letter }}</b> {{ i.label }} <span class="sx-muted">({{ i.n_items }} suspect{{ 's' if i.n_items != 1 }})</span></li>{% endfor %}
+</ul>
+{% if o.mode == 'single' %}<p class="sx-muted">Only one issue is on record here, so there is nothing to overlap yet; its suspects are listed below.</p>{% endif %}
+{% if o.mode == 'venn' %}
+<svg class="sx-venn" viewBox="0 0 600 420" role="img" aria-label="Venn diagram of {{ o.n }} issues; the overlap lists are written out below the drawing">
+  {% for c in o.circles %}<circle class="sx-circ sx-circ-{{ loop.index0 }}" cx="{{ c.cx }}" cy="{{ c.cy }}" r="{{ c.r }}"/>{% endfor %}
+  {% for c in o.circles %}<text class="sx-circ-l" x="{{ c.cx + (-1 if loop.index0 == 0 else 1 if loop.index0 == 1 else 0) * 95 }}" y="{{ 28 if loop.index0 < 2 else 408 }}" text-anchor="middle">{{ c.letter }}: {{ c.label|truncate(26) }}</text>{% endfor %}
+  {% for r in o.regions %}{% set ax = r.anchor[0] %}{% set ay = r.anchor[1] %}
+  <g class="sx-reg{{ ' sx-hl' if (r.ikeys|select('in', hl)|list) }}">
+    <text class="sx-reg-n" x="{{ ax }}" y="{{ ay - 8 }}" text-anchor="middle">{{ r.letters|join('+') }}: {{ r.size }}</text>
+    {% for t in r.its[:2] %}<a href="{{ t.href }}"><text class="sx-reg-t{{ ' is-guess' if t.guess }}" x="{{ ax }}" y="{{ ay + 12 + loop.index0 * 18 }}" text-anchor="middle">{{ t.label|truncate(18) }}{{ ' (guess)' if t.guess }}</text></a>{% endfor %}
+    {% if r.size > 2 %}<text class="sx-reg-t" x="{{ ax }}" y="{{ ay + 48 }}" text-anchor="middle">+{{ r.size - 2 }} more</text>{% endif %}
+  </g>{% endfor %}
+</svg>
+{% endif %}
+<div class="sx-iboxes">
+  {% for r in o.regions if r.size %}
+  <section class="sx-ibox{{ ' is-overlap' if r.is_overlap }}{{ ' sx-hl' if (r.ikeys|select('in', hl)|list) }}" aria-label="{{ r.letters|join(' and ') }}">
+    <h5 class="sx-ibox-h"><span class="sx-letter">{{ r.letters|join('+') }}</span> {% if r.is_overlap %}Shared by {{ r.labels|join(' and ') }}{% else %}Only in {{ r.labels[0] }}{% endif %} <span class="sx-muted">({{ r.size }}{% if r.n_guess %}, {{ r.n_guess }} guess{% endif %})</span></h5>
+    <ul class="sx-chips">
+      {% for t in r.its %}<li class="sx-chip2{{ ' is-guess' if t.guess }}{{ ' sx-hl' if t.key in hl }}">{% if t.href %}<a href="{{ t.href }}">{{ t.label }}</a>{% else %}<span>{{ t.label }}</span>{% endif %}{% if t.guess %} <span class="sx-gword">guess</span>{% endif %}</li>{% endfor %}
+    </ul>
+  </section>
+  {% endfor %}
+</div>
+{% endif %}
+{% endmacro %}
 {% if sx is not defined and systems_interactive_map is defined %}{% set sx = systems_interactive_map(vin, request.query_params.get('system') if request is defined and request else None, request.query_params.get('token') if request is defined and request else '') %}{% endif %}
 {% if sx %}
+{% set gq = request.query_params.get('guide') if request is defined and request else None %}
+{% set gn = (request.query_params.get('step') or 1)|int(1) if request is defined and request else 1 %}
+{% set gl = sx.guide_views.get(gq) if gq else None %}
+{% set gv = gl[ [ [gn, 1]|max, gl|length ]|min - 1 ] if gl else None %}
+{% set hl = gv.step.highlight if gv else [] %}
 <link rel="stylesheet" href="{{ static_url('systems_interactive.css') }}">
-<section class="sx" id="sx" aria-labelledby="sx-h">
+<section class="sx{{ ' is-guided' if gv }}" id="sx" aria-labelledby="sx-h"{% if gv %} data-guided="1"{% endif %}>
   <h3 class="sx-h" id="sx-h">Systems: tap one to see what it depends on</h3>
   <p class="sx-note">Each box is a system, coloured and worded by its worst present fault. Tap one to light up, on this drawing, what it depends on and which systems share a cause with it.{% if sx.note %} {{ sx.note }}{% endif %}</p>
 
+  <p class="sx-viewbar" id="sx-viewbar" role="group" aria-label="View" hidden>
+    <button type="button" class="sx-vbtn" data-view="graph" aria-pressed="true">Graph</button>
+    <button type="button" class="sx-vbtn" data-view="overlap" aria-pressed="false">Overlap</button>
+  </p>
+  <div class="sx-view sx-view-graph" id="sx-view-graph">
+  <details class="sx-keyfold"><summary>Key to colours and outlines</summary>
   <ul class="sx-legend" aria-label="Legend">
     {% for l in sx.legend_sev %}<li><span class="sx-sevmark {{ l.cls }}" aria-hidden="true">{{ l.glyph }}</span> <span>{{ l.word }}</span></li>{% endfor %}
     {% for l in sx.legend_rel %}<li><span class="sx-relkey {{ l.cls }}" aria-hidden="true"></span> <span>{{ l.word }}</span></li>{% endfor %}
-  </ul>
+  </ul></details>
 
   <div class="sx-stage" style="--sx-rows: {{ sx.n_rows }}; --sx-cols: {{ sx.cols }}">
     <svg class="sx-svg" viewBox="0 0 {{ sx.cols }} {{ sx.n_rows }}" preserveAspectRatio="none" role="img" aria-label="Dependency lines between the systems on the map" focusable="false">
-      {% for e in sx.edges %}<line class="sx-edge{{ ' is-on' if e.on }}" data-from="{{ e.from }}" data-to="{{ e.to }}" x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}"{% if e.dash %} stroke-dasharray="{{ e.dash }}"{% endif %} vector-effect="non-scaling-stroke"><title>{{ e.title }}</title></line>{% endfor %}
+      {% for e in sx.edges %}<line class="sx-edge{{ ' is-on' if e.on }}" data-layer="{{ e.layer }}" data-from="{{ e.from }}" data-to="{{ e.to }}" x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}"{% if e.dash %} stroke-dasharray="{{ e.dash }}"{% endif %} vector-effect="non-scaling-stroke"><title>{{ e.title }}</title></line>{% endfor %}
     </svg>
     {% for n in sx.nodes %}
-    <a class="sx-node {{ n.cls }}{% for r in n.rels %} rel-{{ r }}{% endfor %}" id="sx-node-{{ n.key }}" href="{{ n.href }}" data-system="{{ n.key }}" data-id="{{ n.id }}" data-deps="{{ n.deps }}" data-shared="{{ n.shared }}"
+    <a class="sx-node {{ n.cls }}{{ ' sx-hl' if n.id in hl }}{% for r in n.rels %} rel-{{ r }}{% endfor %}" id="sx-node-{{ n.key }}" href="{{ n.href }}" data-system="{{ n.key }}" data-id="{{ n.id }}" data-deps="{{ n.deps }}" data-shared="{{ n.shared }}" data-sev="{{ n.cls }}" data-live="{{ n.live_n }}"
        style="grid-column: {{ n.col }}; grid-row: {{ n.row }}"{% if 'selected' in n.rels %} aria-current="true"{% endif %}
        title="{{ n.label }}: {{ n.word }}{% if n.worst %}, {{ n.worst.code }}{% endif %}">
       <span class="sx-nl">{{ n.short }}</span>
       <span class="sx-ns"><span class="sx-sevmark {{ n.cls }}" aria-hidden="true">{{ n.glyph }}</span> {{ n.word }}{% if n.worst %}: {{ n.worst.code }}{% if n.n_present > 1 %} +{{ n.n_present - 1 }}{% endif %}{% endif %}</span>
       <span class="sx-tag">{{ n.rel_text }}</span>
+      {% if n.live_n %}<span class="sx-badge sx-live">Live: {{ n.live_n }} channel{{ 's' if n.live_n != 1 }}</span>{% endif %}
+      {% if n.issues %}<span class="sx-badge sx-iss">In issue {{ n.issues|join(', ') }}</span>{% endif %}
     </a>
     {% endfor %}
   </div>
@@ -90,6 +135,45 @@
     </ul>
   </div>
   {% endif %}
+
+  </div>
+
+  <div class="sx-view sx-view-overlap" id="sx-view-overlap">
+    <h4 class="sx-sh" id="sx-ov-h">Overlap of issues</h4>
+    <p class="sx-note">Each set is one issue box (a group of faults that share a cause). A system or part inside two or more sets is a shared suspect: check it first. A dashed outline marked "guess" is shared only through a guessed link, not a finding.</p>
+    {% if sx.guide_first %}<p><a class="sx-btn sx-big sx-primary sx-guide-go" href="?{{ 'token=' ~ (sx.token|urlencode) ~ '&' if sx.token }}guide={{ sx.guide_first }}&amp;step=1#sx-guide">Guide me through the most important issue</a></p>{% endif %}
+    {% if gv %}
+    <section class="sx-guide" id="sx-guide" aria-labelledby="sx-g-h" aria-live="polite">
+      <p class="sx-progress"><b>{{ gv.progress }}</b></p>
+      <ol class="sx-crumbs" aria-label="Steps taken">
+        {% for c in gv.crumbs %}<li>{% if c.current %}<span class="sx-crumb is-cur" aria-current="step">{{ c.n }}. {{ c.title|truncate(28) }}</span>{% else %}<a class="sx-crumb" href="{{ c.href }}">{{ c.n }}. {{ c.title|truncate(28) }}</a>{% endif %}</li>{% endfor %}
+      </ol>
+      <h4 class="sx-g-h" id="sx-g-h">{{ gv.step.title }}</h4>
+      <p class="sx-g-basis"><b>{{ 'Finding' if gv.step.basis == 'finding' else 'Guess, not a finding' if gv.step.basis == 'guess' else 'No suspect recorded' }}.</b> {{ gv.step.why }}</p>
+      {% if gv.step.links %}<p class="sx-links">{% for t, h in gv.step.links %}<a class="sx-btn" href="{{ h }}">{{ t }} &rarr;</a>{% endfor %}</p>{% endif %}
+      <p class="sx-gnav">
+        <a class="sx-btn sx-big" href="{{ gv.prev or gv.restart }}"{% if not gv.prev %} aria-disabled="true"{% endif %}>&lsaquo; Back</a>
+        {% if gv.next %}<a class="sx-btn sx-big sx-primary" href="{{ gv.next }}">Next &rsaquo;</a>{% else %}<a class="sx-btn sx-big sx-primary" href="{{ gv.exit }}">Finish: back to the map</a>{% endif %}
+        <a class="sx-btn sx-big" href="{{ gv.restart }}">Start over</a>
+        <a class="sx-btn sx-big" href="{{ gv.exit }}">Exit guide</a>
+      </p>
+    </section>
+    {% endif %}
+    {{ sx_overlap(sx.overlap, hl, 'a') }}
+    {% if sx.overlap_all.n > sx.overlap.n %}
+    <details class="fold sx-fold"><summary>Include issues not present now ({{ sx.overlap_all.n }} on record)</summary>
+      {{ sx_overlap(sx.overlap_all, [], 'h') }}
+    </details>
+    {% endif %}
+  </div>
+
+  <div class="sx-layers" id="sx-layers" role="group" aria-label="Map layers" hidden>
+    {% for grp in ['Relations', 'Severity', 'Show'] %}
+    <div class="sx-lgroup"><span class="sx-lgl">{{ grp }}</span>
+      {% for l in sx.layers if l.group == grp %}<button type="button" class="sx-lbtn sx-l-{{ l.kind }}" data-layer="{{ l.id }}" data-kind="{{ l.kind }}" data-default="{{ 1 if l.on else 0 }}" aria-pressed="{{ 'true' if l.on else 'false' }}"><span class="sx-lstate" aria-hidden="true"></span>{% if l.glyph %}<span class="sx-sevmark {{ l.id }}" aria-hidden="true">{{ l.glyph }}</span> {% endif %}<span class="sx-ltext">{{ l.text }}</span></button>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
 
   <div class="sx-pop" id="sx-pop" role="region" aria-label="Selected system" aria-live="polite"{% if not sx.selected %} hidden{% endif %}>
     {% if sx.selected %}{{ sx_card(sx.selected, vin) }}<p><a class="sx-btn sx-pop-close" href="?{{ 'token=' ~ (sx.token|urlencode) if sx.token }}#sx">Close</a></p>{% endif %}

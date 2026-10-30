@@ -4,11 +4,13 @@
 {% block content %}
 
 <h1>Evidence gate</h1>
-<p class="lede">Four criteria. All four have to hold before a diagnosis is
-CONFIRMED: the fault is <b>demonstrated</b>, a <b>mechanism</b> is stated, a
-corpus&#8209;verified <b>measurement</b> implicates the part, and
-<b>disconfirmation</b> was attempted. Nothing here is written to the car or to
-the corpus — this reads your history and answers one question.</p>
+{% if not result %}
+<div class="note alert" id="gate-lead" role="status">
+  <span class="lab">Verdict</span>
+  <b style="font-size:17px">NOT ASSESSED YET</b>
+  <p style="margin:6px 0 0">A diagnosis is CONFIRMED only when all four hold: the fault is demonstrated, a mechanism is stated, a measurement from this car implicates the part, and a test that could have exonerated it was tried. Fill the form below for {{ form.codes or "the open codes" }} and press Assess; nothing is written to the car.</p>
+</div>
+{% endif %}
 
 {% if result %}
   {% set confirmed = result.verdict == "CONFIRMED" %}
@@ -63,6 +65,15 @@ the corpus — this reads your history and answers one question.</p>
   {% endif %}
 {% endif %}
 
+<details class="card-details" id="gate-criteria">
+  <summary>The four criteria in full</summary>
+  <p class="lede">Four criteria. All four have to hold before a diagnosis is
+CONFIRMED: the fault is <b>demonstrated</b>, a <b>mechanism</b> is stated, a
+corpus&#8209;verified <b>measurement</b> implicates the part, and
+<b>disconfirmation</b> was attempted. Nothing here is written to the car or to
+the corpus — this reads your history and answers one question.</p>
+</details>
+
 <form method="post" action="/v/{{ vin }}/gate">
   <div class="panel">
     <div class="field">
@@ -98,8 +109,8 @@ the corpus — this reads your history and answers one question.</p>
       than failing the form.</p>
 
     {% if live_observations %}
-    <div class="note">
-      <span class="lab">Recorded from the live link for this VIN</span>
+    <details class="note" open>
+      <summary><span class="lab">Recorded from the live link for this VIN</span> ({{ live_observations[:8]|length }} newest reads)</summary>
       <p class="small muted" style="margin:4px 0 8px">Read off a code, ECU or
         DID below into a <b>live</b> row rather than retyping it — this is
         exactly what was read, in the order it was read.</p>
@@ -125,7 +136,7 @@ the corpus — this reads your history and answers one question.</p>
         </tbody>
       </table>
       </div>
-    </div>
+    </details>
     {% elif live_observations_error %}
       <div class="note"><span class="lab">Live link</span>{{ live_observations_error }}</div>
     {% else %}

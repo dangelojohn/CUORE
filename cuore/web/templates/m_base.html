@@ -90,6 +90,21 @@
   counts as evidence on its own.
 </footer>
 
+{# Full Menu (same _navsheet.html as the desktop pages, reused not copied).
+   STAFF ONLY: /m/{vin} is also the car owner's "Tell CUORE" app and owners
+   authenticate with the same shared token, so there is no owner/technician
+   route prefix. nav_menu() lists every technician tool (writes, live
+   diagnostics), so the sheet renders only when a signed-in staff account
+   (request.state.user, set by require_token in accounts mode) is present.
+   Token-only / anonymous visitors, i.e. owners, keep just the 3-item nav.
+   The checkbox must stay a sibling BEFORE the sheet (cuore.css :checked ~). #}
+{% set _mu = request.state.user if request is defined and request and request.state and request.state.user is defined else none %}
+{% set _m_staff = _mu is not none and _mu.role in ('admin', 'shop_lead', 'technician') and nav_menu is defined %}
+{% if _m_staff %}
+<input type="checkbox" id="navsheet-toggle" class="navsheet-toggle" aria-label="Open or close the main menu">
+{% include "_navsheet.html" %}
+{% endif %}
+
 <nav class="m-bottomnav" aria-label="Tell CUORE">
   <a href="/m/{{ vin }}" class="{{ 'on' if active == 'add' }}">
     <svg class="m-navicon" aria-hidden="true"><use href="/static/icons.svg#i-step_start"></use></svg>
@@ -103,6 +118,7 @@
     <svg class="m-navicon" aria-hidden="true"><use href="/static/icons.svg#i-step_document"></use></svg>
     <span>History</span>
   </a>
+  {% if _m_staff %}<label for="navsheet-toggle" class="m-menu-btn" role="button" title="Menu: every page"><span class="m-menu-ico" aria-hidden="true">&#9776;</span><span>Menu</span></label>{% endif %}
 </nav>
 
 <script src="{{ static_url('m.js') }}" defer></script>

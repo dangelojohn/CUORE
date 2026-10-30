@@ -57,6 +57,13 @@ from .web import hardware_routes  # noqa: E402
 from .web import settings_routes  # noqa: E402
 from .web import about_routes  # noqa: E402
 from .web import accounts_routes  # noqa: E402
+from .web import field_quality_routes  # noqa: E402
+from .web import arrive_ready_routes  # noqa: E402
+from .web import warranty_routes  # noqa: E402
+from .web import library_routes  # noqa: E402
+from .web import bay_sheet_routes  # noqa: E402
+from .web import find_routes  # noqa: E402
+from .web import handbook_routes  # noqa: E402
 from .web import path_diag_routes  # noqa: E402
 from .web import path_tests_routes  # noqa: E402
 from .web import diagnosis_routes  # noqa: E402
@@ -310,6 +317,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(settings_routes.router)
     app.include_router(hardware_routes.router)
     app.include_router(about_routes.router)
+    app.include_router(field_quality_routes.router)
+    app.include_router(arrive_ready_routes.router)
+    app.include_router(warranty_routes.router)
+    app.include_router(library_routes.router)
+    app.include_router(bay_sheet_routes.router)
+    app.include_router(find_routes.router)
+    app.include_router(handbook_routes.router)
     app.include_router(path_diag_routes.router)
     app.include_router(harness_routes.router)
     app.include_router(path_tests_routes.router)

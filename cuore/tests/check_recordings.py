@@ -197,10 +197,9 @@ check(client.get(f"/v/{VIN}/recordings/nope.csv").status_code == 404, "CSV unkno
 lb = client.get(f"/v/{VIN}/liveboard")
 check(lb.status_code == 200 and f"/v/{VIN}/recordings" in lb.text and 'id="lb-record"' in lb.text,
       "Live board has Record + Recordings link")
-vt = (Path(__file__).resolve().parents[1] / "web" / "templates" / "_vtabs.html").read_text(encoding="utf-8")
-vis = vt.split("{% set _visible = (")[1].split(")")[0]
-check('"recordings"' not in vis and '"recordings"' in vt.split("{% set _more = (")[1].split(")")[0],
-      "Recordings in More menu, not visible row")
+from cuore.web import nav_items as _nav  # noqa: E402
+check(any(i["key"] == "recordings" and not i["primary"] for i in _nav.ITEMS),
+      "Recordings in the Menu sheet, not the visible row")
 
 print(f"{passed}/{passed + len(failures)} checks passed")
 for f_ in failures:

@@ -7,11 +7,20 @@
 
 <h1>Gauges</h1>
 {% include "_code_watch.html" %}
-<p class="lede">A customizable live-data dashboard: pick a layout, connect to
-the car (or replay a recording, or run on demo data), and watch it update.
-Everything here is a client of the same <code>/api/live</code> engine the
-MCP tools use -- nothing renders server-side, so it works the same whether
-the car is plugged in or not.</p>
+{% if now %}
+<section class="card" id="dd-now" aria-label="What the car is doing right now" style="padding:var(--s-3,12px);margin:0 0 12px">
+  <p style="margin:0;font-size:var(--fs-lg,1.15rem)"><strong>
+    {%- if now.connected %}Connected to the car, live now.
+    {%- else %}Not connected.{% if now['items'] %} Last captured {{ now.at }}:{% else %} None captured yet.{% endif %}{% endif -%}
+  </strong>
+  {% for it in now['items'] %}{{ it.label }} <strong class="mono">{{ it.text }}</strong>{% if not loop.last %}, {% endif %}{% endfor %}</p>
+  {% if now.source and not now.connected %}<p class="small" style="margin:4px 0 0;color:var(--ink-2)">Source: {{ now.source }}.</p>{% endif %}
+  <p style="margin:6px 0 0;min-height:44px;display:flex;align-items:center"><strong>Next:</strong>&nbsp;{{ now.action }}</p>
+</section>
+{% endif %}
+<p class="lede"><strong>Showing demo data until you connect.</strong> Pick Live car and press
+Connect to watch this car, or Replay to scrub a saved recording. The gauges below
+fill in as readings arrive; the layout is yours to edit and save.</p>
 
 <div id="dd-app" data-vin="{{ vin }}">
   <div id="dd-demo-banner" class="dd-demo-banner" hidden>DEMO DATA — not from the car</div>

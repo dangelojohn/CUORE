@@ -88,7 +88,8 @@ page = client.get(f"/v/{VIN}/media")
 check("media page responds 200", page.status_code == 200, str(page.status_code))
 check("no template error leaked onto the page",
       "Jinja2" not in page.text and "Traceback" not in page.text)
-check("vbar carries a Media tab", f'/v/{VIN}/media' in page.text and ">Media<" in page.text)
+# since 2026-10-30 Media lives in the full-screen Menu (Records group), not the everyday tab strip
+check("Menu carries a Media tile", f'href="/v/{VIN}/media"' in page.text and "Media" in page.text.split('id="navsheet"')[-1])
 check("upload form present", 'id="media-upload-form"' in page.text and 'enctype="multipart/form-data"' in page.text)
 check("file input accepts camera capture", 'capture="environment"' in page.text)
 check("search box present", 'data-search' in page.text and 'name="q"' in page.text)

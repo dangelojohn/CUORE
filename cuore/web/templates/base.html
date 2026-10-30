@@ -37,33 +37,9 @@
           title="Toggle dark/light theme">&#9680;</button>
   <button type="button" class="icon-btn no-print" aria-label="Print this page"
           title="Print this page" onclick="window.print()">&#128424;</button>
-  <details class="navmenu">
-    <summary class="icon-btn menu-btn" aria-label="Menu">&#9776;</summary>
-    <nav>
-      <a class="navutil" href="/start">Start</a>
-      <div class="navgroup" title="A car's log history, read from the MES corpus">
-        <a href="/vehicles">Vehicles</a>
-        <a href="/modules">Modules</a>
-        <a href="/recordings">Recordings</a>
-        <a href="/logs">Logs</a>
-      </div>
-      <div class="navgroup live" title="The adapter, right now">
-        <a href="/live">Live link</a>
-        <a href="/coverage">Coverage</a>
-        <a href="/cables">Cables</a>
-      </div>
-      <a class="navutil" href="{{ '/v/' ~ vin ~ '/facts' if vin is defined and vin else '/facts' }}">Facts</a>
-      <a class="navutil" href="/catalog">Parts</a>
-      <a class="navutil" href="/tsb">TSB</a>
-      <a class="navutil" href="/slvt">SLVT</a>
-      <a class="navutil" href="/tools">Tools</a>
-      <a class="navutil" href="/hardware">Adapter</a>
-      <a class="navutil" href="/settings">Settings</a>
-      {% set _u = request.state.user if request is defined and request.state and request.state.user is defined else none %}
-      {% if _u and _u.role in ("admin", "shop_lead") %}<a class="navutil" href="/accounts">Accounts</a>{% endif %}
-      <a class="navutil" href="/about">About</a>
-    </nav>
-  </details>
+  <input type="checkbox" id="navsheet-toggle" class="navsheet-toggle" aria-label="Open or close the main menu">
+  <label for="navsheet-toggle" class="menu-btn no-print" role="button" title="Menu: every page"><span class="menu-ico" aria-hidden="true">&#9776;</span> Menu</label>
+  {% include "_navsheet.html" %}
 </header>
 
 {% set vb %}{% block vehiclebar %}{% endblock %}{% endset %}

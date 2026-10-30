@@ -2,7 +2,7 @@
 {% block title %}History -- Tell CUORE{% endblock %}
 {% block content %}
 <h1 class="m-h1">History</h1>
-<p class="m-sub">Everything reported about this car, newest first. Every row is a reported claim, not a measurement.</p>
+<p class="m-sub">{% if events %}<strong>{{ events|length }} report{{ '' if events|length == 1 else 's' }}</strong>, newest {{ events[0].at }}. {% endif %}Newest first. Every row is a reported claim, not a measurement.</p>
 
 {% if not events %}
 <p class="m-empty">Nothing reported yet.</p>
@@ -21,8 +21,8 @@
   </p>
   {% if e.fields %}
   <ul class="m-event-fields">
-    {% for k, v in e.fields.items() %}
-    <li>{{ k|replace('_',' ') }}: {{ v }}</li>
+    {% for k, v in e.fields.items() if v != e.note %}
+    <li>{{ k|replace('_',' ') }}: {{ v|join(', ') if v is iterable and v is not string else v }}</li>
     {% endfor %}
   </ul>
   {% endif %}

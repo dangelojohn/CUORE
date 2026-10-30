@@ -30,6 +30,26 @@
   ({{ view.vehicle.market }}). Tick each one for VIN <span class="mono">{{ vin }}</span>.
   Catalogue updated {{ view.updated or "unknown" }}.</p>
 
+{% if lead is defined and request.query_params.get('scope', '') in ('', 'this_model') %}
+<div class="note {{ 'warn' if lead.recalls or lead.on_codes else '' }}" id="tsb-lead">
+  <span class="lab">For this car now</span>
+  {% if lead.on_codes %}
+    <b>{{ lead.on_codes|length }} bulletin{{ '' if lead.on_codes|length == 1 else 's' }} name a code the car shows now:</b>
+    <ul>
+    {% for b in lead.on_codes %}
+      <li><span class="chip-code sm">{{ b.code }}</span> <a href="#{{ b.anchor }}" class="mono">{{ b.number }}</a> {{ b.title }}</li>
+    {% endfor %}
+    </ul>
+  {% else %}
+    No bulletin on file names a code this car shows now.
+  {% endif %}
+  <div>{% if lead.recalls %}<b>{{ lead.recalls|length }} active recall campaign{{ '' if lead.recalls|length == 1 else 's' }} for this model; check each by VIN (a completed one is done for this car):</b>
+    {% for r in lead.recalls %}<a href="#{{ r.anchor }}" class="mono">{{ r.number }}</a>{{ ', ' if not loop.last }}{% endfor %}
+    (applicability needs a VIN check unless the row says yes).
+  {% else %}No active recall campaign on file for this model. Tick each row below as you confirm it for the VIN.{% endif %}</div>
+</div>
+{% endif %}
+
 <div class="tsb-counts" id="tsb-counts">
   <span class="tsb-chip">{{ view.total }} total</span>
   <span class="tsb-chip" data-count="open">{{ view.counts.open }} open</span>

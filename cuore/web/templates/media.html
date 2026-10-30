@@ -8,6 +8,12 @@
 <p class="lede">Every photo, video, document and sound attached to this vehicle — from a
 specific code, checklist step, service record or symptom, or filed loose against
 the vehicle itself. Works from the phone's camera or mic; drag-and-drop on a bench PC.</p>
+<div class="panel" id="media-answer" style="margin:0 0 12px">
+  <p style="margin:0"><strong>{{ items|length }} item{{ '' if items|length == 1 else 's' }} on this vehicle{% if q or kind or target_kind %} matching this filter{% endif %}</strong>
+    {% if items %}&mdash; {% for k, g in items|groupby('kind') %}{{ g|length }} {{ k }}{{ ', ' if not loop.last }}{% endfor %}; newest first below.{% else %}&mdash; nothing attached yet.{% endif %}</p>
+  <p style="margin:8px 0 0"><a class="btn primary" href="#media-upload" style="min-height:44px;display:inline-flex;align-items:center">Add a photo, video or sound</a></p>
+</div>
+
 
 {% if error %}
   <div class="note alert"><span class="lab">Not uploaded</span>{{ error }}</div>
@@ -43,7 +49,69 @@ the vehicle itself. Works from the phone's camera or mic; drag-and-drop on a ben
 </div>
 {% endif %}
 
-<div class="panel media-upload">
+
+<form method="get" action="/v/{{ vin }}/media" class="panel media-filters" id="media-search-form">
+  <input type="search" name="q" value="{{ q }}" placeholder="search captions, tags, filenames&hellip;"
+         data-search class="media-search-box">
+
+  <div class="tag-grid media-chip-row">
+    {% for k in [""] + kinds %}
+      {% set label = "All" if k == "" else (k|capitalize) %}
+      <span class="tag-chip">
+        <input type="radio" name="kind" value="{{ k }}" id="mk-{{ k or 'all' }}"
+               {{ 'checked' if kind == k }} onchange="this.form.submit()">
+        <label for="mk-{{ k or 'all' }}">{{ label }}</label>
+      </span>
+    {% endfor %}
+  </div>
+  <div class="tag-grid media-chip-row">
+    {% for k in [""] + target_kinds %}
+      {% set label = "Any target" if k == "" else target_labels.get(k, k) %}
+      <span class="tag-chip">
+        <input type="radio" name="target_kind" value="{{ k }}" id="mt-{{ k or 'any' }}"
+               {{ 'checked' if target_kind == k }} onchange="this.form.submit()">
+        <label for="mt-{{ k or 'any' }}">{{ label }}</label>
+      </span>
+    {% endfor %}
+  </div>
+  {% if target_id %}<input type="hidden" name="target_id" value="{{ target_id }}">{% endif %}
+
+  <div class="cols two">
+    <label>From <input type="date" name="since" value="{{ since }}" onchange="this.form.submit()"></label>
+    <label>Until <input type="date" name="until" value="{{ until }}" onchange="this.form.submit()"></label>
+  </div>
+  <noscript><p><button class="btn" type="submit">Search</button></p></noscript>
+  <p><a class="btn" href="/api/vehicles/{{ vin }}/media/export.zip">Export everything (zip) &rarr;</a></p>
+</form>
+
+<div class="media-grid" id="media-grid">
+  {% for it in items %}
+    {% set href = target_href(vin, it.target_kind, it.target_id) %}
+    <a class="media-tile" href="/api/media/{{ it.id }}/file" target="_blank" rel="noopener"
+       data-media-id="{{ it.id }}" data-media-item='{{ it|tojson }}'>
+      <span class="media-thumb">
+        <img src="/api/media/{{ it.id }}/thumb" alt="" loading="lazy">
+        {% if it.kind == "video" %}<span class="media-play-badge" aria-hidden="true">&#9654;</span>{% endif %}
+        {% if it.kind == "audio" %}<span class="media-play-badge media-audio-badge" aria-hidden="true">&#9834;</span>{% endif %}
+      </span>
+      <span class="media-cap">{{ it.caption or it.filename }}</span>
+      <span class="media-meta small muted">{{ (it.captured_at or it.uploaded_at or "")[:16] }}</span>
+      {% if it.target_kind %}
+        <span class="chip plain sm media-target-chip">{{ target_labels.get(it.target_kind, it.target_kind) }}{% if it.target_id %}: {{ it.target_id }}{% endif %}</span>
+      {% endif %}
+      {% if it.tags %}
+        <span class="media-tags">{% for t in it.tags %}<span class="chip plain sm">{{ t }}</span>{% endfor %}</span>
+      {% endif %}
+      {% if it.symptom_tags %}
+        <span class="media-tags media-symptom-tags">{% for t in it.symptom_tags %}<span class="chip plain sm">{{ t }}</span>{% endfor %}</span>
+      {% endif %}
+    </a>
+  {% else %}
+    <p class="muted media-empty">No media yet{% if q or kind or target_kind %} matching this filter{% endif %}.</p>
+  {% endfor %}
+</div>
+
+<div class="panel media-upload" id="media-upload">
   <h2>Add photos, video, sounds or documents</h2>
   <form method="post" action="/v/{{ vin }}/media" enctype="multipart/form-data"
         id="media-upload-form" data-media-upload>
@@ -112,67 +180,6 @@ the vehicle itself. Works from the phone's camera or mic; drag-and-drop on a ben
 
     <p><button class="btn primary" type="submit">Upload</button></p>
   </form>
-</div>
-
-<form method="get" action="/v/{{ vin }}/media" class="panel media-filters" id="media-search-form">
-  <input type="search" name="q" value="{{ q }}" placeholder="search captions, tags, filenames&hellip;"
-         data-search class="media-search-box">
-
-  <div class="tag-grid media-chip-row">
-    {% for k in [""] + kinds %}
-      {% set label = "All" if k == "" else (k|capitalize) %}
-      <span class="tag-chip">
-        <input type="radio" name="kind" value="{{ k }}" id="mk-{{ k or 'all' }}"
-               {{ 'checked' if kind == k }} onchange="this.form.submit()">
-        <label for="mk-{{ k or 'all' }}">{{ label }}</label>
-      </span>
-    {% endfor %}
-  </div>
-  <div class="tag-grid media-chip-row">
-    {% for k in [""] + target_kinds %}
-      {% set label = "Any target" if k == "" else target_labels.get(k, k) %}
-      <span class="tag-chip">
-        <input type="radio" name="target_kind" value="{{ k }}" id="mt-{{ k or 'any' }}"
-               {{ 'checked' if target_kind == k }} onchange="this.form.submit()">
-        <label for="mt-{{ k or 'any' }}">{{ label }}</label>
-      </span>
-    {% endfor %}
-  </div>
-  {% if target_id %}<input type="hidden" name="target_id" value="{{ target_id }}">{% endif %}
-
-  <div class="cols two">
-    <label>From <input type="date" name="since" value="{{ since }}" onchange="this.form.submit()"></label>
-    <label>Until <input type="date" name="until" value="{{ until }}" onchange="this.form.submit()"></label>
-  </div>
-  <noscript><p><button class="btn" type="submit">Search</button></p></noscript>
-  <p><a class="btn" href="/api/vehicles/{{ vin }}/media/export.zip">Export everything (zip) &rarr;</a></p>
-</form>
-
-<div class="media-grid" id="media-grid">
-  {% for it in items %}
-    {% set href = target_href(vin, it.target_kind, it.target_id) %}
-    <a class="media-tile" href="/api/media/{{ it.id }}/file" target="_blank" rel="noopener"
-       data-media-id="{{ it.id }}" data-media-item='{{ it|tojson }}'>
-      <span class="media-thumb">
-        <img src="/api/media/{{ it.id }}/thumb" alt="" loading="lazy">
-        {% if it.kind == "video" %}<span class="media-play-badge" aria-hidden="true">&#9654;</span>{% endif %}
-        {% if it.kind == "audio" %}<span class="media-play-badge media-audio-badge" aria-hidden="true">&#9834;</span>{% endif %}
-      </span>
-      <span class="media-cap">{{ it.caption or it.filename }}</span>
-      <span class="media-meta small muted">{{ (it.captured_at or it.uploaded_at or "")[:16] }}</span>
-      {% if it.target_kind %}
-        <span class="chip plain sm media-target-chip">{{ target_labels.get(it.target_kind, it.target_kind) }}{% if it.target_id %}: {{ it.target_id }}{% endif %}</span>
-      {% endif %}
-      {% if it.tags %}
-        <span class="media-tags">{% for t in it.tags %}<span class="chip plain sm">{{ t }}</span>{% endfor %}</span>
-      {% endif %}
-      {% if it.symptom_tags %}
-        <span class="media-tags media-symptom-tags">{% for t in it.symptom_tags %}<span class="chip plain sm">{{ t }}</span>{% endfor %}</span>
-      {% endif %}
-    </a>
-  {% else %}
-    <p class="muted media-empty">No media yet{% if q or kind or target_kind %} matching this filter{% endif %}.</p>
-  {% endfor %}
 </div>
 
 <dialog id="media-dialog" class="media-dialog">

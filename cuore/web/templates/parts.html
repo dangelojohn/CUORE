@@ -4,6 +4,18 @@
 {% block content %}
 
 <h1>Parts</h1>
+{% set ns = namespace(act=0, jobs=[], first=[]) %}
+{% for g in groups %}{% if g.active_n %}{% set ns.act = ns.act + g.active_n %}{% set ns.jobs = ns.jobs + [g.label] %}{% for pt in g.main if pt.active %}{% set ns.first = ns.first + [pt.name] %}{% endfor %}{% endif %}{% endfor %}
+<div class="panel" id="parts-answer" style="margin:0 0 12px">
+  {% if ns.act %}
+  <p style="margin:0"><strong>{{ ns.act }} part{{ '' if ns.act == 1 else 's' }} tied to the codes open on this car</strong>
+    &mdash; {{ ns.jobs|join(", ") }}. Start with: {{ ns.first[:3]|join("; ") }}.</p>
+  <p class="small muted" style="margin:4px 0 0">They are the first group below, open, with the best-sourced number first. Numbers marked UNKNOWN are folded, not guessed.</p>
+  {% else %}
+  <p style="margin:0"><strong>{{ count }} part{{ '' if count == 1 else 's' }}{% if q %} matching &ldquo;{{ q }}&rdquo;{% endif %}</strong>
+    &mdash; no open code points at a part right now, so they are listed by job, best-sourced number first.</p>
+  {% endif %}
+</div>
 <p class="small"><a href="/catalog">Full parts catalogue: every schematic and part number</a></p>
 <p class="lede">Every part cuore knows about for this platform — OEM numbers,
 aftermarket equivalents, supersessions, torque specs, price range and

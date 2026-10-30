@@ -9,12 +9,13 @@
 .next-action .na-needs { margin: 0; font-size: var(--fs-md); }
 .next-action .na-go { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; align-self: flex-start; font-size: var(--fs-md); font-weight: 700; border: 2px solid var(--ink); border-radius: var(--radius); color: var(--ink); text-decoration: none; }
 .next-action .na-source { margin: 0; font-size: var(--fs-sm); color: var(--ink-2); }
+.next-action .na-source summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
 </style>
 <section class="next-action" id="next-action" aria-labelledby="na-title">
   <h2 class="na-title" id="na-title"><span class="na-label">&#9658; Next action:</span> {{ na.title }}</h2>
   <p class="na-why">{{ na.why }}</p>
   {% if na.needs %}<p class="na-needs"><b>Needs:</b> {{ na.needs|join(" / ") }}</p>{% endif %}
   <a class="na-go" href="{{ na.href }}">&#9658; {{ na.link_label }}</a>
-  <p class="na-source">Why CUORE picked this: {{ na.source }}</p>
+  <details class="na-source"><summary>How CUORE chose this</summary>{{ na.source }}</details>
 </section>
 {% endif %}

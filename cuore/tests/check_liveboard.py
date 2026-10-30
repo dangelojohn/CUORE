@@ -485,6 +485,8 @@ vt = (vt_dir / "_vtabs.html").read_text(encoding="utf-8")
 check("_vtabs falls back to its default text when a key is missing", "fallback if (_v == key)" in vt)
 env = Environment(loader=FileSystemLoader(str(vt_dir)))
 env.globals["t"] = lambda k: k   # a lookup that knows no key
+from cuore.web import nav_items as _nav  # noqa: E402
+env.globals["nav_menu"] = _nav.nav_menu   # tabs now come from the one nav data source
 ctx = dict(bar={"vin": VIN}, tab="liveboard", _more=[], _visible=[], flow_tab_key="", _fb_open=0)
 out = env.get_template("_vtabs.html").render(**ctx)
 check("tab bar never shows the raw LIVE_BOARD key", "live_board" not in out.lower(), out[:300])
@@ -492,6 +494,7 @@ from cuore.web import i18n as _i18n  # noqa: E402
 check_eq("'Live board' label exists", _i18n.t("live_board"), "Live board")
 real = Environment(loader=FileSystemLoader(str(vt_dir)))
 real.globals["t"] = _i18n.t
+real.globals["nav_menu"] = _nav.nav_menu
 check("tab bar shows 'Live board'", ">Live board<" in real.get_template("_vtabs.html").render(**ctx))
 check("liveboard.css: 44 px controls and 16 px text", "min-height: 44px" in lb_css and "--fs-sm: var(--fs-md)" in lb_css)
 

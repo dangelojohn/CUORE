@@ -51,6 +51,17 @@
   {% if facts.links %}<a href="#facts-links">Links</a>{% endif %}
   <a href="/catalog">Parts catalogue</a>
 </nav>
+{% set quick = ['Engine oil (spec)', 'Oil capacity', 'Cold pressure front', 'Cold pressure rear', 'Bolt torque', 'Brake fluid', 'Coolant', 'Transmission fluid', 'Spark plugs', 'Odometer'] %}
+<section class="panel" id="facts-quick">
+  <h2>Most asked at the bench</h2>
+  {% for s in facts.sections %}{% for r in s.rows if r.label in quick %}
+  <div class="facts-row{{ ' is-unknown' if r.flag == 'unknown' }}">
+    <span class="facts-lab">{{ r.label }}</span>
+    <span class="facts-val">{{ r.value }}</span>
+    <span class="facts-src">{{ r.source }} &middot; {{ r.date }}{% if r.confidence %} &middot; <em>{{ r.confidence }}</em>{% endif %}</span>
+  </div>
+  {% endfor %}{% endfor %}
+</section>
 <div class="facts">
   {% for s in facts.sections %}
   <section class="panel" id="facts-{{ s.id }}">

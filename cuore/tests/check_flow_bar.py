@@ -58,6 +58,7 @@ EDGE_CANDIDATES = [
 ]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT))
 TEMPLATES_DIR = REPO_ROOT / "cuore" / "web" / "templates"
 STATIC_DIR = REPO_ROOT / "cuore" / "web" / "static"
 
@@ -157,6 +158,8 @@ def make_env() -> Environment:
                        autoescape=select_autoescape(["html"]))
     env.globals["flow_state_for"] = _flow_state_for
     env.globals["feedback_open_count"] = _feedback_open_count
+    from cuore.web import nav_items  # the single nav data source (nav_menu global)
+    env.globals["nav_menu"] = nav_items.nav_menu
     return env
 
 
@@ -219,44 +222,41 @@ NEW_LINK_PATHS = [f"/v/{VIN}/labels"]
 
 def check_vtabs(env: Environment) -> None:
     tmpl = env.get_template("_vtabs.html")
+    # 2026-10-30 touch menu: the strip keeps only the everyday nine (nav_items
+    # primary); every other page is a tile in the header's Menu sheet.
 
-    # VIN's own current step ("tests") matches no tab -- a neutral case for
-    # the general structural checks (nothing forced open, nothing wrongly
-    # highlighted).
     rendered = tmpl.render(bar={"vin": VIN}, tab="job")
-    before_more = rendered.split("<details")[0]
-    check("vtabs: exactly 6 tabs visible outside the More menu",
-          sum(f">{lbl}<" in before_more for lbl in VISIBLE_LABELS) == 6)
-    check("vtabs: Sensors and Fuses are in the visible row, not behind More",
-          f'href="/v/{VIN}/sensors"' in before_more and f'href="/v/{VIN}/fuses"' in before_more)
+    check("vtabs: exactly 6 of the named tabs visible in the strip",
+          sum(f">{lbl}<" in rendered for lbl in VISIBLE_LABELS) == 6)
+    check("vtabs: Sensors and Fuses are in the visible row",
+          f'href="/v/{VIN}/sensors"' in rendered and f'href="/v/{VIN}/fuses"' in rendered)
     check("vtabs: viewed tab (Job) marked .on",
           f'href="/v/{VIN}/job" class="on' in rendered)
+    check("vtabs: no More fold any more, one 'All pages' tile opens the Menu sheet",
+          "vmore-tab" not in rendered and 'for="navsheet-toggle"' in rendered and "<details" not in rendered)
+
+    from cuore.web import nav_items
+    sheet_paths = {i["href"] for g in nav_items.nav_menu(VIN, "", "admin", "")["groups"] for i in g["items"]}
     for path in OLD_LINK_PATHS + NEW_LINK_PATHS:
-        check(f"vtabs: old link path kept -- {path}", f'href="{path}"' in rendered)
-    check("vtabs: Dashboard present inside More (not in the flow spec's own list, "
-          "kept so no existing link breaks)", ">Dashboard<" in rendered)
-    check("vtabs: Labels present inside More (new -- had no tab link before)",
-          ">Labels<" in rendered)
-    check("vtabs: Inbox badge chip rendered from feedback_open_count",
-          '<span class="chip chronic">3</span>' in rendered)
-    check("vtabs: no forced-open when the flow highlight matches no tab",
-          '<details class="vmore-tab" open>' not in rendered)
+        check(f"nav data keeps old link path -- {path}", path in sheet_paths)
+    sheet = env.get_template("_navsheet.html").render(vin=VIN, tab="job")
+    check("sheet: Dashboard and Labels tiles present",
+          ">Dashboard<" in sheet and ">Labels<" in sheet)
+    check("sheet: Inbox badge chip rendered from feedback_open_count",
+          '<span class="chip chronic">3</span>' in sheet)
 
-    # HIDDEN_VIN's current step ("parts") is hidden inside More -> auto-open
-    # + highlight, independent of which tab the browser is actually on.
+    # HIDDEN_VIN's current step ("parts") is not in the strip -> the All pages
+    # tile flags it, independent of which tab the browser is actually on.
     rendered_hidden = tmpl.render(bar={"vin": HIDDEN_VIN}, tab="job")
-    check("vtabs: flow-current-tab marks Parts (hidden in More)",
-          f'href="/v/{HIDDEN_VIN}/parts" class=" flow-current-tab"' in rendered_hidden)
-    check("vtabs: More auto-opens when the flow-current tab is hidden inside it",
-          '<details class="vmore-tab" open>' in rendered_hidden)
-    check("vtabs: More summary flags flow-has-current when auto-opened",
+    check("vtabs: All pages flags flow-has-current when the step's page is in the sheet",
           "flow-has-current" in rendered_hidden)
+    check("vtabs: no flow-has-current when the highlight matches no page",
+          "flow-has-current" not in rendered)
 
-    # COMPLETEVIN's current step is None (job finished) -> no highlight,
-    # no forced-open either.
+    # COMPLETEVIN's current step is None (job finished) -> no highlight.
     rendered_complete = tmpl.render(bar={"vin": "COMPLETEVIN0000001"}, tab="systems")
-    check("vtabs: no forced-open when flow has no current step (job-complete fixture)",
-          '<details class="vmore-tab" open>' not in rendered_complete)
+    check("vtabs: no flow marks when flow has no current step (job-complete fixture)",
+          "flow-has-current" not in rendered_complete and "flow-current-tab" not in rendered_complete)
 
 
 # --- CDP screenshot ---------------------------------------------------------

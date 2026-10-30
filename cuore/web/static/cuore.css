@@ -672,31 +672,107 @@ kbd {
 .icon-btn:hover { color: var(--ink); border-color: var(--ink-3); }
 #theme-toggle { margin-left: auto; }
 
-.navmenu { list-style: none; }
-.navmenu summary.menu-btn { list-style: none; }
-.navmenu summary.menu-btn::-webkit-details-marker { display: none; }
-.navmenu summary.menu-btn::marker { content: ""; }
-.navmenu nav { display: flex; align-items: center; gap: 14px; }
-
-@media (min-width: 760px) {
-  .top { flex-wrap: nowrap; }
-  #theme-toggle { margin-left: 10px; }
-  .navmenu { margin-left: auto; }
-  .navmenu summary.menu-btn { display: none; }
-  .navmenu nav { display: flex !important; }
+/* ---------- header: ONE big Menu button + full-screen tile sheet ----------
+ * Driven by nav_items.py through base.html / _navsheet.html. No JS: the
+ * hidden-but-focusable checkbox #navsheet-toggle opens the sheet. Tap
+ * targets: Menu button >= 56 px tall, tiles >= 72 px tall / 120 px wide,
+ * 14 px gaps so a gloved finger cannot hit two. */
+.navsheet-toggle {
+  position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden;
+  clip: rect(0 0 0 0); pointer-events: none;
 }
+.top .menu-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 56px; min-width: 104px; padding: 0 18px; margin: 2px 0 2px 8px;
+  background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent);
+  border-radius: var(--radius); font-size: var(--fs-lg); font-weight: var(--fw-bold);
+  cursor: pointer; line-height: 1; user-select: none; -webkit-tap-highlight-color: transparent;
+}
+.top .menu-btn .menu-ico { font-size: var(--fs-xl); }
+.navsheet-toggle:focus-visible + .menu-btn { outline: 3px solid var(--ink); outline-offset: 2px; }
+#theme-toggle { margin-left: auto; }
+
+.navsheet { display: none; }
+.navsheet-toggle:checked ~ .navsheet {
+  display: block; position: fixed; inset: 0; z-index: 1000; overflow-y: auto;
+  background: var(--bg); color: var(--ink); padding: 0 var(--pad) 32px;
+  overscroll-behavior: contain;
+}
+.navsheet-toggle:checked ~ .menu-btn { background: var(--surface); color: var(--ink); }
+body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
+.navsheet-bar {
+  position: sticky; top: 0; z-index: 2; display: flex; align-items: center;
+  justify-content: space-between; gap: 14px; min-height: 72px; padding: 8px 0;
+  background: var(--bg); border-bottom: 1px solid var(--rule);
+}
+.navsheet-search { flex: 1 1 auto; display: flex; gap: 8px; min-width: 0; max-width: 720px; margin: 0 auto; }
+.navsheet-q, .find-form input[type=search] {
+  flex: 1 1 auto; min-width: 0; min-height: 56px; box-sizing: border-box; padding: 0 14px;
+  font-size: var(--fs-lg); color: var(--ink); background: var(--surface);
+  border: 2px solid var(--rule); border-radius: var(--radius);
+}
+.navsheet-go, .find-form button {
+  min-height: 56px; min-width: 96px; padding: 0 18px; font-size: var(--fs-lg); font-weight: var(--fw-semibold);
+  color: var(--accent-ink); background: var(--accent); border: 2px solid var(--accent);
+  border-radius: var(--radius); cursor: pointer;
+}
+.navsheet-q:focus-visible, .navsheet-go:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+@media (max-width: 600px) {
+  .navsheet-bar { flex-wrap: wrap; }
+  .navsheet-title { order: 1; flex: 1 1 auto; }
+  .navsheet-close { order: 2; }
+  .navsheet-search { order: 3; flex: 1 1 100%; max-width: none; }
+}
+.find-form { display: flex; gap: 8px; margin: 12px 0; }
+.find-best {
+  display: flex; flex-direction: column; justify-content: center; gap: 4px; min-height: 72px; padding: 12px 18px;
+  font-size: var(--fs-xl); font-weight: var(--fw-bold); text-decoration: none;
+  color: var(--accent-ink); background: var(--accent); border-radius: calc(var(--radius) * 2);
+}
+.find-best small { font-weight: var(--fw-regular); font-size: var(--fs-md); }
+.find-group h2 { font-size: var(--fs-md); text-transform: uppercase; letter-spacing: var(--tracking-caps); color: var(--ink-3); margin: 18px 0 8px; }
+.find-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.find-link {
+  display: flex; flex-direction: column; justify-content: center; min-height: 48px; padding: 8px 14px;
+  font-size: var(--fs-lg); font-weight: var(--fw-semibold); color: var(--ink); text-decoration: none;
+  background: var(--surface); border: 2px solid var(--rule); border-radius: var(--radius);
+}
+.find-link small { font-weight: var(--fw-regular); font-size: var(--fs-md); color: var(--ink-3); }
+.find-link:hover { border-color: var(--ink-3); }
+.navsheet-title { font-size: var(--fs-2xl); font-weight: var(--fw-bold); }
+.navsheet-vin { font-size: var(--fs-md); color: var(--ink-3); font-weight: var(--fw-regular); }
+.navsec { margin-top: 18px; }
+.navsec-title {
+  margin: 0 0 10px; font-size: var(--fs-md); text-transform: uppercase;
+  letter-spacing: var(--tracking-caps); color: var(--ink-3);
+}
+.navtiles {
+  list-style: none; margin: 0; padding: 0; display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+}
+.navtile {
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  gap: 8px; min-height: 72px; min-width: 120px; padding: 10px 12px; box-sizing: border-box;
+  font-size: var(--fs-lg); font-weight: var(--fw-semibold); line-height: var(--lh-snug);
+  color: var(--ink); background: var(--surface); border: 2px solid var(--rule);
+  border-radius: calc(var(--radius) * 2); text-decoration: none; overflow-wrap: normal; word-break: normal; hyphens: manual;
+}
+.navtile:hover { border-color: var(--ink-3); }
+.navtile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.navtile.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.navsheet-close { min-width: 120px; cursor: pointer; background: var(--raised); }
+.vtabs .vtab-all {
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
+  min-height: 56px; min-width: 120px; padding: 0 16px; font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold); white-space: nowrap; color: var(--ink);
+  border: 2px solid var(--rule); border-radius: var(--radius); flex: none;
+}
+.vtabs .vtab-all.flow-has-current { border-color: var(--accent); }
+.vtabs .vtab-all.on { border-color: var(--ink-3); }
 @media (max-width: 759px) {
   .top { gap: 8px; padding: 6px 10px; }
   .top .profile { display: none; }
-  .navmenu { position: relative; margin-left: auto; }
-  .navmenu nav { display: none; flex-direction: column; align-items: flex-start; gap: 10px; }
-  .navmenu[open] nav {
-    display: flex !important; position: absolute; right: 0; top: 46px;
-    background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius);
-    padding: 10px 14px; z-index: 30; min-width: 200px; box-shadow: 0 6px 18px rgba(0,0,0,.35);
-  }
-  .navmenu nav .navgroup { flex-direction: column; align-items: flex-start; gap: 8px; }
-  .navmenu nav .navgroup.live, .navmenu nav .navutil { padding-left: 0; border-left: none; }
 }
 
 /* ---------- vbar: one merged strip (R2) ---------- */

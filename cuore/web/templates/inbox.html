@@ -5,11 +5,18 @@
 <link rel="stylesheet" href="{{ static_url('feedback.css') }}">
 
 <h1>Inbox</h1>
+{% set oc = folded['open'] %}
+{% set ns = namespace(act=0, note=0) %}
+{% for g in oc %}{% if g.active_codes %}{% set ns.act = ns.act + 1 %}{% elif not g.owner %}{% set ns.note = ns.note + 1 %}{% endif %}{% endfor %}
+<p class="lede" id="inbox-answer">{% if grouped['open']|length %}<strong>{{ grouped['open']|length }} open item{{ '' if grouped['open']|length == 1 else 's' }} in {{ oc|length }} card{{ '' if oc|length == 1 else 's' }} need an answer.</strong>
+  {{ ns.act }} card{{ '' if ns.act == 1 else 's' }} {{ 'is' if ns.act == 1 else 'are' }} on codes that are active now, {{ ns.note }} {{ 'is a note' if ns.note == 1 else 'are notes' }} you left, {{ oc|length - ns.act - ns.note }} on codes that are not active. Answer the active-code cards first.
+  {% else %}<strong>Nothing is waiting for an answer.</strong>{% endif %}</p>
+<details class="fold" style="margin:0 0 10px"><summary style="min-height:44px;display:flex;align-items:center">What the Inbox holds</summary>
 <p class="lede">Every correction, question, confirmation, input and
 disagreement a technician has left on a fact cuore showed for this car.
 Open items need an answer; answered items are waiting to be marked applied
 or dismissed. A question asked on several codes is one card: one tap answers
-or dismisses every code it covers. Active codes first, then newest.</p>
+or dismisses every code it covers. Active codes first, then newest.</p></details>
 
 {% if undo_ids %}
 <div class="fb-undo" role="status">
@@ -35,7 +42,7 @@ or dismisses every code it covers. Active codes first, then newest.</p>
 {% set _redirect = "/v/" ~ vin ~ "/inbox" ~ ("?status=" ~ status if status else "") %}
 
 {% for s in statuses %}
-  {% set groups = folded[s] %}
+  {% set groups = (folded[s]|selectattr('active_codes')|list) + (folded[s]|rejectattr('active_codes')|list) %}
   {% set total = grouped[s]|length %}
   {% if groups or not status or status == s %}
   <details class="fold panel" {% if s in ("open", "answered") or status == s %}open{% endif %}>

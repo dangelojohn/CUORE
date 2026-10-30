@@ -103,7 +103,7 @@ check("href=\"/v/%s/fuses?status=red#fuse-chips\"" % VIN in t, "chips are filter
 
 # 1b. no data entry on the mechanic page
 acts = set(re.findall(r'<form[^>]*action="([^"]+)"', t))
-check(acts - {"/v/%s/feedback" % VIN} == {"/v/%s/fuses" % VIN, "/v/%s/fuses/check" % VIN}, "only search + check forms on /fuses")
+check(acts - {"/v/%s/feedback" % VIN, "/find"} == {"/v/%s/fuses" % VIN, "/v/%s/fuses/check" % VIN}, "only search + check forms on /fuses (plus the Menu's site search)")
 for bad in ('type="file"', "Add a fuse box", "Add a fuse or relay", "Record type, colour", 'action="/v/%s/fuses/box"' % VIN,
             'action="/v/%s/fuses/item"' % VIN, 'action="/v/%s/fuses/spec"' % VIN, 'action="/v/%s/fuses/photo"' % VIN):
     check(bad not in t, f"mechanic page has no: {bad}")

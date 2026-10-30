@@ -113,8 +113,8 @@ check(r2.status_code == 200 and "not built on this computer" in r2.text and r2.t
 
 # links from the electrical page and the More list
 check(f"/v/{VIN}/harnesses" in client.get(f"/v/{VIN}/electrical").text, "electrical page links to harnesses")
-tabs = (ROOT / "cuore/web/templates/_vtabs.html").read_text(encoding="utf-8")
-check('vtab("harnesses"' in tabs, "More list has Harnesses")
+from cuore.web import nav_items as _nav  # noqa: E402
+check(any(i["key"] == "harnesses" and not i["primary"] for i in _nav.ITEMS), "Menu sheet has Harnesses")
 
 # --- page search -----------------------------------------------------------
 def hsrch(qs):

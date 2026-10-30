@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Warranty evidence pack — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{# Warranty evidence pack page. No JavaScript. Pack styles live in _warranty_body.html; --fs-* tokens, 44 px targets. #}
+<style>
+.wpa { max-width: 1040px; font-size: var(--fs-md); margin: 0 0 12px; border: 1px solid var(--rule); padding: 10px 12px; }
+.wpa .btn { min-height: var(--tap, 44px); display: inline-flex; align-items: center; padding: 0 16px; font-size: var(--fs-md); border: 1px solid var(--ink); border-radius: 6px; margin: 4px 8px 4px 0; text-decoration: none; background: var(--surface-2); color: var(--ink); cursor: pointer; }
+.wpa label { display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap, 44px); }
+.wpa input[type=checkbox] { width: 24px; height: 24px; }
+</style>
+{% set q = "?job=" ~ job ~ ("&customer=1" if customer else "") %}
+{% include "_warranty_body.html" %}
+<form class="wpa noprint" method="get" action="/v/{{ vin }}/warranty-pack">
+  <input type="hidden" name="job" value="{{ job }}">
+  <label><input type="checkbox" name="customer" value="1" {% if customer %}checked{% endif %}> Include customer details (only what is already on the job record; off by default)</label>
+  <button class="btn" type="submit">Update pack</button>
+</form>
+<p class="wpa noprint">
+  <strong>Download pack (JSON + printable HTML)</strong><br>
+  <a class="btn" href="/v/{{ vin }}/warranty-pack.json{{ q }}">Download JSON</a>
+  <a class="btn" href="/v/{{ vin }}/warranty-pack.html{{ q }}">Download printable HTML</a>
+  <a class="btn" href="/v/{{ vin }}/warranty-pack.html{{ q }}">Print</a><br>
+  <span>To print, open the printable HTML and use the browser Print command (Ctrl+P). This page also prints cleanly.</span>
+</p>
+{% endblock %}

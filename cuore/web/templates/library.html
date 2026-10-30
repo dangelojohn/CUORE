@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Library — CUORE{% endblock %}
+{% block content %}
+{# Library: manufacturer documents and where their facts show. No JavaScript. Own <style>: --fs-* tokens only, 44 px targets.
+   Data: cuore/services/library.py. Per-vehicle page links go to /vehicles (pick the car) because this page has no vehicle. #}
+<style>
+.lib { max-width: 1040px; font-size: var(--fs-md); }
+.lib h2 { font-size: var(--fs-lg); margin: 16px 0 6px; }
+.lib .note { color: var(--ink-2); margin: 0 0 10px; }
+.lib .answer { border: 1px solid var(--rule); border-left: 6px solid var(--ink-3); padding: 8px 12px; margin: 0 0 12px; background: var(--surface-2); font-weight: 600; }
+.lib table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; }
+.lib th, .lib td { border: 1px solid var(--rule); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.lib .mono { font-family: var(--numerals, monospace); font-variant-numeric: tabular-nums; }
+.lib form { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+.lib input[type=search] { flex: 1 1 260px; min-height: var(--tap, 44px); font-size: var(--fs-md); padding: 0 12px; }
+.lib .btn { min-height: var(--tap, 44px); font-size: var(--fs-md); padding: 0 16px; }
+.lib .pg { display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 0 8px; }
+</style>
+<div class="lib">
+  <h1>Library</h1>
+  {% if summ.documents %}
+  <p class="answer">{{ summ.documents }} document{{ "" if summ.documents == 1 else "s" }} from {{ summ.sources }} source{{ "" if summ.sources == 1 else "s" }}; {{ summ.facts_in_use }} fact{{ "" if summ.facts_in_use == 1 else "s" }} in use on CUORE pages; last added {{ summ.last_added }}.</p>
+  {% else %}
+  <p class="answer">No manufacturer documents yet &mdash; they arrive with TechAuthority / stellantisiop.com access.</p>
+  <p class="note">When they do, the facts taken from them appear on the page where the question comes up, each with its source line (see the table below). Originals stay on this computer under <span class="mono">{{ root }}</span>.</p>
+  {% endif %}
+
+  <form method="get" action="/library" role="search">
+    <input type="search" name="q" value="{{ q }}" placeholder="Title, document number, code, part" aria-label="Search the library">
+    <button class="btn" type="submit">Search</button>
+  </form>
+
+  {% if docs %}
+  <table>
+    <thead><tr><th>Title</th><th>Doc no.</th><th>Source</th><th>Retrieved</th><th>Facts</th><th>Used on these pages</th></tr></thead>
+    <tbody>
+    {% for d in docs %}
+    <tr>
+      <td>{{ d.title }}</td>
+      <td class="mono">{{ d.doc_no }}</td>
+      <td>{{ d.source }}</td>
+      <td class="mono">{{ d.retrieved }}</td>
+      <td class="mono">{{ d.n_facts }}</td>
+      <td>{% for label, href in d.pages %}<a class="pg" href="{{ href if '{vin}' not in href else '/vehicles' }}">{{ label }}</a> {% else %}<span class="note">none yet</span>{% endfor %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% elif q %}
+  <p class="note">Nothing in the library matches &ldquo;{{ q }}&rdquo;.</p>
+  {% endif %}
+
+  <h2>Where things show</h2>
+  <table>
+    <thead><tr><th>Page</th><th>What you see</th><th>Fact kind</th></tr></thead>
+    <tbody>{% for page, what, kinds in where %}<tr><td>{{ page }}</td><td>{{ what }}</td><td class="mono">{{ kinds }}</td></tr>{% endfor %}</tbody>
+  </table>
+</div>
+{% endblock %}

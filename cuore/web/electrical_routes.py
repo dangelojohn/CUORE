@@ -696,7 +696,20 @@ def electrical_page(request: Request, vin: str, code: str = "", system: str = ""
     except Exception:  # noqa: BLE001 -- the diagram page must render without it
         wiring = None
 
+    # Answer-first lead: which of the car's open codes already have a known
+    # path, so the page opens on "pick the circuit" rather than a bare diagram.
+    path_codes: list[str] = []
+    if not code_u:
+        try:
+            from ..services import mes_bridge as _mb
+            for c in _mb.open_codes_for(dossier)[:12]:
+                if electrical_path_for(vin, c).get("found"):
+                    path_codes.append(c)
+        except Exception:  # noqa: BLE001 -- the lead is optional
+            path_codes = []
+
     response = _page(request, "electrical.html", vin=vin, bar=_vehicle_bar(vin, dossier), wiring=wiring,
+                     path_codes=path_codes,
                      tab="electrical", svg=svg, cards=cards, code=code_u, path_data=path_data,
                      system=system_k, systems_filter=systems_filter,
                      conditions=CONDITIONS, condition_labels=CONDITION_LABELS,

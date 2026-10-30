@@ -768,6 +768,49 @@ except ImportError:
     check("pypdf available to verify transmission label text (optional)", True)
 
 
+# === Phone Menu (m_base.html): staff-only, owner pages keep the 3-item nav ====
+from cuore.services import accounts as _acc  # noqa: E402
+from cuore.web import accounts_routes as _acc_routes  # noqa: E402
+
+_PHONE = (f"/m/{VIN}", f"/m/{VIN}/messages", f"/m/{VIN}/history")
+_owner_html = {}
+for _p in _PHONE:
+    _h = _owner_html[_p] = client.get(_p).text
+    check(f"owner phone page {_p}: no Menu/sheet", "navsheet" not in _h and "m-menu-btn" not in _h)
+    check(f"owner phone page {_p}: primary nav kept", _h.count('class="m-bottomnav"') == 1 and "/messages" in _h)
+
+_acc.create("m_boss", "correct horse 1", "admin", "Boss", "main", "dealer")
+_acc.create("m_tech", "tech password 1", "technician", "Tech", "shopA", "independent")
+_acc.set_mode(True)
+try:
+    _app = _app_with_router()
+    if not any(getattr(r, "path", "") == "/login" for r in _app.routes):
+        _app.include_router(_acc_routes.router)
+    _tc = TestClient(_app, follow_redirects=False)
+    _tc.post("/login", data={"username": "m_tech", "password": "tech password 1", "next": "/"})
+    for _p in _PHONE:
+        _r = _tc.get(_p)
+        _h = _r.text
+        check(f"tech phone page {_p}: 200", _r.status_code == 200, str(_r.status_code))
+        check(f"tech phone page {_p}: Menu label + one toggle + sheet",
+              'for="navsheet-toggle" class="m-menu-btn"' in _h and _h.count('id="navsheet-toggle"') == 1
+              and 'id="navsheet"' in _h)
+        check(f"tech phone page {_p}: toggle precedes sheet (sibling :checked rule)",
+              _h.index('id="navsheet-toggle"') < _h.index('id="navsheet"'))
+        check(f"tech phone page {_p}: tiles + search render",
+              _h.count('class="navtile ni-') >= 20 and 'action="/find"' in _h and 'data-nav="codes"' in _h)
+        check(f"tech phone page {_p}: own nav kept",
+              "/messages" in _h and "/history" in _h and _h.count('class="m-bottomnav"') == 1)
+        check(f"tech phone page {_p}: no new <script> beyond m.js",
+              len(re.findall(r"<script", _h)) == len(re.findall(r"<script", _owner_html[_p])))
+finally:
+    _acc.set_mode(False)
+_css = (Path(__file__).resolve().parents[1] / "web/static/m.css").read_text(encoding="utf-8")
+check("phone CSS: Menu button >= 56px", re.search(r"\.m-menu-btn \{[^}]*min-height: 56px", _css) is not None)
+check("phone CSS: two tiles per row, >= 72px tall",
+      "repeat(2, minmax(0, 1fr))" in _css and re.search(r"\.navtile \{[^}]*min-height: 72px", _css) is not None)
+
+
 print(f"{checks} checks, {len(failures)} failures")
 for f in failures:
     print(" -", f)

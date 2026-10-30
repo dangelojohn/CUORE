@@ -51,11 +51,15 @@ def _flow_state(vin: str, **kw: Any) -> dict[str, Any] | None:
 
 def _register(templates: Any) -> None:
     templates.env.globals["flow_state_for"] = _flow_state
+    from . import nav_items  # single nav data source: the nav_menu global
+    nav_items.register(templates)
     # JOB_UX_FIXES #10: content cross-references resolve through the registry.
     templates.env.globals["step_link"] = flow_bridge.step_link
 
 
-for _module_name in ("routes", "service_routes", "drivetrain_routes", "timeline_routes"):
+# every module that builds its own Jinja2Templates must be listed here, or its pages get an empty Menu
+for _module_name in ("routes", "service_routes", "drivetrain_routes", "timeline_routes",
+                     "labels_routes", "media_routes", "owner_routes"):
     try:
         _mod = importlib.import_module(f".{_module_name}", __package__)
         _tmpl = getattr(_mod, "templates", None) or getattr(_mod, "_shared_templates", None)

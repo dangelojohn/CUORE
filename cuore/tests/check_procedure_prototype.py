@@ -82,8 +82,8 @@ check("simulated car, nothing is sent to the Stelvio" in ta, "banner on the afte
 
 # -- link in the More menu (not the visible row)
 vt = client.get(f"/v/{VIN}/fuses").text
-check(f'href="{BASE}"' in vt and "Prototype: interactive procedures" in vt, "More menu has the prototype link")
-check(f'href="{BASE}"' not in vt.split("<details")[0], "link is not in the visible row")
+check(f'href="{BASE}"' in vt and "Prototype procedures" in vt, "Menu sheet has the prototype link")
+check(f'href="{BASE}"' not in vt.split('class="vtabs"')[1].split("</div>")[0], "link is not in the visible row")
 
 # -- READY chips reflect the simulator; blockers name the unblock step
 fresh()

@@ -34,7 +34,11 @@
 </style>
 <div class="pb" id="parity">
 <h1>Parity board</h1>
-<p class="lede">Every function a technician uses in MultiEcuScan or AlfaOBD, what CUORE does today, and what closes each gap. Order of work: car session first, then what only needs a CUORE build, then documents, then decisions. A row moves to Done only with a recorded side-by-side test on the car. Source: {{ b.about }}</p>
+<p class="lede" id="parity-answer"><strong>{{ b.counts_state['done'] }} of {{ b.total }} functions are done in CUORE</strong>
+  (proved side by side on the car). Next: <strong>{{ b.counts_state['car_session'] }}</strong> need a car session, <strong>{{ b.counts_state['build'] }}</strong> need only a CUORE build,
+  <strong>{{ b.counts_state['documents'] }}</strong> wait for manufacturer documents, <strong>{{ b.counts_state['decision'] }}</strong> need a decision.</p>
+<details class="fold" style="margin:0 0 10px"><summary style="min-height:44px;display:flex;align-items:center">How to read this board and where it comes from</summary>
+<p class="lede">Every function a technician uses in MultiEcuScan or AlfaOBD, what CUORE does today, and what closes each gap. Order of work: car session first, then what only needs a CUORE build, then documents, then decisions. A row moves to Done only with a recorded side-by-side test on the car. Source: {{ b.about }}</p></details>
 
 <div class="pb-counts" role="group" aria-label="By state">
   <a class="pb-chip" href="/v/{{ vin }}/parity{% if b.group %}?group={{ b.group }}{% endif %}" {% if not b.state %}aria-current="true"{% endif %}><span class="n">{{ b.total }}</span> all</a>

@@ -5,6 +5,20 @@
 
 <h1>Fault tree</h1>
 
+{% set _answered = result.vehicle_evidence|map(attribute="step")|list if result.vehicle_evidence else [] %}
+{% if result.trees %}
+{% set _t0 = result.trees[0] %}
+{% set _next = _t0.steps|rejectattr("step","in",_answered)|list %}
+<div class="panel" id="tree-lead" role="status">
+  <p style="margin:0"><strong>{{ result.trees|length }} tree{{ "s" if result.trees|length != 1 }} for {{ codes }}:
+    {% for tr in result.trees %}{{ tr.title }}{{ "; " if not loop.last }}{% endfor %}.</strong>
+    {% if _next %}Start with step <span class="mono">{{ _next[0].step }}</span>, {{ _next[0].title }} ({{ _next[0].cost }}).{% endif %}
+    {% if _answered %}{{ _answered|length }} step{{ "s are" if _answered|length != 1 else " is" }} already answered by this car's own records (below).{% else %}This car's records answer none of the steps yet.{% endif %}</p>
+  <p style="margin:8px 0 0"><a class="btn primary" style="min-height:44px" href="#tree-sequence">Go to the sequence</a>
+    <a class="btn" style="min-height:44px" href="/v/{{ vin }}/gate?codes={{ codes|urlencode }}">Take the conclusion to the gate &rarr;</a></p>
+</div>
+{% endif %}
+
 <form class="panel" method="get" action="/v/{{ vin }}/tree"
       style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
   <div style="flex:1;min-width:240px">
@@ -38,7 +52,8 @@
 {% endif %}
 
 {% if result.vehicle_evidence %}
-  <h2>This car's own evidence</h2>
+  <details class="card-details" id="tree-evidence">
+  <summary><b>This car's own evidence</b> &mdash; {{ result.vehicle_evidence|length }} finding{{ "s" if result.vehicle_evidence|length != 1 }} that answer tree steps</summary>
   {% for e in result.vehicle_evidence %}
     <div class="note good">
       <span class="lab">Step {{ e.step }} — already answered here</span>
@@ -46,10 +61,11 @@
       <div class="small muted mono" style="margin-top:4px">{{ e.source }}</div>
     </div>
   {% endfor %}
+  </details>
 {% endif %}
 
 {% for t in result.trees %}
-<div class="panel">
+<div class="panel"{% if loop.first %} id="tree-sequence"{% endif %}>
   <h3>{{ t.title }}</h3>
   <div class="mono small muted">{{ t.tree }} &middot; applies to {{ t.applies_to|join(", ") }}</div>
 
@@ -68,6 +84,7 @@
       <div class="head">
         <span class="id">{{ s.step }}</span>
         <span class="title">{{ s.title }}</span>
+        {% if s.step in _answered %}<span class="chip ok sm">answered by this car</span>{% endif %}
         <span class="cost">{{ s.cost }}</span>
       </div>
       <div class="body">
