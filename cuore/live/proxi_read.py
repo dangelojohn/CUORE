@@ -352,6 +352,36 @@ def known_options(block: list[str], vin: str = "") -> list[dict[str, Any]]:
     return out
 
 
+def owner_settings(vin: str) -> dict[str, Any]:
+    """Owner-attested settings (``owner_settings.json``): what the owner says the car has. Never a reading."""
+    p = _dir(vin) / "owner_settings.json"
+    return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+
+
+def paddle_panel(vin: str, options: Optional[list[dict[str, Any]]] = None) -> dict[str, Any]:
+    """Europe / North America paddle toggle, display only. Current value from the accepted PROXI read
+    when the paddle byte is decoded, the owner's statement beside it, and the procedure's lock state.
+    There is no write route: the switch stays locked until paddle_shift_market.json is documented."""
+    proc_p = Path(__file__).resolve().parents[1] / "data" / "procedures" / "paddle_shift_market.json"
+    proc = json.loads(proc_p.read_text(encoding="utf-8"))
+    read_id = None
+    row = next((o for o in options or [] if o.get("byte") == 156 and o.get("mask") == 0x30), None)
+    if row and row.get("present"):
+        read_id = {"0x00": "europe", "0x10": "north_america"}.get(f"0x{int(row['masked'], 16):02X}")
+    owner = owner_settings(vin).get("paddle_market")
+    owner_id = (owner or {}).get("value")
+    if read_id and owner_id:
+        agreement = "agrees" if read_id == owner_id else "disagrees"
+    else:
+        agreement = None
+    locked = proc.get("status") != "accepted" or not proc.get("steps")
+    return {"options": proc["options"], "status": proc.get("status"), "locked": locked,
+            "read": {"id": read_id, "raw": row.get("raw"), "masked": row.get("masked"),
+                     "kind_label": row.get("kind_label")} if row and row.get("present") else None,
+            "owner": owner, "agreement": agreement, "follow_up": proc.get("follow_up"),
+            "needs": proc.get("needs_from_manufacturer", [])}
+
+
 def view(vin: str) -> dict[str, Any]:
     disc, acc, rd = latest_discovery(vin), accepted(vin), reads(vin)
     state = "accepted" if acc and rd else ("candidates" if disc and disc.get("candidates") else "none")
@@ -361,4 +391,5 @@ def view(vin: str) -> dict[str, Any]:
     if last:
         v["grid"] = [{"i": i, "hex": b, "bin": f"{int(b, 16):08b}"} for i, b in enumerate(last["bytes"])]
         v["options"] = known_options(last["bytes"], vin)
+    v["paddle"] = paddle_panel(vin, v.get("options"))
     return v

@@ -20,11 +20,40 @@
 .cfg .tag { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); }
 .cfg ol { padding-left: 22px; display: grid; gap: 4px; }
 .cfg .grid td { padding: 4px 6px; }
+.cfg .pad { border: 1px solid var(--rule); padding: 10px 12px; margin: 0 0 16px; }
+.cfg .seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; margin: 6px 0; }
+.cfg .seg span { min-height: var(--tap, 44px); display: inline-flex; align-items: center; gap: 6px; padding: 0 18px; font-weight: 600; color: var(--ink-3); }
+.cfg .seg span.on { background: var(--ink); color: var(--surface); }
+.cfg .seg + .note { margin-top: 4px; }
 </style>
 <div class="cfg">
   <h1>Configuration (PROXI)</h1>
   <p class="ro">&#9632; Read only. CUORE never writes configuration; changes wait for the manufacturer's procedure (<a href="/v/{{ bar.vin }}/adjustments">Adjustments page</a>).</p>
   {% if flash_msg %}<p class="flash">{{ "&#10007; " if flash_kind == "err" else "&#10003; " }}{{ flash_msg }}</p>{% endif %}
+
+  {% set pd = c.paddle %}
+  <section class="pad" id="paddle-market">
+    <h2>Paddle shifters: Europe or North America</h2>
+    {% set cur = pd.read.id if pd.read and pd.read.id else (pd.owner.value if pd.owner else none) %}
+    <div class="seg" role="group" aria-label="Paddle-shifter market (locked)">
+      {% for o in pd.options %}<span class="{{ 'on' if o.id == cur else '' }}"{% if o.id == cur %} aria-current="true"{% endif %}>{% if o.id == cur %}&#9679;{% else %}&#9675;{% endif %} {{ o.label }}</span>{% endfor %}
+    </div>
+    <p class="note">
+      {% if pd.read and pd.read.id %}Read from this car's PROXI block: byte 156 = {{ pd.read.raw }}, bits 4–5 = {{ pd.read.masked }} <span class="tag">{{ pd.read.kind_label }}</span>
+      {% elif pd.read %}Read from this car's PROXI block: byte 156 = {{ pd.read.raw }}, bits 4–5 = {{ pd.read.masked }}, which is not a value in the sourced list.
+      {% else %}Not read from the car yet: the highlight is the owner's statement until the first PROXI read.{% endif %}
+    </p>
+    {% if pd.owner %}<p class="note">Owner's statement {{ pd.owner.said_on }}: {{ pd.owner.label }} <span class="tag">attested, not a reading</span>
+      {% if pd.agreement %}<span class="tag">{{ "&#10003;" if pd.agreement == "agrees" else "&#9888;" }} read {{ pd.agreement }}</span>{% endif %}</p>{% endif %}
+    <details><summary>What each setting does</summary>
+      <dl>{% for o in pd.options %}<dt>{{ o.label }}</dt><dd>{{ o.meaning }} <span class="tag">forum (single source)</span></dd>{% endfor %}</dl>
+    </details>
+    {% if pd.locked %}
+    <p class="ro">&#128274; Locked. The switch needs the manufacturer's documented procedure (status: {{ pd.status }}); CUORE has no route that writes it. After any change: {{ pd.follow_up }}.</p>
+    <details><summary>What the manufacturer must supply ({{ pd.needs | length }})</summary><ol>{% for n in pd.needs %}<li>{{ n }}</li>{% endfor %}</ol></details>
+    {% endif %}
+    <p class="note"><a href="/v/{{ bar.vin }}/adjustments">Procedure on the Adjustments page</a></p>
+  </section>
 
   {% if c.state == "none" %}
   <h2>What this is</h2>

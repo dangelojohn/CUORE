@@ -83,6 +83,16 @@ h = client.get(f"/v/{VIN}/configuration").text
 check("page none: run discovery + needs + MES confirm", "Run discovery" in h and "MES closed" in h
       and "screenshot" in h and "Read only. CUORE never writes configuration" in h)
 check("nothing accepted at start", pr.accepted(VIN) is None)
+sec = h.split('id="paddle-market"')[1].split("</section>")[0] if 'id="paddle-market"' in h else ""
+check("paddle toggle shown before any read, locked, no form", "Locked" in sec and "Not read from the car yet" in sec
+      and "<form" not in sec and "<script" not in sec and "Europe" in sec and "North America" in sec)
+check("no owner statement: nothing highlighted", 'aria-current="true"' not in sec)
+(pr._dir(VIN) / "owner_settings.json").write_text(json.dumps({"paddle_market": {"value": "north_america",
+    "label": "North America", "said_on": "2026-10-29", "kind": "owner statement"}}), encoding="utf-8")
+sec = client.get(f"/v/{VIN}/configuration").text.split('id="paddle-market"')[1].split("</section>")[0]
+check("owner statement highlights North America, labelled attested",
+      "attested, not a reading" in sec and sec.count('aria-current="true"') == 1
+      and sec.split('aria-current="true"')[1].split("</span>")[0].strip().endswith("North America"))
 
 # --- discover ranks and flags ---------------------------------------------------------------
 res = pr.discover(VIN)
@@ -131,6 +141,12 @@ blk[63], blk[156] = "8B", "10"
 ko = {o["byte"]: o for o in pr.known_options(blk)}
 check("battery byte decodes H8 AGM from proxi_map_949.json", "AGM" in ko[63]["label"] and ko[63]["source_kind"] == "forum", str(ko[63]))
 check("paddle byte decodes North America", "North America" in ko[156]["label"])
+pp = pr.paddle_panel(VIN, pr.known_options(blk))
+check("panel: read North America agrees with owner", pp["read"]["id"] == "north_america" and pp["agreement"] == "agrees", str(pp["read"]))
+blk_eu = list(blk); blk_eu[156] = "00"
+pe = pr.paddle_panel(VIN, pr.known_options(blk_eu))
+check("panel: read Europe disagrees with owner", pe["read"]["id"] == "europe" and pe["agreement"] == "disagrees")
+check("panel: locked while the procedure has no documented steps", pp["locked"] is True and pp["needs"])
 mp = json.loads((Path(pr.__file__).resolve().parents[1] / "data" / "proxi_map_949.json").read_text(encoding="utf-8"))
 check("map: each entry has source_kind, source, reference-only flag",
       all(o["source"] and o["source_kind"] in pr.KIND_RANK and "reference only" in o["flag"] for o in mp["options"]))
