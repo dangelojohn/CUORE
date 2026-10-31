@@ -569,6 +569,15 @@ def board(vin: str, job_id: Optional[str] = None, now: Optional[datetime] = None
         status = "permanent" if cur["permanent"] else {"active": "active", "pending": "pending"}.get(cur["state"], "history")
         emissions = code.startswith(tuple(cfg["emissions_prefixes"])) or any(e["src"].startswith("obd_") for e in ev)
         desc = f["desc"]
+        desc_src = ""
+        if not desc:
+            try:
+                from . import dtc_text as _printed
+                _hit = _printed.lookup(code, module)
+                if _hit:
+                    desc, desc_src = _hit["description"], _hit["source_tag"]
+            except Exception:  # noqa: BLE001 - naming is a bonus
+                pass
         safety = (module.upper() in cfg["safety_modules"] or code[:1] in cfg["safety_code_prefixes"]
                   or any(k in desc.lower() for k in cfg["safety_keywords"]))
         mil = cur["mil"] or bool(emissions and ready_last and ready_last["mil_on"] and status in present)
@@ -592,7 +601,7 @@ def board(vin: str, job_id: Optional[str] = None, now: Optional[datetime] = None
         grp = facts["groups"].get(f"code:{code}")
         card = {
             "key": key, "kind": "code", "code": code, "label": f"{code} {desc}".strip(), "module": module,
-            "system": module, "system_kind": _SYSTEM_BY_LETTER.get(code[:1], code[:1]), "description": desc,
+            "description_source": desc_src, "system": module, "system_kind": _SYSTEM_BY_LETTER.get(code[:1], code[:1]), "description": desc,
             "status": status, "status_detail": detail, "safety": safety, "mil": mil, "emissions": emissions,
             "permanent": cur["permanent"], "first_seen": first["ts"], "last_seen": last["ts"],
             "present_days": age_days,

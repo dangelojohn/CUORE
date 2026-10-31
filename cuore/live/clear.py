@@ -4,7 +4,8 @@ Clearing is the one write the live link performs, and it destroys evidence:
 status bytes, snapshots, occurrence counters and the ECU's record of which
 tests have run. So a clear here is a procedure, not a command:
 
-1. Refuse unless the operator typed the consent phrase ``CLEAR <MODULE>``,
+1. Refuse unless a person approved this exact clear on the CUORE approve page (typing
+   the consent phrase ``CLEAR <MODULE>`` there; see :mod:`cuore.live.consent_gate`),
    the car is stationary, and (on CAN-CH) the per-call confirmation is given.
 2. Read everything first: 19 02 FF, plus snapshot and extended data for each
    active code, into ``<state>/clears/<timestamp>_<module>.json`` and the
@@ -54,14 +55,16 @@ def assert_clear_all_allowed(consent: str) -> None:
     """Gate for Mode 04: the typed phrase is required in addition to confirm=True."""
     if (consent or "").strip().upper() != CLEAR_ALL_PHRASE:
         raise Refused("Mode 04 erases every emissions code, the freeze frame and the readiness "
-                      f"monitors; type the consent phrase exactly: {CLEAR_ALL_PHRASE!r}")
+                      "monitors; the consent phrase does not match (a person types it on the "
+                      "CUORE approve page; it is never shown here)")
 
 
 def assert_clear_allowed(module_code: str, consent: str, group: str) -> bytes:
     """The clear gate. Returns the 3-byte group on success."""
     if (consent or "").strip().upper() != consent_phrase(module_code):
-        raise Refused(f"clearing {module_code} erases its fault memory; type the consent phrase "
-                      f"exactly: {consent_phrase(module_code)!r}")
+        raise Refused(f"clearing {module_code} erases its fault memory; the consent phrase "
+                      f"does not match (a person types it on the CUORE approve page; it is "
+                      f"never shown here)")
     g = (group or "FFFFFF").strip().upper()
     if len(g) != 6 or any(c not in "0123456789ABCDEF" for c in g):
         raise BadCommand("group must be 6 hex digits; FFFFFF clears all groups")

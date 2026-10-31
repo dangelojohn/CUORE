@@ -13,6 +13,7 @@
   </form>
   {% if res.best %}
   <a class="find-best" href="{{ res.best.href }}">Go to: {{ res.best.title }}{% if res.best.says %} <small>{{ res.best.says }}</small>{% endif %}</a>
+  {% with h_page='find', h_item='top-result', h_label=(q ~ ' -> ' ~ res.best.title) %}{% include "_helped.html" %}{% endwith %}
   {% endif %}
   {% for g in res.groups %}
   <section class="find-group">

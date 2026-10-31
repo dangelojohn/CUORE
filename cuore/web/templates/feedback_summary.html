@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Technician feedback — CUORE{% endblock %}
+{% block content %}
+{# Private owner page. No JavaScript. Data: cuore/web/helped_routes.py (feedback.jsonl rows with section "helped"). #}
+<style>
+.fbs { max-width: 960px; font-size: var(--fs-md); }
+.fbs .answer { border: 2px solid var(--ink); border-left: 8px solid var(--ink); padding: 10px 14px; background: var(--surface-2); }
+.fbs table { border-collapse: collapse; width: 100%; margin: 6px 0 16px; }
+.fbs th, .fbs td { border-bottom: 1px solid var(--rule); padding: 6px 8px; text-align: left; }
+.fbs .words { border-left: 4px solid var(--ink-3); padding: 4px 10px; margin: 6px 0; }
+</style>
+<div class="fbs">
+  <h1>Technician feedback</h1>
+  <section class="answer" id="answer">
+    <p><b>{{ s.helped_week }} helped, {{ s.wrong_week }} wrong this week.</b>
+    {% if s.top_wrong %}Most-wrong item: {{ page_names.get(s.top_wrong.page, s.top_wrong.page) }}, {{ s.top_wrong.item }} ({{ s.top_wrong.n }} wrong).{% else %}No item has been marked wrong.{% endif %}</p>
+  </section>
+  {% if s.total %}
+  <h2>Per page</h2>
+  <table><tr><th>Page</th><th>Helped</th><th>Wrong</th></tr>
+  {% for p, h, w in s.pages %}<tr><td>{{ page_names.get(p, p) }}</td><td>{{ h }}</td><td>{{ w }}</td></tr>{% endfor %}</table>
+  <h2>Per item (most wrong first)</h2>
+  <table><tr><th>Page</th><th>Item</th><th>Helped</th><th>Wrong</th></tr>
+  {% for p, i, h, w in s.by_item %}<tr><td>{{ page_names.get(p, p) }}</td><td>{{ i }}</td><td>{{ h }}</td><td>{{ w }}</td></tr>{% endfor %}</table>
+  <h2>What was wrong (newest first)</h2>
+  {% for r in s.notes %}<div class="words">{{ r.text }}<br><small>{{ page_names.get(r.target.page, r.target.page) }} · {{ r.target.item }} · {{ r.at }} · {{ r.author }}</small></div>
+  {% else %}<p>No written notes yet.</p>{% endfor %}
+  {% else %}<p>No taps yet. The buttons are on the Bench, Codes, Tests, Systems guide, Arrive ready and Find.</p>{% endif %}
+</div>
+{% endblock %}

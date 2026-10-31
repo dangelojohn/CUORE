@@ -96,6 +96,7 @@ ITEMS: list[dict[str, Any]] = [
     # ---- Added 2026-10-30: arrive-ready job, warranty evidence pack, field-quality early warning.
     _i("arrive-ready", "Arrive-ready", V + "/arrive-ready", "Diagnose", "arrive"),
     _i("warranty-pack", "Warranty pack", V + "/warranty-pack", "Records", "warranty"),
+    _i("car-session", "Car session", V + "/car-session", "Service", "parity"),
     _i("bay-sheet", "Bay sheet", V + "/bay-sheet", "Records", "sheet"),
     _i("field-quality", "Field quality", "/field-quality", "Shop", "quality"),
     _i("library", "Library", "/library", "Shop", "library"),
@@ -105,6 +106,7 @@ ITEMS: list[dict[str, Any]] = [
 
 # Plain-words search help for /find: key -> (extra words a mechanic might type, one sentence on what the page answers).
 HELP: dict[str, tuple[str, str]] = {
+    "car-session": ("car session, checklist, next connection", "Printable checklist for the next car connection."),
     "bench": ("home, overview, start of job, summary", "The car overview: what is wrong and what to do next."),
     "job": ("work order, repair, hypothesis, proof, fixed", "Your open job: actions, evidence and the proof that the fix worked."),
     "codes": ("dtc, fault code, check engine, mil, trouble code", "Every fault code on this car with what it means and what to test."),

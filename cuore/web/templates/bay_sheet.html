@@ -60,7 +60,7 @@
     <h2>1. Open codes, most important first</h2>
     {% if s.codes %}
     <table><tr><th>Code</th><th>Status</th><th>Test to run next</th></tr>
-      {% for c in s.codes %}<tr><td class="mono"><b>{{ c.code }}</b> {{ c.label }}{% if c.safety %} (safety){% endif %}</td><td>{{ c.status }}</td>
+      {% for c in s.codes %}<tr><td class="mono"><b>{{ c.code }}</b> {{ c.label }}{% if c.label_src %} <small class="muted">{{ c.label_src }}</small>{% endif %}{% if c.safety %} (safety){% endif %}</td><td>{{ c.status }}</td>
         <td>{{ c.test or "none on file" }}</td></tr>{% endfor %}
     </table>
     {% if s.more_codes %}<p class="note">+ {{ s.more_codes }} more on the <a href="/v/{{ s.vin }}/codes">Codes page</a>.</p>{% endif %}

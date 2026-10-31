@@ -7,6 +7,8 @@ are :class:`LiveError` subclasses; the surfaces decide how to render them.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from datetime import datetime
 from pathlib import Path
@@ -1152,18 +1154,28 @@ def module_discover_dids(code: str, vin: str = "", ranges: Optional[list[str]] =
 
 # --- clearing (the one write): per module, evidence first --------------------------
 
-def clear_module_dtcs(code: str, consent: str, vin: str = "", confirm: bool = False,
+def clear_module_dtcs(code: str, consent: str = "", vin: str = "", confirm: bool = False,
                       group: str = "FFFFFF", override_speed_check: bool = False,
-                      **kw: Any) -> dict[str, Any]:
+                      request_id: str = "", **kw: Any) -> dict[str, Any]:
     """Clear one module's DTCs after capturing evidence. Not exposed over HTTP.
 
-    Refuses unless ``consent`` is exactly ``CLEAR <MODULE>``, the vehicle reads
-    stationary (or ``override_speed_check`` is set because speed cannot be read),
-    and, on CAN-CH, ``confirm`` is given.
+    A person must approve this exact call first (:mod:`cuore.live.consent_gate`): without a
+    valid ``request_id`` it is refused and a pending request is created. ``consent`` is kept
+    only so older callers still bind; it authorises nothing. After approval it refuses
+    unless the vehicle reads stationary (or ``override_speed_check`` is set because speed
+    cannot be read), and, on CAN-CH, ``confirm`` is given.
     """
     from . import clear as clear_mod
+    from . import consent_gate
     ecu = uds_mod.resolve_module(code, vin or None)
-    clear_mod.assert_clear_allowed(ecu.code, consent, group)   # fail fast, before any traffic
+    phrase = clear_mod.consent_phrase(ecu.code)    # the person typed it on the approve page
+    clear_mod.assert_clear_allowed(ecu.code, phrase, group)   # fail fast: group format
+    grant = consent_gate.authorize(
+        consent_gate.Action(tool="clear_module_dtcs", module=ecu.code, service="14", vin=vin,
+                            args={"group": (group or "FFFFFF").strip().upper(),
+                                  "confirm": bool(confirm),
+                                  "override_speed_check": bool(override_speed_check)}),
+        request_id)                                 # consumed here: before any traffic
     speed = None
     try:
         sp = obd_pid("0D", **kw)
@@ -1176,9 +1188,9 @@ def clear_module_dtcs(code: str, consent: str, vin: str = "", confirm: bool = Fa
                       "override_speed_check=True only if the car is stationary.")
     if speed:
         raise Refused(f"vehicle speed reads {speed:g} km/h; refusing to clear while moving")
-    with link().session(f"clear {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
-                        **kw) as sess:
-        out = clear_mod.clear_module(sess, ecu, consent=consent, vin=vin, group=group,
+    with consent_gate.write_scope(grant),             link().session(f"clear {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
+                           **kw) as sess:
+        out = clear_mod.clear_module(sess, ecu, consent=phrase, vin=vin, group=group,
                                      evidence_extra={"vehicle_speed_kmh": speed})
         return _stamp(sess, out)
 
@@ -1302,22 +1314,40 @@ def actuators(vin: str = "") -> dict[str, Any]:
     return {"actuators": actuate.list_actuators(vin or None)}
 
 
-def run_actuator(vin: str, module: str, name: str, consent: str, max_seconds: float = 10.0,
-                 confirm: bool = False, **kw: Any) -> dict[str, Any]:
+def run_actuator(vin: str, module: str, name: str, consent: str = "", max_seconds: float = 10.0,
+                 confirm: bool = False, request_id: str = "", **kw: Any) -> dict[str, Any]:
     """Replay a learned actuator test (UDS 0x2F/0x31) on one module. Not exposed over HTTP.
 
-    Refuses unless ``consent`` is exactly ``ACTUATE <MODULE> <NAME>``, the module is not
-    safety-critical (:data:`safety.ACTUATION_BLOCKED_MODULES`, or anything on CAN-CH --
-    use MultiEcuScan or wiTECH for those), the learned procedure is replayable (no
-    SecurityAccess, no configuration/reflash/reset service), and the vehicle reads
-    engine-off and stationary (PID 0C then 0D on the legislated route; unreadable refuses
-    too). Bounded to ``max_seconds`` (hard cap 30 s); control is ALWAYS returned to the
-    ECU afterwards, even if a step fails.
+    A person must approve this exact call first (:mod:`cuore.live.consent_gate`): without a
+    valid ``request_id`` it is refused and a pending request is created. ``consent`` is kept
+    only so older callers still bind; it authorises nothing. After approval it refuses
+    unless the module is not safety-critical (:data:`safety.ACTUATION_BLOCKED_MODULES`, or
+    anything on CAN-CH -- use MultiEcuScan or wiTECH for those), the learned procedure is
+    replayable (no SecurityAccess, no configuration/reflash/reset service), and the vehicle
+    reads engine-off and stationary (PID 0C then 0D on the legislated route; unreadable
+    refuses too). Bounded to ``max_seconds`` (hard cap 30 s); control is ALWAYS returned to
+    the ECU afterwards, even if a step fails.
     """
     from . import actuate
+    from . import consent_gate
     ecu = uds_mod.resolve_module(module, vin or None)
     procedure = actuate.get_actuator(vin, ecu.code, name)
-    actuate.assert_actuate_allowed(ecu, procedure, consent, name)   # fail fast, before any traffic
+    routine = actuate.is_routine(procedure)
+    phrase = actuate.consent_phrase(ecu.code, name, routine=routine)   # typed on the approve page
+    # fail fast, before any traffic: procedure exists, module not blocked, target, replayable
+    actuate.assert_actuate_allowed(ecu, procedure, phrase, name)
+    steps = (procedure or {}).get("steps") or []
+    term = (procedure or {}).get("synthesised_terminator") or {}
+    services = sorted({str(st.get("service") or "").upper() for st in [*steps, term]
+                       if st.get("service")} - {""})
+    grant = consent_gate.authorize(
+        consent_gate.Action(
+            tool="run_actuator", module=ecu.code, service=",".join(services), vin=vin,
+            args={"name": name, "max_seconds": float(max_seconds), "confirm": bool(confirm),
+                  "routine": routine, "target": str(procedure.get("target") or ""),
+                  "procedure_sha": hashlib.sha256(json.dumps(
+                      [steps, term], sort_keys=True, default=str).encode()).hexdigest()}),
+        request_id)                                 # consumed here: before any traffic
 
     def _reading(pid: str) -> Optional[float]:
         try:
@@ -1335,9 +1365,9 @@ def run_actuator(vin: str, module: str, name: str, consent: str, max_seconds: fl
     if speed > 0:
         raise Refused(f"vehicle speed reads {speed:g} km/h; refusing to actuate")
 
-    with link().session(f"actuate {ecu.code} {name}", bus=_bus(ecu.bus_key), confirm=confirm,
-                        **kw) as sess:
-        out = actuate.run_actuator(sess, ecu, procedure, consent=consent, max_seconds=max_seconds)
+    with consent_gate.write_scope(grant),             link().session(f"actuate {ecu.code} {name}", bus=_bus(ecu.bus_key), confirm=confirm,
+                           **kw) as sess:
+        out = actuate.run_actuator(sess, ecu, procedure, consent=phrase, max_seconds=max_seconds)
         return _stamp(sess, out)
 
 

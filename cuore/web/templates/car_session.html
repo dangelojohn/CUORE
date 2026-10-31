@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Car session — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+{# Printable car-session checklist. Read only, no JavaScript. Data: cuore/services/car_session.py #}
+<style>
+.cs { max-width: 1040px; font-size: var(--fs-md); }
+.cs h2 { font-size: var(--fs-lg); margin: 14px 0 6px; }
+.cs .note { color: var(--ink-2); margin: 0 0 8px; }
+.cs .ro { border: 1px solid var(--rule); border-left: 6px solid var(--ink-3); padding: 8px 12px; margin: 0 0 12px; background: var(--surface-2); font-weight: 600; }
+.cs table { border-collapse: collapse; width: 100%; margin: 6px 0 12px; }
+.cs th, .cs td { border: 1px solid var(--rule); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.cs .box { width: 28px; text-align: center; font-size: var(--fs-lg); }
+.cs .tag { display: inline-flex; align-items: center; min-height: 28px; padding: 0 8px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); }
+.cs ul { padding-left: 20px; margin: 4px 0; }
+@media print { .cs { font-size: 10pt; max-width: none; } .cs h2 { margin: 8px 0 4px; } .cs tr { break-inside: avoid; } }
+</style>
+<div class="cs">
+  <h1>Car session</h1>
+  <p class="ro">&#9632; Read only. {{ cs.steps|length }} steps, about {{ cs.hours }} h (estimates). {{ cs.rows_covered|length }} of {{ cs.n_rows }} car-session parity rows reachable. A row becomes done only after a person records the side-by-side MES read on the <a href="/v/{{ bar.vin }}/parity?state=car_session">parity page</a>.</p>
+  <p class="note"><b>Rules:</b> all contact through CUORE sessions (never a raw COM3 script) &middot; confirmed bitrates only &middot; cold RFHUB read first &middot; MES closed (MES and CUORE never share the adapter) &middot; no clears (EVAP proof job) &middot; battery maintainer on for steps marked &#9889;.</p>
+  {% for g in cs.groups %}
+  <h2>{{ g.label }} <span class="tag">~{{ g.minutes }} min (estimate)</span></h2>
+  <table>
+    <tr><th class="box">&#9744;</th><th>Step</th><th>Parity rows it can close</th><th>MES read still needed (side by side)</th><th>Min</th></tr>
+    {% for s in g.steps %}
+    <tr>
+      <td class="box">{{ "&#9745;"|safe if s.done else "&#9744;"|safe }}</td>
+      <td><b>{{ s.title }}</b>{% if s.added %} <span class="tag">added</span>{% endif %}{% if s.long %} <span class="tag">&#9889; battery</span>{% endif %}
+        {% if s.pre %}<br><span class="note">{{ s.pre[:160] }}</span>{% endif %}
+        {% if s.note %}<br><span class="note">{{ s.note }}</span>{% endif %}</td>
+      <td>{% if s.closes %}<ul>{% for c in s.closes %}<li>{{ c.function }}{% if c.state != "car_session" %} <span class="tag">{{ c.state }}</span>{% endif %}</li>{% endfor %}</ul>{% else %}none{% endif %}
+        {% if s.supports %}<span class="note">Feeds: {% for c in s.supports %}{{ c.function }}{% if not loop.last %}, {% endif %}{% endfor %} (not closable yet)</span>{% endif %}</td>
+      <td>{{ s.mes }}</td>
+      <td>~{{ s.minutes }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% endfor %}
+  <h2>Ready to mark done (a person confirms)</h2>
+  {% if cs.ready %}
+  <table><tr><th>Parity row</th><th>Evidenced by</th><th>Still needed: MES side by side</th></tr>
+    {% for r in cs.ready %}<tr><td>{{ r.function }}</td><td>{{ r.steps|join("; ") }}</td><td>{{ r.mes|join(" / ") }}</td></tr>{% endfor %}
+  </table>
+  {% else %}<p class="note">No step is marked done yet. Steps marked done on the <a href="/v/{{ bar.vin }}/next-session">Next connection page</a> list their rows here. Nothing is marked automatically.</p>{% endif %}
+  {% if cs.rows_uncovered %}<p class="note">Rows no step covers: {{ cs.rows_uncovered|join(", ") }}.</p>{% endif %}
+</div>
+{% endblock %}

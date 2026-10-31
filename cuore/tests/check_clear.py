@@ -20,6 +20,7 @@ os.environ["CUORE_OBD_PORT"] = "COM99"
 os.environ.pop("OBD_PORT", None)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from _consent_helper import approved, fresh_authority  # noqa: E402  -- plays the person at the approve page
 from cuore.live import interlock, ops, store  # noqa: E402
 from cuore.live.errors import Refused  # noqa: E402
 from cuore.live.stream import Stream  # noqa: E402
@@ -118,24 +119,29 @@ def use(car: FakeCar) -> None:
     set_link(lk)
 
 
-# 1. consent is mandatory and checked before any traffic
+# 1. a person's approval is mandatory and checked before any traffic. A caller-supplied
+#    consent string (right or wrong) no longer authorises anything; it is ignored.
+fresh_authority()
 car = FakeCar()
 use(car)
 msg = raises(Refused, lambda: ops.clear_module_dtcs("ECM", "yes please", vin=VIN))
-check("wrong consent phrase is refused", msg is not None and "CLEAR ECM" in msg, str(msg))
-check("nothing was sent to the car without consent", car.sent == [], str(car.sent))
+check("no approval is refused and a request is created", msg is not None and "approval" in msg, str(msg))
+check("the refusal does not print the phrase", msg is not None and "CLEAR ECM" not in msg, str(msg))
+msg = raises(Refused, lambda: ops.clear_module_dtcs("ECM", "CLEAR ECM", vin=VIN))
+check("the right phrase supplied by the caller still refuses", msg is not None and "approval" in msg, str(msg))
+check("nothing was sent to the car without approval", car.sent == [], str(car.sent))
 
 # 2. refuses while moving
 car = FakeCar(speed_kmh=30)
 use(car)
-msg = raises(Refused, lambda: ops.clear_module_dtcs("ECM", "CLEAR ECM", vin=VIN))
-check("moving car is refused", msg is not None and "moving" in msg, str(msg))
+msg = raises(Refused, lambda: approved(ops.clear_module_dtcs, "ECM", vin=VIN))
+check("moving car is refused (after approval)", msg is not None and "moving" in msg, str(msg))
 check("no clear request sent while moving", "14FFFFFF" not in car.sent)
 
 # 3. a good clear: evidence first, acknowledged, immediate return flagged
 car = FakeCar()
 use(car)
-out = ops.clear_module_dtcs("ECM", "CLEAR ECM", vin=VIN)
+out = approved(ops.clear_module_dtcs, "ECM", vin=VIN)
 check("clear acknowledged", out.get("acknowledged") is True, str(out))
 check("cleared reported", out.get("cleared") is True, str(out))
 check("active codes before are recorded", out.get("active_before") == ["P0455-00", "P0456-00"],
@@ -161,7 +167,7 @@ check("clear evidence recorded as an observation from the car",
 # 4. a module refusing the clear (security gateway) is reported, not claimed
 car = FakeCar(clear_reply="7F1433")
 use(car)
-out = ops.clear_module_dtcs("ECM", "CLEAR ECM", vin=VIN)
+out = approved(ops.clear_module_dtcs, "ECM", vin=VIN)
 check("NRC 0x33 is reported as a refusal", "securityAccessDenied" in (out.get("refused_by_module") or ""),
       str(out))
 check("a refused clear is not reported as cleared", out.get("cleared") is False)

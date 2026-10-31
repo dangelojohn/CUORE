@@ -1,0 +1,33 @@
+{# One-tap "This helped / This was wrong" for a piece of CUORE advice. No JavaScript.
+   Include inside {% with h_page=..., h_item=..., h_label=... %}. vin and request come from the page context.
+   Posts to /v/{vin}/helped (cuore/web/helped_routes.py) and returns to this same place. Collect no customer data. #}
+<style>
+.helped { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; margin: 8px 0; }
+.helped form { margin: 0; }
+.helped .hp-btn, .helped summary.hp-btn { min-height: 56px; min-width: 56px; padding: 0 20px; display: inline-flex; align-items: center; justify-content: center; font-size: var(--fs-md, 16px); font-weight: 700; border: 2px solid var(--ink, #000); border-radius: var(--radius, 6px); background: var(--surface, #fff); color: var(--ink, #000); cursor: pointer; list-style: none; }
+.helped summary.hp-btn::-webkit-details-marker { display: none; }
+.helped details[open] summary.hp-btn { background: var(--surface-2, #eee); }
+.helped .hp-box { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.helped .hp-box input[type=text] { min-height: 56px; font-size: var(--fs-md, 16px); padding: 0 12px; }
+</style>
+{% set _vin = vin or 'none' %}
+{% set _back = request.url.path ~ ('?' ~ request.url.query if request.url.query else '') ~ '#' ~ (h_anchor or 'helped-' ~ h_item) %}
+<div class="helped" id="helped-{{ h_item }}" aria-label="Was this advice right?">
+  <form method="post" action="/v/{{ _vin }}/helped">
+    <input type="hidden" name="page" value="{{ h_page }}"><input type="hidden" name="item" value="{{ h_item }}">
+    <input type="hidden" name="label" value="{{ h_label|striptags|truncate(120, True, '') }}"><input type="hidden" name="verdict" value="helped">
+    <input type="hidden" name="redirect_to" value="{{ _back }}">
+    <button type="submit" class="hp-btn">This helped</button>
+  </form>
+  <details>
+    <summary class="hp-btn">This was wrong</summary>
+    <form class="hp-box" method="post" action="/v/{{ _vin }}/helped">
+      <input type="hidden" name="page" value="{{ h_page }}"><input type="hidden" name="item" value="{{ h_item }}">
+      <input type="hidden" name="label" value="{{ h_label|striptags|truncate(120, True, '') }}"><input type="hidden" name="verdict" value="wrong">
+      <input type="hidden" name="redirect_to" value="{{ _back }}">
+      <label for="hp-t-{{ h_item }}">What was wrong? (optional, no names or plates)</label>
+      <input type="text" id="hp-t-{{ h_item }}" name="text" maxlength="140" autocomplete="off">
+      <button type="submit" class="hp-btn">Send</button>
+    </form>
+  </details>
+</div>

@@ -15,6 +15,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 
 from ..api.deps import require_token
 from ..services import parts_catalog as pc
+from ..services import parts_links as pl
 from ..services import standard_parts as sp
 from . import routes as web_routes
 
@@ -112,7 +113,34 @@ def catalog_part(request: Request, pn: str) -> Response:
     ctx = _ctx(request, cat)
     std = ctx["std_att"]["by_pn"].get(pc.norm_pn(p["pn"]))
     ctx["standard"] = [std] if std else []
-    return web_routes._page(request, "catalog_part.html", **ctx, p=p, std=std)
+    return web_routes._page(request, "catalog_part.html", **ctx, p=p, std=std,
+                            links=pl.for_part(p, ctx["vin"], *_link_labels()))
+
+
+def _link_labels() -> tuple[dict, dict]:
+    """System and sensor display names for the derived "where it lives" links."""
+    sysl: dict = {}
+    senl: dict = {}
+    try:
+        import json
+        from pathlib import Path
+        from ..services import systems_bridge
+        sysl = {k: v.get("label", k) for k, v in systems_bridge.systems().items()}
+        raw = json.loads((Path(__file__).resolve().parents[1] / "data" / "sensors_stelvio_2018.json").read_text(encoding="utf-8"))
+        senl = {x["id"]: x.get("label", x["id"]) for x in raw.get("sensors", [])}
+    except Exception:  # noqa: BLE001 -- labels are cosmetic; keys are shown instead
+        pass
+    return sysl, senl
+
+
+@router.get("/catalog/system/{key}", response_class=HTMLResponse)
+def catalog_system(request: Request, key: str) -> Response:
+    """Catalogue sections mapped to one CUORE system (derived view, see parts_links)."""
+    cat = pc.load()
+    ctx = _ctx(request, cat)
+    secs = pl.sections_for_system(cat, key) if cat else []
+    label = _link_labels()[0].get(key, key.replace("_", " "))
+    return web_routes._page(request, "catalog_system.html", **ctx, skey=key, slabel=label, secs=secs)
 
 
 @router.get("/catalog/standard-img/{name}")

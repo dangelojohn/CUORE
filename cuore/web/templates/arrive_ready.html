@@ -40,7 +40,7 @@
 
   <section id="leads"><h2>2. Likely areas to check</h2>
     <p class="note">Leads to test from what CUORE already holds. None is a conclusion; conclusions need readings.</p>
-    {% if a.leads %}<ul class="rows">{% for l in a.leads %}<li><span class="tag">{{ l.kind }}</span> <strong>{{ l.text }}</strong>{% if l.test %}<br>Next test: {{ l.test }}{% endif %}<br><span class="note">{{ l.why }}{% if l.href %} <a href="{{ l.href }}">Open bulletin</a>{% endif %}</span></li>{% endfor %}</ul>
+    {% if a.leads %}<ul class="rows">{% for l in a.leads %}<li><span class="tag">{{ l.kind }}</span> <strong>{{ l.text }}</strong>{% if l.test %}<br>Next test: {{ l.test }}{% endif %}<br><span class="note">{{ l.why }}{% if l.href %} <a href="{{ l.href }}">Open bulletin</a>{% endif %}</span>{% with h_page='arrive', h_item='lead-' ~ loop.index, h_label=l.text %}{% include "_helped.html" %}{% endwith %}</li>{% endfor %}</ul>
     {% else %}<p>No open job, DTC history or bulletin link for this car yet.</p>{% endif %}
   </section>
 

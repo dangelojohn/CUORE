@@ -24,6 +24,7 @@ os.environ["CUORE_OBD_PORT"] = "COM99"
 os.environ.pop("OBD_PORT", None)
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
+from _consent_helper import approved, fresh_authority  # noqa: E402  -- plays the person at the approve page
 from cuore.live import actuate, interlock, ops, store  # noqa: E402
 from cuore.live.errors import Refused  # noqa: E402
 from cuore.live.learn import uds_transactions  # noqa: E402
@@ -280,8 +281,9 @@ def step(t: float, service: str, payload: list[str]) -> dict:
            "request": [service, *payload], "response": None, "nrc": None, "synthesised": False}
 
 
-# --- 2a. refused without the exact consent phrase; nothing reaches the wire
+# --- 2a. refused without a person's approval; nothing reaches the wire
 
+fresh_authority()
 car = FakeECU()
 use(car)
 proc_a = make_procedure("Test A", steps=[
@@ -290,8 +292,12 @@ proc_a = make_procedure("Test A", steps=[
 ])
 actuate.save_actuator(VIN, "ECM", "Test A", proc_a, source="test", tool="MES")
 msg = raises(Refused, lambda: ops.run_actuator(VIN, "ECM", "Test A", "please actuate this"))
-check("wrong consent phrase is refused", msg is not None and "ACTUATE ECM TEST A" in msg, str(msg))
-check("nothing was sent to the car without consent", car.sent == [], str(car.sent))
+check("no approval is refused and a request is created", msg is not None and "approval" in msg, str(msg))
+check("the refusal does not print the phrase", msg is not None and "ACTUATE ECM TEST A" not in msg, str(msg))
+msg = raises(Refused, lambda: ops.run_actuator(VIN, "ECM", "Test A",
+                                               actuate.consent_phrase("ECM", "Test A")))
+check("the right phrase supplied by the caller still refuses", msg is not None and "approval" in msg, str(msg))
+check("nothing was sent to the car without approval", car.sent == [], str(car.sent))
 
 # --- 2b. refused outright for ABS (safety-critical / CAN-CH); nothing sent -
 
@@ -303,7 +309,7 @@ proc_abs = make_procedure("Test B", steps=[
 ])
 actuate.save_actuator(VIN, "ABS", "Test B", proc_abs, source="test", tool="MES")
 consent_abs = actuate.consent_phrase("ABS", "Test B")
-msg = raises(Refused, lambda: ops.run_actuator(VIN, "ABS", "Test B", consent_abs))
+msg = raises(Refused, lambda: approved(ops.run_actuator, VIN, "ABS", "Test B", consent_abs))
 check("ABS actuation is refused outright", msg is not None and "safety-critical" in msg, str(msg))
 check("nothing was sent to the car for a blocked module", car.sent == [], str(car.sent))
 
@@ -316,7 +322,7 @@ proc_g = make_procedure("Test G", steps=[step(0.0, "27", ["01"])], replayable=Fa
                         reasons=["procedure includes UDS 0x27 SecurityAccess"])
 actuate.save_actuator(VIN, "ECM", "Test G", proc_g, source="test", tool="MES")
 consent_g = actuate.consent_phrase("ECM", "Test G")
-msg = raises(Refused, lambda: ops.run_actuator(VIN, "ECM", "Test G", consent_g))
+msg = raises(Refused, lambda: approved(ops.run_actuator, VIN, "ECM", "Test G", consent_g))
 check("a non-replayable procedure is refused", msg is not None and "not replayable" in msg, str(msg))
 check("nothing was sent for a non-replayable procedure", car.sent == [], str(car.sent))
 
@@ -329,7 +335,7 @@ proc_c = make_procedure("Test C", steps=[
 ])
 actuate.save_actuator(VIN, "ECM", "Test C", proc_c, source="test", tool="MES")
 consent_c = actuate.consent_phrase("ECM", "Test C")
-msg = raises(Refused, lambda: ops.run_actuator(VIN, "ECM", "Test C", consent_c))
+msg = raises(Refused, lambda: approved(ops.run_actuator, VIN, "ECM", "Test C", consent_c))
 check("a running engine is refused", msg is not None and "running" in msg, str(msg))
 check("no actuation request sent while the engine is running", actuation_sent(car) == [],
       str(car.sent))
@@ -343,7 +349,7 @@ proc_c2 = make_procedure("Test C2", steps=[
 ])
 actuate.save_actuator(VIN, "ECM", "Test C2", proc_c2, source="test", tool="MES")
 consent_c2 = actuate.consent_phrase("ECM", "Test C2")
-msg = raises(Refused, lambda: ops.run_actuator(VIN, "ECM", "Test C2", consent_c2))
+msg = raises(Refused, lambda: approved(ops.run_actuator, VIN, "ECM", "Test C2", consent_c2))
 check("a moving vehicle is refused", msg is not None and "km/h" in msg, str(msg))
 check("no actuation request sent while moving", actuation_sent(car) == [], str(car.sent))
 
@@ -357,7 +363,7 @@ proc_d = make_procedure("Test D", steps=[
 ])
 actuate.save_actuator(VIN, "ECM", "Test D", proc_d, source="test", tool="MES")
 consent_d = actuate.consent_phrase("ECM", "Test D")
-out_d = ops.run_actuator(VIN, "ECM", "Test D", consent_d)
+out_d = approved(ops.run_actuator, VIN, "ECM", "Test D", consent_d)
 check("replay reports control returned", out_d.get("control_returned") is True, str(out_d))
 check("replay reports session restored", out_d.get("session_restored") is True, str(out_d))
 check_eq("requests are sent in order despite a mid-procedure NRC", actuation_sent(car),
@@ -375,7 +381,7 @@ proc_e = make_procedure("Test E", steps=[
 ])
 actuate.save_actuator(VIN, "ECM", "Test E", proc_e, source="test", tool="MES")
 consent_e = actuate.consent_phrase("ECM", "Test E")
-out_e = ops.run_actuator(VIN, "ECM", "Test E", consent_e)
+out_e = approved(ops.run_actuator, VIN, "ECM", "Test E", consent_e)
 check("a raising step is reported, not raised out of run_actuator",
       any(s.get("label") == "learned" and s.get("error") for s in out_e["steps"]), str(out_e["steps"]))
 check("the terminator is still sent after a mid-procedure raise",
@@ -396,7 +402,7 @@ proc_f = make_procedure("Test F", steps=[
 actuate.save_actuator(VIN, "ECM", "Test F", proc_f, source="test", tool="MES")
 consent_f = actuate.consent_phrase("ECM", "Test F")
 t0 = time.monotonic()
-out_f = ops.run_actuator(VIN, "ECM", "Test F", consent_f, max_seconds=1.0)
+out_f = approved(ops.run_actuator, VIN, "ECM", "Test F", consent_f, max_seconds=1.0)
 elapsed = time.monotonic() - t0
 check("max_seconds bounds the whole replay", elapsed < 5.0, f"elapsed {elapsed:.2f}s")
 check("a budget note is recorded when the replay is cut short",
@@ -500,7 +506,7 @@ try:
     _msg = None
 except _Refused as e:
     _msg = str(e)
-check("a routine refuses the ordinary actuation phrase", _msg is not None and "RUN ROUTINE" in _msg,
+check("a routine refuses the ordinary actuation phrase", _msg is not None and "module ROUTINE" in _msg and "RUN ROUTINE" not in _msg,
       str(_msg))
 _r4 = _act.run_actuator(_FakeSess(), _ecm, _routine, consent="RUN ROUTINE ECM RELEARN")
 check("a routine runs with its own phrase and is flagged", _r4["routine"] is True)

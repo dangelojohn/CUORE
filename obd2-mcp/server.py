@@ -5,8 +5,15 @@ exposes it as MCP tools, keeps the tool names earlier Claude sessions know,
 and adds the two things that belong on the MCP surface rather than in HTTP:
 
 * ``send_raw`` with its consent flags (vehicle writes, adapter reconfiguration);
-* ``clear_dtcs`` with evidence capture, a speed check and a read-back. It is
-  the only vehicle write anywhere in the toolchain.
+* ``clear_dtcs`` with evidence capture, a speed check and a read-back.
+
+Every call that can change the car (``clear_dtcs``, ``clear_module_dtcs``,
+``run_actuator``, a ``send_raw`` vehicle write) needs a PERSON's approval on the
+CUORE ``/approve/<request_id>`` page (cuore/live/consent_gate.py). The tool
+cannot approve for itself: without a valid ``request_id`` it is refused and a
+pending request is created; the ``consent`` / ``confirm`` parameters alone
+authorise nothing. Approval state lives in the CUORE server's memory, so when
+CUORE cannot be reached these tools refuse (no in-process fallback for writes).
 
 Since 2026-09-25 cuore owns the adapter. Every read tool here is a request
 to cuore's HTTP API (``cuore_client``), which is started automatically if it
@@ -46,6 +53,8 @@ from cuore.live.config import state_dir  # noqa: E402
 from cuore.live.errors import LiveError, Refused  # noqa: E402
 from cuore.live import addressing as _addressing  # noqa: E402
 from cuore.live import clear as _clear  # noqa: E402
+from cuore.live import consent_gate  # noqa: E402
+from cuore.live.consent_gate import ConsentRefused, ConsentRequired  # noqa: E402
 from cuore.live.framing import adapter_error, reassemble  # noqa: E402
 from cuore.live.obd import decode_obd_dtcs  # noqa: E402
 from cuore.live.safety import (assert_raw_write_allowed, classify_command, is_adapter_only,  # noqa: E402
@@ -55,6 +64,10 @@ from cuore.live.transport import DEFAULT_TIMEOUT, link  # noqa: E402
 # Name this process in the advisory lock so the bench UI can show "held by
 # obd2-mcp" rather than mistaking it for itself.
 link().process = "obd2-mcp"
+
+# Approvals live in the CUORE server's memory, never here: this process only asks CUORE.
+consent_gate.set_remote(cuore_client.call,
+                        (cuore_client.CuoreUnavailable, cuore_client.CuoreTimeout))
 
 mcp = FastMCP("obd2")
 
@@ -66,6 +79,25 @@ def _json(fn: Callable[[], Any]) -> str:
         return json.dumps({"error": str(e), "kind": type(e).__name__}, indent=2)
     except Exception as e:  # serial or OS failures mid-operation
         return json.dumps({"error": f"{type(e).__name__}: {e}"}, indent=2)
+
+
+def _gated(fn: Callable[[], Any]) -> str:
+    """Like :func:`_json`, for the car-affecting tools: a refused approval is a normal answer
+    (with the request id and the page to open), never an exception text with a phrase in it."""
+    def run() -> Any:
+        try:
+            return fn()
+        except ConsentRequired as e:
+            return e.payload(cuore_client.base_url())
+        except ConsentRefused as e:
+            return {"refused": str(e)}
+    return _json(run)
+
+
+def _in_scope(grant: Any, fn: Callable[[], Any]) -> Any:
+    """Run ``fn`` with the approved write scope open (the transport refuses gated requests outside)."""
+    with consent_gate.write_scope(grant):
+        return fn()
 
 
 def _via(method: str, path: str, local: Callable[[], Any], *,
@@ -588,14 +620,15 @@ def list_actuators(vin: str = "") -> str:
 
 
 @mcp.tool()
-def run_actuator(module: str, name: str, consent: str, vin: str = "", max_seconds: float = 10.0,
-                 confirm: bool = False) -> str:
+def run_actuator(module: str, name: str, consent: str = "", vin: str = "", max_seconds: float = 10.0,
+                 confirm: bool = False, request_id: str = "") -> str:
     """Replay a learned actuator test (UDS 0x2F InputOutputControl / 0x31 RoutineControl).
 
-    MCP-only, in-process (no run route over HTTP: writes stay off HTTP by design). Refuses
-    unless consent is exactly "ACTUATE <MODULE> <NAME>" (e.g. "ACTUATE ECM EVAPORATION
-    CONTROL VALVE"), or "RUN ROUTINE <MODULE> <NAME>" when the procedure starts a module routine
-    (routine IDs are opaque and may be adaptation resets); the module is not safety-critical
+    MCP-only, in-process (no run route over HTTP: writes stay off HTTP by design). A PERSON must
+    approve this exact call first: the first call is refused and returns a request_id and the
+    CUORE page /approve/<request_id>; the person reads it and types the consent phrase THERE
+    (the phrase is shown only on that page). Then repeat the same call with request_id.
+    `consent` is ignored and authorises nothing. Also refuses unless the module is not safety-critical
     (ABS, EPS, ORC, HALF, DASM, ESL/NBS, TVM, TCM, ESM, DTCM, RFHUB, or anything on CAN-CH --
     use MultiEcuScan or wiTECH for those, never a replay here);
     the learned procedure is replayable; and the vehicle reads engine-off and stationary
@@ -608,46 +641,46 @@ def run_actuator(module: str, name: str, consent: str, vin: str = "", max_second
     """
     def body() -> Any:
         _sync_cable()
-        return ops.run_actuator(vin, module, name, consent, max_seconds=max_seconds,
-                                confirm=confirm)
-    return _json(body)
+        return ops.run_actuator(vin, module, name, max_seconds=max_seconds,
+                                confirm=confirm, request_id=request_id)
+    return _gated(body)
 
 
 @mcp.tool()
-def clear_module_dtcs(code: str, consent: str, vin: str = "", confirm: bool = False,
-                      override_speed_check: bool = False) -> str:
+def clear_module_dtcs(code: str, consent: str = "", vin: str = "", confirm: bool = False,
+                      override_speed_check: bool = False, request_id: str = "") -> str:
     """Clear ONE module's DTCs (UDS 0x14) after saving every code, snapshot and counter.
 
-    DESTRUCTIVE to evidence. consent must be exactly "CLEAR <MODULE>" (e.g. "CLEAR ECM").
-    Refuses while moving; confirm=True required on CAN-CH. Reads back and flags codes that
+    DESTRUCTIVE to evidence. A PERSON must approve this exact call first: the first call is
+    refused and returns a request_id and the CUORE page /approve/<request_id>; the person types
+    the consent phrase THERE. Then repeat the same call with request_id. `consent` is ignored
+    and authorises nothing. Refuses while moving; confirm=True required on CAN-CH. Reads back and flags codes that
     return immediately (live faults). A clear is not a repair: use verify_repair later.
     In-process by design (no write route on HTTP); adopts cuore's cable declaration first.
     """
     def body() -> Any:
         _sync_cable()
-        return ops.clear_module_dtcs(code, consent, vin=vin, confirm=confirm,
-                                     override_speed_check=override_speed_check)
-    return _json(body)
+        return ops.clear_module_dtcs(code, vin=vin, confirm=confirm,
+                                     override_speed_check=override_speed_check,
+                                     request_id=request_id)
+    return _gated(body)
 
 
 # --- the two MCP-only surfaces ------------------------------------------------
 
 @mcp.tool()
 def clear_dtcs(confirm: bool = False, override_speed_check: bool = False,
-               consent: str = "") -> str:
+               consent: str = "", request_id: str = "", vin: str = "") -> str:
     """Clear stored DTCs, freeze frames and readiness. Mode 04. DESTRUCTIVE. MCP-only.
 
-    Needs confirm=True AND consent set to exactly "CLEAR ALL EMISSIONS CODES" (show this
-    phrase to the owner and have them type it; never guess it). Captures stored, pending
+    Needs confirm=True AND a PERSON's approval: the first call is refused and returns a
+    request_id and the CUORE page /approve/<request_id>; the person types the consent phrase
+    THERE. Then repeat the same call with request_id. `consent` is ignored and authorises
+    nothing; vin is shown to the person. Captures stored, pending
     and permanent codes, the freeze-frame DTC and readiness to a file first, refuses while
     the vehicle reports motion, refuses while MultiEcuScan is connected or a live-data poll
     holds the adapter, and reads back afterwards.
     """
-    try:
-        _clear.assert_clear_all_allowed(consent)
-    except Refused as e:
-        audit.record("clear_dtcs_refused", reason=str(e))
-        return json.dumps({"refused": str(e), "consent_phrase": _clear.CLEAR_ALL_PHRASE}, indent=2)
     if not confirm:
         audit.record("clear_dtcs_refused", reason="confirm=True missing")
         return json.dumps({"refused": "pass confirm=True; this destroys the freeze-frame "
@@ -708,7 +741,15 @@ def clear_dtcs(confirm: bool = False, override_speed_check: bool = False,
             audit.record("clear_dtcs", acknowledged=acked, evidence=str(path))
             return out
 
-    return _json(body)
+    def gated() -> Any:
+        grant = consent_gate.authorize(
+            consent_gate.Action(tool="clear_dtcs", module="ALL", service="04", vin=vin,
+                                args={"confirm": True,
+                                      "override_speed_check": bool(override_speed_check)}),
+            request_id)                    # consumed here: before any traffic
+        return _in_scope(grant, body)
+
+    return _gated(gated)
 
 
 @mcp.tool()
@@ -716,14 +757,17 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
              i_understand_this_writes_to_the_vehicle: bool = False,
              allow_adapter_reconfiguration: bool = False,
              allow_while_mes_connected: bool = False, bus: str = "can_c",
-             confirm: bool = False, module: str = "", consent: str = "") -> str:
+             confirm: bool = False, module: str = "", consent: str = "",
+             request_id: str = "", vin: str = "") -> str:
     """One AT/ST/OBD/UDS command on the adapter with the reply parsed. MCP-only.
 
-    Reads need nothing extra. A VEHICLE WRITE (UDS 10/11/14/28/2C/2F/3D/87 ...) needs ALL of:
-    i_understand_this_writes_to_the_vehicle=True, module=<target module code, e.g. ECM>, and
-    consent set to exactly "SEND RAW <SERVICE> TO <MODULE>" where SERVICE is the command's
-    first byte in hex (e.g. "SEND RAW 2F TO ECM"). Show that phrase to the owner and have
-    them type it; never guess it. Writes are refused outright on ABS, EPS, ORC (airbag),
+    Reads (OBD modes 01-03/05-07/09/0A and UDS 19/22/3E) need nothing extra. ANY OTHER service is
+    treated as a VEHICLE WRITE (UDS 10/11/14/28/2C/2F/3D/87 ..., and services not on the read
+    allowlist) and needs ALL of: i_understand_this_writes_to_the_vehicle=True,
+    module=<target module code, e.g. ECM>, and a PERSON's approval: the first call is refused and
+    returns a request_id and the CUORE page /approve/<request_id>; the person types the consent
+    phrase THERE. Then repeat the same call with request_id. `consent` is ignored and authorises
+    nothing; vin is shown to the person. Writes are refused outright on ABS, EPS, ORC (airbag),
     HALF, DASM, ESL, TVM, TCM, ESM, DTCM, RFHUB (immobiliser), IPC (odometer) and anything on
     CAN-CH; UDS 27/2E/31/34/36/37/85 are blocked on every module; ATSH, STPX and Mode 04 are
     not accepted as writes here (use clear_dtcs for Mode 04). Writes also refuse while
@@ -742,21 +786,40 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
     kind, reason = classify_command(cmd)
     if kind == "blocked":
         return refuse(reason)
+    if kind == "read" and consent_gate.gated_service(cmd) is not None:
+        # classify_command is a deny-list; the gate is an allowlist. A hex service that is not on
+        # the read allowlist is treated as a write rather than trusted as a read.
+        kind, reason = "vehicle_write", (f"service 0x{consent_gate.gated_service(cmd)} is not on "
+                                         "the read allowlist, so it is treated as a write")
     write_ecu = None
+    grant = None
     if kind == "vehicle_write":
         if not i_understand_this_writes_to_the_vehicle:
             return refuse(reason, kind=kind,
                           how_to_proceed="pass i_understand_this_writes_to_the_vehicle=True "
-                                         "plus module= and the consent phrase "
-                                         f"{raw_write_phrase(cmd, module or '<MODULE>')!r}; "
+                                         "plus module=; a person must then approve the call on the "
+                                         "CUORE approve page (the first call returns its address); "
                                          "prefer MultiEcuScan for FCA actuator tests")
         try:
             known = _addressing.by_code(module.strip().upper()) if module.strip() else None
             if module.strip() and known is None:
                 raise Refused(f"unknown module code {module!r}")
-            assert_raw_write_allowed(cmd, module, consent,
+            # structural gates (no module, Mode 04, AT/ST, blocklists, CAN-CH); the phrase argument
+            # is the canonical one because the person types it on the approve page, not here
+            assert_raw_write_allowed(cmd, module, raw_write_phrase(cmd, module.strip().upper()),
                                      bus_key=known.bus_key if known else "")
             write_ecu = ops.uds_mod.resolve_module(module.strip())
+            grant = consent_gate.authorize(
+                consent_gate.Action(
+                    tool="send_raw", module=write_ecu.code,
+                    service=cmd.upper().replace(" ", "")[:2], vin=vin,
+                    args={"command": cmd.upper().replace(" ", ""), "bus": write_ecu.bus_key,
+                          "confirm": bool(confirm)}),
+                request_id)                # consumed here: before any traffic
+        except ConsentRequired as e:
+            audit.record("send_raw_refused", command=command[:80], module=module or None,
+                         reason="approval required", request_id=e.info.get("request_id"))
+            return json.dumps({**e.payload(cuore_client.base_url()), "command": command}, indent=2)
         except (Refused, LiveError) as e:
             return refuse(str(e), kind=kind)
         allow_while_mes_connected = False
@@ -793,6 +856,8 @@ def send_raw(command: str, timeout_seconds: float = DEFAULT_TIMEOUT,
             audit.record("send_raw", command=cmd, kind=kind, error=err or None, raw=raw[:200])
             return out
 
+    if grant is not None:
+        return _gated(lambda: _in_scope(grant, body))
     return _json(body)
 
 

@@ -157,6 +157,7 @@
         <a class="sx-btn sx-big" href="{{ gv.restart }}">Start over</a>
         <a class="sx-btn sx-big" href="{{ gv.exit }}">Exit guide</a>
       </p>
+      {% with h_page='systems', h_item='guide-' ~ (gv.step.title|lower|replace(' ', '-')|truncate(40, True, '')), h_label=gv.step.title, h_anchor='sx-guide' %}{% include "_helped.html" %}{% endwith %}
     </section>
     {% endif %}
     {{ sx_overlap(sx.overlap, hl, 'a') }}

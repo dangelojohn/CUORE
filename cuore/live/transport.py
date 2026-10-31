@@ -30,6 +30,7 @@ from .errors import AdapterFault, BadCommand, LinkUnavailable, Refused
 from .framing import (adapter_error, looks_like_wrong_baud, negative_responses,
                       payloads_for, reassemble)
 from .obd import PIDS_BY_HEX
+from .consent_gate import assert_request_permitted
 from .safety import assert_transmit_allowed, validate_command
 from .stream import SerialStream, Stream
 
@@ -185,6 +186,9 @@ class Session:
         incomplete read rather than an empty result.
         """
         command = validate_command(command)
+        # The belt under every tool: a request that can change the car leaves only inside an
+        # approved write scope (cuore.live.consent_gate), whatever code path built it.
+        assert_request_permitted(command)
         timeout = clamp_timeout(timeout)
         s = self.stream
         self._drain_stale(command)

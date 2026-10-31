@@ -305,27 +305,30 @@ def assert_raw_write_allowed(cmd: str, module_code: str, consent: str,
 
     Order: a write with no nameable module (ATSH, STPX arbitrary frames, Mode 04)
     is refused outright -- the module blocklist could not be applied to it; then
-    the module blocklist / CAN-CH; then the typed consent phrase.
+    the module blocklist / CAN-CH; then the phrase comparison. Since 2026-10-30 the phrase is
+    typed by a person on the approve page (:mod:`cuore.live.consent_gate`), not by the caller;
+    the tool passes the canonical phrase here so only the structural gates above decide, and a
+    caller-supplied string authorises nothing by itself. The refusal never prints the phrase.
     """
     compact = cmd.strip().upper().replace(" ", "")
     if compact in ("04", "0400"):
         raise Refused("Mode 04 clears emissions codes: use the clear_dtcs tool (it captures "
-                      "evidence first and needs its own consent phrase)")
+                      "evidence first and needs a person's approval)")
     if compact.startswith(("AT", "ST")):
         raise Refused(f"{compact[:4]} would send an arbitrary frame or redirect later requests, "
                       f"so the module blocklist cannot be applied to it; send_raw refuses it. "
                       f"Send the UDS request itself with module= set")
     code = (module_code or "").strip().upper()
     if not code:
-        raise Refused("a vehicle write through send_raw must name its target module (module=); "
-                      f"consent phrase for it will be 'SEND RAW {compact[:2]} TO <MODULE>'")
+        raise Refused("a vehicle write through send_raw must name its target module (module=)")
     if code in RAW_WRITE_BLOCKED_MODULES or bus_key == "can_ch":
         raise Refused(f"raw writes are refused on {code}: safety-critical (brakes, airbag/ORC, "
                       f"steering, driveline/park lock, immobiliser, odometer/cluster) or on "
                       f"CAN-CH; use MultiEcuScan or wiTECH, never a raw send here")
     want = raw_write_phrase(cmd, code)
     if (consent or "").strip().upper() != want:
-        raise Refused(f"this command writes to {code}; type the consent phrase exactly: {want!r}")
+        raise Refused(f"this command writes to {code}; the consent phrase does not match "
+                      f"(a person types it on the CUORE approve page; it is never shown here)")
 
 
 __all__ = [

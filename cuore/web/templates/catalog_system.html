@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{# Catalogue sections mapped to one CUORE system (derived view). cuore/web/catalog_routes.py #}
+{% block title %}Parts for {{ slabel }}{% endblock %}
+{% block content %}
+{% include "_catalog_style.html" %}
+<div class="cat-shell">
+{% set cur_group = '' %}{% set cur_slug = '' %}{% include "_catalog_rail.html" %}
+<div>
+<p class="cat-crumbs"><a href="/catalog">Parts catalogue</a>{% if vin %} › <a href="/v/{{ vin }}/systems/{{ skey }}">{{ slabel }} system</a>{% endif %}</p>
+<h1>Parts for {{ slabel }}</h1>
+{% if secs %}
+<p class="small">Catalogue sections that a mapping table assigns to this system. Others may also relate; unmapped sections are not guessed.</p>
+<div class="cat-wrap"><table class="cat-table"><tbody>
+{% for s in secs %}<tr><td>{% if s.diagram_id %}<a href="/catalog/d/{{ s.diagram_id }}">{{ s.title }}</a>{% else %}{{ s.title }}{% endif %}</td>
+  <td class="sub">{{ s.diagrams }} diagram{{ '' if s.diagrams == 1 else 's' }} · {{ s.parts }} part rows</td></tr>{% endfor %}
+</tbody></table></div>
+{% else %}<p class="muted">No catalogue section is mapped to this system.</p>{% endif %}
+</div>
+</div>
+{% endblock %}

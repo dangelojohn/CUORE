@@ -16,7 +16,7 @@ Why (2026-10-19): unverifiable statements and outside literature had been used i
 
 ## 3. Never clear codes without consent, and never as proof
 
-Clearing is consent-gated per module (typed phrase `CLEAR <MODULE>`, vehicle stationary, extra confirm on the chassis bus). It reads and stores every code, snapshot and counter before the clear, reads back afterwards, and reports refusals instead of claiming success. A clear is never phrased as evidence of a repair. Do not clear before a full monitor run (EVAP) has completed, and do not rely on the check-engine lamp as the indicator of a fault or its repair; track the status bytes instead.
+Clearing is consent-gated per module: a person approves the exact call on the CUORE approve page (typing the phrase `CLEAR <MODULE>` there; the tool cannot approve for itself, see `docs/design/CONSENT_GATE.md`), the vehicle must read stationary, and the chassis bus needs an extra confirm. It reads and stores every code, snapshot and counter before the clear, reads back afterwards, and reports refusals instead of claiming success. A clear is never phrased as evidence of a repair. Do not clear before a full monitor run (EVAP) has completed, and do not rely on the check-engine lamp as the indicator of a fault or its repair; track the status bytes instead.
 
 Why: a clear erases freeze frames and resets readiness, so an empty re-read proves nothing; repeated clears had destroyed evidence the diagnosis needed. Related commits: 3440054, 8dce38d (captures taken before anything can erase them), 0cdd74c.
 
@@ -72,7 +72,7 @@ Why: on 2026-09-26 scripted test reads and fake sessions had leaked into the rea
 
 ## 12. Read-only by default; writes are explicit and gated
 
-The live-data poller is read-only. Coding and configuration writes are blocked on every module by service (157177d). Actuator tests are consent-gated with bounded timing and a return-to-ECU check, and need the engine off. Vehicle modifications (for example paddle-shift) are a separate layer from diagnostics.
+The live-data poller is read-only. Coding and configuration writes are blocked on every module by service (157177d). Actuator tests need a person's approval on the approve page, are bounded in time, check the return to the ECU, and need the engine off. Vehicle modifications (for example paddle-shift) are a separate layer from diagnostics.
 
 ## 13. Save everything gathered (owner rule, 2026-10-29)
 

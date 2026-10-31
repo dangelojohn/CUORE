@@ -75,6 +75,18 @@
 
 {% set notes = p.mechanic_notes %}{% include "_catalog_mechanic.html" %}
 
+<section class="panel" id="cat-lives">
+  <h2>Where it lives on this car</h2>
+  {% if links and (links.systems or links.sensors or links.fuses) %}
+  <ul class="small">
+    {% for x in links.systems %}<li>System: {% if x.href %}<a href="{{ x.href }}">{{ x.label }}</a>{% else %}{{ x.label }}{% endif %} <span class="muted">({{ x.why }})</span></li>{% endfor %}
+    {% for x in links.sensors %}<li>Sensor: {% if x.href %}<a href="{{ x.href }}">{{ x.label }}</a>{% else %}{{ x.label }}{% endif %} <span class="muted">({{ x.why }})</span></li>{% endfor %}
+    {% for x in links.fuses %}<li>Fuse: {% if x.href %}<a href="{{ x.href }}">{{ x.label }}</a>{% else %}{{ x.label }}{% endif %} <span class="muted">({{ x.why }})</span></li>{% endfor %}
+  </ul>
+  {% if not vin %}<p class="cat-src">Open a vehicle to turn these into links.</p>{% endif %}
+  {% else %}<p class="muted small">Not linked to a system, sensor or fuse: no mapping table names this section or part.</p>{% endif %}
+</section>
+
 {% if p.curated %}
 <section class="panel"><h2>CUORE job-part card</h2>
   {% for c in p.curated %}<p><b>{{ c.name }}</b>{% if c.what_it_does %}: {{ c.what_it_does }}{% endif %}</p>

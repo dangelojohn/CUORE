@@ -87,6 +87,8 @@ def _codes(q: str, vin: str) -> list[dict[str, Any]]:
             from . import mes_bridge
             d = mes_bridge.describe_dtc(code)
             says = str(d.get("description") or d.get("text") or says)
+            if d.get("source_tag") and says != "Fault code":
+                says += f" (source: {d['source_tag']})"
         except Exception:  # noqa: BLE001 - description is a bonus, never required
             pass
         href = (f"/v/{vin}/codes?q={base}#row-{base}" if vin else f"/library?q={base}")

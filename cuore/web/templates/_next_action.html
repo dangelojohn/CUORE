@@ -16,6 +16,8 @@
   <p class="na-why">{{ na.why }}</p>
   {% if na.needs %}<p class="na-needs"><b>Needs:</b> {{ na.needs|join(" / ") }}</p>{% endif %}
   <a class="na-go" href="{{ na.href }}">&#9658; {{ na.link_label }}</a>
-  <details class="na-source"><summary>How CUORE chose this</summary>{{ na.source }}</details>
+  <details class="na-source"><summary>How CUORE chose this, and was it right?</summary>{{ na.source }}
+    {% with h_page='bench', h_item='next-action', h_label=na.title %}{% include "_helped.html" %}{% endwith %}
+  </details>
 </section>
 {% endif %}

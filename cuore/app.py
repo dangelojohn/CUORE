@@ -62,6 +62,8 @@ from .web import arrive_ready_routes  # noqa: E402
 from .web import warranty_routes  # noqa: E402
 from .web import library_routes  # noqa: E402
 from .web import bay_sheet_routes  # noqa: E402
+from .web import car_session_routes  # noqa: E402
+from .web import helped_routes  # noqa: E402
 from .web import find_routes  # noqa: E402
 from .web import handbook_routes  # noqa: E402
 from .web import path_diag_routes  # noqa: E402
@@ -116,6 +118,7 @@ from .web import inbox_routes  # noqa: E402
 from .web import jobs_routes  # noqa: E402
 from .web import fault_board_routes  # noqa: E402
 from .web import login_routes  # noqa: E402
+from .web import approve_routes  # noqa: E402
 from .api.deps import LoginRedirect, require_token, resolve_token  # noqa: E402
 from .web import flow_globals, tools_kb_globals  # noqa: F401
 from .web import icons, i18n  # noqa: F401
@@ -209,6 +212,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # --- routes -----------------------------------------------------------
     app.include_router(login_routes.router)
     app.include_router(accounts_routes.router)
+    app.include_router(approve_routes.router)
 
     @app.get("/api/openapi.json", include_in_schema=False,
              dependencies=[Depends(require_token)])
@@ -322,6 +326,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(warranty_routes.router)
     app.include_router(library_routes.router)
     app.include_router(bay_sheet_routes.router)
+    app.include_router(car_session_routes.router)
+    app.include_router(helped_routes.router)
     app.include_router(find_routes.router)
     app.include_router(handbook_routes.router)
     app.include_router(path_diag_routes.router)

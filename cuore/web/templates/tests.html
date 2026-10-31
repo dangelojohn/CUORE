@@ -192,6 +192,7 @@
     </details>
     {{ more(t) }}
   </form>
+  {% with h_page='tests', h_item=t.id, h_label=t.name %}{% include "_helped.html" %}{% endwith %}
   {% with test = t %}{% include "_tests_live.html" %}{% include "_tests_map.html" %}{% endwith %}
 </section>
 {% endif %}

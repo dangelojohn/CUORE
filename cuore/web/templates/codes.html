@@ -45,6 +45,7 @@
         <div><dt>System</dt><dd><a class="code-cluster-link" href="{{ r.cluster_href }}" title="Jump to this code's dossier cluster">{{ r.system_bucket }}</a></dd></div>
       </dl>
     </details>
+    {% with h_page='codes', h_item=r.dtc, h_label=(r.dtc ~ ' ' ~ (r.desc_short or '')), h_anchor='row-' ~ r.code_href_id %}{% include "_helped.html" %}{% endwith %}
   </li>
 {% endmacro %}
 {% set _sl = {"code": ("Code", "A→Z", "Z→A"), "state": ("State", "returned first", "seen-once first"),

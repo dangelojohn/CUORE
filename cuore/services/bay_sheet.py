@@ -43,7 +43,7 @@ def _codes(vin: str, job: Optional[dict]) -> tuple[list[dict], int, list[dict]]:
     except Exception:  # noqa: BLE001
         return [], 0, []
     now = [c for c in cards if fault_board.tier_of(c) == "now"]
-    rows = [{"code": _s(c.get("code")), "label": _s(c.get("label")), "status": _s(c.get("status")),
+    rows = [{"code": _s(c.get("code")), "label": _s(c.get("label")), "label_src": _s(c.get("description_source")), "status": _s(c.get("status")),
              "module": _s(c.get("module")), "safety": bool(c.get("safety")),
              "test": _s((c.get("next_test") or {}).get("text")), "href": c.get("href") or ""} for c in now]
     return rows[:MAX_CODES], max(0, len(rows) - MAX_CODES), cards

@@ -286,7 +286,8 @@ def assert_actuate_allowed(ecu: ECUAddress, procedure: Optional[dict[str, Any]],
         why = ("this procedure starts a module ROUTINE whose effect cuore cannot know (it may be "
                "an adaptation reset, not an output test)" if routine
                else "actuating it moves hardware")
-        raise Refused(f"{ecu.code} {name!r}: {why}; type the consent phrase exactly: {phrase!r}")
+        raise Refused(f"{ecu.code} {name!r}: {why}; the consent phrase does not match (a person "
+                      f"types it on the CUORE approve page; it is never shown here)")
     assert_actuation_module_allowed(ecu.code, ecu.bus_key)
     learned_target = str((procedure or {}).get("target") or "").upper()
     if learned_target and ecu.target is not None and learned_target != f"{ecu.target:02X}":

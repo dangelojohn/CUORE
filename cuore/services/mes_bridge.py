@@ -679,6 +679,11 @@ def describe_dtc(code: str, module: str = "") -> dict[str, Any]:
         raise BadRequest("a DTC code is required")
     result = dtc_text.describe(code, module.strip() or None)
     if result is None:
+        # Text MES itself printed in this platform's scan logs (naming only).
+        from . import dtc_text as printed
+        hit = printed.lookup(code, module.strip())
+        if hit:
+            return {"code": code.strip().upper(), **hit}
         raise NotFound(
             f"'{code}' has no entry in MES's shipped language files -- no "
             "DTC-code key exists in the currently installed "

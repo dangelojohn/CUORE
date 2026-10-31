@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Approve a car action{% endblock %}
+{% block content %}
+{# Human-only consent page. One request, one exact action, one typed phrase, one browser POST. No JavaScript.
+   Own <style>: --fs-* tokens only, 44 px targets. Logic: cuore/live/consent_gate.py, cuore/web/approve_routes.py #}
+<style>
+.apv { max-width: 860px; font-size: var(--fs-md); }
+.apv h1 { font-size: var(--fs-xl, var(--fs-lg)); margin: 8px 0 6px; }
+.apv h2 { font-size: var(--fs-lg); margin: 18px 0 6px; }
+.apv .lede, .apv .note { color: var(--ink-2); margin: 0 0 10px; }
+.apv .warn { border: 1px solid var(--rule); border-left: 6px solid var(--ink); padding: 10px 12px; margin: 0 0 14px; background: var(--surface-2); font-weight: 600; }
+.apv .flash { min-height: var(--tap, 44px); display: flex; align-items: center; padding: 0 12px; border: 1px solid var(--rule); margin: 0 0 12px; }
+.apv dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0 0 12px; }
+.apv dt { font-weight: 600; color: var(--ink-2); }
+.apv dd { margin: 0; overflow-wrap: anywhere; }
+.apv .mono { font-family: var(--numerals, monospace); font-variant-numeric: tabular-nums; }
+.apv .phrase { display: block; font-size: var(--fs-lg); font-weight: 700; padding: 12px; border: 2px solid var(--ink); margin: 6px 0 12px; letter-spacing: 0.03em; user-select: all; }
+.apv label { display: block; margin: 6px 0 4px; font-weight: 600; }
+.apv input[type=text] { width: 100%; min-height: var(--tap, 44px); font-size: var(--fs-md); padding: 0 12px; }
+.apv .btn { min-height: var(--tap, 44px); min-width: 180px; font-size: var(--fs-md); padding: 0 18px; margin-top: 10px; }
+.apv .tag { display: inline-flex; align-items: center; min-height: 32px; padding: 0 10px; border: 1px solid var(--rule); border-radius: 999px; font-size: var(--fs-sm); }
+</style>
+<div class="apv">
+  <h1>Approve a car action</h1>
+  {% if msg %}<p class="flash">{% if msg_kind == "err" %}&#10007;{% else %}&#10003;{% endif %} {{ msg }}</p>{% endif %}
+
+  {% if not v %}
+  <p class="warn">&#10007; No such request. It was never made, it expired, or CUORE was restarted (a restart voids every approval). Ask the assistant to repeat the call to create a new one.</p>
+  {% else %}
+  {% set d = v.description %}
+  <p class="lede">An assistant or tool asked CUORE to do the following to the car. Nothing has been sent. Read it, and approve only if you are at the car and want this.</p>
+  <h2>{{ d.title }}</h2>
+  <dl>
+    <dt>Car</dt><dd class="mono">{{ d.car }}</dd>
+    <dt>To</dt><dd>{{ d.to }}</dd>
+    <dt>What is sent</dt><dd>{{ d.sends }}</dd>
+    <dt>What it changes</dt><dd>{{ d.changes }}</dd>
+    <dt>Evidence saved</dt><dd>{{ d.evidence }}</dd>
+    <dt>Still refused by</dt><dd>{{ d.guards }}</dd>
+    <dt>Request</dt><dd class="mono">{{ v.request_id }} <span class="tag">{{ v.state }}</span> <span class="tag">{{ v.expires_in_s }} s left</span></dd>
+    <dt>Exact action</dt><dd class="mono">{{ v.action_hash }}</dd>
+  </dl>
+
+  {% if v.state == "pending" %}
+    {% if can_approve %}
+    <p class="warn">&#9632; Type the phrase below exactly, then press Approve. Approval works once, only for this exact action, and ends when the request expires.</p>
+    <span class="phrase mono">{{ v.phrase }}</span>
+    <form method="post" action="/approve/{{ request_id }}" autocomplete="off">
+      <input type="hidden" name="nonce" value="{{ nonce }}">
+      <label for="phrase">Type the phrase</label>
+      <input id="phrase" type="text" name="phrase" autocomplete="off" autocapitalize="characters" spellcheck="false" required>
+      <button class="btn" type="submit">&#10003; Approve this action</button>
+    </form>
+    <p class="note">To refuse, do nothing: the request expires by itself.</p>
+    {% else %}
+    <p class="warn">&#9632; This page cannot approve here. {{ notice }}</p>
+    {% endif %}
+  {% elif v.state == "approved" %}
+    <p class="warn">&#10003; Approved by {{ v.approver }}. Tell the assistant to repeat the same call with request id <span class="mono">{{ v.request_id }}</span>. It works once.</p>
+  {% elif v.state == "consumed" %}
+    <p class="warn">&#9632; This approval was already used. A new action needs a new request.</p>
+  {% else %}
+    <p class="warn">&#9632; This request is {{ v.state }}. Ask the assistant to repeat the call to create a new one.</p>
+  {% endif %}
+  {% endif %}
+</div>
+{% endblock %}
