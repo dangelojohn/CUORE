@@ -79,7 +79,18 @@ def _pagesize(size: str):
 # --- page scaffolding: repeated header + footer with page numbers ---------
 
 
-def _make_doc(out_name: str, size: str, header_text: str) -> tuple[BaseDocTemplate, list]:
+DEMO_LINE = "DEMO DATA: invented for a demonstration. Not from a car."
+
+
+def _is_demo(vin: Any) -> bool:
+    try:
+        from mes import demo as _demo
+        return _demo.is_demo_vin(vin)
+    except Exception:  # noqa: BLE001
+        return False
+
+
+def _make_doc(out_name: str, size: str, header_text: str, demo: bool = False) -> tuple[BaseDocTemplate, list]:
     pagesize = _pagesize(size)
     margin = 0.55 * inch
     width, height = pagesize
@@ -96,6 +107,15 @@ def _make_doc(out_name: str, size: str, header_text: str) -> tuple[BaseDocTempla
         canvas.setLineWidth(0.4)
         canvas.setStrokeColor(RULE)
         canvas.line(margin, height - 0.44 * inch, width - margin, height - 0.44 * inch)
+        if demo:   # on every page, unmissable: this report is not from a car
+            canvas.setLineWidth(1.2)
+            canvas.setDash(4, 3)
+            canvas.setStrokeColor(INK)
+            canvas.rect(margin, height - 0.72 * inch, width - 2 * margin, 0.2 * inch)
+            canvas.setDash()
+            canvas.setFont("Helvetica-Bold", 9)
+            canvas.setFillColor(INK)
+            canvas.drawCentredString(width / 2, height - 0.665 * inch, DEMO_LINE)
         canvas.setFont("Helvetica", 7)
         canvas.setFillColor(MUTED)
         canvas.drawCentredString(width / 2, 0.32 * inch, f"Page {doc.page}")
@@ -335,7 +355,7 @@ def build_vehicle_pdf(ctx: dict[str, Any], size: str = "letter") -> bytes:
     bar, view, stamp = ctx["bar"], ctx["view"], ctx["stamp"]
     header = f"{bar.get('name', '')} -- VIN {ctx['vin']}"
     buf = io.BytesIO()
-    doc, _ = _make_doc(buf, size, header)
+    doc, _ = _make_doc(buf, size, header, _is_demo(ctx.get("vin")))
     odo_text = f"{int(bar['odo_last']):,} km" if bar.get("odo_last") is not None else "no odometer on file"
 
     story: list[Any] = [
@@ -387,7 +407,7 @@ def build_code_pdf(ctx: dict[str, Any], size: str = "letter") -> bytes:
     bar, code = ctx["bar"], ctx["code"]
     header = f"{bar.get('name', '')} -- {code} -- VIN {ctx['vin']}"
     buf = io.BytesIO()
-    doc, _ = _make_doc(buf, size, header)
+    doc, _ = _make_doc(buf, size, header, _is_demo(ctx.get("vin")))
     row = ctx.get("row") or {}
     feel = ctx.get("feel") or {}
 

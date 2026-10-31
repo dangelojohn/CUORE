@@ -539,8 +539,8 @@
       {% else %}<p class="muted small">{{ t('no_active_codes') }}</p>{% endif %}
     {% endif %}
   </details>
-  {% if diagnosis_for is defined %}{% set dx = diagnosis_for(vin) %}{% if dx %}{% include "_diagnosis_panel.html" %}{% endif %}{% endif %}
-  {% if _active and intermittent_panel is defined %}{% with code = _active[0].code %}{% include "_intermittent_panel.html" %}{% endwith %}{% endif %}
+  {% if diagnosis_for is defined and (brand_has_data is not defined or brand_has_data) %}{% set dx = diagnosis_for(vin) %}{% if dx %}{% include "_diagnosis_panel.html" %}{% endif %}{% endif %}
+  {% if _active and intermittent_panel is defined and (brand_has_data is not defined or brand_has_data) %}{% with code = _active[0].code %}{% include "_intermittent_panel.html" %}{% endwith %}{% endif %}
   {{ step_nav(5) }}
 </section>
 {% else %}
@@ -596,7 +596,7 @@
   <h2 id="step-7" class="section-h step-title">7. {{ t("hypotheses") }}</h2>
   {{ step_oneliner(7) }}
   {{ blocker_banner() }}
-  {% if diagnosis_for is defined %}{% set dx = diagnosis_for(vin) %}{% if dx %}{% include "_diagnosis_panel.html" %}{% endif %}{% endif %}
+  {% if diagnosis_for is defined and (brand_has_data is not defined or brand_has_data) %}{% set dx = diagnosis_for(vin) %}{% if dx %}{% include "_diagnosis_panel.html" %}{% endif %}{% endif %}
 
   {% if undo_hyp %}
     <div class="note warn" data-undo-hyp="{{ undo_hyp }}">
@@ -734,7 +734,7 @@
   {% set panel = job_view.tools_panel %}
   {% set compact = True %}
   {% include "_tools_panel.html" %}
-  {% if parts_for is defined %}
+  {% if parts_for is defined and (brand_has_data is not defined or brand_has_data) %}
     {% set _parts = parts_for(job=job) %}
     {% if _parts %}
       <div class="panel tight"><h3>{{ t('parts') }}</h3>
@@ -781,7 +781,7 @@
   <h2 id="step-10" class="section-h step-title">10. {{ t("verify") }}</h2>
   {{ step_oneliner(10) }}
   {{ blocker_banner() }}
-  {% if trends_panel_context is defined %}{% with trends = trends_panel_context(vin) %}{% if trends %}{% include "_trends_panel.html" %}{% endif %}{% endwith %}{% endif %}
+  {% if trends_panel_context is defined and (brand_has_data is not defined or brand_has_data) %}{% with trends = trends_panel_context(vin) %}{% if trends %}{% include "_trends_panel.html" %}{% endif %}{% endwith %}{% endif %}
   {% include "_verdict_card.html" %}
   <p><a class="btn" href="/v/{{ vin }}/verify">{{ t('read_readiness') }} &rarr;</a></p>
   {% if job.verification %}

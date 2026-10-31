@@ -19,7 +19,7 @@
       <span class="bb-top">
         {% if c.brand.mark_url %}{% set b = c.brand %}<span class="bb-disc">{% include "_brand_mark.html" %}</span>{% endif %}
         <span class="bb-id">
-          <span class="bb-name">{{ c.name }}</span>
+          <span class="bb-name">{{ c.name }}{% if c.demo %} <span class="chip chronic demo-chip" data-demo-chip="1">DEMO</span>{% endif %}</span>
           <span class="bb-vin mono">{{ c.vin8 }}</span>
         </span>
         {% if c.status %}<span class="bb-status bb-s-{{ c.status|lower }}">{{ c.status }}</span>{% endif %}

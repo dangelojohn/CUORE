@@ -101,11 +101,21 @@ def simulation_active() -> bool:
         return False
 
 
+def demo_car(vin: Any) -> bool:
+    """True for an invented showcase car (drives the DEMO DATA banner and chips)."""
+    try:
+        from mes import demo as _demo
+        return _demo.is_demo_vin(vin)
+    except Exception:  # noqa: BLE001 -- a banner must never 500 a page
+        return False
+
+
 def _register(templates: Any) -> None:
     templates.env.globals["static_url"] = static_url
     templates.env.globals["fonts_css_link"] = fonts_css_link
     templates.env.globals["code_watch_state"] = code_watch_state
     templates.env.globals["simulation_active"] = simulation_active
+    templates.env.globals["demo_car"] = demo_car
     templates.env.globals["local_ferrari_mark"] = local_ferrari_mark
     templates.env.globals["top_car_name"] = top_car_name
     templates.env.globals["car_art_url"] = car_art_url

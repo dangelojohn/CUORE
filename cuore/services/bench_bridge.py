@@ -33,7 +33,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import cache, codes_call, dossier_bridge, known_good_bridge, mes_bridge, parts_bridge, tools_kb_bridge
+from . import cache, codes_call, demo_cars, dossier_bridge, known_good_bridge, mes_bridge, parts_bridge, tools_kb_bridge
 from .errors import BadRequest
 from ..live import checklists as checklist_store
 from ..live import read_state
@@ -552,6 +552,8 @@ def _next_actions(vin: str, open_work: list[dict[str, Any]],
         inspect_steps = _inspect_steps(codes)
         parts = _family_parts(vin, codes)
         tools = _family_tools(family)
+        if demo_cars.is_demo(vin):   # invented showcase car: no model fault trees, wiring or part numbers of any model
+            candidates, inspect_steps, parts, tools = [], [], [], []
         for step in card.get("steps") or []:
             entry = checklist.get(step["id"]) or {}
             done = bool(entry.get("done"))

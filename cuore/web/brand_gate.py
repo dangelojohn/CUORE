@@ -4,6 +4,8 @@ A brand with ``has_data: false`` in ``data/brands.json`` (Maserati, Ferrari toda
 vehicle data in CUORE, so any page that would draw from the Alfa/Stelvio reference data must
 not render for that brand's cars: a Stelvio fuse map on a Grecale is misinformation. Instead
 the page's normal heading and frame render with one calm empty panel (``_brand_empty.html``).
+The two invented showcase cars (``services/demo_cars.py``) get a small labelled DEMO sample table in
+place of that panel for the pages their file lists; every other page stays the empty panel.
 
 What stays open is data, not code: ``data/brand_pages.json`` lists the first path segments
 under ``/v/{vin}/`` that open normally (the record-keeping and "no scan on file" pages). Every
@@ -27,6 +29,7 @@ from fastapi import Header, Query, Request
 from ..api.deps import require_token
 from ..services import landing_bridge, mes_bridge
 from . import nav_items
+from .static_version import demo_car
 
 _PAGES = Path(__file__).resolve().parents[1] / "data" / "brand_pages.json"
 _CAR_PATH = re.compile(r"^/v/([^/]+)(?:/([^/]*))?")
@@ -102,6 +105,8 @@ async def brand_gate(request: Request, x_cuore_token: str | None = Header(defaul
         return
     if has_data(marque) or slug in set(_config().get("open") or []):
         return
+    if slug in set(_config().get("open_demo") or []) and demo_car(vin):   # the print sheet / phone card of an invented showcase car
+        return
     await require_token(request, x_cuore_token, token)   # logged-out visitors get the login redirect
     raise BrandEmpty(vin, slug, marque)
 
@@ -115,8 +120,13 @@ def render(request: Request, exc: BrandEmpty):
         name = car_identify.card_name(exc.vin) or shop_bridge.resolve_vehicle_name(exc.vin) or ""
     except Exception:  # noqa: BLE001
         name = ""
+    try:
+        from ..services import demo_cars
+        sample = demo_cars.page_sample(exc.vin, exc.slug)   # an invented showcase car: a small DEMO table, not the empty panel
+    except Exception:  # noqa: BLE001
+        sample = None
     resp = web_routes._page(request, "_brand_empty.html", vin=exc.vin, tab=exc.slug, live_strip=None,
-                            bar={"name": name, "vin": exc.vin}, page_title=title,
+                            sample=sample, bar={"name": name, "vin": exc.vin}, page_title=title,
                             empty_line=empty_line(title), page_note=page_note(exc.slug),
                             brand_label=brand_name(exc.marque))
     resp.status_code = 200 if request.method in ("GET", "HEAD") else 409

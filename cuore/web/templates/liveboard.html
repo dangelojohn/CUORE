@@ -14,10 +14,22 @@
 <section class="brand-empty" data-brand-empty="liveboard" style="max-width:46rem;margin:1.5rem auto">
   <h1>Live board</h1>
   <p class="muted small">{{ bar.name }}</p>
+  {% if demo_sample is defined and demo_sample %}
+  {# Invented showcase car: a static sample table, never a stream. No Start, no liveboard.js. #}
+  <div class="panel" data-demo-sample="liveboard" style="padding:1rem;border-style:dashed;overflow-x:auto">
+    <p><strong>DEMO sample table, not live.</strong> These numbers are invented. Nothing is connected, nothing is being read, and Start is withheld.</p>
+    <table class="demo-sample-table" style="width:100%;border-collapse:collapse">
+      <thead><tr><th scope="col" style="text-align:left">Reading (DEMO)</th><th scope="col" style="text-align:left">Sample value</th><th scope="col" style="text-align:left">Unit</th></tr></thead>
+      <tbody>{% for r in demo_sample %}<tr><td>{{ r.name }}</td><td>{{ r.value }}</td><td>{{ r.unit }}</td></tr>{% endfor %}</tbody>
+    </table>
+    <p class="small muted">Connecting to this brand is not confirmed yet, so CUORE does not start live readings here.</p>
+  </div>
+  {% else %}
   <div class="panel" role="status" style="padding:1.5rem;text-align:center;border-style:dashed">
     <p>No scan is on file for this car.</p>
     <p class="small muted">Connecting to this brand is not confirmed yet, so CUORE does not start live readings here.</p>
   </div>
+  {% endif %}
   <p><a class="lb-gochip lb-back" href="/v/{{ vin }}">Back to Bench</a></p>
 </section>
 {% else %}

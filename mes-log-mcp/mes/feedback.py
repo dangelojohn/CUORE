@@ -179,9 +179,12 @@ def load(vin: str = "", status: Optional[str] = None,
     those keys it supplies, leaving the rest unconstrained."""
     if status is not None and status not in STATUSES:
         raise ValueError("status must be one of: " + ", ".join(STATUSES))
+    from . import demo
     out = []
     for row in _read_all():
         if vin and row.get("vin") != vin:
+            continue
+        if not vin and demo.is_demo_record(row):   # rule 11: a demo car's feedback never counts in the totals
             continue
         if status and row.get("status") != status:
             continue

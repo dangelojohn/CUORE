@@ -3,6 +3,7 @@
   "open": ["", "menu", "bench", "job", "code", "codes", "liveboard", "report", "report.pdf",
            "scans", "recordings", "inbox", "media", "timeline", "notes", "symptoms",
            "feedback", "feedback-bulk", "release", "checklist", "helped"],
+  "open_demo": ["bay-service-sheet", "bay-card"],
   "notes": {
     "scan": "Connecting to a car of this brand is not confirmed yet: CUORE's bus and address paths are not confirmed for it, so it will not start a read here."
   }

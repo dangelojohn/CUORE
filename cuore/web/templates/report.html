@@ -141,7 +141,7 @@
     {% endfor %}
     {% for grp in _elec_groups %}
       {% set code = grp.primary %}
-      {% include "_electrical_path.html" %}
+      {% if (brand_has_data is not defined or brand_has_data) %}{% include "_electrical_path.html" %}{% endif %}
       {% if grp.also %}
         <p class="small muted elec-also-applies">Also applies to {{ grp.also|join(", ") }}.</p>
       {% endif %}

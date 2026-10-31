@@ -102,4 +102,7 @@ def gather(vin: str, plan: Optional[dict] = None) -> dict[str, Any]:
             top = cards[0] if cards else None
         except Exception:  # noqa: BLE001
             pass
+    from . import demo_cars
+    if job and demo_cars.is_demo(vin) and not (plan or {}).get("steps"):
+        plan = demo_cars.plan(vin)
     return next_action(vin, live, job, top, plan)

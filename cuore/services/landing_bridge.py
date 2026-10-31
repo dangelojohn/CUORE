@@ -135,10 +135,14 @@ def _art(vin: str, name: str) -> dict[str, str] | None:
     return None
 
 
+from . import demo_cars as demo_cars_mod  # noqa: E402
+
+
 def _verdict(vin: str, has_logs: bool) -> dict[str, Any]:
     """State word for a card. Reuses the cached workup + view the Bench uses,
     so a card can never disagree with the page it opens."""
-    if not has_logs:
+    from . import demo_cars   # an invented showcase car has its own demo dossier, not logs
+    if not has_logs and not demo_cars.is_demo(vin):
         return {"state": "NO_DATA", "rank": 2, "word": "NOT READ",
                 "detail": "No codes have been read from this car yet.", "not_read": 0}
     try:
@@ -231,6 +235,7 @@ def cars(query: str = "", marque: str = "") -> list[dict[str, Any]]:
             "last_seen": r["last_seen"], "in_bay": r["in_bay"],
             "complaint": (jobs[0].get("complaint") if jobs else "") or r["complaint"],
             "open_jobs": len(jobs), "verdict": verdict, "art": _art(vin, name),
+            "demo": demo_cars_mod.is_demo(vin),
         })
     out.sort(key=lambda c: (not c["in_bay"], c["verdict"]["rank"], _neg(c["last_seen"])))
     return out

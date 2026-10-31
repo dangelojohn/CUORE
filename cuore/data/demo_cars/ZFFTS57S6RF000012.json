@@ -1,0 +1,73 @@
+{
+  "_about": "DEMO ONLY. Every value in this file is invented for a dealer demonstration. Nothing here comes from a car, a manufacturer document or a workshop manual. Installed and removed by `python -m cuore.tools.demo_cars install|remove`.",
+  "demo": true,
+  "vin": "ZFFTS57S6RF000012",
+  "make": "Ferrari", "model": "Purosangue", "model_year": 2024,
+  "technician": "Demo Tech",
+  "odometer_km": 6200,
+  "complaint": "DEMO: driver reports a rough idle for the first minute on a cold start and a one-off engine warning light on the way in. Drives normally once warm.",
+  "symptoms": [{"tags": ["rough_idle", "mil_on"], "conditions": ["cold_start"], "text": "DEMO: rough idle for about a minute after a cold start, engine warning light once. Normal when warm."}],
+  "visit_days_ago": 2,
+  "module_label": "Engine control module bank 1 (DEMO)",
+  "codes": [
+    {"dtc": "P0304-00", "state": "active", "description": "Cylinder 4 misfire detected (DEMO generic wording)", "module": "Engine control module bank 1 (DEMO)",
+     "sessions": 2, "first_days_ago": 4, "last_days_ago": 2, "odometer_first_km": 6050, "odometer_last_km": 6200,
+     "freeze_frame": {"Engine speed": "760 rpm (DEMO sample)", "Coolant temperature": "34 C (DEMO sample)", "Vehicle speed": "0 km/h (DEMO sample)", "Load": "22 % (DEMO sample)"}},
+    {"dtc": "P0174-00", "state": "pending", "description": "System too lean, bank 2 (DEMO generic wording)", "module": "Engine control module bank 2 (DEMO)",
+     "sessions": 1, "first_days_ago": 2, "last_days_ago": 2, "odometer_first_km": 6200, "odometer_last_km": 6200,
+     "freeze_frame": {"Engine speed": "1900 rpm (DEMO sample)", "Coolant temperature": "88 C (DEMO sample)"}},
+    {"dtc": "P0521-00", "state": "history", "description": "Engine oil pressure sensor out of range (DEMO generic wording)", "module": "Engine control module bank 1 (DEMO)",
+     "sessions": 1, "first_days_ago": 75, "last_days_ago": 75, "odometer_first_km": 3100, "odometer_last_km": 3100, "freeze_frame": {}}
+  ],
+  "modules": [
+    {"name": "Engine control module bank 1 (DEMO)", "state": "Read", "codes": "2 codes (1 active, 1 stored history)"},
+    {"name": "Engine control module bank 2 (DEMO)", "state": "Read", "codes": "1 pending code"},
+    {"name": "Transmission control (DEMO)", "state": "Read", "codes": "No codes"},
+    {"name": "Suspension control (DEMO)", "state": "Read", "codes": "No codes"},
+    {"name": "Body control (DEMO)", "state": "Read", "codes": "No codes"},
+    {"name": "Infotainment (DEMO)", "state": "NOT READ", "codes": "No answer in the sample scan; not read, so not known to be clean"}
+  ],
+  "tsb": [
+    {"id": "DEMO-TSB-001", "title": "DEMO: example bulletin on cold-start misfire", "action": "Invented placeholder. A real bulletin would be looked up from the manufacturer's system.", "dtcs": ["P0304", "P0174"]}
+  ],
+  "job": {
+    "hypotheses": [
+      {"text": "DEMO: cylinder 4 ignition coil weak", "system": "Engine", "codes": ["P0304"], "likelihood": "med", "status": "refuted",
+       "next_test": "", "for": [{"kind": "code", "id": "P0304-00", "label": "P0304 active (DEMO)"}],
+       "against": [{"kind": "test", "id": "demo-test-1", "label": "Coil swapped to another cylinder; the misfire stayed on cylinder 4 (DEMO)", "result": "pass"}]},
+      {"text": "DEMO: cylinder 4 fuel injector under-delivering", "system": "Engine", "codes": ["P0304", "P0174"], "likelihood": "high", "status": "supported",
+       "next_test": "Run the injector balance test from the scan tool and compare cylinder 4 with its neighbours (DEMO: no limits given).",
+       "for": [{"kind": "test", "id": "demo-test-2", "label": "Misfire follows the cylinder, not the coil (DEMO)", "result": "fail"}], "against": []},
+      {"text": "DEMO: intake air leak on bank 2", "system": "Engine", "codes": ["P0174"], "likelihood": "low", "status": "open",
+       "next_test": "Smoke-test the bank 2 intake (DEMO).", "for": [], "against": []}
+    ],
+    "actions": [
+      {"kind": "test", "text": "DEMO: ignition coil from cylinder 4 swapped with cylinder 5; the misfire stayed on cylinder 4.", "days_ago": 1},
+      {"kind": "note", "text": "DEMO: cold start recorded on the bay camera; rough idle clear for about a minute.", "days_ago": 1}
+    ],
+    "fault_to_mark_fixed": ""
+  },
+  "service_record": {"category": "battery", "days_ago": 90, "odometer_km": 3000, "work_done": "DEMO: first service entry. Battery test and terminal clean.", "discoveries": ["DEMO: nothing found"], "considerations_next": ["DEMO: check again at the next service"]},
+  "maintenance_due": [
+    {"item": "DEMO-ITEM-A: engine oil and filter", "due": "DEMO: due soon", "basis": "Illustrative interval only. Not the manufacturer's schedule."},
+    {"item": "DEMO-ITEM-B: brake fluid", "due": "DEMO: later", "basis": "Illustrative interval only. Not the manufacturer's schedule."},
+    {"item": "DEMO-ITEM-C: cabin air filter", "due": "DEMO: later", "basis": "Illustrative interval only. Not the manufacturer's schedule."}
+  ],
+  "liveboard_sample": [
+    {"name": "Engine speed", "value": "760", "unit": "rpm"},
+    {"name": "Coolant temperature", "value": "34", "unit": "deg C"},
+    {"name": "Vehicle speed", "value": "0", "unit": "km/h"},
+    {"name": "Battery voltage", "value": "13.8", "unit": "V"},
+    {"name": "Oil pressure", "value": "illustrative", "unit": ""}
+  ],
+  "sample_pages": {
+    "systems": {"title": "Systems", "columns": ["System", "Example content"], "rows": [["Engine (DEMO)", "Three codes and one open job point here"], ["Suspension (DEMO)", "No codes in the sample scan"], ["Body (DEMO)", "No codes in the sample scan"]]},
+    "sensors": {"title": "Sensors", "columns": ["Sensor (DEMO)", "Used for", "Reading"], "rows": [["DEMO-SENSOR-A", "Oil pressure", "sample table, not a spec"], ["DEMO-SENSOR-B", "Coolant temperature", "sample table, not a spec"]]},
+    "fuses": {"title": "Fuses", "columns": ["Position", "Circuit", "Rating"], "rows": [["DEMO-F01", "Example circuit A", "not a real rating"], ["DEMO-F02", "Example circuit B", "not a real rating"], ["DEMO-F03", "Example circuit C", "not a real rating"]]},
+    "electrical": {"title": "Electrical", "columns": ["Path (DEMO)", "From", "To"], "rows": [["DEMO-PATH-1", "Example control module", "Example coil"], ["DEMO-PATH-2", "Example fuse", "Example relay"]]},
+    "harnesses": {"title": "Harnesses", "columns": ["Harness (DEMO)", "Runs between"], "rows": [["DEMO-HARNESS-1", "Engine bay and body (example)"], ["DEMO-HARNESS-2", "Front end and engine bay (example)"]]},
+    "service-hub": {"title": "Service resets", "columns": ["Due item (DEMO)", "When", "Basis"], "from": "maintenance_due"},
+    "parts": {"title": "Parts", "columns": ["Part (DEMO)", "Used for"], "rows": [["DEMO-PART-101", "Example ignition coil"], ["DEMO-PART-102", "Example fuel injector"]]},
+    "tsb": {"title": "TSB for this car", "columns": ["Bulletin (DEMO)", "Title", "Codes"], "from": "tsb"}
+  }
+}

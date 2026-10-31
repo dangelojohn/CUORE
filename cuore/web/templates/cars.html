@@ -30,7 +30,7 @@
       <span class="car-art">
         {% if c.art %}<svg viewBox="0 0 860 360" role="img" aria-label="{{ c.name }}, side view"><path d="{{ c.art.silhouette }}" fill="var(--surface-2)"/><path d="{{ c.art.ink }}" fill="var(--ink-2)" fill-rule="evenodd"/></svg>{% endif %}
       </span>
-      <span class="car-name">{{ c.name }}</span>
+      <span class="car-name">{{ c.name }}{% if c.demo %} <span class="chip chronic demo-chip" data-demo-chip="1">DEMO</span>{% endif %}</span>
       <span class="car-sub">{{ c.make }}{% if c.year %} &middot; {{ c.year }}{% endif %} &middot; <span class="mono">{{ c.short_vin }}</span></span>
       <span class="car-state">
         <span class="chip-verdict v-{{ c.verdict.state|lower|replace('_', '-') }}">{{ c.verdict.word }}</span>

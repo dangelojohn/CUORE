@@ -132,13 +132,17 @@ def add(vin: str, step: str, *, job_id: str = "", by: str = "",
         "would_buy": _clean_would_buy(would_buy),
         "time_min": time_min,
     }
+    from . import demo
+    if demo.is_demo_vin(vin):   # rule 11: an invented car teaches nothing
+        return {**rec, "demo": True, "recorded": False}
     _append(rec)
     return rec
 
 
 def load(vin: Optional[str] = None, step: Optional[str] = None) -> list[dict[str, Any]]:
     """Every review, oldest first, optionally filtered by VIN and/or step."""
-    rows = _raw_records()
+    from . import demo
+    rows = [r for r in _raw_records() if not demo.is_demo_record(r)]
     if vin:
         rows = [r for r in rows if r.get("vin") == vin]
     if step:

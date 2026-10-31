@@ -437,8 +437,8 @@
         {% endfor %}
       </ul>
     </section>
-    {% include "_bench_live_proof.html" %}
-    {% include "_bench_fault_map.html" %}
+    {% if (brand_has_data is not defined or brand_has_data) %}{% include "_bench_live_proof.html" %}{% endif %}
+    {% if brand_has_data is not defined or brand_has_data %}{% include "_bench_fault_map.html" %}{% endif %}
   {% endif %}
 
   {# Next connection: the plan for the next time the car is connected; open only while a connection is live. #}

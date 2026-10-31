@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from . import bay_service_sheet as sheet
-from . import flow_bridge, landing_bridge, mes_bridge
+from . import demo_cars, flow_bridge, landing_bridge, mes_bridge
 
 
 def _s(x: Any) -> str:
@@ -100,6 +100,7 @@ def build(now: Optional[datetime] = None) -> dict[str, Any]:
             "status": sheet.status_word(job, verdict),
             "work": work[0] if work else None,
             "state": verdict["state"], "state_word": verdict["word"],
+            "demo": demo_cars.is_demo(vin),
         })
     for c in cards:
         c["group"] = _group(c)

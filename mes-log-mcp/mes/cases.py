@@ -106,8 +106,9 @@ def _minutes_between(start: str, end: str) -> Optional[float]:
 
 
 def load(model: str = "") -> list[dict[str, Any]]:
-    """Every case on file, oldest first, optionally filtered by model."""
-    rows = _raw_records()
+    """Every case on file, oldest first, optionally filtered by model. Demo cars never count."""
+    from . import demo
+    rows = [r for r in _raw_records() if not demo.is_demo_record(r)]
     if model:
         rows = [r for r in rows if r.get("model") == model]
     return rows
@@ -456,6 +457,9 @@ def record_case(vin: str, job_id: str) -> dict[str, Any]:
     never from ``mes.jobs.close`` itself, so a plain close never silently
     creates a case; recording one is always a separate, explicit step."""
     case = case_from_job(vin, job_id)
+    from . import demo
+    if demo.is_demo_vin(vin):   # rule 11: an invented car never becomes a case to learn from
+        return {**case, "demo": True, "recorded": False}
     if any(r.get("id") == case["id"] for r in _raw_records()):
         return case
     _append(case)

@@ -212,8 +212,10 @@ def _build_facts(vin: str) -> dict[str, Any]:
             module = _short_module(rec.get("modules") or [])
             e = entry(module, base)
             e["desc"] = e["desc"] or (rec.get("descriptions") or [""])[0]
-            for occ in rec.get("occurrences") or []:
+            for i, occ in enumerate(rec.get("occurrences") or []):
                 st = "cleared" if occ.get("status") == "cleared" else "stored"
+                if rec.get("demo") and rec.get("demo_state") in ("active", "pending") and i == len(rec["occurrences"]) - 1:
+                    st = rec["demo_state"]   # invented showcase car: its newest sighting carries its stated state
                 ts = _n(occ.get("timestamp"))
                 e["events"].append({"ts": ts, "src": "log", "state": st, "id": f"log:{occ.get('file')}", "mil": False})
                 if st == "cleared":

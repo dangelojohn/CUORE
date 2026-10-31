@@ -290,6 +290,8 @@ def _report_context(vin: str) -> dict[str, Any]:
         correlation_findings = []
 
     all_codes = _all_report_codes(view)
+    from ..services import demo_cars
+    modelled = not demo_cars.is_demo(vin)   # an invented showcase car has no parts / manual / forum data of any model
 
     return {
         "vin": vin,
@@ -298,9 +300,9 @@ def _report_context(vin: str) -> dict[str, Any]:
         "stamp": _stamp(bar),
         "feels": _feels_for_open_work(vin, view["open_work"]),
         "correlation_findings": correlation_findings,
-        "parts": _parts_section(all_codes),
-        "fixes_fallback": _fixes_fallback(vin, view, all_codes),
-        "experience": _experience_for(view["open_work"], view["codes"]),
+        "parts": _parts_section(all_codes) if modelled else [],
+        "fixes_fallback": _fixes_fallback(vin, view, all_codes) if modelled else [],
+        "experience": _experience_for(view["open_work"], view["codes"]) if modelled else [],
         "notes": notes,
         "photos": _photos_for(vin, 6),
         "cases": _cases_for(vin, [c["code"] for c in view["codes"]]),
@@ -333,8 +335,9 @@ def _code_report_context(vin: str, code: str) -> dict[str, Any]:
     except BridgeError:
         notes = []
 
-    exp = experience_bridge.links_for(code=code_upper)
-    if family:
+    from ..services import demo_cars
+    exp = experience_bridge.links_for(code=code_upper) if not demo_cars.is_demo(vin) else {"links": []}
+    if family and not demo_cars.is_demo(vin):
         fam_exp = experience_bridge.links_for(family=family)
         exp = {"links": (exp.get("links") or []) + (fam_exp.get("links") or [])}
 
@@ -342,7 +345,7 @@ def _code_report_context(vin: str, code: str) -> dict[str, Any]:
         "vin": vin, "code": code_upper, "bar": bar, "view": view,
         "stamp": _stamp(bar), "row": row, "feel": feel, "card": card,
         "bulletins": bulletins, "frames": frames, "notes": notes,
-        "parts": _parts_for_code(code_upper), "experience": exp.get("links") or [],
+        "parts": [] if demo_cars.is_demo(vin) else _parts_for_code(code_upper), "experience": exp.get("links") or [],
         "history": history,
     }
 

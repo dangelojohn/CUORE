@@ -1308,6 +1308,9 @@ def _build_open_work(vin: str, dossier: dict[str, Any],
                      live_module_codes: frozenset[str] = frozenset(),
                      comms_like_bases: frozenset[str] = frozenset()
                      ) -> list[dict[str, Any]]:
+    from . import demo_cars
+    if demo_cars.is_demo(vin):   # invented showcase car: DEMO steps from its own file, no model fault trees
+        return demo_cars.open_work(vin, checklist)
     tsb = dossier.get("tsb_matches") or {}
     findings = tsb.get("family_findings") or []
     per_code = tsb.get("per_code") or {}

@@ -10,7 +10,8 @@
   .small { font-size: 10.5px; } .noprint button { font-size: 13px; padding: 4px 10px; }
   @media print { .noprint { display: none; } body { margin: 0; } }
   @page { size: letter; margin: 10mm; }
-</style></head><body>
+</style></head><body>{% if demo_car is defined and demo_car(vin if vin is defined else '') %}{% include "_demo_banner_standalone.html" %}{% endif %}
+
 <div class="noprint"><button onclick="window.print()">Print</button> <a href="/v/{{ vin }}/code/{{ code }}">Back to code</a></div>
 <h1>Electrical path sheet: {{ code }}</h1>
 <div>{{ car.name if car and car.name else "Vehicle" }} &middot; VIN {{ vin }}</div>

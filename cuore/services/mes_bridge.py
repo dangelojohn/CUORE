@@ -259,6 +259,9 @@ def workup(vin: str = "", vehicle: str = "") -> dict[str, Any]:
     itself a scan session, not a fact the "data through" date can ignore
     just because it never passed through a MES log file.
     """
+    from . import demo_cars  # an invented showcase car answers from its own file, never from logs
+    if vin and demo_cars.is_demo(vin):
+        return demo_cars.dossier(vin)
     dossier = workup_mod.build(vin=vin, vehicle=vehicle)
     if "error" in dossier:
         empty = _empty_workup(vin) if vin else None
@@ -344,6 +347,9 @@ def extract_dtcs(*, vin: str = "", vehicle: str = "", since: str = "",
     Ordered so the codes that decide a diagnosis come first: returned-after-
     clear, then chronic, then the rest.
     """
+    from . import demo_cars
+    if vin and demo_cars.is_demo(vin):
+        return demo_cars.extract_dtcs(vin)
     entries = CATALOG.select(vin=vin, vehicle=vehicle, since=since,
                              include_simulation=include_simulation)
     history = analysis.dtc_history(entries)
@@ -363,6 +369,12 @@ def dtc_history(code: str, *, vin: str = "") -> dict[str, Any]:
     wanted = code.strip().upper()
     if not wanted:
         raise BadRequest("a DTC is required")
+    from . import demo_cars
+    if vin and demo_cars.is_demo(vin):
+        found = demo_cars.dtc_history(vin, wanted)
+        if found:
+            return found
+        raise NotFound(f"{wanted} is not in the demo data for this car")
     history = analysis.dtc_history(vin=vin)
     matches = {k: v for k, v in history.items()
                if wanted in (k, k.split("-")[0])}
@@ -383,6 +395,9 @@ def freeze_frames(*, code: str = "", name: str = "",
     offering one.
     """
     wanted = code.strip().upper()
+    from . import demo_cars
+    if vin and demo_cars.is_demo(vin):
+        return demo_cars.freeze_frames(vin, wanted)
     if name.strip():
         try:
             entries = [CATALOG.by_name(name)]

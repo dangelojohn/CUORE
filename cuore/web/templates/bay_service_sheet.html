@@ -49,6 +49,7 @@ h1 { margin: 0; font-size: 24pt; line-height: 1.1; border-bottom: 1.5mm solid #0
 </head>
 <body>
 <main class="sheet" data-updated="{{ s.updated }}">
+{% if demo_car is defined and demo_car(s.vin) %}{% include "_demo_banner_standalone.html" %}{% endif %}
   {% if s.mark_url %}<img class="mark m-{{ s.mark_kind }}" src="{{ s.mark_url }}" alt="{{ s.marque }}">{% elif s.marque %}<div class="car">{{ s.marque }}</div>{% endif %}
   <h1>Bay Service Sheet</h1>
   {% if s.art %}<svg class="art" viewBox="0 0 860 360" role="img" aria-label="{{ s.name }}, side view"><path d="{{ s.art.ink }}" fill="#000" fill-rule="evenodd"/></svg>{% endif %}

@@ -18,6 +18,7 @@ ul { margin: 4px 0; padding-left: 22px; } li { margin: 0 0 8px; }
 </head>
 <body>
 <main>
+  {% if demo_car is defined and demo_car(s.vin) %}{% include "_demo_banner_standalone.html" %}{% endif %}
   <h1>{{ s.name or 'Car' }}</h1>
   <div class="mono">VIN {{ s.vin }}{% if s.odo is not none %}<br>{{ '{:,.0f}'.format(s.odo) }} km{% endif %}</div>
   <div class="muted">Updated {{ s.updated }} (read only)</div>

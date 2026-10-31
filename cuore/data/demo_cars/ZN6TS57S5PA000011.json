@@ -1,0 +1,74 @@
+{
+  "_about": "DEMO ONLY. Every value in this file is invented for a dealer demonstration. Nothing here comes from a car, a manufacturer document or a workshop manual. Installed and removed by `python -m cuore.tools.demo_cars install|remove`.",
+  "demo": true,
+  "vin": "ZN6TS57S5PA000011",
+  "make": "Maserati", "model": "Grecale", "model_year": 2023,
+  "technician": "Demo Tech",
+  "odometer_km": 18400,
+  "complaint": "DEMO: driver reports a loss of power on the motorway when overtaking, a boost warning message once, and a faint hiss under load. Started about a week ago, worse when warm.",
+  "symptoms": [{"tags": ["loss_of_power", "warning_message"], "conditions": ["highway", "hot"], "text": "DEMO: loses power when overtaking at motorway speed, boost warning once, faint hiss under load."}],
+  "visit_days_ago": 1,
+  "module_label": "Engine control module (DEMO)",
+  "codes": [
+    {"dtc": "P0299-00", "state": "active", "description": "Turbocharger underboost (DEMO generic wording)", "module": "Engine control module (DEMO)",
+     "sessions": 2, "first_days_ago": 9, "last_days_ago": 1, "odometer_first_km": 18120, "odometer_last_km": 18400,
+     "freeze_frame": {"Engine speed": "2850 rpm (DEMO sample)", "Vehicle speed": "112 km/h (DEMO sample)", "Coolant temperature": "91 C (DEMO sample)", "Boost pressure": "illustrative only", "Load": "78 % (DEMO sample)"}},
+    {"dtc": "P0171-00", "state": "pending", "description": "System too lean, bank 1 (DEMO generic wording)", "module": "Engine control module (DEMO)",
+     "sessions": 1, "first_days_ago": 1, "last_days_ago": 1, "odometer_first_km": 18400, "odometer_last_km": 18400,
+     "freeze_frame": {"Engine speed": "2100 rpm (DEMO sample)", "Vehicle speed": "88 km/h (DEMO sample)", "Coolant temperature": "93 C (DEMO sample)"}},
+    {"dtc": "P0128-00", "state": "history", "description": "Coolant temperature below regulating temperature (DEMO generic wording)", "module": "Engine control module (DEMO)",
+     "sessions": 1, "first_days_ago": 60, "last_days_ago": 60, "odometer_first_km": 16900, "odometer_last_km": 16900, "freeze_frame": {}}
+  ],
+  "modules": [
+    {"name": "Engine control module (DEMO)", "state": "Read", "codes": "2 codes (1 active, 1 pending)"},
+    {"name": "Transmission control (DEMO)", "state": "Read", "codes": "No codes"},
+    {"name": "Brake and stability control (DEMO)", "state": "Read", "codes": "No codes"},
+    {"name": "Body control (DEMO)", "state": "Read", "codes": "No codes"},
+    {"name": "Instrument cluster (DEMO)", "state": "Read", "codes": "1 stored history code"},
+    {"name": "Driver assistance camera (DEMO)", "state": "NOT READ", "codes": "No answer in the sample scan; not read, so not known to be clean"}
+  ],
+  "tsb": [
+    {"id": "DEMO-TSB-001", "title": "DEMO: example bulletin on charge-air leaks", "action": "Invented placeholder. A real bulletin would be looked up from the manufacturer's system.", "dtcs": ["P0299", "P0171"]}
+  ],
+  "job": {
+    "hypotheses": [
+      {"text": "DEMO: charge-air leak after the turbo (loose pipe clamp or cracked hose)", "system": "Engine", "codes": ["P0299", "P0171"], "likelihood": "high", "status": "supported",
+       "next_test": "Pressure-test the charge-air path and listen for the hiss under load (DEMO: no pressure or time given).",
+       "for": [{"kind": "code", "id": "P0299-00", "label": "P0299 active (DEMO)"}, {"kind": "inspection", "id": "demo-insp-1", "label": "Clamp on the charge-air pipe found loose (DEMO)", "result": "fail"}],
+       "against": []},
+      {"text": "DEMO: boost control actuator sticking", "system": "Engine", "codes": ["P0299"], "likelihood": "low", "status": "open",
+       "next_test": "Command the actuator from the scan tool and watch it move (DEMO).", "for": [], "against": []},
+      {"text": "DEMO: air filter restricted", "system": "Engine", "codes": ["P0299"], "likelihood": "low", "status": "refuted",
+       "next_test": "", "for": [], "against": [{"kind": "inspection", "id": "demo-insp-2", "label": "Air filter clean on inspection (DEMO)", "result": "pass"}]}
+    ],
+    "actions": [
+      {"kind": "inspection", "text": "DEMO: air filter and housing inspected, clean.", "days_ago": 1},
+      {"kind": "inspection", "text": "DEMO: charge-air pipe clamp found loose by hand; no other damage seen.", "days_ago": 1},
+      {"kind": "repair", "text": "DEMO: charge-air pipe re-seated and clamp tightened (no torque value is recorded in this demo).", "days_ago": 0}
+    ],
+    "fault_to_mark_fixed": "P0299"
+  },
+  "service_record": {"category": "battery", "days_ago": 120, "odometer_km": 12100, "work_done": "DEMO: scheduled service entry. Battery test and terminal clean.", "discoveries": ["DEMO: nothing found"], "considerations_next": ["DEMO: check again at the next service"]},
+  "maintenance_due": [
+    {"item": "DEMO-ITEM-A: engine oil and filter", "due": "DEMO: due soon", "basis": "Illustrative interval only. Not the manufacturer's schedule."},
+    {"item": "DEMO-ITEM-B: cabin air filter", "due": "DEMO: later", "basis": "Illustrative interval only. Not the manufacturer's schedule."},
+    {"item": "DEMO-ITEM-C: brake fluid", "due": "DEMO: later", "basis": "Illustrative interval only. Not the manufacturer's schedule."}
+  ],
+  "liveboard_sample": [
+    {"name": "Engine speed", "value": "2850", "unit": "rpm"},
+    {"name": "Vehicle speed", "value": "112", "unit": "km/h"},
+    {"name": "Coolant temperature", "value": "91", "unit": "deg C"},
+    {"name": "Boost pressure", "value": "illustrative", "unit": ""},
+    {"name": "Battery voltage", "value": "13.9", "unit": "V"}
+  ],
+  "sample_pages": {
+    "systems": {"title": "Systems", "columns": ["System", "Example content"], "rows": [["Engine and boost (DEMO)", "Two codes and one open job point here"], ["Brakes (DEMO)", "No codes in the sample scan"], ["Body (DEMO)", "No codes in the sample scan"]]},
+    "sensors": {"title": "Sensors", "columns": ["Sensor (DEMO)", "Used for", "Reading"], "rows": [["DEMO-SENSOR-A", "Boost pressure", "sample table, not a spec"], ["DEMO-SENSOR-B", "Coolant temperature", "sample table, not a spec"]]},
+    "fuses": {"title": "Fuses", "columns": ["Position", "Circuit", "Rating"], "rows": [["DEMO-F01", "Example circuit A", "not a real rating"], ["DEMO-F02", "Example circuit B", "not a real rating"], ["DEMO-F03", "Example circuit C", "not a real rating"]]},
+    "electrical": {"title": "Electrical", "columns": ["Path (DEMO)", "From", "To"], "rows": [["DEMO-PATH-1", "Example control module", "Example sensor"], ["DEMO-PATH-2", "Example fuse", "Example relay"]]},
+    "harnesses": {"title": "Harnesses", "columns": ["Harness (DEMO)", "Runs between"], "rows": [["DEMO-HARNESS-1", "Engine bay and body (example)"], ["DEMO-HARNESS-2", "Front end and engine bay (example)"]]},
+    "service-hub": {"title": "Service resets", "columns": ["Due item (DEMO)", "When", "Basis"], "from": "maintenance_due"},
+    "parts": {"title": "Parts", "columns": ["Part (DEMO)", "Used for"], "rows": [["DEMO-PART-101", "Example clamp for the charge-air pipe"], ["DEMO-PART-102", "Example air filter element"]]},
+    "tsb": {"title": "TSB for this car", "columns": ["Bulletin (DEMO)", "Title", "Codes"], "from": "tsb"}
+  }
+}

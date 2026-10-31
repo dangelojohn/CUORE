@@ -107,7 +107,7 @@
     <details class="fold" {{ 'open' if row.active_n }} style="margin-bottom:6px">
       <summary style="min-height:44px;display:flex;align-items:center"><h3 class="muted" style="margin:0">{{ row.family }}</h3>
         <span class="small muted" style="margin-left:8px">{{ exp.count if exp.count is defined else '' }} link{{ '' if exp.count == 1 else 's' }}</span></summary>
-      {% include "_experience.html" %}
+      {% if (brand_has_data is not defined or brand_has_data) %}{% include "_experience.html" %}{% endif %}
     </details>
   {% endif %}
 {% endfor %}

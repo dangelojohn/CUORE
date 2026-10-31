@@ -76,6 +76,10 @@
 </header>
 
 <main class="m-main">
+{% set _demo_vin = (vin if vin is defined and vin else (bar.vin if bar is defined and bar and bar.vin is defined else '')) %}
+{% if demo_car is defined and demo_car(_demo_vin) %}
+<div class="sim-banner demo-banner" role="status" data-demo-banner="1"><strong>&#9888; DEMO DATA: invented for a demonstration. Not from a car.</strong></div>
+{% endif %}
 {% if simulation_active is defined and simulation_active() %}
 <div class="sim-banner" role="status"><strong>&#9888; SIMULATION</strong>, not the car. Values on this page are fixture data.</div>
 {% endif %}

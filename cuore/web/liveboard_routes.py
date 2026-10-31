@@ -72,8 +72,9 @@ def liveboard_page(request: Request, vin: str) -> HTMLResponse:
     gid = (request.query_params.get("group") or "").strip()
     gview = lbv.group_view(board, vin, gid) if gid else None
     picker = value_groups.picker(vin, tok, gview["id"] if gview else "")
+    from ..services import demo_cars
     response = _page(request, "liveboard.html", vin=vin, bar=bar, view=view, q=q, gview=gview, picker=picker,
-                     bad_group=bool(gid and gview is None))
+                     bad_group=bool(gid and gview is None), demo_sample=demo_cars.liveboard_sample(vin))
     _set_active_vehicle(response, vin)
     return response
 

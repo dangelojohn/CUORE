@@ -6,14 +6,29 @@
 <section class="brand-empty" data-brand-empty="{{ tab }}">
   <h1>{{ page_title }}</h1>
   {% if bar.name %}<p class="muted small">{{ bar.name }}</p>{% endif %}
+  {% if sample is defined and sample %}
+  <div class="panel demo-sample" data-demo-sample="{{ tab }}">
+    <p class="small"><strong>DEMO sample table.</strong> Invented for a demonstration; not data for this model and not from a car.</p>
+    <table class="demo-sample-table">
+      <thead><tr>{% for c in sample.columns %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in sample.rows %}<tr>{% for cell in row %}<td{% if cell == 'NOT READ' %} class="demo-notread"{% endif %}>{% if cell == 'NOT READ' %}<strong>NOT READ</strong>{% else %}{{ cell }}{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table>
+    {% if page_note %}<p class="small muted">{{ page_note }}</p>{% endif %}
+  </div>
+  {% else %}
   <div class="panel brand-empty-panel" role="status">
     <p>{{ empty_line }}</p>
     {% if page_note %}<p class="small muted">{{ page_note }}</p>{% endif %}
   </div>
+  {% endif %}
 </section>
 <style>
 .brand-empty { max-width: 46rem; margin: 1.5rem auto; }
 .brand-empty-panel { padding: 1.5rem; text-align: center; border-style: dashed; }
 .brand-empty-panel p { margin: .25rem 0; }
+.demo-sample { padding: 1rem; border-style: dashed; overflow-x: auto; }
+.demo-sample-table { width: 100%; border-collapse: collapse; }
+.demo-sample-table th, .demo-sample-table td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid currentColor; }
+.demo-notread { text-decoration: underline; }
 </style>
 {% endblock %}
