@@ -11,6 +11,7 @@
   .rc-msg{font-size:1rem}
 </style>
 <h1>Recordings</h1>
+<p class="small"><a href="/recordings">All recordings, every car</a></p>
 {% set rec = state.recording %}
 <p class="rc-call" id="rc-call">
 {% if rec %}Recording: {{ fmt_dur(rec.elapsed_s) }} elapsed, {{ rec.channels|length }} channels

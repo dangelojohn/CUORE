@@ -22,9 +22,10 @@
   width: min(72vw, 280px); border-radius: 50%; background: var(--surface);
   border: 1px solid var(--rule); transition: border-color .25s ease;
 }
-.brand-tile:hover .bt-disc, .brand-tile:focus-visible .bt-disc, .brand-tile.last .bt-disc { border-color: var(--accent); }
-.brand-tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 6px; border-radius: var(--radius); }
+.brand-tile:hover .bt-disc, .brand-tile:focus-visible .bt-disc, .brand-tile.last .bt-disc { border-color: var(--accent-quiet); }
+.brand-tile:focus-visible { outline: 3px solid var(--accent-quiet); outline-offset: 6px; border-radius: var(--radius); }
 .bt-mark { width: 62%; height: 62%; object-fit: contain; display: block; }
+.brand-tile[data-marque="ferrari"] .bt-mark { width: 74%; height: 74%; }
 .bt-mask {
   background: var(--ink); -webkit-mask: var(--mark) center / contain no-repeat; mask: var(--mark) center / contain no-repeat;
 }
@@ -39,7 +40,7 @@
   border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink); text-decoration: none;
 }
 .cars-back:hover { border-color: var(--ink-3); }
-.cars-note { margin: 0 0 var(--space-6); }
+.cars-note { margin: 0 0 var(--space-6); width: 100%; text-align: center; }
 .cars-search { display: flex; gap: 8px; max-width: 520px; margin: var(--space-6) auto; }
 .cars-search input { flex: 1 1 auto; min-width: 0; min-height: var(--tap); font-size: var(--fs-md); }
 .cars-search .btn { min-height: var(--tap); }
@@ -50,14 +51,14 @@
   background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); min-height: 168px;
   transition: border-color .25s ease; overflow-wrap: anywhere;
 }
-.car-card:hover, .car-card:focus-visible { border-color: var(--accent); }
-.car-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.car-card:hover, .car-card:focus-visible { border-color: var(--accent-quiet); }
+.car-card:focus-visible { outline: 3px solid var(--accent-quiet); outline-offset: 2px; }
 .car-art { display: block; }
 .car-art svg { display: block; width: 100%; height: auto; max-height: 140px; }
 .car-name { font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-xl); letter-spacing: .03em; }
 .car-sub { font-size: var(--fs-sm); color: var(--ink-2); }
 .car-state { display: flex; flex-wrap: wrap; gap: 6px; }
 .car-add { align-items: center; justify-content: center; text-align: center; background: transparent; border-style: dashed; opacity: 1; animation: none; }
-.car-plus { font-size: var(--fs-3xl); font-weight: var(--fw-light); line-height: 1; color: var(--accent); }
+.car-plus { font-size: var(--fs-3xl); font-weight: var(--fw-light); line-height: 1; color: var(--accent-quiet); }
 .cars-empty { text-align: center; color: var(--ink-2); margin-top: var(--space-6); }
 .cars-empty a { display: inline-flex; align-items: center; min-height: var(--tap); }

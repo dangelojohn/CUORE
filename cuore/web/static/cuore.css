@@ -167,22 +167,51 @@
 }
 
 /* data-marque on <html> ("alfa" default, "maserati", "ferrari") only ever
- * swaps --accent/--accent-dim -- severity/--ok/--fam-* stay marque-invariant. */
-/* Marque typography (docs/design/ALFA_TYPOGRAPHY.md). --display carries the
- * brand wordmark, h1 and hero names; --numerals carries gauge and live values.
+ * swaps accent/typography/shape tokens -- severity/--ok/--fam-* stay marque-invariant.
+ * Marque typography (docs/design/ALFA_TYPOGRAPHY.md). --display carries the
+ * brand wordmark, headings and hero names; --numerals carries gauge and live values.
  * Each stack ends in the existing --sans / --mono so the page looks exactly as
  * before until the font files are approved and dropped under static/fonts/
- * (static/fonts/README.txt); fonts.css is linked only when it exists. */
-:root { --display: "Jost", var(--sans); --numerals: "Barlow Condensed", var(--mono); }
-:root[data-marque="ferrari"], .brand-tile[data-marque="ferrari"], .car-card[data-marque="ferrari"], .cars-head[data-marque="ferrari"]  { --display: "Saira", var(--sans); --numerals: "Titillium Web", var(--mono); }
-:root[data-marque="maserati"], .brand-tile[data-marque="maserati"], .car-card[data-marque="maserati"], .cars-head[data-marque="maserati"] { --display: "EB Garamond", Georgia, var(--sans); --numerals: "Jost", var(--mono); }
-:root[data-marque="maserati"], .brand-tile[data-marque="maserati"], .car-card[data-marque="maserati"], .cars-head[data-marque="maserati"]  { --accent: #3d6ea5; --accent-dim: #16263a; }
-:root[data-marque="ferrari"], .brand-tile[data-marque="ferrari"], .car-card[data-marque="ferrari"], .cars-head[data-marque="ferrari"]   { --accent: #d2001f; --accent-dim: #331014; }
-:root[data-theme="light"][data-marque="maserati"], :root[data-theme="light"] .brand-tile[data-marque="maserati"], :root[data-theme="light"] .car-card[data-marque="maserati"], :root[data-theme="light"] .cars-head[data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
-:root[data-theme="light"][data-marque="ferrari"], :root[data-theme="light"] .brand-tile[data-marque="ferrari"], :root[data-theme="light"] .car-card[data-marque="ferrari"], :root[data-theme="light"] .cars-head[data-marque="ferrari"]  { --accent: #a3001a; --accent-dim: #f3d9db; }
+ * (static/fonts/README.txt); fonts.css is linked only when it exists.
+ *
+ * Marque tokens (Alfa values are the defaults below; the heading/label rules
+ * that read them at the end of this file apply to Maserati and Ferrari only):
+ *   --display-weight / -stretch / -case / -track   headings and wordmarks
+ *   --label-case / -track / -stretch               small tracked labels (Menu tiles)
+ *   --accent-quiet / --accent-text                 non-action accent (rules, bars, hovers) / accent used as text
+ * Radius is the existing --radius token (0 under Maserati and Ferrari).
+ * Data values (readings, gauges, VIN) never read the case/stretch tokens. */
+:root {
+  --display: "Jost", var(--sans); --numerals: "Barlow Condensed", var(--mono);
+  --display-weight: var(--fw-light); --display-stretch: 100%; --display-case: none; --display-track: .04em;
+  --label-case: none; --label-track: .02em; --label-stretch: 100%;
+  --accent-quiet: var(--accent); --accent-text: var(--accent);
+}
+/* Ferrari: FerrariSans stand-in Saira (width axis to 125%), heavy extended uppercase,
+ * black and white, red kept for the primary action only, square corners. */
+:root[data-marque="ferrari"], .brand-tile[data-marque="ferrari"], .car-card[data-marque="ferrari"], .cars-head[data-marque="ferrari"] {
+  --display: "Saira", var(--sans); --numerals: "Titillium Web", var(--mono);
+  --display-weight: 700; --display-stretch: 125%; --display-case: uppercase; --display-track: .02em;
+  --label-case: uppercase; --label-track: .02em; --label-stretch: 90%; --accent-text: var(--ink-2);
+  --accent: #d2001f; --accent-ink: #fff; --accent-dim: #331014; --accent-quiet: var(--ink);
+  --radius: 0px; --radius-sm: 0px;
+}
+/* Maserati: Everett Light stand-in Jost 300, large light uppercase, tight tracking,
+ * black and white with one warm gold on the main action, square corners. */
+:root[data-marque="maserati"], .brand-tile[data-marque="maserati"], .car-card[data-marque="maserati"], .cars-head[data-marque="maserati"] {
+  --display: "Jost", var(--sans); --numerals: "Jost", var(--mono);
+  --display-weight: 300; --display-stretch: 100%; --display-case: uppercase; --display-track: -.01em;
+  --label-case: uppercase; --label-track: .04em; --label-stretch: 100%;
+  --accent: #ffc845; --accent-ink: #0a0a0a; --accent-dim: #3a2d0a; --accent-quiet: var(--ink);
+  --radius: 0px; --radius-sm: 0px;
+}
+/* Light theme. Ferrari red darkened; Maserati gold darkened to #7d5a00: 5.51:1 on
+ * --bg #eef0f2, 5.26:1 on --surface-2, 4.83:1 on --raised, and 6.30:1 with white ink. */
+:root[data-theme="light"][data-marque="ferrari"], :root[data-theme="light"] .brand-tile[data-marque="ferrari"], :root[data-theme="light"] .car-card[data-marque="ferrari"], :root[data-theme="light"] .cars-head[data-marque="ferrari"]  { --accent: #a3001a; --accent-ink: #fff; --accent-dim: #f3d9db; }
+:root[data-theme="light"][data-marque="maserati"], :root[data-theme="light"] .brand-tile[data-marque="maserati"], :root[data-theme="light"] .car-card[data-marque="maserati"], :root[data-theme="light"] .cars-head[data-marque="maserati"] { --accent: #7d5a00; --accent-ink: #fff; --accent-dim: #f1e6c4; }
 @media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"])[data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
-  :root:not([data-theme="dark"])[data-marque="ferrari"]  { --accent: #a3001a; --accent-dim: #f3d9db; }
+  :root:not([data-theme="dark"])[data-marque="ferrari"]  { --accent: #a3001a; --accent-ink: #fff; --accent-dim: #f3d9db; }
+  :root:not([data-theme="dark"])[data-marque="maserati"] { --accent: #7d5a00; --accent-ink: #fff; --accent-dim: #f1e6c4; }
 }
 
 /* Spacing scale used by the Marque-theme layer further down (job cards,
@@ -311,7 +340,7 @@ code, kbd, samp, .mono {
   font-weight: var(--fw-bold); letter-spacing: .06em; text-decoration: none;
   font-size: var(--fs-sm); text-transform: uppercase;
 }
-.top .brand-word span { color: var(--accent); }
+.top .brand-word span { color: var(--accent-quiet); }
 
 /* Marque badge slot. A marque with a supplied badge file fills it (the
  * Alfa Romeo badge, owner-supplied 2026-10-29 with the manufacturer's
@@ -339,7 +368,7 @@ code, kbd, samp, .mono {
 /* Maserati and Ferrari marks (static/brand/README.txt): monochrome SVGs used as a
  * mask over the ink colour, so they read in both themes. The Ferrari wordmark is
  * wide, hence its own slot width. */
-:root[data-marque="maserati"] { --marque-mark: url(/static/brand/maserati-trident.svg); --marque-mark-w: 40px; }
+:root[data-marque="maserati"] { --marque-mark: url(/static/brand/maserati-trident.svg); --marque-mark-w: 72px; }
 :root[data-marque="ferrari"]  { --marque-mark: url(/static/brand/ferrari-wordmark.svg); --marque-mark-w: 88px; }
 :root[data-marque="maserati"] .logo-slot, :root[data-marque="ferrari"] .logo-slot {
   border: 0; border-radius: 0; width: var(--marque-mark-w); background: var(--ink);
@@ -667,14 +696,16 @@ kbd {
 .top .menu-btn .menu-ico { font-size: var(--fs-xl); }
 .navsheet-toggle:focus-visible + .menu-btn { outline: 3px solid var(--ink); outline-offset: 2px; }
 .top .brand-word { font-size: var(--fs-lg); font-weight: var(--fw-light); letter-spacing: .12em; }
+/* Logo and wordmark sit on the page centre, as on the marques own sites: car name left, Menu right. */
+header.top { position: relative; }
+header.top .brand { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 .top-car {
-  flex: 1 1 0; min-width: 0; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 1 1 0; min-width: 0; max-width: calc(50% - 130px); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-xl); letter-spacing: .03em; color: var(--ink);
 }
 @media (max-width: 759px) {
-  /* phone: badge, car name, Menu -- the wordmark steps aside when a car is shown */
-  header.top:has(.top-car) .brand-word { display: none; }
-  .top-car { font-size: var(--fs-lg); text-align: left; }
+  /* phone: logo centred, Menu right; the car bar below carries the car name */
+  header.top .top-car { display: none; }
 }
 
 .navsheet { display: none; }
@@ -683,26 +714,42 @@ kbd {
   background: var(--bg); color: var(--ink); padding: 0 var(--pad) 32px;
   overscroll-behavior: contain;
 }
-.top .menu-btn:hover { border-color: var(--accent); }
-.navsheet-toggle:checked ~ .menu-btn { background: var(--surface); color: var(--ink); border-color: var(--accent); }
+.top .menu-btn:hover { border-color: var(--ink-3); }
+.navsheet-toggle:checked ~ .menu-btn { background: var(--surface); color: var(--ink); border-color: var(--ink-3); }
 body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
+.navsheet-toggle:checked ~ .navsheet { padding-inline: max(var(--pad), calc((100% - 1100px) / 2)); }
+
+/* Sheet bar: quiet. Title in the marque display face, underline-only search,
+ * ghost Search, Close stays a large target with the word (dirty-hands rule). */
 .navsheet-bar {
   position: sticky; top: 0; z-index: 2; display: flex; align-items: center;
-  justify-content: space-between; gap: 14px; min-height: 72px; padding: 8px 0;
+  justify-content: space-between; gap: var(--space-3); min-height: 72px; padding: 8px 0;
   background: var(--bg); border-bottom: 1px solid var(--rule);
 }
-.navsheet-search { flex: 1 1 auto; display: flex; gap: 8px; min-width: 0; max-width: 720px; margin: 0 auto; }
+.navsheet-title { font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-2xl); letter-spacing: .04em; }
+.navsheet-vin { font-family: var(--mono); font-size: var(--fs-md); color: var(--ink-3); font-weight: var(--fw-regular); letter-spacing: 0; }
+.navsheet-search { flex: 1 1 auto; display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 720px; margin: 0 auto; }
 .navsheet-q, .find-form input[type=search] {
   flex: 1 1 auto; min-width: 0; min-height: 56px; box-sizing: border-box; padding: 0 14px;
   font-size: var(--fs-lg); color: var(--ink); background: var(--surface);
   border: 2px solid var(--rule); border-radius: var(--radius);
 }
-.navsheet-go, .find-form button {
+.navsheet-q {
+  padding: 0 4px; background: transparent; border: 0; border-bottom: 1px solid var(--ink-3); border-radius: 0;
+}
+.navsheet-q:focus-visible { border-bottom-color: var(--ink); box-shadow: 0 1px 0 var(--ink); outline: none; }
+.find-form button {
   min-height: 56px; min-width: 96px; padding: 0 18px; font-size: var(--fs-lg); font-weight: var(--fw-semibold);
   color: var(--accent-ink); background: var(--accent); border: 2px solid var(--accent);
   border-radius: var(--radius); cursor: pointer;
 }
-.navsheet-q:focus-visible, .navsheet-go:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.navsheet-go {
+  min-height: 56px; min-width: 96px; padding: 0 18px; font-size: var(--fs-lg); font-weight: var(--fw-regular);
+  color: var(--ink); background: transparent; border: 1px solid var(--rule);
+  border-radius: calc(var(--radius) * 2); cursor: pointer;
+}
+.navsheet-go:hover { border-color: var(--ink-3); }
+.navsheet-go:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 @media (max-width: 600px) {
   .navsheet-bar { flex-wrap: wrap; }
@@ -726,29 +773,90 @@ body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
 }
 .find-link small { font-weight: var(--fw-regular); font-size: var(--fs-md); color: var(--ink-3); }
 .find-link:hover { border-color: var(--ink-3); }
-.navsheet-title { font-size: var(--fs-2xl); font-weight: var(--fw-bold); }
-.navsheet-vin { font-size: var(--fs-md); color: var(--ink-3); font-weight: var(--fw-regular); }
-.navsec { margin-top: 18px; }
-.navsec-title {
-  margin: 0 0 10px; font-size: var(--fs-md); text-transform: uppercase;
-  letter-spacing: var(--tracking-caps); color: var(--ink-3);
+
+/* Next step: the ONE place the accent appears in the Menu (plus the 3 px bar on
+ * the current page). Everything else is ink and hairline. */
+.navnext {
+  display: flex; align-items: center; gap: 10px; min-height: 72px; padding: 8px var(--space-3); margin-top: var(--space-4);
+  border: 1px solid var(--accent); border-radius: calc(var(--radius) * 2); color: var(--ink); text-decoration: none;
+  font-size: var(--fs-lg);
 }
+.navnext span { color: var(--accent-text); }
+.navnext b { font-family: var(--display); font-weight: var(--fw-regular); font-size: var(--fs-xl); }
+.navnext:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+/* Sections. The global h2 (later in this file) draws a 2 px accent rule: it is
+ * reset here, only inside the Menu, so no other page changes. */
+.navsec, .navmore { margin-top: var(--space-5); }
+.navsec-title {
+  margin: 0 0 var(--space-2); padding: 0; border: 0; font-size: var(--fs-sm); font-weight: var(--fw-regular);
+  text-transform: uppercase; letter-spacing: .14em; color: var(--ink-3);
+}
+.navsec-title::after { content: ""; display: block; margin-top: 10px; border-bottom: 1px solid var(--rule); }
 .navtiles {
   list-style: none; margin: 0; padding: 0; display: grid; gap: 14px;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
+.navtop { margin-top: var(--space-4); grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+
+/* Tile: icon over label over one-line subtitle. No heavy box at rest. */
 .navtile {
   font: inherit; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; text-align: center;
-  gap: 8px; min-height: 72px; min-width: 120px; padding: 10px 12px; box-sizing: border-box;
-  font-size: var(--fs-lg); font-weight: var(--fw-semibold); line-height: var(--lh-snug);
-  color: var(--ink); background: var(--surface); border: 2px solid var(--rule);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+  gap: 6px; min-height: 72px; min-width: 120px; padding: 12px; box-sizing: border-box;
+  font-size: var(--fs-lg); font-weight: var(--fw-regular); line-height: var(--lh-snug);
+  color: var(--ink); background: transparent; border: 1px solid var(--rule);
   border-radius: calc(var(--radius) * 2); text-decoration: none; overflow-wrap: normal; word-break: normal; hyphens: manual;
 }
-.navtile:hover { border-color: var(--ink-3); }
-.navtile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
-.navtile.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.navsheet-close { min-width: 120px; cursor: pointer; background: var(--raised); }
+.navtile:hover, .navtile:focus-visible { border-color: var(--ink-3); }
+.navtile:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.navtile.on { border-color: var(--ink-3); box-shadow: inset 3px 0 0 var(--accent-quiet); }
+.navtile.flow-current-tab { border-color: var(--ink-3); }
+.navico { flex: none; width: 1.75rem; height: 1.75rem; color: var(--ink-2); }
+.navtile:hover .navico, .navtile.on .navico { color: var(--ink); }
+.navlabel { max-width: 100%; font-family: var(--display); font-weight: var(--fw-regular); letter-spacing: .02em; }
+.navsub {
+  display: block; max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: var(--fs-xs); font-weight: var(--fw-regular); color: var(--ink-3); letter-spacing: 0;
+}
+.navtile .chip { margin-left: 6px; color: var(--ink-2); background: var(--surface-2); border: 1px solid var(--rule); }
+.navtop .navtile { min-height: 104px; gap: 8px; background: var(--surface); }
+.navtop .navico { width: 2.25rem; height: 2.25rem; color: var(--ink); }
+.navtop .navlabel { font-size: var(--fs-xl); }
+.navsheet-close { min-width: 120px; min-height: 56px; flex-direction: row; cursor: pointer; background: transparent; }
+
+/* More: a calm row with a chevron instead of the default disclosure triangle. */
+.navmore-sum {
+  display: flex; align-items: center; justify-content: space-between; min-height: 72px; padding: 0 var(--space-3);
+  list-style: none; cursor: pointer; font-family: var(--display); font-size: var(--fs-lg); color: var(--ink);
+  border: 1px solid var(--rule); border-radius: calc(var(--radius) * 2);
+}
+.navmore-sum::-webkit-details-marker { display: none; }
+.navmore-sum::after {
+  content: ""; width: .6rem; height: .6rem; margin-right: 4px; border: solid var(--ink-3); border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg) translate(-2px, -2px); transition: transform .25s ease;
+}
+.navmore[open] > .navmore-sum::after { transform: rotate(-135deg) translate(-2px, -2px); }
+.navmore-sum:hover { border-color: var(--ink-3); }
+.navmore-sum:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+@media (max-width: 479px) {
+  .navtiles, .navtop { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .navsub { display: none; }
+}
+
+/* Soft fade when the sheet opens (the landing page's lp-in, defined here because
+ * landing.css is not loaded on every page); staggered by section; off for reduced motion. */
+@keyframes nav-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  .navsheet-toggle:checked ~ .navsheet > :not(.navsheet-bar) { animation: nav-in .8s ease-out both; }
+  .navsheet-toggle:checked ~ .navsheet > :nth-child(2) { animation-delay: .05s; }
+  .navsheet-toggle:checked ~ .navsheet > :nth-child(3) { animation-delay: .12s; }
+  .navsheet-toggle:checked ~ .navsheet > :nth-child(4) { animation-delay: .19s; }
+  .navsheet-toggle:checked ~ .navsheet > :nth-child(5) { animation-delay: .26s; }
+  .navsheet-toggle:checked ~ .navsheet > :nth-child(6) { animation-delay: .33s; }
+  .navsheet-toggle:checked ~ .navsheet > :nth-child(n+7) { animation-delay: .4s; }
+}
 @media (max-width: 759px) {
   .top { gap: 8px; padding: 6px 10px; }
   }
@@ -1532,7 +1640,7 @@ h1 { font-size: var(--fs-3xl); }
 h2, .section-h, .step-title {
   font-size: var(--fs-2xl); font-weight: var(--fw-light); letter-spacing: -.01em; text-transform: none;
   margin: var(--space-5) 0 var(--space-2); padding-bottom: var(--space-2);
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent-quiet);
 }
 
 .step-oneliner {
@@ -2042,11 +2150,44 @@ header.top nav a { font-size: var(--fs-md); }
 .vchange:hover { border-color: var(--ink-3); }
 .vsearch { flex: 1 1 0; min-width: 0; margin: 0; }
 .vsearch input[type=search] { width: 100%; min-height: var(--tap); font-size: var(--fs-md); box-sizing: border-box; }
-/* Menu tile the flow says is the next step (was the tab-strip highlight). */
-.navtile.flow-current-tab { border-color: var(--accent); border-width: 2px; }
-.navtile.navtile-main { font-weight: var(--fw-semibold); }
-.navnext {
-  display: flex; align-items: center; gap: 10px; min-height: var(--tap); padding: 8px 14px; margin-top: 12px;
-  border: 2px solid var(--accent); border-radius: var(--radius); color: var(--ink); text-decoration: none;
-  font-size: var(--fs-lg);
+
+/* ---------- Maserati and Ferrari marque layer (docs/design/ALFA_TYPOGRAPHY.md) ----------
+ * Reads the tokens declared near the top of this file. Scoped so Alfa is untouched:
+ * the root carries data-marque for whole pages, and the landing/cars tiles and
+ * head carry their own. Headings and labels only: readings, gauges, VIN and other
+ * data values never take these rules. */
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) :is(h1, .stage-h, .bt-name, .car-name, .top-car, .navsheet-title, .hero-name, .as-h, .as-tile-name, .as-count, .top .brand-word) {
+  font-weight: var(--display-weight); font-stretch: var(--display-stretch); letter-spacing: var(--display-track);
 }
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) :is(h1, .stage-h, .bt-name, .car-name, .top-car, .navsheet-title, .hero-name, .as-h, .as-count) {
+  text-transform: var(--display-case);
+}
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) :is(h2, .section-h, .step-title) { border-bottom-color: var(--rule); }
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) :is(.navlabel, .navsec-title, .top .menu-btn) {
+  text-transform: var(--label-case); letter-spacing: var(--label-track); font-stretch: var(--label-stretch);
+}
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) .navlabel { font-size: var(--fs-sm); }
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) .navtile { padding-inline: 8px; }
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) .navnext span { white-space: nowrap; }
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) .navtop .navlabel { font-size: var(--fs-md); }
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) .navlabel { overflow-wrap: anywhere; hyphens: manual; }
+@media (max-width: 759px) {
+  :is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) .top-car { font-size: var(--fs-md); }
+}
+/* Maserati accent fills: the gold takes the near-black ink, never a hard-coded white. */
+:root[data-marque="maserati"] :is(.lb-btn-primary, .bc-btn-primary, .codesf-chip.on, .t-wf-controls button.primary, .m-chip-on, .m-chip-btn:active, .lb-gochip:hover, .cd-gochip:hover) { color: var(--accent-ink); }
+
+/* Word plus thin circled chevron for the Menu's two row actions. */
+:root:is([data-marque="maserati"], [data-marque="ferrari"]) :is(.navnext, .navmore-sum) { position: relative; padding-inline-end: calc(var(--space-3) + 44px); }
+:root:is([data-marque="maserati"], [data-marque="ferrari"]) :is(.navnext, .navmore-sum)::after {
+  content: ""; position: absolute; top: 50%; right: var(--space-3); width: 28px; height: 28px; margin: -14px 0 0; box-sizing: border-box;
+  border: 1px solid var(--ink-3); border-radius: 50%; transform: none; transition: border-color .2s ease;
+}
+:root:is([data-marque="maserati"], [data-marque="ferrari"]) :is(.navnext, .navmore-sum)::before {
+  content: ""; position: absolute; top: 50%; right: calc(var(--space-3) + 10px); width: 6px; height: 6px;
+  border: solid var(--ink); border-width: 0 1px 1px 0; transform: translateY(-50%) rotate(-45deg); transition: transform .25s ease;
+}
+:root:is([data-marque="maserati"], [data-marque="ferrari"]) .navmore-sum::before { right: calc(var(--space-3) + 11px); transform: translateY(-65%) rotate(45deg); }
+:root:is([data-marque="maserati"], [data-marque="ferrari"]) .navmore[open] > .navmore-sum::before { transform: translateY(-25%) rotate(-135deg); }
+:root:is([data-marque="maserati"], [data-marque="ferrari"]) .navmore[open] > .navmore-sum::after { transform: none; }
+:root:is([data-marque="maserati"], [data-marque="ferrari"]) :is(.navnext, .navmore-sum):hover::after { border-color: var(--ink); }

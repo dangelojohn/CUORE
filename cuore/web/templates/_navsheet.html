@@ -7,6 +7,12 @@
 {% macro _nl(key, fallback) -%}
 {%- if key and t is defined -%}{%- set _v = t(key) -%}{{ fallback if (_v == key) else _v }}{%- else -%}{{ fallback }}{%- endif -%}
 {%- endmacro %}
+{% set _icons = static_url('nav_icons.svg') if static_url is defined else '/static/nav_icons.svg' %}
+{% macro _ico(name) -%}<svg class="navico" aria-hidden="true"><use href="{{ _icons }}#ni-{{ name }}"></use></svg>{%- endmacro %}
+{# One tile.  Arguments are passed in (a macro does not see the page's set-variables). #}
+{% macro _tile(it) -%}
+<a class="navtile ni-{{ it.icon }}{{ ' on' if it.on }}{{ ' navtile-main' if it.primary }}{{ ' flow-current-tab' if it.key == _flow_key }}" href="{{ it.href }}" data-nav="{{ it.key }}"{% if it.on %} aria-current="page"{% endif %}>{{ _ico(it.icon) }}<span class="navlabel">{% if it.key == 'facts' and facts_nav_label is defined %}{{ facts_nav_label(_vin) }}{% else %}{{ _nl(it.i18n, it.label) }}{% endif %}{% if it.key == 'inbox' and _fbn %} <span class="chip chronic">{{ _fbn }}</span>{% endif %}</span>{% if it.sub %}<small class="navsub">{{ it.sub }}</small>{% endif %}</a>
+{%- endmacro %}
 {% set _u = request.state.user if request is defined and request and request.state and request.state.user is defined else none %}
 {% set _vin = vin if vin is defined and vin else none %}
 {% set _tab = tab if tab is defined and tab else '' %}
@@ -30,22 +36,43 @@
     </form>
     <label for="navsheet-toggle" class="navtile navsheet-close" role="button">Close</label>
   </div>
-  {% if _flow_item %}<a class="navnext" href="{{ _flow_item.href }}" data-nav-next="{{ _flow_item.key }}"><span>Next step:</span> <b>{{ _nl(_flow_item.i18n, _flow_item.label) }}</b></a>{% endif %}
-  {% if _menu %}{% for g in _menu.groups %}
-  <section class="navsec" aria-labelledby="navsec-{{ g.title|lower }}">
-    <h2 id="navsec-{{ g.title|lower }}" class="navsec-title">{{ g.title }}</h2>
+  {% if _vin %}
+  {% set _next = _flow_item if _flow_item else {"href": "/v/" ~ _vin ~ "/five-minute", "key": "five-minute", "i18n": none, "label": "Five-minute test"} %}
+  <a class="navnext" href="{{ _next.href }}" data-nav-next="{{ _next.key }}"><span>Next step:</span> <b>{{ _nl(_next.i18n, _next.label) }}</b></a>
+  {% endif %}
+  {% if _menu %}
+  {% if _menu.top %}
+  <section aria-labelledby="navsec-everyday">
+    <h2 id="navsec-everyday" class="sr-only">{{ 'Everyday pages' if _vin else 'Start here' }}</h2>
+    <ul class="navtiles navtop">
+      {% for it in _menu.top %}<li>{{ _tile(it) }}</li>{% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+  {% for g in _menu.open_groups %}
+  <section class="navsec" aria-labelledby="navsec-{{ g.title|lower|replace(' ', '-') }}">
+    <h2 id="navsec-{{ g.title|lower|replace(' ', '-') }}" class="navsec-title">{{ g.title }}</h2>
     <ul class="navtiles">
-      {% for it in g['items'] %}
-      <li><a class="navtile ni-{{ it.icon }}{{ ' on' if it.on }}{{ ' navtile-main' if it.primary }}{{ ' flow-current-tab' if it.key == _flow_key }}" href="{{ it.href }}" data-nav="{{ it.key }}"{% if it.on %} aria-current="page"{% endif %}><span>{% if it.key == 'facts' and facts_nav_label is defined %}{{ facts_nav_label(_vin) }}{% else %}{{ _nl(it.i18n, it.label) }}{% endif %}</span>{% if it.key == 'inbox' and _fbn %} <span class="chip chronic">{{ _fbn }}</span>{% endif %}</a></li>
-      {% endfor %}
+      {% for it in g['items'] %}<li>{{ _tile(it) }}</li>{% endfor %}
     </ul>
   </section>
   {% endfor %}{% endif %}
-  <section class="navsec" aria-labelledby="navsec-display">
-    <h2 id="navsec-display" class="navsec-title">This screen</h2>
-    <ul class="navtiles">
-      <li><button type="button" id="theme-toggle" class="navtile" aria-label="Toggle dark/light theme"><span>Dark / light</span></button></li>
-      <li><button type="button" class="navtile" onclick="window.print()"><span>Print this page</span></button></li>
-    </ul>
-  </section>
+  <details class="navmore">
+    <summary class="navmore-sum">More</summary>
+    {% if _menu %}{% for g in _menu.more_groups %}
+    <section class="navsec" aria-labelledby="navsec-more-{{ g.title|lower|replace(' ', '-') }}">
+      <h2 id="navsec-more-{{ g.title|lower|replace(' ', '-') }}" class="navsec-title">{{ g.title }}</h2>
+      <ul class="navtiles">
+        {% for it in g['items'] %}<li>{{ _tile(it) }}</li>{% endfor %}
+      </ul>
+    </section>
+    {% endfor %}{% endif %}
+    <section class="navsec" aria-labelledby="navsec-display">
+      <h2 id="navsec-display" class="navsec-title">This screen</h2>
+      <ul class="navtiles">
+        <li><button type="button" id="theme-toggle" class="navtile ni-theme" aria-label="Toggle dark/light theme">{{ _ico('theme') }}<span class="navlabel">Dark / light</span><small class="navsub">Switch the screen colours</small></button></li>
+        <li><button type="button" class="navtile ni-print" onclick="window.print()">{{ _ico('print') }}<span class="navlabel">Print this page</span><small class="navsub">Print what is on screen</small></button></li>
+      </ul>
+    </section>
+  </details>
 </div>

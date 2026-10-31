@@ -11,5 +11,3 @@
   src: url("/static/fonts/TitilliumWeb-Regular.ttf") format("truetype"); }
 @font-face { font-family: "Titillium Web"; font-weight: 700; font-display: swap;
   src: url("/static/fonts/TitilliumWeb-Bold.ttf") format("truetype"); }
-@font-face { font-family: "EB Garamond"; font-weight: 400 800; font-display: swap;
-  src: url("/static/fonts/EBGaramond-VF.ttf") format("truetype"); }

@@ -3,6 +3,7 @@
 {% block content %}
 
 <h1>Log index</h1>
+{% if vin %}<p class="small"><a href="/logs">All logs, every car</a></p>{% endif %}
 <p class="lede">Newest first by session timestamp — not by filename, which
 records when MES <em>closed</em> the file rather than when the session ran.
 Provenance is a column here, never a footnote.</p>

@@ -28,7 +28,7 @@ ferrari-wordmark.svg  Wikimedia Commons "File:Ferrari_wordmark.svg", fetched
     Commons does not host; it must come from Ferrari with permission, and then
     replaces the wordmark in the same slot (data-marque="ferrari").
 
-ferrari-horse.svg  Demo only, git-ignored, never in the public repo. Horse taken
-    from de.wikipedia "Datei:Scuderia Ferrari Logo.svg" on 2026-10-31 at the
+ferrari-horse.svg  Demo only, git-ignored, never in the public repo. Vector horse
+    from ferrari.com (the site header logo, in its site script) on 2026-10-31 at the
     owner's request (rights expected, not yet in writing). When present it
     replaces the wordmark; without it the wordmark shows.

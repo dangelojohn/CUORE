@@ -250,10 +250,10 @@ def check_menu(env: Environment) -> None:
     # COMPLETEVIN's current step is None (job finished) -> no highlight.
     done = env.get_template("_navsheet.html").render(vin="COMPLETEVIN0000001", tab="systems")
     check("menu: no flow marks when flow has no current step (job-complete fixture)",
-          "flow-current-tab" not in done and "navnext" not in done)
+          "flow-current-tab" not in done and 'data-nav-next="five-minute"' in done)
     none = env.get_template("_navsheet.html").render(vin="UNKNOWNVIN0000000", tab="systems")
     check("menu: no flow marks when the service has no flow for the car",
-          "flow-current-tab" not in none and "navnext" not in none)
+          "flow-current-tab" not in none and 'data-nav-next="five-minute"' in none)
 
 
 # --- CDP screenshot ---------------------------------------------------------

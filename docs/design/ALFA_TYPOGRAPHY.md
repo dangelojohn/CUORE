@@ -84,35 +84,37 @@ The 2023 car has a 3D "telescope" cluster (Alfa calls it "Cannocchiale") mixing 
 
 1. Brand type. The "Ferrari" wordmark lettering: not found (no source naming a typeface). A third-party, unofficial token page says the site uses "FerrariSans", a proprietary sans, medium weight, headings 500 to 700, with a secondary "Body-Font" for uppercase captions: https://open-design.ai/plugins/design-system-ferrari/ . Weak source; "Ferrari Pro" not found. Licensing: proprietary, supplied by Ferrari only.
 2. Cluster numerals. Roma shares the SF90 Stradale's curved 16 inch all-digital cluster with a large tachometer (https://www.carscoops.com/2019/12/ferrari-fully-details-the-new-roma-612-hp-grand-tourer/). Numeral letterform, Purosangue cluster, font ID: not found. No photo judged (images not viewable here).
-3. Look-alikes (INFERENCE, render before approving), both OFL:
-   - Display: Saira, https://fonts.google.com/specimen/Saira , variable TTF https://raw.githubusercontent.com/google/fonts/main/ofl/saira/Saira%5Bwdth,wght%5D.ttf , size not stated.
-   - Numerals: Titillium Web, https://fonts.google.com/specimen/Titillium+Web , Regular https://raw.githubusercontent.com/google/fonts/main/ofl/titilliumweb/TitilliumWeb-Regular.ttf , Bold https://raw.githubusercontent.com/google/fonts/main/ofl/titilliumweb/TitilliumWeb-Bold.ttf , size not stated.
+3. Real site, read 2026-10-31 (computed styles and screenshots; inspiration only, nothing copied): FerrariSans is proprietary. Headlines are extended width, heavy, uppercase; section labels small, medium weight; nav 12-13 px uppercase, about 1 px tracking. Black and white almost everywhere; red is rare and not a UI colour. Corners square. Actions are a small uppercase word plus a thin circled chevron.
+4. Open-licence stand-ins (OFL), used only until Ferrari supplies its own fonts. FerrariSans is not ours to use or redistribute; the licensed fonts come from the marque.
+   - Display: Saira (width axis 50% to 125%), https://fonts.google.com/specimen/Saira , self-hosted static/fonts/Saira-VF.ttf. Headlines: font-stretch 125%, weight 700, uppercase.
+   - Numerals: Titillium Web Regular and Bold, self-hosted. Data values are never uppercased or stretched.
+5. Theme rules (cuore.css): square corners (--radius 0). Accent red #d2001f (dark) and #a3001a (light) stays for the primary action only; rules, bars, hovers and wordmark accents use --accent-quiet (ink) and "Next step:" text uses --accent-text (ink-2), because red as text on black is only 3.7:1. Not yet done: other pages still read --accent for links and chips, so red appears there.
 
 # Maserati (data-marque="maserati")
 
 1. Brand type. 2020 identity was designed in-house at Centro Stile, Turin (https://www.designweek.co.uk/issues/14-20-september-2020/maserati-new-logo/). Typeface: no primary source names one. Third-party sites call the wordmark custom lettering or compare it to Bembo (https://madegooddesigns.com/?p=12386 ), unconfirmed. Confirmed name: not found. Licensing: proprietary custom lettering (INFERENCE).
 2. Cluster numerals. Grecale has a 12.3 inch digital cluster, graphics made in-house with Rightware Kanzi (https://www.businesswire.com/news/home/20220518005850/en). MC20 has a 10 inch cluster screen. Numeral letterform and font ID: not found. No photo judged.
-3. Look-alikes (INFERENCE), both OFL:
-   - Display: EB Garamond (Bembo-like old-style serif), https://fonts.google.com/specimen/EB+Garamond , variable TTF https://raw.githubusercontent.com/google/fonts/main/ofl/ebgaramond/EBGaramond%5Bwght%5D.ttf , size not stated.
-   - Numerals: Jost (see above), variable TTF https://raw.githubusercontent.com/google/fonts/main/ofl/jost/Jost%5Bwght%5D.ttf , size not stated.
+3. Real site, read 2026-10-31 (inspiration only): the typeface is Everett Light, a light neo-grotesque sans, not a serif (the Bembo guess above was wrong). Headlines about 60 px, uppercase, light, tracking about -2 px. Labels about 11 px uppercase, 1 px tracking. Black, white and one warm gold on the single main action, black text on it. White circles with thin chevrons; square corners. Not blue.
+4. Open-licence stand-in (OFL), used only until Maserati supplies its licensed fonts. Everett is not ours to use or redistribute.
+   - Display and numerals: Jost, weight 300, https://fonts.google.com/specimen/Jost , self-hosted static/fonts/Jost-VF.ttf. Headings uppercase, tracking -0.01em.
+   - EB Garamond is retired: its @font-face was removed from static/fonts/fonts.css (2026-10-31); EBGaramond-VF.ttf and its OFL text stay on disk.
+5. Theme rules (cuore.css): accent #ffc845 on dark with --accent-ink #0a0a0a (12.7:1 on black). Light theme gold #7d5a00: 5.51:1 on --bg #eef0f2, 5.26:1 on --surface-2, 4.83:1 on --raised, 6.30:1 with white ink. --accent-dim #3a2d0a (dark), #f1e6c4 (light). Gold fills take --accent-ink, never hard-coded white. Square corners. The old blue #3d6ea5 / #2a5680 is gone.
 
 # Marque token mapping
 
-```css
-:root[data-marque="alfa"]     { --display: "Jost", "Futura", system-ui, sans-serif;
-                                --numerals: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif; }
-:root[data-marque="ferrari"]  { --display: "Saira", system-ui, sans-serif;
-                                --numerals: "Titillium Web", system-ui, sans-serif; }
-:root[data-marque="maserati"] { --display: "EB Garamond", Georgia, serif;
-                                --numerals: "Jost", system-ui, sans-serif; }
+Fonts and shape are tokens set per marque in cuore.css; Alfa's values are the defaults, so Alfa is unchanged. Headings and labels read them; data values never do. Tile labels are 14px (16px on the top tiles) under both marques, from the type scale.
 
-@font-face { font-family: "Titillium Web"; font-weight: 400; font-display: swap;
-  src: url("/static/fonts/TitilliumWeb-Regular.ttf") format("truetype"); }
-@font-face { font-family: "Titillium Web"; font-weight: 700; font-display: swap;
-  src: url("/static/fonts/TitilliumWeb-Bold.ttf") format("truetype"); }
-@font-face { font-family: "Saira"; font-weight: 100 900; font-stretch: 50% 125%; font-display: swap;
-  src: url("/static/fonts/Saira-VF.ttf") format("truetype"); }
-@font-face { font-family: "EB Garamond"; font-weight: 400 800; font-display: swap;
-  src: url("/static/fonts/EBGaramond-VF.ttf") format("truetype"); }
-```
-Jost and Barlow Condensed blocks are in section 4. Rename bracketed variable files (Saira, EBGaramond, Jost) when copying. Verify the font-stretch range against the font before shipping.
+| token | alfa | maserati | ferrari |
+|---|---|---|---|
+| --display | Jost | Jost | Saira |
+| --numerals | Barlow Condensed | Jost | Titillium Web |
+| --display-weight | 300 | 300 | 700 |
+| --display-stretch | 100% | 100% | 125% |
+| --display-case | none | uppercase | uppercase |
+| --display-track | .04em | -.01em | .02em |
+| --label-case / --label-track / --label-stretch | none / .02em / 100% | uppercase / .04em / 100% | uppercase / .02em / 90% |
+| --radius | 3px | 0 | 0 |
+| --accent (dark / light) | red | #ffc845 / #7d5a00 | #d2001f / #a3001a |
+| --accent-quiet | accent | ink | ink |
+
+Circled chevrons on the Menu's Next step and More rows apply to Maserati and Ferrari only (Alfa keeps its plain chevron). Font files: Jost-VF, Saira-VF, TitilliumWeb, BarlowCondensed under static/fonts, declared in fonts.css. Verify the Saira font-stretch range against the font before shipping.

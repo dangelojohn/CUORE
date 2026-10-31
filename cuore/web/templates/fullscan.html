@@ -60,6 +60,7 @@
 <div class="fscan" data-phase="{{ phase }}"{% if state.scan_id %} data-scan-id="{{ state.scan_id }}"{% endif %}>
 
 <h1>Full scan</h1>
+<p class="small"><a href="/v/{{ vin }}/scans">Earlier scans of this car</a></p>
 <p class="lede">
   Reads everything the adapter can reach. The main diagnostic bus (CAN-C)
   needs no cable at all; the body/comfort bus (CAN-IHS) needs the blue A5

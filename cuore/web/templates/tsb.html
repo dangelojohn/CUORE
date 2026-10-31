@@ -24,6 +24,7 @@
 </style>
 
 <h1>TSB checklist</h1>
+{% if vin %}<p class="small"><a href="/tsb">All bulletins, every car</a></p>{% endif %}
 <p class="lede">Every technical service bulletin, recall, customer-satisfaction
   notification, campaign and extended coverage on file for
   {{ view.vehicle.year }} {{ view.vehicle.make }} {{ view.vehicle.model }} {{ view.vehicle.engine }}

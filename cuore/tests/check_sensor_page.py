@@ -292,8 +292,9 @@ check(".sens-photo-frame" in css and "background: #f4f4f1" in css, "photo styles
 # the car view: ONE view, Side / Top toggle, count markers, big targets
 check(html.count('class="sv-wrap"') == 1 and 'id="sv-side"' in html and 'id="sv-top"' in html and 'id="sv-front"' in html
       and 'class="sv-tabs"' in html, "one car view with a Side / Top / Front toggle")
-check(html.count("<svg") == 4 and html.count("sm-cluster") >= 3, "side, top, front and rear drawings (toggled) with count markers")
-side_svg = html.split('<svg')[1]
+body_html = html.split("</header>", 1)[-1]  # the Menu's tile icons are svgs too
+check(body_html.count("<svg") == 4 and html.count("sm-cluster") >= 3, "side, top, front and rear drawings (toggled) with count markers")
+side_svg = body_html.split('<svg')[1]
 check('class="sm-mark sm-cluster' in side_svg and "Opens the list for this area" in side_svg and "?zone=engine_bay" in side_svg,
       "engine-bay cluster is a count marker that opens the filtered list")
 check(re.search(r'sm-count"[^>]*>\s*(\d+)</text>', side_svg).group(1) == str(sum(1 for s in SENSORS if s["zone"] == "engine_bay")),

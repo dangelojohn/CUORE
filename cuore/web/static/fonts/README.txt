@@ -16,7 +16,7 @@ from github.com/google/fonts; copy each family's OFL.txt next to its files):
             numerals BarlowCondensed-Regular.ttf (102 KB), BarlowCondensed-Bold.ttf (110 KB)
   ferrari   display  Saira-VF.ttf           (ofl/saira/Saira[wdth,wght].ttf, renamed; 484 KB)
             numerals TitilliumWeb-Regular.ttf (64 KB), TitilliumWeb-Bold.ttf (60 KB)
-  maserati  display  EBGaramond-VF.ttf      (ofl/ebgaramond/EBGaramond[wght].ttf, renamed; 851 KB)
+  maserati  display  Jost-VF.ttf (weight 300 headings). EBGaramond-VF.ttf is kept on disk but no longer referenced (retired 2026-10-31).
             numerals Jost-VF.ttf (shared)
 
 These are stand-ins. The manufacturers' own typefaces (Alfa Romeo: Apex New per
