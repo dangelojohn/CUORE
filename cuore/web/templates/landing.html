@@ -3,14 +3,11 @@
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('landing.css') }}">
 <section class="stage" aria-labelledby="stage-h">
-  <h1 id="stage-h" class="stage-h">Choose a brand</h1>
+  <h1 id="stage-h" class="sr-only">Choose a brand</h1>
   <div class="brand-row">
     {% for b in brands %}
-    <a class="brand-tile{{ ' last' if b.last }}" data-marque="{{ b.key }}" data-brand="{{ b.key }}" href="/cars?brand={{ b.key }}" style="--i:{{ loop.index0 }}"{% if b.last %} aria-current="true"{% endif %}>
+    <a class="brand-tile{{ ' last' if b.last }}" data-marque="{{ b.key }}" data-brand="{{ b.key }}" href="/cars?brand={{ b.key }}" aria-label="{{ b.name }}" style="--i:{{ loop.index0 }}"{% if b.last %} aria-current="true"{% endif %}>
       <span class="bt-disc">{% include "_brand_mark.html" %}</span>
-      <span class="bt-name">{{ b.name }}</span>
-      {% if b.note %}<span class="bt-note">{{ b.note }}</span>
-      {% else %}<span class="bt-count">{{ b.cars }} car{{ '' if b.cars == 1 else 's' }}</span>{% endif %}
     </a>
     {% endfor %}
   </div>

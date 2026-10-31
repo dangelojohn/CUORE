@@ -52,9 +52,10 @@ r = c.get("/")
 check("/ is 200 (no redirect) with no car known", r.status_code == 200, str(r.status_code))
 for b in data:
     check(f"brand tile: {b['key']}", f'data-brand="{b["key"]}"' in r.text and f'href="/cars?brand={b["key"]}"' in r.text)
-check("three tiles, brand names shown", r.text.count('class="brand-tile') == 3 and "Alfa Romeo" in r.text)
-check("untested brands say so, Alfa does not",
-      r.text.count("Test: no vehicle data for this brand yet") == 2)
+check("three buttons, named for screen readers only", r.text.count('class="brand-tile') == 3
+      and 'aria-label="Alfa Romeo"' in r.text and "bt-name" not in r.text)
+check("no writing on the landing page", "Test: no vehicle data" not in r.text and "bt-count" not in r.text
+      and 'class="sr-only">Choose a brand' in r.text)
 check("splash kept", "intro-overlay" in r.text and "The mechanic's own record of the car" in r.text)
 
 # --- header: logo -> "/", no tagline, no leftover buttons, Menu is the navigation ----------------
@@ -68,7 +69,6 @@ c.post("/start", data={"vin": ALFA, "complaint": "CEL, smells like gas", "techni
 c.post("/start", data={"vin": MASERATI, "complaint": "test visit", "technician": "t"})
 r = c.get("/")
 check("/ still the picker with cars in the bay", r.status_code == 200 and "brand-tile" in r.text)
-check("brand tile counts cars", "1 car<" in r.text)
 
 a = c.get("/cars?brand=alfa")
 check("alfa list 200, carries the Alfa car and the Add a car card",
