@@ -6,15 +6,15 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 |---|---|---|---|
 | observations.jsonl | skipped-unchanged | 2602726 | 391 |
 | owner_events.jsonl | skipped-unchanged | 996 | 2 |
-| jobs.jsonl | copied | 265800 | 330 |
+| jobs.jsonl | skipped-unchanged | 265800 | 330 |
 | checklists.json | skipped-unchanged | 615 | - |
 | cases.jsonl | skipped-unchanged | 1491 | 1 |
-| symptoms.jsonl | copied | 2824 | 6 |
-| shop_visits.jsonl | copied | 968 | 3 |
+| symptoms.jsonl | skipped-unchanged | 2824 | 6 |
+| shop_visits.jsonl | skipped-unchanged | 968 | 3 |
 | audit.jsonl | skipped-unchanged | 1592418 | 7968 |
 | fullscan_last.json | skipped-unchanged | 6870 | - |
 | notes.jsonl | skipped-unchanged | 170762 | 160 |
-| service_records.jsonl | copied | 8813 | 5 |
+| service_records.jsonl | skipped-unchanged | 8813 | 5 |
 | addresses.json | skipped-unchanged | 1183 | - |
 | learned_dids.json | skipped-unchanged | 34704 | - |
 | feedback.jsonl | skipped-unchanged | 30933 | 57 |
@@ -22,7 +22,7 @@ Source: `C:\ProgramData\cuore`. VIN `ZASFAKPN5J7B88115`. Originals are never mod
 | live_snapshots.jsonl | skipped-unchanged | 6342 | 2 |
 | fullscan_guided.json | skipped-unchanged | 6958 | - |
 | mes_imports.json | skipped-unchanged | 5692 | - |
-| mes_clear_watch.json | copied | 375 | - |
+| mes_clear_watch.json | skipped-unchanged | 375 | - |
 | station.json | skipped-unchanged | 81 | - |
 | sensor_checks.jsonl | skipped-unchanged | 1528 | 1 |
 | checklists.json.bak-2026-10-08-review | skipped-unchanged | 518 | - |
