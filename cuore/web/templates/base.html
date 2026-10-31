@@ -26,7 +26,9 @@
     <span class="logo-slot" role="img" aria-label="{{ _marque_names.get(marque|default('alfa'), 'Marque') }} badge"></span>
     <span class="brand-word">CU<span>O</span>RE</span>
   </a>
-  {% if bar is defined and bar and bar.name %}<span class="top-car" title="{{ bar.name }}">{{ bar.name }}</span>{% endif %}
+  {% set _top_vin = (vin if vin is defined and vin else (request.query_params.get('vin') if request is defined and request else '')) %}
+  {% set _top_name = bar.name if bar is defined and bar and bar.name else (top_car_name(_top_vin) if _top_vin and top_car_name is defined else '') %}
+  {% if _top_name %}<span class="top-car" title="{{ _top_name }}">{{ _top_name }}</span>{% endif %}
   {% if not menu_page %}
   <input type="checkbox" id="navsheet-toggle" class="navsheet-toggle" aria-label="Open or close the main menu">
   <label for="navsheet-toggle" class="menu-btn no-print" role="button" title="Menu: every page"><span class="menu-ico" aria-hidden="true">&#9776;</span> Menu</label>

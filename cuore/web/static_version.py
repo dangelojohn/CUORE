@@ -68,6 +68,15 @@ def code_watch_state() -> dict:
         return {"enabled": False, "new": [], "count_new": 0}
 
 
+def top_car_name(vin: str) -> str:
+    """The name in the header for a page that has a car but no vehicle bar."""
+    from ..services import shop_bridge
+    try:
+        return shop_bridge.resolve_vehicle_name(vin)
+    except Exception:  # noqa: BLE001 -- the header must still render
+        return ""
+
+
 def local_ferrari_mark() -> bool:
     """True when the machine-only Ferrari mark is on disk (see data/brands.json)."""
     return (STATIC_DIR / "brand" / "ferrari-horse.svg").is_file()
@@ -89,6 +98,7 @@ def _register(templates: Any) -> None:
     templates.env.globals["code_watch_state"] = code_watch_state
     templates.env.globals["simulation_active"] = simulation_active
     templates.env.globals["local_ferrari_mark"] = local_ferrari_mark
+    templates.env.globals["top_car_name"] = top_car_name
     from . import units as _units
     templates.env.filters["dist"] = _units.dist
     templates.env.filters["speed"] = _units.speed
