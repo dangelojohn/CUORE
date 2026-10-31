@@ -66,6 +66,10 @@ _EXPLICIT_BLOCKED: dict[int, str] = {
 
 #: Never held longer than this, however large ``max_seconds`` is asked for.
 HARD_CAP_SECONDS = 30.0
+#: The terminator and the session restore are sent AFTER ``max_seconds`` has stopped new work,
+#: because leaving the module in a safe state beats the time limit. They get this fixed extra
+#: bound together; a run that needed longer is recorded as ``terminator_overran``.
+TERMINATOR_BOUND_S = 6.0
 
 _LOCK = threading.Lock()
 
@@ -384,24 +388,40 @@ def run_actuator(sess: Any, ecu: ECUAddress, procedure: dict[str, Any], *, conse
             if step["service"] == "10":
                 session_restored = (step.get("payload") or [None])[0] == "01" and accepted
     finally:
+        term_started = time.monotonic()
+
+        def _term_send(step: dict[str, Any], label: str) -> dict[str, Any]:
+            # Same request as before; only the waiting is bounded. Always attempted once.
+            rem = TERMINATOR_BOUND_S - (time.monotonic() - term_started)
+            timeout = max(0.5, min(2.0, rem))
+            return _send(step, label, timeout=timeout,
+                         retries=1 if rem > 2 * timeout + 0.6 else 0)
+
         try:
             term = procedure.get("synthesised_terminator")
             if not control_returned:
                 if term is not None:
-                    control_returned = _send(term, "terminator (synthesised)")["accepted"]
+                    control_returned = _term_send(term, "terminator (synthesised)")["accepted"]
                 else:
                     last_act = next((s for s in reversed(steps) if s["service"] in ("2F", "31")),
                                     None)
                     if last_act is not None:
-                        control_returned = _send(last_act, "terminator (repeat)")["accepted"]
+                        control_returned = _term_send(last_act, "terminator (repeat)")["accepted"]
             if not session_restored:
-                session_restored = _send({"service": "10", "payload": ["01"],
-                                          "request": ["10", "01"]},
-                                         "session restore")["accepted"]
+                session_restored = _term_send({"service": "10", "payload": ["01"],
+                                               "request": ["10", "01"]},
+                                              "session restore")["accepted"]
         except Exception as e:  # noqa: BLE001 -- must not mask whatever failed above
             log.append({"label": "terminator failed", "error": str(e)})
+        term_s = time.monotonic() - term_started
+        term_overran = term_s > TERMINATOR_BOUND_S
+        if term_overran:
+            log.append({"label": "terminator overran", "sent": None,
+                        "note": f"terminator and session restore took {term_s:.1f}s, over their "
+                                f"{TERMINATOR_BOUND_S:g}s bound; the safe state was still attempted"})
         audit.record("actuate", module=ecu.code, name=name, steps=len(log),
-                     control_returned=control_returned, session_restored=session_restored)
+                     control_returned=control_returned, session_restored=session_restored,
+                     terminator_s=round(term_s, 2), terminator_overran=term_overran)
         try:
             store.record_observation(
                 "actuator_test",
@@ -419,12 +439,14 @@ def run_actuator(sess: Any, ecu: ECUAddress, procedure: dict[str, Any], *, conse
                         "module's diagnostic session and releases any output it is holding. Then "
                         "check the module for codes."),
             "control_returned": control_returned, "session_restored": session_restored,
+            "terminator_s": round(term_s, 2), "terminator_bound_s": TERMINATOR_BOUND_S,
+            "terminator_overran": term_overran,
             "routine": is_routine(procedure), "steps": log,
             "duration_s": round(time.monotonic() - started, 2)}
 
 
 __all__ = [
-    "ACTUATION_SERVICES", "HARD_CAP_SECONDS", "consent_phrase", "extract_procedure",
+    "ACTUATION_SERVICES", "HARD_CAP_SECONDS", "TERMINATOR_BOUND_S", "consent_phrase", "extract_procedure",
     "path", "save_actuator", "get_actuator", "list_actuators",
     "assert_actuate_allowed", "run_actuator", "is_routine",
 ]

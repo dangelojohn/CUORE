@@ -153,8 +153,27 @@ def _item(chs: list[tuple[int, dict[str, Any]]], group_label: str) -> dict[str, 
 
 
 def view_channel(ch: dict[str, Any]) -> dict[str, Any]:
-    return {"id": ch.get("id"), "name": plain_name(ch), "unit": fmt_unit(ch.get("unit")), "note": band_note(ch),
-            "conf": conf_word(ch)}
+    d = {"id": ch.get("id"), "name": plain_name(ch), "unit": fmt_unit(ch.get("unit")), "note": band_note(ch),
+         "conf": conf_word(ch)}
+    sc = _scale_state(ch)
+    d["scale"] = sc
+    rm = ch.get("raw_map") if sc == "unconfirmed" else None
+    if isinstance(rm, dict) and rm.get("m"):
+        d["raw_m"], d["raw_c"] = rm["m"], rm.get("c", 0.0)
+    return d
+
+
+def _scale_state(ch: dict[str, Any]) -> str:
+    """"unconfirmed" until a person accepted the scale; re-checked here so an acceptance shows without a restart."""
+    if ch.get("scale") != "unconfirmed" and ch.get("scale") != "confirmed":
+        return ""
+    try:
+        from ..live import did_catalog
+        if did_catalog.is_confirmed(str(ch.get("id") or "")):
+            return "confirmed"
+    except Exception:  # noqa: BLE001
+        pass
+    return str(ch.get("scale"))
 
 
 # --- the job ----------------------------------------------------------------
@@ -220,6 +239,13 @@ def cable_line(ids: list[str]) -> str:
 
 
 # --- the page ---------------------------------------------------------------
+
+def scale_line(board: dict[str, Any]) -> str:
+    """"N of M values confirmed" -- counted again here from the live acceptance record, not from the cached board."""
+    chans = [c for g in board.get("groups") or [] for c in g.get("channels") or [] if c.get("scale")]
+    done = sum(1 for c in chans if _scale_state(c) == "confirmed")
+    return f"{done} of {len(chans)} values confirmed" if chans else ""
+
 
 def build(board: dict[str, Any], job: Optional[dict[str, Any]] = None, q: str = "") -> dict[str, Any]:
     q = ps.clean_q(q)
@@ -294,6 +320,7 @@ def build(board: dict[str, Any], job: Optional[dict[str, Any]] = None, q: str = 
     call_on = ("Watching live. For this job, watch: " + ", ".join(w.lower() for w in watch) + "."
                if watch else "Watching live. Open a group below, or search for a reading.")
     return {
+        "scale_line": scale_line(board),
         "q": q, "hint": HINT, "job_rows": job_items, "job_why": sorted({p["why"] for p in picks}),
         "matches": matches, "groups": groups, "raw": raw_rows,
         "n_rows": len(job_items) + len(matches) + sum(len(g["rows"]) for g in groups),
@@ -385,4 +412,4 @@ def group_view(board: dict[str, Any], vin: str, group_id: str) -> Optional[dict[
     }
 
 
-__all__ = ["build", "load_job", "job_picks", "quantity", "is_raw", "plain_name", "band_note", "cable_line", "group_view"]
+__all__ = ["scale_line", "build", "load_job", "job_picks", "quantity", "is_raw", "plain_name", "band_note", "cable_line", "group_view"]

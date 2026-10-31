@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Connect session result — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<div style="max-width:760px;font-size:var(--fs-md)">
+<h1>Connect session result</h1>
+<p>Session {{ sm.session }}, started {{ sm.started }}, last change {{ sm.updated }}{% if sm.finished %}, finished {{ sm.finished }}{% else %} (not finished){% endif %}. Saved under the CUORE state folder, connect_session.</p>
+<p><strong>{{ sm.answered }} ANSWERED, {{ sm.not_read }} NOT READ</strong> of {{ sm.total }} reads.</p>
+<p>{{ sm.mes_statement }}</p>
+{% if sm.stop %}<p>Stopped at step {{ sm.stop.step }} ({{ sm.stop.at }}): {{ sm.stop.reason }}. {{ sm.stop.check }}</p>{% endif %}
+<h2>By step</h2>
+<table><tr><th>Step</th><th>Status</th><th>Runs</th><th>ANSWERED</th><th>NOT READ</th></tr>
+{% for b in sm.by_step %}<tr><td>{{ b.n }}. {{ b.title }}</td><td>{{ b.status }}</td><td>{{ b.runs }}</td><td>{{ b.answered }}</td><td>{{ b.not_read }}</td></tr>{% endfor %}</table>
+<h2>Moved from NOT READ to read</h2>
+<p>{{ sm.baseline_note }}.</p>
+{% if sm.moved %}<ul>{% for m in sm.moved %}<li>{{ m.label }} ({{ m.key }}) — read {{ m.moved_at }}</li>{% endfor %}</ul>{% else %}<p>Nothing moved.</p>{% endif %}
+<h2>Still NOT READ</h2>
+{% if sm.not_read_items %}<ul>{% for n in sm.not_read_items %}<li>{{ n.label }} ({{ n.key }}): {{ n.reason }} — {{ n.at }}</li>{% endfor %}</ul>{% else %}<p>None recorded.</p>{% endif %}
+<h2>Timeline</h2>
+<ul>{% for e in sm.events %}<li>{{ e.at }} — {{ e.what }}</li>{% endfor %}</ul>
+<p><a href="/v/{{ vin }}/connect-session">Back to the session</a></p>
+</div>
+{% endblock %}

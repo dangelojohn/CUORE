@@ -140,7 +140,7 @@ def listen(sess: Session, *, seconds: float = 2.0, max_frames: int = 500,
             try:
                 out["raw_capture_file"] = str(rawframes.write_capture(
                     frames, bus=sess.bus.key, bitrate=bitrate, cable=sess.link.cable,
-                    vin=getattr(sess.link, "vin", "") or "", state_note=state_note,
+                    vin=(sess.link.confirmed_vin() if hasattr(sess.link, "confirmed_vin") else ""), state_note=state_note,
                     extra={"monitor": monitor, "seconds": out["seconds"]}))
             except OSError as exc:      # never fail a listen over the archive
                 out["raw_capture_error"] = str(exc)

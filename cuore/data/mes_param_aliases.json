@@ -305,6 +305,14 @@
    "channel": "ecm_1926",
    "certainty": "candidate",
    "note": "SUSPECT: the % reading, tested as-is"
+  },
+  {
+   "mes_name": "Battery voltage",
+   "mes_unit": "V",
+   "channel": "bcm_1004",
+   "certainty": "candidate",
+   "mes_module": "IPC",
+   "note": "CROSS-MODULE by name only: MES reads this on the instrument panel, CUORE reads BCM DID 1004. Same quantity is the owner's call (confirm_pairing); recorded logs only, not a live pair"
   }
  ],
  "unpaired": [

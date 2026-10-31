@@ -31,7 +31,6 @@ from typing import Any
 
 from . import actuate, buscapture, interlock, replay, store
 from . import procedure_capture as pc
-from .addressing import MODULES
 from .buses import BUSES, route_for
 from .channels import Channel
 from .config import state_dir
@@ -167,10 +166,13 @@ def load_recording(rid: str) -> dict[str, Any]:
 
 
 # --------------------------------------------------------------------------- decoder
-def _module_code(target_hex: str) -> str:
-    t = int(target_hex, 16)
-    m = next((m for m in MODULES if m.target == t), None)
-    return m.code if m else f"unknown (0x{target_hex})"
+def _module_code(target_hex: str, bus: str | None = None, vin: str | None = None) -> str:
+    """Module name for a target byte on the recording's bus; with no bus the byte
+    is NOT attributed (0x2A is ABS on CAN-CH and DASM on CAN-C)."""
+    m = pc._module_for(target_hex, bus, vin)
+    if m:
+        return m.code
+    return f"unknown (0x{target_hex}{'' if bus else ', bus not recorded'})"
 
 
 def transcript(rec: dict[str, Any]) -> list[dict[str, Any]]:
@@ -187,7 +189,7 @@ def transcript(rec: dict[str, Any]) -> list[dict[str, Any]]:
             kind = "positive"
         nrc = tr.get("nrc")
         rows.append({
-            "t": tr["t_req"], "module": _module_code(tr["target"]), "target": tr["target"],
+            "t": tr["t_req"], "module": _module_code(tr["target"], rec.get("bus"), rec.get("vin") or None), "target": tr["target"],
             "service": svc, "service_name": pc.SERVICE_NAMES.get(svc, f"service 0x{svc}"),
             "request": "".join(tr["request"]).upper(),
             "response": "".join(resp).upper() if resp else "", "result": kind,
@@ -205,7 +207,7 @@ def make_draft(rid: str) -> list[dict[str, Any]]:
     out = []
     for target in sorted({t["target"] for t in txs}):
         proc = actuate.extract_procedure(txs, target)
-        code = _module_code(target)
+        code = _module_code(target, rec.get("bus"), rec.get("vin") or None)
         steps, behind = [], False
         for st in proc["steps"]:
             if st["service"] == "27":
@@ -216,7 +218,8 @@ def make_draft(rid: str) -> list[dict[str, Any]]:
                 **({"note": UNLOCK_FLAG} if st["service"] == "27" else {}),
             })
         name = re.sub(r"[^A-Za-z0-9_-]", "", f"{rid}__{code}".replace(" ", "_"))
-        gate = pc.gate(proc, listen_bitrate=rec.get("bitrate"), name=name)
+        gate = pc.gate(proc, listen_bitrate=rec.get("bitrate"), name=name,
+                       bus=rec.get("bus"), vin=rec.get("vin") or None)
         draft = {
             "schema": 1, "name": name, "module": code, "target": target,
             "title": f"{rec.get('function')} (observed in wiTECH)",

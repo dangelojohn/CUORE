@@ -30,6 +30,10 @@
 .pb-body dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 8px 0; }
 .pb-body dt { font-weight: 600; color: var(--ink-2); } .pb-body dd { margin: 0; overflow-wrap: anywhere; }
 .pb-refs { color: var(--ink-2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
+.pb-cmp { width: 100%; border-collapse: collapse; margin: 0 0 12px; }
+.pb-cmp th, .pb-cmp td { border: 1px solid var(--rule); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.pb-cmp .st { font-weight: 700; white-space: nowrap; }
+.pb-cmp .st.MATCHED { color: var(--ok); }
 @media (max-width: 520px) { .pb-body dl { grid-template-columns: 1fr; } }
 </style>
 <div class="pb" id="parity">
@@ -54,6 +58,29 @@
   {% endfor %}
   <a class="pb-chip" href="/v/{{ vin }}/parity.csv">Download (CSV)</a>
 </div>
+
+<details class="fold pb-sec" id="code-compare" {% if cmp and cmp.counts and (cmp.counts['MATCHED'] or cmp.counts['DIFFERENT']) %}open{% endif %}>
+  <summary>Stored codes, CUORE against MES, per module{% if cmp and cmp.counts %} ({{ cmp.counts['MATCHED'] }} matched, {{ cmp.counts['DIFFERENT'] }} different, {{ cmp.counts['NOT COMPARED'] }} not compared){% endif %}
+    <span class="pb-why">MATCHED only when the CUORE read and the MES log are within {{ (cmp.window_s // 60) if cmp and cmp.window_s else 5 }} minutes of each other and list the same codes. Otherwise NOT COMPARED, never assumed equal.</span></summary>
+  {% if not cmp or cmp.error %}<p class="sens-msg" role="alert">Comparison not available: {{ cmp.error if cmp else "no data" }}</p>
+  {% else %}
+  <div style="overflow-x:auto"><table class="pb-cmp">
+    <thead><tr><th>Module</th><th>Result</th><th>In both</th><th>CUORE only</th><th>MES only</th><th>CUORE read</th><th>MES read</th><th>Apart</th></tr></thead>
+    <tbody>
+    {% for r in cmp.modules %}
+      <tr><td class="mono">{{ r.module }}</td>
+        <td><span class="st {{ r.status|replace(' ', '_') }}">{{ r.status }}</span>{% if r.why %}<div class="small">{{ r.why }}</div>{% endif %}</td>
+        <td class="mono small">{{ r.both|join(", ") or "none" }}</td>
+        <td class="mono small">{{ r.cuore_only|join(", ") or "none" }}</td>
+        <td class="mono small">{{ r.mes_only|join(", ") or "none" }}</td>
+        <td class="mono small">{{ r.cuore_at or "never read" }}</td>
+        <td class="mono small">{{ r.mes_at or "no MES log" }}{% if r.mes_source %}<div>{{ r.mes_source }}</div>{% endif %}</td>
+        <td class="mono small">{% if r.gap_s is not none %}{{ (r.gap_s // 60) }} min {{ r.gap_s % 60 }} s{% else %}&mdash;{% endif %}</td></tr>
+    {% endfor %}
+    </tbody></table></div>
+  <p class="pb-refs">{{ cmp.basis }} Take the CUORE read and the MES read in turn, within five minutes, and reload this page.</p>
+  {% endif %}
+</details>
 
 {% if not b.total %}<p class="sens-msg" role="alert">No parity data yet: cuore/data/parity_items.json is missing or empty.</p>{% endif %}
 {% for s in b.sections %}

@@ -149,6 +149,70 @@ try:
 except Exception as e:  # noqa: BLE001
     check(False, f"now view: {e}")
 
+# --- review queue from recorded sessions (offline: fake audit log + fake MES logs) --------------
+from datetime import datetime as _dt, timedelta as _td  # noqa: E402
+
+NL = chr(10)
+RV = TMP / "review"
+RV.mkdir()
+
+
+def _mes_log(name, when, rows):
+    head = ["(Multiecuscan 5.4)", when.strftime("%m/%d/%Y %I:%M:%S %p"), "Alfa Romeo Stelvio 2.0 Turbo 16V MultiAir",
+            "Magneti Marelli IAW 10JA CF6/EOBD Injection (2.0)", "-" * 20, "", f"VIN code: {VIN}", ""]
+    for v in rows:
+        head += ["READING PARAMETERS:", f"Fuel level: {v} %", ""]
+    f = RV / name
+    f.write_text(NL.join(head) + NL, encoding="utf-8")
+    t = (when + _td(seconds=40)).timestamp()
+    os.utime(f, (t, t))
+    return f
+
+
+def _frame(did, data):
+    b = [0x62, int(did[:2], 16), int(did[2:], 16)] + data
+    return "18DAF110" + f"{len(b):02X}" + "".join(f"{x:02X}" for x in b)
+
+
+def _audit(rows):
+    f = RV / "audit.jsonl"
+    f.write_text(NL.join(json.dumps({"ts": 0, "iso": at.isoformat() + "-04:00", "event": "uds", "ecu": "ECM",
+                                     "bus": "can_c", "req": "221001", "header": "18DA10F1", "raw": _frame("1001", d),
+                                     "error": None, "attempts": 1}) for at, d in rows) + NL, encoding="utf-8")
+    return f
+
+
+from cuore.live import scale_review as sr  # noqa: E402
+t1, t2 = _dt(2026, 10, 20, 9, 0, 0), _dt(2026, 10, 20, 9, 30, 0)
+logs = [_mes_log("FESLog_2610200900_x.txt", t1, [20.0, 20.0]), _mes_log("FESLog_2610200930_x.txt", t2, [40.0, 40.0])]
+aud = _audit([(t1 + _td(seconds=10), [51]), (t2 + _td(seconds=10), [102])])   # A*100/255: 51 -> 20 %, 102 -> 40 %
+q = sr.build(VIN, audit_path=aud, mes_paths=logs)
+r1001 = next(c for c in q["channels"] if c["channel"] == "ecm_1001")
+check(r1001["verdict"] == "confirmed" and r1001["samples"] == 2 and len(r1001["evidence"]) == 2, "two agreeing conditions -> confirmed row with evidence")
+check(r1001["evidence"][0]["cuore_raw"] == "33" and r1001["evidence"][0]["mes_value"] == 20.0, "evidence carries raw bytes and the MES value")
+check(not did_catalog.is_confirmed("ecm_1001"), "building the queue confirms nothing")
+check(all(c["verdict"] == "no_data" for c in q["channels"] if c["channel"] != "ecm_1001"), "channels without data stay no_data")
+q1 = sr.build(VIN, audit_path=aud, mes_paths=logs[:1])
+one = next(c for c in q1["channels"] if c["channel"] == "ecm_1001")
+check(one["verdict"] == "no_data" and one["single_point"]["identity_agrees"] and len(one["evidence"]) == 1, "one condition is a single point, not a scale")
+far = _audit([(t1 + _td(hours=5), [51])])
+qf = sr.build(VIN, audit_path=far, mes_paths=logs[:1])
+check("limit 30 min" in next(c for c in qf["channels"] if c["channel"] == "ecm_1001")["reason"], "a read hours away is not paired")
+run = sr.save_run(VIN, q)
+rows_ok = [c for c in q["channels"] if c["verdict"] in ("confirmed", "wrong_scale")]
+check(len(rows_ok) == 1, "exactly one actionable row")
+try:
+    df.accept(VIN, run["run_id"], "ecm_1001", confirm_pairing=False)
+    check(did_catalog.is_confirmed("ecm_1001"), "a person's accept confirms the recorded-session row")
+except BadCommand as e:
+    check(False, f"accept: {e}")
+nodata = next(c["channel"] for c in q["channels"] if c["verdict"] == "no_data")
+try:
+    df.accept(VIN, run["run_id"], nodata)
+    check(False, "a no_data row must not be acceptable")
+except BadCommand:
+    check(True, "a no_data row is refused")
+
 print(f"passed {passed}, failed {len(failures)}")
 for f in failures:
     print("FAIL:", f)

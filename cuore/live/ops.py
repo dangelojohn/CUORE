@@ -35,7 +35,7 @@ _MODE03_NOTE = ("Mode 03 returns emissions-related powertrain codes only. Body, 
                 "network faults are UDS 3-byte codes; use module DTC reads for those.")
 
 
-uds_mod.set_vin_provider(lambda: link().vin)
+uds_mod.set_vin_provider(lambda: link().confirmed_vin())
 
 
 def _bus(key: str) -> Bus:
@@ -54,10 +54,22 @@ def _stamp(sess: Session, out: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+CAR_UNCONFIRMED = ("no VIN was read in this session, so this read is not filed under any car "
+                   "(a remembered VIN may belong to the previous car)")
+
+
+def _session_vin(sess: Any) -> str:
+    """The VIN to file a read under: the one read this session, else ``""`` (unconfirmed)."""
+    cv = getattr(sess.link, "confirmed_vin", None)
+    return str(cv() if callable(cv) else "").strip()
+
+
 def _observe(sess: Session, kind: str, out: dict[str, Any], vin: str = "") -> dict[str, Any]:
     """Stamp and persist a result as an observation the evidence gate can cite."""
     _stamp(sess, out)
-    v = vin or getattr(sess.link, "vin", "") or ""
+    v = vin or _session_vin(sess)
+    if not v:
+        out.setdefault("car_unconfirmed", CAR_UNCONFIRMED)
     store.record_observation(kind, out, vin=v, bus=sess.bus.key, cable=sess.link.cable,
                              stream=sess.stream.describe)
     return out
@@ -935,7 +947,7 @@ def scan_modules(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm: b
         for mod in out.get("modules", []):
             if "codes" in mod:
                 store.record_observation("module_dtcs", mod,
-                                         vin=vin or getattr(sess.link, "vin", ""),
+                                         vin=vin or _session_vin(sess),
                                          bus=b.key, cable=sess.link.cable,
                                          stream=sess.stream.describe)
         if not detail:
@@ -968,7 +980,7 @@ def sweep_bus_full(bus: str = "can_c", vin: str = "", mask: int = 0xFF, confirm:
     b = _bus(bus)
     with link().session(f"sweep_bus_full {b.key}", bus=b, confirm=confirm, **kw) as sess:
         out = uds_mod.sweep_bus_full(sess, b, vin=vin or None, mask=mask, known_did=known_did)
-        v = vin or getattr(sess.link, "vin", "") or ""
+        v = vin or _session_vin(sess)
         for mod in out.get("modules", []):
             if "codes" in mod:
                 store.record_observation("module_dtcs", mod, vin=v, bus=b.key,
@@ -1120,7 +1132,7 @@ def module_code_round(bus: str = "can_c", modules: Optional[list[str]] = None, v
     if not mods:
         raise BadCommand(f"no default modules for {b.key}; pass modules")
     with link().session(f"module_code_round {b.key}", bus=b, confirm=confirm, **kw) as sess:
-        v = vin or getattr(sess.link, "vin", "") or ""
+        v = vin or _session_vin(sess)
 
         def rec(kind: str, data: dict[str, Any]) -> None:
             store.record_observation(kind, data, vin=v, bus=b.key, cable=sess.link.cable,
@@ -1316,7 +1328,7 @@ def learn_actuator(capture_name: str, module: str, name: str, tool: str = "MES")
     if not p.exists():
         raise BadCommand(f"no capture named {capture_name!r}")
     data = _json.loads(p.read_text(encoding="utf-8"))
-    vin = link().vin or ""
+    vin = link().confirmed_vin() or ""
     ecu = uds_mod.resolve_module(module, vin or None)
     target = ecu.target
     procedure = actuate.extract_procedure(data.get("transactions") or [], f"{target:02X}")

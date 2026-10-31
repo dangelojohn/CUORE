@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Connect session — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<style>
+.cx { max-width: 760px; font-size: var(--fs-md); }
+.cx .step { border: 1px solid var(--rule); border-left: 8px solid var(--ink-3); padding: 12px 14px; margin: 0 0 14px; background: var(--surface-2); }
+.cx .step.next { border-left-color: var(--accent, #06c); }
+.cx .step.done { border-left-color: #070; }
+.cx .step.stopped { border-left-color: #b00; }
+.cx h2 { font-size: var(--fs-lg); margin: 0 0 6px; }
+.cx .hands { font-weight: 600; margin: 4px 0; }
+.cx .mes { border: 1px dashed var(--ink-3); padding: 6px 10px; margin: 6px 0; }
+.cx .stop { border: 2px solid #b00; padding: 10px 14px; margin: 0 0 14px; font-weight: 600; }
+.cx button { font-size: var(--fs-lg); padding: 10px 18px; margin: 6px 6px 0 0; }
+.cx .ok { color: #070; font-weight: 700; } .cx .no { color: #b00; font-weight: 700; }
+.cx ul { margin: 6px 0; padding-left: 18px; }
+</style>
+<div class="cx">
+<h1>Connect session</h1>
+<p>One sitting at the car, steps in order. Read-only: no clears, no writes, no actuators. Engine running for every sweep ({{ min_volts }} V or more). MES and CUORE take turns on the adapter, never together.</p>
+{% if msg %}<p class="no">{{ msg }}</p>{% endif %}
+{% if st.stop %}
+<div class="stop">STOPPED at step {{ st.stop.step }}: {{ st.stop.reason }}<br>{{ st.stop.check }}
+<form method="post" action="/v/{{ vin }}/connect-session/resume"><button type="submit">I checked it: Resume</button></form></div>
+{% endif %}
+{% for s in steps %}
+<section class="step {{ 'done' if s.status == 'done' else 'stopped' if s.status == 'stopped' else 'next' if s.is_next else '' }}">
+<h2>{{ s.n }}. {{ s.title }}{% if s.optional %} (optional){% endif %} — {{ s.status }}</h2>
+<p class="hands">Your hands: {{ s.hands }}</p>
+<p>{{ s.does }}</p>
+{% if s.mes %}<p class="mes">For an MES comparison: close CUORE's session first, run MES and read the same thing, close MES, then come back and press Run.</p>{% endif %}
+{% if s.cable in ('grey_a6', 'blue_a5') %}
+<form method="post" action="/v/{{ vin }}/connect-session/cable"><input type="hidden" name="cable" value="{{ s.cable }}">
+<button type="submit">{{ 'Grey A6' if s.cable == 'grey_a6' else 'Blue A5' }} is fitted{% if st.cable_confirmed.get(s.cable) %} (confirmed {{ st.cable_confirmed[s.cable] }}){% endif %}</button></form>{% endif %}
+<form method="post" action="/v/{{ vin }}/connect-session/run"><input type="hidden" name="step" value="{{ s.id }}">
+{% if s.needs_confirm %}<label><input type="checkbox" name="confirm" value="1"> I confirm this bounded read-only sweep on {{ s.bus }}</label><br>{% endif %}
+<button type="submit" {{ 'disabled' if s.blocked }}>Run</button>
+{% if s.optional or s.status != 'done' %}<button type="submit" formaction="/v/{{ vin }}/connect-session/skip">Skip</button>{% endif %}</form>
+{% if s.blocked and s.status != 'done' %}<p>Not yet: {{ s.blocked }}</p>{% endif %}
+{% if s.last %}<p>Last run {{ s.last.at }} at {{ s.last.voltage }} V.</p>
+<ul>{% for i in s.items %}<li><span class="{{ 'ok' if i.status == 'ANSWERED' else 'no' }}">{{ i.status }}</span> — {{ i.label }}{% if i.reason %}: {{ i.reason }}{% endif %}
+{% if i.value is defined %} {{ i.value }} {{ i.unit or '' }} ({{ i.mes }}){% endif %}{% if i.codes is defined and i.codes is not none %} codes: {{ i.codes|join(', ') or 'none stored' }}{% endif %}
+{% if i.moved_at %} <em>(was NOT READ; read {{ i.moved_at }})</em>{% endif %}</li>{% endfor %}</ul>
+{% if s.last.retries %}<p>CAN ERROR retries: {{ s.last.retries|length }}.</p>{% endif %}{% endif %}
+</section>
+{% endfor %}
+<p>Result so far: {{ summary.answered }} ANSWERED, {{ summary.not_read }} NOT READ. {{ summary.mes_statement }}</p>
+<form method="post" action="/v/{{ vin }}/connect-session/finish"><button type="submit">Finish and show the result summary</button></form>
+<p><a href="/v/{{ vin }}/connect-session/summary">Result summary</a></p>
+<form method="post" action="/v/{{ vin }}/connect-session/new"><button type="submit">Start a new session</button></form>
+</div>
+{% endblock %}

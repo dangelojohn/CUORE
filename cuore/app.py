@@ -68,6 +68,7 @@ from .web import bay_sheet_routes  # noqa: E402
 from .web import bay_board_routes  # noqa: E402
 from .web import bay_service_sheet_routes  # noqa: E402
 from .web import car_session_routes  # noqa: E402
+from .web import connect_session_routes  # noqa: E402
 from .web import helped_routes  # noqa: E402
 from .web import five_minute_routes  # noqa: E402
 from .web import find_routes  # noqa: E402
@@ -343,6 +344,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(bay_service_sheet_routes.router)
     app.include_router(bay_board_routes.router)
     app.include_router(car_session_routes.router)
+    app.include_router(connect_session_routes.router)
     app.include_router(helped_routes.router)
     app.include_router(five_minute_routes.router)
     app.include_router(find_routes.router)

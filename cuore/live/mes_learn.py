@@ -54,7 +54,6 @@ from . import interlock
 from . import procedure_capture
 from . import learn as learn_mod
 from . import learned as learned_mod
-from .addressing import MODULES
 from .buses import CAN_C
 from .config import mes_registry, state_dir
 from .errors import BadCommand, Refused
@@ -342,7 +341,8 @@ def _auto_review(state: dict[str, Any], frames: list[dict[str, Any]], **gate_kw:
     beside them. Read-only: nothing is replayed. The gate is fed the RECORDED
     bitrate, never a caller value."""
     rep = procedure_capture.review_frames(
-        frames, path=state.get("file") or "", listen_bitrate=state["bitrate"], **gate_kw)
+        frames, path=state.get("file") or "", listen_bitrate=state["bitrate"],
+        bus=_BUS.key, vin=state.get("vin") or None, **gate_kw)
     state["review_file"] = rep.get("review_file")
     state["verdict"] = rep["verdict"]
     if rep.get("error"):
@@ -399,7 +399,7 @@ def _align(state: dict[str, Any], csv: str, frames: list[dict[str, Any]]) -> Non
         return
     state["csv_name"] = rec.name
     today = datetime.now().strftime("%Y-%m-%d")
-    fitted = align(frames, rec)
+    fitted = align(frames, rec, bus=_BUS.key, vin=state.get("vin") or None)
     out: list[dict[str, Any]] = []
     for i, c in enumerate(fitted, start=1):
         c = dict(c)
@@ -517,22 +517,20 @@ def _linreg(xs: list[float], ys: list[float]) -> tuple[float, float, float]:
     return scale, offset, 1 - ss_res / ss_tot
 
 
-def _module_for_target(target_hex: str) -> str:
-    try:
-        t = int(target_hex, 16)
-    except ValueError:
-        return target_hex.upper()
-    for m in MODULES:
-        if m.target == t:
-            return m.code
-    return target_hex.upper()
+def _module_for_target(target_hex: str, bus: Optional[str] = None,
+                       vin: Optional[str] = None) -> str:
+    """Module code for a target byte on ``bus``; with no bus (or no owner on that
+    bus) the raw byte is returned, never a guess (0x2A is ABS on CAN-CH, DASM on CAN-C)."""
+    m = procedure_capture._module_for(target_hex, bus, vin)
+    return m.code if m else target_hex.upper()
 
 
 def _width_name(width: int) -> str:
     return "byte" if width == 1 else "u16"
 
 
-def align(frames: list[dict[str, Any]], recording: Any) -> list[dict[str, Any]]:
+def align(frames: list[dict[str, Any]], recording: Any, bus: Optional[str] = None,
+          vin: Optional[str] = None) -> list[dict[str, Any]]:
     """Fit every named numeric column of ``recording`` against every
     ``(target, DID, offset, width, signedness)`` seen in ``frames``.
 
@@ -582,7 +580,7 @@ def align(frames: list[dict[str, Any]], recording: Any) -> list[dict[str, Any]]:
                 scale, offset, r2 = _linreg(xs, ys)
                 if best is None or r2 > best["r2"]:
                     best = {
-                        "target": target, "did": did, "module": _module_for_target(target),
+                        "target": target, "did": did, "module": _module_for_target(target, bus, vin),
                         "field": {"offset": off, "width": _width_name(width), "signed": signed},
                         "scale": scale, "offset": offset, "r2": r2,
                         "n": len(xs), "distinct": distinct,

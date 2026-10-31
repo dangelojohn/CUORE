@@ -3,7 +3,7 @@
    same element ids the full list uses (lb-chan-/lb-val-/lb-unit-/lb-state-<channel id>), so the full list is not
    rendered at the same time as a group. #}
 {% macro vrow(r) %}
-<div class="lb-chan lb-vrow level-unknown" id="lb-chan-{{ r.id }}" data-channel="{{ r.id }}" data-status="{{ r.status }}">
+<div class="lb-chan lb-vrow level-unknown" id="lb-chan-{{ r.id }}" data-channel="{{ r.id }}" data-status="{{ r.status }}"{% if r.scale == 'unconfirmed' %} data-scale="unconfirmed"{% if r.raw_m %} data-raw-m="{{ r.raw_m }}" data-raw-c="{{ r.raw_c }}"{% endif %}{% endif %}>
   <div class="lb-chan-left">
     <div class="lb-chan-name">{{ r.name }}</div>
     <div class="lb-vmeta">

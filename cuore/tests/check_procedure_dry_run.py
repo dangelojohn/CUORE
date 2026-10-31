@@ -47,7 +47,7 @@ RATE = BUSES["can_c"].bitrate
 
 
 def capture(frames, **kw):
-    return {"frames": frames, "bitrate": RATE, "name": "Evap vent", "pre": PRE, "post": POST, **kw}
+    return {"frames": frames, "bus": "can_c", "bitrate": RATE, "name": "Evap vent", "pre": PRE, "post": POST, **kw}
 
 
 FULL = (pair(0.0, [0x10, 0x03]) + pair(1.0, [0x2F, 0x12, 0x34, 0x03, 0xAA])

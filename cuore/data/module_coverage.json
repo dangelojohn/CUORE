@@ -1,0 +1,136 @@
+{
+  "_about": "What is RECORDED about the 10 modules MES lists for the 2018 Stelvio (VIN ZASFAKPN5J7B88115) that CUORE has never read. Facts only: unknown stays unknown, nothing here is an address, bitrate or request to try. 'address.confirmed' is true only when a CUORE reply with this car's VIN came from that address. mes_evidence lists MES log files on disk (read-only) with the date in the file; 'this_car' is false when the log's own VIN line does not read this car's VIN. For the Modules page owner to read; no page shows this file yet.",
+  "version": 1,
+  "as_of": "2026-10-31",
+  "vin": "ZASFAKPN5J7B88115",
+  "sources": {
+    "registry": "cuore/live/addressing.py (bus and address rows, with their own notes)",
+    "mes_logs": "C:\\Program Files (x86)\\MultiEcuScan: SCAN_*.txt and FESLog_*.txt, dates taken from the file header or name",
+    "cuore_audit": "C:\\ProgramData\\cuore\\audit.jsonl searched 2026-10-31 for each module code as the target: no row for any of the 10"
+  },
+  "shared_note_fes_vin_line": "Every non-ECU FESLog listed below prints the VIN line '5188214', which is not this car's VIN (ends 88115). Those logs are recorded as evidence that MES opens the module, not as readings of this car. The B0110-15 and P068A-68 lines appear identically in the AFLS, radio and blind-spot logs, so they are not treated as a per-module reading.",
+  "modules": [
+    {
+      "id": "EPS",
+      "label": "Electric power steering (ZF)",
+      "bus": {"value": "can_ch", "confidence": "registry says confirmed (STP 34)", "source": "addressing.py EPS row"},
+      "address": {"confirmed": false, "value": null, "note": "unknown; 0x2A was a mislabel (it is ABS)"},
+      "mes_evidence": [
+        {"date": "2026-09-04 20:08", "file": "SCAN_2609042008.txt", "this_car": true,
+         "what": "identity (HW 7806277500, SW 880802D0243) and code U1960-83 listed"},
+        {"date": "2025-10-15 02:19", "file": "FESLog_2510150219", "this_car": false, "what": "log opened; 70 parameter samples"},
+        {"date": "2025-10-21 23:40", "file": "FESLog_2510212340", "this_car": false, "what": "log opened"}
+      ],
+      "cuore_attempts": "no audit row targets EPS; registry notes it was silent to 22 F190 on 29-bit",
+      "blocker": "Address unknown; the CAN-CH route itself is unproven because ABS on the same bus has not answered CUORE since 2026-10-15."
+    },
+    {
+      "id": "ORC",
+      "label": "Airbag / occupant restraint",
+      "bus": {"value": "can_ch", "confidence": "registry says confirmed (STP 34)", "source": "addressing.py ORC row"},
+      "address": {"confirmed": false, "value": null, "note": "registry holds 0x50, marked unverified and sourced to a self-declared constant, not a reply"},
+      "mes_evidence": [
+        {"date": "2026-09-04 20:08", "file": "SCAN_2609042008.txt", "this_car": true,
+         "what": "identity (HW 0285013327, SW BB70578); MES labels it UNKNOWN/UNSUPPORTED; no codes listed"},
+        {"date": "2025-10-21 23:50", "file": "FESLog_2510212350", "this_car": false, "what": "log opened"}
+      ],
+      "cuore_attempts": "no audit row targets ORC",
+      "blocker": "Address unverified; MES itself reports the module unsupported for code reading. Airbag module: no request is to be guessed."
+    },
+    {
+      "id": "AFLS",
+      "label": "Adaptive headlamps (Automotive Lighting)",
+      "bus": {"value": "can_ch", "confidence": "registry says confirmed (STP 34)", "source": "addressing.py AFLS row"},
+      "address": {"confirmed": false, "value": null, "note": "unknown"},
+      "mes_evidence": [
+        {"date": "2026-09-04 20:08", "file": "SCAN_2609042008.txt", "this_car": true,
+         "what": "identity (HW 1470000328, SW 1409910330) and code U0428-86 listed"},
+        {"date": "2026-06-06 12:00", "file": "FESLog_2606061201", "this_car": false, "what": "log opened"}
+      ],
+      "cuore_attempts": "no audit row targets AFLS",
+      "blocker": "Address unknown; CAN-CH route unproven (see EPS)."
+    },
+    {
+      "id": "PAM",
+      "label": "Parking sensors (Bosch)",
+      "bus": {"value": "can_ch", "confidence": "registry says confirmed (STP 34)", "source": "addressing.py PAM row"},
+      "address": {"confirmed": false, "value": null, "note": "unknown"},
+      "mes_evidence": [
+        {"date": "2026-09-04 20:08", "file": "SCAN_2609042008.txt", "this_car": true,
+         "what": "identity (HW 19490108, SW 1.38); no codes listed"}
+      ],
+      "cuore_attempts": "no audit row targets PAM",
+      "blocker": "Address unknown; CAN-CH route unproven (see EPS)."
+    },
+    {
+      "id": "HALF",
+      "label": "Haptic lane feedback camera (Bosch)",
+      "bus": {"value": "can_ch", "confidence": "registry says confirmed (STP 34)", "source": "addressing.py HALF row"},
+      "address": {"confirmed": false, "value": null, "note": "unknown"},
+      "mes_evidence": [
+        {"date": "2026-09-04 20:08", "file": "SCAN_2609042008.txt", "this_car": true,
+         "what": "identity (HW 0203500279, SW 1037601726) and code U0418-86 listed"}
+      ],
+      "cuore_attempts": "no audit row targets HALF",
+      "blocker": "Address unknown; CAN-CH route unproven (see EPS)."
+    },
+    {
+      "id": "RADIO_NAV",
+      "label": "Radio / navigation (AlfaConnect, Marelli)",
+      "bus": {"value": "can_c", "confidence": "owner's statement of MES behaviour 2026-10-23 (radio connected with the adapter alone)", "source": "addressing.py ETM row note"},
+      "address": {"confirmed": false, "value": null, "note": "registry holds 0x6F, marked unverified; no CUORE reply from it"},
+      "mes_evidence": [
+        {"date": "2026-10-20 06:22", "file": "FESLog_2610200623", "this_car": false,
+         "what": "log opened; 80 live samples of 4 names (battery voltage, ECU temperature, rear camera brightness, vehicle speed)"}
+      ],
+      "cuore_attempts": "no audit row targets the radio; registry notes 22 F190 at 0x6F was silent on CAN-IHS (expected, wrong bus)",
+      "blocker": "0x6F unverified and no CAN-C attempt has been recorded; the radio may be 11-bit or gateway-routed (unknown)."
+    },
+    {
+      "id": "BLIND_SPOT_R",
+      "label": "Blind-spot sensor, right (Autoliv)",
+      "bus": {"value": "can_ihs", "confidence": "inferred; not shown by any reading", "source": "addressing.py RBSS row"},
+      "address": {"confirmed": false, "value": null, "note": "none. Two unnamed CAN-IHS nodes (0x62, 0x65) answered CUORE on 2026-10-23 and 2026-10-31; which module they are is NOT established, so neither is assigned to this row"},
+      "mes_evidence": [
+        {"date": "2026-10-20 06:21", "file": "FESLog_2610200622", "this_car": false, "what": "log opened"}
+      ],
+      "cuore_attempts": "no audit row targets RBSS",
+      "blocker": "Bus and address both unknown; naming the two CAN-IHS nodes needs a dealer sheet, not these readings."
+    },
+    {
+      "id": "CLIMATE",
+      "label": "Climate control (TRW)",
+      "bus": {"value": "can_ihs", "confidence": "owner's statement of MES behaviour 2026-10-23 (connected through the blue A5 cable)", "source": "addressing.py HVAC row"},
+      "address": {"confirmed": false, "value": null, "note": "registry holds 0x68, marked unverified"},
+      "mes_evidence": [
+        {"date": "2025-10-21 15:18", "file": "FESLog_2510211518", "this_car": false, "what": "log opened, header only"},
+        {"date": "2025-10-21 23:41", "file": "FESLog_2510212341", "this_car": false, "what": "log opened, header only"}
+      ],
+      "cuore_attempts": "no audit row targets HVAC; registry notes 22 F190 silent on 2026-10-15 (29-bit) and 2026-10-23 (CAN-IHS, 0.3 s wait)",
+      "blocker": "0x68 unverified and silent to the one request tried; the MES logs on disk are a year old and are not readings of this car."
+    },
+    {
+      "id": "ESEM",
+      "label": "Engine sound enhancement",
+      "bus": {"value": "can_ihs", "confidence": "inferred; registry note 'never scanned'", "source": "addressing.py ESEM row"},
+      "address": {"confirmed": false, "value": null, "note": "none"},
+      "mes_evidence": [
+        {"date": "2025-10-15 02:17", "file": "FESLog_2510150218", "this_car": false, "what": "log opened, header only"},
+        {"date": "2025-10-21 23:49", "file": "FESLog_2510212349", "this_car": false, "what": "log opened, header only"}
+      ],
+      "cuore_attempts": "no audit row targets ESEM",
+      "blocker": "Never scanned; bus inferred; nothing shows MES reached it on this car."
+    },
+    {
+      "id": "TVM",
+      "label": "Torque vectoring module",
+      "bus": {"value": "can_ch", "confidence": "inferred", "source": "addressing.py TVM row"},
+      "address": {"confirmed": false, "value": null, "note": "none"},
+      "mes_evidence": [
+        {"date": "2025-10-21 23:43", "file": "FESLog_2510212344", "this_car": false, "what": "log opened, header only"}
+      ],
+      "cuore_attempts": "no audit row targets TVM; registry note: did not answer on the A6 scan, likely not fitted (QV item)",
+      "blocker": "Not shown to be fitted on this car; bus and address unknown."
+    }
+  ]
+}

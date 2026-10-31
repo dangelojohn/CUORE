@@ -514,6 +514,26 @@ check("one tap to the printable report from the board", 'id="lb-report"' in lb_t
 check("tag/graph controls are 44 px+", ".lb-tag { min-height: 48px" in lb_css and ".lb-graph-box { width: 24px" in lb_css)
 
 
+print("--- unconfirmed scales: raw + 'unconfirmed', and the N of M count ---")
+sc_board = lb_bridge.board(VIN) if "lb_bridge" in globals() else None
+if sc_board is None:
+    from cuore.services import liveboard_bridge as lb_bridge
+    sc_board = lb_bridge.board(VIN)
+sc_chans = [c for g in sc_board["groups"] for c in g["channels"] if c.get("scale")]
+check("board marks decoded module DIDs with a scale state", len(sc_chans) > 0)
+check("with no accepted scale every one is unconfirmed", all(c["scale"] == "unconfirmed" for c in sc_chans))
+check("a linear unconfirmed DID carries its raw map", any(c.get("raw_map") for c in sc_chans))
+check("count line is 0 of M values confirmed", sc_board["scale_count"]["line"] == f"0 of {len(sc_chans)} values confirmed",
+      sc_board["scale_count"]["line"])
+check("standard PIDs carry no scale field", all("scale" not in c for g in sc_board["groups"] for c in g["channels"]
+                                               if c["id"] in ("engine_rpm", "engine_coolant_temp")))
+sc_page = TestClient(create_app()).get(f"/v/{VIN}/liveboard")
+check("page shows the N of M count", "values confirmed" in sc_page.text and 'id="lb-scale-line"' in sc_page.text)
+check("page marks an unconfirmed value", 'data-scale="unconfirmed"' in sc_page.text and "lb-scale-unconf" in sc_page.text)
+check("page marks a raw map", "data-raw-m=" in sc_page.text)
+check("JS shows raw + unconfirmed", "raw, unconfirmed" in (ROOT / "cuore/web/static/liveboard.js").read_text(encoding="utf-8"))
+
+
 # --- summary -----------------------------------------------------------------
 
 print(f"{checks - len(failures)}/{checks} checks passed")

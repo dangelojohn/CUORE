@@ -192,6 +192,38 @@ def _board_band(channel_id: str, vin: str = "") -> Optional[dict[str, Any]]:
     }
 
 
+def _scale_fields(ch: Any) -> dict[str, Any]:
+    """Scale status of a module-DID value: ``scale`` = confirmed | unconfirmed (only for decoded DIDs; standard
+    PIDs and adapter readings carry no field). An unconfirmed linear DID also gets ``raw_map`` {m, c}
+    (decoded = raw * m + c) so the board can show the unscaled count instead of a number that implies a
+    unit. Confirmed only after a person accepts a decode-confirmation run (did_catalog.is_confirmed)."""
+    if ch.kind != "did" or not ch.formula or getattr(ch, "untrusted", False):
+        return {}
+    try:
+        from ..live import did_catalog
+        if did_catalog.is_confirmed(ch.id):
+            return {"scale": "confirmed"}
+    except Exception:  # noqa: BLE001 -- no override file readable: nothing is confirmed
+        pass
+    out: dict[str, Any] = {"scale": "unconfirmed"}
+    try:
+        from ..live import decode_confirm as dc
+        lin = dc._linear(ch.formula)
+    except Exception:  # noqa: BLE001
+        lin = None
+    if lin and not ch.field:
+        out["raw_map"] = {"m": lin[0], "c": lin[1]}
+    return out
+
+
+def _scale_count(chans: list[dict[str, Any]]) -> dict[str, Any]:
+    """"N of M values confirmed" over the decoded module-DID values on the board (M excludes standard
+    OBD-II PIDs, adapter readings and composites with no decode)."""
+    total = sum(1 for c in chans if c.get("scale"))
+    done = sum(1 for c in chans if c.get("scale") == "confirmed")
+    return {"confirmed": done, "total": total, "line": f"{done} of {total} values confirmed"}
+
+
 def board(vin: str = "") -> dict[str, Any]:
     """The liveboard layout: every ``can_c`` channel, grouped, rated and
     banded, plus two kinds of read-only extras that are never polled: MES-
@@ -213,6 +245,7 @@ def board(vin: str = "") -> dict[str, Any]:
             "band": _board_band(ch.id, vin=vin),
             "system": channel_system(ch.id),
         }
+        entry.update(_scale_fields(ch))
         by_group[_classify(ch)].append(entry)
         # A placeholder with no readable DID (e.g. esim_status, a 0x31
         # routine only) is shown but never polled: resolve_channels()
@@ -223,6 +256,7 @@ def board(vin: str = "") -> dict[str, Any]:
         all_ids.append(ch.id)
     groups = [{"id": g, "label": GROUP_LABELS[g], "channels": by_group[g]}
              for g in GROUP_ORDER if by_group[g]]
+    scale_count = _scale_count([c for g in groups for c in g["channels"]])
     # Recording-sourced channels (kind "recording", source "MES") are never
     # polled -- deliberately kept out of all_channel_ids/rates, which drive
     # the live poller, and out of groups/by_group, which are "this bus is
@@ -257,7 +291,7 @@ def board(vin: str = "") -> dict[str, Any]:
             learned_did_channels = []
     return {"groups": groups, "all_channel_ids": all_ids, "rates": rates,
            "notice": NOTICE, "recording_channels": recording_channels,
-           "learned_did_channels": learned_did_channels}
+           "learned_did_channels": learned_did_channels, "scale_count": scale_count}
 
 
 # ===========================================================================

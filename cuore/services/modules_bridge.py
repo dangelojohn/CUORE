@@ -239,6 +239,24 @@ def _scan_dtc_reads() -> list[tuple[str, str, Optional[str]]]:
             for m, v in mods.items()]
 
 
+#: a failed attempt older than this is history, not the module's state today
+_OLD_ATTEMPT_DAYS = 1
+
+
+def _age_note(at: str, now: Optional[datetime] = None) -> str:
+    """`` (old: last tried N days ago on DATE; not the state today, read it again)`` for a
+    failed read older than a day, else ``""``. Never turns NOT READ into clean."""
+    try:
+        when = datetime.fromisoformat(str(at))
+    except ValueError:
+        return ""
+    days = ((now or datetime.now()) - when).days
+    if days < _OLD_ATTEMPT_DAYS:
+        return ""
+    return (f" (old: last tried {days} day{'s' if days != 1 else ''} ago on {when:%Y-%m-%d}; "
+            "not the state today, read the module again)")
+
+
 def _live_read_state(vin: str) -> dict[str, dict[str, Any]]:
     """``{module: {"last": newest read, "good": newest answered read}}`` from
     every source of module reads: this car's ``module_dtcs`` observations, the
@@ -303,6 +321,7 @@ def list_modules(vin: str) -> list[dict[str, Any]]:
         else:
             status = "unknown"
         not_read = None
+        not_read_old = False
         last_good = None
         lv = live.get(abbrev)
         if lv and lv["last"] and lv["last"]["why"]:
@@ -311,6 +330,10 @@ def list_modules(vin: str) -> list[dict[str, Any]]:
             if status != "active":
                 status = "not_read"
             not_read = read_state.banner(f"{lv['last']['why']} at {lv['last']['at']}")
+            old_note = _age_note(lv["last"]["at"])
+            if old_note:
+                not_read += old_note
+                not_read_old = True
             last_good = ({"at": lv["good"], "label": "not read this session"}
                          if lv["good"] else None)
         elif status == "unknown" and not (lv and lv["good"]):
@@ -340,6 +363,7 @@ def list_modules(vin: str) -> list[dict[str, Any]]:
             "last_seen": ident.get("scan_timestamp"),
             "status": status,
             "not_read": not_read,
+            "not_read_old": not_read_old,
             "last_good_read": last_good,
         })
     rows.sort(key=lambda r: (_STATUS_RANK.get(r["status"], 9), r["code"]))

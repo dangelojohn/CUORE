@@ -72,6 +72,7 @@
     {% if q %}<a class="lb-clear" href="/v/{{ vin }}/liveboard{% if tok %}?token={{ tok }}{% endif %}">Clear</a>{% endif %}
   </form>
 
+  {% if view.scale_line %}<p class="lb-scale-line" id="lb-scale-line" title="Decoded module values whose scale a person has accepted against MES. Standard OBD-II readings are not counted. An unconfirmed value is shown as its raw count where possible.">{{ view.scale_line }}</p>{% endif %}
   <div class="lb-status" id="lb-status">
     <span class="lb-status-chip" id="lb-status-adapter">adapter: checking</span>
     <span class="lb-status-chip" id="lb-status-session">no session</span>

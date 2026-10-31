@@ -491,6 +491,13 @@ def decode_flow_propose_route(vin: str = Body(..., embed=True), mes_log_path: st
     return decode_flow.propose(vin, mes_log_path, cuore_recording_path)
 
 
+@router.post("/live/decode-flow/review",
+             summary="Offline review queue from recorded MES logs and recorded CUORE DID bytes (no car contact)")
+def decode_flow_review_route(vin: str = Body(..., embed=True)) -> dict[str, Any]:
+    from ..live import decode_flow
+    return decode_flow.review_queue(vin)
+
+
 @router.post("/live/decode-flow/record/start", summary="Record the MES CSV's channels in CUORE (MES closed)")
 def decode_flow_record_start_route(vin: str = Body(..., embed=True), mes_csv: str = Body(default="", embed=True)
                                    ) -> dict[str, Any]:

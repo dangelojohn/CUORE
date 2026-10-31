@@ -23,7 +23,7 @@
    "function": "Module scan (all buses)",
    "mes": {
     "has": "yes",
-    "note": "12 modules reached on the reference car"
+    "note": "14 modules carry this VIN across MES logs (count by ISO code, 2026-10-31)"
    },
    "alfaobd": {
     "has": "yes",
@@ -152,7 +152,7 @@
    },
    "cuore": {
     "has": "partial",
-    "note": "Never run on ABS, IPC, TCM, ESM"
+    "note": "19 02 sent to IPC 7x (all answered), TCM 8x (7), ESM 1x (refused), ABS 1x (no data); no MES compare"
    },
    "state": "car_session",
    "closes": "Module code round runs 19 02 on IPC and TCM; ESM and DTCM once accepted.",

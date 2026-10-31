@@ -86,7 +86,7 @@ WITHWRITE = build([
     ([0x2F, 0xDE, 0x01, 0x00], [0x6F, 0xDE, 0x01, 0x00]),
 ])
 
-GOOD = dict(listen_bitrate=500000,
+GOOD = dict(listen_bitrate=500000, bus="can_c",
             pre={"engine_state": "running, idle", "voltage_v": 13.8},
             post={"engine_state": "running, idle", "voltage_v": 13.8},
             name="ESIM vent test")
@@ -94,11 +94,11 @@ GOOD = dict(listen_bitrate=500000,
 # checks without the ESIM interlock conflict.
 NEUTRAL_KW = dict(pre={"engine_state": "off", "voltage_v": 12.6},
                 post={"engine_state": "off", "voltage_v": 12.6}, name="bench widget test")
-NEUTRAL = dict(listen_bitrate=500000, pre={"engine_state": "off", "voltage_v": 12.6},
+NEUTRAL = dict(listen_bitrate=500000, bus="can_c", pre={"engine_state": "off", "voltage_v": 12.6},
                post={"engine_state": "off", "voltage_v": 12.6}, name="bench widget test")
 
 # --- reassembly and extraction ---
-r = pc.review(ESIM)
+r = pc.review(ESIM, bus="can_c")
 check("one module reviewed", len(r["modules"]) == 1)
 m = r["modules"][0]
 check("module is ECM", m["module"] == "ECM", str(m["module"]))
@@ -115,14 +115,14 @@ check("report text names ECM and services",
       and "ALLOW replay" in r["text"], r["text"])
 
 # --- 0x27 detection ---
-r27 = pc.review(WITH27)
+r27 = pc.review(WITH27, bus="can_c")
 m27 = r27["modules"][0]
 check("0x27 detected", m27["has_security_access"])
 check("0x27 means replay refused", not m27["replay_allowed"])
 check("report flags 0x27", "PRESENT" in r27["text"] and "REFUSE" in r27["text"])
 
 # --- write detection ---
-mw = pc.review(WITHWRITE)["modules"][0]
+mw = pc.review(WITHWRITE, bus="can_c")["modules"][0]
 check("write service detected", mw["write_reset_services"] == ["2E"])
 check("write means replay refused", not mw["replay_allowed"])
 
@@ -152,7 +152,7 @@ check("gate_report: bitrate taken from the recorded value",
       pc.gate_report(r, listen_bitrate=125000, **NEUTRAL_KW)[0]["passed"] is False)
 g27 = pc.gate(m27, **GOOD)
 check("gate fails on 0x27", not g27["passed"] and any("0x27" in x for x in g27["reasons"]))
-mn = pc.review(NOSTOP)["modules"][0]
+mn = pc.review(NOSTOP, bus="can_c")["modules"][0]
 gn = pc.gate(mn, **GOOD)
 check("gate fails on missing stop step", not gn["passed"]
       and any("no stop step" in x for x in gn["reasons"]), str(gn["reasons"]))

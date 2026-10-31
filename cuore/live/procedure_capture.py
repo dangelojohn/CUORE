@@ -19,7 +19,7 @@ import re
 from typing import Any, Optional
 
 from . import actuate
-from .addressing import MODULES
+from .addressing import MODULES, by_code, by_target
 from .buses import BUSES
 from .learn import uds_transactions
 from .safety import ACTUATION_BLOCKED_MODULES
@@ -36,9 +36,23 @@ SERVICE_NAMES: dict[str, str] = {
 WRITE_RESET_SERVICES = frozenset({"11", "14", "28", "2E", "34", "35", "36", "37", "3D", "85"})
 
 
-def _module_for(target_hex: str):
-    t = int(target_hex, 16)
-    return next((m for m in MODULES if m.target == t), None)
+def _module_for(target_hex: str, bus: Optional[str] = None, vin: Optional[str] = None):
+    """The module that owns this target byte ON THIS BUS for this car, else ``None``.
+    The same byte is different modules on different buses (0x2A is ABS on CAN-CH,
+    DASM on CAN-C), so a lookup with no bus context refuses (returns ``None``)
+    rather than guess; so does a byte that no module, or two modules, claim."""
+    if not bus:
+        return None
+    try:
+        t = int(str(target_hex), 16)
+    except ValueError:
+        return None
+    if vin:
+        from .uds import module_at
+        return module_at(t, str(bus), vin)
+    # no car named: registry-confirmed rows only, never the link's remembered VIN
+    hits = [m for m in by_target(t, str(bus)) if m.usable]
+    return hits[0] if len(hits) == 1 else None
 
 
 def _norm_request(raw: Any) -> list[str]:
@@ -80,7 +94,10 @@ def documented_procedure(defn: dict[str, Any]) -> dict[str, Any]:
     sess = defn.get("session") or {}
     pre = {k: v for k, v in (defn.get("preconditions") or {}).items() if k in ("engine_state", "voltage_v")}
     post = {k: v for k, v in (defn.get("postconditions") or {}).items() if k in ("engine_state", "voltage_v")}
+    code = str(defn.get("module", "")).upper()
+    daddr = next((m for m in MODULES if m.code == code), None)
     proc.update({
+        "module": daddr.code if daddr else None, "bus": daddr.bus_key if daddr else None,
         "source": "documented", "name": defn.get("name", ""), "pre": pre, "post": post,
         "bitrate": sess.get("bitrate"), "max_seconds": defn.get("max_seconds"),
         "citation": (defn.get("source") or {}).get("citation"),
@@ -88,10 +105,14 @@ def documented_procedure(defn: dict[str, Any]) -> dict[str, Any]:
     return proc
 
 
-def review(frames: Any) -> dict[str, Any]:
+def review(frames: Any, bus: Optional[str] = None, vin: Optional[str] = None) -> dict[str, Any]:
     """Reassemble the capture and report, per module the tester talked to. ``frames`` is the
     MES-learn frame list, or a DOCUMENTED procedure definition (a dict with ``steps``), which
-    goes through the same rules and is tagged ``source="documented"``."""
+    goes through the same rules and is tagged ``source="documented"``.
+
+    ``bus`` is the bus the capture was recorded on (a documented definition names its
+    module, so it needs none). Without it a captured target byte resolves to no module:
+    ``module``/``bus`` stay ``None`` and the gate refuses."""
     documented = isinstance(frames, dict)
     txs = documented_transactions(frames) if documented else uds_transactions(frames)
     modules: list[dict[str, Any]] = []
@@ -108,7 +129,7 @@ def review(frames: Any) -> dict[str, Any]:
     for target in sorted({t["target"] for t in txs}):
         proc = actuate.extract_procedure(txs, target)
         seq = [s["service"] for s in proc["steps"]]
-        addr = _module_for(target)
+        addr = _module_for(target, bus, vin) if not documented else             next((m for m in MODULES if m.code == str(frames.get("module", "")).upper()), None)
         modules.append({
             "target": target, "module": addr.code if addr else None,
             "bus": addr.bus_key if addr else None,
@@ -194,17 +215,19 @@ def interlock_conflicts(name: str = "", mes_function: str = "",
 
 def gate_report(rep: dict[str, Any], *, listen_bitrate: Optional[int], pre: Optional[dict] = None,
                 post: Optional[dict] = None, name: str = "", max_seconds: Optional[float] = None,
-                mes_function: str = "") -> list[dict[str, Any]]:
+                mes_function: str = "", bus: Optional[str] = None,
+                vin: Optional[str] = None) -> list[dict[str, Any]]:
     """:func:`gate` for every module of a :func:`review` report, fed the RECORDED bitrate."""
     return [dict(gate(m, listen_bitrate=listen_bitrate, pre=pre, post=post, max_seconds=max_seconds,
-                      name=name, mes_function=mes_function),
+                      name=name, mes_function=mes_function, bus=bus, vin=vin),
                  module=m["module"], target=m["target"]) for m in rep["modules"]]
 
 
 def gate(proc_or_module: dict[str, Any], *, listen_bitrate: Optional[int] = None,
          pre: Optional[dict[str, Any]] = None, post: Optional[dict[str, Any]] = None,
          max_seconds: Optional[float] = None, name: str = "",
-         mes_function: str = "") -> dict[str, Any]:
+         mes_function: str = "", bus: Optional[str] = None,
+         vin: Optional[str] = None) -> dict[str, Any]:
     """Pass/fail for offering a learned procedure. ``proc_or_module`` is a
     :func:`review` module entry or a bare ``extract_procedure`` result.
 
@@ -217,7 +240,8 @@ def gate(proc_or_module: dict[str, Any], *, listen_bitrate: Optional[int] = None
     conflict" and never passes.
     """
     proc = proc_or_module.get("procedure", proc_or_module)
-    addr = _module_for(proc["target"])
+    code = proc_or_module.get("module") or proc.get("module")
+    addr = by_code(str(code).upper()) if code else _module_for(proc["target"], bus, vin)
     fails: list[str] = []
     seq = [s["service"] for s in proc["steps"]]
 
@@ -233,7 +257,8 @@ def gate(proc_or_module: dict[str, Any], *, listen_bitrate: Optional[int] = None
         fails.append(f"not an actuator test (kind={proc.get('kind')})")
 
     if addr is None:
-        fails.append(f"target {proc['target']} is not a known module")
+        fails.append(f"target {proc['target']} is not a known module"
+                     + ("" if bus or code else " (no bus given, so the byte cannot be attributed)"))
     else:
         if addr.bus_key != "can_c":
             fails.append(f"{addr.code} is on {addr.bus_key}, not CAN-C")
@@ -312,7 +337,8 @@ def verdict_line(rep: dict[str, Any], gates: list[dict[str, Any]], path: str = "
 
 
 def review_frames(frames: list[dict[str, Any]], *, path: str = "",
-                  listen_bitrate: Optional[int] = None, **gate_kw: Any) -> dict[str, Any]:
+                  listen_bitrate: Optional[int] = None, bus: Optional[str] = None,
+                  vin: Optional[str] = None, **gate_kw: Any) -> dict[str, Any]:
     """review + gate_report + verdict; writes ``<path stem>.review.json`` beside
     the capture when ``path`` is given. NEVER raises: a bad capture is reported
     in the returned dict (``verdict`` says so) and the capture is untouched."""
@@ -320,8 +346,8 @@ def review_frames(frames: list[dict[str, Any]], *, path: str = "",
     from datetime import datetime
     from pathlib import Path
     try:
-        rep = review(frames)
-        rep["gates"] = gate_report(rep, listen_bitrate=listen_bitrate, **gate_kw)
+        rep = review(frames, bus=bus, vin=vin)
+        rep["gates"] = gate_report(rep, listen_bitrate=listen_bitrate, bus=bus, vin=vin, **gate_kw)
         rep["recorded_bitrate"] = listen_bitrate
         rep["capture_file"] = path or None
         rep["verdict"] = verdict_line(rep, rep["gates"], path)
@@ -358,4 +384,5 @@ def review_file(path: str, **gate_kw: Any) -> dict[str, Any]:
     except OSError as e:
         return {"verdict": f"replayable: no - cannot read capture: {e}", "error": str(e),
                 "text": "", "gates": [], "modules": [], "review_file": None}
-    return review_frames(frames, path=str(path), listen_bitrate=header.get("bitrate"), **gate_kw)
+    return review_frames(frames, path=str(path), listen_bitrate=header.get("bitrate"),
+                         bus=header.get("bus"), vin=header.get("vin") or None, **gate_kw)

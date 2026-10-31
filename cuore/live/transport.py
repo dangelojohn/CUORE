@@ -170,7 +170,8 @@ def clamp_timeout(t: float) -> float:
 def _vin_field(link: Any) -> dict[str, str]:
     """``{"vin": ...}`` when the connected car's 17-character VIN is known, else
     nothing, so an audit row never carries a guessed or partial VIN."""
-    vin = str(getattr(link, "vin", "") or "").strip().upper()
+    cv = getattr(link, "confirmed_vin", None)
+    vin = str((cv() if callable(cv) else getattr(link, "vin", "")) or "").strip().upper()
     return {"vin": vin} if len(vin) == 17 else {}
 
 
@@ -616,7 +617,11 @@ class AdapterLink:
         self.verify_ttl: float = _env_float("CUORE_VERIFY_TTL", 600.0)
         self.verifier: Optional[Callable[..., dict[str, Any]]] = None
         self.last_auto_verify: Optional[dict[str, Any]] = None
-        self.vin: str = ""                               # last VIN the car reported
+        self._vin: str = ""                              # last VIN the car reported
+        self._vin_at: Optional[float] = None             # monotonic time it was read this process
+        # A remembered VIN older than this, or from before the adapter port changed or the
+        # link was forgotten, is NOT trusted to name the car: it may be the previous car's.
+        self.vin_ttl: float = _env_float("CUORE_VIN_TTL", 2 * 3600.0)
         self.current: Optional[Session] = None
         self.current_purpose: Optional[str] = None
         # How long a caller waits for the adapter lock before being told the adapter is
@@ -730,6 +735,29 @@ class AdapterLink:
             return False
         ts = ver.get("ts")
         return ts is None or self.verify_ttl <= 0 or time.monotonic() - ts <= self.verify_ttl
+
+    @property
+    def vin(self) -> str:
+        """The last VIN the car reported (may be stale: use :meth:`confirmed_vin` to stamp a read)."""
+        return self._vin
+
+    @vin.setter
+    def vin(self, value: str) -> None:
+        self._vin = str(value or "")
+        self._vin_at = time.monotonic() if self._vin else None
+
+    def confirmed_vin(self) -> str:
+        """The VIN of the connected car only if it was read in this process, recently, and the
+        adapter port has not changed since. Otherwise ``""``: the car is unconfirmed and a read
+        must not be filed under a remembered (possibly previous car's) VIN."""
+        if not self._vin or self._vin_at is None:
+            return ""
+        if time.monotonic() - self._vin_at > self.vin_ttl:
+            return ""
+        return self._vin
+
+    def forget_vin(self) -> None:
+        self._vin, self._vin_at = "", None
 
     def _auto_verify(self, bus: Bus, allow_while_mes_connected: bool) -> None:
         """Run the passive listen for a transmit session that lacks a fresh proof."""
@@ -914,6 +942,8 @@ class AdapterLink:
                             "cuore/obd2 instance, or a terminal program.")
                 self.last_error = f"open {p}@{b} failed: {e}"
                 raise LinkUnavailable(f"could not open {p}@{b} ({psrc}, {bsrc}): {e}.{hint}")
+            if self.port is not None and (p, b) != (self.port, self.baud):
+                self.forget_vin()       # different adapter/port: the remembered VIN may be another car's
             self.port, self.baud, self.port_source, self.baud_source = p, b, psrc, bsrc
             self.last_open = datetime.now().isoformat(timespec="seconds")
             try:
@@ -1120,7 +1150,8 @@ class AdapterLink:
             "mes": interlock.mes_status(), "lock": interlock.read_lock(),
             "lock_path": str(interlock.lock_path()),
             "cable": self.cable_state(), "cable_mismatch": self.cable_mismatch,
-            "vin": self.vin or None,
+            "vin": self.confirmed_vin() or None,
+            "vin_unconfirmed": (self._vin or None) if not self.confirmed_vin() else None,
             "note": "the port is opened per operation and released after each call",
             "pass_filter_mode": self.pass_filter_mode,
             "adapter_baud_requested": self.adapter_baud_requested or None,

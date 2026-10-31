@@ -2,11 +2,12 @@
    Rendered from cuore/web/liveboard_view.py. Values, colours and "waiting" states are filled by liveboard.js
    into the same element ids (lb-chan-/lb-val-/lb-unit-/lb-state-<channel id>). #}
 {% macro chan(c, label="") %}
-<div class="lb-chan level-unknown" id="lb-chan-{{ c.id }}" data-channel="{{ c.id }}">
+<div class="lb-chan level-unknown" id="lb-chan-{{ c.id }}" data-channel="{{ c.id }}"{% if c.scale == 'unconfirmed' %} data-scale="unconfirmed"{% if c.raw_m %} data-raw-m="{{ c.raw_m }}" data-raw-c="{{ c.raw_c }}"{% endif %}{% endif %}>
   <div class="lb-chan-left">
     <div class="lb-chan-name">{{ label or c.name }}</div>
     {% if c.note %}<div class="lb-chan-band">{{ c.note }}</div>{% endif %}
     {% if c.conf %}<span class="lb-conf">{{ c.conf }}</span>{% endif %}
+    {% if c.scale == 'unconfirmed' %}<span class="lb-conf lb-scale-unconf" title="This value's scale has not been accepted against MES. Shown as the raw count when it can be; not a true value.">unconfirmed</span>{% endif %}
     <div class="lb-pick" hidden>
       <label class="lb-pick-on"><input type="checkbox" class="lb-pick-box" data-pick="{{ c.id }}" checked> Record</label>
       <label class="lb-pick-pri">Priority

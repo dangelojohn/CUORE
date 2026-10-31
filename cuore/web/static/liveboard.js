@@ -570,7 +570,19 @@
     if (!row || !valEl) return;
     var v = this.values[id];
     row.className = "lb-chan level-" + (v ? v.level : "unknown") + (v ? " has-value" : "");
-    valEl.textContent = (v && typeof v.value === "number" && !isNaN(v.value)) ? fmtValue(v.value) : (v ? "—" : "");
+    var num = (v && typeof v.value === "number" && !isNaN(v.value)) ? v.value : null;
+    // A value whose scale has not been accepted against MES is shown as its raw count (when the decode is
+    // linear) with the word "unconfirmed" in place of a unit; the scaled number is never presented as true.
+    var unconf = row.getAttribute("data-scale") === "unconfirmed";
+    var rawM = parseFloat(row.getAttribute("data-raw-m"));
+    if (unconf && num !== null) {
+      var rawC = parseFloat(row.getAttribute("data-raw-c")) || 0;
+      valEl.textContent = rawM ? String(Math.round((num - rawC) / rawM)) : fmtValue(num);
+      if (unitEl) unitEl.textContent = rawM ? "raw, unconfirmed" : "unconfirmed";
+      this._renderState(id);
+      return;
+    }
+    valEl.textContent = num !== null ? fmtValue(num) : (v ? "—" : "");
     if (unitEl && v && v.unit) unitEl.textContent = fmtUnit(v.unit);
     this._renderState(id);
   };

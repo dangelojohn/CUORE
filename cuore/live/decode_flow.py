@@ -194,6 +194,38 @@ def propose(vin: str, mes_path: str = "", cuore_path: str = "", tolerance: float
             "applied": False, "next": "A person accepts or rejects each line; nothing is confirmed until then."}
 
 
+# --- 3b. review queue from recorded sessions ---------------------------------------------
+
+def review_queue(vin: str, max_gap_s: float = MAX_GAP_S) -> dict[str, Any]:
+    """Offline review queue: recorded MES log values beside recorded CUORE raw DID bytes (audit log) taken
+    within ``max_gap_s`` of each other, per ECM/TCM/BCM channel. Saved as a decode_confirm run so
+    :func:`accept` / :func:`reject` apply unchanged. No car contact; nothing is applied or confirmed.
+    A row is ``actionable`` only when its verdict is confirmed or wrong_scale (>= 2 differing conditions)."""
+    from . import scale_review
+    q = scale_review.build(vin, max_gap_s=max_gap_s)
+    run = scale_review.save_run(vin, q)
+    rejected = _decisions().get("rejected", {})
+    rows = []
+    for c in q["channels"]:
+        act = c["verdict"] in ("confirmed", "wrong_scale")
+        rows.append({"channel": c["channel"], "module": c["module"], "did": c["did"], "name": c["name"],
+                     "proposal": _proposal(c), "verdict": c["verdict"], "actionable": act,
+                     "agreement": c.get("fit"), "samples": c.get("samples", 0), "reason": c.get("reason", ""),
+                     "mes_name": c["mes_name"], "pairing": c["pairing"], "cross_module": c.get("cross_module", False),
+                     "needs_pairing_confirm": act and c["pairing"] == "candidate",
+                     "proposed_scale": (c.get("transform") or {}).get("name") if c["verdict"] == "wrong_scale" else "",
+                     "evidence": c["evidence"], "single_point": c.get("single_point"),
+                     "owner_rejected": c["channel"] in rejected})
+    n_act = sum(1 for r in rows if r["actionable"])
+    return {"run_id": run["run_id"], "mode": "recorded", "max_gap_s": max_gap_s, "counts": q["summary"],
+            "proposed_with_evidence": n_act, "queue": rows, "per_module": q["per_module"],
+            "mes_live_logs": q["mes_live_logs"], "cuore_did_reads": q["cuore_did_reads"],
+            "mes_ecm_names_seen": q["mes_ecm_names_seen"],
+            "mes_ecm_names_without_channel": q["mes_ecm_names_without_channel"], "applied": False,
+            "next": "Accept or reject each actionable line with one tap; rows without evidence need a MES graph "
+                    "CSV and a CUORE recording in the same engine state (Compare). Nothing is confirmed until a person accepts."}
+
+
 # --- 4. the person decides --------------------------------------------------------------
 
 def accept(vin: str, run_id: str, channel: str, confirm_pairing: bool = False) -> dict[str, Any]:
@@ -271,4 +303,4 @@ def status() -> dict[str, Any]:
 
 
 __all__ = ["newest_mes_csv", "newest_cuore_recording", "record_start", "record_stop", "propose",
-           "accept", "reject", "status", "wanted_channels"]
+           "accept", "reject", "status", "wanted_channels", "review_queue"]

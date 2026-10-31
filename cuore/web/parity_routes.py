@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, Response
 
 from ..api.deps import require_token
-from ..services import parity
+from ..services import code_compare, parity
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
@@ -15,7 +15,11 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 def parity_page(request: Request, vin: str, state: str = "", group: str = "") -> HTMLResponse:
     dossier = _dossier(vin)
     b = parity.board(state.strip() or None, group.strip() or None)
-    response = _page(request, "parity.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="parity", b=b)
+    try:
+        cmp = code_compare.compare(vin)
+    except Exception as exc:  # noqa: BLE001 -- the board must render without the comparison
+        cmp = {"error": f"{type(exc).__name__}: {exc}"}
+    response = _page(request, "parity.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="parity", b=b, cmp=cmp)
     _set_active_vehicle(response, vin)
     return response
 

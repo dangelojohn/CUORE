@@ -152,7 +152,7 @@ _csv_path = Path(_TMP) / "mes_learn_fixture.csv"
 _csv_path.write_text("\n".join(_csv_lines) + "\n", encoding="utf-8")
 
 _rec = csvlog.load_csv(_csv_path)
-_fitted = mes_learn.align(align_frames, _rec)
+_fitted = mes_learn.align(align_frames, _rec, bus="can_c")
 check("align: one result per named column", len(_fitted) == 2, str(_fitted))
 _by_col = {r["column"]: r for r in _fitted}
 

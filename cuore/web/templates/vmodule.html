@@ -10,7 +10,7 @@
                      {% elif m.status == 'cleared_unverified' %}status-cleared_unverified
                      {% elif m.status == 'stale' %}status-stale
                      {% elif m.status == 'clean' %}ok
-                     {% else %}plain{% endif %}">{{ "NOT READ" if m.not_read else m.status.replace("_", " ") }}</span></h1>
+                     {% else %}plain{% endif %}">{{ ("NOT READ (old)" if m.not_read_old else "NOT READ") if m.not_read else m.status.replace("_", " ") }}</span></h1>
   {% if m.not_read %}<p class="chip status-active" role="alert">{{ m.not_read }}{% if m.last_good_read %} Last good read {{ m.last_good_read.at }} ({{ m.last_good_read.label }}).{% endif %}</p>{% endif %}
 <p class="lede">{{ m.name or "not in the module registry" }}
   {% if m.domain %}&middot; {{ m.domain }}{% endif %}

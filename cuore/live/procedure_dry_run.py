@@ -194,7 +194,7 @@ def load(capture: Any) -> dict[str, Any]:
         "bitrate": cap.get("bitrate") if cap.get("bitrate") is not None else cap.get("listen_bitrate"),
         "name": cap.get("name") or "", "pre": cap.get("pre"), "post": cap.get("post"),
         "max_seconds": cap.get("max_seconds"), "mes_function": cap.get("mes_function") or "",
-        "vin": cap.get("vin") or "",
+        "vin": cap.get("vin") or "", "bus": cap.get("bus") or None,
     }
 
 
@@ -309,9 +309,11 @@ def _verdict(r: dict[str, Any]) -> tuple[str, str, Optional[str]]:
 
 def dry_run(capture: Any, *, fake_replies: Optional[dict] = None, module: Optional[str] = None,
             name: Optional[str] = None, pre: Optional[dict] = None, post: Optional[dict] = None,
-            max_seconds: Optional[float] = None, bitrate: Optional[int] = None, vin: str = "") -> dict[str, Any]:
+            max_seconds: Optional[float] = None, bitrate: Optional[int] = None, vin: str = "",
+            bus: Optional[str] = None) -> dict[str, Any]:
     """Replay a capture against the gate and a fake transport. Never contacts hardware."""
     cap = load(capture)
+    bus = bus or cap["bus"]          # the bus the capture was recorded on; none means no module attribution
     name = name or cap["name"]
     pre = pre if pre is not None else cap["pre"]
     post = post if post is not None else cap["post"]
@@ -330,10 +332,10 @@ def dry_run(capture: Any, *, fake_replies: Optional[dict] = None, module: Option
 
     # --- review + gate, exactly as mes_learn._auto_review / the real path do ---
     if cap["frames"] is not None:
-        review = procedure_capture.review(cap["frames"])
+        review = procedure_capture.review(cap["frames"], bus=bus, vin=vin or cap["vin"] or None)
     else:
         p = cap["procedure"]
-        mod = procedure_capture._module_for(p["target"])
+        mod = procedure_capture._module_for(p["target"], bus, vin or cap["vin"] or None)
         review = {"transactions": len(p["steps"]), "modules": [{
             "target": p["target"], "module": mod.code if mod else None, "procedure": p,
             "sequence": [s["service"] for s in p["steps"]]}]}
@@ -359,14 +361,16 @@ def dry_run(capture: Any, *, fake_replies: Optional[dict] = None, module: Option
         proc["vin"] = vin or cap["vin"]
 
     g = procedure_capture.gate(chosen, listen_bitrate=bitrate, pre=pre, post=post, max_seconds=max_s,
-                               name=name or "", mes_function=cap["mes_function"])
+                               name=name or "", mes_function=cap["mes_function"],
+                               bus=bus, vin=vin or cap["vin"] or None)
     rep["gate"] = g
     if not g["passed"]:
         rep["verdict_line"] = "Not run: the safety gate refused this procedure (" + "; ".join(g["reasons"]) + \
                               "). Nothing would be sent."
         return _finish(rep, None)
 
-    ecu = procedure_capture._module_for(chosen["target"])
+    ecu = procedure_capture.by_code(chosen["module"]) if chosen.get("module") else \
+        procedure_capture._module_for(chosen["target"], bus, vin or cap["vin"] or None)
     for st in proc["steps"]:        # learned gaps are timing only; skip them so the rehearsal is instant
         st["t_req"] = None
     budget = float(max_s) if max_s else DEFAULT_MAX_SECONDS
