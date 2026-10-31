@@ -229,6 +229,9 @@
     this._statusTimer = null;
     this._lastSampleAt = null;
     this.sessionInfo = null;  // last GET /api/live/session payload
+    this.hist = {};          // id -> [[t, value], ...] for the graph
+    this.tags = [];          // [{t, key, label}] one-tap event marks
+    this.recording = false;
   }
 
   LiveboardApp.prototype._tokenFromLocation = function () {
@@ -268,6 +271,7 @@
     var self = this;
     this._wireControls();
     this._wirePicker();
+    this._wireGraphTagsRecord();
     return this.loadContract().then(function () {
       self._renderGroups();
       self._syncUi();
@@ -412,6 +416,13 @@
       var body = { channels: self.allChannelIds, rates: self.rates };
       var pk = self._pickState();
       if (pk.off.length) body.channels = self.allChannelIds.filter(function (id) { return pk.off.indexOf(id) < 0; });
+      // A value group is open: read just that set, so the whole group refreshes in one short cycle.
+      var gc = self.root && self.root.getAttribute && self.root.getAttribute("data-group-channels");
+      if (gc) {
+        var want = gc.split(",");
+        var only = body.channels.filter(function (id) { return want.indexOf(id) >= 0; });
+        if (only.length) body.channels = only;
+      }
       body.priorities = {};
       body.channels.forEach(function (id) { body.priorities[id] = pk.pri[id] || 1; });
       var cw = self.doc.getElementById("lb-codewatch");
@@ -488,6 +499,11 @@
     var level = computeLevel(meta && meta.band, value);
     this.values[id] = { value: value, unit: unit || (meta && meta.unit) || "", level: level, t: this.now() };
     this._lastSampleAt = this.now();
+    if (typeof value === "number" && !isNaN(value)) {
+      var h = this.hist[id] || (this.hist[id] = []);
+      h.push([this.now(), value]);
+      if (h.length > 600) h.splice(0, h.length - 600);
+    }
     this._renderChannel(id);
     this._renderProblems();
     this._syncUi();
@@ -677,7 +693,162 @@
       var v = self.values[id];
       var row = self.doc.getElementById("lb-chan-" + id);
       if (!row) return;
-      row.classList.toggle("is-stale", (now - v.t) * 1000 > STALE_MS);
+      row.classList.toggle("is-stale", self._offline() || (now - v.t) * 1000 > STALE_MS);
+    });
+    this._renderOffline();
+    this.allChannelIds.forEach(function (id) { self._renderStatus(id); });
+    this._renderGraph();
+  };
+
+  // ---- live or not: old values must never look live ----------------------
+
+  // true when readings are held on the page but nothing is feeding them from the car
+  LiveboardApp.prototype._offline = function () {
+    if (this.sourceKind === "demo") return false;
+    if (!Object.keys(this.values).length) return false;
+    return !(this.sourceKind === "live" || (this.sessionInfo && this.sessionInfo.active));
+  };
+
+  LiveboardApp.prototype._renderOffline = function () {
+    var el = this.doc.getElementById("lb-offline");
+    if (!el) return;
+    var text = "";
+    if (this.sourceKind === "demo") text = "DEMO: made-up numbers, not from the car.";
+    else if (this._offline()) text = "NOT CONNECTED to the car. The values shown are the last ones received, not live.";
+    el.textContent = text;
+    el.hidden = !text;
+    el.className = "lb-notice lb-offline" + (this.sourceKind === "demo" ? " is-demo" : " is-offline");
+  };
+
+  // One plain word per row: No reading / Confirmed / Unconfirmed, and where the band comes from.
+  LiveboardApp.prototype._renderStatus = function (id) {
+    var row = this.doc.getElementById("lb-chan-" + id);
+    if (!row) return;
+    var left = row.querySelector(".lb-chan-left");
+    if (!left) return;
+    var el = row.querySelector(".lb-vstat");
+    if (!el) { el = this.doc.createElement("div"); el.className = "lb-vstat"; left.appendChild(el); }
+    var v = this.values[id], meta = this.channelsById[id], b = meta && meta.band;
+    var active = this.sourceKind || (this.sessionInfo && this.sessionInfo.active);
+    var st = "", text = "";
+    var stale = v && (this._offline() || (this.now() - v.t) * 1000 > STALE_MS);
+    if (!active && !v) { el.textContent = ""; el.removeAttribute("data-status"); return; }
+    if (!v || stale || typeof v.value !== "number" || isNaN(v.value)) {
+      st = "none"; text = "No reading" + (stale ? " (last value " + Math.round(this.now() - v.t) + " s old)" : "");
+    } else {
+      var conf = String((b && b.confidence) || "").toUpperCase().replace(/_/g, "-");
+      var src = b && b.source ? " Band source: " + b.source + "." : (b ? " Band source: not named." : " No band on file.");
+      if (conf === "CORROBORATED") { st = "confirmed"; text = "Confirmed (2+ sources)." + src; }
+      else { st = "unconfirmed"; text = "Unconfirmed" + (conf === "SINGLE-SOURCE" ? " (one source)." : ".") + src; }
+    }
+    el.setAttribute("data-status", st);
+    el.textContent = text;
+  };
+
+  // ---- graph several values against time ---------------------------------
+
+  LiveboardApp.prototype._graphKey = function () { return "cuore.lb.graph." + (this.vin || "demo"); };
+  LiveboardApp.prototype._graphIds = function () {
+    try { return JSON.parse(global.localStorage.getItem(this._graphKey()) || "[]") || []; } catch (e) { return this._graphSel || []; }
+  };
+  LiveboardApp.prototype._graphSave = function (ids) {
+    this._graphSel = ids;
+    try { global.localStorage.setItem(this._graphKey(), JSON.stringify(ids)); } catch (e) { /* ignore */ }
+  };
+
+  LiveboardApp.prototype._renderGraph = function () {
+    var box = this.doc.getElementById("lb-graph");
+    if (!box) return;
+    var ids = this._graphIds(), self = this, W = 600, H = 70, SPAN = 60, t1 = this.now(), t0 = t1 - SPAN;
+    box.hidden = !ids.length;
+    if (!ids.length) { box.innerHTML = ""; return; }
+    var html = ["<div class=\"lb-graph-head\">Graph, last " + SPAN + " s, one strip per value (each has its own scale)</div>"];
+    ids.forEach(function (id) {
+      var meta = self.channelsById[id] || {}, pts = (self.hist[id] || []).filter(function (p) { return p[0] >= t0; });
+      var name = meta.name || id, unit = fmtUnit(meta.unit || "");
+      if (!pts.length) { html.push("<div class=\"lb-gstrip\"><b>" + name + "</b>: No reading in the last " + SPAN + " s</div>"); return; }
+      var lo = Math.min.apply(null, pts.map(function (p) { return p[1]; })), hi = Math.max.apply(null, pts.map(function (p) { return p[1]; }));
+      if (hi === lo) { hi += 1; lo -= 1; }
+      var d = pts.map(function (p) { return (((p[0] - t0) / SPAN) * W).toFixed(1) + "," + (H - 6 - ((p[1] - lo) / (hi - lo)) * (H - 12)).toFixed(1); }).join(" ");
+      var marks = self.tags.filter(function (t) { return t.t >= t0; }).map(function (t) {
+        var x = (((t.t - t0) / SPAN) * W).toFixed(1);
+        return "<line class=\"lb-gtag\" x1=\"" + x + "\" x2=\"" + x + "\" y1=\"0\" y2=\"" + H + "\"></line>";
+      }).join("");
+      html.push("<div class=\"lb-gstrip\"><b>" + name + "</b> " + fmtNum(lo) + " to " + fmtNum(hi) + " " + unit +
+        "<svg viewBox=\"0 0 " + W + " " + H + "\" role=\"img\" aria-label=\"" + name + " against time\"><polyline class=\"lb-gline\" points=\"" + d + "\"></polyline>" + marks + "</svg></div>");
+    });
+    if (this.tags.length) html.push("<div class=\"lb-gnote\">Tags: " + this.tags.slice(-6).map(function (t) { return t.label; }).join(", ") + "</div>");
+    box.innerHTML = html.join("");
+  };
+
+  // ---- record, one-tap tags, graph picks ----------------------------------
+
+  LiveboardApp.prototype._setRecording = function (on) {
+    this.recording = on;
+    var tags = this.doc.getElementById("lb-tags"), stop = this.doc.getElementById("lb-record-stop"),
+        rec = this.doc.getElementById("lb-record");
+    if (tags) tags.hidden = !on;
+    if (stop) stop.hidden = !on;
+    if (rec) rec.hidden = on;
+  };
+
+  LiveboardApp.prototype._say = function (text) {
+    var n = this.doc.getElementById("lb-notice");
+    if (n) { n.textContent = text; n.hidden = !text; }
+  };
+
+  LiveboardApp.prototype._postForm = function (url, fields) {
+    var body = new URLSearchParams(fields || {}).toString();
+    return this.fetchFn(this.apiUrl(url), { method: "POST", body: body,
+      headers: { "Content-Type": "application/x-www-form-urlencoded" } }).then(function (r) {
+      var m = /[?&]msg=([^&]*)/.exec(r.url || ""); return m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : (r.ok ? "done" : "failed");
+    });
+  };
+
+  LiveboardApp.prototype._wireGraphTagsRecord = function () {
+    var self = this, d = this.doc;
+    function all(sel) { return Array.prototype.slice.call(d.querySelectorAll(sel)); }
+    var sel = this._graphIds();
+    all(".lb-graph-box").forEach(function (b) { b.checked = sel.indexOf(b.getAttribute("data-graph")) >= 0; });
+    d.addEventListener("change", function (ev) {
+      var t = ev.target;
+      if (!t.classList || !t.classList.contains("lb-graph-box")) return;
+      var id = t.getAttribute("data-graph"), ids = self._graphIds().filter(function (x) { return x !== id; });
+      if (t.checked) ids.push(id);
+      if (ids.length > 6) { ids = ids.slice(-6); self._say("Graph shows at most 6 values; the oldest pick was dropped."); }
+      all(".lb-graph-box").forEach(function (b) { b.checked = ids.indexOf(b.getAttribute("data-graph")) >= 0; });
+      self._graphSave(ids);
+      self._renderGraph();
+    });
+    var form = d.getElementById("lb-record-form");
+    if (form) form.addEventListener("submit", function (ev) {
+      if (!self.fetchFn) return;
+      ev.preventDefault();
+      self._postForm(form.getAttribute("action"), { label: "" }).then(function (msg) {
+        self._say(msg); self._setRecording(/^Recording .* started/.test(msg));
+      }).catch(function () { self._say("Could not start the recording."); });
+    });
+    var stop = d.getElementById("lb-record-stop");
+    if (stop) stop.addEventListener("click", function () {
+      self._postForm("/v/" + encodeURIComponent(self.vin) + "/recordings/stop", {}).then(function (msg) {
+        self._say(msg + " Replay it from Recordings."); self._setRecording(false);
+      }).catch(function () { self._say("Could not stop the recording."); });
+    });
+    var tagBox = d.getElementById("lb-tags");
+    if (tagBox && this.vin && this.fetchFn) this.api("/api/live/record/tag-labels?vin=" + encodeURIComponent(this.vin)).then(function (r) {
+      var holder = tagBox.querySelector(".lb-tag-btns");
+      holder.innerHTML = "";
+      Object.keys(r.labels || {}).sort().forEach(function (k) {
+        var label = r.labels[k]; if (!label) return;
+        var b = d.createElement("button"); b.type = "button"; b.className = "lb-btn lb-tag"; b.setAttribute("data-tag", k);
+        b.textContent = label; holder.appendChild(b);
+      });
+    }).catch(function () { /* labels stay empty: no tag buttons */ });
+    if (tagBox) tagBox.addEventListener("click", function (ev) {
+      var b = ev.target.closest && ev.target.closest("[data-tag]"); if (!b) return;
+      self.api("/api/live/record/tag", { method: "POST", body: JSON.stringify({ key: b.getAttribute("data-tag"), vin: self.vin }) })
+        .then(function () { self.tags.push({ t: self.now(), key: b.getAttribute("data-tag"), label: b.textContent }); self._say("Tagged: " + b.textContent); self._renderGraph(); })
+        .catch(function (e) { self._say(e && e.status === 409 ? "Not recording: press Record this drive first." : "Tag failed."); });
     });
   };
 

@@ -9,7 +9,9 @@ import tempfile
 from pathlib import Path
 
 os.environ["CUORE_STATE_DIR"] = tempfile.mkdtemp(prefix="cuore-check-notread-")
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "mes-log-mcp"))
 
 from cuore.live import ops, read_state, uds  # noqa: E402
 from cuore.services import modules_bridge, scan_health_bridge  # noqa: E402
@@ -179,7 +181,31 @@ for f in ("services/arrive_ready.py", "services/bay_sheet.py", "services/warrant
     check(f"{f}: no module_dtcs read of its own", '"module_dtcs"' not in _src(f).replace("_READING_KINDS", ""))
 check("warranty pack: readings exclude module_dtcs", "module_dtcs" not in _src("services/warranty_pack.py"))
 
+# --- audit rows are credited by VIN, never guessed -----------------------
+import json as _json  # noqa: E402
+from cuore.live import audit as _audit  # noqa: E402
+
+_audit.log_path().write_text("", encoding="utf-8")
+for _v in ("VINAAAAAAAAAAAAAA", "VINBBBBBBBBBBBBBB", None):
+    _row = {"ts": 1.0, "iso": "2026-10-31T10:00:00+00:00", "event": "uds", "ecu": "ABS",
+            "req": "1902FF", "raw": "59 02 FF"}
+    if _v:
+        _row["vin"] = _v
+    with _audit.log_path().open("a", encoding="utf-8") as _f:
+        _f.write(_json.dumps(_row) + "\n")
+_orig = modules_bridge._single_car_on_file
+try:
+    modules_bridge._single_car_on_file = lambda: False
+    _r = modules_bridge._audit_dtc_reads("VINAAAAAAAAAAAAAA")
+    check("vin: several cars, only the matching row counts (old row ignored)", len(_r) == 1, str(_r))
+    check("vin: other car gets its own row only", len(modules_bridge._audit_dtc_reads("VINCCCCCCCCCCCCCC")) == 0)
+    modules_bridge._single_car_on_file = lambda: True
+    check("vin: single car on file also takes the old row", len(modules_bridge._audit_dtc_reads("VINAAAAAAAAAAAAAA")) == 2)
+finally:
+    modules_bridge._single_car_on_file = _orig
+
 print(f"{checks - len(failures)}/{checks} checks passed")
 for f in failures:
     print("FAIL:", f)
 sys.exit(1 if failures else 0)
+

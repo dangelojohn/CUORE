@@ -3,7 +3,7 @@
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 <h1>Diagnosis</h1>
-<p class="muted">Shared causes, ranked suspects and the best next test, from this car's own data. Bands are heuristic and adjustable; there are no percentages.</p>
+<p class="muted">Shared causes, ranked suspects and the best next test, from this car's own data. High, Medium and Low are judgement calls from the evidence, not measured odds, and the weights behind them can be adjusted; there are no percentages.</p>
 {% set dx_full = true %}
 {% include "_diagnosis_panel.html" %}
 {% endblock %}

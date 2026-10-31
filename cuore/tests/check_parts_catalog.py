@@ -333,7 +333,7 @@ def main() -> None:
     (STATE / "parts_catalog" / "standard_parts.json").write_text("{not json", encoding="utf-8")
     assert sp.for_vin(tvin) == []
     r = c.get("/start")
-    assert 'href="/catalog"' in r.text and 'class="icon-btn parts-link' in r.text
+    assert 'href="/catalog"' in r.text and 'data-nav="catalog"' in r.text   # Menu tile, no header button
     print("parts catalogue OK")
 
 

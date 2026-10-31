@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Sequence
 
 BY_NAME = "linked by circuit name"
 BY_PATH = "linked by CUORE's electrical path"
@@ -79,16 +79,29 @@ def reach_clause(box: dict[str, Any]) -> str:
 
 
 def direct(items: list[dict[str, Any]], boxes: list[dict[str, Any]], symptoms: list[dict[str, Any]],
-           codes: list[str], code_text: dict[str, str], path_for_code: Callable[[str], dict[str, Any]]) -> dict[str, Any]:
+           codes: list[str], code_text: dict[str, str], path_for_code: Callable[[str], dict[str, Any]],
+           job_codes: Sequence[str] = ()) -> dict[str, Any]:
     """``symptoms``: newest first, each ``{text, at}``. Returns ``call`` (one line of text), ``call_segs`` (the same
     line as ``{text, href}`` pieces so every fuse / ground name links to its row), ``call_targets`` (go-to chips),
     ``call_items`` / ``call_box``, ``more`` (plain lines), ``groups`` (codes grouped by the same path),
     ``matches`` (ranked fuse/relay cards: rank 0 = in the call, 1 = other circuit-name match, 2 = path only),
-    ``ground_ids`` and ``codes``."""
+    ``ground_ids`` and ``codes``. ``job_codes`` are the codes the open job names: when one of them matches a fuse
+    circuit by name it leads the call (rank 0) ahead of any symptom or other code."""
     bx = {b["id"]: b for b in boxes}
     hits: dict[str, dict[str, Any]] = {}
     ground_ids: list[str] = []
     primary: Optional[dict[str, Any]] = None
+    for c in job_codes:
+        found = [it for phrase, pred in _rules(code_text.get(c, "")) for it in items if pred(_circuit(it.get("label", "")))]
+        if not found:   # no circuit named like the fault: the fuses on its electrical path are the job's fuses
+            try:
+                on_path = {p["element"] for p in path_for_code(c).get("path") or []}
+            except Exception:  # noqa: BLE001
+                on_path = set()
+            found = [it for it in items if it["id"] in on_path or set(it.get("feeds_elements") or []) & on_path]
+        if found:
+            primary = {"what": f"{c} {code_text.get(c, '')}".strip(), "items": found}
+            break
 
     def add(it: dict[str, Any], why: str, via: str, code: str = "") -> None:
         h = hits.setdefault(it["id"], {"item": it, "whys": [], "via": via, "name_whys": [], "path_codes": []})
@@ -217,6 +230,19 @@ def resolved_symptom_ids(vin: str) -> set[str]:
     except Exception:  # noqa: BLE001
         pass
     return out
+
+
+def job_codes(vin: str, open_codes: Sequence[str]) -> list[str]:
+    """The open codes that an open job's hypotheses name, in ``open_codes`` order. Never raises."""
+    named: list[str] = []
+    try:
+        from mes import jobs
+        text = " ".join(h.get("text") or "" for j in jobs.open_jobs(vin) for h in j.get("hypotheses") or []
+                        if not h.get("deleted"))
+        named = [c for c in open_codes if re.search(re.escape(c) + r"(?![0-9A-Za-z])", text)]
+    except Exception:  # noqa: BLE001
+        pass
+    return named
 
 
 def job_inputs(vin: str, open_codes: list[str], dossier: dict[str, Any]) -> tuple[list[dict[str, Any]], dict[str, str]]:

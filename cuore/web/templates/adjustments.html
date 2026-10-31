@@ -32,13 +32,19 @@
 .adj-run { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin: 12px 0 0; }
 .adj-btn { display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 0 16px; border: 1px dashed var(--ink-3); border-radius: var(--radius, 3px); color: var(--ink-3); background: transparent; cursor: not-allowed; user-select: none; }
 .adj-whynot { color: var(--ink-2); flex: 1 1 260px; }
+.adj-tbl { width: 100%; border-collapse: collapse; margin: 0 0 14px; font-size: var(--fs-md); }
+.adj-tbl caption { text-align: left; font-weight: 700; font-size: var(--fs-lg); padding: 4px 0 6px; }
+.adj-tbl th, .adj-tbl td { text-align: left; vertical-align: top; padding: 8px 10px; border: 1px solid var(--rule); }
+.adj-tbl th { background: var(--surface-2); color: var(--ink-2); }
+.adj-tbl th[scope="row"] { font-weight: 700; }
+.adj-tblwrap { overflow-x: auto; }
 .adj-note { color: var(--ink-2); font-size: var(--fs-sm); overflow-wrap: anywhere; }
 @media (max-width: 520px) { .adj-body dl { grid-template-columns: 1fr; } }
 </style>
 <div class="adj" id="adjustments">
 <h1>Adjustments</h1>
 <p class="lede" id="adjustments-answer"><strong>{% if b.counts['performed_verified'] or b.counts['accepted'] %}{{ b.counts['performed_verified'] + b.counts['accepted'] }} of {{ b.total }} procedures are accepted or verified.{% else %}None of the {{ b.total }} procedures can run from CUORE yet.{% endif %}</strong>
-  {{ b.counts['awaiting source'] }} still await a cited manufacturer source and {{ b.counts['documented'] }} are documented but not accepted by the owner. Nothing runs from this screen; do the job in MES/AlfaOBD for now (see Modifications).</p>
+  {{ b.counts['awaiting source'] }} still await a cited manufacturer source and {{ b.counts['documented'] }} are documented but not accepted by the owner. Nothing runs from this screen; do the job in wiTECH, MES or AlfaOBD for now (see Modifications).</p>
 <details class="fold" style="margin:0 0 10px"><summary style="min-height:44px;display:flex;align-items:center">What this screen is</summary>
 <p class="lede">Every adjustment, reset and configuration procedure CUORE knows about, with its status, its source, what it writes and what it reads back. This is the counterpart of the adjustment functions in MultiEcuScan and AlfaOBD, but nothing runs from this screen. A procedure can run only once it is documented from a cited source and accepted by the owner, and then only through the gated session path.</p></details>
 
@@ -49,6 +55,17 @@
   {% endfor %}
 </div>
 
+{% if b.table %}
+<div class="adj-tblwrap"><table class="adj-tbl" id="adjustments-table">
+  <caption>Every procedure at a glance</caption>
+  <thead><tr><th scope="col">Procedure</th><th scope="col">Module</th><th scope="col">State</th><th scope="col">What it needs</th><th scope="col">Do it today</th></tr></thead>
+  <tbody>
+  {% for t in b.table %}
+  <tr><th scope="row"><a href="/v/{{ vin }}/adjustments/{{ t.name }}#adj-{{ t.name }}">{{ t.title }}</a></th><td>{{ t.module or "n/a" }}</td><td><span aria-hidden="true">{{ t.mark }}</span> {{ t.state }}</td><td>{{ t.needs }}</td><td>{{ t.do_today }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endif %}
 {% if not b.total %}<p class="sens-msg" role="alert">No procedure definitions found in cuore/data/procedures.</p>{% endif %}
 {% if b.open_name and not b.known %}<p class="sens-msg" role="alert">No procedure named {{ b.open_name }}.</p>{% endif %}
 {% for g in b.groups %}

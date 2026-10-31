@@ -125,6 +125,10 @@ _KM_PER_MILE = 1.60934
 # --- state dir (mirrors mes.dealer.state_dir exactly) ------------------------
 
 
+from .paths import memo_state_dir as _memo_state_dir  # noqa: E402
+
+
+@_memo_state_dir
 def state_dir() -> Path:
     """Mirror ``mes.dealer.state_dir()``: same candidates, first writable wins."""
     override = os.environ.get("CUORE_STATE_DIR")

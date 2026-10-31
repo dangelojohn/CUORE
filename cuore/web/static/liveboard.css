@@ -319,7 +319,6 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
   display: inline-flex; align-items: center; text-decoration: none;
 }
 .lb-h1 { margin: 12px 0 4px; font-size: var(--fs-xl); }
-.lb-h1-car { font-size: var(--fs-md); font-weight: 400; color: var(--ink-2); margin-left: 8px; }
 .lb-call { border-left: 3px solid var(--accent); background: var(--surface-2); padding: 8px 12px; margin: 8px 0; }
 .lb-call-line { font-size: var(--fs-lg); font-weight: 600; margin: 0 0 4px; }
 .lb-call-cable { margin: 0; color: var(--ink-2); }
@@ -370,8 +369,7 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
 
 /* compact header row (the board has no vehicle strip / tab bar by design) */
 .lb-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 0; }
-.lb-head-car { font-weight: var(--fw-semibold); font-size: var(--fs-md); margin-right: auto; }
-.lb-back, .lb-tabs-link { min-height: 44px; }
+.lb-back { min-height: 44px; }
 /* fold rows: 44 px, 16 px text (scale tokens) */
 .lb-others > summary, .lb-why > summary { min-height: 44px; font-size: var(--fs-md); }
 .lb-chan-unit { font-size: var(--fs-md); }
@@ -392,3 +390,40 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
 .lb-pick-rate { font-size: var(--fs-xs); color: var(--ink-3); }
 .lb-pick-help { font-size: var(--fs-sm); color: var(--ink-2); margin: 4px 0; }
 .lb-selbar[hidden], .lb-pick[hidden], .lb-pick-help[hidden] { display: none; }
+
+/* status word, offline warning, graph strips, one-tap tags */
+.lb-vstat { margin-top: 2px; font-size: var(--fs-sm, .9rem); color: var(--ink-2); }
+.lb-vstat[data-status="none"] { font-weight: 700; }
+.lb-vstat[data-status="unconfirmed"] { font-style: italic; }
+.lb-offline.is-offline { border-color: var(--sev-critical, #b00020); color: var(--sev-critical, #b00020); font-weight: 700; }
+.lb-tags, .lb-graph { margin: 8px 0; }
+.lb-tag-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.lb-tag { min-height: 48px; min-width: 88px; }
+.lb-pick-on { min-height: 44px; display: inline-flex; align-items: center; gap: 6px; }
+.lb-graph-box { width: 24px; height: 24px; }
+.lb-gstrip svg { display: block; width: 100%; height: 70px; border: 1px solid var(--rule); }
+.lb-gline { fill: none; stroke: currentColor; stroke-width: 2; }
+.lb-gtag { stroke: var(--sev-chronic, #c60); stroke-width: 2; stroke-dasharray: 4 3; }
+
+/* Value groups (liveboard_values.html) */
+.lb-values { margin: 14px 0; }
+.lb-values-h { font-size: var(--fs-md); font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); margin: 0 0 8px; }
+.lb-vpick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.lb-vbtn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; min-width: 52px; padding: 0 16px;
+  border: 1px solid var(--rule); border-radius: 8px; font-size: var(--fs-md); color: var(--ink); text-decoration: none; background: var(--panel, transparent); }
+.lb-vbtn.is-current { border-color: var(--ink); font-weight: var(--fw-semibold); }
+.lb-vtitle { font-size: var(--fs-xl, 1.4em); margin: 6px 0; }
+.lb-vblurb, .lb-vhow, .lb-vsec-why, .lb-vnote { font-size: var(--fs-sm); color: var(--ink-2); margin: 4px 0; }
+.lb-vsec { margin: 14px 0; }
+.lb-vsec-h { font-size: var(--fs-md); margin: 0; color: var(--ink); }
+.lb-vtog { font-size: var(--fs-xs); font-weight: normal; color: var(--ink-3); border: 1px solid var(--rule); border-radius: 10px; padding: 0 8px; margin-left: 6px; }
+.lb-vrows { display: grid; grid-template-columns: 1fr; gap: 0 18px; }
+.lb-vsec.is-together .lb-vrows { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.lb-vmeta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
+.lb-vsrc, .lb-vstat { font-size: var(--fs-xs); border: 1px solid var(--rule); border-radius: 10px; padding: 0 8px; color: var(--ink-2); }
+.lb-vstat-confirmed { color: var(--ok); border-color: var(--ok); }
+.lb-vstat-no-reading { color: var(--ink-3); border-style: dashed; }
+.lb-vwhy { font-size: var(--fs-xs); color: var(--ink-3); }
+.lb-vnot-list { margin: 4px 0; padding-left: 18px; }
+.lb-vnot-list li { margin: 4px 0; min-height: 28px; }
+.lb-vrel { margin: 14px 0; }

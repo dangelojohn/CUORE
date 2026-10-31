@@ -1,4 +1,4 @@
-"""Checks for the touch-first top menu (cuore/web/nav_items.py, _navsheet.html, _vtabs.html).
+"""Checks for the touch-first top menu (cuore/web/nav_items.py, _navsheet.html; the tab strip is gone).
 Run:  .venv/Scripts/python.exe -X utf8 cuore/tests/check_nav_menu.py
 """
 from __future__ import annotations
@@ -52,7 +52,7 @@ check("item keys are unique", len(keys) == len(set(keys)))
 check("every item has a known group", all(i["group"] in nav_items.GROUPS for i in nav_items.ITEMS))
 check("exactly the everyday 9 are primary", [i["key"] for i in nav_items.ITEMS if i["primary"]]
       == ["bench", "job", "codes", "liveboard", "tests", "systems", "sensors", "fuses", "report"])
-for must in ("witech-recording", "adjustments", "power-budget", "inbox", "procedures", "accounts"):
+for must in ("home", "cars", "start", "witech-recording", "adjustments", "power-budget", "inbox", "procedures", "accounts"):
     check(f"item present: {must}", must in keys)
 src = (ROOT / "cuore/web/nav_items.py").read_text(encoding="utf-8")
 for added in ("arrive-ready", "warranty-pack", "field-quality"):   # live since 2026-10-30
@@ -64,25 +64,34 @@ check("vehicle page 200", r.status_code == 200, str(r.status_code))
 html = r.text
 menu = nav_items.nav_menu(VIN, "job", "admin", f"/v/{VIN}/job")
 allitems = [i for g in menu["groups"] for i in g["items"]]
-check("menu has items for every group", [g["title"] for g in menu["groups"]] == list(nav_items.GROUPS))
+check("menu has items for every group, read by task", [g["title"] for g in menu["groups"]] == list(nav_items.GROUPS)
+      and list(nav_items.GROUPS) == ["Cars", "Diagnose", "Look up", "Service", "Records", "Shop"])
 for it in allitems:
     check(f"tile on vehicle page: {it['key']}", f'href="{it["href"]}"' in html and f'data-nav="{it["key"]}"' in html
           or it["key"] == "accounts", it["href"])
 check("exactly one Menu button in header", html.count('class="menu-btn') == 1 and 'for="navsheet-toggle"' in html)
-check("current page tile highlighted", 'data-nav="job"' in html and re.search(r'class="navtile ni-job on"[^>]*aria-current="page"', html) is not None)
+check("current page tile highlighted", 'data-nav="job"' in html and re.search(r'class="navtile ni-job on[ "][^>]*aria-current="page"', html) is not None)
 check("sheet is labelled for screen readers", 'aria-label="All CUORE pages"' in html and "<h2" in html)
 check("old hidden header menu gone", 'class="navmenu"' not in html and "vmore-tab" not in html)
-check("primary tab row: 9 tabs + All pages", html.count('class="vtab-all') == 1
-      and all(f'href="/v/{VIN}{p}"' in html.split('class="vtabs"')[1].split("</div>")[0]
-              for p in ("", "/job", "/codes", "/liveboard", "/tests", "/systems", "/sensors", "/fuses", "/report")))
-check("two-tap rule: every non-primary tab is in the sheet only (no deeper fold)", "<details" not in html.split('class="vtabs"')[1].split("</div>")[0])
+check("tab strip is gone", 'class="vtabs"' not in html and "vtab-all" not in html)
+check("header leftovers (Live link, Facts, Parts buttons) are gone",
+      not any(c in html for c in ("live-link", "facts-link", "parts-link")))
+check("car bar: Change car link, brand picker via the logo, search kept",
+      'class="vchange"' in html and 'class="brand" href="/"' in html and 'class="vsearch"' in html)
+check("everyday pages are drawn stronger in the Menu",
+      all(re.search(rf'class="navtile [^"]*navtile-main[^"]*"[^>]*data-nav="{k}"', html)
+          for k in ("bench", "job", "codes", "liveboard", "tests", "systems", "sensors", "fuses", "report")))
+check("two-tap rule: every page is Menu + one tap (flat sheet, no folds)",
+      "<details" not in html.split('id="navsheet"')[1].split("</header>")[0])
+check("Facts and Parts catalogue tiles live in the Menu (Look up)",
+      'data-nav="facts"' in html and 'data-nav="catalog"' in html)
 
 # --- 3. no vehicle: only shop tiles ---------------------------------------------------------------
 r = c.get("/about")
 check("global page 200", r.status_code == 200)
 check("no per-car tiles without a vehicle", f"/v/{VIN}" not in r.text.split('id="navsheet"')[1].split("</main>")[0]
       and 'data-nav="job"' not in r.text)
-check("shop tiles present without a vehicle", all(f'data-nav="{k}"' in r.text for k in ("start", "facts", "catalog", "settings", "about")))
+check("shop tiles present without a vehicle", all(f'data-nav="{k}"' in r.text for k in ("home", "cars", "start", "facts", "catalog", "settings", "about")))
 
 # --- 4. every route href returns 200 --------------------------------------------------------------
 seen = set()

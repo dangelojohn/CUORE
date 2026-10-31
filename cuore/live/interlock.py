@@ -30,6 +30,22 @@ MES_EXE = "Multiecuscan.exe"
 def mes_pids() -> list[int]:
     if not IS_WINDOWS:
         return []
+    # A page render asks this a dozen times and each ask spawns tasklist.exe;
+    # within one GET request the answer is memoised (never across requests,
+    # never for POST -- see cuore.app's request scope).
+    try:
+        from mes.catalog import request_scope
+        scope = request_scope.get()
+    except Exception:  # noqa: BLE001
+        scope = None
+    if scope is not None:
+        if "mes_pids" not in scope:
+            scope["mes_pids"] = _mes_pids_uncached()
+        return list(scope["mes_pids"])
+    return _mes_pids_uncached()
+
+
+def _mes_pids_uncached() -> list[int]:
     try:
         out = subprocess.run(
             ["tasklist", "/FI", f"IMAGENAME eq {MES_EXE}", "/FO", "CSV", "/NH"],

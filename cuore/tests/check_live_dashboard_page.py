@@ -370,6 +370,14 @@ else:
             server_proc.wait(timeout=10)
 
 
+# --- everyday flow on the Gauges page: record, mark, replay, window, and a not-connected warning ---
+_dd = (Path(__file__).resolve().parents[1] / "web" / "templates" / "live_dashboard.html").read_text(encoding="utf-8")
+check("gauges: record, mark, snapshot, replay and time window are all on the toolbar",
+      all(i in _dd for i in ('id="dd-record"', 'id="dd-mark"', 'id="dd-snapshot"', 'value="replay"', 'id="dd-window-select"')))
+check("gauges: says Not connected rather than showing old values as live",
+      "Not connected." in _dd and "Showing demo data until you connect" in _dd and "DEMO DATA" in _dd)
+
+
 # ===========================================================================
 # report
 # ===========================================================================

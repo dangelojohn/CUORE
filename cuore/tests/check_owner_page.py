@@ -210,7 +210,7 @@ if cuore_prompts:
 r = client.get(f"/m/{VIN}")
 check("/m/{vin} responds 200", r.status_code == 200, str(r.status_code))
 check("mobile page carries the bottom nav", "m-bottomnav" in r.text)
-check("mobile page has no desktop vtabs strip", 'class="vtabs"' not in r.text)
+check("mobile page has no desktop car bar / tab strip", 'class="vtabs"' not in r.text and 'class="vcarbar' not in r.text)
 check("mobile page carries the ATTESTED footer", "ATTESTED" in r.text)
 check("mobile page sets a phone viewport meta",
       'name="viewport"' in r.text and "width=device-width" in r.text)

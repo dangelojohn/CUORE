@@ -43,7 +43,7 @@ check(codes_call.short_desc(["Communication with Body Computer - Signal plausibi
 rows = [R("P0440-00", "chronic"), R("P0455-00", "chronic"), R("P0456-00", "chronic"),
         R("U1713-2F", "chronic", "Network", mods=("Body / BCM (x)",)), R("P0098-00", "seen-once", job=False)]
 c = codes_call.build_call(rows, set(), "fuel out of window", "V1")
-check(c["call"].startswith("3 EVAP codes chronic: P0440, P0455, P0456 - fuel level first"), "call names the EVAP trio: " + c["call"])
+check(c["call"].startswith("3 EVAP codes keep coming back: P0440, P0455, P0456 - fuel level first"), "call names the EVAP trio: " + c["call"])
 check(any(s["href"] == "/v/V1/code/P0440" for s in c["call_segs"]), "call codes link to their code page")
 check(any(t["href"] == "/v/V1" for t in c["targets"]), "fuel blocker adds the bench chip")
 c2 = codes_call.build_call(rows, set(), None, "V1")

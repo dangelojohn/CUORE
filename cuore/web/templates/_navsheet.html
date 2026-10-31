@@ -13,6 +13,12 @@
 {% set _path = request.url.path if request is defined and request else '' %}
 {% set _menu = nav_menu(_vin, _tab, _u.role if _u else none, _path) if nav_menu is defined else none %}
 {% set _fbn = feedback_open_count(_vin) if (feedback_open_count is defined and _vin) else 0 %}
+{# Flow highlight (was the tab strip's): the page the job flow says is the
+   mechanic's current step gets an accent border and a "Next step" row on top. #}
+{% set _flow = flow_state_for(_vin) if (flow_state_for is defined and _vin) else none %}
+{% set _flow_key = (_flow.steps|selectattr("n", "equalto", _flow.current)|map(attribute="key")|first) if (_flow and _flow.steps) else none %}
+{% set _all = (_menu.groups|map(attribute='items')|sum(start=[])) if _menu else [] %}
+{% set _flow_item = (_all|selectattr('key', 'equalto', _flow_key)|first) if _flow_key else none %}
 <div class="navsheet no-print" id="navsheet" role="navigation" aria-label="All CUORE pages">
   <div class="navsheet-bar">
     <span class="navsheet-title">Menu{% if _vin %} <span class="mono navsheet-vin">{{ _vin }}</span>{% endif %}</span>
@@ -24,14 +30,22 @@
     </form>
     <label for="navsheet-toggle" class="navtile navsheet-close" role="button">Close</label>
   </div>
+  {% if _flow_item %}<a class="navnext" href="{{ _flow_item.href }}" data-nav-next="{{ _flow_item.key }}"><span>Next step:</span> <b>{{ _nl(_flow_item.i18n, _flow_item.label) }}</b></a>{% endif %}
   {% if _menu %}{% for g in _menu.groups %}
   <section class="navsec" aria-labelledby="navsec-{{ g.title|lower }}">
     <h2 id="navsec-{{ g.title|lower }}" class="navsec-title">{{ g.title }}</h2>
     <ul class="navtiles">
       {% for it in g['items'] %}
-      <li><a class="navtile ni-{{ it.icon }}{{ ' on' if it.on }}" href="{{ it.href }}" data-nav="{{ it.key }}"{% if it.on %} aria-current="page"{% endif %}><span>{{ _nl(it.i18n, it.label) }}</span>{% if it.key == 'inbox' and _fbn %} <span class="chip chronic">{{ _fbn }}</span>{% endif %}</a></li>
+      <li><a class="navtile ni-{{ it.icon }}{{ ' on' if it.on }}{{ ' navtile-main' if it.primary }}{{ ' flow-current-tab' if it.key == _flow_key }}" href="{{ it.href }}" data-nav="{{ it.key }}"{% if it.on %} aria-current="page"{% endif %}><span>{% if it.key == 'facts' and facts_nav_label is defined %}{{ facts_nav_label(_vin) }}{% else %}{{ _nl(it.i18n, it.label) }}{% endif %}</span>{% if it.key == 'inbox' and _fbn %} <span class="chip chronic">{{ _fbn }}</span>{% endif %}</a></li>
       {% endfor %}
     </ul>
   </section>
   {% endfor %}{% endif %}
+  <section class="navsec" aria-labelledby="navsec-display">
+    <h2 id="navsec-display" class="navsec-title">This screen</h2>
+    <ul class="navtiles">
+      <li><button type="button" id="theme-toggle" class="navtile" aria-label="Toggle dark/light theme"><span>Dark / light</span></button></li>
+      <li><button type="button" class="navtile" onclick="window.print()"><span>Print this page</span></button></li>
+    </ul>
+  </section>
 </div>

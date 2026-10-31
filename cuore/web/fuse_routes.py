@@ -205,7 +205,8 @@ def _directing(vin: str, dossier: dict[str, Any], data: dict[str, Any]) -> tuple
         from ..services import electrical_bridge, mes_bridge
         codes = mes_bridge.open_codes_for(dossier)
         syms, ctext = fd.job_inputs(vin, codes, dossier)
-        d = fd.direct(data.get("items") or [], data.get("boxes") or [], syms, codes, ctext, electrical_bridge.path_for_code)
+        d = fd.direct(data.get("items") or [], data.get("boxes") or [], syms, codes, ctext, electrical_bridge.path_for_code,
+                      job_codes=fd.job_codes(vin, codes))
     except Exception:  # noqa: BLE001
         d = {"call": "", "call_segs": [], "call_targets": [], "call_items": [], "call_box": "", "more": [], "groups": [],
              "matches": [], "ground_ids": [], "codes": []}

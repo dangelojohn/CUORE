@@ -12,6 +12,7 @@
 
 {% set compact = False %}
 {% include "_code_brief.html" %}
+<p><a class="btn" href="#freeze-frame">Freeze frame &darr;</a></p>
 
 {# Shared-cause analysis is a ~3-4 s cold computation, so the code page only links to it. #}
 <p class="small"><a class="btn" href="/v/{{ vin }}/diagnosis">Shared-cause analysis &rarr;</a></p>
@@ -137,7 +138,7 @@
 <p class="muted">UNKNOWN -- use the service manual (TechAuthority)</p>
 {% endif %}
 
-<h2>Freeze frames</h2>
+<h2 id="freeze-frame">Freeze frames</h2>
 {% if frames.count %}
   <p class="lede">The conditions captured when the code set. <b>A clear destroys
   this</b>, which is why it is worth reading before offering one.</p>

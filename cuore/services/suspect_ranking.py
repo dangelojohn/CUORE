@@ -525,12 +525,12 @@ def pick_next_test(suspects: list[dict[str, Any]], inp: dict[str, Any]) -> Optio
     readonly = any("read-only" in str(x).lower() for x in best["tools"])
     effort = (f"{best['minutes']} min" if best["effort_known"] else "effort unknown")
     if len(best["sel"]) == m:
-        why = (f"touches all {m} top suspects, so it does not split them; "
+        why = (f"covers all {m} top suspects, so it cannot tell them apart; "
                f"{effort}{'; read-only' if readonly else ''}.")
         splits = False
     else:
-        why = (f"splits the top {m} suspects {len(best['sel'])} / {m - len(best['sel'])}: a pass clears "
-               f"{len(best['sel'])} of them, a fail points at them and makes the other {m - len(best['sel'])} "
+        why = (f"separates the top {m} suspects into {len(best['sel'])} and {m - len(best['sel'])}: a pass rules out "
+               f"{len(best['sel'])} of {m}, a fail points at them and makes the other {m - len(best['sel'])} "
                f"less likely; {effort}{'; read-only' if readonly else ''}.")
         splits = True
     return {"id": best["id"], "name": best["name"], "kind": best["kind"], "minutes": best["minutes"],

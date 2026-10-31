@@ -111,7 +111,7 @@ check("next test is one that splits the suspects, not the all-touching test",
 check("per unit of effort: the 5-minute split beats the 30-minute split", nt and nt["id"] == "s2_s3",
       str(nt and nt["id"]))
 check("the one-line why says what a pass and a fail do, with the effort",
-      nt and "a pass clears" in nt["why"] and "a fail points" in nt["why"] and "5 min" in nt["why"],
+      nt and "a pass rules out" in nt["why"] and "a fail points" in nt["why"] and "5 min" in nt["why"],
       str(nt and nt["why"]))
 res2 = sr.build(inp([t_all, t_s1, test_row("s2_s3", ["sb", "sc"], ["P000"], 240)]))
 check("a very long split loses to a short one", res2["next_test"]["id"] == "only_s1", res2["next_test"]["id"])

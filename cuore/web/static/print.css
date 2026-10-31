@@ -9,7 +9,7 @@
 
   /* chrome that only makes sense on screen */
   header.top, .navmenu, #theme-toggle, .livestrip, .foot, #keyhelp,
-  .no-print, .vtabs, .jump-chip, .fab, button, .step-check,
+  .no-print, .vcarbar, .jump-chip, .fab, button, .step-check,
   details.navmenu, .icon-btn {
     display: none !important;
   }

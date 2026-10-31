@@ -1,0 +1,63 @@
+/* Landing (landing.html, cars.html): brand picker and car cards. Image-led,
+ * generous black, one restrained fade-in like the splash. Tokens only; each
+ * tile carries its own marque tokens through data-marque (see cuore.css). */
+.stage { max-width: 1100px; margin-inline: auto; padding: var(--space-6) 16px var(--space-7); }
+.stage-h {
+  font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-3xl);
+  letter-spacing: .04em; text-align: center; margin: 0 0 var(--space-6); overflow-wrap: anywhere;
+}
+.brand-row { display: grid; grid-template-columns: 1fr; justify-items: center; gap: var(--space-6); }
+@media (min-width: 760px) { .brand-row { grid-template-columns: repeat(3, 1fr); align-items: start; } }
+
+.brand-tile, .car-card { opacity: 0; animation: lp-in .9s ease-out calc(.15s + var(--i, 0) * .12s) forwards; }
+@keyframes lp-in { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .brand-tile, .car-card { animation: none; opacity: 1; } }
+
+.brand-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 12px; text-decoration: none;
+  color: var(--ink); width: 100%; min-height: var(--tap);
+}
+.bt-disc {
+  display: flex; align-items: center; justify-content: center; aspect-ratio: 1;
+  width: min(72vw, 280px); border-radius: 50%; background: var(--surface);
+  border: 1px solid var(--rule); transition: border-color .25s ease;
+}
+.brand-tile:hover .bt-disc, .brand-tile:focus-visible .bt-disc, .brand-tile.last .bt-disc { border-color: var(--accent); }
+.brand-tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 6px; border-radius: var(--radius); }
+.bt-mark { width: 62%; height: 62%; object-fit: contain; display: block; }
+.bt-mask {
+  background: var(--ink); -webkit-mask: var(--mark) center / contain no-repeat; mask: var(--mark) center / contain no-repeat;
+}
+.bt-name { font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-2xl); letter-spacing: .04em; }
+.bt-count, .bt-note { font-size: var(--fs-sm); color: var(--ink-3); text-align: center; }
+
+.cars-head { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 14px; margin-bottom: 8px; }
+.cars-head .stage-h { margin: 0; }
+.bt-disc-sm { width: 64px; }
+.cars-back {
+  display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 14px;
+  border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink); text-decoration: none;
+}
+.cars-back:hover { border-color: var(--ink-3); }
+.cars-note { margin: 0 0 var(--space-6); }
+.cars-search { display: flex; gap: 8px; max-width: 520px; margin: var(--space-6) auto; }
+.cars-search input { flex: 1 1 auto; min-width: 0; min-height: var(--tap); font-size: var(--fs-md); }
+.cars-search .btn { min-height: var(--tap); }
+
+.car-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 16px; }
+.car-card {
+  display: flex; flex-direction: column; gap: 8px; padding: 16px; text-decoration: none; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); min-height: 168px;
+  transition: border-color .25s ease; overflow-wrap: anywhere;
+}
+.car-card:hover, .car-card:focus-visible { border-color: var(--accent); }
+.car-card:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.car-art { display: block; }
+.car-art svg { display: block; width: 100%; height: auto; max-height: 140px; }
+.car-name { font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-xl); letter-spacing: .03em; }
+.car-sub { font-size: var(--fs-sm); color: var(--ink-2); }
+.car-state { display: flex; flex-wrap: wrap; gap: 6px; }
+.car-add { align-items: center; justify-content: center; text-align: center; background: transparent; border-style: dashed; opacity: 1; animation: none; }
+.car-plus { font-size: var(--fs-3xl); font-weight: var(--fw-light); line-height: 1; color: var(--accent); }
+.cars-empty { text-align: center; color: var(--ink-2); margin-top: var(--space-6); }
+.cars-empty a { display: inline-flex; align-items: center; min-height: var(--tap); }

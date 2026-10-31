@@ -90,6 +90,32 @@ body = t.split('<div class="bay">')[1].split('<div class="foot">')[0]
 check("no script in the sheet", "<script" not in body and "onclick" not in body)
 check("job url printed big", f"/v/{VIN}/bay-sheet?job={j['id']}" in t and 'class="url' in t)
 check("no QR claim", "No QR code" in t)
+
+# --- what the car session read: from recorded from-car observations only ---
+check("no session on record says NOT READ, invents nothing",
+      "NOT READ: no reading from the car is on record" in t or "What the car session read" in t)
+from cuore.live import store  # noqa: E402
+SV = VIN
+S = "serial COM3@115200"
+fl = {"testFailed": True, "confirmedDTC": True}
+store.record_observation("module_dtcs", {"ecu": "ECM", "dtcs": [{"code": "P0456-00", "flags": fl},
+                         {"code": "P0000-00", "flags": {"testNotCompletedThisOperationCycle": True}}]}, vin=SV, stream=S)
+store.record_observation("module_dtcs", {"ecu": "TCM", "dtcs": [], "error": "timeout"}, vin=SV, stream=S)
+store.record_observation("dtc_detail", {"ecu": "ECM", "dtc": "P0456-00", "snapshot": {"records": [{"identifiers": [
+    {"did": "1008", "name": "Operating time", "value": 300110, "unit": "min", "confidence": "high"}]}]}}, vin=SV, stream=S)
+store.record_observation("module_identity", {"ecu": "ECM", "fields": {"F190": {"name": "VIN", "ascii": SV},
+                         "F187": {"name": "part", "error": "bus"}}}, vin=SV, stream=S)
+store.record_observation("adapter_identity", {"probe": {"battery_voltage": 14.3}}, vin=SV, stream=S)
+store.record_observation("module_dtcs", {"ecu": "BCM", "dtcs": [{"code": "B1234-00", "flags": fl}]}, vin=SV, stream="scripted")
+r = c.get(f"/v/{SV}/bay-sheet")
+t2 = r.text
+check("session block renders with the print button", r.status_code == 200 and 'id="session"' in t2 and "Print this report" in t2)
+check("code shown with its snapshot value and confidence", "P0456-00" in t2 and "Operating time 300110 min (high)" in t2)
+check("codes that merely track are not listed", "P0000-00" not in t2)
+check("silent module listed under NOT READ", "NOT READ: do not treat as clean" in t2 and "TCM" in t2 and "timeout" in t2)
+check("identity partial is stated per identifier", "identity partial" in t2 and "1 of 2 answered" in t2)
+check("voltage, date and who shown", "14.3 V" in t2 and "Read by: t." in t2 and "Printed 20" in t2)
+check("non-car (scripted) observations never appear", "B1234" not in t2 and "BCM" not in t2)
 serial.Serial.__init__ = _orig
 print(f"\n{n - len(fails)}/{n} passed")
 sys.exit(1 if fails else 0)

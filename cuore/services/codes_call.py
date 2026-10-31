@@ -12,18 +12,23 @@ from typing import Any, Optional
 
 #: (key, heading, open by default). "returned" is only shown when a code really returned after a clear.
 GROUPS = (
-    ("returned", "Returned after a clear", True),
-    ("chronic", "Chronic", True),
-    ("recurring", "Recurring", True),
+    ("returned", "Came back after a clear", True),
+    ("chronic", "Keeps coming back", True),
+    ("recurring", "In 2+ visits", True),
     ("cleared", "Cleared", True),
     ("seen-once", "Seen once", False),
 )
+#: the word a technician says for each internal state key (keys stay as the data and CSS names)
+STATE_LABEL = {key: label for key, label, _ in GROUPS}
+#: the same states as a verb phrase after "N codes": (one code, several codes)
+CALL_WORD = {"returned": ("came back after a clear",) * 2, "chronic": ("keeps coming back", "keep coming back"),
+             "recurring": ("seen in 2+ visits",) * 2, "cleared": ("cleared",) * 2, "seen-once": ("seen once",) * 2}
 STATE_HELP = (
-    ("returned", "erased and set again: the fault is live and reproducing."),
-    ("chronic", "recurs across sessions or across meaningful distance."),
-    ("recurring", "seen in more than one session, not yet chronic."),
-    ("cleared", "erased once and not seen since, which proves nothing until the relevant monitor has actually run."),
-    ("seen-once", "a single sighting."),
+    (STATE_LABEL["returned"], "erased and set again: the fault is live and reproducing."),
+    (STATE_LABEL["chronic"], "comes back across visits or across a meaningful distance."),
+    (STATE_LABEL["recurring"], "seen in more than one visit, not yet a repeat pattern."),
+    (STATE_LABEL["cleared"], "erased once and not seen since, which proves nothing until the relevant monitor has actually run."),
+    (STATE_LABEL["seen-once"], "a single sighting."),
 )
 FUEL_ACTION = "fuel level first: burn fuel to 15-85 %, then run a drive cycle"
 
@@ -103,7 +108,8 @@ def build_call(rows: list[dict[str, Any]], job_codes: set[str], blocker: Optiona
         bucket = "EVAP" if fuel else cnt.most_common(1)[0][0]
         grp = [r for r in mine if (r.get("system_bucket") or "Other") == bucket]
         states = {r.get("severity") for r in grp}
-        state = next(iter(states)) if len(states) == 1 else "open"
+        one = next(iter(states)) if len(states) == 1 else None
+        state = CALL_WORD.get(one, ("open", "open"))[0 if len(grp) == 1 else 1]
         segs.append({"text": f"{len(grp)} {bucket} code{'' if len(grp) == 1 else 's'} {state}: ", "href": ""})
         for k, r in enumerate(grp):
             segs.append({"text": ", " if k else "", "href": ""})

@@ -26,10 +26,7 @@ includes::
     ``from .web import mods_routes``
     ``app.include_router(mods_routes.router)``
 
-**Integration note for whoever owns ``_vtabs.html``:** this feature has no
-tab of its own yet in that strip -- see ``cuore/web/templates/_mods_tab.html``
-(one line, a ``vtab()`` call) for the include this router's own docstring
-asks be added to that file's "More" menu.
+The Modifications page is reached from the header Menu (``nav_items.py``, key ``mods``); there is no tab strip.
 
 **Integration note for whoever owns ``scan_health.html``/``system.html``:**
 this bridge exposes ``non_stock(vin)`` (:mod:`cuore.services.

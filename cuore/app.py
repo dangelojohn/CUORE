@@ -34,6 +34,7 @@ from .api import cables as cables_api  # noqa: E402
 from .api import cases as cases_api, checklists as checklists_api, dossier as dossier_api, electrical as electrical_api, feedback as feedback_api, flow as flow_api, jobs as jobs_api, known_good, live, live_ui, liveboard, logs, media as media_api, parts as parts_api, recordings, reference, shop as shop_api, system, systems as systems_api, systems_map as systems_map_api, tests as tests_api, timeline as timeline_api, tools as tools_api, tools_kb as tools_kb_api, experience as experience_api, vehicles, wiring as wiring_api  # noqa: E402
 from .api import mes_learn as mes_learn_api  # noqa: E402
 from .api import export as export_api  # noqa: E402
+from .api import car_identify as car_identify_api  # noqa: E402
 from .api import ingest as ingest_api  # noqa: E402
 from .config import Settings, load  # noqa: E402
 from .models import ErrorBody  # noqa: E402
@@ -104,6 +105,7 @@ from .web import sensors_interactive_routes  # noqa: E402
 from .web import scan_plan_routes  # noqa: E402
 from .web import scanlog_routes  # noqa: E402
 from .web import service_routes  # noqa: E402
+from .web import add_routes  # noqa: E402
 from .web import shop_routes  # noqa: E402
 from .web import systems_interactive_routes  # noqa: E402
 from .web import system_routes  # noqa: E402
@@ -269,6 +271,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(service_routes.api_router, prefix="/api")
     app.include_router(drivetrain_routes.api_router, prefix="/api")
     app.include_router(labels_routes.api_router, prefix="/api")
+    app.include_router(car_identify_api.router, prefix="/api")
     app.include_router(web_routes.router)
     app.include_router(ask_claude_routes.router)
     app.include_router(scanlog_routes.router)
@@ -278,6 +281,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(tests_interactive_routes.router)
     app.include_router(sensors_interactive_routes.router)
     app.include_router(bench_routes.router)
+    app.include_router(add_routes.router)
     app.include_router(shop_routes.router)
     app.include_router(dashboard_routes.router)
     app.include_router(oil_level_routes.router)
@@ -355,6 +359,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # cache, which costs nothing on a bench LAN.
     @app.middleware("http")
     async def _no_cache_static(request: Request, call_next):
+        # One MES-log directory listing per request (see mes.catalog.request_scope).
+        from mes import catalog as _mes_catalog
+        # GET only: a POST (write, guard) always sees fresh state.
+        _mes_catalog.request_scope.set({} if request.method == "GET" else None)
         response = await call_next(request)
         if request.url.path.startswith("/static"):
             response.headers["Cache-Control"] = "no-cache, must-revalidate"

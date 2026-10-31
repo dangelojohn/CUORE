@@ -167,6 +167,13 @@ def clamp_timeout(t: float) -> float:
     return max(MIN_TIMEOUT, min(MAX_TIMEOUT, t))
 
 
+def _vin_field(link: Any) -> dict[str, str]:
+    """``{"vin": ...}`` when the connected car's 17-character VIN is known, else
+    nothing, so an audit row never carries a guessed or partial VIN."""
+    vin = str(getattr(link, "vin", "") or "").strip().upper()
+    return {"vin": vin} if len(vin) == 17 else {}
+
+
 class Session:
     """An open adapter, configured for one bus. Valid only inside ``session()``."""
 
@@ -575,7 +582,7 @@ class Session:
         extra = {"setup": [(c["sent"], (c["got"] or "")[:40]) for c in fresh_setup]}             if fresh_setup else {}
         audit.record("uds", ecu=ecu.code, bus=self.bus.key, req=req,
                      header=ecu.request_hex, raw=(q["raw"] or "")[:200],
-                     error=q["error"], attempts=attempts, **extra)
+                     error=q["error"], attempts=attempts, **_vin_field(self.link), **extra)
         return {"request": req, "raw": q["raw"], "error": q["error"],
                 "positive": mine, "nrc": {h: int(c, 16) for h, c in nrc.items()},
                 "attempts": attempts, "ecu": ecu.code, "bus": self.bus.key}
@@ -915,14 +922,16 @@ class AdapterLink:
                 self.current = sess
                 self.current_purpose = purpose
                 audit.record("session_open", purpose=purpose, bus=bus.key, cable=self.cable,
-                             passive=passive, port=p, baud=b, stream=st.describe)
+                             passive=passive, port=p, baud=b, stream=st.describe,
+                             **_vin_field(self))
                 self._init(sess)
                 yield sess
-                audit.record("session_close", purpose=purpose, bus=bus.key, ok=True)
+                audit.record("session_close", purpose=purpose, bus=bus.key, ok=True,
+                             **_vin_field(self))
             except Exception as e:
                 self.last_error = str(e)
                 audit.record("session_close", purpose=purpose, bus=bus.key, ok=False,
-                             error=str(e))
+                             error=str(e), **_vin_field(self))
                 raise
             finally:
                 self.current = None

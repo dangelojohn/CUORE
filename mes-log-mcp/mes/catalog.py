@@ -34,6 +34,8 @@ from-car data by construction -- only labelled where it came from.
 
 from __future__ import annotations
 
+import contextvars
+
 import os
 import time
 from dataclasses import dataclass, field
@@ -277,6 +279,16 @@ class Catalog:
         ``CUORE_STATE_DIR/scans/<vin>/`` (see the module docstring and
         :func:`iter_cuore_export_files`) -- those never shadow a same-named
         file already claimed by a configured MES root."""
+        scope = request_scope.get()
+        if scope is not None and "entries" in scope:
+            return list(scope["entries"])
+        out = self._scan_entries()
+        if scope is not None:
+            scope["entries"] = out
+            return list(out)
+        return out
+
+    def _scan_entries(self) -> list[LogEntry]:
         mes_files = paths.iter_log_files()
         claimed = {p.name.lower() for p in mes_files}
         out = [self._entry_for(p) for p in mes_files]
@@ -419,6 +431,27 @@ def _parse_bound(value: str) -> datetime | None:
 
 #: Process-wide index. Cheap to share -- it holds only metadata, and every
 #: entry revalidates against (mtime, size) on access.
+#: Per-request memo. A page render calls ``entries()`` / ``select()`` hundreds
+#: of times; each call re-lists the directory and stats every log. The web
+#: layer opens a scope at the start of a request (``request_scope.set({})``),
+#: so one request lists the directory once and the NEXT request lists it
+#: again -- a new reading, note or scan is never hidden. Outside a request
+#: (MCP tools, tests, scripts) the scope is None and nothing is memoised.
+request_scope: contextvars.ContextVar[dict | None] = contextvars.ContextVar(
+    "mes_catalog_request_scope", default=None)
+
+
+def scoped(key: tuple, build):
+    """Memoise ``build()`` for the rest of the current GET request (no-op
+    outside one). The result is shared within the request: treat it read-only."""
+    scope = request_scope.get()
+    if scope is None:
+        return build()
+    if key not in scope:
+        scope[key] = build()
+    return scope[key]
+
+
 CATALOG = Catalog()
 
 

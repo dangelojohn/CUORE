@@ -123,7 +123,13 @@ def build(vin: str, job_id: str = "", *, bar: Optional[dict] = None, verdict: Op
     if ar["equipment"]["charger"]:
         safety.append("Battery support on the car (13.2-13.5 V) before any flash or procedure.")
     bl = ar["bulletins"]
+    try:
+        from . import session_read
+        sess = session_read.build(vin, who=_s((job or {}).get("technician")))
+    except Exception:  # noqa: BLE001
+        sess = {"has": False, "who": ""}
     return {
+        "session": sess,
         "vin": vin, "job": job, "url": url or f"/v/{vin}/bay-sheet",
         "header": {"name": _s(bar.get("name")) or "(unnamed vehicle)", "odo": bar.get("odo_last"),
                    "odo_date": _s(bar.get("last_log"))[:10], "verdict": _s(v.get("label")),

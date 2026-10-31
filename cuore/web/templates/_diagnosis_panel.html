@@ -31,7 +31,7 @@
   <h2 class="dx-h" id="dx-suspects">Ranked suspects</h2>
   {% if dx_flash %}<p class="dx-flash dx-flash-{{ dx_flash_kind }}" role="status"><b class="dx-tag">{{ 'Refused' if dx_flash_kind == 'err' else 'Saved' }}</b> {{ dx_flash }}</p>{% endif %}
   {% if dx.suspects %}
-  <p class="dx-sub">{{ dx.suspects|length }} suspect{{ '' if dx.suspects|length == 1 else 's' }} in {{ dx.groups|length }} system group{{ '' if dx.groups|length == 1 else 's' }}. Strongest group first, then the one with the newest evidence. Band = points from real evidence (heuristic, adjustable weights). Open a suspect for its reasons.</p>
+  <p class="dx-sub">{{ dx.suspects|length }} suspect{{ '' if dx.suspects|length == 1 else 's' }} in {{ dx.groups|length }} system group{{ '' if dx.groups|length == 1 else 's' }}. Strongest group first, then the one with the newest evidence. High, Medium or Low = points from real evidence (the weights can be adjusted). Open a suspect for its reasons.</p>
   {% set rt = request.url.path if request is defined else '' %}
   {% for g in dx.groups %}
   <details class="fold dx-group"{{ ' open' if g.open }}>
@@ -155,9 +155,9 @@
   {% endif %}
 
   {% if dx_full %}
-  <h2 class="dx-h">How this is scored</h2>
+  <h2 class="dx-h">How this is ranked</h2>
   <details class="dx-fold">
-    <summary>Weights table (heuristic, adjustable)</summary>
+    <summary>How the points are weighted (adjustable)</summary>
     <p class="dx-sub">{{ dx.table_note }} Edit <code>cuore/data/diagnosis_weights.json</code>; the next page load uses it.</p>
     <ul class="dx-reasons">
       {% for w in dx.weights %}<li><b>{{ w.section }}.{{ w.name }} = {{ w.value }}</b> <span class="dx-rat">{{ w.why }}</span></li>{% endfor %}

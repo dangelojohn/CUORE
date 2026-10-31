@@ -1,0 +1,56 @@
+{# Value groups on the Live board: pick a group, see just those values together. Rendered from
+   cuore/web/liveboard_view.py group_view(); values, colours and "waiting" states are filled by liveboard.js into the
+   same element ids the full list uses (lb-chan-/lb-val-/lb-unit-/lb-state-<channel id>), so the full list is not
+   rendered at the same time as a group. #}
+{% macro vrow(r) %}
+<div class="lb-chan lb-vrow level-unknown" id="lb-chan-{{ r.id }}" data-channel="{{ r.id }}" data-status="{{ r.status }}">
+  <div class="lb-chan-left">
+    <div class="lb-chan-name">{{ r.name }}</div>
+    <div class="lb-vmeta">
+      <span class="lb-vsrc">{{ r.module }}</span>
+      <span class="lb-vstat lb-vstat-{{ r.status|replace(' ', '-') }}" title="{{ r.status_why }}">{{ r.status }}</span>
+    </div>
+    <div class="lb-chan-band">{% if r.note %}{{ r.note }}{% if r.conf %} ({{ r.conf }}){% endif %}{% else %}no sourced band{% endif %}</div>
+    <div class="lb-vwhy">{{ r.status_why }}</div>
+  </div>
+  <div class="lb-chan-right">
+    <span class="lb-chan-state" id="lb-state-{{ r.id }}">{% if r.status == 'no reading' %}no reading{% endif %}</span>
+    <span class="lb-chan-value" id="lb-val-{{ r.id }}"></span>
+    <span class="lb-chan-unit" id="lb-unit-{{ r.id }}">{{ r.unit }}</span>
+  </div>
+</div>
+{% endmacro %}
+<section class="lb-values" id="lb-values" aria-label="Values that belong together">
+  <h2 class="lb-values-h">Values that belong together</h2>
+  <nav class="lb-vpick" aria-label="Choose a group">
+    {% for p in picker %}<a class="lb-vbtn{{ ' is-current' if p.current }}" href="{{ p.href }}"{% if p.current %} aria-current="page"{% endif %} title="{{ p.blurb }}">{{ p.label }}</a>{% endfor %}
+    {% if gview %}<a class="lb-vbtn lb-vall" href="/v/{{ vin }}/liveboard{% if request.query_params.get('token') %}?token={{ request.query_params.get('token') }}{% endif %}">All readings</a>{% endif %}
+  </nav>
+  {% if bad_group %}<p class="lb-empty">That group is not known. Choose one above.</p>{% endif %}
+  {% if gview %}
+  <div class="lb-vgroup" data-group="{{ gview.id }}">
+    <h3 class="lb-vtitle">{{ gview.label }}</h3>
+    <p class="lb-vblurb">{{ gview.blurb }}
+      {% if gview.systems %}<span class="lb-vsys">System: {% for sy in gview.systems %}<a href="/v/{{ vin }}/systems/{{ sy.key }}">{{ sy.label }}</a>{{ ', ' if not loop.last }}{% endfor %}.</span>{% endif %}</p>
+    <p class="lb-vhow">Start reads all {{ gview.channel_ids|length }} of these together, so they update as one set.
+      Each row shows where the value comes from, whether its decode is confirmed against MES, and its sourced band.</p>
+    {% for s in gview.sections %}
+    <div class="lb-vsec{{ ' is-together' if s.together }}">
+      <h4 class="lb-vsec-h">{{ s.title }}{% if s.together %} <span class="lb-vtog">read together</span>{% endif %}</h4>
+      {% if s.why %}<p class="lb-vsec-why">{{ s.why }}</p>{% endif %}
+      <div class="lb-vrows">{% for r in s.rows %}{{ vrow(r) }}{% endfor %}</div>
+    </div>
+    {% endfor %}
+    {% if gview.other_platform %}<p class="lb-vnote">Not shown for this car (catalogued for another platform): {{ gview.other_platform|join(', ') }}.</p>{% endif %}
+    {% if gview.not_read_yet %}
+    <div class="lb-vsec lb-vnot">
+      <h4 class="lb-vsec-h">Not read yet <span class="lb-vtog">{{ gview.not_read_yet|length }}</span></h4>
+      <p class="lb-vsec-why">MES shows these; CUORE has no reading for them yet.</p>
+      <ul class="lb-vnot-list">{% for n in gview.not_read_yet %}<li><span class="lb-vsrc">{{ n.module }}</span> {{ n.name }} <span class="lb-vwhy">{{ n.source }}</span></li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+    {% if gview.related %}<p class="lb-vrel">Also look at:
+      {% for r in gview.related %}<a class="lb-vbtn" href="/v/{{ vin }}/liveboard?group={{ r.id }}{% if request.query_params.get('token') %}&token={{ request.query_params.get('token') }}{% endif %}#lb-values">{{ r.label }}</a> <span class="lb-vwhy">{{ r.why }}</span> {% endfor %}</p>{% endif %}
+  </div>
+  {% endif %}
+</section>

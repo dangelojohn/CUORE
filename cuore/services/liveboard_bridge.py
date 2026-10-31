@@ -158,7 +158,7 @@ def _classify(ch: Any) -> str:
         return "speed_rpm"
     if unit in ("kpa", "psi", "bar") or "pressure" in name or "boost" in name or "map" in name:
         return "pressure_boost"
-    if unit == "v" or "voltage" in name:
+    if unit == "v" or "voltage" in name or "state of charge" in name:
         return "voltage"
     if "lambda" in name or "o2" in name or "purge" in name or "evap" in name:
         return "emissions"

@@ -178,6 +178,7 @@
 .cd-fb-returned { border-color: var(--sev-returned, #e8565c); }
 .cd-act { flex: 0 0 auto; display: flex; align-items: center; padding: 0 6px; }
 .cd-btn { min-height: var(--tap, 44px); min-width: 88px; padding: 0 16px; font-size: var(--fs-md); font-weight: 700; cursor: pointer; border-radius: var(--radius, 3px); border: 2px solid var(--ink); background: var(--surface); color: var(--ink); }
+.cd-btn.cd-ff { display: inline-flex; align-items: center; align-self: center; margin: 0 6px; text-decoration: none; font-weight: 600; }
 .cd-btn.fix { background: var(--ok-bg); border-color: var(--ok); }
 .cd-more { flex: 0 0 auto; }
 .cd-more > summary { padding: 0 12px; color: var(--ink-2); font-weight: 400; }

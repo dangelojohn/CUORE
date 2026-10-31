@@ -294,14 +294,36 @@ def _match_live_modules(ecu_seen: list[str]) -> list[dict[str, Any]]:
 # --- pages ----------------------------------------------------------------
 
 
+_BRAND_COOKIE = "cuore_brand"   # session cookie: the last brand picked, only ever highlights a tile
+
+
 @router.get("/", response_class=HTMLResponse)
 def index(request: Request) -> HTMLResponse:
-    """The car in the bay goes straight to its job; otherwise, start one."""
-    from ..services import flow_bridge
-    vin = flow_bridge.current_vehicle()
-    if vin:
-        return RedirectResponse(url=f"/v/{vin}", status_code=303)   # the Bench is the mechanic's home
-    return RedirectResponse(url="/start", status_code=303)
+    """The landing page: pick a brand. Never redirects, whatever brand or car
+    is remembered -- the CUORE logo always comes back here."""
+    from ..services import landing_bridge
+    last = request.cookies.get(_BRAND_COOKIE, "")
+    n = landing_bridge.counts()
+    brands = [dict(b, cars=n.get(b["key"], 0), last=(b["key"] == last))
+              for b in landing_bridge.brands()]
+    return _page(request, "landing.html", brands=brands, live_strip=None)
+
+
+@router.get("/cars", response_class=HTMLResponse)
+def cars_page(request: Request, brand: str = "", q: str = "") -> HTMLResponse:
+    """Big cards for the cars of one brand (VIN/WMI rule), plus Add a car.
+    No ``brand`` -> the remembered one, else every car."""
+    from ..services import landing_bridge
+    key = brand or request.cookies.get(_BRAND_COOKIE, "")
+    chosen = landing_bridge.brand(key)
+    cars = landing_bridge.cars(q, chosen["key"] if chosen else "")
+    for c in cars:
+        c["last_seen_ago"] = _relative_ago(c["last_seen"]) if c["last_seen"] else ""
+    resp = _page(request, "cars.html", brand=chosen, cars=cars, q=q.strip(),
+                 marque=chosen["key"] if chosen else "alfa", live_strip=None)
+    if chosen:
+        resp.set_cookie(_BRAND_COOKIE, chosen["key"], samesite="lax")
+    return resp
 
 
 @router.get("/vehicles", response_class=HTMLResponse)
@@ -470,7 +492,7 @@ def codes(request: Request, vin: str,
                      flash_msg=(request.query_params.get("msg") or "")[:300], flash_kind=request.query_params.get("mk") or "ok",
                      sort=sort, sort_dir=dir, q=q, groups=groups, call=call, go_chips=go_chips,
                      total_rows=len(data["dtcs"]),
-                     state_help=codes_call.STATE_HELP, no_match_hint=page_search.HINT_CODES,
+                     state_help=codes_call.STATE_HELP, state_label=codes_call.STATE_LABEL, no_match_hint=page_search.HINT_CODES,
                      sort_first_dir={k: v[1] for k, v in _CODE_SORTS.items()},
                      bar=_vehicle_bar(vin, dossier),
                      include_simulation=include_simulation, tab="codes",

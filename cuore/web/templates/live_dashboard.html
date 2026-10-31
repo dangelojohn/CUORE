@@ -15,6 +15,7 @@
   </strong>
   {% for it in now['items'] %}{{ it.label }} <strong class="mono">{{ it.text }}</strong>{% if not loop.last %}, {% endif %}{% endfor %}</p>
   {% if now.source and not now.connected %}<p class="small" style="margin:4px 0 0;color:var(--ink-2)">Source: {{ now.source }}.</p>{% endif %}
+  {% if now.decode %}<p class="small" style="margin:4px 0 0;color:var(--ink-2)">Decoded values: {{ now.decode }}.</p>{% endif %}
   <p style="margin:6px 0 0;min-height:44px;display:flex;align-items:center"><strong>Next:</strong>&nbsp;{{ now.action }}</p>
 </section>
 {% endif %}

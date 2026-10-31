@@ -477,6 +477,41 @@ def decode_confirm_run_route(vin: str = Body(..., embed=True), mes_log_path: str
                               mes_interval_s=mes_interval_s, mes_start=mes_start, lag_s=lag_s, mode=mode)
 
 
+@router.get("/live/decode-flow/status", summary="N of 133 confirmed, per module (no car contact)")
+def decode_flow_status_route() -> dict[str, Any]:
+    from ..live import decode_flow
+    return decode_flow.status()
+
+
+@router.post("/live/decode-flow/propose",
+             summary="Pair the newest MES CSV with the newest CUORE recording; propose only")
+def decode_flow_propose_route(vin: str = Body(..., embed=True), mes_log_path: str = Body(default="", embed=True),
+                              cuore_recording_path: str = Body(default="", embed=True)) -> dict[str, Any]:
+    from ..live import decode_flow
+    return decode_flow.propose(vin, mes_log_path, cuore_recording_path)
+
+
+@router.post("/live/decode-flow/record/start", summary="Record the MES CSV's channels in CUORE (MES closed)")
+def decode_flow_record_start_route(vin: str = Body(..., embed=True), mes_csv: str = Body(default="", embed=True)
+                                   ) -> dict[str, Any]:
+    from ..live import decode_flow
+    return decode_flow.record_start(vin, mes_csv)
+
+
+@router.post("/live/decode-flow/record/stop", summary="Stop that recording and session")
+def decode_flow_record_stop_route() -> dict[str, Any]:
+    from ..live import decode_flow
+    return decode_flow.record_stop()
+
+
+@router.post("/live/decode-flow/reject", summary="Person rejects one channel's decoding (changes no scale)")
+def decode_flow_reject_route(vin: str = Body(..., embed=True), run_id: str = Body(..., embed=True),
+                             channel: str = Body(..., embed=True), why: str = Body(default="", embed=True)
+                             ) -> dict[str, Any]:
+    from ..live import decode_flow
+    return decode_flow.reject(vin, run_id, channel, why)
+
+
 @router.post("/live/decode-confirm/accept",
              summary="Accept one channel's verdict into did_overrides.json (catalogue file untouched)")
 def decode_confirm_accept_route(vin: str = Body(..., embed=True), run_id: str = Body(..., embed=True),

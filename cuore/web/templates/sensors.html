@@ -77,8 +77,8 @@
   <span class="sens-go-l">Go to</span>
   <a class="sens-gochip" href="/v/{{ vin }}/job">Job</a>
   <a class="sens-gochip" href="/v/{{ vin }}/crosschecks">Cross-checks</a>
-  <a class="sens-gochip" href="{{ base }}/readings.csv">Data / CSV</a>
-  <a class="sens-gochip" href="/v/{{ vin }}/electrical">Layout</a>
+  <a class="sens-gochip" href="{{ base }}/readings.csv">Download readings (CSV)</a>
+  <a class="sens-gochip" href="/v/{{ vin }}/electrical">Wiring layout</a>
   {% if pcall.eid %}<a class="sens-gochip" href="/v/{{ vin }}/electrical?find={{ pcall.eid|urlencode }}#el-{{ pcall.eid|urlencode }}">Electrical path for {{ pcall.elabel }}</a>{% endif %}
 </nav>
 
@@ -145,7 +145,7 @@
       {% if s.element_id %}<a class="sens-link" href="/v/{{ vin }}/electrical?find={{ s.element_id|urlencode }}#el-{{ s.element_id|urlencode }}">Electrical path for this sensor</a>
       <a class="sens-link" href="/v/{{ vin }}/electrical?find={{ s.element_id|urlencode }}">Open in layout</a>{% endif %}
       {% if s.zone %}<a class="sens-link" href="#sens-map">Show on the car</a>{% endif %}
-      <a class="sens-link" href="{{ base }}/readings.csv?sensor={{ s.id|urlencode }}">Data (CSV)</a>
+      <a class="sens-link" href="{{ base }}/readings.csv?sensor={{ s.id|urlencode }}">Download readings (CSV)</a>
     </p>
     {% if it.photo %}
     <figure class="sens-photo">

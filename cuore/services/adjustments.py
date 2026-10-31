@@ -27,6 +27,32 @@ WHY_NOT = {
     "accepted": "Run control is not part of this screen. Runs go through the gated session path: dry run, gate, typed consent, read-back.",
     "performed_verified": "Run control is not part of this screen. A repeat goes through the gated session path: dry run, gate, typed consent, read-back.",
 }
+# The same four states in a mechanic's words, for the one-table view.
+STATE_PLAIN = {
+    "awaiting source": "Not available in CUORE yet. No manufacturer procedure on file.",
+    "documented": "Written up from a source, not signed off by the owner yet.",
+    "accepted": "Signed off by the owner. Not yet performed and checked on a car.",
+    "performed_verified": "Done and checked on a car.",
+}
+
+
+def _needs(c: dict[str, Any]) -> str:
+    wanted = [str(n) for n in c["needs_from_manufacturer"]]
+    if wanted:
+        more = f" (and {len(wanted) - 2} more)" if len(wanted) > 2 else ""
+        return "; ".join(wanted[:2]) + more
+    if c["status"] in ("accepted", "performed_verified"):
+        pre = c["preconditions"]
+        return (pre + ". " if pre else "") + "Dry run, gate, typed consent, read-back."
+    if c["status"] == "documented":
+        return "Owner sign-off, then dry run, gate, typed consent, read-back."
+    return "A cited manufacturer procedure."
+
+
+def _do_today(c: dict[str, Any]) -> str:
+    ran = c["mes_runs"]
+    tail = f" Run in MES on {', '.join(str(r) for r in ran)}." if ran else ""
+    return "wiTECH or the manufacturer's tool; nothing runs from CUORE." + tail
 
 
 def _verified_runs() -> set[str]:
@@ -99,6 +125,11 @@ def _card(d: dict[str, Any], verified: set[str]) -> dict[str, Any]:
     }
 
 
+def _table_row(c: dict[str, Any]) -> dict[str, Any]:
+    return {"name": c["name"], "title": c["title"], "module": c["module"], "mark": c["mark"],
+            "state": STATE_PLAIN[c["status"]], "needs": _needs(c), "do_today": _do_today(c)}
+
+
 def cards() -> list[dict[str, Any]]:
     verified = _verified_runs()
     out = []
@@ -116,4 +147,5 @@ def board(open_name: str = "") -> dict[str, Any]:
     groups = [{"key": k, "label": label, "why": why, "cards": [c for c in cs if c["group"] == k]} for k, label, why in GROUPS]
     groups = [g for g in groups if g["cards"]]
     return {"total": len(cs), "counts": counts, "order": STATUS_ORDER, "mark": STATUS_MARK, "word": STATUS_WORD,
+            "table": [_table_row(c) for c in cs],
             "groups": groups, "open_name": open_name, "known": any(c["name"] == open_name for c in cs)}

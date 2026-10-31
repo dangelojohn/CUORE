@@ -65,6 +65,10 @@ _DRIVABILITY_TAGS = frozenset({"rough_idle", "hesitation", "loss_of_power", "har
 MAX_TEXT = 4000
 
 
+from .paths import memo_state_dir as _memo_state_dir  # noqa: E402
+
+
+@_memo_state_dir
 def state_dir() -> Path:
     """Mirror ``mes.notes.state_dir()``: same candidates, first writable wins."""
     override = os.environ.get("CUORE_STATE_DIR")

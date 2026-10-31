@@ -30,7 +30,7 @@ from typing import Any, Optional
 from urllib.parse import quote
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
-from . import cache
+from . import cache, value_groups
 from .bench_interactive import PRESENT, age_text
 
 #: board statuses in "look at first" order, with the node class, glyph and word they get
@@ -435,6 +435,8 @@ def _build(vin: str, graph: dict[str, dict[str, Any]], board: list[dict[str, Any
                     "groups": grp_out, "chain": chain, "chain_text": " ← ".join(c["text"] for c in chain),
                     "deps": dep_rows, "dependents": dependents, "path_href": path_href, "layout_href": layout_href,
                     "detail_href": _tok(f"/v/{vin}/systems/{quote(k)}", token),
+                    "value_groups": [{"label": g["label"], "href": value_groups.href(vin, g["id"], token)}
+                                     for g in value_groups.groups_for_system(k)],
                     "components": list((graph[k].get("components") or [])[:8])}
 
     issues = _issues(vin, groups, board, sys_of_card, by_key, deps, cards, els, token)

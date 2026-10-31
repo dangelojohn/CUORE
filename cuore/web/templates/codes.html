@@ -19,7 +19,7 @@
       <span class="cd-code">{{ r.dtc }}</span>
       {% if r.fb %}<span class="chip {{ r.fb.chip }} cd-status" title="{{ r.fb.detail }}"><span aria-hidden="true">{{ r.fb.mark }}</span> {{ r.fb.label }}</span>
       {% if r.fb.returned %}<span class="chip returned"><span aria-hidden="true">!</span> {{ r.fb.chip_extra }}</span>{% endif %}{% endif %}
-      <span class="chip {{ r.severity }}"{% if r.fb %} title="Pattern across sessions"{% endif %}>{{ r.severity }}</span>
+      <span class="chip {{ r.severity }}"{% if r.fb %} title="Pattern across visits"{% endif %}>{{ state_label.get(r.severity, r.severity) }}</span>
       <span class="cd-desc">{{ r.desc_short or "No description on file" }}</span>
       {% if r.modules_short %}<span class="cd-mod">{{ r.modules_short }}</span>{% endif %}
       <span class="cd-seen muted">last seen {{ r.last_seen_ago }}</span>
@@ -33,12 +33,13 @@
       {% else %}<button type="submit" class="cd-btn fix" aria-label="Mark {{ r.dtc }} fixed" title="Records the repair and starts verification; CUORE shows Proven fixed only when the readings say so">Fixed</button>{% endif %}
     </form>
     {% endif %}
+    <a class="cd-btn cd-ff" href="/v/{{ vin }}/code/{{ r.code_href_id }}#freeze-frame" title="The conditions captured when {{ r.dtc }} set" aria-label="Freeze frame for {{ r.dtc }}">Freeze frame</a>
     <details class="cd-more">
       <summary aria-label="Details for {{ r.dtc }}">Details</summary>
       <dl class="cd-detail">
         {% if r.descriptions %}<div><dt>Description</dt><dd>{{ r.descriptions|join(", ") }}</dd></div>{% endif %}
         {% if r.modules %}<div><dt>Module</dt><dd>{{ r.modules|join(", ") }}</dd></div>{% endif %}
-        <div><dt>Sessions</dt><dd>{{ r.sessions_x }}</dd></div>
+        <div><dt>Visits</dt><dd>{{ r.sessions_x }}</dd></div>
         <div><dt>First seen</dt><dd title="{{ r.first_seen }}">{{ r.first_seen_ago }}</dd></div>
         <div><dt>Last seen</dt><dd title="{{ r.last_seen }}">{{ r.last_seen_ago }}</dd></div>
         {% if r.distance_span_km %}<div><dt>Distance</dt><dd>{{ "{:,}".format(r.distance_span_km|int) }} km</dd></div>{% endif %}
@@ -48,9 +49,9 @@
     {% with h_page='codes', h_item=r.dtc, h_label=(r.dtc ~ ' ' ~ (r.desc_short or '')), h_anchor='row-' ~ r.code_href_id %}{% include "_helped.html" %}{% endwith %}
   </li>
 {% endmacro %}
-{% set _sl = {"code": ("Code", "A→Z", "Z→A"), "state": ("State", "returned first", "seen-once first"),
+{% set _sl = {"code": ("Code", "A→Z", "Z→A"), "state": ("State", "came back first", "seen once first"),
               "system": ("System", "EVAP first", "Engine other first"), "description": ("Description", "A→Z", "Z→A"),
-              "module": ("Module", "A→Z", "Z→A"), "sessions": ("Sessions", "fewest first", "most first"),
+              "module": ("Module", "A→Z", "Z→A"), "sessions": ("Visits", "fewest first", "most first"),
               "first": ("First seen", "oldest first", "newest first"), "last": ("Last seen", "oldest first", "newest first"),
               "distance": ("Distance", "shortest first", "longest first")} %}
 

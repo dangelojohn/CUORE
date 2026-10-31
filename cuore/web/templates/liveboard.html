@@ -10,7 +10,7 @@
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('liveboard.css') }}">
 
-<div id="lb-app" data-vin="{{ vin }}" data-name="{{ bar.name }}"
+<div id="lb-app" data-vin="{{ vin }}" data-name="{{ bar.name }}"{% if gview %} data-group-channels="{{ gview.channel_ids|join(',') }}"{% endif %}
      data-txt-waiting="waiting" data-txt-noanswer="no answer">
 
   {# Mechanic layout: search, one-line call, one Start, then "For this job" and the readings by quantity.
@@ -18,15 +18,13 @@
      "Advanced". Structure is rendered here (cuore/web/liveboard_view.py); liveboard.js only fills in values. #}
   {% set tok = request.query_params.get('token') %}
 
-  {# Deliberately bare cockpit layout (no hero / tab row), so it gets its own compact header row:
-     vehicle name, a 44 px way back to the Bench, and a link to the tab pages. #}
+  {# Deliberately bare cockpit layout: the site header names the car and holds the Menu, so this
+     row only carries the 44 px way back to the Bench. #}
   <div class="lb-head" id="lb-head">
-    <span class="lb-head-car">{{ bar.name }}</span>
     <a class="lb-gochip lb-back" id="lb-back" href="/v/{{ vin }}{% if tok %}?token={{ tok }}{% endif %}">Back to Bench</a>
-    <a class="lb-gochip lb-tabs-link" id="lb-tabs" href="/v/{{ vin }}/job{% if tok %}?token={{ tok }}{% endif %}">Tab pages</a>
   </div>
 
-  <h1 class="lb-h1">Live board <span class="lb-h1-car">{{ bar.name }}</span></h1>
+  <h1 class="lb-h1">Live board</h1>
 
   {% include "_code_watch.html" %}
 
@@ -39,7 +37,7 @@
     <span class="lb-go-l">Go to</span>
     <a class="lb-gochip" id="lb-recordings" href="/v/{{ vin }}/recordings{% if tok %}?token={{ tok }}{% endif %}">Recordings</a>
     <a class="lb-gochip" href="/v/{{ vin }}/job{% if tok %}?token={{ tok }}{% endif %}">Job</a>
-    <a class="lb-gochip" href="/v/{{ vin }}{% if tok %}?token={{ tok }}{% endif %}">Bench</a>
+    <a class="lb-gochip" id="lb-report" href="/v/{{ vin }}/bay-sheet{% if tok %}?token={{ tok }}{% endif %}">Save / print report</a>
   </div>
 
   <form class="lb-search" method="get" action="/v/{{ vin }}/liveboard" role="search">
@@ -61,6 +59,7 @@
   <div class="lb-cycle" id="lb-cycle" hidden></div>
 
   <div class="lb-notice" id="lb-notice" hidden></div>
+  <div class="lb-notice lb-offline" id="lb-offline" role="status" hidden></div>
 
   <div class="lb-problems" id="lb-problems" hidden>
     <div class="lb-problems-head">Problems</div>
@@ -80,10 +79,15 @@
   <form class="lb-controls lb-record" id="lb-record-form" method="post" action="/v/{{ vin }}/recordings/start{% if tok %}?token={{ tok }}{% endif %}" hidden>
     <input type="hidden" name="label" value="">
     <button type="submit" class="lb-btn" id="lb-record">Record this drive</button>
+    <button type="button" class="lb-btn lb-btn-stop" id="lb-record-stop" hidden>Stop recording</button>
   </form>
+  <div class="lb-tags" id="lb-tags" hidden><div class="lb-tag-head">Tag this moment (one tap)</div><div class="lb-tag-btns"></div></div>
+  <div class="lb-graph" id="lb-graph" hidden></div>
 
 
   <div class="lb-snapshot-result" id="lb-snapshot-result" hidden></div>
+
+  {% include 'liveboard_values.html' %}
 
   <details class="lb-adv" id="lb-advanced">
   <summary>Advanced: demo, freeze frame, bus capture</summary>
@@ -154,7 +158,7 @@
   </div>
   </details>
 
-{% include 'liveboard_groups.html' %}
+{% if not gview %}{% include 'liveboard_groups.html' %}{% endif %}
 
 </div>
 

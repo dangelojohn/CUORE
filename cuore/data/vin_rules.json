@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "note": "Marque-neutral VIN decode rules. Every rule carries its source and a verified flag. A rule with verified=false is shown as unverified and never as fact. Anything with no rule stays unknown.",
+  "year_codes": {
+    "codes": "ABCDEFGHJKLMNPRSTVWXY123456789",
+    "base_year": 1980,
+    "cycle_years": 30,
+    "verified": true,
+    "source": "ISO 3779 / 49 CFR 565.15 model-year code table for VIN position 10 (letters I O Q U Z and 0 unused); same table as cuore.services.landing_bridge"
+  },
+  "check_digit": {
+    "required_markets": ["North America"],
+    "verified": true,
+    "source": "49 CFR 565.15 requires the position-9 check digit for North American vehicles; ISO 3779 does not require it elsewhere, so it is advisory outside North America"
+  },
+  "wmi": [
+    {"prefix": "ZASF", "make": "Alfa Romeo", "market": null, "verified": true,
+     "source": "cuore.services.shop_bridge._WMI_MAKES; confirmed against the owner's reference VIN ZASFAKPN5J7B88115. Market not stated by the WMI, so unknown."},
+    {"prefix": "ZN6", "make": "Maserati", "market": "North America", "verified": true,
+     "source": "https://dot.report/wmi/ZN6 : held by Maserati North America, Inc. (cited in mes.platform)"},
+    {"prefix": "ZN7", "make": "Maserati", "market": null, "verified": true,
+     "source": "cuore.services.shop_bridge._WMI_MAKES (make only). mes.platform notes no source was found assigning ZN7 to a model or market."},
+    {"prefix": "ZFF", "make": "Ferrari", "market": null, "verified": false,
+     "source": "Not confirmed in this repo: DESIGN.md (2026-10-31) says Ferrari WMI needs a real VIN and an authoritative list. Shown as unverified."}
+  ],
+  "models": [
+    {"prefix": "ZASF", "model": "Stelvio", "platform_key": "stelvio", "verified": true,
+     "source": "mes.platform.model_for_vin (WMI ZASF -> stelvio), confirmed against ZASFAKPN5J7B88115 only. Platform text comes from mes.platform.platform_for."},
+    {"prefix": "ZN6", "model": null, "verified": true,
+     "source": "mes.platform: ZN6 is used for both Levante and Grecale and no sourced VIN position separates them, so the model stays unknown."},
+    {"prefix": "ZN7", "model": null, "verified": true,
+     "source": "mes.platform: no source assigns ZN7 to any model, so the model stays unknown."}
+  ],
+  "plants": [
+    {"prefix": "ZASF", "code": "7", "plant": "Cassino, Italy", "verified": false,
+     "source": "Stelvio is built at Cassino (https://en.wikipedia.org/wiki/Alfa_Romeo_Stelvio); that VIN position 11 value 7 means Cassino is NOT confirmed from an authoritative plant-code list."}
+  ]
+}

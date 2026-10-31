@@ -41,6 +41,7 @@ from fastapi.responses import HTMLResponse
 from ..api.deps import require_token
 from ..services import shop_bridge
 from ..services import liveboard_bridge
+from ..services import value_groups
 from . import liveboard_view as lbv
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
@@ -65,7 +66,14 @@ def liveboard_page(request: Request, vin: str) -> HTMLResponse:
     except Exception:  # noqa: BLE001 -- the page still renders; liveboard.js carries its own fallback set
         board = {"groups": []}
     view = lbv.build(board, lbv.load_job(vin, dossier), q)
-    response = _page(request, "liveboard.html", vin=vin, bar=bar, view=view, q=q)
+    # Value groups: the picker is always there; ?group=<id> shows one group's values together instead of the
+    # long list (the same element ids, so liveboard.js fills them the same way).
+    tok = request.query_params.get("token") or ""
+    gid = (request.query_params.get("group") or "").strip()
+    gview = lbv.group_view(board, vin, gid) if gid else None
+    picker = value_groups.picker(vin, tok, gview["id"] if gview else "")
+    response = _page(request, "liveboard.html", vin=vin, bar=bar, view=view, q=q, gview=gview, picker=picker,
+                     bad_group=bool(gid and gview is None))
     _set_active_vehicle(response, vin)
     return response
 

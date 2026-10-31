@@ -16,8 +16,30 @@
   {% if m.domain %}&middot; {{ m.domain }}{% endif %}
   {% if m.bus %}&middot; bus <span class="mono">{{ m.bus }}</span>{% endif %}</p>
 
+<div class="panel" id="sec-answer" role="status">
+  <p style="margin:0;font-size:1.15em"><strong>{{ ws.answer }}</strong></p>
+  {% if ws.why %}<p class="small" style="margin:6px 0 0">Why it matters: touches
+    {% for w in ws.why %}<a href="/v/{{ vin }}/systems">{{ w.system }}</a> <span class="muted">({{ w.role }}, {{ w.code }})</span>{{ ", " if not loop.last }}{% endfor %}.</p>{% endif %}
+  <p style="margin:8px 0 0"><a href="{{ ws.next.href }}" style="display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding:0 14px"><strong>Next: {{ ws.next.text }}</strong></a></p>
+</div>
+
+<div class="panel" id="sec-connect">
+  <h2 style="margin-top:0">Connect</h2>
+  <p><strong>{{ ws.connect.headline }}</strong></p>
+  {% if ws.connect.needed %}<p class="small">Cable that reaches this bus:
+    {% for n in ws.connect.needed %}<span class="chip {{ 'ok' if n.status == 'confirmed' else 'plain' }}">{{ n.label }} &middot; {{ n.status }}</span> {% endfor %}
+    Fitted now: <span class="mono">{{ ws.connect.fitted_label }}</span></p>{% endif %}
+  {% if ws.connect.step %}<p class="chip status-active" role="alert" style="display:block">{{ ws.connect.step }}</p>{% endif %}
+  {% if ws.connect.listen_only %}<p class="small">This cable is listen-only: reads only.</p>{% endif %}
+  <p class="small muted">{{ ws.connect.warning }}</p>
+  <p style="margin:0;display:flex;flex-wrap:wrap;gap:8px">
+    {% if ws.connect.known %}<a href="/live/module/{{ m.code }}?vin={{ vin }}" style="display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding:0 14px"><strong>Read now</strong></a>{% endif %}
+    <a href="/v/{{ vin }}/car-session" style="display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding:0 14px">Connect through the CUORE car session</a></p>
+  {% if ws.connect.known %}<p class="small muted">Read now opens this module's live read (codes and identity). Read only. On the chassis and body buses it asks you to confirm first.</p>{% endif %}
+</div>
+
 <details class="card-details" id="sec-info" data-persist="info" open>
-  <summary>Info</summary>
+  <summary>Identity</summary>
   <div class="card-body">
     <table>
       <tbody>
@@ -44,7 +66,7 @@
 </details>
 
 <details class="card-details" id="sec-errors" data-persist="errors" open>
-  <summary>Errors <span class="count-badge">{{ m.errors_detail|length }}</span></summary>
+  <summary>Faults and snapshots <span class="count-badge">{{ m.errors_detail|length }}</span></summary>
   <div class="card-body">
     <div class="tw">
     <table>
@@ -60,12 +82,14 @@
           <td class="mono small">{{ e.last_seen }}</td>
           <td>
             {% if e.freeze_frame %}
-              <details>
-                <summary class="small muted">freeze frame</summary>
+              <details open>
+                <summary class="small"><a href="/v/{{ vin }}/code/{{ e.dtc.split('-')[0] }}#freeze-frame">Freeze frame</a> ({{ e.freeze_frame|length }} field{{ "" if e.freeze_frame|length == 1 else "s" }})</summary>
                 <div class="small mono">
                   {% for k, v in e.freeze_frame.items() %}{{ k }}: {{ v }}<br>{% endfor %}
                 </div>
               </details>
+            {% else %}
+              <a class="small" href="/v/{{ vin }}/code/{{ e.dtc.split('-')[0] }}#freeze-frame">Freeze frame</a> <span class="small muted">none stored</span>
             {% endif %}
           </td>
         </tr>
@@ -79,7 +103,7 @@
 </details>
 
 <details class="card-details" id="sec-params" data-persist="params">
-  <summary>Parameters <span class="count-badge">{{ m.parameters|length }}</span></summary>
+  <summary>Live values <span class="count-badge">{{ m.parameters|length }}</span></summary>
   <div class="card-body">
     <div class="tw">
     <table>
@@ -110,15 +134,23 @@
   </div>
 </details>
 
-<details class="card-details" id="sec-actuators" data-persist="actuators">
-  <summary>Actuators <span class="count-badge">{{ m.actuators.available }}</span></summary>
+<details class="card-details" id="sec-adjust" data-persist="adjust" open>
+  <summary>Adjustments and tests <span class="count-badge">{{ ws.adjust|length + m.adjustments_detail|length }}</span></summary>
   <div class="card-body">
+    <p class="small muted" style="margin-top:0">Nothing here runs from this page. Do the job in wiTECH or MES.</p>
+    <h4 class="subhead">What is on file</h4>
+    {% for a in ws.adjust %}
+      <div class="attempt-row" style="min-height:44px">
+        <b>{{ a.title }}</b> <span class="chip {{ 'ok' if a.status in ('accepted','performed_verified') else 'plain' }}">{{ a.state }}</span>
+        <div class="small muted">{{ a.todo }}</div>
+      </div>
+    {% else %}<p class="muted small">No adjustment or test is on file for this module. Use the manufacturer tool.</p>{% endfor %}
     {% if m.actuators.blocked %}
-      <p class="chip status-active" style="display:inline-flex">blocked</p>
-      <p class="small muted">{{ m.actuators.reason }}</p>
+      <p><span class="chip status-active">blocked</span> <span class="small muted">{{ m.actuators.reason }}</span></p>
     {% endif %}
-    <p class="small muted">Actuator tests run only through the <code>obd2</code> MCP server's
-      <code>run_actuator</code> tool, never from this page — there is no HTTP route for it.</p>
+    {% if m.actuators_detail %}
+    <h4 class="subhead">Actuator tests learned on this car <span class="count-badge">{{ m.actuators.available }}</span></h4>
+    <p class="small muted">Actuator tests run only through the <code>obd2</code> MCP server's <code>run_actuator</code> tool, never from this page.</p>
     <div class="tw">
     <table>
       <thead><tr><th>Name</th><th>Consent phrase</th><th>Source</th><th>Replayable</th></tr></thead>
@@ -132,18 +164,12 @@
               {% elif a.replayable %}<span class="chip ok">yes</span>
               {% else %}<span class="chip plain" title="{{ a.reasons }}">no</span>{% endif %}</td>
         </tr>
-      {% else %}
-        <tr><td colspan="4" class="muted">No actuator tests learned for this module on this VIN yet.</td></tr>
       {% endfor %}
       </tbody>
     </table>
     </div>
-  </div>
-</details>
-
-<details class="card-details" id="sec-adjustments" data-persist="adjustments">
-  <summary>Adjustments <span class="count-badge">{{ m.adjustments_detail|length }}</span></summary>
-  <div class="card-body">
+    {% endif %}
+    <h4 class="subhead">Already done on this module <span class="count-badge">{{ m.adjustments_detail|length }}</span></h4>
     {% for a in m.adjustments_detail %}
       <div class="attempt-row">
         <div class="attempt-main">
@@ -159,5 +185,31 @@
     {% endfor %}
   </div>
 </details>
+
+{% if ws.value_groups %}
+<div class="panel" id="sec-values">
+  <h2 style="margin-top:0">Values from this module, with the rest of their group</h2>
+  <ul style="list-style:none;margin:0;padding:0">
+    {% for v in ws.value_groups %}<li style="margin:8px 0"><a href="{{ v.href }}" style="display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding:0 14px"><strong>{{ v.label }}</strong></a>
+      <span class="small muted">{{ v.mine|join(', ') }}{% if v.others %} &middot; shown with readings from {{ v.others|join(', ') }}{% endif %}</span></li>{% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<details class="card-details" id="sec-notread" data-persist="notread" open>
+  <summary>What was NOT read <span class="count-badge">{{ ws.not_read_list|length }}</span></summary>
+  <div class="card-body">
+    {% for n in ws.not_read_list %}<p class="small" style="margin:4px 0">NOT READ: {{ n }}</p>
+    {% else %}<p class="small muted">Everything catalogued for this module has been read.</p>{% endfor %}
+  </div>
+</details>
+
+<div class="panel" id="sec-next">
+  <h2 style="margin-top:0">Go next</h2>
+  <ul style="list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:8px">
+    {% for label, href in ws.links %}<li><a href="{{ href }}" style="display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding:0 14px">{{ label }}</a></li>{% endfor %}
+  </ul>
+  <p class="small muted">Bulletins for this module's codes are listed under Identity.</p>
+</div>
 
 {% endblock %}

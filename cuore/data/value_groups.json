@@ -1,0 +1,230 @@
+{
+  "_schema": "Mechanic-named groups of live values that belong together ACROSS modules. A group: id; label; blurb (what the mechanic is looking at); aliases (words Find and the picker match); applies_to (platform keys, same as mes.known_good: 'any', 'giorgio_gme_2.0t'); systems (mes.systems keys); sections [{title, why (what reading these side by side shows), together (true = one side-by-side row), channels (cuore.live.channels ids only)}]; not_read_yet [{name, module, source}] = values MES shows that CUORE has no channel for (source names the evidence file; never a value, scale or limit); related [{group, why}]. module_platforms: modules whose catalogued DID list was written for these platform keys; a DID channel from such a module shows only on a matching car, a standard PID or adapter reading always shows. Bands, units and scales are NEVER stored here: they come from the channel registry and mes.known_good at render time. labels = mechanic names for channels whose registry name is a raw formula. Marque and car specifics live here, not in code.",
+  "version": 1,
+  "labels": {
+    "bcm_1005": "Battery sensor (IBS), composite record",
+    "ecm_19bd": "Battery sensor (IBS), charge state"
+  },
+  "module_platforms": {
+    "ECM": ["giorgio_gme_2.0t"],
+    "TCM": ["giorgio_gme_2.0t"],
+    "BCM": ["giorgio_gme_2.0t"],
+    "IPC": ["giorgio_gme_2.0t"],
+    "RFHUB": ["giorgio_gme_2.0t"]
+  },
+  "not_read_source": "C:\\ProgramData\\cuore\\research\\mes_end_to_end_2026-10-31\\WORK_LIST.md",
+  "groups": [
+    {
+      "id": "battery_charging",
+      "label": "Battery and charging",
+      "blurb": "Battery voltage as each module sees it, the battery sensor, and what the engine is doing.",
+      "aliases": ["battery", "charging", "charge", "alternator", "ibs", "voltage", "battery sensor", "starting"],
+      "applies_to": ["any"],
+      "systems": ["electrical_supply", "starting_charging"],
+      "sections": [
+        {"title": "Engine state", "together": true,
+         "why": "Read next to the voltages: the same voltage engine off and engine running.",
+         "channels": ["engine_rpm", "vehicle_speed"]},
+        {"title": "Voltage, four sources", "together": true,
+         "why": "The same quantity as the adapter, the standard OBD-II reading, the engine module and the body module report it. Compare them.",
+         "channels": ["battery_voltage", "control_module_voltage", "ecm_1955", "bcm_1004"]},
+        {"title": "Battery sensor (IBS)", "together": true,
+         "why": "The battery sensor's own readings, from the engine module and the body module.",
+         "channels": ["ecm_19bd", "bcm_1005"]},
+        {"title": "Starting and stop-start",
+         "channels": ["bcm_0131", "ecm_1b00", "ecm_1b02"]}
+      ],
+      "not_read_yet": [
+        {"name": "IBS battery sensor values (charge, SoC, SoH) decoded from the body module", "module": "BCM", "source": "WORK_LIST.md BCM Battery sensor row"}
+      ],
+      "related": [
+        {"group": "engine_temps", "why": "Engine speed and load are read there too."}
+      ]
+    },
+    {
+      "id": "engine_temps",
+      "label": "Engine temperatures",
+      "blurb": "Coolant, oil and intake-air temperatures together, with the oil pressure and level beside them.",
+      "aliases": ["temperature", "temperatures", "temp", "coolant", "overheat", "overheating", "oil pressure", "oil temp", "cooling", "thermostat"],
+      "applies_to": ["any"],
+      "systems": ["cooling", "lubrication"],
+      "sections": [
+        {"title": "Coolant, two sources", "together": true,
+         "why": "The standard OBD-II reading and the engine module's own reading of the same temperature.",
+         "channels": ["engine_coolant_temp", "ecm_1003"]},
+        {"title": "Oil", "together": true,
+         "why": "Oil temperature from both sources, with oil pressure and level.",
+         "channels": ["engine_oil_temp", "ecm_1302", "ecm_130a", "ecm_3a41"]},
+        {"title": "Air side",
+         "channels": ["intake_air_temp", "ecm_1935", "ecm_3a58", "ambient_air_temp"]},
+        {"title": "Exhaust",
+         "channels": ["catalyst_temp_b1s1"]},
+        {"title": "How hard the engine is working", "together": true,
+         "channels": ["engine_rpm", "engine_run_time", "absolute_load"]}
+      ],
+      "not_read_yet": [
+        {"name": "Electronic thermostat [%]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Engine temperature signal [V]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Exhaust gas temperature [C]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "UniAir oil temperature and electrovalve temperature [C]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Fan speed", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"}
+      ],
+      "related": [
+        {"group": "boost_intake", "why": "Intake air temperature is read after the turbo."}
+      ]
+    },
+    {
+      "id": "boost_intake",
+      "label": "Boost and intake",
+      "blurb": "Boost, manifold and ambient pressure, the turbo controls, throttle and air flow.",
+      "aliases": ["boost", "turbo", "intake", "wastegate", "overboost", "air flow", "maf", "throttle", "manifold"],
+      "applies_to": ["any"],
+      "systems": ["air_intake_boost"],
+      "sections": [
+        {"title": "Pressures", "together": true,
+         "why": "Boost, manifold and ambient pressure, and the target the engine module is asking for.",
+         "channels": ["boost", "intake_map", "barometric_pressure", "ecm_195a", "ecm_1956", "ecm_1959", "ecm_195b"]},
+        {"title": "Turbo control", "together": true,
+         "why": "What the engine module commands next to the pressure it gets.",
+         "channels": ["boost_pressure_control", "wastegate_control", "ecm_193a"]},
+        {"title": "Air flow", "together": true,
+         "channels": ["maf", "ecm_193c", "ecm_193d", "absolute_load"]},
+        {"title": "Throttle and driver demand", "together": true,
+         "channels": ["throttle_position", "throttle_position_b", "ecm_1924", "ecm_1925", "ecm_1926", "accelerator_pedal_d", "accelerator_pedal_e", "engine_rpm"]},
+        {"title": "Intake temperatures",
+         "channels": ["intake_air_temp", "ecm_1935", "ecm_3a58"]}
+      ],
+      "not_read_yet": [
+        {"name": "Desired intake pressure [mbar]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Turbo actuator command [%]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Turbo vacuum valve", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Intake efficiency [%]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Air flow rate [Kg/h]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"}
+      ],
+      "related": [
+        {"group": "fuel", "why": "Fuel trims are read against air flow."}
+      ]
+    },
+    {
+      "id": "fuel",
+      "label": "Fuel",
+      "blurb": "Tank level, fuel pressures, fuel trims and the oxygen sensor, with the air flow and engine speed they move with.",
+      "aliases": ["fuel", "trim", "trims", "fuel trim", "lean", "rich", "fuel pressure", "rail", "injection", "o2", "lambda", "oxygen", "fuel level"],
+      "applies_to": ["any"],
+      "systems": ["fuel"],
+      "sections": [
+        {"title": "Tank", "channels": ["fuel_level", "ecm_1001", "fuel_type", "ethanol_percent"]},
+        {"title": "Pressure", "together": true,
+         "channels": ["fuel_pressure", "fuel_rail_pressure", "fuel_rail_pressure_abs"]},
+        {"title": "Mixture", "together": true,
+         "why": "Trims beside the oxygen sensor and the commanded mixture.",
+         "channels": ["short_fuel_trim_b1", "long_fuel_trim_b1", "commanded_afr", "o2_b1s1_voltage", "o2_b1s1_wide_range", "o2_b1s2_voltage_trim"]},
+        {"title": "What the engine is doing", "together": true,
+         "channels": ["engine_rpm", "maf", "engine_fuel_rate", "absolute_load"]}
+      ],
+      "not_read_yet": [
+        {"name": "Fuel pressure, low pressure circuit [mbar]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Fuel pressure, measured and calculated [bar]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Injection time and correction [ms]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Fuel pump relay", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Fuel consumption [l/h]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"}
+      ],
+      "related": [
+        {"group": "evap", "why": "The vapour system is read against the fuel level."}
+      ]
+    },
+    {
+      "id": "evap",
+      "label": "EVAP",
+      "blurb": "Vapour pressure beside the fuel level, the purge command and the ESIM probe.",
+      "aliases": ["evap", "evaporative", "purge", "vapour", "vapor", "canister", "fuel cap", "esim"],
+      "applies_to": ["any"],
+      "systems": ["evap"],
+      "sections": [
+        {"title": "Tank state", "together": true,
+         "why": "Vapour pressure is read relative to the fuel level and the ambient conditions.",
+         "channels": ["fuel_level", "ecm_1001", "barometric_pressure", "ambient_air_temp"]},
+        {"title": "Vapour pressure", "together": true,
+         "channels": ["evap_vapor_pressure", "evap_vapor_pressure_abs", "evap_vapor_pressure_signed"]},
+        {"title": "Purge", "channels": ["commanded_evap_purge"]},
+        {"title": "ESIM probe (serial lead, not the OBD adapter)", "together": true,
+         "channels": ["esim_switch_state", "esim_signal_mV", "esim_ref_mV"]}
+      ],
+      "not_read_yet": [
+        {"name": "Evaporation control valve opening [%]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"},
+        {"name": "Canister fill [%]", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"}
+      ],
+      "related": [
+        {"group": "fuel", "why": "Fuel level and trims."}
+      ]
+    },
+    {
+      "id": "gearbox_transfer",
+      "label": "Gearbox and transfer case",
+      "blurb": "Gearbox oil temperature and torque as the gearbox receives it, with engine speed, road speed and gear.",
+      "aliases": ["gearbox", "transmission", "transfer case", "awd", "gear", "shift", "8hp", "torque", "dna", "tcm", "driveline"],
+      "applies_to": ["any"],
+      "systems": ["transmission_driveline"],
+      "sections": [
+        {"title": "Gearbox", "together": true,
+         "channels": ["tcm_04fe", "tcm_1018", "tcm_0518", "tcm_0540"]},
+        {"title": "Gear and speed", "together": true,
+         "why": "Engine speed against road speed and the gear the engine module reports.",
+         "channels": ["engine_rpm", "vehicle_speed", "ecm_192d", "ecm_1923"]}
+      ],
+      "not_read_yet": [
+        {"name": "Transfer case status", "module": "DTCM", "source": "WORK_LIST.md DTCM live parameters"},
+        {"name": "Actual coupling torque [Nm]", "module": "DTCM", "source": "WORK_LIST.md DTCM live parameters"},
+        {"name": "Requested coupling torque [Nm]", "module": "DTCM", "source": "WORK_LIST.md DTCM live parameters"},
+        {"name": "Transfer case operating mode", "module": "DTCM", "source": "WORK_LIST.md DTCM live parameters"}
+      ],
+      "related": [
+        {"group": "engine_temps", "why": "Engine temperatures and load."}
+      ]
+    },
+    {
+      "id": "brakes_wheels",
+      "label": "Brakes and wheels",
+      "blurb": "Road speed beside the four tyre pressures and temperatures.",
+      "aliases": ["brake", "brakes", "abs", "wheel", "wheels", "tyre", "tire", "tyres", "tires", "tpms", "esp"],
+      "applies_to": ["any"],
+      "systems": ["brakes_abs", "wheels_tpms"],
+      "sections": [
+        {"title": "Road speed", "channels": ["vehicle_speed"]},
+        {"title": "Front tyres", "together": true,
+         "channels": ["rfhub_40b1_pressure", "rfhub_40b1_temp", "rfhub_40b2_pressure", "rfhub_40b2_temp"]},
+        {"title": "Rear tyres", "together": true,
+         "channels": ["rfhub_40b3_pressure", "rfhub_40b3_temp", "rfhub_40b4_pressure", "rfhub_40b4_temp"]}
+      ],
+      "not_read_yet": [
+        {"name": "Brake pedal pressure [bar]", "module": "ABS", "source": "WORK_LIST.md ABS snapshot fields (ABS does not answer yet)"},
+        {"name": "Hydraulic circuit pressure [bar]", "module": "ABS", "source": "WORK_LIST.md ABS snapshot fields (ABS does not answer yet)"},
+        {"name": "Brake pedal switch, brake contact 2, parking brake, ASR/ESP switch", "module": "ABS", "source": "WORK_LIST.md ABS snapshot fields (ABS does not answer yet)"},
+        {"name": "Brake pedal and brake contact 2", "module": "ECM", "source": "WORK_LIST.md ECM live parameters"}
+      ],
+      "related": [
+        {"group": "gearbox_transfer", "why": "Road speed and torque."}
+      ]
+    },
+    {
+      "id": "body_lighting",
+      "label": "Body and lighting",
+      "blurb": "Ignition key position, the light switch and the dash illumination.",
+      "aliases": ["body", "lighting", "lights", "headlamp", "headlight", "key position", "ignition", "dash", "illumination", "bcm", "ipc"],
+      "applies_to": ["any"],
+      "systems": ["body_comfort", "lighting"],
+      "sections": [
+        {"title": "Switches and key", "together": true,
+         "channels": ["bcm_0131", "bcm_0133", "ipc_0104"]}
+      ],
+      "not_read_yet": [
+        {"name": "External temperature [C]", "module": "IPC", "source": "WORK_LIST.md IPC live parameters"},
+        {"name": "Seat belt alarm", "module": "IPC", "source": "WORK_LIST.md IPC live parameters"},
+        {"name": "Audible signal (buzzer) volume", "module": "IPC", "source": "WORK_LIST.md IPC live parameters"}
+      ],
+      "related": [
+        {"group": "battery_charging", "why": "Switch state next to the battery voltage."}
+      ]
+    }
+  ]
+}

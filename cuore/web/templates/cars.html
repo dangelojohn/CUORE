@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}{{ brand.name if brand else 'All cars' }} - CUORE{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('landing.css') }}">
+{% set _what = (brand.name ~ ' cars') if brand else 'cars' %}
+<section class="stage stage-cars">
+  <header class="cars-head"{% if brand %} data-marque="{{ brand.key }}"{% endif %}>
+    {% if brand %}{% set b = brand %}<span class="bt-disc bt-disc-sm">{% include "_brand_mark.html" %}</span>{% endif %}
+    <h1 class="stage-h">{{ brand.name if brand else 'All cars' }}</h1>
+    <a class="cars-back" href="/">Change brand</a>
+  </header>
+  {% if brand and brand.note %}<p class="bt-note cars-note">{{ brand.note }}</p>{% endif %}
+
+  <form class="cars-search" role="search" method="get" action="/cars">
+    {% if brand %}<input type="hidden" name="brand" value="{{ brand.key }}">{% endif %}
+    <label for="cars-q" class="sr-only">Search by VIN or name</label>
+    <input id="cars-q" type="search" name="q" value="{{ q }}" autocomplete="off" placeholder="Search by VIN or name">
+    <button type="submit" class="btn">Search</button>
+  </form>
+
+  <div class="car-grid">
+    <a class="car-card car-add" href="/add" data-add-car>
+      <span class="car-plus" aria-hidden="true">+</span>
+      <span class="car-name">Add Service</span>
+      <span class="car-sub">Read the car or type its VIN</span>
+    </a>
+    {% for c in cars %}
+    <a class="car-card" data-marque="{{ c.marque }}" data-vin="{{ c.vin }}" href="/v/{{ c.vin }}" style="--i:{{ loop.index }}">
+      <span class="car-art">
+        {% if c.art %}<svg viewBox="0 0 860 360" role="img" aria-label="{{ c.name }}, side view"><path d="{{ c.art.silhouette }}" fill="var(--surface-2)"/><path d="{{ c.art.ink }}" fill="var(--ink-2)" fill-rule="evenodd"/></svg>{% endif %}
+      </span>
+      <span class="car-name">{{ c.name }}</span>
+      <span class="car-sub">{{ c.make }}{% if c.year %} &middot; {{ c.year }}{% endif %} &middot; <span class="mono">{{ c.short_vin }}</span></span>
+      <span class="car-state">
+        <span class="chip-verdict v-{{ c.verdict.state|lower|replace('_', '-') }}">{{ c.verdict.word }}</span>
+        {% if c.verdict.not_read %}<span class="chip chronic">{{ c.verdict.not_read }} module{{ '' if c.verdict.not_read == 1 else 's' }} NOT READ</span>{% endif %}
+        {% if c.in_bay %}<span class="chip plain">In the bay</span>{% endif %}
+      </span>
+      <span class="car-sub">{% if c.open_jobs %}{{ c.open_jobs }} open job{{ '' if c.open_jobs == 1 else 's' }}{% if c.complaint %}: {{ c.complaint|truncate(60) }}{% endif %}{% else %}No open job{% endif %}{% if c.last_seen_ago %} &middot; seen {{ c.last_seen_ago }}{% endif %}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if not cars %}
+  <p class="cars-empty">
+    {% if q %}No {{ _what }} match &ldquo;{{ q }}&rdquo;.{% if q|length >= 11 %} <a href="/start?vin={{ q|urlencode }}">Start a job for this VIN</a>{% endif %}
+    {% else %}No {{ _what }} yet. Add one to begin.{% endif %}
+  </p>
+  {% endif %}
+</section>
+{% endblock %}

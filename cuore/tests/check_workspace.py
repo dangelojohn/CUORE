@@ -73,13 +73,11 @@ def check(label: str, cond: bool, detail: str = "") -> None:
 client = TestClient(create_app())
 
 
-# --- 1. no car in the bay -> /start -----------------------------------------
+# --- 1. "/" is the brand picker: it never redirects, with or without a car in the bay ---
 
 resp1 = client.get("/", follow_redirects=False)
-check("/ redirects when no car is in the bay", resp1.status_code in (302, 303, 307),
-      str(resp1.status_code))
-check("/ redirects to /start with no car in the bay",
-      resp1.headers.get("location") == "/start", str(resp1.headers.get("location")))
+check("/ renders the landing page with no car in the bay", resp1.status_code == 200, str(resp1.status_code))
+check("/ offers the brand picker, not a redirect", 'data-brand="alfa"' in resp1.text, resp1.text[:80])
 
 
 # --- 2. after an intake, / redirects to the job; step anchors render -------
@@ -90,10 +88,13 @@ check("intake via the real /start form responds 200", intake_resp.status_code ==
       str(intake_resp.status_code))
 
 resp2 = client.get("/", follow_redirects=False)
-# "/" lands on the Bench (/v/{vin}), the mechanic's home (routes.index); the job
-# page is one tab away -- checked directly just below.
-check("/ redirects to that car's Bench once it is in the bay",
-      resp2.headers.get("location") == f"/v/{VIN}", str(resp2.headers.get("location")))
+# "/" stays the brand picker once a car is in the bay (no auto-redirect to its
+# Bench); the car is one tap away on its brand's list, and its Bench is /v/{vin}.
+check("/ still shows the brand picker once a car is in the bay", resp2.status_code == 200
+      and 'data-brand="alfa"' in resp2.text, str(resp2.status_code))
+cars2 = client.get("/cars?brand=alfa")
+check("the car in the bay is a card on its brand's list, linking to its Bench",
+      f'href="/v/{VIN}"' in cars2.text, str(cars2.status_code))
 
 job_page = client.get(f"/v/{VIN}/job")
 check("the job page responds 200", job_page.status_code == 200, str(job_page.status_code))

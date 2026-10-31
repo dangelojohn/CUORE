@@ -65,7 +65,16 @@ def memoize_by_file(maxsize: int = 1024) -> Callable:
 
         def wrapper(path, *, timestamp: str = ""):
             try:
-                st = os.stat(path)
+                # stat once per GET request (the file set is fixed for one page render)
+                from .catalog import request_scope
+                scope = request_scope.get()
+                sk = ("stat", str(path))
+                if scope is not None and sk in scope:
+                    st = scope[sk]
+                else:
+                    st = os.stat(path)
+                    if scope is not None:
+                        scope[sk] = st
                 key = (str(path), st.st_mtime_ns, st.st_size, timestamp)
             except (OSError, TypeError, ValueError):
                 return fn(path, timestamp=timestamp)

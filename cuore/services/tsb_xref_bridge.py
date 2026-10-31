@@ -48,6 +48,7 @@ Loaders (``_load_*``) are module-level so tests can patch them.
 
 from __future__ import annotations
 
+import functools
 import re
 from typing import Any, Optional
 
@@ -212,6 +213,11 @@ def _module_systems(modules: list[str]) -> list[tuple[str, str]]:
 
 
 def number_patterns(number: str) -> list[re.Pattern[str]]:
+    return list(_number_patterns(number or ""))
+
+
+@functools.lru_cache(maxsize=2048)
+def _number_patterns(number: str) -> tuple[re.Pattern[str], ...]:
     """Regexes that find a bulletin number in free text: each '/'-separated
     alternative, revision suffix dropped, separators optional between
     characters ("18-030-17" matches "18 030 17"/"1803017"; "18V636" matches
@@ -225,7 +231,7 @@ def number_patterns(number: str) -> list[re.Pattern[str]]:
             continue
         body = r"[\s\-.]?".join(re.escape(c) for c in chars)
         pats.append(re.compile(r"(?<![A-Za-z0-9])" + body + r"(?![A-Za-z0-9])", re.I))
-    return pats
+    return tuple(pats)
 
 
 def cites(text: str, number: str) -> bool:
@@ -301,6 +307,7 @@ def _after(seen: str, event: str) -> bool:
     return seen > event
 
 
+@functools.lru_cache(maxsize=2048)
 def _word_rx(term: str) -> re.Pattern[str]:
     """Whole word/phrase, case-insensitive; vapour/vapor folded."""
     words = [re.escape(w) for w in term.split()]
@@ -508,7 +515,14 @@ def _rel(kind: str, reason: str, **extra: Any) -> dict[str, Any]:
 
 
 def xref(vin: str) -> dict[str, Any]:
-    """The whole cross-reference for one VIN. See module docstring."""
+    """The whole cross-reference for one VIN. See module docstring.
+
+    Memoised for the rest of a GET request (one page asks once per code)."""
+    from mes.catalog import scoped
+    return scoped(("tsb_xref", (vin or "").strip().upper()), lambda: _xref(vin))
+
+
+def _xref(vin: str) -> dict[str, Any]:
     vin = (vin or "").strip().upper()
     cat = _load_catalogue()
     vehicle = cat.get("vehicle") or {}

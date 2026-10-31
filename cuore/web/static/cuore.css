@@ -174,12 +174,12 @@
  * before until the font files are approved and dropped under static/fonts/
  * (static/fonts/README.txt); fonts.css is linked only when it exists. */
 :root { --display: "Jost", var(--sans); --numerals: "Barlow Condensed", var(--mono); }
-:root[data-marque="ferrari"]  { --display: "Saira", var(--sans); --numerals: "Titillium Web", var(--mono); }
-:root[data-marque="maserati"] { --display: "EB Garamond", Georgia, var(--sans); --numerals: "Jost", var(--mono); }
-:root[data-marque="maserati"]  { --accent: #3d6ea5; --accent-dim: #16263a; }
-:root[data-marque="ferrari"]   { --accent: #d2001f; --accent-dim: #331014; }
-:root[data-theme="light"][data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
-:root[data-theme="light"][data-marque="ferrari"]  { --accent: #a3001a; --accent-dim: #f3d9db; }
+:root[data-marque="ferrari"], .brand-tile[data-marque="ferrari"], .car-card[data-marque="ferrari"], .cars-head[data-marque="ferrari"]  { --display: "Saira", var(--sans); --numerals: "Titillium Web", var(--mono); }
+:root[data-marque="maserati"], .brand-tile[data-marque="maserati"], .car-card[data-marque="maserati"], .cars-head[data-marque="maserati"] { --display: "EB Garamond", Georgia, var(--sans); --numerals: "Jost", var(--mono); }
+:root[data-marque="maserati"], .brand-tile[data-marque="maserati"], .car-card[data-marque="maserati"], .cars-head[data-marque="maserati"]  { --accent: #3d6ea5; --accent-dim: #16263a; }
+:root[data-marque="ferrari"], .brand-tile[data-marque="ferrari"], .car-card[data-marque="ferrari"], .cars-head[data-marque="ferrari"]   { --accent: #d2001f; --accent-dim: #331014; }
+:root[data-theme="light"][data-marque="maserati"], :root[data-theme="light"] .brand-tile[data-marque="maserati"], :root[data-theme="light"] .car-card[data-marque="maserati"], :root[data-theme="light"] .cars-head[data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
+:root[data-theme="light"][data-marque="ferrari"], :root[data-theme="light"] .brand-tile[data-marque="ferrari"], :root[data-theme="light"] .car-card[data-marque="ferrari"], :root[data-theme="light"] .cars-head[data-marque="ferrari"]  { --accent: #a3001a; --accent-dim: #f3d9db; }
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"])[data-marque="maserati"] { --accent: #2a5680; --accent-dim: #dde7f0; }
   :root:not([data-theme="dark"])[data-marque="ferrari"]  { --accent: #a3001a; --accent-dim: #f3d9db; }
@@ -196,7 +196,7 @@
 
 /* No horizontal scroll at 485px (R6 acceptance line: document.scrollWidth
  * must equal the viewport). Belt-and-suspenders on top of the per-
- * component wrap/scroll fixes above (.vline/.vtabs/.process-map etc):
+ * component wrap/scroll fixes above (.vline/.subtabs/.process-map etc):
  * a `position:fixed; inset:0` element (the intro splash) measures against
  * the initial containing block, which in this engine can be a few px
  * wider than document.documentElement.clientWidth once a vertical
@@ -301,8 +301,8 @@ code, kbd, samp, .mono {
    * but makes the z-index real, so the header always wins while it is on
    * screen. */
   position: relative; z-index: 20;
-  display: flex; align-items: center; gap: 18px;
-  padding: 8px var(--pad);
+  display: flex; align-items: center; gap: 16px;
+  min-height: 72px; padding: 8px var(--pad);
   background: var(--surface);
   border-bottom: 1px solid var(--rule);
 }
@@ -311,21 +311,7 @@ code, kbd, samp, .mono {
   font-weight: var(--fw-bold); letter-spacing: .06em; text-decoration: none;
   font-size: var(--fs-sm); text-transform: uppercase;
 }
-.top .brand span { color: var(--accent); }
-
-/* Header tagline echo: hidden across the whole 400-900px band so it can
- * never collide with the wordmark next to it (mechanic-UX review item 2)
- * -- the hero band is the one place the tagline always shows, at every
- * width (see .hero-tagline). Only re-appears on a wide enough desktop
- * header that there's real room beside the brand mark. */
-.top-tagline {
-  display: none; margin-left: 2px; font-size: var(--fs-xs); color: var(--ink-3);
-  text-transform: uppercase; letter-spacing: .1em; white-space: nowrap;
-  overflow: hidden; text-overflow: ellipsis;
-}
-@media (min-width: 901px) {
-  .top-tagline { display: inline-block; max-width: 240px; }
-}
+.top .brand-word span { color: var(--accent); }
 
 /* Marque badge slot. A marque with a supplied badge file fills it (the
  * Alfa Romeo badge, owner-supplied 2026-10-29 with the manufacturer's
@@ -390,16 +376,6 @@ code, kbd, samp, .mono {
   padding-left: 14px; border-left: 1px solid var(--rule);
   color: var(--ink-3) !important; opacity: .8;
 }
-.top .live-link, .top .facts-link, .top .parts-link {
-  text-decoration: none; font-family: var(--mono); font-size: var(--fs-xs);
-  text-transform: uppercase; letter-spacing: .08em; padding: 0 10px; white-space: nowrap;
-}
-.top .facts-link { color: var(--accent); }
-.top .profile {
-  font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3);
-  border: 1px solid var(--rule); border-radius: var(--radius);
-  padding: 1px 6px; text-transform: uppercase; letter-spacing: .08em;
-}
 
 /* Live link status, one line, every page. Not the /live page itself, which
    already shows this in full -- just enough here that a bus sitting
@@ -436,14 +412,14 @@ code, kbd, samp, .mono {
   font-variant-numeric: tabular-nums;
 }
 .vbar .facts b { color: var(--ink-2); font-weight: var(--fw-medium); }
-.vtabs { display: flex; gap: 2px; margin-top: 8px; flex-wrap: wrap; }
-.vtabs a {
+.subtabs { display: flex; gap: 2px; margin-top: 8px; flex-wrap: wrap; }
+.subtabs a {
   font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .07em;
   padding: 4px 10px; text-decoration: none; color: var(--ink-3);
   border: 1px solid transparent; border-radius: var(--radius);
 }
-.vtabs a:hover { color: var(--ink); background: var(--raised); }
-.vtabs a.on {
+.subtabs a:hover { color: var(--ink); background: var(--raised); }
+.subtabs a.on {
   color: var(--ink); background: var(--bg); border-color: var(--rule);
 }
 
@@ -670,7 +646,6 @@ kbd {
   color: var(--ink-2); font-size: var(--fs-md); cursor: pointer; line-height: 1;
 }
 .icon-btn:hover { color: var(--ink); border-color: var(--ink-3); }
-#theme-toggle { margin-left: auto; }
 
 /* ---------- header: ONE big Menu button + full-screen tile sheet ----------
  * Driven by nav_items.py through base.html / _navsheet.html. No JS: the
@@ -683,14 +658,24 @@ kbd {
 }
 .top .menu-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 56px; min-width: 104px; padding: 0 18px; margin: 2px 0 2px 8px;
-  background: var(--accent); color: var(--accent-ink); border: 2px solid var(--accent);
-  border-radius: var(--radius); font-size: var(--fs-lg); font-weight: var(--fw-bold);
+  min-height: 56px; min-width: 104px; padding: 0 18px; margin: 2px 0 2px auto;
+  background: transparent; color: var(--ink); border: 1px solid var(--ink-3);
+  border-radius: var(--radius); font-family: var(--display); font-size: var(--fs-lg); font-weight: var(--fw-regular);
+  letter-spacing: .08em; text-transform: uppercase;
   cursor: pointer; line-height: 1; user-select: none; -webkit-tap-highlight-color: transparent;
 }
 .top .menu-btn .menu-ico { font-size: var(--fs-xl); }
 .navsheet-toggle:focus-visible + .menu-btn { outline: 3px solid var(--ink); outline-offset: 2px; }
-#theme-toggle { margin-left: auto; }
+.top .brand-word { font-size: var(--fs-lg); font-weight: var(--fw-light); letter-spacing: .12em; }
+.top-car {
+  flex: 1 1 0; min-width: 0; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-xl); letter-spacing: .03em; color: var(--ink);
+}
+@media (max-width: 759px) {
+  /* phone: badge, car name, Menu -- the wordmark steps aside when a car is shown */
+  header.top:has(.top-car) .brand-word { display: none; }
+  .top-car { font-size: var(--fs-lg); text-align: left; }
+}
 
 .navsheet { display: none; }
 .navsheet-toggle:checked ~ .navsheet {
@@ -698,7 +683,8 @@ kbd {
   background: var(--bg); color: var(--ink); padding: 0 var(--pad) 32px;
   overscroll-behavior: contain;
 }
-.navsheet-toggle:checked ~ .menu-btn { background: var(--surface); color: var(--ink); }
+.top .menu-btn:hover { border-color: var(--accent); }
+.navsheet-toggle:checked ~ .menu-btn { background: var(--surface); color: var(--ink); border-color: var(--accent); }
 body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
 .navsheet-bar {
   position: sticky; top: 0; z-index: 2; display: flex; align-items: center;
@@ -752,6 +738,7 @@ body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 .navtile {
+  font: inherit; cursor: pointer;
   display: flex; align-items: center; justify-content: center; text-align: center;
   gap: 8px; min-height: 72px; min-width: 120px; padding: 10px 12px; box-sizing: border-box;
   font-size: var(--fs-lg); font-weight: var(--fw-semibold); line-height: var(--lh-snug);
@@ -762,18 +749,9 @@ body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
 .navtile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .navtile.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .navsheet-close { min-width: 120px; cursor: pointer; background: var(--raised); }
-.vtabs .vtab-all {
-  display: inline-flex; align-items: center; justify-content: center; cursor: pointer;
-  min-height: 56px; min-width: 120px; padding: 0 16px; font-size: var(--fs-lg);
-  font-weight: var(--fw-semibold); white-space: nowrap; color: var(--ink);
-  border: 2px solid var(--rule); border-radius: var(--radius); flex: none;
-}
-.vtabs .vtab-all.flow-has-current { border-color: var(--accent); }
-.vtabs .vtab-all.on { border-color: var(--ink-3); }
 @media (max-width: 759px) {
   .top { gap: 8px; padding: 6px 10px; }
-  .top .profile { display: none; }
-}
+  }
 
 /* ---------- vbar: one merged strip (R2) ---------- */
 
@@ -830,15 +808,15 @@ body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
   padding: 10px 14px; min-width: 240px; box-shadow: 0 6px 18px rgba(0,0,0,.35);
 }
 .vmore-panel .small { margin-bottom: 4px; }
-/* R6: .vtabs already scrolls inside its own box (overflow-x:auto) rather than widening the page -- min-width:0 keeps a long tab row from stretching the flex/grid ancestor it sits in instead of scrolling. */
-.vtabs { margin-top: 4px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; min-width: 0; }
-.vtabs a {
+/* R6: .subtabs already scrolls inside its own box (overflow-x:auto) rather than widening the page -- min-width:0 keeps a long tab row from stretching the flex/grid ancestor it sits in instead of scrolling. */
+.subtabs { margin-top: 4px; overflow-x: auto; flex-wrap: nowrap; padding-bottom: 2px; min-width: 0; }
+.subtabs a {
   flex: none; min-height: 30px; display: inline-flex; align-items: center;
   padding: 6px 10px;
 }
 
 /* A sticky strip's own min-height target is explicitly relaxed to 40px by
- * the review (the jump-row/table-row exception); .vtabs reads as the same
+ * the review (the jump-row/table-row exception); .subtabs reads as the same
  * kind of dense navigational row, so it gets the same allowance -- a 44px
  * tab row here would blow the <=110px sticky-chrome budget on its own. */
 
@@ -1119,7 +1097,7 @@ table.codes-table td.n.mono, table.codes-table td.mono { font-size: var(--fs-sm)
  * than they need the bump (title="" carries the exact value on tap). */
 table.codes-table td.lastseen-cell { font-size: var(--fs-xs); }
 table.codes-table td.kmcell { font-size: var(--fs-xs); }
-.jump-chip, .vtabs a { min-height: 40px; }
+.jump-chip, .subtabs a { min-height: 40px; }
 .btn { min-height: 44px; }
 input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: inline-flex; align-items: center; }
 
@@ -1147,8 +1125,8 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 
 /* Swipeable rows (tabs, section chips): no desktop-style scrollbar; they
  * still scroll by touch, trackpad and shift+wheel. */
-.vtabs, .jumprow { scrollbar-width: none; }
-.vtabs::-webkit-scrollbar, .jumprow::-webkit-scrollbar { display: none; }
+.subtabs, .jumprow { scrollbar-width: none; }
+.subtabs::-webkit-scrollbar, .jumprow::-webkit-scrollbar { display: none; }
 /* The strip's "..." details button must never be pushed off-screen. */
 .vbar .vmore { flex: none; margin-left: auto; }
 
@@ -1902,7 +1880,7 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
  * (table-cell chips, the vmore disclosure's own small triggers) get the
  * 44px floor the spec allows as the exception, explicitly, rather than by
  * omission. */
-.vtabs a, .vmore-tab summary, .vmore summary {
+.subtabs a, .vmore summary {
   min-height: 48px; min-width: 48px; display: inline-flex;
   align-items: center; justify-content: center; font-size: var(--fs-sm);
 }
@@ -1912,8 +1890,8 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
 }
 
 @media (max-width: 500px) {
-  .vtabs { gap: 4px; }
-  .vtabs a { padding: 6px 10px; }
+  .subtabs { gap: 4px; }
+  .subtabs a { padding: 6px 10px; }
 }
 
 /* =====================================================================
@@ -1986,14 +1964,11 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
  * ========================================================================= */
 
 header.top .brand { font-size: var(--fs-md); }
-header.top .top-tagline, header.top .profile,
-header.top .live-link, header.top .facts-link, header.top .parts-link,
 header.top nav a { font-size: var(--fs-md); }
 
 @media (max-width: 759px) {
   header.top { padding: 2px 10px; }
   header.top .icon-btn { margin: 0; }
-  header.top .live-link, header.top .facts-link, header.top .parts-link { display: none; }
 }
 
 .vbar .vline {
@@ -2038,12 +2013,6 @@ header.top nav a { font-size: var(--fs-md); }
 .vbar .vscan { flex: none; white-space: nowrap; font-family: var(--sans); border-color: var(--rule); }
 .vbar .chip.plain, .vbar .chip-verdict { border: 1px solid var(--rule); }
 
-/* Tabs in the bar. */
-.vbar .vtabs { margin-top: 0; padding-bottom: 0; }
-.vbar .vtabs a, .vbar .vtabs details.vmore-tab summary {
-  min-height: 44px; font-size: var(--fs-md); letter-spacing: .02em; padding: 0 12px;
-}
-
 /* Hero meta (Report hero + Bench compact hero). */
 .vhero .hero-vin, .vhero .hero-km, .vhero .hero-figure-label { font-size: var(--fs-md); }
 
@@ -2061,3 +2030,23 @@ header.top nav a { font-size: var(--fs-md); }
   font-size: var(--fs-md); border: 2px dashed currentColor; border-radius: 6px; }
 .port-suggest { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: var(--fs-md); }
 .port-suggest input[type=text] { min-height: 44px; font-size: var(--fs-md); }
+
+/* ---------- car bar (replaces the old tab strip; _vbar.html) ---------- */
+.vcarbar { display: flex; align-items: center; gap: 10px; margin-top: 6px; min-width: 0; }
+.vcar-vin { flex: none; font-size: var(--fs-sm); color: var(--ink-3); }
+.vchange {
+  flex: none; display: inline-flex; align-items: center; min-height: var(--tap); padding: 0 14px;
+  border: 1px solid var(--rule); border-radius: var(--radius); color: var(--ink); text-decoration: none;
+  font-size: var(--fs-md); white-space: nowrap;
+}
+.vchange:hover { border-color: var(--ink-3); }
+.vsearch { flex: 1 1 0; min-width: 0; margin: 0; }
+.vsearch input[type=search] { width: 100%; min-height: var(--tap); font-size: var(--fs-md); box-sizing: border-box; }
+/* Menu tile the flow says is the next step (was the tab-strip highlight). */
+.navtile.flow-current-tab { border-color: var(--accent); border-width: 2px; }
+.navtile.navtile-main { font-weight: var(--fw-semibold); }
+.navnext {
+  display: flex; align-items: center; gap: 10px; min-height: var(--tap); padding: 8px 14px; margin-top: 12px;
+  border: 2px solid var(--accent); border-radius: var(--radius); color: var(--ink); text-decoration: none;
+  font-size: var(--fs-lg);
+}

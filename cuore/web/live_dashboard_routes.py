@@ -44,7 +44,8 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 #: Key channels for the answer-first block: (channel id, short label, decimals).
 _NOW_CHANNELS = (("engine_rpm", "RPM", 0), ("engine_coolant_temp", "Coolant", 0),
                  ("battery_voltage", "Battery", 1), ("control_module_voltage", "Battery", 1),
-                 ("fuel_level", "Fuel", 1), ("vehicle_speed", "Speed", 0))
+                 ("fuel_level", "Fuel", 1), ("vehicle_speed", "Speed", 0),
+                 ("ecm_19bd", "IBS charge", 0))
 
 
 def _fmt_at(at) -> str:
@@ -82,6 +83,8 @@ def _now_view(vin: str) -> dict:
         if val is None:
             continue
         seen.add(label)
+        if c is not None and c.kind == "did":
+            label += " (scale confirmed)" if c.confidence == "confirmed" else " (unconfirmed)"
         unit = {"C": "°C"}.get(unit, unit)
         items.append({"label": label, "text": f"{val:.{dec}f} {unit}".strip()})
         if at:
@@ -93,7 +96,12 @@ def _now_view(vin: str) -> dict:
     else:
         state = "idle"
         action = "Pick Live car, then press Connect to watch this car now."
-    return {"connected": connected, "items": items, "action": action, "state": state,
+    try:
+        from ..live import decode_flow
+        decode = decode_flow.status()["headline"]
+    except Exception:  # noqa: BLE001 -- a status line must never break the page
+        decode = ""
+    return {"decode": decode, "connected": connected, "items": items, "action": action, "state": state,
             "at": _fmt_at(newest) if newest and not connected else "", "source": "; ".join(origins)}
 
 

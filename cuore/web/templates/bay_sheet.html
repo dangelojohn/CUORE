@@ -42,6 +42,7 @@
   @page { margin: 10mm; }
 }
 </style>
+<p class="no-print"><button type="button" class="btn" style="min-height:44px;font-size:1.1rem" onclick="window.print()">Print this report</button></p>
 <div class="bay">
   {% set h = s.header %}
   <section id="header">
@@ -65,6 +66,28 @@
     </table>
     {% if s.more_codes %}<p class="note">+ {{ s.more_codes }} more on the <a href="/v/{{ s.vin }}/codes">Codes page</a>.</p>{% endif %}
     {% else %}<p class="note">No open code on record.</p>{% endif %}
+  </section>
+
+  <section id="session">
+    <h2>What the car session read</h2>
+    {% set r = s.session %}
+    {% if r.has %}
+    <p><b>Session {{ r.day }}, {{ r.first }} to {{ r.last }}.</b> Read by: {{ r.who or "not recorded" }}. Printed {{ r.printed }}.
+      Battery at the adapter: {% if r.voltage %}{{ r.voltage.volts }} V at {{ r.voltage.at }}{% else %}not read{% endif %}.</p>
+    <p class="note">Only readings recorded from the car. Anything absent was not read.</p>
+    {% if r.identity %}<h3>Identity</h3><ul>{% for i in r.identity %}<li><b>{{ i.ecu }}</b>: {{ i.line }}{% if i.found %}. {{ i.found | join("; ") }}{% endif %}</li>{% endfor %}</ul>
+    {% else %}<p class="note">No module identity read this session.</p>{% endif %}
+    <h3>Codes read ({{ r.modules | length }} modules answered)</h3>
+    {% if r.codes %}<table><tr><th>Module</th><th>Code</th><th>State</th><th>Snapshot values</th></tr>
+      {% for c in r.codes %}<tr><td>{{ c.ecu }}</td><td class="mono"><b>{{ c.code }}</b></td><td>{{ c.state }}</td>
+        <td>{% if c.snap %}{% for x in c.snap %}{{ x.name }} {{ x.value }} {{ x.unit }} ({{ x.confidence }}){% if not loop.last %}; {% endif %}{% endfor %}{% if c.snap_more %} + {{ c.snap_more }} more{% endif %}
+        {% elif c.snap_read %}snapshot read, no values{% else %}snapshot not read{% endif %}</td></tr>{% endfor %}</table>
+    {% else %}<p class="note">No active or history code in the modules that answered.</p>{% endif %}
+    {% if r.freeze %}<p class="note">Freeze-frame readings: {% for f in r.freeze %}{{ f.name }} {{ f.value }} {{ f.unit }}{% if not loop.last %}; {% endif %}{% endfor %}</p>{% endif %}
+    <h3>NOT READ: do not treat as clean</h3>
+    {% if r.not_read %}<ul>{% for n in r.not_read %}<li><b>{{ n.ecu }}</b>: {{ n.why }}{% if n.last_good %} (last good read {{ n.last_good }}, not read this session){% endif %}</li>{% endfor %}</ul>
+    {% else %}<p class="note">Every module asked answered.</p>{% endif %}
+    {% else %}<p class="note">NOT READ: no reading from the car is on record for this vehicle.</p>{% endif %}
   </section>
 
   <section id="done">

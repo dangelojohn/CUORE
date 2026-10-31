@@ -27,6 +27,7 @@ os.environ.pop("CUORE_AUDIT_PATH", None)
 os.environ.pop("MES_LIVE_OBSERVATIONS", None)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "mes-log-mcp"))
 
 from cuore.live import addressing, buses, interlock  # noqa: E402
 from cuore.live import uds as uds_mod  # noqa: E402

@@ -11,6 +11,7 @@
       <label class="lb-pick-on"><input type="checkbox" class="lb-pick-box" data-pick="{{ c.id }}" checked> Record</label>
       <label class="lb-pick-pri">Priority
         <select class="lb-pick-sel" data-pri="{{ c.id }}" aria-label="Recording priority for {{ label or c.name }}">{% for n in range(1, 6) %}<option value="{{ n }}">{{ n }}</option>{% endfor %}</select></label>
+      <label class="lb-pick-on"><input type="checkbox" class="lb-graph-box" data-graph="{{ c.id }}"> Graph</label>
       <span class="lb-pick-rate" data-rate="{{ c.id }}"></span>
     </div>
   </div>

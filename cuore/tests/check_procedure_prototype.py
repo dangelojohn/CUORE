@@ -80,10 +80,10 @@ sim.stop(run.id)
 ta = client.get(f"{BASE}/esim-vent?run={run.id}").text
 check("simulated car, nothing is sent to the Stelvio" in ta, "banner on the after view")
 
-# -- link in the More menu (not the visible row)
+# -- link in the Menu sheet
 vt = client.get(f"/v/{VIN}/fuses").text
 check(f'href="{BASE}"' in vt and "Prototype procedures" in vt, "Menu sheet has the prototype link")
-check(f'href="{BASE}"' not in vt.split('class="vtabs"')[1].split("</div>")[0], "link is not in the visible row")
+check('class="vtabs"' not in vt, "no tab strip: the Menu sheet is the only navigation")
 
 # -- READY chips reflect the simulator; blockers name the unblock step
 fresh()

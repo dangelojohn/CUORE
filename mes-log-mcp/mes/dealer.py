@@ -40,6 +40,10 @@ from . import paths
 KINDS = ("flash_check", "slvt", "dtc_report", "recall_status", "routine")
 
 
+from .paths import memo_state_dir as _memo_state_dir  # noqa: E402
+
+
+@_memo_state_dir
 def state_dir() -> Path:
     """Mirror ``cuore.live.config.state_dir()``: same candidates, first
     writable wins. Kept independent of ``cuore`` so ``mes`` never imports it;

@@ -395,10 +395,10 @@ check("call comes before the search form (search is below the call)",
       0 < html.find('id="lb-call"') < html.find('class="lb-search"'))
 check("compact header row with vehicle name and a Back to Bench link above the h1",
       0 < html.find('id="lb-head"') < html.find('class="lb-h1"') and 'id="lb-back"' in html
-      and "Back to Bench" in html and 'id="lb-tabs"' in html)
+      and "Back to Bench" in html and 'id="lb-tabs"' not in html)
 _css = (Path(__file__).resolve().parents[1] / "web" / "static" / "liveboard.css").read_text(encoding="utf-8")
 check("lb-back is a 44 px target and Others/Why folds are 44 px at --fs-md",
-      ".lb-back, .lb-tabs-link { min-height: 44px; }" in _css
+      ".lb-back { min-height: 44px; }" in _css
       and ".lb-others > summary, .lb-why > summary { min-height: 44px; font-size: var(--fs-md); }" in _css)
 from cuore.web import liveboard_view as _lbv
 check("unit formatter: C -> degC, kpa -> kPa, kph -> km/h, others kept",
@@ -481,22 +481,37 @@ check("matched rows leave the plain groups (ids stay unique)",
 # label fallback in the tab bar
 from jinja2 import Environment, FileSystemLoader  # noqa: E402
 vt_dir = ROOT / "cuore" / "web" / "templates"
-vt = (vt_dir / "_vtabs.html").read_text(encoding="utf-8")
-check("_vtabs falls back to its default text when a key is missing", "fallback if (_v == key)" in vt)
+vt = (vt_dir / "_navsheet.html").read_text(encoding="utf-8")
+check("_navsheet falls back to its default text when a key is missing", "fallback if (_v == key)" in vt)
 env = Environment(loader=FileSystemLoader(str(vt_dir)))
 env.globals["t"] = lambda k: k   # a lookup that knows no key
 from cuore.web import nav_items as _nav  # noqa: E402
-env.globals["nav_menu"] = _nav.nav_menu   # tabs now come from the one nav data source
-ctx = dict(bar={"vin": VIN}, tab="liveboard", _more=[], _visible=[], flow_tab_key="", _fb_open=0)
-out = env.get_template("_vtabs.html").render(**ctx)
-check("tab bar never shows the raw LIVE_BOARD key", "live_board" not in out.lower(), out[:300])
+env.globals["nav_menu"] = _nav.nav_menu   # tiles come from the one nav data source
+ctx = dict(vin=VIN, tab="liveboard")
+out = env.get_template("_navsheet.html").render(**ctx)
+check("menu never shows the raw LIVE_BOARD key", "live_board" not in out.lower(), out[:300])
 from cuore.web import i18n as _i18n  # noqa: E402
 check_eq("'Live board' label exists", _i18n.t("live_board"), "Live board")
 real = Environment(loader=FileSystemLoader(str(vt_dir)))
 real.globals["t"] = _i18n.t
 real.globals["nav_menu"] = _nav.nav_menu
-check("tab bar shows 'Live board'", ">Live board<" in real.get_template("_vtabs.html").render(**ctx))
+check("menu shows 'Live board'", ">Live board<" in real.get_template("_navsheet.html").render(**ctx))
 check("liveboard.css: 44 px controls and 16 px text", "min-height: 44px" in lb_css and "--fs-sm: var(--fs-md)" in lb_css)
+
+
+# --- everyday flow: status word, offline warning, graph, one-tap tags, report link ---
+lb_tpl = (ROOT / "cuore" / "web" / "templates" / "liveboard.html").read_text(encoding="utf-8")
+lb_grp = (ROOT / "cuore" / "web" / "templates" / "liveboard_groups.html").read_text(encoding="utf-8")
+check("status word: No reading / Confirmed / Unconfirmed", all(w in lb_js for w in ('"No reading', '"Confirmed (2+ sources)', '"Unconfirmed')))
+check("status names the band source or says none", "Band source: " in lb_js and "No band on file" in lb_js)
+check("old values never pass as live: not-connected banner", "NOT CONNECTED to the car" in lb_js and 'id="lb-offline"' in lb_tpl)
+check("demo is labelled as not from the car", "made-up numbers, not from the car" in lb_js)
+check("graph pick on every row, capped at 6, tags drawn on it", 'class="lb-graph-box"' in lb_grp and "ids.length > 6" in lb_js and "lb-gtag" in lb_js)
+check("one-tap tag buttons post to the record-tag API and say when not recording",
+      "/api/live/record/tag" in lb_js and 'id="lb-tags"' in lb_tpl and "Not recording" in lb_js)
+check("record starts and stops without leaving the board", 'id="lb-record-stop"' in lb_tpl and "preventDefault" in lb_js)
+check("one tap to the printable report from the board", 'id="lb-report"' in lb_tpl and "/bay-sheet" in lb_tpl)
+check("tag/graph controls are 44 px+", ".lb-tag { min-height: 48px" in lb_css and ".lb-graph-box { width: 24px" in lb_css)
 
 
 # --- summary -----------------------------------------------------------------

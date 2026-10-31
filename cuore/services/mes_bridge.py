@@ -221,8 +221,35 @@ def _newest_live_read(vin: str) -> str | None:
     return best.replace("T", " ") if best else None
 
 
+def _empty_workup(vin: str) -> Optional[dict[str, Any]]:
+    """A logless dossier for a car opened through Add Service or /start, else ``None``.
+
+    Such a car has a card or a visit but no scan yet, and every /v/{vin} page starts
+    from the workup. All evidence stays empty: nothing here counts as a reading.
+    """
+    from . import car_identify, shop_bridge  # local: both import this module's neighbours
+
+    if not (car_identify.get_card(vin) or shop_bridge.current_visit_for_vin(vin)):
+        return None
+    return {
+        "identity": {"vin": vin, "vehicle": car_identify.card_name(vin) or shop_bridge.resolve_vehicle_name(vin),
+                     "ecu_seen": [], "log_count": 0, "first_log": None, "last_log": None,
+                     "odometer_first_km": None, "odometer_last_km": None},
+        "current_picture": {"clear_assessment": None, "freeze_frames": [],
+                            "last_session_with_findings": None, "latest_scan": None,
+                            "latest_session": None},
+        "history": {"chronic": [], "returned_after_clear": [], "seen_once": []},
+        "tsb_matches": {"bulletins_considered": 0, "family_findings": [], "per_code": {}},
+        "already_attempted": [],
+        "blind_spots": [],
+        "notes": {"vehicle": []},
+        "provenance_note": "No logs on file: this car has not been scanned.",
+    }
+
+
 def workup(vin: str = "", vehicle: str = "") -> dict[str, Any]:
-    """The pre-work dossier. Raises :class:`NotFound` when no logs match.
+    """The pre-work dossier. Raises :class:`NotFound` when no logs match, unless the
+    VIN is a car already opened for service (see :func:`_empty_workup`).
 
     ``identity.last_log`` is bumped to the newest from-car live read (see
     :func:`_newest_live_read`) when that read is newer than the newest MES
@@ -234,7 +261,10 @@ def workup(vin: str = "", vehicle: str = "") -> dict[str, Any]:
     """
     dossier = workup_mod.build(vin=vin, vehicle=vehicle)
     if "error" in dossier:
-        raise NotFound(dossier["error"])
+        empty = _empty_workup(vin) if vin else None
+        if empty is None:
+            raise NotFound(dossier["error"])
+        return empty
     identity = dossier.get("identity")
     if isinstance(identity, dict):
         live_at = _newest_live_read(vin or identity.get("vin") or "")

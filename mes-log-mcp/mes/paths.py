@@ -385,3 +385,42 @@ def append_jsonl(p: Path, entry: dict[str, Any]) -> None:
         f.seek(0, os.SEEK_END)
         f.write(data)
         f.flush()
+
+
+# --- state_dir memo ---------------------------------------------------------
+
+_STATE_TTL = 30.0
+
+
+def memo_state_dir(fn):
+    """Memoise a ``state_dir()`` that probes writability by creating a file.
+
+    A page render calls ``state_dir()`` hundreds of times and each call did a
+    mkdir + write + unlink. The answer only changes when the environment does
+    or the directory goes away, so key on those and re-probe at least every
+    ``_STATE_TTL`` seconds (a directory that turned read-only is still noticed).
+    """
+    import functools
+    cache: dict[tuple, tuple[float, float, Path]] = {}
+
+    @functools.wraps(fn)
+    def wrapper():
+        env = os.environ
+        ov = env.get("CUORE_STATE_DIR")
+        if ov and not os.path.isabs(ov):
+            return fn()                      # cwd-relative: never memoise
+        key = (ov, env.get("PROGRAMDATA"), env.get("LOCALAPPDATA"))
+        hit = cache.get(key)               # (checked_at, probed_at, dir)
+        now = time.monotonic()
+        if hit and now - hit[1] < _STATE_TTL:
+            if now - hit[0] < 2.0:
+                return hit[2]
+            if os.path.isdir(hit[2]):
+                cache[key] = (now, hit[1], hit[2])
+                return hit[2]
+        value = fn()
+        cache[key] = (now, now, value)
+        return value
+
+    wrapper.__wrapped_state_dir__ = fn
+    return wrapper

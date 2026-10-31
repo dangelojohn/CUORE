@@ -50,11 +50,11 @@ def check_nav_and_card() -> None:
     from cuore.app import create_app
     c = TestClient(create_app(), follow_redirects=False)
     r = c.get("/start")
-    assert r.status_code == 200 and 'class="icon-btn facts-link' in r.text and 'href="/facts"' in r.text
-    assert "Stelvio facts</a>" not in r.text  # no vehicle chosen: marque-neutral label
+    assert r.status_code == 200 and 'data-nav="facts"' in r.text and 'href="/facts"' in r.text   # Menu tile, no header button
+    assert "Stelvio facts</span>" not in r.text  # no vehicle chosen: marque-neutral label
     r = c.get(f"/v/{VIN}")
     assert r.status_code == 200, r.status_code
-    assert "Stelvio facts</a>" in r.text  # label comes from this VIN's facts file
+    assert "Stelvio facts</span>" in r.text  # label comes from this VIN's facts file
     assert f'href="/v/{VIN}/facts"' in r.text and "Vehicle facts" in r.text and "MV-002.010.041" in r.text
     print("nav and landing card OK")
 

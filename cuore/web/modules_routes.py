@@ -18,7 +18,7 @@ from fastapi.responses import HTMLResponse
 
 from ..api.deps import require_token
 from ..live.addressing import by_code as _addr_by_code
-from ..services import modules_bridge
+from ..services import module_workspace, modules_bridge
 from . import routes as web_routes
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
@@ -94,7 +94,8 @@ def vmodule_detail(request: Request, vin: str, code: str) -> HTMLResponse:
     bar = web_routes._vehicle_bar(vin, dossier)
     detail = modules_bridge.module_detail(vin, code)
     response = web_routes._page(request, "vmodule.html", vin=vin, bar=bar,
-                                m=detail, tab="modules")
+                                m=detail, ws=module_workspace.build(vin, code),
+                                tab="modules")
     web_routes._set_active_vehicle(response, vin)
     return response
 

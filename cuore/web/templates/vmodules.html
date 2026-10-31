@@ -12,7 +12,7 @@
 <div class="panel" id="module-lead" role="status">
   <p style="margin:0"><strong>{{ rows|length }} module{{ "s" if rows|length != 1 }}{% if q %} of {{ total }}{% endif %}:
     {% if _act %}{{ _act|length }} with active errors ({% for m in _act %}<a class="mono" href="/v/{{ vin }}/modules/{{ m.code }}">{{ m.code }}</a>{{ ", " if not loop.last }}{% endfor %}){% else %}none with active errors{% endif %}{% if _nrd %}; NOT READ, do not treat as clean: {% for m in _nrd %}<a class="mono" href="/v/{{ vin }}/modules/{{ m.code }}">{{ m.code }}</a>{{ ", " if not loop.last }}{% endfor %}{% endif %}{% if _clr %}, {{ _clr|length }} cleared and unverified ({% for m in _clr %}<a class="mono" href="/v/{{ vin }}/modules/{{ m.code }}">{{ m.code }}</a>{{ ", " if not loop.last }}{% endfor %}){% endif %}{% if _stl %}, {{ _stl|length }} with only older (stale) errors{% endif %}{% if _cln %}, {{ _cln|length }} clean{% endif %}.</strong></p>
-  <p class="small muted" style="margin:4px 0 0">Worst first. Tap a module for its errors, parameters, actuators and adjustments.</p>
+  <p class="small muted" style="margin:4px 0 0">Worst first. Tap a module for its errors, live values, actuator tests and adjustments. Status uses each module's newest read from any source.</p>
 </div>
 
 <form class="panel" method="get" action="/v/{{ vin }}/modules" role="search"
@@ -50,8 +50,9 @@
     <thead>
       <tr>
         <th>Module</th><th>Status</th><th>Bus</th><th>Identity</th>
-        <th class="n">Errors</th><th class="n">Params</th>
-        <th class="n">Actuators</th><th class="n">Done</th>
+        <th class="n">Errors</th><th class="n" title="Live values CUORE knows how to read from this module">Live values</th>
+        <th class="n" title="Actuator tests learned from a dealer tool on this car">Actuator tests</th>
+        <th class="n" title="Adjustments and resets already done on this module">Jobs finished</th><th>Read</th>
       </tr>
     </thead>
     <tbody>
@@ -85,9 +86,10 @@
           {% if m.actuators.blocked %}<span class="chip plain sm" title="{{ m.actuators.reason }}">blocked</span>{% endif %}
         </td>
         <td class="n mono">{{ m.adjustments|length }}</td>
+        <td>{% if m.addr %}<a href="/live/module/{{ m.code }}?vin={{ vin }}" title="Read this module's codes now through CUORE. Needs the adapter on the right cable." style="display:inline-flex;align-items:center;min-height:44px;min-width:44px;padding:0 10px">Read now</a>{% else %}<span class="muted small" title="The live link has no address for this module yet">no address</span>{% endif %}</td>
       </tr>
     {% else %}
-      <tr><td colspan="8" class="muted">{% if q %}No modules match this search.{% else %}No modules found in this vehicle's logs.{% endif %}</td></tr>
+      <tr><td colspan="9" class="muted">{% if q %}No modules match this search.{% else %}No modules found in this vehicle's logs.{% endif %}</td></tr>
     {% endfor %}
     </tbody>
   </table>

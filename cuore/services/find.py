@@ -75,6 +75,16 @@ def _pages(q: str, vin: str, role: str | None) -> list[dict[str, Any]]:
     return out
 
 
+def _value_groups(q: str, vin: str) -> list[dict[str, Any]]:
+    """"battery" -> the Battery and charging group on the Live board (needs a car, so no VIN = no result)."""
+    if not vin:
+        return []
+    from . import value_groups
+    return [_res("Value groups", m["group"]["label"], value_groups.href(vin, m["group"]["id"]),
+                 "Every related reading together: " + m["group"].get("blurb", ""), m["score"])
+            for m in value_groups.match(q)]
+
+
 def _codes(q: str, vin: str) -> list[dict[str, Any]]:
     out = []
     for tok in re.split(r"[\s,;]+", q.strip()):
@@ -188,7 +198,7 @@ def _handbook(q: str) -> list[dict[str, Any]]:
     return out[:6]
 
 
-ORDER = ["Pages", "Fault codes", "Bulletins", "Parts", "How-to", "Library"]
+ORDER = ["Value groups", "Pages", "Fault codes", "Bulletins", "Parts", "How-to", "Library"]
 
 
 def start_pages(vin: str, role: str | None = None) -> list[dict[str, Any]]:
@@ -202,7 +212,7 @@ def search(q: str, vin: str = "", role: str | None = None) -> dict[str, Any]:
     vin = (vin or "").strip().upper()
     if not q:
         return {"q": q, "best": None, "groups": [], "start": start_pages(vin, role)}
-    allr = _pages(q, vin, role) + _codes(q, vin) + _bulletins(q, vin) + _parts(q) + _handbook(q) + _library(q)
+    allr = _pages(q, vin, role) + _value_groups(q, vin) + _codes(q, vin) + _bulletins(q, vin) + _parts(q) + _handbook(q) + _library(q)
     allr.sort(key=lambda r: -r["score"])
     best = next((r for r in allr if r["href"]), None)
     groups = []

@@ -66,9 +66,12 @@
 </script>
 {% endif %}
 
+{# Staff: the logo goes to the brand picker. Owners (token-only) stay in their own app. #}
+{% set _mu = request.state.user if request is defined and request and request.state and request.state.user is defined else none %}
+{% set _m_staff = _mu is not none and _mu.role in ('admin', 'shop_lead', 'technician') and nav_menu is defined %}
 <header class="m-top">
   {% set _m = marque|default('alfa') %}
-  <a class="m-brand" href="/m/{{ vin }}">{% if _m == 'alfa' %}<img class="m-badge" src="/static/brand/alfa-romeo-logo.png" alt="Alfa Romeo" width="28" height="28">{% elif _m in ('maserati', 'ferrari') %}<span class="m-badge m-badge-mask" role="img" aria-label="{{ 'Maserati' if _m == 'maserati' else 'Ferrari' }}"></span>{% endif %}CUORE</a>
+  <a class="m-brand" href="{{ '/' if _m_staff else '/m/' ~ vin }}">{% if _m == 'alfa' %}<img class="m-badge" src="/static/brand/alfa-romeo-logo.png" alt="Alfa Romeo" width="28" height="28">{% elif _m in ('maserati', 'ferrari') %}<span class="m-badge m-badge-mask" role="img" aria-label="{{ 'Maserati' if _m == 'maserati' else 'Ferrari' }}"></span>{% endif %}CUORE</a>
 </header>
 
 <main class="m-main">
@@ -98,8 +101,6 @@
    (request.state.user, set by require_token in accounts mode) is present.
    Token-only / anonymous visitors, i.e. owners, keep just the 3-item nav.
    The checkbox must stay a sibling BEFORE the sheet (cuore.css :checked ~). #}
-{% set _mu = request.state.user if request is defined and request and request.state and request.state.user is defined else none %}
-{% set _m_staff = _mu is not none and _mu.role in ('admin', 'shop_lead', 'technician') and nav_menu is defined %}
 {% if _m_staff %}
 <input type="checkbox" id="navsheet-toggle" class="navsheet-toggle" aria-label="Open or close the main menu">
 {% include "_navsheet.html" %}

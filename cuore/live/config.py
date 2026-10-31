@@ -131,6 +131,11 @@ def default_cable() -> str:
     return (v or "none").lower()
 
 
+from .. import bootstrap as _bootstrap  # noqa: E402,F401  (puts mes on sys.path)
+from mes.paths import memo_state_dir as _memo_state_dir  # noqa: E402
+
+
+@_memo_state_dir
 def state_dir() -> Path:
     """Where lock, audit, store and wire recordings live. First writable wins."""
     override = os.environ.get("CUORE_STATE_DIR")

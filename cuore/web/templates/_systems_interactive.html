@@ -50,6 +50,7 @@
     <a class="sx-btn sx-primary" href="{{ c.path_href }}">Electrical path for: {{ c.label }} &rarr;</a>
     <a class="sx-btn" href="{{ c.layout_href }}">Open in layout &rarr;</a>
     <a class="sx-btn" href="{{ c.detail_href }}">System detail &rarr;</a>
+    {% for vg in c.value_groups %}<a class="sx-btn" href="{{ vg.href }}">Values together: {{ vg.label }} &rarr;</a>{% endfor %}
   </p>
 </article>
 {% endmacro %}

@@ -95,6 +95,13 @@ def resolve_vehicle_name(vin: str) -> str:
         identity = {}
     if identity.get("vehicle"):
         return identity["vehicle"]
+    try:
+        from . import car_identify
+        card_name = car_identify.card_name(vin)
+    except Exception:  # noqa: BLE001
+        card_name = ""
+    if card_name:
+        return card_name
     make = _decode_wmi(vin)
     if make:
         return f"{make} UNKNOWN"
@@ -104,13 +111,14 @@ def resolve_vehicle_name(vin: str) -> str:
 # --- write surface, thin pass-through to mes.shop ---------------------------
 
 
-def intake(vin: str, complaint: str = "", *, technician: str = "") -> dict[str, Any]:
+def intake(vin: str, complaint: str = "", *, technician: str = "",
+           vehicle: str = "") -> dict[str, Any]:
     vin = (vin or "").strip()
     if not vin:
         raise BadRequest("a VIN is required")
     try:
         return shop_mod.intake(vin, complaint, technician=technician,
-                               vehicle=resolve_vehicle_name(vin))
+                               vehicle=(vehicle or "").strip() or resolve_vehicle_name(vin))
     except ValueError as exc:
         raise BadRequest(str(exc)) from exc
 

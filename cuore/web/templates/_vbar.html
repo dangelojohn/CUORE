@@ -1,7 +1,7 @@
 {# Sticky vehicle context. Included by every /v/ page so which car you are
    looking at never scrolls out of sight -- and, per the mechanic-UX review,
    merged with the live-link chip so a vehicle page shows only ONE sticky
-   strip (plus the tab row) instead of two. Full VIN, log counts and the
+   strip instead of two. Full VIN, log counts and the
    date range move behind the "..." tap so the visible line stays short
    enough to read at a glance, gloves on.
 
@@ -164,6 +164,18 @@
     {% set _scn = 'unknown' %}
     {% set _scn_cls = 'plain' %}
   {% endif %}
+  {# Car bar: which car, the way out ("Change car" lists this car's brand,
+     the logo goes to the brand picker), and search. Navigation itself is the
+     header Menu. #}
+  <div class="vcarbar no-print">
+    <span class="mono vcar-vin" title="{{ bar.vin }}">&hellip;{{ bar.vin[-6:] }}</span>
+    <a class="vchange" href="/cars{% if marque is defined and marque %}?brand={{ marque }}{% endif %}">Change car</a>
+    <form class="vsearch" role="search" method="get" action="/find">
+      <label for="vcar-q" class="sr-only">Search CUORE</label>
+      <input id="vcar-q" type="search" name="q" autocomplete="off" placeholder="Search this car">
+      <input type="hidden" name="vin" value="{{ bar.vin }}">
+    </form>
+  </div>
   <details class="fold vmore vstatus">
     <summary>
       {% if live_strip %}
@@ -220,7 +232,6 @@
      reader sees nothing extra and the button's own href keeps working. #}
   <div class="connect-drawer" id="connect-drawer" hidden aria-live="polite"
        data-vin="{{ bar.vin }}"></div>
-  {% include "_vtabs.html" %}
 </div>
 {% if tab == "job" %}{% include "_flow_bar.html" %}{% endif %}
 <script src="{{ static_url('connect.js') }}" defer></script>

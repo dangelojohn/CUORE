@@ -68,8 +68,23 @@ def _steps(vin: str) -> list[tuple[str, Callable[[], object]]]:
         from . import jobs_bridge, mechanic_plan_bridge
         return mechanic_plan_bridge.plans_for_job(vin, jobs_bridge.build_job_view(vin).get("job"))
 
-    return [("workup", workup), ("job_view", job_view), ("dossier_view", dossier_view), ("fault_board", board),
-            ("suspect_ranking", diagnose), ("fault_similarity", groups), ("mechanic_plans", plans)]
+    def catalog():
+        from . import mes_bridge
+        return mes_bridge.CATALOG.entries()          # parses every log once (read-only)
+
+    def report():
+        from ..web import report_routes             # lazy: avoids an import cycle
+        return report_routes._report_context(vin)
+
+    def bay_sheet():
+        from . import bay_sheet as bs, dossier_bridge, jobs_bridge
+        from ..web import routes as web_routes
+        dossier = jobs_bridge._cached_workup(vin)
+        bar = web_routes._vehicle_bar(vin, dossier)
+        return bs.build(vin, "", bar=bar, verdict=None, url="")
+
+    return [("catalog", catalog), ("workup", workup), ("job_view", job_view), ("dossier_view", dossier_view), ("fault_board", board),
+            ("suspect_ranking", diagnose), ("fault_similarity", groups), ("mechanic_plans", plans), ("report", report), ("bay_sheet", bay_sheet)]
 
 
 def run(vin: Optional[str] = None, steps: Optional[list] = None) -> dict[str, float]:

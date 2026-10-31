@@ -65,7 +65,7 @@ TONIGHT = [
     "Check byte 156 against the owner's North America statement and read byte 63.",
     "Radio: identity read through discovery, then the owner re-reads Software Update on screen.",
     "Decode confirm with an MES graph CSV. Record the 5 candidates in "
-    "C:\ProgramData\cuore\research\decode_candidates_2026-10-30\CANDIDATES.md "
+    r"C:\ProgramData\cuore\research\decode_candidates_2026-10-30\CANDIDATES.md "
     "(fuel level, battery voltage, IBS state of charge, odometer, oil temperature), plus boost and throttle, "
     "on the same engine state as CUORE's reads. MES and CUORE take turns on the adapter. "
     "DID 1000 engine speed and DID 1002 vehicle speed were rejected and must be re-checked.",

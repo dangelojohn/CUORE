@@ -31,16 +31,18 @@ traces to an existing bridge or library:
 
 from __future__ import annotations
 
+import json
 import re
-from typing import Any
+from datetime import datetime
+from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
-from . import known_good_bridge, mes_bridge
+from . import known_good_bridge, mes_bridge, sensor_health
 from .errors import NotFound
 
 from mes import modules as modules_mod  # noqa: E402
 
-from ..live import actuate, did_catalog, read_state, safety, store  # noqa: E402
+from ..live import actuate, audit, did_catalog, framing, read_state, safety, store  # noqa: E402
 from ..live.addressing import MODULES as _ADDR_MODULES, by_code as _addr_by_code  # noqa: E402
 
 #: Statuses in the order a module list should read: worst first.
@@ -166,25 +168,104 @@ def _scan_identity(vin: str) -> dict[str, dict[str, Any]]:
     return out
 
 
-def _live_read_state(vin: str) -> dict[str, dict[str, Any]]:
-    """``{module: {"last": newest live read, "good": newest answered read}}``
-    from this car's own ``module_dtcs`` observations (newest first). A module
-    whose newest read did not answer is NOT READ, whatever older logs say."""
-    out: dict[str, dict[str, Any]] = {}
+def _naive(at: Any) -> str:
+    """An ISO time as naive local ``YYYY-MM-DDTHH:MM:SS`` so reads from different
+    sources (audit log has a UTC offset, observations and scans do not) sort
+    together. Unparseable -> ``""`` (sorts oldest, is dropped)."""
     try:
-        obs = store.recent_observations(n=1000, vin=vin, kind="module_dtcs")
-    except Exception:  # noqa: BLE001 -- the module tree must still render
+        dt = datetime.fromisoformat(str(at))
+    except ValueError:
+        return ""
+    if dt.tzinfo is not None:
+        dt = dt.astimezone().replace(tzinfo=None)
+    return dt.isoformat(timespec="seconds")
+
+
+def _single_car_on_file() -> bool:
+    try:
+        return len(mes_bridge.vehicles(real_only=True)) == 1
+    except Exception:  # noqa: BLE001 -- unknown means not provably single
+        return False
+
+
+def _audit_dtc_reads(vin: str = "") -> list[tuple[str, str, Optional[str]]]:
+    """``[(at, module, why or None)]`` for every module DTC-list read (UDS 19 02)
+    in the adapter audit log, for ``vin`` only. A row carries the VIN of the car
+    that was connected; it counts when it matches. An older row with no VIN
+    counts only while this is the single car on file. Never guessed."""
+    out: list[tuple[str, str, Optional[str]]] = []
+    want = (vin or "").strip().upper()
+    single = _single_car_on_file()
+    try:
+        lines = audit.log_path().read_text(encoding="utf-8").splitlines()
+    except OSError:
         return out
-    for o in obs:
-        d = o.get("data") or {}
-        ecu = str(d.get("ecu") or "").upper()
-        if not ecu:
+    for line in lines:
+        if '"uds"' not in line or '"1902' not in line:
             continue
+        try:
+            o = json.loads(line)
+        except ValueError:
+            continue
+        ecu = str(o.get("ecu") or "").upper()
+        at = _naive(o.get("iso"))
+        if o.get("event") != "uds" or not ecu or not at or not str(o.get("req") or "").startswith("1902"):
+            continue
+        row_vin = str(o.get("vin") or "").strip().upper()
+        if row_vin:
+            if row_vin != want:
+                continue
+        elif not single:
+            continue
+        raw = str(o.get("raw") or "")
+        flat = raw.replace(" ", "").upper()
+        d: dict[str, Any] = {"error": o.get("error")}
+        if "7F19" in flat:
+            d["nrc"] = flat[flat.index("7F19") + 4:flat.index("7F19") + 6] or "?"
+        elif not d["error"] and (not flat or framing.no_data(raw)):
+            d["warning"] = "no answer from the module"
+        out.append((at, ecu, read_state.reason(d)))
+    return out
+
+
+def _scan_dtc_reads() -> list[tuple[str, str, Optional[str]]]:
+    """The same triples from the saved full scan (``fullscan_last.json``)."""
+    at, mods = sensor_health._fullscan()
+    at = _naive(at)
+    if not at:
+        return []
+    return [(at, m.upper(), None if v["state"] == "answered"
+             else f"full scan: {v['why'] or 'module did not answer'}")
+            for m, v in mods.items()]
+
+
+def _live_read_state(vin: str) -> dict[str, dict[str, Any]]:
+    """``{module: {"last": newest read, "good": newest answered read}}`` from
+    every source of module reads: this car's ``module_dtcs`` observations, the
+    adapter audit log and the saved full scan. The newest attempt wins whatever
+    its source: a module whose newest read did not answer is NOT READ (with the
+    last good date), and an old failure never hides a newer good read."""
+    reads: list[tuple[str, str, Optional[str]]] = []
+    try:
+        for o in store.recent_observations(n=1000, vin=vin, kind="module_dtcs"):
+            d = o.get("data") or {}
+            ecu = str(d.get("ecu") or "").upper()
+            if ecu and _naive(o.get("at")):
+                reads.append((_naive(o.get("at")), ecu, read_state.reason(d)))
+    except Exception:  # noqa: BLE001 -- the module tree must still render
+        pass
+    for source in (lambda: _audit_dtc_reads(vin), _scan_dtc_reads):
+        try:
+            reads.extend(source())
+        except Exception:  # noqa: BLE001
+            continue
+    out: dict[str, dict[str, Any]] = {}
+    for at, ecu, why in sorted(reads, key=lambda r: r[0], reverse=True):
         slot = out.setdefault(ecu, {"last": None, "good": None})
         if slot["last"] is None:
-            slot["last"] = {"at": o.get("at"), "why": read_state.reason(d)}
-        if slot["good"] is None and read_state.is_read(d):
-            slot["good"] = o.get("at")
+            slot["last"] = {"at": at, "why": why}
+        if slot["good"] is None and why is None:
+            slot["good"] = at
     return out
 
 
@@ -232,7 +313,7 @@ def list_modules(vin: str) -> list[dict[str, Any]]:
             not_read = read_state.banner(f"{lv['last']['why']} at {lv['last']['at']}")
             last_good = ({"at": lv["good"], "label": "not read this session"}
                          if lv["good"] else None)
-        elif status == "unknown":
+        elif status == "unknown" and not (lv and lv["good"]):
             not_read = read_state.banner("never read")
         done = [a for a in attempted if abbrev in (a.get("operation") or "").upper()]
         rows.append({

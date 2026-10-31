@@ -78,6 +78,10 @@ bad = [rt for rt in client.app.routes
 check(not bad, "no non-GET adjustments route")
 check(client.post(f"/v/{VIN}/adjustments").status_code in (404, 405), "POST refused")
 
+check(len(bd["table"]) == len(cs) and all(r["state"] and r["needs"] and "wiTECH" in r["do_today"] for r in bd["table"]), "table: one row per procedure with state, needs, do-today")
+check(sec.count('id="adjustments-table"') == 1 and sec.count("<tr>") == len(cs) + 1, "table rendered once, one row per procedure")
+check(sec.index("adjustments-answer") < sec.index("adjustments-table"), "answer-first lead stays above the table")
+
 if failures:
     print("FAIL:", *failures, sep="\n  ")
     sys.exit(1)

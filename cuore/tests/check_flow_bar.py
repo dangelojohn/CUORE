@@ -1,5 +1,5 @@
 """Jinja-render + visual check for the flow bar and the flow-aware vehicle
-tab strip (cuore/web/templates/_flow_bar.html, _vtabs.html).
+Menu sheet (cuore/web/templates/_flow_bar.html, _navsheet.html).
 
 No app/server needed: both partials are rendered directly, in a bare
 jinja2.Environment, against a fixture standing in for
@@ -19,11 +19,10 @@ Checks, in order:
      since MARQUE_PORT_AUDIT_2026-10-13.md, was "...next Stelvio") and "no
      flow" (service has nothing for this VIN -> "Take this car in" /
      /start).
-  3. _vtabs.html: exactly 5 tabs visible outside the More menu, every link
-     path the old flat _vbar.html strip had still present (plus the new
-     Labels link), the viewed tab marked `.on`, the flow's current-step
-     tab marked `.flow-current-tab`, and the More menu auto-opening (with
-     its own `.flow-has-current` marker) when that tab is hidden inside it.
+  3. _navsheet.html (the Menu, which replaced the tab strip): every link
+     path the old strip had still present, the viewed page marked `.on`,
+     the flow's current step marked `.flow-current-tab` with a "Next step"
+     row, wherever its group sits, and no marks when there is no flow.
 
 Then one CDP screenshot (same technique as check_live_widgets.py; Edge
 detaches from its own launcher, so cleanup goes through
@@ -205,58 +204,56 @@ def check_flow_bar(env: Environment) -> None:
     check("flow_bar: no-flow fallback renders no stepper", "flow-stepper" not in empty)
 
 
-# --- 3: _vtabs.html ---------------------------------------------------------
+# --- 3: the Menu sheet (_navsheet.html) carries the flow highlight ---------
 
-# 2026-10-08 UX pass: Live board was promoted out of the More menu and into
-# the visible row (after Codes, labelled "Live") -- see _vtabs.html.
-VISIBLE_LABELS = ["Bench", "Job", "Codes", "Live", "Systems", "Report"]
+# The tab strip is gone: every page is a tile in the header's Menu sheet. The
+# flow service's current step is marked there (accent border + a "Next step"
+# row on top), exactly where the strip used to mark it.
 OLD_LINK_PATHS = [
     f"/v/{VIN}", f"/v/{VIN}/job", f"/v/{VIN}/modules", f"/v/{VIN}/timeline",
     f"/v/{VIN}/systems", f"/v/{VIN}/electrical", f"/v/{VIN}/media", f"/v/{VIN}/parts",
     f"/v/{VIN}/dashboard", f"/v/{VIN}/gauges", f"/v/{VIN}/codes", f"/v/{VIN}/tree",
     f"/v/{VIN}/gate", f"/v/{VIN}/service-hub", f"/v/{VIN}/report", f"/v/{VIN}/inbox",
-    f"/logs?vin={VIN}", f"/v/{VIN}/liveboard",
+    f"/logs?vin={VIN}", f"/v/{VIN}/liveboard", f"/v/{VIN}/sensors", f"/v/{VIN}/fuses",
 ]
 NEW_LINK_PATHS = [f"/v/{VIN}/labels"]
 
 
-def check_vtabs(env: Environment) -> None:
-    tmpl = env.get_template("_vtabs.html")
-    # 2026-10-30 touch menu: the strip keeps only the everyday nine (nav_items
-    # primary); every other page is a tile in the header's Menu sheet.
-
-    rendered = tmpl.render(bar={"vin": VIN}, tab="job")
-    check("vtabs: exactly 6 of the named tabs visible in the strip",
-          sum(f">{lbl}<" in rendered for lbl in VISIBLE_LABELS) == 6)
-    check("vtabs: Sensors and Fuses are in the visible row",
-          f'href="/v/{VIN}/sensors"' in rendered and f'href="/v/{VIN}/fuses"' in rendered)
-    check("vtabs: viewed tab (Job) marked .on",
-          f'href="/v/{VIN}/job" class="on' in rendered)
-    check("vtabs: no More fold any more, one 'All pages' tile opens the Menu sheet",
-          "vmore-tab" not in rendered and 'for="navsheet-toggle"' in rendered and "<details" not in rendered)
+def check_menu(env: Environment) -> None:
+    import re
+    sheet = env.get_template("_navsheet.html").render(vin=VIN, tab="job")
+    check("menu: no tab strip is rendered any more", 'class="vtabs"' not in sheet and "vtab-all" not in sheet)
 
     from cuore.web import nav_items
     sheet_paths = {i["href"] for g in nav_items.nav_menu(VIN, "", "admin", "")["groups"] for i in g["items"]}
     for path in OLD_LINK_PATHS + NEW_LINK_PATHS:
         check(f"nav data keeps old link path -- {path}", path in sheet_paths)
-    sheet = env.get_template("_navsheet.html").render(vin=VIN, tab="job")
-    check("sheet: Dashboard and Labels tiles present",
-          ">Dashboard<" in sheet and ">Labels<" in sheet)
+    check("sheet: Dashboard and Labels tiles present", ">Dashboard<" in sheet and ">Labels<" in sheet)
     check("sheet: Inbox badge chip rendered from feedback_open_count",
           '<span class="chip chronic">3</span>' in sheet)
 
-    # HIDDEN_VIN's current step ("parts") is not in the strip -> the All pages
-    # tile flags it, independent of which tab the browser is actually on.
-    rendered_hidden = tmpl.render(bar={"vin": HIDDEN_VIN}, tab="job")
-    check("vtabs: All pages flags flow-has-current when the step's page is in the sheet",
-          "flow-has-current" in rendered_hidden)
-    check("vtabs: no flow-has-current when the highlight matches no page",
-          "flow-has-current" not in rendered)
+    # VIN's current step is "tests": that tile carries the flow mark, the Next step row points at it.
+    check("menu: the flow's current step tile is marked flow-current-tab",
+          re.search(r'class="navtile [^"]*flow-current-tab[^"]*"[^>]*data-nav="tests"', sheet) is not None)
+    check("menu: exactly one tile is marked", sheet.count("flow-current-tab") == 1)
+    check("menu: Next step row links to the current step",
+          f'class="navnext" href="/v/{VIN}/tests"' in sheet)
+    check("menu: viewed page (Job) marked .on separately from the flow mark",
+          re.search(r'class="navtile [^"]*\bon\b[^"]*"[^>]*data-nav="job"', sheet) is not None)
+
+    # HIDDEN_VIN's current step ("parts") is a Service tile, deep in the sheet: still marked.
+    hidden = env.get_template("_navsheet.html").render(vin=HIDDEN_VIN, tab="job")
+    check("menu: a current step in a lower group is marked too",
+          re.search(r'flow-current-tab[^"]*"[^>]*data-nav="parts"', hidden) is not None
+          and 'data-nav-next="parts"' in hidden)
 
     # COMPLETEVIN's current step is None (job finished) -> no highlight.
-    rendered_complete = tmpl.render(bar={"vin": "COMPLETEVIN0000001"}, tab="systems")
-    check("vtabs: no flow marks when flow has no current step (job-complete fixture)",
-          "flow-has-current" not in rendered_complete and "flow-current-tab" not in rendered_complete)
+    done = env.get_template("_navsheet.html").render(vin="COMPLETEVIN0000001", tab="systems")
+    check("menu: no flow marks when flow has no current step (job-complete fixture)",
+          "flow-current-tab" not in done and "navnext" not in done)
+    none = env.get_template("_navsheet.html").render(vin="UNKNOWNVIN0000000", tab="systems")
+    check("menu: no flow marks when the service has no flow for the car",
+          "flow-current-tab" not in none and "navnext" not in none)
 
 
 # --- CDP screenshot ---------------------------------------------------------
@@ -331,7 +328,9 @@ def build_standalone_html(env: Environment) -> str:
     this screenshot is of what a mechanic actually sees on load, not of a
     manually-expanded state."""
     flow_bar_html = env.get_template("_flow_bar.html").render(bar={"vin": VIN}, tab="codes")
-    vtabs_html = env.get_template("_vtabs.html").render(bar={"vin": VIN}, tab="codes")
+    # The Menu sheet, opened (checkbox checked): the full-screen sheet is what 400px must hold.
+    vtabs_html = ('<input type="checkbox" class="navsheet-toggle" checked>'
+                  + env.get_template("_navsheet.html").render(vin=VIN, tab="codes"))
     cuore_css = (STATIC_DIR / "cuore.css").read_text(encoding="utf-8")
     flow_css = (STATIC_DIR / "flow.css").read_text(encoding="utf-8")
     return f"""<!doctype html>
@@ -420,7 +419,7 @@ def main():
 
     env = make_env()
     check_flow_bar(env)
-    check_vtabs(env)
+    check_menu(env)
 
     if FAILURES:
         print("Failures:")

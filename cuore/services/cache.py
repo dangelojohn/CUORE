@@ -66,18 +66,25 @@ def stats() -> dict[str, Any]:
 # json-parses only the last ``n`` lines it actually returns. Same result as
 # the store function (fresh dicts, same filters, same ``[-n:]`` slice).
 
-_obs_index: dict[str, tuple[tuple[int, int], list[tuple[Any, Any, str]]]] = {}
+_ANY = object()      # "no filter" marker in the (vin, kind) index
+_obs_index: dict[str, tuple[tuple[int, int], list[tuple[Any, Any, str]], dict]] = {}
 
 
 def recent_observations(n: int = 50, vin: str = "", kind: str = "") -> list[dict[str, Any]]:
     """Drop-in for ``live.store.recent_observations`` that parses the file once."""
     from ..live import store as live_store          # lazy: keeps this module import-free
     p = live_store.observations_path()
-    try:
-        st = p.stat()
-    except OSError:
-        return []
-    stamp = (st.st_mtime_ns, st.st_size)
+    from mes.catalog import request_scope           # one stat per GET request
+    scope = request_scope.get()
+    stamp = scope.get(("obs_stamp", str(p))) if scope is not None else None
+    if stamp is None:
+        try:
+            st = p.stat()
+        except OSError:
+            return []
+        stamp = (st.st_mtime_ns, st.st_size)
+        if scope is not None:
+            scope[("obs_stamp", str(p))] = stamp
     hit = _obs_index.get(str(p))
     if hit is None or hit[0] != stamp:
         try:
@@ -92,10 +99,13 @@ def recent_observations(n: int = 50, vin: str = "", kind: str = "") -> list[dict
                 continue
             if isinstance(obj, dict):
                 rows.append((obj.get("vin"), obj.get("kind"), line))
-        hit = (stamp, rows)
+        idx: dict[tuple, list[str]] = {}
+        for v, k, line in rows:                     # one pass: every (vin, kind) filter pre-bucketed
+            for key in ((_ANY, _ANY), (v, _ANY), (_ANY, k), (v, k)):
+                idx.setdefault(key, []).append(line)
+        hit = (stamp, rows, idx)
         _obs_index[str(p)] = hit
         while len(_obs_index) > 4:                  # tests point this at temp files
             _obs_index.pop(next(iter(_obs_index)))
-    picked = [line for v, k, line in hit[1]
-              if (not vin or v == vin) and (not kind or k == kind)]
+    picked = hit[2].get((vin or _ANY, kind or _ANY), [])
     return [json.loads(line) for line in picked[-n:]]

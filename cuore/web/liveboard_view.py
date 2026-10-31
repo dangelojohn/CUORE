@@ -90,6 +90,12 @@ def conf_of(ch: dict[str, Any]) -> str:
 
 
 def conf_word(ch: dict[str, Any]) -> str:
+    try:
+        from ..live import did_catalog
+        if did_catalog.is_confirmed(str(ch.get("id") or "")):
+            return "scale confirmed against MES"
+    except Exception:  # noqa: BLE001
+        pass
     return CONF_WORD.get(conf_of(ch), "")
 
 
@@ -296,5 +302,87 @@ def build(board: dict[str, Any], job: Optional[dict[str, Any]] = None, q: str = 
         "has_job": bool(picks),
     }
 
+# --- value groups -----------------------------------------------------------
 
-__all__ = ["build", "load_job", "job_picks", "quantity", "is_raw", "plain_name", "band_note", "cable_line"]
+_KIND_MODULE = {"pid": "OBD-II standard", "battery": "Adapter", "computed": "Computed", "probe": "ESIM probe"}
+
+
+def _status(cid: str, ch: Any) -> tuple[str, str]:
+    """(status, why) -- confirmed / unconfirmed / no reading, from the registry and the decode-confirmation record.
+    "no reading" here means the channel can never give a value (no decode, or a decode known to be junk)."""
+    if getattr(ch, "untrusted", False):
+        return "no reading", "this decode returns junk on this car; it is not shown as a value"
+    if ch.kind == "did" and not ch.formula:
+        return "no reading", "composite value, not decoded yet"
+    try:
+        from ..live import did_catalog
+        if did_catalog.is_confirmed(cid):
+            return "confirmed", "scale accepted against MES"
+    except Exception:  # noqa: BLE001
+        pass
+    why = {"pid": "standard OBD-II decode, not compared with MES on this car",
+           "did": "catalogue decode, not compared with MES on this car",
+           "computed": "computed from other readings",
+           "battery": "adapter reading", "probe": "probe reading"}.get(ch.kind, "not compared with MES")
+    return "unconfirmed", why
+
+
+def group_view(board: dict[str, Any], vin: str, group_id: str) -> Optional[dict[str, Any]]:
+    """One value group as the Live board shows it: sections of rows, each row with its source module, status and
+    sourced band (all from the board and channel registry, nothing stored in the group file), plus the values
+    MES shows that CUORE does not read yet. ``None`` for an unknown group."""
+    from ..services import value_groups as vg
+    g = vg.get(group_id)
+    if g is None:
+        return None
+    from ..live import channels as channels_mod
+    reg = channels_mod.registry()
+    on_board = {c["id"]: c for grp in board.get("groups") or [] for c in grp.get("channels") or []}
+    labels = vg.doc().get("labels") or {}
+    mod_platforms = vg.doc().get("module_platforms") or {}
+    applies = None
+    if vin:
+        try:
+            from mes import known_good
+            applies = known_good.applies_to_vin
+        except Exception:  # noqa: BLE001
+            applies = None
+    sections, ids, other_platform, off_board = [], [], [], []
+    for s in g.get("sections") or []:
+        rows = []
+        for cid in s.get("channels") or []:
+            ch = reg.get(cid)
+            if ch is None:
+                continue
+            keys = mod_platforms.get(ch.module) if ch.kind == "did" else None
+            if keys and applies and not applies({"applies_to": keys}, vin):
+                other_platform.append(plain_name({"name": ch.name}))
+                continue
+            b = on_board.get(cid)
+            if b is None:
+                off_board.append(plain_name({"name": ch.name}))
+                continue
+            status, why = _status(cid, ch)
+            d = view_channel(b)
+            d["name"] = labels.get(cid) or d["name"]
+            d.update({"module": ch.module or _KIND_MODULE.get(ch.kind, ch.kind), "status": status, "status_why": why,
+                      "no_band": not d["note"]})
+            rows.append(d)
+            if status != "no reading" and cid not in ids:
+                ids.append(cid)
+        if rows:
+            sections.append({"title": s.get("title", ""), "why": s.get("why", ""), "together": bool(s.get("together")),
+                             "rows": rows})
+    from mes import systems as systems_mod
+    return {
+        "id": g["id"], "label": g["label"], "blurb": g.get("blurb", ""), "sections": sections, "channel_ids": ids,
+        "n_rows": sum(len(s["rows"]) for s in sections),
+        "systems": [{"key": k, "label": (systems_mod.SYSTEMS.get(k) or {}).get("label", k)} for k in g.get("systems") or []],
+        "not_read_yet": list(g.get("not_read_yet") or []), "not_read_source": vg.doc().get("not_read_source", ""),
+        "related": [{"id": r["group"], "label": (vg.get(r["group"]) or {}).get("label", r["group"]), "why": r.get("why", "")}
+                    for r in g.get("related") or [] if vg.get(r["group"])],
+        "other_platform": other_platform, "off_board": off_board,
+    }
+
+
+__all__ = ["build", "load_job", "job_picks", "quantity", "is_raw", "plain_name", "band_note", "cable_line", "group_view"]

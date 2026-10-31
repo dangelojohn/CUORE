@@ -1,0 +1,4 @@
+{# One brand's mark (a dict `b` from data/brands.json via landing_bridge.brands()).
+   image = shown as is; mask = one-colour mark painted in the ink colour. A
+   brand whose mark file is missing shows its name only, never a stand-in. #}
+{% if b.mark_url %}{% if b.mark_kind == 'image' %}<img class="bt-mark" src="{{ b.mark_url }}" alt="{{ b.name }}">{% else %}<span class="bt-mark bt-mask" style="--mark:url({{ b.mark_url }})" role="img" aria-label="{{ b.name }}"></span>{% endif %}{% endif %}

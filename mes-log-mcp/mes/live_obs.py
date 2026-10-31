@@ -61,6 +61,40 @@ def from_car(entry: dict[str, Any]) -> bool:
     return s.startswith("serial") or s.startswith("recording(serial")
 
 
+_parsed: dict[str, tuple[tuple[int, int], int, list[dict[str, Any]]]] = {}
+
+
+def _parsed_lines(p, limit: int) -> list[dict[str, Any]]:
+    """Parsed last-``limit`` objects of the observations file, memoised on its
+    (mtime_ns, size) -- an append moves both, so a new reading is seen at once."""
+    try:
+        st = p.stat()
+    except OSError:
+        return []
+    sig = (st.st_mtime_ns, st.st_size)
+    hit = _parsed.get(str(p))
+    if hit and hit[0] == sig and hit[1] == limit:
+        return hit[2]
+    try:
+        with p.open("r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()[-limit:]
+    except OSError:
+        return []
+    objs: list[dict[str, Any]] = []
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(obj, dict):
+            objs.append(obj)
+    _parsed[str(p)] = (sig, limit, objs)
+    return objs
+
+
 def load(vin: Optional[str] = None, kind: Optional[str] = None,
          limit: int = 5000, from_car_only: bool = True) -> list[dict[str, Any]]:
     """Observations newest-last, filtered by VIN and kind when given.
@@ -70,28 +104,14 @@ def load(vin: Optional[str] = None, kind: Optional[str] = None,
     if not p.exists():
         return []
     out: list[dict[str, Any]] = []
-    try:
-        with p.open("r", encoding="utf-8", errors="replace") as f:
-            lines = f.readlines()[-limit:]
-    except OSError:
-        return []
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            obj = json.loads(line)
-        except ValueError:
-            continue
-        if not isinstance(obj, dict):
-            continue
+    for obj in _parsed_lines(p, limit):
         if vin and (obj.get("vin") or "") != vin:  # untagged reads never match a named car
             continue
         if kind and obj.get("kind") != kind:
             continue
         if from_car_only and not from_car(obj):
             continue
-        out.append(obj)
+        out.append(dict(obj))
     return out
 
 

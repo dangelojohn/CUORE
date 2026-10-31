@@ -101,6 +101,13 @@ def is_from_car(entry: dict[str, Any]) -> bool:
 
 
 def recent_observations(n: int = 50, vin: str = "", kind: str = "") -> list[dict[str, Any]]:
+    """Last ``n`` observations for ``vin``/``kind``. Parsed once per file state
+    (mtime_ns, size) by cuore.services.cache -- an append is seen immediately."""
+    from ..services import cache as _cache
+    return _cache.recent_observations(n=n, vin=vin, kind=kind)
+
+
+def _recent_observations_uncached(n: int = 50, vin: str = "", kind: str = "") -> list[dict[str, Any]]:
     p = observations_path()
     if not p.exists():
         return []

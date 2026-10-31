@@ -1,9 +1,9 @@
-"""ONE data source for CUORE navigation (top menu sheet + vehicle tab row).
+"""ONE data source for CUORE navigation: the header's full-screen Menu sheet.
 
-Every page a mechanic can reach from the header or the vehicle tab strip is
-one line in ``ITEMS``.  ``_navsheet.html`` (the full-screen "Menu" sheet, in
-base.html) and ``_vtabs.html`` (the short everyday tab row) both read
-``nav_menu(...)`` -- add a page here and it appears in both places.
+Every page a mechanic can reach is one line in ``ITEMS``.  ``_navsheet.html``
+(the Menu sheet, in base.html) reads ``nav_menu(...)`` -- add a page here and
+it appears there.  The Menu is the only navigation (no tab strip); with a car
+open every page is Menu + one tap.
 
 Item fields
   key     stable id; per-vehicle items use the page's own ``tab`` value so the
@@ -11,17 +11,18 @@ Item fields
   label   English fallback label;  i18n: optional ``t()`` key for translation
   href    path pattern; ``{vin}`` marks a per-vehicle page (only shown when a
           vehicle is active).  ``href_novin`` is an optional global fallback
-  group   Diagnose / Car / Service / Records / Shop
+  group   Cars / Diagnose / Look up / Service / Records / Shop (read by task: pick the
+          car, work the fault, look something up, service it, write it up, shop-wide)
   icon    one icon word (CSS class hook ``ni-<word>``; no glyph required)
   roles   optional tuple; item shown only to those roles (None = everyone)
-  primary True = also in the short always-visible vehicle tab row
+  primary True = an everyday page: its tile is drawn stronger in the Menu
 """
 
 from __future__ import annotations
 
 from typing import Any, Optional
 
-GROUPS = ("Diagnose", "Car", "Service", "Records", "Shop")
+GROUPS = ("Cars", "Diagnose", "Look up", "Service", "Records", "Shop")
 
 
 def _i(key, label, href, group, icon, *, i18n=None, roles=None, primary=False, href_novin=None):
@@ -31,6 +32,10 @@ def _i(key, label, href, group, icon, *, i18n=None, roles=None, primary=False, h
 
 V = "/v/{vin}"
 ITEMS: list[dict[str, Any]] = [
+    # ---- Cars (always shown: the landing page is the car picker)
+    _i("home", "Change brand", "/", "Cars", "vehicles"),
+    _i("cars", "Change car", "/cars", "Cars", "vehicles"),
+    _i("start", "Add Service", "/add", "Cars", "start"),
     # ---- Diagnose
     _i("bench", "Bench", V, "Diagnose", "bench", i18n="bench", primary=True),
     _i("job", "Job", V + "/job", "Diagnose", "job", i18n="job", primary=True),
@@ -45,14 +50,14 @@ ITEMS: list[dict[str, Any]] = [
     _i("trends", "Trends", V + "/trends", "Diagnose", "trends", i18n="trends"),
     _i("power-budget", "Power and ground", V + "/power-budget", "Diagnose", "power", i18n="power_budget"),
     # ---- Car
-    _i("systems", "Systems", V + "/systems", "Car", "systems", i18n="systems", primary=True),
-    _i("sensors", "Sensors", V + "/sensors", "Car", "sensors", primary=True),
-    _i("fuses", "Fuses", V + "/fuses", "Car", "fuses", primary=True),
-    _i("electrical", "Electrical", V + "/electrical", "Car", "electrical", i18n="electrical"),
-    _i("harnesses", "Harnesses", V + "/harnesses", "Car", "harness"),
-    _i("modules", "Modules", V + "/modules", "Car", "modules", i18n="modules"),
-    _i("gauges", "Gauges", V + "/gauges", "Car", "gauges", i18n="gauges"),
-    _i("configuration", "Configuration", V + "/configuration", "Car", "config"),
+    _i("systems", "Systems", V + "/systems", "Look up", "systems", i18n="systems", primary=True),
+    _i("sensors", "Sensors", V + "/sensors", "Look up", "sensors", primary=True),
+    _i("fuses", "Fuses", V + "/fuses", "Look up", "fuses", primary=True),
+    _i("electrical", "Electrical", V + "/electrical", "Look up", "electrical", i18n="electrical"),
+    _i("harnesses", "Harnesses", V + "/harnesses", "Look up", "harness"),
+    _i("modules", "Modules", V + "/modules", "Look up", "modules", i18n="modules"),
+    _i("gauges", "Gauges", V + "/gauges", "Look up", "gauges", i18n="gauges"),
+    _i("configuration", "Configuration", V + "/configuration", "Look up", "config"),
     # ---- Service
     _i("service-hub", "Service", V + "/service-hub", "Service", "service", i18n="service"),
     _i("adjustments", "Adjustments", V + "/adjustments", "Service", "adjust"),
@@ -61,7 +66,7 @@ ITEMS: list[dict[str, Any]] = [
     _i("parts", "Parts", V + "/parts", "Service", "parts", i18n="parts"),
     _i("mods", "Modifications", V + "/mods", "Service", "mods", i18n="mods"),
     _i("procedures", "Prototype procedures", V + "/procedures/prototype", "Service", "procedure"),
-    _i("tsb", "TSB for this car", "/tsb?vin={vin}", "Service", "tsb"),
+    _i("tsb", "TSB for this car", "/tsb?vin={vin}", "Look up", "tsb"),
     # ---- Records
     _i("report", "Report", V + "/report", "Records", "report", i18n="report", primary=True),
     _i("dossier", "Dossier", V + "/dossier", "Records", "dossier", i18n="dossier"),
@@ -76,10 +81,9 @@ ITEMS: list[dict[str, Any]] = [
     _i("logs", "Logs for this car", "/logs?vin={vin}", "Records", "logs", i18n="logs"),
     _i("mobile", "Phone view / Tell CUORE", "/m/{vin}", "Records", "phone", i18n="mobile"),
     # ---- Shop (no vehicle needed)
-    _i("start", "Start", "/start", "Shop", "start"),
-    _i("facts", "Facts", "/v/{vin}/facts", "Shop", "facts", href_novin="/facts"),
+    _i("facts", "Facts", "/v/{vin}/facts", "Look up", "facts", href_novin="/facts"),
     _i("vehicles", "Vehicles", "/vehicles", "Shop", "vehicles"),
-    _i("catalog", "Parts catalogue", "/catalog", "Shop", "catalog"),
+    _i("catalog", "Parts catalogue", "/catalog", "Look up", "catalog"),
     _i("g-tsb", "TSB", "/tsb", "Shop", "tsb"),
     _i("slvt", "SLVT", "/slvt", "Shop", "slvt"),
     _i("tools", "Tools", "/tools", "Shop", "tools"),
@@ -99,8 +103,8 @@ ITEMS: list[dict[str, Any]] = [
     _i("car-session", "Car session", V + "/car-session", "Service", "parity"),
     _i("bay-sheet", "Bay sheet", V + "/bay-sheet", "Records", "sheet"),
     _i("field-quality", "Field quality", "/field-quality", "Shop", "quality"),
-    _i("library", "Library", "/library", "Shop", "library"),
-    _i("handbook", "How-to guides", "/handbook", "Shop", "handbook"),
+    _i("library", "Library", "/library", "Look up", "library"),
+    _i("handbook", "How-to guides", "/handbook", "Look up", "handbook"),
 ]
 
 
@@ -147,9 +151,11 @@ HELP: dict[str, tuple[str, str]] = {
     "dashboard": ("dashboard, status", "The car status at a glance."),
     "logs": ("log, session log", "Logs for this car."),
     "mobile": ("phone, tell cuore, mobile", "The phone view for telling CUORE what you see."),
-    "start": ("start, begin, new car, help, lost", "Where to begin if you are not sure."),
+    "home": ("home, landing, brand, logo, alfa, maserati, ferrari", "The start page: pick a brand."),
+    "cars": ("switch car, choose car, pick car, all cars, vin", "The cars of one brand: pick one or add one."),
+    "start": ("add service, start, begin, new car, add car, intake, help, lost", "Find the car (plug in or type the VIN), then open a service job."),
     "facts": ("specification, spec, torque, capacity", "Specifications and facts for the car."),
-    "vehicles": ("car list, choose car, vin, switch car", "Pick which car you are working on."),
+    "vehicles": ("car list, corpus, vin, logs per car", "The log corpus: every vehicle MES has logged."),
     "handbook": ("how to, guide, help, handbook, manual, instructions, getting started", "Step-by-step guides for using CUORE and working a job."),
     "catalog": ("part, part number, mopar, diagram, exploded view", "Look up parts and torque values by name or number."),
     "g-tsb": ("bulletin, recall, campaign, csn", "All technical service bulletins and recalls."),
@@ -193,7 +199,6 @@ def nav_menu(vin: Optional[str] = None, tab: str = "", role: Optional[str] = Non
     tab = tab or ""
     cur = (path or "").split("?")[0]
     groups: dict[str, list[dict[str, Any]]] = {g: [] for g in GROUPS}
-    primary: list[dict[str, Any]] = []
     for it in ITEMS:
         if it["roles"] and role not in it["roles"]:
             continue
@@ -206,10 +211,7 @@ def nav_menu(vin: Optional[str] = None, tab: str = "", role: Optional[str] = Non
             on = True
         row = dict(it, href=href, on=on, per_car=per_car)
         groups[it["group"]].append(row)
-        if it["primary"] and vin:
-            primary.append(row)
-    return {"groups": [{"title": g, "items": groups[g]} for g in GROUPS if groups[g]],
-            "primary": primary}
+    return {"groups": [{"title": g, "items": groups[g]} for g in GROUPS if groups[g]]}
 
 
 def register(templates: Any) -> None:

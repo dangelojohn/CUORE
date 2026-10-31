@@ -195,7 +195,7 @@ document.getElementById("out").textContent = JSON.stringify(out);
     hp = Path(STATE) / "harness.html"
     hp.write_text(harness, encoding="utf-8")
     proc = subprocess.run([EDGE, "--headless=new", "--disable-gpu", "--no-first-run", f"--user-data-dir={STATE}/edge",
-                           "--virtual-time-budget=3000", "--dump-dom", hp.as_uri()], capture_output=True, text=True, timeout=90)
+                           "--virtual-time-budget=3000", "--dump-dom", hp.as_uri()], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90)
     m = re.search(r'<pre id="out">(.*?)</pre>', proc.stdout, re.S)
     res = json.loads(re.sub(r"&quot;", '"', re.sub(r"&amp;", "&", m.group(1)))) if m else {}
     check(bool(res) and "err" not in res, f"harness ran: {res or proc.stderr[-300:]}")
