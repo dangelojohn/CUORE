@@ -54,7 +54,7 @@ for b in data:
     check(f"brand tile: {b['key']}", f'data-brand="{b["key"]}"' in r.text and f'href="/cars?brand={b["key"]}"' in r.text)
 check("three buttons, named for screen readers only", r.text.count('class="brand-tile') == 3
       and 'aria-label="Alfa Romeo"' in r.text and "bt-name" not in r.text)
-check("no writing on the landing page", "Test: no vehicle data" not in r.text and "bt-count" not in r.text
+check("no writing on the landing page", "Test: no real vehicle data" not in r.text and "bt-count" not in r.text
       and 'class="sr-only">Choose a brand' in r.text)
 check("splash kept", "intro-overlay" in r.text and "The mechanic's own record of the car" in r.text)
 
@@ -76,7 +76,7 @@ check("alfa list 200, carries the Alfa car and the Add a car card",
 check("alfa list holds no Maserati car", f'href="/v/{MASERATI}/menu"' not in a.text)
 check("alfa card: make, year from VIN, short VIN, state word",
       "Alfa Romeo" in a.text and "2018" in a.text and "…B88115" in a.text and "chip-verdict" in a.text)
-check("alfa list says nothing about missing data", "Test: no vehicle data" not in a.text)
+check("alfa list says nothing about missing data", "Test: no real vehicle data" not in a.text)
 check("alfa card shows the traced line art (Stelvio has art)", "<svg" in a.text.split("car-grid")[1])
 check("change brand link back to /", 'class="cars-back" href="/"' in a.text)
 check("brand is remembered for the session, tile highlighted", "cuore_brand" in a.headers.get("set-cookie", "")
@@ -85,13 +85,13 @@ check("brand is remembered for the session, tile highlighted", "cuore_brand" in 
 m = c.get("/cars?brand=maserati")
 check("maserati list: its own car, themed, with the test line",
       m.status_code == 200 and f'href="/v/{MASERATI}/menu"' in m.text and 'data-marque="maserati"' in m.text
-      and "Test: no vehicle data for this brand yet" in m.text and f'href="/v/{ALFA}/menu"' not in m.text)
+      and "Test: no real vehicle data for this brand yet" in m.text and f'href="/v/{ALFA}/menu"' not in m.text)
 check("a model without art gets a clean card, no invented drawing", "<svg" not in m.text.split("car-grid")[1])
 
 f = c.get("/cars?brand=ferrari")
 check("brand with no cars: plain empty state and Add a car",
       f.status_code == 200 and "No Ferrari cars yet" in f.text and 'href="/add?brand=ferrari"' in f.text
-      and "Test: no vehicle data for this brand yet" in f.text)
+      and "Test: no real vehicle data for this brand yet" in f.text)
 check("empty-state page also themed ferrari", '<html lang="en" data-marque="ferrari"' in f.text)
 
 s = c.get(f"/cars?brand=alfa&q={ALFA[-6:]}")

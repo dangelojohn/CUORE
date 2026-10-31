@@ -304,7 +304,7 @@ for key, name in (("maserati", "Maserati"), ("ferrari", "Ferrari")):
     cl = c.get(f"/cars?brand={key}").text
     check(f"/cars?brand={key}: Add Service links to its brand", f'href="/add?brand={key}"' in cl)
     check(f"/cars?brand={key}: honest test note, empty state, centred layout",
-          "Test: no vehicle data for this brand yet" in cl and f"No {name} cars yet" in cl and "cars-sole" in cl)
+          "Test: no real vehicle data for this brand yet" in cl and f"No {name} cars yet" in cl and "cars-sole" in cl)
 odd = c.get("/add?brand=nonsense")
 check("unknown brand: today's Alfa page", odd.status_code == 200 and '<html lang="en" data-marque="alfa"' in odd.text and 'data-brand=""' in odd.text)
 check("no brand: today's Alfa page", 'data-brand=""' in page and '<html lang="en" data-marque="alfa"' in page)
