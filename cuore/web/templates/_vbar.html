@@ -60,9 +60,8 @@
   <div class="vhero vhero-compact">
     <div class="hero-img" style="background-image:url(/static/brand/{{ _hero_slug }}.jpg)"></div>
     <div class="hero-text">
-      <div class="hero-head">
-        <span class="hero-name">{{ bar.name }}</span>
-      </div>
+      {# The car's name is NOT repeated here: the bar line below carries it once
+         (the site header carries it on desktop). #}
       {% if view is defined and view and view.verdict %}
         {# Item 17: the next-action/blocker sentence is shown exactly ONCE
            on the Bench, as bench.html's own blocker banner -- not repeated
@@ -141,7 +140,7 @@
      Works with scripting off: <details> and the Connect link are plain HTML. #}
   <div class="vline">
     <div class="vid">
-      <span class="vname" title="{{ bar.name }}">{{ bar.name }}</span>
+      <span class="vname{{ ' vname-once' if tab == 'bench' }}" title="{{ bar.name }}">{{ bar.name }}</span>
       {% if bar.odo_last is not none %}
         <span class="mono vkm">{{ bar.odo_last|dist }}</span>
       {% endif %}

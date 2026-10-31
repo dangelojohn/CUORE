@@ -1,0 +1,248 @@
+{
+ "_about": "A pick list for the Add Service Choose screen, not evidence. Nothing here is read from a car or decoded from a VIN; a value picked from it is stored as typed in ('chosen from the list'). Models are the North American market only. 'basis' says where each entry came from. A model or engine that could not be stated with confidence is left out; the person can use the Other option and type it. last_year null means still current (the page then lists up to next calendar year).",
+ "other": "Other / not listed",
+ "brands": [
+  {
+   "name": "Alfa Romeo",
+   "models": [
+    {
+     "name": "Giulia",
+     "first_year": 2017,
+     "last_year": null,
+     "engines": [
+      "2.0L turbo I4",
+      "2.9L twin-turbo V6 (Quadrifoglio)",
+      "Other / not listed"
+     ],
+     "basis": "repo: mes-log-mcp/mes/platform.py (model and 2.0L turbo); V6 and North American start year: maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Stelvio",
+     "first_year": 2018,
+     "last_year": null,
+     "engines": [
+      "2.0L turbo I4",
+      "2.9L twin-turbo V6 (Quadrifoglio)",
+      "Other / not listed"
+     ],
+     "basis": "repo: mes-log-mcp/mes/platform.py (model and 2.0L turbo); V6 and North American start year: maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "4C",
+     "first_year": 2015,
+     "last_year": 2020,
+     "engines": [
+      "1.75L turbo I4",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Tonale",
+     "first_year": 2023,
+     "last_year": null,
+     "engines": [
+      "2.0L turbo I4",
+      "1.3L turbo plug-in hybrid",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Other / not listed",
+     "other": true,
+     "first_year": 1990,
+     "last_year": null,
+     "engines": [
+      "Other / not listed"
+     ],
+     "basis": "free text follows"
+    }
+   ]
+  },
+  {
+   "name": "Maserati",
+   "models": [
+    {
+     "name": "Ghibli",
+     "first_year": 2014,
+     "last_year": 2024,
+     "engines": [
+      "3.0L twin-turbo V6",
+      "3.8L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "repo: mes-log-mcp/mes/platform.py (model); engines and years: maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Quattroporte",
+     "first_year": 2014,
+     "last_year": 2024,
+     "engines": [
+      "3.0L twin-turbo V6",
+      "3.8L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Levante",
+     "first_year": 2017,
+     "last_year": 2024,
+     "engines": [
+      "3.0L twin-turbo V6",
+      "3.8L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "repo: mes-log-mcp/mes/platform.py (model and 2017-2024); engines: maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Grecale",
+     "first_year": 2023,
+     "last_year": null,
+     "engines": [
+      "2.0L turbo I4",
+      "3.0L twin-turbo V6 (Nettuno)",
+      "Other / not listed"
+     ],
+     "basis": "repo: mes-log-mcp/mes/platform.py (model, 2023 start, 2.0L turbo); V6: maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "MC20",
+     "first_year": 2022,
+     "last_year": null,
+     "engines": [
+      "3.0L twin-turbo V6 (Nettuno)",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Other / not listed",
+     "other": true,
+     "first_year": 1990,
+     "last_year": null,
+     "engines": [
+      "Other / not listed"
+     ],
+     "basis": "free text follows"
+    }
+   ]
+  },
+  {
+   "name": "Ferrari",
+   "models": [
+    {
+     "name": "458 Italia",
+     "first_year": 2011,
+     "last_year": 2015,
+     "engines": [
+      "4.5L V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "458 Spider",
+     "first_year": 2012,
+     "last_year": 2015,
+     "engines": [
+      "4.5L V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "California T",
+     "first_year": 2015,
+     "last_year": 2017,
+     "engines": [
+      "3.9L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "488 GTB",
+     "first_year": 2016,
+     "last_year": 2019,
+     "engines": [
+      "3.9L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "488 Spider",
+     "first_year": 2016,
+     "last_year": 2019,
+     "engines": [
+      "3.9L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Portofino",
+     "first_year": 2018,
+     "last_year": 2020,
+     "engines": [
+      "3.9L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Portofino M",
+     "first_year": 2021,
+     "last_year": 2023,
+     "engines": [
+      "3.9L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "F8 Tributo",
+     "first_year": 2020,
+     "last_year": 2023,
+     "engines": [
+      "3.9L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Roma",
+     "first_year": 2021,
+     "last_year": null,
+     "engines": [
+      "3.9L twin-turbo V8",
+      "Other / not listed"
+     ],
+     "basis": "maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Purosangue",
+     "first_year": 2023,
+     "last_year": null,
+     "engines": [
+      "6.5L V12",
+      "Other / not listed"
+     ],
+     "basis": "repo: mes-log-mcp/mes/platform.py (model, chassis F175); engine and start year: maker line-up from general knowledge; not held in this repo, check against the car"
+    },
+    {
+     "name": "Other / not listed",
+     "other": true,
+     "first_year": 1990,
+     "last_year": null,
+     "engines": [
+      "Other / not listed"
+     ],
+     "basis": "free text follows"
+    }
+   ]
+  }
+ ]
+}

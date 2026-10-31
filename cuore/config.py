@@ -46,6 +46,11 @@ class Settings(BaseSettings):
                     "token as well when you do.",
     )
     port: int = Field(default=5000, ge=1, le=65535)
+    public_base_url: str = Field(
+        default="",
+        description="Base address printed in the Bay Service Sheet QR (e.g. http://shop-pc:5000, later an AlfaCore "
+                    "address). Empty = this PC's LAN address and port. The path stays /v/<VIN>/bay-card.",
+    )
     token: str = Field(
         default="",
         description="Optional shared secret. When set, every request must "

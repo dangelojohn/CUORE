@@ -15,7 +15,8 @@
 
 /* S1 tiles */
 .as-tiles { display: grid; grid-template-columns: 1fr; gap: 16px; }
-@media (min-width: 520px) { .as-tiles { grid-template-columns: 1fr 1fr; } }
+/* three tiles: stacked on a phone, side by side once there is room for all three */
+@media (min-width: 600px) { .as-tiles { grid-template-columns: repeat(3, 1fr); } }
 .as-tile {
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   min-height: 200px; padding: 20px 16px; background: var(--surface); color: var(--ink);
@@ -24,7 +25,7 @@
 }
 .as-tile:hover, .as-tile[aria-expanded="true"] { border-color: var(--ink-3); }
 .as-tile:focus-visible, .as-reason:focus-visible, .as-unit-b:focus-visible, .as-field:focus-visible,
-.as-go:focus-visible, .as-sec:focus-visible, .as-make:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.as-go:focus-visible, .as-sec:focus-visible, .as-make:focus-visible, .as-select:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
 .as-pic { width: 88px; height: 88px; color: var(--ink-2); }
 .as-tile-name { font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-2xl); letter-spacing: .06em; text-transform: uppercase; }
 .as-tile-sub { font-size: var(--fs-sm); color: var(--ink-3); }
@@ -43,6 +44,16 @@
 .as-vin-state .bad { color: var(--sev-returned); }
 .as-vin-state .warn { color: var(--sev-chronic); }
 .as-vin-state .good { color: var(--ok); }
+
+/* Choose: large native drop-downs, each off until the one before it is chosen */
+.as-select {
+  display: block; width: 100%; min-height: 64px; box-sizing: border-box; padding: 0 14px; background: var(--surface);
+  color: var(--ink); border: 1px solid var(--rule); border-radius: var(--radius); font: inherit; font-size: var(--fs-lg);
+}
+.as-select:disabled { background: var(--surface-2); color: var(--ink-3); cursor: not-allowed; }
+.as-other { margin-top: 8px; }
+.as-vin-why { margin: 8px 0 0; font-size: var(--fs-sm); color: var(--ink-3); }
+.as-warn { color: var(--sev-chronic); background: var(--sev-chronic-bg); border: 1px solid var(--sev-chronic); border-radius: var(--radius); padding: 12px 14px; margin: 0 0 16px; overflow-wrap: anywhere; }
 
 /* buttons: .as-go is the only accent fill */
 .as-actions { display: flex; flex-direction: column; gap: 12px; margin-top: var(--space-6); }

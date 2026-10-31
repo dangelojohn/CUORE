@@ -45,7 +45,7 @@ SRC_DECODED = "decoded from the VIN"
 SRC_TYPED = "typed in"
 SRC_NONE = "not found"
 SOURCES = (SRC_READ, SRC_DECODED, SRC_TYPED, SRC_NONE)
-_RANK = {SRC_NONE: 0, SRC_TYPED: 1, SRC_DECODED: 2, SRC_READ: 3}
+_RANK = {SRC_NONE: 0, SRC_DECODED: 1, SRC_TYPED: 2, SRC_READ: 3}  # a person corrects a decode, never a read
 
 #: The optional online lookup is a stub. Nothing in this build opens a network
 #: connection; turning this on later needs the disclosure dialog in DESIGN.md.

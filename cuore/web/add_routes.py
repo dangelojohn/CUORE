@@ -4,7 +4,7 @@ The page is one screen of JavaScript (``static/add_service.js``) that talks to t
 JSON routes in ``cuore.api.car_identify`` (``/api/car/identify``,
 ``/api/car/create-service``). This module only adds:
 
-``/add``          the page
+``/add``          the page (with the Choose pick lists from ``data/car_choices.json`` inlined)
 ``/add/art``      the traced side-view drawing for a model, or 404 (never a stand-in)
 ``/add/story``    what CUORE's own records hold for a VIN: first visit, or the last
                   visit and the open jobs. Read-only; nothing is inferred.
@@ -14,6 +14,8 @@ Nothing here contacts the car or the network. ``/start`` is unchanged.
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -30,10 +32,22 @@ REASONS = (("warning lamp", "Warning lamp"), ("noise", "Noise"), ("shudder", "Sh
            ("no start", "No start"), ("service", "Service"))
 
 
+CHOICES_PATH = Path(__file__).resolve().parents[1] / "data" / "car_choices.json"
+_choices_cache: dict[str, Any] = {}
+
+
+def choices() -> dict[str, Any]:
+    """The pick lists for the Choose screen (``cuore/data/car_choices.json``). A pick
+    list, not evidence; the page inlines it, so nothing is fetched."""
+    if not _choices_cache:
+        _choices_cache.update(json.loads(CHOICES_PATH.read_text(encoding="utf-8")))
+    return _choices_cache
+
+
 @router.get("/add", response_class=HTMLResponse)
 def add_page(request: Request) -> HTMLResponse:
     return web_routes._page(request, "add_service.html", reasons=REASONS, brands=landing_bridge.brands(),
-                           live_strip=None)
+                           choices=choices(), live_strip=None)
 
 
 @router.get("/add/art")

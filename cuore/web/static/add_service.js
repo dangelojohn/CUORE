@@ -131,7 +131,51 @@
     return { vin: v, length: v.length, bad: bad, notes: notes, ready: v.length === 17 && !bad.length };
   }
 
-  var api = { chipFor: chipFor, titleFor: titleFor, rowsFor: rowsFor, freshLive: freshLive,
+  // --- the Choose screen: pure logic --------------------------------------------------------
+  // The pick list is a list, not evidence. What is picked is stored as "typed in", with the
+  // detail "chosen from the list", and wins over the VIN decode; a disagreement is shown.
+
+  var OTHER = "Other / not listed", CHOSEN_DETAIL = "chosen from the list";
+
+  /* Year options, newest first: last_year (or next calendar year when null) down to first_year. */
+  function yearsFor(model, thisYear) {
+    var out = [];
+    if (!model || typeof model.first_year !== "number") return out;
+    var top = typeof model.last_year === "number" ? model.last_year : thisYear + 1;
+    for (var y = top; y >= model.first_year; y--) out.push(y);
+    return out;
+  }
+
+  function modelName(c) { return c.model === OTHER ? String(c.modelText || "").trim() : c.model; }
+  function engineName(c) { return c.engine === OTHER ? String(c.engineText || "").trim() : c.engine; }
+
+  /* Continue needs brand, model (and its text if "Other"), year and a valid VIN. Engine is optional. */
+  function chooseReady(c, vinOk) {
+    return !!(vinOk && c.brand && modelName(c) && c.year);
+  }
+
+  /* The fields the person picked, as card fields. An engine left at "Not sure" is not a field. */
+  function choiceFields(c, at) {
+    function f(v) { var o = { value: v, source: SRC_TYPED, detail: CHOSEN_DETAIL, verified: true }; if (at) o.at = at; return o; }
+    var out = { make: f(c.brand), model: f(modelName(c)), model_year: f(parseInt(c.year, 10)) };
+    if (engineName(c)) out.engine = f(engineName(c));
+    return out;
+  }
+
+  function same(a, b) { return String(a).toLowerCase().replace(/[^a-z0-9]/g, "") === String(b).toLowerCase().replace(/[^a-z0-9]/g, ""); }
+
+  /* One sentence naming both values when the VIN decode and the person's field disagree, else "". */
+  function choiceConflict(decoded, fields) {
+    var diffs = [];
+    [["make", "Make"], ["model", "Model"], ["model_year", "Year"]].forEach(function (k) {
+      var d = val(decoded, k[0]), c = val(fields, k[0]);
+      if (d !== null && c !== null && !same(d, c)) diffs.push(k[1] + ": the VIN decodes to " + d + ", you chose " + c);
+    });
+    return diffs.length ? "The VIN and your choice disagree. " + diffs.join("; ") + ". CUORE keeps your choice." : "";
+  }
+
+  var api = { yearsFor: yearsFor, chooseReady: chooseReady, choiceFields: choiceFields, choiceConflict: choiceConflict,
+              chipFor: chipFor, titleFor: titleFor, rowsFor: rowsFor, freshLive: freshLive,
               reduceLive: reduceLive, parseLines: parseLines, vinProgress: vinProgress, cleanVin: cleanVin };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (typeof window !== "undefined") window.AddService = api;
@@ -152,7 +196,9 @@
   var state;
   function resetState() {
     state = { run: 0, vin: "", fields: {}, card: null, carRead: false, unit: "km", odo: "",
-              reasonKey: "", story: null, decodeCache: {}, typedSeq: 0 };
+              reasonKey: "", story: null, decodeCache: {}, typedSeq: 0,
+              choose: { brand: "", model: "", year: "", engine: "", modelText: "", engineText: "" },
+              vinOk: false, chosen: false, decoded: null };
   }
   resetState();
 
@@ -178,32 +224,39 @@
 
   var typeForm = $("as-typeform"), vinIn = $("as-vin"), vinState = $("as-vin-state"), vinGo = $("as-vin-go");
 
-  function setVinState(parts) {
-    clear(vinState);
-    parts.forEach(function (p) { vinState.appendChild(el("span", p[0], p[1])); vinState.appendChild(document.createElement("br")); });
+  function setVinState(box, parts) {
+    clear(box);
+    parts.forEach(function (p) { box.appendChild(el("span", p[0], p[1])); box.appendChild(document.createElement("br")); });
   }
 
-  vinIn.addEventListener("input", function () {
-    var pos = vinIn.selectionStart, before = vinIn.value, p = vinProgress(before);
-    var shown = before.toUpperCase().replace(/[\s-]+/g, "");
-    if (shown !== before) { vinIn.value = shown; try { vinIn.setSelectionRange(pos, pos); } catch (e) { /* ignore */ } }
-    vinGo.disabled = true;
-    var seq = ++state.typedSeq;
-    var parts = [["", p.length + " of 17 characters"]];
-    p.notes.forEach(function (n) { parts.push(["bad", n]); });
-    if (!p.ready) { setVinState(parts); return; }
-    parts.push(["", "Checking the VIN (this does not touch the car)..."]);
-    setVinState(parts);
-    post("/api/car/identify", { vin: p.vin, read_car: false }).then(function (res) {
-      if (seq !== state.typedSeq) return;
-      if (!res.ok || !res.body.card) { setVinState([["bad", "Could not check this VIN: " + errText(res)]]); return; }
-      var card = res.body.card, v = card.validation || {}, out = [];
-      if (v.ok) { state.decodeCache[p.vin] = card; vinGo.disabled = false; out.push(["good", "17 characters, no I, O or Q."]); }
-      (v.errors || []).forEach(function (e) { out.push(["bad", e]); });
-      (v.warnings || []).forEach(function (w) { out.push(["warn", "Warning: " + w]); });
-      setVinState(out);
-    }, function () { if (seq === state.typedSeq) setVinState([["bad", "CUORE did not answer. Check that it is running."]]); });
-  });
+  /* The live VIN check, shared by Type and Choose: characters while typing, then the
+   * backend's answer (read_car false, so the car is never touched). setReady(true) only
+   * for a VIN the backend accepts; its decode is kept for Continue. */
+  function wireVin(input, box, setReady) {
+    input.addEventListener("input", function () {
+      var pos = input.selectionStart, before = input.value, p = vinProgress(before);
+      var shown = before.toUpperCase().replace(/[\s-]+/g, "");
+      if (shown !== before) { input.value = shown; try { input.setSelectionRange(pos, pos); } catch (e) { /* ignore */ } }
+      setReady(false);
+      var seq = ++state.typedSeq;
+      var parts = [["", p.length + " of 17 characters"]];
+      p.notes.forEach(function (n) { parts.push(["bad", n]); });
+      if (!p.ready) { setVinState(box, parts); return; }
+      parts.push(["", "Checking the VIN (this does not touch the car)..."]);
+      setVinState(box, parts);
+      post("/api/car/identify", { vin: p.vin, read_car: false }).then(function (res) {
+        if (seq !== state.typedSeq) return;
+        if (!res.ok || !res.body.card) { setVinState(box, [["bad", "Could not check this VIN: " + errText(res)]]); return; }
+        var card = res.body.card, v = card.validation || {}, out = [];
+        if (v.ok) { state.decodeCache[p.vin] = card; setReady(true); out.push(["good", "17 characters, no I, O or Q."]); }
+        (v.errors || []).forEach(function (e) { out.push(["bad", e]); });
+        (v.warnings || []).forEach(function (w) { out.push(["warn", "Warning: " + w]); });
+        setVinState(box, out);
+      }, function () { if (seq === state.typedSeq) setVinState(box, [["bad", "CUORE did not answer. Check that it is running."]]); });
+    });
+  }
+
+  wireVin(vinIn, vinState, function (ok) { vinGo.disabled = !ok; });
 
   typeForm.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -217,7 +270,13 @@
     var act = t.getAttribute("data-act");
     if (act === "plug") startLive();
     else if (act === "type") openType();
-    else if (act === "restart") { resetState(); vinIn.value = ""; setVinState([]); vinGo.disabled = true; typeForm.hidden = true; $("as-type").setAttribute("aria-expanded", "false"); show("find"); }
+    else if (act === "choose") openChoose();
+    else if (act === "back-find") show("find");
+    else if (act === "restart") {
+      resetState(); vinIn.value = ""; setVinState(vinState, []); vinGo.disabled = true; typeForm.hidden = true;
+      $("as-cvin").value = ""; setVinState($("as-cvin-state"), []); $("as-c-modeltext").value = ""; $("as-c-enginetext").value = "";
+      $("as-type").setAttribute("aria-expanded", "false"); show("find");
+    }
     else if (act === "back-card") show("card");
     else if (act === "back-gaps") show("gaps");
   });
@@ -229,6 +288,66 @@
     $("as-type").setAttribute("aria-expanded", "true");
     vinIn.focus();
   }
+
+  // --- S1c: Choose ----------------------------------------------------------------------------
+
+  var cData = JSON.parse($("as-choices").textContent), cVin = $("as-cvin"), cGo = $("as-choose-go");
+
+  function brandModels(name) {
+    var b = cData.brands.filter(function (x) { return x.name === name; })[0];
+    return b ? b.models : [];
+  }
+  function modelRec(c) { return brandModels(c.brand).filter(function (m) { return m.name === c.model; })[0] || null; }
+
+  /* Rebuild one <select>: a prompt, then the options; keeps `current` if it is still there. */
+  function fillSelect(sel, prompt, items, current) {
+    clear(sel);
+    var first = el("option", "", prompt); first.value = ""; sel.appendChild(first);
+    items.forEach(function (it) { var o = el("option", "", String(it)); o.value = String(it); sel.appendChild(o); });
+    sel.value = items.map(String).indexOf(String(current)) >= 0 ? String(current) : "";
+  }
+
+  function drawChoose() {
+    var c = state.choose, rec = modelRec(c);
+    fillSelect($("as-c-brand"), "Choose a brand", cData.brands.map(function (b) { return b.name; }), c.brand);
+    fillSelect($("as-c-model"), "Choose a model", brandModels(c.brand).map(function (m) { return m.name; }), c.model);
+    fillSelect($("as-c-year"), "Choose a year", yearsFor(rec, new Date().getFullYear()), c.year);
+    fillSelect($("as-c-engine"), "Not sure", rec ? rec.engines : [], c.engine);
+    $("as-c-model").disabled = !c.brand;
+    $("as-c-year").disabled = !c.model;
+    $("as-c-engine").disabled = !c.year;
+    $("as-c-modeltext").hidden = c.model !== OTHER;
+    $("as-c-enginetext").hidden = c.engine !== OTHER;
+    cGo.disabled = !chooseReady(c, state.vinOk);
+  }
+
+  /* Changing one list clears every list after it. */
+  [["brand", "as-c-brand", ["model", "year", "engine", "modelText", "engineText"]],
+   ["model", "as-c-model", ["year", "engine", "modelText", "engineText"]],
+   ["year", "as-c-year", ["engine", "engineText"]],
+   ["engine", "as-c-engine", ["engineText"]]].forEach(function (d) {
+    $(d[1]).addEventListener("change", function () {
+      state.choose[d[0]] = $(d[1]).value;
+      d[2].forEach(function (k) { state.choose[k] = ""; });
+      $("as-c-modeltext").value = state.choose.modelText; $("as-c-enginetext").value = state.choose.engineText;
+      drawChoose();
+    });
+  });
+  [["modelText", "as-c-modeltext"], ["engineText", "as-c-enginetext"]].forEach(function (d) {
+    $(d[1]).addEventListener("input", function () { state.choose[d[0]] = $(d[1]).value; drawChoose(); });
+  });
+  wireVin(cVin, $("as-cvin-state"), function (ok) { state.vinOk = ok; cGo.disabled = !chooseReady(state.choose, ok); });
+
+  function openChoose() {
+    state.run++; // abandon a running read
+    drawChoose(); show("choose");
+  }
+
+  $("as-chooseform").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var card = state.decodeCache[cleanVin(cVin.value)];
+    if (card && chooseReady(state.choose, state.vinOk)) enterCard(card, false, state.choose);
+  });
 
   // --- S2 -----------------------------------------------------------------------------------
 
@@ -385,12 +504,18 @@
 
   // --- S3 -----------------------------------------------------------------------------------
 
-  function enterCard(card, carRead) {
+  function enterCard(card, carRead, chosen) {
     state.card = card; state.carRead = carRead; state.vin = card.vin;
     state.fields = JSON.parse(JSON.stringify(card.fields || {}));
+    state.chosen = !!chosen; state.decoded = chosen ? JSON.parse(JSON.stringify(card.fields || {})) : null;
+    if (chosen) {
+      var picked = choiceFields(chosen, new Date().toISOString());
+      Object.keys(picked).forEach(function (k) { state.fields[k] = picked[k]; }); // the person's choice wins
+    }
     state.editing = null;
     if (!carRead) { state.story = null; fetchStory(card.vin).then(function (s) { state.story = s; drawStory(); }); }
     $("as-card-note").textContent = carRead ? "Read from the car. Tap any field to correct it."
+      : chosen ? "Chosen from the lists; the rest is decoded from the VIN. The car was not read. Tap any field to correct it."
       : "From the typed VIN. The car was not read. Tap any field to correct it.";
     drawCard(); show("card");
   }
@@ -399,6 +524,8 @@
 
   function drawCard() {
     $("as-title").textContent = titleFor(state.fields);
+    var warn = state.chosen ? choiceConflict(state.decoded, state.fields) : "";
+    $("as-card-warn").textContent = warn; $("as-card-warn").hidden = !warn; // recomputed, so a correction clears it
     var model = val(state.fields, "model");
     drawArt($("as-card-art"), model);
     var unknownMake = !hasValue(state.fields.make) || state.pickingMake;

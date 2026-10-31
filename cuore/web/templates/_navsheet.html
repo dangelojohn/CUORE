@@ -71,7 +71,8 @@
       <h2 id="navsec-display" class="navsec-title">This screen</h2>
       <ul class="navtiles">
         <li><button type="button" id="theme-toggle" class="navtile ni-theme" aria-label="Toggle dark/light theme">{{ _ico('theme') }}<span class="navlabel">Dark / light</span><small class="navsub">Switch the screen colours</small></button></li>
-        <li><button type="button" class="navtile ni-print" onclick="window.print()">{{ _ico('print') }}<span class="navlabel">Print this page</span><small class="navsub">Print what is on screen</small></button></li>
+        {% if menu_page and _vin %}<li><a class="navtile ni-print" href="/v/{{ _vin }}/bay-service-sheet?print=1" data-nav="print-bay-service-sheet">{{ _ico('print') }}<span class="navlabel">Print Bay Service Sheet</span><small class="navsub">Windshield card with a scan code</small></a></li>
+        {% else %}<li><button type="button" class="navtile ni-print" onclick="window.print()">{{ _ico('print') }}<span class="navlabel">Print this page</span><small class="navsub">Print what is on screen</small></button></li>{% endif %}
       </ul>
     </section>
   </details>

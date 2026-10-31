@@ -222,13 +222,13 @@ input.m-input {
   width: 100%;
   transition: border-color 200ms ease;
 }
-input.m-input:focus { outline: none; border-bottom-color: var(--accent); }
+input.m-input:focus { outline: none; border-bottom-color: var(--accent-quiet); }
 textarea.m-textarea {
   min-height: 72px; resize: vertical; width: 100%;
   background: transparent; color: var(--ink); font-size: var(--fs-lg); font-family: var(--sans);
   border: none; border-bottom: 2px solid var(--rule); border-radius: 0; padding: 10px 2px;
 }
-textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
+textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent-quiet); }
 
 /* Big numeric figures (litres, price, odometer): the number itself is the
    statement, the unit sits small right after it, never inside the box. */
@@ -412,7 +412,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 }
 .m-event-fields { margin: 0 0 8px; padding-left: 18px; font-size: var(--fs-md); }
 .m-event-note { font-size: var(--fs-md); color: var(--ink-2); }
-.m-edited-badge { text-transform: uppercase; font-size: var(--fs-xs); letter-spacing: .06em; color: var(--accent); }
+.m-edited-badge { text-transform: uppercase; font-size: var(--fs-xs); letter-spacing: .06em; color: var(--accent-text); }
 
 /* Edit (history row) -- a plain 48px tap target, same house style as
    .m-ghost-btn but inline rather than full-width. */
@@ -472,7 +472,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
 }
 .m-card-field-value { font-size: var(--fs-md); color: var(--ink); }
 .m-card-attested { font-size: var(--fs-sm); color: var(--ink-3); margin: 0; }
-.m-card-edited { font-size: var(--fs-sm); color: var(--accent); margin: 0 0 4px; }
+.m-card-edited { font-size: var(--fs-sm); color: var(--accent-text); margin: 0 0 4px; }
 .m-confirm-actions { display: flex; gap: 10px; }
 
 /* ---------- edit screen (Cancel/Delete) + deleted/undo screen ---------- */
@@ -525,7 +525,7 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   font-weight: var(--fw-semibold);
 }
 .m-navicon { width: 22px; height: 22px; stroke: currentColor; fill: none; }
-.m-bottomnav a.on { color: var(--accent); }
+.m-bottomnav a.on { color: var(--accent-text); }
 
 /* Last-used values under a remembered free-text field (one tap fills the box). */
 .m-recent { margin-top: -2px; }
@@ -587,5 +587,8 @@ textarea.m-textarea:focus { outline: none; border-bottom-color: var(--accent); }
   font-size: var(--fs-xs); font-weight: var(--fw-semibold);
 }
 .m-menu-ico { font-size: var(--fs-2xl); line-height: 22px; }
-.m-body .navsheet .navtiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.m-body .navsheet .navtile { min-height: 72px; min-width: 0; }
+/* The sheet is the Menu from cuore.css (same grid, gap, tiles, type). Only the
+   phone guarantees: tiles may shrink to the column (min-width 0) and stay >= 72 px
+   tall; the large top tiles keep their own 104 px. */
+.m-body .navsheet .navtile { min-width: 0; }
+.m-body .navsheet .navtiles:not(.navtop) .navtile { min-height: 72px; }

@@ -201,7 +201,7 @@
 :root[data-marque="maserati"], .brand-tile[data-marque="maserati"], .car-card[data-marque="maserati"], .cars-head[data-marque="maserati"] {
   --display: "Jost", var(--sans); --numerals: "Jost", var(--mono);
   --display-weight: 300; --display-stretch: 100%; --display-case: uppercase; --display-track: -.01em;
-  --label-case: uppercase; --label-track: .04em; --label-stretch: 100%;
+  --label-case: uppercase; --label-track: .04em; --label-stretch: 100%; --accent-text: var(--ink-2);
   --accent: #ffc845; --accent-ink: #0a0a0a; --accent-dim: #3a2d0a; --accent-quiet: var(--ink);
   --radius: 0px; --radius-sm: 0px;
 }
@@ -285,7 +285,7 @@ button, input, select, textarea {
 }
 
 a { color: var(--ink); text-decoration-color: var(--ink-3); }
-a:hover { color: var(--accent); }
+a:hover { color: var(--accent-text); }
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
@@ -618,7 +618,7 @@ textarea { min-height: 68px; resize: vertical; }
 .step:first-child { border-top: none; }
 .step .head { display: flex; gap: 10px; align-items: baseline; }
 .step .id {
-  font-family: var(--mono); font-size: var(--fs-xs); color: var(--accent);
+  font-family: var(--mono); font-size: var(--fs-xs); color: var(--accent-text);
   min-width: 2.4em;
 }
 .step .title { font-weight: var(--fw-semibold); }
@@ -706,6 +706,12 @@ header.top .brand { position: absolute; left: 50%; top: 50%; transform: translat
 @media (max-width: 759px) {
   /* phone: logo centred, Menu right; the car bar below carries the car name */
   header.top .top-car { display: none; }
+  header.top .brand-word { display: none; }
+}
+/* Bench: the car name shows once. Desktop = the header; under 760 px the header
+ * name is hidden, so the bar line carries it. */
+@media (min-width: 760px) {
+  .vbar .vline .vname.vname-once { display: none; }
 }
 
 .navsheet { display: none; }
@@ -996,7 +1002,7 @@ body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
   white-space: nowrap;
 }
 .jump-chip:hover { color: var(--ink); border-color: var(--ink-3); }
-.jump-chip b { color: var(--accent); margin-left: 3px; }
+.jump-chip b { color: var(--accent-text); margin-left: 3px; }
 .jump-action { border-style: dashed; }
 
 /* ---------- open-work job cards (R4) ---------- */
@@ -1017,7 +1023,7 @@ body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
   font-family: var(--mono); font-size: var(--fs-xs); background: var(--surface-2); color: var(--ink);
   border: 1px solid var(--rule); border-radius: var(--radius); text-decoration: none;
 }
-.chip-code:hover { border-color: var(--accent); color: var(--accent); }
+.chip-code:hover { border-color: var(--accent-quiet); color: var(--accent-text); }
 
 .checklist { list-style: none; margin: 0; padding: 0; }
 .checklist-step {
@@ -1267,7 +1273,7 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 .tl-toolbar a { padding: 3px 8px; border: 1px solid var(--rule); border-radius: var(--radius);
                 color: var(--ink-2); text-decoration: none; min-height: 28px; display: inline-flex;
                 align-items: center; }
-.tl-toolbar a.on { color: var(--ink); border-color: var(--accent); font-weight: var(--fw-semibold); }
+.tl-toolbar a.on { color: var(--ink); border-color: var(--accent-quiet); font-weight: var(--fw-semibold); }
 
 /* Correlation table: verdict chips reuse the existing severity chip classes
  * (.chip.chronic amber, .chip.plain grey-neutral) rather than new colours --
@@ -1289,7 +1295,7 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
   user-select: none; transition: background .1s ease, border-color .1s ease, color .1s ease;
 }
 .tag-chip input:checked + label {
-  background: var(--accent-dim); border-color: var(--accent); color: var(--ink); font-weight: var(--fw-semibold);
+  background: var(--accent-dim); border-color: var(--accent-quiet); color: var(--ink); font-weight: var(--fw-semibold);
 }
 .tag-chip.normally label { border-color: var(--ok); color: var(--ok); font-weight: var(--fw-semibold); }
 .tag-chip.normally input:checked + label { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
@@ -1372,7 +1378,7 @@ a.part-compact {
   background: var(--surface); text-decoration: none; color: var(--ink);
   margin-bottom: 8px;
 }
-a.part-compact:hover { border-color: var(--accent); }
+a.part-compact:hover { border-color: var(--accent-quiet); }
 .part-thumb {
   flex: none; width: 40px; height: 40px; border-radius: var(--radius);
   object-fit: cover; background: var(--surface-2);
@@ -1421,7 +1427,7 @@ a.part-compact:hover { border-color: var(--accent); }
   font-size: var(--fs-sm); font-family: inherit; cursor: pointer;
 }
 .hyp-status-btn.on {
-  background: var(--accent-dim); border-color: var(--accent); color: var(--ink);
+  background: var(--accent-dim); border-color: var(--accent-quiet); color: var(--ink);
   font-weight: var(--fw-semibold);
 }
 
@@ -1453,7 +1459,7 @@ a.part-compact:hover { border-color: var(--accent); }
 .tool-row:last-child { border-bottom: none; }
 .tool-row-main { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .tool-kind { text-transform: uppercase; letter-spacing: .03em; }
-.tool-required { font-weight: var(--fw-semibold); color: var(--accent); }
+.tool-required { font-weight: var(--fw-semibold); color: var(--accent-text); }
 .tool-spec { margin: 2px 0; }
 .tool-note { color: var(--ink-2); }
 
@@ -1486,7 +1492,7 @@ a.part-compact:hover { border-color: var(--accent); }
   border-radius: var(--radius); background: var(--surface-2); color: var(--ink-2);
   font-size: var(--fs-sm); font-family: inherit; cursor: pointer;
 }
-.tool-have-btn.on { background: var(--accent-dim); border-color: var(--accent); color: var(--ink); font-weight: var(--fw-semibold); }
+.tool-have-btn.on { background: var(--accent-dim); border-color: var(--accent-quiet); color: var(--ink); font-weight: var(--fw-semibold); }
 
 .tool-decision-card {
   margin-top: 8px; padding: 10px; border: 1.5px dashed var(--rule);
@@ -1664,7 +1670,7 @@ h2, .section-h, .step-title {
 .hero-name { font-size: var(--fs-3xl); font-weight: var(--fw-light); letter-spacing: .01em; color: #fff; }
 .hero-tagline {
   font-size: var(--fs-md); text-transform: uppercase; letter-spacing: .14em;
-  color: var(--accent); font-weight: var(--fw-semibold);
+  color: var(--accent-text); font-weight: var(--fw-semibold);
 }
 .hero-verdict { margin-top: var(--space-2); }
 .hero-verdict-state {
@@ -1725,7 +1731,7 @@ h2, .section-h, .step-title {
 }
 .pm-step .pm-n { font-size: var(--fs-xs); font-family: var(--mono); }
 .pm-step.pm-done { color: var(--ok); }
-.pm-step.pm-current { color: var(--accent); font-weight: var(--fw-semibold); }
+.pm-step.pm-current { color: var(--accent-text); font-weight: var(--fw-semibold); }
 .pm-step.pm-blocked { color: var(--sev-chronic); }
 .pm-step.pm-todo { color: var(--ink-3); }
 .pm-step.pm-current .pm-n { font-size: var(--fs-xs); }
@@ -1748,7 +1754,7 @@ h2, .section-h, .step-title {
 .step-headline-done .step-headline-n,
 .step-headline-done .step-headline-title { color: var(--ok); }
 .step-headline-current .step-headline-n,
-.step-headline-current .step-headline-title { color: var(--accent); }
+.step-headline-current .step-headline-title { color: var(--accent-text); }
 .step-headline-blocked .step-headline-why { color: var(--sev-chronic); font-weight: var(--fw-semibold); }
 
 /* ---------- priority marks (ACTIVE/CLEARED_UNVERIFIED/STALE -> p1/p2/p3),
@@ -1763,7 +1769,7 @@ h2, .section-h, .step-title {
   font-weight: var(--fw-semibold); border: 1px solid var(--rule); border-radius: var(--radius);
   background: transparent; color: var(--ink-2); cursor: pointer;
 }
-.lang-btn-active { color: var(--ink); border-color: var(--accent); background: var(--accent-dim); }
+.lang-btn-active { color: var(--ink); border-color: var(--accent-quiet); background: var(--accent-dim); }
 
 /* ---------- opening reveal (_intro.html): full-screen black overlay,
  * logo fade-in, tagline, fade-out onto the page beneath. Dismiss is the
@@ -1787,7 +1793,7 @@ h2, .section-h, .step-title {
   font-family: var(--display);
   font-size: var(--fs-3xl); font-weight: var(--fw-light); letter-spacing: .04em; color: #fff;
 }
-.intro-wordmark span { color: var(--accent); }
+.intro-wordmark span { color: var(--accent-text); }
 .intro-tagline {
   opacity: 0; animation: intro-in .9s ease-out .9s forwards;
   color: rgba(255, 255, 255, .72); font-size: var(--fs-xs); letter-spacing: .18em;
@@ -2045,7 +2051,7 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
 .connect-step.is-err .connect-step-icon::before { content: "\26A0"; color: #e0574a; }
 .connect-pause-card {
   margin-top: var(--space-2); padding: var(--space-2);
-  border: 1px solid var(--accent); border-radius: 8px;
+  border: 1px solid var(--accent-quiet); border-radius: 8px;
 }
 .connect-pause-actions, .connect-done-actions {
   display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2);

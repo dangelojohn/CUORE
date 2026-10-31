@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bay Service Sheet - {{ s.vin8 }}</title>
+{# Bay Service Sheet: the card under the wiper blade. Standalone page (no site header, foot, Menu or feedback button).
+   Black and white only, everything on the centre axis. Rebuilt from the stores on every request (no-store).
+   Data: cuore/services/bay_service_sheet.py. The QR holds only the URL shown under it.
+   Sizes are in mm for paper; max-width:100% lets the same page fit a phone screen. #}
+<style>
+@page { margin: 6mm; }
+* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+html, body { margin: 0; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; text-align: center; }
+.sheet { width: 196mm; max-width: 100%; margin: 0 auto; padding: 3mm 2mm; overflow-wrap: anywhere; }
+.mark { display: block; height: 12mm; max-width: 60mm; margin: 0 auto 1mm; object-fit: contain; }
+.mark.m-image { filter: grayscale(1) contrast(1.3); }
+.mark.m-mask { filter: brightness(0); }
+h1 { margin: 0; font-size: 24pt; line-height: 1.1; border-bottom: 1.5mm solid #000; padding-bottom: 1.5mm; }
+.art { display: block; width: auto; max-width: 100%; height: 22mm; margin: 2mm auto 0; }
+.car { font-size: 21pt; font-weight: 800; line-height: 1.05; margin: 1.5mm 0 0; max-height: 20mm; overflow: hidden; }
+.vin8 { font-size: 34pt; font-weight: 800; letter-spacing: .05em; font-family: Consolas, "Courier New", monospace; line-height: 1.1; }
+.vin8 small, .odo small { font-family: Arial, sans-serif; font-size: 10pt; font-weight: 400; letter-spacing: 0; margin-right: 2mm; }
+.odo { font-size: 14pt; font-weight: 700; }
+.qr { display: block; width: 118mm; max-width: 100%; height: auto; aspect-ratio: 1; margin: 1mm auto 0; }
+.scan { margin: 0; font-size: 17pt; font-weight: 700; }
+.url { margin: 0; font-size: 8pt; font-family: Consolas, "Courier New", monospace; overflow-wrap: anywhere; }
+.noqr { width: 118mm; max-width: 100%; min-height: 118mm; margin: 1mm auto 0; border: 1.2mm solid #000; display: flex; align-items: center; justify-content: center; padding: 8mm; font-size: 16pt; font-weight: 700; }
+.visit { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 5mm; border-top: .6mm solid #000; margin-top: 2mm; padding-top: 1mm; }
+.visit .wide { grid-column: 1 / -1; }
+.k { font-size: 8pt; text-transform: uppercase; letter-spacing: .05em; }
+.v { font-size: 13pt; font-weight: 700; min-height: 6mm; line-height: 1.15; max-height: 14mm; overflow: hidden; }
+.blank { display: block; border-bottom: .4mm solid #000; height: 5.5mm; }
+.work { border-top: .6mm solid #000; margin-top: 1.5mm; padding-top: 1mm; }
+.work h2 { margin: 0; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .05em; }
+.work ul { list-style: none; margin: 0; padding: 0; max-height: 21mm; overflow: hidden; }
+.work li { font-size: 10pt; line-height: 1.1; height: 5mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.work li b { margin-right: 2mm; }
+.upd { margin-top: 1.5mm; border-top: 1.5mm solid #000; padding-top: 1mm; font-size: 16pt; font-weight: 700; }
+.upd small { font-size: 9pt; font-weight: 400; text-transform: uppercase; letter-spacing: .05em; margin-right: 3mm; }
+.pbtn { margin: 4mm auto; }
+.pbtn button { font-size: 16pt; min-height: 44px; padding: 3mm 8mm; }
+@media (max-width: 560px) {
+  .vin8 { font-size: 28pt; } .visit { grid-template-columns: 1fr; } .work li { white-space: normal; height: auto; }
+  .work ul { max-height: none; }
+}
+@media print { .no-print { display: none !important; } .sheet { padding: 0; } }
+</style>
+</head>
+<body>
+<main class="sheet" data-updated="{{ s.updated }}">
+  {% if s.mark_url %}<img class="mark m-{{ s.mark_kind }}" src="{{ s.mark_url }}" alt="{{ s.marque }}">{% elif s.marque %}<div class="car">{{ s.marque }}</div>{% endif %}
+  <h1>Bay Service Sheet</h1>
+  {% if s.art %}<svg class="art" viewBox="0 0 860 360" role="img" aria-label="{{ s.name }}, side view"><path d="{{ s.art.ink }}" fill="#000" fill-rule="evenodd"/></svg>{% endif %}
+  <div class="car" id="car">{% if s.name %}{{ s.name }}{% else %}<span class="blank" style="height:9mm"></span>{% endif %}</div>
+  <div class="vin8" id="vin8"><small>VIN ends</small>{{ s.vin8 }}</div>
+  {% if s.odo is not none %}<div class="odo" id="odo"><small>Odometer</small>{{ '{:,.0f}'.format(s.odo) }} km</div>{% endif %}
+  {% if s.qr %}{{ s.qr|safe }}
+  <p class="scan">Scan for this car's details</p>
+  <p class="url" id="qrurl">{{ s.url }}</p>
+  {% else %}<div class="noqr" id="noqr">{{ s.problem }}</div>{% endif %}
+  <div class="visit" id="visit">
+    <div class="wide"><div class="k">Reason for visit</div><div class="v">{% if s.reason %}{{ s.reason }}{% else %}<span class="blank"></span>{% endif %}</div></div>
+    <div><div class="k">Date in</div><div class="v">{% if s.date_in %}{{ s.date_in }}{% else %}<span class="blank"></span>{% endif %}</div></div>
+    <div><div class="k">Technician</div><div class="v">{% if s.tech %}{{ s.tech }}{% else %}<span class="blank"></span>{% endif %}</div></div>
+    <div><div class="k">Status</div><div class="v" id="status">{% if s.status %}{{ s.status }}{% else %}<span class="blank"></span>{% endif %}</div></div>
+  </div>
+  <div class="work" id="work">
+    <h2>Latest work</h2>
+    <ul>{% for w in s.work %}<li><b>{{ w.date }}</b><b>{{ w.kind }}</b>{{ w.text }}</li>{% else %}<li>No work recorded yet</li>{% endfor %}</ul>
+  </div>
+  <div class="upd" id="updated"><small>Updated</small>{{ s.updated }}</div>
+  <p class="pbtn no-print"><button type="button" onclick="window.print()">Print</button></p>
+</main>
+{% if auto_print %}<script>window.addEventListener('load', function () { window.print(); }, { once: true });</script>{% endif %}
+</body>
+</html>

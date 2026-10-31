@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ s.name or 'Car' }} ...{{ s.vin8 }}</title>
+{# Read-only phone page behind the Bay Service Sheet QR. Single column, no sideways scroll at 360 px, no JavaScript,
+   no form, no button, no link that acts on the car. #}
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: #fff; color: #000; font-size: 18px; line-height: 1.4; -webkit-text-size-adjust: 100%; }
+main { max-width: 640px; margin: 0 auto; padding: 14px; overflow-wrap: anywhere; word-break: break-word; }
+h1 { font-size: 26px; margin: 0 0 4px; line-height: 1.15; }
+h2 { font-size: 16px; text-transform: uppercase; letter-spacing: .05em; margin: 20px 0 6px; border-top: 2px solid #000; padding-top: 10px; }
+.mono { font-family: Consolas, Menlo, monospace; } .big { font-size: 22px; font-weight: 700; } .muted { color: #333; font-size: 16px; }
+ul { margin: 4px 0; padding-left: 22px; } li { margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>{{ s.name or 'Car' }}</h1>
+  <div class="mono">VIN {{ s.vin }}{% if s.odo is not none %}<br>{{ '{:,.0f}'.format(s.odo) }} km{% endif %}</div>
+  <div class="muted">Updated {{ s.updated }} (read only)</div>
+  <h2>Status</h2>
+  <div class="big">{{ s.status or 'No job on record' }}</div>
+  {% if s.state %}<div>{{ s.state }}{% if s.summary %}: {{ s.summary }}{% endif %}</div>{% endif %}
+  <h2>Reason for visit</h2>
+  <div>{{ s.reason or 'Not recorded' }}</div>
+  <div class="muted">In {{ s.date_in or 'date not recorded' }}<br>Technician {{ s.tech or 'not recorded' }}</div>
+  <h2>Codes to work on</h2>
+  {% if s.codes %}<ul>{% for c in s.codes %}<li><b class="mono">{{ c.code }}</b> {{ c.label }}{% if c.module %} ({{ c.module }}){% endif %}{% if c.status %}, {{ c.status }}{% endif %}</li>{% endfor %}</ul>{% if s.more_codes %}<div class="muted">and {{ s.more_codes }} more</div>{% endif %}{% else %}<div>No open code on record</div>{% endif %}
+  <h2>What could not be read</h2>
+  {% if s.not_read %}<ul>{% for m in s.not_read %}<li>{{ m }}</li>{% endfor %}</ul>{% else %}<div>Nothing recorded as unread at the last car session</div>{% endif %}
+  <h2>Next step</h2>
+  <div class="big">{{ s.next or 'Start a job' }}</div>{% if s.next_why %}<div>{{ s.next_why }}</div>{% endif %}
+  <h2>Latest work</h2>
+  {% if s.work %}<ul>{% for w in s.work %}<li><b>{{ w.date }}</b> {{ w.kind }}: {{ w.text }}</li>{% endfor %}</ul>{% else %}<div>No work recorded yet</div>{% endif %}
+</main>
+</body>
+</html>

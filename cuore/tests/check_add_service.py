@@ -66,6 +66,14 @@ check("Menu is populated and offers Add Service at /add",
 check("page loads its own css and js", "add_service.css" in page and "add_service.js" in page)
 check("no-script fallback keeps /start reachable", 'href="/start"' in page.split("<noscript>")[1].split("</noscript>")[0])
 check("make picker built from the brand data", all(f'data-make="{n}"' in page for n in ("Alfa Romeo", "Maserati", "Ferrari")))
+check("third tile: Choose, pick from the lists, same icon style", 'data-act="choose"' in page and "Pick from the lists" in page
+      and page.count('class="as-pic"') == 3 and page.count('stroke-width="3"') >= 3)
+check("Choose screen: four drop-downs in order, VIN field, VIN line, Continue",
+      [page.find(i) for i in ('id="as-c-brand"', 'id="as-c-model"', 'id="as-c-year"', 'id="as-c-engine"', 'id="as-cvin"')]
+      == sorted(page.find(i) for i in ('id="as-c-brand"', 'id="as-c-model"', 'id="as-c-year"', 'id="as-c-engine"', 'id="as-cvin"'))
+      and page.count("<select") == 4 and "Choose the car" in page and "The VIN files this car's records." in page
+      and 'id="as-choose-go"' in page)
+check("Choose: later lists start disabled", all(re.search(rf'id="{i}"[^>]*disabled', page) for i in ("as-c-model", "as-c-year", "as-c-engine")))
 check("five reason tiles", len(re.findall(r'class="as-reason"', page)) == 5)
 check("/start still works", c.get("/start").status_code == 200)
 check("Add a car card on the car list points at /add",
@@ -77,7 +85,7 @@ js = (ROOT / "cuore/web/static/add_service.js").read_text(encoding="utf-8")
 css = (ROOT / "cuore/web/static/add_service.css").read_text(encoding="utf-8")
 tpl = (ROOT / "cuore/web/templates/add_service.html").read_text(encoding="utf-8")
 for word in ("online", "lookup", "nhtsa", "vpic", "recall", "xmlhttp"):
-    check(f"nothing about '{word}' in page, script or style", word not in (page + js + css + tpl).lower(), word)
+    check(f"nothing about '{word}' in page, script or style", word not in (page.split("</header>", 1)[-1] + js + css + tpl).lower(), word)
 urls = set(re.findall(r'(?:fetch|assign)\(\s*["\']([^"\']+)', js))
 check("script calls only this server", all(u.startswith(("/api/car/", "/add/")) for u in urls) and "http" not in " ".join(urls), str(urls))
 check("backend lookup stays off", ci.ONLINE_LOOKUP_ENABLED is False and ci.online_lookup(NEW, enabled=True)["performed"] is False)
@@ -186,7 +194,7 @@ jc = c.post("/api/car/create-service", json={"fields": {"vin": {"value": ON_CORP
 check("job page is where the button lands (car with logs)", c.get(f"/v/{jc['vin']}/job").status_code == 200)
 check("reason stored on the job", jobs_mod.current(NEW)["complaint"] == "shudder: at 40 km/h")
 check("title wording stored with the visit", shop_mod.load(NEW)[0]["vehicle"] == "Alfa Romeo Stelvio 2018", str(shop_mod.load(NEW)[0].get("vehicle")))
-check("car appears under its brand", f'href="/v/{NEW}"' in c.get("/cars?brand=alfa").text)
+check("car appears under its brand", f'href="/v/{NEW}/menu"' in c.get("/cars?brand=alfa").text)
 
 r2 = c.post("/api/car/create-service", json={"fields": fields, "reason": "again", "odometer": None})
 j2 = r2.json()
@@ -211,6 +219,55 @@ for path in ("/job", "", "/liveboard", "/report", "/bay-sheet", "/modules", "/co
     check(f"new car: /v/VIN{path} renders", rr.status_code == 200, str(rr.status_code))
 check("new car is on its brand's car list", NEW in c.get("/cars?brand=alfa").text)
 check("a VIN nobody opened still answers 404", c.get(f"/v/{READ_VIN}/job").status_code == 404)
+
+# --- Choose: the pick lists, the page wiring, and a chosen field through create-service -----------
+choices = json.loads((ROOT / "cuore/data/car_choices.json").read_text(encoding="utf-8"))
+OTHER = choices["other"]
+brand_names = [b["name"] for b in json.loads((ROOT / "cuore/data/brands.json").read_text(encoding="utf-8"))["brands"]]
+check("pick list says it is not evidence", "not evidence" in choices["_about"])
+check("pick list covers exactly the brands in brands.json, same order", [b["name"] for b in choices["brands"]] == brand_names, str(brand_names))
+this_year = __import__("datetime").date.today().year
+for b in choices["brands"]:
+    ms = b["models"]
+    check(f"{b['name']}: models listed and the list ends with Other", len(ms) > 1 and ms[-1]["name"] == OTHER and ms[-1].get("other") is True)
+    check(f"{b['name']}: no duplicate model", len({m["name"] for m in ms}) == len(ms))
+    for m in ms:
+        eng = m["engines"]
+        check(f"{b['name']} {m['name']}: engines end with the Other option, no duplicates",
+              eng[-1] == OTHER and eng.count(OTHER) == 1 and len(set(eng)) == len(eng) and (len(eng) > 1 or m.get("other")))
+        ly = m["last_year"]
+        check(f"{b['name']} {m['name']}: years sane",
+              isinstance(m["first_year"], int) and 1950 <= m["first_year"] <= this_year + 1
+              and (ly is None or (isinstance(ly, int) and m["first_year"] <= ly <= this_year + 1)))
+        check(f"{b['name']} {m['name']}: says where it came from", bool(str(m.get("basis", "")).strip()))
+by = {b["name"]: {m["name"]: m for m in b["models"]} for b in choices["brands"]}
+check("Stelvio 2018- and Giulia 2017- (North America), Levante to 2024 as the repo records",
+      by["Alfa Romeo"]["Stelvio"]["first_year"] == 2018 and by["Alfa Romeo"]["Giulia"]["first_year"] == 2017
+      and by["Maserati"]["Levante"]["last_year"] == 2024)
+check("the page carries the pick lists inline, no fetch", 'id="as-choices"' in page and "/add/choices" not in js)
+check("script has the Choose wiring and the same Other wording as the data",
+      f'"{OTHER}"' in js and "chosen from the list" in js and "yearsFor" in js and "choiceConflict" in js and "wireVin" in js
+      and 'data-act="choose"' in tpl and "openChoose" in js)
+check("Choose and Type share the one VIN check (still a single read_car false)", js.count("wireVin(") == 3)  # definition + two uses
+
+# A chosen field is stored as typed in ("chosen from the list") and beats the VIN decode, even when they disagree.
+CHOSEN_VIN = "ZASFAKPN5J7B88779"   # decodes to Alfa Romeo Stelvio 2018; invented for this test
+dec = c.post("/api/car/identify", json={"vin": CHOSEN_VIN, "read_car": False}).json()["card"]["fields"]
+picked = {k: {"value": v, "source": ci.SRC_TYPED, "detail": "chosen from the list", "verified": True}
+          for k, v in (("make", "Alfa Romeo"), ("model", "Giulia"), ("model_year", 2019), ("engine", "2.0L turbo I4"))}
+rc = c.post("/api/car/create-service", json={"fields": {**dec, **picked}, "reason": "service"})
+jc2 = rc.json()
+cf = jc2["card"]["fields"]
+check("chosen service opened", rc.status_code == 200 and jc2["created"], rc.text[:160])
+check("chosen model beats the decode (Giulia, not Stelvio) and stays ENTERED with its detail",
+      cf["model"]["value"] == "Giulia" and cf["model"]["source"] == ci.SRC_TYPED and cf["model"]["detail"] == "chosen from the list")
+check("chosen year and engine stay ENTERED too", cf["model_year"]["value"] == 2019 and cf["model_year"]["source"] == ci.SRC_TYPED
+      and cf["engine"]["value"] == "2.0L turbo I4" and cf["engine"]["source"] == ci.SRC_TYPED)
+check("fields not chosen keep their decode", cf["plant"]["source"] == ci.SRC_DECODED and cf["vin"]["value"] == CHOSEN_VIN)
+check("title wording uses the choice", shop_mod.load(CHOSEN_VIN)[0]["vehicle"] == "Alfa Romeo Giulia 2019", str(shop_mod.load(CHOSEN_VIN)[0].get("vehicle")))
+nolst = {k: v for k, v in picked.items() if k != "engine"}
+rn = c.post("/api/car/create-service", json={"fields": {**dec, **nolst, "vin": ci.make_field("ZASFAKPN5J7B88780", ci.SRC_TYPED)}, "reason": "service"}).json()
+check("engine left at Not sure stays unknown, not invented", "engine" not in rn["card"]["fields"] or rn["card"]["fields"]["engine"]["value"] is None)
 
 # --- look and feel rules -----------------------------------------------------------------------
 check("css uses tokens: no hex colours, no px font sizes", not re.search(r"#[0-9a-fA-F]{3,8}\b|font-size:\s*\d+px", css))

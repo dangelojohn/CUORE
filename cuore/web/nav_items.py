@@ -85,6 +85,7 @@ ITEMS: list[dict[str, Any]] = [
     # ---- Records
     _i("report", "Report", V + "/report", "Records", "report", i18n="report", primary=True, top=7),
     _i("bay-sheet", "Bay sheet", V + "/bay-sheet", "Records", "sheet"),
+    _i("bay-service-sheet", "Bay Service Sheet", V + "/bay-service-sheet", "Records", "sheet"),
     _i("car-session", "Car session", V + "/car-session", "Records", "session"),
     _i("dossier", "Dossier", V + "/dossier", "Records", "dossier", i18n="dossier"),
     _i("timeline", "Timeline", V + "/timeline", "Records", "timeline", i18n="timeline"),
@@ -136,9 +137,9 @@ SUB: dict[str, str] = {
     "tsb": "Bulletins and recalls, this car", "service-hub": "Routine service in one place",
     "adjustments": "Run resets, see what is ready", "arrive-ready": "Prepare before the car arrives",
     "parts": "Parts for this car", "mods": "Changes recorded on this car",
-    "witech-recording": "Record what a dealer tool does", "parity": "What MES and AlfaOBD do vs CUORE",
+    "witech-recording": "Record what a dealer tool does", "parity": "What other tools do vs CUORE",
     "procedures": "Procedures still being proven", "report": "The finished report",
-    "bay-sheet": "The page that travels with the car", "car-session": "Checklist for next connection",
+    "bay-sheet": "The page that travels with the car", "bay-service-sheet": "Windshield card with a scan code", "car-session": "Checklist for next connection",
     "dossier": "Everything CUORE knows", "timeline": "What happened, in order",
     "warranty-pack": "Evidence for a warranty claim", "recordings": "Recordings of this car's data",
     "scans": "Earlier scans of this car", "media": "Photos and videos", "labels": "Printable labels",
@@ -280,6 +281,7 @@ HELP: dict[str, tuple[str, str]] = {
     "arrive-ready": ("before the car arrives, booking, prepare, appointment", "Get the job ready before the car arrives."),
     "warranty-pack": ("claim, warranty, evidence pack", "The evidence pack for a warranty claim."),
     "bay-sheet": ("print, job sheet, clipboard, paper", "The one-page sheet that travels with the car."),
+    "bay-service-sheet": ("windshield, wiper, qr, barcode, scan, card, service manager", "Print the windshield card with a scan code."),
     "field-quality": ("field quality, early warning, trend of failures", "Early warning of problems seen across cars."),
     "library": ("manual, document, service information, pdf", "Manufacturer documents and where their facts show."),
 }

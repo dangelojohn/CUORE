@@ -19,6 +19,11 @@
         <span class="as-tile-name">Type</span>
         <span class="as-tile-sub">Enter the VIN</span>
       </button>
+      <button type="button" class="as-tile" id="as-choose" data-act="choose">
+        <svg class="as-pic" viewBox="0 0 96 96" aria-hidden="true"><rect x="8" y="20" width="80" height="24" rx="4" fill="none" stroke="currentColor" stroke-width="3"/><path d="M62 29l6 6 6-6M20 32h30M20 60h56M20 74h38" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="as-tile-name">Choose</span>
+        <span class="as-tile-sub">Pick from the lists</span>
+      </button>
     </div>
     <form class="as-type" id="as-typeform" hidden autocomplete="off">
       <label class="as-label" for="as-vin">VIN</label>
@@ -26,6 +31,41 @@
              autocapitalize="characters" autocorrect="off" aria-describedby="as-vin-state">
       <p class="as-vin-state" id="as-vin-state" role="status"></p>
       <button type="submit" class="as-go" id="as-vin-go" disabled>Use this VIN</button>
+    </form>
+  </div>
+
+  {# S1c -- the drop-down way in: brand, model, year, engine, then the VIN #}
+  <div class="as-screen" data-screen="choose" hidden>
+    <h1 class="as-h">Choose the car</h1>
+    <script type="application/json" id="as-choices">{{ choices|tojson }}</script>
+    <form class="as-choose" id="as-chooseform" autocomplete="off">
+      <div class="as-block">
+        <label class="as-label" for="as-c-brand">Brand</label>
+        <select id="as-c-brand" class="as-select"></select>
+      </div>
+      <div class="as-block">
+        <label class="as-label" for="as-c-model">Model</label>
+        <select id="as-c-model" class="as-select" disabled></select>
+        <input id="as-c-modeltext" class="as-line as-other" type="text" maxlength="60" autocomplete="off" placeholder="Type the model" aria-label="Model name" hidden>
+      </div>
+      <div class="as-block">
+        <label class="as-label" for="as-c-year">Year</label>
+        <select id="as-c-year" class="as-select" disabled></select>
+      </div>
+      <div class="as-block">
+        <label class="as-label" for="as-c-engine">Engine</label>
+        <select id="as-c-engine" class="as-select" disabled></select>
+        <input id="as-c-enginetext" class="as-line as-other" type="text" maxlength="60" autocomplete="off" placeholder="Type the engine" aria-label="Engine" hidden>
+      </div>
+      <label class="as-label" for="as-cvin">VIN</label>
+      <input id="as-cvin" class="as-vin" type="text" inputmode="text" maxlength="24" spellcheck="false"
+             autocapitalize="characters" autocorrect="off" aria-describedby="as-cvin-state">
+      <p class="as-note as-vin-why">The VIN files this car's records.</p>
+      <p class="as-vin-state" id="as-cvin-state" role="status"></p>
+      <div class="as-actions">
+        <button type="submit" class="as-go" id="as-choose-go" disabled>Continue</button>
+        <button type="button" class="as-sec" data-act="back-find">Back</button>
+      </div>
     </form>
   </div>
 
@@ -51,6 +91,7 @@
         {% for b in brands %}<button type="button" class="as-make" data-make="{{ b.name }}">{{ b.name }}</button>{% endfor %}
       </div>
     </div>
+    <p class="as-warn" id="as-card-warn" role="alert" hidden></p>
     <ul class="as-fields" id="as-fields"></ul>
     <div class="as-story" id="as-story" hidden></div>
     <div class="as-actions">
