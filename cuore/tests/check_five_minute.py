@@ -59,7 +59,7 @@ class Fake:
     def bus_ready(self, bus, cable): return (self.bus_ok, "" if self.bus_ok else "bus not verified")
     def voltage(self): self.calls.append("voltage"); return self.volts
 
-    def modules(self, bus):
+    def modules(self, bus, vin=None):
         self.calls.append("modules")
         return [{"code": c, "name": c, "usable": True, "present": True, "target": 1} for c in ("ECM", "TCM")] \
             if bus == "can_c" else [{"code": "ABS", "name": "ABS", "usable": True, "present": True, "target": 2}]
@@ -100,24 +100,40 @@ class Fake:
         self.calls.append(f"channel:{ch['id']}")
         return {"value": 850.0, "unit": "rpm", "error": None}
 
-    def mes_csv(self, since): return None
+    csv = None
+
+    def mes_csv(self, since): return self.csv
 
 
 def go(fake, **kw):
     return fm.run(VIN, probe=fake, **kw)
 
 
-# all-pass fixture: steps 1-3 and 4 pass, step 5 never
+# no MES CSV: step 3 must NOT pass (nothing was compared)
 f = Fake()
+r = go(f)
+flags = [s["passed"] for s in r["steps"]]
+check("no MES CSV: step 3 fails, 1-2 and 4 pass", flags[:4] == [True, True, False, True], str(flags))
+check("no MES CSV: step 3 says NOT COMPARED and lists it in step 4",
+      all("NOT COMPARED" in i["mes"] and i["reason"].startswith("NOT COMPARED") for i in r["steps"][2]["items"])
+      and any(n["step"] == 3 and "NOT COMPARED" in n["reason"] for n in r["not_read"]))
+cmpf = Fake()
+cmpf.csv = {"name": "x.csv", "ranges": {"engine rpm": {"min": 800, "max": 900, "unit": "rpm"}}}
+r = go(cmpf)
+check("real MES comparison inside range passes step 3", [s["passed"] for s in r["steps"]][:4] == [True] * 4)
+cmpf.csv = {"name": "x.csv", "ranges": {}}
+check("CSV without the column: NOT COMPARED, step 3 fails", go(cmpf)["steps"][2]["passed"] is False)
+# all-pass fixture: steps 1-4 pass with a real comparison, step 5 never
+f = Fake()
+f.csv = {"name": "x.csv", "ranges": {"engine rpm": {"min": 800, "max": 900, "unit": "rpm"}}}
 r = go(f)
 flags = [s["passed"] for s in r["steps"]]
 check("all-pass fixture: steps 1-4 pass", flags[:4] == [True] * 4, str(flags))
 check("step 5 never passes", flags[4] is False and "NOT AVAILABLE: no documented procedure yet" in json.dumps(r["steps"][4]))
 check("overall never all-passed", r["all_passed"] is False and r["steps_passed"] == 4)
-check("not compared without a CSV", all("not compared" in i["mes"] for i in r["steps"][2]["items"]))
 check("stopwatch recorded", isinstance(r["seconds"], float))
 saved = list((Path(os.environ["CUORE_STATE_DIR"]) / "five_minute").glob("*.json"))
-check("result appended to state_dir/five_minute", len(saved) == 1 and json.loads(saved[0].read_text())["vin"] == VIN)
+check("result appended to state_dir/five_minute", len(saved) >= 1 and all(json.loads(p_.read_text())["vin"] == VIN for p_ in saved))
 check("reads strictly one at a time", f.max_active == 1)
 
 # silent module: fails step 2 (and 1), listed in step 4
@@ -168,6 +184,31 @@ src = Path(fm.__file__).read_text(encoding="utf-8")
 code_only = re.sub(r'""".*?"""|#.*', "", src, flags=re.S)
 for bad in ("clear_module_dtcs", "run_actuator", "actuate", "clear_dtcs", "consent_gate", "send_raw", "0x2E", "0x31", "0x14"):
     check(f"no gated call: {bad}", bad not in code_only)
+
+# LiveProbe.modules: pure registry/resolver logic, no port touched
+from cuore.live import store  # noqa: E402
+from cuore.live.addressing import MODULES  # noqa: E402
+lp = fm.LiveProbe()
+unver = [m.code for m in MODULES if m.present != "confirmed" and m.bus_key == "can_c"]
+rows = {m["code"]: m for m in lp.modules("can_c", VIN)}
+check("unverified registry rows are not expected", unver and all(rows[c]["present"] is False for c in unver), str(unver))
+check("confirmed registry rows are expected", rows["ECM"]["present"] is True)
+check("DTCM/ESM/DASM unusable without a stored car address",
+      all(rows[c]["usable"] is False and rows[c]["why"] for c in ("DTCM", "ESM", "DASM")))
+for c, t in (("DTCM", 0x1A), ("ESM", 0x1F), ("DASM", 0x2A)):
+    store.confirm_target(VIN, c, t, "check fixture")
+rows = {m["code"]: m for m in lp.modules("can_c", VIN)}
+check("per-car addresses.json makes DTCM/ESM/DASM usable at the stored bytes",
+      [(rows[c]["usable"], rows[c]["target"]) for c in ("DTCM", "ESM", "DASM")] == [(True, 0x1A), (True, 0x1F), (True, 0x2A)])
+check("another car's VIN does not inherit them", not any(
+    m["usable"] for m in lp.modules("can_c", "ZZZZZZZZZZZZZZZZZ") if m["code"] in ("DTCM", "ESM", "DASM")))
+store.confirm_target(VIN, "ABS", 0x2A, "check fixture")
+check("ABS 2A on can_ch does not clash with DASM 2A on can_c",
+      next(m for m in lp.modules("can_ch", VIN) if m["code"] == "ABS")["usable"] is True)
+store.confirm_target(VIN, "IPC", 0x1A, "check fixture")  # same byte as DTCM, same bus
+rows = {m["code"]: m for m in lp.modules("can_c", VIN)}
+check("two modules on one byte on one bus: both unusable, reason names the clash",
+      not rows["DTCM"]["usable"] and "IPC" in rows["DTCM"]["why"] and not rows["IPC"]["usable"])
 
 # history
 h = fm.history(10)

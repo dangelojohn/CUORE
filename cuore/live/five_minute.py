@@ -72,10 +72,23 @@ class LiveProbe:
         from . import ops
         return ops.obd_voltage().get("volts")
 
-    def modules(self, bus_key: str) -> list[dict[str, Any]]:
+    def modules(self, bus_key: str, vin: Optional[str] = None) -> list[dict[str, Any]]:
+        """Registry modules on this bus with the address this car would use: the
+        same resolver every send goes through (per-car addresses.json first, a
+        clash on one bus makes both unusable). ``present`` is True only for rows
+        the registry marks "confirmed", never for "unverified" ones."""
         from .addressing import on_bus
-        return [{"code": m.code, "name": m.name, "usable": bool(m.usable),
-                 "present": bool(m.present), "target": m.target} for m in on_bus(bus_key)]
+        from .uds import address_table
+        rows = {r["code"]: r for r in address_table(vin) if r["bus"] == bus_key}
+        out = []
+        for m in on_bus(bus_key):
+            r = rows.get(m.code) or {}
+            target, clash = r.get("target"), r.get("clash")
+            why = ("no confirmed address on this car" if target is None
+                   else f"address {target:02X} is claimed by {', '.join(clash)} on the same bus" if clash else "")
+            out.append({"code": m.code, "name": m.name, "usable": not why,
+                        "present": m.present == "confirmed", "target": target, "why": why})
+        return out
 
     def roster(self, vin: str) -> list[dict[str, Any]]:
         from . import responders
@@ -293,7 +306,7 @@ def run(vin: str, *, bus: str = "", confirm: bool = False, probe: Any = None,
 def _measure(res: dict[str, Any], vin: str, bus: str, confirm: bool, probe: Any,
              started: datetime) -> None:
     retries: list[dict[str, Any]] = res["retries"]
-    table = probe.modules(bus)
+    table = probe.modules(bus, vin)
     roster = probe.roster(vin) or []
     expected: dict[str, dict[str, Any]] = {m["code"]: dict(m, via="module table") for m in table if m["present"]}
     unaddressed: list[dict[str, Any]] = []
@@ -311,7 +324,7 @@ def _measure(res: dict[str, Any], vin: str, bus: str, confirm: bool, probe: Any,
         m = {**by_table.get(code, {}), **m}
         label = f"{code} ({m.get('name') or ''}) via {m['via']}"
         if not m.get("usable"):
-            why = "no confirmed address in the module table"
+            why = m.get("why") or "no confirmed address in the module table"
             s1.append(_item(code, label, False, f"NOT READ: {why}"))
             s2.append(_item(code, label, False, f"NOT READ: {why}"))
             continue
@@ -360,11 +373,11 @@ def _measure(res: dict[str, Any], vin: str, bus: str, confirm: bool, probe: Any,
             s3.append(_item(ch["id"], ch["name"], False, f"NOT READ: {r['error'] or 'no value'}"))
             continue
         if csv is None:
-            cmp_, ok_ = "not compared (no same-session MES CSV)", True
+            cmp_, ok_ = "NOT COMPARED (no same-session MES CSV)", False
         else:
             rng = csv["ranges"].get(ch["name"].strip().lower())
             if rng is None:
-                cmp_, ok_ = "not compared (no such column in the MES CSV)", True
+                cmp_, ok_ = "NOT COMPARED (no such column in the MES CSV)", False
             elif rng["min"] <= v <= rng["max"]:
                 cmp_, ok_ = f"within MES range {rng['min']}..{rng['max']} {rng['unit'] or ''}".strip(), True
             else:

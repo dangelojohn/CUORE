@@ -279,6 +279,14 @@ check("job page step 6 responds 200", job_step6.status_code == 200,
 check("job page step 6 wires in the MES handoff include",
      'id="mes-handoff-root"' in job_step6.text)
 
+# stale cuore_today text must not contradict recorded reads
+from mes import mes_functions as _mf  # noqa: E402
+_today = " ".join(str(f.get("cuore_today") or "") for f in _mf.all_functions())
+for _stale in ("no path to IHS/CH modules at all", "no CUORE DID defined", "no equivalent graph/record UI",
+               "(BCM, RF hub, climate, DASM)"):
+    check(f"cuore_today no longer says: {_stale}", _stale not in _today)
+check("cuore_today says not compared with MES", "not compared with mes" in _today.lower())
+
 # ===========================================================================
 print(f"\n{checks} checks, {len(failures)} failures")
 if failures:

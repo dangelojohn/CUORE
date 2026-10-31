@@ -93,17 +93,21 @@ _f("all_module_scan", "ALL (CAN-C/IHS/CH)", "read", "All-systems scan",
   "the resulting SCAN_YYMMDDHHMM.txt -- import it (mes_handoff_bridge."
   "import_mes_log) so it gets the same health report a CUORE live scan gets",
   _SRC_SUPPORTED, CONFIRMED, cable="A5/A6", log_expected=True,
-  cuore_today="yes -- cuore.live.fullscan.run over the OBD-II DIDs it has; "
-             "IHS/CH comfort modules (BCM bytes, RF hub, climate) are "
-             "MES/wiTECH-only today, no CUORE DID defined")
+  cuore_today="built -- cuore.live.fullscan.run over the modules with a "
+             "confirmed address. Recorded answers on the Stelvio: ECM, TCM, "
+             "BCM, IPC, RF hub, DTCM, ESM, DASM on CAN-C and two unnamed "
+             "CAN-IHS nodes; ABS on CAN-CH answered once (2026-10-15), not "
+             "since; climate, ESEM, TVM never answered. Not compared with MES")
 
 _f("module_info_identity", "ALL", "read", "Module info / identity (INFO)",
   "each module's own screen -> Info tab (ECU part number, HW/SW version, "
   "calibration ID)",
   ["ignition on"], "nothing to record beyond what's shown -- read-only",
   _SRC_SUPPORTED, CONFIRMED,
-  cuore_today="partial -- mes.modules/read_module_identity covers OBD-II "
-             "modules; IHS/CH-only modules (BCM, RF hub, climate, DASM) "
+  cuore_today="partial -- identity fields read on the Stelvio for ECM, TCM, "
+             "BCM, IPC, RF hub, DTCM, ESM, DASM and equal to MES for 1 to 7 "
+             "fields each (no ISO code, homologation or counters); climate, "
+             "ESEM, TVM and the CAN-CH modules other than one ABS answer "
              "have no CUORE identity read")
 
 _f("live_parameters", "ALL", "read", "Live parameters with name/unit/scaling "
@@ -131,8 +135,9 @@ _f("graphs_recording_csv", "ALL", "read", "Live-data graph + CSV recording",
   "multiecuscanalfaobd/1600-multiecuscan-diagnostic-software-for-alfa-"
   "romeo.html (2026-10-14, \"Live data graphical view\")", CORROBORATED,
   log_expected=True,
-  cuore_today="no -- CUORE has no equivalent graph/record UI; "
-             "mes.csvlog reads an MES-written CSV once it exists")
+  cuore_today="built, never compared with MES -- CUORE has a live board "
+             "with record, tags and MES-format CSV export; mes.csvlog also "
+             "reads an MES-written CSV once it exists")
 
 _f("freeze_frames_per_module", "ALL", "read", "Freeze frames per module "
   "(DTC EX)", "each module's own screen -> DTC EX tab",
@@ -474,8 +479,11 @@ _f("comfort_bus_module_roster", "IHS/CH (Magna Q4 transfer case, TRW "
   "WebSearch results for \"multiecuscan.net Alfa Romeo Stelvio supported "
   "functions parameters actuators\" (2026-10-14), citing alfissimo.com's "
   "MES product listing", CORROBORATED, cable="A6",
-  cuore_today="no -- CUORE's OBD-II link has no path to IHS/CH modules at "
-             "all; this is categorically MES/wiTECH-only today")
+  cuore_today="partial -- DTCM and DASM are registered on CAN-C and have "
+             "answered there; two unnamed CAN-IHS nodes answered a VIN read "
+             "and a code read; ABS on CAN-CH answered once and not since. "
+             "HALF, ESEM, TVM and the others have not answered; none of it "
+             "is compared with MES")
 
 
 def all_functions() -> list[dict[str, Any]]:
