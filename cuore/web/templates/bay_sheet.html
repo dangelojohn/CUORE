@@ -90,6 +90,15 @@
     {% else %}<p class="note">NOT READ: no reading from the car is on record for this vehicle.</p>{% endif %}
   </section>
 
+  {% if s.mes_not_read and s.mes_not_read.applies %}
+  <section id="mes-not-read">
+    <h2>Modules MES reads: what CUORE did not read</h2>
+    <p><b>{{ s.mes_not_read.count_line }}</b> Not read is not clean.</p>
+    <ul>{% for l in s.mes_not_read.lines %}<li>{{ l }}</li>{% endfor %}</ul>
+    <p class="note">{{ s.mes_not_read.identity_line }} {{ s.mes_not_read.snapshot_line }}</p>
+  </section>
+  {% endif %}
+
   <section id="done">
     <h2>2. Done and to do</h2>
     <h3>Done</h3>

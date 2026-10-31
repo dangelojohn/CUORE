@@ -103,7 +103,11 @@ async def brand_gate(request: Request, x_cuore_token: str | None = Header(defaul
         marque = mes_bridge.marque_for_vin(vin)
     except Exception:  # noqa: BLE001 -- a broken decode must never sink a page
         return
-    if has_data(marque) or slug in set(_config().get("open") or []):
+    if has_data(marque):
+        return
+    # A path that talks to the car stays shut even under an open page.
+    contact = request.method == "POST" and request.url.path.endswith(tuple(_config().get("contact_posts") or ()))
+    if slug in set(_config().get("open") or []) and not contact:
         return
     if slug in set(_config().get("open_demo") or []) and demo_car(vin):   # the print sheet / phone card of an invented showcase car
         return

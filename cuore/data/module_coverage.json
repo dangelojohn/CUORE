@@ -106,6 +106,7 @@
         {"date": "2025-10-21 15:18", "file": "FESLog_2510211518", "this_car": false, "what": "log opened, header only"},
         {"date": "2025-10-21 23:41", "file": "FESLog_2510212341", "this_car": false, "what": "log opened, header only"}
       ],
+      "last_attempt": {"date": "2026-10-23", "what": "22 F190 got no answer (CAN-IHS, blue A5 cable, 0.3 s wait); also silent on 2026-10-15 (29-bit). Source: registry note on the HVAC row in addressing.py, not an audit row."},
       "cuore_attempts": "no audit row targets HVAC; registry notes 22 F190 silent on 2026-10-15 (29-bit) and 2026-10-23 (CAN-IHS, 0.3 s wait)",
       "blocker": "0x68 unverified and silent to the one request tried; the MES logs on disk are a year old and are not readings of this car."
     },

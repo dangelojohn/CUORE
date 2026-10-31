@@ -53,6 +53,25 @@
         <tr><td class="muted">Last seen</td><td class="mono small">{{ m.last_seen or "—" }}</td></tr>
       </tbody>
     </table>
+    {% if m.identity_remainder %}
+    <h4 class="subhead">ISO code, hardware version, homologation</h4>
+    <div class="tw">
+    <table id="identity-remainder">
+      <thead><tr><th>Item</th><th>MES shows</th><th>CUORE</th></tr></thead>
+      <tbody>
+      {% for x in m.identity_remainder %}
+        <tr>
+          <td>{{ x.label }}{% if x.did %} <span class="mono small muted">{{ x.did }}</span>{% endif %}</td>
+          <td class="mono">{{ x.mes if x.mes != "blank" else "blank (MES prints no value)" }}<div class="small muted">{{ x.mes_src }}</div></td>
+          <td class="small">{% if x.cuore %}<span class="chip {{ 'ok' if x.match else 'status-active' }}">{{ 'equals MES' if x.match else 'DIFFERS from MES' }}</span>
+              <span class="mono">{{ x.cuore }}</span><div class="muted">{{ x.note }}</div>
+            {% else %}<span class="chip status-active">NOT READ</span> {{ x.next }}{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% endif %}
     {% if m.tsb %}
       <h4 class="subhead">Bulletins against this module's codes</h4>
       {% for t in m.tsb %}
@@ -101,6 +120,48 @@
     </div>
   </div>
 </details>
+
+{% if m.snapshot_fields and m.snapshot_fields.applies %}
+{% set sf = m.snapshot_fields %}
+<details class="card-details" id="sec-snapshot" data-persist="snapshot" open>
+  <summary>Stored-code snapshot, the 28 MES fields <span class="count-badge">{{ sf.counts["BOUND"] }} of {{ sf.total }} bound</span></summary>
+  <div class="card-body">
+    <p style="margin-top:0"><strong>{{ sf.line }}</strong></p>
+    <p class="small muted">Compared on one recorded reply: {{ sf.pair.cuore_read }} ({{ sf.pair.dtc }}, startups {{ sf.pair.startups }}) against MES {{ sf.pair.mes_file }} at {{ sf.pair.mes_time }}.
+      BOUND: the DID's value equals the MES value and nothing else in the record shares it. CANDIDATE: a DID agrees but this pair cannot prove it. NOT DECODED: no DID is attached; nothing is guessed.
+      {% if not sf.paired_record_found %}<b>The paired reply is not in this machine's store, so no row is verified here.</b>{% endif %}</p>
+    <div class="tw">
+    <table id="snapshot-fields">
+      <thead><tr><th>MES field</th><th>State</th><th>MES value</th><th>DID</th><th>Raw bytes</th><th>CUORE value</th><th>Scale</th></tr></thead>
+      <tbody>
+      {% for r in sf.rows %}
+        <tr>
+          <td>{{ r.name }}{% if r.unit %} <span class="small muted">[{{ r.unit }}]</span>{% endif %}{% if r.note %}<div class="small muted">{{ r.note }}</div>{% endif %}</td>
+          <td><span class="chip {% if r.state == 'BOUND' %}ok{% elif r.state == 'CANDIDATE' %}status-cleared_unverified{% else %}status-active{% endif %}">{{ r.state }}</span></td>
+          <td class="mono small">{{ r.mes_value }}</td>
+          <td class="mono small">{{ r.did or "none" }}</td>
+          <td class="mono small">{{ r.raw or "—" }}</td>
+          <td class="mono small">{% if r.state == 'BOUND' and r.cuore_value is not none %}{{ r.cuore_value }}{% else %}<span class="muted">not shown</span>{% endif %}</td>
+          <td class="small">{{ r.scale }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <h4 class="subhead">Bytes in the same reply with no MES field attached <span class="count-badge">{{ sf.spare|length }}</span></h4>
+    <p class="small muted">NOT DECODED. The {{ sf.counts["NOT DECODED"] }} undecoded MES fields above (pedals, switches, throttle angle, status words) live somewhere in these bytes or in bytes this reply did not carry. Which is not known.</p>
+    <div class="tw">
+    <table id="snapshot-spare">
+      <thead><tr><th>DID</th><th>Bytes</th><th>Raw</th></tr></thead>
+      <tbody>
+      {% for x in sf.spare %}<tr><td class="mono small">{{ x.did }}</td><td class="n">{{ x.length }}</td><td class="mono small">{{ x.raw }}</td></tr>
+      {% else %}<tr><td colspan="3" class="muted small">None recorded.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </div>
+</details>
+{% endif %}
 
 <details class="card-details" id="sec-params" data-persist="params">
   <summary>Live values <span class="count-badge">{{ m.parameters|length }}</span></summary>

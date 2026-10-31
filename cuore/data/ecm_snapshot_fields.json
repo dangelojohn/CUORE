@@ -1,0 +1,266 @@
+{
+ "_about": "The 28 stored-code snapshot fields MES prints for the ECM, set against ONE recorded CUORE 19 04 reply taken the same night (the pair). kind: bound = the DID's decoded value equals the MES value exactly, the value is not trivial and no other DID in the record decodes to it; candidate = a DID agrees but the pair cannot prove it (value zero, or several DIDs/fields share the value); not_decoded = no DID is attached to this MES field. A scale is never confirmed here: only a person accepting it (snapshot_bindings) does that. Facts from MES's own log file on disk and CUORE's recorded observation; nothing here is a request.",
+ "vin": "ZASFAKPN5J7B88115",
+ "module": "ECM",
+ "pair": {
+  "mes_file": "FESLog_2610310113",
+  "mes_time": "2026-10-31 01:12",
+  "dtc": "P0456-00",
+  "startups": 14695,
+  "cuore_read": "19 04 on the ECM, 2026-10-30 23:55"
+ },
+ "fields": [
+  {
+   "mes_name": "Operating time",
+   "unit": "min",
+   "did": "1008",
+   "kind": "bound",
+   "mes_value": "300110",
+   "mes_num": 300110,
+   "note": ""
+  },
+  {
+   "mes_name": "Startups counter",
+   "unit": null,
+   "did": "200A",
+   "kind": "bound",
+   "mes_value": "14695",
+   "mes_num": 14695,
+   "note": ""
+  },
+  {
+   "mes_name": "Engine speed",
+   "unit": "rpm",
+   "did": "1000",
+   "kind": "candidate",
+   "mes_value": "0",
+   "mes_num": 0,
+   "note": "Value 0 equals MES 0; a zero cannot confirm the DID or the scale."
+  },
+  {
+   "mes_name": "Gas pedal position",
+   "unit": "%",
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "0.00",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "Throttle angle",
+   "unit": "deg",
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "9.75",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "Vehicle speed",
+   "unit": "km/h",
+   "did": "1002",
+   "kind": "candidate",
+   "mes_value": "0.00",
+   "mes_num": 0,
+   "note": "Value 0 equals MES 0; a zero cannot confirm the DID or the scale."
+  },
+  {
+   "mes_name": "Gear engaged",
+   "unit": null,
+   "did": "192D",
+   "kind": "candidate",
+   "mes_value": "N",
+   "mes_num": null,
+   "note": "Raw 00 sits with MES N; one value, no pair at another gear."
+  },
+  {
+   "mes_name": "Odometer",
+   "unit": "km",
+   "did": "2001",
+   "kind": "bound",
+   "mes_value": "147320.3",
+   "mes_num": 147320.3,
+   "note": ""
+  },
+  {
+   "mes_name": "Spark advance",
+   "unit": "deg",
+   "did": "1812",
+   "kind": "candidate",
+   "mes_value": "0.000",
+   "mes_num": 0,
+   "note": "Value 0 equals MES 0; a zero cannot confirm the DID or the scale."
+  },
+  {
+   "mes_name": "Engine temperature",
+   "unit": "degC",
+   "did": "1003",
+   "kind": "candidate",
+   "mes_value": "12",
+   "mes_num": 12,
+   "note": "Three fields (engine, air, oil temperature) and three DIDs (1003, 1935, 1302) all decode to 12 here; this pair cannot tell which is which."
+  },
+  {
+   "mes_name": "Battery voltage",
+   "unit": "V",
+   "did": "1004",
+   "kind": "bound",
+   "mes_value": "12.0",
+   "mes_num": 12.0,
+   "note": ""
+  },
+  {
+   "mes_name": "Intake pressure",
+   "unit": "mbar",
+   "did": "1937",
+   "kind": "bound",
+   "mes_value": "988",
+   "mes_num": 988,
+   "note": ""
+  },
+  {
+   "mes_name": "Clutch pedal",
+   "unit": null,
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "Released",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "Clutch contact 2",
+   "unit": null,
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "Released",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "Brake pedal",
+   "unit": null,
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "Released",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "Brake contact 2",
+   "unit": null,
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "Released",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "Air flow rate",
+   "unit": "Kg/h",
+   "did": "182F",
+   "kind": "candidate",
+   "mes_value": "0.00",
+   "mes_num": 0,
+   "note": "Value 0 equals MES 0; a zero cannot confirm the DID, and no scale is set."
+  },
+  {
+   "mes_name": "Air temperature",
+   "unit": "degC",
+   "did": "1935",
+   "kind": "candidate",
+   "mes_value": "12",
+   "mes_num": 12,
+   "note": "Three fields (engine, air, oil temperature) and three DIDs (1003, 1935, 1302) all decode to 12 here; this pair cannot tell which is which."
+  },
+  {
+   "mes_name": "Boost pressure",
+   "unit": "mbar",
+   "did": "195A",
+   "kind": "bound",
+   "mes_value": "998",
+   "mes_num": 998,
+   "note": ""
+  },
+  {
+   "mes_name": "Atmospheric pressure",
+   "unit": "mbar",
+   "did": "1956",
+   "kind": "bound",
+   "mes_value": "999",
+   "mes_num": 999,
+   "note": ""
+  },
+  {
+   "mes_name": "Engine oil temperature",
+   "unit": "degC",
+   "did": "1302",
+   "kind": "candidate",
+   "mes_value": "12",
+   "mes_num": 12,
+   "note": "Three fields (engine, air, oil temperature) and three DIDs (1003, 1935, 1302) all decode to 12 here; this pair cannot tell which is which."
+  },
+  {
+   "mes_name": "STOP&START temporary deactivation status",
+   "unit": null,
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "Oil temperature",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "IBS Battery charge status",
+   "unit": "%",
+   "did": "19BD",
+   "kind": "bound",
+   "mes_value": "100",
+   "mes_num": 100,
+   "note": ""
+  },
+  {
+   "mes_name": "Brake booster vacuum switch",
+   "unit": null,
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "Open",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "UniAir electrovalve actuation mode",
+   "unit": null,
+   "did": "198C",
+   "kind": "candidate",
+   "mes_value": "Late opening",
+   "mes_num": null,
+   "note": "Raw 01 sits with MES Late opening; 01 is a common value and only one mode is in this pair."
+  },
+  {
+   "mes_name": "Universal code",
+   "unit": null,
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "Not received",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "Engine startup",
+   "unit": null,
+   "did": null,
+   "kind": "not_decoded",
+   "mes_value": "Allowed",
+   "mes_num": null,
+   "note": ""
+  },
+  {
+   "mes_name": "Fuel level",
+   "unit": "%",
+   "did": "1001",
+   "kind": "bound",
+   "mes_value": "60.78",
+   "mes_num": 60.78,
+   "note": ""
+  }
+ ]
+}

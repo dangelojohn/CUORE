@@ -1,0 +1,74 @@
+{
+ "_about": "What MES prints for three identity items, per CAN-C module, from MES's own log files on disk (read-only). did_hint: the standard UDS identifier that holds the item where CUORE has a recorded reply that matches MES; null where no source on file names the DID. blank = MES printed the label with no value. unknown = no real (non-simulation) MES log on disk shows the item. Nothing here is a request.",
+ "vin": "ZASFAKPN5J7B88115",
+ "items": [
+  {
+   "key": "iso",
+   "label": "ECU ISO code",
+   "did": null,
+   "did_note": "No source on file names the DID that holds this; CUORE has not asked for it."
+  },
+  {
+   "key": "hw_version",
+   "label": "Hardware version",
+   "did": "F193",
+   "did_note": "UDS identifier F193 (supplier hardware version). One recorded CUORE reply, TCM, equals MES."
+  },
+  {
+   "key": "homologation",
+   "label": "Homologation number",
+   "did": null,
+   "did_note": "No source on file names the DID that holds this; CUORE has not asked for it."
+  }
+ ],
+ "modules": {
+  "ECM": {
+   "iso": "00 01 50 40 18",
+   "hw_version": "00",
+   "homologation": "FIBA00",
+   "src": "SCAN_2610310042 and FESLog_2610310113"
+  },
+  "TCM": {
+   "iso": "00 0B 50 AA 14",
+   "hw_version": "20",
+   "homologation": "blank",
+   "src": "SCAN_2610310042 and FESLog_2610310115"
+  },
+  "BCM": {
+   "iso": "00 00 70 7C 15",
+   "hw_version": "01",
+   "homologation": "blank",
+   "src": "SCAN_2610310042 and FESLog_2610230127"
+  },
+  "IPC": {
+   "iso": "00 03 50 8B 14",
+   "hw_version": "01",
+   "homologation": "blank",
+   "src": "SCAN_2610310042 and FESLog_2610230116"
+  },
+  "RFHUB": {
+   "iso": "00 41 50 89 15",
+   "hw_version": "01",
+   "homologation": "unknown",
+   "src": "SCAN_2610310042"
+  },
+  "DTCM": {
+   "iso": "00 43 50 91 14",
+   "hw_version": "21",
+   "homologation": "blank",
+   "src": "SCAN_2610310042 and FESLog_2610310114"
+  },
+  "ESM": {
+   "iso": "00 16 50 B4 14",
+   "hw_version": "08",
+   "homologation": "unknown",
+   "src": "SCAN_2610310042"
+  },
+  "DASM": {
+   "iso": "00 39 70 7E 15",
+   "hw_version": "00",
+   "homologation": "unknown",
+   "src": "SCAN_2610310042"
+  }
+ }
+}

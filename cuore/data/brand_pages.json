@@ -1,10 +1,37 @@
 {
   "_about": "Per-car pages that open normally for a brand with has_data=false (see data/brands.json and web/brand_gate.py). Entries are the first path segment after /v/{vin}/ (empty string = the Bench). Every other per-car page renders as an empty skeleton for such a brand. These are the pages that only keep this car's own records or say plainly that no scan is on file.",
-  "open": ["", "menu", "bench", "job", "code", "codes", "liveboard", "report", "report.pdf",
-           "scans", "recordings", "inbox", "media", "timeline", "notes", "symptoms",
-           "feedback", "feedback-bulk", "release", "checklist", "helped"],
-  "open_demo": ["bay-service-sheet", "bay-card"],
+  "open": [
+    "",
+    "menu",
+    "bench",
+    "job",
+    "code",
+    "codes",
+    "liveboard",
+    "report",
+    "report.pdf",
+    "scans",
+    "recordings",
+    "inbox",
+    "media",
+    "timeline",
+    "notes",
+    "symptoms",
+    "feedback",
+    "feedback-bulk",
+    "release",
+    "checklist",
+    "helped"
+  ],
+  "open_demo": [
+    "bay-service-sheet",
+    "bay-card"
+  ],
   "notes": {
     "scan": "Connecting to a car of this brand is not confirmed yet: CUORE's bus and address paths are not confirmed for it, so it will not start a read here."
-  }
+  },
+  "contact_posts": [
+    "/codes/read",
+    "/recordings/start"
+  ]
 }

@@ -104,6 +104,12 @@ for marque, vin in CARS.items():
     check(f"{marque}: Menu next step is not the Five-minute test", 'data-nav-next="job"' in menu_html and "Five-minute" not in visible_text(menu_html))
     check(f"{marque}: Facts label is neutral", 'data-nav="facts"' in menu_html and "Stelvio facts" not in menu_html)
 
+# --- nothing on these cars can start a read ---
+for marque, vin in CARS.items():
+    check(f"{marque}: Codes page offers no read", "codes/read" not in c.get(f"/v/{vin}/codes").text)
+    check(f"{marque}: code read refused", c.post(f"/v/{vin}/codes/read", data={"module": "ECM"}).status_code == 409)
+    check(f"{marque}: recording start refused", c.post(f"/v/{vin}/recordings/start").status_code == 409)
+
 print("global (not car-bound) pages not checked:", ", ".join(sorted(GLOBAL_PAGES)))
 print(f"{checks} checks, {len(failures)} failed")
 for f in failures:

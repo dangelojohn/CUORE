@@ -15,6 +15,30 @@
   <p class="small muted" style="margin:4px 0 0">Worst first. Tap a module for its errors, live values, actuator tests and adjustments. Status uses each module's newest read from any source. <a href="/modules">All modules, every car</a></p>
 </div>
 
+{% if cov.applies %}
+<div class="panel" id="mes-19" role="status">
+  <p style="margin:0;font-size:1.15em"><strong id="mes-19-count">{{ cov.read }} of {{ cov.total }} read</strong>
+    <span class="small muted"> &middot; the {{ cov.total }} modules MultiEcuScan reads on this car</span></p>
+  <p class="small" style="margin:4px 0 0">{{ cov.line }} READ means the newest code read and the identity read both answered. Unknown stays unknown; nothing here is clean unless it was read.</p>
+  <div class="tw" style="margin-top:8px">
+  <table id="mes-19-table">
+    <thead><tr><th>Module</th><th>State</th><th>What is on record</th></tr></thead>
+    <tbody>
+    {% for r in cov.rows %}
+      <tr>
+        <td>{% if r.href %}<a class="mono" href="/v/{{ vin }}/{{ r.href }}">{{ r.code }}</a>{% else %}<span class="mono">{{ r.code }}</span>{% endif %}
+          <div class="small muted">{{ r.label }}</div></td>
+        <td><span class="chip {% if r.state == 'READ' %}ok{% elif r.state == 'PARTLY READ' %}status-cleared_unverified{% elif r.state == 'NOT READ' %}status-active{% else %}plain{% endif %}">{{ r.state }}</span></td>
+        <td class="small">{{ r.headline }}{% if r.blocker %}<div><b>Blocker:</b> {{ r.blocker }}</div>{% endif %}
+          {% for d in r.detail %}<div class="muted">{{ d }}</div>{% endfor %}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
 <form class="panel" method="get" action="/v/{{ vin }}/modules" role="search"
       style="display:flex;gap:12px;align-items:end;flex-wrap:wrap">
   <div style="flex:1;min-width:220px">

@@ -19,7 +19,8 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, Response
 
 from ..api.deps import require_token
-from ..services import dossier_bridge, experience_bridge, mes_bridge, shop_bridge, timeline_bridge
+from ..services import mes_coverage  # noqa: E402
+from ..services import dossier_bridge, experience_bridge, mes_bridge, mes_coverage, shop_bridge, timeline_bridge
 from ..services.errors import BridgeError, NotFound
 from . import report_pdf
 from . import routes as web_routes
@@ -306,6 +307,7 @@ def _report_context(vin: str) -> dict[str, Any]:
         "notes": notes,
         "photos": _photos_for(vin, 6),
         "cases": _cases_for(vin, [c["code"] for c in view["codes"]]),
+        "mes_not_read": mes_coverage.not_read_lines(vin),
     }
 
 

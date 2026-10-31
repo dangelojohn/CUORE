@@ -311,6 +311,12 @@ def index(request: Request) -> HTMLResponse:
     return _page(request, "landing.html", brands=brands, live_strip=None)
 
 
+def _can_connect(vin: str) -> bool:
+    """False on a brand whose bus and address paths are not confirmed."""
+    from . import brand_gate  # local: brand_gate renders through this module
+    return brand_gate.has_data(mes_bridge.marque_for_vin(vin))
+
+
 @router.get("/cars", response_class=HTMLResponse)
 def cars_page(request: Request, brand: str = "", q: str = "") -> HTMLResponse:
     """Big cards for the cars of one brand (VIN/WMI rule), plus Add a car.
@@ -467,7 +473,7 @@ def codes(request: Request, vin: str,
         r["last_seen_ago"] = _relative_ago(r.get("last_seen"))
         r["sessions_x"] = f"x{r.get('sessions') or 0}"
 
-    from ..services import codes_call
+    from ..services import codes_call, codes_read
     from . import page_search
     job_codes, blocker, action = codes_call.job_state(vin, dossier)
     codes_call.shape(data["dtcs"], job_codes)
@@ -493,7 +499,7 @@ def codes(request: Request, vin: str,
     response = _page(request, "codes.html", vin=vin, rows=rows, data=data,
                      flash_msg=(request.query_params.get("msg") or "")[:300], flash_kind=request.query_params.get("mk") or "ok",
                      sort=sort, sort_dir=dir, q=q, groups=groups, call=call, go_chips=go_chips,
-                     total_rows=len(data["dtcs"]),
+                     total_rows=len(data["dtcs"]), read_panel=codes_read.panel(vin) if _can_connect(vin) else None,
                      state_help=codes_call.STATE_HELP, state_label=codes_call.STATE_LABEL, no_match_hint=page_search.HINT_CODES,
                      sort_first_dir={k: v[1] for k, v in _CODE_SORTS.items()},
                      bar=_vehicle_bar(vin, dossier),

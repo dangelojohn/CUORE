@@ -87,6 +87,7 @@ from .web import labels_routes  # noqa: E402
 from .web import live_dashboard_routes  # noqa: E402
 from .web import liveboard_routes  # noqa: E402
 from .web import recordings_routes  # noqa: E402
+from .web import codes_read_routes  # noqa: E402
 from .web import learn_routes  # noqa: E402
 from .web import mes_learn_routes  # noqa: E402
 from .web import owner_routes  # noqa: E402
@@ -311,6 +312,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(live_dashboard_routes.router)
     app.include_router(liveboard_routes.router)
     app.include_router(recordings_routes.router)
+    app.include_router(codes_read_routes.router)
     app.include_router(learn_routes.router)
     app.include_router(mes_learn_routes.router)
     app.include_router(owner_routes.router)

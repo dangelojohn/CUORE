@@ -263,6 +263,18 @@
     </table>
   </section>
 
+  {% if mes_not_read and mes_not_read.applies %}
+  <section id="mes-not-read">
+    <h2>What was not read</h2>
+    <p><strong>{{ mes_not_read.count_line }}</strong> Nothing below is clean: it was not read.</p>
+    <ul>
+      {% for l in mes_not_read.lines %}<li class="small">{{ l }}</li>{% endfor %}
+    </ul>
+    <p class="small">{{ mes_not_read.identity_line }}</p>
+    {% if mes_not_read.snapshot_line %}<p class="small">{{ mes_not_read.snapshot_line }}</p>{% endif %}
+  </section>
+  {% endif %}
+
   <section id="fixes">
     <h2>Possible fixes</h2>
     {% for job in view.open_work %}

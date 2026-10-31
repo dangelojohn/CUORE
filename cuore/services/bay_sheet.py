@@ -128,7 +128,13 @@ def build(vin: str, job_id: str = "", *, bar: Optional[dict] = None, verdict: Op
         sess = session_read.build(vin, who=_s((job or {}).get("technician")))
     except Exception:  # noqa: BLE001
         sess = {"has": False, "who": ""}
+    try:
+        from . import mes_coverage
+        mes_nr = mes_coverage.not_read_lines(vin)
+    except Exception:  # noqa: BLE001
+        mes_nr = {"applies": False}
     return {
+        "mes_not_read": mes_nr,
         "session": sess,
         "vin": vin, "job": job, "url": url or f"/v/{vin}/bay-sheet",
         "header": {"name": _s(bar.get("name")) or "(unnamed vehicle)", "odo": bar.get("odo_last"),

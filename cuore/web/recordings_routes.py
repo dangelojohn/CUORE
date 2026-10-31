@@ -19,6 +19,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from markupsafe import Markup
 
 from ..api.deps import require_token
+from ..services import channel_sets
 from ..services import recordings as rec_svc
 from .routes import _dossier, _page, _set_active_vehicle, _vehicle_bar
 
@@ -154,6 +155,32 @@ def _span(rec: Optional[dict[str, Any]]) -> float:
     return max(float(rec.get("duration_s") or 0), float(rows[-1]["t"]) if rows else 0.0)
 
 
+def replay_data(rec: dict[str, Any], limit: int = MAX_POINTS) -> dict[str, Any]:
+    """The samples the replay slider steps through: thinned evenly to ``limit``, values exactly as recorded."""
+    rows = rec.get("rows") or []
+    step = max(1, -(-len(rows) // limit))
+    pick = rows[::step]
+    if rows and pick[-1] is not rows[-1]:
+        pick.append(rows[-1])
+    chans = list(rec.get("channels") or [])
+    return {"t": [r.get("t") for r in pick], "channels": chans, "units": rec.get("units") or {},
+            "v": {c: [(r.get("v") or {}).get(c) for r in pick] for c in chans},
+            "tags": [{"key": t.get("key"), "label": t.get("label"), "t": t.get("t")} for t in rec.get("tags") or []]}
+
+
+def compare_rows(charts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """One line per channel present in both recordings: averages and the largest gap between them."""
+    out = []
+    for c in charts:
+        a, b = c.get("a"), c.get("b")
+        if not a or not b:
+            continue
+        out.append({"channel": c["channel"], "unit": c["unit"], "a_avg": a["avg"], "b_avg": b["avg"],
+                    "d_avg": b["avg"] - a["avg"], "a_min": a["min"], "b_min": b["min"], "a_max": a["max"],
+                    "b_max": b["max"], "d_max": b["max"] - a["max"]})
+    return out
+
+
 def build_charts(a: dict[str, Any], b: Optional[dict[str, Any]]) -> dict[str, Any]:
     tmax = max(_span(a), _span(b), 0.001)
     tags = list(a.get("tags") or [])
@@ -173,7 +200,7 @@ def build_charts(a: dict[str, Any], b: Optional[dict[str, Any]]) -> dict[str, An
         charts.append({"channel": c, "unit": unit, "svg": Markup(chart_svg(c, unit, tmax, sa, sb, tags)),
                        "a": stats(sa) if sa else None, "b": stats(sb) if sb else None, "note": note})
     return {"charts": charts, "axis": Markup(axis_svg(tmax, tags)), "tmax": tmax,
-            "tags": tags}
+            "tags": tags, "replay": replay_data(a), "diff": compare_rows(charts) if b else []}
 
 
 def _cell(v: Any) -> Any:
@@ -208,8 +235,9 @@ def recordings_page(request: Request, vin: str) -> HTMLResponse:
     dossier = _dossier(vin)
     state = rec_svc.live_state()
     rows = [_row(r) for r in rec_svc.list_recordings(vin)]
+    sets = channel_sets.listing(vin, state.get("channels") or []) if state.get("live") else channel_sets.listing(vin)
     response = _page(request, "recordings.html", vin=vin, bar=_vehicle_bar(vin, dossier), tab="recordings",
-                     state=state, rows=rows, msg=request.query_params.get("msg", ""), tok=_tok(request),
+                     state=state, rows=rows, sets=sets, msg=request.query_params.get("msg", ""), tok=_tok(request),
                      rate=rec_svc.DEFAULT_RATE_HZ, fmt_dur=fmt_dur)
     _set_active_vehicle(response, vin)
     return response
@@ -224,6 +252,29 @@ def recordings_start(request: Request, vin: str, label: str = Form(""), channels
         msg = str(e)
     return RedirectResponse(f"/v/{quote(vin)}/recordings?msg={quote(msg)}" + _tok(request).replace("?", "&"),
                             status_code=303)
+
+
+def _back(request: Request, vin: str, msg: str) -> RedirectResponse:
+    return RedirectResponse(f"/v/{quote(vin)}/recordings?msg={quote(msg)}" + _tok(request).replace("?", "&"),
+                            status_code=303)
+
+
+@router.post("/v/{vin}/recordings/sets/save")
+def recordings_set_save(request: Request, vin: str, set_name: str = Form(""), channels: list[str] = Form(default=[])):
+    try:
+        item = channel_sets.save(vin, set_name, channels)
+        return _back(request, vin, f"Saved set {item['name']}: {len(item['channels'])} values")
+    except channel_sets.SetError as e:
+        return _back(request, vin, str(e))
+
+
+@router.post("/v/{vin}/recordings/sets/delete")
+def recordings_set_delete(request: Request, vin: str, set_name: str = Form("")):
+    try:
+        gone = channel_sets.delete(vin, set_name)
+    except channel_sets.SetError as e:
+        return _back(request, vin, str(e))
+    return _back(request, vin, f"Deleted set {set_name}" if gone else "No such set")
 
 
 @router.post("/v/{vin}/recordings/stop")

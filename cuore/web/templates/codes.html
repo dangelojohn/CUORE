@@ -59,7 +59,7 @@
 
 {% if flash_msg %}<div class="flash-toast flash-{{ flash_kind }}" role="status" data-flash>{{ flash_msg }}</div>{% endif %}
 <h1 class="cd-h1">Codes</h1>
-<p class="cd-lede">Every code this car has set, worst first.</p>
+<p class="cd-lede">Every code this car has set, worst first. <button type="button" class="cd-btn cd-noprint" onclick="document.querySelectorAll('.cd-group').forEach(function(d){d.open=true});window.print()">Print code list</button></p>
 
 <p class="cd-call" id="codes-call">{% for sg in call.call_segs %}{% if sg.href %}<a href="{{ sg.href }}">{{ sg.text }}</a>{% else %}{{ sg.text }}{% endif %}{% endfor %}</p>
 
@@ -68,6 +68,24 @@
   <span class="cd-go-l">Go to</span>
   {% for c in go_chips %}<a class="cd-gochip cd-go-{{ c.kind }}" href="{{ c.href }}">{{ c.text }}</a>{% endfor %}
 </nav>
+{% endif %}
+
+{% if read_panel %}
+<section class="cd-read" id="read-now" aria-label="Read codes now">
+  <h2 class="cd-read-h">Read codes now</h2>
+  <p class="cd-read-note muted">One press reads one module once. It only reads; nothing is cleared. The result also lands in the log. Modules on other buses are on the <a href="/v/{{ vin }}/scan">Scan page</a>.</p>
+  <ul class="cd-read-list">
+  {% for m in read_panel %}
+    <li class="cd-read-row cd-read-{{ m.state }}">
+      <form method="post" action="/v/{{ vin }}/codes/read{{ ('?token=' ~ request.query_params.get('token')|urlencode) if request.query_params.get('token') else '' }}">
+        <input type="hidden" name="module" value="{{ m.code }}">
+        <button type="submit" class="cd-btn cd-read-btn" title="{{ m.name }}" aria-label="Read {{ m.code }} codes now">Read {{ m.code }}</button>
+      </form>
+      <span class="cd-read-last">{% if m.state == 'not_read' %}<b>NOT READ</b> {{ m.line }}{% else %}{{ m.line }}{% endif %}{% if m.when %} <span class="muted">({{ m.when }})</span>{% endif %}</span>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
 {% endif %}
 
 <form class="cd-search" method="get" action="/v/{{ vin }}/codes" role="search">

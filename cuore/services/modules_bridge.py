@@ -43,6 +43,7 @@ from .errors import NotFound
 from mes import modules as modules_mod  # noqa: E402
 
 from ..live import actuate, audit, did_catalog, framing, read_state, safety, store  # noqa: E402
+from . import mes_coverage  # noqa: E402
 from ..live.addressing import MODULES as _ADDR_MODULES, by_code as _addr_by_code  # noqa: E402
 
 #: Statuses in the order a module list should read: worst first.
@@ -453,6 +454,8 @@ def module_detail(vin: str, code: str) -> dict[str, Any]:
         "actuators_detail": actuator_rows,
         "adjustments_detail": adjustment_rows,
         "tsb": tsb_rows,
+        "identity_remainder": mes_coverage.identity_remainder(vin, abbrev),
+        "snapshot_fields": mes_coverage.snapshot_fields(vin, abbrev),
     }
 
 

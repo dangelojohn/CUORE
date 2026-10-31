@@ -22,14 +22,24 @@
   .rt-list li{min-height:44px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;border-bottom:1px solid var(--rule)}
   .rt-key{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;border:2px solid var(--ink);border-radius:999px;font-weight:700}
   .rc-btn{min-height:44px;display:inline-flex;align-items:center;font-size:1rem}
+  .rp{border:1px solid var(--rule);border-radius:6px;padding:8px 12px;margin:0 0 14px;background:var(--surface-2)}
+  .rp-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .rp-bar input[type=range]{flex:1 1 220px;min-height:44px}
+  .rp-t{font-family:var(--mono);font-size:var(--fs-lg);min-width:5ch}
+  .rp-tbl{width:100%;border-collapse:collapse;font-size:var(--fs-md)}
+  .rp-tbl td,.rp-tbl th{padding:6px 8px;border-bottom:1px solid var(--rule);text-align:left}
+  .rp-tbl td.n{font-family:var(--mono);text-align:right}
+  .rp-note{min-height:1.4em}
+  @media print{.rc-noprint,.rp-bar button,.rp-bar input{display:none!important}.rc-chart{break-inside:avoid}.rp{border:0}}
 </style>
 <h1>{{ rec.label or rec.id }}</h1>
 <p class="rc-call">{{ rec.date }} &middot; {{ rec.dur }} &middot; {{ rec.channels|length }} channels &middot; {{ rec.n_rows }} samples at {{ rec.rate_hz }} Hz &middot; ended: {{ rec.end_reason }}</p>
 <p>
   <a class="btn rc-btn" href="/v/{{ vin }}/recordings{{ tok }}">All recordings</a>
   <a class="btn primary rc-btn" href="/v/{{ vin }}/recordings/{{ rec.id }}.csv{{ tok }}">Download CSV</a>
+  <button type="button" class="btn rc-btn" onclick="window.print()">Print this recording</button>
 </p>
-<form method="get" action="/v/{{ vin }}/recordings/{{ rec.id }}">
+<form class="rc-noprint" method="get" action="/v/{{ vin }}/recordings/{{ rec.id }}">
   {% if tok %}<input type="hidden" name="token" value="{{ request.query_params.get('token') }}">{% endif %}
   <label>Compare with
     <select name="vs" style="min-height:44px;font-size:1rem">
@@ -42,6 +52,31 @@
 <p class="rc-stats"><span class="rc-key-a">This: {{ rec.label or rec.id }} ({{ rec.dur }})</span> &nbsp;
   <span class="rc-key-b">Compared (dashed): {{ other.label or other.id }} ({{ other.dur }})</span>
   &mdash; both drawn from their own start time on the same axes.</p>
+{% endif %}
+
+{% if diff %}
+<h2 class="rt-h">What changed between the two</h2>
+<div class="tw"><table class="rp-tbl" id="rc-diff">
+  <thead><tr><th>Value</th><th>Average, this</th><th>Average, compared</th><th>Difference</th><th>Highest, this</th><th>Highest, compared</th></tr></thead>
+  <tbody>{% for d in diff %}<tr><td>{{ d.channel }}{% if d.unit %} <span class="muted">({{ d.unit }})</span>{% endif %}</td>
+    <td class="n">{{ "%.4g"|format(d.a_avg) }}</td><td class="n">{{ "%.4g"|format(d.b_avg) }}</td>
+    <td class="n"><b>{{ "%+.4g"|format(d.d_avg) }}</b></td><td class="n">{{ "%.4g"|format(d.a_max) }}</td><td class="n">{{ "%.4g"|format(d.b_max) }}</td></tr>{% endfor %}</tbody>
+</table></div>
+<p class="small muted">Computed from the recorded samples only. A difference says the two drives differed here; it does not say which one was normal.</p>
+{% endif %}
+
+{% if replay.t %}
+<section class="rp" id="rc-replay" aria-label="Replay">
+  <div class="rp-bar rc-noprint">
+    <button type="button" class="btn rc-btn" id="rp-play" aria-pressed="false">Play</button>
+    <button type="button" class="btn rc-btn" id="rp-speed" title="Playback speed">x1</button>
+    <input type="range" id="rp-slider" min="0" max="{{ replay.t|length - 1 }}" value="0" aria-label="Position in the recording">
+    <span class="rp-t" id="rp-time">0:00</span>
+  </div>
+  <p class="rp-note small" id="rp-tag" aria-live="polite"></p>
+  <table class="rp-tbl"><thead><tr><th>Value</th><th>At this moment</th></tr></thead><tbody id="rp-body"></tbody></table>
+  <script type="application/json" id="rp-data">{{ replay|tojson }}</script>
+</section>
 {% endif %}
 
 {% if tags %}
@@ -64,4 +99,28 @@
 {% endfor %}
 <div class="small muted">Time axis, minutes:seconds from the start of the recording (shared by every chart above)</div>
 {{ axis }}
+<script>
+(function(){
+  var el=document.getElementById('rp-data'); if(!el) return;
+  var d=JSON.parse(el.textContent), sl=document.getElementById('rp-slider'), body=document.getElementById('rp-body'),
+      tm=document.getElementById('rp-time'), tg=document.getElementById('rp-tag'), pl=document.getElementById('rp-play'),
+      sp=document.getElementById('rp-speed'), timer=null, rate=1, rates=[1,2,5,10];
+  d.channels.forEach(function(c){var r=body.insertRow(); r.insertCell().textContent=c; r.insertCell().className='n';});
+  function mmss(s){s=Math.max(0,Math.round(s));return Math.floor(s/60)+':'+('0'+s%60).slice(-2);}
+  function show(i){
+    var t=d.t[i]; tm.textContent=mmss(t);
+    d.channels.forEach(function(c,k){var v=d.v[c][i], u=d.units[c]||'';
+      body.rows[k].cells[1].textContent=(v===null||v===undefined)?'no sample':(v+(u?' '+u:''));});
+    var near=d.tags.filter(function(x){return x.t<=t;}).pop();
+    tg.textContent=near?('Last tag: '+near.key+' '+near.label+' at '+mmss(near.t)):'';
+  }
+  function stop(){if(timer){clearInterval(timer);timer=null;} pl.textContent='Play'; pl.setAttribute('aria-pressed','false');}
+  function go(){stop(); pl.textContent='Pause'; pl.setAttribute('aria-pressed','true');
+    timer=setInterval(function(){var i=+sl.value+1; if(i>=d.t.length){stop();return;} sl.value=i; show(i);},500/rate);}
+  pl.addEventListener('click',function(){if(timer){stop();return;} if(+sl.value>=d.t.length-1) sl.value=0; go();});
+  sp.addEventListener('click',function(){rate=rates[(rates.indexOf(rate)+1)%rates.length]; sp.textContent='x'+rate; if(timer) go();});
+  sl.addEventListener('input',function(){stop(); show(+sl.value);});
+  show(+sl.value);
+})();
+</script>
 {% endblock %}

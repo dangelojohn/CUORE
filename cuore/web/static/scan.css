@@ -191,3 +191,15 @@
 @media (max-width: 560px) { .cd-detail > div { grid-template-columns: 1fr; gap: 0; } }
 .codes-page .flash-toast { padding: 10px 14px; margin: 0 0 10px; border-radius: var(--r-any, 8px); font-size: var(--fs-md); background: var(--surface-2); border: 2px solid var(--ok); }
 .codes-page .flash-err { border-color: var(--sev-returned, #e8565c); }
+
+/* Codes page: Read now list (single column, 44 px targets) */
+.cd-read { margin: 0 0 16px; }
+.cd-read-h { font-size: var(--fs-lg, 1.2rem); margin: 0 0 4px; }
+.cd-read-note { margin: 0 0 8px; }
+.cd-read-list { list-style: none; margin: 0; padding: 0; }
+.cd-read-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: var(--tap, 44px); border-bottom: 1px solid var(--rule); padding: 4px 0; }
+.cd-read-row form { margin: 0; }
+.cd-read-btn { min-width: 120px; }
+.cd-read-not_read .cd-read-last { border-left: 4px solid var(--ink); padding-left: 8px; }
+
+@media print { .cd-noprint, .cd-read, .cd-search, .cd-go, .cd-act, .cd-ff, #cd-sort, #cd-adv, #cd-legend { display: none !important; } .cd-group { break-inside: avoid; } }
