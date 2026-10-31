@@ -269,7 +269,10 @@ def recordings_set_save(request: Request, vin: str, set_name: str = Form(""), ch
 
 
 @router.post("/v/{vin}/recordings/sets/delete")
-def recordings_set_delete(request: Request, vin: str, set_name: str = Form("")):
+def recordings_set_delete(request: Request, vin: str, set_name: str = Form(""), del_set: str = Form("")):
+    # The page's Delete buttons send del_set: the "Name for this set" box shares the form and posts an
+    # empty set_name after them, which would otherwise win.
+    set_name = del_set or set_name
     try:
         gone = channel_sets.delete(vin, set_name)
     except channel_sets.SetError as e:

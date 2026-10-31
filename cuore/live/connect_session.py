@@ -223,10 +223,23 @@ def resume(vin: str) -> dict[str, Any]:
     return st
 
 
-def finish(vin: str) -> dict[str, Any]:
+def _restore_plain(probe: Any, st: dict[str, Any], why: str) -> None:
+    """Put the declared cable back to 'none' (a declaration only: no bus traffic). Best effort."""
+    try:
+        cur = probe.cable() if hasattr(probe, "cable") else "none"
+        if cur != "none":
+            probe.set_cable("none")
+            _event(st, f"declared cable set back to none ({why}; was {cur})")
+    except Exception as e:  # noqa: BLE001 -- never hide the stop behind a restore failure
+        _event(st, f"could not set the declared cable back to none ({why}): {type(e).__name__}: {e}")
+
+
+def finish(vin: str, probe: Any = None) -> dict[str, Any]:
     st = current(vin)
     st["finished"] = now()
     _event(st, "session finished by the person")
+    if not _RUN_LOCK.locked():
+        _restore_plain(probe or ConnectProbe(), st, "session finished")
     save(st)
     return st
 
@@ -426,6 +439,9 @@ def _discover(c: _Ctx, bus: str) -> None:
 
 
 def _step_discover_ch(c: _Ctx) -> None:
+    # The person confirmed the grey cable for this session; declare it (no traffic) so the discover
+    # never runs under whatever cable was declared last. A stop puts the declaration back to none.
+    c.probe.set_cable("grey_a6")
     _discover(c, "can_ch")
 
 
@@ -482,14 +498,22 @@ def run_step(vin: str, step_id: str, *, confirm: bool = False, probe: Any = None
         c.volts = volts
         halt: Optional[_Halt] = None
         try:
+            if spec["cable"] == "none":
+                # CAN-C steps run on the plain lead: never under a CAN-CH/CAN-IHS declaration left behind.
+                _restore_plain(probe, st, f"before step {spec['n']}")
             _RUNNERS[step_id](c)
         except _Halt as h:
             halt = h
-        except Exception as e:  # noqa: BLE001 -- a refused or failed read is a finding, never a crash
+        except Exception as e:  # noqa: BLE001 -- a failed read is a finding, never a crash
             c.add("error", spec["title"], False, f"NOT READ: {type(e).__name__}: {e}")
+            # ...and the step did not run to the end, so it cannot count as done: stop here.
+            halt = _Halt(f"step {spec['n']} failed part-way: {type(e).__name__}: {e}",
+                         "Check the adapter, cable and ignition, then Resume and run the step again.", "error")
         _record(st, spec, c, volts, halt)
         if halt:
             _stop(st, spec, halt)
+            if spec["cable"] != "none":
+                _restore_plain(probe, st, f"stopped at step {spec['n']}")
         return out(False)
     finally:
         _RUN_LOCK.release()

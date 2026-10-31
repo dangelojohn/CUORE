@@ -717,6 +717,9 @@ header.top .brand { position: absolute; left: 50%; top: 50%; transform: translat
   /* phone: logo centred, Menu right; the car bar below carries the car name */
   header.top .top-car { display: none; }
   header.top .brand-word { display: none; }
+  /* the centred logo link was 32 px wide: a 44 px tap target, still centred on the header */
+  header.top .brand { min-width: 44px; justify-content: center; }
+  input.feedback-author { min-height: 44px; }
 }
 /* Bench: the car name shows once. Desktop = the header; under 760 px the header
  * name is hidden, so the bar line carries it. */

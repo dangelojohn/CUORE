@@ -156,8 +156,9 @@ stale.vin = "ZASFAKPN5J7B88115"
 ops._observe(sess, "module_dtcs", {"ecu": "TCM", "dtcs": []})
 check("a VIN read this session files the read",
       any(o["vin"] == "ZASFAKPN5J7B88115" for o in store.recent_observations(1000)))
+stale.forget_vin()      # no car confirmed: the caller's VIN is all there is (a different confirmed VIN would win)
 ops._observe(sess, "module_dtcs", {"ecu": "BCM", "dtcs": []}, "ZFBCFABH1EZ020882")
-check("an explicit VIN from the caller is honoured",
+check("an explicit VIN from the caller is honoured when no car is confirmed",
       any(o["vin"] == "ZFBCFABH1EZ020882" for o in store.recent_observations(1000)))
 
 print(f"{checks - len(failures)}/{checks} checks passed")

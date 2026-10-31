@@ -473,7 +473,7 @@ def codes(request: Request, vin: str,
         r["last_seen_ago"] = _relative_ago(r.get("last_seen"))
         r["sessions_x"] = f"x{r.get('sessions') or 0}"
 
-    from ..services import codes_call, codes_read
+    from ..services import codes_call, codes_read, codes_scan_all
     from . import page_search
     job_codes, blocker, action = codes_call.job_state(vin, dossier)
     codes_call.shape(data["dtcs"], job_codes)
@@ -500,6 +500,7 @@ def codes(request: Request, vin: str,
                      flash_msg=(request.query_params.get("msg") or "")[:300], flash_kind=request.query_params.get("mk") or "ok",
                      sort=sort, sort_dir=dir, q=q, groups=groups, call=call, go_chips=go_chips,
                      total_rows=len(data["dtcs"]), read_panel=codes_read.panel(vin) if _can_connect(vin) else None,
+                     scan_all=codes_scan_all.status(vin) if _can_connect(vin) else None,
                      state_help=codes_call.STATE_HELP, state_label=codes_call.STATE_LABEL, no_match_hint=page_search.HINT_CODES,
                      sort_first_dir={k: v[1] for k, v in _CODE_SORTS.items()},
                      bar=_vehicle_bar(vin, dossier),
@@ -1113,6 +1114,8 @@ def live_module(request: Request, code: str, confirm: bool = False,
     """
     code = code.strip()
     active_vin = _active_vehicle(request, vin)
+    from .brand_gate import refuse_vin
+    refuse_vin(active_vin)
     try:
         rows = live_ops.modules()["modules"]
     except LiveError:
@@ -1182,6 +1185,8 @@ def coverage_page(request: Request, vin: str = "") -> HTMLResponse:
 @router.post("/coverage/start", response_class=HTMLResponse)
 def coverage_start(request: Request, vin: str = Form(...),
                    engine_running: bool = Form(default=False)) -> HTMLResponse:
+    from .brand_gate import refuse_vin
+    refuse_vin(vin.strip())
     return _coverage_do(request, lambda: live_ops.coverage_start(vin.strip(),
                                                                  engine_running=engine_running))
 

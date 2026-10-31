@@ -24,7 +24,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
-from fastapi import Header, Query, Request
+from fastapi import Header, HTTPException, Query, Request
 
 from ..api.deps import require_token
 from ..services import landing_bridge, mes_bridge
@@ -115,6 +115,24 @@ async def brand_gate(request: Request, x_cuore_token: str | None = Header(defaul
     raise BrandEmpty(vin, slug, marque)
 
 
+def refuse_vin(vin: str) -> None:
+    """The same refuse rule for routes that take the car as a parameter (``/api/live/...``), where the
+    URL carries no ``/v/{vin}``: raise a 409 BEFORE any adapter contact for a brand with no data.
+    An empty or unknown VIN is not refused here (nothing says which brand it is)."""
+    vin = (vin or "").strip()
+    if not vin:
+        return
+    try:
+        marque = mes_bridge.marque_for_vin(vin)
+    except Exception:  # noqa: BLE001 -- same stance as the page gate
+        return
+    if has_data(marque):
+        return
+    raise HTTPException(status_code=409, detail=(
+        f"{brand_name(marque) or marque}: connecting to a car of this brand is not confirmed yet; "
+        "CUORE's bus and address paths are not confirmed for it, so no read was started."))
+
+
 def render(request: Request, exc: BrandEmpty):
     """The skeleton: the page's heading in the brand's theme and one empty panel."""
     from ..services import car_identify, shop_bridge
@@ -137,4 +155,4 @@ def render(request: Request, exc: BrandEmpty):
     return resp
 
 
-__all__ = ["BrandEmpty", "brand_gate", "has_data", "render", "brand_name", "page_note"]
+__all__ = ["BrandEmpty", "brand_gate", "refuse_vin", "has_data", "render", "brand_name", "page_note"]

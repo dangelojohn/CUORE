@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Parity board — {{ bar.name }}{% endblock %}
+{% block title %}CUORE against MES — {{ bar.name }}{% endblock %}
 {% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
 {% block content %}
 {# Parity board: every function a technician uses in MES or AlfaOBD, CUORE's state, what closes the gap.
@@ -19,7 +19,7 @@
 .pb-why { display: block; font-weight: 400; font-size: var(--fs-md); color: var(--ink-2); overflow-wrap: anywhere; }
 .pb-list { list-style: none; margin: 0; padding: 0 8px 8px; display: grid; gap: 8px; }
 .pb-row { border: 1px solid var(--rule); border-left: 6px solid var(--pb-c, var(--ink-3)); border-radius: var(--radius, 3px); background: var(--surface-2); }
-.pb-row.s-done { --pb-c: var(--ok); } .pb-row.s-car_session { --pb-c: var(--accent); } .pb-row.s-build { --pb-c: var(--ink-2); } .pb-row.s-documents { --pb-c: var(--sev-chronic, #d9a63c); } .pb-row.s-decision { --pb-c: var(--ink-3); }
+.pb-row.st-proven { --pb-c: var(--ok); } .pb-row.st-car { --pb-c: var(--accent); } .pb-row.st-buildable { --pb-c: var(--ink-2); } .pb-row.st-source { --pb-c: var(--sev-chronic, #d9a63c); } .pb-row.st-built { --pb-c: var(--ink-3); }
 .pb-row > details > summary { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; min-height: var(--tap, 44px); padding: 6px 10px; cursor: pointer; }
 .pb-fn { font-weight: 700; font-size: var(--fs-lg); }
 .pb-grp { color: var(--ink-2); }
@@ -37,27 +37,55 @@
 @media (max-width: 520px) { .pb-body dl { grid-template-columns: 1fr; } }
 </style>
 <div class="pb" id="parity">
-<h1>Parity board</h1>
-<p class="lede" id="parity-answer"><strong>{{ b.counts_state['done'] }} of {{ b.total }} functions are done in CUORE</strong>
-  (proved side by side on the car). Next: <strong>{{ b.counts_state['car_session'] }}</strong> need a car session, <strong>{{ b.counts_state['build'] }}</strong> need only a CUORE build,
-  <strong>{{ b.counts_state['documents'] }}</strong> wait for manufacturer documents, <strong>{{ b.counts_state['decision'] }}</strong> need a decision.</p>
-<details class="fold" style="margin:0 0 10px"><summary style="min-height:44px;display:flex;align-items:center">How to read this board and where it comes from</summary>
-<p class="lede">Every function a technician uses in MultiEcuScan or AlfaOBD, what CUORE does today, and what closes each gap. Order of work: car session first, then what only needs a CUORE build, then documents, then decisions. A row moves to Done only with a recorded side-by-side test on the car. Source: {{ b.about }}</p></details>
+<h1>CUORE against MES</h1>
+{% macro href(st, g, m) -%}
+/v/{{ vin }}/parity{% set q = [] %}{% if st %}{% set _ = q.append('status=' ~ b.status_slug[st]) %}{% endif %}{% if g %}{% set _ = q.append('group=' ~ g) %}{% endif %}{% if m %}{% set _ = q.append('module=' ~ (m|urlencode)) %}{% endif %}{% if q %}?{{ q|join('&amp;')|safe }}{% endif %}
+{%- endmacro %}
+<p class="lede" id="parity-answer"><strong>{{ b.mes_proven }} of {{ b.mes_total }} MES items proven in CUORE.</strong>
+  CUORE is not equal to MES. An item counts as proven only when a recorded CUORE reading on this car equals what MES shows.
+  The other {{ b.mes_total - b.mes_proven }}: <strong>{{ b.counts_status_all['BUILT NOT PROVEN'] }}</strong> built but not proven,
+  <strong>{{ b.counts_status_all['MISSING BUILDABLE'] }}</strong> missing and buildable now,
+  <strong>{{ b.counts_status_all['NEEDS CAR'] }}</strong> need a car session,
+  <strong>{{ b.counts_status_all['NEEDS MANUFACTURER SOURCE'] }}</strong> need a manufacturer source.
+  ({{ b.total }} rows in all; the {{ b.total - b.mes_total }} CUORE-only rows are not MES items and are left out of the first number.)</p>
+<details class="fold" style="margin:0 0 10px"><summary style="min-height:44px;display:flex;align-items:center">How to read this page and where it comes from</summary>
+<p class="lede">Every item MultiEcuScan shows for this car or documents as a function, with CUORE's status. Each row has exactly one status. Writes (resets, adjustments, actuator tests, configuration, clearing codes) always read "Needs a manufacturer source" until a documented source is on file. Source: {{ b.about }}</p></details>
 
-<div class="pb-counts" role="group" aria-label="By state">
-  <a class="pb-chip" href="/v/{{ vin }}/parity{% if b.group %}?group={{ b.group }}{% endif %}" {% if not b.state %}aria-current="true"{% endif %}><span class="n">{{ b.total }}</span> all</a>
-  {% for k in b.state_order %}
-  <a class="pb-chip" href="/v/{{ vin }}/parity?state={{ k }}{% if b.group %}&amp;group={{ b.group }}{% endif %}" {% if b.state == k %}aria-current="true"{% endif %}><span aria-hidden="true">{{ b.state_mark[k] }}</span> <span class="n">{{ b.counts_state[k] }}</span> {{ b.states[k] }}</a>
+<div class="pb-counts" role="group" aria-label="By status">
+  <a class="pb-chip" href="{{ href('', b.group, b.module) }}" {% if not b.status %}aria-current="true"{% endif %}><span class="n">{{ b.counts_status.values()|sum }}</span> all</a>
+  {% for k in b.status_order %}
+  <a class="pb-chip" href="{{ href(k, b.group, b.module) }}" {% if b.status == k %}aria-current="true"{% endif %}><span aria-hidden="true">{{ b.status_mark[k] }}</span> <span class="n">{{ b.counts_status[k] }}</span> {{ b.status_label[k] }}</a>
   {% endfor %}
 </div>
-<div class="pb-ctl" role="group" aria-label="By area">
-  <b>Area</b>
-  <a class="pb-chip" href="/v/{{ vin }}/parity{% if b.state %}?state={{ b.state }}{% endif %}" {% if not b.group %}aria-current="true"{% endif %}>all</a>
+<div class="pb-ctl" role="group" aria-label="By module">
+  <b>Module</b>
+  <a class="pb-chip" href="{{ href(b.status, b.group, '') }}" {% if not b.module %}aria-current="true"{% endif %}>all</a>
+  {% for m in b.modules %}
+  <a class="pb-chip" href="{{ href(b.status, b.group, m) }}" {% if b.module == m %}aria-current="true"{% endif %}>{{ m }} <span class="n">{{ b.counts_module[m] }}</span></a>
+  {% endfor %}
+</div>
+<div class="pb-ctl" role="group" aria-label="By kind of item">
+  <b>Kind</b>
+  <a class="pb-chip" href="{{ href(b.status, '', b.module) }}" {% if not b.group %}aria-current="true"{% endif %}>all</a>
   {% for g, label in b.groups.items() %}
-  <a class="pb-chip" href="/v/{{ vin }}/parity?group={{ g }}{% if b.state %}&amp;state={{ b.state }}{% endif %}" {% if b.group == g %}aria-current="true"{% endif %}>{{ label }} <span class="n">{{ b.counts_group[g] }}</span></a>
+  <a class="pb-chip" href="{{ href(b.status, g, b.module) }}" {% if b.group == g %}aria-current="true"{% endif %}>{{ label }} <span class="n">{{ b.counts_group[g] }}</span></a>
   {% endfor %}
   <a class="pb-chip" href="/v/{{ vin }}/parity.csv">Download (CSV)</a>
 </div>
+
+<details class="fold pb-sec" id="parity-tables">
+  <summary>Counts by module and by kind of item<span class="pb-why">Each number links to those rows.</span></summary>
+  {% for title, rows, key in (('Module', b.by_module, 'module'), ('Kind of item', b.by_group, 'group')) %}
+  <div style="overflow-x:auto"><table class="pb-cmp">
+    <thead><tr><th>{{ title }}</th><th>Rows</th>{% for k in b.status_order %}<th>{{ b.status_label[k] }}</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td>{% if key == 'module' %}<a href="{{ href('', '', r.module) }}">{{ r.module }}</a>{% else %}<a href="{{ href('', r.group, '') }}">{{ r.label }}</a>{% endif %}</td><td class="mono">{{ r.n }}</td>
+        {% for k in b.status_order %}<td class="mono">{% if r.by[k] %}<a href="{% if key == 'module' %}{{ href(k, '', r.module) }}{% else %}{{ href(k, r.group, '') }}{% endif %}">{{ r.by[k] }}</a>{% else %}0{% endif %}</td>{% endfor %}</tr>
+    {% endfor %}
+    </tbody></table></div>
+  {% endfor %}
+</details>
 
 <details class="fold pb-sec" id="code-compare" {% if cmp and cmp.counts and (cmp.counts['MATCHED'] or cmp.counts['DIFFERENT']) %}open{% endif %}>
   <summary>Stored codes, CUORE against MES, per module{% if cmp and cmp.counts %} ({{ cmp.counts['MATCHED'] }} matched, {{ cmp.counts['DIFFERENT'] }} different, {{ cmp.counts['NOT COMPARED'] }} not compared){% endif %}
@@ -84,27 +112,30 @@
 
 {% if not b.total %}<p class="sens-msg" role="alert">No parity data yet: cuore/data/parity_items.json is missing or empty.</p>{% endif %}
 {% for s in b.sections %}
-<details class="fold pb-sec" {% if s.open %}open{% endif %}>
+<details class="fold pb-sec" {% if s.open or (not b.status and not b.module and not b.group and s.key in ('PROVEN', 'MISSING BUILDABLE')) %}open{% endif %}>
   <summary><span aria-hidden="true">{{ s.mark }}</span> {{ s.label }} ({{ s.n }})<span class="pb-why">{{ s.why }}</span></summary>
   <ul class="pb-list">
   {% for i in s.rows %}
-    <li class="pb-row s-{{ i.state }}" id="pb-{{ i.id }}">
+    <li class="pb-row st-{{ b.status_slug[i.status] }}" id="pb-{{ i.id }}">
       <details class="fold">
         <summary>
           <span class="pb-fn">{{ i.function }}</span>
-          <span class="pb-grp">{{ i.group_label }}</span>
+          <span class="pb-grp">{{ i.module }} &middot; {{ i.group_label }}</span>
           <span class="pb-tools">
             <span class="pb-tool" title="MultiEcuScan">MES <b aria-hidden="true">{{ i.mes_mark }}</b> {{ i.mes_word }}</span>
-            <span class="pb-tool" title="AlfaOBD">AlfaOBD <b aria-hidden="true">{{ i.alfaobd_mark }}</b> {{ i.alfaobd_word }}</span>
             <span class="pb-tool" title="CUORE">CUORE <b aria-hidden="true">{{ i.cuore_mark }}</b> {{ i.cuore_word }}</span>
+            <span class="pb-tool" title="Status"><b aria-hidden="true">{{ i.status_mark }}</b> {{ i.status_label }}</span>
           </span>
         </summary>
         <div class="pb-body">
           <dl>
+            <dt>Status</dt><dd>{{ i.status_label }}{% if i.status_basis %}: {{ i.status_basis }}{% endif %}</dd>
             <dt>CUORE today</dt><dd>{{ i.cuore.note or i.cuore_word }}</dd>
             {% if i.mes.note %}<dt>MES</dt><dd>{{ i.mes.note }}</dd>{% endif %}
-            {% if i.alfaobd.note %}<dt>AlfaOBD</dt><dd>{{ i.alfaobd.note }}</dd>{% endif %}
+            {% if i.alfaobd.note and i.alfaobd.note != 'Not assessed for this row.' %}<dt>AlfaOBD</dt><dd>{{ i.alfaobd.note }}</dd>{% endif %}
             <dt>What closes it</dt><dd>{{ i.closes }}</dd>
+            {% if i.seen_in %}<dt>Seen in</dt><dd>{{ i.seen_in }}</dd>{% endif %}
+            {% if i.also_seen_as %}<dt>Also covers</dt><dd>{{ i.also_seen_as|join('; ') }}</dd>{% endif %}
             {% if i.override %}<dt>Owner update</dt><dd>{{ i.override.note or "state changed" }}{% if i.override.at %} ({{ i.override.at[:10] }}){% endif %}</dd>{% endif %}
             {% if not i.applies_to_reference_car %}<dt>Note</dt><dd>Does not apply to the reference car.</dd>{% endif %}
             {% if i.refs %}<dt>References</dt><dd class="pb-refs">{{ i.refs|join(' · ') }}</dd>{% endif %}

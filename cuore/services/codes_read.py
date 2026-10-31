@@ -99,5 +99,8 @@ def read_now(vin: str, code: str, reader: Optional[Callable[..., dict[str, Any]]
         msg = str(getattr(e, "message", "") or e)[:160] or e.__class__.__name__
         return {"ok": False, "module": code, "state": "not_read",
                 "line": f"{code}: could not read ({msg}). {NOT_CLEAN.capitalize()}."}
+    if d.get("car_mismatch"):     # the car on the cable is not the car of this page
+        return {"ok": False, "module": code, "state": "not_read",
+                "line": f"{code}: {d['car_mismatch']}. {NOT_CLEAN.capitalize()} for this car."}
     s = summarise(d if d.get("ecu") else {**d, "ecu": code})
     return {"ok": s["state"] == "read", "module": code, "state": s["state"], "line": s["line"]}

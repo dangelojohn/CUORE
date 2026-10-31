@@ -24,7 +24,7 @@ def parity_rows() -> list[dict[str, Any]]:
     items = json.loads(PARITY.read_text(encoding="utf-8"))["items"]
     return [{"function": i["function"], "mes": i["mes"].get("note", ""), "cuore": i["cuore"].get("note", ""),
              "state": i["state"], "screen": i.get("screen") or i["cuore"].get("screen")}
-            for i in items if i["cuore"].get("has") == "yes"]
+            for i in items if i["cuore"].get("has") == "yes" and not i.get("mes_item")]
 
 
 @router.get("/hardware", response_class=HTMLResponse)

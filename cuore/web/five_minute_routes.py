@@ -13,6 +13,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 
 from ..api.deps import require_token
 from ..live import five_minute
+from .brand_gate import refuse_vin
 from .fullscan_routes import _bar
 from .routes import _page, _set_active_vehicle
 
@@ -45,4 +46,5 @@ def five_minute_run(vin: str) -> RedirectResponse:
 @router.post("/api/live/five-minute")
 def five_minute_api(vin: str = Query(default=""), bus: str = Query(default=""),
                     confirm: bool = Query(default=False)) -> dict[str, Any]:
+    refuse_vin(vin)
     return five_minute.run(vin, bus=bus, confirm=confirm)

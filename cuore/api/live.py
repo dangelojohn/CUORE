@@ -18,6 +18,7 @@ from ..live import ops
 from ..live import responders as responders_mod
 from ..live import ui_store
 from ..live import audit as audit_mod
+from ..web.brand_gate import refuse_vin
 from .deps import require_role, require_token
 
 router = APIRouter(tags=["live"], dependencies=[Depends(require_token)])
@@ -120,12 +121,14 @@ def live_obd_readiness() -> dict[str, Any]:
 def live_module_dtcs(code: str, vin: str = Query(default=""), mask: int = Query(default=0xFF),
                      confirm: bool = Query(default=False),
                      detail: bool = Query(default=True)) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.module_dtcs(code, vin=vin, mask=mask, confirm=confirm, detail=detail)
 
 
 @router.get("/live/module/{code}/identity", summary="ISO 14229 Annex C identity of one module")
 def live_module_identity(code: str, vin: str = Query(default=""),
                          confirm: bool = Query(default=False)) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.module_identity(code, vin=vin, confirm=confirm)
 
 
@@ -133,12 +136,14 @@ def live_module_identity(code: str, vin: str = Query(default=""),
              summary="Bounded read-only ladder of routes to one CAN-CH module (grey cable, 500k)")
 def live_module_connect_test(code: str, vin: str = Query(default=""),
                              confirm: bool = Query(default=False)) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.abs_connect_test(code, vin=vin, confirm=confirm)
 
 
 @router.get("/live/module/{code}/did/{did}", summary="UDS 0x22 on one module")
 def live_module_did(code: str, did: str, vin: str = Query(default=""),
                     confirm: bool = Query(default=False)) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.module_did(code, did, vin=vin, confirm=confirm)
 
 
@@ -147,6 +152,7 @@ def live_module_did(code: str, did: str, vin: str = Query(default=""),
 def live_module_repair(code: str, codes: str = Query(..., description="P0455,P0456,P0440"),
                        vin: str = Query(default=""), read: bool = Query(default=True),
                        confirm: bool = Query(default=False)) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.repair_status([c.strip() for c in codes.split(",")], module=code, vin=vin,
                              read=read, confirm=confirm)
 
@@ -161,6 +167,7 @@ def live_obd_mode06(mids: str = Query(default="", description="e.g. 3C,3B; empty
 def live_module_round(bus: str = Query(default="can_c"), modules: str = Query(default=""),
                       vin: str = Query(default=""), confirm: bool = Query(default=False)
                       ) -> dict[str, Any]:
+    refuse_vin(vin)
     mods = [m.strip() for m in modules.split(",") if m.strip()] or None
     return ops.module_code_round(bus, mods, vin=vin, confirm=confirm)
 
@@ -178,6 +185,7 @@ def live_snapshot_bind(vin: str = Body(..., embed=True), module: str = Body(...,
 @router.get("/live/module/{code}/dtc/{dtc}", summary="One code's status, snapshots and counters")
 def live_module_dtc_detail(code: str, dtc: str, vin: str = Query(default=""),
                            confirm: bool = Query(default=False)) -> dict[str, Any]:
+    refuse_vin(vin)
     # Honest best-effort decode of whatever ops.module_dtc_detail's snapshot
     # (19 04) / extended (19 06) walk stopped on and reported raw under
     # "undecoded_from" -- see cuore.live.dtc_records module docstring. Every
@@ -189,6 +197,7 @@ def live_module_dtc_detail(code: str, dtc: str, vin: str = Query(default=""),
 def live_module_read_all(code: str, vin: str = Query(default=""),
                          include_unverified: bool = Query(default=True),
                          confirm: bool = Query(default=False)) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.module_read_all(code, vin=vin, include_unverified=include_unverified,
                                confirm=confirm)
 
@@ -198,6 +207,7 @@ def live_module_discover_dids(code: str, vin: str = Body(default="", embed=True)
                               ranges: Optional[list[str]] = Body(default=None, embed=True),
                               max_dids: int = Body(default=2000, embed=True),
                               confirm: bool = Body(default=False, embed=True)) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.module_discover_dids(code, vin=vin, ranges=ranges, max_dids=max_dids,
                                     confirm=confirm)
 
@@ -211,6 +221,7 @@ def live_service_dids_plan(vin: str = Query(...)) -> dict[str, Any]:
 @router.post("/live/service-dids/discover", summary="Read-only UDS 0x22 sweep for the cluster's service values")
 def live_service_dids_discover(vin: str = Body(..., embed=True),
                                max_seconds: float = Body(default=180, embed=True)) -> dict[str, Any]:
+    refuse_vin(vin)
     from ..live import service_dids
     return service_dids.run(vin, max_seconds=max_seconds)
 
@@ -252,6 +263,7 @@ def live_learned(vin: str = Query(default="")) -> dict[str, Any]:
 def live_scan(bus: str = Query(default="can_c"), vin: str = Query(default=""),
               mask: int = Query(default=0xFF), confirm: bool = Query(default=False),
               detail: bool = Query(default=True)) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.scan_modules(bus, vin=vin, mask=mask, confirm=confirm, detail=detail)
 
 
@@ -264,6 +276,7 @@ def live_discover(bus: str = Body(default="can_c", embed=True),
                   stop_after: Optional[int] = Body(default=None, embed=True),
                   deadline_s: float = Body(default=60.0, embed=True),
                   max_targets: Optional[int] = Body(default=None, embed=True)) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.discover(bus, vin=vin, confirm=confirm, candidates=candidates,
                         per_target_timeout=per_target_timeout, stop_after=stop_after,
                         deadline_s=deadline_s, max_targets=max_targets)
@@ -294,6 +307,7 @@ def live_coverage() -> dict[str, Any]:
 def live_coverage_start(vin: str = Body(..., embed=True),
                         engine_running: Optional[bool] = Body(default=None, embed=True)
                         ) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.coverage_start(vin, engine_running=engine_running)
 
 
@@ -347,6 +361,7 @@ def live_fullscan(vin: str = Body(default="", embed=True),
                   buses: Optional[list[str]] = Body(default=None, embed=True),
                   budget_s: Optional[float] = Body(default=None, embed=True),
                   confirm: bool = Body(default=False, embed=True)) -> dict[str, Any]:
+    refuse_vin(vin)
     from ..live import fullscan
     return fullscan.run(vin, buses=buses, budget_s=budget_s, confirm=confirm)
 
@@ -362,6 +377,7 @@ def live_fullscan_last() -> dict[str, Any]:
 @router.post("/live/fullscan/guided/start",
             summary="Start a guided scan: CAN-C in full, then pause for the blue A5 cable")
 def live_fullscan_guided_start(vin: str = Body(default="", embed=True)) -> dict[str, Any]:
+    refuse_vin(vin)
     from ..live import fullscan
     return fullscan.run_guided(vin)
 
@@ -417,6 +433,7 @@ def live_session_start_route(channels: Optional[list[str]] = Body(default=None, 
                                              "(1 every cycle, the default; 5 every 5th)"),
                              simulation: bool = Body(default=False, embed=True)
                              ) -> dict[str, Any]:
+    refuse_vin(vin)
     return ops.live_session_start(channels, preset=preset, rates=rates,
                                   monitor_dtcs=monitor_dtcs, dtc_interval_s=dtc_interval_s,
                                   code_watch=code_watch,
@@ -645,6 +662,7 @@ def live_connect_start(vin: str = Body(..., embed=True)) -> dict[str, Any]:
     outright, so this checks first and skips straight to the open session's
     own state, same as a plain reload of ``/v/{vin}/scan`` would show.
     """
+    refuse_vin(vin)
     from ..live import fullscan
     from ..live.errors import LiveError
 
@@ -710,6 +728,7 @@ def live_stream_route():
 
 @router.post("/live/proxi/discover", summary="Read-only UDS 0x22 sweep of the Body computer for the configuration block")
 def live_proxi_discover(vin: str = Body(..., embed=True)) -> dict[str, Any]:
+    refuse_vin(vin)
     from ..live import proxi_read
     return proxi_read.discover(vin)
 
@@ -724,5 +743,6 @@ def live_proxi_accept(vin: str = Body(..., embed=True), did: str = Body(..., emb
 
 @router.post("/live/proxi/read", summary="Read-only UDS 0x22 read of the accepted PROXI block, with diff")
 def live_proxi_read(vin: str = Body(..., embed=True)) -> dict[str, Any]:
+    refuse_vin(vin)
     from ..live import proxi_read
     return proxi_read.read(vin)

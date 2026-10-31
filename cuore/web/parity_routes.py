@@ -1,4 +1,4 @@
-"""Parity board page: GET /v/{vin}/parity (filters ?state= ?group=), GET /v/{vin}/parity.csv. Read-only."""
+"""Parity board page: GET /v/{vin}/parity (filters ?status= ?group= ?module=), GET /v/{vin}/parity.csv. Read-only."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
@@ -12,9 +12,9 @@ router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)
 
 
 @router.get("/v/{vin}/parity", response_class=HTMLResponse)
-def parity_page(request: Request, vin: str, state: str = "", group: str = "") -> HTMLResponse:
+def parity_page(request: Request, vin: str, state: str = "", group: str = "", status: str = "", module: str = "") -> HTMLResponse:
     dossier = _dossier(vin)
-    b = parity.board(state.strip() or None, group.strip() or None)
+    b = parity.board(state.strip() or None, group.strip() or None, status.strip() or None, module.strip() or None)
     try:
         cmp = code_compare.compare(vin)
     except Exception as exc:  # noqa: BLE001 -- the board must render without the comparison

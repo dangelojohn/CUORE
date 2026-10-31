@@ -74,6 +74,21 @@
 <section class="cd-read" id="read-now" aria-label="Read codes now">
   <h2 class="cd-read-h">Read codes now</h2>
   <p class="cd-read-note muted">One press reads one module once. It only reads; nothing is cleared. The result also lands in the log. Modules on other buses are on the <a href="/v/{{ vin }}/scan">Scan page</a>.</p>
+  <form class="cd-read-all" method="post" action="/v/{{ vin }}/codes/read-all{{ ('?token=' ~ request.query_params.get('token')|urlencode) if request.query_params.get('token') else '' }}">
+    <button type="submit" class="cd-btn cd-read-all-btn"{% if scan_all and scan_all.running %} disabled{% endif %}>Read all modules</button>
+    <span class="muted">Every confirmed module on this bus, one at a time. Read only.</span>
+  </form>
+  {% if scan_all %}
+  <div class="cd-read-all-out" role="status">
+    {% if scan_all.running %}<p><b>{{ scan_all.progress or 'Working' }}</b></p>
+    <script>setTimeout(function(){location.reload();},3000);</script>{% endif %}
+    {% if scan_all.refused %}<p><b>Refused:</b> {{ scan_all.reason }}</p>{% endif %}
+    {% if scan_all.stopped %}<p><b>{{ scan_all.stopped }}</b></p>{% endif %}
+    <ul>{% for r in scan_all.results %}<li class="cd-read-{{ r.state }}">{{ r.text }}</li>{% endfor %}</ul>
+    {% if scan_all.not_tried %}<p>Not tried:</p>
+    <ul>{% for n in scan_all.not_tried %}<li>{{ n.module }}: {{ n.why }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+  {% endif %}
   <ul class="cd-read-list">
   {% for m in read_panel %}
     <li class="cd-read-row cd-read-{{ m.state }}">

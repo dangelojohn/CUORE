@@ -42,7 +42,7 @@
         <button type="button" class="btn rc-btn" data-set='{{ s.here|tojson }}'
                 title="{{ 'Your set' if s.kind == 'own' else 'Ready-made from the Live board' }}{% if s.missing %}; not in this session: {{ s.missing|join(', ') }}{% endif %}">{{ s.name }} ({{ s.here|length }}{% if s.missing %} of {{ s.channels|length }}{% endif %})</button>
         {% if s.kind == 'own' %}<button type="submit" class="btn rc-btn" formaction="/v/{{ vin }}/recordings/sets/delete{{ tok }}" formnovalidate
-                name="set_name" value="{{ s.name }}" aria-label="Delete set {{ s.name }}">Delete</button>{% endif %}
+                name="del_set" value="{{ s.name }}" aria-label="Delete set {{ s.name }}">Delete</button>{% endif %}
       </span>
       {% endfor %}
     </div>

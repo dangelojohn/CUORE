@@ -397,9 +397,11 @@ def run_actuator(sess: Any, ecu: ECUAddress, procedure: dict[str, Any], *, conse
             return _send(step, label, timeout=timeout,
                          retries=1 if rem > 2 * timeout + 0.6 else 0)
 
-        try:
-            term = procedure.get("synthesised_terminator")
-            if not control_returned:
+        # Each safe-state send has its own guard: a raise while sending the terminator must not
+        # skip the session restore (and vice versa).
+        term = procedure.get("synthesised_terminator")
+        if not control_returned:
+            try:
                 if term is not None:
                     control_returned = _term_send(term, "terminator (synthesised)")["accepted"]
                 else:
@@ -407,12 +409,15 @@ def run_actuator(sess: Any, ecu: ECUAddress, procedure: dict[str, Any], *, conse
                                     None)
                     if last_act is not None:
                         control_returned = _term_send(last_act, "terminator (repeat)")["accepted"]
-            if not session_restored:
+            except Exception as e:  # noqa: BLE001 -- must not mask whatever failed above
+                log.append({"label": "terminator failed", "error": str(e)})
+        if not session_restored:
+            try:
                 session_restored = _term_send({"service": "10", "payload": ["01"],
                                                "request": ["10", "01"]},
                                               "session restore")["accepted"]
-        except Exception as e:  # noqa: BLE001 -- must not mask whatever failed above
-            log.append({"label": "terminator failed", "error": str(e)})
+            except Exception as e:  # noqa: BLE001
+                log.append({"label": "session restore failed", "error": str(e)})
         term_s = time.monotonic() - term_started
         term_overran = term_s > TERMINATOR_BOUND_S
         if term_overran:

@@ -67,7 +67,14 @@ def _session_vin(sess: Any) -> str:
 def _observe(sess: Session, kind: str, out: dict[str, Any], vin: str = "") -> dict[str, Any]:
     """Stamp and persist a result as an observation the evidence gate can cite."""
     _stamp(sess, out)
-    v = vin or _session_vin(sess)
+    car = _session_vin(sess)
+    v = vin or car
+    if vin and car and vin.strip().upper() != car.upper():
+        # The car on the cable said it is another car than the page asked about: file the read
+        # under the car that answered, and say so; never under the page's VIN.
+        v = car
+        out["car_mismatch"] = (f"the car on the cable reported VIN {car}, not {vin}: this read is filed "
+                               f"under {car}, not under {vin}")
     if not v:
         out.setdefault("car_unconfirmed", CAR_UNCONFIRMED)
     store.record_observation(kind, out, vin=v, bus=sess.bus.key, cable=sess.link.cable,
@@ -837,7 +844,8 @@ def _compact_dtc_result(mod: dict[str, Any]) -> dict[str, Any]:
     """
     from . import coverage
     out = {k: mod[k] for k in
-           ("ecu", "bus", "mask", "error", "nrc", "warning", "note", "skipped")
+           ("ecu", "bus", "mask", "error", "nrc", "warning", "note", "skipped",
+            "car_mismatch", "car_unconfirmed")
            if k in mod}
     if "dtcs" not in mod and not read_state.reason(mod):
         return out
