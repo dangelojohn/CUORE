@@ -27,3 +27,8 @@ ferrari-wordmark.svg  Wikimedia Commons "File:Ferrari_wordmark.svg", fetched
     domain, trademarked. The prancing-horse shield is copyrighted artwork that
     Commons does not host; it must come from Ferrari with permission, and then
     replaces the wordmark in the same slot (data-marque="ferrari").
+
+ferrari-horse.svg  Demo only, git-ignored, never in the public repo. Horse taken
+    from de.wikipedia "Datei:Scuderia Ferrari Logo.svg" on 2026-10-31 at the
+    owner's request (rights expected, not yet in writing). When present it
+    replaces the wordmark; without it the wordmark shows.

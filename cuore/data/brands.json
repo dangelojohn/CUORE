@@ -1,8 +1,8 @@
 {
-  "_about": "The brands the landing page offers, in display order. Marque of a car comes from its VIN (mes.platform.marque_for_vin); this file only says how a brand is shown. has_data=false marks a brand under UX test: CUORE holds no vehicle data for it and says so. mark_kind: image = a coloured badge shown as is; mask = a one-colour mark drawn in the ink colour. Add a brand = one entry here plus its mark under web/static/brand/.",
+  "_about": "The brands the landing page offers, in display order. Marque of a car comes from its VIN (mes.platform.marque_for_vin); this file only says how a brand is shown. has_data=false marks a brand under UX test: CUORE holds no vehicle data for it and says so. mark_kind: image = a coloured badge shown as is; mask = a one-colour mark drawn in the ink colour. mark_local: a mark kept on this machine only (git-ignored) until its rights are written down; it wins when the file is there, else mark is used. Add a brand = one entry here plus its mark under web/static/brand/.",
   "brands": [
     {"key": "alfa", "name": "Alfa Romeo", "mark": "alfa-romeo-logo.png", "mark_kind": "image", "has_data": true, "note": ""},
     {"key": "maserati", "name": "Maserati", "mark": "maserati-trident.svg", "mark_kind": "mask", "has_data": false, "note": "Test: no vehicle data for this brand yet"},
-    {"key": "ferrari", "name": "Ferrari", "mark": "ferrari-wordmark.svg", "mark_kind": "mask", "has_data": false, "note": "Test: no vehicle data for this brand yet"}
+    {"key": "ferrari", "name": "Ferrari", "mark": "ferrari-wordmark.svg", "mark_local": "ferrari-horse.svg", "mark_kind": "mask", "has_data": false, "note": "Test: no vehicle data for this brand yet"}
   ]
 }

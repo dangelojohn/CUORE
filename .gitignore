@@ -58,3 +58,6 @@ id_rsa*
 
 # Release builds (installer/build-release.ps1)
 dist/
+
+# Demo-only brand mark, rights not yet in writing
+cuore/web/static/brand/ferrari-horse.svg

@@ -68,6 +68,11 @@ def code_watch_state() -> dict:
         return {"enabled": False, "new": [], "count_new": 0}
 
 
+def local_ferrari_mark() -> bool:
+    """True when the machine-only Ferrari mark is on disk (see data/brands.json)."""
+    return (STATIC_DIR / "brand" / "ferrari-horse.svg").is_file()
+
+
 def simulation_active() -> bool:
     """True while a SIMULATED live session runs (drives the site-wide banner)."""
     try:
@@ -83,6 +88,7 @@ def _register(templates: Any) -> None:
     templates.env.globals["fonts_css_link"] = fonts_css_link
     templates.env.globals["code_watch_state"] = code_watch_state
     templates.env.globals["simulation_active"] = simulation_active
+    templates.env.globals["local_ferrari_mark"] = local_ferrari_mark
     from . import units as _units
     templates.env.filters["dist"] = _units.dist
     templates.env.filters["speed"] = _units.speed

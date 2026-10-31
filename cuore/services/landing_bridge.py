@@ -38,8 +38,8 @@ def brands() -> list[dict[str, Any]]:
         raw = []
     out = []
     for b in raw:
-        f = b.get("mark") or ""
-        out.append(dict(b, mark_url=f"/static/brand/{f}" if f and (_STATIC / "brand" / f).is_file() else None))
+        f = next((m for m in (b.get("mark_local"), b.get("mark")) if m and (_STATIC / "brand" / m).is_file()), "")
+        out.append(dict(b, mark_url=f"/static/brand/{f}" if f else None))
     return out
 
 

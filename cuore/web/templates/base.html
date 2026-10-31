@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="{{ static_url('flow.css') }}">
 <link rel="stylesheet" href="{{ static_url('icons.css') }}">
 <link rel="stylesheet" href="{{ static_url('print.css') }}" media="print">
+{% if local_ferrari_mark is defined and local_ferrari_mark() %}<style>:root[data-marque="ferrari"] { --marque-mark: url(/static/brand/ferrari-horse.svg); --marque-mark-w: 30px; }</style>{% endif %}
 </head>
 <body{% if vin is defined and vin %} data-vin="{{ vin }}"{% endif %}>
 
