@@ -39,7 +39,9 @@ def brands() -> list[dict[str, Any]]:
     out = []
     for b in raw:
         f = next((m for m in (b.get("mark_local"), b.get("mark")) if m and (_STATIC / "brand" / m).is_file()), "")
-        out.append(dict(b, mark_url=f"/static/brand/{f}" if f else None))
+        lm = b.get("landing_mark") or ""
+        out.append(dict(b, mark_url=f"/static/brand/{f}" if f else None,
+                        landing_url=f"/static/brand/{lm}" if lm and (_STATIC / "brand" / lm).is_file() else None))
     return out
 
 
@@ -102,13 +104,35 @@ def _side_art(slug: str) -> dict[str, str] | None:
 
 
 def _art(vin: str, name: str) -> dict[str, str] | None:
-    """Model from the VIN rule when it is sure, else the last word of the name."""
+    """Model from the VIN rule when it is sure; else the stored card's model
+    field; else the words of the name read from the end, skipping a trailing
+    model year ("Maserati Grecale 2023" -> grecale). Only a model that has
+    art files can match, so any other model gets no drawing."""
     try:
         from mes import platform as _plat
         model = _plat.model_for_vin(vin).lower()
     except Exception:  # noqa: BLE001
         model = ""
-    return _side_art(model if model.isalnum() and model != "unknown" else _model_slug(name))
+    if model.isalnum() and model != "unknown":
+        return _side_art(model)
+    try:
+        from . import car_identify
+        card = car_identify.get_card(vin) or {}
+        raw = (card.get("fields") or {}).get("model")
+        raw = raw.get("value") if isinstance(raw, dict) else raw
+        art = _side_art(_model_slug(str(raw or "")))
+        if art:
+            return art
+    except Exception:  # noqa: BLE001
+        pass
+    for word in reversed((name or "").split()):
+        slug = "".join(ch for ch in word.lower() if ch.isalnum())
+        if slug.isdigit():
+            continue
+        art = _side_art(slug)
+        if art:
+            return art
+    return None
 
 
 def _verdict(vin: str, has_logs: bool) -> dict[str, Any]:

@@ -22,6 +22,9 @@ maserati-trident.svg  Wikimedia Commons "File:Maserati_logo_2.svg", fetched
     mobile). The owner reports the marque's agreement; keep the written
     permission with the brand package when it arrives.
 
+maserati-trident-only.svg  The trident from maserati-trident.svg with the
+    script word removed, for the start page only.
+
 ferrari-wordmark.svg  Wikimedia Commons "File:Ferrari_wordmark.svg", fetched
     2026-10-29 with the owner's approval (SHA-1 3f24e8cc68062...). Tags: public
     domain, trademarked. The prancing-horse shield is copyrighted artwork that
