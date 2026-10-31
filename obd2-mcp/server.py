@@ -48,6 +48,7 @@ from cuore.live import responders  # noqa: E402
 import cuore_client  # noqa: E402  -- sibling module; this directory is on sys.path
 from cuore.live import audit  # noqa: E402
 from cuore.live import fullscan  # noqa: E402
+from cuore.live import five_minute  # noqa: E402
 from cuore.live.buses import CAN_C  # noqa: E402
 from cuore.live.config import state_dir  # noqa: E402
 from cuore.live.errors import LiveError, Refused  # noqa: E402
@@ -322,6 +323,29 @@ def read_module_identity(code: str, vin: str = "", confirm: bool = False) -> str
     return _via("GET", f"/live/module/{code}/identity",
                 lambda: ops.module_identity(code, vin=vin, confirm=confirm),
                 query={"vin": vin, "confirm": confirm})
+
+
+@mcp.tool()
+def abs_connect_test(code: str = "ABS", vin: str = "", confirm: bool = False) -> str:
+    """Read-only diagnostic for a CAN-CH module that will not answer (default ABS).
+
+    Tries up to five ranked ways of asking it one small question (22 F190, 3E 00, 10 01), one
+    request each, logs every adapter command and reply, and stops at the first answer or error.
+    Refused unless the grey A6 cable is declared, CAN-CH is verified at 500 kbit/s, and
+    confirm=True. Never changes the protocol or rate; no writes."""
+    return _via("POST", f"/live/module/{code}/connect-test",
+                lambda: ops.abs_connect_test(code, vin=vin, confirm=confirm),
+                query={"vin": vin, "confirm": confirm})
+
+
+@mcp.tool()
+def five_minute_test(vin: str = "", bus: str = "", confirm: bool = False) -> str:
+    """Five-minute mechanic test (a yardstick): modules found, identity+codes, live data vs MES,
+    what could not be read, service-job proof (always NOT AVAILABLE). Read-only, one read at a
+    time. Refused if MES is open, battery under 13.2 V, or CAN-CH without grey cable + confirm."""
+    return _via("POST", "/live/five-minute",
+                lambda: five_minute.run(vin, bus=bus, confirm=confirm),
+                query={"vin": vin, "bus": bus, "confirm": confirm}, timeout=600.0)
 
 
 @mcp.tool()

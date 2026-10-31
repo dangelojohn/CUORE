@@ -31,6 +31,7 @@ from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from . import cache
+from ..live import read_state
 from .errors import BadRequest, NotFound
 
 PRIORITY_FILE = Path(__file__).resolve().parent.parent / "data" / "fault_priority.json"
@@ -222,7 +223,7 @@ def _build_facts(vin: str) -> dict[str, Any]:
     live = _live_reads(vin)
     for o in live["module"]:
         d = o.get("data") or {}
-        if d.get("error") or d.get("nrc"):
+        if not read_state.is_read(d):  # silence is not an absent code
             continue
         module, ts = d.get("ecu") or "?", _n(o.get("at"))
         rid = f"obs:module_dtcs:{module}@{o.get('at')}"

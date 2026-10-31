@@ -52,6 +52,18 @@ tlog = logging.getLogger("cuore.transmit")
 HEARD_MIN_FRAMES = 5      #: frames the passive listen must have heard
 HEARD_WINDOW_S = 10.0     #: ... no longer ago than this
 DEFAULT_HS_BITRATE = 500000
+# Minimum idle time between closing one adapter session and opening the next.
+# Evidence (connection_scorecard_2026-10-31): the three CAN ERRORs of 10-31
+# came 0.29-0.32 s apart in a 7-module round and all answered when re-read
+# 10-16 s later; reads in rounds with a gap under 1 s failed 0.7% (4/541),
+# 3 s or more 0.2% (1/420). 1.0 s is the smallest gap that clears the
+# sub-second rounds that failed, costing ~1 s per module in a round.
+MIN_SESSION_GAP_S = 1.0
+# Pause before the single CAN ERROR retry of a read (same settling reason).
+RETRY_PAUSE_S = 1.0
+# Services that only read. Only these are ever retried; everything else
+# (session control, security, writes, routines, clears) is car-affecting.
+READ_ONLY_SERVICES = frozenset({0x01, 0x02, 0x03, 0x06, 0x07, 0x09, 0x0A, 0x19, 0x22})
 
 
 def declared_rate(bus: Bus, cable: str) -> int:
@@ -170,6 +182,8 @@ class Session:
         self.header_bits = header_bits_for_protocol(route.stn_protocol)
         self._target: Optional[tuple[str, str]] = None
         self._reset_done = False
+        #: Addressing commands and the adapter's replies from the last target change.
+        self.last_setup: list[dict[str, str]] = []
         #: Seconds the adapter itself waits for a reply (ATST x 4 ms).
         #: Conservative default = ATSTFF (1.02 s): untarget() sets it and the
         #: adapter keeps it across sessions, so it is assumed in force until
@@ -360,14 +374,23 @@ class Session:
             raise BadCommand(f"module {ecu.code} has no known address")
         self.target_raw(ecu.request_hex or "", ecu.response_hex or "")
 
+    def _setup(self, command: str) -> None:
+        """One addressing command, its reply kept. target_raw used to discard every reply, so
+        an ``ATSH``/``ATCRA``/``STCFCPA`` the adapter answered ``?`` or an error to (a full
+        flow-control table, a rejected header) left a request going out half-configured with
+        nothing on record. The replies now ride along in ``last_setup`` and in the ``uds``
+        audit entry of the first request after a target change."""
+        self.last_setup.append({"sent": command, "got": self.cmd(command, 2)})
+
     def target_raw(self, request_hex: str, response_hex: str) -> None:
         pair = (request_hex.upper(), response_hex.upper())
         if self._target == pair:
             return
-        self.cmd(f"ATSH{pair[0]}", 2)
-        self.cmd(f"ATCRA{pair[1]}", 2)
+        self.last_setup = []
+        self._setup(f"ATSH{pair[0]}")
+        self._setup(f"ATCRA{pair[1]}")
         if self.link.is_stn:
-            self.cmd(f"STCFCPA {pair[0]},{pair[1]}", 2)
+            self._setup(f"STCFCPA {pair[0]},{pair[1]}")
             if self.header_bits == 29:
                 # Explicit ISO-TP flow control (STmin/BS) for the 29-bit UDS
                 # pair. STCFCPA alone only tells the adapter which header to
@@ -383,13 +406,13 @@ class Session:
                 # still holds, so this never removes working behaviour.
                 # UNVERIFIED on the real adapter -- see
                 # docs/research/OBD_CONNECTIVITY_REVIEW_2026-10-14.md.
-                self.cmd(f"ATFCSH{pair[0]}", 2)
-                self.cmd("ATFCSD300000", 2)
-                self.cmd("ATFCSM1", 2)
+                self._setup(f"ATFCSH{pair[0]}")
+                self._setup("ATFCSD300000")
+                self._setup("ATFCSM1")
         else:
-            self.cmd(f"ATFCSH{pair[0]}", 2)
-            self.cmd("ATFCSD300000", 2)
-            self.cmd("ATFCSM1", 2)
+            self._setup(f"ATFCSH{pair[0]}")
+            self._setup("ATFCSD300000")
+            self._setup("ATFCSM1")
         self._target = pair
         self.link._last_target = pair
 
@@ -524,6 +547,7 @@ class Session:
         resp_byte = f"{service + 0x40:02X}"
         svc_hex = f"{service:02X}"
         attempts = 0
+        retried_can = False
         while True:
             attempts += 1
             q = self.query(req, resp_byte, timeout)
@@ -532,15 +556,26 @@ class Session:
             if pending and not q["ecus"] and attempts <= retries_on_pending:
                 time.sleep(0.3 * attempts)
                 continue
+            # One retry of a READ on CAN ERROR only: never a car-affecting
+            # service, never after a negative response, NO DATA or any
+            # frame from a module. The retry result is returned as-is, so a
+            # second failure stays an error (read_state NOT READ upstream).
+            if (q["error"] == "CAN ERROR" and service in READ_ONLY_SERVICES
+                    and not retried_can and not q["ecus"] and not nrc):
+                retried_can = True
+                time.sleep(RETRY_PAUSE_S)
+                continue
             break
         mine = {h: d for h, d in q["ecus"].items()
                 if not ecu.response_hex or h == ecu.response_hex or h == ""}
         # The audit log otherwise records only session open/close, so a
         # module that answered discovery and then went silent to the sweep
         # (ABS, 2026-10-15) left nothing to compare. Raw reply, capped.
+        fresh_setup, self.last_setup = self.last_setup, []
+        extra = {"setup": [(c["sent"], (c["got"] or "")[:40]) for c in fresh_setup]}             if fresh_setup else {}
         audit.record("uds", ecu=ecu.code, bus=self.bus.key, req=req,
                      header=ecu.request_hex, raw=(q["raw"] or "")[:200],
-                     error=q["error"], attempts=attempts)
+                     error=q["error"], attempts=attempts, **extra)
         return {"request": req, "raw": q["raw"], "error": q["error"],
                 "positive": mine, "nrc": {h: int(c, 16) for h, c in nrc.items()},
                 "attempts": attempts, "ecu": ecu.code, "bus": self.bus.key}
@@ -554,6 +589,8 @@ class AdapterLink:
         self.stream_factory = stream_factory or (lambda p, b: SerialStream(p, b))
         self.process = process
         self.lock = threading.RLock()
+        self._last_close: Optional[float] = None
+        self._op_depth = 0
         self.cable: str = default_cable()
         self.cable_mismatch: Optional[dict[str, Any]] = None
         self.identity: dict[str, str] = {}
@@ -725,6 +762,29 @@ class AdapterLink:
     # --- sessions -------------------------------------------------------
 
     @contextmanager
+    def operation(self, purpose: str) -> Iterator[None]:
+        """Group several sessions into one operation: the adapter lock is held across them
+        and the MIN_SESSION_GAP_S settle is applied once, before the first, not between."""
+        if not self.lock.acquire(timeout=max(0.0, self.lock_wait_s)):
+            raise LinkUnavailable(
+                f"the adapter is busy with {self.current_purpose or 'another operation'}; waited "
+                f"{self.lock_wait_s:g} s. Try again when it finishes.")
+        try:
+            if self._op_depth == 0 and self._last_close is not None:
+                wait = MIN_SESSION_GAP_S - (time.monotonic() - self._last_close)
+                if wait > 0:
+                    time.sleep(wait)
+            self._op_depth += 1
+            try:
+                yield
+            finally:
+                self._op_depth -= 1
+                if self._op_depth == 0:
+                    self._last_close = time.monotonic()
+        finally:
+            self.lock.release()
+
+    @contextmanager
     def session(self, purpose: str, **kwargs: Any) -> Iterator[Session]:
         """Open the adapter for one operation (see :meth:`_session_locked`), waiting at
         most ``lock_wait_s`` for any other operation to finish first. The lock is
@@ -735,8 +795,17 @@ class AdapterLink:
                 f"{self.lock_wait_s:g} s. Try again when it finishes (stop the live session, "
                 f"bus capture or MES-learn listener if one is running).")
         try:
-            with self._session_locked(purpose, **kwargs) as sess:
-                yield sess
+            outer = self.current is None and self._op_depth == 0
+            if outer and not kwargs.get("passive") and self._last_close is not None:
+                wait = MIN_SESSION_GAP_S - (time.monotonic() - self._last_close)
+                if wait > 0:
+                    time.sleep(wait)
+            try:
+                with self._session_locked(purpose, **kwargs) as sess:
+                    yield sess
+            finally:
+                if outer:
+                    self._last_close = time.monotonic()
         finally:
             self.lock.release()
 

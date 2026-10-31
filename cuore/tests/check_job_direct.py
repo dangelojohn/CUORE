@@ -76,6 +76,12 @@ check(jd.search("zzzz", VIN, HYPS, [], [], LABELS)["results"] == [], "no match g
 check(jd.search("", VIN, HYPS, [], [], LABELS)["results"] == [], "empty query gives nothing")
 
 # --- the rendered page, fixture job in a throwaway state dir -------------------------------------
+# The page's verdict is built from the car's live dossier (MES logs, readiness), which changes as
+# the car is worked on (a clear tonight made it "awaiting drive cycle"). Pin it to "no blocker" so
+# the page checks read only this test's own throwaway job.
+from cuore.services import dossier_bridge as _db  # noqa: E402
+_real_build_view = _db.build_view
+_db.build_view = lambda *a, **k: {**_real_build_view(*a, **k), "verdict": None}
 client = TestClient(create_app())
 client.post(f"/v/{VIN}/job/open", data={"technician": "t", "complaint": "check engine light"}, follow_redirects=True)
 jid = re.search(r'/job/([0-9a-f]+)/', client.get(f"/v/{VIN}/job?step=7").text)

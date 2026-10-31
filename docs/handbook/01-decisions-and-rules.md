@@ -30,7 +30,7 @@ CUORE is a diagnostic assistant for a mechanic who specialises in one brand and 
 
 ## Design decisions
 
-- Safety: no HTTP route ever writes to the car. Clears, actuator tests and routines are MCP-only, need an exact consent phrase (CLEAR <MODULE>, ACTUATE <MODULE> <NAME>, RUN ROUTINE <MODULE> <NAME>), and are refused on blocked modules (ABS, EPS, ORC, HALF, DASM, ESL, TVM, TCM, ESM, DTCM, RFHUB, anything on CAN-CH). The live poller only reads (OBD Mode 01/03/07, UDS 0x22) and every other adapter operation is refused while it holds the port.
+- Safety: no HTTP route ever writes to the car. Clears, actuator tests and routines are MCP-only, need a person to approve that exact action on the /approve page (docs/design/CONSENT_GATE.md; the caller cannot approve itself), and are refused on blocked modules (ABS, EPS, ORC, HALF, DASM, ESL, TVM, TCM, ESM, DTCM, RFHUB, anything on CAN-CH). The live poller only reads (OBD Mode 01/03/07, UDS 0x22) and every other adapter operation is refused while it holds the port.
 - Evidence: the evidence gate counts only measurements from the car (serial stream). Replay, demo, snapshots, symptoms, notes, feedback, media and inspections are labelled and excluded as measurements. Clearing is not fixing: the verdict stays "unverified repair" until a readiness read from the car shows the monitor complete with no code back.
 - Verdict and status are computed, never hand-written: ACTIVE FAULTS, UNVERIFIED REPAIR, VERIFIED CLEAN, NO DATA; per code ACTIVE, CLEARED UNVERIFIED, STALE.
 - Known-good bands: only one-sided limits (too hot) become gauge warn/alarm bands; idle-only or two-sided ranges show as notes; UNKNOWN stays blank.

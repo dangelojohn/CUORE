@@ -34,6 +34,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from ..live import config as _config
+from ..live import read_state
 from . import cache, element_locations
 from .errors import BadRequest
 
@@ -505,7 +506,8 @@ def _uds_evidence() -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for o in cache.recent_observations(10 ** 9, kind="module_dtcs"):
         d = o.get("data") or {}
-        if d.get("error") or not d.get("ecu") or not isinstance(d.get("codes"), list):
+        # silence/error/NRC is not "answered without the code" (read_state)
+        if not read_state.is_read(d) or not d.get("ecu") or not isinstance(d.get("codes"), list):
             continue
         row = {"at": str(o.get("at") or ""), "label": "a CUORE module DTC read",
                "modules": {str(d["ecu"]): set(d["codes"])}}

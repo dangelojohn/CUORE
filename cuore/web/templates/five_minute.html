@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Five-minute test — {{ bar.name }}{% endblock %}
+{% block vehiclebar %}{% include "_vbar.html" %}{% endblock %}
+{% block content %}
+<h1>Five-minute mechanic test</h1>
+<p>Read-only. Needs MES closed and the engine running ({{ min_volts }} V or more). One read at a time.</p>
+<form method="post" action="/v/{{ vin }}/five-minute/run"><button type="submit">Run the test</button></form>
+{% if last %}
+<h2>Last run: {{ last.started }} — {{ last.bus }} / cable {{ last.cable }} — {{ last.seconds }} s</h2>
+{% if last.refused %}
+<p style="font-size:2em;font-weight:bold;color:#b00">REFUSED: {{ last.reason }}</p>
+{% else %}
+<p>Voltage {{ last.voltage }} V. MES CSV: {{ last.mes_csv or "none (not compared)" }}.
+ Steps passed: <strong>{{ last.steps_passed }} of {{ last.steps_total }}</strong>.</p>
+{% for s in last.steps %}
+<section style="margin:1em 0">
+<h2><span style="font-size:1.6em;font-weight:bold;color:{{ '#070' if s.passed else '#b00' }}">{{ 'PASS' if s.passed else 'FAIL' }}</span>
+ Step {{ s.n }}: {{ s.title }} ({{ s.pass_count }}/{{ s.item_count }})</h2>
+{% if s.note %}<p>{{ s.note }}</p>{% endif %}
+<ul>{% for i in s.items %}{% if not i.passed or s.n in (1, 2, 3) %}
+<li>{{ 'PASS' if i.passed else 'FAIL' }} — {{ i.label }}{% if i.value is defined %}: {{ i.value }} {{ i.unit or '' }} ({{ i.mes }}){% endif %}{% if i.reason %} — {{ i.reason }}{% endif %}</li>
+{% endif %}{% endfor %}</ul>
+</section>
+{% endfor %}
+{% if last.retries %}<h3>CAN ERROR retries</h3><ul>{% for r in last.retries %}
+<li>{{ r.read }}: {{ r.first_error }} — {{ 'recovered' if r.retry_recovered else 'still failing: ' ~ r.retry_error }}</li>{% endfor %}</ul>{% endif %}
+{% endif %}
+{% else %}<p>No run recorded yet.</p>{% endif %}
+<h2>Last 10 runs</h2>
+<table><tr><th>Started</th><th>Bus</th><th>Seconds</th><th>Steps passed</th><th>Per step</th></tr>
+{% for h in history %}<tr><td>{{ h.started }}</td><td>{{ h.bus }}</td><td>{{ h.seconds }}</td>
+<td>{% if h.refused %}REFUSED: {{ h.reason }}{% else %}{{ h.steps_passed }} of {{ h.steps_total }}{% endif %}</td>
+<td>{% for f in h.step_flags %}{{ 'P' if f else 'F' }} {% endfor %}</td></tr>{% endfor %}</table>
+{% endblock %}

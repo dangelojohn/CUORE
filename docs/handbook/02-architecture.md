@@ -14,7 +14,7 @@ Generated from the code on 2026-10-07, refreshed 2026-10-13. Re-run the greps no
 
 - **cuore -> mes**: the *only* module in cuore that imports `mes` is `cuore/services/mes_bridge.py` (its own docstring says so). Every other bridge in `cuore/services/*_bridge.py` either goes through `mes_bridge` or wraps one specific `mes` submodule (e.g. `electrical_bridge.py` for `mes.electrical`/`mes.electrical_inspections`, `known_good_bridge.py` for `mes.known_good`). This keeps `mes-log-mcp/server.py`'s MCP tools and cuore's HTTP/HTML answers from drifting apart -- one library, two faces.
 - **obd2-mcp -> cuore**: `obd2-mcp/cuore_client.py` is a stdlib-only HTTP client hitting cuore's `/api/*` routes for adapter reads.
-- **Writes to the car are MCP-only, with consent phrases.** `obd2-mcp/server.py`'s `run_actuator` requires `consent` to equal exactly `"ACTUATE <MODULE> <NAME>"`; `clear_module_dtcs` requires `consent` exactly `"CLEAR <MODULE>"` and is documented as destructive to evidence; `clear_dtcs` and `send_raw` are likewise marked MCP-only in their docstrings. cuore's `/api/live*` (`cuore/api/live.py`) has no write route at all -- its docstring states `actuators` stays `False` and the read-only UDS allowlist is enforced below that layer, "so a write cannot be added here by accident."
+- **Writes to the car are MCP-only, approved by a person on the /approve page.** `obd2-mcp/server.py`'s `run_actuator`, `clear_module_dtcs`, `clear_dtcs` and `send_raw` are refused until a person approves that exact action at `/approve/{request_id}` (see docs/design/CONSENT_GATE.md); `clear_module_dtcs` is documented as destructive to evidence; all four are marked MCP-only in their docstrings. cuore's `/api/live*` (`cuore/api/live.py`) has no write route at all -- its docstring states `actuators` stays `False` and the read-only UDS allowlist is enforced below that layer, "so a write cannot be added here by accident."
 
 ## State directory layout
 
@@ -171,7 +171,7 @@ Reads (Mode 01-0A, UDS): `read_dtcs`, `read_pending_dtcs`, `read_permanent_dtcs`
 
 Learning: `learn_capture`, `learn_correlate`, `learned_dids`, `learn_actuator`, `list_actuators`.
 
-Writes (MCP-only, consent-gated): `run_actuator`, `clear_module_dtcs`, `clear_dtcs`, `send_raw`.
+Writes (MCP-only, approved by a person on /approve): `run_actuator`, `clear_module_dtcs`, `clear_dtcs`, `send_raw`.
 
 Live session: `live_channels`, `live_session_start`, `live_session_stop`, `live_snapshot`.
 

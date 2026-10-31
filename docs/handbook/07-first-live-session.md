@@ -281,12 +281,12 @@ next step after three clean smoke tests and all-new EVAP parts) is in
   must be run and its result recorded on the Tests surface first. Clearing
   afterward is fine and expected (it starts the "unverified repair" clock
   that the next readiness read closes).
-- **Exact consent phrases are required for anything that writes to the
-  car**, and none of them are offered by this runbook's steps 1-15 above
-  (which are all reads): `CLEAR <MODULE>` (e.g. `CLEAR ECM`) for
-  `clear_module_dtcs`; `ACTUATE <MODULE> <NAME>` (e.g. `ACTUATE ECM
-  EVAPORATION CONTROL VALVE`) or `RUN ROUTINE <MODULE> <NAME>` for
-  `run_actuator`. Typos or paraphrases are refused, not auto-corrected.
+- **A person must approve anything that writes to the car** on the
+  `/approve` page, and none of it is offered by this runbook's steps 1-15
+  above (which are all reads). A write tool (`clear_module_dtcs`,
+  `run_actuator`) is refused and returns a request link; the person opens
+  it, reads what will be sent, and approves that one exact action. The
+  caller cannot approve for itself (docs/design/CONSENT_GATE.md).
 - **Blocked modules** -- `run_actuator` and similar writes refuse outright
   on safety-critical modules: ABS, EPS, ORC, HALF, DASM, ESL, TVM, TCM,
   ESM, DTCM, RFHUB, and anything on the CAN-CH bus. Use MultiEcuScan or
@@ -408,12 +408,13 @@ Generated straight from the live module registry (`cuore/live/buses.py` + `cuore
 | BCM | confirmed |
 | IPC | confirmed |
 | RFHUB | confirmed |
-| DTCM | unverified |
+| DTCM | unknown |
 | ESM | unknown |
 | DASM | unknown |
 | ETM | unverified |
 
 <!-- cable-reference:end -->
+
 
 
 

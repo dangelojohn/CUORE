@@ -36,6 +36,7 @@ from typing import Any
 from . import cache, codes_call, dossier_bridge, known_good_bridge, mes_bridge, parts_bridge, tools_kb_bridge
 from .errors import BadRequest
 from ..live import checklists as checklist_store
+from ..live import read_state
 from ..live.config import state_dir
 
 try:
@@ -843,6 +844,14 @@ def last_scan_summary(vin: str) -> dict[str, Any] | None:
     dtcs = latest.get("dtcs") or {}
     active = sorted(set(dtcs.get("stored") or []) | set(dtcs.get("permanent") or []))
     history = sorted(dtcs.get("pending") or [])
+    # Silence is never clean: an attempt read nothing, a partial scan read
+    # only some modules; "none" would pose as a clean read.
+    not_read = None
+    if latest.get("status") == "attempt":
+        not_read = read_state.banner("no module answered in this scan")
+        active = history = None
+    elif latest.get("partial") and not (active or history):
+        not_read = read_state.banner("this scan did not read every module")
 
     try:
         plan = scanlog_bridge.scan_plan(vin)
@@ -855,6 +864,7 @@ def last_scan_summary(vin: str) -> dict[str, Any] | None:
         "source": (latest.get("source") or {}).get("stream") or "unknown",
         "active_codes": active,
         "history_codes": history,
+        "not_read": not_read,
         "coverage_line": (latest.get("coverage") or {}).get("line"),
         "partial": bool(latest.get("partial")),
         "status": latest.get("status"),

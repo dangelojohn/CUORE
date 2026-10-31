@@ -12,10 +12,10 @@ import math
 import time
 from typing import Any, Optional, Sequence
 
-from . import audit, store
+from . import audit, read_state, store
 from . import identify
 from .identify import IDENTITY_DIDS
-from .addressing import ANNEX_C, DIDS, ECUAddress, Confidence, address_pair, by_code, on_bus, sweep_candidates
+from .addressing import ANNEX_C, DIDS, MODULES, ECUAddress, Confidence, address_pair, by_code, on_bus, sweep_candidates
 from .buses import Bus
 from .obd import decode_uds_dtc_block
 from .safety import assert_read_only_uds
@@ -72,17 +72,41 @@ def read_did(sess: Session, ecu: ECUAddress, did: int, timeout: float = DEFAULT_
     return out
 
 
+#: identifiers asked, in order; each one is read on its own and reported on its own.
+IDENTITY_ORDER = (0xF190, 0xF187, 0xF188, 0xF189, 0xF18C, 0xF191, 0xF192, 0xF194, 0xF195)
+#: consecutive bus errors after which the remaining identifiers are marked not asked
+_IDENTITY_ERROR_STOP = 3
+
+
 def identity(sess: Session, ecu: ECUAddress) -> dict[str, Any]:
-    """The Annex C identity set every module should answer."""
+    """The Annex C identity set, one 22 read per identifier (0x22 only).
+
+    Every field carries its own ``status``: answered, refused (negative
+    response, with the NRC), no_answer (silence), error (adapter/bus) or
+    not_asked. ``summary``/``read_state`` say whether the identity as a whole
+    is read, partial or not read -- a partial identity is never shown as complete.
+    The top-level ``error`` keeps the first bus error so callers that retry on
+    it still do."""
     out: dict[str, Any] = {"ecu": ecu.code, "bus": sess.bus.key, "fields": {}}
-    for did in (0xF190, 0xF187, 0xF188, 0xF189, 0xF18C, 0xF191, 0xF192, 0xF194, 0xF195):
+    consecutive = 0
+    for did in IDENTITY_ORDER:
+        key = f"{did:04X}"
+        if consecutive >= _IDENTITY_ERROR_STOP:
+            out["fields"][key] = {"name": ANNEX_C.get(did), "ascii": None, "bytes": None, "nrc": None,
+                                  "status": read_state.NOT_ASKED}
+            continue
         r = read_did(sess, ecu, did, 2.5)
+        f = {"name": ANNEX_C.get(did), "ascii": r.get("ascii"), "bytes": r.get("bytes"),
+             "nrc": r.get("nrc")}
         if r.get("error"):
-            out["error"] = r["error"]
-            break
-        out["fields"][f"{did:04X}"] = {"name": ANNEX_C.get(did), "ascii": r.get("ascii"),
-                                       "bytes": r.get("bytes"), "nrc": r.get("nrc")}
-    return out
+            f["error"] = r["error"]
+            out.setdefault("error", r["error"])
+            consecutive += 1
+        else:
+            consecutive = 0
+        f["status"] = read_state.field_status(f)
+        out["fields"][key] = f
+    return read_state.stamp_identity(out)
 
 
 def read_dtcs(sess: Session, ecu: ECUAddress, mask: int = 0xFF,
@@ -100,7 +124,7 @@ def read_dtcs(sess: Session, ecu: ECUAddress, mask: int = 0xFF,
         out["note"] = "ADAPTER/BUS ERROR; this is not 'no codes'"
     elif not r["nrc"]:
         out["warning"] = "no answer from the module"
-    return out
+    return read_state.stamp(out, mark_error=False)
 
 
 def tester_present(sess: Session, ecu: ECUAddress) -> dict[str, Any]:
@@ -165,21 +189,52 @@ def sweep_bus_full(sess: Session, bus: Bus, *, vin: Optional[str] = None, mask: 
     return {"bus": bus.key, "cable": sess.link.cable, "modules": results}
 
 
+_VIN_PROVIDER: Optional[Any] = None
+
+
+def set_vin_provider(fn: Optional[Any]) -> None:
+    """Register ``() -> str`` returning the VIN of the car currently connected
+    (the adapter link's last reported VIN). Used only when several cars are on
+    file and the caller gave no ``vin``."""
+    global _VIN_PROVIDER
+    _VIN_PROVIDER = fn
+
+
 def _default_vin() -> Optional[str]:
     """The VIN to use when a caller gives none: the only car with confirmed
-    addresses in addresses.json. With two or more cars there is no safe
-    guess, so ``None`` -- the caller has to pass ``vin``."""
+    addresses in addresses.json; with several cars, the connected car's VIN if
+    it is one of them; otherwise ``None`` -- the caller has to pass ``vin``."""
     vins = [v for v, mods in store.all_confirmations().items() if mods]
-    return vins[0] if len(vins) == 1 else None
+    if len(vins) == 1:
+        return vins[0]
+    if len(vins) > 1 and _VIN_PROVIDER is not None:
+        try:
+            known = str(_VIN_PROVIDER() or "").strip().upper()
+        except Exception:  # noqa: BLE001 -- a broken provider means "car not known"
+            known = ""
+        for v in vins:
+            if known and v.upper() == known:
+                return v
+    return None
 
 
 def _effective_target(ecu: ECUAddress, vin: Optional[str]) -> Optional[int]:
+    """The car's confirmed address for this module, else the registry target only
+    when the registry itself marks it confirmed; never a guess."""
     vin = vin or _default_vin()
     if vin:
         confirmed = store.confirmed_targets(vin).get(ecu.code)
         if confirmed is not None:
             return confirmed
     return ecu.target if ecu.usable else None
+
+
+def _target_source(ecu: ECUAddress, vin: Optional[str]) -> Optional[str]:
+    vin = vin or _default_vin()
+    if vin and ecu.code in store.confirmed_targets(vin):
+        rec = (store.all_confirmations().get(vin) or {}).get(ecu.code) or {}
+        return f"confirmed on this car ({rec.get('source') or 'stored'}, {rec.get('at') or 'undated'})"
+    return f"registry ({ecu.source})" if ecu.usable else None
 
 
 def _with_target(ecu: ECUAddress, target: int) -> ECUAddress:
@@ -190,18 +245,53 @@ def _with_target(ecu: ECUAddress, target: int) -> ECUAddress:
                    source=f"{ecu.source}; confirmed on this car")
 
 
-def resolve_module(code: str, vin: Optional[str] = None) -> ECUAddress:
+def address_table(vin: Optional[str] = None) -> list[dict[str, Any]]:
+    """Every registry module with the address that would be used for it on this
+    car, where that came from, and any clash with another module on the same bus."""
+    rows = []
+    for ecu in MODULES:
+        t = _effective_target(ecu, vin)
+        rows.append({"code": ecu.code, "bus": ecu.bus_key, "target": t,
+                     "target_hex": None if t is None else f"{t:02X}",
+                     "source": _target_source(ecu, vin), "usable": t is not None})
+    seen: dict[tuple[str, int], list[str]] = {}
+    for r in rows:
+        if r["target"] is not None:
+            seen.setdefault((r["bus"], r["target"]), []).append(r["code"])
+    for r in rows:
+        r["clash"] = [c for c in seen.get((r["bus"], r["target"]), []) if c != r["code"]] or None
+    return rows
+
+
+def module_at(target: int, bus_key: str, vin: Optional[str] = None) -> Optional[ECUAddress]:
+    """Which module owns this target byte ON THIS BUS for this car. The same byte
+    is different modules on different buses (0x2A is the ABS on CAN-CH and the
+    DASM on CAN-C). ``None`` when no module has it or when two claim it."""
+    hits = [ecu for ecu in on_bus(bus_key) if _effective_target(ecu, vin) == target]
+    return _with_target(hits[0], target) if len(hits) == 1 else None
+
+
+def resolve_module(code: str, vin: Optional[str] = None, bus: Optional[str] = None) -> ECUAddress:
     from .errors import BadCommand
     ecu = by_code(code.upper())
     if ecu is None:
         raise BadCommand(f"unknown module code {code!r}")
+    if bus and bus != ecu.bus_key:
+        raise BadCommand(f"module {ecu.code} is on {ecu.bus_key}, not {bus}; the same target byte can be "
+                         f"a different module on another bus")
     target = _effective_target(ecu, vin)
     if target is None:
-        many = not vin and len([v for v, m in store.all_confirmations().items() if m]) > 1
+        many = not vin and not _default_vin() and \
+            len([v for v, m in store.all_confirmations().items() if m]) > 1
         hint = "; addresses are saved for more than one car, pass vin= to pick one" if many else ""
         raise BadCommand(f"module {ecu.code} has no confirmed address on this car{hint}; run discovery "
-                         f"(confidence {ecu.confidence.value}, target "
-                         f"{'unknown' if ecu.target is None else format(ecu.target, '02X')})")
+                         f"(registry target "
+                         f"{'unknown' if ecu.target is None else format(ecu.target, '02X')}, "
+                         f"{ecu.confidence.value}, not used)")
+    for r in address_table(vin):
+        if r["code"] == ecu.code and r["clash"]:
+            raise BadCommand(f"module {ecu.code} and {', '.join(r['clash'])} both resolve to "
+                             f"{target:02X} on {ecu.bus_key}; refusing to pick one")
     return _with_target(ecu, target)
 
 
@@ -381,4 +471,5 @@ def discover(sess: Session, bus: Bus, *, vin_expected: Optional[str] = None,
 
 
 __all__ = ["NRC_TEXT", "nrc_text", "request", "read_did", "identity", "read_dtcs",
-           "tester_present", "scan_bus", "sweep_bus_full", "resolve_module", "discover"]
+           "tester_present", "scan_bus", "sweep_bus_full", "resolve_module", "discover",
+           "module_at", "address_table", "set_vin_provider", "IDENTITY_ORDER"]

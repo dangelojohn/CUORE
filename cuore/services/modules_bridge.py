@@ -40,11 +40,12 @@ from .errors import NotFound
 
 from mes import modules as modules_mod  # noqa: E402
 
-from ..live import actuate, did_catalog, safety, store  # noqa: E402
+from ..live import actuate, did_catalog, read_state, safety, store  # noqa: E402
 from ..live.addressing import MODULES as _ADDR_MODULES, by_code as _addr_by_code  # noqa: E402
 
 #: Statuses in the order a module list should read: worst first.
-_STATUS_RANK = {"active": 0, "cleared_unverified": 1, "stale": 2, "clean": 3, "unknown": 4}
+_STATUS_RANK = {"active": 0, "not_read": 1, "cleared_unverified": 2, "stale": 3, "unknown": 4,
+                "clean": 5}
 
 #: ``Dtc.module`` and the dossier's ``ecu_seen`` are MES's own printed strings,
 #: not abbreviations -- "Engine / ECM", "Continental ABS MK C1", "Magneti
@@ -165,6 +166,28 @@ def _scan_identity(vin: str) -> dict[str, dict[str, Any]]:
     return out
 
 
+def _live_read_state(vin: str) -> dict[str, dict[str, Any]]:
+    """``{module: {"last": newest live read, "good": newest answered read}}``
+    from this car's own ``module_dtcs`` observations (newest first). A module
+    whose newest read did not answer is NOT READ, whatever older logs say."""
+    out: dict[str, dict[str, Any]] = {}
+    try:
+        obs = store.recent_observations(n=1000, vin=vin, kind="module_dtcs")
+    except Exception:  # noqa: BLE001 -- the module tree must still render
+        return out
+    for o in obs:
+        d = o.get("data") or {}
+        ecu = str(d.get("ecu") or "").upper()
+        if not ecu:
+            continue
+        slot = out.setdefault(ecu, {"last": None, "good": None})
+        if slot["last"] is None:
+            slot["last"] = {"at": o.get("at"), "why": read_state.reason(d)}
+        if slot["good"] is None and read_state.is_read(d):
+            slot["good"] = o.get("at")
+    return out
+
+
 def list_modules(vin: str) -> list[dict[str, Any]]:
     """Every module this car's logs (or the live registry) have anything to say about.
 
@@ -177,6 +200,7 @@ def list_modules(vin: str) -> list[dict[str, Any]]:
     ecu_seen.discard(None)
     attempted = dossier.get("already_attempted") or []
     learned = actuate.list_actuators(vin).get(vin, [])
+    live = _live_read_state(vin)
 
     rows: list[dict[str, Any]] = []
     for abbrev in sorted(ecu_seen | set(errors_by_module) | set(scan_identity)):
@@ -197,6 +221,19 @@ def list_modules(vin: str) -> list[dict[str, Any]]:
             status = "clean"
         else:
             status = "unknown"
+        not_read = None
+        last_good = None
+        lv = live.get(abbrev)
+        if lv and lv["last"] and lv["last"]["why"]:
+            # newest live read of this module got no answer: worse than any
+            # older "clean"/"stale" the logs imply, and never a green state
+            if status != "active":
+                status = "not_read"
+            not_read = read_state.banner(f"{lv['last']['why']} at {lv['last']['at']}")
+            last_good = ({"at": lv["good"], "label": "not read this session"}
+                         if lv["good"] else None)
+        elif status == "unknown":
+            not_read = read_state.banner("never read")
         done = [a for a in attempted if abbrev in (a.get("operation") or "").upper()]
         rows.append({
             "code": abbrev,
@@ -221,6 +258,8 @@ def list_modules(vin: str) -> list[dict[str, Any]]:
             "adjustments": done,
             "last_seen": ident.get("scan_timestamp"),
             "status": status,
+            "not_read": not_read,
+            "last_good_read": last_good,
         })
     rows.sort(key=lambda r: (_STATUS_RANK.get(r["status"], 9), r["code"]))
     return rows

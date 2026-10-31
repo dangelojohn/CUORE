@@ -19,6 +19,10 @@
   <h1>Car session</h1>
   <p class="ro">&#9632; Read only. {{ cs.steps|length }} steps, about {{ cs.hours }} h (estimates). {{ cs.rows_covered|length }} of {{ cs.n_rows }} car-session parity rows reachable. A row becomes done only after a person records the side-by-side MES read on the <a href="/v/{{ bar.vin }}/parity?state=car_session">parity page</a>.</p>
   <p class="note"><b>Rules:</b> all contact through CUORE sessions (never a raw COM3 script) &middot; confirmed bitrates only &middot; cold RFHUB read first &middot; MES closed (MES and CUORE never share the adapter) &middot; no clears (EVAP proof job) &middot; battery maintainer on for steps marked &#9889;.</p>
+  <h2>Tonight: the short list</h2>
+  <ol>{% for t in cs.tonight %}<li>{{ t }}</li>{% endfor %}</ol>
+  <p class="note"><b>{{ cs.tonight_short }}</b> {{ cs.tonight_rules|join(" ") }}</p>
+  <p class="note">The full plan follows.</p>
   {% for g in cs.groups %}
   <h2>{{ g.label }} <span class="tag">~{{ g.minutes }} min (estimate)</span></h2>
   <table>

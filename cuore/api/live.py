@@ -129,6 +129,13 @@ def live_module_identity(code: str, vin: str = Query(default=""),
     return ops.module_identity(code, vin=vin, confirm=confirm)
 
 
+@router.post("/live/module/{code}/connect-test",
+             summary="Bounded read-only ladder of routes to one CAN-CH module (grey cable, 500k)")
+def live_module_connect_test(code: str, vin: str = Query(default=""),
+                             confirm: bool = Query(default=False)) -> dict[str, Any]:
+    return ops.abs_connect_test(code, vin=vin, confirm=confirm)
+
+
 @router.get("/live/module/{code}/did/{did}", summary="UDS 0x22 on one module")
 def live_module_did(code: str, did: str, vin: str = Query(default=""),
                     confirm: bool = Query(default=False)) -> dict[str, Any]:

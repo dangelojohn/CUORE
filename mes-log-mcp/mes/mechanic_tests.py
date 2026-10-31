@@ -379,10 +379,10 @@ _t("esim_commanded_vent_test", "ESIM commanded vent test", "emissions",
   when_to_use="Run as the second step after wiTECH Test A (evap_test_a_esim_switch) "
               "-- whether Test A passed, failed, or wasn't available (no wiTECH on "
               "hand) -- before the ESIM wiring test or any further parts purchase. "
-              "In CUORE this test is MCP-only and needs the consent phrase "
-              "ACTUATE ECM <name>; it is never available through the HTTP job/"
+              "In CUORE this test is MCP-only and needs a person's approval "
+              "on the /approve page; it is never available through the HTTP job/"
               "tests API because it writes a live command to the car.",
-  tools=["MCP obd2 run_actuator tool (consent phrase ACTUATE ECM <name>), or the "
+  tools=["MCP obd2 run_actuator tool (a person approves it on the /approve page), or the "
         "MES Actuators tab / wiTECH bidirectional control, for a scan tool "
         "without MCP",
         "scan tool live data: the ESIM/EVAP switch parameter (see "
@@ -395,8 +395,8 @@ _t("esim_commanded_vent_test", "ESIM commanded vent test", "emissions",
       "purging (commanded_evap_purge > 0% on live data).",
       "In CUORE this step is MCP-only: command the ESIM/EVAP vent solenoid closed "
       "through the obd2 run_actuator tool (or the MES Actuators tab / wiTECH), "
-      "which refuses the command unless the operator states the consent phrase "
-      "exactly as 'ACTUATE ECM <name>' (the actuator's own name).",
+      "which refuses the command until a person approves that exact action on "
+      "the /approve page (the request link comes back with the refusal).",
       "With the vent held closed and purge still running, watch for vacuum to "
       "build (evap_vapor_pressure_abs) and for the ESIM/EVAP switch parameter to "
       "report sealed.",

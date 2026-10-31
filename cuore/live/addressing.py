@@ -166,10 +166,11 @@ MODULES: tuple[ECUAddress, ...] = (
         name="Magna Q4 Transfer Case",
         bus_key="can_c",
         bus_confidence="confirmed",
-        target=0x29,
-        confidence=Confidence.UNVERIFIED,
-        source=_STELVIO_SCAN_SOURCE,
-        note="STP 34",
+        target=None,
+        confidence=Confidence.UNKNOWN,
+        source="",
+        note=("STP 34. The stelvio_scan constant 0x29 was never verified and is contradicted by "
+              "discovery; the address for a car is the one stored for its VIN in addresses.json"),
         iso_code="00 43 50 91 14",
         hw_number="M0045027.01 (21)",
         sw_number="M0099947 (0501)",
@@ -459,6 +460,13 @@ def by_code(code: str) -> ECUAddress | None:
         if module.code == code:
             return module
     return None
+
+
+def by_target(target: int, bus_key: str) -> list[ECUAddress]:
+    """Registry rows with this target byte ON THIS BUS. The same byte can be a
+    different module on another bus (0x2A), so a target is never looked up
+    without its bus. More than one row means the registry itself is ambiguous."""
+    return [m for m in MODULES if m.target == target and m.bus_key == bus_key]
 
 
 def on_bus(bus_key: str) -> list[ECUAddress]:

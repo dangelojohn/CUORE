@@ -38,6 +38,20 @@ if _REAL_OBSERVATIONS.exists():
     (Path(os.environ["CUORE_STATE_DIR"]) / "observations.jsonl").write_text(
         "\n".join(_fixture_lines) + ("\n" if _fixture_lines else ""), encoding="utf-8")
 
+# Freeze the MES corpus at this fixture's own date (same pattern as check_bench.py): a later real
+# clear/scan (e.g. 2026-10-31) turns U1713 "Stale" and the page then has no open code to build the
+# network fault tree from, though nothing in the page logic changed.
+import re as _re  # noqa: E402
+import shutil as _shutil  # noqa: E402
+_REAL_MES_DIR = Path(r"C:\Program Files (x86)\MultiEcuScan")
+_MES_LOG_DIR = Path(tempfile.mkdtemp(prefix="cuore-check-system-logs-"))
+os.environ["MES_LOG_DIR"] = str(_MES_LOG_DIR)
+if _REAL_MES_DIR.exists():
+    for _f in _REAL_MES_DIR.iterdir():
+        _m = _re.search(r"_(\d{6})\d{4}", _f.name)
+        if _f.is_file() and not (_m and _m.group(1) > "261013"):
+            _shutil.copyfile(_f, _MES_LOG_DIR / _f.name)
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 

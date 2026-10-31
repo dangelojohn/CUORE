@@ -18,7 +18,7 @@ import serial.tools.list_ports
 
 from . import audit
 from . import capture as capture_mod
-from . import store
+from . import read_state, store
 from . import uds as uds_mod
 from .addressing import MODULES, by_code, on_bus
 from .buses import BUSES, CAN_C, Bus, Route, routes_for
@@ -33,6 +33,9 @@ from .transport import (DEFAULT_TIMEOUT, HEARD_MIN_FRAMES, AdapterLink, Session,
 
 _MODE03_NOTE = ("Mode 03 returns emissions-related powertrain codes only. Body, chassis and "
                 "network faults are UDS 3-byte codes; use module DTC reads for those.")
+
+
+uds_mod.set_vin_provider(lambda: link().vin)
 
 
 def _bus(key: str) -> Bus:
@@ -126,9 +129,12 @@ def buses() -> dict[str, Any]:
     return {"cable": st["cable"], "buses": st["buses"]}
 
 
-def modules(bus: Optional[str] = None) -> dict[str, Any]:
+def modules(bus: Optional[str] = None, vin: str = "") -> dict[str, Any]:
     rows = on_bus(_bus(bus).key) if bus else list(MODULES)
+    car = {r["code"]: r for r in uds_mod.address_table(vin or None)}
     return {"modules": [{
+        "car_target": car[m.code]["target_hex"], "car_target_source": car[m.code]["source"],
+        "car_target_clash": car[m.code]["clash"],
         "code": m.code, "name": m.name, "bus": m.bus_key, "bus_confidence": m.bus_confidence,
         "target": None if m.target is None else f"{m.target:02X}",
         "request": m.request_hex, "response": m.response_hex,
@@ -821,8 +827,13 @@ def _compact_dtc_result(mod: dict[str, Any]) -> dict[str, Any]:
     out = {k: mod[k] for k in
            ("ecu", "bus", "mask", "error", "nrc", "warning", "note", "skipped")
            if k in mod}
-    if "dtcs" not in mod:
+    if "dtcs" not in mod and not read_state.reason(mod):
         return out
+    if not read_state.is_read(mod):
+        # silence is not "0 codes": no lists, no counts, an explicit state
+        out.update({"active": None, "history": None, "tracked": None,
+                    "not_run_since_clear": None, "active_records": None})
+        return read_state.stamp(out, mark_error=False)
     records = mod.get("dtcs") or []
     cls = coverage.classify_records(records)
     active_set = set(cls["active"])
@@ -831,6 +842,7 @@ def _compact_dtc_result(mod: dict[str, Any]) -> dict[str, Any]:
     out["tracked"] = cls["tracked"]
     out["not_run_since_clear"] = cls["not_run_since_clear"]
     out["active_records"] = [r for r in records if r.get("code") in active_set]
+    out["read_state"] = read_state.READ
     return out
 
 
@@ -843,8 +855,16 @@ def module_dtcs(code: str, vin: str = "", mask: int = 0xFF, confirm: bool = Fals
     ecu = uds_mod.resolve_module(code, vin or None)
     with link().session(f"module_dtcs {ecu.code}", bus=_bus(ecu.bus_key), confirm=confirm,
                         **kw) as sess:
-        full = _observe(sess, "module_dtcs", uds_mod.read_dtcs(sess, ecu, mask), vin)
+        full = _observe(sess, "module_dtcs",
+                        read_state.stamp(uds_mod.read_dtcs(sess, ecu, mask)), vin)
         return full if detail else _compact_dtc_result(full)
+
+
+def abs_connect_test(code: str = "ABS", vin: str = "", confirm: bool = False,
+                     **kw: Any) -> dict[str, Any]:
+    """Bounded read-only ladder of routes to one CAN-CH module; see :mod:`cuore.live.abs_connect`."""
+    from . import abs_connect
+    return abs_connect.abs_connect_test(code, vin=vin, confirm=confirm, **kw)
 
 
 def module_identity(code: str, vin: str = "", confirm: bool = False, **kw: Any) -> dict[str, Any]:
@@ -1296,15 +1316,9 @@ def learn_actuator(capture_name: str, module: str, name: str, tool: str = "MES")
     if not p.exists():
         raise BadCommand(f"no capture named {capture_name!r}")
     data = _json.loads(p.read_text(encoding="utf-8"))
-    ecu = by_code(module.upper())
-    if ecu is None:
-        raise BadCommand(f"unknown module code {module!r}")
     vin = link().vin or ""
-    target = store.confirmed_targets(vin).get(ecu.code) if vin else None
-    if target is None:
-        target = ecu.target
-    if target is None:
-        raise BadCommand(f"module {ecu.code} has no known address; run discovery first")
+    ecu = uds_mod.resolve_module(module, vin or None)
+    target = ecu.target
     procedure = actuate.extract_procedure(data.get("transactions") or [], f"{target:02X}")
     return actuate.save_actuator(vin, ecu.code, name, procedure, source=p.name, tool=tool)
 
@@ -1356,19 +1370,23 @@ def run_actuator(vin: str, module: str, name: str, consent: str = "", max_second
             return None
         return float(r["value"]) if r.get("value") is not None else None
 
-    rpm = _reading("0C")
-    speed = _reading("0D")
-    if rpm is None or speed is None:
-        raise Refused("could not read engine RPM and vehicle speed; refusing to actuate")
-    if rpm > 0:
-        raise Refused(f"engine is running ({rpm:g} rpm); refusing to actuate")
-    if speed > 0:
-        raise Refused(f"vehicle speed reads {speed:g} km/h; refusing to actuate")
+    # One operation: the engine-off/stationary reads and the replay share a single settle gap
+    # (MIN_SESSION_GAP_S is applied once, on entry, not before each of the three sessions), so
+    # the call as a whole stays within max_seconds plus one gap instead of three.
+    with link().operation(f"actuate {ecu.code} {name}"):
+        rpm = _reading("0C")
+        speed = _reading("0D")
+        if rpm is None or speed is None:
+            raise Refused("could not read engine RPM and vehicle speed; refusing to actuate")
+        if rpm > 0:
+            raise Refused(f"engine is running ({rpm:g} rpm); refusing to actuate")
+        if speed > 0:
+            raise Refused(f"vehicle speed reads {speed:g} km/h; refusing to actuate")
 
-    with consent_gate.write_scope(grant),             link().session(f"actuate {ecu.code} {name}", bus=_bus(ecu.bus_key), confirm=confirm,
-                           **kw) as sess:
-        out = actuate.run_actuator(sess, ecu, procedure, consent=phrase, max_seconds=max_seconds)
-        return _stamp(sess, out)
+        with consent_gate.write_scope(grant), link().session(
+                f"actuate {ecu.code} {name}", bus=_bus(ecu.bus_key), confirm=confirm, **kw) as sess:
+            out = actuate.run_actuator(sess, ecu, procedure, consent=phrase, max_seconds=max_seconds)
+            return _stamp(sess, out)
 
 
 __all__ = ["observations", "status", "ports", "mes_settings", "set_cable", "cable_state", "buses", "modules",

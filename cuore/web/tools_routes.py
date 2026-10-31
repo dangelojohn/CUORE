@@ -259,7 +259,7 @@ def _groups() -> list[dict[str, Any]]:
          ]},
         {"id": "writes", "title": "Writes to the car",
          "blurb": "Clearing codes and running actuators change the car. Do these "
-                   "from the MCP tools (Claude), with explicit consent, not from "
+                   "from the MCP tools (Claude); a person then approves on the /approve page, not from "
                    "this page -- there is no undo.",
          "tools": [
             {"id": "mcp:clear_dtcs", "method": "MCP", "path": "obd2.clear_dtcs",
@@ -269,7 +269,7 @@ def _groups() -> list[dict[str, Any]]:
              "risk": "holds adapter", "inputs": [], "run": "not_from_here",
              "enabled": False,
              "disabled_reason": "Writes to the car are MCP-only -- ask Claude, "
-                                 "with the consent phrase below.",
+                                 "a person approves it on the /approve page.",
              "result_hint": "", "developer_only": False, "synonyms": ["clear codes"],
              "consent_phrase": "I understand this clears diagnostic trouble codes "
                                 "from the vehicle and this cannot be undone."},
@@ -280,7 +280,7 @@ def _groups() -> list[dict[str, Any]]:
                      "says otherwise.", "needs": ["adapter"], "risk": "holds adapter",
              "inputs": [], "run": "not_from_here", "enabled": False,
              "disabled_reason": "Writes to the car are MCP-only -- ask Claude, "
-                                 "with the consent phrase below.",
+                                 "a person approves it on the /approve page.",
              "result_hint": "", "developer_only": False, "synonyms": ["actuator test"],
              "consent_phrase": "I understand this actuates a physical component on "
                                 "the vehicle for a bounded time."},

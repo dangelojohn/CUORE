@@ -413,6 +413,24 @@ def system_states(vin: str) -> dict[str, dict[str, Any]]:
             row["state"] = "CLEARED_UNVERIFIED"
     for key, row in out.items():
         row.setdefault("module_codes", [])
+        row.setdefault("not_read", [])
+    # Silence is never clean: a module whose newest read did not answer puts a
+    # NOT READ banner on its system and blocks VERIFIED_CLEAN there.
+    try:
+        from ..live import read_state
+        unread = read_state.unread_modules(_module_dtc_observations(vin))
+    except Exception:  # noqa: BLE001
+        unread = []
+    for m in unread:
+        key = _MODULE_SYSTEM.get(m["ecu"])
+        if not key:
+            continue
+        row = out.setdefault(key, {"state": "NO_DATA", "open_code_count": 0, "codes": [],
+                                   "module_codes": [], "not_read": []})
+        row["not_read"].append({"ecu": m["ecu"], "banner": f"{m['ecu']}: {m['banner']}",
+                                "last_good": m["last_good"]})
+        if row["state"] == "VERIFIED_CLEAN":
+            row["state"] = "CLEARED_UNVERIFIED"
     return out
 
 

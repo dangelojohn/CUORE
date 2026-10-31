@@ -79,6 +79,11 @@
       (sys.module_codes || []).forEach(function (c) {
         titleText += "\n" + c.chip_text;
       });
+      // Silence is never clean: a module that did not answer is named here.
+      (sys.not_read || []).forEach(function (n) {
+        titleText += "
+" + n.banner;
+      });
       title.textContent = titleText;
     }
 

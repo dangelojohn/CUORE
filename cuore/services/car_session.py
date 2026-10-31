@@ -58,6 +58,26 @@ S: dict[str, dict[str, Any]] = {
 }
 
 
+TONIGHT = [
+    "Cold RFHUB read first, before any other traffic.",
+    "Code round on every CAN-C module with snapshots and counters.",
+    "PROXI discovery (up to 25 min, charger on, MES closed), then the MES CAN Setup screenshot, accept, read. "
+    "Check byte 156 against the owner's North America statement and read byte 63.",
+    "Radio: identity read through discovery, then the owner re-reads Software Update on screen.",
+    "Decode confirm with an MES graph CSV. Record the 5 candidates in "
+    "C:\ProgramData\cuore\research\decode_candidates_2026-10-30\CANDIDATES.md "
+    "(fuel level, battery voltage, IBS state of charge, odometer, oil temperature), plus boost and throttle, "
+    "on the same engine state as CUORE's reads. MES and CUORE take turns on the adapter. "
+    "DID 1000 engine speed and DID 1002 vehicle speed were rejected and must be re-checked.",
+    "Grey cable: ABS identity and code round.",
+]
+TONIGHT_SHORT = "If time is short: 1, 2, 3, 6."
+TONIGHT_RULES = [
+    "No clears, no writes tonight.",
+    "Fuel below 85% is needed for the EVAP proof; above it the proof waits.",
+]
+
+
 def build(vin: str) -> dict[str, Any]:
     nv = next_session.view(vin) or {"steps": []}
     plan = {s["id"]: s for s in nv["steps"]}
@@ -95,7 +115,7 @@ def build(vin: str) -> dict[str, Any]:
                 e["steps"].append(s["title"])
                 e["mes"].append(s["mes"])
     total = sum(s["minutes"] for s in steps)
-    return {"vin": vin, "groups": groups, "steps": steps, "total_minutes": total, "hours": round(total / 60, 1),
+    return {"vin": vin, "tonight": TONIGHT, "tonight_short": TONIGHT_SHORT, "tonight_rules": TONIGHT_RULES, "groups": groups, "steps": steps, "total_minutes": total, "hours": round(total / 60, 1),
             "n_rows": len(cs), "rows_covered": sorted(cs & covered), "rows_uncovered_before": sorted(cs - covered_before),
             "rows_uncovered": sorted(cs - covered), "ready": list(ready.values()),
             "missing_from_plan": [k for k, d in S.items() if not d.get("added") and k not in plan]}

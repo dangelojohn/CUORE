@@ -50,6 +50,7 @@ from typing import Any, Optional
 
 from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from . import cache
+from ..live import read_state
 from .errors import NotFound
 
 # NOTE: this project's live link (``mes.live_obs``) logs DTCs, readiness and
@@ -162,7 +163,7 @@ def _module_dtc_entries(vin: str) -> dict[str, dict[str, Any]]:
             continue
         data = o.get("data") or {}
         ecu = data.get("ecu")
-        if ecu and not data.get("error"):
+        if ecu and read_state.is_read(data):
             out[ecu] = data
     return out
 
@@ -336,7 +337,7 @@ def _module_answers(session: list[dict[str, Any]]) -> set[str]:
         data = o.get("data") or {}
         if kind == "obd_dtcs":
             answered.update((data.get("by_ecu") or {}).keys())
-        elif kind == "module_dtcs" and not data.get("error"):
+        elif kind == "module_dtcs" and read_state.is_read(data):
             ecu = data.get("ecu")
             if ecu:
                 answered.add(ecu)
@@ -508,6 +509,20 @@ def build_verdict(norm: dict[str, Any]) -> dict[str, Any]:
     return v
 
 
+def _not_read_verdict(verdict: dict[str, Any], systems_table: list[dict[str, Any]]) -> None:
+    """Silence is never clean: systems nothing answered for are listed on the
+    verdict, and a would-be VERIFIED_CLEAN becomes NO_DATA."""
+    gaps = [r["label"] if "label" in r else r["system"] for r in systems_table
+            if r["health"] == scan_health.GAP]
+    verdict["not_read"] = gaps
+    if not gaps:
+        return
+    if verdict["state"] == scan_health.VERIFIED_CLEAN:
+        verdict["state"] = scan_health.NO_DATA
+        verdict["label"] = scan_health._VERDICT_LABELS[scan_health.NO_DATA]
+    verdict["basis"] = [read_state.banner("no answer for " + ", ".join(gaps))] + list(verdict["basis"])
+
+
 def build_systems_table(vin: str, norm: dict[str, Any]) -> list[dict[str, Any]]:
     mode06 = norm["mode06_by_mid"]
     dtcs = norm["dtcs"]
@@ -661,9 +676,6 @@ def _issues(vin: str, verdict: dict[str, Any], systems_table: list[dict[str, Any
     if network_issue:
         issues.append(network_issue)
 
-    # 2. unverified repairs (open/supported hypotheses on the job ledger).
-    issues.extend(_hypothesis_lines(vin))
-
     # 3. gaps -- systems this scan did not read at all, grouped by the
     #    scan_coverage reason when one is on file (naturally "per cable",
     #    since every module behind the same missing cable shares the same
@@ -676,9 +688,12 @@ def _issues(vin: str, verdict: dict[str, Any], systems_table: list[dict[str, Any
             by_reason.setdefault(r.get("reading"), []).append(r["label"])
         for reason, labels in by_reason.items():
             if reason:
-                issues.append(f"Not read this scan ({reason}): " + ", ".join(labels) + ".")
+                issues.append(read_state.banner(reason.rstrip(".")) + ": " + ", ".join(labels) + ".")
             else:
-                issues.append("Not read this scan: " + ", ".join(labels) + ".")
+                issues.append(read_state.banner("no answer this scan") + ": " + ", ".join(labels) + ".")
+
+    # 2. unverified repairs (open/supported hypotheses on the job ledger).
+    issues.extend(_hypothesis_lines(vin))
 
     # 4. maintenance overdue -- best effort; omitted when it cannot be computed.
     if service_bridge is not None:
@@ -730,6 +745,7 @@ def build(vin: str, scan_id: Optional[str] = None) -> dict[str, Any]:
     sid, norm = _scan_for(vin, scan_id)
     verdict = build_verdict(norm)
     systems_table = build_systems_table(vin, norm)
+    _not_read_verdict(verdict, systems_table)
 
     # Mode 09: calibration IDs/CVNs in the header, EVAP's own IUPR
     # completion numerator/denominator folded into its row -- both only
@@ -809,6 +825,8 @@ def markdown(vin: str, scan_id: Optional[str] = None) -> str:
         else:
             spec = "--"
         reading = row.get("reading") or "--"
+        if row["health"] == scan_health.GAP:
+            reading = read_state.banner((row.get("reading") or "no answer this scan").rstrip("."))
         margin_txt = f" ({row['margin']} margin)" if row.get("margin") else ""
         lines.append(f"| {row['label']} | {reading}{margin_txt} | {spec} | {row['health']} |")
     lines.append("")

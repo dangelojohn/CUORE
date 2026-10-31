@@ -55,6 +55,7 @@ c = TestClient(app)
 p = c.get(f"/v/{VIN}/car-session")
 check("page 200", p.status_code == 200)
 check("page has steps, rules and ready table", "Rules:" in p.text and "Blue cable" in p.text and "Ready to mark done" in p.text)
+check("short list on page, in order, with rules", all(x in p.text for x in ("Tonight: the short list", "No clears, no writes tonight.", "Fuel below 85%", "If time is short: 1, 2, 3, 6.", "DID 1002")) and p.text.index("Cold RFHUB read first") < p.text.index("Code round on every") < p.text.index("Grey cable: ABS identity") < p.text.index("Engine off, ignition on"))
 check("template has no script tag", "<script" not in (Path(__file__).resolve().parents[1] / "web" / "templates" / "car_session.html").read_text(encoding="utf-8"))
 
 # dry run: every step link and the pages the Menu change could have broken

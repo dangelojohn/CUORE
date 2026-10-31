@@ -118,17 +118,19 @@ check("compact does not invent warning/note when absent",
 empty_module = {"ecu": "TCM", "bus": "can_c", "mask": "FF", "error": None,
                 "nrc": None, "warning": "no answer from the module", "dtcs": []}
 compact_empty = ops._compact_dtc_result(empty_module)
-check_eq("a clean module reports no active codes", compact_empty["active"], [])
-check_eq("a clean module reports no history codes", compact_empty["history"], [])
-check_eq("a clean module has zero tracked", compact_empty["tracked"], 0)
+# silence is NOT a clean module (2026-10-31): no empty lists, an explicit state
+check_eq("a silent module reports no active list", compact_empty["active"], None)
+check_eq("a silent module reports no history list", compact_empty["history"], None)
+check_eq("a silent module has no tracked count", compact_empty["tracked"], None)
+check("a silent module says NOT READ", compact_empty["not_read"].startswith("NOT READ: "))
 check("warning is kept when present", compact_empty.get("warning") ==
       "no answer from the module")
 
-# a skipped module (scan_modules: no confirmed address) is untouched -- it
-# never had a "dtcs" key to summarise
+# a skipped module (scan_modules: no confirmed address) was never read
 skipped = {"ecu": "ESM", "skipped": "no confirmed address"}
-check_eq("a skipped module passes through unchanged",
-         ops._compact_dtc_result(skipped), skipped)
+sk = ops._compact_dtc_result(skipped)
+check("a skipped module is NOT READ, no counts",
+      sk["read_state"] == "not_read" and sk["active"] is None and sk["skipped"] == skipped["skipped"])
 
 
 # ===========================================================================

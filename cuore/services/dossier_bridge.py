@@ -1141,6 +1141,23 @@ def _build_verdict(vin: str, dossier: dict[str, Any], live_status: dict[str, Any
             basis.append(f"readiness read at {readiness['at']} -- EVAP monitor "
                          f"{readiness.get('evap_monitor') or 'unknown'}")
 
+    # Silence is never clean: a module whose newest read did not answer is
+    # listed, and it blocks a clean claim.
+    not_read: list[dict[str, Any]] = []
+    try:
+        from ..live import read_state
+        not_read = read_state.unread_modules(
+            [o for o in cache.recent_observations(500, vin=vin, kind="module_dtcs")
+             if live_store.is_from_car(o)])
+    except Exception:  # noqa: BLE001
+        not_read = []
+    for m in not_read:
+        basis.insert(0, f"{m['ecu']}: {m['banner']}"
+                     + (f" (last good read {m['last_good']}, not read this session)"
+                        if m["last_good"] else ""))
+    if not_read and state == "VERIFIED_CLEAN":
+        state, label = "UNVERIFIED_REPAIR", "Unverified repair"
+
     summary = _verdict_summary(state, open_work, cleared_at, dossier)
     if (state == "ACTIVE_FAULTS" and readiness and readiness.get("evap_monitor") == "complete"
             and any(c in _EVAP_CODES for c in live_active_codes)):
@@ -1150,6 +1167,7 @@ def _build_verdict(vin: str, dossier: dict[str, Any], live_status: dict[str, Any
         "state": state, "label": label,
         "summary": summary,
         "basis": basis,
+        "not_read": not_read,
         "cleared_at": cleared_at.split(" ")[0] if cleared_at else None,
         "cleared_by": cleared_by,
         "readiness": readiness,

@@ -505,8 +505,8 @@
           {% elif bench.last_scan.partial %}<span class="chip chronic">partial</span>{% endif %}
         </div>
         <div class="bench-lastscan-codes">
-          <b>Active:</b> {% if bench.last_scan.active_codes %}{% for c in bench.last_scan.active_codes %}<a class="chip-code sm" href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
-          &middot; <b>History:</b> {% if bench.last_scan.history_codes %}{% for c in bench.last_scan.history_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% else %}<span class="muted">none</span>{% endif %}
+          <b>Active:</b> {% if bench.last_scan.active_codes %}{% for c in bench.last_scan.active_codes %}<a class="chip-code sm" href="/v/{{ vin }}/code/{{ c }}">{{ c }}</a>{% endfor %}{% elif bench.last_scan.not_read %}<span class="chip chronic">{{ bench.last_scan.not_read }}</span>{% else %}<span class="muted">none</span>{% endif %}
+          &middot; <b>History:</b> {% if bench.last_scan.history_codes %}{% for c in bench.last_scan.history_codes %}<span class="chip-code sm">{{ c }}</span>{% endfor %}{% elif bench.last_scan.not_read %}<span class="muted">not read</span>{% else %}<span class="muted">none</span>{% endif %}
         </div>
         {% if bench.last_scan.coverage_line %}
           <p class="bench-lastscan-coverage">{{ bench.last_scan.coverage_line }}</p>

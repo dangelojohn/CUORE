@@ -24,6 +24,7 @@ from .. import bootstrap  # noqa: F401  -- side effect: puts `mes` on sys.path
 from . import mes_bridge, systems_bridge
 from .errors import BadRequest, NotFound
 from ..live import owner_events as store
+from ..live import read_state
 
 from mes import feedback as feedback_mod  # noqa: E402
 from mes import symptoms as symptoms_mod  # noqa: E402
@@ -426,7 +427,7 @@ def _live_active_codes(vin: str) -> set[str]:
             continue
         data = o.get("data") or {}
         ecu = data.get("ecu")
-        if ecu and not data.get("error"):
+        if ecu and read_state.is_read(data):
             latest_module[ecu] = data
     for data in latest_module.values():
         for rec in data.get("dtcs") or []:
