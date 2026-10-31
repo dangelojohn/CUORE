@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% block title %}Add Service - CUORE{% endblock %}
 {% block content %}
+<link rel="stylesheet" href="{{ static_url('landing.css') }}">
 <link rel="stylesheet" href="{{ static_url('add_service.css') }}">
-<section class="as" id="as" aria-live="polite">
+<section class="as" id="as" aria-live="polite" data-brand="{{ page_brand.key if page_brand else '' }}">
+  {# The brand marks, hidden; the script copies one into the art area for a marque with no drawing. #}
+  <div id="as-marks" hidden>{% for b in brands %}<span class="bt-disc as-disc" data-brand-key="{{ b.key }}" data-brand-name="{{ b.name }}">{% include "_brand_mark.html" %}</span>{% endfor %}</div>
   <noscript><p class="as-note">This page needs JavaScript. <a href="/start">Use the plain VIN form instead.</a></p></noscript>
 
   {# S1 -- how do we find the car #}
@@ -144,7 +147,7 @@
     <h1 class="as-h" id="as-done-h">Job opened</h1>
     <p class="as-note" id="as-done-msg"></p>
     <ul class="as-sum" id="as-done-list"></ul>
-    <div class="as-actions"><a class="as-go" id="as-done-link" href="#">Go to the job</a></div>
+    <div class="as-actions"><a class="as-go" id="as-done-link" href="#">Go to the car</a></div>
   </div>
 </section>
 <script src="{{ static_url('add_service.js') }}"></script>

@@ -35,7 +35,7 @@
 .elec-chip {
   flex: none; display: inline-flex; align-items: center; gap: 6px;
   min-height: 44px; padding: 0 14px; border: 1px solid var(--rule);
-  border-radius: 999px; background: var(--surface-2); color: var(--ink-2);
+  border-radius: var(--r-any, 999px); background: var(--surface-2); color: var(--ink-2);
   font-size: 13px; text-decoration: none; white-space: nowrap;
 }
 .elec-chip.active {
@@ -79,7 +79,7 @@
 
 /* ---- title bar + junior/expert toggle -------------------------------- */
 .elec-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-.elec-mode { display: inline-flex; border: 1px solid var(--rule); border-radius: 999px; overflow: hidden; }
+.elec-mode { display: inline-flex; border: 1px solid var(--rule); border-radius: var(--r-any, 999px); overflow: hidden; }
 .elec-mode[hidden], .elec-zoom-tools[hidden] { display: none; }
 .elec-mode-btn {
   min-height: 44px; min-width: 44px; padding: 0 16px; border: 0; background: var(--surface-2);
@@ -151,7 +151,7 @@
 .elec-parts { margin: 6px 0; }
 .elec-parts a { display: inline-block; padding: 6px 0; }
 .elec-photos { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
-.elec-photos .media-attach-thumb img { width: 64px; height: 64px; object-fit: cover; border-radius: 6px; }
+.elec-photos .media-attach-thumb img { width: 64px; height: 64px; object-fit: cover; border-radius: var(--r-any, 6px); }
 .elec-photo-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .elec-photo-input { max-width: 100%; font-size: 13px; }
 .elec-page[data-mode="expert"] .elec-hint:not([open]) p { display: none; }

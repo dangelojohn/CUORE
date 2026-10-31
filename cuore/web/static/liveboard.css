@@ -221,7 +221,7 @@ table.ff-table tr:last-child td { border-bottom: none; }
   background: var(--surface-2); border: 1px solid var(--rule);
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: var(--fs-sm);
 }
-.bc-cable-bar { width: 6px; height: 28px; border-radius: 3px; flex: none; background: var(--ink-3); }
+.bc-cable-bar { width: 6px; height: 28px; border-radius: var(--r-any, 3px); flex: none; background: var(--ink-3); }
 .bc-cable-bar.cable-blue_a5 { background: #2d7ff9; }
 .bc-cable-bar.cable-grey_a6 { background: #8a8f98; }
 .bc-cable-bar.cable-none { background: var(--rule); }
@@ -329,7 +329,7 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
 .lb-go { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 12px 0; }
 .lb-go-l { font-weight: 700; color: var(--ink-2); }
 .lb-gochip {
-  display: inline-flex; align-items: center; min-height: 44px; padding: 4px 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; min-height: 44px; padding: 4px 16px; border-radius: var(--r-any, 999px);
   border: 2px solid var(--accent); background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 600;
 }
 .lb-gochip:hover, .lb-gochip:focus-visible { background: var(--accent); color: #fff; }
@@ -359,7 +359,7 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
 .lb-chan-name { font-size: var(--fs-md); }
 .lb-chan-state:empty { display: none; }
 /* how sure the numbers are: only shown while a value is live */
-.lb-conf { display: none; margin-top: 2px; padding: 2px 10px; border: 1px solid var(--rule); border-radius: 999px; color: var(--ink-2); }
+.lb-conf { display: none; margin-top: 2px; padding: 2px 10px; border: 1px solid var(--rule); border-radius: var(--r-any, 999px); color: var(--ink-2); }
 .lb-chan.has-value .lb-conf { display: inline-block; }
 .lb-chan-value { min-width: 1ch; }
 
@@ -410,17 +410,17 @@ table.bc-candidates td { font-family: var(--mono); color: var(--ink); }
 .lb-values-h { font-size: var(--fs-md); font-weight: var(--fw-semibold); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-2); margin: 0 0 8px; }
 .lb-vpick { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .lb-vbtn { display: inline-flex; align-items: center; justify-content: center; min-height: 52px; min-width: 52px; padding: 0 16px;
-  border: 1px solid var(--rule); border-radius: 8px; font-size: var(--fs-md); color: var(--ink); text-decoration: none; background: var(--panel, transparent); }
+  border: 1px solid var(--rule); border-radius: var(--r-any, 8px); font-size: var(--fs-md); color: var(--ink); text-decoration: none; background: var(--panel, transparent); }
 .lb-vbtn.is-current { border-color: var(--ink); font-weight: var(--fw-semibold); }
 .lb-vtitle { font-size: var(--fs-xl); margin: 6px 0; }
 .lb-vblurb, .lb-vhow, .lb-vsec-why, .lb-vnote { font-size: var(--fs-sm); color: var(--ink-2); margin: 4px 0; }
 .lb-vsec { margin: 14px 0; }
 .lb-vsec-h { font-size: var(--fs-md); margin: 0; color: var(--ink); }
-.lb-vtog { font-size: var(--fs-xs); font-weight: normal; color: var(--ink-3); border: 1px solid var(--rule); border-radius: 10px; padding: 0 8px; margin-left: 6px; }
+.lb-vtog { font-size: var(--fs-xs); font-weight: normal; color: var(--ink-3); border: 1px solid var(--rule); border-radius: var(--r-any, 10px); padding: 0 8px; margin-left: 6px; }
 .lb-vrows { display: grid; grid-template-columns: 1fr; gap: 0 18px; }
 .lb-vsec.is-together .lb-vrows { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .lb-vmeta { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 2px; }
-.lb-vsrc, .lb-vstat { font-size: var(--fs-xs); border: 1px solid var(--rule); border-radius: 10px; padding: 0 8px; color: var(--ink-2); }
+.lb-vsrc, .lb-vstat { font-size: var(--fs-xs); border: 1px solid var(--rule); border-radius: var(--r-any, 10px); padding: 0 8px; color: var(--ink-2); }
 .lb-vstat-confirmed { color: var(--ok); border-color: var(--ok); }
 .lb-vstat-no-reading { color: var(--ink-3); border-style: dashed; }
 .lb-vwhy { font-size: var(--fs-xs); color: var(--ink-3); }

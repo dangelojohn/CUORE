@@ -8,6 +8,19 @@
    without touching base.html itself. #}
 {% block vehiclebar %}<!-- liveboard: own status line below, no vbar/hero -->{% endblock %}
 {% block content %}
+{% if brand_has_data is defined and not brand_has_data %}
+{# Brand with no vehicle data (data/brands.json has_data=false): no Start, no record, no demo, no
+   readings, and liveboard.js is not loaded, so nothing here can open a live session. #}
+<section class="brand-empty" data-brand-empty="liveboard" style="max-width:46rem;margin:1.5rem auto">
+  <h1>Live board</h1>
+  <p class="muted small">{{ bar.name }}</p>
+  <div class="panel" role="status" style="padding:1.5rem;text-align:center;border-style:dashed">
+    <p>No scan is on file for this car.</p>
+    <p class="small muted">Connecting to this brand is not confirmed yet, so CUORE does not start live readings here.</p>
+  </div>
+  <p><a class="lb-gochip lb-back" href="/v/{{ vin }}">Back to Bench</a></p>
+</section>
+{% else %}
 <link rel="stylesheet" href="{{ static_url('liveboard.css') }}">
 
 <div id="lb-app" data-vin="{{ vin }}" data-name="{{ bar.name }}"{% if gview %} data-group-channels="{{ gview.channel_ids|join(',') }}"{% endif %}
@@ -171,4 +184,5 @@
     if (window.CuoreBusCapture) window.CuoreBusCapture.init();
   });
 </script>
+{% endif %}
 {% endblock %}

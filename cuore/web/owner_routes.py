@@ -257,8 +257,9 @@ def _print_href(vin: str, event: dict[str, Any]) -> Optional[str]:
 
 
 def _page(request: Request, name: str, vin: str, active: str, **ctx: Any) -> HTMLResponse:
+    from . import routes as web_routes  # local: routes is heavy and imports many siblings
     return templates.TemplateResponse(request, name, {
-        "vin": vin, "active": active, **ctx,
+        "vin": vin, "active": active, "marque": web_routes._marque_for({"vin": vin}), **ctx,
     })
 
 

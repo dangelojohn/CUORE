@@ -105,7 +105,7 @@ check("every tile has a plain one-line sub under 40 characters",
       all(0 < len(i["sub"]) < 40 for i in nav_items.ITEMS), str([i["key"] for i in nav_items.ITEMS if not 0 < len(i["sub"]) < 40]))
 mm = nav_items.nav_menu(VIN, "", "admin", "")
 check("top row order with a car open", [i["key"] for i in mm["top"]] == TOP_ORDER, str([i["key"] for i in mm["top"]]))
-check("tiles open between 12 and 16 with a car (top row included)", 12 <= mm["open_count"] <= 16, str(mm["open_count"]))
+check("tiles open between 12 and 17 with a car (top row included)", 12 <= mm["open_count"] <= 17, str(mm["open_count"]))
 more_keys = {i["key"] for g in mm["more_groups"] for i in g["items"]}
 for k in ("procedures", "witech-recording", "parity", "field-quality", "accounts", "about", "cables", "hardware", "facts",
           "library", "vehicles", "dashboard", "home", "start", "g-tsb", "g-logs", "g-recordings", "scans", "car-session"):

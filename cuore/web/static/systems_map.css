@@ -60,7 +60,7 @@
   display: inline-block;
   width: 14px;
   height: 14px;
-  border-radius: 4px;
+  border-radius: var(--r-any, 4px);
   border: 2px solid;
   flex: 0 0 auto;
 }
@@ -69,7 +69,7 @@
   width: 20px;
   height: 4px;
   border: none;
-  border-radius: 2px;
+  border-radius: var(--r-any, 2px);
   background: var(--ok);
   opacity: 0.7;
 }
@@ -102,7 +102,7 @@
 .smap-slider::-webkit-slider-runnable-track {
   height: 6px;
   background: var(--ink-3);
-  border-radius: 3px;
+  border-radius: var(--r-any, 3px);
 }
 .smap-slider::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -117,7 +117,7 @@
 .smap-slider::-moz-range-track {
   height: 6px;
   background: var(--ink-3);
-  border-radius: 3px;
+  border-radius: var(--r-any, 3px);
 }
 .smap-slider::-moz-range-thumb {
   width: 48px;
@@ -151,7 +151,7 @@
   font-weight: 700;
   line-height: 1;
   padding: 3px 6px;
-  border-radius: 10px;
+  border-radius: var(--r-any, 10px);
   white-space: nowrap;
   box-shadow: 0 0 0 2px var(--surface);
 }
@@ -188,7 +188,7 @@
     transparent 2px, transparent 8px
   );
   opacity: 0.55;
-  border-radius: 4px;
+  border-radius: var(--r-any, 4px);
 }
 
 /* --- Phase 4: live overlay ---------------------------------------------- */
@@ -207,7 +207,7 @@
   height: 48px;
   min-width: 48px;
   min-height: 48px;
-  border-radius: 10px;
+  border-radius: var(--r-any, 10px);
   border: 1px solid var(--ink-3);
   background: var(--surface-2);
   color: var(--ink);
@@ -231,7 +231,7 @@
 .smap-snapshot-btn {
   height: 40px;
   padding: 0 14px;
-  border-radius: 8px;
+  border-radius: var(--r-any, 8px);
   border: 1px solid var(--ink-3);
   background: var(--surface-2);
   color: var(--ink);
@@ -297,7 +297,7 @@ a[data-system].smap-live-none g {
   font-weight: 700;
   line-height: 1;
   padding: 3px 6px;
-  border-radius: 10px;
+  border-radius: var(--r-any, 10px);
   text-decoration: none;
   white-space: nowrap;
   box-shadow: 0 0 0 2px var(--surface);
@@ -318,7 +318,7 @@ a[data-system].smap-live-none g {
   background: var(--surface-2);
   color: var(--ink);
   border: 1px solid var(--ink-3);
-  border-radius: 8px;
+  border-radius: var(--r-any, 8px);
   padding: 10px 16px;
   font-size: 13px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);

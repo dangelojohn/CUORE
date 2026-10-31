@@ -40,6 +40,8 @@ from .config import Settings, load  # noqa: E402
 from .models import ErrorBody  # noqa: E402
 from .services.errors import BridgeError  # noqa: E402
 from .web import bench_routes  # noqa: E402
+from .web import brand_gate as brand_gate_mod  # noqa: E402
+from .web.brand_gate import BrandEmpty, brand_gate  # noqa: E402
 from .web import dashboard_routes  # noqa: E402
 from .web import drivetrain_routes  # noqa: E402
 from .web import dossier_routes  # noqa: E402
@@ -63,6 +65,7 @@ from .web import arrive_ready_routes  # noqa: E402
 from .web import warranty_routes  # noqa: E402
 from .web import library_routes  # noqa: E402
 from .web import bay_sheet_routes  # noqa: E402
+from .web import bay_board_routes  # noqa: E402
 from .web import bay_service_sheet_routes  # noqa: E402
 from .web import car_session_routes  # noqa: E402
 from .web import helped_routes  # noqa: E402
@@ -183,6 +186,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         docs_url=None,       # re-added below behind require_token
         redoc_url=None,
         openapi_url=None,
+        dependencies=[Depends(brand_gate)],   # empty skeleton for a brand with no data (web/brand_gate.py)
     )
     app.state.settings = settings
 
@@ -208,6 +212,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.exception_handler(MesError)
     async def _mes_error(request: Request, exc: MesError):
         return _render_failure(request, exc, 400)
+
+    @app.exception_handler(BrandEmpty)
+    async def _brand_empty(request: Request, exc: BrandEmpty):
+        return brand_gate_mod.render(request, exc)
 
     @app.exception_handler(LoginRedirect)
     async def _login_redirect(request: Request, exc: LoginRedirect):
@@ -333,6 +341,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(library_routes.router)
     app.include_router(bay_sheet_routes.router)
     app.include_router(bay_service_sheet_routes.router)
+    app.include_router(bay_board_routes.router)
     app.include_router(car_session_routes.router)
     app.include_router(helped_routes.router)
     app.include_router(five_minute_routes.router)

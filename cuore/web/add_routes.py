@@ -45,9 +45,13 @@ def choices() -> dict[str, Any]:
 
 
 @router.get("/add", response_class=HTMLResponse)
-def add_page(request: Request) -> HTMLResponse:
+def add_page(request: Request, brand: str = "") -> HTMLResponse:
+    """``?brand=<key>`` (from the Add Service card on /cars) themes the whole flow in
+    that marque and preselects it on Choose. An unknown or missing brand is today's page."""
+    chosen = landing_bridge.brand((brand or "").strip().lower())
     return web_routes._page(request, "add_service.html", reasons=REASONS, brands=landing_bridge.brands(),
-                           choices=choices(), live_strip=None)
+                           choices=choices(), live_strip=None, page_brand=chosen,
+                           marque=chosen["key"] if chosen else "alfa")
 
 
 @router.get("/add/art")

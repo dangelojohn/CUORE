@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Bay board - CUORE{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ static_url('landing.css') }}">
+<link rel="stylesheet" href="{{ static_url('bay_board.css') }}">
+<section class="stage stage-bay">
+  <h1 class="stage-h">Bay board</h1>
+  <dl class="bb-counts">
+    <div><dt>Cars in</dt><dd>{{ board.total }}</dd></div>
+    <div><dt>Open</dt><dd>{{ board.open }}</dd></div>
+    <div><dt>Verifying</dt><dd>{{ board.verifying }}</dd></div>
+  </dl>
+
+  {% for g in board.groups %}
+  <h2 class="bb-group">{{ g.title }}</h2>
+  <div class="bb-grid">
+    {% for c in g.cards %}
+    <a class="bb-card" data-marque="{{ c.marque }}" data-vin="{{ c.vin }}" href="/v/{{ c.vin }}/menu">
+      <span class="bb-top">
+        {% if c.brand.mark_url %}{% set b = c.brand %}<span class="bb-disc">{% include "_brand_mark.html" %}</span>{% endif %}
+        <span class="bb-id">
+          <span class="bb-name">{{ c.name }}</span>
+          <span class="bb-vin mono">{{ c.vin8 }}</span>
+        </span>
+        {% if c.status %}<span class="bb-status bb-s-{{ c.status|lower }}">{{ c.status }}</span>{% endif %}
+      </span>
+      <span class="bb-reason">{{ c.reason }}</span>
+      <span class="bb-meta">
+        {% if c.tech %}<span><span class="bb-k">Technician</span> {{ c.tech }}</span>{% endif %}
+        {% if c.time %}<span><span class="bb-k">In the bay</span> {{ c.time }}</span>{% endif %}
+      </span>
+      <span class="bb-work">{% if c.work %}<span class="bb-k">Latest</span> {{ c.work.kind }}: {{ c.work.text }}{% if c.work.date %} <span class="bb-date">{{ c.work.date }}</span>{% endif %}{% endif %}</span>
+      <span class="bb-state"><span class="chip-verdict v-{{ c.state|lower|replace('_', '-') }}">{{ c.state_word }}</span></span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  {% if not board.total %}<p class="cars-empty">No cars in the bay</p>{% endif %}
+</section>
+{% endblock %}

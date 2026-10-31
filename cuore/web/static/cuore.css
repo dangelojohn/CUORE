@@ -186,6 +186,12 @@
   --display-weight: var(--fw-light); --display-stretch: 100%; --display-case: none; --display-track: .04em;
   --label-case: none; --label-track: .02em; --label-stretch: 100%;
   --accent-quiet: var(--accent); --accent-text: var(--accent);
+  /* CUORE's own identity follows the car's marque: header wordmark and splash read these.
+   * --r-any is deliberately unset here (every literal radius falls back to its own px
+   * value); the square marques set it to 0 so tiles, chips, inputs and panels lose their rounding. */
+  --wordmark-weight: var(--fw-light); --wordmark-track: .12em;
+  --intro-track: .04em; --intro-accent: var(--accent-text); --intro-text: block;
+  --intro-mark-w: 180px; --intro-mark-h: 72px;
 }
 /* Ferrari: FerrariSans stand-in Saira (width axis to 125%), heavy extended uppercase,
  * black and white, red kept for the primary action only, square corners. */
@@ -194,7 +200,9 @@
   --display-weight: 700; --display-stretch: 125%; --display-case: uppercase; --display-track: .02em;
   --label-case: uppercase; --label-track: .02em; --label-stretch: 90%; --accent-text: var(--ink-2);
   --accent: #d2001f; --accent-ink: #fff; --accent-dim: #331014; --accent-quiet: var(--ink);
-  --radius: 0px; --radius-sm: 0px;
+  --radius: 0px; --radius-sm: 0px; --r-any: 0px;
+  --wordmark-weight: 700; --wordmark-track: .14em; --m-brand-weight: 700; --m-brand-track: .14em;
+  --intro-track: .14em; --intro-accent: #fff; --intro-text: none; --intro-mark-w: 260px; --intro-mark-h: 72px;
 }
 /* Maserati: Everett Light stand-in Jost 300, large light uppercase, tight tracking,
  * black and white with one warm gold on the main action, square corners. */
@@ -203,7 +211,9 @@
   --display-weight: 300; --display-stretch: 100%; --display-case: uppercase; --display-track: -.01em;
   --label-case: uppercase; --label-track: .04em; --label-stretch: 100%; --accent-text: var(--ink-2);
   --accent: #ffc845; --accent-ink: #0a0a0a; --accent-dim: #3a2d0a; --accent-quiet: var(--ink);
-  --radius: 0px; --radius-sm: 0px;
+  --radius: 0px; --radius-sm: 0px; --r-any: 0px;
+  --wordmark-weight: 300; --wordmark-track: .34em; --m-brand-weight: 300; --m-brand-track: .3em;
+  --intro-track: .34em; --intro-accent: #fff; --intro-mark-w: 180px; --intro-mark-h: 72px;
 }
 /* Light theme. Ferrari red darkened; Maserati gold darkened to #7d5a00: 5.51:1 on
  * --bg #eef0f2, 5.26:1 on --surface-2, 4.83:1 on --raised, and 6.30:1 with white ink. */
@@ -375,7 +385,7 @@ code, kbd, samp, .mono {
   -webkit-mask: var(--marque-mark) center / contain no-repeat; mask: var(--marque-mark) center / contain no-repeat;
 }
 :root[data-marque="maserati"] .logo-slot::after, :root[data-marque="ferrari"] .logo-slot::after { content: none; }
-.intro-mask { display: block; width: 180px; height: 72px; background: #fff;
+.intro-mask { display: block; width: var(--intro-mark-w); height: var(--intro-mark-h); background: #fff;
   -webkit-mask: var(--marque-mark) center / contain no-repeat; mask: var(--marque-mark) center / contain no-repeat; }
 .top nav { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 /* Mechanic review #3 (N6): the shared header nav (Start/Vehicles/Modules/
@@ -695,7 +705,7 @@ kbd {
 }
 .top .menu-btn .menu-ico { font-size: var(--fs-xl); }
 .navsheet-toggle:focus-visible + .menu-btn { outline: 3px solid var(--ink); outline-offset: 2px; }
-.top .brand-word { font-size: var(--fs-lg); font-weight: var(--fw-light); letter-spacing: .12em; }
+.top .brand-word { font-size: var(--fs-lg); font-weight: var(--wordmark-weight); letter-spacing: var(--wordmark-track); font-stretch: var(--display-stretch); }
 /* Logo and wordmark sit on the page centre, as on the marques own sites: car name left, Menu right. */
 header.top { position: relative; }
 header.top .brand { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
@@ -998,7 +1008,7 @@ body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
   flex: none; display: inline-flex; align-items: center; min-height: 32px;
   padding: 5px 12px; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .06em;
   background: var(--raised); color: var(--ink-2); border: 1px solid var(--rule);
-  border-radius: 999px; text-decoration: none; cursor: pointer; font-family: inherit;
+  border-radius: var(--r-any, 999px); text-decoration: none; cursor: pointer; font-family: inherit;
   white-space: nowrap;
 }
 .jump-chip:hover { color: var(--ink); border-color: var(--ink-3); }
@@ -1057,7 +1067,7 @@ body:has(.navsheet-toggle:checked) .fab-feedback { display: none; }
 .job-foot { display: flex; align-items: center; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
 .progress-pill {
   font-family: var(--mono); font-size: var(--fs-xs); font-weight: var(--fw-semibold); color: var(--ink);
-  background: var(--surface-2); border: 1px solid var(--rule); border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--rule); border-radius: var(--r-any, 999px);
   padding: 3px 10px;
 }
 .job-refs { font-size: var(--fs-xs); color: var(--ink-3); }
@@ -1126,7 +1136,7 @@ table.codes-table .code-cell, table.codes-table td:not(.desc-cell) {
 .code-cell a { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .sys-badge {
   flex: none; font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: .02em;
-  color: var(--ink-3); border: 1px solid var(--rule); border-radius: 2px; padding: 0 3px;
+  color: var(--ink-3); border: 1px solid var(--rule); border-radius: var(--r-any, 2px); padding: 0 3px;
 }
 
 .chip.status-active { color: var(--sev-returned); background: var(--sev-returned-bg); border-color: var(--sev-returned); }
@@ -1290,7 +1300,7 @@ input[type=checkbox] + label, label.checkbox-label { min-height: 44px; display: 
 }
 .tag-chip label {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  min-height: 44px; padding: 6px 14px; border: 1.5px solid var(--rule); border-radius: 999px;
+  min-height: 44px; padding: 6px 14px; border: 1.5px solid var(--rule); border-radius: var(--r-any, 999px);
   background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-sm); cursor: pointer;
   user-select: none; transition: background .1s ease, border-color .1s ease, color .1s ease;
 }
@@ -1791,13 +1801,15 @@ h2, .section-h, .step-title {
 .intro-logo { height: 96px; width: 96px; max-width: 70vw; display: block; }
 .intro-wordmark {
   font-family: var(--display);
-  font-size: var(--fs-3xl); font-weight: var(--fw-light); letter-spacing: .04em; color: #fff;
+  font-size: var(--fs-3xl); font-weight: var(--fw-light); letter-spacing: var(--intro-track); font-stretch: var(--display-stretch); color: #fff;
+  display: var(--intro-text);
 }
-.intro-wordmark span { color: var(--accent-text); }
+.intro-wordmark span { color: var(--intro-accent); }
+:root:is([data-marque="maserati"], [data-marque="ferrari"]) .intro-wordmark { font-weight: var(--wordmark-weight); }
 .intro-tagline {
   opacity: 0; animation: intro-in .9s ease-out .9s forwards;
   color: rgba(255, 255, 255, .72); font-size: var(--fs-xs); letter-spacing: .18em;
-  text-transform: uppercase;
+  text-transform: uppercase; display: var(--intro-text);
 }
 @keyframes intro-in { to { opacity: 1; } }
 /* Review 7, 2026-10-14: pointer-events:none only fired at 100% (fully
@@ -2051,7 +2063,7 @@ th, .ff-name, .hero-figure-label, .feedback-badge, .count-badge .chip.sm,
 .connect-step.is-err .connect-step-icon::before { content: "\26A0"; color: #e0574a; }
 .connect-pause-card {
   margin-top: var(--space-2); padding: var(--space-2);
-  border: 1px solid var(--accent-quiet); border-radius: 8px;
+  border: 1px solid var(--accent-quiet); border-radius: var(--r-any, 8px);
 }
 .connect-pause-actions, .connect-done-actions {
   display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2);
@@ -2143,7 +2155,7 @@ header.top nav a { font-size: var(--fs-md); }
 
 /* Simulated session banner: mark + word, not colour only */
 .sim-banner { min-height: 44px; display: flex; align-items: center; padding: 8px 14px; margin: 8px 0;
-  font-size: var(--fs-md); border: 2px dashed currentColor; border-radius: 6px; }
+  font-size: var(--fs-md); border: 2px dashed currentColor; border-radius: var(--r-any, 6px); }
 .port-suggest { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: var(--fs-md); }
 .port-suggest input[type=text] { min-height: 44px; font-size: var(--fs-md); }
 
@@ -2164,7 +2176,7 @@ header.top nav a { font-size: var(--fs-md); }
  * the root carries data-marque for whole pages, and the landing/cars tiles and
  * head carry their own. Headings and labels only: readings, gauges, VIN and other
  * data values never take these rules. */
-:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) :is(h1, .stage-h, .bt-name, .car-name, .top-car, .navsheet-title, .hero-name, .as-h, .as-tile-name, .as-count, .top .brand-word) {
+:is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) :is(h1, .stage-h, .bt-name, .car-name, .top-car, .navsheet-title, .hero-name, .as-h, .as-tile-name, .as-count) {
   font-weight: var(--display-weight); font-stretch: var(--display-stretch); letter-spacing: var(--display-track);
 }
 :is(:root, .brand-tile, .car-card, .cars-head):is([data-marque="maserati"], [data-marque="ferrari"]) :is(h1, .stage-h, .bt-name, .car-name, .top-car, .navsheet-title, .hero-name, .as-h, .as-count) {

@@ -153,8 +153,16 @@
        tap and runs the same sequence inline instead. Never fires on page
        load, never clears a code. Hardcoded English like flow_bar.html's
        "Tools away..." (i18n.py is outside this task's file list). #}
+    {% if brand_has_data is defined and not brand_has_data %}
+    {# Brand with no vehicle data (data/brands.json has_data=false): CUORE's bus and address
+       paths are not confirmed for it, so the button is disabled and connect.js is not loaded. #}
+    <span class="btn connect-btn" id="connect-car-btn" aria-disabled="true" tabindex="-1" data-vin="{{ bar.vin }}"
+          title="Connecting is not confirmed for this brand yet" style="opacity:.55;cursor:not-allowed">Connect to car</span>
+    <span class="small muted connect-unconfirmed" role="status">Connecting to this brand is not confirmed yet.</span>
+    {% else %}
     <a class="btn connect-btn" id="connect-car-btn" href="/v/{{ bar.vin }}/scan"
        data-vin="{{ bar.vin }}">Connect to car</a>
+    {% endif %}
   </div>
   {% if live_strip and not live_strip.error %}
     {% set _scn = _scanner_labels.get(live_strip.mes_state, (live_strip.mes_state or 'unknown')|replace('_', ' ')) %}
@@ -233,4 +241,4 @@
        data-vin="{{ bar.vin }}"></div>
 </div>
 {% if tab == "job" %}{% include "_flow_bar.html" %}{% endif %}
-<script src="{{ static_url('connect.js') }}" defer></script>
+{% if brand_has_data is not defined or brand_has_data %}<script src="{{ static_url('connect.js') }}" defer></script>{% endif %}

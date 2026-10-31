@@ -193,12 +193,26 @@
   }
   function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); }
 
+  // The brand path: /add?brand=X. The page is rendered in that marque; the marks are hidden in the page.
+  var marks = {}, markList = [];
+  [].forEach.call(document.querySelectorAll("#as-marks [data-brand-key]"), function (n) {
+    var k = n.getAttribute("data-brand-key"); marks[k] = n; markList.push({ key: k, name: n.getAttribute("data-brand-name") });
+  });
+  var pageKey = root.getAttribute("data-brand") || "", pageName = pageKey ? (markList.filter(function (b) { return b.key === pageKey; })[0] || {}).name || "" : "";
+  var NO_DRAWING = { maserati: true, ferrari: true }; // no drawing exists for these marques: their logo disc stands in
+  function brandKeyFor(name) {
+    var b = name ? markList.filter(function (m) { return same(m.name, name); })[0] : null;
+    return b ? b.key : "";
+  }
+  /* The whole flow follows one marque: the page's brand, then whatever the VIN decodes to. */
+  function setTheme(key) { document.documentElement.setAttribute("data-marque", key || pageKey || "alfa"); }
+
   var state;
   function resetState() {
     state = { run: 0, vin: "", fields: {}, card: null, carRead: false, unit: "km", odo: "",
               reasonKey: "", story: null, decodeCache: {}, typedSeq: 0,
-              choose: { brand: "", model: "", year: "", engine: "", modelText: "", engineText: "" },
-              vinOk: false, chosen: false, decoded: null };
+              choose: { brand: pageName, model: "", year: "", engine: "", modelText: "", engineText: "" },
+              vinOk: false, chosen: false, decoded: null, makeEntered: false };
   }
   resetState();
 
@@ -275,7 +289,7 @@
     else if (act === "restart") {
       resetState(); vinIn.value = ""; setVinState(vinState, []); vinGo.disabled = true; typeForm.hidden = true;
       $("as-cvin").value = ""; setVinState($("as-cvin-state"), []); $("as-c-modeltext").value = ""; $("as-c-enginetext").value = "";
-      $("as-type").setAttribute("aria-expanded", "false"); show("find");
+      $("as-type").setAttribute("aria-expanded", "false"); setTheme(""); show("find");
     }
     else if (act === "back-card") show("card");
     else if (act === "back-gaps") show("gaps");
@@ -438,7 +452,8 @@
   function finishLive(run, live) {
     var card = live.card || {};
     var refused = card.refused;
-    drawArt($("as-live-art"), val(card.fields, "model"));
+    setTheme(brandKeyFor(val(card.fields, "make")));
+    drawArt($("as-live-art"), val(card.fields, "model"), "", val(card.fields, "make"));
     var haveVin = hasValue(card.fields && card.fields.vin) && card.fields.vin.source === SRC_READ;
     $("as-live-msg").textContent = refused ? "The read was not started: " + refused
       : haveVin ? "Done. Check each step above, then continue." : "The car did not report a VIN.";
@@ -458,8 +473,16 @@
   // --- art, story ---------------------------------------------------------------------------
 
   var SVGNS = "http://www.w3.org/2000/svg";
-  function drawArt(box, model, msg) {
+  /* `makeName` is the make the car is known to be (else the page's brand is used). Maserati and Ferrari
+   * have no drawing, so their logo disc fills the area; never another marque's art. */
+  function drawArt(box, model, msg, makeName) {
     clear(box);
+    var key = makeName ? brandKeyFor(makeName) : pageKey;
+    if (NO_DRAWING[key] && marks[key]) {
+      var disc = marks[key].cloneNode(true);
+      disc.setAttribute("role", "img"); disc.setAttribute("aria-label", marks[key].getAttribute("data-brand-name"));
+      box.appendChild(disc); return;
+    }
     if (!model) { box.appendChild(el("p", "as-noart", msg || "No drawing yet: the model is not identified.")); return; }
     fetch("/add/art?model=" + encodeURIComponent(model), { credentials: "same-origin" })
       .then(function (r) { return r.ok ? r.json() : null; })
@@ -507,6 +530,11 @@
   function enterCard(card, carRead, chosen) {
     state.card = card; state.carRead = carRead; state.vin = card.vin;
     state.fields = JSON.parse(JSON.stringify(card.fields || {}));
+    state.makeEntered = false;
+    if (!hasValue(state.fields.make) && pageName) { // an unknown WMI on a brand path: the page's brand, as entered
+      state.fields.make = { value: pageName, source: SRC_TYPED, at: new Date().toISOString(),
+                            detail: "entered: the brand this service was started under", verified: true };
+    }
     state.chosen = !!chosen; state.decoded = chosen ? JSON.parse(JSON.stringify(card.fields || {})) : null;
     if (chosen) {
       var picked = choiceFields(chosen, new Date().toISOString());
@@ -525,9 +553,15 @@
   function drawCard() {
     $("as-title").textContent = titleFor(state.fields);
     var warn = state.chosen ? choiceConflict(state.decoded, state.fields) : "";
+    var vinMake = val(state.card && state.card.fields, "make"); // what the VIN (or the car) says
+    var themeMake = state.makeEntered ? val(state.fields, "make") : (vinMake || val(state.fields, "make"));
+    if (!warn && pageName && vinMake && !same(vinMake, pageName)) {
+      warn = "This VIN decodes to " + vinMake + ", but this service was started under " + pageName + ". CUORE shows it as " + vinMake + ".";
+    }
+    setTheme(brandKeyFor(themeMake));
     $("as-card-warn").textContent = warn; $("as-card-warn").hidden = !warn; // recomputed, so a correction clears it
     var model = val(state.fields, "model");
-    drawArt($("as-card-art"), model);
+    drawArt($("as-card-art"), model, "", themeMake);
     var unknownMake = !hasValue(state.fields.make) || state.pickingMake;
     $("as-make-picker").hidden = !unknownMake;
     var ul = $("as-fields"); clear(ul);
@@ -589,6 +623,7 @@
   function setEntered(key, v) {
     state.fields[key] = { value: v, source: SRC_TYPED, at: new Date().toISOString(),
                           detail: "entered by the technician", verified: true };
+    if (key === "make") state.makeEntered = true;
     state.editing = null; state.pickingMake = false; drawCard();
   }
 
@@ -662,7 +697,7 @@
     (r.warnings || []).forEach(function (w) { sumRow(ul, "Warning", w, true); });
     if (r.odometer_missing) sumRow(ul, "Odometer", "not recorded", true);
     else if (r.odometer) sumRow(ul, "Odometer", Number(r.odometer.value).toLocaleString() + " " + r.odometer.unit);
-    var href = "/v/" + encodeURIComponent(r.vin) + "/job";
+    var href = "/v/" + encodeURIComponent(r.vin) + "/menu";
     $("as-done-link").setAttribute("href", href);
     show("done");
     if (created && !existing) setTimeout(function () { if (!$("as-done-link").closest(".as-screen").hidden) window.location.assign(href); }, 1500);

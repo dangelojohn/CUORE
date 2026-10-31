@@ -1,0 +1,30 @@
+/* Bay board (bay_board.html): every car in the shop, one card each. Tokens only; each card carries its
+ * own marque's type through data-marque (cuore.css). Laptop = multi-column grid; phone = one column at 759. */
+.bb-counts { display: flex; justify-content: center; flex-wrap: wrap; gap: var(--space-6); margin: 0 0 var(--space-6); }
+.bb-counts div { text-align: center; min-width: 96px; }
+.bb-counts dt, .bb-k, .bb-group { font-size: var(--fs-xs); letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3); }
+.bb-counts dd { margin: 0; font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-3xl); }
+.bb-group { margin: var(--space-6) 0 12px; font-weight: normal; }
+.bb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 16px; }
+.bb-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px; min-height: var(--tap);
+  text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--radius); transition: border-color .25s ease; overflow-wrap: anywhere;
+}
+.bb-card:hover, .bb-card:focus-visible { border-color: var(--accent-quiet); }
+.bb-card:focus-visible { outline: 3px solid var(--accent-quiet); outline-offset: 2px; }
+.bb-top { display: flex; align-items: center; gap: 12px; }
+.bb-disc { display: flex; align-items: center; justify-content: center; flex: none; width: 48px; aspect-ratio: 1; border-radius: 50%; border: 1px solid var(--rule); }
+.bb-id { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.bb-name { font-family: var(--display); font-weight: var(--fw-light); font-size: var(--fs-xl); letter-spacing: .03em; }
+.bb-vin { font-size: var(--fs-sm); color: var(--ink-2); }
+.bb-status { flex: none; font-size: var(--fs-xs); letter-spacing: .14em; text-transform: uppercase; border: 1px solid var(--rule); border-radius: var(--radius); padding: 4px 8px; color: var(--ink-2); }
+.bb-s-open { color: var(--accent); border-color: var(--accent); }
+.bb-reason { font-size: var(--fs-md); }
+.bb-meta { display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: var(--fs-sm); color: var(--ink-2); }
+.bb-work { font-size: var(--fs-sm); color: var(--ink-2); }
+.bb-date { color: var(--ink-3); }
+.bb-reason:empty, .bb-work:empty { display: none; }
+@media (max-width: 759px) {
+  .bb-grid { grid-template-columns: 1fr; }
+}

@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="{{ static_url('cuore.css') }}">
 {{ fonts_css_link()|safe if fonts_css_link is defined else '' }}
 <link rel="stylesheet" href="{{ static_url('m.css') }}">
+{% if local_ferrari_mark is defined and local_ferrari_mark() %}<style>:root[data-marque="ferrari"] { --marque-mark: url(/static/brand/ferrari-horse.svg); --marque-mark-w: 28px; --intro-mark-w: 108px; --intro-mark-h: 150px; }</style>{% endif %}
 {# N2, 2026-10-14: the opening splash (_intro.html, unmodified -- see the
    include below) can sit on top of the very first real tap of a session.
    cuore.css's own .intro-overlay animation only sets pointer-events:none

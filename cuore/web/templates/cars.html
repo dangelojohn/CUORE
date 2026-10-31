@@ -2,6 +2,7 @@
 {% block title %}{{ brand.name if brand else 'All cars' }} - CUORE{% endblock %}
 {% block content %}
 <link rel="stylesheet" href="{{ static_url('landing.css') }}">
+<style>.cars-sole { grid-template-columns: minmax(0, 340px); justify-content: center; }</style>
 {% set _what = (brand.name ~ ' cars') if brand else 'cars' %}
 <section class="stage stage-cars">
   <header class="cars-head"{% if brand %} data-marque="{{ brand.key }}"{% endif %}>
@@ -18,8 +19,8 @@
     <button type="submit" class="btn">Search</button>
   </form>
 
-  <div class="car-grid">
-    <a class="car-card car-add" href="/add" data-add-car>
+  <div class="car-grid{{ ' cars-sole' if not cars else '' }}">
+    <a class="car-card car-add" href="/add{% if brand %}?brand={{ brand.key }}{% endif %}" data-add-car>
       <span class="car-plus" aria-hidden="true">+</span>
       <span class="car-name">Add Service</span>
       <span class="car-sub">Read the car or type its VIN</span>

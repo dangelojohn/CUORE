@@ -71,6 +71,10 @@
 /* S2 live */
 .as-art { margin-bottom: 16px; }
 .as-art svg { display: block; width: 100%; height: auto; max-height: 180px; }
+/* A marque with no drawing: its logo disc, large and centred, in place of any art. */
+.as-art .as-disc { width: min(60vw, 240px); margin: 0 auto; }
+.as-art .as-disc[data-brand-key="alfa"] .bt-mark { width: 94%; height: 94%; }
+.as-art .as-disc[data-brand-key="ferrari"] .bt-mark { width: 74%; height: 74%; }
 .as-art .as-noart { text-align: center; color: var(--ink-3); font-size: var(--fs-sm); margin: 0; padding: 20px 0; border: 1px dashed var(--rule); border-radius: var(--radius); }
 .as-steps { list-style: none; padding: 0; margin: 0 0 16px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
 .as-step { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; font-size: var(--fs-xs); color: var(--ink-3); min-width: 0; }

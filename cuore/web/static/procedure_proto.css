@@ -14,20 +14,20 @@
 .pp-list .pp-card { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: var(--tap, 44px); border-left: 8px solid var(--accent); }
 .pp-chips { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .pp-chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap, 44px); padding: 4px 14px;
-  border: 2px solid var(--c, var(--rule)); border-radius: 999px; background: var(--surface); color: var(--ink); }
+  border: 2px solid var(--c, var(--rule)); border-radius: var(--r-any, 999px); background: var(--surface); color: var(--ink); }
 .pp-ok { --c: var(--pp-ok); } .pp-bad { --c: var(--pp-bad); } .pp-info { --c: var(--ink-3); min-height: 0; }
 .pp-mark { font-family: var(--mono); font-weight: 800; color: var(--c); }
 .pp-block { margin: 6px 0; padding: 6px 12px; border-left: 4px solid var(--pp-bad); background: var(--surface); }
 .pp-askrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 8px 0; font-weight: 600; }
 .pp-btn { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap, 44px); min-width: var(--tap, 44px);
-  padding: 4px 18px; border: 2px solid var(--accent); border-radius: 999px; background: var(--accent); color: var(--pp-ink);
+  padding: 4px 18px; border: 2px solid var(--accent); border-radius: var(--r-any, 999px); background: var(--accent); color: var(--pp-ink);
   font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
 .pp-btn.pp-ghost { background: var(--surface); color: var(--ink); }
 .pp-btn.pp-on { background: var(--pp-warn); color: var(--pp-ink); border-color: var(--ink); }
 .pp-btn:focus-visible, .pp-hold:focus-visible, .pp-stop:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
 .pp-start { text-align: center; }
 .pp-hold { position: relative; display: grid; place-items: center; width: min(100%, 320px); min-height: 160px; margin: 8px auto;
-  border: 3px solid var(--accent); border-radius: 24px; background: var(--surface); color: var(--ink); font: inherit;
+  border: 3px solid var(--accent); border-radius: var(--r-any, 24px); background: var(--surface); color: var(--ink); font: inherit;
   font-size: 1.25rem; font-weight: 800; touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer; }
 .pp-hold svg { position: absolute; inset: 0; margin: auto; width: 140px; height: 140px; transform: rotate(-90deg); }
 .pp-hold span { position: relative; padding: 0 12px; }
@@ -36,11 +36,11 @@
 .pp-holding { background: var(--surface-2); }
 .pp-hold-off { border-style: dashed; color: var(--ink-2); cursor: not-allowed; font-size: 1.1rem; }
 .pp-run h2 { font-size: 1.4rem; }
-.pp-stop { display: block; width: 100%; min-height: 150px; margin: 8px 0 16px; border: 4px solid var(--ink); border-radius: 16px;
+.pp-stop { display: block; width: 100%; min-height: 150px; margin: 8px 0 16px; border: 4px solid var(--ink); border-radius: var(--r-any, 16px);
   background: var(--pp-bad); color: var(--pp-ink); font: inherit; font-size: 3rem; font-weight: 900; letter-spacing: .1em; cursor: pointer; }
 .pp-proof { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 1.25rem; }
 .pp-proof b { font-family: var(--mono); font-size: 1.5rem; }
-.pp-word { font-size: 2.25rem; margin: 0; padding: 4px 14px; display: inline-block; border: 3px solid var(--c); border-radius: 12px; color: var(--ink); }
+.pp-word { font-size: 2.25rem; margin: 0; padding: 4px 14px; display: inline-block; border: 3px solid var(--c); border-radius: var(--r-any, 12px); color: var(--ink); }
 .pp-w-ok { --c: var(--pp-ok); } .pp-w-bad { --c: var(--pp-bad); } .pp-w-un { --c: var(--pp-warn); }
 .pp-table { width: 100%; border-collapse: collapse; margin: 8px 0; }
 .pp-table th, .pp-table td { text-align: left; padding: 8px; border-bottom: 1px solid var(--rule); }
@@ -49,5 +49,5 @@
 .pp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .pp-sim summary { min-height: var(--tap, 44px); display: flex; align-items: center; cursor: pointer; font-weight: 700; }
 .pp-faults { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; }
-.pp-faults .pp-btn { width: 100%; justify-content: flex-start; border-radius: 8px; }
+.pp-faults .pp-btn { width: 100%; justify-content: flex-start; border-radius: var(--r-any, 8px); }
 .pp-back a { display: inline-flex; align-items: center; min-height: var(--tap, 44px); color: var(--ink); }

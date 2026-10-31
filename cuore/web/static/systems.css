@@ -38,7 +38,7 @@
 .sysb-row { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 4px 0; }
 .sysb-chip {
   display: inline-flex; align-items: center; gap: 4px; min-height: 28px;
-  padding: 3px 9px; border: 1px solid var(--rule); border-radius: 999px;
+  padding: 3px 9px; border: 1px solid var(--rule); border-radius: var(--r-any, 999px);
   background: var(--surface-2); color: var(--ink-2); font-size: var(--fs-xs); text-decoration: none;
 }
 .sysb-chip:hover { border-color: var(--accent); color: var(--ink); }
@@ -66,7 +66,7 @@
 .sys-go { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 12px; }
 .sys-go-l { font-size: var(--fs-md); font-weight: 700; color: var(--ink-2); }
 .sys-chip { display: inline-flex; align-items: center; min-height: var(--tap); padding: 2px 12px; border: 2px solid var(--accent);
-            border-radius: 999px; background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 600;
+            border-radius: var(--r-any, 999px); background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 600;
             font-size: var(--fs-md); }
 .sys-chip:hover, .sys-chip:focus-visible { background: var(--accent); }
 .sys-rows { margin: 0 0 16px; }
@@ -81,7 +81,7 @@
 .sysrow-n { font-weight: 600; }
 .sysrow-seen, .sysrow-shared { color: var(--ink-2); }
 .sys-live { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 0 10px; border: 2px solid var(--ok);
-            border-radius: 999px; background: var(--ok-bg); color: var(--ok); font-weight: 700; font-size: var(--fs-md); }
+            border-radius: var(--r-any, 999px); background: var(--ok-bg); color: var(--ok); font-weight: 700; font-size: var(--fs-md); }
 .sysfaults, .sysquiet { list-style: none; margin: 0; padding: 0 8px 8px; display: grid; gap: 8px; }
 .sysfault { padding: 6px 8px; border: 1px solid var(--rule); border-left: 6px solid var(--sf-c, var(--ink-3)); border-radius: var(--radius);
             background: var(--surface-2); }
@@ -92,7 +92,7 @@
 .sysfault-code { font-weight: 700; font-size: var(--fs-lg); color: var(--ink); display: inline-flex; align-items: center; min-height: var(--tap); }
 .sysfault-mod, .sysfault-seen { color: var(--ink-2); }
 .sys-status { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 2px solid var(--sf-c, var(--ink-3));
-              border-radius: 999px; font-weight: 700; font-size: var(--fs-md); }
+              border-radius: var(--r-any, 999px); font-weight: 700; font-size: var(--fs-md); }
 .sysfault-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .sysfault-acts form { margin: 0; }
 .sys-btn { min-height: var(--tap); min-width: 88px; padding: 0 16px; font-size: var(--fs-md); font-weight: 700; cursor: pointer;

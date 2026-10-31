@@ -115,6 +115,8 @@ def _page(request: Request, name: str, **ctx: Any) -> HTMLResponse:
     ctx.setdefault("version", __version__)
     ctx.setdefault("profile", settings.profile.value)
     ctx.setdefault("marque", _marque_for(ctx))
+    from . import brand_gate  # local: brand_gate renders through this module
+    ctx.setdefault("brand_has_data", brand_gate.has_data(ctx["marque"]) if ctx.get("vin") else True)
     if "live_strip" not in ctx:  # not setdefault: the strip is not free to compute
         ctx["live_strip"] = _status_strip()
     return templates.TemplateResponse(request, name, ctx)

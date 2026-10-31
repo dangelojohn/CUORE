@@ -37,7 +37,12 @@
     {% if not menu_page %}<label for="navsheet-toggle" class="navtile navsheet-close" role="button">Close</label>{% endif %}
   </div>
   {% if _vin %}
+  {% if brand_has_data is defined and not brand_has_data %}
+  {# brand with no vehicle data: the flow and the Five-minute test are Alfa connection paths, so point at the job #}
+  {% set _next = {"href": "/v/" ~ _vin ~ "/job", "key": "job", "i18n": none, "label": "Job: record the complaint"} %}
+  {% else %}
   {% set _next = _flow_item if _flow_item else {"href": "/v/" ~ _vin ~ "/five-minute", "key": "five-minute", "i18n": none, "label": "Five-minute test"} %}
+  {% endif %}
   <a class="navnext" href="{{ _next.href }}" data-nav-next="{{ _next.key }}"><span>Next step:</span> <b>{{ _nl(_next.i18n, _next.label) }}</b></a>
   {% endif %}
   {% if _menu %}

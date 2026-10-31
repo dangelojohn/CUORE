@@ -76,8 +76,8 @@ check("Choose screen: four drop-downs in order, VIN field, VIN line, Continue",
 check("Choose: later lists start disabled", all(re.search(rf'id="{i}"[^>]*disabled', page) for i in ("as-c-model", "as-c-year", "as-c-engine")))
 check("five reason tiles", len(re.findall(r'class="as-reason"', page)) == 5)
 check("/start still works", c.get("/start").status_code == 200)
-check("Add a car card on the car list points at /add",
-      'href="/add"' in c.get("/cars?brand=alfa").text and 'href="/start"' not in c.get("/cars?brand=alfa").text.split("car-grid")[1].split("</a>")[0])
+check("Add a car card on the car list points at /add for its brand",
+      'href="/add?brand=alfa"' in c.get("/cars?brand=alfa").text and 'href="/start"' not in c.get("/cars?brand=alfa").text.split("car-grid")[1].split("</a>")[0])
 check("landing stays the brand picker", c.get("/").status_code == 200 and c.get("/").text.count('class="brand-tile') == 3)
 
 # --- no online option, no recall check ---------------------------------------------------------
@@ -277,6 +277,75 @@ check("display weight 300 token and 44px+ targets", "var(--fw-light)" in css and
 check("phone width: single column, nothing forces width", "max-width: 640px" in css and "minmax(min(100%" in css)
 check("reduced motion respected", "prefers-reduced-motion" in css)
 check("script escapes by construction (no innerHTML)", "innerHTML" not in js)
+
+# --- the brand path: /add?brand=maserati and ferrari ------------------------------------------------
+def test_vin(prefix8: str, tail8: str) -> str:
+    """A TEST VIN: invented here, with a correct position-9 check digit (49 CFR 565.15). Not a real car."""
+    tr = dict(zip("ABCDEFGH", range(1, 9))); tr.update(dict(zip("JKLMN", range(1, 6)))); tr.update({"P": 7, "R": 9})
+    tr.update(dict(zip("STUVWXYZ", range(2, 10)))); tr.update({str(d): d for d in range(10)})
+    wts = (8, 7, 6, 5, 4, 3, 2, 10, 0, 9, 8, 7, 6, 5, 4, 3, 2)
+    raw = prefix8 + "0" + tail8
+    total = sum(tr[ch] * w for ch, w in zip(raw, wts))
+    chk = "X" if total % 11 == 10 else str(total % 11)
+    return raw[:8] + chk + raw[9:]
+
+
+MAS_VIN = test_vin("ZN6TS57S", "LA000011")   # TEST VIN, invented for this check: Maserati ZN6 rule
+FER_VIN = test_vin("ZFFTS57S", "LF000012")   # TEST VIN, invented for this check: Ferrari ZFF rule
+check("test VINs are 17 characters with a correct check digit",
+      all(len(v) == 17 and ci.validate_vin(v)["ok"] and ci.validate_vin(v)["check_digit"]["valid"] for v in (MAS_VIN, FER_VIN)), f"{MAS_VIN} {FER_VIN}")
+for key, name in (("maserati", "Maserati"), ("ferrari", "Ferrari")):
+    pg = c.get(f"/add?brand={key}")
+    check(f"/add?brand={key} renders", pg.status_code == 200, str(pg.status_code))
+    check(f"/add?brand={key}: page is themed {key}", f'<html lang="en" data-marque="{key}"' in pg.text and f'data-brand="{key}"' in pg.text)
+    check(f"/add?brand={key}: logo slot names {name}", f"{name} badge" in pg.text)
+    check(f"/add?brand={key}: its mark is in the page for the art area", f'data-brand-key="{key}"' in pg.text and f'data-brand-name="{name}"' in pg.text)
+    check(f"/add?brand={key}: Menu follows (Add Service still offered)", 'data-nav="home"' in pg.text and "Add Service" in pg.text)
+    cl = c.get(f"/cars?brand={key}").text
+    check(f"/cars?brand={key}: Add Service links to its brand", f'href="/add?brand={key}"' in cl)
+    check(f"/cars?brand={key}: honest test note, empty state, centred layout",
+          "Test: no vehicle data for this brand yet" in cl and f"No {name} cars yet" in cl and "cars-sole" in cl)
+odd = c.get("/add?brand=nonsense")
+check("unknown brand: today's Alfa page", odd.status_code == 200 and '<html lang="en" data-marque="alfa"' in odd.text and 'data-brand=""' in odd.text)
+check("no brand: today's Alfa page", 'data-brand=""' in page and '<html lang="en" data-marque="alfa"' in page)
+check("script preselects the page brand on Choose and keeps the model list ready",
+      'choose: { brand: pageName' in js and 'data-brand' in js and "setTheme" in js)
+check("script: logo disc for Maserati and Ferrari, never the Stelvio art; Alfa keeps its message",
+      "NO_DRAWING = { maserati: true, ferrari: true }" in js and "cloneNode(true)" in js and "No drawing yet for the" in js)
+check("script: after Open service job every brand goes to /menu, not /job", '"/menu"' in js and '"/job"' not in js)
+check("script: VIN of another marque warns naming both; unknown WMI uses the page brand as entered",
+      "decodes to" in js and "was started under" in js and "the brand this service was started under" in js)
+
+mas_dec = c.post("/api/car/identify", json={"vin": MAS_VIN, "read_car": False}).json()["card"]["fields"]
+fer_dec = c.post("/api/car/identify", json={"vin": FER_VIN, "read_car": False}).json()["card"]["fields"]
+check("Maserati VIN: make decoded, model NOT invented", mas_dec["make"]["value"] == "Maserati" and mas_dec["model"]["value"] is None)
+check("Ferrari VIN: make decoded but flagged unverified, model NOT invented",
+      fer_dec["make"]["value"] == "Ferrari" and fer_dec["make"]["verified"] is False and "UNVERIFIED" in fer_dec["make"]["detail"]
+      and fer_dec["model"]["value"] is None)
+check("a model with no WMI rule is never filled in", all(f_["model"]["value"] is None for f_ in (mas_dec, fer_dec)))
+
+opened = {}
+for vin, key, dec, model in ((MAS_VIN, "maserati", mas_dec, "Quattroporte"), (FER_VIN, "ferrari", fer_dec, "Roma")):
+    picked = {"make": ci.make_field(key.capitalize(), ci.SRC_TYPED), "model": ci.make_field(model, ci.SRC_TYPED)}
+    ro = c.post("/api/car/create-service", json={"fields": {**dec, **picked}, "reason": "service"})
+    jo = ro.json()
+    opened[key] = jo
+    check(f"{key}: service opened, new car", ro.status_code == 200 and jo["created"] and not jo["existing_car"], ro.text[:160])
+    check(f"{key}: a chosen model stays ENTERED", jo["card"]["fields"]["model"]["value"] == model and jo["card"]["fields"]["model"]["source"] == ci.SRC_TYPED)
+    check(f"{key}: Menu page of the new car renders (where the button lands)", c.get(f"/v/{vin}/menu").status_code == 200)
+    again = c.post("/api/car/create-service", json={"fields": {**dec, **picked}, "reason": "again"}).json()
+    check(f"{key}: same VIN again is the existing car", again["existing_car"] and again["already_open"] and not again["created"])
+    lst = c.get(f"/cars?brand={key}").text
+    grid = lst.split("car-grid")[1]
+    check(f"{key}: car is on its own brand's list, linking to its Menu", f'href="/v/{vin}/menu"' in lst)
+    check(f"{key}: card is clean: no art, no Stelvio, state word NOT READ",
+          "<svg" not in grid and "Stelvio" not in lst and "NOT READ" in lst)
+    other = "ferrari" if key == "maserati" else "maserati"
+    check(f"{key}: not on the {other} or Alfa list", vin not in c.get(f"/cars?brand={other}").text and vin not in c.get("/cars?brand=alfa").text)
+check("the two test cars stayed in the temporary store", shop_mod.load(MAS_VIN) and shop_mod.load(FER_VIN) and str(state_dir()).startswith(STATE))
+check("art for Maserati and Ferrari models is 404 (the page draws the logo disc, not a Stelvio)",
+      all(c.get(f"/add/art?model={m}").status_code == 404 for m in ("Quattroporte", "Roma", "Levante", "Grecale")))
+check("page css centres the logo disc in the art area", ".as-art .as-disc" in css and "margin: 0 auto" in css)
 
 print(f"{checks} checks, {len(failures)} failures")
 for x in failures:

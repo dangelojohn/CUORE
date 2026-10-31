@@ -124,6 +124,9 @@ def _page(request: Request, name: str, **ctx: Any) -> HTMLResponse:
     ctx.setdefault("version", __version__)
     ctx.setdefault("profile", settings.profile.value)
     ctx.setdefault("live_strip", None)
+    from . import brand_gate, routes as web_routes  # local: routes imports many siblings
+    ctx.setdefault("marque", web_routes._marque_for(ctx))
+    ctx.setdefault("brand_has_data", brand_gate.has_data(ctx["marque"]) if ctx.get("vin") else True)
     return templates.TemplateResponse(request, name, ctx)
 
 

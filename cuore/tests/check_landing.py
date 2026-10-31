@@ -72,7 +72,7 @@ check("/ still the picker with cars in the bay", r.status_code == 200 and "brand
 
 a = c.get("/cars?brand=alfa")
 check("alfa list 200, carries the Alfa car and the Add a car card",
-      a.status_code == 200 and f'href="/v/{ALFA}/menu"' in a.text and 'href="/add"' in a.text and "data-add-car" in a.text)
+      a.status_code == 200 and f'href="/v/{ALFA}/menu"' in a.text and 'href="/add?brand=alfa"' in a.text and "data-add-car" in a.text)
 check("alfa list holds no Maserati car", f'href="/v/{MASERATI}/menu"' not in a.text)
 check("alfa card: make, year from VIN, short VIN, state word",
       "Alfa Romeo" in a.text and "2018" in a.text and "…B88115" in a.text and "chip-verdict" in a.text)
@@ -90,7 +90,7 @@ check("a model without art gets a clean card, no invented drawing", "<svg" not i
 
 f = c.get("/cars?brand=ferrari")
 check("brand with no cars: plain empty state and Add a car",
-      f.status_code == 200 and "No Ferrari cars yet" in f.text and 'href="/add"' in f.text
+      f.status_code == 200 and "No Ferrari cars yet" in f.text and 'href="/add?brand=ferrari"' in f.text
       and "Test: no vehicle data for this brand yet" in f.text)
 check("empty-state page also themed ferrari", '<html lang="en" data-marque="ferrari"' in f.text)
 

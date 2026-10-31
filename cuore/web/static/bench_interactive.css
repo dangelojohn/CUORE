@@ -23,10 +23,10 @@
 .bi-state { font-weight: 700; }
 
 /* the bar: scale track, shaded target band (also named in text), current-value marker */
-.bi-bar { position: relative; height: 28px; margin: 10px 4px 2px; border: 1px solid var(--ink-3); border-radius: 4px; background: var(--surface); }
+.bi-bar { position: relative; height: 28px; margin: 10px 4px 2px; border: 1px solid var(--ink-3); border-radius: var(--r-any, 4px); background: var(--surface); }
 .bi-row.s-missing .bi-bar { background-image: repeating-linear-gradient(135deg, transparent 0 6px, var(--rule) 6px 8px); }
 .bi-band { position: absolute; top: 0; bottom: 0; background: var(--ok-bg); border-left: 2px solid var(--ok); border-right: 2px solid var(--ok); box-sizing: border-box; }
-.bi-marker { position: absolute; top: -6px; bottom: -6px; width: 6px; margin-left: -3px; background: var(--ink); border: 1px solid var(--surface); border-radius: 2px; }
+.bi-marker { position: absolute; top: -6px; bottom: -6px; width: 6px; margin-left: -3px; background: var(--ink); border: 1px solid var(--surface); border-radius: var(--r-any, 2px); }
 .bi-row.s-out .bi-marker { background: var(--sev-returned, var(--accent)); }
 .bi-scale { display: flex; justify-content: space-between; gap: 8px; margin: 0 4px; color: var(--ink-2); font-size: var(--fs-md); }
 .bi-bandlabel { text-align: center; flex: 1; }
@@ -62,7 +62,7 @@
   display: inline-flex; align-items: center; justify-content: center; text-decoration: none; cursor: pointer;
 }
 .bf-mark.bf-fault { background: var(--bf-c); color: var(--accent-ink, #fff); border: 3px solid var(--surface); border-radius: 50%; box-shadow: 0 0 0 2px var(--bf-c); }
-.bf-mark.bf-sim { background: var(--surface); color: var(--ink); border: 3px dashed var(--bf-c); border-radius: 10px; }
+.bf-mark.bf-sim { background: var(--surface); color: var(--ink); border: 3px dashed var(--bf-c); border-radius: var(--r-any, 10px); }
 .bf-mark.bf-both { outline: 3px dashed var(--fam-chassis, #5b8fd9); outline-offset: 3px; }
 .bf-mark.is-on { outline: 3px solid var(--ink); outline-offset: 3px; }
 .bf-mark:focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }

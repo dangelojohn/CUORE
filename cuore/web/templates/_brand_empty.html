@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{# Empty, brand-themed skeleton for a page whose data this brand does not have yet.
+   Rendered by web/brand_gate.py; the colours come from base.html's data-marque. #}
+{% block title %}{{ page_title }} — {{ bar.name or brand_label or 'CUORE' }}{% endblock %}
+{% block content %}
+<section class="brand-empty" data-brand-empty="{{ tab }}">
+  <h1>{{ page_title }}</h1>
+  {% if bar.name %}<p class="muted small">{{ bar.name }}</p>{% endif %}
+  <div class="panel brand-empty-panel" role="status">
+    <p>{{ empty_line }}</p>
+    {% if page_note %}<p class="small muted">{{ page_note }}</p>{% endif %}
+  </div>
+</section>
+<style>
+.brand-empty { max-width: 46rem; margin: 1.5rem auto; }
+.brand-empty-panel { padding: 1.5rem; text-align: center; border-style: dashed; }
+.brand-empty-panel p { margin: .25rem 0; }
+</style>
+{% endblock %}

@@ -28,7 +28,7 @@
 .fuse-go { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 12px; }
 .fuse-go-l { font-weight: 700; color: var(--ink-2); }
 .fuse-gochip {
-  display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 4px 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 4px 16px; border-radius: var(--r-any, 999px);
   border: 2px solid var(--accent); background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 600;
 }
 .fuse-gochip.fuse-go-fuse, .fuse-gochip.fuse-go-ground { font-family: var(--mono); }
@@ -43,7 +43,7 @@
 .fuse-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; scroll-margin-top: 90px; }
 .fuse-chip {
   display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap, 44px); padding: 4px 14px;
-  border: 2px solid var(--c); border-radius: 999px; color: var(--ink); text-decoration: none;
+  border: 2px solid var(--c); border-radius: var(--r-any, 999px); color: var(--ink); text-decoration: none;
   background: var(--surface-2); font-size: var(--fs-sm, 16px);
 }
 .fuse-chip b { color: var(--c); font-family: var(--mono); }
@@ -67,7 +67,7 @@
 /* car picture */
 .fuse-mapbox { margin: 16px 0; background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius, 3px); padding: 8px; scroll-margin-top: 90px; }
 .fm-radio { position: absolute; opacity: 0; pointer-events: none; }
-.fm-tabs { display: inline-flex; border: 2px solid var(--rule); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+.fm-tabs { display: inline-flex; border: 2px solid var(--rule); border-radius: var(--r-any, 999px); overflow: hidden; margin-bottom: 6px; }
 .fm-tabs label { min-height: var(--tap, 44px); min-width: 88px; display: inline-grid; place-items: center; cursor: pointer; padding: 0 16px; background: var(--surface-2); }
 #fm-v-side:checked ~ .fm-tabs label[for="fm-v-side"], #fm-v-top:checked ~ .fm-tabs label[for="fm-v-top"] { background: var(--accent); color: var(--fuse-ink); font-weight: 700; }
 #fm-v-side:focus-visible ~ .fm-tabs label[for="fm-v-side"], #fm-v-top:focus-visible ~ .fm-tabs label[for="fm-v-top"] { outline: 2px solid var(--ink); }
@@ -201,7 +201,7 @@ i.fz-sw { display: inline-block; width: 16px; height: 16px; border-radius: 3px; 
 .fuse-jobcard a.jump { display: inline-flex; align-items: center; min-height: var(--tap, 44px); font-weight: 600; }
 .fuse-also { margin-top: 4px; }
 .fuse-also .fuse-jobcard { margin: 8px 0; }
-.fuse-chipl { display: inline-block; font-size: var(--fs-xs, 16px); font-weight: 400; border: 1px solid var(--ink-3); border-radius: 999px; padding: 0 8px; }
+.fuse-chipl { display: inline-block; font-size: var(--fs-xs, 16px); font-weight: 400; border: 1px solid var(--ink-3); border-radius: var(--r-any, 999px); padding: 0 8px; }
 .fuse-first { border-color: var(--accent); }
 /* test record buttons: small, only inside an opened row / ground, below the facts */
 .fuse-testbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--rule); }
@@ -219,7 +219,7 @@ i.fz-sw { display: inline-block; width: 16px; height: 16px; border-radius: 3px; 
 .fuse-owner { text-align: center; margin: 24px 0 8px; }
 
 .r-photo, .fuse-gphoto { margin: .4rem 0; }
-.r-photo img, .fuse-gphoto img { width: 64px; height: 64px; object-fit: contain; background: #fff; border-radius: 4px; }
+.r-photo img, .fuse-gphoto img { width: 64px; height: 64px; object-fit: contain; background: #fff; border-radius: var(--r-any, 4px); }
 .fuse-results a b { font-family: var(--mono); min-width: 52px; }
 .fuse-results .fuse-go { padding: 0 12px 12px; }
 .fuse-results h2 { font-size: var(--fs-md, 16px); }
@@ -267,5 +267,5 @@ i.fz-sw { display: inline-block; width: 16px; height: 16px; border-radius: 3px; 
 
 .fm-comp .fm-clabel { font-weight: 700; }
 
-.comp-showing { margin: .4rem 0; padding: .25rem .6rem; display: inline-block; border: 1px solid var(--line, currentColor); border-radius: 999px; }
+.comp-showing { margin: .4rem 0; padding: .25rem .6rem; display: inline-block; border: 1px solid var(--line, currentColor); border-radius: var(--r-any, 999px); }
 .comp-ofall { font-size: .85em; margin: .2rem 0; }

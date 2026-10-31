@@ -56,7 +56,7 @@
   min-width: 44px;
   min-height: 44px;
   padding: 2px 3px;
-  border-radius: 6px;
+  border-radius: var(--r-any, 6px);
   text-decoration: none;
   font-size: var(--fs-xs);
   line-height: 1;
@@ -81,7 +81,7 @@
   z-index: 5;
   padding: 10px 14px;
   margin: 0 0 10px;
-  border-radius: 8px;
+  border-radius: var(--r-any, 8px);
   font-size: var(--fs-sm);
   background: var(--panel, #1c1f24);
   border: 1px solid var(--border, #333);
@@ -131,7 +131,7 @@
 .job-page .step6-status {
   display: inline-block;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: var(--r-any, 999px);
   font-size: var(--fs-sm);
   font-weight: var(--fw-semibold);
   margin: 2px 0 10px;
@@ -140,7 +140,7 @@
 .job-page .step6-status-progress { background: #3a3010; color: #e0b84a; }
 .job-page .step6-status-complete { background: #163a1f; color: #4fbf74; }
 
-.job-page .result-chip { margin-left: 6px; padding: 1px 8px; border-radius: 999px; font-size: var(--fs-xs); font-weight: var(--fw-bold); }
+.job-page .result-chip { margin-left: 6px; padding: 1px 8px; border-radius: var(--r-any, 999px); font-size: var(--fs-xs); font-weight: var(--fw-bold); }
 .job-page .result-chip-pass { background: #163a1f; color: #4fbf74; }
 .job-page .result-chip-fail { background: #3a1616; color: #e0574a; }
 .job-page .result-chip-inconclusive { background: #3a3010; color: #e0b84a; }
@@ -151,7 +151,7 @@
  * to) must never look identical to a correctly-linked save -- this chip
  * sits right next to .result-chip and says so out loud. */
 .job-page .result-chip-unlinked {
-  margin-left: 4px; padding: 1px 7px; border-radius: 999px;
+  margin-left: 4px; padding: 1px 7px; border-radius: var(--r-any, 999px);
   font-size: var(--fs-xs); font-weight: var(--fw-bold); text-transform: uppercase;
   letter-spacing: .03em;
   background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac);
@@ -166,13 +166,13 @@
 
 .job-page .likelihood-bar {
   height: 6px;
-  border-radius: 999px;
+  border-radius: var(--r-any, 999px);
   background: var(--panel-2, #26292f);
   margin: 4px 0 8px;
   overflow: hidden;
   max-width: 160px;
 }
-.job-page .likelihood-fill { display: block; height: 100%; border-radius: 999px; }
+.job-page .likelihood-fill { display: block; height: 100%; border-radius: var(--r-any, 999px); }
 .job-page .likelihood-fill.likelihood-high { background: #e0574a; }
 .job-page .likelihood-fill.likelihood-med { background: #e0b84a; }
 .job-page .likelihood-fill.likelihood-low { background: #4fbf74; }
@@ -185,7 +185,7 @@
  * code/freeze-frame citation at a glance. */
 .job-page .chip-manual-tag {
   font-size: var(--fs-xs); font-weight: var(--fw-bold); text-transform: uppercase;
-  letter-spacing: .05em; padding: 1px 5px; border-radius: 999px;
+  letter-spacing: .05em; padding: 1px 5px; border-radius: var(--r-any, 999px);
   background: var(--panel-2, #26292f); color: var(--muted, #9aa4ac);
 }
 .job-page .evidence-remove-form { display: inline; }
@@ -216,7 +216,7 @@
 .job-page .confirm-pending-panel {
   margin-top: 10px;
   padding: 10px;
-  border-radius: 8px;
+  border-radius: var(--r-any, 8px);
   border: 1px solid var(--accent, #5b9dff);
   background: var(--panel-2, #1a2230);
 }
@@ -255,7 +255,7 @@
   max-width: min(92vw, 420px);
   background: var(--panel, #1c1f24);
   border: 1px solid var(--border, #333);
-  border-radius: 10px;
+  border-radius: var(--r-any, 10px);
   padding: 10px 14px;
   display: flex;
   align-items: center;
@@ -269,7 +269,7 @@
 .job-confirm-modal::backdrop { background: rgba(0,0,0,.55); }
 .job-confirm-modal {
   border: none;
-  border-radius: 12px;
+  border-radius: var(--r-any, 12px);
   padding: 16px;
   max-width: 420px;
   width: calc(100vw - 32px);
@@ -317,7 +317,7 @@
 .job-page .hyp-card.is-prefill-selected {
   outline: 2px solid var(--accent, #5b9dff);
   outline-offset: 2px;
-  border-radius: 8px;
+  border-radius: var(--r-any, 8px);
 }
 .job-page .priority-code-block.is-codes-highlighted { padding: 6px; margin: -6px -6px 10px; }
 
@@ -331,7 +331,7 @@
 .job-go { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0 12px; }
 .job-go-l { font-weight: 700; color: var(--ink-2); }
 .job-gochip {
-  display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 4px 16px; border-radius: 999px;
+  display: inline-flex; align-items: center; min-height: var(--tap, 44px); padding: 4px 16px; border-radius: var(--r-any, 999px);
   border: 2px solid var(--accent); background: var(--surface-2); color: var(--ink); text-decoration: none; font-weight: 600;
 }
 .job-gochip:hover, .job-gochip:focus-visible { background: var(--accent); color: var(--bg, #fff); }

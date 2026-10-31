@@ -31,7 +31,7 @@
 .ts-filter-chip {
   /* F5 (MECHANIC_REVIEW_3): the legend-documented tap targets must be
      >=44px tall, not just wide. */
-  min-height: 44px; padding: 4px 12px; border-radius: 999px;
+  min-height: 44px; padding: 4px 12px; border-radius: var(--r-any, 999px);
   border: 1px solid var(--rule); background: var(--surface-2); color: var(--ink-2);
   font-size: var(--fs-sm); cursor: pointer;
 }
@@ -248,7 +248,7 @@ a.ts-filter-chip {
 .ts-go { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
 .ts-gochip {
   min-height: 44px; display: inline-flex; align-items: center; padding: 4px 14px;
-  border: 1px solid var(--rule); border-radius: 999px; background: var(--surface-2);
+  border: 1px solid var(--rule); border-radius: var(--r-any, 999px); background: var(--surface-2);
   color: var(--ink); text-decoration: none; font-size: var(--fs-md);
 }
 .ts-gochip:hover { border-color: var(--ink-3); }
