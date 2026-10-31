@@ -27,7 +27,7 @@
 {% set _flow_item = (_all|selectattr('key', 'equalto', _flow_key)|first) if _flow_key else none %}
 <div class="navsheet{{ ' navsheet-page' if menu_page }} no-print" id="navsheet" role="navigation" aria-label="All CUORE pages">
   <div class="navsheet-bar">
-    <span class="navsheet-title">Menu{% if _vin %} <span class="mono navsheet-vin">{{ _vin }}</span>{% endif %}</span>
+    <span class="navsheet-title">{% if _vin %}<span class="sr-only">Menu</span>{% set _art_url = car_art_url(_vin) if car_art_url is defined else '' %}{% if _art_url %}<span class="navsheet-car" style="--art:url({{ _art_url }})" aria-hidden="true"></span>{% else %}<span class="logo-slot navsheet-badge" aria-hidden="true"></span>{% endif %}<span class="mono navsheet-vin">{{ _vin }}</span>{% else %}Menu{% endif %}</span>
     <form class="navsheet-search" role="search" method="get" action="/find">
       <label for="navsheet-q" class="sr-only">Search CUORE</label>
       <input id="navsheet-q" class="navsheet-q" type="search" name="q" autocomplete="off" placeholder="Search CUORE: a page, code, part, bulletin or task…">

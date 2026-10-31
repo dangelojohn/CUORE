@@ -731,6 +731,11 @@ header.top .brand { position: absolute; left: 50%; top: 50%; transform: translat
   overscroll-behavior: contain;
 }
 .connect-btn[aria-disabled="true"] { background: transparent; color: var(--ink-3); border: 1px solid var(--rule); }
+.navsheet-title { display: inline-flex; align-items: center; gap: var(--space-3); }
+.navsheet-car { display: block; width: 150px; height: 52px; background: var(--ink);
+  -webkit-mask: var(--art) left center / contain no-repeat; mask: var(--art) left center / contain no-repeat; }
+.navsheet-badge { flex: none; }
+@media (max-width: 759px) { .navsheet-car { width: 96px; height: 36px; } }
 .navsheet.navsheet-page { display: block; padding: 0 max(var(--pad), calc((100% - 1100px) / 2)) 32px; }
 .navsheet-page .navtop { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 .top .menu-btn:hover { border-color: var(--ink-3); }

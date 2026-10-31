@@ -77,6 +77,15 @@ def top_car_name(vin: str) -> str:
         return ""
 
 
+def car_art_url(vin: str) -> str:
+    """The Menu's picture of this car, or "" when the model has no drawing."""
+    from ..services import landing_bridge
+    try:
+        return f"/car-art/{vin}.svg" if landing_bridge._art(vin, top_car_name(vin)) else ""
+    except Exception:  # noqa: BLE001 -- the Menu must still render
+        return ""
+
+
 def local_ferrari_mark() -> bool:
     """True when the machine-only Ferrari mark is on disk (see data/brands.json)."""
     return (STATIC_DIR / "brand" / "ferrari-horse.svg").is_file()
@@ -99,6 +108,7 @@ def _register(templates: Any) -> None:
     templates.env.globals["simulation_active"] = simulation_active
     templates.env.globals["local_ferrari_mark"] = local_ferrari_mark
     templates.env.globals["top_car_name"] = top_car_name
+    templates.env.globals["car_art_url"] = car_art_url
     from . import units as _units
     templates.env.filters["dist"] = _units.dist
     templates.env.filters["speed"] = _units.speed

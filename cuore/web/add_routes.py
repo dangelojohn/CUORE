@@ -19,10 +19,10 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 from ..api.deps import require_token
-from ..services import car_identify, landing_bridge
+from ..services import car_identify, landing_bridge, shop_bridge
 from . import routes as web_routes
 
 router = APIRouter(include_in_schema=False, dependencies=[Depends(require_token)])
@@ -61,6 +61,17 @@ def add_art(model: str = "") -> dict[str, str]:
     if not art:
         raise HTTPException(status_code=404, detail="no drawing for this model yet")
     return art
+
+
+@router.get("/car-art/{vin}.svg")
+def car_art_svg(vin: str) -> Response:
+    """The car's side drawing as one image, for the Menu. 404 when it has none."""
+    art = landing_bridge._art(vin, shop_bridge.resolve_vehicle_name(vin))
+    if not art:
+        raise HTTPException(status_code=404, detail="no drawing for this car yet")
+    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 40 860 300">'
+           f'<path fill="#000" fill-rule="evenodd" d="{art["ink"]}"/></svg>')
+    return Response(svg, media_type="image/svg+xml", headers={"Cache-Control": "max-age=3600"})
 
 
 @router.get("/add/story")
