@@ -27,9 +27,11 @@
     <span class="brand-word">CU<span>O</span>RE</span>
   </a>
   {% if bar is defined and bar and bar.name %}<span class="top-car" title="{{ bar.name }}">{{ bar.name }}</span>{% endif %}
+  {% if not menu_page %}
   <input type="checkbox" id="navsheet-toggle" class="navsheet-toggle" aria-label="Open or close the main menu">
   <label for="navsheet-toggle" class="menu-btn no-print" role="button" title="Menu: every page"><span class="menu-ico" aria-hidden="true">&#9776;</span> Menu</label>
   {% include "_navsheet.html" %}
+  {% endif %}
 </header>
 
 {% set vb %}{% block vehiclebar %}{% endblock %}{% endset %}

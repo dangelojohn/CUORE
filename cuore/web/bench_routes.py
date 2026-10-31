@@ -45,6 +45,13 @@ _OUTCOMES = {"ok", "fault_found", "skipped"}
 _OUTCOME_WORDS = {"ok": "OK", "fault_found": "Fault found", "skipped": "Skipped"}
 
 
+@router.get("/v/{vin}/menu", response_class=HTMLResponse)
+def car_menu_page(request: Request, vin: str) -> HTMLResponse:
+    """The car's home after it is picked: its Menu as a page, not an overlay."""
+    bar = web_routes._vehicle_bar(vin, web_routes._dossier(vin))
+    return web_routes._page(request, "car_menu.html", vin=vin, bar=bar, menu_page=True, live_strip=None)
+
+
 @router.get("/v/{vin}", response_class=HTMLResponse)
 def bench_page(request: Request, vin: str, saved: str = "") -> HTMLResponse:
     """What to do right now: the resume card, the task roster (each with

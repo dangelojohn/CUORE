@@ -25,7 +25,7 @@
       <span class="car-sub">Read the car or type its VIN</span>
     </a>
     {% for c in cars %}
-    <a class="car-card" data-marque="{{ c.marque }}" data-vin="{{ c.vin }}" href="/v/{{ c.vin }}" style="--i:{{ loop.index }}">
+    <a class="car-card" data-marque="{{ c.marque }}" data-vin="{{ c.vin }}" href="/v/{{ c.vin }}/menu" style="--i:{{ loop.index }}">
       <span class="car-art">
         {% if c.art %}<svg viewBox="0 0 860 360" role="img" aria-label="{{ c.name }}, side view"><path d="{{ c.art.silhouette }}" fill="var(--surface-2)"/><path d="{{ c.art.ink }}" fill="var(--ink-2)" fill-rule="evenodd"/></svg>{% endif %}
       </span>

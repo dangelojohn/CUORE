@@ -25,7 +25,7 @@
 {% set _flow_key = (_flow.steps|selectattr("n", "equalto", _flow.current)|map(attribute="key")|first) if (_flow and _flow.steps) else none %}
 {% set _all = (_menu.groups|map(attribute='items')|sum(start=[])) if _menu else [] %}
 {% set _flow_item = (_all|selectattr('key', 'equalto', _flow_key)|first) if _flow_key else none %}
-<div class="navsheet no-print" id="navsheet" role="navigation" aria-label="All CUORE pages">
+<div class="navsheet{{ ' navsheet-page' if menu_page }} no-print" id="navsheet" role="navigation" aria-label="All CUORE pages">
   <div class="navsheet-bar">
     <span class="navsheet-title">Menu{% if _vin %} <span class="mono navsheet-vin">{{ _vin }}</span>{% endif %}</span>
     <form class="navsheet-search" role="search" method="get" action="/find">
@@ -34,7 +34,7 @@
       {% if _vin %}<input type="hidden" name="vin" value="{{ _vin }}">{% endif %}
       <button type="submit" class="navsheet-go">Search</button>
     </form>
-    <label for="navsheet-toggle" class="navtile navsheet-close" role="button">Close</label>
+    {% if not menu_page %}<label for="navsheet-toggle" class="navtile navsheet-close" role="button">Close</label>{% endif %}
   </div>
   {% if _vin %}
   {% set _next = _flow_item if _flow_item else {"href": "/v/" ~ _vin ~ "/five-minute", "key": "five-minute", "i18n": none, "label": "Five-minute test"} %}

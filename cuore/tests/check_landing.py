@@ -72,8 +72,8 @@ check("/ still the picker with cars in the bay", r.status_code == 200 and "brand
 
 a = c.get("/cars?brand=alfa")
 check("alfa list 200, carries the Alfa car and the Add a car card",
-      a.status_code == 200 and f'href="/v/{ALFA}"' in a.text and 'href="/add"' in a.text and "data-add-car" in a.text)
-check("alfa list holds no Maserati car", f'href="/v/{MASERATI}"' not in a.text)
+      a.status_code == 200 and f'href="/v/{ALFA}/menu"' in a.text and 'href="/add"' in a.text and "data-add-car" in a.text)
+check("alfa list holds no Maserati car", f'href="/v/{MASERATI}/menu"' not in a.text)
 check("alfa card: make, year from VIN, short VIN, state word",
       "Alfa Romeo" in a.text and "2018" in a.text and "…B88115" in a.text and "chip-verdict" in a.text)
 check("alfa list says nothing about missing data", "Test: no vehicle data" not in a.text)
@@ -84,8 +84,8 @@ check("brand is remembered for the session, tile highlighted", "cuore_brand" in 
 
 m = c.get("/cars?brand=maserati")
 check("maserati list: its own car, themed, with the test line",
-      m.status_code == 200 and f'href="/v/{MASERATI}"' in m.text and 'data-marque="maserati"' in m.text
-      and "Test: no vehicle data for this brand yet" in m.text and f'href="/v/{ALFA}"' not in m.text)
+      m.status_code == 200 and f'href="/v/{MASERATI}/menu"' in m.text and 'data-marque="maserati"' in m.text
+      and "Test: no vehicle data for this brand yet" in m.text and f'href="/v/{ALFA}/menu"' not in m.text)
 check("a model without art gets a clean card, no invented drawing", "<svg" not in m.text.split("car-grid")[1])
 
 f = c.get("/cars?brand=ferrari")
@@ -95,7 +95,7 @@ check("brand with no cars: plain empty state and Add a car",
 check("empty-state page also themed ferrari", '<html lang="en" data-marque="ferrari"' in f.text)
 
 s = c.get(f"/cars?brand=alfa&q={ALFA[-6:]}")
-check("search by VIN finds the car", f'href="/v/{ALFA}"' in s.text)
+check("search by VIN finds the car", f'href="/v/{ALFA}/menu"' in s.text)
 s = c.get("/cars?brand=alfa&q=ZZZZZZZZZZZZZZZZZ")
 check("unknown VIN offers to start a job for it", "/start?vin=ZZZZZZZZZZZZZZZZZ" in s.text)
 
@@ -109,6 +109,9 @@ for url in (f"/v/{ALFA}", f"/v/{ALFA}/codes", "/cars?brand=alfa", "/about", f"/m
 check("/ never redirects with a remembered brand", c.get("/").status_code == 200)
 
 # --- car bar replaces the tab strip --------------------------------------------------------------
+mp = c.get(f"/v/{ALFA}/menu")
+check("the car opens on its Menu page, with no overlay copy", mp.status_code == 200 and "navsheet-page" in mp.text
+      and mp.text.count('id="navsheet"') == 1 and 'data-nav="bench"' in mp.text and "navsheet-close" not in mp.text)
 b = c.get(f"/v/{ALFA}").text
 check("car page: Change car -> its brand list, search kept, no tab strip",
       'class="vchange" href="/cars?brand=alfa"' in b and 'class="vsearch"' in b and 'class="vtabs"' not in b)
