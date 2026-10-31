@@ -22,6 +22,9 @@ maserati-trident.svg  Wikimedia Commons "File:Maserati_logo_2.svg", fetched
     mobile). The owner reports the marque's agreement; keep the written
     permission with the brand package when it arrives.
 
+alfa-romeo-line.png  One-colour line badge for the start page only, cropped from
+    logo3.jpg supplied by the project owner on 2026-10-31.
+
 maserati-trident-only.svg  The trident from maserati-trident.svg with the
     script word removed, for the start page only.
 
